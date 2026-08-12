@@ -4,7 +4,6 @@ import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { McpToolSerializerService } from '../serializer.service';
-import { productSummary } from '../serializers';
 
 const getProductInput = z.strictObject({
     id: z.union([z.string(), z.number()]).describe('Product ID.').optional(),
@@ -55,7 +54,7 @@ export class ShopGetProductTool implements McpToolHandler<GetProductInput> {
         const variants = await this.productVariantService.getVariantsByProductId(ctx, product.id, {}, []);
         return {
             product: {
-                ...productSummary(product),
+                ...this.serializer.product(product),
                 variants: variants.items.map(variant => this.serializer.variant(variant)),
             },
         };

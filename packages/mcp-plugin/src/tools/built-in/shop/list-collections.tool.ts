@@ -4,7 +4,7 @@ import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { page, publicCollectionListOptions } from '../order-helpers';
-import { collectionSummary } from '../serializers';
+import { McpToolSerializerService } from '../serializer.service';
 
 const listCollectionsInput = z.strictObject({
     limit: z.number().describe('Maximum number of collections to return.').optional(),
@@ -35,7 +35,10 @@ type ListCollectionsInput = z.infer<typeof listCollectionsInput> & Record<string
 })
 @Injectable()
 export class ShopListCollectionsTool implements McpToolHandler<ListCollectionsInput> {
-    constructor(private collectionService: CollectionService) {}
+    constructor(
+        private collectionService: CollectionService,
+        private serializer: McpToolSerializerService,
+    ) {}
 
     async execute(ctx: RequestContext, input: ListCollectionsInput) {
         if (input.parentId != null) {
@@ -60,14 +63,14 @@ export class ShopListCollectionsTool implements McpToolHandler<ListCollectionsIn
             const limit = input.limit ?? 25;
             const items = visibleChildren
                 .slice(offset, offset + limit)
-                .map(collection => collectionSummary(collection));
+                .map(collection => this.serializer.collection(collection));
             return page(items, visibleChildren.length, input);
         }
         const result = await this.collectionService.findAll(ctx, publicCollectionListOptions(input), [
             'featuredAsset',
         ]);
         return page(
-            result.items.map(collection => collectionSummary(collection)),
+            result.items.map(collection => this.serializer.collection(collection)),
             result.totalItems,
             input,
         );

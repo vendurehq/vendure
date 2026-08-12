@@ -3,7 +3,7 @@ import { Permission, ProductService, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { productSummary } from '../serializers';
+import { McpToolSerializerService } from '../serializer.service';
 
 const getProductInput = z.strictObject({
     id: z.union([z.string(), z.number()]).describe('Product ID.'),
@@ -31,11 +31,14 @@ type GetProductInput = z.infer<typeof getProductInput>;
 })
 @Injectable()
 export class AdminGetProductTool implements McpToolHandler<GetProductInput> {
-    constructor(private productService: ProductService) {}
+    constructor(
+        private productService: ProductService,
+        private serializer: McpToolSerializerService,
+    ) {}
 
     async execute(ctx: RequestContext, input: GetProductInput) {
         return {
-            product: productSummary(
+            product: this.serializer.product(
                 await this.productService.findOne(ctx, input.id, ['featuredAsset', 'assets']),
             ),
         };

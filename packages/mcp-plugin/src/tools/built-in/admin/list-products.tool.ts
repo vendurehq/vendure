@@ -4,7 +4,7 @@ import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { listOptions, page } from '../order-helpers';
-import { productSummary } from '../serializers';
+import { McpToolSerializerService } from '../serializer.service';
 
 const listProductsInput = z.strictObject({
     limit: z.number().describe('Maximum number of products to return.').optional(),
@@ -31,12 +31,15 @@ type ListProductsInput = z.infer<typeof listProductsInput> & Record<string, unkn
 })
 @Injectable()
 export class ListProductsTool implements McpToolHandler<ListProductsInput> {
-    constructor(private productService: ProductService) {}
+    constructor(
+        private productService: ProductService,
+        private serializer: McpToolSerializerService,
+    ) {}
 
     async execute(ctx: RequestContext, input: ListProductsInput) {
         const result = await this.productService.findAll(ctx, listOptions<Product>(input), ['featuredAsset']);
         return page(
-            result.items.map(product => productSummary(product)),
+            result.items.map(product => this.serializer.product(product)),
             result.totalItems,
             input,
         );

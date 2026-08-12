@@ -1,16 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { ShippingMethodQuote } from '@vendure/common/lib/generated-types';
-import { ConfigService, CurrencyCode, Order, ProductVariant } from '@vendure/core';
+import { ConfigService, CurrencyCode, ID, Order, Product, ProductVariant } from '@vendure/core';
 
-import { isRecord } from './serializers';
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null;
+}
 
 /**
- * Turns Vendure order, variant and shipping-quote values into the JSON that built-in tools
- * return.
+ * Turns Vendure entities into the JSON that the built-in tools return.
  *
- * These live in a service rather than beside the plain functions in `serializers.ts`
- * because they need the store's configured number of decimal places, which is only reachable
- * through `ConfigService`.
+ * Every built-in tool that returns an entity goes through this one service, so each entity's
+ * output shape has a single definition. Prices need the store's configured number of decimal
+ * places, which is only reachable through `ConfigService`, which is why this is an injectable
+ * service rather than a set of plain functions.
  */
 @Injectable()
 export class McpToolSerializerService {
@@ -57,6 +59,78 @@ export class McpToolSerializerService {
         };
     }
 
+    product(product: (Product & { name?: string; slug?: string; description?: string }) | undefined | null) {
+        if (!product) return null;
+        return {
+            id: product.id,
+            name: product.name,
+            slug: product.slug,
+            description: product.description,
+            enabled: product.enabled,
+            featuredAsset: product.featuredAsset ? this.asset(product.featuredAsset) : null,
+        };
+    }
+
+    collection(
+        collection:
+            | { id: ID; name?: string; slug?: string; description?: string; featuredAsset?: unknown }
+            | undefined
+            | null,
+    ) {
+        if (!collection) return null;
+        return {
+            id: collection.id,
+            name: collection.name,
+            slug: collection.slug,
+            description: collection.description,
+            featuredAsset: collection.featuredAsset ? this.asset(collection.featuredAsset) : null,
+        };
+    }
+
+    customer(
+        customer:
+            | { id?: ID; firstName?: string; lastName?: string; emailAddress?: string; phoneNumber?: string }
+            | undefined
+            | null,
+    ) {
+        if (!customer || !('id' in customer)) return null;
+        return {
+            id: customer.id,
+            firstName: customer.firstName,
+            lastName: customer.lastName,
+            emailAddress: customer.emailAddress,
+            phoneNumber: customer.phoneNumber,
+        };
+    }
+
+    /**
+     * Vendure's customer mutations return either the Customer or one of its typed error results.
+     * This exists because that union type cannot be passed to the `customer` method above
+     * directly.
+     *
+     * An error result becomes null, so a tool using this reports a failure only as a null
+     * customer, without the reason. That is the behaviour these tools already had. Note this is
+     * deliberately not named like `orderOrError` below, which does the opposite and hands the
+     * error result back to the caller intact.
+     */
+    customerFromResult(customer: unknown) {
+        if (isRecord(customer) && '__typename' in customer && 'message' in customer) {
+            return null;
+        }
+        return this.customer(
+            customer as
+                | {
+                      id?: ID;
+                      firstName?: string;
+                      lastName?: string;
+                      emailAddress?: string;
+                      phoneNumber?: string;
+                  }
+                | undefined
+                | null,
+        );
+    }
+
     order(order: Order | undefined | null) {
         if (!order) return null;
         return {
@@ -81,6 +155,26 @@ export class McpToolSerializerService {
         };
     }
 
+    /**
+     * Vendure mutations return either the entity or one of its typed error results. An error result
+     * is handed back untouched so the model sees Vendure's own message.
+     */
+    orderOrError(result: unknown) {
+        if (isRecord(result) && 'message' in result && '__typename' in result) {
+            return { result };
+        }
+        return { order: this.order(result as Order | undefined) };
+    }
+
+    /**
+     * A shipping quote arrives with raw whole-number prices and no currency code, because the
+     * currency belongs to the order rather than to the quote. The caller passes it in.
+     *
+     * Unlike the methods above, this copies the quote and adds to it rather than listing the
+     * fields it keeps. A shipping calculator can attach anything it likes under `metadata` or
+     * `customFields`, and this tool has always returned those, so naming fields here would
+     * silently drop them.
+     */
     shippingQuote(quote: ShippingMethodQuote, currencyCode: CurrencyCode) {
         return {
             ...quote,
@@ -91,13 +185,25 @@ export class McpToolSerializerService {
     }
 
     /**
-     * Vendure mutations return either the entity or one of its typed error results. An error result
-     * is handed back untouched so the model sees Vendure's own message.
+     * Private because no tool returns an asset on its own; assets only ever appear inside a
+     * product or a collection.
      */
-    orderOrError(result: unknown) {
-        if (isRecord(result) && 'message' in result && '__typename' in result) {
-            return { result };
-        }
-        return { order: this.order(result as Order | undefined) };
+    private asset(asset: unknown) {
+        if (!isRecord(asset)) return null;
+        return {
+            id: asset.id,
+            name: asset.name,
+            type: asset.type,
+            mimeType: asset.mimeType,
+            width: asset.width,
+            height: asset.height,
+            fileSize: asset.fileSize,
+            source: asset.source,
+            preview: asset.preview,
+            focalPoint: asset.focalPoint,
+            tags: Array.isArray(asset.tags)
+                ? asset.tags.map(tag => (isRecord(tag) ? tag.value : tag))
+                : undefined,
+        };
     }
 }

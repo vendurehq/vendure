@@ -4,7 +4,7 @@ import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { page, publicProductListOptions } from '../order-helpers';
-import { productSummary } from '../serializers';
+import { McpToolSerializerService } from '../serializer.service';
 
 const searchProductsInput = z.strictObject({
     query: z.string().describe('Text to look up in product names and slugs.').optional(),
@@ -36,14 +36,17 @@ type SearchProductsInput = z.infer<typeof searchProductsInput> & Record<string, 
 })
 @Injectable()
 export class SearchProductsTool implements McpToolHandler<SearchProductsInput> {
-    constructor(private productService: ProductService) {}
+    constructor(
+        private productService: ProductService,
+        private serializer: McpToolSerializerService,
+    ) {}
 
     async execute(ctx: RequestContext, input: SearchProductsInput) {
         const result = await this.productService.findAll(ctx, publicProductListOptions(input), [
             'featuredAsset',
         ]);
         return page(
-            result.items.map(product => productSummary(product)),
+            result.items.map(product => this.serializer.product(product)),
             result.totalItems,
             input,
         );

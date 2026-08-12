@@ -3,7 +3,7 @@ import { CustomerService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { customerSummary } from '../serializers';
+import { McpToolSerializerService } from '../serializer.service';
 
 const getCustomerInput = z.strictObject({
     id: z.union([z.string(), z.number()]).describe('Customer ID.'),
@@ -29,9 +29,14 @@ type GetCustomerInput = z.infer<typeof getCustomerInput>;
 })
 @Injectable()
 export class GetCustomerTool implements McpToolHandler<GetCustomerInput> {
-    constructor(private customerService: CustomerService) {}
+    constructor(
+        private customerService: CustomerService,
+        private serializer: McpToolSerializerService,
+    ) {}
 
     async execute(ctx: RequestContext, input: GetCustomerInput) {
-        return { customer: customerSummary(await this.customerService.findOne(ctx, input.id, ['user'])) };
+        return {
+            customer: this.serializer.customer(await this.customerService.findOne(ctx, input.id, ['user'])),
+        };
     }
 }

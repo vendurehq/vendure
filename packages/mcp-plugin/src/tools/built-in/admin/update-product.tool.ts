@@ -4,7 +4,7 @@ import { Permission, ProductService, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { productSummary } from '../serializers';
+import { McpToolSerializerService } from '../serializer.service';
 
 const productTranslationSchema = z.strictObject({
     // Cast is type-only (no runtime effect, schema still emits `type: "string"`): the generated
@@ -60,11 +60,16 @@ type UpdateProductToolInput = z.infer<typeof updateProductInput>;
 })
 @Injectable()
 export class UpdateProductTool implements McpToolHandler<UpdateProductToolInput> {
-    constructor(private productService: ProductService) {}
+    constructor(
+        private productService: ProductService,
+        private serializer: McpToolSerializerService,
+    ) {}
 
     async execute(ctx: RequestContext, input: UpdateProductToolInput) {
         return {
-            product: productSummary(await this.productService.update(ctx, { ...input.input, id: input.id })),
+            product: this.serializer.product(
+                await this.productService.update(ctx, { ...input.input, id: input.id }),
+            ),
         };
     }
 }

@@ -3,7 +3,7 @@ import { CustomerService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { customerSummary } from '../serializers';
+import { McpToolSerializerService } from '../serializer.service';
 
 const customerUpdateSchema = z.strictObject({
     firstName: z.string().describe('Customer first name.').optional(),
@@ -44,11 +44,14 @@ type UpdateCustomerToolInput = z.infer<typeof updateCustomerInput>;
 })
 @Injectable()
 export class UpdateCustomerTool implements McpToolHandler<UpdateCustomerToolInput> {
-    constructor(private customerService: CustomerService) {}
+    constructor(
+        private customerService: CustomerService,
+        private serializer: McpToolSerializerService,
+    ) {}
 
     async execute(ctx: RequestContext, input: UpdateCustomerToolInput) {
         return {
-            customer: customerSummary(
+            customer: this.serializer.customer(
                 await this.customerService.update(ctx, { ...input.input, id: input.id }),
             ),
         };

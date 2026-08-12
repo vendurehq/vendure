@@ -3,7 +3,7 @@ import { CollectionService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { collectionSummary } from '../serializers';
+import { McpToolSerializerService } from '../serializer.service';
 
 const getCollectionInput = z.strictObject({
     id: z.union([z.string(), z.number()]).describe('Collection ID.').optional(),
@@ -30,13 +30,18 @@ type GetCollectionInput = z.infer<typeof getCollectionInput>;
 })
 @Injectable()
 export class ShopGetCollectionTool implements McpToolHandler<GetCollectionInput> {
-    constructor(private collectionService: CollectionService) {}
+    constructor(
+        private collectionService: CollectionService,
+        private serializer: McpToolSerializerService,
+    ) {}
 
     async execute(ctx: RequestContext, input: GetCollectionInput) {
         const collection =
             input.id != null
                 ? await this.collectionService.findOne(ctx, input.id, ['featuredAsset'])
                 : await this.collectionService.findOneBySlug(ctx, input.slug ?? '', ['featuredAsset']);
-        return { collection: collection && !collection.isPrivate ? collectionSummary(collection) : null };
+        return {
+            collection: collection && !collection.isPrivate ? this.serializer.collection(collection) : null,
+        };
     }
 }
