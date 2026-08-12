@@ -253,6 +253,10 @@ async function compileTypeScript({
         experimentalDecorators: true,
         emitDecoratorMetadata: true,
         esModuleInterop: true,
+        // Plugins may import .tsx files (e.g. server-rendered invoices or email
+        // templates). Without this, transpileModule emits the JSX verbatim into
+        // the .js output and importing the compiled config fails with a syntax error.
+        jsx: ts.JsxEmit.ReactJSX,
     };
     const transformers: ts.CustomTransformers | undefined = pathTransformer
         ? { after: [pathTransformer] }
