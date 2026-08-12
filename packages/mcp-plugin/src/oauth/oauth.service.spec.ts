@@ -1,7 +1,6 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
-import { DEFAULT_OAUTH_OPTIONS } from '../constants';
 import { resolveMcpPluginOptions } from '../resolve-options';
 import { McpPluginOptions } from '../types';
 
@@ -11,30 +10,39 @@ import { deriveHashKey, hashToken } from './token-hash';
 const ISSUER = 'https://shop.example.com';
 
 function createService(
-    oauth?: McpPluginOptions['oauth'],
-    shopAccess?: McpPluginOptions['shopAccess'],
+    opts: { oauth?: McpPluginOptions['oauth']; shopAccess?: McpPluginOptions['shopAccess'] } = {},
 ): McpOauthService {
     const options: McpPluginOptions = {
-        oauth: oauth === undefined ? undefined : { ...DEFAULT_OAUTH_OPTIONS, issuer: ISSUER, ...oauth },
-        shopAccess,
+        oauth: opts.oauth === undefined ? undefined : { issuer: ISSUER, ...opts.oauth },
+        shopAccess: opts.shopAccess,
     };
     // The methods exercised here validate input / read options before touching any
     // injected dependency, so the DB/session deps (and the CIMD resolver) can be omitted.
+    const deps = {
+        connection: undefined as any,
+        requestContextService: undefined as any,
+        sessionService: undefined as any,
+        channelService: undefined as any,
+        userService: undefined as any,
+        configService: { authOptions: { sessionCacheStrategy: { delete: vi.fn() } } } as any,
+        options: resolveMcpPluginOptions(options),
+        cimdClientResolver: undefined as any,
+    };
     return new McpOauthService(
-        undefined as any,
-        undefined as any,
-        undefined as any,
-        undefined as any,
-        undefined as any,
-        { authOptions: { sessionCacheStrategy: { delete: vi.fn() } } } as any,
-        resolveMcpPluginOptions(options),
-        undefined as any,
+        deps.connection,
+        deps.requestContextService,
+        deps.sessionService,
+        deps.channelService,
+        deps.userService,
+        deps.configService,
+        deps.options,
+        deps.cimdClientResolver,
     );
 }
 
 describe('McpOauthService metadata', () => {
     it('builds RFC 8414 authorization-server metadata with a trailing-slash-trimmed issuer', () => {
-        const service = createService({ tokenSecret: 's', issuer: `${ISSUER}/` });
+        const service = createService({ oauth: { tokenSecret: 's', issuer: `${ISSUER}/` } });
         const meta = service.metadata();
         expect(meta.issuer).toBe(ISSUER);
         expect(meta.authorization_endpoint).toBe(`${ISSUER}/mcp/oauth/authorize`);
@@ -44,7 +52,7 @@ describe('McpOauthService metadata', () => {
     });
 
     it('advertises only the S256 PKCE method and the none auth method', () => {
-        const meta = createService({ tokenSecret: 's' }).metadata();
+        const meta = createService({ oauth: { tokenSecret: 's' } }).metadata();
         expect(meta.code_challenge_methods_supported).toEqual(['S256']);
         expect(meta.token_endpoint_auth_methods_supported).toEqual(['none']);
         expect(meta.response_types_supported).toEqual(['code']);
@@ -52,12 +60,12 @@ describe('McpOauthService metadata', () => {
     });
 
     it('advertises CIMD support (client_id_metadata_document_supported)', () => {
-        const meta = createService({ tokenSecret: 's' }).metadata();
+        const meta = createService({ oauth: { tokenSecret: 's' } }).metadata();
         expect(meta.client_id_metadata_document_supported).toBe(true);
     });
 
     it('builds RFC 9728 protected-resource metadata per toolset', () => {
-        const service = createService({ tokenSecret: 's' });
+        const service = createService({ oauth: { tokenSecret: 's' } });
         expect(service.protectedResourceMetadata('shop')).toEqual({
             resource: `${ISSUER}/mcp/shop`,
             authorization_servers: [ISSUER],
@@ -71,7 +79,7 @@ describe('McpOauthService metadata', () => {
     // absence of any key we do not advertise. Serving a key with an `undefined` value (which
     // JSON drops but `Object.keys` still shows) or reordering the fields both fail here.
     it('serves the protected-resource document with exactly the fields it advertises', () => {
-        const service = createService({ tokenSecret: 's' });
+        const service = createService({ oauth: { tokenSecret: 's' } });
         const document = service.protectedResourceMetadata('admin');
         expect(Object.keys(document)).toEqual([
             'resource',
@@ -90,7 +98,7 @@ describe('McpOauthService metadata', () => {
     });
 
     it('builds the protected-resource metadata URL per toolset', () => {
-        const service = createService({ tokenSecret: 's' });
+        const service = createService({ oauth: { tokenSecret: 's' } });
         expect(service.protectedResourceMetadataUrl('shop')).toBe(
             `${ISSUER}/.well-known/oauth-protected-resource/mcp/shop`,
         );
@@ -100,12 +108,12 @@ describe('McpOauthService metadata', () => {
     });
 
     it('throws when OAuth is not configured', () => {
-        const service = createService(undefined);
+        const service = createService();
         expect(() => service.metadata()).toThrow(BadRequestException);
     });
 
     it('404s the shop protected-resource metadata when shopAccess is disabled, but still serves admin', () => {
-        const service = createService({ tokenSecret: 's' }, 'disabled');
+        const service = createService({ oauth: { tokenSecret: 's' }, shopAccess: 'disabled' });
         expect(() => service.protectedResourceMetadata('shop')).toThrow(NotFoundException);
         expect(service.protectedResourceMetadata('admin').resource).toBe(`${ISSUER}/mcp/admin`);
     });
@@ -113,7 +121,7 @@ describe('McpOauthService metadata', () => {
 
 describe('McpOauthService PKCE / grant gating', () => {
     it('rejects a non-code response_type', async () => {
-        const service = createService({ tokenSecret: 's' });
+        const service = createService({ oauth: { tokenSecret: 's' } });
         await expect(
             service.createAuthorizationRedirect({
                 response_type: 'token',
@@ -126,7 +134,7 @@ describe('McpOauthService PKCE / grant gating', () => {
     });
 
     it('rejects a plain PKCE code_challenge_method (S256 only)', async () => {
-        const service = createService({ tokenSecret: 's' });
+        const service = createService({ oauth: { tokenSecret: 's' } });
         await expect(
             service.createAuthorizationRedirect({
                 response_type: 'code',
@@ -139,7 +147,7 @@ describe('McpOauthService PKCE / grant gating', () => {
     });
 
     it('rejects an unsupported grant_type at the token endpoint', async () => {
-        const service = createService({ tokenSecret: 's' });
+        const service = createService({ oauth: { tokenSecret: 's' } });
         await expect(service.exchangeToken({ grant_type: 'password' })).rejects.toThrow(
             'Unsupported grant_type',
         );
@@ -148,7 +156,7 @@ describe('McpOauthService PKCE / grant gating', () => {
     // With shopAccess disabled, resolveResource must not recognise the shop resource at all —
     // an authorize request naming it fails the same way it would for any unrecognised URL.
     it('refuses an authorize request for the shop resource when shopAccess is disabled', async () => {
-        const service = createService({ tokenSecret: 's' }, 'disabled');
+        const service = createService({ oauth: { tokenSecret: 's' }, shopAccess: 'disabled' });
         await expect(
             service.createAuthorizationRedirect({
                 response_type: 'code',
@@ -164,7 +172,7 @@ describe('McpOauthService PKCE / grant gating', () => {
     // A resource with a query string gets the specific message, not the generic
     // "Unsupported OAuth resource" — the caller needs to know which part of the URL to fix.
     it('names the query-string problem when an authorize request resource carries one', async () => {
-        const service = createService({ tokenSecret: 's' });
+        const service = createService({ oauth: { tokenSecret: 's' } });
         await expect(
             service.createAuthorizationRedirect({
                 response_type: 'code',
@@ -180,7 +188,7 @@ describe('McpOauthService PKCE / grant gating', () => {
 
 describe('McpOauthService OAuth credential lookup hashing', () => {
     it('hashes an OAuth credential with domain separation before storage and lookup', () => {
-        const service = createService({ tokenSecret: 'test-secret' });
+        const service = createService({ oauth: { tokenSecret: 'test-secret' } });
         const hashKey = deriveHashKey('test-secret');
         const storedHash = (service as any).hashLookup('plain-token');
 

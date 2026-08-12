@@ -12,7 +12,14 @@ import {
     Res,
     UnauthorizedException,
 } from '@nestjs/common';
-import { ConfigService, Logger } from '@vendure/core';
+import {
+    ChannelService,
+    ConfigService,
+    Logger,
+    RequestContext,
+    RequestContextService,
+    SessionService,
+} from '@vendure/core';
 import { McpToolset } from '@vendure/mcp-sdk';
 import type { Request, Response } from 'express';
 
@@ -57,6 +64,9 @@ export class McpTransportController {
         private rateLimiter: McpRateLimiterService,
         private configService: ConfigService,
         @Inject(MCP_PLUGIN_OPTIONS) private options: ResolvedMcpPluginOptions,
+        private requestContextService: RequestContextService,
+        private sessionService: SessionService,
+        private channelService: ChannelService,
     ) {
         // One stateless handler; the per-request factory reads the resolved context from authInfo.extra.
         const handler = createMcpHandler(
@@ -184,7 +194,7 @@ export class McpTransportController {
             // Anonymous shop: thread the Vendure session token (for cart continuity) and the channel
             // token (for multi-channel). An invalid channel token errors like the rest of Vendure.
             try {
-                const ctx = await this.oauthService.createAnonymousShopContext(
+                const ctx = await this.createAnonymousShopContext(
                     this.getVendureSessionToken(headers),
                     this.getChannelToken(headers),
                 );
@@ -372,6 +382,34 @@ export class McpTransportController {
     private getBearerToken(header?: string): string | undefined {
         const match = /^Bearer\s+(.+)$/i.exec(header ?? '');
         return match?.[1];
+    }
+
+    private async createAnonymousShopContext(
+        sessionToken?: string,
+        channelToken?: string,
+    ): Promise<RequestContext> {
+        const existingSession = sessionToken
+            ? await this.sessionService.getSessionFromToken(sessionToken)
+            : undefined;
+        if (existingSession?.user) {
+            throw new UnauthorizedException(
+                'The session token belongs to a signed-in user and cannot be used for anonymous shop access. ' +
+                    'An agent acting for a customer needs an OAuth grant; an assistant running inside Vendure ' +
+                    'can call tools through McpToolExecutionService.',
+            );
+        }
+        const vendureSession = existingSession ?? (await this.sessionService.createAnonymousSession());
+        const adminCtx = await this.requestContextService.create({ apiType: 'admin' });
+        const channel = channelToken
+            ? await this.channelService.getChannelFromToken(adminCtx, channelToken)
+            : await this.channelService.getDefaultChannel(adminCtx);
+        return new RequestContext({
+            apiType: 'shop',
+            channel,
+            session: vendureSession,
+            isAuthorized: false,
+            authorizedAsOwnerOnly: true,
+        });
     }
 
     private getVendureSessionToken(

@@ -30,6 +30,7 @@ import { ResolvedMcpPluginOptions } from './internal-types';
 import { McpToolCallLogService } from './logging/mcp-tool-call-log.service';
 import { McpCimdClientResolverService } from './oauth/cimd/cimd-client-resolver.service';
 import { isLoopbackHostname } from './oauth/loopback';
+import { McpOauthRetentionService } from './oauth/oauth-retention.service';
 import { McpOauthController } from './oauth/oauth.controller';
 import { McpOauthService } from './oauth/oauth.service';
 import { McpOauthRateLimitGuard } from './rate-limit/mcp-oauth-rate-limit.guard';
@@ -70,6 +71,7 @@ import { McpPluginOptions } from './types';
     providers: [
         { provide: MCP_PLUGIN_OPTIONS, useFactory: () => McpPlugin.options },
         McpOauthService,
+        McpOauthRetentionService,
         McpCimdClientResolverService,
         McpToolRegistryService,
         McpToolExecutionService,

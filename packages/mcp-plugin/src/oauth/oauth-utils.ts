@@ -1,7 +1,8 @@
 import { BadRequestException } from '@nestjs/common';
+import { ConfigService, Logger } from '@vendure/core';
 import { createHash, randomBytes } from 'node:crypto';
 
-import { MAX_CLIENT_METADATA_FIELD_LENGTH } from '../constants';
+import { loggerCtx, MAX_CLIENT_METADATA_FIELD_LENGTH } from '../constants';
 
 import { isLoopbackHostname } from './loopback';
 
@@ -87,5 +88,27 @@ export function httpsUrlOrNull(value: unknown): string | null {
         return new URL(value).protocol === 'https:' ? value : null;
     } catch {
         return null;
+    }
+}
+
+/**
+ * Evicts a deleted MCP session from the session cache. Failures are logged, not thrown:
+ * a cache miss must never fail the operation that deleted the session row.
+ */
+export async function deleteCachedVendureSession(
+    configService: ConfigService,
+    token: string | undefined,
+): Promise<void> {
+    if (!token) {
+        return;
+    }
+    try {
+        await configService.authOptions.sessionCacheStrategy.delete(token);
+    } catch (error) {
+        Logger.error(
+            'Failed to evict a deleted MCP session from the session cache',
+            loggerCtx,
+            error instanceof Error ? error.stack : undefined,
+        );
     }
 }

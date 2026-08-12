@@ -25,17 +25,14 @@ import {
     UserService,
 } from '@vendure/core';
 import { McpToolset } from '@vendure/mcp-sdk';
-import { IsNull, MoreThan, ObjectLiteral, ObjectType } from 'typeorm';
+import { IsNull, MoreThan } from 'typeorm';
 
 import {
     loggerCtx,
     MAX_CLIENT_METADATA_FIELD_LENGTH,
     MCP_GRANT_ACTIVITY_UPDATE_INTERVAL_MS,
     MCP_PLUGIN_OPTIONS,
-    MCP_UNUSED_OAUTH_CLIENT_RETENTION_MS,
     mcpServerPermission,
-    MS_PER_DAY,
-    RETENTION_DELETE_BATCH_SIZE,
     SUPPORTED_OAUTH_GRANT_TYPES,
 } from '../constants';
 import { McpAuthorizationCode } from '../entities/mcp-authorization-code.entity';
@@ -60,6 +57,7 @@ import {
     addSeconds,
     appendOAuthParams,
     assertSafeRedirectUri,
+    deleteCachedVendureSession,
     httpsUrlOrNull,
     randomToken,
     verifyPkceChallenge,
@@ -70,14 +68,6 @@ import { deriveHashKey, hashToken } from './token-hash';
  * Name recorded against the dedicated Vendure session created for an MCP grant.
  */
 const MCP_SESSION_STRATEGY = 'mcp-dedicated-session';
-
-export interface McpOauthRetentionResult {
-    deletedSessions: number;
-    deletedRequests: number;
-    deletedCodes: number;
-    deletedGrants: number;
-    deletedClients: number;
-}
 
 /**
  * Implements the MCP OAuth 2.1 authorization server.
@@ -448,7 +438,7 @@ export class McpOauthService {
                 .update({ id: grant.id }, { revokedAt: new Date() });
             return this.deleteVendureSessionRow(txCtx, grant.vendureSessionId);
         });
-        await this.deleteCachedVendureSession(sessionToken);
+        await deleteCachedVendureSession(this.configService, sessionToken);
     }
 
     async authenticateBearerToken(token: string, apiType: McpToolset): Promise<McpAuthenticatedContext> {
@@ -484,7 +474,7 @@ export class McpOauthService {
             // sessions with a background job, not on read — so remove it, and its cache
             // entry, before creating the replacement the grant will point at.
             const staleSessionToken = await this.deleteVendureSessionRow(adminCtx, grant.vendureSessionId);
-            await this.deleteCachedVendureSession(staleSessionToken);
+            await deleteCachedVendureSession(this.configService, staleSessionToken);
             const createdSession = await this.createVendureSession(adminCtx, user);
             grant.vendureSessionId = createdSession.id;
             await this.connection
@@ -551,164 +541,6 @@ export class McpOauthService {
             .getRawAndEntities<{ vendureSessionToken: string | null }>();
         const grant = result.entities[0];
         return grant ? { grant, sessionToken: result.raw[0]?.vendureSessionToken ?? null } : undefined;
-    }
-
-    async createAnonymousShopContext(sessionToken?: string, channelToken?: string): Promise<RequestContext> {
-        const existingSession = sessionToken
-            ? await this.sessionService.getSessionFromToken(sessionToken)
-            : undefined;
-        if (existingSession?.user) {
-            throw new UnauthorizedException(
-                'The session token belongs to a signed-in user and cannot be used for anonymous shop access. ' +
-                    'An agent acting for a customer needs an OAuth grant; an assistant running inside Vendure ' +
-                    'can call tools through McpToolExecutionService.',
-            );
-        }
-        const vendureSession = existingSession ?? (await this.sessionService.createAnonymousSession());
-        const adminCtx = await this.createAdminCtx();
-        const channel = channelToken
-            ? await this.channelService.getChannelFromToken(adminCtx, channelToken)
-            : await this.channelService.getDefaultChannel(adminCtx);
-        return new RequestContext({
-            apiType: 'shop',
-            channel,
-            session: vendureSession,
-            isAuthorized: false,
-            authorizedAsOwnerOnly: true,
-        });
-    }
-
-    async deleteExpiredOauthRecords(ctx: RequestContext): Promise<McpOauthRetentionResult> {
-        const deletedSessions = await this.deleteSessionsOfExpiredGrants(ctx);
-        const deletedRequests = await this.deleteExpiredShortLivedRecords(ctx, McpAuthorizationRequest);
-        const deletedCodes = await this.deleteExpiredShortLivedRecords(ctx, McpAuthorizationCode);
-        const deletedGrants = await this.deleteDeadGrants(ctx);
-        const deletedClients = await this.deleteUnusedClients(ctx);
-        return { deletedSessions, deletedRequests, deletedCodes, deletedGrants, deletedClients };
-    }
-
-    /**
-     * Deletes the Vendure session created for every grant that has passed `expiresAt`. Expiry
-     * is only ever checked at lookup, so without this the grant stops working for MCP while the
-     * session it created stays valid against the ordinary GraphQL APIs for `sessionDuration`.
-     */
-    private deleteSessionsOfExpiredGrants(ctx: RequestContext): Promise<number> {
-        return this.deleteInBatches(
-            ctx,
-            Session,
-            () =>
-                this.connection
-                    .getRepository(ctx, McpOauthGrant)
-                    .createQueryBuilder('grant')
-                    .select('session.id', 'id')
-                    .addSelect('session.token', 'token')
-                    .innerJoin(Session, 'session', 'session.id = grant.vendureSessionId')
-                    .where('grant.expiresAt <= :now', { now: new Date() })
-                    .limit(RETENTION_DELETE_BATCH_SIZE)
-                    .getRawMany<{ id: ID; token: string }>(),
-            async sessions => {
-                for (const session of sessions) {
-                    await this.deleteCachedVendureSession(session.token);
-                }
-            },
-        );
-    }
-
-    /**
-     * Deletes authorization requests or codes that have expired without ever being used. Their
-     * lifetimes are 10 minutes and 60 seconds; a used one is deleted immediately by the atomic
-     * claim that consumes it, so this only ever catches abandoned flows.
-     */
-    private deleteExpiredShortLivedRecords<T extends ObjectLiteral>(
-        ctx: RequestContext,
-        entity: ObjectType<T>,
-    ): Promise<number> {
-        return this.deleteInBatches(ctx, entity, () =>
-            this.connection
-                .getRepository(ctx, entity)
-                .createQueryBuilder('record')
-                .select('record.id', 'id')
-                .where('record.expiresAt <= :now', { now: new Date() })
-                .limit(RETENTION_DELETE_BATCH_SIZE)
-                .getRawMany<{ id: ID }>(),
-        );
-    }
-
-    /**
-     * Deletes grants that have been dead — expired or revoked — for longer than
-     * `oauth.grantRetentionDays`. The row outlives the authorization it recorded because it is the
-     * only OAuth record with audit value; the option's default matches the tool-call log window so
-     * that, out of the box, every retained log can still resolve the grant it points at.
-     */
-    private deleteDeadGrants(ctx: RequestContext): Promise<number> {
-        const oauth = this.options.oauth;
-        if (!oauth) {
-            return Promise.resolve(0);
-        }
-        const cutoff = new Date(Date.now() - oauth.grantRetentionDays * MS_PER_DAY);
-        return this.deleteInBatches(ctx, McpOauthGrant, () =>
-            this.connection
-                .getRepository(ctx, McpOauthGrant)
-                .createQueryBuilder('grant')
-                .select('grant.id', 'id')
-                .where('grant.expiresAt < :cutoff', { cutoff })
-                .orWhere('grant.revokedAt < :cutoff', { cutoff })
-                .limit(RETENTION_DELETE_BATCH_SIZE)
-                .getRawMany<{ id: ID }>(),
-        );
-    }
-
-    /**
-     * Deletes client registrations that were never used: older than
-     * `MCP_UNUSED_OAUTH_CLIENT_RETENTION_MS`, never issued a token (`lastUsedAt IS NULL`),
-     * and with no grants.
-     */
-    private deleteUnusedClients(ctx: RequestContext): Promise<number> {
-        const cutoff = new Date(Date.now() - MCP_UNUSED_OAUTH_CLIENT_RETENTION_MS);
-        return this.deleteInBatches(ctx, McpOauthClient, () =>
-            this.connection
-                .getRepository(ctx, McpOauthClient)
-                .createQueryBuilder('client')
-                .select('client.id', 'id')
-                .leftJoin(McpOauthGrant, 'grant', 'grant.oauthClientId = client.id')
-                .where('client.lastUsedAt IS NULL')
-                .andWhere('client.createdAt < :cutoff', { cutoff })
-                .andWhere('grant.id IS NULL')
-                .limit(RETENTION_DELETE_BATCH_SIZE)
-                .getRawMany<{ id: ID }>(),
-        );
-    }
-
-    /**
-     * Deletes rows from `entity` by id, one batch at a time: `selectBatch` returns at most a
-     * batch of ids, and the loop ends when a short batch comes back. Same shape as the tool-call
-     * log sweep, which keeps each statement small enough not to lock a large table.
-     */
-    private async deleteInBatches<T extends ObjectLiteral, R extends { id: ID }>(
-        ctx: RequestContext,
-        entity: ObjectType<T>,
-        selectBatch: () => Promise<R[]>,
-        afterDelete?: (rows: R[]) => Promise<void>,
-    ): Promise<number> {
-        const repository = this.connection.getRepository(ctx, entity);
-        let totalDeleted = 0;
-        for (;;) {
-            const rows = await selectBatch();
-            if (rows.length === 0) {
-                break;
-            }
-            const result = await repository
-                .createQueryBuilder()
-                .delete()
-                .where('id IN (:...ids)', { ids: rows.map(row => row.id) })
-                .execute();
-            await afterDelete?.(rows);
-            totalDeleted += result.affected ?? rows.length;
-            if (rows.length < RETENTION_DELETE_BATCH_SIZE) {
-                break;
-            }
-        }
-        return totalDeleted;
     }
 
     /**
@@ -976,21 +808,6 @@ export class McpOauthService {
         }
         await this.connection.getRepository(ctx, Session).remove(session);
         return session.token;
-    }
-
-    private async deleteCachedVendureSession(token: string | undefined): Promise<void> {
-        if (!token) {
-            return;
-        }
-        try {
-            await this.configService.authOptions.sessionCacheStrategy.delete(token);
-        } catch (error) {
-            Logger.error(
-                'Failed to evict a deleted MCP session from the session cache',
-                loggerCtx,
-                error instanceof Error ? error.stack : undefined,
-            );
-        }
     }
 
     private async findClient(ctx: RequestContext, clientId: string): Promise<McpOauthClient> {

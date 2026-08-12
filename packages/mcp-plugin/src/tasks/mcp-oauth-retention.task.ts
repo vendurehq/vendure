@@ -1,6 +1,6 @@
 import { ScheduledTask } from '@vendure/core';
 
-import { McpOauthService } from '../oauth/oauth.service';
+import { McpOauthRetentionService } from '../oauth/oauth-retention.service';
 
 /**
  * @description
@@ -16,6 +16,6 @@ export const mcpOauthRetentionTask = new ScheduledTask({
     schedule: cron => cron.everyDayAt(3, 30),
     params: {},
     async execute({ injector, scheduledContext }) {
-        return injector.get(McpOauthService).deleteExpiredOauthRecords(scheduledContext);
+        return injector.get(McpOauthRetentionService).deleteExpiredOauthRecords(scheduledContext);
     },
 });

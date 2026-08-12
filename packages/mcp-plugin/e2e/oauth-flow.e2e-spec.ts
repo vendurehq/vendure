@@ -27,7 +27,8 @@ import { McpAuthorizationCode } from '../src/entities/mcp-authorization-code.ent
 import { McpAuthorizationRequest } from '../src/entities/mcp-authorization-request.entity';
 import { McpOauthClient } from '../src/entities/mcp-oauth-client.entity';
 import { McpOauthGrant } from '../src/entities/mcp-oauth-grant.entity';
-import { McpOauthRetentionResult, McpOauthService } from '../src/oauth/oauth.service';
+import { McpOauthRetentionResult, McpOauthRetentionService } from '../src/oauth/oauth-retention.service';
+import { McpOauthService } from '../src/oauth/oauth.service';
 import { deriveHashKey, hashToken } from '../src/oauth/token-hash';
 import { McpPlugin } from '../src/plugin';
 import { mcpOauthRetentionTask } from '../src/tasks/mcp-oauth-retention.task';
@@ -475,6 +476,7 @@ describe('McpPlugin OAuth end-to-end flow', () => {
 
     it('deletes the Vendure session behind a grant that has passed its expiry', async () => {
         const oauth = server.app.get(McpOauthService);
+        const retention = server.app.get(McpOauthRetentionService);
         const connection = server.app.get(TransactionalConnection);
         const sessionService = server.app.get(SessionService);
         const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
@@ -493,7 +495,7 @@ describe('McpPlugin OAuth end-to-end flow', () => {
             { expiresAt: new Date(Date.now() - MS_PER_DAY) },
         );
 
-        await oauth.deleteExpiredOauthRecords(ctx);
+        await retention.deleteExpiredOauthRecords(ctx);
 
         expect(await sessionRepo.findOneBy({ id: authenticated.grant.vendureSessionId })).toBeNull();
         expect(await sessionService.getSessionFromToken(sessionToken)).toBeUndefined();
@@ -505,12 +507,12 @@ describe('McpPlugin OAuth end-to-end flow', () => {
     // Using a request or code deletes the row outright (the atomic claim is a DELETE, not a
     // flag flip), so a completed flow leaves nothing behind for the sweep to find.
     it('leaves no authorization request or code behind after a completed flow', async () => {
-        const oauth = server.app.get(McpOauthService);
+        const retention = server.app.get(McpOauthRetentionService);
         const connection = server.app.get(TransactionalConnection);
         const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
 
         // Drain what the earlier tests' flows left behind, so the counts below are exact.
-        await oauth.deleteExpiredOauthRecords(ctx);
+        await retention.deleteExpiredOauthRecords(ctx);
 
         const { request_token, code } = await runFlow();
         const requestRepo = connection.getRepository(ctx, McpAuthorizationRequest);
@@ -522,7 +524,7 @@ describe('McpPlugin OAuth end-to-end flow', () => {
         expect(await findRequest()).toBeNull();
         expect(await findCode()).toBeNull();
 
-        const result = await oauth.deleteExpiredOauthRecords(ctx);
+        const result = await retention.deleteExpiredOauthRecords(ctx);
 
         // Nothing left for the sweep to find. The grant this flow created is still live, so
         // neither it nor its session is touched.
@@ -538,14 +540,14 @@ describe('McpPlugin OAuth end-to-end flow', () => {
     // A request or code that is created but never used — an abandoned flow — has no claim to
     // delete it, so the sweep is the only thing that ever removes it, once it has expired.
     it('sweeps an authorization request and code that expired without ever being used', async () => {
-        const oauth = server.app.get(McpOauthService);
+        const retention = server.app.get(McpOauthRetentionService);
         const connection = server.app.get(TransactionalConnection);
         const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
         const requestRepo = connection.getRepository(ctx, McpAuthorizationRequest);
         const codeRepo = connection.getRepository(ctx, McpAuthorizationCode);
 
         // Drain what earlier tests left behind, so the counts below are exact.
-        await oauth.deleteExpiredOauthRecords(ctx);
+        await retention.deleteExpiredOauthRecords(ctx);
 
         const client = await createClient(ctx);
         const superadmin = await connection.getRepository(ctx, User).findOneByOrFail({
@@ -583,7 +585,7 @@ describe('McpPlugin OAuth end-to-end flow', () => {
             }),
         );
 
-        const result = await oauth.deleteExpiredOauthRecords(ctx);
+        const result = await retention.deleteExpiredOauthRecords(ctx);
 
         expect(result.deletedRequests).toBe(1);
         expect(result.deletedCodes).toBe(1);
@@ -595,7 +597,7 @@ describe('McpPlugin OAuth end-to-end flow', () => {
     // and goes only once every tool-call log that could reference it has itself been pruned —
     // i.e. once it has been dead longer than `oauth.grantRetentionDays` (left at its 30-day default here).
     it('keeps a recently-dead grant and deletes one dead longer than the retention window', async () => {
-        const oauth = server.app.get(McpOauthService);
+        const retention = server.app.get(McpOauthRetentionService);
         const connection = server.app.get(TransactionalConnection);
         const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
         const grantRepo = connection.getRepository(ctx, McpOauthGrant);
@@ -605,7 +607,7 @@ describe('McpPlugin OAuth end-to-end flow', () => {
         await grantRepo.update({ id: recent.id }, { expiresAt: new Date(Date.now() - 2 * MS_PER_DAY) });
         await grantRepo.update({ id: longDead.id }, { expiresAt: new Date(Date.now() - 31 * MS_PER_DAY) });
 
-        const result = await oauth.deleteExpiredOauthRecords(ctx);
+        const result = await retention.deleteExpiredOauthRecords(ctx);
 
         expect(await grantRepo.findOne({ where: { id: recent.id } })).toBeTruthy();
         expect(await grantRepo.findOne({ where: { id: longDead.id } })).toBeNull();
@@ -633,7 +635,7 @@ describe('McpPlugin OAuth end-to-end flow', () => {
     });
 
     it('deletes a grant revoked longer ago than the retention window', async () => {
-        const oauth = server.app.get(McpOauthService);
+        const retention = server.app.get(McpOauthRetentionService);
         const connection = server.app.get(TransactionalConnection);
         const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
         const grantRepo = connection.getRepository(ctx, McpOauthGrant);
@@ -642,7 +644,7 @@ describe('McpPlugin OAuth end-to-end flow', () => {
         // Revocation already removed the session; only the row's own retention is at stake here.
         await grantRepo.update({ id: grant.id }, { revokedAt: new Date(Date.now() - 31 * MS_PER_DAY) });
 
-        await oauth.deleteExpiredOauthRecords(ctx);
+        await retention.deleteExpiredOauthRecords(ctx);
 
         expect(await grantRepo.findOne({ where: { id: grant.id } })).toBeNull();
     });
@@ -651,17 +653,17 @@ describe('McpPlugin OAuth end-to-end flow', () => {
     // e.g. it abandoned the flow after DCR — is cleaned up once it has sat unused past the
     // retention window.
     it('deletes a never-used client older than the retention window with no grants', async () => {
-        const oauth = server.app.get(McpOauthService);
+        const retention = server.app.get(McpOauthRetentionService);
         const connection = server.app.get(TransactionalConnection);
         const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
         const clientRepo = connection.getRepository(ctx, McpOauthClient);
 
         // Drain what earlier tests left behind, so the count below is exact.
-        await oauth.deleteExpiredOauthRecords(ctx);
+        await retention.deleteExpiredOauthRecords(ctx);
 
         const client = await createClient(ctx, { ageMs: MCP_UNUSED_OAUTH_CLIENT_RETENTION_MS + MS_PER_DAY });
 
-        const result = await oauth.deleteExpiredOauthRecords(ctx);
+        const result = await retention.deleteExpiredOauthRecords(ctx);
 
         expect(result.deletedClients).toBe(1);
         expect(await clientRepo.findOne({ where: { id: client.id } })).toBeNull();
@@ -670,16 +672,16 @@ describe('McpPlugin OAuth end-to-end flow', () => {
     // A client is still within its grace period to complete the flow, so it must survive even
     // though it, too, has never been used.
     it('keeps a never-used client younger than the retention window', async () => {
-        const oauth = server.app.get(McpOauthService);
+        const retention = server.app.get(McpOauthRetentionService);
         const connection = server.app.get(TransactionalConnection);
         const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
         const clientRepo = connection.getRepository(ctx, McpOauthClient);
 
-        await oauth.deleteExpiredOauthRecords(ctx);
+        await retention.deleteExpiredOauthRecords(ctx);
 
         const client = await createClient(ctx, { ageMs: 60_000 });
 
-        const result = await oauth.deleteExpiredOauthRecords(ctx);
+        const result = await retention.deleteExpiredOauthRecords(ctx);
 
         expect(result.deletedClients).toBe(0);
         expect(await clientRepo.findOne({ where: { id: client.id } })).toBeTruthy();
@@ -688,19 +690,19 @@ describe('McpPlugin OAuth end-to-end flow', () => {
     // Once a client has been used, it is kept indefinitely regardless of age — only
     // `McpOauthGrant`'s own retention window governs how long its usage history lives on.
     it('keeps a client with lastUsedAt set even when older than the retention window', async () => {
-        const oauth = server.app.get(McpOauthService);
+        const retention = server.app.get(McpOauthRetentionService);
         const connection = server.app.get(TransactionalConnection);
         const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
         const clientRepo = connection.getRepository(ctx, McpOauthClient);
 
-        await oauth.deleteExpiredOauthRecords(ctx);
+        await retention.deleteExpiredOauthRecords(ctx);
 
         const client = await createClient(ctx, {
             lastUsedAt: new Date(),
             ageMs: MCP_UNUSED_OAUTH_CLIENT_RETENTION_MS + MS_PER_DAY,
         });
 
-        const result = await oauth.deleteExpiredOauthRecords(ctx);
+        const result = await retention.deleteExpiredOauthRecords(ctx);
 
         expect(result.deletedClients).toBe(0);
         expect(await clientRepo.findOne({ where: { id: client.id } })).toBeTruthy();
@@ -710,14 +712,14 @@ describe('McpPlugin OAuth end-to-end flow', () => {
     // that a grant still references must never be deleted — even though it otherwise looks idle
     // (never used, past the window) — because that would silently take the grant with it.
     it('keeps a never-used, old client that a grant still references', async () => {
-        const oauth = server.app.get(McpOauthService);
+        const retention = server.app.get(McpOauthRetentionService);
         const connection = server.app.get(TransactionalConnection);
         const sessionService = server.app.get(SessionService);
         const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
         const clientRepo = connection.getRepository(ctx, McpOauthClient);
         const grantRepo = connection.getRepository(ctx, McpOauthGrant);
 
-        await oauth.deleteExpiredOauthRecords(ctx);
+        await retention.deleteExpiredOauthRecords(ctx);
 
         const client = await createClient(ctx, { ageMs: MCP_UNUSED_OAUTH_CLIENT_RETENTION_MS + MS_PER_DAY });
         const superadmin = await connection.getRepository(ctx, User).findOneByOrFail({
@@ -744,7 +746,7 @@ describe('McpPlugin OAuth end-to-end flow', () => {
             }),
         );
 
-        const result = await oauth.deleteExpiredOauthRecords(ctx);
+        const result = await retention.deleteExpiredOauthRecords(ctx);
 
         expect(result.deletedClients).toBe(0);
         expect(await clientRepo.findOne({ where: { id: client.id } })).toBeTruthy();
