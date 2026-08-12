@@ -33,10 +33,10 @@ import {
 } from '@vendure/mcp-sdk';
 
 import { loggerCtx, MCP_PLUGIN_OPTIONS, MCP_TOOL_TOGGLES_STORE_KEY } from '../constants';
-import { McpExecutionContext } from '../internal-types';
+import { McpExecutionContext, ResolvedMcpPluginOptions } from '../internal-types';
 import { McpToolCallLogService } from '../logging/mcp-tool-call-log.service';
 import { McpRateLimiterService, McpRateLimitExceededError } from '../rate-limit/mcp-rate-limiter.service';
-import { McpPluginOptions, McpToolSummary } from '../types';
+import { McpToolSummary } from '../types';
 
 import { Bm25Index } from './bm25';
 import { McpExposedTool, McpRegisteredTool } from './registry-types';
@@ -79,7 +79,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         private settingsStoreService: SettingsStoreService,
         private rateLimiter: McpRateLimiterService,
         private toolCallLog: McpToolCallLogService,
-        @Inject(MCP_PLUGIN_OPTIONS) private options: McpPluginOptions,
+        @Inject(MCP_PLUGIN_OPTIONS) private options: ResolvedMcpPluginOptions,
     ) {}
 
     onApplicationBootstrap(): void {

@@ -3,6 +3,7 @@ import { getConfigurationFunction, Logger, ProcessContext } from '@vendure/core'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DEFAULT_OAUTH_OPTIONS } from './constants';
+import { ResolvedMcpPluginOptions } from './internal-types';
 import { McpPlugin } from './plugin';
 import { mcpOauthRetentionTask } from './tasks/mcp-oauth-retention.task';
 import { McpPluginOptions } from './types';
@@ -35,7 +36,7 @@ function resolveDayTime(task: any): string {
 }
 
 describe('McpPlugin production config guard', () => {
-    let savedOptions: McpPluginOptions;
+    let savedOptions: ResolvedMcpPluginOptions;
     let savedNodeEnv: string | undefined;
 
     beforeEach(() => {
@@ -203,7 +204,7 @@ describe('McpPlugin production config guard', () => {
 });
 
 describe('McpPlugin SDK schema preload', () => {
-    let savedOptions: McpPluginOptions;
+    let savedOptions: ResolvedMcpPluginOptions;
 
     beforeEach(() => {
         savedOptions = McpPlugin.options;
@@ -221,7 +222,7 @@ describe('McpPlugin SDK schema preload', () => {
 });
 
 describe('McpPlugin logging options + retention task', () => {
-    let savedOptions: McpPluginOptions;
+    let savedOptions: ResolvedMcpPluginOptions;
 
     beforeEach(() => {
         savedOptions = McpPlugin.options;
@@ -279,7 +280,7 @@ describe('McpPlugin logging options + retention task', () => {
 });
 
 describe('McpPlugin OAuth retention task', () => {
-    let savedOptions: McpPluginOptions;
+    let savedOptions: ResolvedMcpPluginOptions;
     let savedSchedule: (typeof mcpOauthRetentionTask)['options']['schedule'];
 
     beforeEach(() => {

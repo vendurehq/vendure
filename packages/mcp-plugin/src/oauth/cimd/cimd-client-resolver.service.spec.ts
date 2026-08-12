@@ -2,6 +2,7 @@ import { BadRequestException } from '@nestjs/common';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { McpOauthClient } from '../../entities/mcp-oauth-client.entity';
+import { resolveMcpPluginOptions } from '../../resolve-options';
 import { McpPluginOptions } from '../../types';
 
 import { McpCimdClientResolverService } from './cimd-client-resolver.service';
@@ -69,7 +70,11 @@ function createResolver(harness: ResolverHarnessOptions = {}) {
     const options: McpPluginOptions = {
         oauth: { tokenSecret: 's', allowLoopbackCimdDocuments: harness.allowLoopback === true },
     };
-    return { resolver: new McpCimdClientResolverService(connection, options), repository, rows };
+    return {
+        resolver: new McpCimdClientResolverService(connection, resolveMcpPluginOptions(options)),
+        repository,
+        rows,
+    };
 }
 
 beforeEach(() => {

@@ -4,8 +4,7 @@ import { McpToolset } from '@vendure/mcp-sdk';
 import { createHash } from 'node:crypto';
 
 import { MCP_PLUGIN_OPTIONS, RATE_LIMIT_CACHE_PREFIX, RATE_LIMIT_WINDOW_MS } from '../constants';
-import { McpExecutionContext } from '../internal-types';
-import { McpPluginOptions } from '../types';
+import { McpExecutionContext, ResolvedMcpPluginOptions } from '../internal-types';
 
 /** A single rate-limit bucket to check/consume. */
 interface RateLimitCheck {
@@ -72,7 +71,7 @@ export class McpRateLimitExceededError extends Error {
 export class McpRateLimiterService {
     constructor(
         private cacheService: CacheService,
-        @Inject(MCP_PLUGIN_OPTIONS) private options: McpPluginOptions,
+        @Inject(MCP_PLUGIN_OPTIONS) private options: ResolvedMcpPluginOptions,
     ) {}
 
     /** Throws {@link McpRateLimitExceededError} if any relevant bucket is at/over its limit. */
@@ -211,7 +210,7 @@ export class McpRateLimiterService {
     private buildSharedBucketChecks(input: RateLimitInput): RateLimitCheck[] {
         const checks: RateLimitCheck[] = [];
         const endpoint = input.endpoint;
-        const rateLimits = this.options.rateLimits ?? {};
+        const rateLimits = this.options.rateLimits;
         const perSessionRpm = this.resolveRpm(rateLimits.perSession);
         if (perSessionRpm > 0) {
             checks.push({
@@ -239,7 +238,7 @@ export class McpRateLimiterService {
 
     /** The anonymous-IP bucket for an endpoint, or `undefined` when it does not apply. */
     private buildAnonymousIpCheck(endpoint: McpToolset, ipKey: string): RateLimitCheck | undefined {
-        const rpm = this.resolveRpm(this.options.rateLimits?.anonymousIp);
+        const rpm = this.resolveRpm(this.options.rateLimits.anonymousIp);
         if (endpoint !== 'shop' || rpm <= 0) {
             return undefined;
         }
@@ -248,7 +247,7 @@ export class McpRateLimiterService {
 
     /** The OAuth-IP bucket, or `undefined` when it does not apply. */
     private buildOauthIpCheck(ipKey: string): RateLimitCheck | undefined {
-        const rpm = this.resolveRpm(this.options.rateLimits?.oauthIp);
+        const rpm = this.resolveRpm(this.options.rateLimits.oauthIp);
         if (rpm <= 0) {
             return undefined;
         }
@@ -260,7 +259,7 @@ export class McpRateLimiterService {
      * governed by the same `oauthIp` option: both meter what an unauthenticated address may spend.
      */
     private buildBearerAuthFailureCheck(ipKey: string): RateLimitCheck | undefined {
-        const rpm = this.resolveRpm(this.options.rateLimits?.oauthIp);
+        const rpm = this.resolveRpm(this.options.rateLimits.oauthIp);
         if (rpm <= 0) {
             return undefined;
         }
@@ -271,9 +270,9 @@ export class McpRateLimiterService {
     private buildPerToolChecks(input: RateLimitInput): RateLimitCheck[] {
         const checks: RateLimitCheck[] = [];
         const endpoint = input.endpoint;
-        const rateLimits = this.options.rateLimits ?? {};
+        const rateLimits = this.options.rateLimits;
         for (const toolName of input.toolNames ?? []) {
-            const rpm = this.resolveRpm(rateLimits.perTool?.[toolName]);
+            const rpm = this.resolveRpm(rateLimits.perTool[toolName]);
             if (rpm > 0) {
                 checks.push({
                     key: `tool:${endpoint}:${this.toolActorKey(input.executionContext)}:${toolName}`,

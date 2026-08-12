@@ -5,6 +5,7 @@ import { McpStandardSchema, McpToolMetadata, McpToolset } from '@vendure/mcp-sdk
 import { describe, expect, it, vi } from 'vitest';
 
 import { McpRateLimitExceededError } from '../rate-limit/mcp-rate-limiter.service';
+import { resolveMcpPluginOptions } from '../resolve-options';
 import { McpPluginOptions } from '../types';
 
 import { McpToolRegistryService } from './mcp-tool-registry.service';
@@ -66,7 +67,7 @@ function build(
         settingsStoreService as any,
         rateLimiter as any,
         toolCallLog as any,
-        options,
+        resolveMcpPluginOptions(options),
     );
     return { service, rateLimiter, toolCallLog, settingsStoreService, store };
 }

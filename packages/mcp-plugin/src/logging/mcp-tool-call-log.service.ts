@@ -1,19 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventBus, ID, Logger, RequestContext, TransactionalConnection } from '@vendure/core';
 
-import {
-    DEFAULT_LOG_MAX_BODY_BYTES,
-    DEFAULT_LOG_TTL_DAYS,
-    loggerCtx,
-    MCP_PLUGIN_OPTIONS,
-    MS_PER_DAY,
-    RETENTION_DELETE_BATCH_SIZE,
-} from '../constants';
+import { loggerCtx, MCP_PLUGIN_OPTIONS, MS_PER_DAY, RETENTION_DELETE_BATCH_SIZE } from '../constants';
 import { McpToolCallLog } from '../entities/mcp-tool-call-log.entity';
 import { McpToolCallEvent } from '../events/mcp-tool-call.event';
-import { McpExecutionContext } from '../internal-types';
+import { McpExecutionContext, ResolvedMcpPluginOptions } from '../internal-types';
 import { McpRegisteredTool } from '../registry/registry-types';
-import { McpPluginOptions, McpToolCallStatus } from '../types';
+import { McpToolCallStatus } from '../types';
 
 /** Input to the (Phase-6) tool-call logger. */
 export interface LogToolCallInput {
@@ -35,7 +28,7 @@ export class McpToolCallLogService {
     constructor(
         private connection: TransactionalConnection,
         private eventBus: EventBus,
-        @Inject(MCP_PLUGIN_OPTIONS) private options: McpPluginOptions,
+        @Inject(MCP_PLUGIN_OPTIONS) private options: ResolvedMcpPluginOptions,
     ) {}
 
     async logToolCall(input: LogToolCallInput): Promise<void> {
@@ -60,7 +53,7 @@ export class McpToolCallLogService {
                 // is global (admin approvals store no channel), so its rows stay visible on
                 // every channel's dashboard, the same way the grant itself is listed.
                 channelId: grant ? (grant.channelId ?? null) : (ctx.channelId ?? null),
-                clientIp: this.options.logging?.captureClientIp ? (clientIp ?? null) : null,
+                clientIp: this.options.logging.captureClientIp ? (clientIp ?? null) : null,
                 toolName: input.tool.name,
                 pluginSource: input.tool.pluginSource,
                 durationMs: input.durationMs,
@@ -68,7 +61,7 @@ export class McpToolCallLogService {
                 oauthClientId: grant?.oauthClientId ?? null,
             });
             const logging = this.options.logging;
-            if (logging?.capture === 'full') {
+            if (logging.capture === 'full') {
                 let bodies: { input: unknown; output: unknown } | undefined;
                 if (logging.redact) {
                     try {
@@ -117,7 +110,7 @@ export class McpToolCallLogService {
         if (value == null) {
             return null;
         }
-        const maxBodyBytes = this.options.logging?.maxBodyBytes ?? DEFAULT_LOG_MAX_BODY_BYTES;
+        const maxBodyBytes = this.options.logging.maxBodyBytes;
         const bytes = Buffer.byteLength(JSON.stringify(value), 'utf8');
         if (bytes > maxBodyBytes) {
             return { omitted: `body exceeded logging.maxBodyBytes (${maxBodyBytes} bytes)`, bytes };
@@ -126,7 +119,7 @@ export class McpToolCallLogService {
     }
 
     async deleteExpiredToolCallLogs(ctx: RequestContext, channelId?: ID | null): Promise<number> {
-        const ttlDays = this.options.logging?.ttlDays ?? DEFAULT_LOG_TTL_DAYS;
+        const ttlDays = this.options.logging.ttlDays;
         const cutoff = new Date(Date.now() - ttlDays * MS_PER_DAY);
         const repository = this.connection.getRepository(ctx, McpToolCallLog);
         let totalDeleted = 0;

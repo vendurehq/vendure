@@ -8,7 +8,7 @@ import {
     MCP_PLUGIN_OPTIONS,
 } from '../../constants';
 import { McpOauthClient } from '../../entities/mcp-oauth-client.entity';
-import { McpPluginOptions } from '../../types';
+import { ResolvedMcpPluginOptions } from '../../internal-types';
 import { addSeconds } from '../oauth-utils';
 
 import { CimdDocument, parseCimdDocument } from './cimd-document';
@@ -34,7 +34,7 @@ export class McpCimdClientResolverService {
 
     constructor(
         private connection: TransactionalConnection,
-        @Inject(MCP_PLUGIN_OPTIONS) private options: McpPluginOptions,
+        @Inject(MCP_PLUGIN_OPTIONS) private options: ResolvedMcpPluginOptions,
     ) {}
 
     async resolveClient(ctx: RequestContext, clientId: string): Promise<McpOauthClient> {

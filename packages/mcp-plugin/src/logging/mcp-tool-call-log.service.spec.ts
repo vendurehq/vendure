@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { McpToolCallLog } from '../entities/mcp-tool-call-log.entity';
 import { McpToolCallEvent } from '../events/mcp-tool-call.event';
+import { resolveMcpPluginOptions } from '../resolve-options';
 import { McpPluginOptions } from '../types';
 
 import { McpToolCallLogService } from './mcp-tool-call-log.service';
@@ -78,7 +79,11 @@ function build(options: McpPluginOptions, failures: LoggingFailures = {}) {
         return Promise.resolve();
     });
     const eventBus = { publish };
-    const service = new McpToolCallLogService(connection as any, eventBus as any, options);
+    const service = new McpToolCallLogService(
+        connection as any,
+        eventBus as any,
+        resolveMcpPluginOptions(options),
+    );
     return { service, savedLogs, publishedEvents, selectWhere, deleteWhere, save, publish };
 }
 
@@ -220,8 +225,8 @@ describe('McpToolCallLogService tool-call logging', () => {
     });
 
     it('falls back to the 64,000-byte default when maxBodyBytes is not configured', async () => {
-        // Unit tests build the service directly (bypassing McpPlugin.init), so this exercises the
-        // service's own `?? DEFAULT_LOG_MAX_BODY_BYTES` fallback rather than the one in init().
+        // The service has no fallback of its own: the default comes from resolveMcpPluginOptions
+        // in the build() helper, the same resolution init() uses.
         const { service, savedLogs } = build({ logging: { capture: 'full' } });
         const justOverDefault = { blob: 'x'.repeat(64_100) };
         await service.logToolCall({

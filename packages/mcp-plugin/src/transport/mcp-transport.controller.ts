@@ -18,11 +18,10 @@ import type { Request, Response } from 'express';
 
 import { loggerCtx, MCP_PLUGIN_OPTIONS, RATE_LIMIT_ERROR_CODE } from '../constants';
 import { getClientIp } from '../get-client-ip';
-import { McpExecutionContext } from '../internal-types';
+import { McpExecutionContext, ResolvedMcpPluginOptions } from '../internal-types';
 import { McpOauthService } from '../oauth/oauth.service';
 import { McpRateLimiterService, McpRateLimitExceeded } from '../rate-limit/mcp-rate-limiter.service';
 import { McpToolRegistryService } from '../registry/mcp-tool-registry.service';
-import { McpPluginOptions } from '../types';
 
 import { createMcpServerForRequest } from './mcp-server.factory';
 
@@ -57,7 +56,7 @@ export class McpTransportController {
         private registry: McpToolRegistryService,
         private rateLimiter: McpRateLimiterService,
         private configService: ConfigService,
-        @Inject(MCP_PLUGIN_OPTIONS) private options: McpPluginOptions,
+        @Inject(MCP_PLUGIN_OPTIONS) private options: ResolvedMcpPluginOptions,
     ) {
         // One stateless handler; the per-request factory reads the resolved context from authInfo.extra.
         const handler = createMcpHandler(

@@ -28,7 +28,6 @@ import { McpToolset } from '@vendure/mcp-sdk';
 import { IsNull, MoreThan, ObjectLiteral, ObjectType } from 'typeorm';
 
 import {
-    DEFAULT_OAUTH_OPTIONS,
     loggerCtx,
     MAX_CLIENT_METADATA_FIELD_LENGTH,
     MCP_GRANT_ACTIVITY_UPDATE_INTERVAL_MS,
@@ -43,8 +42,8 @@ import { McpAuthorizationCode } from '../entities/mcp-authorization-code.entity'
 import { McpAuthorizationRequest } from '../entities/mcp-authorization-request.entity';
 import { McpOauthClient } from '../entities/mcp-oauth-client.entity';
 import { McpOauthGrant } from '../entities/mcp-oauth-grant.entity';
-import { McpAuthenticatedContext } from '../internal-types';
-import { McpActorType, McpPluginOptions } from '../types';
+import { McpAuthenticatedContext, ResolvedMcpPluginOptions } from '../internal-types';
+import { McpActorType } from '../types';
 
 import { McpCimdClientResolverService } from './cimd/cimd-client-resolver.service';
 import { isUrlClientId } from './cimd/cimd-url';
@@ -106,7 +105,7 @@ export class McpOauthService {
         private channelService: ChannelService,
         private userService: UserService,
         private configService: ConfigService,
-        @Inject(MCP_PLUGIN_OPTIONS) private options: McpPluginOptions,
+        @Inject(MCP_PLUGIN_OPTIONS) private options: ResolvedMcpPluginOptions,
         private cimdClientResolver: McpCimdClientResolverService,
     ) {}
 
@@ -642,9 +641,11 @@ export class McpOauthService {
      * that, out of the box, every retained log can still resolve the grant it points at.
      */
     private deleteDeadGrants(ctx: RequestContext): Promise<number> {
-        const retentionDays =
-            this.options.oauth?.grantRetentionDays ?? DEFAULT_OAUTH_OPTIONS.grantRetentionDays;
-        const cutoff = new Date(Date.now() - retentionDays * MS_PER_DAY);
+        const oauth = this.options.oauth;
+        if (!oauth) {
+            return Promise.resolve(0);
+        }
+        const cutoff = new Date(Date.now() - oauth.grantRetentionDays * MS_PER_DAY);
         return this.deleteInBatches(ctx, McpOauthGrant, () =>
             this.connection
                 .getRepository(ctx, McpOauthGrant)

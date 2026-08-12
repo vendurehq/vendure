@@ -1,6 +1,6 @@
 import { CrudPermissionDefinition } from '@vendure/core';
 
-import { McpRateLimitOptions } from './types';
+import { McpLogCapture, McpRateLimitOptions } from './types';
 
 export const MCP_PLUGIN_OPTIONS = Symbol('MCP_PLUGIN_OPTIONS');
 
@@ -47,6 +47,8 @@ export const DEFAULT_LOG_TTL_DAYS = 30;
  * MySQL `TEXT` column (65,535-byte limit), so an oversized body never fails the insert.
  */
 export const DEFAULT_LOG_MAX_BODY_BYTES = 64_000;
+/** Default logging capture mode. */
+export const DEFAULT_LOG_CAPTURE: McpLogCapture = 'metadata';
 
 export const DEFAULT_OAUTH_OPTIONS = {
     accessTokenTtlSeconds: 15 * 60,

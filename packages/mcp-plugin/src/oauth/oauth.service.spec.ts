@@ -2,6 +2,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
 import { DEFAULT_OAUTH_OPTIONS } from '../constants';
+import { resolveMcpPluginOptions } from '../resolve-options';
 import { McpPluginOptions } from '../types';
 
 import { McpOauthService } from './oauth.service';
@@ -26,7 +27,7 @@ function createService(
         undefined as any,
         undefined as any,
         { authOptions: { sessionCacheStrategy: { delete: vi.fn() } } } as any,
-        options,
+        resolveMcpPluginOptions(options),
         undefined as any,
     );
 }

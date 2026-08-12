@@ -21,6 +21,7 @@ import { MCP_PLUGIN_OPTIONS } from '../../constants';
 import { McpToolCallLogService } from '../../logging/mcp-tool-call-log.service';
 import { McpRateLimiterService } from '../../rate-limit/mcp-rate-limiter.service';
 import { McpToolRegistryService } from '../../registry/mcp-tool-registry.service';
+import { resolveMcpPluginOptions } from '../../resolve-options';
 
 import { mcpBuiltInToolProviders } from './providers';
 
@@ -94,7 +95,7 @@ describe('built-in registry discovery', () => {
                 { provide: TransactionalConnection, useValue: {} },
                 { provide: McpRateLimiterService, useValue: {} },
                 { provide: McpToolCallLogService, useValue: {} },
-                { provide: MCP_PLUGIN_OPTIONS, useValue: {} },
+                { provide: MCP_PLUGIN_OPTIONS, useValue: resolveMcpPluginOptions({}) },
             ],
         }).compile();
         await moduleRef.init();

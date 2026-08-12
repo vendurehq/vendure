@@ -13,12 +13,6 @@ import { adminApiExtensions, shopApiExtensions } from './api/api-extensions';
 import { McpAdminResolver, McpToolCallLogEntityResolver } from './api/mcp-admin.resolver';
 import { McpShopResolver } from './api/mcp-shop.resolver';
 import {
-    DEFAULT_LOG_MAX_BODY_BYTES,
-    DEFAULT_LOG_TTL_DAYS,
-    DEFAULT_OAUTH_OPTIONS,
-    DEFAULT_RATE_LIMIT_OPTIONS,
-    DEFAULT_SHOP_ACCESS,
-    DEFAULT_TOOL_EXPOSURE,
     MCP_PLUGIN_OPTIONS,
     MCP_SETTINGS_NAMESPACE,
     MCP_TOOL_TOGGLES_FIELD_NAME,
@@ -32,6 +26,7 @@ import {
     McpOauthGrant,
     McpToolCallLog,
 } from './entities';
+import { ResolvedMcpPluginOptions } from './internal-types';
 import { McpToolCallLogService } from './logging/mcp-tool-call-log.service';
 import { McpCimdClientResolverService } from './oauth/cimd/cimd-client-resolver.service';
 import { isLoopbackHostname } from './oauth/loopback';
@@ -41,11 +36,12 @@ import { McpOauthRateLimitGuard } from './rate-limit/mcp-oauth-rate-limit.guard'
 import { McpRateLimiterService } from './rate-limit/mcp-rate-limiter.service';
 import { McpToolExecutionService } from './registry/mcp-tool-execution.service';
 import { McpToolRegistryService } from './registry/mcp-tool-registry.service';
+import { resolveMcpPluginOptions } from './resolve-options';
 import { mcpOauthRetentionTask } from './tasks/mcp-oauth-retention.task';
 import { mcpToolCallLogRetentionTask } from './tasks/mcp-tool-call-log-retention.task';
 import { mcpBuiltInToolProviders } from './tools/built-in/providers';
 import { McpTransportController } from './transport/mcp-transport.controller';
-import { McpPluginOptions, McpRateLimitOptions } from './types';
+import { McpPluginOptions } from './types';
 
 /**
  * @description
@@ -127,45 +123,13 @@ import { McpPluginOptions, McpRateLimitOptions } from './types';
     compatibility: '^3.8.0',
 })
 export class McpPlugin implements OnApplicationBootstrap {
-    static options: McpPluginOptions;
+    static options: ResolvedMcpPluginOptions;
 
     constructor(private processContext: ProcessContext) {}
 
     static init(options: McpPluginOptions = {}): Type<McpPlugin> {
-        this.options = {
-            toolExposure: options.toolExposure ?? DEFAULT_TOOL_EXPOSURE,
-            shopAccess: options.shopAccess ?? DEFAULT_SHOP_ACCESS,
-            oauth: options.oauth && { ...DEFAULT_OAUTH_OPTIONS, ...options.oauth },
-            rateLimits: McpPlugin.resolveRateLimits(options.rateLimits),
-            dnsRebinding: options.dnsRebinding,
-            logging: {
-                ttlDays: options.logging?.ttlDays ?? DEFAULT_LOG_TTL_DAYS,
-                capture: options.logging?.capture ?? 'metadata',
-                redact: options.logging?.redact,
-                maxBodyBytes: options.logging?.maxBodyBytes ?? DEFAULT_LOG_MAX_BODY_BYTES,
-                retentionSchedule: options.logging?.retentionSchedule,
-                captureClientIp: options.logging?.captureClientIp ?? false,
-            },
-        };
+        this.options = resolveMcpPluginOptions(options);
         return McpPlugin;
-    }
-
-    /**
-     * Merges user rate-limit options over the defaults. The anonymous-IP backstop stays ON unless
-     * the user explicitly passes `anonymousIp: false`.
-     */
-    private static resolveRateLimits(rateLimits?: McpRateLimitOptions): McpRateLimitOptions {
-        return {
-            perSession: rateLimits?.perSession ?? DEFAULT_RATE_LIMIT_OPTIONS.perSession,
-            perClient: rateLimits?.perClient ?? DEFAULT_RATE_LIMIT_OPTIONS.perClient,
-            perTool: { ...DEFAULT_RATE_LIMIT_OPTIONS.perTool, ...rateLimits?.perTool },
-            anonymousIp:
-                rateLimits?.anonymousIp === undefined
-                    ? DEFAULT_RATE_LIMIT_OPTIONS.anonymousIp
-                    : rateLimits.anonymousIp,
-            oauthIp:
-                rateLimits?.oauthIp === undefined ? DEFAULT_RATE_LIMIT_OPTIONS.oauthIp : rateLimits.oauthIp,
-        };
     }
 
     onApplicationBootstrap(): void {

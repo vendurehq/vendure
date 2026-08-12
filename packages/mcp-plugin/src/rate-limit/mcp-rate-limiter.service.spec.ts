@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { resolveMcpPluginOptions } from '../resolve-options';
 import { McpPluginOptions } from '../types';
 
 import { McpRateLimiterService, McpRateLimitExceededError } from './mcp-rate-limiter.service';
@@ -23,7 +24,7 @@ function makeCache() {
 
 function build(options: McpPluginOptions) {
     const cache = makeCache();
-    const service = new McpRateLimiterService(cache as any, options);
+    const service = new McpRateLimiterService(cache as any, resolveMcpPluginOptions(options));
     return { service, cache };
 }
 
