@@ -3,15 +3,14 @@ import { Permission, Product, ProductService, RequestContext } from '@vendure/co
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { listOptions, page } from '../order-helpers';
+import { listOptions, page, paginationFields } from '../order-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 
 const listProductsInput = z.strictObject({
-    limit: z.number().describe('Maximum number of products to return.').optional(),
-    offset: z.number().describe('Number of products to skip.').optional(),
+    ...paginationFields('products'),
 });
 
-type ListProductsInput = z.infer<typeof listProductsInput> & Record<string, unknown>;
+type ListProductsInput = z.infer<typeof listProductsInput>;
 
 @McpTool({
     name: 'list_products',

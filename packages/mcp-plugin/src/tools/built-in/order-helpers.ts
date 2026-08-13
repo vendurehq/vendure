@@ -9,6 +9,7 @@ import {
     RequestContext,
     VendureEntity,
 } from '@vendure/core';
+import { z } from 'zod';
 
 /** Common pagination fields shared by the list tool inputs (already validated by the tool schema). */
 interface ListInput {
@@ -43,9 +44,23 @@ export function page<T>(items: T[], totalItems: number, input: { offset?: number
     return { items, total: totalItems, hasMore: offset + items.length < totalItems };
 }
 
+export const DEFAULT_LIST_PAGE_SIZE = 25;
+
+export function paginationFields(noun: string) {
+    return {
+        limit: z.number().describe(`Maximum number of ${noun} to return.`).optional(),
+        offset: z.number().describe(`Number of ${noun} to skip.`).optional(),
+    };
+}
+
+export function slicePage<T>(all: T[], input: ListInput): T[] {
+    const offset = input.offset ?? 0;
+    return all.slice(offset, offset + (input.limit ?? DEFAULT_LIST_PAGE_SIZE));
+}
+
 export function listOptions<T extends VendureEntity>(input: ListInput): ListQueryOptions<T> {
     return {
-        take: input.limit ?? 25,
+        take: input.limit ?? DEFAULT_LIST_PAGE_SIZE,
         skip: input.offset ?? 0,
     } as ListQueryOptions<T>;
 }
@@ -88,7 +103,7 @@ export function publicCollectionListOptions(input: ListInput): ListQueryOptions<
 
 export function orderListOptions(input: ListInput): OrderListOptions {
     return {
-        take: input.limit ?? 25,
+        take: input.limit ?? DEFAULT_LIST_PAGE_SIZE,
         skip: input.offset ?? 0,
     };
 }

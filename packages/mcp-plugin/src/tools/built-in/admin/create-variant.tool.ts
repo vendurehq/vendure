@@ -1,18 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { GlobalFlag, LanguageCode } from '@vendure/common/lib/generated-types';
+import { GlobalFlag } from '@vendure/common/lib/generated-types';
 import { Permission, ProductVariantService, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { McpToolSerializerService } from '../serializer.service';
 
-const variantTranslationSchema = z.strictObject({
-    // Cast is type-only (no runtime effect, schema still emits `type: "string"`): the generated
-    // service call expects the real LanguageCode enum, but the JSON schema for this field is a
-    // plain string, so z.infer alone would type it as `string`.
-    languageCode: z.string().describe('Language code, e.g. "en".') as unknown as z.ZodType<LanguageCode>,
-    name: z.string().describe('Variant name.').optional(),
-});
+import { variantTranslationSchema } from './translation-schemas';
 
 const createVariantInputSchema = z.strictObject({
     sku: z.string().describe('Stock keeping unit.'),

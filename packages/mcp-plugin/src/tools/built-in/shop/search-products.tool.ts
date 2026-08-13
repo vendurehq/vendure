@@ -3,16 +3,15 @@ import { Permission, ProductService, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { page, publicProductListOptions } from '../order-helpers';
+import { page, paginationFields, publicProductListOptions } from '../order-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 
 const searchProductsInput = z.strictObject({
     query: z.string().describe('Text to look up in product names and slugs.').optional(),
-    limit: z.number().describe('Maximum number of products to return.').optional(),
-    offset: z.number().describe('Number of products to skip.').optional(),
+    ...paginationFields('products'),
 });
 
-type SearchProductsInput = z.infer<typeof searchProductsInput> & Record<string, unknown>;
+type SearchProductsInput = z.infer<typeof searchProductsInput>;
 
 @McpTool({
     name: 'search_products',

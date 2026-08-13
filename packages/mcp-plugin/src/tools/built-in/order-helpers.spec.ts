@@ -1,13 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
 
 const expectedExports = [
+    'DEFAULT_LIST_PAGE_SIZE',
     'getActiveOrder',
     'listOptions',
     'orderListOptions',
     'page',
+    'paginationFields',
     'productListOptions',
     'publicCollectionListOptions',
     'publicProductListOptions',
+    'slicePage',
 ];
 
 describe('built-in order helpers', () => {
@@ -15,7 +18,11 @@ describe('built-in order helpers', () => {
         const orderHelpers = await import('./order-helpers');
 
         expect(Object.keys(orderHelpers).sort()).toEqual(expectedExports);
-        expect(Object.values(orderHelpers).every(value => typeof value === 'function')).toBe(true);
+        expect(
+            Object.values(orderHelpers).every(
+                value => typeof value === 'function' || typeof value === 'number',
+            ),
+        ).toBe(true);
     });
 
     it('builds public product list options without losing the query filter', async () => {

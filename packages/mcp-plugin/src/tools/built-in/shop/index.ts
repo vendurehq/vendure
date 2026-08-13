@@ -39,25 +39,3 @@ export const shopToolProviders = [
     GetMyAccountTool,
     ListMyOrdersTool,
 ];
-
-export {
-    AddToCartTool,
-    ApplyCouponCodeTool,
-    GetCartTool,
-    GetEligiblePaymentMethodsTool,
-    GetEligibleShippingMethodsTool,
-    GetMyAccountTool,
-    ListMyOrdersTool,
-    PlaceOrderTool,
-    RemoveCouponCodeTool,
-    RemoveFromCartTool,
-    SearchProductsTool,
-    SetBillingAddressTool,
-    SetShippingAddressTool,
-    SetShippingMethodTool,
-    ShopGetCollectionTool,
-    ShopGetOrderTool,
-    ShopGetProductTool,
-    ShopListCollectionsTool,
-    UpdateCartLineTool,
-};

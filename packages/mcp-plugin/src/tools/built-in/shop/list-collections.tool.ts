@@ -3,19 +3,18 @@ import { CollectionService, idsAreEqual, Permission, RequestContext } from '@ven
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { page, publicCollectionListOptions } from '../order-helpers';
+import { page, paginationFields, publicCollectionListOptions, slicePage } from '../order-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 
 const listCollectionsInput = z.strictObject({
-    limit: z.number().describe('Maximum number of collections to return.').optional(),
-    offset: z.number().describe('Number of collections to skip.').optional(),
+    ...paginationFields('collections'),
     parentId: z
         .union([z.string(), z.number()])
         .describe('Return the children of this collection.')
         .optional(),
 });
 
-type ListCollectionsInput = z.infer<typeof listCollectionsInput> & Record<string, unknown>;
+type ListCollectionsInput = z.infer<typeof listCollectionsInput>;
 
 @McpTool({
     name: 'list_collections',
@@ -59,11 +58,9 @@ export class ShopListCollectionsTool implements McpToolHandler<ListCollectionsIn
                     ),
                 )
                 .filter((collection): collection is (typeof channelChildren)[number] => collection != null);
-            const offset = input.offset ?? 0;
-            const limit = input.limit ?? 25;
-            const items = visibleChildren
-                .slice(offset, offset + limit)
-                .map(collection => this.serializer.collection(collection));
+            const items = slicePage(visibleChildren, input).map(collection =>
+                this.serializer.collection(collection),
+            );
             return page(items, visibleChildren.length, input);
         }
         const result = await this.collectionService.findAll(ctx, publicCollectionListOptions(input), [

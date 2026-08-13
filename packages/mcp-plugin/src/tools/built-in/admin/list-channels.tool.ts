@@ -3,14 +3,13 @@ import { ChannelService, idsAreEqual, Permission, RequestContext } from '@vendur
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { page } from '../order-helpers';
+import { page, paginationFields, slicePage } from '../order-helpers';
 
 const listChannelsInput = z.strictObject({
-    limit: z.number().describe('Maximum number of channels to return.').optional(),
-    offset: z.number().describe('Number of channels to skip.').optional(),
+    ...paginationFields('channels'),
 });
 
-type ListChannelsInput = z.infer<typeof listChannelsInput> & Record<string, unknown>;
+type ListChannelsInput = z.infer<typeof listChannelsInput>;
 
 @McpTool({
     name: 'list_channels',
@@ -38,11 +37,11 @@ export class ListChannelsTool implements McpToolHandler<ListChannelsInput> {
         const accessible = result.items.filter(channel =>
             accessibleIds.some(id => idsAreEqual(id, channel.id)),
         );
-        const offset = input.offset ?? 0;
-        const limit = input.limit ?? 25;
-        const items = accessible
-            .slice(offset, offset + limit)
-            .map(channel => ({ id: channel.id, code: channel.code, token: channel.token }));
+        const items = slicePage(accessible, input).map(channel => ({
+            id: channel.id,
+            code: channel.code,
+            token: channel.token,
+        }));
         return page(items, accessible.length, input);
     }
 }
