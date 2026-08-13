@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { ActiveOrderService, OrderService, Permission, RequestContext } from '@vendure/core';
+import { OrderService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { getActiveOrder } from '../order-helpers';
+import { McpActiveOrderService } from '../active-order.service';
 
 const getEligiblePaymentMethodsInput = z.strictObject({});
 
@@ -26,12 +26,12 @@ const getEligiblePaymentMethodsInput = z.strictObject({});
 @Injectable()
 export class GetEligiblePaymentMethodsTool implements McpToolHandler<Record<string, never>> {
     constructor(
-        private activeOrderService: ActiveOrderService,
+        private activeOrder: McpActiveOrderService,
         private orderService: OrderService,
     ) {}
 
     async execute(ctx: RequestContext) {
-        const order = await getActiveOrder(ctx, this.activeOrderService, this.orderService, false);
+        const order = await this.activeOrder.find(ctx);
         if (!order) return { methods: [] };
         return { methods: await this.orderService.getEligiblePaymentMethods(ctx, order.id) };
     }

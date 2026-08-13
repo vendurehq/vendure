@@ -40,6 +40,7 @@ import { McpToolRegistryService } from './registry/mcp-tool-registry.service';
 import { resolveMcpPluginOptions } from './resolve-options';
 import { mcpOauthRetentionTask } from './tasks/mcp-oauth-retention.task';
 import { mcpToolCallLogRetentionTask } from './tasks/mcp-tool-call-log-retention.task';
+import { McpActiveOrderService } from './tools/built-in/active-order.service';
 import { mcpBuiltInToolProviders } from './tools/built-in/providers';
 import { McpToolSerializerService } from './tools/built-in/serializer.service';
 import { McpTransportController } from './transport/mcp-transport.controller';
@@ -79,6 +80,7 @@ import { McpPluginOptions } from './types';
         McpRateLimiterService,
         McpOauthRateLimitGuard,
         McpToolCallLogService,
+        McpActiveOrderService,
         McpToolSerializerService,
         ...mcpBuiltInToolProviders,
     ],

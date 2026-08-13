@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { ActiveOrderService, OrderService, Permission, RequestContext } from '@vendure/core';
+import { OrderService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { getActiveOrder } from '../order-helpers';
+import { McpActiveOrderService } from '../active-order.service';
 import { McpToolSerializerService } from '../serializer.service';
 
 const getEligibleShippingMethodsInput = z.strictObject({});
@@ -27,13 +27,13 @@ const getEligibleShippingMethodsInput = z.strictObject({});
 @Injectable()
 export class GetEligibleShippingMethodsTool implements McpToolHandler<Record<string, never>> {
     constructor(
-        private activeOrderService: ActiveOrderService,
+        private activeOrder: McpActiveOrderService,
         private orderService: OrderService,
         private serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext) {
-        const order = await getActiveOrder(ctx, this.activeOrderService, this.orderService, false);
+        const order = await this.activeOrder.find(ctx);
         if (!order) return { methods: [] };
         const quotes = await this.orderService.getEligibleShippingMethods(ctx, order.id);
         // The currency comes from the order because a quote does not carry one.

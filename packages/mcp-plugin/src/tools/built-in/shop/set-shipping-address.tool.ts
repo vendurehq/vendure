@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { ActiveOrderService, OrderService, Permission, RequestContext } from '@vendure/core';
+import { OrderService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { getActiveOrder } from '../order-helpers';
+import { McpActiveOrderService } from '../active-order.service';
 import { McpToolSerializerService } from '../serializer.service';
 
 import { addressInputSchema } from './address-schema';
@@ -33,13 +33,13 @@ type SetShippingAddressInput = z.infer<typeof setShippingAddressInput>;
 @Injectable()
 export class SetShippingAddressTool implements McpToolHandler<SetShippingAddressInput> {
     constructor(
-        private activeOrderService: ActiveOrderService,
+        private activeOrder: McpActiveOrderService,
         private orderService: OrderService,
         private serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: SetShippingAddressInput) {
-        const order = await getActiveOrder(ctx, this.activeOrderService, this.orderService, true);
+        const order = await this.activeOrder.findOrCreate(ctx);
         if (!order) return { order: null };
         return {
             order: this.serializer.order(

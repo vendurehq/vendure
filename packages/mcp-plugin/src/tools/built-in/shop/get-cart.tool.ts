@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { ActiveOrderService, OrderService, Permission, RequestContext } from '@vendure/core';
+import { Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { getActiveOrder } from '../order-helpers';
+import { McpActiveOrderService } from '../active-order.service';
 import { McpToolSerializerService } from '../serializer.service';
 
 const getCartInput = z.strictObject({});
@@ -27,13 +27,12 @@ const getCartInput = z.strictObject({});
 @Injectable()
 export class GetCartTool implements McpToolHandler<Record<string, never>> {
     constructor(
-        private activeOrderService: ActiveOrderService,
-        private orderService: OrderService,
+        private activeOrder: McpActiveOrderService,
         private serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext) {
-        const order = await getActiveOrder(ctx, this.activeOrderService, this.orderService, false);
+        const order = await this.activeOrder.find(ctx);
         return { order: this.serializer.order(order) };
     }
 }

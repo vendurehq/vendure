@@ -24,6 +24,7 @@ import { McpRateLimiterService } from '../../rate-limit/mcp-rate-limiter.service
 import { McpToolRegistryService } from '../../registry/mcp-tool-registry.service';
 import { resolveMcpPluginOptions } from '../../resolve-options';
 
+import { McpActiveOrderService } from './active-order.service';
 import { adminToolProviders } from './admin';
 import { mcpBuiltInToolProviders } from './providers';
 import { McpToolSerializerService } from './serializer.service';
@@ -44,6 +45,7 @@ describe('built-in registry discovery', () => {
             providers: [
                 ...mcpBuiltInToolProviders,
                 McpToolRegistryService,
+                McpActiveOrderService,
                 McpToolSerializerService,
                 { provide: ActiveOrderService, useValue: {} },
                 { provide: AssetService, useValue: {} },

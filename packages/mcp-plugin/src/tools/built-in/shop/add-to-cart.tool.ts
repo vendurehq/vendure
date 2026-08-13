@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import {
-    ActiveOrderService,
     OrderService,
     Permission,
     ProductVariantService,
@@ -10,8 +9,8 @@ import {
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
+import { McpActiveOrderService } from '../active-order.service';
 import { idSchema } from '../id-schema';
-import { getActiveOrder } from '../order-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 
 const addToCartInput = z.strictObject({
@@ -53,7 +52,7 @@ type AddToCartInput = z.infer<typeof addToCartInput>;
 @Injectable()
 export class AddToCartTool implements McpToolHandler<AddToCartInput> {
     constructor(
-        private activeOrderService: ActiveOrderService,
+        private activeOrder: McpActiveOrderService,
         private orderService: OrderService,
         private productVariantService: ProductVariantService,
         private serializer: McpToolSerializerService,
@@ -103,7 +102,7 @@ export class AddToCartTool implements McpToolHandler<AddToCartInput> {
             variantId = variants.items[0].id;
         }
 
-        const order = await getActiveOrder(ctx, this.activeOrderService, this.orderService, true);
+        const order = await this.activeOrder.findOrCreate(ctx);
         if (!order) return this.serializer.orderOrError(undefined);
         return this.serializer.orderOrError(
             await this.orderService.addItemToOrder(

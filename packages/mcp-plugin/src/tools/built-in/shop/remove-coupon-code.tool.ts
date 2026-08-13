@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { ActiveOrderService, OrderService, Permission, RequestContext } from '@vendure/core';
+import { OrderService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { getActiveOrder } from '../order-helpers';
+import { McpActiveOrderService } from '../active-order.service';
 import { McpToolSerializerService } from '../serializer.service';
 
 const removeCouponCodeInput = z.strictObject({
@@ -31,13 +31,13 @@ type RemoveCouponCodeInput = z.infer<typeof removeCouponCodeInput>;
 @Injectable()
 export class RemoveCouponCodeTool implements McpToolHandler<RemoveCouponCodeInput> {
     constructor(
-        private activeOrderService: ActiveOrderService,
+        private activeOrder: McpActiveOrderService,
         private orderService: OrderService,
         private serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: RemoveCouponCodeInput) {
-        const order = await getActiveOrder(ctx, this.activeOrderService, this.orderService, true);
+        const order = await this.activeOrder.findOrCreate(ctx);
         if (!order) return { order: null };
         return {
             order: this.serializer.order(await this.orderService.removeCouponCode(ctx, order.id, input.code)),
