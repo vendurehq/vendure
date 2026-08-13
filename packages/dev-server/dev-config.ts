@@ -23,6 +23,8 @@ import { createRequire } from 'node:module';
 import path from 'path';
 import { DataSourceOptions } from 'typeorm';
 
+import { ChannelRoleConsumerPlugin } from './test-plugins/channel-scoped-roles/channel-role-consumer-plugin';
+import { ChannelRoleExtenderPlugin } from './test-plugins/channel-scoped-roles/channel-role-extender-plugin';
 import { NavModifierPlugin } from './test-plugins/nav-modifier-plugin/nav-modifier-plugin';
 // import { FieldTestPlugin } from './test-plugins/field-test/field-test-plugin';
 import { InsightsTestPlugin } from './test-plugins/insights-test/insights-test-plugin';
@@ -97,6 +99,7 @@ export const devConfig: VendureConfig = {
         cookieOptions: {
             secret: 'abc',
         },
+        channelScopedRoles: true,
     },
     dbConnectionOptions: {
         synchronize: false,
@@ -133,6 +136,8 @@ export const devConfig: VendureConfig = {
         InsightsTestPlugin,
         // FieldTestPlugin,
         NavModifierPlugin,
+        ChannelRoleConsumerPlugin,
+        ChannelRoleExtenderPlugin,
         ...(SERVE_GRAPHIQL ? [loadPackage('@vendure/graphiql-plugin').GraphiqlPlugin.init()] : []),
         AssetServerPlugin.init({
             route: 'assets',
