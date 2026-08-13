@@ -809,6 +809,10 @@ msgstr "Válasszon vásárlót a folytatáshoz"
 msgid "Successfully assigned option group"
 msgstr "Opciócsoport sikeresen hozzárendelve"
 
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "Allocated refund amounts must equal refund total"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx
 msgid "Run Test"
 msgstr "Teszt futtatása"
@@ -1226,6 +1230,7 @@ msgstr "Megrendelési tételek törlése sikertelen"
 msgid "Transaction ID"
 msgstr "Tranzakció ID"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Allocated"
 msgstr "Lefoglalt"
@@ -1799,8 +1804,8 @@ msgid "Failed to rename view"
 msgstr "Nézet átnevezése sikertelen"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
-msgid "Available"
-msgstr "Elérhető"
+#~ msgid "Available"
+#~ msgstr "Elérhető"
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Normal"
@@ -2145,6 +2150,10 @@ msgstr "A visszatérítés sikeresen rendezve"
 #: src/lib/framework/page/detail-page.tsx
 msgid "Update"
 msgstr "Frissítés"
+
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "{successfulRefundCount} refund(s) processed before failure. Check order history for details."
+msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Heading 2"
@@ -4023,8 +4032,8 @@ msgid "New Stock Location"
 msgstr "Új raktárhely"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "{successfulRefundCount} payment(s) refunded before failure. Check order history for details."
-msgstr "{successfulRefundCount} fizetés visszatérítve a hiba előtt. A részletekért tekintse meg a megrendelés előzményeit."
+#~ msgid "{successfulRefundCount} payment(s) refunded before failure. Check order history for details."
+#~ msgstr "{successfulRefundCount} fizetés visszatérítve a hiba előtt. A részletekért tekintse meg a megrendelés előzményeit."
 
 #: src/lib/components/data-input/relation-selector.tsx
 msgid "Select item"
@@ -4294,6 +4303,10 @@ msgstr "Vásárlói csoport létrehozása sikertelen"
 msgid "Failed to create role"
 msgstr "Szerepkör létrehozása sikertelen"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Payment methods"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Product name"
 msgstr "Terméknév"
@@ -4339,7 +4352,7 @@ msgstr "Opciócsoport hozzáadása"
 msgid "All"
 msgstr "Összes"
 
-#. placeholder {0}: formatCurrency(refund.amountToRefundTotal, order.currencyCode)
+#. placeholder {0}: formatCurrency(refund.refundTotal, order.currencyCode)
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Refund {0}"
 msgstr "{0} visszatérítése"
@@ -5534,6 +5547,10 @@ msgstr "Ez egy alapértelmezett szerepkör, és nem módosítható"
 msgid "My saved views"
 msgstr "Saját mentett nézetek"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Other refund destinations"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 msgid "State / Province"
 msgstr "Állam / Tartomány"
@@ -5721,8 +5738,8 @@ msgid "Password reset requested"
 msgstr "Jelszó-visszaállítás kérve"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "Allocated payment amount must equal refund total"
-msgstr "A lefoglalt fizetési összegnek egyenlőnek kell lennie a visszatérítés végösszegével"
+#~ msgid "Allocated payment amount must equal refund total"
+#~ msgstr "A lefoglalt fizetési összegnek egyenlőnek kell lennie a visszatérítés végösszegével"
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #~ msgid "e.g. Small"
@@ -7031,8 +7048,8 @@ msgid "Fulfillment ID"
 msgstr "Teljesítés ID"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
-msgid "Select payments to refund"
-msgstr "Válassza ki a visszatérítendő fizetéseket"
+#~ msgid "Select payments to refund"
+#~ msgstr "Válassza ki a visszatérítendő fizetéseket"
 
 #: src/lib/components/shared/error-page.tsx
 msgid "The page you are looking for does not exist or may have been moved."
@@ -7089,6 +7106,10 @@ msgstr "\"{viewName}\"  globális nézet alkalmazva"
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Customer registered"
 msgstr "Vásárló regisztrálva"
+
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Remaining"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts

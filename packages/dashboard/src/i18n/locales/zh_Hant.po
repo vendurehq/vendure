@@ -809,6 +809,10 @@ msgstr "選擇客戶以繼續"
 msgid "Successfully assigned option group"
 msgstr "選項群組指派成功"
 
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "Allocated refund amounts must equal refund total"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx
 msgid "Run Test"
 msgstr "執行測試"
@@ -1226,6 +1230,7 @@ msgstr "取消訂單商品失敗"
 msgid "Transaction ID"
 msgstr "交易 ID"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Allocated"
 msgstr "已配置"
@@ -1799,8 +1804,8 @@ msgid "Failed to rename view"
 msgstr "重新命名檢視失敗"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
-msgid "Available"
-msgstr "可用"
+#~ msgid "Available"
+#~ msgstr "可用"
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Normal"
@@ -2145,6 +2150,10 @@ msgstr "退款已成功完成"
 #: src/lib/framework/page/detail-page.tsx
 msgid "Update"
 msgstr "更新"
+
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "{successfulRefundCount} refund(s) processed before failure. Check order history for details."
+msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Heading 2"
@@ -4033,8 +4042,8 @@ msgid "New Stock Location"
 msgstr "新增庫存位置"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "{successfulRefundCount} payment(s) refunded before failure. Check order history for details."
-msgstr "失敗前已退還 {successfulRefundCount} 筆付款。請查看訂單歷史了解詳情。"
+#~ msgid "{successfulRefundCount} payment(s) refunded before failure. Check order history for details."
+#~ msgstr "失敗前已退還 {successfulRefundCount} 筆付款。請查看訂單歷史了解詳情。"
 
 #: src/lib/components/data-input/relation-selector.tsx
 msgid "Select item"
@@ -4307,6 +4316,10 @@ msgstr "建立客戶群組失敗"
 msgid "Failed to create role"
 msgstr "建立角色失敗"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Payment methods"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Product name"
 msgstr "商品名稱"
@@ -4352,7 +4365,7 @@ msgstr "新增選項群組"
 msgid "All"
 msgstr "全部"
 
-#. placeholder {0}: formatCurrency(refund.amountToRefundTotal, order.currencyCode)
+#. placeholder {0}: formatCurrency(refund.refundTotal, order.currencyCode)
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Refund {0}"
 msgstr "退款 {0}"
@@ -5547,6 +5560,10 @@ msgstr "這是預設角色，無法修改"
 msgid "My saved views"
 msgstr "我的儲存檢視"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Other refund destinations"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 msgid "State / Province"
 msgstr "州/省"
@@ -5734,8 +5751,8 @@ msgid "Password reset requested"
 msgstr "已要求重設密碼"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "Allocated payment amount must equal refund total"
-msgstr "分配的付款金額必須等於退款總額"
+#~ msgid "Allocated payment amount must equal refund total"
+#~ msgstr "分配的付款金額必須等於退款總額"
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #~ msgid "e.g. Small"
@@ -7048,8 +7065,8 @@ msgid "Fulfillment ID"
 msgstr "履行 ID"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
-msgid "Select payments to refund"
-msgstr "選擇要退款的付款"
+#~ msgid "Select payments to refund"
+#~ msgstr "選擇要退款的付款"
 
 #: src/lib/components/shared/error-page.tsx
 msgid "The page you are looking for does not exist or may have been moved."
@@ -7106,6 +7123,10 @@ msgstr "已套用全域檢視「{viewName}」"
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Customer registered"
 msgstr "客戶已註冊"
+
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Remaining"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts

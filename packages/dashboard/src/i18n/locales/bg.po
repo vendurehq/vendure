@@ -815,6 +815,10 @@ msgstr "Изберете клиент, за да продължите"
 msgid "Successfully assigned option group"
 msgstr "Групата опции е успешно присвоена"
 
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "Allocated refund amounts must equal refund total"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx
 msgid "Run Test"
 msgstr "Изпълнете тест"
@@ -1232,6 +1236,7 @@ msgstr "Неуспешно анулиране на артикули от пор�
 msgid "Transaction ID"
 msgstr "ID на транзакцията"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Allocated"
 msgstr "Разпределени"
@@ -1805,8 +1810,8 @@ msgid "Failed to rename view"
 msgstr "Неуспешно преименуване на изглед"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
-msgid "Available"
-msgstr "Налично"
+#~ msgid "Available"
+#~ msgstr "Налично"
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Normal"
@@ -2160,6 +2165,10 @@ msgstr "Възстановяването е приключено успешно"
 #: src/lib/framework/page/detail-page.tsx
 msgid "Update"
 msgstr "Актуализация"
+
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "{successfulRefundCount} refund(s) processed before failure. Check order history for details."
+msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Heading 2"
@@ -4053,8 +4062,8 @@ msgid "New Stock Location"
 msgstr "Ново складово местоположение"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "{successfulRefundCount} payment(s) refunded before failure. Check order history for details."
-msgstr "{successfulRefundCount} плащане(я) възстановени преди грешката. Проверете историята на поръчката за подробности."
+#~ msgid "{successfulRefundCount} payment(s) refunded before failure. Check order history for details."
+#~ msgstr "{successfulRefundCount} плащане(я) възстановени преди грешката. Проверете историята на поръчката за подробности."
 
 #: src/lib/components/data-input/relation-selector.tsx
 msgid "Select item"
@@ -4327,6 +4336,10 @@ msgstr "Неуспешно създаване на клиентска група
 msgid "Failed to create role"
 msgstr "Неуспешно създаване на роля"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Payment methods"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Product name"
 msgstr "Име на продукта"
@@ -4372,7 +4385,7 @@ msgstr "Добавете група опции"
 msgid "All"
 msgstr "Всички"
 
-#. placeholder {0}: formatCurrency(refund.amountToRefundTotal, order.currencyCode)
+#. placeholder {0}: formatCurrency(refund.refundTotal, order.currencyCode)
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Refund {0}"
 msgstr "Възстановяване {0}"
@@ -5576,6 +5589,10 @@ msgstr "Това е роля по подразбиране и не може да
 msgid "My saved views"
 msgstr "Моите запазени изгледи"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Other refund destinations"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 msgid "State / Province"
 msgstr "Област / провинция"
@@ -5763,8 +5780,8 @@ msgid "Password reset requested"
 msgstr "Изисква се повторно задаване на парола"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "Allocated payment amount must equal refund total"
-msgstr "Разпределената сума на плащане трябва да е равна на общата сума за възстановяване"
+#~ msgid "Allocated payment amount must equal refund total"
+#~ msgstr "Разпределената сума на плащане трябва да е равна на общата сума за възстановяване"
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #~ msgid "e.g. Small"
@@ -7085,8 +7102,8 @@ msgid "Fulfillment ID"
 msgstr "ID на изпълнение"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
-msgid "Select payments to refund"
-msgstr "Изберете плащания за възстановяване"
+#~ msgid "Select payments to refund"
+#~ msgstr "Изберете плащания за възстановяване"
 
 #: src/lib/components/shared/error-page.tsx
 msgid "The page you are looking for does not exist or may have been moved."
@@ -7143,6 +7160,10 @@ msgstr "Приложен е глобален изглед „{viewName}“"
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Customer registered"
 msgstr "Регистриран клиент"
+
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Remaining"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts

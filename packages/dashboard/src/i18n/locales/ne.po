@@ -809,6 +809,10 @@ msgstr "जारी राख्न ग्राहक चयन गर्न�
 msgid "Successfully assigned option group"
 msgstr "विकल्प समूह सफलतापूर्वक तोकियो"
 
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "Allocated refund amounts must equal refund total"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx
 msgid "Run Test"
 msgstr "परीक्षण चलाउनुहोस्"
@@ -1226,6 +1230,7 @@ msgstr "अर्डर वस्तुहरू रद्द गर्न अ�
 msgid "Transaction ID"
 msgstr "लेनदेन ID"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Allocated"
 msgstr "आवंटित"
@@ -1799,8 +1804,8 @@ msgid "Failed to rename view"
 msgstr "दृश्य पुन: नामकरण गर्न असफल"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
-msgid "Available"
-msgstr "उपलब्ध"
+#~ msgid "Available"
+#~ msgstr "उपलब्ध"
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Normal"
@@ -2145,6 +2150,10 @@ msgstr "रिफन्ड सफलतापूर्वक सम्पन्�
 #: src/lib/framework/page/detail-page.tsx
 msgid "Update"
 msgstr "अपडेट गर्नुहोस्"
+
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "{successfulRefundCount} refund(s) processed before failure. Check order history for details."
+msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Heading 2"
@@ -4033,8 +4042,8 @@ msgid "New Stock Location"
 msgstr "नयाँ स्टक स्थान"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "{successfulRefundCount} payment(s) refunded before failure. Check order history for details."
-msgstr "असफलता अघि {successfulRefundCount} भुक्तानी(हरू) फिर्ता गरियो। विवरणको लागि अर्डर इतिहास जाँच गर्नुहोस्।"
+#~ msgid "{successfulRefundCount} payment(s) refunded before failure. Check order history for details."
+#~ msgstr "असफलता अघि {successfulRefundCount} भुक्तानी(हरू) फिर्ता गरियो। विवरणको लागि अर्डर इतिहास जाँच गर्नुहोस्।"
 
 #: src/lib/components/data-input/relation-selector.tsx
 msgid "Select item"
@@ -4307,6 +4316,10 @@ msgstr "ग्राहक समूह सिर्जना गर्न अ�
 msgid "Failed to create role"
 msgstr "भूमिका सिर्जना गर्न असफल"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Payment methods"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Product name"
 msgstr "उत्पादन नाम"
@@ -4352,7 +4365,7 @@ msgstr "विकल्प समूह थप्नुहोस्"
 msgid "All"
 msgstr "सबै"
 
-#. placeholder {0}: formatCurrency(refund.amountToRefundTotal, order.currencyCode)
+#. placeholder {0}: formatCurrency(refund.refundTotal, order.currencyCode)
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Refund {0}"
 msgstr "{0} फिर्ता"
@@ -5547,6 +5560,10 @@ msgstr "यो पूर्वनिर्धारित भूमिका ह
 msgid "My saved views"
 msgstr "मेरो सुरक्षित दृश्यहरू"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Other refund destinations"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 msgid "State / Province"
 msgstr "राज्य / प्रान्त"
@@ -5734,8 +5751,8 @@ msgid "Password reset requested"
 msgstr "पासवर्ड रिसेट अनुरोध गरियो"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "Allocated payment amount must equal refund total"
-msgstr "तोकिएको भुक्तानी रकम फिर्ता कुल बराबर हुनुपर्छ"
+#~ msgid "Allocated payment amount must equal refund total"
+#~ msgstr "तोकिएको भुक्तानी रकम फिर्ता कुल बराबर हुनुपर्छ"
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #~ msgid "e.g. Small"
@@ -7048,8 +7065,8 @@ msgid "Fulfillment ID"
 msgstr "पूर्ति ID"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
-msgid "Select payments to refund"
-msgstr "फिर्ताको लागि भुक्तानीहरू छान्नुहोस्"
+#~ msgid "Select payments to refund"
+#~ msgstr "फिर्ताको लागि भुक्तानीहरू छान्नुहोस्"
 
 #: src/lib/components/shared/error-page.tsx
 msgid "The page you are looking for does not exist or may have been moved."
@@ -7106,6 +7123,10 @@ msgstr "ग्लोबल दृश्य \"{viewName}\" लागू गरि
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Customer registered"
 msgstr "ग्राहक दर्ता गरियो"
+
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Remaining"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts
