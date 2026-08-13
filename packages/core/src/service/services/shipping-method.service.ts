@@ -22,6 +22,7 @@ import { Translated } from '../../common/types/locale-types';
 import { assertFound, idsAreEqual } from '../../common/utils';
 import { ConfigService } from '../../config/config.service';
 import { Logger } from '../../config/logger/vendure-logger';
+import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { ShippingMethodTranslation } from '../../entity/shipping-method/shipping-method-translation.entity';
 import { ShippingMethod } from '../../entity/shipping-method/shipping-method.entity';
@@ -103,7 +104,7 @@ export class ShippingMethodService {
                     id: shippingMethodId,
                     deletedAt: includeDeleted ? undefined : IsNull(),
                 },
-                relations,
+                relations: findOptionsArrayToObject<ShippingMethod>(relations),
             });
         } else {
             shippingMethod = await this.connection.findOneInChannel(

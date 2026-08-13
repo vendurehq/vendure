@@ -2581,13 +2581,11 @@ export class OrderService implements OnApplicationBootstrap {
 
             const orders = await this.connection.getRepository(orderCtx, Order).find({
                 where: { id: In(affectedOrders.map(o => o.id)) },
-                relations: [
-                    'lines',
-                    'lines.productVariant',
-                    'lines.productVariant.productVariantPrices',
-                    'shippingLines',
-                    'surcharges',
-                ],
+                relations: {
+                    lines: { productVariant: { productVariantPrices: true } },
+                    shippingLines: true,
+                    surcharges: true,
+                },
             });
 
             for (const order of orders) {
