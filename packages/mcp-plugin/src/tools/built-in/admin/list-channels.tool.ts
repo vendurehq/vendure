@@ -3,7 +3,7 @@ import { ChannelService, idsAreEqual, Permission, RequestContext } from '@vendur
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { page, paginationFields, slicePage } from '../order-helpers';
+import { page, paginationFields, slicePage } from '../list-helpers';
 
 const listChannelsInput = z.strictObject({
     ...paginationFields('channels'),

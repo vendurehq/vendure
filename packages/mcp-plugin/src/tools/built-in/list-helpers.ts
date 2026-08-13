@@ -18,7 +18,7 @@ export function page<T>(items: T[], totalItems: number, input: { offset?: number
     return { items, total: totalItems, hasMore: offset + items.length < totalItems };
 }
 
-export const DEFAULT_LIST_PAGE_SIZE = 25;
+const DEFAULT_LIST_PAGE_SIZE = 25;
 
 export function paginationFields(noun: string) {
     return {
@@ -39,7 +39,7 @@ export function listOptions<T extends VendureEntity>(input: ListInput): ListQuer
     } as ListQueryOptions<T>;
 }
 
-export function productListOptions(input: ProductListInput): ListQueryOptions<Product> {
+function productListOptions(input: ProductListInput): ListQueryOptions<Product> {
     const options = listOptions<Product>(input);
     const query = (input.query ?? '').trim();
     if (!query) {

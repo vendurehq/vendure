@@ -1,31 +1,25 @@
 import { describe, expect, it } from 'vitest';
 
 const expectedExports = [
-    'DEFAULT_LIST_PAGE_SIZE',
     'listOptions',
     'orderListOptions',
     'page',
     'paginationFields',
-    'productListOptions',
     'publicCollectionListOptions',
     'publicProductListOptions',
     'slicePage',
 ];
 
-describe('built-in order helpers', () => {
+describe('built-in list helpers', () => {
     it('exports only the helpers consumed by the shipped tools', async () => {
-        const orderHelpers = await import('./order-helpers');
+        const listHelpers = await import('./list-helpers');
 
-        expect(Object.keys(orderHelpers).sort()).toEqual(expectedExports);
-        expect(
-            Object.values(orderHelpers).every(
-                value => typeof value === 'function' || typeof value === 'number',
-            ),
-        ).toBe(true);
+        expect(Object.keys(listHelpers).sort()).toEqual(expectedExports);
+        expect(Object.values(listHelpers).every(value => typeof value === 'function')).toBe(true);
     });
 
     it('builds public product list options without losing the query filter', async () => {
-        const { publicProductListOptions } = await import('./order-helpers');
+        const { publicProductListOptions } = await import('./list-helpers');
 
         expect(publicProductListOptions({ limit: 10, offset: 5, query: 'shoe' })).toEqual({
             take: 10,

@@ -3,7 +3,7 @@ import { Customer, CustomerService, Permission, RequestContext } from '@vendure/
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { listOptions, page, paginationFields } from '../order-helpers';
+import { listOptions, page, paginationFields } from '../list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 
 const listCustomersInput = z.strictObject({

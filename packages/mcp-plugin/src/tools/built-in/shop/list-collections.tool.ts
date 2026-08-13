@@ -4,7 +4,7 @@ import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { idSchema } from '../id-schema';
-import { page, paginationFields, publicCollectionListOptions, slicePage } from '../order-helpers';
+import { page, paginationFields, publicCollectionListOptions, slicePage } from '../list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 
 const listCollectionsInput = z.strictObject({
