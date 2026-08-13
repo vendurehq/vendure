@@ -1908,7 +1908,7 @@
                   "title": "Refund",
                   "slug": "refund",
                   "file": "docs/reference/typescript-api/entities/refund.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-13T16:23:36+01:00"
                 },
                 {
                   "title": "Region",
@@ -2687,6 +2687,12 @@
                   "slug": "payment-transition-data",
                   "file": "docs/reference/typescript-api/payment/payment-transition-data.mdx",
                   "lastModified": "2026-01-28T14:49:21+01:00"
+                },
+                {
+                  "title": "RefundDestinationStrategy",
+                  "slug": "refund-destination-strategy",
+                  "file": "docs/reference/typescript-api/payment/refund-destination-strategy.mdx",
+                  "lastModified": "2026-03-31T11:45:52Z"
                 },
                 {
                   "title": "RefundProcess",
@@ -3874,7 +3880,7 @@
                   "title": "Input Objects",
                   "slug": "input-types",
                   "file": "docs/reference/graphql-api/admin/input-types.mdx",
-                  "lastModified": "2026-03-10T16:50:41+01:00"
+                  "lastModified": "2026-03-31T09:58:45Z"
                 },
                 {
                   "title": "Mutations",
@@ -3886,13 +3892,13 @@
                   "title": "Queries",
                   "slug": "queries",
                   "file": "docs/reference/graphql-api/admin/queries.mdx",
-                  "lastModified": "2026-03-06T13:07:42+01:00"
+                  "lastModified": "2026-03-31T09:58:45Z"
                 },
                 {
                   "title": "Types",
                   "slug": "object-types",
                   "file": "docs/reference/graphql-api/admin/object-types.mdx",
-                  "lastModified": "2026-07-23T11:18:30+02:00"
+                  "lastModified": "2026-08-13T16:23:36+01:00"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -3930,7 +3936,7 @@
                   "title": "Types",
                   "slug": "object-types",
                   "file": "docs/reference/graphql-api/shop/object-types.mdx",
-                  "lastModified": "2026-04-29T16:04:40+02:00"
+                  "lastModified": "2026-08-13T16:23:36+01:00"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"

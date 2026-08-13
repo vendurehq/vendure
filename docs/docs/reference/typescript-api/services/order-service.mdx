@@ -2,7 +2,7 @@
 title: "OrderService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/order.service.ts" sourceLine="146" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/order.service.ts" sourceLine="149" packageName="@vendure/core" />
 
 Contains methods relating to [Order](/reference/typescript-api/entities/order#order) entities.
 
@@ -65,6 +65,7 @@ class OrderService implements OnApplicationBootstrap {
     getOrderSurcharges(ctx: RequestContext, orderId: ID) => Promise<Surcharge[]>;
     cancelOrder(ctx: RequestContext, input: CancelOrderInput) => Promise<ErrorResultUnion<CancelOrderResult, Order>>;
     refundOrder(ctx: RequestContext, input: RefundOrderInput) => Promise<ErrorResultUnion<RefundOrderResult, Refund>>;
+    getRefundDestinations(ctx: RequestContext, orderId: ID) => Promise<Array<{ code: string; description: string }>>;
     settleRefund(ctx: RequestContext, input: SettleRefundInput) => Promise<Refund>;
     addCustomerToOrder(ctx: RequestContext, orderIdOrOrder: ID | Order, customer: Customer) => Promise<Order>;
     addNoteToOrder(ctx: RequestContext, input: AddNoteToOrderInput) => Promise<Order>;
@@ -392,6 +393,13 @@ in the Order, then new [StockMovement](/reference/typescript-api/entities/stock-
 
 Creates a [Refund](/reference/typescript-api/entities/refund#refund) against the order and in doing so invokes the `createRefund()` method of the
 [PaymentMethodHandler](/reference/typescript-api/payment/payment-method-handler#paymentmethodhandler).
+### getRefundDestinations
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, orderId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<Array<{ code: string; description: string }>>`}   />
+
+Returns the available refund destinations for the given order. Includes
+the default destination (original payment method) plus any custom
+destinations registered via [RefundDestinationStrategy](/reference/typescript-api/payment/refund-destination-strategy#refunddestinationstrategy).
 ### settleRefund
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: SettleRefundInput) => Promise<<a href='/reference/typescript-api/entities/refund#refund'>Refund</a>>`}   />
