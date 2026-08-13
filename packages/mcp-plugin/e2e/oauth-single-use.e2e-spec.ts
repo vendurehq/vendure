@@ -8,7 +8,7 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 import { McpOauthClient } from '../src/entities/mcp-oauth-client.entity';
 import { McpOauthGrant } from '../src/entities/mcp-oauth-grant.entity';
 import { McpOauthService } from '../src/oauth/oauth.service';
-import { deriveHashKey, hashToken } from '../src/oauth/token-hash';
+import { deriveHashKey, hashLookupToken } from '../src/oauth/token-hash';
 import { McpPlugin } from '../src/plugin';
 
 import { seedAuthorizationCode, withFailingUpdate } from './utils/oauth-test-fixtures';
@@ -23,7 +23,7 @@ describe('McpPlugin OAuth single-use code', () => {
     const { server } = createTestEnvironment(config);
 
     const hashKey = deriveHashKey(TOKEN_SECRET);
-    const lookupHash = (value: string) => hashToken(`lookup:${value}`, hashKey);
+    const lookupHash = (value: string) => hashLookupToken(value, hashKey);
 
     beforeAll(async () => {
         await server.init({

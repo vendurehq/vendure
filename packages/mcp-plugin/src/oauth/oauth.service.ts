@@ -62,7 +62,7 @@ import {
     randomToken,
     verifyPkceChallenge,
 } from './oauth-utils';
-import { deriveHashKey, hashToken } from './token-hash';
+import { deriveHashKey, hashLookupToken } from './token-hash';
 
 /**
  * Name recorded against the dedicated Vendure session created for an MCP grant.
@@ -963,12 +963,7 @@ export class McpOauthService {
         return this.cachedHashKey;
     }
 
-    /**
-     * Hashes a plaintext OAuth credential for indexed storage and lookup.
-     * The `lookup:` namespace keeps these values separate from any other
-     * keyed hashes introduced in the future.
-     */
     private hashLookup(value: string): string {
-        return hashToken(`lookup:${value}`, this.getHashKey());
+        return hashLookupToken(value, this.getHashKey());
     }
 }

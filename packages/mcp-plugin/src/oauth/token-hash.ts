@@ -22,3 +22,11 @@ export function deriveHashKey(secret: string): Buffer {
 export function hashToken(value: string, hashKey: Buffer): string {
     return createHmac('sha256', hashKey).update(value).digest('base64url');
 }
+
+/**
+ * Hashes a plaintext OAuth credential for indexed storage and lookup. The `lookup:` namespace
+ * keeps these values separate from any other keyed hashes introduced in the future.
+ */
+export function hashLookupToken(value: string, hashKey: Buffer): string {
+    return hashToken(`lookup:${value}`, hashKey);
+}

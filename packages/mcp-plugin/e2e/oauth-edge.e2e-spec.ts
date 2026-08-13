@@ -22,7 +22,7 @@ import { McpAuthorizationCode } from '../src/entities/mcp-authorization-code.ent
 import { McpAuthorizationRequest } from '../src/entities/mcp-authorization-request.entity';
 import { McpOauthGrant } from '../src/entities/mcp-oauth-grant.entity';
 import { McpOauthService } from '../src/oauth/oauth.service';
-import { deriveHashKey, hashToken } from '../src/oauth/token-hash';
+import { deriveHashKey, hashLookupToken } from '../src/oauth/token-hash';
 import { McpPlugin } from '../src/plugin';
 
 import {
@@ -51,10 +51,9 @@ describe('McpPlugin OAuth edge & security cases', () => {
     });
     const { server, adminClient, shopClient } = createTestEnvironment(config);
 
-    // Mirrors McpOauthService.hashLookup: the value stored in a token/code column is the
-    // keyed HMAC of `lookup:<plaintext>`. Used to find rows for DB-level tampering.
+    // Used to find stored rows from their plaintext token, for database-level tampering.
     const hashKey = deriveHashKey(TOKEN_SECRET);
-    const lookupHash = (value: string) => hashToken(`lookup:${value}`, hashKey);
+    const lookupHash = (value: string) => hashLookupToken(value, hashKey);
 
     let superAdminToken: string;
     let customerAuthToken: string;

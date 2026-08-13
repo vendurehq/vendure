@@ -29,7 +29,7 @@ import { McpOauthClient } from '../src/entities/mcp-oauth-client.entity';
 import { McpOauthGrant } from '../src/entities/mcp-oauth-grant.entity';
 import { McpOauthRetentionResult, McpOauthRetentionService } from '../src/oauth/oauth-retention.service';
 import { McpOauthService } from '../src/oauth/oauth.service';
-import { deriveHashKey, hashToken } from '../src/oauth/token-hash';
+import { deriveHashKey, hashLookupToken, hashToken } from '../src/oauth/token-hash';
 import { McpPlugin } from '../src/plugin';
 import { mcpOauthRetentionTask } from '../src/tasks/mcp-oauth-retention.task';
 
@@ -49,10 +49,8 @@ describe('McpPlugin OAuth end-to-end flow', () => {
     });
     const { server, adminClient } = createTestEnvironment(config);
 
-    // Hash helper mirroring the McpOauthService: the `lookup:`-prefixed hash is what's
-    // stored in the token column.
     const hashKey = deriveHashKey(TOKEN_SECRET);
-    const lookupHash = (value: string) => hashToken(`lookup:${value}`, hashKey);
+    const lookupHash = (value: string) => hashLookupToken(value, hashKey);
 
     let superAdminToken: string;
 

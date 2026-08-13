@@ -24,13 +24,13 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 import { McpOauthGrant } from '../src/entities/mcp-oauth-grant.entity';
 import { McpToolCallLog } from '../src/entities/mcp-tool-call-log.entity';
 import { McpOauthService } from '../src/oauth/oauth.service';
-import { deriveHashKey, hashToken } from '../src/oauth/token-hash';
+import { deriveHashKey, hashLookupToken } from '../src/oauth/token-hash';
 import { McpPlugin } from '../src/plugin';
 import { McpToolExecutionService } from '../src/registry/mcp-tool-execution.service';
 import { McpToolRegistryService } from '../src/registry/mcp-tool-registry.service';
 import { shopToolProviders } from '../src/tools/built-in/shop';
 
-import { postMcp, rpc } from './utils/mcp-http-client';
+import { callTool, postMcp, rpc } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow, runShopAuthorizationCodeFlow } from './utils/oauth-test-client';
 
 const TOKEN_SECRET = 'shop-tools-secret-000000000000000000000';
@@ -51,9 +51,6 @@ class TestOrderByCodeAccessStrategy implements OrderByCodeAccessStrategy {
     }
 }
 
-const callTool = (name: string, args: Record<string, unknown> = {}, id = 1) =>
-    rpc('tools/call', { name, arguments: args }, id);
-
 describe('MCP built-in shop tools', () => {
     const orderByCodeAccessStrategy = new TestOrderByCodeAccessStrategy();
     const config = mergeConfig(testConfig(), {
@@ -69,7 +66,8 @@ describe('MCP built-in shop tools', () => {
     });
     const { server, adminClient, shopClient } = createTestEnvironment(config);
     const baseUrl = () => `http://localhost:${config.apiOptions.port}`;
-    const lookupHash = (value: string) => hashToken(`lookup:${value}`, deriveHashKey(TOKEN_SECRET));
+    const hashKey = deriveHashKey(TOKEN_SECRET);
+    const lookupHash = (value: string) => hashLookupToken(value, hashKey);
 
     let adminCtx: RequestContext;
     let connection: TransactionalConnection;

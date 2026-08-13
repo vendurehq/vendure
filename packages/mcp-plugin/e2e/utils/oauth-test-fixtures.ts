@@ -3,7 +3,7 @@ import crypto from 'crypto';
 
 import { McpAuthorizationCode } from '../../src/entities/mcp-authorization-code.entity';
 import { McpOauthClient } from '../../src/entities/mcp-oauth-client.entity';
-import { deriveHashKey, hashToken } from '../../src/oauth/token-hash';
+import { deriveHashKey, hashLookupToken } from '../../src/oauth/token-hash';
 
 // Server-side test fixtures, as opposed to the HTTP flow driver in ./oauth-test-client.
 // These reach straight into the database, so a test can start from a grant it fully
@@ -77,7 +77,7 @@ export async function seedAuthorizationCode(
 
     await connection.getRepository(ctx, McpAuthorizationCode).save(
         new McpAuthorizationCode({
-            code: hashToken(`lookup:${codePlaintext}`, deriveHashKey(tokenSecret)),
+            code: hashLookupToken(codePlaintext, deriveHashKey(tokenSecret)),
             oauthClient: client,
             oauthClientId: client.id,
             userId: superadmin.id,
