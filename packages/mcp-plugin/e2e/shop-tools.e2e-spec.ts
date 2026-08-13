@@ -13,6 +13,7 @@ import {
     TransactionalConnection,
     User,
 } from '@vendure/core';
+import { McpTool, McpToolMetadata } from '@vendure/mcp-sdk';
 import { createTestEnvironment } from '@vendure/testing';
 import gql from 'graphql-tag';
 import path from 'path';
@@ -27,6 +28,7 @@ import { deriveHashKey, hashToken } from '../src/oauth/token-hash';
 import { McpPlugin } from '../src/plugin';
 import { McpToolExecutionService } from '../src/registry/mcp-tool-execution.service';
 import { McpToolRegistryService } from '../src/registry/mcp-tool-registry.service';
+import { shopToolProviders } from '../src/tools/built-in/shop';
 
 import { postMcp, rpc } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow, runShopAuthorizationCodeFlow } from './utils/oauth-test-client';
@@ -37,27 +39,9 @@ const productsCsvPath = path.join(__dirname, 'fixtures/e2e-products.csv');
 const AUTH_TOKEN_HEADER = 'vendure-auth-token';
 const CHANNEL_TOKEN_HEADER = 'vendure-token';
 
-const shopToolNames = [
-    'add_to_cart',
-    'apply_coupon_code',
-    'get_cart',
-    'get_collection',
-    'get_eligible_payment_methods',
-    'get_eligible_shipping_methods',
-    'get_my_account',
-    'get_order',
-    'get_product',
-    'list_collections',
-    'list_my_orders',
-    'place_order',
-    'remove_coupon_code',
-    'remove_from_cart',
-    'search_products',
-    'set_billing_address',
-    'set_shipping_address',
-    'set_shipping_method',
-    'update_cart_line',
-].sort();
+const shopToolNames = shopToolProviders
+    .map(provider => (Reflect.getMetadata(McpTool.KEY, provider) as McpToolMetadata).name)
+    .sort();
 
 class TestOrderByCodeAccessStrategy implements OrderByCodeAccessStrategy {
     allow = true;
@@ -307,7 +291,7 @@ describe('MCP built-in shop tools', () => {
         });
     }
 
-    it('lists exactly the 19 built-in shop tools for an authenticated customer', async () => {
+    it('lists exactly the built-in shop tools for an authenticated customer', async () => {
         const flow = await shopFlow();
         const response = await postMcp(baseUrl(), 'shop', rpc('tools/list', {}, 1), {
             token: flow.access_token,

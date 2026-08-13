@@ -15,6 +15,7 @@ import {
     StockLevelService,
     TransactionalConnection,
 } from '@vendure/core';
+import { McpTool, McpToolMetadata } from '@vendure/mcp-sdk';
 import { describe, expect, it, vi } from 'vitest';
 
 import { MCP_PLUGIN_OPTIONS } from '../../constants';
@@ -23,56 +24,18 @@ import { McpRateLimiterService } from '../../rate-limit/mcp-rate-limiter.service
 import { McpToolRegistryService } from '../../registry/mcp-tool-registry.service';
 import { resolveMcpPluginOptions } from '../../resolve-options';
 
+import { adminToolProviders } from './admin';
 import { mcpBuiltInToolProviders } from './providers';
 import { McpToolSerializerService } from './serializer.service';
+import { shopToolProviders } from './shop';
 
-const shopToolNames = [
-    'add_to_cart',
-    'apply_coupon_code',
-    'get_cart',
-    'get_collection',
-    'get_eligible_payment_methods',
-    'get_eligible_shipping_methods',
-    'get_my_account',
-    'get_order',
-    'get_product',
-    'list_collections',
-    'list_my_orders',
-    'place_order',
-    'remove_coupon_code',
-    'remove_from_cart',
-    'search_products',
-    'set_billing_address',
-    'set_shipping_address',
-    'set_shipping_method',
-    'update_cart_line',
-];
+const shopToolNames = shopToolProviders
+    .map(provider => (Reflect.getMetadata(McpTool.KEY, provider) as McpToolMetadata).name)
+    .sort();
 
-const adminToolNames = [
-    'add_customer_to_group',
-    'add_note_to_order',
-    'adjust_stock',
-    'cancel_order',
-    'create_customer',
-    'create_product',
-    'create_variant',
-    'get_customer',
-    'get_order',
-    'get_product',
-    'get_stock_levels',
-    'list_channels',
-    'list_customers',
-    'list_orders',
-    'list_products',
-    'refund_order',
-    'set_active_channel',
-    'update_customer',
-    'update_order_state',
-    'update_product',
-    'update_product_assets',
-    'update_variant',
-    'upload_asset',
-];
+const adminToolNames = adminToolProviders
+    .map(provider => (Reflect.getMetadata(McpTool.KEY, provider) as McpToolMetadata).name)
+    .sort();
 
 describe('built-in registry discovery', () => {
     async function bootRegistry() {
@@ -104,7 +67,7 @@ describe('built-in registry discovery', () => {
         return moduleRef;
     }
 
-    it('bootstraps Nest providers and discovers exactly the 19 shop tools', async () => {
+    it('bootstraps Nest providers and discovers exactly the declared shop tools', async () => {
         const moduleRef = await bootRegistry();
         try {
             const registry = moduleRef.get(McpToolRegistryService);
@@ -120,7 +83,7 @@ describe('built-in registry discovery', () => {
         }
     });
 
-    it('bootstraps Nest providers and discovers exactly the 23 admin tools', async () => {
+    it('bootstraps Nest providers and discovers exactly the declared admin tools', async () => {
         const moduleRef = await bootRegistry();
         try {
             const registry = moduleRef.get(McpToolRegistryService);

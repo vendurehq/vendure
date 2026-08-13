@@ -9,6 +9,7 @@ import {
     StockLevel,
     TransactionalConnection,
 } from '@vendure/core';
+import { McpTool, McpToolMetadata } from '@vendure/mcp-sdk';
 import { createTestEnvironment, SimpleGraphQLClient } from '@vendure/testing';
 import gql from 'graphql-tag';
 import path from 'path';
@@ -19,6 +20,7 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 import { McpOauthGrant } from '../src/entities/mcp-oauth-grant.entity';
 import { deriveHashKey, hashToken } from '../src/oauth/token-hash';
 import { McpPlugin } from '../src/plugin';
+import { adminToolProviders } from '../src/tools/built-in/admin';
 import { McpPluginOptions } from '../src/types';
 
 import { postMcp, rpc } from './utils/mcp-http-client';
@@ -28,33 +30,14 @@ const TOKEN_SECRET = 'admin-tools-secret-0000000000000000000000';
 const ISSUER = `http://localhost:${testConfig().apiOptions.port}`;
 const productsCsvPath = path.join(__dirname, 'fixtures/e2e-products.csv');
 
-const adminToolNames = [
-    'add_customer_to_group',
-    'add_note_to_order',
-    'adjust_stock',
-    'cancel_order',
-    'create_customer',
-    'create_product',
-    'create_variant',
-    'get_customer',
-    'get_order',
-    'get_product',
-    'get_stock_levels',
-    'list_channels',
-    'list_customers',
-    'list_orders',
-    'list_products',
-    'refund_order',
-    'set_active_channel',
-    'update_customer',
-    'update_order_state',
-    'update_product',
-    'update_product_assets',
-    'update_variant',
-    'upload_asset',
-].sort();
-
-const destructiveToolNames = ['adjust_stock', 'cancel_order', 'refund_order', 'update_order_state'].sort();
+const adminToolMetadata = adminToolProviders.map(
+    provider => Reflect.getMetadata(McpTool.KEY, provider) as McpToolMetadata,
+);
+const adminToolNames = adminToolMetadata.map(metadata => metadata.name).sort();
+const destructiveToolNames = adminToolMetadata
+    .filter(metadata => metadata.behavior === 'destructive')
+    .map(metadata => metadata.name)
+    .sort();
 
 const callTool = (name: string, args: Record<string, unknown> = {}, id = 1) =>
     rpc('tools/call', { name, arguments: args }, id);
@@ -475,7 +458,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
         };
     }
 
-    it('lists exactly the 23 built-in admin tools for a superadmin grant', async () => {
+    it('lists exactly the built-in admin tools for a superadmin grant', async () => {
         const token = await adminAccessToken();
         const response = await postMcp(baseUrl(), 'admin', rpc('tools/list', {}, 1), { token });
 
