@@ -14,10 +14,11 @@ import {
     CopyableText,
     DashboardRouteDefinition,
     PermissionGuard,
+    useMutation,
+    useQuery,
     z,
 } from '@vendure/dashboard';
 import { AlertTriangleIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
 
 import { isLoopbackHostname } from '../oauth/loopback';
 
@@ -53,55 +54,44 @@ function hostnameOf(uri: string): string | null {
 
 function ConsentCard({ requestToken }: { requestToken: string }) {
     const { t } = useLingui();
-    const [info, setInfo] = useState<AuthRequestInfo | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const [submitError, setSubmitError] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [submitting, setSubmitting] = useState(false);
 
-    useEffect(() => {
-        let cancelled = false;
-        fetch(`/mcp/oauth/authorization-request?request_token=${encodeURIComponent(requestToken)}`, {
-            credentials: 'include',
-        })
-            .then(async res => {
-                if (!res.ok) {
-                    throw new Error(t`Request failed (${res.status})`);
-                }
-                return res.json();
-            })
-            .then((data: AuthRequestInfo) => {
-                if (!cancelled) {
-                    setInfo(data);
-                    setLoading(false);
-                }
-            })
-            .catch((e: unknown) => {
-                if (!cancelled) {
-                    setError(e instanceof Error ? e.message : String(e));
-                    setLoading(false);
-                }
-            });
-        return () => {
-            cancelled = true;
-        };
-    }, [requestToken]);
+    const {
+        data: info,
+        error,
+        isLoading,
+    } = useQuery({
+        queryKey: ['mcp-authorization-request', requestToken],
+        queryFn: async (): Promise<AuthRequestInfo> => {
+            const res = await fetch(
+                `/mcp/oauth/authorization-request?request_token=${encodeURIComponent(requestToken)}`,
+                { credentials: 'include' },
+            );
+            if (!res.ok) {
+                throw new Error(t`Request failed (${res.status})`);
+            }
+            return res.json() as Promise<AuthRequestInfo>;
+        },
+        // An expired or already-used authorization request never becomes valid, so report the
+        // failure straight away rather than retrying, which is what the shared query client
+        // would otherwise do three times over.
+        retry: false,
+        // The request token says which authorization this screen is approving, so a previous
+        // request's application name and destination must never stay on screen while a
+        // different one loads.
+        placeholderData: undefined,
+    });
 
-    const submit = async (approved: boolean) => {
-        setSubmitting(true);
-        setSubmitError(null);
-        try {
-            const data = (await api.mutate(AUTHORIZE_MCP_CLIENT, { requestToken, approved })) as {
+    const authorize = useMutation({
+        mutationFn: (approved: boolean) =>
+            api.mutate(AUTHORIZE_MCP_CLIENT, { requestToken, approved }) as Promise<{
                 authorizeMcpClient: { redirectUrl: string };
-            };
+            }>,
+        onSuccess: data => {
             window.location.href = data.authorizeMcpClient.redirectUrl;
-        } catch (e: unknown) {
-            setSubmitError(e instanceof Error ? e.message : String(e));
-            setSubmitting(false);
-        }
-    };
+        },
+    });
 
-    if (loading) {
+    if (isLoading) {
         return (
             <Card className="w-full max-w-lg">
                 <CardContent className="py-8 text-center text-muted-foreground">
@@ -119,7 +109,7 @@ function ConsentCard({ requestToken }: { requestToken: string }) {
                         <Trans>Authorization request could not be loaded</Trans>
                     </CardTitle>
                     <CardDescription>
-                        {error ?? t`The authorization session is invalid or expired.`}
+                        {error?.message ?? t`The authorization session is invalid or expired.`}
                     </CardDescription>
                 </CardHeader>
             </Card>
@@ -211,7 +201,7 @@ function ConsentCard({ requestToken }: { requestToken: string }) {
                     ) : null}
                 </div>
             </CardContent>
-            {submitError != null ? (
+            {authorize.error != null ? (
                 <CardContent className="pt-0">
                     <Alert variant="destructive">
                         <AlertTriangleIcon className="h-4 w-4" />
@@ -219,16 +209,20 @@ function ConsentCard({ requestToken }: { requestToken: string }) {
                             <div>
                                 <Trans>The request could not be completed</Trans>
                             </div>
-                            <div className="break-all">{submitError}</div>
+                            <div className="break-all">{authorize.error.message}</div>
                         </AlertDescription>
                     </Alert>
                 </CardContent>
             ) : null}
             <CardFooter className="justify-end gap-2">
-                <Button variant="outline" disabled={submitting} onClick={() => void submit(false)}>
+                <Button
+                    variant="outline"
+                    disabled={authorize.isPending}
+                    onClick={() => authorize.mutate(false)}
+                >
                     <Trans>Deny</Trans>
                 </Button>
-                <Button disabled={submitting} onClick={() => void submit(true)}>
+                <Button disabled={authorize.isPending} onClick={() => authorize.mutate(true)}>
                     <Trans>Approve</Trans>
                 </Button>
             </CardFooter>
