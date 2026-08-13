@@ -1,11 +1,6 @@
 import { Trans } from '@lingui/react/macro';
 import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
     DashboardRouteDefinition,
-    FullWidthPageBlock,
     Page,
     PageBlock,
     PageLayout,
@@ -18,21 +13,6 @@ import { ConnectionBlock } from './components/connection-block';
 import { GrantsBlock } from './components/grants-block';
 import { StatsBlock } from './components/stats-block';
 import { ToolsBlock } from './components/tools-block';
-
-/**
- * A full-width section rendered as a Card. `FullWidthPageBlock` itself has no
- * title support, so we supply the card header here for a consistent look.
- */
-function Section({ title, children }: { title: React.ReactNode; children: React.ReactNode }) {
-    return (
-        <Card className="@container w-full">
-            <CardHeader>
-                <CardTitle>{title}</CardTitle>
-            </CardHeader>
-            <CardContent>{children}</CardContent>
-        </Card>
-    );
-}
 
 export const mcpOverviewRoute: DashboardRouteDefinition = {
     navMenuItem: {
@@ -57,21 +37,15 @@ export const mcpOverviewRoute: DashboardRouteDefinition = {
                     <PageBlock column="side" blockId="mcp-stats" title={<Trans>Health & usage</Trans>}>
                         <StatsBlock />
                     </PageBlock>
-                    <FullWidthPageBlock blockId="mcp-tools">
-                        <Section title={<Trans>Tools</Trans>}>
-                            <ToolsBlock />
-                        </Section>
-                    </FullWidthPageBlock>
-                    <FullWidthPageBlock blockId="mcp-activity">
-                        <Section title={<Trans>Recent activity</Trans>}>
-                            <ActivityBlock />
-                        </Section>
-                    </FullWidthPageBlock>
-                    <FullWidthPageBlock blockId="mcp-grants">
-                        <Section title={<Trans>OAuth grants</Trans>}>
-                            <GrantsBlock />
-                        </Section>
-                    </FullWidthPageBlock>
+                    <PageBlock column="full" blockId="mcp-tools" title={<Trans>Tools</Trans>}>
+                        <ToolsBlock />
+                    </PageBlock>
+                    <PageBlock column="full" blockId="mcp-activity" title={<Trans>Recent activity</Trans>}>
+                        <ActivityBlock />
+                    </PageBlock>
+                    <PageBlock column="full" blockId="mcp-grants" title={<Trans>OAuth grants</Trans>}>
+                        <GrantsBlock />
+                    </PageBlock>
                 </PageLayout>
             </PermissionGuard>
         </Page>
