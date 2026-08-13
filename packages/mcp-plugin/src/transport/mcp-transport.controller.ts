@@ -436,9 +436,7 @@ export class McpTransportController {
         headers: Record<string, string | string[] | undefined>,
         name: string,
     ): string | undefined {
-        const lower = name.toLowerCase();
-        const direct = headers[lower];
-        const value = direct ?? Object.entries(headers).find(([key]) => key.toLowerCase() === lower)?.[1];
+        const value = headers[name.toLowerCase()];
         return Array.isArray(value) ? value[0] : value;
     }
 }
