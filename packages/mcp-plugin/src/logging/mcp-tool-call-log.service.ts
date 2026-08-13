@@ -8,7 +8,6 @@ import { McpExecutionContext, ResolvedMcpPluginOptions } from '../internal-types
 import { McpRegisteredTool } from '../registry/registry-types';
 import { McpToolCallStatus } from '../types';
 
-/** Input to the (Phase-6) tool-call logger. */
 export interface LogToolCallInput {
     executionContext: McpExecutionContext;
     tool: McpRegisteredTool;

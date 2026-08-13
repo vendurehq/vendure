@@ -3,10 +3,11 @@ import { CollectionService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
+import { idSchema } from '../id-schema';
 import { McpToolSerializerService } from '../serializer.service';
 
 const getCollectionInput = z.strictObject({
-    id: z.union([z.string(), z.number()]).describe('Collection ID.').optional(),
+    id: idSchema.describe('Collection ID.').optional(),
     slug: z.string().describe('Collection slug, used when ID is omitted.').optional(),
 });
 

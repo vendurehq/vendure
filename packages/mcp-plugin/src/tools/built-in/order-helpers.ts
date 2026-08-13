@@ -39,6 +39,7 @@ export async function getActiveOrder(
     return (await orderService.findOne(ctx, order.id, ['lines', 'lines.productVariant'])) ?? order;
 }
 
+/** The list envelope every list tool returns; `total` deliberately renames Vendure's `totalItems`. */
 export function page<T>(items: T[], totalItems: number, input: { offset?: number }) {
     const offset = input.offset ?? 0;
     return { items, total: totalItems, hasMore: offset + items.length < totalItems };

@@ -4,8 +4,10 @@ import { ID, idsAreEqual, OrderService, Payment, Permission, RequestContext } fr
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
+import { idSchema } from '../id-schema';
+
 const refundOrderInput = z.strictObject({
-    id: z.union([z.string(), z.number()]).describe('Order ID.'),
+    id: idSchema.describe('Order ID.'),
     amount: z
         .number()
         .describe(
@@ -13,8 +15,7 @@ const refundOrderInput = z.strictObject({
         )
         .optional(),
     reason: z.string().describe('Reason for the refund.').optional(),
-    paymentId: z
-        .union([z.string(), z.number()])
+    paymentId: idSchema
         .describe(
             "Payment to refund. Defaults to the order's first Settled payment that still has a refundable amount.",
         )

@@ -3,9 +3,11 @@ import { CustomerGroupService, Permission, RequestContext } from '@vendure/core'
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
+import { idSchema } from '../id-schema';
+
 const addCustomerToGroupInput = z.strictObject({
-    customerId: z.union([z.string(), z.number()]).describe('Customer ID.'),
-    groupId: z.union([z.string(), z.number()]).describe('Customer group ID.'),
+    customerId: idSchema.describe('Customer ID.'),
+    groupId: idSchema.describe('Customer group ID.'),
 });
 
 type AddCustomerToGroupInput = z.infer<typeof addCustomerToGroupInput>;

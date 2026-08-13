@@ -3,6 +3,7 @@ import { CustomerService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
+import { idSchema } from '../id-schema';
 import { McpToolSerializerService } from '../serializer.service';
 
 const customerUpdateSchema = z.strictObject({
@@ -20,7 +21,7 @@ const customerUpdateSchema = z.strictObject({
 });
 
 const updateCustomerInput = z.strictObject({
-    id: z.union([z.string(), z.number()]).describe('Customer ID.'),
+    id: idSchema.describe('Customer ID.'),
     input: customerUpdateSchema,
 });
 

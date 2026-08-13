@@ -88,7 +88,7 @@ describe('MCP tool-call logging', () => {
         expect(row.grantId).toBeNull();
         expect(row.oauthClientId).toBeNull();
         expect(row.actor).toBeNull();
-        // channelId must be set — Phase 7's per-channel stats depend on it.
+        // channelId must be set — the per-channel stats depend on it.
         expect(row.channelId).not.toBeNull();
         expect(typeof row.pluginSource).toBe('string');
         expect(typeof row.durationMs).toBe('number');

@@ -10,18 +10,17 @@ import {
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
+import { idSchema } from '../id-schema';
 import { getActiveOrder } from '../order-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 
 const addToCartInput = z.strictObject({
-    variantId: z
-        .union([z.string(), z.number()])
+    variantId: idSchema
         .describe(
             'Product variant ID, taken from the variants listed by get_product. Give this or productId, not both.',
         )
         .optional(),
-    productId: z
-        .union([z.string(), z.number()])
+    productId: idSchema
         .describe(
             'Product ID, as returned by search_products or get_product. Never pass a variant ID here. ' +
                 'Use this only when the product has a single variant; if it has several, the call is ' +

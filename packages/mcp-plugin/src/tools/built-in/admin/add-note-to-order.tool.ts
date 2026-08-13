@@ -3,10 +3,11 @@ import { OrderService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
+import { idSchema } from '../id-schema';
 import { McpToolSerializerService } from '../serializer.service';
 
 const addNoteToOrderInput = z.strictObject({
-    id: z.union([z.string(), z.number()]).describe('Order ID.'),
+    id: idSchema.describe('Order ID.'),
     note: z.string().describe('Note text.'),
     isPublic: z
         .boolean()

@@ -3,14 +3,13 @@ import { Permission, ProductService, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
+import { idSchema } from '../id-schema';
 import { McpToolSerializerService } from '../serializer.service';
 
 const updateProductAssetsInput = z.strictObject({
-    id: z.union([z.string(), z.number()]).describe('Product ID.'),
-    assetIds: z
-        .array(z.union([z.string(), z.number()]).describe('Vendure ID.'))
-        .describe('Ordered asset IDs to set on the product.'),
-    featuredAssetId: z.union([z.string(), z.number()]).describe('Featured asset ID.').optional(),
+    id: idSchema.describe('Product ID.'),
+    assetIds: z.array(idSchema.describe('Vendure ID.')).describe('Ordered asset IDs to set on the product.'),
+    featuredAssetId: idSchema.describe('Featured asset ID.').optional(),
 });
 
 type UpdateProductAssetsInput = z.infer<typeof updateProductAssetsInput>;

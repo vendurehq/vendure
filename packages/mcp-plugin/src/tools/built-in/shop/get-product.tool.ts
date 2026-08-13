@@ -3,10 +3,11 @@ import { Permission, ProductService, ProductVariantService, RequestContext } fro
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
+import { idSchema } from '../id-schema';
 import { McpToolSerializerService } from '../serializer.service';
 
 const getProductInput = z.strictObject({
-    id: z.union([z.string(), z.number()]).describe('Product ID.').optional(),
+    id: idSchema.describe('Product ID.').optional(),
     slug: z.string().describe('Product slug, used when ID is omitted.').optional(),
 });
 

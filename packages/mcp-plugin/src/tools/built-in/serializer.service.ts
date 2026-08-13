@@ -6,6 +6,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null;
 }
 
+function isErrorResult(value: unknown): value is Record<string, unknown> {
+    return isRecord(value) && '__typename' in value && 'message' in value;
+}
+
 /**
  * Turns Vendure entities into the JSON that the built-in tools return.
  *
@@ -114,7 +118,7 @@ export class McpToolSerializerService {
      * error result back to the caller intact.
      */
     customerFromResult(customer: unknown) {
-        if (isRecord(customer) && '__typename' in customer && 'message' in customer) {
+        if (isErrorResult(customer)) {
             return null;
         }
         return this.customer(
@@ -160,7 +164,7 @@ export class McpToolSerializerService {
      * is handed back untouched so the model sees Vendure's own message.
      */
     orderOrError(result: unknown) {
-        if (isRecord(result) && 'message' in result && '__typename' in result) {
+        if (isErrorResult(result)) {
             return { result };
         }
         return { order: this.order(result as Order | undefined) };

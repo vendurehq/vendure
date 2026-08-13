@@ -3,11 +3,12 @@ import { ActiveOrderService, OrderService, Permission, RequestContext } from '@v
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
+import { idSchema } from '../id-schema';
 import { getActiveOrder } from '../order-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 
 const setShippingMethodInput = z.strictObject({
-    methodId: z.union([z.string(), z.number()]).describe('Shipping method ID.'),
+    methodId: idSchema.describe('Shipping method ID.'),
 });
 
 type SetShippingMethodInput = z.infer<typeof setShippingMethodInput>;

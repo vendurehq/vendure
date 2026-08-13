@@ -3,6 +3,7 @@ import { Permission, ProductService, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
+import { idSchema } from '../id-schema';
 import { McpToolSerializerService } from '../serializer.service';
 
 import { productTranslationSchema } from './translation-schemas';
@@ -13,14 +14,11 @@ const createProductInputSchema = z.strictObject({
         .describe('Localized product content. At least one entry with a languageCode is required.'),
     enabled: z.boolean().describe('Whether the product is enabled.').optional(),
     facetValueIds: z
-        .array(z.union([z.string(), z.number()]).describe('Vendure ID.'))
+        .array(idSchema.describe('Vendure ID.'))
         .describe('Facet value IDs to assign.')
         .optional(),
-    assetIds: z
-        .array(z.union([z.string(), z.number()]).describe('Vendure ID.'))
-        .describe('Asset IDs to attach.')
-        .optional(),
-    featuredAssetId: z.union([z.string(), z.number()]).describe('Featured asset ID.').optional(),
+    assetIds: z.array(idSchema.describe('Vendure ID.')).describe('Asset IDs to attach.').optional(),
+    featuredAssetId: idSchema.describe('Featured asset ID.').optional(),
     customFields: z.looseObject({}).describe('Product custom fields.').optional(),
 });
 

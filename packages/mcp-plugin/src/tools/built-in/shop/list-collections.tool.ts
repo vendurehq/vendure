@@ -3,15 +3,13 @@ import { CollectionService, idsAreEqual, Permission, RequestContext } from '@ven
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
+import { idSchema } from '../id-schema';
 import { page, paginationFields, publicCollectionListOptions, slicePage } from '../order-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 
 const listCollectionsInput = z.strictObject({
     ...paginationFields('collections'),
-    parentId: z
-        .union([z.string(), z.number()])
-        .describe('Return the children of this collection.')
-        .optional(),
+    parentId: idSchema.describe('Return the children of this collection.').optional(),
 });
 
 type ListCollectionsInput = z.infer<typeof listCollectionsInput>;

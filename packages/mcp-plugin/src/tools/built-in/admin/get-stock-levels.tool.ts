@@ -3,8 +3,10 @@ import { Permission, RequestContext, StockLevelService } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
+import { idSchema } from '../id-schema';
+
 const getStockLevelsInput = z.strictObject({
-    variantId: z.union([z.string(), z.number()]).describe('Product variant ID.'),
+    variantId: idSchema.describe('Product variant ID.'),
 });
 
 type GetStockLevelsInput = z.infer<typeof getStockLevelsInput>;

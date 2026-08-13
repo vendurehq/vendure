@@ -9,9 +9,11 @@ import {
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
+import { idSchema } from '../id-schema';
+
 const adjustStockInput = z.strictObject({
-    variantId: z.union([z.string(), z.number()]).describe('Product variant ID.'),
-    locationId: z.union([z.string(), z.number()]).describe('Stock location ID.'),
+    variantId: idSchema.describe('Product variant ID.'),
+    locationId: idSchema.describe('Stock location ID.'),
     delta: z.number().describe('Amount to add (positive) or remove (negative) from stock on hand.'),
 });
 

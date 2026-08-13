@@ -3,15 +3,16 @@ import { OrderService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
+import { idSchema } from '../id-schema';
 import { McpToolSerializerService } from '../serializer.service';
 
 const getOrderInput = z.strictObject({
-    id: z.union([z.string(), z.number()]).describe('Order ID.'),
+    id: idSchema.describe('Order ID.'),
 });
 
 type GetOrderInput = z.infer<typeof getOrderInput>;
 
-// Class name is deliberately distinct from the shop `GetOrderTool` (`get_order` exists in both
+// Class name is deliberately distinct from the shop `ShopGetOrderTool` (`get_order` exists in both
 // toolsets). Declared, not aliased, so stack traces and jump-to-symbol self-disambiguate.
 @McpTool({
     name: 'get_order',

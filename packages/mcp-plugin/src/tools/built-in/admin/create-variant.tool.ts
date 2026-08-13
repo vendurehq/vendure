@@ -4,6 +4,7 @@ import { Permission, ProductVariantService, RequestContext } from '@vendure/core
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
+import { idSchema } from '../id-schema';
 import { McpToolSerializerService } from '../serializer.service';
 
 import { variantTranslationSchema } from './translation-schemas';
@@ -13,15 +14,12 @@ const createVariantInputSchema = z.strictObject({
     translations: z.array(variantTranslationSchema).describe('Localized variant content.'),
     price: z.number().describe('Price in minor units (e.g. cents).').optional(),
     optionIds: z
-        .array(z.union([z.string(), z.number()]).describe('Vendure ID.'))
+        .array(idSchema.describe('Vendure ID.'))
         .describe('Product option IDs for this variant.')
         .optional(),
-    taxCategoryId: z.union([z.string(), z.number()]).describe('Tax category ID.').optional(),
-    featuredAssetId: z.union([z.string(), z.number()]).describe('Featured asset ID.').optional(),
-    assetIds: z
-        .array(z.union([z.string(), z.number()]).describe('Vendure ID.'))
-        .describe('Asset IDs to attach.')
-        .optional(),
+    taxCategoryId: idSchema.describe('Tax category ID.').optional(),
+    featuredAssetId: idSchema.describe('Featured asset ID.').optional(),
+    assetIds: z.array(idSchema.describe('Vendure ID.')).describe('Asset IDs to attach.').optional(),
     stockOnHand: z.number().describe('Initial stock on hand.').optional(),
     // Cast is type-only (no runtime effect, schema still emits `type: "string"`): the generated
     // service call expects the real GlobalFlag enum, but the JSON schema for this field is a
@@ -35,7 +33,7 @@ const createVariantInputSchema = z.strictObject({
 });
 
 const createVariantInput = z.strictObject({
-    productId: z.union([z.string(), z.number()]).describe('Parent product ID.'),
+    productId: idSchema.describe('Parent product ID.'),
     input: createVariantInputSchema,
 });
 

@@ -3,11 +3,12 @@ import { ActiveOrderService, OrderService, Permission, RequestContext } from '@v
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
+import { idSchema } from '../id-schema';
 import { getActiveOrder } from '../order-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 
 const updateCartLineInput = z.strictObject({
-    orderLineId: z.union([z.string(), z.number()]).describe('Order line ID.'),
+    orderLineId: idSchema.describe('Order line ID.'),
     quantity: z.number().describe('Quantity.'),
 });
 
