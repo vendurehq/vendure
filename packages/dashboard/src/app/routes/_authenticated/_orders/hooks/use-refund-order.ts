@@ -1,22 +1,39 @@
 import { api } from '@/vdb/graphql/api.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { useLingui } from '@lingui/react/macro';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
-import { cancelOrderDocument, refundOrderDocument } from '../orders.graphql.js';
+// Must match DEFAULT_REFUND_DESTINATION_CODE from @vendure/common/lib/shared-constants.
+// Can't import the value directly because @vendure/common is CJS and Vite
+// can't extract named exports from CJS modules at runtime.
+const DEFAULT_REFUND_DESTINATION_CODE = 'default';
+
+import { cancelOrderDocument, refundDestinationsDocument, refundOrderDocument } from '../orders.graphql.js';
 import { Order } from '../utils/order-types.js';
 import {
-    allocateRefundsToPayments,
     calculateRefundTotal,
     getOrderLineInputFromSelections,
     getRefundablePayments,
-    getTotalAmountToRefund,
-    getTotalRefundableAmount,
     LineSelection,
-    RefundablePayment,
 } from '../utils/refund-utils.js';
+
+export interface RefundTarget {
+    id: string;
+    label: string;
+    description: string;
+    /** The max refundable amount (only applies to payment targets) */
+    maxAmount: number;
+    amountToRefund: number;
+    selected: boolean;
+    /** 'payment' = original payment, 'destination' = custom destination */
+    type: 'payment' | 'destination';
+    /** For payments: the payment ID. For destinations: the first available payment ID. */
+    paymentId: string;
+    /** For destinations: the destination code */
+    destinationCode?: string;
+}
 
 export interface UseRefundOrderReturn {
     // State
@@ -26,10 +43,10 @@ export interface UseRefundOrderReturn {
     customReason: string;
     manuallySetRefundTotal: boolean;
     refundTotal: number;
-    refundablePayments: RefundablePayment[];
+    refundTargets: RefundTarget[];
     isSubmitting: boolean;
 
-    // Derived (useMemo)
+    // Derived
     reason: string;
     totalRefundableAmount: number;
     amountToRefundTotal: number;
@@ -41,8 +58,8 @@ export interface UseRefundOrderReturn {
     onRefundQuantityChange: (lineId: string, quantity: number) => void;
     onCancelChange: (lineId: string, cancel: boolean) => void;
     toggleShippingRefund: (lineId: string) => void;
-    onPaymentSelected: (paymentId: string, selected: boolean) => void;
-    onPaymentAmountChange: (paymentId: string, amount: number) => void;
+    onTargetSelected: (targetId: string, selected: boolean) => void;
+    onTargetAmountChange: (targetId: string, amount: number) => void;
     onManualRefundTotalChange: (value: number) => void;
     setSelectedReason: (reason: string) => void;
     setCustomReason: (reason: string) => void;
@@ -65,7 +82,12 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
     const [customReason, setCustomReason] = useState('');
     const [manuallySetRefundTotal, setManuallySetRefundTotal] = useState(false);
     const [refundTotal, setRefundTotal] = useState(0);
-    const [refundablePayments, setRefundablePayments] = useState<RefundablePayment[]>([]);
+    const [refundTargets, setRefundTargets] = useState<RefundTarget[]>([]);
+
+    const destinationsQuery = useQuery({
+        queryKey: ['refundDestinations', order.id],
+        queryFn: () => api.query(refundDestinationsDocument, { orderId: order.id }),
+    });
 
     const reason = selectedReason === 'other' ? customReason : selectedReason;
 
@@ -76,6 +98,43 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
     const refundOrderMutation = useMutation({
         mutationFn: api.mutate(refundOrderDocument),
     });
+
+    // Build the flat list of refund targets from payments + destinations
+    const buildRefundTargets = useCallback((): RefundTarget[] => {
+        const payments = getRefundablePayments(order.payments);
+        const firstRefundablePaymentId =
+            (payments.find(p => p.refundableAmount > 0) ?? payments[0])?.id ?? '';
+
+        // Payment targets
+        const paymentTargets: RefundTarget[] = payments.map((p, index) => ({
+            id: `payment-${p.id}`,
+            label: p.method,
+            description: formatCurrency(p.refundableAmount, order.currencyCode),
+            maxAmount: p.refundableAmount,
+            amountToRefund: 0,
+            selected: index === 0,
+            type: 'payment',
+            paymentId: p.id,
+        }));
+
+        // Destination targets (exclude the default one — that's represented by the payments themselves)
+        const destinations = destinationsQuery.data?.refundDestinations ?? [];
+        const destinationTargets: RefundTarget[] = destinations
+            .filter(d => d.code !== DEFAULT_REFUND_DESTINATION_CODE)
+            .map(d => ({
+                id: `dest-${d.code}`,
+                label: d.description,
+                description: '',
+                maxAmount: Infinity,
+                amountToRefund: 0,
+                selected: false,
+                type: 'destination' as const,
+                paymentId: firstRefundablePaymentId,
+                destinationCode: d.code,
+            }));
+
+        return [...paymentTargets, ...destinationTargets];
+    }, [order.payments, order.currencyCode, destinationsQuery.data, formatCurrency]);
 
     const resetState = useCallback(() => {
         const selections: Record<string, LineSelection> = {};
@@ -88,32 +147,61 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
         setCustomReason('');
         setManuallySetRefundTotal(false);
         setRefundTotal(0);
-        setRefundablePayments(getRefundablePayments(order.payments));
-    }, [order]);
+        setRefundTargets(buildRefundTargets());
+    }, [order, buildRefundTargets]);
 
-    const totalRefundableAmount = useMemo(
-        () => getTotalRefundableAmount(refundablePayments),
-        [refundablePayments],
-    );
+    // Rebuild targets when destinations load or payments change
+    useEffect(() => {
+        setRefundTargets(buildRefundTargets());
+    }, [buildRefundTargets]);
+
+    const totalRefundableAmount = useMemo(() => {
+        // Only payments have a finite max
+        const payments = getRefundablePayments(order.payments);
+        return payments.reduce((sum, p) => sum + p.refundableAmount, 0);
+    }, [order.payments]);
 
     const amountToRefundTotal = useMemo(
-        () => getTotalAmountToRefund(refundablePayments),
-        [refundablePayments],
+        () => refundTargets.reduce((sum, rt) => sum + rt.amountToRefund, 0),
+        [refundTargets],
     );
 
     const recalculateRefundTotal = useCallback(() => {
         return calculateRefundTotal(order.lines, lineSelections, order.shippingLines, refundShippingLineIds);
     }, [order.lines, order.shippingLines, lineSelections, refundShippingLineIds]);
 
+    const allocateToTargets = useCallback((total: number) => {
+        setRefundTargets(prev => {
+            let remaining = total;
+            // Allocate to payment targets first, then destinations,
+            // to prevent infinite-max destinations from consuming everything.
+            const selectedPayments = prev.filter(target => target.selected && target.type === 'payment');
+            const selectedDestinations = prev.filter(
+                target => target.selected && target.type === 'destination',
+            );
+            const allocations = new Map<string, number>();
+            for (const target of [...selectedPayments, ...selectedDestinations]) {
+                const amount = Math.min(
+                    target.maxAmount === Infinity ? remaining : target.maxAmount,
+                    remaining,
+                );
+                remaining -= amount;
+                allocations.set(target.id, amount);
+            }
+            return prev.map(target => ({
+                ...target,
+                amountToRefund: allocations.get(target.id) ?? 0,
+            }));
+        });
+    }, []);
+
     const updateRefundTotal = useCallback(() => {
-        if (manuallySetRefundTotal) {
-            setRefundablePayments(prev => allocateRefundsToPayments(prev, refundTotal));
-        } else {
+        if (!manuallySetRefundTotal) {
             const calculatedTotal = recalculateRefundTotal();
             setRefundTotal(calculatedTotal);
-            setRefundablePayments(prev => allocateRefundsToPayments(prev, calculatedTotal));
+            allocateToTargets(calculatedTotal);
         }
-    }, [manuallySetRefundTotal, recalculateRefundTotal, refundTotal]);
+    }, [manuallySetRefundTotal, recalculateRefundTotal, allocateToTargets]);
 
     useEffect(() => {
         updateRefundTotal();
@@ -158,40 +246,52 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
         });
     }, []);
 
-    const onPaymentSelected = useCallback(
-        (paymentId: string, selected: boolean) => {
-            setRefundablePayments(prev => {
-                const updatedPayments = prev.map(p => (p.id === paymentId ? { ...p, selected } : p));
+    const onTargetSelected = useCallback(
+        (targetId: string, selected: boolean) => {
+            setRefundTargets(prev => {
+                const updated = prev.map(rt => (rt.id === targetId ? { ...rt, selected } : rt));
 
                 if (selected) {
-                    const otherAllocated = updatedPayments
-                        .filter(p => p.id !== paymentId && p.selected)
-                        .reduce((sum, p) => sum + p.amountToRefund, 0);
+                    const otherAllocated = updated
+                        .filter(rt => rt.id !== targetId && rt.selected)
+                        .reduce((sum, rt) => sum + rt.amountToRefund, 0);
                     const outstanding = refundTotal - otherAllocated;
-                    return updatedPayments.map(p => {
-                        if (p.id === paymentId && outstanding > 0) {
-                            return { ...p, amountToRefund: Math.min(outstanding, p.refundableAmount) };
+                    return updated.map(rt => {
+                        if (rt.id === targetId && outstanding > 0) {
+                            return {
+                                ...rt,
+                                amountToRefund: Math.min(
+                                    outstanding,
+                                    rt.maxAmount === Infinity ? outstanding : rt.maxAmount,
+                                ),
+                            };
                         }
-                        return p;
+                        return rt;
                     });
                 } else {
-                    return updatedPayments.map(p => (p.id === paymentId ? { ...p, amountToRefund: 0 } : p));
+                    return updated.map(rt => (rt.id === targetId ? { ...rt, amountToRefund: 0 } : rt));
                 }
             });
         },
         [refundTotal],
     );
 
-    const onPaymentAmountChange = useCallback((paymentId: string, amount: number) => {
-        setRefundablePayments(prev =>
-            prev.map(p => (p.id === paymentId ? { ...p, amountToRefund: amount } : p)),
+    const onTargetAmountChange = useCallback((targetId: string, amount: number, selected?: boolean) => {
+        setRefundTargets(prev =>
+            prev.map(rt => {
+                if (rt.id !== targetId) return rt;
+                return { ...rt, amountToRefund: amount, ...(selected !== undefined ? { selected } : {}) };
+            }),
         );
     }, []);
 
-    const onManualRefundTotalChange = useCallback((value: number) => {
-        setRefundTotal(value);
-        setRefundablePayments(prev => allocateRefundsToPayments(prev, value));
-    }, []);
+    const onManualRefundTotalChange = useCallback(
+        (value: number) => {
+            setRefundTotal(value);
+            allocateToTargets(value);
+        },
+        [allocateToTargets],
+    );
 
     const validationErrors = useMemo(() => {
         const errors: string[] = [];
@@ -200,14 +300,14 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
             errors.push(t`Refund total cannot be negative`);
         }
 
-        if (refundTotal > totalRefundableAmount) {
+        if (!manuallySetRefundTotal && refundTotal > totalRefundableAmount) {
             errors.push(
                 t`Refund total exceeds maximum refundable amount of ${formatCurrency(totalRefundableAmount, order.currencyCode)}`,
             );
         }
 
         if (amountToRefundTotal !== refundTotal && refundTotal > 0) {
-            errors.push(t`Allocated payment amount must equal refund total`);
+            errors.push(t`Allocated refund amounts must equal refund total`);
         }
 
         if (refundTotal > 0 && !reason) {
@@ -217,6 +317,7 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
         return errors;
     }, [
         refundTotal,
+        manuallySetRefundTotal,
         totalRefundableAmount,
         amountToRefundTotal,
         reason,
@@ -226,12 +327,10 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
     ]);
 
     const canSubmit = useMemo(() => {
-        return (
-            refundTotal > 0 &&
-            amountToRefundTotal === refundTotal &&
-            !!reason &&
-            validationErrors.length === 0
-        );
+        if (refundTotal <= 0 || !reason || validationErrors.length > 0) {
+            return false;
+        }
+        return amountToRefundTotal === refundTotal;
     }, [refundTotal, amountToRefundTotal, reason, validationErrors]);
 
     const isCancelling = useMemo(() => {
@@ -264,26 +363,31 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
                 }
             }
 
-            const paymentsToRefund = refundablePayments.filter(p => p.selected && p.amountToRefund > 0);
-
             let successfulRefundCount = 0;
 
-            for (const payment of paymentsToRefund) {
+            const selectedTargets = refundTargets.filter(rt => rt.selected && rt.amountToRefund > 0);
+
+            for (let i = 0; i < selectedTargets.length; i++) {
+                const target = selectedTargets[i];
+                // Only attach refund lines to the first target to avoid
+                // duplicate RefundLine records for the same order lines.
+                const lines = i === 0 ? refundLines : [];
                 const refundResult = await refundOrderMutation.mutateAsync({
                     input: {
-                        lines: refundLines,
+                        lines,
                         reason,
-                        paymentId: payment.id,
-                        amount: payment.amountToRefund,
+                        paymentId: target.paymentId,
+                        amount: target.amountToRefund,
                         shipping: 0,
                         adjustment: 0,
+                        destination: target.destinationCode,
                     },
                 });
 
                 if (refundResult.refundOrder.__typename !== 'Refund') {
                     if (successfulRefundCount > 0) {
                         toast.warning(t`Partial refund completed`, {
-                            description: t`${successfulRefundCount} payment(s) refunded before failure. Check order history for details.`,
+                            description: t`${successfulRefundCount} refund(s) processed before failure. Check order history for details.`,
                         });
                     }
                     toast.error(t`Failed to process refund`, {
@@ -315,7 +419,7 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
         customReason,
         manuallySetRefundTotal,
         refundTotal,
-        refundablePayments,
+        refundTargets,
         isSubmitting,
 
         // Derived
@@ -330,8 +434,8 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
         onRefundQuantityChange,
         onCancelChange,
         toggleShippingRefund,
-        onPaymentSelected,
-        onPaymentAmountChange,
+        onTargetSelected,
+        onTargetAmountChange,
         onManualRefundTotalChange,
         setSelectedReason,
         setCustomReason,

@@ -51,6 +51,7 @@
     "product-variant-option-ids-not-compatible": "ProductVariant optionIds must include one optionId from each of the groups: {groupNames}",
     "product-variant-options-combination-already-exists": "A ProductVariant with the selected options already exists: {variantName}",
     "promotion-channels-can-only-be-changed-from-default-channel": "Promotions channels may only be changed from the Default Channel",
+    "refund-destination-not-available": "Refund destination \"{ destination }\" is not available for this order/payment",
     "regex-filter-pattern-too-long": "The regex filter pattern exceeds the maximum allowed length of { max } characters",
     "regex-filter-pattern-unsafe": "The regex filter pattern is not allowed as it may cause excessive resource consumption",
     "regex-filter-pattern-unsupported-syntax": "The regex filter pattern uses syntax that is not supported by the safe regex engine (such as lookaround or backreferences)",

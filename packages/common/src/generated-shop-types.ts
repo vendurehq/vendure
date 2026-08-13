@@ -3092,6 +3092,11 @@ export type Refund = Node & {
     adjustment: Scalars['Money']['output'];
     createdAt: Scalars['DateTime']['output'];
     customFields?: Maybe<Scalars['JSON']['output']>;
+    /**
+     * The refund destination code, if a non-default destination was used.
+     * When null, the refund was directed to the original payment method.
+     */
+    destination?: Maybe<Scalars['String']['output']>;
     id: Scalars['ID']['output'];
     items: Scalars['Money']['output'];
     lines: Array<RefundLine>;

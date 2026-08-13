@@ -1,0 +1,92 @@
+---
+title: "RefundDestinationStrategy"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/payment/refund-destination-strategy.ts" sourceLine="51" packageName="@vendure/core" since="3.8.0" />
+
+A RefundDestinationStrategy defines a possible destination for a refund.
+The default destination is the original payment method, but plugins can add additional
+destinations such as store credit, gift cards, or vouchers.
+
+When a non-default destination is selected, this strategy's `createRefund()` method
+is called **instead of** the `PaymentMethodHandler.createRefund()`. If your destination
+shares logic with an existing payment method handler (e.g. both a store-credit payment
+handler and a store-credit refund destination need to call the same API), extract the
+shared logic into a service and inject it into both.
+
+*Example*
+
+```ts
+class StoreCreditRefundDestination implements RefundDestinationStrategy {
+    readonly code = 'store-credit';
+    readonly description = [
+        { languageCode: LanguageCode.en, value: 'Refund as store credit' },
+    ];
+
+    async isAvailable(ctx, order, payment) {
+        return payment.method !== 'store-credit-payment';
+    }
+
+    async createRefund(ctx, input, amount, order, payment) {
+        // Issue store credit to the customer
+        return { state: 'Settled' as const, transactionId: 'sc-123' };
+    }
+}
+```
+
+Register in VendureConfig:
+```ts
+paymentOptions: {
+    refundDestinations: [new StoreCreditRefundDestination()],
+}
+```
+
+```ts title="Signature"
+interface RefundDestinationStrategy extends InjectableStrategy {
+    readonly code: string;
+    readonly description: LocalizedStringArray;
+    isAvailable(ctx: RequestContext, order: Order, payment: Payment): boolean | Promise<boolean>;
+    createRefund(
+        ctx: RequestContext,
+        input: RefundOrderInput,
+        amount: number,
+        order: Order,
+        payment: Payment,
+    ): CreateRefundResult | Promise<CreateRefundResult>;
+}
+```
+* Extends: [`InjectableStrategy`](/reference/typescript-api/common/injectable-strategy#injectablestrategy)
+
+
+
+<div className="members-wrapper">
+
+### code
+
+<MemberInfo kind="property" type={`string`}   />
+
+A unique code identifying this refund destination.
+### description
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/configurable-operation-def/localized-string-array#localizedstringarray'>LocalizedStringArray</a>`}   />
+
+A human-readable description of this destination, used in the admin UI.
+### isAvailable
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>, payment: <a href='/reference/typescript-api/entities/payment#payment'>Payment</a>) => boolean | Promise<boolean>`}   />
+
+Whether this destination is available for the given order and payment.
+This is called when resolving the `refundDestinations` query to determine
+which destinations to offer the admin.
+### createRefund
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: RefundOrderInput, amount: number, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>, payment: <a href='/reference/typescript-api/entities/payment#payment'>Payment</a>) => <a href='/reference/typescript-api/payment/payment-method-types#createrefundresult'>CreateRefundResult</a> | Promise<<a href='/reference/typescript-api/payment/payment-method-types#createrefundresult'>CreateRefundResult</a>>`}   />
+
+Execute the refund to this destination. Called instead of
+`PaymentMethodHandler.createRefund()` when this destination is selected.
+
+The returned [CreateRefundResult](/reference/typescript-api/payment/payment-method-types#createrefundresult) determines the refund state
+and any associated transaction ID or metadata.
+
+
+</div>

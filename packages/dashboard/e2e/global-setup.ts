@@ -16,6 +16,7 @@ import {
     e2eCollectionFilters,
     e2eCustomFields,
     e2ePaymentMethodHandlers,
+    e2eRefundDestinations,
 } from './fixtures/e2e-shared-config.js';
 import { initialData } from './fixtures/initial-data.js';
 
@@ -98,6 +99,7 @@ export default async function globalSetup() {
         },
         paymentOptions: {
             paymentMethodHandlers: e2ePaymentMethodHandlers,
+            refundDestinations: e2eRefundDestinations,
         },
         // Default test strategy emits a non-parseable URL that crashes VendureImage.
         assetOptions: {

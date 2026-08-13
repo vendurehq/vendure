@@ -809,6 +809,10 @@ msgstr "Sélectionnez un client pour continuer"
 msgid "Successfully assigned option group"
 msgstr "Groupe d'options assigné avec succès"
 
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "Allocated refund amounts must equal refund total"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx
 msgid "Run Test"
 msgstr "Exécuter le test"
@@ -1226,6 +1230,7 @@ msgstr "Échec de l'annulation des articles de la commande"
 msgid "Transaction ID"
 msgstr "ID de Transaction"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Allocated"
 msgstr "Alloué"
@@ -1799,8 +1804,8 @@ msgid "Failed to rename view"
 msgstr "Échec du renommage de la vue"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
-msgid "Available"
-msgstr "Disponible"
+#~ msgid "Available"
+#~ msgstr "Disponible"
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Normal"
@@ -2145,6 +2150,10 @@ msgstr "Remboursement réglé avec succès"
 #: src/lib/framework/page/detail-page.tsx
 msgid "Update"
 msgstr "Mettre à jour"
+
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "{successfulRefundCount} refund(s) processed before failure. Check order history for details."
+msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Heading 2"
@@ -4033,8 +4042,8 @@ msgid "New Stock Location"
 msgstr "Nouvel emplacement de stock"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "{successfulRefundCount} payment(s) refunded before failure. Check order history for details."
-msgstr "{successfulRefundCount} paiement(s) remboursé(s) avant l'échec. Consultez l'historique de la commande pour plus de détails."
+#~ msgid "{successfulRefundCount} payment(s) refunded before failure. Check order history for details."
+#~ msgstr "{successfulRefundCount} paiement(s) remboursé(s) avant l'échec. Consultez l'historique de la commande pour plus de détails."
 
 #: src/lib/components/data-input/relation-selector.tsx
 msgid "Select item"
@@ -4307,6 +4316,10 @@ msgstr "Échec de la création du groupe de clients"
 msgid "Failed to create role"
 msgstr "Échec de la création du rôle"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Payment methods"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Product name"
 msgstr "Nom du produit"
@@ -4352,7 +4365,7 @@ msgstr "Ajouter un groupe d'options"
 msgid "All"
 msgstr "Tout"
 
-#. placeholder {0}: formatCurrency(refund.amountToRefundTotal, order.currencyCode)
+#. placeholder {0}: formatCurrency(refund.refundTotal, order.currencyCode)
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Refund {0}"
 msgstr "Rembourser {0}"
@@ -5547,6 +5560,10 @@ msgstr "C'est un rôle par défaut et il ne peut pas être modifié"
 msgid "My saved views"
 msgstr "Mes vues sauvegardées"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Other refund destinations"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 msgid "State / Province"
 msgstr "État / Province"
@@ -5734,8 +5751,8 @@ msgid "Password reset requested"
 msgstr "Réinitialisation de mot de passe demandée"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "Allocated payment amount must equal refund total"
-msgstr "Le montant du paiement alloué doit être égal au total du remboursement"
+#~ msgid "Allocated payment amount must equal refund total"
+#~ msgstr "Le montant du paiement alloué doit être égal au total du remboursement"
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #~ msgid "e.g. Small"
@@ -7048,8 +7065,8 @@ msgid "Fulfillment ID"
 msgstr "ID d'exécution"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
-msgid "Select payments to refund"
-msgstr "Sélectionnez les paiements à rembourser"
+#~ msgid "Select payments to refund"
+#~ msgstr "Sélectionnez les paiements à rembourser"
 
 #: src/lib/components/shared/error-page.tsx
 msgid "The page you are looking for does not exist or may have been moved."
@@ -7106,6 +7123,10 @@ msgstr "Vue globale „{viewName}\" appliquée"
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Customer registered"
 msgstr "Client enregistré"
+
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Remaining"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts

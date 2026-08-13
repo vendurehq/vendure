@@ -5643,6 +5643,12 @@ export type Query = {
   promotions: PromotionList;
   province?: Maybe<Province>;
   provinces: ProvinceList;
+  /**
+   * Returns the available refund destinations for the given order.
+   * This includes the default destination (original payment method) plus
+   * any custom destinations registered via RefundDestinationStrategy.
+   */
+  refundDestinations: Array<RefundDestination>;
   role?: Maybe<Role>;
   roles: RoleList;
   scheduledTasks: Array<ScheduledTask>;
@@ -5904,6 +5910,11 @@ export type QueryProvincesArgs = {
 };
 
 
+export type QueryRefundDestinationsArgs = {
+  orderId: Scalars['ID']['input'];
+};
+
+
 export type QueryRoleArgs = {
   id: Scalars['ID']['input'];
 };
@@ -6008,6 +6019,11 @@ export type Refund = Node & {
   adjustment: Scalars['Money']['output'];
   createdAt: Scalars['DateTime']['output'];
   customFields?: Maybe<Scalars['JSON']['output']>;
+  /**
+   * The refund destination code, if a non-default destination was used.
+   * When null, the refund was directed to the original payment method.
+   */
+  destination?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   items: Scalars['Money']['output'];
   lines: Array<RefundLine>;
@@ -6030,6 +6046,13 @@ export type RefundAmountError = ErrorResult & {
   message: Scalars['String']['output'];
 };
 
+/** Represents an available refund destination for an order. */
+export type RefundDestination = {
+  __typename?: 'RefundDestination';
+  code: Scalars['String']['output'];
+  description: Scalars['String']['output'];
+};
+
 export type RefundLine = {
   __typename?: 'RefundLine';
   orderLine: OrderLine;
@@ -6047,6 +6070,12 @@ export type RefundOrderInput = {
    * Can be as much as the total amount of the payment minus the sum of all previous refunds.
    */
   amount?: InputMaybe<Scalars['Money']['input']>;
+  /**
+   * Optional refund destination code. When omitted, refunds to the original
+   * payment method. Use the `refundDestinations` query to discover available
+   * destinations for an order.
+   */
+  destination?: InputMaybe<Scalars['String']['input']>;
   /** @deprecated Use the `amount` field instead */
   lines?: InputMaybe<Array<OrderLineInput>>;
   paymentId: Scalars['ID']['input'];

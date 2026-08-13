@@ -2,7 +2,7 @@
 title: "PaymentOptions"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/config/vendure-config.ts" sourceLine="952" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/vendure-config.ts" sourceLine="953" packageName="@vendure/core" />
 
 Defines payment-related options in the [VendureConfig](/reference/typescript-api/configuration/vendure-config#vendureconfig).
 
@@ -13,6 +13,7 @@ interface PaymentOptions {
     customPaymentProcess?: Array<PaymentProcess<any>>;
     process?: Array<PaymentProcess<any>>;
     refundProcess?: Array<RefundProcess<any>>;
+    refundDestinations?: RefundDestinationStrategy[];
 }
 ```
 
@@ -47,6 +48,15 @@ Takes an array of objects implementing the [PaymentProcess](/reference/typescrip
 
 Allows the definition of custom states and transition logic for the refund process state machine.
 Takes an array of objects implementing the [RefundProcess](/reference/typescript-api/payment/refund-process#refundprocess) interface.
+### refundDestinations
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/payment/refund-destination-strategy#refunddestinationstrategy'>RefundDestinationStrategy</a>[]`} default={`[]`}  since="3.8.0"  />
+
+Defines additional refund destination strategies. These allow refunds to be
+directed to alternative destinations such as store credit, gift cards, etc.
+
+The default destination (refund to original payment method) is always
+available and does not need to be included here.
 
 
 </div>

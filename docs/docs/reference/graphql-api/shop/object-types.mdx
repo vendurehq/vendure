@@ -291,6 +291,7 @@ scalar Boolean`}
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   ui: JSON
@@ -533,6 +534,7 @@ type CollectionResult {
   label: String
   description: String
   ui: JSON
+  secret: Boolean
 }`}
 </GraphQLDoc>
 
@@ -928,6 +930,7 @@ type DateTimeCustomFieldConfig {
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   min: String
@@ -1236,6 +1239,7 @@ scalar Float`}
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   min: Float
@@ -1544,6 +1548,7 @@ scalar Int`}
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   min: Int
@@ -1640,6 +1645,7 @@ type InvalidCredentialsError {
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   pattern: String
@@ -1672,6 +1678,7 @@ type InvalidCredentialsError {
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   ui: JSON
@@ -2937,6 +2944,11 @@ type PriceRange {
   adjustment: Money!
   total: Money!
   method: String
+  """
+  The refund destination code, if a non-default destination was used.
+  When null, the refund was directed to the original payment method.
+  """
+  destination: String
   state: String!
   transactionId: String
   reason: String
@@ -3035,6 +3047,7 @@ type PriceRange {
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   entity: String!
@@ -3511,6 +3524,7 @@ scalar String`}
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   pattern: String
@@ -3593,6 +3607,7 @@ scalar String`}
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   ui: JSON
@@ -3822,6 +3837,7 @@ type Success {
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   ui: JSON

@@ -809,6 +809,10 @@ msgstr "Seleziona un cliente per continuare"
 msgid "Successfully assigned option group"
 msgstr "Gruppo di opzioni assegnato con successo"
 
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "Allocated refund amounts must equal refund total"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx
 msgid "Run Test"
 msgstr "Esegui test"
@@ -1226,6 +1230,7 @@ msgstr "Impossibile annullare gli articoli dell'ordine"
 msgid "Transaction ID"
 msgstr "ID transazione"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Allocated"
 msgstr "Allocato"
@@ -1799,8 +1804,8 @@ msgid "Failed to rename view"
 msgstr "Impossibile rinominare vista"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
-msgid "Available"
-msgstr "Disponibile"
+#~ msgid "Available"
+#~ msgstr "Disponibile"
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Normal"
@@ -2145,6 +2150,10 @@ msgstr "Rimborso completato con successo"
 #: src/lib/framework/page/detail-page.tsx
 msgid "Update"
 msgstr "Aggiorna"
+
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "{successfulRefundCount} refund(s) processed before failure. Check order history for details."
+msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Heading 2"
@@ -4033,8 +4042,8 @@ msgid "New Stock Location"
 msgstr "Nuova ubicazione magazzino"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "{successfulRefundCount} payment(s) refunded before failure. Check order history for details."
-msgstr "{successfulRefundCount} pagamento/i rimborsato/i prima dell'errore. Controlla la cronologia dell'ordine per i dettagli."
+#~ msgid "{successfulRefundCount} payment(s) refunded before failure. Check order history for details."
+#~ msgstr "{successfulRefundCount} pagamento/i rimborsato/i prima dell'errore. Controlla la cronologia dell'ordine per i dettagli."
 
 #: src/lib/components/data-input/relation-selector.tsx
 msgid "Select item"
@@ -4307,6 +4316,10 @@ msgstr "Impossibile creare gruppo clienti"
 msgid "Failed to create role"
 msgstr "Impossibile creare ruolo"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Payment methods"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Product name"
 msgstr "Nome prodotto"
@@ -4352,7 +4365,7 @@ msgstr "Aggiungi gruppo di opzioni"
 msgid "All"
 msgstr "Tutti"
 
-#. placeholder {0}: formatCurrency(refund.amountToRefundTotal, order.currencyCode)
+#. placeholder {0}: formatCurrency(refund.refundTotal, order.currencyCode)
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Refund {0}"
 msgstr "Rimborsa {0}"
@@ -5547,6 +5560,10 @@ msgstr "Questo è un ruolo predefinito e non può essere modificato"
 msgid "My saved views"
 msgstr "Le mie viste salvate"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Other refund destinations"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 msgid "State / Province"
 msgstr "Stato / Provincia"
@@ -5734,8 +5751,8 @@ msgid "Password reset requested"
 msgstr "Richiesto reset password"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "Allocated payment amount must equal refund total"
-msgstr "L'importo del pagamento allocato deve essere uguale al totale del rimborso"
+#~ msgid "Allocated payment amount must equal refund total"
+#~ msgstr "L'importo del pagamento allocato deve essere uguale al totale del rimborso"
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #~ msgid "e.g. Small"
@@ -7048,8 +7065,8 @@ msgid "Fulfillment ID"
 msgstr "ID evasione"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
-msgid "Select payments to refund"
-msgstr "Seleziona i pagamenti da rimborsare"
+#~ msgid "Select payments to refund"
+#~ msgstr "Seleziona i pagamenti da rimborsare"
 
 #: src/lib/components/shared/error-page.tsx
 msgid "The page you are looking for does not exist or may have been moved."
@@ -7106,6 +7123,10 @@ msgstr "Vista globale „{viewName}\" applicata"
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Customer registered"
 msgstr "Cliente registrato"
+
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Remaining"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts

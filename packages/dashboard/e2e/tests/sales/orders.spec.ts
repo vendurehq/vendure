@@ -704,6 +704,221 @@ test.describe('Orders', () => {
             ).toBeVisible({ timeout: 10_000 });
         });
 
+        // #4563 — refund to custom destination (store credit)
+        test('should process a refund to a custom destination', async ({ page }) => {
+            test.setTimeout(60_000);
+
+            const client = new VendureAdminClient(page);
+            await client.login();
+            const orderId = await createPaidOrder(client);
+
+            await page.goto(`/orders/${orderId}`);
+            await expect(page.getByRole('button', { name: /Fulfill order/i })).toBeVisible({
+                timeout: 10_000,
+            });
+
+            // Open the refund dialog
+            const actionBarEllipsis = page.getByTestId('action-bar-dropdown-trigger');
+            await expect(actionBarEllipsis).toBeVisible({ timeout: 10_000 });
+            await actionBarEllipsis.click();
+
+            const menu = page.locator('[data-slot="dropdown-menu-content"]');
+            await menu
+                .getByText(/Refund/i)
+                .first()
+                .click();
+
+            const dialog = page.locator('[role="dialog"]');
+            await expect(dialog).toBeVisible({ timeout: 5_000 });
+
+            // Set refund quantity to 1
+            const quantityInput = dialog.getByTestId('refund-quantity').first();
+            await quantityInput.fill('1');
+
+            // Select a reason
+            await dialog.getByRole('combobox').click();
+            await page.getByRole('option').first().click();
+
+            const storeCreditRow = dialog.getByTestId('refund-target-store-credit');
+            await expect(storeCreditRow).toBeVisible();
+
+            // Uncheck the original payment so the whole refund goes to store credit
+            const paymentRow = dialog.getByTestId(/^refund-target-payment-/);
+            await paymentRow.getByRole('checkbox').first().uncheck();
+
+            // Selecting store credit moves the whole outstanding total onto it, which the
+            // dialog requires before it will submit.
+            await storeCreditRow.getByRole('checkbox').first().check();
+            await expect(storeCreditRow.locator('input[type="number"]')).not.toHaveValue('');
+
+            // Submit
+            const refundButton = dialog.getByRole('button', { name: /Refund/i }).last();
+            await refundButton.click();
+
+            // Wait for success
+            await expect(
+                page.locator('[data-sonner-toast]').filter({ hasNotText: /error/i }).first(),
+            ).toBeVisible({ timeout: 10_000 });
+        });
+
+        // #4563 — refund dialog should show store credit destination
+        test('should display custom refund destinations in dialog', async ({ page }) => {
+            test.setTimeout(60_000);
+
+            const client = new VendureAdminClient(page);
+            await client.login();
+            const orderId = await createPaidOrder(client);
+
+            await page.goto(`/orders/${orderId}`);
+            await expect(page.getByRole('button', { name: /Fulfill order/i })).toBeVisible({
+                timeout: 10_000,
+            });
+
+            await openRefundDialog(page);
+
+            const dialog = page.locator('[role="dialog"]');
+            await expect(dialog).toBeVisible({ timeout: 5_000 });
+
+            // The "Other refund destinations" section should be visible
+            await expect(dialog.getByText('Other refund destinations')).toBeVisible();
+
+            // Store credit destination should appear
+            const storeCreditRow = dialog.getByTestId('refund-target-store-credit');
+            await expect(storeCreditRow).toBeVisible();
+
+            // Store credit should be unchecked by default
+            await expect(storeCreditRow.getByRole('checkbox').first()).not.toBeChecked();
+        });
+
+        // #4563 — refund dialog should validate allocated amounts match total
+        test('should show validation error when allocation does not match total', async ({ page }) => {
+            test.setTimeout(60_000);
+
+            const client = new VendureAdminClient(page);
+            await client.login();
+            const orderId = await createPaidOrder(client);
+
+            await page.goto(`/orders/${orderId}`);
+            await expect(page.getByRole('button', { name: /Fulfill order/i })).toBeVisible({
+                timeout: 10_000,
+            });
+
+            await openRefundDialog(page);
+
+            const dialog = page.locator('[role="dialog"]');
+            await expect(dialog).toBeVisible({ timeout: 5_000 });
+
+            // Set refund quantity to 1 — this auto-allocates to the first payment
+            const quantityInput = dialog.getByTestId('refund-quantity').first();
+            await quantityInput.fill('1');
+
+            // Select a reason
+            await dialog.getByRole('combobox').click();
+            await page.getByRole('option').first().click();
+
+            // Uncheck the original payment to create an allocation mismatch
+            const paymentRow = dialog.getByTestId(/^refund-target-payment-/);
+            await paymentRow.getByRole('checkbox').first().uncheck();
+
+            // Validation error should appear about allocation mismatch
+            await expect(dialog.getByText(/Allocated refund amounts must equal refund total/i)).toBeVisible();
+
+            // Submit button should be disabled
+            const refundButton = dialog.getByRole('button', { name: /Refund/i }).last();
+            await expect(refundButton).toBeDisabled();
+        });
+
+        // #4563 — split refund between original payment and store credit
+        test('should process a split refund across payment and destination', async ({ page }) => {
+            test.setTimeout(60_000);
+
+            const client = new VendureAdminClient(page);
+            await client.login();
+            const orderId = await createPaidOrder(client);
+
+            await page.goto(`/orders/${orderId}`);
+            await expect(page.getByRole('button', { name: /Fulfill order/i })).toBeVisible({
+                timeout: 10_000,
+            });
+
+            await openRefundDialog(page);
+
+            const dialog = page.locator('[role="dialog"]');
+            await expect(dialog).toBeVisible({ timeout: 5_000 });
+
+            // Set refund quantity to 1
+            const quantityInput = dialog.getByTestId('refund-quantity').first();
+            await quantityInput.fill('1');
+
+            // Select a reason
+            await dialog.getByRole('combobox').click();
+            await page.getByRole('option').first().click();
+
+            // Read the auto-calculated total from the payment row
+            const paymentRow = dialog.getByTestId(/^refund-target-payment-/);
+            const paymentAmountStr = await paymentRow.locator('input[type="number"]').inputValue();
+            const fullAmount = Number.parseFloat(paymentAmountStr);
+
+            // Split: half to original payment, half to store credit
+            const halfAmount = (Math.floor((fullAmount * 100) / 2) / 100).toFixed(2);
+            const remainingAmount = (fullAmount - Number.parseFloat(halfAmount)).toFixed(2);
+
+            // Set the payment amount to half
+            await paymentRow.locator('input[type="number"]').fill(halfAmount);
+
+            // Enter remaining amount into store credit
+            const storeCreditRow = dialog.getByTestId('refund-target-store-credit');
+            await storeCreditRow.locator('input[type="number"]').fill(remainingAmount);
+
+            // Submit the split refund
+            const refundButton = dialog.getByRole('button', { name: /Refund/i }).last();
+            await refundButton.click();
+
+            // Wait for success
+            await expect(
+                page.locator('[data-sonner-toast]').filter({ hasNotText: /error/i }).first(),
+            ).toBeVisible({ timeout: 10_000 });
+        });
+
+        // #4563 — refund with manual total override
+        test('should allow manual refund total override', async ({ page }) => {
+            test.setTimeout(60_000);
+
+            const client = new VendureAdminClient(page);
+            await client.login();
+            const orderId = await createPaidOrder(client);
+
+            await page.goto(`/orders/${orderId}`);
+            await expect(page.getByRole('button', { name: /Fulfill order/i })).toBeVisible({
+                timeout: 10_000,
+            });
+
+            await openRefundDialog(page);
+
+            const dialog = page.locator('[role="dialog"]');
+            await expect(dialog).toBeVisible({ timeout: 5_000 });
+
+            // Check the "Override" checkbox to enable manual total
+            const overrideCheckbox = dialog.getByText('Override').locator('..').getByRole('checkbox');
+            await overrideCheckbox.check();
+
+            // Enter a manual refund total
+            const totalInput = dialog.locator('input[type="number"]').first();
+            await totalInput.fill('5.00');
+
+            // Select a reason
+            await dialog.getByRole('combobox').click();
+            await page.getByRole('option').first().click();
+
+            // Submit
+            const refundButton = dialog.getByRole('button', { name: /Refund/i }).last();
+            await refundButton.click();
+
+            await expect(
+                page.locator('[data-sonner-toast]').filter({ hasNotText: /error/i }).first(),
+            ).toBeVisible({ timeout: 10_000 });
+        });
+
         test('should show order history entries for lifecycle events', async ({ page }) => {
             test.setTimeout(60_000);
 
@@ -987,4 +1202,19 @@ async function createModifyingOrder(page: Page): Promise<string> {
     );
 
     return orderId;
+}
+
+/**
+ * Opens the refund dialog from the order detail page via the action bar dropdown.
+ */
+async function openRefundDialog(page: Page) {
+    const actionBarEllipsis = page.getByTestId('action-bar-dropdown-trigger');
+    await expect(actionBarEllipsis).toBeVisible({ timeout: 10_000 });
+    await actionBarEllipsis.click();
+
+    const menu = page.locator('[data-slot="dropdown-menu-content"]');
+    await menu
+        .getByText(/Refund/i)
+        .first()
+        .click();
 }

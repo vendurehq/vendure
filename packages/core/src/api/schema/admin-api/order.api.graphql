@@ -3,6 +3,12 @@ type Query {
     orders(options: OrderListOptions): OrderList!
     "Returns a list of eligible shipping methods for the draft Order"
     eligibleShippingMethodsForDraftOrder(orderId: ID!): [ShippingMethodQuote!]!
+    """
+    Returns the available refund destinations for the given order.
+    This includes the default destination (original payment method) plus
+    any custom destinations registered via RefundDestinationStrategy.
+    """
+    refundDestinations(orderId: ID!): [RefundDestination!]!
 }
 
 type Mutation {
@@ -125,6 +131,12 @@ input RefundOrderInput {
     amount: Money
     paymentId: ID!
     reason: String
+    """
+    Optional refund destination code. When omitted, refunds to the original
+    payment method. Use the `refundDestinations` query to discover available
+    destinations for an order.
+    """
+    destination: String
 }
 
 input OrderLineInput {
@@ -408,6 +420,14 @@ is not in the required state.
 type ManualPaymentStateError implements ErrorResult {
     errorCode: ErrorCode!
     message: String!
+}
+
+"""
+Represents an available refund destination for an order.
+"""
+type RefundDestination {
+    code: String!
+    description: String!
 }
 
 union TransitionOrderToStateResult = Order | OrderStateTransitionError

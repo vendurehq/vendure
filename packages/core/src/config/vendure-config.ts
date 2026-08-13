@@ -56,6 +56,7 @@ import { StockAllocationStrategy } from './order/stock-allocation-strategy';
 import { PaymentMethodEligibilityChecker } from './payment/payment-method-eligibility-checker';
 import { PaymentMethodHandler } from './payment/payment-method-handler';
 import { PaymentProcess } from './payment/payment-process';
+import { RefundDestinationStrategy } from './payment/refund-destination-strategy';
 import { PromotionAction } from './promotion/promotion-action';
 import { PromotionCondition } from './promotion/promotion-condition';
 import { RefundProcess } from './refund/refund-process';
@@ -983,6 +984,18 @@ export interface PaymentOptions {
      * @default defaultRefundProcess
      */
     refundProcess?: Array<RefundProcess<any>>;
+    /**
+     * @description
+     * Defines additional refund destination strategies. These allow refunds to be
+     * directed to alternative destinations such as store credit, gift cards, etc.
+     *
+     * The default destination (refund to original payment method) is always
+     * available and does not need to be included here.
+     *
+     * @default []
+     * @since 3.8.0
+     */
+    refundDestinations?: RefundDestinationStrategy[];
 }
 
 /**

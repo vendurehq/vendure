@@ -450,6 +450,7 @@ scalar Boolean`}
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   ui: JSON
@@ -841,6 +842,7 @@ type CollectionResult {
   label: String
   description: String
   ui: JSON
+  secret: Boolean
 }`}
 </GraphQLDoc>
 
@@ -1380,6 +1382,7 @@ type DateTimeCustomFieldConfig {
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   min: String
@@ -1821,6 +1824,7 @@ scalar Float`}
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   min: Float
@@ -2167,6 +2171,7 @@ scalar Int`}
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   min: Int
@@ -2411,6 +2416,7 @@ type LanguageNotAvailableError {
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   pattern: String
@@ -2443,6 +2449,7 @@ type LanguageNotAvailableError {
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   ui: JSON
@@ -4050,6 +4057,11 @@ type QuantityTooGreatError {
   adjustment: Money!
   total: Money!
   method: String
+  """
+  The refund destination code, if a non-default destination was used.
+  When null, the refund was directed to the original payment method.
+  """
+  destination: String
   state: String!
   transactionId: String
   reason: String
@@ -4078,6 +4090,24 @@ type RefundAmountError {
   errorCode: ErrorCode!
   message: String!
   maximumRefundable: Int!
+}`}
+</GraphQLDoc>
+
+<a name="refunddestination"></a>
+
+## RefundDestination
+
+<GraphQLDoc
+  type="type"
+  typeName="RefundDestination"
+  typeLinks={{
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`"""Represents an available refund destination for an order."""
+type RefundDestination {
+  code: String!
+  description: String!
 }`}
 </GraphQLDoc>
 
@@ -4239,6 +4269,7 @@ type RefundStateTransitionError {
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   entity: String!
@@ -5142,6 +5173,7 @@ scalar String`}
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   pattern: String
@@ -5224,6 +5256,7 @@ scalar String`}
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   ui: JSON
@@ -5508,6 +5541,7 @@ type Success {
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   ui: JSON

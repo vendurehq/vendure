@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { ManualPaymentInput, RefundOrderInput } from '@vendure/common/lib/generated-types';
+import { DEFAULT_REFUND_DESTINATION_CODE } from '@vendure/common/lib/shared-constants';
 import { DeepPartial, ID } from '@vendure/common/lib/shared-types';
 import { summate } from '@vendure/common/lib/shared-utils';
 import { In } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
-import { InternalServerError } from '../../common/error/errors';
+import { InternalServerError, UserInputError } from '../../common/error/errors';
 import {
     PaymentStateTransitionError,
     RefundAmountError,
@@ -15,8 +16,10 @@ import { IneligiblePaymentMethodError } from '../../common/error/generated-graph
 import { Instrument } from '../../common/instrument-decorator';
 import { PaymentMetadata } from '../../common/types/common-types';
 import { idsAreEqual } from '../../common/utils';
+import { ConfigService } from '../../config/config.service';
 import { Logger } from '../../config/logger/vendure-logger';
 import { PaymentMethodHandler } from '../../config/payment/payment-method-handler';
+import { RefundDestinationStrategy } from '../../config/payment/refund-destination-strategy';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Fulfillment } from '../../entity/fulfillment/fulfillment.entity';
 import { Order } from '../../entity/order/order.entity';
@@ -48,6 +51,7 @@ export class PaymentService {
         private paymentStateMachine: PaymentStateMachine,
         private refundStateMachine: RefundStateMachine,
         private paymentMethodService: PaymentMethodService,
+        private configService: ConfigService,
         private eventBus: EventBus,
     ) {}
 
@@ -340,6 +344,19 @@ export class PaymentService {
             }
         }
 
+        const destinationStrategy = this.getRefundDestinationStrategy(input.destination);
+        if (destinationStrategy) {
+            // We only check isAvailable against the selected payment. If the refund
+            // spills over into other payments (in the loop below), we trust that the
+            // destination is still valid since the admin explicitly chose it.
+            const isAvailable = await destinationStrategy.isAvailable(ctx, order, selectedPayment);
+            if (!isAvailable) {
+                throw new UserInputError('error.refund-destination-not-available', {
+                    destination: destinationStrategy.code,
+                });
+            }
+        }
+
         const refundsCreated: Refund[] = [];
         const refundablePayments = orderWithRefunds.payments.filter(p => {
             return this.getPaymentRefundTotal(p) < p.amount;
@@ -366,40 +383,52 @@ export class PaymentService {
                 payment: paymentToRefund,
                 total: constrainedTotal,
                 reason: input.reason,
-                method: selectedPayment.method,
+                method: paymentToRefund.method,
+                destination: destinationStrategy ? destinationStrategy.code : null,
                 state: 'Pending',
                 metadata: {},
                 items: orderLinesTotal, // deprecated
                 adjustment: input.adjustment, // deprecated
                 shipping: input.shipping, // deprecated
             });
-            let paymentMethod: PaymentMethod | undefined;
-            let handler: PaymentMethodHandler | undefined;
-            try {
-                const methodAndHandler = await this.paymentMethodService.getMethodAndOperations(
+            let createRefundResult: Awaited<ReturnType<RefundDestinationStrategy['createRefund']>> | false;
+            if (destinationStrategy) {
+                createRefundResult = await destinationStrategy.createRefund(
                     ctx,
-                    paymentToRefund.method,
+                    input,
+                    constrainedTotal,
+                    order,
+                    paymentToRefund,
                 );
-                paymentMethod = methodAndHandler.paymentMethod;
-                handler = methodAndHandler.handler;
-            } catch (e) {
-                Logger.warn(
-                    'Could not find a corresponding PaymentMethodHandler ' +
-                        `when creating a refund for the Payment with method "${paymentToRefund.method}"`,
-                );
+            } else {
+                let paymentMethod: PaymentMethod | undefined;
+                let handler: PaymentMethodHandler | undefined;
+                try {
+                    const methodAndHandler = await this.paymentMethodService.getMethodAndOperations(
+                        ctx,
+                        paymentToRefund.method,
+                    );
+                    paymentMethod = methodAndHandler.paymentMethod;
+                    handler = methodAndHandler.handler;
+                } catch (e) {
+                    Logger.warn(
+                        'Could not find a corresponding PaymentMethodHandler ' +
+                            `when creating a refund for the Payment with method "${paymentToRefund.method}"`,
+                    );
+                }
+                createRefundResult =
+                    paymentMethod && handler
+                        ? await handler.createRefund(
+                              ctx,
+                              input,
+                              constrainedTotal,
+                              order,
+                              paymentToRefund,
+                              paymentMethod.handler.args,
+                              paymentMethod,
+                          )
+                        : false;
             }
-            const createRefundResult =
-                paymentMethod && handler
-                    ? await handler.createRefund(
-                          ctx,
-                          input,
-                          constrainedTotal,
-                          order,
-                          paymentToRefund,
-                          paymentMethod.handler.args,
-                          paymentMethod,
-                      )
-                    : false;
             if (createRefundResult) {
                 refund.transactionId = createRefundResult.transactionId || '';
                 refund.metadata = createRefundResult.metadata || {};
@@ -513,6 +542,24 @@ export class PaymentService {
         }
         const total = refundOrderLinesTotal + (input.shipping ?? 0) + (input.adjustment ?? 0);
         return { orderLinesTotal: refundOrderLinesTotal, total };
+    }
+
+    /**
+     * Returns the matching RefundDestinationStrategy if a non-default destination
+     * code is specified, or undefined to use the default payment handler path.
+     */
+    private getRefundDestinationStrategy(
+        destination: string | undefined | null,
+    ): RefundDestinationStrategy | undefined {
+        if (!destination || destination === DEFAULT_REFUND_DESTINATION_CODE) {
+            return undefined;
+        }
+        const strategies = this.configService.paymentOptions.refundDestinations ?? [];
+        const match = strategies.find(s => s.code === destination);
+        if (!match) {
+            throw new InternalServerError(`No RefundDestinationStrategy found with code "${destination}"`);
+        }
+        return match;
     }
 
     private mergePaymentMetadata(m1: PaymentMetadata, m2?: PaymentMetadata): PaymentMetadata {

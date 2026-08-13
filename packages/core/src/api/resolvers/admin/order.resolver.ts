@@ -22,6 +22,7 @@ import {
     Permission,
     QueryOrderArgs,
     QueryOrdersArgs,
+    QueryRefundDestinationsArgs,
     RefundOrderResult,
     SettlePaymentResult,
     TransitionPaymentToStateResult,
@@ -70,6 +71,15 @@ export class OrderResolver {
         relations: RelationPaths<Order>,
     ): Promise<Order | undefined> {
         return this.orderService.findOne(ctx, args.id, relations);
+    }
+
+    @Query()
+    @Allow(Permission.ReadOrder)
+    async refundDestinations(
+        @Ctx() ctx: RequestContext,
+        @Args() args: QueryRefundDestinationsArgs,
+    ): Promise<Array<{ code: string; description: string }>> {
+        return this.orderService.getRefundDestinations(ctx, args.orderId);
     }
 
     @Transaction()

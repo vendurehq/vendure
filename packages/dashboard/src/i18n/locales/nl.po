@@ -809,6 +809,10 @@ msgstr "Selecteer een klant om door te gaan"
 msgid "Successfully assigned option group"
 msgstr "Optiegroep succesvol toegewezen"
 
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "Allocated refund amounts must equal refund total"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx
 msgid "Run Test"
 msgstr "Test uitvoeren"
@@ -1230,6 +1234,7 @@ msgstr "Annuleren van bestelartikelen mislukt"
 msgid "Transaction ID"
 msgstr "Transactie-ID"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Allocated"
 msgstr "Toegewezen"
@@ -1803,8 +1808,8 @@ msgid "Failed to rename view"
 msgstr "Weergave hernoemen mislukt"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
-msgid "Available"
-msgstr "Beschikbaar"
+#~ msgid "Available"
+#~ msgstr "Beschikbaar"
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Normal"
@@ -2149,6 +2154,10 @@ msgstr "Terugbetaling succesvol afgehandeld"
 #: src/lib/framework/page/detail-page.tsx
 msgid "Update"
 msgstr "Bijwerken"
+
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "{successfulRefundCount} refund(s) processed before failure. Check order history for details."
+msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Heading 2"
@@ -4027,8 +4036,8 @@ msgid "New Stock Location"
 msgstr "Nieuwe voorraadlocatie"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "{successfulRefundCount} payment(s) refunded before failure. Check order history for details."
-msgstr "{successfulRefundCount} betaling(en) gerestitueerd voor de fout. Controleer de bestelgeschiedenis voor details."
+#~ msgid "{successfulRefundCount} payment(s) refunded before failure. Check order history for details."
+#~ msgstr "{successfulRefundCount} betaling(en) gerestitueerd voor de fout. Controleer de bestelgeschiedenis voor details."
 
 #: src/lib/components/data-input/relation-selector.tsx
 msgid "Select item"
@@ -4298,6 +4307,10 @@ msgstr "Klantengroep aanmaken mislukt"
 msgid "Failed to create role"
 msgstr "Rol aanmaken mislukt"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Payment methods"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Product name"
 msgstr "Productnaam"
@@ -4343,7 +4356,7 @@ msgstr "Optiegroep toevoegen"
 msgid "All"
 msgstr "Alle"
 
-#. placeholder {0}: formatCurrency(refund.amountToRefundTotal, order.currencyCode)
+#. placeholder {0}: formatCurrency(refund.refundTotal, order.currencyCode)
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Refund {0}"
 msgstr "Restitutie {0}"
@@ -5538,6 +5551,10 @@ msgstr "Dit is een standaardrol en kan niet worden gewijzigd"
 msgid "My saved views"
 msgstr "Mijn opgeslagen weergaven"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Other refund destinations"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 msgid "State / Province"
 msgstr "Staat / Provincie"
@@ -5729,8 +5746,8 @@ msgid "Password reset requested"
 msgstr "Wachtwoordherstel aangevraagd"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "Allocated payment amount must equal refund total"
-msgstr "Het toegewezen betalingsbedrag moet gelijk zijn aan het restitutietotaal"
+#~ msgid "Allocated payment amount must equal refund total"
+#~ msgstr "Het toegewezen betalingsbedrag moet gelijk zijn aan het restitutietotaal"
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #~ msgid "e.g. Small"
@@ -7043,8 +7060,8 @@ msgid "Fulfillment ID"
 msgstr "Afhandelings-ID"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
-msgid "Select payments to refund"
-msgstr "Selecteer betalingen om te restitueren"
+#~ msgid "Select payments to refund"
+#~ msgstr "Selecteer betalingen om te restitueren"
 
 #: src/lib/components/shared/error-page.tsx
 msgid "The page you are looking for does not exist or may have been moved."
@@ -7101,6 +7118,10 @@ msgstr "Globale weergave „{viewName}\" toegepast"
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Customer registered"
 msgstr "Klant geregistreerd"
+
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Remaining"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts

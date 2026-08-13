@@ -200,6 +200,7 @@ export const defaultConfig: RuntimeVendureConfig = {
         customPaymentProcess: [],
         process: [defaultPaymentProcess],
         refundProcess: [defaultRefundProcess],
+        refundDestinations: [],
     },
     taxOptions: {
         taxZoneStrategy: new DefaultTaxZoneStrategy(),

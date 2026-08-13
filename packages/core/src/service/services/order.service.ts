@@ -21,6 +21,7 @@ import {
     DeletionResult,
     FulfillOrderInput,
     HistoryEntryType,
+    LanguageCode,
     ManualPaymentInput,
     ModifyOrderInput,
     ModifyOrderResult,
@@ -38,6 +39,7 @@ import {
     UpdateOrderNoteInput,
 } from '@vendure/common/lib/generated-types';
 import { omit } from '@vendure/common/lib/omit';
+import { DEFAULT_REFUND_DESTINATION_CODE } from '@vendure/common/lib/shared-constants';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { summate } from '@vendure/common/lib/shared-utils';
 import { EntityManager, In, IsNull, LockNotSupportedOnGivenDriverError } from 'typeorm';
@@ -46,7 +48,8 @@ import { FindOptionsUtils } from 'typeorm/find-options/FindOptionsUtils';
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
 import { RequestContextCacheService } from '../../cache/request-context-cache.service';
-import { CacheKey, TRANSACTION_MANAGER_KEY } from '../../common/constants';
+import { LocalizedStringArray } from '../../common/configurable-operation';
+import { CacheKey, DEFAULT_LANGUAGE_CODE, TRANSACTION_MANAGER_KEY } from '../../common/constants';
 import { ErrorResultUnion, isGraphQlErrorResult, JustErrorResults } from '../../common/error/error-result';
 import { EntityNotFoundError, InternalServerError, UserInputError } from '../../common/error/errors';
 import {
@@ -1994,6 +1997,66 @@ export class OrderService implements OnApplicationBootstrap {
             await this.eventBus.publish(new RefundEvent(ctx, order, createdRefund, 'created'));
         }
         return createdRefund;
+    }
+
+    /**
+     * @description
+     * Returns the available refund destinations for the given order. Includes
+     * the default destination (original payment method) plus any custom
+     * destinations registered via {@link RefundDestinationStrategy}.
+     */
+    async getRefundDestinations(
+        ctx: RequestContext,
+        orderId: ID,
+    ): Promise<Array<{ code: string; description: string }>> {
+        const order = await this.connection.getEntityOrThrow(ctx, Order, orderId, {
+            relations: ['payments', 'payments.refunds'],
+        });
+        const refundablePayments = order.payments.filter(p => {
+            const nonFailedRefunds = p.refunds?.filter(r => r.state !== 'Failed') ?? [];
+            const refundTotal = summate(nonFailedRefunds, 'total');
+            return refundTotal < p.amount;
+        });
+        const defaultDescription: LocalizedStringArray = [
+            { languageCode: LanguageCode.en, value: 'Refund to original payment method' },
+        ];
+        const defaultDestination = {
+            code: DEFAULT_REFUND_DESTINATION_CODE,
+            description: this.localizeDescription(ctx, defaultDescription),
+        };
+        const strategies = this.configService.paymentOptions.refundDestinations ?? [];
+        const results: Array<{ code: string; description: string }> = [defaultDestination];
+        for (const strategy of strategies) {
+            let available = false;
+            for (const payment of refundablePayments) {
+                if (await strategy.isAvailable(ctx, order, payment)) {
+                    available = true;
+                    break;
+                }
+            }
+            if (available) {
+                results.push({
+                    code: strategy.code,
+                    description: this.localizeDescription(ctx, strategy.description),
+                });
+            }
+        }
+        return results;
+    }
+
+    /**
+     * Resolves the language-specific value of a refund destination description, falling back to the
+     * channel default language, then English, then whichever entry the strategy defined first.
+     */
+    private localizeDescription(ctx: RequestContext, description: LocalizedStringArray): string {
+        const preference = [ctx.languageCode, ctx.channel.defaultLanguageCode, DEFAULT_LANGUAGE_CODE];
+        for (const languageCode of preference) {
+            const match = description.find(x => x.languageCode === languageCode);
+            if (match) {
+                return match.value;
+            }
+        }
+        return description[0]?.value ?? '';
     }
 
     /**

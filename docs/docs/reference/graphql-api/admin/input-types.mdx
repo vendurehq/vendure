@@ -3534,6 +3534,12 @@ input NumberOperators {
   amount: Money
   paymentId: ID!
   reason: String
+  """
+  Optional refund destination code. When omitted, refunds to the original
+  payment method. Use the \`refundDestinations\` query to discover available
+  destinations for an order.
+  """
+  destination: String
 }`}
 </GraphQLDoc>
 

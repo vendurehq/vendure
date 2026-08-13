@@ -809,6 +809,10 @@ msgstr "Оберіть клієнта для продовження"
 msgid "Successfully assigned option group"
 msgstr "Групу опцій успішно призначено"
 
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "Allocated refund amounts must equal refund total"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx
 msgid "Run Test"
 msgstr "Запустити тест"
@@ -1226,6 +1230,7 @@ msgstr "Не вдалося скасувати позиції замовленн
 msgid "Transaction ID"
 msgstr "ID транзакції"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Allocated"
 msgstr "Виділено"
@@ -1799,8 +1804,8 @@ msgid "Failed to rename view"
 msgstr "Не вдалося перейменувати подання"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
-msgid "Available"
-msgstr "Доступно"
+#~ msgid "Available"
+#~ msgstr "Доступно"
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Normal"
@@ -2145,6 +2150,10 @@ msgstr "Повернення успішно проведено"
 #: src/lib/framework/page/detail-page.tsx
 msgid "Update"
 msgstr "Оновити"
+
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "{successfulRefundCount} refund(s) processed before failure. Check order history for details."
+msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Heading 2"
@@ -4033,8 +4042,8 @@ msgid "New Stock Location"
 msgstr "Нове місце зберігання"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "{successfulRefundCount} payment(s) refunded before failure. Check order history for details."
-msgstr "{successfulRefundCount} платіж(ів) повернено до помилки. Перевірте історію замовлення для деталей."
+#~ msgid "{successfulRefundCount} payment(s) refunded before failure. Check order history for details."
+#~ msgstr "{successfulRefundCount} платіж(ів) повернено до помилки. Перевірте історію замовлення для деталей."
 
 #: src/lib/components/data-input/relation-selector.tsx
 msgid "Select item"
@@ -4307,6 +4316,10 @@ msgstr "Не вдалося створити групу клієнтів"
 msgid "Failed to create role"
 msgstr "Не вдалося створити роль"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Payment methods"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Product name"
 msgstr "Назва товару"
@@ -4352,7 +4365,7 @@ msgstr "Додати групу опцій"
 msgid "All"
 msgstr "Усі"
 
-#. placeholder {0}: formatCurrency(refund.amountToRefundTotal, order.currencyCode)
+#. placeholder {0}: formatCurrency(refund.refundTotal, order.currencyCode)
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Refund {0}"
 msgstr "Повернути {0}"
@@ -5547,6 +5560,10 @@ msgstr "Це роль за замовчуванням, і її не можна �
 msgid "My saved views"
 msgstr "Мої збережені подання"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Other refund destinations"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 msgid "State / Province"
 msgstr "Регіон / Область"
@@ -5734,8 +5751,8 @@ msgid "Password reset requested"
 msgstr "Запитано скидання пароля"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "Allocated payment amount must equal refund total"
-msgstr "Виділена сума платежу повинна дорівнювати сумі повернення"
+#~ msgid "Allocated payment amount must equal refund total"
+#~ msgstr "Виділена сума платежу повинна дорівнювати сумі повернення"
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #~ msgid "e.g. Small"
@@ -7048,8 +7065,8 @@ msgid "Fulfillment ID"
 msgstr "ID виконання"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
-msgid "Select payments to refund"
-msgstr "Виберіть платежі для повернення"
+#~ msgid "Select payments to refund"
+#~ msgstr "Виберіть платежі для повернення"
 
 #: src/lib/components/shared/error-page.tsx
 msgid "The page you are looking for does not exist or may have been moved."
@@ -7106,6 +7123,10 @@ msgstr "Застосовано глобальне подання \"{viewName}\""
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Customer registered"
 msgstr "Клієнта зареєстровано"
+
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Remaining"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts
