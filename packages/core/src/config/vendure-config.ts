@@ -993,7 +993,7 @@ export interface PaymentOptions {
      * available and does not need to be included here.
      *
      * @default []
-     * @since 3.6.0
+     * @since 3.8.0
      */
     refundDestinations?: RefundDestinationStrategy[];
 }

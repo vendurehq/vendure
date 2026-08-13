@@ -46,7 +46,7 @@ import { CreateRefundResult } from './payment-method-handler';
  * ```
  *
  * @docsCategory payment
- * @since 3.6.0
+ * @since 3.8.0
  */
 export interface RefundDestinationStrategy extends InjectableStrategy {
     /**

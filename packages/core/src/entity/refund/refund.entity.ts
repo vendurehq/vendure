@@ -49,7 +49,7 @@ export class Refund extends VendureEntity implements HasCustomFields {
      * The refund destination code, if a non-default destination was used.
      * When null, the refund was directed to the original payment method.
      *
-     * @since 3.6.0
+     * @since 3.8.0
      */
     @Column({ nullable: true, type: 'varchar' }) destination: string | null;
 
