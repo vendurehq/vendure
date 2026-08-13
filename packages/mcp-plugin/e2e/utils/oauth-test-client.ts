@@ -67,6 +67,64 @@ export async function submitAdminConsent(options: SubmitAdminConsentOptions): Pr
     return (await response.json()) as ConsentResponseBody;
 }
 
+/**
+ * Sends a Dynamic Client Registration request with exactly the given body and returns the raw
+ * response, so a test can assert on a refusal as readily as on success.
+ */
+export function registerClient(options: {
+    baseUrl: string;
+    body: Record<string, unknown>;
+}): Promise<Response> {
+    return fetch(`${options.baseUrl}/mcp/oauth/register`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(options.body),
+    });
+}
+
+/**
+ * Requests authorization with exactly the given query parameters and does not follow the redirect,
+ * so a test can read the consent Location header or assert on a refusal.
+ */
+export function authorize(options: { baseUrl: string; params: Record<string, string> }): Promise<Response> {
+    const url = new URL(`${options.baseUrl}/mcp/oauth/authorize`);
+    for (const [name, value] of Object.entries(options.params)) {
+        url.searchParams.set(name, value);
+    }
+    return fetch(url, { redirect: 'manual' });
+}
+
+/** Sends a token request with exactly the given body and returns the raw response. */
+export function exchangeCode(options: { baseUrl: string; body: Record<string, unknown> }): Promise<Response> {
+    return fetch(`${options.baseUrl}/mcp/oauth/token`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(options.body),
+    });
+}
+
+/** Reads the request token out of the consent redirect an authorize response carries. */
+export function extractRequestToken(authorizeResponse: Response): string {
+    const consentLocation = authorizeResponse.headers.get('location');
+    if (!consentLocation) {
+        throw new Error(`Authorize did not redirect to consent (status ${authorizeResponse.status})`);
+    }
+    const requestToken = new URL(consentLocation).searchParams.get('request_token');
+    if (!requestToken) {
+        throw new Error(`Consent redirect missing request_token param: ${consentLocation}`);
+    }
+    return requestToken;
+}
+
+/** A fixed-length PKCE verifier and its matching S256 challenge. */
+export function pkcePair(): { code_verifier: string; code_challenge: string } {
+    const code_verifier = 'a'.repeat(64);
+    return {
+        code_verifier,
+        code_challenge: crypto.createHash('sha256').update(code_verifier).digest('base64url'),
+    };
+}
+
 interface DriveAuthorizationCodeFlowOptions {
     baseUrl: string;
     resource: string;
@@ -88,9 +146,7 @@ async function driveAuthorizationCodeFlow(
 ): Promise<AuthorizationCodeFlowResult> {
     const { baseUrl, resource, clientName, redirectUri, approve } = options;
 
-    // PKCE: a fixed-length verifier and its S256 challenge.
-    const code_verifier = 'a'.repeat(64);
-    const code_challenge = crypto.createHash('sha256').update(code_verifier).digest('base64url');
+    const { code_verifier, code_challenge } = pkcePair();
 
     // 1. Obtain a client_id: either the caller supplies one (CIMD — the server resolves it
     // from the URL at the authorize step), or Dynamic Client Registration creates one.
@@ -98,10 +154,9 @@ async function driveAuthorizationCodeFlow(
     if (options.clientId) {
         client_id = options.clientId;
     } else {
-        const registerResponse = await fetch(`${baseUrl}/mcp/oauth/register`, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ client_name: clientName, redirect_uris: [redirectUri] }),
+        const registerResponse = await registerClient({
+            baseUrl,
+            body: { client_name: clientName, redirect_uris: [redirectUri] },
         });
         if (!registerResponse.ok) {
             throw new Error(`DCR failed: ${registerResponse.status} ${await registerResponse.text()}`);
@@ -110,23 +165,18 @@ async function driveAuthorizationCodeFlow(
     }
 
     // 2. Authorize: returns a 302 redirect to the consent page carrying the request token.
-    const authorizeUrl = new URL(`${baseUrl}/mcp/oauth/authorize`);
-    authorizeUrl.searchParams.set('response_type', 'code');
-    authorizeUrl.searchParams.set('client_id', client_id);
-    authorizeUrl.searchParams.set('redirect_uri', redirectUri);
-    authorizeUrl.searchParams.set('code_challenge', code_challenge);
-    authorizeUrl.searchParams.set('code_challenge_method', 'S256');
-    authorizeUrl.searchParams.set('resource', resource);
-
-    const authorizeResponse = await fetch(authorizeUrl, { redirect: 'manual' });
-    const consentLocation = authorizeResponse.headers.get('location');
-    if (!consentLocation) {
-        throw new Error(`Authorize did not redirect to consent (status ${authorizeResponse.status})`);
-    }
-    const request_token = new URL(consentLocation).searchParams.get('request_token');
-    if (!request_token) {
-        throw new Error(`Consent redirect missing request_token param: ${consentLocation}`);
-    }
+    const authorizeResponse = await authorize({
+        baseUrl,
+        params: {
+            response_type: 'code',
+            client_id,
+            redirect_uri: redirectUri,
+            code_challenge,
+            code_challenge_method: 'S256',
+            resource,
+        },
+    });
+    const request_token = extractRequestToken(authorizeResponse);
 
     // 3. Consent, then read the code out of the redirect it returns.
     const redirectUrl = await approve(request_token);
@@ -136,17 +186,16 @@ async function driveAuthorizationCodeFlow(
     }
 
     // 4. Token exchange: authorization code -> access + refresh tokens.
-    const tokenResponse = await fetch(`${baseUrl}/mcp/oauth/token`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
+    const tokenResponse = await exchangeCode({
+        baseUrl,
+        body: {
             grant_type: 'authorization_code',
             code,
             client_id,
             redirect_uri: redirectUri,
             code_verifier,
             resource,
-        }),
+        },
     });
     if (!tokenResponse.ok) {
         throw new Error(`Token exchange failed: ${tokenResponse.status} ${await tokenResponse.text()}`);
@@ -257,7 +306,7 @@ interface SubmitShopConsentOptions {
  * mutation — the same call the storefront consent page makes — with the customer's session
  * travelling as a bearer header. Returns the raw GraphQL response body.
  */
-async function submitShopConsent(options: SubmitShopConsentOptions): Promise<ConsentResponseBody> {
+export async function submitShopConsent(options: SubmitShopConsentOptions): Promise<ConsentResponseBody> {
     const response = await fetch(`${options.baseUrl}/shop-api`, {
         method: 'POST',
         headers: {

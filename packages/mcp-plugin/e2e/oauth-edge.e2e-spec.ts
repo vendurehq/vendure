@@ -9,7 +9,6 @@ import {
     TransactionalConnection,
 } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
-import crypto from 'crypto';
 import gql from 'graphql-tag';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -24,9 +23,15 @@ import { deriveHashKey, hashLookupToken } from '../src/oauth/token-hash';
 import { McpPlugin } from '../src/plugin';
 
 import {
+    authorize,
+    exchangeCode,
+    extractRequestToken,
+    pkcePair,
+    registerClient,
     runAuthorizationCodeFlow,
     runShopAuthorizationCodeFlow,
     submitAdminConsent,
+    submitShopConsent,
 } from './utils/oauth-test-client';
 import { initTestServer } from './utils/test-server';
 
@@ -122,36 +127,30 @@ describe('McpPlugin OAuth edge & security cases', () => {
     // test can craft its own token-exchange request. The code has not yet been consumed.
     const authorizeAdminToCode = async (overrides?: { redirectUri?: string; resource?: string }) => {
         const redirectUri = overrides?.redirectUri ?? 'https://example.com/cb';
-        const code_verifier = 'a'.repeat(64);
-        const code_challenge = crypto.createHash('sha256').update(code_verifier).digest('base64url');
+        const { code_verifier, code_challenge } = pkcePair();
         const resource = overrides?.resource ?? `${ISSUER}/mcp/admin`;
 
-        const registerRes = await fetch(`${baseUrl()}/mcp/oauth/register`, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({
+        const registerRes = await registerClient({
+            baseUrl: baseUrl(),
+            body: {
                 client_name: `edge-${Math.random().toString(36).slice(2)}`,
                 redirect_uris: [redirectUri],
-            }),
+            },
         });
         const { client_id } = (await registerRes.json()) as { client_id: string };
 
-        const authorizeUrl = new URL(`${baseUrl()}/mcp/oauth/authorize`);
-        authorizeUrl.searchParams.set('response_type', 'code');
-        authorizeUrl.searchParams.set('client_id', client_id);
-        authorizeUrl.searchParams.set('redirect_uri', redirectUri);
-        authorizeUrl.searchParams.set('code_challenge', code_challenge);
-        authorizeUrl.searchParams.set('code_challenge_method', 'S256');
-        authorizeUrl.searchParams.set('resource', resource);
-        const authorizeRes = await fetch(authorizeUrl, { redirect: 'manual' });
-        const consentLocation = authorizeRes.headers.get('location');
-        if (!consentLocation) {
-            throw new Error(`Authorize did not redirect (status ${authorizeRes.status})`);
-        }
-        const request_token = new URL(consentLocation).searchParams.get('request_token');
-        if (!request_token) {
-            throw new Error(`Consent redirect missing request_token: ${consentLocation}`);
-        }
+        const authorizeRes = await authorize({
+            baseUrl: baseUrl(),
+            params: {
+                response_type: 'code',
+                client_id,
+                redirect_uri: redirectUri,
+                code_challenge,
+                code_challenge_method: 'S256',
+                resource,
+            },
+        });
+        const request_token = extractRequestToken(authorizeRes);
 
         const consentBody = await submitAdminConsent({
             baseUrl: baseUrl(),
@@ -210,28 +209,28 @@ describe('McpPlugin OAuth edge & security cases', () => {
     // A redirect_uri not registered for the client is rejected at authorize.
     it('rejects authorize when redirect_uri is not registered for the client', async () => {
         const redirectUri = 'https://example.com/registered';
-        const registerRes = await fetch(`${baseUrl()}/mcp/oauth/register`, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({
+        const registerRes = await registerClient({
+            baseUrl: baseUrl(),
+            body: {
                 client_name: `unregistered-redirect-${Math.random().toString(36).slice(2)}`,
                 redirect_uris: [redirectUri],
-            }),
+            },
         });
         const { client_id } = (await registerRes.json()) as { client_id: string };
 
-        const code_verifier = 'a'.repeat(64);
-        const code_challenge = crypto.createHash('sha256').update(code_verifier).digest('base64url');
-        const authorizeUrl = new URL(`${baseUrl()}/mcp/oauth/authorize`);
-        authorizeUrl.searchParams.set('response_type', 'code');
-        authorizeUrl.searchParams.set('client_id', client_id);
-        // A redirect_uri the client never registered.
-        authorizeUrl.searchParams.set('redirect_uri', 'https://evil.example.com/cb');
-        authorizeUrl.searchParams.set('code_challenge', code_challenge);
-        authorizeUrl.searchParams.set('code_challenge_method', 'S256');
-        authorizeUrl.searchParams.set('resource', `${ISSUER}/mcp/admin`);
-
-        const res = await fetch(authorizeUrl, { redirect: 'manual' });
+        const { code_challenge } = pkcePair();
+        const res = await authorize({
+            baseUrl: baseUrl(),
+            params: {
+                response_type: 'code',
+                client_id,
+                // A redirect_uri the client never registered.
+                redirect_uri: 'https://evil.example.com/cb',
+                code_challenge,
+                code_challenge_method: 'S256',
+                resource: `${ISSUER}/mcp/admin`,
+            },
+        });
         expect(res.status).toBe(400);
         expect(await res.text()).toMatch(/redirect_uri is not registered/i);
     });
@@ -257,27 +256,27 @@ describe('McpPlugin OAuth edge & security cases', () => {
     // Authorize without a `resource` parameter is rejected.
     it('rejects authorize when the resource parameter is missing', async () => {
         const redirectUri = 'https://example.com/cb';
-        const registerRes = await fetch(`${baseUrl()}/mcp/oauth/register`, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({
+        const registerRes = await registerClient({
+            baseUrl: baseUrl(),
+            body: {
                 client_name: `no-resource-${Math.random().toString(36).slice(2)}`,
                 redirect_uris: [redirectUri],
-            }),
+            },
         });
         const { client_id } = (await registerRes.json()) as { client_id: string };
 
-        const code_verifier = 'a'.repeat(64);
-        const code_challenge = crypto.createHash('sha256').update(code_verifier).digest('base64url');
-        const authorizeUrl = new URL(`${baseUrl()}/mcp/oauth/authorize`);
-        authorizeUrl.searchParams.set('response_type', 'code');
-        authorizeUrl.searchParams.set('client_id', client_id);
-        authorizeUrl.searchParams.set('redirect_uri', redirectUri);
-        authorizeUrl.searchParams.set('code_challenge', code_challenge);
-        authorizeUrl.searchParams.set('code_challenge_method', 'S256');
-        // Deliberately omit the `resource` parameter.
-
-        const res = await fetch(authorizeUrl, { redirect: 'manual' });
+        const { code_challenge } = pkcePair();
+        const res = await authorize({
+            baseUrl: baseUrl(),
+            params: {
+                response_type: 'code',
+                client_id,
+                redirect_uri: redirectUri,
+                code_challenge,
+                code_challenge_method: 'S256',
+                // Deliberately omit the `resource` parameter.
+            },
+        });
         expect(res.status).toBe(400);
         expect(await res.text()).toMatch(/resource is required/i);
     });
@@ -370,29 +369,29 @@ describe('McpPlugin OAuth edge & security cases', () => {
     // it never reaches the database on this path.
     it('rejects authorize with a state longer than 255 characters', async () => {
         const redirectUri = 'https://example.com/cb';
-        const registerRes = await fetch(`${baseUrl()}/mcp/oauth/register`, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({
+        const registerRes = await registerClient({
+            baseUrl: baseUrl(),
+            body: {
                 client_name: `long-state-${Math.random().toString(36).slice(2)}`,
                 redirect_uris: [redirectUri],
-            }),
+            },
         });
         const { client_id } = (await registerRes.json()) as { client_id: string };
 
         const longState = 'x'.repeat(300);
-        const code_verifier = 'a'.repeat(64);
-        const code_challenge = crypto.createHash('sha256').update(code_verifier).digest('base64url');
-        const authorizeUrl = new URL(`${baseUrl()}/mcp/oauth/authorize`);
-        authorizeUrl.searchParams.set('response_type', 'code');
-        authorizeUrl.searchParams.set('client_id', client_id);
-        authorizeUrl.searchParams.set('redirect_uri', redirectUri);
-        authorizeUrl.searchParams.set('code_challenge', code_challenge);
-        authorizeUrl.searchParams.set('code_challenge_method', 'S256');
-        authorizeUrl.searchParams.set('resource', `${ISSUER}/mcp/admin`);
-        authorizeUrl.searchParams.set('state', longState);
-
-        const res = await fetch(authorizeUrl, { redirect: 'manual' });
+        const { code_challenge } = pkcePair();
+        const res = await authorize({
+            baseUrl: baseUrl(),
+            params: {
+                response_type: 'code',
+                client_id,
+                redirect_uri: redirectUri,
+                code_challenge,
+                code_challenge_method: 'S256',
+                resource: `${ISSUER}/mcp/admin`,
+                state: longState,
+            },
+        });
         expect(res.status).toBe(302);
         const location = new URL(res.headers.get('location') as string);
         expect(location.searchParams.get('error')).toBe('invalid_request');
@@ -406,25 +405,26 @@ describe('McpPlugin OAuth edge & security cases', () => {
         ['too long', 'x'.repeat(200)],
     ])('rejects authorize with a code_challenge that is %s', async (_label, codeChallenge) => {
         const redirectUri = 'https://example.com/cb';
-        const registerRes = await fetch(`${baseUrl()}/mcp/oauth/register`, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({
+        const registerRes = await registerClient({
+            baseUrl: baseUrl(),
+            body: {
                 client_name: `bad-challenge-${Math.random().toString(36).slice(2)}`,
                 redirect_uris: [redirectUri],
-            }),
+            },
         });
         const { client_id } = (await registerRes.json()) as { client_id: string };
 
-        const authorizeUrl = new URL(`${baseUrl()}/mcp/oauth/authorize`);
-        authorizeUrl.searchParams.set('response_type', 'code');
-        authorizeUrl.searchParams.set('client_id', client_id);
-        authorizeUrl.searchParams.set('redirect_uri', redirectUri);
-        authorizeUrl.searchParams.set('code_challenge', codeChallenge);
-        authorizeUrl.searchParams.set('code_challenge_method', 'S256');
-        authorizeUrl.searchParams.set('resource', `${ISSUER}/mcp/admin`);
-
-        const res = await fetch(authorizeUrl, { redirect: 'manual' });
+        const res = await authorize({
+            baseUrl: baseUrl(),
+            params: {
+                response_type: 'code',
+                client_id,
+                redirect_uri: redirectUri,
+                code_challenge: codeChallenge,
+                code_challenge_method: 'S256',
+                resource: `${ISSUER}/mcp/admin`,
+            },
+        });
         expect(res.status).toBe(302);
         const location = new URL(res.headers.get('location') as string);
         expect(location.searchParams.get('error')).toBe('invalid_request');
@@ -434,13 +434,12 @@ describe('McpPlugin OAuth edge & security cases', () => {
     // DCR rejects a redirect_uri that would overflow the column it is stored in.
     it('rejects DCR registration with a redirect_uri longer than 255 characters', async () => {
         const longRedirectUri = `https://example.com/${'x'.repeat(300)}`;
-        const registerRes = await fetch(`${baseUrl()}/mcp/oauth/register`, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({
+        const registerRes = await registerClient({
+            baseUrl: baseUrl(),
+            body: {
                 client_name: `long-redirect-${Math.random().toString(36).slice(2)}`,
                 redirect_uris: [longRedirectUri],
-            }),
+            },
         });
         expect(registerRes.status).toBe(400);
     });
@@ -448,15 +447,14 @@ describe('McpPlugin OAuth edge & security cases', () => {
     // DCR drops an unusable client_uri/logo_uri rather than failing the whole registration:
     // an over-long client_uri and a non-https logo_uri are both stored as null.
     it('drops an over-long client_uri and a non-https logo_uri instead of failing registration', async () => {
-        const registerRes = await fetch(`${baseUrl()}/mcp/oauth/register`, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({
+        const registerRes = await registerClient({
+            baseUrl: baseUrl(),
+            body: {
                 client_name: `bad-display-fields-${Math.random().toString(36).slice(2)}`,
                 redirect_uris: ['https://example.com/cb'],
                 client_uri: `https://example.com/${'x'.repeat(300)}`,
                 logo_uri: 'javascript:alert(1)',
-            }),
+            },
         });
         expect(registerRes.status).toBe(201);
         const body = (await registerRes.json()) as Record<string, unknown>;
@@ -467,14 +465,13 @@ describe('McpPlugin OAuth edge & security cases', () => {
     // DCR only advertises "none" as a supported token_endpoint_auth_method; any other value
     // is refused rather than stored unvalidated.
     it('rejects DCR registration with an unsupported token_endpoint_auth_method', async () => {
-        const registerRes = await fetch(`${baseUrl()}/mcp/oauth/register`, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({
+        const registerRes = await registerClient({
+            baseUrl: baseUrl(),
+            body: {
                 client_name: `bad-auth-method-${Math.random().toString(36).slice(2)}`,
                 redirect_uris: ['https://example.com/cb'],
                 token_endpoint_auth_method: 'client_secret_basic',
-            }),
+            },
         });
         expect(registerRes.status).toBe(400);
     });
@@ -482,14 +479,13 @@ describe('McpPlugin OAuth edge & security cases', () => {
     // DCR advertises exactly two grant types; asking for any other is refused at registration
     // rather than echoed back as granted and rejected later at the token endpoint.
     it('rejects DCR registration with an unsupported grant type', async () => {
-        const registerRes = await fetch(`${baseUrl()}/mcp/oauth/register`, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({
+        const registerRes = await registerClient({
+            baseUrl: baseUrl(),
+            body: {
                 client_name: `bad-grant-types-${Math.random().toString(36).slice(2)}`,
                 redirect_uris: ['https://example.com/cb'],
                 grant_types: ['authorization_code', 'client_credentials'],
-            }),
+            },
         });
         expect(registerRes.status).toBe(400);
     });
@@ -694,28 +690,29 @@ describe('McpPlugin OAuth edge & security cases', () => {
          * consent page would receive, plus the client id and PKCE verifier needed to finish.
          */
         async function startShopAuthorization(redirectUri = 'https://example.com/cb') {
-            const code_verifier = 'a'.repeat(64);
-            const code_challenge = crypto.createHash('sha256').update(code_verifier).digest('base64url');
-            const registerResponse = await fetch(`${baseUrl()}/mcp/oauth/register`, {
-                method: 'POST',
-                headers: { 'content-type': 'application/json' },
-                body: JSON.stringify({
+            const { code_verifier, code_challenge } = pkcePair();
+            const registerResponse = await registerClient({
+                baseUrl: baseUrl(),
+                body: {
                     client_name: `approve-test-${Math.random().toString(36).slice(2)}`,
                     redirect_uris: [redirectUri],
-                }),
+                },
             });
             const { client_id } = (await registerResponse.json()) as { client_id: string };
 
-            const authorizeUrl = new URL(`${baseUrl()}/mcp/oauth/authorize`);
-            authorizeUrl.searchParams.set('response_type', 'code');
-            authorizeUrl.searchParams.set('client_id', client_id);
-            authorizeUrl.searchParams.set('redirect_uri', redirectUri);
-            authorizeUrl.searchParams.set('code_challenge', code_challenge);
-            authorizeUrl.searchParams.set('code_challenge_method', 'S256');
-            authorizeUrl.searchParams.set('resource', `${ISSUER}/mcp/shop`);
-            authorizeUrl.searchParams.set('state', 'state-abc');
-            const authorizeResponse = await fetch(authorizeUrl, { redirect: 'manual' });
-            const requestToken = extractRequestToken(authorizeResponse.headers.get('location'));
+            const authorizeResponse = await authorize({
+                baseUrl: baseUrl(),
+                params: {
+                    response_type: 'code',
+                    client_id,
+                    redirect_uri: redirectUri,
+                    code_challenge,
+                    code_challenge_method: 'S256',
+                    resource: `${ISSUER}/mcp/shop`,
+                    state: 'state-abc',
+                },
+            });
+            const requestToken = extractRequestToken(authorizeResponse);
             return { requestToken, client_id, code_verifier, redirectUri };
         }
 
@@ -742,17 +739,16 @@ describe('McpPlugin OAuth edge & security cases', () => {
             });
             const code = new URL(authorizeMcpClient.redirectUrl).searchParams.get('code') as string;
 
-            const tokenResponse = await fetch(`${baseUrl()}/mcp/oauth/token`, {
-                method: 'POST',
-                headers: { 'content-type': 'application/json' },
-                body: JSON.stringify({
+            const tokenResponse = await exchangeCode({
+                baseUrl: baseUrl(),
+                body: {
                     grant_type: 'authorization_code',
                     code,
                     client_id,
                     redirect_uri: redirectUri,
                     code_verifier,
                     resource: `${ISSUER}/mcp/shop`,
-                }),
+                },
             });
             const { access_token } = (await tokenResponse.json()) as { access_token: string };
 
@@ -869,20 +865,13 @@ describe('McpPlugin OAuth edge & security cases', () => {
             const sessionToken = shopClient.getAuthToken();
             const { requestToken } = await startShopAuthorization();
 
-            const response = await fetch(`${baseUrl()}/shop-api`, {
-                method: 'POST',
-                headers: {
-                    'content-type': 'application/json',
-                    Authorization: `Bearer ${sessionToken}`,
-                },
-                body: JSON.stringify({
-                    query: AUTHORIZE_MCP_CLIENT,
-                    variables: { requestToken, approved: true },
-                }),
+            const body = await submitShopConsent({
+                baseUrl: baseUrl(),
+                requestToken,
+                vendureAuthToken: sessionToken,
             });
-            const body = (await response.json()) as any;
             expect(body.errors).toBeUndefined();
-            expect(body.data.authorizeMcpClient.redirectUrl).toContain('code=');
+            expect(body.data?.authorizeMcpClient?.redirectUrl).toContain('code=');
         });
 
         it('refuses a request with a mismatched Origin header', async () => {
@@ -927,41 +916,29 @@ describe('McpPlugin OAuth edge & security cases', () => {
     // test can exercise the admin consent mutation directly without approving yet.
     async function authorizeAdminToCodePreConsent() {
         const redirectUri = 'https://example.com/cb';
-        const registerRes = await fetch(`${baseUrl()}/mcp/oauth/register`, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({
+        const registerRes = await registerClient({
+            baseUrl: baseUrl(),
+            body: {
                 client_name: `pre-consent-${Math.random().toString(36).slice(2)}`,
                 redirect_uris: [redirectUri],
-            }),
+            },
         });
         const { client_id } = (await registerRes.json()) as { client_id: string };
 
-        const code_verifier = 'a'.repeat(64);
-        const code_challenge = crypto.createHash('sha256').update(code_verifier).digest('base64url');
-        const authorizeUrl = new URL(`${baseUrl()}/mcp/oauth/authorize`);
-        authorizeUrl.searchParams.set('response_type', 'code');
-        authorizeUrl.searchParams.set('client_id', client_id);
-        authorizeUrl.searchParams.set('redirect_uri', redirectUri);
-        authorizeUrl.searchParams.set('code_challenge', code_challenge);
-        authorizeUrl.searchParams.set('code_challenge_method', 'S256');
-        authorizeUrl.searchParams.set('resource', `${ISSUER}/mcp/admin`);
-        const authorizeRes = await fetch(authorizeUrl, { redirect: 'manual' });
-        const request_token = extractRequestToken(authorizeRes.headers.get('location'));
+        const { code_challenge } = pkcePair();
+        const authorizeRes = await authorize({
+            baseUrl: baseUrl(),
+            params: {
+                response_type: 'code',
+                client_id,
+                redirect_uri: redirectUri,
+                code_challenge,
+                code_challenge_method: 'S256',
+                resource: `${ISSUER}/mcp/admin`,
+            },
+        });
+        const request_token = extractRequestToken(authorizeRes);
         return { client_id, request_token };
-    }
-
-    // Pulls the `request_token` out of a consent redirect Location header,
-    // throwing a clear error if the redirect is missing or malformed.
-    function extractRequestToken(location: string | null): string {
-        if (!location) {
-            throw new Error('Authorize did not redirect to consent');
-        }
-        const requestToken = new URL(location).searchParams.get('request_token');
-        if (!requestToken) {
-            throw new Error(`Consent redirect missing request_token: ${location}`);
-        }
-        return requestToken;
     }
 });
 
@@ -991,23 +968,24 @@ describe('shop authorization with no storefrontConsentUrl configured', () => {
 
     it('redirects the error to the client and writes no pending request', async () => {
         const redirectUri = 'https://example.com/cb';
-        const registerResponse = await fetch(`${baseUrl()}/mcp/oauth/register`, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ client_name: 'no-consent-url', redirect_uris: [redirectUri] }),
+        const registerResponse = await registerClient({
+            baseUrl: baseUrl(),
+            body: { client_name: 'no-consent-url', redirect_uris: [redirectUri] },
         });
         const { client_id } = (await registerResponse.json()) as { client_id: string };
 
-        const authorizeUrl = new URL(`${baseUrl()}/mcp/oauth/authorize`);
-        authorizeUrl.searchParams.set('response_type', 'code');
-        authorizeUrl.searchParams.set('client_id', client_id);
-        authorizeUrl.searchParams.set('redirect_uri', redirectUri);
-        authorizeUrl.searchParams.set('code_challenge', 'x'.repeat(43));
-        authorizeUrl.searchParams.set('code_challenge_method', 'S256');
-        authorizeUrl.searchParams.set('resource', `${ISSUER}/mcp/shop`);
-        authorizeUrl.searchParams.set('state', 'state-xyz');
-
-        const response = await fetch(authorizeUrl, { redirect: 'manual' });
+        const response = await authorize({
+            baseUrl: baseUrl(),
+            params: {
+                response_type: 'code',
+                client_id,
+                redirect_uri: redirectUri,
+                code_challenge: 'x'.repeat(43),
+                code_challenge_method: 'S256',
+                resource: `${ISSUER}/mcp/shop`,
+                state: 'state-xyz',
+            },
+        });
         const location = new URL(response.headers.get('location') as string);
 
         expect(location.origin + location.pathname).toBe(redirectUri);
