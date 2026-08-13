@@ -102,7 +102,7 @@ export class ShippingMethodService {
             shippingMethod = await this.connection.getRepository(ctx, ShippingMethod).findOne({
                 where: {
                     id: shippingMethodId,
-                    deletedAt: includeDeleted ? undefined : IsNull(),
+                    ...(includeDeleted ? {} : { deletedAt: IsNull() }),
                 },
                 relations: findOptionsArrayToObject<ShippingMethod>(relations),
             });
