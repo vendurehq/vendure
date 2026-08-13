@@ -2786,7 +2786,7 @@
                   "title": "MultiChannelStockLocationStrategy",
                   "slug": "multi-channel-stock-location-strategy",
                   "file": "docs/reference/typescript-api/products-stock/multi-channel-stock-location-strategy.mdx",
-                  "lastModified": "2026-08-13T14:40:56+02:00"
+                  "lastModified": "2026-08-13T15:54:46Z"
                 },
                 {
                   "title": "ProductVariantPriceCalculationStrategy",
@@ -3874,7 +3874,7 @@
                   "title": "Enums",
                   "slug": "enums",
                   "file": "docs/reference/graphql-api/admin/enums.mdx",
-                  "lastModified": "2026-07-15T15:49:41+02:00"
+                  "lastModified": "2026-08-13T15:54:46Z"
                 },
                 {
                   "title": "Input Objects",
@@ -3898,7 +3898,7 @@
                   "title": "Types",
                   "slug": "object-types",
                   "file": "docs/reference/graphql-api/admin/object-types.mdx",
-                  "lastModified": "2026-08-13T16:23:36+01:00"
+                  "lastModified": "2026-08-13T15:54:46Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -3912,7 +3912,7 @@
                   "title": "Enums",
                   "slug": "enums",
                   "file": "docs/reference/graphql-api/shop/enums.mdx",
-                  "lastModified": "2026-04-29T16:04:40+02:00"
+                  "lastModified": "2026-08-13T15:54:46Z"
                 },
                 {
                   "title": "Input Objects",
@@ -3936,7 +3936,7 @@
                   "title": "Types",
                   "slug": "object-types",
                   "file": "docs/reference/graphql-api/shop/object-types.mdx",
-                  "lastModified": "2026-08-13T16:23:36+01:00"
+                  "lastModified": "2026-08-13T15:54:46Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
