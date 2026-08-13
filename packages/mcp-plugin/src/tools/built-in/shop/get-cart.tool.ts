@@ -32,7 +32,7 @@ export class GetCartTool implements McpToolHandler<Record<string, never>> {
     ) {}
 
     async execute(ctx: RequestContext) {
-        const order = await this.activeOrder.find(ctx);
+        const order = await this.activeOrder.findWithLines(ctx);
         return { order: this.serializer.order(order) };
     }
 }
