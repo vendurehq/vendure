@@ -41,7 +41,7 @@ export interface SubmitAdminConsentOptions {
     superAdminToken?: string;
 }
 
-export interface AdminConsentResponseBody {
+export interface ConsentResponseBody {
     data?: { authorizeMcpClient?: { redirectUrl: string } };
     errors?: Array<{ message: string }>;
 }
@@ -52,9 +52,7 @@ export interface AdminConsentResponseBody {
  * session travelling as a bearer header. Returns the raw GraphQL response body so
  * tests can assert on errors as well as success.
  */
-export async function submitAdminConsent(
-    options: SubmitAdminConsentOptions,
-): Promise<AdminConsentResponseBody> {
+export async function submitAdminConsent(options: SubmitAdminConsentOptions): Promise<ConsentResponseBody> {
     const response = await fetch(`${options.baseUrl}/admin-api`, {
         method: 'POST',
         headers: {
@@ -66,41 +64,29 @@ export async function submitAdminConsent(
             variables: { requestToken: options.requestToken, approved: options.approved },
         }),
     });
-    return (await response.json()) as AdminConsentResponseBody;
+    return (await response.json()) as ConsentResponseBody;
 }
 
-export interface RunAuthorizationCodeFlowOptions {
-    /** Base URL of the running test server, e.g. `http://localhost:3260`. */
+interface DriveAuthorizationCodeFlowOptions {
     baseUrl: string;
-    /** OAuth issuer origin, e.g. `http://localhost:3000`. */
-    issuer: string;
-    /** Superadmin bearer token used to authenticate the admin-consent step. */
-    superAdminToken: string;
-    /** Human-readable client name for DCR. Defaults to a unique value per call. */
-    clientName?: string;
-    /** Registered redirect URI. Defaults to `https://example.com/cb`. */
-    redirectUri?: string;
-    /** Use this client_id as-is and skip Dynamic Client Registration (CIMD flows). */
+    resource: string;
+    clientName: string;
+    redirectUri: string;
     clientId?: string;
+    /** Records the consent decision and returns the redirect URL carrying the code. */
+    approve: (requestToken: string) => Promise<string>;
 }
 
 /**
- * Drives the full admin OAuth authorization-code flow and returns every value a
- * test might need to assert on or replay. Throws (via the assertions below) if any
- * step returns an unexpected status, so a broken flow surfaces immediately.
+ * Runs the four steps every authorization-code flow shares — obtain a client_id, authorize,
+ * consent (delegated to `approve`, which differs per surface), exchange the code — and
+ * returns every value a test might need to assert on or replay. Throws if any step returns
+ * an unexpected status, so a broken flow surfaces immediately.
  */
-export async function runAuthorizationCodeFlow(
-    options: RunAuthorizationCodeFlowOptions,
+async function driveAuthorizationCodeFlow(
+    options: DriveAuthorizationCodeFlowOptions,
 ): Promise<AuthorizationCodeFlowResult> {
-    const {
-        baseUrl,
-        issuer,
-        superAdminToken,
-        clientName = `oauth-test-client-${Math.random().toString(36).slice(2)}`,
-        redirectUri = 'https://example.com/cb',
-    } = options;
-
-    const resource = `${issuer}/mcp/admin`;
+    const { baseUrl, resource, clientName, redirectUri, approve } = options;
 
     // PKCE: a fixed-length verifier and its S256 challenge.
     const code_verifier = 'a'.repeat(64);
@@ -142,17 +128,8 @@ export async function runAuthorizationCodeFlow(
         throw new Error(`Consent redirect missing request_token param: ${consentLocation}`);
     }
 
-    // 3. Admin consent: the Admin API mutation, authenticated as superadmin via the bearer token.
-    const consentBody = await submitAdminConsent({
-        baseUrl,
-        superAdminToken,
-        requestToken: request_token,
-        approved: true,
-    });
-    if (!consentBody.data?.authorizeMcpClient) {
-        throw new Error(`Admin consent failed: ${consentBody.errors?.[0]?.message ?? 'unknown error'}`);
-    }
-    const { redirectUrl } = consentBody.data.authorizeMcpClient;
+    // 3. Consent, then read the code out of the redirect it returns.
+    const redirectUrl = await approve(request_token);
     const code = new URL(redirectUrl).searchParams.get('code');
     if (!code) {
         throw new Error(`Consent redirect missing code param: ${redirectUrl}`);
@@ -190,6 +167,62 @@ export async function runAuthorizationCodeFlow(
         access_token,
         refresh_token,
     };
+}
+
+export interface RunAuthorizationCodeFlowOptions {
+    /** Base URL of the running test server, e.g. `http://localhost:3260`. */
+    baseUrl: string;
+    /** OAuth issuer origin, e.g. `http://localhost:3000`. */
+    issuer: string;
+    /** Superadmin bearer token used to authenticate the admin-consent step. */
+    superAdminToken: string;
+    /** Human-readable client name for DCR. Defaults to a unique value per call. */
+    clientName?: string;
+    /** Registered redirect URI. Defaults to `https://example.com/cb`. */
+    redirectUri?: string;
+    /** Use this client_id as-is and skip Dynamic Client Registration (CIMD flows). */
+    clientId?: string;
+}
+
+/**
+ * Drives the full admin OAuth authorization-code flow and returns every value a
+ * test might need to assert on or replay. Throws if any step returns an unexpected
+ * status, so a broken flow surfaces immediately.
+ */
+export function runAuthorizationCodeFlow(
+    options: RunAuthorizationCodeFlowOptions,
+): Promise<AuthorizationCodeFlowResult> {
+    const {
+        baseUrl,
+        issuer,
+        superAdminToken,
+        clientName = `oauth-test-client-${Math.random().toString(36).slice(2)}`,
+        redirectUri = 'https://example.com/cb',
+        clientId,
+    } = options;
+
+    return driveAuthorizationCodeFlow({
+        baseUrl,
+        resource: `${issuer}/mcp/admin`,
+        clientName,
+        redirectUri,
+        clientId,
+        // Consent is the Admin API mutation, authenticated as superadmin via the bearer token.
+        approve: async requestToken => {
+            const consentBody = await submitAdminConsent({
+                baseUrl,
+                superAdminToken,
+                requestToken,
+                approved: true,
+            });
+            if (!consentBody.data?.authorizeMcpClient) {
+                throw new Error(
+                    `Admin consent failed: ${consentBody.errors?.[0]?.message ?? 'unknown error'}`,
+                );
+            }
+            return consentBody.data.authorizeMcpClient.redirectUrl;
+        },
+    });
 }
 
 export interface RunShopAuthorizationCodeFlowOptions {
@@ -212,16 +245,42 @@ export interface RunShopAuthorizationCodeFlowOptions {
     channelToken?: string;
 }
 
+interface SubmitShopConsentOptions {
+    baseUrl: string;
+    requestToken: string;
+    vendureAuthToken: string;
+    channelToken?: string;
+}
+
+/**
+ * Approves a pending authorization request through the Shop API's `authorizeMcpClient`
+ * mutation — the same call the storefront consent page makes — with the customer's session
+ * travelling as a bearer header. Returns the raw GraphQL response body.
+ */
+async function submitShopConsent(options: SubmitShopConsentOptions): Promise<ConsentResponseBody> {
+    const response = await fetch(`${options.baseUrl}/shop-api`, {
+        method: 'POST',
+        headers: {
+            'content-type': 'application/json',
+            Authorization: `Bearer ${options.vendureAuthToken}`,
+            ...(options.channelToken ? { 'vendure-token': options.channelToken } : {}),
+        },
+        body: JSON.stringify({
+            query: AUTHORIZE_MCP_CLIENT,
+            variables: { requestToken: options.requestToken, approved: true },
+        }),
+    });
+    return (await response.json()) as ConsentResponseBody;
+}
+
 /**
  * Drives the full storefront (shop) OAuth authorization-code flow and returns every
  * value a test might need. The shop path differs from the admin path only at the
  * consent step: instead of a superadmin calling the Admin API, the Shop API's
  * `authorizeMcpClient` mutation approves the request, with the customer's session
  * (`vendureAuthToken`) travelling as a bearer header.
- *
- * Flow: register (DCR) -> authorize (resource = shop) -> authorizeMcpClient mutation -> token exchange.
  */
-export async function runShopAuthorizationCodeFlow(
+export function runShopAuthorizationCodeFlow(
     options: RunShopAuthorizationCodeFlowOptions,
 ): Promise<AuthorizationCodeFlowResult> {
     const {
@@ -233,98 +292,24 @@ export async function runShopAuthorizationCodeFlow(
         channelToken,
     } = options;
 
-    const resource = `${issuer}/mcp/shop`;
-
-    const code_verifier = 'a'.repeat(64);
-    const code_challenge = crypto.createHash('sha256').update(code_verifier).digest('base64url');
-
-    // 1. Dynamic Client Registration.
-    const registerResponse = await fetch(`${baseUrl}/mcp/oauth/register`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ client_name: clientName, redirect_uris: [redirectUri] }),
-    });
-    if (!registerResponse.ok) {
-        throw new Error(`DCR failed: ${registerResponse.status} ${await registerResponse.text()}`);
-    }
-    const { client_id } = (await registerResponse.json()) as { client_id: string };
-
-    // 2. Authorize with the shop resource: the redirect points at the storefront consent URL.
-    const authorizeUrl = new URL(`${baseUrl}/mcp/oauth/authorize`);
-    authorizeUrl.searchParams.set('response_type', 'code');
-    authorizeUrl.searchParams.set('client_id', client_id);
-    authorizeUrl.searchParams.set('redirect_uri', redirectUri);
-    authorizeUrl.searchParams.set('code_challenge', code_challenge);
-    authorizeUrl.searchParams.set('code_challenge_method', 'S256');
-    authorizeUrl.searchParams.set('resource', resource);
-
-    const authorizeResponse = await fetch(authorizeUrl, { redirect: 'manual' });
-    const consentLocation = authorizeResponse.headers.get('location');
-    if (!consentLocation) {
-        throw new Error(`Authorize did not redirect to consent (status ${authorizeResponse.status})`);
-    }
-    const request_token = new URL(consentLocation).searchParams.get('request_token');
-    if (!request_token) {
-        throw new Error(`Consent redirect missing request_token param: ${consentLocation}`);
-    }
-
-    // 3. Storefront consent: the page submits through the Shop API, so the customer's session
-    // travels as a header rather than in the body.
-    const consentResponse = await fetch(`${baseUrl}/shop-api`, {
-        method: 'POST',
-        headers: {
-            'content-type': 'application/json',
-            Authorization: `Bearer ${vendureAuthToken}`,
-            ...(channelToken ? { 'vendure-token': channelToken } : {}),
+    return driveAuthorizationCodeFlow({
+        baseUrl,
+        resource: `${issuer}/mcp/shop`,
+        clientName,
+        redirectUri,
+        approve: async requestToken => {
+            const consentBody = await submitShopConsent({
+                baseUrl,
+                vendureAuthToken,
+                channelToken,
+                requestToken,
+            });
+            if (!consentBody.data?.authorizeMcpClient) {
+                throw new Error(
+                    `Storefront consent failed: ${consentBody.errors?.[0]?.message ?? 'unknown error'}`,
+                );
+            }
+            return consentBody.data.authorizeMcpClient.redirectUrl;
         },
-        body: JSON.stringify({
-            query: AUTHORIZE_MCP_CLIENT,
-            variables: { requestToken: request_token, approved: true },
-        }),
     });
-    const consentBody = (await consentResponse.json()) as {
-        data?: { authorizeMcpClient?: { redirectUrl: string } };
-        errors?: Array<{ message: string }>;
-    };
-    if (!consentBody.data?.authorizeMcpClient) {
-        throw new Error(`Storefront consent failed: ${consentBody.errors?.[0]?.message ?? 'unknown error'}`);
-    }
-    const { redirectUrl } = consentBody.data.authorizeMcpClient;
-    const code = new URL(redirectUrl).searchParams.get('code');
-    if (!code) {
-        throw new Error(`Consent redirect missing code param: ${redirectUrl}`);
-    }
-
-    // 4. Token exchange: authorization code -> access + refresh tokens.
-    const tokenResponse = await fetch(`${baseUrl}/mcp/oauth/token`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-            grant_type: 'authorization_code',
-            code,
-            client_id,
-            redirect_uri: redirectUri,
-            code_verifier,
-            resource,
-        }),
-    });
-    if (!tokenResponse.ok) {
-        throw new Error(`Token exchange failed: ${tokenResponse.status} ${await tokenResponse.text()}`);
-    }
-    const { access_token, refresh_token } = (await tokenResponse.json()) as {
-        access_token: string;
-        refresh_token: string;
-    };
-
-    return {
-        client_id,
-        redirect_uri: redirectUri,
-        resource,
-        code_verifier,
-        code_challenge,
-        request_token,
-        code,
-        access_token,
-        refresh_token,
-    };
 }
