@@ -1,15 +1,14 @@
 import { mergeConfig, TransactionalConnection } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
-import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import { McpOauthClient } from '../src/entities/mcp-oauth-client.entity';
 import { McpPlugin } from '../src/plugin';
 
 import { CimdTestServer, startCimdTestServer } from './utils/cimd-test-server';
 import { runAuthorizationCodeFlow } from './utils/oauth-test-client';
+import { initTestServer } from './utils/test-server';
 
 // CIMD (Client ID Metadata Documents, draft-ietf-oauth-client-id-metadata-document): the
 // client_id is a URL; the server fetches the client's metadata from it instead of
@@ -64,11 +63,7 @@ describe('McpPlugin OAuth CIMD client registration', () => {
     }
 
     beforeAll(async () => {
-        await server.init({
-            initialData,
-            productsCsvPath: path.join(__dirname, 'fixtures/e2e-products.csv'),
-            customerCount: 1,
-        });
+        await initTestServer(server);
         baseUrl = `http://localhost:${config.apiOptions.port}`;
         await adminClient.asSuperAdmin();
         superAdminToken = adminClient.getAuthToken();

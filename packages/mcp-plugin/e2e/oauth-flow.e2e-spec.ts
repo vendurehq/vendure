@@ -13,10 +13,8 @@ import {
     User,
 } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
-import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import {
     MCP_GRANT_ACTIVITY_UPDATE_INTERVAL_MS,
@@ -36,6 +34,7 @@ import { mcpOauthRetentionTask } from '../src/tasks/mcp-oauth-retention.task';
 import { postMcp, rpc } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow } from './utils/oauth-test-client';
 import { withFailingUpdate } from './utils/oauth-test-fixtures';
+import { initTestServer } from './utils/test-server';
 
 const TOKEN_SECRET = 'test-secret';
 // The issuer the plugin derives when none is configured: localhost on the configured API port.
@@ -55,11 +54,7 @@ describe('McpPlugin OAuth end-to-end flow', () => {
     let superAdminToken: string;
 
     beforeAll(async () => {
-        await server.init({
-            initialData,
-            productsCsvPath: path.join(__dirname, 'fixtures/e2e-products.csv'),
-            customerCount: 1,
-        });
+        await initTestServer(server);
         // Logging in as superadmin yields the Vendure bearer token the admin-consent
         // step needs; it stands in for an authenticated administrator.
         await adminClient.asSuperAdmin();

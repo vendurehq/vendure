@@ -1,10 +1,8 @@
 import { AnonymousSession, mergeConfig, TransactionalConnection } from '@vendure/core';
 import { createTestEnvironment, TestServer } from '@vendure/testing';
 import { gql } from 'graphql-tag';
-import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import { McpPlugin } from '../src/plugin';
 import { McpPluginOptions } from '../src/types';
@@ -12,10 +10,10 @@ import { McpPluginOptions } from '../src/types';
 import { McpTestToolsPlugin } from './fixtures/mcp-test-tools';
 import { callTool, expectRateLimitRefusal, postMcp, rpc } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow, runShopAuthorizationCodeFlow } from './utils/oauth-test-client';
+import { initTestServer } from './utils/test-server';
 
 const TOKEN_SECRET = 'mcp-transport-secret-0000000000000000000000';
 const ISSUER = `http://localhost:${testConfig().apiOptions.port}`;
-const productsCsvPath = path.join(__dirname, 'fixtures/e2e-products.csv');
 
 const AUTH_TOKEN_HEADER = 'vendure-auth-token';
 const CHANNEL_TOKEN_HEADER = 'vendure-token';
@@ -40,7 +38,7 @@ describe('MCP transport (auth, session, channel, destructive)', () => {
 
     beforeAll(async () => {
         McpPlugin.init(options);
-        await server.init({ initialData, productsCsvPath, customerCount: 1 });
+        await initTestServer(server);
         await adminClient.asSuperAdmin();
         adminToken = (
             await runAuthorizationCodeFlow({
@@ -185,7 +183,7 @@ describe('MCP transport rate limiting', () => {
 
     beforeAll(async () => {
         McpPlugin.init(options);
-        await server.init({ initialData, productsCsvPath, customerCount: 1 });
+        await initTestServer(server);
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -235,7 +233,7 @@ describe('MCP transport failed-authentication metering', () => {
 
     beforeAll(async () => {
         McpPlugin.init(options);
-        await server.init({ initialData, productsCsvPath, customerCount: 1 });
+        await initTestServer(server);
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -267,7 +265,7 @@ describe('MCP transport anonymous session metering', () => {
 
     beforeAll(async () => {
         McpPlugin.init(options);
-        await server.init({ initialData, productsCsvPath, customerCount: 1 });
+        await initTestServer(server);
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -310,7 +308,7 @@ describe('MCP transport per-tool rate limiting', () => {
 
     beforeAll(async () => {
         McpPlugin.init(options);
-        await server.init({ initialData, productsCsvPath, customerCount: 1 });
+        await initTestServer(server);
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -359,7 +357,7 @@ describe('MCP transport content-type casing', () => {
 
     beforeAll(async () => {
         McpPlugin.init(options);
-        await server.init({ initialData, productsCsvPath, customerCount: 1 });
+        await initTestServer(server);
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -400,7 +398,7 @@ describe('MCP transport shopAccess: disabled', () => {
 
     beforeAll(async () => {
         McpPlugin.init(options);
-        await server.init({ initialData, productsCsvPath, customerCount: 1 });
+        await initTestServer(server);
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -464,7 +462,7 @@ describe('MCP transport shopAccess: authenticated', () => {
 
     beforeAll(async () => {
         McpPlugin.init(options);
-        await server.init({ initialData, productsCsvPath, customerCount: 1 });
+        await initTestServer(server);
         await adminClient.asSuperAdmin();
 
         // Log in a real seeded customer on the shop client to obtain a customer session token —

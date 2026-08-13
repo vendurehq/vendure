@@ -7,11 +7,9 @@ import {
 } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import gql from 'graphql-tag';
-import path from 'path';
 import { firstValueFrom } from 'rxjs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import { McpToolCallLog } from '../src/entities/mcp-tool-call-log.entity';
 import { McpToolCallEvent } from '../src/events/mcp-tool-call.event';
@@ -23,10 +21,10 @@ import { MCP_TOOL_CALL_LOGS_WITH_BODIES_QUERY } from './graphql/admin-definition
 import { provisionAdmin } from './utils/admin-fixtures';
 import { callTool, postMcp } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow } from './utils/oauth-test-client';
+import { initTestServer } from './utils/test-server';
 
 const TOKEN_SECRET = 'logging-secret-000000000000000000000000000';
 const ISSUER = `http://localhost:${testConfig().apiOptions.port}`;
-const productsCsvPath = path.join(__dirname, 'fixtures/e2e-products.csv');
 
 describe('MCP tool-call logging', () => {
     const options: McpPluginOptions = { oauth: { tokenSecret: TOKEN_SECRET } };
@@ -42,7 +40,7 @@ describe('MCP tool-call logging', () => {
 
     beforeAll(async () => {
         McpPlugin.init(options);
-        await server.init({ initialData, productsCsvPath, customerCount: 1 });
+        await initTestServer(server);
         await adminClient.asSuperAdmin();
         connection = server.app.get(TransactionalConnection);
         eventBus = server.app.get(EventBus);
@@ -241,7 +239,7 @@ describe('MCP tool-call log input/output permission gating (full capture)', () =
 
     beforeAll(async () => {
         McpPlugin.init(options);
-        await server.init({ initialData, productsCsvPath, customerCount: 1 });
+        await initTestServer(server);
         await adminClient.asSuperAdmin();
         superAdminToken = adminClient.getAuthToken();
         connection = server.app.get(TransactionalConnection);

@@ -12,10 +12,8 @@ import {
 import { McpTool, McpToolMetadata } from '@vendure/mcp-sdk';
 import { createTestEnvironment, SimpleGraphQLClient } from '@vendure/testing';
 import gql from 'graphql-tag';
-import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import { McpOauthGrant } from '../src/entities/mcp-oauth-grant.entity';
 import { deriveHashKey, hashLookupToken } from '../src/oauth/token-hash';
@@ -25,10 +23,10 @@ import { McpPluginOptions } from '../src/types';
 
 import { callTool, postMcp, rpc } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow } from './utils/oauth-test-client';
+import { initTestServer } from './utils/test-server';
 
 const TOKEN_SECRET = 'admin-tools-secret-0000000000000000000000';
 const ISSUER = `http://localhost:${testConfig().apiOptions.port}`;
-const productsCsvPath = path.join(__dirname, 'fixtures/e2e-products.csv');
 
 const adminToolMetadata = adminToolProviders.map(
     provider => Reflect.getMetadata(McpTool.KEY, provider) as McpToolMetadata,
@@ -139,7 +137,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
 
     beforeAll(async () => {
         McpPlugin.init({ oauth: { tokenSecret: TOKEN_SECRET } });
-        await server.init({ initialData, productsCsvPath, customerCount: 1 });
+        await initTestServer(server);
         await adminClient.asSuperAdmin();
         superAdminToken = adminClient.getAuthToken();
 
@@ -865,7 +863,7 @@ describe('MCP built-in admin tools (discovery mode)', () => {
 
     beforeAll(async () => {
         McpPlugin.init(options);
-        await server.init({ initialData, productsCsvPath, customerCount: 1 });
+        await initTestServer(server);
         await adminClient.asSuperAdmin();
         superAdminToken = adminClient.getAuthToken();
         const { activeChannel } = await adminClient.query(gql`

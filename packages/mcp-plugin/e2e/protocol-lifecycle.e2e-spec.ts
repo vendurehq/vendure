@@ -3,10 +3,8 @@ import { SERVER_INFO_META_KEY, SUPPORTED_PROTOCOL_VERSIONS } from '@modelcontext
 import { mergeConfig } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import http from 'node:http';
-import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import { McpPlugin } from '../src/plugin';
 import { McpPluginOptions } from '../src/types';
@@ -22,10 +20,10 @@ import {
     rpc,
 } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow } from './utils/oauth-test-client';
+import { initTestServer } from './utils/test-server';
 
 const TOKEN_SECRET = 'protocol-lifecycle-secret-000000000000000000';
 const ISSUER = `http://localhost:${testConfig().apiOptions.port}`;
-const productsCsvPath = path.join(__dirname, 'fixtures/e2e-products.csv');
 const AUTH_TOKEN_HEADER = 'vendure-auth-token';
 
 describe('MCP protocol conformance (direct mode)', () => {
@@ -43,7 +41,7 @@ describe('MCP protocol conformance (direct mode)', () => {
 
     beforeAll(async () => {
         McpPlugin.init(options);
-        await server.init({ initialData, productsCsvPath, customerCount: 1 });
+        await initTestServer(server);
         await adminClient.asSuperAdmin();
         const flow = await runAuthorizationCodeFlow({
             baseUrl: baseUrl(),
@@ -323,7 +321,7 @@ describe('MCP discovery mode', () => {
 
     beforeAll(async () => {
         McpPlugin.init(options);
-        await server.init({ initialData, productsCsvPath, customerCount: 1 });
+        await initTestServer(server);
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -423,7 +421,7 @@ describe('MCP modern protocol era rate limiting', () => {
 
     beforeAll(async () => {
         McpPlugin.init(options);
-        await server.init({ initialData, productsCsvPath, customerCount: 1 });
+        await initTestServer(server);
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -465,7 +463,7 @@ describe('MCP DNS-rebinding guard', () => {
 
     beforeAll(async () => {
         McpPlugin.init(options);
-        await server.init({ initialData, productsCsvPath, customerCount: 1 });
+        await initTestServer(server);
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {

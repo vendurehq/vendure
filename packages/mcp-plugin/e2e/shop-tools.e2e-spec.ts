@@ -16,10 +16,8 @@ import {
 import { McpTool, McpToolMetadata } from '@vendure/mcp-sdk';
 import { createTestEnvironment } from '@vendure/testing';
 import gql from 'graphql-tag';
-import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import { McpOauthGrant } from '../src/entities/mcp-oauth-grant.entity';
 import { McpToolCallLog } from '../src/entities/mcp-tool-call-log.entity';
@@ -32,10 +30,10 @@ import { shopToolProviders } from '../src/tools/built-in/shop';
 
 import { callTool, postMcp, rpc } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow, runShopAuthorizationCodeFlow } from './utils/oauth-test-client';
+import { initTestServer } from './utils/test-server';
 
 const TOKEN_SECRET = 'shop-tools-secret-000000000000000000000';
 const ISSUER = `http://localhost:${testConfig().apiOptions.port}`;
-const productsCsvPath = path.join(__dirname, 'fixtures/e2e-products.csv');
 const AUTH_TOKEN_HEADER = 'vendure-auth-token';
 const CHANNEL_TOKEN_HEADER = 'vendure-token';
 
@@ -88,7 +86,7 @@ describe('MCP built-in shop tools', () => {
     let secondChannelToken: string;
 
     beforeAll(async () => {
-        await server.init({ initialData, productsCsvPath, customerCount: 1 });
+        await initTestServer(server);
         await adminClient.asSuperAdmin();
 
         connection = server.app.get(TransactionalConnection);

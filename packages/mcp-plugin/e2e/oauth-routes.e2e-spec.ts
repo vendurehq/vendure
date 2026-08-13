@@ -1,11 +1,11 @@
 import { mergeConfig } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
-import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import { McpPlugin } from '../src/plugin';
+
+import { initTestServer } from './utils/test-server';
 
 describe('McpPlugin OAuth routes', () => {
     const config = mergeConfig(testConfig(), {
@@ -14,11 +14,7 @@ describe('McpPlugin OAuth routes', () => {
     const { server } = createTestEnvironment(config);
 
     beforeAll(async () => {
-        await server.init({
-            initialData,
-            productsCsvPath: path.join(__dirname, 'fixtures/e2e-products.csv'),
-            customerCount: 1,
-        });
+        await initTestServer(server);
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {

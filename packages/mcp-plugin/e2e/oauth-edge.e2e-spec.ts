@@ -11,10 +11,8 @@ import {
 import { createTestEnvironment } from '@vendure/testing';
 import crypto from 'crypto';
 import gql from 'graphql-tag';
-import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import { mcpServerPermission } from '../src/constants';
 import { AUTHORIZE_MCP_CLIENT } from '../src/dashboard/queries';
@@ -30,6 +28,7 @@ import {
     runShopAuthorizationCodeFlow,
     submitAdminConsent,
 } from './utils/oauth-test-client';
+import { initTestServer } from './utils/test-server';
 
 const TOKEN_SECRET = 'test-secret';
 // The issuer the plugin derives when none is configured: localhost on the configured API port.
@@ -69,11 +68,7 @@ describe('McpPlugin OAuth edge & security cases', () => {
             },
             rateLimits: { oauthIp: false },
         });
-        await server.init({
-            initialData,
-            productsCsvPath: path.join(__dirname, 'fixtures/e2e-products.csv'),
-            customerCount: 1,
-        });
+        await initTestServer(server);
         // Superadmin bearer approves admin consent; it stands in for an authenticated admin.
         await adminClient.asSuperAdmin();
         superAdminToken = adminClient.getAuthToken();
@@ -987,11 +982,7 @@ describe('shop authorization with no storefrontConsentUrl configured', () => {
         // (read at bootstrap), so this describe must reassert its own oauth config immediately
         // before booting its server.
         McpPlugin.init({ oauth: { tokenSecret: TOKEN_SECRET }, rateLimits: { oauthIp: false } });
-        await noConsentUrlServer.init({
-            initialData,
-            productsCsvPath: path.join(__dirname, 'fixtures/e2e-products.csv'),
-            customerCount: 1,
-        });
+        await initTestServer(noConsentUrlServer);
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -1051,11 +1042,7 @@ describe('OAuth surface per-IP rate limit', () => {
             oauth: { tokenSecret: TOKEN_SECRET },
             rateLimits: { oauthIp: { rpm: 3 } },
         });
-        await rateLimitedServer.init({
-            initialData,
-            productsCsvPath: path.join(__dirname, 'fixtures/e2e-products.csv'),
-            customerCount: 1,
-        });
+        await initTestServer(rateLimitedServer);
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {

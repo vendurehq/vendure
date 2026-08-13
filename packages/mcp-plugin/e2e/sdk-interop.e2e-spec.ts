@@ -2,15 +2,14 @@
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { mergeConfig } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
-import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import { McpPlugin } from '../src/plugin';
 
 import { McpZodToolsPlugin } from './fixtures/mcp-zod-tools';
 import { submitAdminConsent } from './utils/oauth-test-client';
+import { initTestServer } from './utils/test-server';
 
 // The MCP endpoints are served relative to the configured OAuth `issuer`, and the official
 // client auto-discovers every endpoint from the published metadata. The issuer must therefore be
@@ -139,11 +138,7 @@ describe('MCP SDK interop (official @modelcontextprotocol/client 2.x)', () => {
     let superAdminToken: string;
 
     beforeAll(async () => {
-        await server.init({
-            initialData,
-            productsCsvPath: path.join(__dirname, 'fixtures/e2e-products.csv'),
-            customerCount: 1,
-        });
+        await initTestServer(server);
         await adminClient.asSuperAdmin();
         superAdminToken = adminClient.getAuthToken();
     }, TEST_SETUP_TIMEOUT_MS);

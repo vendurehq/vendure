@@ -1,9 +1,7 @@
 import { mergeConfig, RequestContextService, Session, TransactionalConnection } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
-import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import { McpOauthClient } from '../src/entities/mcp-oauth-client.entity';
 import { McpOauthGrant } from '../src/entities/mcp-oauth-grant.entity';
@@ -12,6 +10,7 @@ import { deriveHashKey, hashLookupToken } from '../src/oauth/token-hash';
 import { McpPlugin } from '../src/plugin';
 
 import { seedAuthorizationCode, withFailingUpdate } from './utils/oauth-test-fixtures';
+import { initTestServer } from './utils/test-server';
 
 const TOKEN_SECRET = 'test-secret';
 const RESOURCE = `http://localhost:${testConfig().apiOptions.port}/mcp/admin`;
@@ -26,11 +25,7 @@ describe('McpPlugin OAuth single-use code', () => {
     const lookupHash = (value: string) => hashLookupToken(value, hashKey);
 
     beforeAll(async () => {
-        await server.init({
-            initialData,
-            productsCsvPath: path.join(__dirname, 'fixtures/e2e-products.csv'),
-            customerCount: 1,
-        });
+        await initTestServer(server);
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {

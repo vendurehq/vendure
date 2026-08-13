@@ -7,10 +7,8 @@ import {
 } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import gql from 'graphql-tag';
-import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import {
     MCP_OAUTH_GRANTS_QUERY,
@@ -31,10 +29,10 @@ import { provisionAdmin } from './utils/admin-fixtures';
 import { backdateLogCreatedAt } from './utils/log-fixtures';
 import { postMcp, rpc } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow } from './utils/oauth-test-client';
+import { initTestServer } from './utils/test-server';
 
 const TOKEN_SECRET = 'admin-api-secret-00000000000000000000000';
 const ISSUER = `http://localhost:${testConfig().apiOptions.port}`;
-const productsCsvPath = path.join(__dirname, 'fixtures/e2e-products.csv');
 const DAY_MS = 86_400_000;
 
 const REMOVE_EXPIRED_LOGS = `
@@ -111,7 +109,7 @@ describe('MCP admin API', () => {
 
     beforeAll(async () => {
         McpPlugin.init(pluginOptions);
-        await server.init({ initialData, productsCsvPath, customerCount: 1 });
+        await initTestServer(server);
         await adminClient.asSuperAdmin();
         superAdminToken = adminClient.getAuthToken();
 
