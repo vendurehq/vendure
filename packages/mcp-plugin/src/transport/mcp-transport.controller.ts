@@ -279,7 +279,6 @@ export class McpTransportController {
             const exceeded = await this.rateLimiter.checkRateLimit({
                 executionContext,
                 endpoint: toolset,
-                toolNames: [method],
                 subject: method,
             });
             if (exceeded) {

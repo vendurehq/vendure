@@ -19,7 +19,6 @@ const rateLimitError = () =>
         message: 'Rate limit exceeded for x (session). Retry after 30 seconds.',
         retryAfterSeconds: 30,
         scope: 'session',
-        subject: 'x',
     });
 
 /** Builds a fake Nest InstanceWrapper carrying `@McpTool` metadata and an execute() spy. */

@@ -47,7 +47,6 @@ describe('McpOauthRateLimitGuard', () => {
                     message: 'Rate limit exceeded',
                     retryAfterSeconds: 7,
                     scope: 'OAuth IP',
-                    subject: 'MCP OAuth request',
                 }),
             ),
         };

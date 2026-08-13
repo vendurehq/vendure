@@ -650,7 +650,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             await this.rateLimiter.enforceRateLimit({
                 executionContext,
                 endpoint: toolset,
-                toolNames: [subject],
                 subject,
             });
             return undefined;

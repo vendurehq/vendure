@@ -24,15 +24,14 @@ export interface McpRateLimitExceeded {
     message: string;
     retryAfterSeconds: number;
     scope: string;
-    subject: string;
 }
 
 /** Input to the rate-limit enforcement/check methods. */
 export interface RateLimitInput {
     executionContext: McpExecutionContext;
     endpoint: McpToolset;
-    toolNames?: string[];
-    subject?: string;
+    /** What the request is metered as: a tool name, or a JSON-RPC method name at the handshake. */
+    subject: string;
 }
 
 /**
@@ -87,10 +86,7 @@ export class McpRateLimiterService {
      * when all are within it). A refused request stays charged, like other fixed-window limiters.
      */
     async checkRateLimit(input: RateLimitInput): Promise<McpRateLimitExceeded | undefined> {
-        return this.runChecks(
-            this.buildRateLimitChecks(input),
-            input.subject ?? input.toolNames?.join(', ') ?? 'MCP request',
-        );
+        return this.runChecks(this.buildRateLimitChecks(input), input.subject);
     }
 
     /**
@@ -148,7 +144,6 @@ export class McpRateLimiterService {
                 message: `Rate limit exceeded for MCP request (${check.scope}). Retry after ${retryAfterSeconds} seconds.`,
                 retryAfterSeconds,
                 scope: check.scope,
-                subject: 'MCP request',
             };
         }
         return undefined;
@@ -185,7 +180,6 @@ export class McpRateLimiterService {
                 message: `Rate limit exceeded for ${subject} (${exceeded.check.scope}). Retry after ${retryAfterSeconds} seconds.`,
                 retryAfterSeconds,
                 scope: exceeded.check.scope,
-                subject,
             };
         }
         return undefined;
@@ -266,22 +260,19 @@ export class McpRateLimiterService {
         return { key: `auth-failure:${ipKey}`, rpm, scope: 'authentication failures' };
     }
 
-    /** One bucket per name in `input.toolNames`, keyed by actor+session (see {@link toolActorKey}). */
+    /** The bucket for `input.subject`, keyed by actor+session (see {@link toolActorKey}). */
     private buildPerToolChecks(input: RateLimitInput): RateLimitCheck[] {
-        const checks: RateLimitCheck[] = [];
-        const endpoint = input.endpoint;
-        const rateLimits = this.options.rateLimits;
-        for (const toolName of input.toolNames ?? []) {
-            const rpm = this.resolveRpm(rateLimits.perTool[toolName]);
-            if (rpm > 0) {
-                checks.push({
-                    key: `tool:${endpoint}:${this.toolActorKey(input.executionContext)}:${toolName}`,
-                    rpm,
-                    scope: `tool:${toolName}`,
-                });
-            }
+        const rpm = this.resolveRpm(this.options.rateLimits.perTool[input.subject]);
+        if (rpm <= 0) {
+            return [];
         }
-        return checks;
+        return [
+            {
+                key: `tool:${input.endpoint}:${this.toolActorKey(input.executionContext)}:${input.subject}`,
+                rpm,
+                scope: `tool:${input.subject}`,
+            },
+        ];
     }
 
     /** Reads a bucket's current state, treating an expired window as if the bucket didn't exist. */

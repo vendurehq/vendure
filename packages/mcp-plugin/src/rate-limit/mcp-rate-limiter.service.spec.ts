@@ -212,13 +212,13 @@ describe('McpRateLimiterService rate limiting', () => {
         await service.enforceRateLimit({
             executionContext: anonHttpCtx('fresh-1', '1.2.3.4'),
             endpoint: 'shop',
-            toolNames: ['apply_coupon_code'],
+            subject: 'apply_coupon_code',
         });
         await expect(
             service.enforceRateLimit({
                 executionContext: anonHttpCtx('fresh-2', '1.2.3.4'),
                 endpoint: 'shop',
-                toolNames: ['apply_coupon_code'],
+                subject: 'apply_coupon_code',
             }),
         ).rejects.toMatchObject({ details: { scope: 'tool:apply_coupon_code' } });
     });
