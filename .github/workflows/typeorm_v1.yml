@@ -29,11 +29,17 @@ on:
             - 'package.json'
             - 'bun.lock'
             - 'bunfig.toml'
-    # No base-branch filter: the `typeorm-v1` label is the only gate, applied per job
-    # below. A pull request stacked on another feature branch does not target master,
-    # major or minor, and filtering on the base would silently skip every one of them.
+    # `labeled` only. Actions has no workflow-level `if`, so the label gate below can
+    # only skip jobs once a run already exists, and any other type would put a skipped
+    # run in the checks list of every pull request in the repository. The cost is that
+    # pushing to an already-labelled pull request does not re-run these jobs; remove
+    # and re-add the label to get a result for the new commits.
     pull_request:
-        types: [opened, reopened, synchronize, labeled]
+        branches:
+            - master
+            - major
+            - minor
+        types: [labeled]
 
 env:
     CI: true
