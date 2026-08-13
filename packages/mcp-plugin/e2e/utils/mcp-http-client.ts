@@ -36,6 +36,11 @@ export function rpc(method: string, params?: unknown, id: number | string | null
     return { jsonrpc: '2.0', id, method, ...(params !== undefined ? { params } : {}) };
 }
 
+/** `tools/call` request envelope. */
+export function callTool(name: string, args: Record<string, unknown> = {}, id = 1) {
+    return rpc('tools/call', { name, arguments: args }, id);
+}
+
 /** initialize request params. */
 export function initializeParams(protocolVersion: string = LATEST_PROTOCOL_VERSION) {
     return {

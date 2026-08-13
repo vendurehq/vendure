@@ -10,7 +10,7 @@ import { McpPlugin } from '../src/plugin';
 import { McpPluginOptions } from '../src/types';
 
 import { McpTestToolsPlugin } from './fixtures/mcp-test-tools';
-import { expectRateLimitRefusal, postMcp, rpc } from './utils/mcp-http-client';
+import { callTool, expectRateLimitRefusal, postMcp, rpc } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow, runShopAuthorizationCodeFlow } from './utils/oauth-test-client';
 
 const TOKEN_SECRET = 'mcp-transport-secret-0000000000000000000000';
@@ -19,9 +19,6 @@ const productsCsvPath = path.join(__dirname, 'fixtures/e2e-products.csv');
 
 const AUTH_TOKEN_HEADER = 'vendure-auth-token';
 const CHANNEL_TOKEN_HEADER = 'vendure-token';
-
-const callTool = (name: string, args: Record<string, unknown> = {}, id = 1) =>
-    rpc('tools/call', { name, arguments: args }, id);
 
 /** Anonymous session rows are the thing an unmetered public endpoint accumulates, so tests count them. */
 const countAnonymousSessions = (server: TestServer) =>

@@ -20,15 +20,13 @@ import { McpPluginOptions } from '../src/types';
 
 import { McpTestToolsPlugin } from './fixtures/mcp-test-tools';
 import { MCP_TOOL_CALL_LOGS_WITH_BODIES_QUERY } from './graphql/admin-definitions';
-import { postMcp, rpc } from './utils/mcp-http-client';
+import { provisionAdmin } from './utils/admin-fixtures';
+import { callTool, postMcp } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow } from './utils/oauth-test-client';
 
 const TOKEN_SECRET = 'logging-secret-000000000000000000000000000';
 const ISSUER = `http://localhost:${testConfig().apiOptions.port}`;
 const productsCsvPath = path.join(__dirname, 'fixtures/e2e-products.csv');
-
-const callTool = (name: string, args: Record<string, unknown> = {}, id = 1) =>
-    rpc('tools/call', { name, arguments: args }, id);
 
 describe('MCP tool-call logging', () => {
     const options: McpPluginOptions = { oauth: { tokenSecret: TOKEN_SECRET } };
@@ -286,64 +284,12 @@ describe('MCP tool-call log input/output permission gating (full capture)', () =
         return (await response.json()) as GraphQLResponse<T>;
     }
 
-    /**
-     * Creates an administrator with exactly these permissions and returns its login token.
-     * Uses a plain fetch login (not `adminClient.asUserWithCredentials`) so the shared
-     * `adminClient`'s superadmin session, captured above, is never disturbed.
-     */
-    async function provisionAdmin(key: string, permissions: string[]): Promise<string> {
-        const email = `${key}@example.test`;
-        const role = await adminClient.query(
-            gql`
-                mutation CreateRole($input: CreateRoleInput!) {
-                    createRole(input: $input) {
-                        id
-                    }
-                }
-            `,
-            {
-                input: {
-                    code: `mcp-${key}-role`,
-                    description: `${key} role`,
-                    permissions,
-                    channelIds: [defaultChannelGqlId],
-                },
-            },
-        );
-        await adminClient.query(
-            gql`
-                mutation CreateAdmin($input: CreateAdministratorInput!) {
-                    createAdministrator(input: $input) {
-                        id
-                    }
-                }
-            `,
-            {
-                input: {
-                    firstName: key,
-                    lastName: 'Admin',
-                    emailAddress: email,
-                    password: 'test',
-                    roleIds: [role.createRole.id],
-                },
-            },
-        );
-        const response = await fetch(adminApiUrl(), {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({
-                query: `mutation { login(username: "${email}", password: "test") { __typename } }`,
-            }),
-        });
-        const token = response.headers.get('vendure-auth-token');
-        if (!token) {
-            throw new Error(`Login failed for ${key}: ${await response.text()}`);
-        }
-        return token;
-    }
-
     it('an admin with only ReadMcpServer sees metadata but gets null input/output/clientIp', async () => {
-        const limitedToken = await provisionAdmin('mcp-read-only-log', ['ReadMcpServer']);
+        const limitedToken = await provisionAdmin(
+            { adminClient, adminApiUrl: adminApiUrl(), channelId: defaultChannelGqlId },
+            'mcp-read-only-log',
+            ['ReadMcpServer'],
+        );
 
         const result = await adminGraphQL(limitedToken, MCP_TOOL_CALL_LOGS_WITH_BODIES_QUERY, {
             options: { filter: { toolName: { eq: 'shop_ping' } }, take: 1 },
