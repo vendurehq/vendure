@@ -575,7 +575,7 @@ describe('Entity hydration', () => {
         // Raw-connection queries take the numeric DB id; 'T_1' exists only at the API layer
         const laptop = await connection
             .getRepository(Product)
-            .findOne({ where: { id: 1 }, relations: ['variants'] });
+            .findOne({ where: { id: 1 }, relations: { variants: true } });
         const variantWithAssetId = laptop!.variants[laptop!.variants.length - 1].id;
         const nullAssetVariantCount = laptop!.variants.length - 1;
         // Give exactly one of the variants a featuredAsset; the others keep the
@@ -584,7 +584,7 @@ describe('Entity hydration', () => {
         try {
             const product = await connection
                 .getRepository(Product)
-                .findOne({ where: { id: 1 }, relations: ['variants'] });
+                .findOne({ where: { id: 1 }, relations: { variants: true } });
 
             await server.app.get(EntityHydrator).hydrate(ctx, product!, {
                 relations: ['variants.featuredAsset'],
