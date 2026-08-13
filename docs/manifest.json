@@ -2068,7 +2068,7 @@
                   "title": "Event Types",
                   "slug": "event-types",
                   "file": "docs/reference/typescript-api/events/event-types.mdx",
-                  "lastModified": "2026-07-15T15:49:41+02:00"
+                  "lastModified": "2026-08-13T10:10:11Z"
                 },
                 {
                   "title": "EventBus",
@@ -2780,7 +2780,7 @@
                   "title": "MultiChannelStockLocationStrategy",
                   "slug": "multi-channel-stock-location-strategy",
                   "file": "docs/reference/typescript-api/products-stock/multi-channel-stock-location-strategy.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-08-13T10:10:11Z"
                 },
                 {
                   "title": "ProductVariantPriceCalculationStrategy",
@@ -2874,7 +2874,7 @@
                   "title": "RequestContext",
                   "slug": "request-context",
                   "file": "docs/reference/typescript-api/request/request-context.mdx",
-                  "lastModified": "2026-08-10T11:56:26+02:00"
+                  "lastModified": "2026-08-13T10:10:11Z"
                 },
                 {
                   "title": "RequestContextService",
@@ -3096,7 +3096,7 @@
                   "title": "OrderService",
                   "slug": "order-service",
                   "file": "docs/reference/typescript-api/services/order-service.mdx",
-                  "lastModified": "2026-08-10T16:28:08+01:00"
+                  "lastModified": "2026-08-13T10:10:11Z"
                 },
                 {
                   "title": "OrderTestingService",
@@ -3186,7 +3186,7 @@
                   "title": "ShippingMethodService",
                   "slug": "shipping-method-service",
                   "file": "docs/reference/typescript-api/services/shipping-method-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-13T10:10:11Z"
                 },
                 {
                   "title": "SlugService",
@@ -3198,7 +3198,7 @@
                   "title": "StockLevelService",
                   "slug": "stock-level-service",
                   "file": "docs/reference/typescript-api/services/stock-level-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-13T10:10:11Z"
                 },
                 {
                   "title": "StockLocationService",
@@ -3210,7 +3210,7 @@
                   "title": "StockMovementService",
                   "slug": "stock-movement-service",
                   "file": "docs/reference/typescript-api/services/stock-movement-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-13T10:10:11Z"
                 },
                 {
                   "title": "TagService",
