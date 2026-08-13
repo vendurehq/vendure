@@ -18,6 +18,8 @@ class McpToolCallLog extends VendureEntity {
     actor: string | null;
     @Column({ type: 'varchar' })
     actorType: McpActorType;
+    @Column({ type: 'varchar', nullable: true })
+    clientIp: string | null;
     @Index()
     @EntityId({ nullable: true })
     channelId: ID | null;
@@ -67,6 +69,11 @@ class McpToolCallLog extends VendureEntity {
 ### actorType
 
 <MemberInfo kind="property" type={`McpActorType`}   />
+
+
+### clientIp
+
+<MemberInfo kind="property" type={`string | null`}   />
 
 
 ### channelId

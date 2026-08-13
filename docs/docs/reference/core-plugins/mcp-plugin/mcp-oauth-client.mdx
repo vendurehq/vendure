@@ -2,15 +2,16 @@
 title: "McpOauthClient"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/mcp-plugin/src/entities/mcp-oauth-client.entity.ts" sourceLine="11" packageName="@vendure/mcp-plugin" since="3.8.0" />
+<GenerationInfo sourceFile="packages/mcp-plugin/src/entities/mcp-oauth-client.entity.ts" sourceLine="12" packageName="@vendure/mcp-plugin" since="3.8.0" />
 
-Metadata for an MCP client registered via OAuth Dynamic Client Registration.
+Metadata for an MCP client registered via OAuth Dynamic Client Registration, or resolved
+from a Client ID Metadata Document (CIMD) URL
 
 ```ts title="Signature"
 class McpOauthClient extends VendureEntity {
     constructor(input?: DeepPartial<McpOauthClient>)
     @Index({ unique: true })
-    @Column()
+    @Column({ length: 512 })
     clientId: string;
     @Column()
     clientName: string;
@@ -24,6 +25,8 @@ class McpOauthClient extends VendureEntity {
     grantTypes: string[];
     @Column({ default: 'none' })
     tokenEndpointAuthMethod: string;
+    @Column({ type: Date, nullable: true })
+    cimdDocumentExpiresAt: Date | null;
     @Column({ type: Date, nullable: true })
     lastUsedAt: Date | null;
 }
@@ -67,6 +70,11 @@ class McpOauthClient extends VendureEntity {
 ### tokenEndpointAuthMethod
 
 <MemberInfo kind="property" type={`string`}   />
+
+
+### cimdDocumentExpiresAt
+
+<MemberInfo kind="property" type={`Date | null`}   />
 
 
 ### lastUsedAt

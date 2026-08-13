@@ -2,7 +2,7 @@
 title: "McpLoggingOptions"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/mcp-plugin/src/types.ts" sourceLine="233" packageName="@vendure/mcp-plugin" since="3.8.0" />
+<GenerationInfo sourceFile="packages/mcp-plugin/src/types.ts" sourceLine="235" packageName="@vendure/mcp-plugin" since="3.8.0" />
 
 Controls how MCP tool calls are logged and retained. Every call is recorded as an
 [McpToolCallLog](/reference/core-plugins/mcp-plugin/mcp-tool-call-log#mcptoolcalllog) row and published as an `McpToolCallEvent`.
@@ -12,7 +12,9 @@ interface McpLoggingOptions {
     ttlDays?: number;
     capture?: McpLogCapture;
     redact?: McpLogRedactFn;
+    maxBodyBytes?: number;
     retentionSchedule?: McpRetentionSchedule;
+    captureClientIp?: boolean;
 }
 ```
 
@@ -42,9 +44,19 @@ redact: ({ input, output }) => ({
   output: { ...output, customer: undefined }
 })
 ```
+### maxBodyBytes
+
+<MemberInfo kind="property" type={`number`} default={`64000 Fits safely within MySQL `TEXT` columns (65,535 byte limit).`}   />
+
+
 ### retentionSchedule
 
 <MemberInfo kind="property" type={`McpRetentionSchedule`} default={`cron => cron.everyDayAt(2, 30)`}   />
+
+
+### captureClientIp
+
+<MemberInfo kind="property" type={`boolean`} default={`false`}   />
 
 
 

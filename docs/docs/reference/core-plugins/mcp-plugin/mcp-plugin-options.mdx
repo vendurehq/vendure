@@ -2,13 +2,14 @@
 title: "McpPluginOptions"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/mcp-plugin/src/types.ts" sourceLine="283" packageName="@vendure/mcp-plugin" since="3.8.0" />
+<GenerationInfo sourceFile="packages/mcp-plugin/src/types.ts" sourceLine="307" packageName="@vendure/mcp-plugin" since="3.8.0" />
 
 Options passed to `McpPlugin.init`.
 
 ```ts title="Signature"
 interface McpPluginOptions {
     toolExposure?: McpToolExposureMode;
+    shopAccess?: 'disabled' | 'authenticated' | 'anonymous';
     oauth?: McpOauthOptions;
     rateLimits?: McpRateLimitOptions;
     dnsRebinding?: McpDnsRebindingOptions;
@@ -23,6 +24,20 @@ interface McpPluginOptions {
 <MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-tool-exposure-mode#mcptoolexposuremode'>McpToolExposureMode</a>`} default={`'direct'`}   />
 
 
+### shopAccess
+
+<MemberInfo kind="property" type={`'disabled' | 'authenticated' | 'anonymous'`} default={`'anonymous'`}   />
+
+Controls HTTP access to the `/mcp/shop` endpoint and the shop toolset.
+
+- `'anonymous'` (default): the endpoint accepts anonymous callers as well as
+  OAuth-authenticated customers.
+- `'authenticated'`: the endpoint requires an OAuth Bearer token. Token-less
+  requests receive a 401 with the standard auth challenge.
+- `'disabled'`: the endpoint responds 404 and customer OAuth authorization
+  requests are refused.
+
+In-process tool execution via [McpToolExecutionService](/reference/core-plugins/mcp-plugin/mcp-tool-execution-service#mcptoolexecutionservice) is not affected.
 ### oauth
 
 <MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-oauth-options#mcpoauthoptions'>McpOauthOptions</a>`}   />

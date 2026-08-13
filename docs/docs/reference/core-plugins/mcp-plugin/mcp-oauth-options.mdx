@@ -2,7 +2,7 @@
 title: "McpOauthOptions"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/mcp-plugin/src/types.ts" sourceLine="33" packageName="@vendure/mcp-plugin" since="3.8.0" />
+<GenerationInfo sourceFile="packages/mcp-plugin/src/types.ts" sourceLine="26" packageName="@vendure/mcp-plugin" since="3.8.0" />
 
 OAuth-related options for [McpPlugin](/reference/core-plugins/mcp-plugin/#mcpplugin).
 
@@ -16,6 +16,7 @@ interface McpOauthOptions {
     authorizationRequestTtlSeconds?: number;
     adminConsentPath?: string;
     storefrontConsentUrl?: string;
+    allowLoopbackCimdDocuments?: boolean;
     grantRetentionDays?: number;
     retentionSchedule?: McpRetentionSchedule;
 }
@@ -48,8 +49,6 @@ subdomain instead, or forward `/.well-known/*` to Vendure too.
 
 When unset, it defaults to `http://localhost:<port>` using the port your server is
 configured with (`apiOptions.port`), so local development needs no configuration.
-Production always needs it set explicitly: the server refuses to start in
-production with a localhost issuer.
 ### accessTokenTtlSeconds
 
 <MemberInfo kind="property" type={`number`} default={`900`}   />
@@ -78,7 +77,9 @@ Lifetime of a pending authorization request (consent window), in seconds.
 <MemberInfo kind="property" type={`string`} default={`'/dashboard/mcp/authorize'`}   />
 
 Path (relative to `issuer`) of the admin consent page that approves
-admin-scoped authorization requests.
+admin-scoped authorization requests. Must start with a single `/` —
+the consent page is served by the Vendure server itself, so a full URL
+here is refused at startup.
 ### storefrontConsentUrl
 
 <MemberInfo kind="property" type={`string`}   />
@@ -86,6 +87,18 @@ admin-scoped authorization requests.
 Absolute URL of the storefront consent page that approves customer-scoped
 authorization requests. Required only if you want customers to authorize MCP
 clients; a deployment that uses the admin toolset alone does not need it.
+### allowLoopbackCimdDocuments
+
+<MemberInfo kind="property" type={`boolean`} default={`false`}   />
+
+Allows a client to identify itself with a `client_id` URL that points at the local machine
+(`localhost`, `127.0.0.1` or `::1`), over plain HTTP, so that a metadata document served by
+your own development setup can be fetched.
+
+Leave this off anywhere reachable by others. With it on, anyone who can reach the authorize
+endpoint — no credentials needed — can make the server open a connection to any port on the
+machine it runs on. The server refuses to start with this enabled when `NODE_ENV` is
+`production`.
 ### grantRetentionDays
 
 <MemberInfo kind="property" type={`number`} default={`30 (days)`}   />
@@ -102,8 +115,12 @@ log should still be able to resolve its grant.
 <MemberInfo kind="property" type={`McpRetentionSchedule`} default={`cron => cron.everyDayAt(3, 30)`}   />
 
 Schedule for the cleanup job that prunes OAuth records which can no longer be used: the
-Vendure session created for each expired grant, expired or spent authorization requests and
+Vendure session created for each expired grant, expired authorization requests and
 codes, and grants dead for longer than `grantRetentionDays`.
+
+An expired grant's Vendure session keeps working against the ordinary GraphQL APIs until
+this job deletes it, so a slower schedule lengthens that window. Revoking a grant deletes
+its session at once, without waiting for this job.
 
 
 </div>
