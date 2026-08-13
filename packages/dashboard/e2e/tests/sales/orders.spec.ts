@@ -739,23 +739,17 @@ test.describe('Orders', () => {
             await dialog.getByRole('combobox').click();
             await page.getByRole('option').first().click();
 
-            // Uncheck original payment, check store credit destination
-            const checkboxes = dialog.getByRole('checkbox');
-            // The "Refund to" section checkboxes: first is "Return to stock",
-            // then the payment targets. Find the store credit target by label.
-            const storeCreditTarget = dialog.getByText(/store credit/i).locator('..');
-            const storeCreditCheckbox = storeCreditTarget.getByRole('checkbox');
-            await expect(storeCreditCheckbox).toBeVisible();
+            const storeCreditRow = dialog.getByTestId('refund-target-store-credit');
+            await expect(storeCreditRow).toBeVisible();
 
-            // Uncheck the original payment (method is "test-payment" from createPaidOrder)
-            const paymentTarget = dialog.getByText(/test-payment/i).locator('..');
-            const paymentCheckbox = paymentTarget.getByRole('checkbox');
-            await paymentCheckbox.uncheck();
+            // Uncheck the original payment so the whole refund goes to store credit
+            const paymentRow = dialog.getByTestId(/^refund-target-payment-/);
+            await paymentRow.getByRole('checkbox').first().uncheck();
 
-            // Check store credit and enter amount
-            await storeCreditCheckbox.check();
-            const storeCreditAmount = storeCreditTarget.locator('input[type="number"]');
-            await storeCreditAmount.fill('1');
+            // Selecting store credit moves the whole outstanding total onto it, which the
+            // dialog requires before it will submit.
+            await storeCreditRow.getByRole('checkbox').first().check();
+            await expect(storeCreditRow.locator('input[type="number"]')).not.toHaveValue('');
 
             // Submit
             const refundButton = dialog.getByRole('button', { name: /Refund/i }).last();
