@@ -13,6 +13,7 @@ import { McpPluginOptions } from '../src/types';
 
 import { McpTestToolsPlugin } from './fixtures/mcp-test-tools';
 import {
+    expectRateLimitRefusal,
     initializeParams,
     MCP_ACCEPT,
     MODERN_PROTOCOL_VERSION,
@@ -446,15 +447,10 @@ describe('MCP modern protocol era rate limiting', () => {
         const tripped = await postModernMcp(baseUrl(), 'shop', 'tools/list', {}, 2, {
             headers: { [AUTH_TOKEN_HEADER]: sessionToken },
         });
-        expect(tripped.status).toBe(429);
-        expect(tripped.body.error.code).toBe(-31029);
-        expect(tripped.body.error.data.scope).toBe('session');
+        expectRateLimitRefusal(tripped, { scope: 'session', id: 2 });
         // The pre-check names the bucket's subject after the method it read, so seeing `tools/list`
         // here is the proof that it read the method from the top level of a modern request.
         expect(tripped.body.error.message).toContain('tools/list');
-        // The refusal is addressed to the request, which proves the top-level `id` was read too.
-        expect(tripped.body.id).toBe(2);
-        expect(tripped.body.result).toBeUndefined();
     });
 });
 

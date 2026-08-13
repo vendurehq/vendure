@@ -10,7 +10,7 @@ import { McpPlugin } from '../src/plugin';
 import { McpPluginOptions } from '../src/types';
 
 import { McpTestToolsPlugin } from './fixtures/mcp-test-tools';
-import { postMcp, rpc } from './utils/mcp-http-client';
+import { expectRateLimitRefusal, postMcp, rpc } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow, runShopAuthorizationCodeFlow } from './utils/oauth-test-client';
 
 const TOKEN_SECRET = 'mcp-transport-secret-0000000000000000000000';
@@ -200,11 +200,7 @@ describe('MCP transport rate limiting', () => {
         await postMcp(baseUrl(), 'shop', rpc('ping', {}, 1));
         await postMcp(baseUrl(), 'shop', rpc('ping', {}, 2));
         const tripped = await postMcp(baseUrl(), 'shop', rpc('ping', {}, 3));
-        expect(tripped.status).toBe(429);
-        expect(Number(tripped.headers.get('retry-after'))).toBeGreaterThan(0);
-        expect(tripped.body.error.code).toBe(-31029);
-        expect(tripped.body.error.data.retryAfterSeconds).toBeGreaterThan(0);
-        expect(tripped.body.error.data.scope).toBe('anonymous IP');
+        expectRateLimitRefusal(tripped, { scope: 'anonymous IP', id: 3 });
     });
 
     it('refuses a request once the bucket is spent without creating a session for it', async () => {
@@ -214,6 +210,15 @@ describe('MCP transport rate limiting', () => {
         const refused = await postMcp(baseUrl(), 'shop', rpc('ping', {}, 4));
         expect(refused.body.error.code).toBe(-31029);
         expect(await countAnonymousSessions(server)).toBe(before);
+    });
+
+    it('addresses the refusal to the first message that carries an id', async () => {
+        // The anonymous-IP bucket is still spent, so this batch is refused at the same gate. Its
+        // first message is a notification with no id, so the refusal has to skip past it and answer
+        // the request behind it — otherwise a batching client cannot match the refusal to what it sent.
+        const batch = [{ jsonrpc: '2.0', method: 'notifications/initialized' }, rpc('ping', {}, 7)];
+        const refused = await postMcp(baseUrl(), 'shop', batch);
+        expectRateLimitRefusal(refused, { scope: 'anonymous IP', id: 7 });
     });
 });
 
@@ -250,10 +255,7 @@ describe('MCP transport failed-authentication metering', () => {
             expect(denied.status).toBe(401);
         }
         const tripped = await postMcp(baseUrl(), 'admin', rpc('ping', {}, 4), { token: 'garbage' });
-        expect(tripped.status).toBe(429);
-        expect(Number(tripped.headers.get('retry-after'))).toBeGreaterThan(0);
-        expect(tripped.body.error.code).toBe(-31029);
-        expect(tripped.body.error.data.scope).toBe('authentication failures');
+        expectRateLimitRefusal(tripped, { scope: 'authentication failures', id: 4 });
     });
 });
 
@@ -290,8 +292,8 @@ describe('MCP transport anonymous session metering', () => {
         expect((await countAnonymousSessions(server)) - before).toBeLessThanOrEqual(3);
         const refused = responses.filter(response => response.status === 429);
         expect(refused.length).toBeGreaterThan(0);
-        // The notification branch always returned 429; it now carries Retry-After too.
-        expect(Number(refused[0].headers.get('retry-after'))).toBeGreaterThan(0);
+        // Nothing in the request carries an id, so the refusal has to fall back to a null one.
+        expectRateLimitRefusal(refused[0], { scope: 'anonymous IP', id: null });
     });
 });
 
@@ -383,8 +385,7 @@ describe('MCP transport content-type casing', () => {
             headers: { [AUTH_TOKEN_HEADER]: sessionToken },
             contentType: 'APPLICATION/JSON',
         });
-        expect(tripped.body.error.code).toBe(-31029);
-        expect(tripped.status).toBe(429);
+        expectRateLimitRefusal(tripped, { scope: 'session', id: 3 });
     });
 });
 

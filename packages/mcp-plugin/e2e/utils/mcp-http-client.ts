@@ -3,6 +3,7 @@ import {
     LATEST_PROTOCOL_VERSION,
     PROTOCOL_VERSION_META_KEY,
 } from '@modelcontextprotocol/server';
+import { expect } from 'vitest';
 
 export const MCP_ACCEPT = 'application/json, text/event-stream';
 
@@ -144,4 +145,29 @@ export async function postModernMcp(
             ...options.headers,
         },
     });
+}
+
+/**
+ * Asserts every part of a rate-limit refusal from the transport's gates: the status, both headers,
+ * and the JSON-RPC error body. The error code and the `jsonrpc` version are written out here
+ * rather than imported from the plugin, because they are a promise to MCP client software — a test
+ * that read them from the plugin's own constants could not notice them changing.
+ *
+ * Not for a rate-limited `tools/call`: that answers HTTP 200 with an in-band error result instead.
+ */
+export function expectRateLimitRefusal(
+    result: McpHttpResult,
+    expected: { scope: string; id: string | number | null },
+): void {
+    expect(result.status).toBe(429);
+    expect(result.headers.get('content-type')).toContain('application/json');
+    const retryAfterHeader = Number(result.headers.get('retry-after'));
+    expect(retryAfterHeader).toBeGreaterThan(0);
+    expect(result.body.jsonrpc).toBe('2.0');
+    expect(result.body.id).toBe(expected.id);
+    expect(result.body.result).toBeUndefined();
+    expect(result.body.error.code).toBe(-31029);
+    expect(result.body.error.message).toBeTruthy();
+    expect(result.body.error.data.scope).toBe(expected.scope);
+    expect(result.body.error.data.retryAfterSeconds).toBe(retryAfterHeader);
 }
