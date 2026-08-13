@@ -36,7 +36,6 @@
     "order-does-not-contain-line-with-id": "A encomenda não possui uma linha com o ID {id}",
     "pending-identifier-missing": "Não foi possível encontrar o e-mail pendente para actualizar",
     "permission-invalid": "A permissão \"{ permission }\" não pode ser atribuída",
-    "refund-destination-not-available": "Refund destination \"{ destination }\" is not available for this order/payment",
     "products-cannot-be-removed-from-default-channel": "Os produtos não podem ser removidos do canal padrão",
     "product-id-or-slug-must-be-provided": "O ID do produto ou slug deve ser fornecido",
     "product-id-slug-mismatch": "O ID e slug fornecidos referem-se a produtos diferentes",

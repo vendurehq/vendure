@@ -43,7 +43,6 @@
     "order-does-not-contain-line-with-id": "Cette commande ne contient pas de Ligne de Commande avec l'id { id }",
     "pending-identifier-missing": "L'adresse e-mail en attente de mise à jour n'a pas pu être trouvée",
     "permission-invalid": "La permission \"{ permission }\" ne peut pas être attribuée",
-    "refund-destination-not-available": "Refund destination \"{ destination }\" is not available for this order/payment",
     "product-id-or-slug-must-be-provided": "L'id du Produit ou le slug doit être fourni",
     "product-id-slug-mismatch": "L'id et le slug fournis font référence à des Produits différents",
     "product-option-group-already-assigned": "Le groupe d'options de produit \"{ groupCode }\" est déjà attribué au produit \"{ productName }\"",

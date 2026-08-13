@@ -24,7 +24,6 @@
     "password-reset-token-not-recognized": "No reconocemos este token de restablecimiento de contraseña",
     "verification-token-has-expired": "Este token de verificación ha expirado.  Utiliza refreshCustomerVerification para enviar un nuevo token.",
     "verification-token-not-recognized": "No reconocemos este token de verificación",
-    "refund-destination-not-available": "Refund destination \"{ destination }\" is not available for this order/payment",
     "unauthorized": "Las credenciales no concuerdan, por favor comprueba y vuelve a probar",
     "unexpected-password-on-registration": "No proveer conntraseña cuándo `authOptions.requireVerification` está \"true\""
   },

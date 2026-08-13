@@ -36,7 +36,6 @@
     "order-does-not-contain-line-with-id": "Этот заказ не содержит Строки Заказа с идентификатором { id }",
     "pending-identifier-missing": "Не удалось найти адрес электронной почты ожидающий обновления",
     "permission-invalid": "Разрешение \"{ permission }\" не может быть назначено",
-    "refund-destination-not-available": "Refund destination \"{ destination }\" is not available for this order/payment",
     "products-cannot-be-removed-from-default-channel": "Товары не могут быть удалены из Канала по умолчанию",
     "product-id-or-slug-must-be-provided": "Необходимо указать либо идентификатор Товара, либо уникальный строковый идентификатор",
     "product-id-slug-mismatch": "Предоставленный идентификатор и уникальный строковый идентификатор относятся к разным Товарам",

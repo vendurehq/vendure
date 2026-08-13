@@ -37,7 +37,6 @@
     "order-does-not-contain-line-with-id": "Die Bestellung beeinhaltet keine OrderLine mit der ID { id }",
     "pending-identifier-missing": "Die zu ändernde E-Mail-Adresse konnte nicht gefunden werden",
     "permission-invalid": "Die Berechtigung \"{ permission }\" kann nicht zugewiesen werden",
-    "refund-destination-not-available": "Refund destination \"{ destination }\" is not available for this order/payment",
     "products-cannot-be-removed-from-default-channel": "Produkte können nicht aus dem Standardkanal entfernt werden",
     "product-id-or-slug-must-be-provided": "Entweder eine Produkt-ID oder Slug müssen angegeben werden",
     "product-id-slug-mismatch": "Die angegebene ID und Slug verweisen zu unterschiedlichen Produkten",

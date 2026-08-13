@@ -70,7 +70,6 @@
     "password-reset-token-not-recognized": "Token de redefinição de senha não reconhecido",
     "password-required-for-verification": "Uma senha deve ser fornecida, pois não foi definida durante o registro",
     "permission-invalid": "A permissão \"{permission}\" não é válida",
-    "refund-destination-not-available": "Refund destination \"{ destination }\" is not available for this order/payment",
     "products-cannot-be-removed-from-default-channel": "Os produtos não podem ser removidos do canal padrão",
     "product-id-or-slug-must-be-provided": "O ID do produto ou o slug devem ser fornecidos",
     "product-id-slug-mismatch": "O ID e o slug fornecidos se referem a diferentes produtos",

@@ -36,7 +36,6 @@
     "order-does-not-contain-line-with-id": "Це замовлення не містить Рядка Замовлення з ідентифікатором { id }",
     "pending-identifier-missing": "Не вдалося знайти адресу електронної пошти що очікує оновлення",
     "permission-invalid": "Дозвіл \"{ permission }\" не може бути призначено",
-    "refund-destination-not-available": "Refund destination \"{ destination }\" is not available for this order/payment",
     "products-cannot-be-removed-from-default-channel": "Товари не можуть бути видалені з Каналу за замовчуванням",
     "product-id-or-slug-must-be-provided": "Необхідно вказати або ідентифікатор Товару, або унікальний рядковий ідентифікатор",
     "product-id-slug-mismatch": "Наданий ідентифікатор і унікальний рядковий ідентифікатор відносяться до різних Товарів",
