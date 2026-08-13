@@ -60,6 +60,7 @@ export * from './events/seller-event';
 export * from './events/shipping-method-event';
 export * from './events/stock-location-event';
 export * from './events/stock-movement-event';
+export * from './events/stock-shortfall-event';
 export * from './events/tax-category-event';
 export * from './events/tax-rate-event';
 export * from './events/tax-rate-modification-event';

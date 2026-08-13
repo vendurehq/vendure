@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import {
     AddPaymentToOrderResult,
     ApplyCouponCodeResult,
@@ -97,9 +97,11 @@ import { Promotion } from '../../entity/promotion/promotion.entity';
 import { Refund } from '../../entity/refund/refund.entity';
 import { Session } from '../../entity/session/session.entity';
 import { ShippingLine } from '../../entity/shipping-line/shipping-line.entity';
+import { ShippingMethod } from '../../entity/shipping-method/shipping-method.entity';
 import { Surcharge } from '../../entity/surcharge/surcharge.entity';
 import { User } from '../../entity/user/user.entity';
 import { EventBus } from '../../event-bus/event-bus';
+import { ChangeChannelEvent } from '../../event-bus/events/change-channel-event';
 import { CouponCodeEvent } from '../../event-bus/events/coupon-code-event';
 import { OrderEvent } from '../../event-bus/events/order-event';
 import { OrderLineEvent } from '../../event-bus/events/order-line-event';
@@ -143,7 +145,7 @@ import { StockLevelService } from './stock-level.service';
  */
 @Injectable()
 @Instrument()
-export class OrderService {
+export class OrderService implements OnApplicationBootstrap {
     constructor(
         private connection: TransactionalConnection,
         private configService: ConfigService,
@@ -169,6 +171,28 @@ export class OrderService {
         private translator: TranslatorService,
         private stockLevelService: StockLevelService,
     ) {}
+
+    /** @internal */
+    onApplicationBootstrap() {
+        // Unassigning a ShippingMethod from a channel leaves a stale ShippingLine on
+        // active orders in that channel, which can no longer use the method. The
+        // handler blocks so the cleanup shares the removal's transaction and a failure
+        // rolls it back. (Deletion is intentionally left alone: a soft-deleted method
+        // stays resolvable on existing orders — see issue #716.)
+        this.eventBus.registerBlockingEventHandler({
+            id: 'order-service-remove-unassigned-shipping-method-from-active-orders',
+            event: ChangeChannelEvent,
+            handler: async event => {
+                if (event.entityType === ShippingMethod && event.type === 'removed') {
+                    await this.removeShippingMethodFromActiveOrders(
+                        event.ctx,
+                        event.entity.id,
+                        event.channelIds,
+                    );
+                }
+            },
+        });
+    }
 
     /**
      * @description
@@ -2515,6 +2539,83 @@ export class OrderService {
                 .relation('shippingLines')
                 .of(order)
                 .add(idToAdd);
+        }
+    }
+
+    private async removeShippingMethodFromActiveOrders(
+        ctx: RequestContext,
+        shippingMethodId: ID,
+        channelIds: ID[],
+    ) {
+        // Orders are recalculated serially inside the removal transaction, holding
+        // write locks for its duration. A bulk unassign touching many active orders
+        // may trip the blocking-handler slow-warning; a post-commit job queue would
+        // scale better but would trade away the atomic rollback guarantee.
+        for (const channelId of channelIds) {
+            const channel = await this.channelService.findOne(ctx, channelId);
+            if (!channel) {
+                continue;
+            }
+            // Scope to the affected channel so applyPriceAdjustments uses its
+            // promotions/taxes/currency, not those of the triggering channel.
+            const orderCtx = ctx.copy(channel);
+
+            const affectedOrders = await this.connection
+                .getRepository(orderCtx, Order)
+                .createQueryBuilder('order')
+                .innerJoin('order.channels', 'channel', 'channel.id = :channelId', {
+                    channelId,
+                })
+                .innerJoin(
+                    'order.shippingLines',
+                    'shippingLine',
+                    'shippingLine.shippingMethodId = :shippingMethodId',
+                    { shippingMethodId },
+                )
+                .where('order.active = :active', { active: true })
+                .getMany();
+
+            if (affectedOrders.length === 0) {
+                continue;
+            }
+
+            const orders = await this.connection.getRepository(orderCtx, Order).find({
+                where: { id: In(affectedOrders.map(o => o.id)) },
+                relations: [
+                    'lines',
+                    'lines.productVariant',
+                    'lines.productVariant.productVariantPrices',
+                    'shippingLines',
+                    'surcharges',
+                ],
+            });
+
+            for (const order of orders) {
+                // Remove the lines manually: the method is still visible via the
+                // channel-scoped ctx inside this transaction, so applyShipping would
+                // not detect the removal on its own.
+                const shippingLinesToRemove = order.shippingLines.filter(sl =>
+                    idsAreEqual(sl.shippingMethodId, shippingMethodId),
+                );
+                if (shippingLinesToRemove.length) {
+                    const shippingLineIdsToRemove = shippingLinesToRemove.map(sl => sl.id);
+                    // Detach order lines first to avoid an FK violation on delete.
+                    for (const line of order.lines) {
+                        if (
+                            line.shippingLineId &&
+                            shippingLineIdsToRemove.some(id => idsAreEqual(id, line.shippingLineId))
+                        ) {
+                            line.shippingLine = undefined;
+                            line.shippingLineId = undefined;
+                        }
+                    }
+                    await this.connection.getRepository(orderCtx, ShippingLine).remove(shippingLinesToRemove);
+                }
+                order.shippingLines = order.shippingLines.filter(
+                    sl => !idsAreEqual(sl.shippingMethodId, shippingMethodId),
+                );
+                await this.applyPriceAdjustments(orderCtx, order);
+            }
         }
     }
 }

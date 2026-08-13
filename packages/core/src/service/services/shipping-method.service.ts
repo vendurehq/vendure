@@ -93,17 +93,31 @@ export class ShippingMethodService {
         shippingMethodId: ID,
         includeDeleted = false,
         relations: RelationPaths<ShippingMethod> = [],
+        filterOnChannel = true,
     ): Promise<Translated<ShippingMethod> | undefined> {
-        const shippingMethod = await this.connection.findOneInChannel(
-            ctx,
-            ShippingMethod,
-            shippingMethodId,
-            ctx.channelId,
-            {
+        let shippingMethod: ShippingMethod | undefined | null;
+
+        if (!filterOnChannel) {
+            shippingMethod = await this.connection.getRepository(ctx, ShippingMethod).findOne({
+                where: {
+                    id: shippingMethodId,
+                    deletedAt: includeDeleted ? undefined : IsNull(),
+                },
                 relations,
-                ...(includeDeleted === false ? { where: { deletedAt: IsNull() } } : {}),
-            },
-        );
+            });
+        } else {
+            shippingMethod = await this.connection.findOneInChannel(
+                ctx,
+                ShippingMethod,
+                shippingMethodId,
+                ctx.channelId,
+                {
+                    relations,
+                    ...(includeDeleted === false ? { where: { deletedAt: IsNull() } } : {}),
+                },
+            );
+        }
+
         return (shippingMethod && this.translator.translate(shippingMethod, ctx)) ?? undefined;
     }
 

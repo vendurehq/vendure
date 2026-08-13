@@ -15,7 +15,11 @@ export class ShippingLineEntityResolver {
             // Does not need to be decoded because it is an internal property
             // which is never exposed to the outside world.
             const shippingMethodId = shippingLine.shippingMethodId;
-            return this.shippingMethodService.findOne(ctx, shippingMethodId, true);
+            // Fall back to an unscoped lookup only when the method is no longer in
+            // this channel (unassigned/deleted but still referenced), so the
+            // non-nullable field resolves without broadening visibility otherwise.
+            const scoped = await this.shippingMethodService.findOne(ctx, shippingMethodId, true);
+            return scoped ?? this.shippingMethodService.findOne(ctx, shippingMethodId, true, [], false);
         } else {
             return null;
         }

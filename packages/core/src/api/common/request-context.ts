@@ -329,9 +329,22 @@ export class RequestContext {
      * Creates a shallow copy of the RequestContext instance. This means that
      * mutations to the copy itself will not affect the original, but deep mutations
      * (e.g. copy.channel.code = 'new') *will* also affect the original.
+     *
+     * Passing a `channel` re-scopes the copy to it, switching language and currency
+     * to the channel's defaults so downstream logic runs in the target channel.
      */
-    copy(): RequestContext {
-        return Object.assign(Object.create(Object.getPrototypeOf(this)), this);
+    copy(channel?: Channel): RequestContext {
+        return Object.assign(
+            Object.create(Object.getPrototypeOf(this)),
+            this,
+            channel
+                ? {
+                      _channel: channel,
+                      _languageCode: channel.defaultLanguageCode,
+                      _currencyCode: channel.defaultCurrencyCode,
+                  }
+                : {},
+        );
     }
 
     /**
