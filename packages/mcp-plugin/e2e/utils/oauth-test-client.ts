@@ -1,5 +1,7 @@
 import crypto from 'crypto';
 
+import { AUTHORIZE_MCP_CLIENT } from '../../src/dashboard/queries';
+
 // Reusable client that drives the real MCP OAuth flow over HTTP against a running
 // test server, using the admin consent path. The superadmin bearer token (readily
 // available from the test harness) stands in for the authenticated administrator,
@@ -60,9 +62,7 @@ export async function submitAdminConsent(
             ...(options.superAdminToken ? { Authorization: `Bearer ${options.superAdminToken}` } : {}),
         },
         body: JSON.stringify({
-            query: `mutation ($requestToken: String!, $approved: Boolean!) {
-                authorizeMcpClient(requestToken: $requestToken, approved: $approved) { redirectUrl }
-            }`,
+            query: AUTHORIZE_MCP_CLIENT,
             variables: { requestToken: options.requestToken, approved: options.approved },
         }),
     });
@@ -278,10 +278,8 @@ export async function runShopAuthorizationCodeFlow(
             ...(channelToken ? { 'vendure-token': channelToken } : {}),
         },
         body: JSON.stringify({
-            query: `mutation ($requestToken: String!) {
-                authorizeMcpClient(requestToken: $requestToken, approved: true) { redirectUrl }
-            }`,
-            variables: { requestToken: request_token },
+            query: AUTHORIZE_MCP_CLIENT,
+            variables: { requestToken: request_token, approved: true },
         }),
     });
     const consentBody = (await consentResponse.json()) as {

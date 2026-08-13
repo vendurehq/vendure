@@ -17,6 +17,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import { mcpServerPermission } from '../src/constants';
+import { AUTHORIZE_MCP_CLIENT } from '../src/dashboard/queries';
 import { McpAuthorizationCode } from '../src/entities/mcp-authorization-code.entity';
 import { McpAuthorizationRequest } from '../src/entities/mcp-authorization-request.entity';
 import { McpOauthGrant } from '../src/entities/mcp-oauth-grant.entity';
@@ -692,13 +693,7 @@ describe('McpPlugin OAuth edge & security cases', () => {
     });
 
     describe('authorizeMcpClient mutation', () => {
-        const APPROVE = gql`
-            mutation ApproveMcp($requestToken: String!, $approved: Boolean!) {
-                authorizeMcpClient(requestToken: $requestToken, approved: $approved) {
-                    redirectUrl
-                }
-            }
-        `;
+        const APPROVE = gql(AUTHORIZE_MCP_CLIENT);
 
         /**
          * Starts an authorization for the shop resource and returns the request token the
@@ -887,7 +882,8 @@ describe('McpPlugin OAuth edge & security cases', () => {
                     Authorization: `Bearer ${sessionToken}`,
                 },
                 body: JSON.stringify({
-                    query: `mutation { authorizeMcpClient(requestToken: "${requestToken}", approved: true) { redirectUrl } }`,
+                    query: AUTHORIZE_MCP_CLIENT,
+                    variables: { requestToken, approved: true },
                 }),
             });
             const body = (await response.json()) as any;

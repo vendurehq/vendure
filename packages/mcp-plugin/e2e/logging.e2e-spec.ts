@@ -19,6 +19,7 @@ import { McpPlugin } from '../src/plugin';
 import { McpPluginOptions } from '../src/types';
 
 import { McpTestToolsPlugin } from './fixtures/mcp-test-tools';
+import { MCP_TOOL_CALL_LOGS_WITH_BODIES_QUERY } from './graphql/admin-definitions';
 import { postMcp, rpc } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow } from './utils/oauth-test-client';
 
@@ -215,20 +216,6 @@ describe('MCP tool-call logging', () => {
     });
 });
 
-const MCP_TOOL_CALL_LOGS_QUERY = `
-    query ($options: McpToolCallLogListOptions) {
-        mcpToolCallLogs(options: $options) {
-            items {
-                toolName
-                status
-                input
-                output
-                clientIp
-            }
-        }
-    }
-`;
-
 interface GraphQLResponse<T = any> {
     data?: T;
     errors?: Array<{ message: string }>;
@@ -358,7 +345,7 @@ describe('MCP tool-call log input/output permission gating (full capture)', () =
     it('an admin with only ReadMcpServer sees metadata but gets null input/output/clientIp', async () => {
         const limitedToken = await provisionAdmin('mcp-read-only-log', ['ReadMcpServer']);
 
-        const result = await adminGraphQL(limitedToken, MCP_TOOL_CALL_LOGS_QUERY, {
+        const result = await adminGraphQL(limitedToken, MCP_TOOL_CALL_LOGS_WITH_BODIES_QUERY, {
             options: { filter: { toolName: { eq: 'shop_ping' } }, take: 1 },
         });
         expect(result.errors).toBeUndefined();
@@ -371,7 +358,7 @@ describe('MCP tool-call log input/output permission gating (full capture)', () =
     });
 
     it('the superadmin, who holds ReadCustomer, sees the actual bodies and clientIp', async () => {
-        const result = await adminGraphQL(superAdminToken, MCP_TOOL_CALL_LOGS_QUERY, {
+        const result = await adminGraphQL(superAdminToken, MCP_TOOL_CALL_LOGS_WITH_BODIES_QUERY, {
             options: { filter: { toolName: { eq: 'shop_ping' } }, take: 1 },
         });
         expect(result.errors).toBeUndefined();

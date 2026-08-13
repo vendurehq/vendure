@@ -12,12 +12,21 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
+import {
+    MCP_OAUTH_GRANTS_QUERY,
+    MCP_STATS_QUERY,
+    MCP_TOOL_CALL_LOGS_QUERY,
+    MCP_TOOLS_QUERY,
+    REVOKE_MCP_OAUTH_GRANT,
+    SET_MCP_TOOL_ENABLED,
+} from '../src/dashboard/queries';
 import { McpOauthGrant } from '../src/entities/mcp-oauth-grant.entity';
 import { McpToolCallLog } from '../src/entities/mcp-tool-call-log.entity';
 import { McpPlugin } from '../src/plugin';
 import { McpPluginOptions } from '../src/types';
 
 import { McpTestToolsPlugin } from './fixtures/mcp-test-tools';
+import { MCP_TOOL_CALL_LOGS_WITH_BODIES_QUERY } from './graphql/admin-definitions';
 import { postMcp, rpc } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow } from './utils/oauth-test-client';
 
@@ -25,89 +34,6 @@ const TOKEN_SECRET = 'admin-api-secret-00000000000000000000000';
 const ISSUER = `http://localhost:${testConfig().apiOptions.port}`;
 const productsCsvPath = path.join(__dirname, 'fixtures/e2e-products.csv');
 const DAY_MS = 86_400_000;
-
-// Raw query strings (not the shared client) so each call can use a specific admin's token.
-const MCP_TOOLS_QUERY = `
-    query {
-        mcpTools {
-            name
-            toolset
-            description
-            pluginSource
-            behavior
-            enabled
-        }
-    }
-`;
-
-const MCP_TOOL_CALL_LOGS_QUERY = `
-    query ($options: McpToolCallLogListOptions) {
-        mcpToolCallLogs(options: $options) {
-            totalItems
-            items {
-                id
-                createdAt
-                toolName
-                status
-                durationMs
-                actorType
-                channelId
-                input
-                output
-            }
-        }
-    }
-`;
-
-const MCP_STATS_QUERY = `
-    query ($timeRange: String) {
-        mcpStats(timeRange: $timeRange) {
-            totalCalls
-            successRate
-            errorRate
-            p50LatencyMs
-            p95LatencyMs
-            callsPerHour
-            topTools {
-                toolName
-                count
-            }
-        }
-    }
-`;
-
-const MCP_OAUTH_GRANTS_QUERY = `
-    query ($includeInactive: Boolean! = false, $options: McpOauthGrantListOptions) {
-        mcpOauthGrants(includeInactive: $includeInactive, options: $options) {
-            items {
-                id
-                actorId
-                actorType
-                oauthClientName
-                lastActivityAt
-                expiresAt
-                revokedAt
-            }
-            totalItems
-        }
-    }
-`;
-
-const SET_MCP_TOOL_ENABLED = `
-    mutation ($toolName: String!, $toolset: String!, $enabled: Boolean!) {
-        setMcpToolEnabled(toolName: $toolName, toolset: $toolset, enabled: $enabled) {
-            name
-            toolset
-            enabled
-        }
-    }
-`;
-
-const REVOKE_MCP_OAUTH_GRANT = `
-    mutation ($id: ID!) {
-        revokeMcpOauthGrant(id: $id)
-    }
-`;
 
 const REMOVE_EXPIRED_LOGS = `
     mutation {
@@ -284,7 +210,7 @@ describe('MCP admin API', () => {
         });
 
         it('mcpToolCallLogs returns a { items, totalItems } paginated list with null bodies', async () => {
-            const result = await adminGraphQL(superAdminToken, MCP_TOOL_CALL_LOGS_QUERY, {
+            const result = await adminGraphQL(superAdminToken, MCP_TOOL_CALL_LOGS_WITH_BODIES_QUERY, {
                 options: { take: 50, sort: { createdAt: 'DESC' } },
             });
             expect(result.errors).toBeUndefined();
@@ -471,9 +397,9 @@ describe('MCP admin API', () => {
     describe('oauth grants', () => {
         it('lists live grants, revokes one, hides it, and then rejects the bearer token', async () => {
             const idsBefore = new Set(
-                (await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY)).data.mcpOauthGrants.items.map(
-                    (g: { id: string }) => g.id,
-                ),
+                (
+                    await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, { includeInactive: false })
+                ).data.mcpOauthGrants.items.map((g: { id: string }) => g.id),
             );
 
             const { access_token } = await runAuthorizationCodeFlow({
@@ -482,7 +408,9 @@ describe('MCP admin API', () => {
                 superAdminToken,
             });
 
-            const listed = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY);
+            const listed = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
+                includeInactive: false,
+            });
             expect(listed.errors).toBeUndefined();
             const newGrants = (
                 listed.data.mcpOauthGrants.items as Array<{ id: string; actorType: string }>
@@ -500,7 +428,9 @@ describe('MCP admin API', () => {
             expect(revoked.errors).toBeUndefined();
             expect(revoked.data.revokeMcpOauthGrant).toBe(true);
 
-            const afterRevoke = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY);
+            const afterRevoke = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
+                includeInactive: false,
+            });
             const afterIds = (afterRevoke.data.mcpOauthGrants.items as Array<{ id: string }>).map(g => g.id);
             expect(afterIds).not.toContain(grantId);
 
@@ -511,7 +441,7 @@ describe('MCP admin API', () => {
             expect(deniedCall.status).toBe(401);
         });
 
-        it('includeInactive surfaces a revoked grant with its revokedAt, while the default query still omits it', async () => {
+        it('includeInactive surfaces a revoked grant with its revokedAt, while includeInactive: false omits it', async () => {
             const clientName = `inactive-toggle-client-${Math.random().toString(36).slice(2)}`;
             await runAuthorizationCodeFlow({
                 baseUrl: baseUrl(),
@@ -538,8 +468,10 @@ describe('MCP admin API', () => {
             expect(revoked.errors).toBeUndefined();
             expect(revoked.data.revokeMcpOauthGrant).toBe(true);
 
-            // The default query (includeInactive omitted, so it defaults to false) still hides it.
-            const defaultListed = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY);
+            // Listing with includeInactive: false still hides it.
+            const defaultListed = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
+                includeInactive: false,
+            });
             const stillVisibleByDefault = (
                 defaultListed.data.mcpOauthGrants.items as Array<{ oauthClientName: string | null }>
             ).some(g => g.oauthClientName === clientName);
@@ -625,7 +557,7 @@ describe('MCP admin API', () => {
         });
 
         it("mcpToolCallLogs hides another channel's rows (F1)", async () => {
-            const result = await adminGraphQL(superAdminToken, MCP_TOOL_CALL_LOGS_QUERY, {
+            const result = await adminGraphQL(superAdminToken, MCP_TOOL_CALL_LOGS_WITH_BODIES_QUERY, {
                 options: { take: 100 },
             });
             expect(result.errors).toBeUndefined();
@@ -666,7 +598,9 @@ describe('MCP admin API', () => {
             });
 
             // A fresh admin grant is channel-less (global), so it starts out visible.
-            const listed = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY);
+            const listed = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
+                includeInactive: false,
+            });
             const created = (
                 listed.data.mcpOauthGrants.items as Array<{ id: string; oauthClientName: string | null }>
             ).find(g => g.oauthClientName === clientName);
@@ -687,7 +621,9 @@ describe('MCP admin API', () => {
 
             // The active-channel admin no longer sees it (F2), and revoking it reports
             // not-found rather than succeeding (F3).
-            const afterMove = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY);
+            const afterMove = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
+                includeInactive: false,
+            });
             const stillVisible = (
                 afterMove.data.mcpOauthGrants.items as Array<{ oauthClientName: string | null }>
             ).some(g => g.oauthClientName === clientName);
