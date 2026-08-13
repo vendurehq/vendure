@@ -1,4 +1,5 @@
 import { Button } from '@/vdb/components/ui/button.js';
+import { LoadingState } from '@/vdb/components/ui/state-views.js';
 import {
     Command,
     CommandEmpty,
@@ -83,7 +84,11 @@ export function CountrySelector(props: CountrySelectorProps) {
                     </div>
                     <CommandList>
                         <CommandEmpty>
-                            {isLoading ? <Trans>Loading...</Trans> : <Trans>No countries found</Trans>}
+                            {isLoading ? (
+                                <LoadingState variant="spinner" className="py-4" />
+                            ) : (
+                                <Trans>No countries found</Trans>
+                            )}
                         </CommandEmpty>
                         {data?.countries.items.map(country => (
                             <CommandItem

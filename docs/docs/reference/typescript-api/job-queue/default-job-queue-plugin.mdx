@@ -2,6 +2,8 @@
 title: "DefaultJobQueuePlugin"
 generated: true
 ---
+## DefaultJobQueuePlugin
+
 <GenerationInfo sourceFile="packages/core/src/plugin/default-job-queue-plugin/default-job-queue-plugin.ts" sourceLine="127" packageName="@vendure/core" />
 
 A plugin which configures Vendure to use the SQL database to persist the JobQueue jobs using the [SqlJobQueueStrategy](/reference/typescript-api/job-queue/sql-job-queue-strategy#sqljobqueuestrategy). If you add this
@@ -131,10 +133,14 @@ class DefaultJobQueuePlugin {
 
 
 </div>
+## cleanJobsTask
+
 <GenerationInfo sourceFile="packages/core/src/plugin/default-job-queue-plugin/clean-jobs-task.ts" sourceLine="18" packageName="@vendure/core" since="3.3.0" />
 
 A [ScheduledTask](/reference/typescript-api/scheduled-tasks/scheduled-task#scheduledtask) that cleans up old jobs from the database when using the DefaultJobQueuePlugin.
 You can configure the settings & schedule of the task via the [DefaultJobQueuePlugin](/reference/typescript-api/job-queue/default-job-queue-plugin#defaultjobqueueplugin) options.
+
+## DefaultJobQueueOptions
 
 <GenerationInfo sourceFile="packages/core/src/plugin/default-job-queue-plugin/types.ts" sourceLine="12" packageName="@vendure/core" />
 

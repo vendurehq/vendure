@@ -11,6 +11,8 @@ type Mutation {
     updateAdministrator(input: UpdateAdministratorInput!): Administrator!
     "Update the active (currently logged-in) Administrator"
     updateActiveAdministrator(input: UpdateActiveAdministratorInput!): Administrator!
+    "Upload, replace or remove the active Administrator's profile picture"
+    setActiveAdministratorAvatar(file: Upload): Administrator!
     "Delete an Administrator"
     deleteAdministrator(id: ID!): DeletionResponse!
     "Delete multiple Administrators"

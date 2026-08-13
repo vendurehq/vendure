@@ -1,6 +1,7 @@
 import { Trans } from '@lingui/react/macro';
 import { BOOLEAN_OPERATORS } from './filters/data-table-boolean-filter.js';
 import { DATETIME_OPERATORS } from './filters/data-table-datetime-filter.js';
+import { ENUM_OPERATORS } from './filters/data-table-enum-filter.js';
 import { ID_OPERATORS } from './filters/data-table-id-filter.js';
 import { NUMBER_OPERATORS } from './filters/data-table-number-filter.js';
 import { STRING_OPERATORS } from './filters/data-table-string-filter.js';
@@ -8,6 +9,7 @@ import { STRING_OPERATORS } from './filters/data-table-string-filter.js';
 export type Operator =
     | (typeof DATETIME_OPERATORS)[number]
     | (typeof BOOLEAN_OPERATORS)[number]
+    | (typeof ENUM_OPERATORS)[number]
     | (typeof ID_OPERATORS)[number]
     | (typeof NUMBER_OPERATORS)[number]
     | (typeof STRING_OPERATORS)[number];

@@ -1,0 +1,57 @@
+---
+title: "Custom Providers"
+generated: true
+---
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/custom-providers.ts" sourceLine="20" packageName="@vendure/dashboard" since="3.7.0" />
+
+Allows you to define custom React providers that wrap selected parts of the dashboard UI.
+This is useful for cross-cutting concerns such as custom context, error boundaries,
+feature flags, telemetry, or theming.
+
+Providers can be mounted at either the application root (`'app'`) or the authenticated
+layout main content area (`'layout'`, i.e. the `<Outlet />` subtree only; sidebar and
+header are outside this wrapper).
+
+```ts title="Signature"
+type DashboardCustomProviderDefinition = {
+    id: string;
+    component: ComponentType<{ children: ReactNode }>;
+    order?: number;
+    location?: 'app' | 'layout';
+}
+```
+
+<div className="members-wrapper">
+
+### id
+
+<MemberInfo kind="property" type={`string`}   />
+
+A unique identifier for this custom provider.
+### component
+
+<MemberInfo kind="property" type={`ComponentType<{ children: ReactNode }>`}   />
+
+The React provider component to render. It receives `children` and should
+return a wrapped subtree.
+### order
+
+<MemberInfo kind="property" type={`number`}   />
+
+Optional. Controls render order relative to other providers at the same location.
+Lower numbers render first (outermost), higher numbers render later (innermost).
+### location
+
+<MemberInfo kind="property" type={`'app' | 'layout'`}   />
+
+Determines where this provider is mounted in the dashboard hierarchy.
+
+- `'app'`: Wraps the entire dashboard application at the root level.
+- `'layout'`: Wraps the main content area of the authenticated layout (the `<Outlet />` subtree).
+
+The sidebar and header are outside this wrapper.
+
+Optional. Defaults to 'app' if not specified.
+
+
+</div>

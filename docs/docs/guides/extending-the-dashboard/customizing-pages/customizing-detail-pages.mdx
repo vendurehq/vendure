@@ -1,21 +1,46 @@
 ---
 title: 'Customizing Detail Pages'
-metaTitle: "Customizing Detail Pages in the Vendure Dashboard"
-metaDescription: "Replace default form inputs, extend GraphQL detail queries, and interact with the detail page form using DashboardDetailFormExtensionDefinition."
+metaTitle: 'Customizing Detail Pages in the Vendure Dashboard'
+metaDescription: 'Replace native detail-page inputs, extend GraphQL detail queries, and interact with the detail page form using DashboardDetailFormExtensionDefinition.'
 ---
 
 Using the [DashboardDetailFormExtensionDefinition](/reference/dashboard/extensions-api/detail-forms#dashboarddetailformextensiondefinition) you can
 customize any existing detail page in the Dashboard.
 
-## Custom form inputs
+Use this API when the existing detail page is mostly right and you only need to add data, replace a native field input, or support custom page blocks. You usually do not need to recreate the whole detail route.
+
+## Targeting a detail form
+
+Detail form extensions are targeted by `pageId`. Individual input replacements are also targeted by `blockId` and `field`:
+
+```tsx
+defineDashboardExtension({
+    detailForms: [
+        {
+            pageId: 'product-detail',
+            inputs: [
+                {
+                    blockId: 'main-form',
+                    field: 'description',
+                    component: MarkdownEditor,
+                },
+            ],
+        },
+    ],
+});
+```
+
+Use [Dev Mode](/extending-the-dashboard/extending-overview/#dev-mode) or the [Extension Targets reference](/extending-the-dashboard/customizing-pages/extension-targets/) to find the `pageId`, `blockId`, and field name.
+
+## Replacing Native Form Inputs
 
 :::warning[Custom Fields]
-This feature replaces inputs for **built-in entity fields** only (like `name`, `description`, `slug`).
+This feature replaces inputs for **native entity fields** only, like `name`, `description`, `slug`, or `emailAddress`.
 
-To customize the form input for a **custom field** you defined in your plugin, use the [Custom Field Components](/guides/extending-the-dashboard/custom-form-components/#custom-field-components) instead.
+To customize the form input for a **custom field** you defined in your plugin, use [Custom Field Components](/extending-the-dashboard/custom-form-components/#custom-field-components) instead.
 :::
 
-You can replace any of the default form inputs with your own components using the `inputs` property.
+You can replace native detail-page inputs with your own components using the `inputs` property.
 
 Let's say you want to replace the default HTML description editor with a markdown editor component:
 
@@ -40,7 +65,7 @@ defineDashboardExtension({
 });
 ```
 
-To learn how to build custom form components, see the [Custom Form Elements guide](/extending-the-dashboard/custom-form-components/).
+To learn how to build reusable input components, see the [Customizing Forms guide](/extending-the-dashboard/custom-form-components/).
 
 ## Extending the detail query
 
@@ -55,21 +80,89 @@ defineDashboardExtension({
         {
             pageId: 'product-detail',
             extendDetailDocument: `
-          query {
-              product(id: $id) {
-                  relatedProducts {
-                      id
-                      name
-                      featuredAsset {
-                        id
-                        preview
-                      }
-                  }
-              }
-          }
-      `,
+                query {
+                    product(id: $id) {
+                        relatedProducts {
+                            id
+                            name
+                            featuredAsset {
+                                id
+                                preview
+                            }
+                        }
+                    }
+                }
+            `,
         },
     ],
+});
+```
+
+The extension query must select the same top-level field as the original detail query. For example, the product detail page fetches `product(id: $id)`, so the extension document must also select `product(id: $id)`.
+
+The extra fields become available to page blocks through the page `context.entity` object:
+
+```tsx title="index.tsx"
+import { Badge, defineDashboardExtension } from '@vendure/dashboard';
+
+defineDashboardExtension({
+    detailForms: [
+        {
+            pageId: 'product-detail',
+            extendDetailDocument: `
+                query {
+                    product(id: $id) {
+                        relatedProducts {
+                            id
+                            name
+                        }
+                    }
+                }
+            `,
+        },
+    ],
+    pageBlocks: [
+        {
+            id: 'related-products',
+            title: 'Related products',
+            location: {
+                pageId: 'product-detail',
+                column: 'side',
+                position: {
+                    blockId: 'facet-values',
+                    order: 'after',
+                },
+            },
+            component: ({ context }) => {
+                const relatedProducts = context.entity?.relatedProducts ?? [];
+                return (
+                    <div className="flex flex-wrap gap-1">
+                        {relatedProducts.map(product => (
+                            <Badge key={product.id} variant="secondary">
+                                {product.name}
+                            </Badge>
+                        ))}
+                    </div>
+                );
+            },
+        },
+    ],
+});
+```
+
+If you are building a custom detail page with `useDetailPage()`, pass the same `pageId` to the hook. This allows `extendDetailDocument` registrations for that page to be applied:
+
+```tsx
+const { form, submitHandler, entity } = useDetailPage({
+    pageId: 'article-detail',
+    queryDocument: articleDetailDocument,
+    updateDocument: updateArticleDocument,
+    createDocument: createArticleDocument,
+    params: { id: params.id },
+    setValuesForUpdate: article => ({
+        id: article?.id ?? '',
+        title: article?.title ?? '',
+    }),
 });
 ```
 
@@ -91,7 +184,9 @@ import { useEffect } from 'react';
 import { useFormContext } from '@vendure/dashboard';
 
 export function MyPageBlock() {
-    const { formState: { isSubmitSuccessful } } = useFormContext();
+    const {
+        formState: { isSubmitSuccessful },
+    } = useFormContext();
 
     useEffect(() => {
         if (isSubmitSuccessful) {
@@ -107,31 +202,40 @@ Let's say you have a page block that interacts with a custom mutation to set som
 data related to a Product. You want to fire your custom mutation when the form is submitted -
 this is done using the pattern above.
 
-However, you need to somehow signal to the form that it is now dirty and can be save, even though
+However, you need to somehow signal to the form that it is now dirty and can be saved, even though
 no property of the Product itself may have changed.
 
-Here's a work-around to allow this:
+Here's a pattern to allow this:
 
 ```tsx
 import { useEffect } from 'react';
-import { useFormContext } from '@vendure/dashboard';
-import { Button } from '@vendure/dashboard';
+import { Button, useFormContext } from '@vendure/dashboard';
 
 export function MyPageBlock() {
-    const { register } = useFormContext();
+    const { register, setValue } = useFormContext();
 
     useEffect(() => {
         // We register a "fake" field on the form that we only use
         // to track the dirty state of this page block component
-        register('my-page-block-dirty-tracker')
+        register('my-page-block-dirty-tracker');
     }, [register]);
-    
+
     return (
-        <Button onClick={() => {
-            // We set that "fake" field to a random value to mark the whole
-            // form as dirty, so the "save" button becomes enabled.
-            setValue('dirty-tracker', Math.random(), { shouldDirty: true });
-        }}>Set dirty</Button>
+        <Button
+            onClick={() => {
+                // We set that "fake" field to a random value to mark the whole
+                // form as dirty, so the "save" button becomes enabled.
+                setValue('my-page-block-dirty-tracker', Math.random(), { shouldDirty: true });
+            }}
+        >
+            Set dirty
+        </Button>
     );
 }
 ```
+
+## When to use page blocks instead
+
+Use a [page block](/extending-the-dashboard/customizing-pages/page-blocks) when the data or UI does not belong inside the generated form grid. Page blocks can access the same `context.entity` and `context.form` values, can be placed in the main or side column, and can replace existing blocks when needed.
+
+Use `detailForms.inputs` only when you want to replace the input for a specific native field. For custom fields, use [custom field components](/extending-the-dashboard/custom-form-components/#custom-field-components).

@@ -1,4 +1,6 @@
 export const DEFAULT_SCHEDULER_PLUGIN_OPTIONS = Symbol('DEFAULT_SCHEDULER_PLUGIN_OPTIONS');
 export const DEFAULT_TIMEOUT = 60000;
 export const DEFAULT_MANUAL_TRIGGER_CHECK_INTERVAL = 10000;
+export const DEFAULT_LOCK_HOLD_FRACTION = 0.8;
+export const DEFAULT_MAX_LOCK_HOLD_MS = 5000;
 export const loggerCtx = 'DefaultSchedulerPlugin';

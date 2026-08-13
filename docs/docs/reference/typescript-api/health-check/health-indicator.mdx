@@ -1,0 +1,25 @@
+---
+title: "HealthIndicator"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/health-check/terminus-compat.ts" sourceLine="92" packageName="@vendure/core" />
+
+Base class for custom health indicators. Subclasses use `HealthIndicator.getStatus`
+to build a [HealthIndicatorResult](/reference/typescript-api/health-check/health-indicator-result#healthindicatorresult) and throw [HealthCheckError](/reference/typescript-api/health-check/health-check-error#healthcheckerror)to signal failures.
+
+```ts title="Signature"
+class HealthIndicator {
+    getStatus(key: string, isHealthy: boolean, data?: { [optionalKey: string]: unknown }) => HealthIndicatorResult;
+}
+```
+
+<div className="members-wrapper">
+
+### getStatus
+
+<MemberInfo kind="method" type={`(key: string, isHealthy: boolean, data?: { [optionalKey: string]: unknown }) => <a href='/reference/typescript-api/health-check/health-indicator-result#healthindicatorresult'>HealthIndicatorResult</a>`}   />
+
+
+
+
+</div>

@@ -13,6 +13,36 @@ import * as pluginModule from './plugin/create-new-plugin';
 import * as serviceModule from './service/add-service';
 import * as uiExtensionsModule from './ui-extensions/add-ui-extensions';
 
+const stdinIsTTYDescriptor = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY');
+const stdoutIsTTYDescriptor = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY');
+
+function setStdinIsTTY(isTTY: boolean) {
+    Object.defineProperty(process.stdin, 'isTTY', {
+        configurable: true,
+        value: isTTY,
+    });
+}
+
+function setStdoutIsTTY(isTTY: boolean) {
+    Object.defineProperty(process.stdout, 'isTTY', {
+        configurable: true,
+        value: isTTY,
+    });
+}
+
+function restoreTTYDescriptors() {
+    if (stdinIsTTYDescriptor) {
+        Object.defineProperty(process.stdin, 'isTTY', stdinIsTTYDescriptor);
+    } else {
+        delete (process.stdin as { isTTY?: boolean }).isTTY;
+    }
+    if (stdoutIsTTYDescriptor) {
+        Object.defineProperty(process.stdout, 'isTTY', stdoutIsTTYDescriptor);
+    } else {
+        delete (process.stdout as { isTTY?: boolean }).isTTY;
+    }
+}
+
 // Mock all the core functions
 vi.mock('./plugin/create-new-plugin', () => ({
     createNewPlugin: vi.fn(),
@@ -65,6 +95,10 @@ describe('add command', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+        vi.stubEnv('CI', 'false');
+        vi.stubEnv('VENDURE_CLI_NON_INTERACTIVE', 'false');
+        setStdinIsTTY(true);
+        setStdoutIsTTY(true);
         // Default to successful operation (all functions return CliCommandReturnVal)
         const defaultReturnValue = {
             project: {} as any,
@@ -80,6 +114,8 @@ describe('add command', () => {
     });
 
     afterEach(() => {
+        vi.unstubAllEnvs();
+        restoreTTYDescriptors();
         vi.restoreAllMocks();
     });
 
@@ -266,6 +302,41 @@ describe('add command', () => {
 
             expect(intro).toHaveBeenCalled();
             expect(mockCreateNewPlugin).not.toHaveBeenCalled();
+        });
+
+        it('fails fast when no operation is provided in a non-interactive environment', async () => {
+            const { intro, log } = await import('@clack/prompts');
+            const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+
+            setStdinIsTTY(false);
+
+            await addCommand();
+
+            expect(log.error).toHaveBeenCalledWith(
+                'Cannot run "vendure add" interactively because non-interactive mode is active.',
+            );
+            expect(log.info).toHaveBeenCalledWith(expect.stringContaining('VENDURE_CLI_NON_INTERACTIVE'));
+            expect(intro).not.toHaveBeenCalled();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+
+            exitSpy.mockRestore();
+        });
+
+        it('fails fast when VENDURE_CLI_NON_INTERACTIVE is set and no operation is provided', async () => {
+            const { intro, log } = await import('@clack/prompts');
+            const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+
+            vi.stubEnv('VENDURE_CLI_NON_INTERACTIVE', 'true');
+
+            await addCommand();
+
+            expect(log.error).toHaveBeenCalledWith(
+                'Cannot run "vendure add" interactively because non-interactive mode is active.',
+            );
+            expect(intro).not.toHaveBeenCalled();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+
+            exitSpy.mockRestore();
         });
 
         it('enters non-interactive mode when config is provided with operation flag', async () => {

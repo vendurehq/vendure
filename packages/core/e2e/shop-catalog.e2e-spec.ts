@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { LanguageCode } from '@vendure/common/lib/generated-types';
+import { LanguageCode, LogicalOperator } from '@vendure/common/lib/generated-types';
 import { facetValueCollectionFilter } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import * as path from 'path';
@@ -13,6 +13,7 @@ import { ResultOf } from './graphql/graphql-admin';
 import {
     createCollectionDocument,
     createFacetDocument,
+    createProductDocument,
     getFacetListDocument,
     getProductSimpleDocument,
     getProductWithVariantsDocument,
@@ -23,12 +24,15 @@ import {
 import {
     getCollectionListDocument,
     getCollectionShopDocument,
+    getCollectionsWithOptionsDocument,
     getCollectionVariantsDocument,
+    getFacetsWithOptionsDocument,
     getProduct1Document,
     getProduct2VariantsDocument,
     getProductCollectionDocument,
     getProductFacetValuesDocument,
     getProductsTake3Document,
+    getProductsWithOptionsDocument,
     getProductVariantFacetValuesDocument,
 } from './graphql/shop-definitions';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
@@ -335,6 +339,157 @@ describe('Shop catalog', () => {
             });
 
             expect(result.collection?.parent).toBeNull();
+        });
+    });
+
+    // The Shop API injects mandatory guard filters (Product.enabled = true,
+    // Collection/Facet.isPrivate = false). These guards must always be applied, regardless of
+    // the caller's filterOperator.
+    describe('list query guard filters are always applied', () => {
+        let disabledProductId: string;
+        let privateCollectionId: string;
+        let privateFacetId: string;
+        // A known-public collection/facet to OR alongside the private one, so the guard tests
+        // assert the public entity is returned while the private one is dropped (non-vacuous).
+        let publicCollectionId: string;
+        let publicFacetId: string;
+
+        beforeAll(async () => {
+            const { createProduct } = await adminClient.query(createProductDocument, {
+                input: {
+                    enabled: false,
+                    translations: [
+                        {
+                            languageCode: LanguageCode.en,
+                            name: 'Secret Disabled Product',
+                            slug: 'secret-disabled-product',
+                            description: '',
+                        },
+                    ],
+                },
+            });
+            disabledProductId = createProduct.id;
+
+            const { createCollection } = await adminClient.query(createCollectionDocument, {
+                input: {
+                    isPrivate: true,
+                    filters: [],
+                    translations: [
+                        {
+                            languageCode: LanguageCode.en,
+                            name: 'Secret Private Collection',
+                            slug: 'secret-private-collection',
+                            description: '',
+                        },
+                    ],
+                },
+            });
+            privateCollectionId = createCollection.id;
+
+            const { createFacet } = await adminClient.query(createFacetDocument, {
+                input: {
+                    code: 'secret-private-facet',
+                    isPrivate: true,
+                    translations: [{ languageCode: LanguageCode.en, name: 'Secret Private Facet' }],
+                    values: [],
+                },
+            });
+            privateFacetId = createFacet.id;
+
+            await awaitRunningJobs(adminClient);
+
+            // The Shop API only returns public entities, so the first item is guaranteed public.
+            const { collections } = await shopClient.query(getCollectionsWithOptionsDocument, {
+                options: { take: 1 },
+            });
+            publicCollectionId = collections.items[0].id;
+            const { facets } = await shopClient.query(getFacetsWithOptionsDocument, {
+                options: { take: 1 },
+            });
+            publicFacetId = facets.items[0].id;
+        });
+
+        it('products: disabled products are excluded when filterOperator is OR', async () => {
+            // OR a guard-violating clause (the disabled product) with a legitimate enabled product.
+            // The guard must drop the disabled product while the enabled one (curvy-monitor = T_2)
+            // is still returned — so the result is non-empty for the right reason, not vacuously.
+            const result = await shopClient.query(getProductsWithOptionsDocument, {
+                options: {
+                    filterOperator: LogicalOperator.OR,
+                    filter: { id: { eq: disabledProductId }, slug: { eq: 'curvy-monitor' } },
+                },
+            });
+
+            expect(result.products.items.map(p => p.id)).toEqual(['T_2']);
+            expect(result.products.items.map(p => p.id)).not.toContain(disabledProductId);
+        });
+
+        it('products: caller filter is still applied alongside the guard', async () => {
+            // Ensures the guard does not swallow the caller's own filter (the guard is
+            // AND-combined with it, not substituted for it).
+            const result = await shopClient.query(getProductsWithOptionsDocument, {
+                options: { filter: { id: { eq: 'T_2' } } },
+            });
+
+            expect(result.products.items.map(p => p.id)).toEqual(['T_2']);
+        });
+
+        it('products: OR semantics preserved across caller filter fields', async () => {
+            // T_2 (curvy-monitor) and T_3 are both enabled. An OR across two fields must return
+            // both, proving the guard is AND-combined with the caller's filter without downgrading
+            // the caller's own OR to AND.
+            const result = await shopClient.query(getProductsWithOptionsDocument, {
+                options: {
+                    filterOperator: LogicalOperator.OR,
+                    filter: { slug: { eq: 'curvy-monitor' }, id: { eq: 'T_3' } },
+                },
+            });
+
+            expect(result.products.items.map(p => p.id).sort()).toEqual(['T_2', 'T_3']);
+        });
+
+        it('products: disabled products are excluded with an _or filter block', async () => {
+            // The guard must also hold when the caller embeds an _or group in the filter object
+            // itself (rather than via filterOperator). OR the disabled product with an enabled one
+            // so a passing result proves the guard removed only the disabled product.
+            const result = await shopClient.query(getProductsWithOptionsDocument, {
+                options: {
+                    filter: { _or: [{ id: { eq: disabledProductId } }, { id: { eq: 'T_2' } }] },
+                },
+            });
+
+            expect(result.products.items.map(p => p.id)).toEqual(['T_2']);
+            expect(result.products.items.map(p => p.id)).not.toContain(disabledProductId);
+        });
+
+        it('collections: private collections are excluded when filterOperator is OR', async () => {
+            // Request both the private and a public collection. The guard must drop the private one
+            // while the public one is returned, so the result is non-empty for the right reason.
+            const result = await shopClient.query(getCollectionsWithOptionsDocument, {
+                options: {
+                    filterOperator: LogicalOperator.OR,
+                    filter: { id: { in: [privateCollectionId, publicCollectionId] } },
+                },
+            });
+
+            const ids = result.collections.items.map(c => c.id);
+            expect(ids).toContain(publicCollectionId);
+            expect(ids).not.toContain(privateCollectionId);
+        });
+
+        it('facets: private facets are excluded when filterOperator is OR', async () => {
+            // Request both the private and a public facet. The guard must drop the private one
+            // while the public one is returned, so the result is non-empty for the right reason.
+            const result = await shopClient.query(getFacetsWithOptionsDocument, {
+                options: {
+                    filterOperator: LogicalOperator.OR,
+                    filter: { id: { in: [privateFacetId, publicFacetId] } },
+                },
+            });
+
+            const ids = result.facets.items.map(f => f.id);
+            expect(ids).toContain(publicFacetId);
+            expect(ids).not.toContain(privateFacetId);
         });
     });
 });

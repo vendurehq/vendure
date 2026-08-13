@@ -2,7 +2,7 @@
 title: "AuthOptions"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/config/vendure-config.ts" sourceLine="364" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/vendure-config.ts" sourceLine="368" packageName="@vendure/core" />
 
 The AuthOptions define how authentication and authorization is managed.
 
@@ -28,6 +28,7 @@ interface AuthOptions {
     passwordValidationStrategy?: PasswordValidationStrategy;
     verificationTokenStrategy?: VerificationTokenStrategy;
     entityAccessControlStrategy?: EntityAccessControlStrategy;
+    customerChannelAssignmentStrategy?: CustomerChannelAssignmentStrategy;
 }
 ```
 
@@ -182,7 +183,7 @@ policy, which you can do like this:
 Allows you to customize the way verification tokens are generated.
 ### entityAccessControlStrategy
 
-<MemberInfo kind="property" type={`<a href='/reference/typescript-api/auth/entity-access-control-strategy#entityaccesscontrolstrategy'>EntityAccessControlStrategy</a>`} default={`<a href='/reference/typescript-api/auth/default-entity-access-control-strategy#defaultentityaccesscontrolstrategy'>DefaultEntityAccessControlStrategy</a>`}  since="3.6.0" experimental="true" />
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/auth/entity-access-control-strategy#entityaccesscontrolstrategy'>EntityAccessControlStrategy</a>`} default={`<a href='/reference/typescript-api/auth/entity-access-control-strategy#defaultentityaccesscontrolstrategy'>DefaultEntityAccessControlStrategy</a>`}  since="3.6.0" experimental="true" />
 
 Allows you to define access control for entity queries at three levels:
 
@@ -191,6 +192,13 @@ Allows you to define access control for entity queries at three levels:
 - `applyAccessControl()` — synchronous row-level QB filtering (every entity query)
 
 **Developer preview:** this API is subject to change in future releases.
+### customerChannelAssignmentStrategy
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/auth/customer-channel-assignment-strategy#customerchannelassignmentstrategy'>CustomerChannelAssignmentStrategy</a>`} default={`<a href='/reference/typescript-api/auth/customer-channel-assignment-strategy#defaultcustomerchannelassignmentstrategy'>DefaultCustomerChannelAssignmentStrategy</a>`}  since="3.7.0"  />
+
+Determines whether an authenticated Customer is auto-assigned to the active Channel.
+This is skipped for the default channel, `disableAuth`, and registration/checkout flows.
+The default strategy always assigns.
 
 
 </div>

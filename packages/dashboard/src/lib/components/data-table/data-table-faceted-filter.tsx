@@ -1,9 +1,7 @@
 import { Column } from '@tanstack/react-table';
-import { FilterIcon } from 'lucide-react';
+import { FilterIcon, XIcon } from 'lucide-react';
 import * as React from 'react';
 
-import { Badge } from '@/vdb/components/ui/badge.js';
-import { Button } from '@/vdb/components/ui/button.js';
 import { Checkbox } from '@/vdb/components/ui/checkbox.js';
 import {
     Command,
@@ -15,9 +13,8 @@ import {
     CommandSeparator,
 } from '@/vdb/components/ui/command.js';
 import { Popover, PopoverContent, PopoverTrigger } from '@/vdb/components/ui/popover.js';
-import { Separator } from '@/vdb/components/ui/separator.js';
 import { cn } from '@/vdb/lib/utils.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 
 export interface DataTableFacetedFilterOption {
     label: string;
@@ -31,6 +28,64 @@ export interface DataTableFacetedFilterProps<TData, TValue> {
     icon?: React.ComponentType<{ className?: string }>;
     options?: DataTableFacetedFilterOption[];
     optionsFn?: () => Promise<DataTableFacetedFilterOption[]>;
+    /**
+     * When true, the filter's popover opens as soon as the chip mounts — used
+     * when the filter is launched from the toolbar's unified "Filter" menu.
+     */
+    defaultOpen?: boolean;
+    onOpenChange?: (open: boolean) => void;
+}
+
+/**
+ * The chip that represents a faceted filter in the toolbar's active-filter row.
+ * Styled to match {@link DataTableFilterBadge} so faceted and column filters
+ * read as one system. Must be rendered inside a `<Popover>` — the chip body is
+ * the popover trigger; the ✕ segment clears the filter.
+ */
+export function FacetedFilterChip({
+    icon: Icon,
+    title,
+    valueLabel,
+    onClear,
+}: Readonly<{
+    icon?: React.ComponentType<{ className?: string }>;
+    title?: string;
+    valueLabel?: string;
+    onClear?: () => void;
+}>) {
+    const TriggerIcon = Icon ?? FilterIcon;
+    const hasValue = valueLabel != null;
+    return (
+        <div
+            className={cn(
+                'inline-flex items-center h-8 rounded-md border border-input bg-background text-sm',
+                !hasValue && 'border-dashed',
+            )}
+        >
+            <PopoverTrigger
+                render={
+                    <button
+                        className={cn(
+                            'flex gap-1 items-center cursor-pointer px-2 py-1 hover:bg-accent/50 rounded-l-md transition-colors',
+                            !hasValue && 'rounded-r-md',
+                        )}
+                    />
+                }
+            >
+                <TriggerIcon className="size-3 text-muted-foreground flex-shrink-0" />
+                <span className="max-w-[200px] truncate">{title}</span>
+                {hasValue && <span className="max-w-[200px] truncate text-muted-foreground">{valueLabel}</span>}
+            </PopoverTrigger>
+            {hasValue && onClear && (
+                <button
+                    className="flex items-center justify-center h-full px-1.5 border-l border-input hover:bg-accent/50 rounded-r-md transition-colors"
+                    onClick={onClear}
+                >
+                    <XIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                </button>
+            )}
+        </div>
+    );
 }
 
 export function DataTableFacetedFilter<TData, TValue>({
@@ -39,7 +94,10 @@ export function DataTableFacetedFilter<TData, TValue>({
     icon,
     options,
     optionsFn,
+    defaultOpen,
+    onOpenChange,
 }: DataTableFacetedFilterProps<TData, TValue>) {
+    const { t } = useLingui();
     const facets = column?.getFacetedUniqueValues();
     const filterValue = column?.getFilterValue();
 
@@ -51,7 +109,6 @@ export function DataTableFacetedFilter<TData, TValue>({
         options || [],
     );
     const [isLoading, setIsLoading] = React.useState(false);
-    const Icon = icon;
 
     React.useEffect(() => {
         if (optionsFn) {
@@ -72,40 +129,25 @@ export function DataTableFacetedFilter<TData, TValue>({
     }, [optionsFn]);
     const isBoolean = (column?.columnDef?.meta as any)?.fieldInfo.type === 'Boolean';
 
+    const selectedLabels = resolvedOptions
+        .filter(option => selectedValues.has(option.value))
+        .map(option => option.label);
+    let valueLabel: string | undefined;
+    if (selectedValues.size > 0) {
+        valueLabel =
+            selectedValues.size > 2 || selectedLabels.length === 0
+                ? t`${selectedValues.size} selected`
+                : selectedLabels.join(', ');
+    }
+
     return (
-        <Popover>
-            <PopoverTrigger render={<Button variant="outline" size="sm" className="h-8" />}>
-                    {Icon && <Icon />}
-                    {!Icon && <FilterIcon />}
-                    {title}
-                    {selectedValues?.size > 0 && (
-                        <>
-                            <Separator orientation="vertical" className="mx-2" />
-                            <Badge variant="secondary" className="rounded-sm px-1 font-normal lg:hidden">
-                                {selectedValues.size}
-                            </Badge>
-                            <div className="hidden space-x-1 lg:flex">
-                                {selectedValues.size > 2 ? (
-                                    <Badge variant="secondary" className="rounded-sm px-1 font-normal">
-                                        {selectedValues.size} selected
-                                    </Badge>
-                                ) : (
-                                    resolvedOptions
-                                        .filter(option => selectedValues.has(option.value))
-                                        .map(option => (
-                                            <Badge
-                                                variant="secondary"
-                                                key={option.value}
-                                                className="rounded-sm px-1 font-normal"
-                                            >
-                                                {option.label}
-                                            </Badge>
-                                        ))
-                                )}
-                            </div>
-                        </>
-                    )}
-            </PopoverTrigger>
+        <Popover defaultOpen={defaultOpen} onOpenChange={onOpenChange}>
+            <FacetedFilterChip
+                icon={icon}
+                title={title}
+                valueLabel={valueLabel}
+                onClear={() => column?.setFilterValue(undefined)}
+            />
             <PopoverContent className="w-auto min-w-50 max-w-75 p-0" align="start">
                 <Command>
                     {resolvedOptions.length > 2 ? <CommandInput placeholder={title} /> : null}
@@ -145,9 +187,7 @@ export function DataTableFacetedFilter<TData, TValue>({
                                             <div
                                                 className={cn(
                                                     'mr-2 flex h-4 w-4 items-center justify-center rounded-full border border-primary',
-                                                    isSelected
-                                                        ? 'bg-primary text-primary-foreground'
-                                                        : '',
+                                                    isSelected ? 'bg-primary text-primary-foreground' : '',
                                                 )}
                                             >
                                                 {isSelected && (

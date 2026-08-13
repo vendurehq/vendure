@@ -642,6 +642,20 @@ export const activeOrderCustomerDocument = graphql(`
     }
 `);
 
+export const getActiveOrderCustomerUserDocument = graphql(`
+    query GetActiveOrderCustomerUser {
+        activeOrder {
+            customer {
+                id
+                user {
+                    id
+                    verified
+                }
+            }
+        }
+    }
+`);
+
 export const setCustomerDocument = graphql(
     `
         mutation SetCustomerForOrder($input: CreateCustomerInput!) {
@@ -845,6 +859,7 @@ export const addPaymentDocument = graphql(
     `
         mutation AddPaymentToOrder($input: PaymentInput!) {
             addPaymentToOrder(input: $input) {
+                __typename
                 ...TestOrderWithPayments
                 ... on ErrorResult {
                     errorCode
@@ -861,6 +876,12 @@ export const addPaymentDocument = graphql(
                 }
                 ... on IneligiblePaymentMethodError {
                     eligibilityCheckerMessage
+                }
+                ... on CouponRemovedDuringCheckoutError {
+                    removedCouponCodes
+                    previousTotalWithTax
+                    newTotalWithTax
+                    currencyCode
                 }
             }
         }
@@ -1192,6 +1213,43 @@ export const getProductVariantFacetValuesDocument = graphql(`
                 facetValues {
                     name
                 }
+            }
+        }
+    }
+`);
+
+export const getProductsWithOptionsDocument = graphql(`
+    query GetProductsWithOptions($options: ProductListOptions) {
+        products(options: $options) {
+            totalItems
+            items {
+                id
+                name
+                enabled
+            }
+        }
+    }
+`);
+
+export const getCollectionsWithOptionsDocument = graphql(`
+    query GetCollectionsWithOptions($options: CollectionListOptions) {
+        collections(options: $options) {
+            totalItems
+            items {
+                id
+                name
+            }
+        }
+    }
+`);
+
+export const getFacetsWithOptionsDocument = graphql(`
+    query GetFacetsWithOptions($options: FacetListOptions) {
+        facets(options: $options) {
+            totalItems
+            items {
+                id
+                name
             }
         }
     }

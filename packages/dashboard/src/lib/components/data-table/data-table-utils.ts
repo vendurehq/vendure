@@ -37,17 +37,23 @@ export function getColumnVisibility(
 }
 
 /**
- * Ensures that the default column order always starts with `id`, `createdAt`, `deletedAt`
+ * Column ids that are always pinned to the start of the table and cannot be
+ * reordered by the user.
+ */
+export const pinnedLeadingColumns: string[] = ['id', 'createdAt', 'updatedAt'];
+
+/**
+ * Ensures that the default column order always starts with pinned leading columns
  */
 export function getStandardizedDefaultColumnOrder<T extends string | number | symbol>(
     defaultColumnOrder?: T[],
 ): T[] {
-    const standardFirstColumns = new Set(['id', 'createdAt', 'updatedAt']);
+    const pinnedLeadingSet = new Set<string>(pinnedLeadingColumns);
     if (!defaultColumnOrder) {
-        return [...standardFirstColumns] as T[];
+        return [...pinnedLeadingColumns] as T[];
     }
-    const rest = defaultColumnOrder.filter(c => !standardFirstColumns.has(c as string));
-    return [...standardFirstColumns, ...rest] as T[];
+    const rest = defaultColumnOrder.filter(c => !pinnedLeadingSet.has(c as string));
+    return [...pinnedLeadingColumns, ...rest] as T[];
 }
 
 /**

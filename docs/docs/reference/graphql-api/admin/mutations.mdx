@@ -2296,6 +2296,50 @@ type Mutation {
 }`}
 </GraphQLDoc>
 
+<a name="requestpasswordreset"></a>
+
+## requestPasswordReset
+
+<GraphQLDoc
+  type="mutation"
+  typeName="requestPasswordReset"
+  typeLinks={{
+    RequestPasswordResetResult: '/reference/graphql-api/admin/object-types#requestpasswordresetresult',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`"""
+Requests a password reset email to be sent to the Administrator with the given email address. To
+prevent leaking information about which email addresses exist, the mutation resolves to \`Success\`
+even if no Administrator with that email address was found.
+"""
+type Mutation {
+  requestPasswordReset(emailAddress: String!): RequestPasswordResetResult
+}`}
+</GraphQLDoc>
+
+<a name="resetpassword"></a>
+
+## resetPassword
+
+<GraphQLDoc
+  type="mutation"
+  typeName="resetPassword"
+  typeLinks={{
+    ResetPasswordResult: '/reference/graphql-api/admin/object-types#resetpasswordresult',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`"""
+Resets an Administrator's password based on the provided token, which is obtained via the email
+sent as a result of the \`requestPasswordReset\` mutation. Upon success, the Administrator will be
+signed in.
+"""
+type Mutation {
+  resetPassword(token: String!, password: String!): ResetPasswordResult!
+}`}
+</GraphQLDoc>
+
 <a name="rotateapikey"></a>
 
 ## rotateApiKey
@@ -2348,6 +2392,24 @@ type Mutation {
 >
 {`type Mutation {
   runScheduledTask(id: String!): Success!
+}`}
+</GraphQLDoc>
+
+<a name="setactiveadministratoravatar"></a>
+
+## setActiveAdministratorAvatar
+
+<GraphQLDoc
+  type="mutation"
+  typeName="setActiveAdministratorAvatar"
+  typeLinks={{
+    Administrator: '/reference/graphql-api/admin/object-types#administrator',
+    Upload: '/reference/graphql-api/admin/object-types#upload',
+  }}
+>
+{`"""Upload, replace or remove the active Administrator's profile picture"""
+type Mutation {
+  setActiveAdministratorAvatar(file: Upload): Administrator!
 }`}
 </GraphQLDoc>
 

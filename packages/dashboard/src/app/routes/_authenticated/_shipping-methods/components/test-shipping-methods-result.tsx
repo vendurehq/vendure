@@ -75,7 +75,7 @@ export function TestShippingMethodsResult({
                                     <Check className="h-5 w-5 text-success" />
                                     <div className="">{method.name}</div>
                                 </div>
-                                <Badge variant="secondary">{method.code}</Badge>
+                                <Badge variant="default">{method.code}</Badge>
                                 {method.description && (
                                     <div className="text-sm text-muted-foreground mt-1">
                                         {method.description}

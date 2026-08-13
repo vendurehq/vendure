@@ -5,6 +5,8 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/vdb/components/ui/dialog.js';
+import { Trans } from '@lingui/react/macro';
+import { ComponentProps } from 'react';
 import { AssetPreview, AssetWithTags } from './asset-preview.js';
 
 interface AssetPreviewDialogProps {
@@ -13,6 +15,7 @@ interface AssetPreviewDialogProps {
     asset: AssetWithTags;
     assets?: AssetWithTags[];
     customFields?: any[];
+    onAssetUpdated?: ComponentProps<typeof AssetPreview>['onAssetUpdated'];
 }
 
 export function AssetPreviewDialog({
@@ -21,16 +24,26 @@ export function AssetPreviewDialog({
     asset,
     assets,
     customFields,
+    onAssetUpdated,
 }: AssetPreviewDialogProps) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[800px] lg:max-w-[95vw] w-[95vw] p-0">
                 <DialogHeader className="p-6 pb-0">
-                    <DialogTitle>Asset</DialogTitle>
-                    <DialogDescription>Preview of {asset.name}</DialogDescription>
+                    <DialogTitle>
+                        <Trans>Asset</Trans>
+                    </DialogTitle>
+                    <DialogDescription>
+                        <Trans>Preview of {asset.name}</Trans>
+                    </DialogDescription>
                 </DialogHeader>
                 <div className="h-full p-6">
-                    <AssetPreview asset={asset} assets={assets} customFields={customFields} />
+                    <AssetPreview
+                        asset={asset}
+                        assets={assets}
+                        customFields={customFields}
+                        onAssetUpdated={onAssetUpdated}
+                    />
                 </div>
             </DialogContent>
         </Dialog>

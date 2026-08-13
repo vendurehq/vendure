@@ -102,6 +102,8 @@ import { VendureEntity } from '../../entity/base/base.entity';
  * :::
  *
  * @docsCategory auth
+ * @docsPage EntityAccessControlStrategy
+ * @docsWeight 0
  * @since 3.6.0
  * @experimental
  */

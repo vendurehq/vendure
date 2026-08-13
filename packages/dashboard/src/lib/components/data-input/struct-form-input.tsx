@@ -61,10 +61,10 @@ function DisplayMode({
             <dl className="grid grid-cols-2 divide-y divide-muted -mt-2">
                 {fieldDef.fields.map(structField => (
                     <React.Fragment key={structField.name}>
-                        <dt className="text-sm font-medium text-muted-foreground py-2">
+                        <dt className="text-sm font-medium text-muted-foreground py-2 min-w-0">
                             {getTranslation(structField.label) ?? structField.name}
                         </dt>
-                        <dd className="text-sm text-foreground py-2">
+                        <dd className="text-sm text-foreground py-2 min-w-0 break-words">
                             {formatFieldValue(watchedStructValue[structField.name], structField)}
                         </dd>
                     </React.Fragment>

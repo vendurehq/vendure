@@ -25,6 +25,9 @@ which are usually independent of one another. For example, there could be a plug
 wishlists, product reviews, loyalty points, gift cards, etc.
 This allows for a clean separation of concerns and makes it easy to add or remove functionality as needed.
 
+If you use AI coding agents when developing plugins, see the
+[AI-assisted development guide](/guides/developer-guide/ai-assisted-development/).
+
 ## Core Plugins
 
 Vendure provides a set of core plugins covering common functionality such as assets handling,
@@ -107,6 +110,34 @@ Note that lifecycle hooks are run in both the server and worker contexts.
 If you have code that should only run either in the server context or worker context,
 you can inject the [ProcessContext provider](/reference/typescript-api/common/process-context/).
 :::
+
+A plugin can implement these hooks directly, rather than only on the providers it defines:
+
+```ts title="src/plugins/my-plugin/my.plugin.ts"
+import { OnApplicationBootstrap } from '@nestjs/common';
+import { PluginCommonModule, ProcessContext, VendurePlugin } from '@vendure/core';
+
+@VendurePlugin({
+    imports: [PluginCommonModule],
+})
+export class MyPlugin implements OnApplicationBootstrap {
+    constructor(private processContext: ProcessContext) {}
+
+    async onApplicationBootstrap() {
+        // Without this guard the work below would run twice: once in the
+        // server and once in the worker.
+        if (this.processContext.isWorker) {
+            return;
+        }
+        // Do something on the server only
+    }
+}
+```
+
+If that startup work needs to call Vendure's services, it will need a `RequestContext`, which
+outside of the request-response cycle you create yourself — see
+[Creating a RequestContext](/guides/developer-guide/stand-alone-scripts/#creating-a-requestcontext),
+including how to give it a user so that permission checks pass.
 
 ### Configure
 

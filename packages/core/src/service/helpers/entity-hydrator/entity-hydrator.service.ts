@@ -5,6 +5,7 @@ import { SelectQueryBuilder } from 'typeorm';
 
 import { RequestContext } from '../../../api/common/request-context';
 import { InternalServerError } from '../../../common/error/errors';
+import { findOptionsArrayToObject } from '../../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { VendureEntity } from '../../../entity/base/base.entity';
 import { ProductVariant } from '../../../entity/product-variant/product-variant.entity';
@@ -136,10 +137,14 @@ export class EntityHydrator {
                 hydratedQb.setFindOptions({
                     relationLoadStrategy: 'query',
                     where: { id: target.id },
-                    relations: missingRelations.filter(relationPath => !joinedRelations.has(relationPath)),
+                    relations: findOptionsArrayToObject(
+                        missingRelations.filter(relationPath => !joinedRelations.has(relationPath)),
+                    ),
                 });
                 const hydrated = await hydratedQb.getOne();
                 const propertiesToAdd = unique(missingRelations.map(relation => relation.split('.')[0]));
+                // Each call starts its own memo, so an entity shared by two top-level relations is
+                // merged once per relation. Deliberate: bounded by the relation count. See #5083.
                 for (const prop of propertiesToAdd) {
                     (target as any)[prop] = mergeDeep((target as any)[prop], hydrated[prop]);
                 }
@@ -151,21 +156,11 @@ export class EntityHydrator {
 
                 if (options.applyProductVariantPrices === true) {
                     for (const relationWithEntities of relationsWithEntities) {
-                        const entity = relationWithEntities.entity;
-                        if (entity) {
-                            if (Array.isArray(entity)) {
-                                if (entity[0] instanceof ProductVariant) {
-                                    await Promise.all(
-                                        entity.map((e: any) =>
-                                            this.productPriceApplicator.applyChannelPriceAndTax(e, ctx),
-                                        ),
-                                    );
-                                }
-                            } else {
-                                if (entity instanceof ProductVariant) {
-                                    await this.productPriceApplicator.applyChannelPriceAndTax(entity, ctx);
-                                }
-                            }
+                        // Applied sequentially rather than with Promise.all: relation arrays are
+                        // unbounded in size, and applyChannelPriceAndTax() is applied per variant
+                        // the same way in ProductVariantService.assignProductVariantsToChannel()
+                        for (const variant of this.getProductVariantsToPrice(relationWithEntities.entity)) {
+                            await this.productPriceApplicator.applyChannelPriceAndTax(variant, ctx);
                         }
                     }
                 }
@@ -208,18 +203,62 @@ export class EntityHydrator {
         for (const relation of options.relations.slice().sort()) {
             if (typeof relation === 'string') {
                 const parts = relation.split('.');
-                let entity: Record<string, any> | undefined = target;
+                // The entities found at the current depth of the relation path. An array-valued
+                // relation can be loaded unevenly, e.g. `order.lines[0].productVariant` is present
+                // but `order.lines[1].productVariant` is not, so every entity at a given depth must
+                // be checked rather than just the first.
+                let entities: Array<Record<string, any>> = [target];
                 const path = [];
+                let isMissing = false;
                 for (const part of parts) {
                     path.push(part);
-                    // null = the relation has been fetched but was null in the database.
-                    // undefined = the relation has not been fetched.
-                    if (entity && entity[part] === null) {
-                        break;
+                    if (!isMissing) {
+                        const nextEntities: Array<Record<string, any>> = [];
+                        for (const entity of entities) {
+                            // undefined = this array element (or relation) was never fetched,
+                            // e.g. an `undefined` hole in a relation array, so the rest of the
+                            // path must be reported missing rather than skipped.
+                            if (entity === undefined) {
+                                isMissing = true;
+                                break;
+                            }
+                            // null = the relation has been fetched but was null in the database.
+                            if (entity === null || entity[part] === null) {
+                                continue;
+                            }
+                            const value = entity[part];
+                            if (!value) {
+                                isMissing = true;
+                                break;
+                            }
+                            // At the last segment of the path we only need to know whether the
+                            // relation is present; the entities it points to are never inspected,
+                            // so there is no point collecting them.
+                            const isLastPart = path.length === parts.length;
+                            if (Array.isArray(value)) {
+                                if (value.length === 0) {
+                                    if (!isLastPart) {
+                                        // An empty array leaves nothing to check further down the
+                                        // path, so treat the rest of the path as missing.
+                                        isMissing = true;
+                                        break;
+                                    }
+                                } else if (!isLastPart) {
+                                    // Use a plain loop rather than push(...value): spreading a
+                                    // very large array (e.g. collections.productVariants on a
+                                    // big catalog) exceeds V8's argument limit and throws
+                                    // RangeError, even when everything is already loaded.
+                                    for (const element of value) {
+                                        nextEntities.push(element);
+                                    }
+                                }
+                            } else if (!isLastPart) {
+                                nextEntities.push(value);
+                            }
+                        }
+                        entities = nextEntities;
                     }
-                    if (entity && entity[part]) {
-                        entity = Array.isArray(entity[part]) ? entity[part][0] : entity[part];
-                    } else {
+                    if (isMissing) {
                         const allParts = path.reduce((result, p, i) => {
                             if (i === 0) {
                                 return [p];
@@ -228,7 +267,6 @@ export class EntityHydrator {
                             }
                         }, [] as string[]);
                         missingRelations.push(...allParts);
-                        entity = undefined;
                     }
                 }
             }
@@ -271,13 +309,19 @@ export class EntityHydrator {
             if (Array.isArray(target)) {
                 isArrayResult = true;
                 if (parts.length === 0) {
-                    result.push(...target);
+                    // Use a plain loop rather than push(...target): spreading a very large array
+                    // (e.g. `collection.productVariants` on a big catalog) expands it into call
+                    // arguments, which exceeds V8's stack budget and throws a RangeError. Same
+                    // fix as in getMissingRelations() above.
+                    for (const item of target) {
+                        result.push(item);
+                    }
                 } else {
                     for (const item of target) {
                         visit(item, parts.slice());
                     }
                 }
-            } else if (target === null) {
+            } else if (target == null) {
                 result.push(target);
             } else {
                 if (parts.length === 0) {
@@ -289,6 +333,20 @@ export class EntityHydrator {
         }
         visit(entity, path.slice());
         return isArrayResult ? result : result[0];
+    }
+
+    /**
+     * Returns the ProductVariants found at a relation path, to which Channel prices should be
+     * applied. A relation array can contain `null`/`undefined` entries — getRelationEntityAtPath()
+     * pushes them deliberately — and only some of its elements may be ProductVariants, so the type
+     * is tested per element rather than sampled from element [0]. Sampling [0] was wrong in both
+     * directions: a hole at [0] suppressed pricing for every real ProductVariant in the array, and
+     * a ProductVariant at [0] passed the holes behind it straight into applyChannelPriceAndTax(),
+     * which dereferences `variant.productVariantPrices` and throws.
+     */
+    private getProductVariantsToPrice(entity: VendureEntity | VendureEntity[] | undefined): ProductVariant[] {
+        const candidates = Array.isArray(entity) ? entity : [entity];
+        return candidates.filter((e): e is ProductVariant => e instanceof ProductVariant);
     }
 
     private getRelationEntityTypeAtPath(entity: VendureEntity, path: string): Type<VendureEntity> {
@@ -341,9 +399,15 @@ export class EntityHydrator {
         return translationRelations;
     }
 
+    /**
+     * Whether the entity, or any entity of an array-valued relation, is translatable. An array
+     * relation can contain `null` (the relation was fetched but is null on that element) or
+     * `undefined` (never fetched) entries — getRelationEntityAtPath() deliberately pushes both
+     * into its result — so every element must be considered rather than just the first.
+     */
     private isTranslatable<T extends VendureEntity>(input: T | T[] | undefined): boolean {
-        return Array.isArray(input)
-            ? (input[0]?.hasOwnProperty('translations') ?? false)
-            : (input?.hasOwnProperty('translations') ?? false);
+        const hasTranslations = (entity: T | undefined): boolean =>
+            entity?.hasOwnProperty('translations') ?? false;
+        return Array.isArray(input) ? input.some(hasTranslations) : hasTranslations(input);
     }
 }

@@ -1,5 +1,5 @@
 ---
-title: "Deploying to Google Cloud Run"
+title: "Deploy Vendure to Google Cloud Run"
 metaTitle: "Deploying Vendure to Google Cloud Run with Cloud SQL and Cloud Tasks"
 metaDescription: "Deploy a containerized Vendure application on Google Cloud Run using Cloud SQL for the database, Cloud Storage for assets, and Cloud Tasks for the job queue."
 ---
@@ -14,8 +14,8 @@ This guide was written by Martijn from [Pinelab](https://pinelab.studio/), who h
 ## Prerequisites
 This guide assumes you have:
 
-* Google cloud's `gcloud` cli installed locally
-* Created a Google Cloud project and enabled the API's we need: https://github.com/Pinelab-studio/vendure-google-cloud-run-starter/blob/main/README.md#create-a-google-cloud-project 
+* The Google Cloud CLI (`gcloud`) installed locally
+* Created a Google Cloud project and enabled the APIs we need: https://github.com/Pinelab-studio/vendure-google-cloud-run-starter/blob/main/README.md#create-a-google-cloud-project
 
 ## Setting up a MySQL database with Google Cloud SQL
 Google Cloud SQL is a fully-managed relational database service that makes it easy to set up, maintain, and manage databases in the cloud. 
@@ -45,9 +45,9 @@ The setup for containerizing Vendure is already done: [This file](https://github
 ## Deployment
 The example repository contains GitHub action definitions to automatically deploy your app to Cloud Run when you push to the `main` branch.
 
-Follow [these steps](https://github.com/Pinelab-studio/vendure-google-cloud-run-starter/blob/main/build-docker.sh) to create a service account and set your variables as repository secret in GitHub.
+Follow [these deployment steps](https://github.com/Pinelab-studio/vendure-google-cloud-run-starter/blob/main/README.md#deployments) to create a service account and set your variables as repository secrets in GitHub.
 
 ## Keep alive
-As final improvement, you can use Google Cloud Scheduler to poll your Cloud Run instance to prevent cold starts with [this command](https://github.com/Pinelab-studio/vendure-google-cloud-run-starter/blob/main/build-docker.sh).
+As final improvement, you can use Google Cloud Scheduler to poll your Cloud Run instance to prevent cold starts with [this command](https://github.com/Pinelab-studio/vendure-google-cloud-run-starter/blob/main/README.md#keep-alive-for-performance).
 
 That's it! Feel free to reach out for any questions, or create a [Pull Request in the repository](https://github.com/Pinelab-studio/vendure-google-cloud-run-starter/pulls) if you have any improvements.

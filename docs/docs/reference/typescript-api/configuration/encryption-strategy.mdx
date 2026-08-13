@@ -1,0 +1,124 @@
+---
+title: "EncryptionStrategy"
+generated: true
+---
+## EncryptionStrategy
+
+<GenerationInfo sourceFile="packages/core/src/config/system/encryption-strategy.ts" sourceLine="22" packageName="@vendure/core" since="3.8.0" />
+
+The EncryptionStrategy defines how the values of `secret` custom fields and config args are
+encrypted before being stored in the database, and decrypted when loaded.
+
+The methods are synchronous because custom-field values are encrypted/decrypted inside a TypeORM
+value transformer, which does not support asynchronous operation.
+
+:::info
+
+This is configured via the `systemOptions.encryptionStrategy` property of your VendureConfig.
+
+:::
+
+```ts title="Signature"
+interface EncryptionStrategy extends InjectableStrategy {
+    encrypt(plaintext: string): string;
+    decrypt(ciphertext: string): string;
+    isEncrypted(value: string): boolean;
+    isConfigured(): boolean;
+}
+```
+* Extends: [`InjectableStrategy`](/reference/typescript-api/common/injectable-strategy#injectablestrategy)
+
+
+
+<div className="members-wrapper">
+
+### encrypt
+
+<MemberInfo kind="method" type={`(plaintext: string) => string`}   />
+
+Encrypts the given plaintext, returning a string which can be stored in the database.
+### decrypt
+
+<MemberInfo kind="method" type={`(ciphertext: string) => string`}   />
+
+Decrypts a value previously produced by `encrypt()`, returning the original plaintext.
+### isEncrypted
+
+<MemberInfo kind="method" type={`(value: string) => boolean`}   />
+
+Returns `true` if the given value was produced by this strategy's `encrypt()` method. This is
+used to detect secret values at the point they are returned from the API, without needing to
+know which config arg or custom field they came from.
+### isConfigured
+
+<MemberInfo kind="method" type={`() => boolean`}   />
+
+Returns `true` if the strategy has everything it needs to encrypt and decrypt (e.g. a valid
+key). This is used at bootstrap to fail fast if `secret` fields are configured but the
+strategy is not usable.
+
+
+</div>
+## DefaultEncryptionStrategy
+
+<GenerationInfo sourceFile="packages/core/src/config/system/default-encryption-strategy.ts" sourceLine="43" packageName="@vendure/core" since="3.8.0" />
+
+The default [EncryptionStrategy](/reference/typescript-api/configuration/encryption-strategy#encryptionstrategy), which uses AES-256-GCM. The encryption key is derived from
+the `secret` passed to the strategy. The secret is not read from the environment by the strategy
+itself; instead you provide it explicitly in your config, typically from an environment variable:
+
+*Example*
+
+```ts
+systemOptions: {
+    encryptionStrategy: new DefaultEncryptionStrategy({ secret: process.env.VENDURE_ENCRYPTION_KEY }),
+}
+```
+
+The secret must remain stable across restarts and deployments: if it changes, existing encrypted
+data can no longer be decrypted.
+
+```ts title="Signature"
+class DefaultEncryptionStrategy implements EncryptionStrategy {
+    constructor(options: { secret?: string } = {})
+    init() => ;
+    isConfigured() => boolean;
+    isEncrypted(value: string) => boolean;
+    encrypt(plaintext: string) => string;
+    decrypt(ciphertext: string) => string;
+}
+```
+* Implements: [`EncryptionStrategy`](/reference/typescript-api/configuration/encryption-strategy#encryptionstrategy)
+
+
+
+<div className="members-wrapper">
+
+### init
+
+<MemberInfo kind="method" type={`() => `}   />
+
+
+### isConfigured
+
+<MemberInfo kind="method" type={`() => boolean`}   />
+
+
+### isEncrypted
+
+<MemberInfo kind="method" type={`(value: string) => boolean`}   />
+
+
+### encrypt
+
+<MemberInfo kind="method" type={`(plaintext: string) => string`}   />
+
+
+### decrypt
+
+<MemberInfo kind="method" type={`(ciphertext: string) => string`}   />
+
+
+
+
+</div>

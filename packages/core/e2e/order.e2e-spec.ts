@@ -12,6 +12,8 @@ import {
 import { omit } from '@vendure/common/lib/omit';
 import { pick } from '@vendure/common/lib/pick';
 import {
+    OrderService,
+    RequestContextService,
     defaultShippingCalculator,
     defaultShippingEligibilityChecker,
     manualFulfillmentHandler,
@@ -2405,6 +2407,51 @@ describe('Orders resolver', () => {
                 id: order.id,
             });
             expect(order2?.state).toBe('PartiallyShipped');
+        });
+
+        // https://github.com/vendurehq/vendure/issues/4566
+        // Before the fix, `findOne` translated each `line.productVariant` even when the
+        // caller's relations list did not include `lines.productVariant.translations`,
+        // causing `error.entity-has-no-translation-in-language` on subsequent
+        // `addItemToOrder` calls that internally reload the active order via
+        // `getOrderOrThrow`.
+        it('loads ProductVariant translations when findOne is called with explicit relations', async () => {
+            await shopClient.asAnonymousUser();
+            const { addItemToOrder: firstAdd } = await shopClient.query(addItemToOrderDocument, {
+                productVariantId: 'T_1',
+                quantity: 1,
+            });
+            shopOrderGuard.assertSuccess(firstAdd);
+            const internalOrderId = +firstAdd.id.replace('T_', '');
+
+            const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+            const order = await server.app
+                .get(OrderService)
+                .findOne(ctx, internalOrderId, [
+                    'lines',
+                    'lines.productVariant',
+                    'lines.productVariant.productVariantPrices',
+                    'shippingLines',
+                    'surcharges',
+                    'customer',
+                ]);
+
+            expect(order).toBeDefined();
+            expect(order!.lines.length).toBe(1);
+            const variant = order!.lines[0].productVariant;
+            expect(variant.translations.length).toBe(1);
+            expect(variant.translations[0].languageCode).toBe(LanguageCode.en);
+            expect(variant.name).toBe('Laptop 13 inch 8GB');
+
+            // Re-add the same item: this exercises the original user-visible failure
+            // path (`addItemToOrder` -> `getOrderOrThrow` -> `findOne` -> translate).
+            // Pre-fix this would throw `error.entity-has-no-translation-in-language`.
+            const { addItemToOrder: secondAdd } = await shopClient.query(addItemToOrderDocument, {
+                productVariantId: 'T_1',
+                quantity: 1,
+            });
+            shopOrderGuard.assertSuccess(secondAdd);
+            expect(secondAdd.lines[0].quantity).toBe(2);
         });
     });
 

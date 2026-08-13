@@ -2,7 +2,9 @@
 title: "ListPage"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/list-page.tsx" sourceLine="481" packageName="@vendure/dashboard" since="3.3.0" />
+## ListPage
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/list-page.tsx" sourceLine="524" packageName="@vendure/dashboard" since="3.3.0" />
 
 Auto-generates a list page with columns generated based on the provided query document fields.
 
@@ -99,7 +101,9 @@ Parameters
 
 <MemberInfo kind="parameter" type={`Readonly<<a href='/reference/dashboard/list-views/list-page#listpageprops'>ListPageProps</a><T, U, V, AC>>`} />
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/list-page.tsx" sourceLine="36" packageName="@vendure/dashboard" since="3.3.0" />
+## ListPageProps
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/list-page.tsx" sourceLine="37" packageName="@vendure/dashboard" since="3.3.0" />
 
 Props to configure the [ListPage](/reference/dashboard/list-views/list-page#listpage) component.
 
@@ -112,6 +116,7 @@ interface ListPageProps<T extends TypedDocumentNode<U, V>, U extends ListQuerySh
     deleteMutation?: TypedDocumentNode<any, { id: string }>;
     transformVariables?: (variables: V) => V;
     onSearchTermChange?: (searchTerm: string) => NonNullable<V['options']>['filter'];
+    searchPlaceholder?: string;
     customizeColumns?: CustomizeColumnConfig<T>;
     additionalColumns?: AC;
     defaultColumnOrder?: (keyof ListQueryFields<T> | keyof AC | CustomFieldKeysOfItem<ListQueryFields<T>>)[];
@@ -120,14 +125,19 @@ interface ListPageProps<T extends TypedDocumentNode<U, V>, U extends ListQuerySh
         Record<keyof ListQueryFields<T> | keyof AC | CustomFieldKeysOfItem<ListQueryFields<T>>, boolean>
     >;
     children?: React.ReactNode;
+    dropdownMenuItems?: InlineDropdownItem[];
     facetedFilters?: FacetedFilterConfig<T>;
     rowActions?: RowAction<ListQueryFields<T>>[];
     transformData?: (data: any[]) => any[];
+    transformQueryKey?: (queryKey: any[]) => any[];
+    disableViewOptions?: boolean;
+    includeSelectionColumn?: boolean;
     setTableOptions?: (table: TableOptions<any>) => TableOptions<any>;
     bulkActions?: BulkActionsInput;
     registerRefresher?: PaginatedListRefresherRegisterFn;
     onReorder?: (oldIndex: number, newIndex: number, item: any) => void | Promise<void>;
     disableDragAndDrop?: boolean;
+    emptyStateAction?: React.ReactNode;
 }
 ```
 
@@ -144,7 +154,7 @@ component extensible.
 
 <MemberInfo kind="property" type={`AnyRoute | (() => AnyRoute)`}   />
 
-* The Tanstack Router `Route` object, which will be defined in the component file.
+* The TanStack Router `Route` object, which will be defined in the component file.
 ### title
 
 <MemberInfo kind="property" type={`string | React.ReactElement`}   />
@@ -254,6 +264,12 @@ For instance, when you want the term to filter on specific fields.
    }}
  />
 ```
+### searchPlaceholder
+
+<MemberInfo kind="property" type={`string`}  since="3.8.0"  />
+
+Placeholder text for the search input. Should say what the search targets,
+e.g. "Search products...". Defaults to a generic "Search...".
 ### customizeColumns
 
 <MemberInfo kind="property" type={`CustomizeColumnConfig<T>`}   />
@@ -389,6 +405,12 @@ then _all other_ columns will be visible by default.
 <MemberInfo kind="property" type={`React.ReactNode`}   />
 
 
+### dropdownMenuItems
+
+<MemberInfo kind="property" type={`InlineDropdownItem[]`}   />
+
+Optional dropdown menu items to display in the action bar's overflow (⋮) menu.
+These are forwarded to the [PageActionBar](/reference/dashboard/page-layout/page-action-bar#pageactionbar).
 ### facetedFilters
 
 <MemberInfo kind="property" type={`FacetedFilterConfig<T>`}   />
@@ -425,11 +447,30 @@ By default, the actions column includes all bulk actions defined in the `bulkAct
 
 Allows the returned list query data to be transformed in some way. This is an advanced feature
 that is not often required.
+### transformQueryKey
+
+<MemberInfo kind="property" type={`(queryKey: any[]) => any[]`}   />
+
+Allows the react-query cache key to be transformed. Use this together with the
+`transformVariables` prop when a page injects extra state into the query
+(e.g. a language selector or a status filter): the default key only reflects page, sorting,
+column filters and the search term, so without transforming the key too, changing the injected
+state serves a stale cached result instead of refetching.
+### disableViewOptions
+
+<MemberInfo kind="property" type={`boolean`}   />
+
+When true, disables the view options (column visibility) control in the table toolbar.
+### includeSelectionColumn
+
+<MemberInfo kind="property" type={`boolean`} default={`true`}   />
+
+When false, the row selection checkbox column will not be included.
 ### setTableOptions
 
 <MemberInfo kind="property" type={`(table: TableOptions<any>) => TableOptions<any>`}   />
 
-Allows you to directly manipulate the Tanstack Table `TableOptions` object before the
+Allows you to directly manipulate the TanStack Table `TableOptions` object before the
 table is created. And advanced option that is not often required.
 ### bulkActions
 
@@ -485,6 +526,13 @@ Only applies to top-level items. When provided, enables drag-and-drop functional
 
 When true, drag and drop will be disabled. This will only have an effect if the onReorder prop is also set Useful when filtering or searching.
 Defaults to false. Only relevant when `onReorder` is provided.
+### emptyStateAction
+
+<MemberInfo kind="property" type={`React.ReactNode`}   />
+
+An optional action rendered inside the first-run empty state (when the list
+has no items and no active filters), typically a "create your first X" CTA.
+Gate it with a [PermissionGuard](/reference/dashboard/components/permission-guard#permissionguard) to mirror the create button's permissions.
 
 
 </div>

@@ -16,7 +16,7 @@ export const buyXGetYFreeCondition = new PromotionCondition({
         amountX: {
             type: 'int',
             defaultValue: 2,
-            ui: { component: '', min: 0 },
+            ui: { component: '', min: 1 },
         },
         variantIdsX: {
             type: 'ID',
@@ -39,6 +39,7 @@ export const buyXGetYFreeCondition = new PromotionCondition({
     async check(ctx, order, args) {
         const xIds = createIdentityMap(args.variantIdsX);
         const yIds = createIdentityMap(args.variantIdsY);
+        if (args.amountX < 1) return false;
         let matches = 0;
         const freeItemCandidates: OrderLine[] = [];
         for (const line of order.lines) {

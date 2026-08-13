@@ -1,0 +1,31 @@
+---
+title: "GetDataSource"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/connection/get-data-source.ts" sourceLine="36" packageName="@vendure/core" since="3.8.0" />
+
+Returns the `DataSource` that the given TypeORM object belongs to, reading whichever of
+the `dataSource` and `connection` properties the installed version of TypeORM provides. Where
+an object carries both, `dataSource` is used, since `connection` is the deprecated alias.
+
+*Example*
+
+```ts
+const collectionFilter = new CollectionFilter({
+  // ...
+  apply: (qb, args) => {
+    const LIKE = getDataSource(qb).options.type === 'postgres' ? 'ILIKE' : 'LIKE';
+    return qb.andWhere(`productVariant.sku ${LIKE} :sku`, { sku: `%${args.sku}%` });
+  },
+});
+```
+
+```ts title="Signature"
+function getDataSource(source: DataSourceHolder): DataSource
+```
+Parameters
+
+### source
+
+<MemberInfo kind="parameter" type={`<a href='/reference/typescript-api/data-access/data-source-holder#datasourceholder'>DataSourceHolder</a>`} />
+

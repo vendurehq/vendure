@@ -76,6 +76,47 @@ test.describe('Custom Fields', () => {
         await expect(dp.formItem('Additional Info').getByRole('textbox')).toBeVisible();
         // string with options → combobox
         await expect(dp.formItem('Priority').getByRole('combobox')).toBeVisible();
+        await expect(dp.formItem('Feature Type').getByRole('combobox')).toBeVisible();
+    });
+
+    // ─── Nullable option select ──────────────────────────────────────────
+
+    // #4801 — allow selecting and clearing nullable select items
+    test('should allow selecting and clearing a nullable option select', async ({ page }) => {
+        await goToFirstProduct(page);
+        const dp = detailPage(page);
+        const featureTypeCombobox = dp.formItem('Feature Type').getByRole('combobox');
+
+        // Base UI Select shows placeholder state via data-placeholder on the trigger,
+        // not as visible text in the combobox accessible name.
+        await expect(featureTypeCombobox).toHaveAttribute('data-placeholder', '');
+
+        await dp.selectOption('Feature Type', 'premium');
+        await expect(featureTypeCombobox).toContainText('premium');
+
+        await featureTypeCombobox.click();
+        await page.getByRole('listbox').getByRole('option').first().click();
+        await expect(featureTypeCombobox).toHaveAttribute('data-placeholder', '');
+        await expect(featureTypeCombobox).not.toContainText('premium');
+    });
+
+    // #4801 — create product without setting a nullable option select
+    test('should create a product without setting a nullable option select', async ({ page }) => {
+        const dp = detailPage(page);
+        await dp.gotoNew();
+        await dp.expectNewPageLoaded();
+
+        await dp.fillInput('Product name', 'Nullable Feature Type Product');
+        await expect(dp.formItem('Slug').getByRole('textbox')).not.toHaveValue('', { timeout: 5_000 });
+        await expect(dp.formItem('Feature Type').getByRole('combobox')).toHaveAttribute(
+            'data-placeholder',
+            '',
+        );
+        await expect(dp.createButton).toBeEnabled({ timeout: 10_000 });
+
+        await dp.clickCreate();
+        await dp.expectSuccessToast(/Successfully created product/);
+        await dp.expectNavigatedToExisting();
     });
 
     // ─── Tab grouping ────────────────────────────────────────────────────
@@ -443,35 +484,38 @@ test.describe('Custom Fields', () => {
         await expect(reloadedDim.locator('dd').filter({ hasText: '10' })).toBeVisible();
     });
 
-    // #4393 — datetime picker should have a "Now" button
-    test('datetime picker should display a "Now" button', async ({ page }) => {
+    // #4393 — the v2 datetime picker should expose both date and time controls
+    test('datetime picker should display date and time controls', async ({ page }) => {
         await goToFirstProduct(page);
         const dp = detailPage(page);
 
         const releaseDateItem = dp.formItem('Release Date');
-        await releaseDateItem.getByRole('button').first().click();
+        const picker = releaseDateItem.locator('[data-slot="date-time-picker"]');
+        await expect(picker.locator('input[type="time"]')).toBeVisible();
+        await picker.getByRole('button').first().click();
 
         const popover = page.locator('[data-slot="popover-content"]');
         await expect(popover).toBeVisible();
-        const nowButton = popover.getByRole('button', { name: 'Now' });
-        await expect(nowButton).toBeVisible();
+        await expect(popover.locator('[data-slot="calendar"]')).toBeVisible();
     });
 
-    // #4393 — clicking "Now" should set the datetime and close the popover
-    test('datetime "Now" button should set date and close popover', async ({ page }) => {
+    // #4393 — selecting a date should set the datetime and close the popover
+    test('datetime date selection should set a value and close the popover', async ({ page }) => {
         await goToFirstProduct(page);
         const dp = detailPage(page);
 
         const releaseDateItem = dp.formItem('Release Date');
-        const triggerButton = releaseDateItem.getByRole('button').first();
-        await expect(triggerButton).toContainText('MM/DD/YYYY');
+        const picker = releaseDateItem.locator('[data-slot="date-time-picker"]');
+        const triggerButton = picker.getByRole('button').first();
+        await expect(triggerButton).toContainText('Pick a date and time');
 
         await triggerButton.click();
         const popover = page.locator('[data-slot="popover-content"]');
         await expect(popover).toBeVisible();
-        await popover.getByRole('button', { name: 'Now' }).click();
+        await popover.locator('[data-slot="calendar"] button[data-day]:not([disabled])').first().click();
 
         await expect(popover).not.toBeVisible();
-        await expect(triggerButton).not.toContainText('MM/DD/YYYY');
+        await expect(triggerButton).not.toContainText('Pick a date and time');
+        await expect(picker.locator('input[type="time"]')).toBeEnabled();
     });
 });

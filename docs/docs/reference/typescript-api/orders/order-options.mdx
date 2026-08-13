@@ -2,7 +2,7 @@
 title: "OrderOptions"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/config/vendure-config.ts" sourceLine="563" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/vendure-config.ts" sourceLine="577" packageName="@vendure/core" />
 
 
 
@@ -18,11 +18,13 @@ interface OrderOptions {
     orderCodeStrategy?: OrderCodeStrategy;
     orderByCodeAccessStrategy?: OrderByCodeAccessStrategy;
     changedPriceHandlingStrategy?: ChangedPriceHandlingStrategy;
+    orderLineDiscountDistributionStrategy?: OrderLineDiscountDistributionStrategy;
     orderPlacedStrategy?: OrderPlacedStrategy;
     activeOrderStrategy?: ActiveOrderStrategy<any> | Array<ActiveOrderStrategy<any>>;
     orderSellerStrategy?: OrderSellerStrategy;
     guestCheckoutStrategy?: GuestCheckoutStrategy;
     orderInterceptors?: OrderInterceptor[];
+    orderRecalculationStrategy?: OrderRecalculationStrategy;
 }
 ```
 
@@ -106,6 +108,13 @@ then later on another is added but in the meantime the price of the ProductVaria
 
 By default, the latest price will be used. Any price changes resulting from using a newer price
 will be reflected in the GraphQL `OrderLine.unitPrice[WithTax]ChangeSinceAdded` field.
+### orderLineDiscountDistributionStrategy
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/orders/order-line-discount-distribution-strategy#orderlinediscountdistributionstrategy'>OrderLineDiscountDistributionStrategy</a>`} default={`<a href='/reference/typescript-api/orders/order-line-discount-distribution-strategy#defaultorderlinediscountdistributionstrategy'>DefaultOrderLineDiscountDistributionStrategy</a>`}  since="3.7.0"  />
+
+Defines how an order-level promotion discount is distributed (prorated) across the OrderLines
+of an Order. The default redistributes a canceled line's share onto the remaining lines; a
+custom strategy can keep each line's share stable across refunds.
 ### orderPlacedStrategy
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/orders/order-placed-strategy#orderplacedstrategy'>OrderPlacedStrategy</a>`} default={`<a href='/reference/typescript-api/orders/default-order-placed-strategy#defaultorderplacedstrategy'>DefaultOrderPlacedStrategy</a>`}   />
@@ -135,6 +144,16 @@ Defines how we deal with guest checkouts.
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/orders/order-interceptor#orderinterceptor'>OrderInterceptor</a>[]`} default={`[]`}  since="3.1.0"  />
 
 An array of [OrderInterceptor](/reference/typescript-api/orders/order-interceptor#orderinterceptor)s which can be used to modify the behavior of the Order process.
+### orderRecalculationStrategy
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/orders/order-recalculation-strategy#orderrecalculationstrategy'>OrderRecalculationStrategy</a>`} default={`<a href='/reference/typescript-api/orders/order-recalculation-strategy#noorderrecalculationstrategy'>NoOrderRecalculationStrategy</a>`}  since="3.8.0"  />
+
+Defines whether and when an active Order's prices, promotions and taxes are re-calculated
+when the Order is read (e.g. via the `activeOrder` query). By default no read-time
+recalculation occurs (prices only change on write mutations). Use
+[TtlOrderRecalculationStrategy](/reference/typescript-api/orders/order-recalculation-strategy#ttlorderrecalculationstrategy) to keep long-lived carts in sync with changing prices
+and promotions. Shipping method eligibility and rates are NOT re-evaluated on read; they are
+re-evaluated when the order transitions to `ArrangingPayment`.
 
 
 </div>

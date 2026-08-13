@@ -1,0 +1,22 @@
+---
+title: "ToTypeOrmFindOptions"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/connection/to-typeorm-find-options.ts" sourceLine="31" packageName="@vendure/core" since="3.8.0" />
+
+Converts the `relations` and `select` properties of Vendure's find options into the object
+form TypeORM expects. Call this wherever find options cross from a Vendure API into TypeORM.
+
+Vendure's own APIs accept relation paths as a string array, since that is the shape of
+`RelationPaths` and of the `@Relations()` decorator that produces it. TypeORM only
+accepts the object form.
+
+```ts title="Signature"
+function toTypeOrmFindOptions<T, O extends VendureFindManyOptions<T>>(options: O): TypeOrmFindOptions<T, O>
+```
+Parameters
+
+### options
+
+<MemberInfo kind="parameter" type={`O`} />
+

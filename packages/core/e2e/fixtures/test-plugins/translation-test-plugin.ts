@@ -4,8 +4,10 @@ import {
     Ctx,
     ErrorResult,
     I18nService,
+    LanguageCode,
     PluginCommonModule,
     RequestContext,
+    ShippingCalculator,
     VendurePlugin,
 } from '@vendure/core';
 import gql from 'graphql-tag';
@@ -38,6 +40,36 @@ class TestResolver {
 
 export const CUSTOM_ERROR_MESSAGE_TRANSLATION = 'A custom error message';
 
+export const TRANSLATED_SHIPPING_CALCULATOR_CODE = 'translated-shipping-calculator';
+
+/**
+ * Defines its strings inline in English only. The German equivalents are registered against the
+ * message catalog by the plugin below.
+ */
+export const translatedShippingCalculator = new ShippingCalculator({
+    code: TRANSLATED_SHIPPING_CALCULATOR_CODE,
+    description: [{ languageCode: LanguageCode.en, value: 'Translated shipping calculator' }],
+    args: {
+        mode: {
+            type: 'string',
+            label: [{ languageCode: LanguageCode.en, value: 'Mode' }],
+            ui: {
+                component: 'select-form-input',
+                options: [{ value: 'auto', label: [{ languageCode: LanguageCode.en, value: 'Automatic' }] }],
+            },
+        },
+    },
+    calculate: () => ({ price: 100, priceIncludesTax: false, taxRate: 0 }),
+});
+
+export const shippingCalculatorTranslations = {
+    de: {
+        description: 'Übersetzter Versandrechner',
+        modeLabel: 'Modus',
+        autoOptionLabel: 'Automatisch',
+    },
+};
+
 @VendurePlugin({
     imports: [PluginCommonModule],
     providers: [I18nService],
@@ -63,11 +95,32 @@ export const CUSTOM_ERROR_MESSAGE_TRANSLATION = 'A custom error message';
         `,
         resolvers: [TestResolver],
     },
+    configuration: config => {
+        config.shippingOptions.shippingCalculators.push(translatedShippingCalculator);
+        return config;
+    },
 })
 export class TranslationTestPlugin implements OnApplicationBootstrap {
     constructor(private i18nService: I18nService) {}
 
     onApplicationBootstrap(): any {
+        const de = shippingCalculatorTranslations.de;
+        this.i18nService.addTranslation('de', {
+            configurableOperation: {
+                ShippingCalculator: {
+                    [TRANSLATED_SHIPPING_CALCULATOR_CODE]: {
+                        description: de.description,
+                        args: {
+                            mode: {
+                                label: de.modeLabel,
+                                options: { auto: { label: de.autoOptionLabel } },
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
         this.i18nService.addTranslation('en', {
             errorResult: {
                 CUSTOM_ERROR: CUSTOM_ERROR_MESSAGE_TRANSLATION,

@@ -11,8 +11,10 @@ import {
 
 import {
     BaseTypedCustomFieldConfig,
+    CUSTOM_FIELDS_INPUT_TYPE_SUFFIX,
     CustomFieldConfig,
     CustomFields,
+    isNonListRelationCustomField,
     StructCustomFieldConfig,
     StructFieldConfig,
 } from '../../config/custom-field/custom-field-types';
@@ -92,11 +94,13 @@ export function addGraphQLCustomFields(
         );
         const writeableLocalizedFields = localizedFields.filter(field => !field.readonly);
         const writeableNonLocalizedFields = nonLocalizedFields.filter(field => !field.readonly);
+        // `secret` fields are stored encrypted, so filtering or sorting by them at the SQL level is
+        // meaningless — they are excluded from the generated filter/sort inputs.
         const sortableFields = customEntityFields.filter(
-            field => field.list !== true && field.type !== 'struct',
+            field => field.list !== true && field.type !== 'struct' && field.secret !== true,
         );
         const filterableFields = customEntityFields.filter(
-            field => field.type !== 'relation' && field.type !== 'struct',
+            field => field.type !== 'relation' && field.type !== 'struct' && field.secret !== true,
         );
         const structCustomFields = customEntityFields.filter(
             (f): f is StructCustomFieldConfig => f.type === 'struct',
@@ -115,6 +119,7 @@ export function addGraphQLCustomFields(
                 customFieldTypeDefs += `
                     type ${entityName}CustomFields {
                         ${mapToFields(customEntityFields, wrapListType(getGraphQlType(entityName)))}
+                        ${mapToRelationIdFields(customEntityFields, 'ID')}
                     }
 
                     extend type ${entityName} {
@@ -159,7 +164,7 @@ export function addGraphQLCustomFields(
 
         if (hasCreateInputType) {
             if (writeableNonLocalizedFields.length) {
-                const createCustomFieldsInputType = `Create${entityName}CustomFieldsInput`;
+                const createCustomFieldsInputType = `Create${entityName}${CUSTOM_FIELDS_INPUT_TYPE_SUFFIX}`;
                 if (!schema.getType(createCustomFieldsInputType)) {
                     customFieldTypeDefs += `
                         input ${createCustomFieldsInputType} {
@@ -197,7 +202,7 @@ export function addGraphQLCustomFields(
 
         if (hasUpdateInputType) {
             if (writeableNonLocalizedFields.length) {
-                const updateCustomFieldsInputType = `Update${entityName}CustomFieldsInput`;
+                const updateCustomFieldsInputType = `Update${entityName}${CUSTOM_FIELDS_INPUT_TYPE_SUFFIX}`;
                 if (!schema.getType(updateCustomFieldsInputType)) {
                     customFieldTypeDefs += `
                         input ${updateCustomFieldsInputType} {
@@ -239,14 +244,20 @@ export function addGraphQLCustomFields(
             customFieldTypeDefs += `
                     extend input ${entityName}SortParameter {
                          ${mapToFields(sortableFields, () => 'SortOrder')}
+                         ${mapToRelationIdFields(sortableFields, 'SortOrder')}
                     }
                 `;
         }
 
-        if (filterableFields.length && schema.getType(`${entityName}FilterParameter`)) {
+        const relationIdFilterFields = customEntityFields.filter(isNonListRelationCustomField);
+        if (
+            (filterableFields.length || relationIdFilterFields.length) &&
+            schema.getType(`${entityName}FilterParameter`)
+        ) {
             customFieldTypeDefs += `
                     extend input ${entityName}FilterParameter {
                          ${mapToFields(filterableFields, getFilterOperator)}
+                         ${mapToRelationIdFields(relationIdFilterFields, 'IDOperators')}
                     }
                 `;
         }
@@ -295,6 +306,7 @@ export function addGraphQLCustomFields(
                 customFieldTypeDefs += `
                     type ${publicEntityName}CustomFields {
                         ${mapToFields(customEntityFields, wrapListType(getGraphQlType(entityName)))}
+                        ${mapToRelationIdFields(customEntityFields, 'ID')}
                     }
 
                     extend type ${publicEntityName} {
@@ -652,6 +664,18 @@ function mapToFields(
         })
         .filter(x => x != null);
     return res.join('\n');
+}
+
+/**
+ * Non-list relation custom fields also expose the id of the related entity as a `<name>Id`
+ * field, mirroring the id column on the entity itself. Maps such fields to a string of
+ * SDL fields of the given type.
+ */
+function mapToRelationIdFields(fieldDefs: CustomFieldConfig[], graphQlType: string): string {
+    return fieldDefs
+        .filter(isNonListRelationCustomField)
+        .map(field => `${field.name}Id: ${graphQlType} ${getDeprecationDirective(field)}`)
+        .join('\n');
 }
 
 /**

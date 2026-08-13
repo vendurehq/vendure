@@ -3,9 +3,10 @@ import { AssetStorageStrategy, ConfigService, Logger, ProcessContext } from '@ve
 import { createHash } from 'crypto';
 import express, { NextFunction, Request, Response } from 'express';
 import fs from 'fs-extra';
+import mime from 'mime-types';
 import path from 'path';
 
-import { getValidFormat } from './common';
+import { getValidBackgroundColor, getValidFormat } from './common';
 import { ImageTransformParameters, ImageTransformStrategy } from './config/image-transform-strategy';
 import { S3AssetStorageStrategy } from './config/s3-asset-storage-strategy';
 import { ASSET_SERVER_PLUGIN_INIT_OPTIONS, DEFAULT_CACHE_HEADER, loggerCtx } from './constants';
@@ -198,6 +199,7 @@ export class AssetServer {
         const fpx = +queryParams.fpx || undefined;
         const fpy = +queryParams.fpy || undefined;
         const format = getValidFormat(queryParams.format);
+        const backgroundColor = getValidBackgroundColor(queryParams.bg);
 
         return {
             width,
@@ -208,14 +210,16 @@ export class AssetServer {
             fpx,
             fpy,
             preset: queryParams.preset,
+            backgroundColor,
         };
     }
 
     private getFileNameFromParameters(filePath: string, params: ImageTransformParameters): string {
-        const { width: w, height: h, mode, preset, fpx, fpy, format, quality: q } = params;
+        const { width: w, height: h, mode, preset, fpx, fpy, format, quality: q, backgroundColor } = params;
         /* eslint-disable @typescript-eslint/restrict-template-expressions */
         const focalPoint = fpx && fpy ? `_fpx${fpx}_fpy${fpy}` : '';
         const quality = q ? `_q${q}` : '';
+        const bg = backgroundColor ? `_bg${backgroundColor.replace('#', '')}` : '';
         const imageFormat = getValidFormat(format);
         let imageParamsString = '';
         if (w || h) {
@@ -236,6 +240,9 @@ export class AssetServer {
         }
         if (quality) {
             imageParamsString += quality;
+        }
+        if (bg) {
+            imageParamsString += bg;
         }
 
         const decodedReqPath = this.sanitizeFilePath(filePath);
@@ -292,21 +299,6 @@ export class AssetServer {
      * Attempt to get the mime type from the file name.
      */
     private getMimeType(fileName: string): string | undefined {
-        const ext = path.extname(fileName);
-        switch (ext) {
-            case '.jpg':
-            case '.jpeg':
-                return 'image/jpeg';
-            case '.png':
-                return 'image/png';
-            case '.gif':
-                return 'image/gif';
-            case '.svg':
-                return 'image/svg+xml';
-            case '.tiff':
-                return 'image/tiff';
-            case '.webp':
-                return 'image/webp';
-        }
+        return mime.lookup(fileName) || undefined;
     }
 }

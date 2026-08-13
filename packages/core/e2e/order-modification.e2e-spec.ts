@@ -39,6 +39,7 @@ import {
     testSuccessfulPaymentMethod,
 } from './fixtures/test-payment-methods';
 import {
+    canceledOrderFragment,
     orderFragment,
     orderWithLinesFragment,
     orderWithModificationsFragment,
@@ -48,6 +49,7 @@ import { graphql, VariablesOf } from './graphql/graphql-shop';
 import {
     addManualPaymentToOrderDocument,
     adminTransitionToStateDocument,
+    cancelOrderDocument,
     createFulfillmentDocument,
     createPromotionDocument,
     createShippingMethodDocument,
@@ -197,6 +199,33 @@ const modifyOrderForTestDocument = adminGraphql(`
             ... on ErrorResult {
                 errorCode
                 message
+            }
+        }
+    }
+`);
+
+// The shared OrderWithLines fragment omits the per-line discounts read by the Admin dashboard.
+const getOrderWithLineDiscountsDocument = adminGraphql(`
+    query GetOrderWithLineDiscounts($id: ID!) {
+        order(id: $id) {
+            id
+            state
+            totalWithTax
+            discounts {
+                adjustmentSource
+                amount
+                amountWithTax
+            }
+            lines {
+                id
+                quantity
+                orderPlacedQuantity
+                proratedLinePriceWithTax
+                discounts {
+                    adjustmentSource
+                    amount
+                    amountWithTax
+                }
             }
         }
     }
@@ -2471,6 +2500,109 @@ describe('Order modification', () => {
             expect(addManualPaymentToOrder.modifications.length).toBe(2);
             expect(addManualPaymentToOrder.modifications[0].isSettled).toBe(true);
             expect(addManualPaymentToOrder.modifications[1].isSettled).toBe(true);
+        });
+    });
+
+    // #5097 — a line added by a modification keeps an orderPlacedQuantity of 0, so cancelling
+    // the order left both quantities at 0 and the prorated discount amount became NaN.
+    describe('cancelling an order with a line added by a modification', () => {
+        const CODE_HALF_PRICE = 'HALF_PRICE';
+
+        type CanceledOrderFragment = FragmentOf<typeof canceledOrderFragment>;
+        const canceledOrderGuard: ErrorResultGuard<CanceledOrderFragment> = createErrorResultGuard(
+            input => !!input.lines,
+        );
+
+        it('order with discounts can still be read after cancellation', async () => {
+            await adminClient.query(createPromotionDocument, {
+                input: {
+                    enabled: true,
+                    couponCode: CODE_HALF_PRICE,
+                    conditions: [
+                        {
+                            code: minimumOrderAmount.code,
+                            arguments: [
+                                { name: 'amount', value: '0' },
+                                { name: 'taxInclusive', value: 'false' },
+                            ],
+                        },
+                    ],
+                    actions: [
+                        {
+                            code: orderPercentageDiscount.code,
+                            arguments: [{ name: 'discount', value: '50' }],
+                        },
+                    ],
+                    translations: [{ languageCode: LanguageCode.en, name: 'half price' }],
+                },
+            });
+
+            // 1. Place an order with an order-level promotion applied
+            await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
+            await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
+                productVariantId: 'T_1',
+                quantity: 1,
+            } as AddItemInput);
+            await shopClient.query(applyCouponCodeDocument, { couponCode: CODE_HALF_PRICE });
+            await proceedToArrangingPayment(shopClient);
+            const placedOrder = await addPaymentToOrder(shopClient, testSuccessfulPaymentMethod);
+            orderGuard.assertSuccess(placedOrder);
+
+            // 2. Add a new line via a modification, so that it has an orderPlacedQuantity of 0
+            const modifyingOrder = await adminTransitionOrderToState(placedOrder.id, 'Modifying');
+            orderGuard.assertSuccess(modifyingOrder);
+            const { modifyOrder } = await adminClient.query(modifyOrderDocument, {
+                input: {
+                    dryRun: false,
+                    orderId: placedOrder.id,
+                    addItems: [{ productVariantId: 'T_2', quantity: 1 }],
+                },
+            });
+            orderWithModificationsGuard.assertSuccess(modifyOrder);
+
+            // 3. Settle the additional payment and return the order to its original state
+            const arrangingAdditionalPayment = await adminTransitionOrderToState(
+                placedOrder.id,
+                'ArrangingAdditionalPayment',
+            );
+            orderGuard.assertSuccess(arrangingAdditionalPayment);
+            const { addManualPaymentToOrder } = await adminClient.query(addManualPaymentToOrderDocument, {
+                input: {
+                    orderId: placedOrder.id,
+                    method: 'test',
+                    transactionId: 'CANCEL_MODIFIED_123',
+                    metadata: {},
+                },
+            });
+            orderWithModificationsGuard.assertSuccess(addManualPaymentToOrder);
+            const settledOrder = await adminTransitionOrderToState(placedOrder.id, 'PaymentSettled');
+            orderGuard.assertSuccess(settledOrder);
+
+            const addedLine = addManualPaymentToOrder.lines.find(l => l.orderPlacedQuantity === 0);
+            expect(addedLine).toBeDefined();
+
+            const { cancelOrder } = await adminClient.query(cancelOrderDocument, {
+                input: { orderId: placedOrder.id, reason: 'no longer wanted' },
+            });
+            canceledOrderGuard.assertSuccess(cancelOrder);
+            expect(cancelOrder.state).toBe('Cancelled');
+
+            // 4. Read the order back as the Admin dashboard does
+            const { order } = await adminClient.query(getOrderWithLineDiscountsDocument, {
+                id: placedOrder.id,
+            });
+
+            const cancelledAddedLine = order!.lines.find(l => l.id === addedLine!.id)!;
+            expect(cancelledAddedLine.quantity).toBe(0);
+            expect(cancelledAddedLine.orderPlacedQuantity).toBe(0);
+            for (const discount of cancelledAddedLine.discounts) {
+                expect(discount.amount).not.toBeNaN();
+                expect(discount.amountWithTax).not.toBeNaN();
+            }
+            for (const discount of order!.discounts) {
+                expect(discount.amount).not.toBeNaN();
+                expect(discount.amountWithTax).not.toBeNaN();
+            }
         });
     });
 

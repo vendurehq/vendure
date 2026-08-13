@@ -13,7 +13,9 @@ import 'dotenv/config';
 import path from 'path';
 
 const IS_DEV = process.env.APP_ENV === 'dev';
-const serverPort = +process.env.PORT || 3000;
+// PORT wins because hosting platforms inject it into the environment at runtime, and that
+// must take precedence over any value baked into the .env file at scaffold time.
+const serverPort = +process.env.PORT || +process.env.VENDURE_SERVER_PORT || 3000;
 
 export const config: VendureConfig = {
     apiOptions: {
@@ -95,7 +97,9 @@ export const config: VendureConfig = {
                 fromAddress: '"example" <noreply@example.com>',
                 verifyEmailAddressUrl: 'http://localhost:8080/verify',
                 passwordResetUrl: 'http://localhost:8080/password-reset',
-                changeEmailAddressUrl: 'http://localhost:8080/verify-email-address-change'
+                changeEmailAddressUrl: 'http://localhost:8080/verify-email-address-change',
+                // The URL of the password reset page of the Vendure Dashboard.
+                adminPasswordResetUrl: `http://localhost:${serverPort}/dashboard/reset-password`
             },
         }),
         DashboardPlugin.init({

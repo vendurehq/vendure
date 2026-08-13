@@ -22,6 +22,7 @@ import {
 import { API_KEY_AUTH_STRATEGY_NAME, ConfigService, Logger } from '../../config';
 import { ApiKeyStrategy } from '../../config/api-key-strategy/api-key-strategy';
 import { TransactionalConnection } from '../../connection';
+import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { AuthenticationMethod, Role, User } from '../../entity';
 import { ApiKeyTranslation } from '../../entity/api-key/api-key-translation.entity';
 import { ApiKey } from '../../entity/api-key/api-key.entity';
@@ -353,7 +354,7 @@ export class ApiKeyService {
         relations?: RelationPaths<ApiKey>,
     ): Promise<ApiKey | null> {
         const entity = await this.connection.getRepository(ctx, ApiKey).findOne({
-            relations: [...(relations ?? []), 'channels'],
+            relations: findOptionsArrayToObject<ApiKey>([...(relations ?? []), 'channels']),
             where: {
                 lookupId,
                 deletedAt: IsNull(),

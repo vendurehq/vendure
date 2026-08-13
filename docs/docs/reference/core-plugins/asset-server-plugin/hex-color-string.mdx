@@ -1,0 +1,16 @@
+---
+title: "HexColorString"
+generated: true
+---
+<GenerationInfo sourceFile="packages/asset-server-plugin/src/types.ts" sourceLine="24" packageName="@vendure/asset-server-plugin" since="3.8.0" />
+
+A `#`-prefixed hex color string, e.g. `'#ffffff'` or `'#000'`.
+Full hex-char validation at the type level is not feasible because
+TypeScript's template literal unions exceed compiler limits for
+6- and 8-char hex strings. The `#` prefix is enforced at compile time;
+hex-character and length validation is handled at runtime by
+`getValidBackgroundColor()`.
+
+```ts title="Signature"
+type HexColorString = `#${string}`
+```

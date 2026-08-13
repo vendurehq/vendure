@@ -1,6 +1,10 @@
 import { parse } from 'graphql';
 
-import { addBulkAction, addListQueryDocument } from '../../data-table/data-table-extensions.js';
+import {
+    addBulkAction,
+    addListQueryDocument,
+    addViewOptionDefaults,
+} from '../../data-table/data-table-extensions.js';
 import { addDisplayComponent } from '../display-component-extensions.js';
 import { DashboardDataTableExtensionDefinition } from '../types/index.js';
 
@@ -31,6 +35,9 @@ export function registerDataTableExtensions(dataTables?: DashboardDataTableExten
                     const { column, component } = displayComponent;
                     addDisplayComponent({ pageId, blockId, field: column, component });
                 }
+            }
+            if (dataTable.viewOptionDefaults) {
+                addViewOptionDefaults(dataTable.pageId, dataTable.blockId, dataTable.viewOptionDefaults);
             }
         }
     }

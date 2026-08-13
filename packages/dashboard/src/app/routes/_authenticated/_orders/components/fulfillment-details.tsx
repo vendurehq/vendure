@@ -1,15 +1,23 @@
 import { LabeledData } from '@/vdb/components/labeled-data.js';
 import { CustomFieldsForm } from '@/vdb/components/shared/custom-fields-form.js';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/vdb/components/ui/collapsible.js';
+import { Button } from '@/vdb/components/ui/button.js';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/vdb/components/ui/dialog.js';
 import { Form } from '@/vdb/components/ui/form.js';
 import { api } from '@/vdb/graphql/api.js';
 import { ResultOf } from '@/vdb/graphql/graphql.js';
 import { useCustomFieldConfig } from '@/vdb/hooks/use-custom-field-config.js';
 import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
+import { isDestructiveTransition, orderStateDictionary } from '@/vdb/utils/state-type.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation } from '@tanstack/react-query';
-import { ChevronDown } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import {
@@ -17,7 +25,7 @@ import {
     orderDetailFragment,
     transitionFulfillmentToStateDocument,
 } from '../orders.graphql.js';
-import { getTypeForState, StateTransitionControl } from './state-transition-control.js';
+import { StateTransitionControl } from './state-transition-control.js';
 
 type Order = NonNullable<ResultOf<typeof orderDetailFragment>>;
 
@@ -100,7 +108,8 @@ export function FulfillmentDetails({ order, fulfillment, onSuccess }: Readonly<F
         nextOtherStates().forEach(state => {
             actions.push({
                 label: t`Transition to ${getTranslatedFulfillmentState(state)}`,
-                type: getTypeForState(state),
+                tone: orderStateDictionary.toneFor(state),
+                destructive: isDestructiveTransition(state),
                 onClick: () => handleStateTransition(state),
                 disabled: transitionFulfillmentMutation.isPending,
             });
@@ -110,55 +119,73 @@ export function FulfillmentDetails({ order, fulfillment, onSuccess }: Readonly<F
     };
 
     return (
-        <div className="space-y-1 p-3 border rounded-md">
-            <div className="space-y-1">
-                <LabeledData label={<Trans>Fulfillment ID</Trans>} value={fulfillment.id.slice(-8)} />
-                <LabeledData label={<Trans>Method</Trans>} value={fulfillment.method} />
-                <LabeledData
-                    label={<Trans>State</Trans>}
-                    value={getTranslatedFulfillmentState(fulfillment.state)}
-                />
-                {fulfillment.trackingCode && (
-                    <LabeledData label={<Trans>Tracking code</Trans>} value={fulfillment.trackingCode} />
-                )}
-                <LabeledData label={<Trans>Created</Trans>} value={formatDate(fulfillment.createdAt)} />
+        <div>
+            <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
+                <div
+                    className="sm:col-start-2 sm:row-start-1 sm:justify-self-end"
+                    data-testid="fulfillment-state-control"
+                >
+                    <StateTransitionControl
+                        currentState={fulfillment.state}
+                        statesTranslationFunction={getTranslatedFulfillmentState}
+                        actions={getFulfillmentActions()}
+                        isLoading={transitionFulfillmentMutation.isPending}
+                    />
+                </div>
+                <div className="grid gap-2 md:grid-cols-2 sm:col-start-1 sm:row-start-1">
+                    <LabeledData label={<Trans>Fulfillment ID</Trans>} value={fulfillment.id.slice(-8)} />
+                    <LabeledData label={<Trans>Method</Trans>} value={fulfillment.method} />
+                    {fulfillment.trackingCode && (
+                        <LabeledData label={<Trans>Tracking code</Trans>} value={fulfillment.trackingCode} />
+                    )}
+                    <LabeledData label={<Trans>Created</Trans>} value={formatDate(fulfillment.createdAt)} />
+                </div>
             </div>
 
             {fulfillment.lines.length > 0 && (
-                <div className="mt-3 pt-3 border-t">
-                    <Collapsible>
-                        <CollapsibleTrigger className="flex items-center justify-between w-full text-sm hover:underline text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md p-1 -m-1">
+                <div className="mt-4">
+                    <Dialog>
+                        <DialogTrigger render={<Button variant="outline" size="sm" />}>
                             <Trans>
-                                Fulfilled items (
+                                View fulfilled items (
                                 {fulfillment.lines.reduce((acc, line) => acc + line.quantity, 0)})
                             </Trans>
-                            <ChevronDown className="h-4 w-4 transition-transform duration-200 data-[state=open]:rotate-180" />
-                        </CollapsibleTrigger>
-                        <CollapsibleContent className="mt-2 space-y-1">
-                            {fulfillment.lines.map(line => {
-                                const orderLine = orderLinesMap.get(line.orderLineId);
-                                const productName = orderLine?.productVariant?.name ?? 'Unknown product';
-                                const sku = orderLine?.productVariant?.sku;
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+                            <DialogHeader>
+                                <DialogTitle>
+                                    <Trans>Fulfilled items</Trans>
+                                </DialogTitle>
+                                <DialogDescription>
+                                    <Trans>Items included in this fulfillment.</Trans>
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="overflow-auto flex-1 divide-y">
+                                {fulfillment.lines.map(line => {
+                                    const orderLine = orderLinesMap.get(line.orderLineId);
+                                    const productName = orderLine?.productVariant?.name ?? t`Unknown product`;
+                                    const sku = orderLine?.productVariant?.sku;
 
-                                return (
-                                    <div key={line.orderLineId} className="text-sm text-muted-foreground">
-                                        <div className="font-medium text-foreground text-xs">
-                                            {productName}
+                                    return (
+                                        <div key={line.orderLineId} className="py-3 first:pt-0 last:pb-0">
+                                            <div className="font-medium text-sm">{productName}</div>
+                                            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                                                <span>
+                                                    <Trans>Quantity: {line.quantity}</Trans>
+                                                </span>
+                                                {sku && <span>SKU: {sku}</span>}
+                                            </div>
                                         </div>
-                                        <div className="flex items-center gap-2 text-xs">
-                                            <span>Qty: {line.quantity}</span>
-                                            {sku && <span>SKU: {sku}</span>}
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </CollapsibleContent>
-                    </Collapsible>
+                                    );
+                                })}
+                            </div>
+                        </DialogContent>
+                    </Dialog>
                 </div>
             )}
 
             {customFieldConfig.length > 0 && (
-                <div className="mt-3 pt-3 border-t">
+                <div className="mt-4">
                     <Form {...customFieldsForm}>
                         <CustomFieldsForm
                             entityType="Fulfillment"
@@ -168,15 +195,6 @@ export function FulfillmentDetails({ order, fulfillment, onSuccess }: Readonly<F
                     </Form>
                 </div>
             )}
-
-            <div className="mt-3 pt-3 border-t">
-                <StateTransitionControl
-                    currentState={fulfillment.state}
-                    statesTranslationFunction={getTranslatedFulfillmentState}
-                    actions={getFulfillmentActions()}
-                    isLoading={transitionFulfillmentMutation.isPending}
-                />
-            </div>
         </div>
     );
 }

@@ -102,7 +102,7 @@ function getCallerFilename(depth: number): string {
     return file;
 }
 
-function getDbConfig(): DataSourceOptions {
+export function getDbConfig(): DataSourceOptions {
     const dbType = process.env.DB || 'sqljs';
     switch (dbType) {
         case 'postgres':

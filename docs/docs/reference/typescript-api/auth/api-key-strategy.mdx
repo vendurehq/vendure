@@ -2,7 +2,9 @@
 title: "ApiKeyStrategy"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/config/api-key-strategy/api-key-strategy.ts" sourceLine="52" packageName="@vendure/core" since="3.6.0" />
+## ApiKeyStrategy
+
+<GenerationInfo sourceFile="packages/core/src/config/api-key-strategy/api-key-strategy.ts" sourceLine="54" packageName="@vendure/core" since="3.6.0" />
 
 Defines a custom strategy for how API-Keys get handled.
 
@@ -59,7 +61,7 @@ By using a separate lookup ID, we can identify the correct stored hash to compar
 
 Defines a custom strategy for how API-Keys get hashed and checked.
 
-:::important Performance Consideration
+:::caution[Performance Consideration]
 
 Vendure does not store API-Keys in plain text, but rather a hashed version of the key,
 similar to how passwords are handled. This means that when a request comes in with an API-Key,
@@ -119,6 +121,127 @@ what often matters is that a key has been used at all in the last days or weeks 
 
 If passed as a number should represent milliseconds and if passed as a string describes a time span per
 [zeit/ms](https://github.com/zeit/ms.js).  Eg: `5m`, `'1 hour'`, `'10h'`
+
+
+</div>
+## BaseApiKeyStrategy
+
+<GenerationInfo sourceFile="packages/core/src/config/api-key-strategy/api-key-strategy.ts" sourceLine="175" packageName="@vendure/core" />
+
+Intended to be extended by consumers of the [ApiKeyStrategy](/reference/typescript-api/auth/api-key-strategy#apikeystrategy) if they do not
+require their own construction/parsing logic. Provides default implementations of
+`constructApiKey`, `parse`, `delimiter`, and `lastUsedAtUpdateInterval`.
+
+```ts title="Signature"
+class BaseApiKeyStrategy implements ApiKeyStrategy {
+    abstract hashingStrategy: PasswordHashingStrategy;
+    generateSecret(ctx: RequestContext) => Promise<string>;
+    generateLookupId(ctx: RequestContext) => Promise<string>;
+    delimiter = ':';
+    lastUsedAtUpdateInterval: ApiKeyStrategy['lastUsedAtUpdateInterval'] = 0;
+    constructApiKey(lookupId: string, secret: string) => string;
+    parse(token: string) => ApiKeyStrategyParseResult;
+}
+```
+* Implements: [`ApiKeyStrategy`](/reference/typescript-api/auth/api-key-strategy#apikeystrategy)
+
+
+
+<div className="members-wrapper">
+
+### hashingStrategy
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/auth/password-hashing-strategy#passwordhashingstrategy'>PasswordHashingStrategy</a>`}   />
+
+
+### generateSecret
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => Promise<string>`}   />
+
+
+### generateLookupId
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => Promise<string>`}   />
+
+
+### delimiter
+
+<MemberInfo kind="property" type={``}   />
+
+
+### lastUsedAtUpdateInterval
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/auth/api-key-strategy#apikeystrategy'>ApiKeyStrategy</a>['lastUsedAtUpdateInterval']`}   />
+
+
+### constructApiKey
+
+<MemberInfo kind="method" type={`(lookupId: string, secret: string) => string`}   />
+
+
+### parse
+
+<MemberInfo kind="method" type={`(token: string) => ApiKeyStrategyParseResult`}   />
+
+
+
+
+</div>
+## RandomBytesApiKeyStrategy
+
+<GenerationInfo sourceFile="packages/core/src/config/api-key-strategy/random-bytes-api-key-strategy.ts" sourceLine="80" packageName="@vendure/core" since="3.6.0" />
+
+A generation strategy that uses `node:crypto` to generate random hex strings for API-Keys via `randomBytes`.
+
+This strategy defines API-Keys where both parts are the aforementioned random bytes like so:
+
+```text
+<lookupId>:<apiKey>
+```
+
+Note the colon `':'` delimiter between the lookup ID and the api key.
+
+```ts title="Signature"
+class RandomBytesApiKeyStrategy extends BaseApiKeyStrategy {
+    readonly secretSize: number;
+    readonly lookupSize: number;
+    readonly hashingStrategy: PasswordHashingStrategy;
+    constructor(input?: RandomBytesApiKeyStrategyOptions)
+    generateSecret(ctx: RequestContext) => Promise<string>;
+    generateLookupId(ctx: RequestContext) => Promise<string>;
+}
+```
+* Extends: [`BaseApiKeyStrategy`](/reference/typescript-api/auth/api-key-strategy#baseapikeystrategy)
+
+
+
+<div className="members-wrapper">
+
+### secretSize
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### lookupSize
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### hashingStrategy
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/auth/password-hashing-strategy#passwordhashingstrategy'>PasswordHashingStrategy</a>`}   />
+
+
+### generateSecret
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => Promise<string>`}   />
+
+
+### generateLookupId
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => Promise<string>`}   />
+
+
 
 
 </div>

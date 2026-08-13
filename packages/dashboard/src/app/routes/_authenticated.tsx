@@ -1,9 +1,10 @@
 import { AppLayout } from '@/vdb/components/layout/app-layout.js';
-import { AUTHENTICATED_ROUTE_PREFIX } from '@/vdb/constants.js';
 import { useAuth } from '@/vdb/hooks/use-auth.js';
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
 
-export const Route = createFileRoute(AUTHENTICATED_ROUTE_PREFIX)({
+// Must be a string literal to satisfy @tanstack/router-generator static analysis.
+// Keep in sync with AUTHENTICATED_ROUTE_PREFIX in @/vdb/constants.js.
+export const Route = createFileRoute('/_authenticated')({
     beforeLoad: ({ context, location }) => {
         if (!context.auth.isAuthenticated) {
             throw redirect({

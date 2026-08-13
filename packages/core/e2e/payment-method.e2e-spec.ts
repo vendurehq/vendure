@@ -548,6 +548,78 @@ describe('PaymentMethod resolver', () => {
         expect(activeMethod.name).toBe('Active Method');
         expect(activeMethod.description).toBe('This is an active method');
     });
+
+    describe('cross-channel update protection', () => {
+        const CHANNEL_A_TOKEN = 'CROSS_CHANNEL_A_TOKEN';
+        const CHANNEL_B_TOKEN = 'CROSS_CHANNEL_B_TOKEN';
+
+        beforeAll(async () => {
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            for (const [code, token] of [
+                ['cross-channel-a', CHANNEL_A_TOKEN],
+                ['cross-channel-b', CHANNEL_B_TOKEN],
+            ]) {
+                await adminClient.query(createChannelDocument, {
+                    input: {
+                        code,
+                        token,
+                        defaultLanguageCode: LanguageCode.en,
+                        currencyCode: CurrencyCode.GBP,
+                        pricesIncludeTax: true,
+                        defaultShippingZoneId: 'T_1',
+                        defaultTaxZoneId: 'T_1',
+                    },
+                });
+            }
+        });
+
+        // updatePaymentMethod must not modify a PaymentMethod that does not belong to the
+        // active channel.
+        it('cannot update a PaymentMethod belonging to another channel', async () => {
+            adminClient.setChannelToken(CHANNEL_A_TOKEN);
+            const { createPaymentMethod } = await adminClient.query(createPaymentMethodDocument, {
+                input: {
+                    code: 'cross-channel-target',
+                    enabled: true,
+                    handler: {
+                        code: dummyPaymentHandler.code,
+                        arguments: [{ name: 'automaticSettle', value: 'true' }],
+                    },
+                    translations: [
+                        {
+                            languageCode: LanguageCode.en,
+                            name: 'Cross channel target',
+                            description: 'original description',
+                        },
+                    ],
+                },
+            });
+            const targetId = createPaymentMethod.id;
+
+            // channel-b does not contain this method; attempting the update from there must fail.
+            adminClient.setChannelToken(CHANNEL_B_TOKEN);
+            await expect(
+                adminClient.query(updatePaymentMethodDocument, {
+                    input: {
+                        id: targetId,
+                        enabled: false,
+                        translations: [
+                            { languageCode: LanguageCode.en, name: 'Updated', description: 'updated' },
+                        ],
+                    },
+                }),
+            ).rejects.toThrow(/No PaymentMethod with the id .* could be found/);
+
+            // The method in channel-a must be completely unchanged — the write must not commit.
+            adminClient.setChannelToken(CHANNEL_A_TOKEN);
+            const { paymentMethod } = await adminClient.query(getPaymentMethodDocument, { id: targetId });
+            expect(paymentMethod?.enabled).toBe(true);
+            expect(paymentMethod?.name).toBe('Cross channel target');
+            expect(paymentMethod?.description).toBe('original description');
+
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+        });
+    });
 });
 
 export const paymentMethodFragment = graphql(`

@@ -2,7 +2,9 @@
 title: "EntityAccessControlStrategy"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/config/auth/entity-access-control-strategy.ts" sourceLine="108" packageName="@vendure/core" since="3.6.0" experimental="true" />
+## EntityAccessControlStrategy
+
+<GenerationInfo sourceFile="packages/core/src/config/auth/entity-access-control-strategy.ts" sourceLine="110" packageName="@vendure/core" since="3.6.0" experimental="true" />
 
 An EntityAccessControlStrategy provides three layers of access control:
 
@@ -18,7 +20,7 @@ An EntityAccessControlStrategy provides three layers of access control:
 3. **Row-level** (`applyAccessControl`): Filters which entities a user can see
    by modifying query builders. This runs for every entity query.
 
-The default implementation ([DefaultEntityAccessControlStrategy](/reference/typescript-api/auth/default-entity-access-control-strategy#defaultentityaccesscontrolstrategy)) preserves
+The default implementation ([DefaultEntityAccessControlStrategy](/reference/typescript-api/auth/entity-access-control-strategy#defaultentityaccesscontrolstrategy)) preserves
 the existing Vendure permission behavior and performs no row-level filtering.
 Custom strategies should extend the default class and override the methods
 they need.
@@ -125,7 +127,7 @@ Called once per request in the AuthGuard to determine whether the request
 should be allowed. This replaces the default Vendure permission evaluation
 logic, giving full control over gate-level access.
 
-The [DefaultEntityAccessControlStrategy](/reference/typescript-api/auth/default-entity-access-control-strategy#defaultentityaccesscontrolstrategy) implements the standard
+The [DefaultEntityAccessControlStrategy](/reference/typescript-api/auth/entity-access-control-strategy#defaultentityaccesscontrolstrategy) implements the standard
 Vendure permission logic. Custom strategies should extend it and call
 `super.canAccess()` to preserve the default behavior.
 ### prepareAccessControl
@@ -158,6 +160,60 @@ the default case.
 
 If your access control logic requires async lookups, perform them in
 `prepareAccessControl()` and read the cached results here.
+
+
+</div>
+## DefaultEntityAccessControlStrategy
+
+<GenerationInfo sourceFile="packages/core/src/config/auth/default-entity-access-control-strategy.ts" sourceLine="41" packageName="@vendure/core" since="3.6.0" experimental="true" />
+
+The default EntityAccessControlStrategy which implements the standard
+Vendure permission evaluation logic. It checks the `@Allow()` decorator
+permissions against the current user's channel permissions.
+
+Custom strategies should extend this class and override `canAccess()`
+to customize gate-level permissions, implement `prepareAccessControl()`
+for async pre-loading, and/or implement `applyAccessControl()`
+to add row-level filtering.
+
+*Example*
+
+```ts
+class MyStrategy extends DefaultEntityAccessControlStrategy {
+    async canAccess(ctx: RequestContext, permissions: Permission[]) {
+        // Custom gate-level logic, falling back to default
+        return super.canAccess(ctx, permissions);
+    }
+
+    async prepareAccessControl(ctx: RequestContext) {
+        // Pre-load data for row-level filtering
+    }
+
+    applyAccessControl(qb, entityType, ctx) {
+        // Row-level filtering
+    }
+}
+```
+
+```ts title="Signature"
+class DefaultEntityAccessControlStrategy implements EntityAccessControlStrategy {
+    canAccess(ctx: RequestContext, permissions: Permission[]) => Promise<boolean>;
+}
+```
+* Implements: [`EntityAccessControlStrategy`](/reference/typescript-api/auth/entity-access-control-strategy#entityaccesscontrolstrategy)
+
+
+
+<div className="members-wrapper">
+
+### canAccess
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, permissions: <a href='/reference/typescript-api/common/permission#permission'>Permission</a>[]) => Promise<boolean>`}   />
+
+Implements the standard Vendure permission evaluation:
+- No permissions required (`@Allow()` not set) → allow
+- `Permission.Public` → allow
+- Otherwise, check `ctx.userHasPermissions()` or `ctx.authorizedAsOwnerOnly`
 
 
 </div>

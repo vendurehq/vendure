@@ -19,6 +19,7 @@ import { TableOptions } from '@tanstack/table-core';
 import { BulkActionsInput } from '@/vdb/framework/extension-api/types/index.js';
 import {
     FullWidthPageBlock,
+    InlineDropdownItem,
     Page,
     PageActionBar,
     PageLayout,
@@ -48,7 +49,7 @@ export interface ListPageProps<
     pageId?: string;
     /**
      @description
-     * The Tanstack Router `Route` object, which will be defined in the component file.
+     * The TanStack Router `Route` object, which will be defined in the component file.
      */
     route: AnyRoute | (() => AnyRoute);
     /**
@@ -158,6 +159,14 @@ export interface ListPageProps<
      * @param searchTerm
      */
     onSearchTermChange?: (searchTerm: string) => NonNullable<V['options']>['filter'];
+    /**
+     * @description
+     * Placeholder text for the search input. Should say what the search targets,
+     * e.g. "Search products...". Defaults to a generic "Search...".
+     *
+     * @since 3.8.0
+     */
+    searchPlaceholder?: string;
     /**
      * @description
      * Allows you to customize the rendering and other aspects of individual columns.
@@ -289,6 +298,12 @@ export interface ListPageProps<
     children?: React.ReactNode;
     /**
      * @description
+     * Optional dropdown menu items to display in the action bar's overflow (⋮) menu.
+     * These are forwarded to the {@link PageActionBar}.
+     */
+    dropdownMenuItems?: InlineDropdownItem[];
+    /**
+     * @description
      * Allows you to define pre-set filters based on an array of possible selections
      *
      * @example
@@ -324,7 +339,28 @@ export interface ListPageProps<
     transformData?: (data: any[]) => any[];
     /**
      * @description
-     * Allows you to directly manipulate the Tanstack Table `TableOptions` object before the
+     * Allows the react-query cache key to be transformed. Use this together with the
+     * `transformVariables` prop when a page injects extra state into the query
+     * (e.g. a language selector or a status filter): the default key only reflects page, sorting,
+     * column filters and the search term, so without transforming the key too, changing the injected
+     * state serves a stale cached result instead of refetching.
+     */
+    transformQueryKey?: (queryKey: any[]) => any[];
+    /**
+     * @description
+     * When true, disables the view options (column visibility) control in the table toolbar.
+     */
+    disableViewOptions?: boolean;
+    /**
+     * @description
+     * When false, the row selection checkbox column will not be included.
+     *
+     * @default true
+     */
+    includeSelectionColumn?: boolean;
+    /**
+     * @description
+     * Allows you to directly manipulate the TanStack Table `TableOptions` object before the
      * table is created. And advanced option that is not often required.
      */
     setTableOptions?: (table: TableOptions<any>) => TableOptions<any>;
@@ -385,6 +421,13 @@ export interface ListPageProps<
      * Defaults to false. Only relevant when `onReorder` is provided.
      */
     disableDragAndDrop?: boolean;
+    /**
+     * @description
+     * An optional action rendered inside the first-run empty state (when the list
+     * has no items and no active filters), typically a "create your first X" CTA.
+     * Gate it with a {@link PermissionGuard} to mirror the create button's permissions.
+     */
+    emptyStateAction?: React.ReactNode;
 }
 
 /**
@@ -496,15 +539,21 @@ export function ListPage<
     route: routeOrFn,
     defaultVisibility,
     onSearchTermChange,
+    searchPlaceholder,
     facetedFilters,
     children,
+    dropdownMenuItems,
     rowActions,
     transformData,
+    transformQueryKey,
+    disableViewOptions,
+    includeSelectionColumn,
     setTableOptions,
     bulkActions,
     registerRefresher,
     onReorder,
     disableDragAndDrop = false,
+    emptyStateAction,
 }: Readonly<ListPageProps<T, U, V, AC>>) {
     const route = typeof routeOrFn === 'function' ? routeOrFn() : routeOrFn;
     const routeSearch = route.useSearch();
@@ -514,13 +563,13 @@ export function ListPage<
 
     const pagination = {
         page: routeSearch.page ? Number.parseInt(routeSearch.page) : 1,
-        itemsPerPage: routeSearch.perPage ? Number.parseInt(routeSearch.perPage) : (tableSettings?.pageSize ?? 10),
+        itemsPerPage: routeSearch.perPage
+            ? Number.parseInt(routeSearch.perPage)
+            : (tableSettings?.pageSize ?? 10),
     };
 
-    const columnVisibility = pageId
-        ? (tableSettings?.columnVisibility ?? defaultVisibility)
-        : defaultVisibility;
-    const columnOrder = pageId ? (tableSettings?.columnOrder ?? defaultColumnOrder) : defaultColumnOrder;
+    // Column visibility/order user-settings merging is owned by useViewOptionDefaults inside
+    // PaginatedListDataTable, so only raw code defaults are passed down here.
     const columnFilters = pageId ? tableSettings?.columnFilters : routeSearch.filters;
 
     const sorting: SortingState = (routeSearch.sort ?? '')
@@ -567,9 +616,10 @@ export function ListPage<
         transformVariables,
         customizeColumns: customizeColumns as any,
         additionalColumns: additionalColumns as any,
-        defaultColumnOrder: columnOrder as any,
-        defaultVisibility: columnVisibility as any,
+        defaultColumnOrder: defaultColumnOrder as any,
+        defaultVisibility: defaultVisibility as any,
         onSearchTermChange,
+        searchPlaceholder,
         page: pagination.page,
         itemsPerPage: pagination.itemsPerPage,
         sorting,
@@ -599,17 +649,22 @@ export function ListPage<
         bulkActions,
         setTableOptions,
         transformData,
+        transformQueryKey,
+        disableViewOptions,
+        includeSelectionColumn,
         registerRefresher,
+        emptyStateAction,
     };
 
     return (
         <Page pageId={pageId}>
             <PageTitle>{title}</PageTitle>
-            <PageActionBar>{children}</PageActionBar>
+            <PageActionBar dropdownMenuItems={dropdownMenuItems}>{children}</PageActionBar>
             <PageLayout>
                 <FullWidthPageBlock blockId="list-table">
                     <PaginatedListDataTable
                         {...commonTableProps}
+                        enableViews
                         onReorder={onReorder}
                         disableDragAndDrop={disableDragAndDrop}
                     />

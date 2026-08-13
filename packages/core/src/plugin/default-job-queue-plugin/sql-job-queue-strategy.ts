@@ -1,10 +1,11 @@
 import { JobListOptions, JobState } from '@vendure/common/lib/generated-types';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
-import { Brackets, Connection, EntityManager, FindOptionsWhere, In, LessThan } from 'typeorm';
+import { Brackets, DataSource, EntityManager, FindOptionsWhere, In, LessThan } from 'typeorm';
 
 import { Injector } from '../../common/injector';
 import { InspectableJobQueueStrategy, JobQueueStrategy } from '../../config';
 import { Logger } from '../../config/logger/vendure-logger';
+import { getDatabaseType } from '../../connection/database-type';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Job, JobData, JobQueueStrategyJobOptions } from '../../job-queue';
 import { PollingJobQueueStrategy } from '../../job-queue/polling-job-queue-strategy';
@@ -20,7 +21,7 @@ import { JobRecord } from './job-record.entity';
  * @docsCategory JobQueue
  */
 export class SqlJobQueueStrategy extends PollingJobQueueStrategy implements InspectableJobQueueStrategy {
-    private rawConnection: Connection | undefined;
+    private rawConnection: DataSource | undefined;
     private connection: TransactionalConnection | undefined;
     private listQueryBuilder: ListQueryBuilder;
 
@@ -53,7 +54,7 @@ export class SqlJobQueueStrategy extends PollingJobQueueStrategy implements Insp
      * In order to try to prevent that, this method will truncate any strings in the `data` object over 2kb in size.
      */
     private constrainDataSize<Data extends JobData<Data> = object>(job: Job<Data>): Data | undefined {
-        const type = this.rawConnection?.options.type;
+        const type = this.rawConnection && getDatabaseType(this.rawConnection);
         if (type === 'mysql' || type === 'mariadb') {
             const stringified = JSON.stringify(job.data);
             if (64 * 1024 <= stringified.length) {
@@ -84,7 +85,7 @@ export class SqlJobQueueStrategy extends PollingJobQueueStrategy implements Insp
             throw new Error('Connection not available');
         }
         const connection = this.rawConnection;
-        const connectionType = this.rawConnection.options.type;
+        const connectionType = getDatabaseType(this.rawConnection);
         const isSQLite =
             connectionType === 'sqlite' || connectionType === 'sqljs' || connectionType === 'better-sqlite3';
 
@@ -222,8 +223,8 @@ export class SqlJobQueueStrategy extends PollingJobQueueStrategy implements Insp
         return deleteCount;
     }
 
-    private connectionAvailable(connection: Connection | undefined): connection is Connection {
-        return !!this.rawConnection && this.rawConnection.isConnected;
+    private connectionAvailable(connection: DataSource | undefined): connection is DataSource {
+        return !!this.rawConnection && this.rawConnection.isInitialized;
     }
 
     private toRecord(job: Job<any>, data?: any, retries?: number): JobRecord {

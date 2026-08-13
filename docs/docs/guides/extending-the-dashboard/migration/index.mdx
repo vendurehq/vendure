@@ -54,7 +54,7 @@ Then paste the following prompt in full:
 <div style={{ width: '100%', height: '500px', overflow: 'auto', marginBottom: '20px' }}>
 
 {/* Note: the following code block should not be edited. It is auto-generated from the files in the
-     `.claude/skills/vendure-dashboard-migration` dir, by running the npm script `generate-migration-prompt` from
+     `skills/vendure-dashboard-migration` dir, by running the npm script `generate-migration-prompt` from
      the `./docs` dir. */}
 ````md
 ## Instructions
@@ -1556,22 +1556,20 @@ The full prompt is quite large, so it can make sense to first clear the current 
 e.g. with `/clear` in Claude Code or `/new` in Codex CLI
 :::
 
-### Claude Skills
+### Agent Skills
 
-If you use Claude Code, you can use [Agent Skills](https://docs.claude.com/en/docs/agents-and-tools/agent-skills/overview) to set
-up a specialized skill for migrating plugins. This has the advantage that you do not need to continually paste in the full prompt,
-and it can also be potentially more token-efficient.
+If you use an AI coding agent with [Agent Skills](https://agentskills.io), you can set up a specialized skill for migrating plugins.
+This has the advantage that you do not need to continually paste in the full prompt, and it can also be potentially more token-efficient.
 
-To set up a the skill, run this from the root of your project:
+To set up the skill, run this from the root of your project:
 
 ```
-npx degit vendure-ecommerce/vendure/.claude/skills#minor .claude/skills
+npx skills add vendurehq/vendure --skill vendure-dashboard-migration
 ```
 
-This command uses [degit](https://github.com/Rich-Harris/degit) to copy over the vendure-dashboard-migration skill to 
-your local `./claude/skills` directory.
+This installs the `vendure-dashboard-migration` skill from the Vendure repository into your selected agent's skills directory.
 
-You can then have Claude Code use the skill with a prompt like:
+You can then have your coding agent use the skill with a prompt like:
 
 ```
 Use the vendure-dashboard-migration skill to migrate 
@@ -1896,5 +1894,3 @@ defineDashboardExtension({
     ],
 });
 ```
-
-

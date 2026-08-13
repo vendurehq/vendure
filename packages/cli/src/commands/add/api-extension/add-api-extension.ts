@@ -1,5 +1,5 @@
 import { cancel, isCancel, log, spinner, text } from '@clack/prompts';
-import { paramCase } from 'change-case';
+import { kebabCase } from '../../../utilities/case-utils';
 import path from 'path';
 import {
     ClassDeclaration,
@@ -270,7 +270,7 @@ function getResolverFileName(
     let sourceFileExists = false;
     do {
         resolverFileName =
-            paramCase(serviceRef.name).replace('-service', '') +
+            kebabCase(serviceRef.name).replace('-service', '') +
             `-admin.resolver${typeof suffix === 'number' ? `-${suffix?.toString()}` : ''}.ts`;
         sourceFileExists = !!project.getSourceFile(resolverFileName);
         if (sourceFileExists) {
@@ -353,7 +353,7 @@ function createCrudResolver(
         path.join(
             plugin.getPluginDir().getPath(),
             'api',
-            paramCase(serviceEntityRef.name) + '-admin.resolver.ts',
+            kebabCase(serviceEntityRef.name) + '-admin.resolver.ts',
         ),
     );
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -606,6 +606,12 @@ function createCrudApiExtension(project: Project, plugin: VendurePluginRef, serv
                             if (serviceRef.features.create) {
                                 writer.writeLine(`  input Create${entityRef.name}Input {`);
                                 for (const { name, type, nullable } of entityRef.getProps()) {
+                                    if (
+                                        entityRef.isTranslatable() &&
+                                        type.getText().includes('LocaleString')
+                                    ) {
+                                        continue;
+                                    }
                                     const graphQlType = getGraphQLType(type);
                                     if (graphQlType) {
                                         writer.writeLine(`    ${name}: ${graphQlType}${nullable ? '' : '!'}`);
@@ -624,6 +630,12 @@ function createCrudApiExtension(project: Project, plugin: VendurePluginRef, serv
                                 writer.writeLine(`  input Update${entityRef.name}Input {`);
                                 writer.writeLine(`    id: ID!`);
                                 for (const { name, type } of entityRef.getProps()) {
+                                    if (
+                                        entityRef.isTranslatable() &&
+                                        type.getText().includes('LocaleString')
+                                    ) {
+                                        continue;
+                                    }
                                     const graphQlType = getGraphQLType(type);
                                     if (graphQlType) {
                                         writer.writeLine(`    ${name}: ${graphQlType}`);

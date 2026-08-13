@@ -6,4 +6,4 @@ export {
     CarouselPrevious,
     CarouselNext,
     useCarousel,
-} from '@vendure-io/ui/components/ui/carousel';
+} from '@vendure-io/ui/components/atoms/carousel';

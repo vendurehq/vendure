@@ -2,13 +2,11 @@ import { MoneyInput } from '@/vdb/components/data-input/money-input.js';
 import { NumberInput } from '@/vdb/components/data-input/number-input.js';
 import { AssignedFacetValues } from '@/vdb/components/shared/assigned-facet-values.js';
 import { CustomFieldsForm } from '@/vdb/components/shared/custom-fields-form.js';
-import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
 import { EntityAssets } from '@/vdb/components/shared/entity-assets.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
 import { TaxCategorySelector } from '@/vdb/components/shared/tax-category-selector.js';
 import { TranslatableFormFieldWrapper } from '@/vdb/components/shared/translatable-form-field.js';
-import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { Field, FieldLabel } from '@/vdb/components/ui/field.js';
 import { Input } from '@/vdb/components/ui/input.js';
@@ -31,22 +29,32 @@ import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-lo
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { api } from '@/vdb/graphql/api.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
+import { usePermissions } from '@/vdb/hooks/use-permissions.js';
 import { Trans, useLingui } from '@lingui/react/macro';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { VariablesOf } from 'gql.tada';
-import { Edit2, Trash } from 'lucide-react';
+import { Settings2, Trash } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Controller } from 'react-hook-form';
 import { toast } from 'sonner';
 
 import { AddCurrencyDropdown } from './components/add-currency-dropdown.js';
 import { AddStockLocationDropdown } from './components/add-stock-location-dropdown.js';
+import { VariantOptionSelect } from './components/variant-option-select.js';
 import { VariantPriceDetail } from './components/variant-price-detail.js';
 import {
+    createProductOptionDocument,
     createProductVariantDocument,
+    productOptionSlugForEntityDocument,
     productVariantDetailDocument,
+    productVariantGlobalSettingsDocument,
     stockLocationsQueryDocument,
     updateProductVariantDocument,
 } from './product-variants.graphql.js';
+import { findConflictingVariant } from './utils/combination-validation.js';
+import { getChangedStockLevels, StockLevelInput } from './utils/stock-levels.js';
+import { resolveEffectiveStockSettings } from './utils/stock-settings.js';
 
 const pageId = 'product-variant-detail';
 
@@ -58,18 +66,24 @@ export const Route = createFileRoute('/_authenticated/_product-variants/product-
             addCustomFields(productVariantDetailDocument, {
                 includeNestedFragments: ['ProductVariantPrice'],
             }),
-        breadcrumb(_isNew, entity, location) {
-            if ((location.search as any).from === 'product') {
+        breadcrumb(isNew, entity) {
+            // A new variant has no parent entity yet, so fall back to the variants list.
+            if (isNew) {
                 return [
-                    { path: '/products', label: <Trans>Products</Trans> },
-                    { path: `/products/${entity?.product.id}`, label: entity?.product.name ?? '' },
-                    entity?.name,
+                    { path: '/product-variants', label: <Trans>Product Variants</Trans> },
+                    <Trans>New product variant</Trans>,
                 ];
             }
-            return [{ path: '/product-variants', label: <Trans>Product Variants</Trans> }, entity?.name];
+            // For existing variants always link back to the parent product, regardless of
+            // entry point (?from=product or the standalone variants list).
+            return [
+                { path: '/products', label: <Trans>Products</Trans> },
+                { path: `/products/${entity?.product.id}`, label: entity?.product.name ?? '' },
+                entity?.name,
+            ];
         },
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 type PriceInput = NonNullable<VariablesOf<typeof updateProductVariantDocument>['input']['prices']>[number];
@@ -80,11 +94,31 @@ function ProductVariantDetailPage() {
     const creatingNewEntity = params.id === NEW_ENTITY_PATH;
     const { t } = useLingui();
     const { activeChannel } = useChannel();
+    const { hasPermissions } = usePermissions();
+    // Inline option creation calls createProductOption, which requires create permissions
+    // server-side — gate the create-new path so it fails with a clear message, not a toast.
+    const canCreateOptions = hasPermissions(['CreateProduct', 'CreateCatalog']);
 
     const { data: stockLocationsData } = useQuery({
         queryKey: ['stockLocations'],
         queryFn: () => api.query(stockLocationsQueryDocument, {}),
     });
+
+    const { data: globalSettingsData } = useQuery({
+        queryKey: ['productVariantGlobalStockSettings'],
+        queryFn: () => api.query(productVariantGlobalSettingsDocument, {}),
+    });
+
+    // Free-text value per option group (the source of truth for the option comboboxes).
+    // An entry equal to an existing option's name reassigns to it; any other non-empty
+    // value is created as a new option on save.
+    const [optionTextByGroup, setOptionTextByGroup] = useState<Record<string, string>>({});
+    const [duplicateOptionsError, setDuplicateOptionsError] = useState<string | null>(null);
+    const [isSavingOptions, setIsSavingOptions] = useState(false);
+
+    // Holds the stock levels as loaded into the form, so the update transform can
+    // tell which ones the admin actually edited (see #4803).
+    const originalStockLevelsRef = useRef<StockLevelInput[] | undefined>(undefined);
 
     const { form, submitHandler, entity, isPending, resetForm } = useDetailPage({
         pageId,
@@ -98,6 +132,7 @@ function ProductVariantDetailPage() {
                 id: entity.id,
                 enabled: entity.enabled,
                 sku: entity.sku,
+                optionIds: entity.options.map(option => option.id),
                 featuredAssetId: entity.featuredAsset?.id,
                 assetIds: entity.assets.map(asset => asset.id),
                 facetValueIds: entity.facetValues.map(facetValue => facetValue.id),
@@ -119,6 +154,19 @@ function ProductVariantDetailPage() {
                 })),
                 customFields: entity.customFields,
             };
+        },
+        transformUpdateInput: input => {
+            // Only send stock levels the admin actually edited — see getChangedStockLevels
+            // and #4803 for why resending unchanged stock is destructive.
+            const changedStockLevels = getChangedStockLevels(
+                input.stockLevels,
+                originalStockLevelsRef.current,
+            );
+            if (changedStockLevels.length === 0) {
+                const { stockLevels: _omittedStockLevels, ...rest } = input;
+                return rest;
+            }
+            return { ...input, stockLevels: changedStockLevels };
         },
         params: { id: params.id },
         onSuccess: data => {
@@ -142,8 +190,215 @@ function ProductVariantDetailPage() {
         },
     });
 
+    useEffect(() => {
+        originalStockLevelsRef.current = entity?.stockLevels.map(stockLevel => ({
+            stockLocationId: stockLevel.stockLocation.id,
+            stockOnHand: stockLevel.stockOnHand,
+        }));
+    }, [entity]);
+
     const availableCurrencies = activeChannel?.availableCurrencyCodes ?? [];
-    const [prices, taxCategoryId, stockLevels] = form.watch(['prices', 'taxCategoryId', 'stockLevels']);
+    const [prices, taxCategoryId, stockLevels, trackInventory, useGlobalOutOfStockThreshold] = form.watch([
+        'prices',
+        'taxCategoryId',
+        'stockLevels',
+        'trackInventory',
+        'useGlobalOutOfStockThreshold',
+    ]);
+
+    const optionGroups = entity?.product.optionGroups ?? [];
+
+    // Seed the per-group free-text values from the variant's currently assigned options
+    // whenever the entity (re)loads.
+    useEffect(() => {
+        if (!entity) {
+            return;
+        }
+        const initial: Record<string, string> = {};
+        for (const group of entity.product.optionGroups) {
+            initial[group.id] = entity.options.find(o => o.group.id === group.id)?.name ?? '';
+        }
+        setOptionTextByGroup(initial);
+    }, [entity]);
+
+    // Resolves a group's free text to an existing option, a to-be-created new option, or empty.
+    const resolveGroupOption = (
+        group: (typeof optionGroups)[number],
+        text: string,
+    ): { kind: 'existing'; id: string } | { kind: 'new'; name: string } | { kind: 'empty' } => {
+        const trimmed = text.trim();
+        if (!trimmed) {
+            return { kind: 'empty' };
+        }
+        const match = group.options.find(o => o.name.trim().toLowerCase() === trimmed.toLowerCase());
+        return match ? { kind: 'existing', id: match.id } : { kind: 'new', name: trimmed };
+    };
+
+    // Commits a group's free text. An exact match to an existing option is written straight
+    // into the form's `optionIds` to keep dirty-tracking accurate; a new value leaves
+    // `optionIds` untouched and is resolved to a created option on save. Either way the save
+    // path (button or Enter) re-resolves the text, so it is the single source of truth.
+    const commitGroupText = (group: (typeof optionGroups)[number], text: string) => {
+        setOptionTextByGroup(prev => ({ ...prev, [group.id]: text }));
+        const resolution = resolveGroupOption(group, text);
+        if (resolution.kind === 'existing') {
+            const current = form.getValues('optionIds') ?? [];
+            const withoutGroup = current.filter(id => !group.options.some(o => o.id === id));
+            form.setValue('optionIds', [...withoutGroup, resolution.id], {
+                shouldDirty: true,
+                shouldValidate: true,
+            });
+        }
+    };
+
+    const anyOptionEmpty = optionGroups.some(group => !(optionTextByGroup[group.id] ?? '').trim());
+    const optionsDirty = optionGroups.some(group => {
+        const original = entity?.options.find(o => o.group.id === group.id)?.name ?? '';
+        return (optionTextByGroup[group.id] ?? '').trim() !== original.trim();
+    });
+
+    // A typed value that matches no existing option would create a new one on save, which
+    // requires create permissions. Without them the save is blocked with a clear message.
+    const hasPendingNewOption = optionGroups.some(
+        group => resolveGroupOption(group, optionTextByGroup[group.id] ?? '').kind === 'new',
+    );
+    const optionCreatePermissionError =
+        hasPendingNewOption && !canCreateOptions
+            ? t`You do not have permission to create new options. Choose an existing option.`
+            : null;
+
+    const createProductOptionMutation = useMutation({
+        mutationFn: api.mutate(createProductOptionDocument),
+    });
+
+    const createOption = async (group: (typeof optionGroups)[number], name: string) => {
+        try {
+            // Generate the option code with the server's canonical, uniqueness-checked
+            // normalization instead of an ad-hoc slug that ignores punctuation/accents.
+            const slugResult = await api.query(productOptionSlugForEntityDocument, {
+                input: { entityName: 'ProductOption', fieldName: 'code', inputValue: name },
+            });
+            const result = await createProductOptionMutation.mutateAsync({
+                input: {
+                    productOptionGroupId: group.id,
+                    code: slugResult.slugForEntity,
+                    translations: [{ languageCode: activeChannel?.defaultLanguageCode ?? 'en', name }],
+                },
+            });
+            return result?.createProductOption ?? null;
+        } catch (err) {
+            toast.error(t`Failed to create option in group "${group.name}"`, {
+                description: err instanceof Error ? err.message : t`Unknown error`,
+            });
+            return null;
+        }
+    };
+
+    // Validate the selected combination against sibling variants client-side, excluding
+    // the variant being edited so it never conflicts with itself. A new (not-yet-created)
+    // option value is unique by definition, so conflicts only matter once every group
+    // resolves to an existing option.
+    const siblingVariants = useMemo(
+        () =>
+            (entity?.product.variants ?? []).map(variant => ({
+                id: variant.id,
+                name: variant.name,
+                sku: variant.sku,
+                optionIds: variant.options.map(o => o.id),
+            })),
+        [entity?.product.variants],
+    );
+
+    useEffect(() => {
+        if (!entity) {
+            return;
+        }
+        const resolutions = entity.product.optionGroups.map(group =>
+            resolveGroupOption(group, optionTextByGroup[group.id] ?? ''),
+        );
+        const allExisting = resolutions.length > 0 && resolutions.every(r => r.kind === 'existing');
+        if (!allExisting) {
+            setDuplicateOptionsError(null);
+            return;
+        }
+        const ids = resolutions.map(r => (r as { kind: 'existing'; id: string }).id);
+        const conflict = findConflictingVariant(ids, siblingVariants, entity.id);
+        setDuplicateOptionsError(
+            conflict
+                ? t`A variant with these options already exists: ${conflict.name} (${conflict.sku})`
+                : null,
+        );
+    }, [optionTextByGroup, siblingVariants, entity, t]);
+
+    // Single save path shared by the Update button and the form's native submit (Enter),
+    // so Enter can never persist a state the Update button would refuse. Resolves each
+    // option group to an id (creating any new options) after guarding against empty and
+    // duplicate combinations.
+    const saveVariant = async (event: React.SyntheticEvent) => {
+        event.preventDefault();
+        // Creating a new variant has no options block to resolve; submit directly.
+        if (creatingNewEntity) {
+            submitHandler(event as unknown as React.FormEvent<HTMLFormElement>);
+            return;
+        }
+        if (!entity) {
+            return;
+        }
+        const resolutions = optionGroups.map(group => ({
+            group,
+            resolution: resolveGroupOption(group, optionTextByGroup[group.id] ?? ''),
+        }));
+        // Enforce the same guards as the disabled Update button. Recomputed here (not read
+        // from state) so a submit fired before the validation effect settles is still safe.
+        if (resolutions.some(r => r.resolution.kind === 'empty')) {
+            return;
+        }
+        // Creating a new option requires create permissions.
+        if (!canCreateOptions && resolutions.some(r => r.resolution.kind === 'new')) {
+            return;
+        }
+        const allExisting =
+            resolutions.length > 0 && resolutions.every(r => r.resolution.kind === 'existing');
+        if (allExisting) {
+            const ids = resolutions.map(r => (r.resolution as { kind: 'existing'; id: string }).id);
+            if (findConflictingVariant(ids, siblingVariants, entity.id)) {
+                return;
+            }
+        }
+        setIsSavingOptions(true);
+        try {
+            const finalOptionIds: string[] = [];
+            for (const { group, resolution } of resolutions) {
+                if (resolution.kind === 'existing') {
+                    finalOptionIds.push(resolution.id);
+                } else if (resolution.kind === 'new') {
+                    const created = await createOption(group, resolution.name);
+                    if (!created) {
+                        return;
+                    }
+                    finalOptionIds.push(created.id);
+                }
+            }
+            form.setValue('optionIds', finalOptionIds, { shouldDirty: true, shouldValidate: true });
+            await submitHandler(event as unknown as React.FormEvent<HTMLFormElement>);
+        } finally {
+            setIsSavingOptions(false);
+        }
+    };
+
+    const effectiveStock = resolveEffectiveStockSettings({
+        trackInventory: (trackInventory ?? 'INHERIT') as 'INHERIT' | 'TRUE' | 'FALSE',
+        useGlobalOutOfStockThreshold: useGlobalOutOfStockThreshold ?? false,
+        outOfStockThreshold: form.getValues('outOfStockThreshold'),
+        globalSettings: globalSettingsData?.globalSettings,
+    });
+
+    const inheritTrackInventoryLabel =
+        effectiveStock.globalTrackInventory === undefined
+            ? t`Inherit from global settings`
+            : effectiveStock.globalTrackInventory
+              ? t`Inherit from global settings (Track)`
+              : t`Inherit from global settings (Do not track)`;
 
     // Filter out deleted prices for display
     const activePrices = prices?.filter(p => !p.delete) ?? [];
@@ -213,46 +468,90 @@ function ProductVariantDetailPage() {
     };
 
     return (
-        <Page pageId={pageId} form={form} submitHandler={submitHandler} entity={entity}>
+        <Page pageId={pageId} form={form} submitHandler={saveVariant} entity={entity}>
             <PageTitle>
                 {creatingNewEntity ? <Trans>New product variant</Trans> : (entity?.name ?? '')}
             </PageTitle>
             <PageActionBar>
                 <ActionBarItem itemId="save-button" requiresPermission={['UpdateProduct', 'UpdateCatalog']}>
-                    <Button
-                        type="submit"
-                        disabled={!form.formState.isDirty || !form.formState.isValid || isPending}
-                    >
-                        {creatingNewEntity ? <Trans>Create</Trans> : <Trans>Update</Trans>}
-                    </Button>
+                    <div className="flex items-center gap-4">
+                        <Controller
+                            control={form.control}
+                            name="enabled"
+                            render={({ field }) => (
+                                <div
+                                    className="flex items-center gap-2"
+                                    title={t`When enabled, this variant is available in the shop`}
+                                    data-testid="variant-enabled-switch"
+                                >
+                                    <label
+                                        htmlFor="variant-enabled-switch-input"
+                                        className="text-sm font-medium"
+                                    >
+                                        <Trans>Enabled</Trans>
+                                    </label>
+                                    <Switch
+                                        id="variant-enabled-switch-input"
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                    />
+                                </div>
+                            )}
+                        />
+                        <Button
+                            type="submit"
+                            disabled={
+                                !(form.formState.isDirty || optionsDirty) ||
+                                !form.formState.isValid ||
+                                anyOptionEmpty ||
+                                !!duplicateOptionsError ||
+                                !!optionCreatePermissionError ||
+                                isPending ||
+                                isSavingOptions
+                            }
+                        >
+                            {creatingNewEntity ? <Trans>Create</Trans> : <Trans>Update</Trans>}
+                        </Button>
+                    </div>
                 </ActionBarItem>
             </PageActionBar>
             <PageLayout>
-                <PageBlock column="side" blockId="enabled">
-                    <FormFieldWrapper
-                        control={form.control}
-                        name="enabled"
-                        label={<Trans>Enabled</Trans>}
-                        description={<Trans>When enabled, a product is available in the shop</Trans>}
-                        render={({ field }) => (
-                            <Switch checked={field.value} onCheckedChange={field.onChange} />
-                        )}
-                    />
-                </PageBlock>
-                {entity?.options && entity.options.length > 0 && (
+                {entity && optionGroups.length > 0 && (
                     <PageBlock column="side" blockId="options" title={<Trans>Options</Trans>}>
-                        <div className="flex flex-wrap gap-1.5">
-                            {entity.options.map(option => (
-                                <Badge key={option.id} variant="secondary" className="text-xs" title={option.code}>
-                                    <span>{option.group.name}: {option.name}</span>
-                                    <Link
-                                        to={`/products/${entity.product.id}/option-groups/${option.group.id}`}
-                                        className="ml-1.5 inline-flex"
-                                    >
-                                        <Edit2 className="h-3 w-3" />
-                                    </Link>
-                                </Badge>
+                        <div className="space-y-3">
+                            {optionGroups.map(group => (
+                                <VariantOptionSelect
+                                    key={group.id}
+                                    group={group}
+                                    value={optionTextByGroup[group.id] ?? ''}
+                                    onValueChange={value => commitGroupText(group, value)}
+                                    onSelectOption={optionId => {
+                                        const option = group.options.find(o => o.id === optionId);
+                                        if (option) {
+                                            commitGroupText(group, option.name);
+                                        }
+                                    }}
+                                    invalid={
+                                        !(optionTextByGroup[group.id] ?? '').trim() ||
+                                        (!canCreateOptions &&
+                                            resolveGroupOption(group, optionTextByGroup[group.id] ?? '')
+                                                .kind === 'new')
+                                    }
+                                />
                             ))}
+                            {duplicateOptionsError && (
+                                <p className="text-sm text-destructive">{duplicateOptionsError}</p>
+                            )}
+                            {optionCreatePermissionError && (
+                                <p className="text-sm text-destructive">{optionCreatePermissionError}</p>
+                            )}
+                            <Link
+                                to={`/products/${entity.product.id}/variants`}
+                                className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                            >
+                                <Settings2 className="h-3.5 w-3.5" />
+                                <Trans>Manage option groups</Trans>
+                            </Link>
                         </div>
                     </PageBlock>
                 )}
@@ -358,7 +657,7 @@ function ProductVariantDetailPage() {
                             render={({ field }) => (
                                 <Select
                                     items={{
-                                        INHERIT: t`Inherit from global settings`,
+                                        INHERIT: inheritTrackInventoryLabel,
                                         TRUE: t`Track`,
                                         FALSE: t`Do not track`,
                                     }}
@@ -373,9 +672,7 @@ function ProductVariantDetailPage() {
                                         <SelectValue placeholder="Track inventory" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="INHERIT">
-                                            <Trans>Inherit from global settings</Trans>
-                                        </SelectItem>
+                                        <SelectItem value="INHERIT">{inheritTrackInventoryLabel}</SelectItem>
                                         <SelectItem value="TRUE">
                                             <Trans>Track</Trans>
                                         </SelectItem>
@@ -384,6 +681,20 @@ function ProductVariantDetailPage() {
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
+                            )}
+                        />
+                        <FormFieldWrapper
+                            control={form.control}
+                            name="useGlobalOutOfStockThreshold"
+                            label={<Trans>Use global out-of-stock threshold</Trans>}
+                            description={
+                                <Trans>
+                                    When enabled, this variant uses the global out-of-stock threshold
+                                    configured in Settings instead of its own value.
+                                </Trans>
+                            }
+                            render={({ field }) => (
+                                <Switch checked={field.value} onCheckedChange={field.onChange} />
                             )}
                         />
                         <FormFieldWrapper
@@ -399,23 +710,14 @@ function ProductVariantDetailPage() {
                             render={({ field }) => (
                                 <Input
                                     type="number"
-                                    value={field.value}
+                                    disabled={effectiveStock.thresholdDisabled}
+                                    value={
+                                        effectiveStock.thresholdDisabled
+                                            ? effectiveStock.displayedThreshold
+                                            : field.value
+                                    }
                                     onChange={e => field.onChange(e.target.valueAsNumber)}
                                 />
-                            )}
-                        />
-                        <FormFieldWrapper
-                            control={form.control}
-                            name="useGlobalOutOfStockThreshold"
-                            label={<Trans>Use global out-of-stock threshold</Trans>}
-                            description={
-                                <Trans>
-                                    Sets the stock level at which this variant is considered to be out of
-                                    stock. Using a negative value enables backorder support.
-                                </Trans>
-                            }
-                            render={({ field }) => (
-                                <Switch checked={field.value} onCheckedChange={field.onChange} />
                             )}
                         />
                     </DetailFormGrid>
@@ -472,13 +774,6 @@ function ProductVariantDetailPage() {
                     />
                 </PageBlock>
 
-                <PageBlock column="side" blockId="parent-product" title={<Trans>Parent product</Trans>}>
-                    <DetailPageButton
-                        label={entity?.product.name}
-                        href={`/products/${entity?.product.id}`}
-                        className="border"
-                    />
-                </PageBlock>
                 <PageBlock column="side" blockId="assets" title={<Trans>Assets</Trans>}>
                     <Field>
                         <EntityAssets

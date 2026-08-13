@@ -1,4 +1,5 @@
-import { Badge } from '@/vdb/components/ui/badge.js';
+import { StatusBadge } from '@/vdb/components/ui/status-badge.js';
+import { defineStateEntries } from '@/vdb/components/ui/status-badge.js';
 import { Trans } from '@lingui/react/macro';
 import { BadgeCheck, BadgeX } from 'lucide-react';
 
@@ -8,26 +9,35 @@ export interface CustomerStatusBadgeProps {
     user?: { verified: boolean } | null;
 }
 
+// Customer account status. `verified` is a healthy terminal state (success);
+// `registered` is a noteworthy fact — an account exists but is not yet verified
+// (info); `guest` has no account (neutral).
+const customerStatusDictionary = defineStateEntries<CustomerStatus>({
+    verified: { tone: 'success', defaultLabel: 'Verified' },
+    registered: { tone: 'info', defaultLabel: 'Registered' },
+    guest: { tone: 'neutral', defaultLabel: 'Unverified' },
+});
+
 export function CustomerStatusBadge({ user }: Readonly<CustomerStatusBadgeProps>) {
-    const status = user ? (user.verified ? 'verified' : 'registered') : 'guest';
+    const status: CustomerStatus = user ? (user.verified ? 'verified' : 'registered') : 'guest';
     return (
-        <Badge variant="outline">
+        <StatusBadge tone={customerStatusDictionary.toneFor(status)}>
             {status === 'verified' ? (
-                <div className="flex items-center gap-2">
-                    <BadgeCheck className="w-4 h-4 text-success" />
+                <>
+                    <BadgeCheck className="size-3.5" />
                     <Trans>Verified</Trans>
-                </div>
+                </>
             ) : status === 'registered' ? (
-                <div className="flex items-center gap-2">
-                    <BadgeCheck className="w-4 h-4" />
+                <>
+                    <BadgeCheck className="size-3.5" />
                     <Trans>Registered</Trans>
-                </div>
+                </>
             ) : (
-                <div className="flex items-center gap-2">
-                    <BadgeX className="w-4 h-4" />
+                <>
+                    <BadgeX className="size-3.5" />
                     <Trans>Unverified</Trans>
-                </div>
+                </>
             )}
-        </Badge>
+        </StatusBadge>
     );
 }

@@ -3,6 +3,7 @@ import { createRequire } from 'node:module';
 import type { Plugin } from 'vite';
 
 import { CompileResult } from './utils/compiler.js';
+import { filterActivePluginInfo } from './utils/get-active-plugin-info.js';
 import { ConfigLoaderApi, getConfigLoaderApi } from './vite-plugin-config-loader.js';
 
 const require = createRequire(import.meta.url);
@@ -98,8 +99,13 @@ export function linguiBabelPlugin(options?: LinguiBabelPluginOptions): Plugin {
                     if (configLoaderApi && !configResult) {
                         try {
                             configResult = await configLoaderApi.getVendureConfig();
-                            // Extract package paths from discovered npm plugins
-                            for (const plugin of configResult.pluginInfo) {
+                            // Extract package paths from discovered npm plugins,
+                            // restricted to plugins active in the runtime config.
+                            const activePluginInfo = filterActivePluginInfo(
+                                configResult.pluginInfo,
+                                configResult.vendureConfig,
+                            );
+                            for (const plugin of activePluginInfo) {
                                 if (!plugin.sourcePluginPath && plugin.pluginPath.includes('node_modules')) {
                                     const packagePath = extractPackagePath(plugin.pluginPath);
                                     if (packagePath) {

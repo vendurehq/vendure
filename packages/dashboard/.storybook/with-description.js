@@ -11,7 +11,7 @@
  *
  * This function is just a placeholder for development-time type checking.
  */
-export function withDescription(importMetaUrl, componentPath) {
+export function withDescription(_importMetaUrl, _componentPath) {
     // This returns an empty object at runtime
     // The actual description will be inlined by the build plugin
     return {};

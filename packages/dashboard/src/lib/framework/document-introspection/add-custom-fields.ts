@@ -50,11 +50,11 @@ function createOptionsKey(options?: {
     }
 
     if (options.includeCustomFields) {
-        parts.push(`include:${[...options.includeCustomFields].sort().join(',')}`);
+        parts.push(`include:${[...options.includeCustomFields].sort((a, b) => a.localeCompare(b)).join(',')}`);
     }
 
     if (options.includeNestedFragments) {
-        parts.push(`nested:${[...options.includeNestedFragments].sort().join(',')}`);
+        parts.push(`nested:${[...options.includeNestedFragments].sort((a, b) => a.localeCompare(b)).join(',')}`);
     }
 
     return parts.join('|') || 'default';
@@ -78,6 +78,16 @@ export function setCustomFieldsMap(
             entityCustomField.customFields as CustomFieldConfig[],
         );
     }
+}
+
+/**
+ * @description
+ * Resets the global custom fields map. Used on logout so that a subsequent
+ * login as a different administrator (with potentially different custom
+ * field permissions) starts from a clean slate.
+ */
+export function clearCustomFieldsMap() {
+    globalCustomFieldsMap = new Map<string, CustomFieldConfig[]>();
 }
 
 /**
@@ -115,12 +125,13 @@ function applyCustomFieldsToSelection(
     }
 
     const customFieldsForType = customFields.get(entityType);
+
+    // Check if there is already a customFields field in the fragment
+    const existingCustomFieldsField = selectionSet.selections.find(
+        selection => isFieldNode(selection) && selection.name.value === 'customFields',
+    ) as FieldNode | undefined;
+
     if (customFieldsForType && customFieldsForType.length) {
-        // Check if there is already a customFields field in the fragment
-        // to avoid duplication
-        const existingCustomFieldsField = selectionSet.selections.find(
-            selection => isFieldNode(selection) && selection.name.value === 'customFields',
-        ) as FieldNode | undefined;
         const selectionNodes: SelectionNode[] = customFieldsForType
             .filter(
                 field => !options?.includeCustomFields || options?.includeCustomFields.includes(field.name),
@@ -163,6 +174,7 @@ function applyCustomFieldsToSelection(
                             : {}),
                     }) as FieldNode,
             );
+
         if (!existingCustomFieldsField) {
             // If no customFields field exists, add one
             (selectionSet.selections as SelectionNode[]).push({
@@ -214,6 +226,14 @@ function applyCustomFieldsToSelection(
                     ),
                 },
             });
+        }
+    } else if (existingCustomFieldsField) {
+        // If there are no custom fields for this type (e.g. all marked with ui.dashboard: false),
+        // but there is a bare `customFields` field in the document, remove it to prevent
+        // a GraphQL error ("must have a selection of subfields")
+        const index = (selectionSet.selections as SelectionNode[]).indexOf(existingCustomFieldsField);
+        if (index >= 0) {
+            (selectionSet.selections as SelectionNode[]).splice(index, 1);
         }
     }
 }

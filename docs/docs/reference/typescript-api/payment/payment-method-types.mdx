@@ -2,6 +2,8 @@
 title: "Payment Method Types"
 generated: true
 ---
+## CreatePaymentResult
+
 <GenerationInfo sourceFile="packages/core/src/config/payment/payment-method-handler.ts" sourceLine="30" packageName="@vendure/core" />
 
 This object is the return value of the [CreatePaymentFn](/reference/typescript-api/payment/payment-method-types#createpaymentfn).
@@ -64,6 +66,8 @@ url which must then be passed to the storefront app.
 
 
 </div>
+## CreatePaymentErrorResult
+
 <GenerationInfo sourceFile="packages/core/src/config/payment/payment-method-handler.ts" sourceLine="83" packageName="@vendure/core" />
 
 This object is the return value of the [CreatePaymentFn](/reference/typescript-api/payment/payment-method-types#createpaymentfn) when there has been an error.
@@ -108,6 +112,8 @@ interface CreatePaymentErrorResult {
 
 
 </div>
+## CreateRefundResult
+
 <GenerationInfo sourceFile="packages/core/src/config/payment/payment-method-handler.ts" sourceLine="98" packageName="@vendure/core" />
 
 This object is the return value of the [CreateRefundFn](/reference/typescript-api/payment/payment-method-types#createrefundfn).
@@ -140,6 +146,8 @@ interface CreateRefundResult {
 
 
 </div>
+## SettlePaymentResult
+
 <GenerationInfo sourceFile="packages/core/src/config/payment/payment-method-handler.ts" sourceLine="112" packageName="@vendure/core" />
 
 This object is the return value of the [SettlePaymentFn](/reference/typescript-api/payment/payment-method-types#settlepaymentfn) when the Payment
@@ -167,6 +175,8 @@ interface SettlePaymentResult {
 
 
 </div>
+## SettlePaymentErrorResult
+
 <GenerationInfo sourceFile="packages/core/src/config/payment/payment-method-handler.ts" sourceLine="125" packageName="@vendure/core" />
 
 This object is the return value of the [SettlePaymentFn](/reference/typescript-api/payment/payment-method-types#settlepaymentfn) when the Payment
@@ -211,6 +221,8 @@ also be persisted as `Payment.errorMessage`.
 
 
 </div>
+## CancelPaymentResult
+
 <GenerationInfo sourceFile="packages/core/src/config/payment/payment-method-handler.ts" sourceLine="153" packageName="@vendure/core" />
 
 This object is the return value of the [CancelPaymentFn](/reference/typescript-api/payment/payment-method-types#cancelpaymentfn) when the Payment
@@ -238,6 +250,8 @@ interface CancelPaymentResult {
 
 
 </div>
+## CancelPaymentErrorResult
+
 <GenerationInfo sourceFile="packages/core/src/config/payment/payment-method-handler.ts" sourceLine="165" packageName="@vendure/core" />
 
 This object is the return value of the [CancelPaymentFn](/reference/typescript-api/payment/payment-method-types#cancelpaymentfn) when the Payment
@@ -282,6 +296,8 @@ also be persisted as `Payment.errorMessage`.
 
 
 </div>
+## CreatePaymentFn
+
 <GenerationInfo sourceFile="packages/core/src/config/payment/payment-method-handler.ts" sourceLine="193" packageName="@vendure/core" />
 
 This function contains the logic for creating a payment. See [PaymentMethodHandler](/reference/typescript-api/payment/payment-method-handler#paymentmethodhandler) for an example.
@@ -298,6 +314,8 @@ type CreatePaymentFn<T extends ConfigArgs> = (
     method: PaymentMethod,
 ) => CreatePaymentResult | CreatePaymentErrorResult | Promise<CreatePaymentResult | CreatePaymentErrorResult>
 ```
+## SettlePaymentFn
+
 <GenerationInfo sourceFile="packages/core/src/config/payment/payment-method-handler.ts" sourceLine="209" packageName="@vendure/core" />
 
 This function contains the logic for settling a payment. See [PaymentMethodHandler](/reference/typescript-api/payment/payment-method-handler#paymentmethodhandler) for an example.
@@ -311,6 +329,8 @@ type SettlePaymentFn<T extends ConfigArgs> = (
     method: PaymentMethod,
 ) => SettlePaymentResult | SettlePaymentErrorResult | Promise<SettlePaymentResult | SettlePaymentErrorResult>
 ```
+## CancelPaymentFn
+
 <GenerationInfo sourceFile="packages/core/src/config/payment/payment-method-handler.ts" sourceLine="224" packageName="@vendure/core" />
 
 This function contains the logic for cancelling a payment. See [PaymentMethodHandler](/reference/typescript-api/payment/payment-method-handler#paymentmethodhandler) for an example.
@@ -324,6 +344,8 @@ type CancelPaymentFn<T extends ConfigArgs> = (
     method: PaymentMethod,
 ) => CancelPaymentResult | CancelPaymentErrorResult | Promise<CancelPaymentResult | CancelPaymentErrorResult>
 ```
+## CreateRefundFn
+
 <GenerationInfo sourceFile="packages/core/src/config/payment/payment-method-handler.ts" sourceLine="239" packageName="@vendure/core" />
 
 This function contains the logic for creating a refund. See [PaymentMethodHandler](/reference/typescript-api/payment/payment-method-handler#paymentmethodhandler) for an example.

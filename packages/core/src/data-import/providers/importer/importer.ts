@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { ImportInfo, LanguageCode } from '@vendure/common/lib/generated-types';
 import { normalizeString } from '@vendure/common/lib/normalize-string';
 import { ID } from '@vendure/common/lib/shared-types';
-import ProgressBar from 'progress';
 import { Observable } from 'rxjs';
 import { Stream } from 'stream';
 
@@ -27,6 +26,7 @@ import {
 } from '../import-parser/import-parser';
 
 import { FastImporterService } from './fast-importer.service';
+import { ProgressBar } from './progress-bar';
 
 export interface ImportProgress extends ImportInfo {
     currentProduct: string;
@@ -161,6 +161,11 @@ export class Importer {
         rows: ParsedProductWithVariants[],
         onProgress: OnProgressFn,
     ): Promise<string[]> {
+        // Clear caches to avoid stale references from previous imports
+        // (e.g. when importing into a different channel)
+        this.facetMap.clear();
+        this.facetValueMap.clear();
+        this.taxCategoryMatches = {};
         let errors: string[] = [];
         let imported = 0;
         const languageCode = ctx.languageCode;
@@ -357,6 +362,12 @@ export class Importer {
                 );
                 if (existing) {
                     facetEntity = existing;
+                    await this.channelService.assignToChannels(
+                        ctx,
+                        Facet,
+                        facetEntity.id,
+                        [ctx.channelId],
+                    );
                 } else {
                     facetEntity = await this.facetService.create(ctx, {
                         isPrivate: false,
@@ -381,6 +392,12 @@ export class Importer {
                 const existing = facetEntity.values.find(v => v.name === valueName);
                 if (existing) {
                     facetValueEntity = existing;
+                    await this.channelService.assignToChannels(
+                        ctx,
+                        FacetValue,
+                        facetValueEntity.id,
+                        [ctx.channelId],
+                    );
                 } else {
                     facetValueEntity = await this.facetValueService.create(ctx, facetEntity, {
                         code: normalizeString(valueName, '-'),

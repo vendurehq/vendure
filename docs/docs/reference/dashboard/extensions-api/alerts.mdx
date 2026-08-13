@@ -2,6 +2,8 @@
 title: "Alerts"
 generated: true
 ---
+## AlertActionContext
+
 <GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/alerts.ts" sourceLine="13" packageName="@vendure/dashboard" since="3.6.0" />
 
 The props passed to an alert action's `onClick` handler or `component`.
@@ -28,6 +30,8 @@ interface AlertActionContext<TResponse = any> {
 
 
 </div>
+## DashboardAlertAction
+
 <GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/alerts.ts" sourceLine="27" packageName="@vendure/dashboard" since="3.6.0" />
 
 Defines an alert action. Either provide an `onClick` handler (rendered as a default button
@@ -54,6 +58,8 @@ type DashboardAlertAction<TResponse = any> = | {
           component: ComponentType<AlertActionContext<TResponse>>;
       }
 ```
+## DashboardAlertDefinition
+
 <GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/alerts.ts" sourceLine="56" packageName="@vendure/dashboard" since="3.3.0" />
 
 Allows you to define custom alerts that can be displayed in the dashboard.

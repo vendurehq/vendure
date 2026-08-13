@@ -1,0 +1,23 @@
+# CODEOWNERS — changes to matched paths require review from the listed owners.
+# https://docs.github.com/en/repositories/managing-your-repositories-settings-and-features/customizing-your-repository/about-code-owners
+#
+# Enforcement requires "Require review from Code Owners" branch protection on
+# `master` (tracked in #4772). NOTE: GitHub requires at least ONE listed code
+# owner to approve a matched change — it cannot natively require that BOTH
+# owners below approve. To approximate that, also set required approvals to 2.
+
+# The npm publishing workflow is the supply-chain security perimeter: with
+# trusted publishing, whoever can change this file can change what gets
+# published and how. Guard it tightly.
+#
+# NOTE: this guards *changes to* the workflow files. It does NOT restrict who
+# can trigger publish_to_npm.yml via workflow_dispatch — anyone with repo write
+# access can. That path is mitigated separately: a dispatched `release` runs
+# `npm stage publish`, which still requires a maintainer's 2FA staging approval
+# before anything goes live. Restricting workflow_dispatch is a GitHub setting,
+# not expressible here.
+/.github/workflows/   @michaelbromley @dlhck
+
+# Protect this file itself, so the ownership rules can't be removed without
+# the same owners signing off.
+/.github/CODEOWNERS    @michaelbromley @dlhck

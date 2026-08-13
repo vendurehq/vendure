@@ -1,8 +1,10 @@
 import { useMutation } from '@tanstack/react-query';
-import { ReactNode, useState } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { toast } from '@/vdb/components/ui/sonner.js';
 
 import { ChannelCodeLabel } from '@/vdb/components/shared/channel-code-label.js';
+import { MultiSelect } from '@/vdb/components/shared/multi-select.js';
+import { assignToChannels } from '@/vdb/components/shared/assign-to-channels.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import {
     Dialog,
@@ -13,8 +15,8 @@ import {
     DialogTitle,
 } from '@/vdb/components/ui/dialog.js';
 import { Input } from '@/vdb/components/ui/input.js';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/vdb/components/ui/select.js';
 import { ResultOf } from '@/vdb/graphql/graphql.js';
+import { plural } from '@lingui/core/macro';
 import { Trans, useLingui } from '@lingui/react/macro';
 
 import { useChannel } from '@/vdb/hooks/use-channel.js';
@@ -55,33 +57,81 @@ export function AssignToChannelDialog({
     additionalData = {},
 }: Readonly<AssignToChannelDialogProps>) {
     const { t } = useLingui();
-    const [selectedChannelId, setSelectedChannelId] = useState<string>('');
+    const [selectedChannelIds, setSelectedChannelIds] = useState<string[]>([]);
     const { channels, activeChannel } = useChannel();
     const entityIdsLength = entityIds.length;
 
-    // Filter out the currently selected channel from available options
+    useEffect(() => {
+        if (!open) setSelectedChannelIds([]);
+    }, [open]);
+
+    // Filter out the currently active channel from available options
     const availableChannels = channels.filter(channel => channel.id !== activeChannel?.id);
 
+    const selectItems = availableChannels.map(ch => ({
+        value: ch.id,
+        label: ch.code,
+        display: <ChannelCodeLabel code={ch.code} />,
+    }));
+
     const { mutate, isPending } = useMutation({
-        mutationFn,
-        onSuccess: () => {
-            toast.success(t`Successfully assigned ${entityIdsLength} ${entityType} to channel`);
-            onSuccess?.();
-            onOpenChange(false);
+        mutationFn: () =>
+            assignToChannels(
+                selectedChannelIds,
+                channelId => buildInput(channelId, additionalData),
+                mutationFn,
+            ),
+        onSuccess: ({ succeeded, failed }) => {
+            if (failed.length) {
+                console.error('Failed to assign to channels', failed);
+            }
+
+            const failedCodes = failed
+                .map(f => channels.find(c => c.id === f.channelId)?.code ?? f.channelId)
+                .join(', ');
+
+            if (failed.length === 0) {
+                toast.success(
+                    plural(succeeded.length, {
+                        one: `Assigned ${entityIdsLength} ${entityType} to ${succeeded.length} channel`,
+                        other: `Assigned ${entityIdsLength} ${entityType} to ${succeeded.length} channels`,
+                    }),
+                );
+                setSelectedChannelIds([]);
+                onSuccess?.();
+                onOpenChange(false);
+            } else if (succeeded.length === 0) {
+                toast.error(
+                    plural(failed.length, {
+                        one: `Failed to assign ${entityIdsLength} ${entityType} to ${failed.length} channel`,
+                        other: `Failed to assign ${entityIdsLength} ${entityType} to ${failed.length} channels`,
+                    }),
+                    { description: failedCodes },
+                );
+            } else {
+                toast.warning(
+                    plural(succeeded.length, {
+                        one: `Assigned ${entityIdsLength} ${entityType} to ${succeeded.length} channel`,
+                        other: `Assigned ${entityIdsLength} ${entityType} to ${succeeded.length} channels`,
+                    }),
+                    { description: t`Failed for: ${failedCodes}` },
+                );
+                // Keep the dialog open and narrow the selection to the failures, so retrying
+                // is one click and doesn't re-assign the channels that already succeeded.
+                setSelectedChannelIds(failed.map(f => f.channelId));
+                onSuccess?.();
+            }
         },
         onError: () => {
-            toast.error(t`Failed to assign ${entityIdsLength} ${entityType} to channel`);
+            toast.error(t`Failed to assign ${entityIdsLength} ${entityType} to the selected channels`);
         },
     });
 
     const handleAssign = () => {
-        if (!selectedChannelId) {
-            toast.error('Please select a channel');
+        if (selectedChannelIds.length === 0) {
             return;
         }
-
-        const input = buildInput(selectedChannelId, additionalData);
-        mutate({ input });
+        mutate();
     };
 
     return (
@@ -89,11 +139,11 @@ export function AssignToChannelDialog({
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                     <DialogTitle>
-                        <Trans>Assign {entityType} to channel</Trans>
+                        <Trans>Assign {entityType} to channels</Trans>
                     </DialogTitle>
                     <DialogDescription>
                         <Trans>
-                            Select a channel to assign {entityIds.length} {entityType} to
+                            Select channels to assign {entityIds.length} {entityType} to
                         </Trans>
                     </DialogDescription>
                 </DialogHeader>
@@ -102,22 +152,16 @@ export function AssignToChannelDialog({
                         <label className="text-sm font-medium">
                             <Trans>Channel</Trans>
                         </label>
-                        <Select
-                            items={Object.fromEntries(availableChannels.map(ch => [ch.id, <ChannelCodeLabel key={ch.id} code={ch.code} />]))}
-                            value={selectedChannelId}
-                            onValueChange={value => value != null && setSelectedChannelId(value)}
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder={t`Select a channel`} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {availableChannels.map(channel => (
-                                    <SelectItem key={channel.id} value={channel.id}>
-                                        <ChannelCodeLabel code={channel.code} />
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <MultiSelect
+                            multiple={true}
+                            items={selectItems}
+                            value={selectedChannelIds}
+                            onChange={setSelectedChannelIds}
+                            placeholder={t`Select one or more channels`}
+                            searchPlaceholder={t`Search channels...`}
+                            showSearch
+                            className="w-full"
+                        />
                     </div>
                     {additionalFields}
                 </div>
@@ -125,7 +169,7 @@ export function AssignToChannelDialog({
                     <Button variant="outline" onClick={() => onOpenChange(false)}>
                         <Trans>Cancel</Trans>
                     </Button>
-                    <Button onClick={handleAssign} disabled={!selectedChannelId || isPending}>
+                    <Button onClick={handleAssign} disabled={selectedChannelIds.length === 0 || isPending}>
                         <Trans>Assign</Trans>
                     </Button>
                 </DialogFooter>

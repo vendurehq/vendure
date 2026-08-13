@@ -60,7 +60,10 @@ export async function dashboardUiMigration(targetPath?: string) {
         );
     }
 
-    let sourceFiles = project.getSourceFiles().filter(sf => sf.getFilePath().endsWith('.tsx'));
+    const resolvedProjectDir = path.resolve(projectDir) + path.sep;
+    let sourceFiles = project
+        .getSourceFiles()
+        .filter(sf => sf.getFilePath().endsWith('.tsx') && sf.getFilePath().startsWith(resolvedProjectDir));
 
     // If no TSX files were picked up by the tsconfig, scan the directory
     // tree manually and add them. This handles cases where the tsconfig
@@ -68,7 +71,11 @@ export async function dashboardUiMigration(targetPath?: string) {
     if (sourceFiles.length === 0) {
         const glob = path.join(projectDir, '**/*.tsx');
         project.addSourceFilesAtPaths(glob);
-        sourceFiles = project.getSourceFiles().filter(sf => sf.getFilePath().endsWith('.tsx'));
+        sourceFiles = project
+            .getSourceFiles()
+            .filter(
+                sf => sf.getFilePath().endsWith('.tsx') && sf.getFilePath().startsWith(resolvedProjectDir),
+            );
     }
 
     s.stop(`Found ${sourceFiles.length} TSX files (using ${tsConfigPath})`);
@@ -115,23 +122,31 @@ export async function dashboardUiMigration(targetPath?: string) {
 }
 
 /**
- * Finds the tsconfig.json in the given directory and returns its absolute path.
- * Throws with a clear message if no tsconfig is found.
+ * Finds the nearest tsconfig by walking up from the given directory.
+ * Checks for `tsconfig.dashboard.json` first (preferred for dashboard
+ * extensions), then `tsconfig.json`. Throws if neither is found in
+ * any ancestor up to the filesystem root.
  */
 function findTsConfig(dir: string): string {
-    const tsConfigFiles = fs.readdirSync(dir).filter(f => /^tsconfig.*\.json$/.test(f));
-    if (tsConfigFiles.length === 0) {
-        throw new Error(
-            `No tsconfig.json found in ${dir}\n` +
-                `Make sure you are running the codemod from a directory with a tsconfig.json, ` +
-                `or provide the path to the project directory as the second argument.`,
-        );
+    const candidates = ['tsconfig.dashboard.json', 'tsconfig.json'];
+    let currentDir = path.resolve(dir);
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+        for (const candidate of candidates) {
+            const fullPath = path.join(currentDir, candidate);
+            if (fs.existsSync(fullPath)) {
+                return fullPath;
+            }
+        }
+        const parentDir = path.dirname(currentDir);
+        if (parentDir === currentDir) {
+            // Reached filesystem root without finding a tsconfig
+            throw new Error(
+                `No tsconfig.json found in ${dir} or any parent directory.\n` +
+                    `Make sure you are running the codemod from a directory with a tsconfig.json, ` +
+                    `or provide the path to the project directory as the second argument.`,
+            );
+        }
+        currentDir = parentDir;
     }
-    // Prefer tsconfig.dashboard.json for dashboard extensions, then tsconfig.json
-    const configFile = tsConfigFiles.includes('tsconfig.dashboard.json')
-        ? 'tsconfig.dashboard.json'
-        : tsConfigFiles.includes('tsconfig.json')
-          ? 'tsconfig.json'
-          : tsConfigFiles[0];
-    return path.resolve(dir, configFile);
 }

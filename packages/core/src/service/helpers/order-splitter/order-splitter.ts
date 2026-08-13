@@ -6,8 +6,8 @@ import { RequestContext } from '../../../api/common/request-context';
 import { ConfigService } from '../../../config/config.service';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { Channel } from '../../../entity/channel/channel.entity';
-import { Order } from '../../../entity/order/order.entity';
 import { OrderLine } from '../../../entity/order-line/order-line.entity';
+import { Order } from '../../../entity/order/order.entity';
 import { ShippingLine } from '../../../entity/shipping-line/shipping-line.entity';
 import { ChannelService } from '../../services/channel.service';
 import { OrderService } from '../../services/order.service';
@@ -56,7 +56,10 @@ export class OrderSplitter {
                     active: false,
                     orderPlacedAt: new Date(),
                     customer: order.customer,
-                    channels: [new Channel({ id: partialOrder.channelId }), defaultChannel],
+                    channels:
+                        partialOrder.channelId === defaultChannel.id
+                            ? [defaultChannel]
+                            : [new Channel({ id: partialOrder.channelId }), defaultChannel],
                     state: partialOrder.state,
                     lines,
                     surcharges: [],

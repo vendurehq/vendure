@@ -1,7 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { AdjustmentType, LanguageCode, TaxLine } from '@vendure/common/lib/generated-types';
 import { summate } from '@vendure/common/lib/shared-utils';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { RequestContext } from '../../../api/common/request-context';
 import { RequestContextCacheService } from '../../../cache/request-context-cache.service';
@@ -9,6 +9,8 @@ import { PromotionItemAction, PromotionOrderAction, PromotionShippingAction } fr
 import { ensureConfigLoaded } from '../../../config/config-helpers';
 import { ConfigService } from '../../../config/config.service';
 import { MockConfigService } from '../../../config/config.service.mock';
+import { DefaultOrderLineDiscountDistributionStrategy } from '../../../config/order/default-order-line-discount-distribution-strategy';
+import { OrderLineDiscountDistributionStrategy } from '../../../config/order/order-line-discount-distribution-strategy';
 import { PromotionCondition } from '../../../config/promotion/promotion-condition';
 import { DefaultOrderTaxCalculationStrategy } from '../../../config/tax/default-order-tax-calculation-strategy';
 import { DefaultTaxLineCalculationStrategy } from '../../../config/tax/default-tax-line-calculation-strategy';
@@ -19,6 +21,7 @@ import {
     TaxLineCalculationStrategy,
 } from '../../../config/tax/tax-line-calculation-strategy';
 import { Promotion } from '../../../entity';
+import { OrderLine } from '../../../entity/order-line/order-line.entity';
 import { Order } from '../../../entity/order/order.entity';
 import { ShippingLine } from '../../../entity/shipping-line/shipping-line.entity';
 import { Surcharge } from '../../../entity/surcharge/surcharge.entity';
@@ -43,12 +46,13 @@ const mockShippingMethodId = 'T_1';
 
 describe('OrderCalculator', () => {
     let orderCalculator: OrderCalculator;
+    let mockConfigService: MockConfigService;
 
     beforeAll(async () => {
         await ensureConfigLoaded();
         const module = await createTestModule();
         orderCalculator = module.get(OrderCalculator);
-        const mockConfigService = module.get<ConfigService, MockConfigService>(ConfigService);
+        mockConfigService = module.get<ConfigService, MockConfigService>(ConfigService);
         mockConfigService.taxOptions = {
             taxZoneStrategy: new DefaultTaxZoneStrategy(),
             taxLineCalculationStrategy: new DefaultTaxLineCalculationStrategy(),
@@ -229,8 +233,8 @@ describe('OrderCalculator', () => {
             }).compile();
 
             const calc = module.get(OrderCalculator);
-            const mockConfigService = module.get<ConfigService, MockConfigService>(ConfigService);
-            mockConfigService.taxOptions = {
+            const localConfigService = module.get<ConfigService, MockConfigService>(ConfigService);
+            localConfigService.taxOptions = {
                 taxZoneStrategy: new DefaultTaxZoneStrategy(),
                 taxLineCalculationStrategy: new DefaultTaxLineCalculationStrategy(),
                 orderTaxCalculationStrategy: new DefaultOrderTaxCalculationStrategy(),
@@ -745,6 +749,98 @@ describe('OrderCalculator', () => {
                 expect(order.lines[0].proratedLinePriceWithTax).toBe(250);
                 expect(order.lines[1].proratedLinePriceWithTax).toBe(250);
                 expect(order.totalWithTax).toBe(500);
+                assertOrderTotalsAddUp(order);
+            });
+        });
+
+        describe('OrderLineDiscountDistributionStrategy', () => {
+            // A custom strategy that weights lines by their originally-placed quantity, so that a
+            // cancelled/refunded line keeps a non-zero weight and the surviving lines' shares stay
+            // stable. See issue #4811 / the §6 recipe.
+            class TestPlacedQuantityDistributionStrategy implements OrderLineDiscountDistributionStrategy {
+                getWeight(ctx: RequestContext, line: OrderLine, order: Order): number {
+                    const qty = line.orderPlacedQuantity > 0 ? line.orderPlacedQuantity : line.quantity;
+                    return line.unitPriceWithTax * qty;
+                }
+            }
+
+            const fiveOffOrder = new Promotion({
+                id: 1,
+                name: '$5 off order',
+                conditions: [{ code: alwaysTrueCondition.code, args: [] }],
+                promotionConditions: [alwaysTrueCondition],
+                actions: [{ code: fixedDiscountOrderAction.code, args: [] }],
+                promotionActions: [fixedDiscountOrderAction],
+            });
+
+            afterEach(() => {
+                // restore the default so the rest of the suite is unaffected by the custom strategy
+                mockConfigService.orderOptions.orderLineDiscountDistributionStrategy =
+                    new DefaultOrderLineDiscountDistributionStrategy();
+            });
+
+            it('default strategy redistributes a cancelled line share onto survivors (unchanged behaviour)', async () => {
+                const ctx = createRequestContext({ pricesIncludeTax: true });
+                const order = createOrder({
+                    ctx,
+                    lines: [
+                        { listPrice: 1000, taxCategory: taxCategoryZero, quantity: 1 },
+                        { listPrice: 600, taxCategory: taxCategoryZero, quantity: 1 },
+                        { listPrice: 400, taxCategory: taxCategoryZero, quantity: 1 },
+                    ],
+                });
+                // simulate order placement: each line was placed at its current quantity
+                order.lines.forEach(line => (line.orderPlacedQuantity = line.quantity));
+
+                await orderCalculator.applyPriceAdjustments(ctx, order, [fiveOffOrder]);
+
+                // baseline: the $5 order discount is distributed proportionally to line price
+                expect(order.lines[0].proratedLinePriceWithTax).toBe(750);
+                expect(order.lines[1].proratedLinePriceWithTax).toBe(450);
+                expect(order.lines[2].proratedLinePriceWithTax).toBe(300);
+
+                // cancel the third line
+                order.lines[2].quantity = 0;
+                await orderCalculator.applyPriceAdjustments(ctx, order, [fiveOffOrder]);
+
+                // today's behaviour: the cancelled line gets weight 0, so its share is redistributed
+                // across the survivors and their prorated prices drop below the placement baseline.
+                expect(order.lines[2].proratedLinePriceWithTax).toBe(0);
+                expect(order.lines[0].proratedLinePriceWithTax).toBe(688);
+                expect(order.lines[1].proratedLinePriceWithTax).toBe(412);
+                assertOrderTotalsAddUp(order);
+            });
+
+            it('custom strategy keeps surviving lines shares stable across a cancellation', async () => {
+                mockConfigService.orderOptions.orderLineDiscountDistributionStrategy =
+                    new TestPlacedQuantityDistributionStrategy();
+
+                const ctx = createRequestContext({ pricesIncludeTax: true });
+                const order = createOrder({
+                    ctx,
+                    lines: [
+                        { listPrice: 1000, taxCategory: taxCategoryZero, quantity: 1 },
+                        { listPrice: 600, taxCategory: taxCategoryZero, quantity: 1 },
+                        { listPrice: 400, taxCategory: taxCategoryZero, quantity: 1 },
+                    ],
+                });
+                // simulate order placement: each line was placed at its current quantity
+                order.lines.forEach(line => (line.orderPlacedQuantity = line.quantity));
+
+                await orderCalculator.applyPriceAdjustments(ctx, order, [fiveOffOrder]);
+
+                const baseline = order.lines.map(l => l.proratedLinePriceWithTax);
+                expect(baseline).toEqual([750, 450, 300]);
+
+                // cancel the third line; its placed quantity is retained
+                order.lines[2].quantity = 0;
+                await orderCalculator.applyPriceAdjustments(ctx, order, [fiveOffOrder]);
+
+                // the surviving lines keep exactly their placement-time prorated prices; only the
+                // cancelled line's share is reclaimed (it contributes 0 to the live order).
+                expect(order.lines[0].proratedLinePriceWithTax).toBe(baseline[0]);
+                expect(order.lines[1].proratedLinePriceWithTax).toBe(baseline[1]);
+                expect(order.lines[2].proratedLinePriceWithTax).toBe(0);
                 assertOrderTotalsAddUp(order);
             });
         });

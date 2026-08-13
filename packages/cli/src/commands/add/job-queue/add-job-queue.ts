@@ -1,5 +1,5 @@
 import { cancel, isCancel, log, text } from '@clack/prompts';
-import { camelCase, pascalCase } from 'change-case';
+import { camelCase, pascalCase } from '../../../utilities/case-utils';
 import { Node, Scope } from 'ts-morph';
 
 import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command';

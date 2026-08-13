@@ -1,15 +1,14 @@
 import path from 'path';
-import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 
-import { TestDbInitializer } from './test-db-initializer';
+import { DriverOptions, TestDbInitializer } from './test-db-initializer';
 
-export class PostgresInitializer implements TestDbInitializer<PostgresConnectionOptions> {
+export class PostgresInitializer implements TestDbInitializer<DriverOptions<'postgres'>> {
     private client: import('pg').Client;
 
     async init(
         testFileName: string,
-        connectionOptions: PostgresConnectionOptions,
-    ): Promise<PostgresConnectionOptions> {
+        connectionOptions: DriverOptions<'postgres'>,
+    ): Promise<DriverOptions<'postgres'>> {
         const dbName = this.getDbNameFromFilename(testFileName);
         (connectionOptions as any).database = dbName;
         (connectionOptions as any).synchronize = true;
@@ -28,7 +27,7 @@ export class PostgresInitializer implements TestDbInitializer<PostgresConnection
     }
 
     private async getPostgresConnection(
-        connectionOptions: PostgresConnectionOptions,
+        connectionOptions: DriverOptions<'postgres'>,
     ): Promise<import('pg').Client> {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         const { Client } = require('pg');

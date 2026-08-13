@@ -63,7 +63,7 @@ export class StaleTaskService {
     /**
      * Returns the interval in ms between one run of the task, and the next.
      */
-    private getScheduleIntervalMs(task: ScheduledTask): number {
+    getScheduleIntervalMs(task: ScheduledTask): number {
         const cachedInterval = this.taskIntervalMap.get(task.id);
         if (cachedInterval) {
             return cachedInterval;

@@ -46,6 +46,43 @@ test.describe('Product List', () => {
         await expect(lp.newButton).toBeVisible();
     });
 
+    // "Rebuild search index" moved from an inline action-bar button into the action bar's overflow (⋮) menu
+    test('should rebuild the search index from the action bar overflow menu', async ({ page }) => {
+        // The DefaultSearchPlugin (which provides the `reindex` mutation) is not loaded in the
+        // e2e backend, so stub the mutation to a success response to exercise the UI wiring.
+        await page.route('**/admin-api**', async route => {
+            const body = route.request().postData() ?? '';
+            if (body.includes('reindex')) {
+                await route.fulfill({
+                    status: 200,
+                    contentType: 'application/json',
+                    body: JSON.stringify({ data: { reindex: { id: 'reindex-job-1' } } }),
+                });
+            } else {
+                await route.fallback();
+            }
+        });
+
+        const lp = listPage(page);
+        await lp.goto();
+        await lp.expectLoaded();
+
+        // Open the action bar overflow (⋮) dropdown
+        const actionBarEllipsis = page.getByTestId('action-bar-dropdown-trigger');
+        await expect(actionBarEllipsis).toBeVisible({ timeout: 10_000 });
+        await actionBarEllipsis.click();
+
+        // The menu should contain the "Rebuild search index" item
+        const menu = page.locator('[data-slot="dropdown-menu-content"]');
+        await expect(menu).toBeVisible();
+        const rebuildItem = menu.getByText('Rebuild search index');
+        await expect(rebuildItem).toBeVisible();
+
+        // Trigger it and expect the success toast
+        await rebuildItem.click();
+        await lp.expectSuccessToast('Search index rebuild started');
+    });
+
     // #4393 — product list should default to sorting by updatedAt descending
     test('should apply descending updatedAt sort by default', async ({ page }) => {
         const lp = listPage(page);
@@ -64,10 +101,11 @@ test.describe('Product List', () => {
             await lp.goto();
             await lp.expectLoaded();
 
-            // Click the "Facet values" filter button in the toolbar
+            // Launch the "Facet values" filter from the unified Filter menu
+            await page.getByTestId('dt-add-filter-trigger').click();
+            await page.getByRole('menuitem', { name: 'Facet values' }).click();
             const facetFilterButton = page.getByRole('button', { name: 'Facet values' });
             await expect(facetFilterButton).toBeVisible();
-            await facetFilterButton.click();
 
             // The popover should open showing facets in browse mode
             const popover = page.locator('[data-slot="popover-content"]');
@@ -111,9 +149,10 @@ test.describe('Product List', () => {
             await lp.goto();
             await lp.expectLoaded();
 
-            // Open facet filter and select a value
+            // Launch the facet filter from the unified Filter menu and select a value
+            await page.getByTestId('dt-add-filter-trigger').click();
+            await page.getByRole('menuitem', { name: 'Facet values' }).click();
             const facetFilterButton = page.getByRole('button', { name: 'Facet values' });
-            await facetFilterButton.click();
 
             const popover = page.locator('[data-slot="popover-content"]');
             await expect(popover).toBeVisible({ timeout: 5_000 });
@@ -145,12 +184,14 @@ test.describe('Product List', () => {
             const lp = listPage(page);
             await lp.goto();
             await lp.expectLoaded();
+            await lp.expectRowsLoaded();
 
             const initialRowCount = await lp.getRows().count();
 
-            // Open facet filter and select a value
+            // Launch the facet filter from the unified Filter menu and select a value
+            await page.getByTestId('dt-add-filter-trigger').click();
+            await page.getByRole('menuitem', { name: 'Facet values' }).click();
             const facetFilterButton = page.getByRole('button', { name: 'Facet values' });
-            await facetFilterButton.click();
 
             const popover = page.locator('[data-slot="popover-content"]');
             await expect(popover).toBeVisible({ timeout: 5_000 });
@@ -178,9 +219,9 @@ test.describe('Product List', () => {
             await lp.goto();
             await lp.expectLoaded();
 
-            // Open the facet filter
-            const facetFilterButton = page.getByRole('button', { name: 'Facet values' });
-            await facetFilterButton.click();
+            // Launch the facet filter from the unified Filter menu
+            await page.getByTestId('dt-add-filter-trigger').click();
+            await page.getByRole('menuitem', { name: 'Facet values' }).click();
 
             const popover = page.locator('[data-slot="popover-content"]');
             await expect(popover).toBeVisible({ timeout: 5_000 });
@@ -203,8 +244,8 @@ test.describe('Product List', () => {
         await lp.goto();
         await lp.expectLoaded();
 
-        // The column settings trigger is the gear icon (Settings2) in the data table toolbar.
-        // We exclude sidebar buttons (which also use Settings2) via :not([data-sidebar]).
+        // The column settings live in the table settings menu (the ⋮ trigger
+        // in the data table header).
         const columnSettingsTrigger = page.getByTestId('dt-column-settings-trigger');
         await columnSettingsTrigger.click();
 
@@ -270,6 +311,7 @@ test.describe('Product List', () => {
             const lp = listPage(page);
             await lp.goto();
             await lp.expectLoaded();
+            await lp.expectRowsLoaded();
 
             const initialCount = await lp.getRows().count();
             expect(initialCount).toBeLessThanOrEqual(10);
@@ -315,6 +357,7 @@ test.describe('Product List', () => {
             const lp = listPage(page);
             await lp.goto();
             await lp.expectLoaded();
+            await lp.expectRowsLoaded();
 
             const initialCount = await lp.getRows().count();
 
@@ -357,6 +400,7 @@ test.describe('Product List', () => {
             const lp = listPage(page);
             await lp.goto();
             await lp.expectLoaded();
+            await lp.expectRowsLoaded();
 
             const initialCount = await lp.getRows().count();
 
@@ -385,6 +429,7 @@ test.describe('Product List', () => {
             const lp = listPage(page);
             await lp.goto();
             await lp.expectLoaded();
+            await lp.expectRowsLoaded();
 
             const initialCount = await lp.getRows().count();
 

@@ -810,6 +810,63 @@ describe('addCustomFields()', () => {
             expect(printed).toContain('orderLineCustomField');
         });
     });
+
+    describe('Empty custom fields handling', () => {
+        // https://github.com/vendurehq/vendure/issues/4650
+        // When all custom fields have ui.dashboard: false, the server returns an empty array
+        // for that entity. The dashboard should remove the bare `customFields` field from the
+        // query to avoid a GraphQL error ("must have a selection of subfields").
+        it('Should remove bare customFields field when entity has no custom fields in the map', () => {
+            const documentNode = graphql(`
+                query GetOrder($id: ID!) {
+                    order(id: $id) {
+                        id
+                        code
+                        customFields
+                    }
+                }
+            `);
+
+            // Simulate: Order entity exists in the map but with no custom fields
+            // (all were filtered out due to ui.dashboard: false)
+            const customFieldsConfig = new Map<string, CustomFieldConfig[]>();
+            customFieldsConfig.set('Order', []);
+
+            const result = addCustomFields(documentNode, {
+                customFieldsMap: customFieldsConfig,
+            });
+            const printed = print(result);
+
+            // customFields should be removed entirely to avoid the empty selection set error
+            expect(printed).not.toContain('customFields');
+            expect(printed).toContain('id');
+            expect(printed).toContain('code');
+        });
+
+        // https://github.com/vendurehq/vendure/issues/4650
+        it('Should remove bare customFields field when entity has no custom fields in the map at all', () => {
+            const documentNode = graphql(`
+                query GetOrder($id: ID!) {
+                    order(id: $id) {
+                        id
+                        code
+                        customFields
+                    }
+                }
+            `);
+
+            // Simulate: Order entity is not in the map at all
+            const customFieldsConfig = new Map<string, CustomFieldConfig[]>();
+
+            const result = addCustomFields(documentNode, {
+                customFieldsMap: customFieldsConfig,
+            });
+            const printed = print(result);
+
+            // customFields should be removed entirely
+            expect(printed).not.toContain('customFields');
+        });
+    });
 });
 
 describe('addCustomFieldsToFragment()', () => {
@@ -910,6 +967,57 @@ describe('addCustomFieldsToFragment()', () => {
                 fragment Product on Product {
                     id
                     name
+                }
+            `),
+            );
+        });
+
+        // https://github.com/vendurehq/vendure/issues/4650
+        it('Removes bare customFields from fragment when entity has empty custom fields array', () => {
+            const fragmentDocument = graphql(`
+                fragment Order on Order {
+                    id
+                    code
+                    customFields
+                }
+            `);
+            const customFieldsConfig = new Map<string, CustomFieldConfig[]>();
+            customFieldsConfig.set('Order', []);
+
+            const result = addCustomFieldsToFragment(fragmentDocument, {
+                customFieldsMap: customFieldsConfig,
+            });
+
+            expect(print(result)).toBe(
+                normalizeIndentation(`
+                fragment Order on Order {
+                    id
+                    code
+                }
+            `),
+            );
+        });
+
+        // https://github.com/vendurehq/vendure/issues/4650
+        it('Removes bare customFields from fragment when entity is not in custom fields map', () => {
+            const fragmentDocument = graphql(`
+                fragment Order on Order {
+                    id
+                    code
+                    customFields
+                }
+            `);
+            const customFieldsConfig = new Map<string, CustomFieldConfig[]>();
+
+            const result = addCustomFieldsToFragment(fragmentDocument, {
+                customFieldsMap: customFieldsConfig,
+            });
+
+            expect(print(result)).toBe(
+                normalizeIndentation(`
+                fragment Order on Order {
+                    id
+                    code
                 }
             `),
             );

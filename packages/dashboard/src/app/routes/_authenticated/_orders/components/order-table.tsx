@@ -1,3 +1,4 @@
+import { JsonViewer } from '@/vdb/components/data-display/json-viewer.js';
 import { Money } from '@/vdb/components/data-display/money.js';
 import { getColumnVisibility } from '@/vdb/components/data-table/data-table-utils.js';
 import { DataTable } from '@/vdb/components/data-table/data-table.js';
@@ -11,7 +12,6 @@ import { getFieldsFromDocumentNode } from '@/vdb/framework/document-introspectio
 import { ResultOf } from '@/vdb/graphql/graphql.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
 import { Trans } from '@lingui/react/macro';
-import { JsonViewer } from '@/vdb/components/data-display/json-viewer.js';
 import { EllipsisVertical } from 'lucide-react';
 import { Fragment, useMemo } from 'react';
 import { orderDetailDocument, orderLineFragment } from '../orders.graphql.js';
@@ -179,12 +179,12 @@ export function OrderTable({ order, pageId }: Readonly<OrderTableProps>) {
     });
 
     const columnVisibility = getColumnVisibility(columns, defaultColumnVisibility, customFieldColumnNames);
-    const visibleColumnCount = Object.values(columnVisibility).filter(Boolean).length - 2; // -2 for "actions" and "selection" cols
     const data = order.lines;
 
     return (
         <div className="w-full">
             <DataTable
+                title={<Trans>Order items</Trans>}
                 columns={columns as any}
                 data={data as any}
                 totalItems={data.length}
@@ -200,9 +200,8 @@ export function OrderTable({ order, pageId }: Readonly<OrderTableProps>) {
                     manualSorting: false,
                     manualFiltering: false,
                 })}
-            >
-                <OrderTableTotals order={order} columnCount={visibleColumnCount} />
-            </DataTable>
+                footerRows={({ columnCount }) => <OrderTableTotals order={order} columnCount={columnCount} />}
+            />
         </div>
     );
 }

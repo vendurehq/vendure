@@ -22,6 +22,7 @@ export function gqlTadaPlugin(options: {
             const { vendureConfig } = await configLoaderApi.getVendureConfig();
             const { generateSchema } = await import('./utils/schema-generator.js');
             const safeSchema = await generateSchema({ vendureConfig });
+            await fs.mkdir(options.tempDir, { recursive: true });
 
             const tsConfigContent = {
                 compilerOptions: {

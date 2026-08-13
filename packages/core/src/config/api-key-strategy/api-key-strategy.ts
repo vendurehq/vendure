@@ -47,6 +47,8 @@ export type ApiKeyStrategyParseResult = null | {
  * :::
  *
  * @docsCategory auth
+ * @docsPage ApiKeyStrategy
+ * @docsWeight 0
  * @since 3.6.0
  */
 export interface ApiKeyStrategy extends InjectableStrategy {
@@ -77,7 +79,7 @@ export interface ApiKeyStrategy extends InjectableStrategy {
      * @description
      * Defines a custom strategy for how API-Keys get hashed and checked.
      *
-     * :::important Performance Consideration
+     * :::caution[Performance Consideration]
      *
      * Vendure does not store API-Keys in plain text, but rather a hashed version of the key,
      * similar to how passwords are handled. This means that when a request comes in with an API-Key,
@@ -162,8 +164,13 @@ export interface ApiKeyStrategy extends InjectableStrategy {
 }
 
 /**
+ * @description
  * Intended to be extended by consumers of the {@link ApiKeyStrategy} if they do not
- * require their own construction/parsing logic.
+ * require their own construction/parsing logic. Provides default implementations of
+ * `constructApiKey`, `parse`, `delimiter`, and `lastUsedAtUpdateInterval`.
+ *
+ * @docsCategory auth
+ * @docsPage ApiKeyStrategy
  */
 export abstract class BaseApiKeyStrategy implements ApiKeyStrategy {
     abstract hashingStrategy: PasswordHashingStrategy;

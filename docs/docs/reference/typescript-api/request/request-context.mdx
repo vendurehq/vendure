@@ -2,7 +2,7 @@
 title: "RequestContext"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/api/common/request-context.ts" sourceLine="179" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/api/common/request-context.ts" sourceLine="180" packageName="@vendure/core" />
 
 The RequestContext holds information relevant to the current request, which may be
 required at various points of the stack.
@@ -45,12 +45,13 @@ class RequestContext {
     userHasPermissions(permissions: Permission[]) => boolean;
     userHasAllPermissions(permissions: Permission[]) => boolean;
     serialize() => SerializedRequestContext;
-    copy() => RequestContext;
+    copy(channel?: Channel) => RequestContext;
     req: Request | undefined
     apiType: ApiType
     channel: Channel
     channelId: ID
     languageCode: LanguageCode
+    acceptedLanguageCodes: LanguageCode[]
     currencyCode: CurrencyCode
     session: CachedSession | undefined
     activeUserId: ID | undefined
@@ -120,11 +121,14 @@ This is useful when you need to send a RequestContext object to another
 process, e.g. to pass it to the Job Queue via the [JobQueueService](/reference/typescript-api/job-queue/job-queue-service#jobqueueservice).
 ### copy
 
-<MemberInfo kind="method" type={`() => <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>`}   />
+<MemberInfo kind="method" type={`(channel?: <a href='/reference/typescript-api/entities/channel#channel'>Channel</a>) => <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>`}   />
 
 Creates a shallow copy of the RequestContext instance. This means that
 mutations to the copy itself will not affect the original, but deep mutations
 (e.g. copy.channel.code = 'new') *will* also affect the original.
+
+Passing a `channel` re-scopes the copy to it, switching language and currency
+to the channel's defaults so downstream logic runs in the target channel.
 ### req
 
 <MemberInfo kind="property" type={`Request | undefined`}   />
@@ -150,6 +154,22 @@ The active [Channel](/reference/typescript-api/entities/channel#channel) of this
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a>`}   />
 
 
+### acceptedLanguageCodes
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a>[]`}  since="3.8.0"  />
+
+The languages the client asked to read this response in, most preferred first, taken from the
+`Accept-Language` header. Empty when the client sent no header.
+
+`RequestContext.languageCode` selects which translation of the data to return. These
+codes say which language the server should write its own text in, such as the descriptions
+and labels attached to a [ConfigurableOperationDef](/reference/typescript-api/configurable-operation-def/#configurableoperationdef). The two differ for an
+administrator reading the Admin UI in Japanese while editing the German translation of a
+product.
+
+A code here is not guaranteed to be a member of the [LanguageCode](/reference/typescript-api/common/language-code#languagecode) enum, for the same
+reason `languageCode` is not: custom codes are permitted. A code with no translation behind
+it matches nothing and is skipped.
 ### currencyCode
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/currency-code#currencycode'>CurrencyCode</a>`}   />

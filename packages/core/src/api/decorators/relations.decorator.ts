@@ -9,9 +9,7 @@ import { InternalServerError } from '../../common/error/errors';
 import { TtlCache } from '../../common/ttl-cache';
 import { EntityRelationPaths } from '../../common/types/entity-relation-paths';
 import { VendureEntity } from '../../entity/base/base.entity';
-
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const graphqlFields = require('graphql-fields');
+import { graphqlFields } from '../common/graphql-fields';
 
 export type RelationPaths<T extends VendureEntity> = Array<EntityRelationPaths<T>>;
 

@@ -1,4 +1,4 @@
-import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ID } from '@vendure/common/lib/shared-types';
 import crypto from 'crypto';
 import ms, { type StringValue } from 'ms';
@@ -9,6 +9,7 @@ import { Instrument } from '../../common/instrument-decorator';
 import { API_KEY_AUTH_STRATEGY_DEFAULT_DURATION_MS, API_KEY_AUTH_STRATEGY_NAME, Logger } from '../../config';
 import { ConfigService } from '../../config/config.service';
 import { CachedSession, SessionCacheStrategy } from '../../config/session-cache/session-cache-strategy';
+import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { ApiKey } from '../../entity/api-key/api-key.entity';
 import { Channel } from '../../entity/channel/channel.entity';
@@ -33,11 +34,20 @@ import { OrderService } from './order.service';
  */
 @Injectable()
 @Instrument()
-export class SessionService implements EntitySubscriberInterface, OnApplicationBootstrap {
+export class SessionService implements EntitySubscriberInterface, OnModuleInit {
     private sessionCacheStrategy: SessionCacheStrategy;
     private cleanSessionsJobQueue: JobQueue<{ batchSize: number }>;
     private readonly sessionDurationInMs: number;
     private readonly sessionCacheTimeoutMs = 50;
+    /**
+     * `user` is declared on AuthenticatedSession, not the abstract Session queried here, so an
+     * object literal typed against Session does not compile.
+     */
+    private readonly userRelations = findOptionsArrayToObject<Session>([
+        'user',
+        'user.roles',
+        'user.roles.channels',
+    ]);
 
     constructor(
         private connection: TransactionalConnection,
@@ -57,7 +67,7 @@ export class SessionService implements EntitySubscriberInterface, OnApplicationB
         this.connection.rawConnection.subscribers.push(this);
     }
 
-    async onApplicationBootstrap() {
+    async onModuleInit() {
         this.cleanSessionsJobQueue = await this.jobQueueService.createQueue({
             name: 'clean-sessions',
             process: async job => {
@@ -254,7 +264,7 @@ export class SessionService implements EntitySubscriberInterface, OnApplicationB
     ): Promise<CachedSession> {
         const session = await this.connection.getRepository(ctx, Session).findOne({
             where: { id: serializedSession.id },
-            relations: ['user', 'user.roles', 'user.roles.channels'],
+            relations: this.userRelations,
         });
         if (session) {
             session.activeOrder = order;
@@ -274,7 +284,7 @@ export class SessionService implements EntitySubscriberInterface, OnApplicationB
         if (serializedSession.activeOrderId) {
             const session = await this.connection.getRepository(ctx, Session).findOne({
                 where: { id: serializedSession.id },
-                relations: ['user', 'user.roles', 'user.roles.channels'],
+                relations: this.userRelations,
             });
             if (session) {
                 session.activeOrder = null;
@@ -294,7 +304,7 @@ export class SessionService implements EntitySubscriberInterface, OnApplicationB
     async setActiveChannel(serializedSession: CachedSession, channel: Channel): Promise<CachedSession> {
         const session = await this.connection.rawConnection.getRepository(Session).findOne({
             where: { id: serializedSession.id },
-            relations: ['user', 'user.roles', 'user.roles.channels'],
+            relations: this.userRelations,
         });
         if (session) {
             session.activeChannel = channel;

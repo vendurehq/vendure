@@ -17,8 +17,10 @@ import * as path from 'node:path';
 
 import { adminApiExtensions } from './api/api-extensions.js';
 import { MetricsResolver } from './api/metrics.resolver.js';
+import { channelColorsSettingsStoreField } from './channel-colors.js';
 import { loggerCtx, manageDashboardGlobalViews } from './constants.js';
 import { MetricsService } from './service/metrics.service.js';
+import { createDashboardStaticServer, isStaticAssetRequest } from './static-server.js';
 
 /**
  * @description
@@ -127,6 +129,7 @@ export interface DashboardPluginOptions {
         config.authOptions.customPermissions.push(manageDashboardGlobalViews);
 
         config.settingsStoreFields['vendure.dashboard'] = [
+            ...(config.settingsStoreFields['vendure.dashboard'] ?? []),
             {
                 name: 'userSettings',
                 scope: SettingsStoreScopes.user,
@@ -143,6 +146,7 @@ export interface DashboardPluginOptions {
                 name: 'userSavedViews',
                 scope: SettingsStoreScopes.user,
             },
+            channelColorsSettingsStoreField,
         ];
         return config;
     },
@@ -184,21 +188,7 @@ export class DashboardPlugin implements NestModule {
     }
 
     private createStaticServer(dashboardPath: string) {
-        const limiter = rateLimit({
-            windowMs: 60 * 1000,
-            limit: this.rateLimitRequests,
-            standardHeaders: true,
-            legacyHeaders: false,
-        });
-
-        const dashboardServer = express.Router();
-        dashboardServer.use(limiter);
-        dashboardServer.use(express.static(dashboardPath));
-        dashboardServer.use((req, res) => {
-            res.sendFile('index.html', { root: dashboardPath });
-        });
-
-        return dashboardServer;
+        return createDashboardStaticServer(dashboardPath, this.rateLimitRequests);
     }
 
     private async checkViteDevServer(port: number): Promise<boolean> {
@@ -271,6 +261,7 @@ export class DashboardPlugin implements NestModule {
             limit: this.rateLimitRequests,
             standardHeaders: true,
             legacyHeaders: false,
+            skip: req => isStaticAssetRequest(req.path),
         });
 
         // Pre-create handlers to avoid recreating them on each request

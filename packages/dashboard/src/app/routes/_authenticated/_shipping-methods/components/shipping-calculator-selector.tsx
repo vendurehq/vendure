@@ -2,6 +2,7 @@ import { ConfigurableOperationSelector } from '@/vdb/components/shared/configura
 import { configurableOperationDefFragment } from '@/vdb/graphql/fragments.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
 import { ConfigurableOperationInput as ConfigurableOperationInputType } from '@vendure/common/lib/generated-types';
+import { useLingui } from '@lingui/react/macro';
 
 export const shippingCalculatorsDocument = graphql(
     `
@@ -25,6 +26,7 @@ export function ShippingCalculatorSelector({
     onChange,
     onValidityChange,
 }: Readonly<ShippingCalculatorSelectorProps>) {
+    const { t } = useLingui();
     return (
         <ConfigurableOperationSelector
             value={value}
@@ -32,7 +34,7 @@ export function ShippingCalculatorSelector({
             queryDocument={shippingCalculatorsDocument}
             queryKey="shippingCalculators"
             dataPath="shippingCalculators"
-            buttonText="Select Shipping Calculator"
+            buttonText={t`Select Shipping Calculator`}
             onValidityChange={onValidityChange}
         />
     );

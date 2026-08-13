@@ -74,6 +74,7 @@ export interface RandomBytesApiKeyStrategyOptions {
  * Note the colon `':'` delimiter between the lookup ID and the api key.
  *
  * @docsCategory auth
+ * @docsPage ApiKeyStrategy
  * @since 3.6.0
  */
 export class RandomBytesApiKeyStrategy extends BaseApiKeyStrategy {

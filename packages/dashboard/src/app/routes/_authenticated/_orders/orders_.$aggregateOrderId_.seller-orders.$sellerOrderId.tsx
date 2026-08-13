@@ -13,7 +13,7 @@ export const Route = createFileRoute(
 )({
     component: SellerOrderDetailPage,
     loader: ({ context, params }) => loadSellerOrder(context, params),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function SellerOrderDetailPage() {
@@ -30,7 +30,7 @@ function SellerOrderDetailPage() {
                     <ArrowLeft className="h-4 w-4" />
                 </Button>
                 {order.code ?? ''}
-                <Badge variant="secondary">
+                <Badge variant="default">
                     <Trans>Seller order</Trans>
                 </Badge>
                 {seller && <Badge variant="outline">{seller.name}</Badge>}

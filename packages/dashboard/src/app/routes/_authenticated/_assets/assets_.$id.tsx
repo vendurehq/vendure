@@ -22,12 +22,26 @@ import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute } from '@tanstack/react-router';
 import { FocusIcon } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
 import { assetDetailDocument, assetUpdateDocument } from './assets.graphql.js';
 import { AssetTagsEditor } from './components/asset-tags-editor.js';
 
 const pageId = 'asset-detail';
+
+function getFileExtension(value: string | null | undefined) {
+    const fileName = value?.split(/[?#]/)[0]?.split('/').pop()?.trim();
+    if (!fileName) {
+        return undefined;
+    }
+    const match = /\.([a-z0-9]+)$/i.exec(fileName);
+    return match?.[1]?.toLowerCase();
+}
+
+function hasConflictingExtension(name: string | null | undefined, sourceExtension: string | undefined) {
+    const nameExtension = getFileExtension(name);
+    return sourceExtension != null && nameExtension != null && nameExtension !== sourceExtension;
+}
 
 export const Route = createFileRoute('/_authenticated/_assets/assets_/$id')({
     component: AssetDetailPage,
@@ -41,7 +55,7 @@ export const Route = createFileRoute('/_authenticated/_assets/assets_/$id')({
             ];
         },
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function AssetDetailPage() {
@@ -104,8 +118,34 @@ function AssetDetailPage() {
     if (!entity) {
         return null;
     }
+
+    const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+        const sourceExtension = getFileExtension(entity.source);
+        const sourceExtensionLabel = sourceExtension ? `.${sourceExtension}` : '';
+        const translations = form.getValues('translations') ?? [];
+        const conflictingTranslations = translations
+            .map((translation: any, index: number) => ({ translation, index }))
+            .filter(({ translation }) => hasConflictingExtension(translation?.name, sourceExtension));
+
+        if (conflictingTranslations.length > 0) {
+            event.preventDefault();
+            conflictingTranslations.forEach(({ index }) => {
+                form.setError(`translations.${index}.name` as any, {
+                    type: 'validate',
+                    message: t`The display name can omit the extension or keep ${sourceExtensionLabel}. It cannot use a different file extension.`,
+                });
+            });
+            toast.error(t`Asset name extension does not match the source file`, {
+                description: t`Use ${sourceExtensionLabel} or remove the extension from the display name.`,
+            });
+            return;
+        }
+
+        submitHandler(event);
+    };
+
     return (
-        <Page pageId={pageId} form={form} submitHandler={submitHandler} entity={entity}>
+        <Page pageId={pageId} form={form} submitHandler={handleSubmit} entity={entity}>
             <PageTitle>
                 <Trans>Edit asset</Trans>
             </PageTitle>
@@ -149,7 +189,12 @@ function AssetDetailPage() {
                     <TranslatableFormFieldWrapper
                         control={form.control}
                         name="name"
-                        label={<Trans>Name</Trans>}
+                        label={<Trans>Display name</Trans>}
+                        description={
+                            <Trans>
+                                The source file remains unchanged. Keep the original extension or omit it.
+                            </Trans>
+                        }
                         render={({ field }) => <Input {...field} />}
                     />
                 </PageBlock>
@@ -173,7 +218,8 @@ function AssetDetailPage() {
                                     <Trans>Focal Point</Trans>
                                 </Label>
                                 <div className="text-sm text-muted-foreground">
-                                    {form.getValues().focalPoint?.x && form.getValues().focalPoint?.y ? (
+                                    {form.getValues().focalPoint?.x != null &&
+                                    form.getValues().focalPoint?.y != null ? (
                                         `${form.getValues().focalPoint?.x.toFixed(2)}, ${form.getValues().focalPoint?.y.toFixed(2)}`
                                     ) : (
                                         <Trans>Not set</Trans>

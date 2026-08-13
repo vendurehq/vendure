@@ -2,7 +2,7 @@
 title: "TestDbInitializer"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/testing/src/initializers/test-db-initializer.ts" sourceLine="23" packageName="@vendure/testing" />
+<GenerationInfo sourceFile="packages/testing/src/initializers/test-db-initializer.ts" sourceLine="32" packageName="@vendure/testing" />
 
 Defines how the e2e TestService sets up a particular DB to run a single test suite.
 The `@vendure/testing` package ships with initializers for sql.js, MySQL & Postgres.
@@ -21,7 +21,7 @@ registerInitializer('cockroachdb', new CockroachDbInitializer());
 ```
 
 ```ts title="Signature"
-interface TestDbInitializer<T extends BaseConnectionOptions> {
+interface TestDbInitializer<T extends DataSourceOptions> {
     init(testFileName: string, connectionOptions: T): Promise<T>;
     populate(populateFn: () => Promise<void>): Promise<void>;
     destroy(): void | Promise<void>;

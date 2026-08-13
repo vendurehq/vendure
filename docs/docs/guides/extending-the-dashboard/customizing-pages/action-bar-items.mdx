@@ -1,7 +1,7 @@
 ---
 title: 'Action Bar Items'
-metaTitle: "Adding Action Bar Buttons to Vendure Dashboard Pages"
-metaDescription: "Add custom buttons and dropdown menu items to the action bar of any Vendure Dashboard page, with context access, loading states, and permission guards."
+metaTitle: 'Adding Action Bar Buttons to Vendure Dashboard Pages'
+metaDescription: 'Add custom buttons and dropdown menu items to the action bar of any Vendure Dashboard page, with context access, loading states, and permission guards.'
 ---
 
 The Action Bar is the bar at the top of the page where you can add
@@ -95,8 +95,8 @@ defineDashboardExtension({
         {
             pageId: 'product-list',
             type: 'dropdown',
-            component: () => <DropdownMenuItem variant="default">My Item</DropdownMenuItem>
-        }
+            component: () => <DropdownMenuItem variant="default">My Item</DropdownMenuItem>,
+        },
     ],
 });
 ```
@@ -302,5 +302,7 @@ To find the `pageId` and `itemId` for your action bar items:
 
 1. Enable [Dev Mode](/extending-the-dashboard/extending-overview/#dev-mode) in the dashboard
 2. Navigate to the page where you want to add your action
-3. The page ID will be shown in the dev mode overlay
-4. Use this ID in your action bar item configuration
+3. Hover the page or existing action bar item to reveal its IDs
+4. Use these IDs in your action bar item configuration
+
+The [Extension Targets reference](/extending-the-dashboard/customizing-pages/extension-targets/) lists the most common built-in page IDs, block IDs, action bar item IDs, and toolbar item IDs.

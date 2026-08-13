@@ -1,4 +1,12 @@
-import { CustomFields, dummyPaymentHandler, LanguageCode, RefundDestinationStrategy } from '@vendure/core';
+import { RefundOrderInput } from '@vendure/common/lib/generated-types';
+import {
+    CollectionFilter,
+    CustomFields,
+    dummyPaymentHandler,
+    LanguageCode,
+    RefundDestinationStrategy,
+    RequestContext,
+} from '@vendure/core';
 
 /**
  * Custom fields and payment handlers used by global-setup.ts to configure
@@ -52,6 +60,13 @@ export const e2eCustomFields: CustomFields = {
             type: 'string',
             label: [{ languageCode: LanguageCode.en, value: 'Priority' }],
             options: [{ value: 'low' }, { value: 'medium' }, { value: 'high' }],
+        },
+        {
+            name: 'featureType',
+            type: 'string',
+            nullable: true,
+            label: [{ languageCode: LanguageCode.en, value: 'Feature Type' }],
+            options: [{ value: 'standard' }, { value: 'premium' }],
         },
         // ── SEO tab ──
         {
@@ -140,6 +155,10 @@ export const e2eCustomFields: CustomFields = {
 
 export const e2ePaymentMethodHandlers = [dummyPaymentHandler];
 
+/**
+ * A refund destination which always succeeds, used to exercise the non-default destination
+ * branch of the refund dialog.
+ */
 class TestStoreCreditDestination implements RefundDestinationStrategy {
     readonly code = 'store-credit';
     readonly description = [{ languageCode: LanguageCode.en, value: 'Refund as store credit' }];
@@ -148,7 +167,7 @@ class TestStoreCreditDestination implements RefundDestinationStrategy {
         return true;
     }
 
-    createRefund(_ctx: any, _input: any, amount: number) {
+    createRefund(_ctx: RequestContext, _input: RefundOrderInput, amount: number) {
         return {
             state: 'Settled' as const,
             transactionId: `sc-${Date.now()}`,
@@ -158,3 +177,18 @@ class TestStoreCreditDestination implements RefundDestinationStrategy {
 }
 
 export const e2eRefundDestinations = [new TestStoreCreditDestination()];
+
+/**
+ * A collection filter with a string list argument, used to reproduce #4987:
+ * string list values in configurable-operation inputs (json-string value mode)
+ * dropped numeric-looking entries. The apply function is a no-op because the
+ * test only exercises the dashboard input UI.
+ */
+export const e2eCollectionFilters = [
+    new CollectionFilter({
+        code: 'string-list-test-filter',
+        description: [{ languageCode: LanguageCode.en, value: 'Filter by external IDs' }],
+        args: { externalIds: { type: 'string', list: true } },
+        apply: qb => qb,
+    }),
+];

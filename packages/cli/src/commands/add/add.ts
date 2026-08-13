@@ -2,7 +2,7 @@ import { cancel, intro, isCancel, log, outro, select, spinner } from '@clack/pro
 import pc from 'picocolors';
 
 import { Messages } from '../../constants';
-import { pauseForPromptDisplay, withInteractiveTimeout } from '../../utilities/utils';
+import { abortIfNonInteractive, pauseForPromptDisplay, withInteractiveTimeout } from '../../utilities/utils';
 import { cliCommands } from '../command-declarations';
 
 import { addApiExtension } from './api-extension/add-api-extension';
@@ -263,6 +263,16 @@ async function handleNonInteractiveMode(options: AddOptions) {
 }
 
 async function handleInteractiveMode() {
+    if (
+        abortIfNonInteractive('vendure add', [
+            'vendure add -p MyPlugin',
+            'vendure add -e MyEntity --selected-plugin MyPlugin',
+            'vendure add -s MyService --selected-plugin MyPlugin',
+        ])
+    ) {
+        return;
+    }
+
     // eslint-disable-next-line no-console
     console.log(`\n`);
     intro(pc.blue("✨ Let's add a new feature to your Vendure project!"));

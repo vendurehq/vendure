@@ -1,57 +1,33 @@
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from '@/vdb/components/ui/alert-dialog.js';
 import { Trans } from '@lingui/react/macro';
-import { useState } from 'react';
+import { ConfirmDialog } from '@vendure-io/ui/components/molecules/confirm-dialog';
 
 export function ConfirmationDialog({
-                                       title,
-                                       description,
-                                       onConfirm,
-                                       children,
-                                       confirmText,
-                                       cancelText,
-                                   }: {
+    title,
+    description,
+    onConfirm,
+    children,
+    confirmText,
+    cancelText,
+    destructive,
+}: {
     title: string;
     description: string;
-    onConfirm: () => void;
+    onConfirm: () => void | Promise<void>;
     confirmText?: string;
     cancelText?: string;
+    destructive?: boolean;
     children: React.ReactElement;
 }) {
-    const [open, setOpen] = useState(false);
     return (
-        <AlertDialog open={open} onOpenChange={setOpen}>
-            <AlertDialogTrigger render={children} onClick={() => setOpen(true)} />
-
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>{title}</AlertDialogTitle>
-                    <AlertDialogDescription>{description}</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel onClick={() => setOpen(false)}>
-                        {cancelText ?? <Trans>Cancel</Trans>}
-                    </AlertDialogCancel>
-                    <AlertDialogAction
-                        type="button"
-                        onClick={() => {
-                            onConfirm();
-                            setOpen(false);
-                        }}
-                    >
-                        {confirmText ?? <Trans>Continue</Trans>}
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+        <ConfirmDialog
+            title={title}
+            description={description}
+            onConfirm={onConfirm}
+            confirmLabel={confirmText ?? <Trans>Continue</Trans>}
+            cancelLabel={cancelText ?? <Trans>Cancel</Trans>}
+            variant={destructive ? 'destructive' : 'default'}
+        >
+            {children}
+        </ConfirmDialog>
     );
 }

@@ -177,7 +177,7 @@ export class CollectionService implements OnModuleInit {
                         job.setProgress(Math.ceil((completed / collectionIds.length) * 100));
                         if (affectedVariantIds.length) {
                             // To avoid performance issues on huge collections we first split the affected variant ids into chunks
-                            this.chunkArray(affectedVariantIds, 50000).map(chunk =>
+                            this.chunkArray(affectedVariantIds, 50000).forEach(chunk =>
                                 this.eventBus.publish(
                                     new CollectionModificationEvent(ctx, collection, chunk),
                                 ),
@@ -261,7 +261,7 @@ export class CollectionService implements OnModuleInit {
         relations?: RelationPaths<Collection>,
     ): Promise<Translated<Collection> | undefined> {
         const translations = await this.connection.getRepository(ctx, CollectionTranslation).find({
-            relations: ['base'],
+            relations: { base: true },
             where: {
                 slug,
                 base: {
@@ -492,7 +492,7 @@ export class CollectionService implements OnModuleInit {
         options?: ListQueryOptions<ProductVariant>,
         relations?: RelationPaths<Collection>,
     ): Promise<PaginatedList<ProductVariant>> {
-        const applicableFilters = this.getCollectionFiltersFromInput(input);
+        const applicableFilters = this.getCollectionFiltersFromInput(input, [], true);
         if (input.parentId && input.inheritFilters) {
             const parentFilters = (await this.findOne(ctx, input.parentId, []))?.filters ?? [];
             const ancestorFilters = await this.getAncestors(input.parentId).then(ancestors =>
@@ -559,6 +559,12 @@ export class CollectionService implements OnModuleInit {
     }
 
     async update(ctx: RequestContext, input: UpdateCollectionInput): Promise<Translated<Collection>> {
+        // Ensure the entity belongs to the active channel before updating. The loaded entity also
+        // provides the previously-stored (encrypted) filter values, needed to preserve `secret`
+        // filter args that were not re-entered by the caller.
+        const existing = await this.connection.getEntityOrThrow(ctx, Collection, input.id, {
+            channelId: ctx.channelId,
+        });
         await this.slugValidator.validateSlugs(ctx, input, CollectionTranslation);
         const collection = await this.translatableSaver.update({
             ctx,
@@ -567,7 +573,7 @@ export class CollectionService implements OnModuleInit {
             translationType: CollectionTranslation,
             beforeSave: async coll => {
                 if (input.filters) {
-                    coll.filters = this.getCollectionFiltersFromInput(input);
+                    coll.filters = this.getCollectionFiltersFromInput(input, existing.filters);
                 }
                 await this.assetService.updateFeaturedAsset(ctx, coll, input);
                 await this.assetService.updateEntityAssets(ctx, coll, input);
@@ -703,14 +709,19 @@ export class CollectionService implements OnModuleInit {
 
     private getCollectionFiltersFromInput(
         input: CreateCollectionInput | UpdateCollectionInput | PreviewCollectionVariantsInput,
+        previous: ConfigurableOperation[] = [],
+        forExecution = false,
     ): ConfigurableOperation[] {
-        const filters: ConfigurableOperation[] = [];
-        if (input.filters) {
-            for (const filterInput of input.filters) {
-                filters.push(this.configArgService.parseInput('CollectionFilter', filterInput));
-            }
+        if (!input.filters) {
+            return [];
         }
-        return filters;
+        // A preview runs the filters immediately and never persists them, so it must not go through
+        // the secret encryption/preservation machinery (which would reject a resubmitted placeholder).
+        return forExecution
+            ? input.filters.map(filterInput =>
+                  this.configArgService.parseInputForExecution('CollectionFilter', filterInput),
+              )
+            : this.configArgService.parseInputList('CollectionFilter', input.filters, previous);
     }
 
     private chunkArray = <T>(array: T[], chunkSize: number): T[][] => {

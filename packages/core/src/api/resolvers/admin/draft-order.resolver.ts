@@ -99,7 +99,7 @@ export class DraftOrderResolver {
 
     @Transaction()
     @Mutation()
-    @Allow(Permission.UpdateOrder, Permission.Owner)
+    @Allow(Permission.UpdateOrder)
     async adjustDraftOrderLine(
         @Ctx() ctx: RequestContext,
         @Args() { orderId, input }: MutationAdjustDraftOrderLineArgs,

@@ -77,7 +77,7 @@ export const Playground: Story = {
                 cell: ({ row }) => {
                     const stock = row.original.stock;
                     return (
-                        <Badge variant={stock > 50 ? 'default' : stock > 20 ? 'secondary' : 'destructive'}>
+                        <Badge variant={stock > 20 ? 'default' : 'destructive'}>
                             {stock}
                         </Badge>
                     );
@@ -91,13 +91,7 @@ export const Playground: Story = {
                     const status = row.original.status;
                     return (
                         <Badge
-                            variant={
-                                status === 'active'
-                                    ? 'default'
-                                    : status === 'inactive'
-                                      ? 'secondary'
-                                      : 'outline'
-                            }
+                            variant={status === 'discontinued' ? 'outline' : 'default'}
                         >
                             {status}
                         </Badge>
@@ -175,6 +169,7 @@ export const Playground: Story = {
                     <PageLayout>
                         <FullWidthPageBlock blockId="test-block">
                             <DataTable
+                                enableViews
                                 columns={columns}
                                 data={paginatedData}
                                 totalItems={totalItems}

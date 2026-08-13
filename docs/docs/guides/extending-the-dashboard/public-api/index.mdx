@@ -167,6 +167,19 @@ import {
 import type { Control, UseFormReturn, FieldValues, FieldPath } from '@vendure/dashboard';
 ```
 
+### Zod (Schema Validation)
+
+Re-exported from `zod`. Used for form validation with `zodResolver`:
+
+```tsx
+import { z, zodResolver } from '@vendure/dashboard';
+import type { ZodType, ZodObject, ZodArray, ZodEffects } from '@vendure/dashboard';
+```
+
+The dashboard accepts both Zod v3 and v4 (`^3.25.0 || ^4.0.0`). If your extension already imports
+`z` from `zod` directly, it will continue to work — `zodResolver` handles both versions at runtime.
+However, importing from `@vendure/dashboard` is recommended to stay insulated from future changes.
+
 ### Toast Notifications
 
 Re-exported from `sonner`:
@@ -279,6 +292,7 @@ imported from `@vendure/dashboard`.
 | TanStack Router (Link, useNavigate, AnyRoute, ...) | `@vendure/dashboard` |
 | TanStack Table types (ColumnDef, TableInstance, ...) | `@vendure/dashboard` |
 | React Hook Form (useForm, Controller, ...) | `@vendure/dashboard` |
+| Zod (z, zodResolver, ZodType, ...) | `@vendure/dashboard` |
 | Toast (toast) | `@vendure/dashboard` |
 | Animations (motion, AnimatePresence, ...) | `@vendure/dashboard` |
 | Utility functions (cn, ...) | `@vendure/dashboard` |
@@ -320,6 +334,17 @@ import { useForm } from 'react-hook-form';
 
 // Correct
 import { useForm } from '@vendure/dashboard';
+```
+
+### Importing Zod or zodResolver directly
+
+```tsx
+// Wrong — bypasses the dashboard re-export
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+
+// Correct
+import { z, zodResolver } from '@vendure/dashboard';
 ```
 
 Following these conventions keeps your extensions stable across Dashboard upgrades and ensures

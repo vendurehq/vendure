@@ -3,6 +3,7 @@ import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js'
 import { RoleSelector } from '@/vdb/components/shared/role-selector.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { Input } from '@/vdb/components/ui/input.js';
+import { PasswordInput } from '@/vdb/components/ui/password-input.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
 import {    CustomFieldsPageBlock,
     Page,
@@ -39,7 +40,7 @@ export const Route = createFileRoute('/_authenticated/_administrators/administra
             ];
         },
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function AdministratorDetailPage() {
@@ -131,7 +132,7 @@ function AdministratorDetailPage() {
                             control={form.control}
                             name="password"
                             label={<Trans>Password</Trans>}
-                            render={({ field }) => <Input placeholder="" type="password" {...field} />}
+                            render={({ field }) => <PasswordInput {...field} />}
                         />
                     </div>
                 </PageBlock>

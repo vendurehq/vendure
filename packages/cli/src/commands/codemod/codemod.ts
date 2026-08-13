@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import path from 'node:path';
 import pc from 'picocolors';
 
-import { withInteractiveTimeout } from '../../utilities/utils';
+import { abortIfNonInteractive, withInteractiveTimeout } from '../../utilities/utils';
 
 /**
  * Registry of available codemods. To add a new codemod, just add an entry here.
@@ -47,6 +47,10 @@ export async function codemodCommand(transform?: string, targetPath?: string) {
 
     // Interactive mode: let the user pick a codemod.
     // Path is not supported in interactive mode — run from the project directory.
+    if (abortIfNonInteractive('vendure codemod', ['vendure codemod dashboard-base-ui'])) {
+        return;
+    }
+
     // eslint-disable-next-line no-console
     console.log(`\n`);
     intro(pc.blue('🔧 Vendure Codemods'));

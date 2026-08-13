@@ -18,6 +18,7 @@ import { AssetNamingStrategy } from './asset-naming-strategy/asset-naming-strate
 import { AssetPreviewStrategy } from './asset-preview-strategy/asset-preview-strategy';
 import { AssetStorageStrategy } from './asset-storage-strategy/asset-storage-strategy';
 import { AuthenticationStrategy } from './auth/authentication-strategy';
+import { CustomerChannelAssignmentStrategy } from './auth/customer-channel-assignment-strategy';
 import { EntityAccessControlStrategy } from './auth/entity-access-control-strategy';
 import { PasswordHashingStrategy } from './auth/password-hashing-strategy';
 import { PasswordValidationStrategy } from './auth/password-validation-strategy';
@@ -45,9 +46,11 @@ import { OrderByCodeAccessStrategy } from './order/order-by-code-access-strategy
 import { OrderCodeStrategy } from './order/order-code-strategy';
 import { OrderInterceptor } from './order/order-interceptor';
 import { OrderItemPriceCalculationStrategy } from './order/order-item-price-calculation-strategy';
+import { OrderLineDiscountDistributionStrategy } from './order/order-line-discount-distribution-strategy';
 import { OrderMergeStrategy } from './order/order-merge-strategy';
 import { OrderPlacedStrategy } from './order/order-placed-strategy';
 import { OrderProcess } from './order/order-process';
+import { OrderRecalculationStrategy } from './order/order-recalculation-strategy';
 import { OrderSellerStrategy } from './order/order-seller-strategy';
 import { StockAllocationStrategy } from './order/stock-allocation-strategy';
 import { PaymentMethodEligibilityChecker } from './payment/payment-method-eligibility-checker';
@@ -63,9 +66,11 @@ import { ShippingCalculator } from './shipping-method/shipping-calculator';
 import { ShippingEligibilityChecker } from './shipping-method/shipping-eligibility-checker';
 import { ShippingLineAssignmentStrategy } from './shipping-method/shipping-line-assignment-strategy';
 import { CacheStrategy } from './system/cache-strategy';
+import { EncryptionStrategy } from './system/encryption-strategy';
 import { ErrorHandlerStrategy } from './system/error-handler-strategy';
 import { HealthCheckStrategy } from './system/health-check-strategy';
 import { InstrumentationStrategy } from './system/instrumentation-strategy';
+import { SecretAccessStrategy } from './system/secret-access-strategy';
 import { OrderTaxCalculationStrategy } from './tax/order-tax-calculation-strategy';
 import { TaxLineCalculationStrategy } from './tax/tax-line-calculation-strategy';
 import { TaxZoneStrategy } from './tax/tax-zone-strategy';
@@ -554,6 +559,16 @@ export interface AuthOptions {
      * @experimental
      */
     entityAccessControlStrategy?: EntityAccessControlStrategy;
+    /**
+     * @description
+     * Determines whether an authenticated Customer is auto-assigned to the active Channel.
+     * This is skipped for the default channel, `disableAuth`, and registration/checkout flows.
+     * The default strategy always assigns.
+     *
+     * @default DefaultCustomerChannelAssignmentStrategy
+     * @since 3.7.0
+     */
+    customerChannelAssignmentStrategy?: CustomerChannelAssignmentStrategy;
 }
 
 /**
@@ -662,6 +677,16 @@ export interface OrderOptions {
     changedPriceHandlingStrategy?: ChangedPriceHandlingStrategy;
     /**
      * @description
+     * Defines how an order-level promotion discount is distributed (prorated) across the OrderLines
+     * of an Order. The default redistributes a canceled line's share onto the remaining lines; a
+     * custom strategy can keep each line's share stable across refunds.
+     *
+     * @since 3.7.0
+     * @default DefaultOrderLineDiscountDistributionStrategy
+     */
+    orderLineDiscountDistributionStrategy?: OrderLineDiscountDistributionStrategy;
+    /**
+     * @description
      * Defines the point of the order process at which the Order is set as "placed".
      *
      * @default DefaultOrderPlacedStrategy
@@ -704,6 +729,19 @@ export interface OrderOptions {
      * @default []
      */
     orderInterceptors?: OrderInterceptor[];
+    /**
+     * @description
+     * Defines whether and when an active Order's prices, promotions and taxes are re-calculated
+     * when the Order is read (e.g. via the `activeOrder` query). By default no read-time
+     * recalculation occurs (prices only change on write mutations). Use
+     * {@link TtlOrderRecalculationStrategy} to keep long-lived carts in sync with changing prices
+     * and promotions. Shipping method eligibility and rates are NOT re-evaluated on read; they are
+     * re-evaluated when the order transitions to `ArrangingPayment`.
+     *
+     * @default NoOrderRecalculationStrategy
+     * @since 3.8.0
+     */
+    orderRecalculationStrategy?: OrderRecalculationStrategy;
 }
 
 /**
@@ -1230,6 +1268,24 @@ export interface SystemOptions {
      */
     cacheStrategy?: CacheStrategy;
     instrumentationStrategy?: InstrumentationStrategy;
+    /**
+     * @description
+     * Defines the strategy used to encrypt the values of `secret` custom fields and config args at
+     * rest.
+     *
+     * @since 3.8.0
+     * @default DefaultEncryptionStrategy
+     */
+    encryptionStrategy?: EncryptionStrategy;
+    /**
+     * @description
+     * Defines the strategy used to determine whether the current user may read the decrypted value
+     * of a `secret` custom field or config arg.
+     *
+     * @since 3.8.0
+     * @default PermissionSecretAccessStrategy
+     */
+    secretAccessStrategy?: SecretAccessStrategy;
 }
 
 /**

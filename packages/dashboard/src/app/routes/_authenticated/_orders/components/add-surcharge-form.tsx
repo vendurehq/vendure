@@ -7,12 +7,11 @@ import { Input } from '@/vdb/components/ui/input.js';
 import { Switch } from '@/vdb/components/ui/switch.js';
 import { DetailFormGrid } from '@/vdb/framework/layout-engine/page-layout.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { z, zodResolver } from '@/vdb/lib/zod.js';
 import { Trans } from '@lingui/react/macro';
 import { VariablesOf } from 'gql.tada';
 import { Plus } from 'lucide-react';
 import { useForm } from 'react-hook-form';
-import { z } from 'zod';
 import { modifyOrderDocument } from '../orders.graphql.js';
 
 type ModifyOrderInput = VariablesOf<typeof modifyOrderDocument>['input'];
@@ -24,7 +23,7 @@ const surchargeFormSchema = z.object({
     price: z.string().refine(val => !Number.isNaN(Number(val)) && Number(val) > 0, {
         message: 'Price must be a positive number',
     }),
-    priceIncludesTax: z.boolean().default(false),
+    priceIncludesTax: z.boolean(),
     taxRate: z.number().nonnegative().max(100),
     taxDescription: z.string().optional(),
 });

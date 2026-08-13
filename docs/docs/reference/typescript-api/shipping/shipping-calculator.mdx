@@ -2,6 +2,8 @@
 title: "ShippingCalculator"
 generated: true
 ---
+## ShippingCalculator
+
 <GenerationInfo sourceFile="packages/core/src/config/shipping-method/shipping-calculator.ts" sourceLine="48" packageName="@vendure/core" />
 
 The ShippingCalculator is used by a [ShippingMethod](/reference/typescript-api/entities/shipping-method#shippingmethod) to calculate the price of shipping on a given [Order](/reference/typescript-api/entities/order#order).
@@ -43,14 +45,11 @@ class ShippingCalculator<T extends ConfigArgs = ConfigArgs> extends Configurable
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(config: ShippingCalculatorConfig<T>) => ShippingCalculator`}   />
-
-
 
 
 </div>
+## ShippingCalculationResult
+
 <GenerationInfo sourceFile="packages/core/src/config/shipping-method/shipping-calculator.ts" sourceLine="79" packageName="@vendure/core" />
 
 The return value of the [CalculateShippingFn](/reference/typescript-api/shipping/shipping-calculator#calculateshippingfn).
@@ -91,6 +90,8 @@ needed in the storefront application when listing eligible shipping methods.
 
 
 </div>
+## CalculateShippingFn
+
 <GenerationInfo sourceFile="packages/core/src/config/shipping-method/shipping-calculator.ts" sourceLine="119" packageName="@vendure/core" />
 
 A function which implements the specific shipping calculation logic. It takes an [Order](/reference/typescript-api/entities/order#order) and

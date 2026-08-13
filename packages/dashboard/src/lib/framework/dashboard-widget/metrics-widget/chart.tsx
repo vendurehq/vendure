@@ -1,5 +1,6 @@
-import { Area, AreaChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts';
 import { useWidgetDimensions } from '@/vdb/hooks/use-widget-dimensions.js';
+import { useMemo } from 'react';
+import { Area, AreaChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts';
 
 export function MetricsChart({
     chartData,
@@ -12,6 +13,12 @@ export function MetricsChart({
 }) {
     const { width, height } = useWidgetDimensions();
 
+    const yAxisWidth = useMemo(() => {
+        const maxValue = Math.max(0, ...chartData.map(d => d.sales));
+        const formatted = String(formatValue(maxValue));
+        return Math.max(60, formatted.length * 7);
+    }, [chartData, formatValue]);
+
     return (
         <AreaChart width={width} height={height} data={chartData}>
             <defs>
@@ -22,7 +29,12 @@ export function MetricsChart({
             </defs>
             <CartesianGrid strokeDasharray="4 4" stroke="var(--color-border)" />
             <XAxis className="text-xs" color="var(--color-foreground)" dataKey="name" interval={2} />
-            <YAxis className="text-xs" color="var(--color-foreground)" tickFormatter={formatValue} />
+            <YAxis
+                className="text-xs"
+                color="var(--color-foreground)"
+                width={yAxisWidth}
+                tickFormatter={formatValue}
+            />
             <Tooltip
                 formatter={formatValue}
                 contentStyle={{

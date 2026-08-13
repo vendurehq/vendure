@@ -1,7 +1,7 @@
 ---
 title: 'Extending the Dashboard'
-metaTitle: "Extending the Vendure Dashboard with Plugin UI"
-metaDescription: "Set up a Vendure plugin with Dashboard extensions: scaffold entities, services, and API extensions, then add custom pages and components to the Dashboard."
+metaTitle: 'Extending the Vendure Dashboard with Plugin UI'
+metaDescription: 'Set up a Vendure plugin with Dashboard extensions: scaffold entities, services, and API extensions, then add custom pages and components to the Dashboard.'
 ---
 
 The custom functionality you create in your Vendure plugins often needs to be exposed via the Dashboard so that
@@ -178,6 +178,7 @@ defineDashboardExtension({
     detailForms: [],
     login: {},
     historyEntries: [],
+    toolbarItems: [],
 });
 ```
 
@@ -199,9 +200,9 @@ can use to provide autocomplete.
 1. Install the GraphQL plugin for your IDE
 2. Run `npx vendure schema --api admin` to generate a `schema.graphql` file in your root directory
 3. Create a `graphql.config.yml` file in your root directory with the following content:
-   ```yaml title="graphql.config.yml"
-   schema: 'schema.graphql'
-   ```
+    ```yaml title="graphql.config.yml"
+    schema: 'schema.graphql'
+    ```
 
 ## Dev Mode
 
@@ -209,10 +210,14 @@ Once you have logged in to the dashboard, you can toggle on "Dev Mode" using the
 
 ![Dev Mode](./dev-mode.webp)
 
-In Dev Mode, hovering any block in the dashboard will allow you to find the corresponding `pageId` and `blockId` values, which you can later use when customizing the dashboard. This is essential for:
+In Dev Mode, hovering blocks, action bar items, toolbar items, and navigation entries will show the IDs you need when customizing the dashboard. These include values such as `pageId`, `blockId`, `itemId`, and nav section/item IDs.
+
+This is essential for:
 
 - Identifying where to place custom page blocks
 - Finding action bar locations
+- Finding toolbar item IDs
+- Finding navigation section and item IDs
 - Understanding the page structure
 
 ![Finding the location ids](./location-id.webp)
@@ -221,6 +226,6 @@ In Dev Mode, hovering any block in the dashboard will allow you to find the corr
 
 Now that you understand the fundamentals of extending the dashboard, explore these specific guides:
 
-- [Creating Pages](/extending-the-dashboard/creating-pages/) 
-- [Customizing Pages](/extending-the-dashboard/customizing-pages/) 
-- [Navigation](/extending-the-dashboard/navigation/) 
+- [Creating Pages](/extending-the-dashboard/creating-pages/)
+- [Customizing Pages](/extending-the-dashboard/customizing-pages/)
+- [Navigation](/extending-the-dashboard/navigation/)

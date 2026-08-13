@@ -28,7 +28,11 @@ import { uiConfig } from 'virtual:vendure-ui-config';
 
 import { RefundTarget, useRefundOrder } from '../hooks/use-refund-order.js';
 import { Order } from '../utils/order-types.js';
-import { getMaxRefundableQuantity, lineCanBeRefunded } from '../utils/order-utils.js';
+import {
+    getMaxRefundableQuantity,
+    getRefundableQuantity,
+    lineCanBeRefunded,
+} from '../utils/order-utils.js';
 
 function RefundTargetRow({
     target,
@@ -159,6 +163,7 @@ export const RefundOrderDialog = forwardRef<RefundOrderDialogRef, RefundOrderDia
                                         {order.lines.map(line => {
                                             const canRefund = lineCanBeRefunded(order, line);
                                             const maxRefundable = getMaxRefundableQuantity(order, line);
+                                            const refundableQuantity = getRefundableQuantity(line);
                                             const selection = refund.lineSelections[line.id];
 
                                             if (!canRefund) return null;
@@ -187,8 +192,8 @@ export const RefundOrderDialog = forwardRef<RefundOrderDialogRef, RefundOrderDia
                                                         )}
                                                     </td>
                                                     <td className="p-2 text-center">
-                                                        {line.orderPlacedQuantity}
-                                                        {maxRefundable < line.orderPlacedQuantity && (
+                                                        {refundableQuantity}
+                                                        {maxRefundable < refundableQuantity && (
                                                             <div className="text-xs text-muted-foreground">
                                                                 <Trans>({maxRefundable} refundable)</Trans>
                                                             </div>

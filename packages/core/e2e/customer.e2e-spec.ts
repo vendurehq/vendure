@@ -1,7 +1,13 @@
 import { DeletionResult, ErrorCode, HistoryEntryType } from '@vendure/common/lib/generated-types';
 import { omit } from '@vendure/common/lib/omit';
 import { pick } from '@vendure/common/lib/pick';
-import { AccountRegistrationEvent, EventBus } from '@vendure/core';
+import {
+    AccountRegistrationEvent,
+    ConfigService,
+    EventBus,
+    OrderService,
+    RequestContextService,
+} from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -380,6 +386,38 @@ describe('Customer resolver', () => {
 
             expect(customer.orders.totalItems).toBe(1);
             expect(customer.orders.items[0].id).toBe(addItemToOrder.id);
+        });
+
+        // #4560 — findByCustomerId silently stripped any relation path
+        // containing `productVariant`, breaking service-layer callers and
+        // forcing N+1 in GraphQL. Eager loading via this method does NOT
+        // filter soft-deleted variants (matching the prior `findOne`
+        // behaviour) — `deletedAt` on ProductVariant is a plain nullable
+        // column rather than `@DeleteDateColumn`.
+        it('findByCustomerId honors explicitly requested productVariant relations', async () => {
+            const orderService = server.app.get(OrderService);
+            const requestContextService = server.app.get(RequestContextService);
+            const configService = server.app.get(ConfigService);
+            const ctx = await requestContextService.create({ apiType: 'admin' });
+
+            // The GraphQL layer encodes IDs via the configured entityIdStrategy
+            // (TestingEntityIdStrategy prefixes with "T_"). Service-layer calls
+            // expect the raw DB id, so we decode here.
+            const customerId = configService.entityOptions.entityIdStrategy!.decodeId(firstCustomer.id);
+
+            const result = await orderService.findByCustomerId(ctx, customerId, undefined, [
+                'lines',
+                'lines.productVariant',
+                'lines.productVariant.product',
+            ]);
+
+            // The preceding test seeded exactly one order for firstCustomer.
+            expect(result.items.length).toBe(1);
+            const order = result.items[0];
+            expect(order.lines.length).toBeGreaterThan(0);
+            expect(order.lines[0].productVariant).toBeDefined();
+            expect(order.lines[0].productVariant.id).toBeDefined();
+            expect(order.lines[0].productVariant.product).toBeDefined();
         });
     });
 

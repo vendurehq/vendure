@@ -9,9 +9,9 @@ import { VendureConfigRef } from '../../../shared/vendure-config-ref';
 const cancelledMessage = 'Revert migrations cancelled';
 
 export const revertMigrationCommand = new CliCommand<{ configFile?: string }>({
-    id: 'run-migration',
+    id: 'revert-migration',
     category: 'Other',
-    description: 'Run any pending database migrations',
+    description: 'Revert the last applied database migration',
     run: options => runRevertMigration(options?.configFile),
 });
 

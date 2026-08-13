@@ -62,69 +62,78 @@ async function generatePastOrders() {
             }
 
             try {
-                const order = await orderService.create(ctx, customer.user.id);
-                const result = await orderService.addItemToOrder(
-                    ctx,
-                    order.id,
-                    getRandomItem(variants).id,
-                    Math.floor(Math.random() * 3) + 1,
-                );
+                const orderCreated = await connection.withTransaction(ctx, async txCtx => {
+                    const order = await orderService.create(txCtx, customer.user!.id);
+                    const result = await orderService.addItemToOrder(
+                        txCtx,
+                        order.id,
+                        getRandomItem(variants).id,
+                        Math.floor(Math.random() * 3) + 1,
+                    );
 
-                if (isGraphQlErrorResult(result)) {
-                    Logger.error(`Failed to add item to order: ${result.message}`);
-                    retryCount++;
-                    continue;
-                }
+                    if (isGraphQlErrorResult(result)) {
+                        Logger.error(`Failed to add item to order: ${result.message}`);
+                        return false;
+                    }
 
-                const eligibleShippingMethods = await orderService.getEligibleShippingMethods(ctx, order.id);
-                if (eligibleShippingMethods.length === 0) {
-                    Logger.error('No eligible shipping methods found');
-                    retryCount++;
-                    continue;
-                }
+                    const eligibleShippingMethods = await orderService.getEligibleShippingMethods(
+                        txCtx,
+                        order.id,
+                    );
+                    if (eligibleShippingMethods.length === 0) {
+                        Logger.error('No eligible shipping methods found');
+                        return false;
+                    }
 
-                await orderService.setShippingMethod(ctx, order.id, [
-                    getRandomItem(eligibleShippingMethods).id,
-                ]);
-                const transitionResult = await orderService.transitionToState(
-                    ctx,
-                    order.id,
-                    'ArrangingPayment',
-                );
+                    await orderService.setShippingMethod(txCtx, order.id, [
+                        getRandomItem(eligibleShippingMethods).id,
+                    ]);
+                    const transitionResult = await orderService.transitionToState(
+                        txCtx,
+                        order.id,
+                        'ArrangingPayment',
+                    );
 
-                if (isGraphQlErrorResult(transitionResult)) {
-                    Logger.error(`Failed to transition order state: ${transitionResult.message}`);
-                    retryCount++;
-                    continue;
-                }
+                    if (isGraphQlErrorResult(transitionResult)) {
+                        Logger.error(`Failed to transition order state: ${transitionResult.message}`);
+                        return false;
+                    }
 
-                const eligiblePaymentMethods = await orderService.getEligiblePaymentMethods(ctx, order.id);
-                if (eligiblePaymentMethods.length === 0) {
-                    Logger.error('No eligible payment methods found');
-                    retryCount++;
-                    continue;
-                }
+                    const eligiblePaymentMethods = await orderService.getEligiblePaymentMethods(
+                        txCtx,
+                        order.id,
+                    );
+                    if (eligiblePaymentMethods.length === 0) {
+                        Logger.error('No eligible payment methods found');
+                        return false;
+                    }
 
-                const paymentResult = await orderService.addPaymentToOrder(ctx, order.id, {
-                    method: getRandomItem(eligiblePaymentMethods).code,
-                    metadata: {},
+                    const paymentResult = await orderService.addPaymentToOrder(txCtx, order.id, {
+                        method: getRandomItem(eligiblePaymentMethods).code,
+                        metadata: {},
+                    });
+
+                    if (isGraphQlErrorResult(paymentResult)) {
+                        Logger.error(`Failed to add payment: ${paymentResult.message}`);
+                        return false;
+                    }
+
+                    const randomHourOfDay = Math.floor(Math.random() * 24);
+                    const placedAt = targetDate.startOf('day').add(randomHourOfDay, 'hour').toDate();
+
+                    await connection.getRepository(txCtx, 'Order').update(order.id, {
+                        orderPlacedAt: placedAt,
+                    });
+
+                    return true;
                 });
 
-                if (isGraphQlErrorResult(paymentResult)) {
-                    Logger.error(`Failed to add payment: ${paymentResult.message}`);
+                if (orderCreated) {
+                    successfulOrders++;
+                    retryCount = 0; // Reset retry count on success
+                } else {
                     retryCount++;
-                    continue;
                 }
-
-                const randomHourOfDay = Math.floor(Math.random() * 24);
-                const placedAt = targetDate.startOf('day').add(randomHourOfDay, 'hour').toDate();
-
-                await connection.getRepository(ctx, 'Order').update(order.id, {
-                    orderPlacedAt: placedAt,
-                });
-
-                successfulOrders++;
-                retryCount = 0; // Reset retry count on success
             } catch (error: unknown) {
                 Logger.error(
                     `Error creating order: ${error instanceof Error ? error.message : String(error)}`,

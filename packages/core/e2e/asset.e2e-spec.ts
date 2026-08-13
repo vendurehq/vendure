@@ -256,6 +256,73 @@ describe('Asset resolver', () => {
             });
         });
 
+        // GHSA-88rq-mq4v-frmm — the permitted-type check must not rely solely on the
+        // client-supplied Content-Type header, which can be spoofed (e.g. via a proxy tool).
+        it('rejects a dangerous extension even when the Content-Type header is spoofed', async () => {
+            const filesToUpload = [path.join(__dirname, 'fixtures/assets/malicious.php')];
+            const { createAssets } = await adminClient.fileUploadMutation({
+                mutation: createAssetsDocument,
+                filePaths: filesToUpload,
+                // Spoof the part Content-Type to a permitted type, as an attacker would.
+                contentTypeOverrides: { 0: 'image/jpeg' },
+                mapVariables: filePaths => ({
+                    input: filePaths.map(p => ({ file: null })),
+                }),
+            });
+
+            expect(createAssets.length).toBe(1);
+            expect(createAssets[0]).toEqual({
+                message: 'The MIME type "application/x-httpd-php" is not permitted.',
+                mimeType: 'application/x-httpd-php',
+                fileName: 'malicious.php',
+            });
+        });
+
+        // GHSA-88rq-mq4v-frmm — a file that cannot be positively identified as a permitted
+        // type by either its extension or its contents must be rejected. `.phtml` has no
+        // mime-types mapping and the text content has no magic bytes, so neither signal
+        // confirms it is permitted.
+        it('rejects an unrecognised extension with spoofed Content-Type and no detectable content type', async () => {
+            const filesToUpload = [path.join(__dirname, 'fixtures/assets/malicious.phtml')];
+            const { createAssets } = await adminClient.fileUploadMutation({
+                mutation: createAssetsDocument,
+                filePaths: filesToUpload,
+                contentTypeOverrides: { 0: 'image/jpeg' },
+                mapVariables: filePaths => ({
+                    input: filePaths.map(p => ({ file: null })),
+                }),
+            });
+
+            expect(createAssets.length).toBe(1);
+            expect(createAssets[0]).toEqual({
+                message: 'The MIME type "application/octet-stream" is not permitted.',
+                mimeType: 'application/octet-stream',
+                fileName: 'malicious.phtml',
+            });
+        });
+
+        // GHSA-88rq-mq4v-frmm — the actual file contents (magic bytes) are validated, so a
+        // disguised file whose extension and Content-Type are both permitted is still rejected
+        // when its real content type is not permitted.
+        it('rejects a file whose actual contents are a non-permitted type', async () => {
+            const filesToUpload = [path.join(__dirname, 'fixtures/assets/disguised-gzip.jpg')];
+            const { createAssets } = await adminClient.fileUploadMutation({
+                mutation: createAssetsDocument,
+                filePaths: filesToUpload,
+                contentTypeOverrides: { 0: 'image/jpeg' },
+                mapVariables: filePaths => ({
+                    input: filePaths.map(p => ({ file: null })),
+                }),
+            });
+
+            expect(createAssets.length).toBe(1);
+            expect(createAssets[0]).toEqual({
+                message: 'The MIME type "application/gzip" is not permitted.',
+                mimeType: 'application/gzip',
+                fileName: 'disguised-gzip.jpg',
+            });
+        });
+
         it('create with new tags', async () => {
             const filesToUpload = [path.join(__dirname, 'fixtures/assets/pps1.jpg')];
             const { createAssets } = await adminClient.fileUploadMutation({
@@ -542,6 +609,32 @@ describe('Asset resolver', () => {
             productGuard.assertSuccess(product);
             expect(product.featuredAsset).toBeNull();
             expect(product.assets.length).toEqual(0);
+        });
+    });
+
+    // Placed last because creating an asset advances the auto-increment id, which the
+    // hardcoded-id assertions in the tests above rely on.
+    describe('MIME type content validation (GHSA-88rq-mq4v-frmm)', () => {
+        // An SVG that begins with an XML prolog is reported by `file-type` as the generic
+        // `application/xml`, which must not cause the permitted `image/svg+xml` upload to be
+        // rejected as a content/extension mismatch.
+        it('accepts an SVG whose contents are detected as generic XML', async () => {
+            const filesToUpload = [path.join(__dirname, 'fixtures/assets/test.svg')];
+            const { createAssets } = await adminClient.fileUploadMutation({
+                mutation: createAssetsDocument,
+                filePaths: filesToUpload,
+                mapVariables: filePaths => ({
+                    input: filePaths.map(p => ({ file: null })),
+                }),
+            });
+
+            expect(createAssets.length).toBe(1);
+            // An Asset (with name/source), not a MimeTypeError, confirms the SVG was accepted.
+            expect(createAssets[0]).toMatchObject({
+                name: 'test.svg',
+                source: expect.stringContaining('test.svg'),
+            });
+            expect(createAssets[0]).not.toHaveProperty('message');
         });
     });
 });

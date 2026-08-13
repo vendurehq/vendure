@@ -1,5 +1,5 @@
 import { graphql } from '@/vdb/graphql/graphql.js';
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { DemoRouterProvider } from '../../../../.storybook/providers.js';
 import { DetailPage, DetailPageProps } from './detail-page.js';
 

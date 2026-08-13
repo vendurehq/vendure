@@ -1,9 +1,9 @@
 import { Button } from '@/vdb/components/ui/button.js';
-import { Trans } from '@lingui/react/macro';
 import { cn } from '@/vdb/lib/utils.js';
 import { DndContext, useDraggable } from '@dnd-kit/core';
 import { restrictToParentElement } from '@dnd-kit/modifiers';
 import { CSS } from '@dnd-kit/utilities';
+import { Trans } from '@lingui/react/macro';
 import { Crosshair, X } from 'lucide-react';
 import { useState } from 'react';
 
@@ -34,13 +34,18 @@ function DraggableFocalPoint({ point }: { point: Point }) {
             : `translate(-50%, -50%)`,
     };
 
+    // border-white is intentional: the focal-point marker sits over arbitrary user
+    // image content and needs a fixed high-contrast ring, not a theme-relative slot.
+    // eslint-disable-next-line @vendure-io/design/no-raw-colors
+    const markerClassName = 'absolute w-8 h-8 rounded-full border-4 border-white bg-brand/20 shadow-lg cursor-move';
+
     return (
         <div
             ref={setNodeRef}
             style={style}
             {...listeners}
             {...attributes}
-            className="absolute w-8 h-8 rounded-full border-4 border-white bg-brand/20 shadow-lg cursor-move"
+            className={markerClassName}
         />
     );
 }
@@ -89,6 +94,7 @@ export function AssetFocalPointEditor({
                     </Button>
                     <Button
                         type="button"
+                        data-testid="asset-focal-point-editor-confirm"
                         onClick={() => {
                             onFocalPointChange(focalPointCurrent);
                         }}

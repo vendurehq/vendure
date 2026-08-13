@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { FacetValueChip } from '@/vdb/components/shared/facet-value-chip.js';
 import { FacetValue, FacetValueSelector } from '@/vdb/components/shared/facet-value-selector.js';
 import { Button } from '@/vdb/components/ui/button.js';
+import { LoadingState } from '@/vdb/components/ui/state-views.js';
 import {
     Dialog,
     DialogContent,
@@ -150,7 +151,10 @@ export function AssignFacetValuesDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-hidden flex flex-col">
+            <DialogContent
+                className="sm:max-w-[800px] max-h-[80vh] overflow-hidden flex flex-col"
+                onKeyDown={event => event.stopPropagation()}
+            >
                 <DialogHeader>
                     <DialogTitle>
                         <Trans>Edit facet values</Trans>
@@ -177,9 +181,7 @@ export function AssignFacetValuesDialog({
                     {/* Entities table */}
                     <div className="flex-1 overflow-auto">
                         {isLoading ? (
-                            <div className="flex items-center justify-center py-8">
-                                <div className="text-sm text-muted-foreground">Loading...</div>
-                            </div>
+                            <LoadingState variant="spinner" className="py-8" />
                         ) : items ? (
                             <div className="border rounded-md">
                                 <table className="w-full">

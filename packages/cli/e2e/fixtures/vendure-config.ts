@@ -7,7 +7,7 @@ export const testConfig: VendureConfig = {
         shopApiPath: 'shop-api',
     },
     dbConnectionOptions: {
-        type: 'sqlite',
+        type: 'better-sqlite3',
         database: ':memory:',
         synchronize: false,
         migrations: ['migrations/*.ts'],

@@ -15,4 +15,4 @@ export {
     ComboboxTrigger,
     ComboboxValue,
     useComboboxAnchor,
-} from '@vendure-io/ui/components/ui/combobox';
+} from '@vendure-io/ui/components/atoms/combobox';

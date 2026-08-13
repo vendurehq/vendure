@@ -14,6 +14,7 @@ import {
 import { Input } from '@/vdb/components/ui/input.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
 import { addCustomFields } from '@/vdb/framework/document-introspection/add-custom-fields.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import {
     CustomFieldsPageBlock,
     DetailFormGrid,
@@ -23,12 +24,11 @@ import {
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
-import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { api } from '@/vdb/graphql/api.js';
 import { Trans, useLingui } from '@lingui/react/macro';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
@@ -36,6 +36,7 @@ import { toast } from 'sonner';
 import { CustomerAddressCard } from './components/customer-address-card.js';
 import { CustomerAddressForm } from './components/customer-address-form.js';
 import { CustomerHistoryContainer } from './components/customer-history/customer-history-container.js';
+import { customerHistoryQueryKey } from './components/customer-history/use-customer-history.js';
 import { CustomerOrderTable } from './components/customer-order-table.js';
 import { CustomerStatusBadge } from './components/customer-status-badge.js';
 import {
@@ -62,7 +63,7 @@ export const Route = createFileRoute('/_authenticated/_customers/customers_/$id'
             isNew ? <Trans>New customer</Trans> : `${entity?.firstName} ${entity?.lastName}`,
         ],
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function CustomerDetailPage() {
@@ -70,6 +71,7 @@ function CustomerDetailPage() {
     const navigate = useNavigate();
     const creatingNewEntity = params.id === NEW_ENTITY_PATH;
     const { t } = useLingui();
+    const queryClient = useQueryClient();
     const [newAddressOpen, setNewAddressOpen] = useState(false);
 
     const { form, submitHandler, entity, isPending, refreshEntity, resetForm } = useDetailPage({
@@ -100,6 +102,8 @@ function CustomerDetailPage() {
                 resetForm();
                 if (creatingNewEntity) {
                     await navigate({ to: `../$id`, params: { id: data.id } });
+                } else {
+                    await queryClient.invalidateQueries({ queryKey: customerHistoryQueryKey(data.id) });
                 }
             } else {
                 toast.error(creatingNewEntity ? t`Failed to create customer` : t`Failed to update customer`, {
@@ -222,7 +226,7 @@ function CustomerDetailPage() {
                                 <DialogTrigger render={<Button variant="outline" />}>
                                     <Plus className="w-4 h-4" /> <Trans>Add new address</Trans>
                                 </DialogTrigger>
-                                <DialogContent>
+                                <DialogContent className="max-h-[90vh] overflow-y-auto">
                                     <DialogHeader>
                                         <DialogTitle>
                                             <Trans>Add new address</Trans>
@@ -244,8 +248,8 @@ function CustomerDetailPage() {
                             </Dialog>
                         </PageBlock>
 
-                        <PageBlock column="main" blockId="orders" title={<Trans>Orders</Trans>}>
-                            <CustomerOrderTable customerId={entity.id} />
+                        <PageBlock column="main" blockId="orders" layout="bare">
+                            <CustomerOrderTable customerId={entity.id} title={<Trans>Orders</Trans>} />
                         </PageBlock>
                         <PageBlock column="main" blockId="history" title={<Trans>Customer history</Trans>}>
                             <CustomerHistoryContainer customerId={entity.id} />

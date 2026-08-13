@@ -2,13 +2,13 @@
 title: "PaymentService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/payment.service.ts" sourceLine="46" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/payment.service.ts" sourceLine="43" packageName="@vendure/core" />
 
 Contains methods relating to [Payment](/reference/typescript-api/entities/payment#payment) entities.
 
 ```ts title="Signature"
 class PaymentService {
-    constructor(connection: TransactionalConnection, paymentStateMachine: PaymentStateMachine, refundStateMachine: RefundStateMachine, paymentMethodService: PaymentMethodService, configService: ConfigService, eventBus: EventBus)
+    constructor(connection: TransactionalConnection, paymentStateMachine: PaymentStateMachine, refundStateMachine: RefundStateMachine, paymentMethodService: PaymentMethodService, eventBus: EventBus)
     create(ctx: RequestContext, input: DeepPartial<Payment>) => Promise<Payment>;
     findOneOrThrow(ctx: RequestContext, id: ID, relations: string[] = ['order']) => Promise<Payment>;
     transitionToState(ctx: RequestContext, paymentId: ID, state: PaymentState) => Promise<Payment | PaymentStateTransitionError>;
@@ -22,11 +22,6 @@ class PaymentService {
 ```
 
 <div className="members-wrapper">
-
-### constructor
-
-<MemberInfo kind="method" type={`(connection: <a href='/reference/typescript-api/data-access/transactional-connection#transactionalconnection'>TransactionalConnection</a>, paymentStateMachine: PaymentStateMachine, refundStateMachine: RefundStateMachine, paymentMethodService: <a href='/reference/typescript-api/services/payment-method-service#paymentmethodservice'>PaymentMethodService</a>, configService: ConfigService, eventBus: <a href='/reference/typescript-api/events/event-bus#eventbus'>EventBus</a>) => PaymentService`}   />
-
 
 ### create
 

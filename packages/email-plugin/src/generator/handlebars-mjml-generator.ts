@@ -23,7 +23,7 @@ export class HandlebarsMjmlGenerator implements EmailGenerator {
         this.registerHelpers();
     }
 
-    generate(from: string, subject: string, template: string, templateVars: any) {
+    async generate(from: string, subject: string, template: string, templateVars: any) {
         const compiledFrom = Handlebars.compile(from, { noEscape: true });
         const compiledSubject = Handlebars.compile(subject);
         const compiledTemplate = Handlebars.compile(template);
@@ -35,7 +35,7 @@ export class HandlebarsMjmlGenerator implements EmailGenerator {
         const fromResult = compiledFrom(templateVars, templateOptions);
         const subjectResult = compiledSubject(templateVars, templateOptions);
         const mjml = compiledTemplate(templateVars, templateOptions);
-        const body = mjml2html(mjml).html;
+        const body = (await mjml2html(mjml)).html;
         return { from: fromResult, subject: subjectResult, body };
     }
 

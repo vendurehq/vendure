@@ -1,6 +1,6 @@
 import { DataDisplayComponent } from '@/vdb/framework/component-registry/component-registry.js';
 import { Table } from '@tanstack/react-table';
-import { CellContext } from '@tanstack/table-core';
+import { CellContext, ColumnOrderState, VisibilityState } from '@tanstack/table-core';
 import { DocumentNode } from 'graphql';
 import React from 'react';
 
@@ -12,7 +12,7 @@ export type DataTableDisplayComponent = DataDisplayComponent<CellContext<any, an
  * The pageId is already defined in the data table extension, so only the column name is needed.
  *
  * @docsCategory extensions-api
- * @docsPage DataTable
+ * @docsPage DataTables
  * @since 3.4.0
  */
 export interface DashboardDataTableDisplayComponent {
@@ -24,7 +24,7 @@ export interface DashboardDataTableDisplayComponent {
     /**
      * @description
      * The React component that will be rendered as the display.
-     * It should accept `value` and other standard display props.
+     * It receives the TanStack Table `CellContext`, including `value`, `cell`, `row`, and `table`.
      */
     component: DataTableDisplayComponent;
 }
@@ -45,9 +45,9 @@ export type BulkActionComponent<Item extends { id: string } & Record<string, any
  * The component receives the following props:
  *
  * - `selection`: The selected row or rows
- * - `table`: A reference to the Tanstack table instance powering the list
+ * - `table`: A reference to the TanStack Table instance powering the list
  *
- * The `table` object has
+ * The `table` object can be used to clear row selection after the action completes.
  *
  * @example
  * ```tsx
@@ -180,6 +180,15 @@ export type BulkActionsInput = BulkAction[] | Array<BulkAction[] | BulkActionGro
 
 /**
  * @description
+ * Allows you to define default view options (currently column visibility and order) for data tables in the dashboard.
+ */
+export type DashboardDataTableViewOptionDefaults = {
+    columnVisibility?: VisibilityState;
+    columnOrder?: ColumnOrderState;
+};
+
+/**
+ * @description
  * This allows you to customize aspects of existing data tables in the dashboard.
  *
  * @docsCategory extensions-api
@@ -214,4 +223,15 @@ export interface DashboardDataTableExtensionDefinition {
      * Custom display components for specific columns in the data table.
      */
     displayComponents?: DashboardDataTableDisplayComponent[];
+    /**
+     * @description
+     * Initial column visibility and order for this data table. These are
+     * applied as defaults before the user has interacted with the column
+     * settings — once a user customizes their view, their saved preferences
+     * take precedence over these values.
+     *
+     * Use this to surface a custom field as a visible column out of the box,
+     * or to hide a column from a list view by default.
+     */
+    viewOptionDefaults?: DashboardDataTableViewOptionDefaults;
 }

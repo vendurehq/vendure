@@ -2,6 +2,8 @@
 title: "Promotion Action"
 generated: true
 ---
+## PromotionAction
+
 <GenerationInfo sourceFile="packages/core/src/config/promotion/promotion-action.ts" sourceLine="281" packageName="@vendure/core" />
 
 An abstract class which is extended by [PromotionItemAction](/reference/typescript-api/promotions/promotion-action#promotionitemaction), [PromotionOrderAction](/reference/typescript-api/promotions/promotion-action#promotionorderaction),
@@ -26,14 +28,11 @@ class PromotionAction<T extends ConfigArgs = ConfigArgs, U extends PromotionCond
 Used to determine the order of application of multiple Promotions
 on the same Order. See the [Promotion](/reference/typescript-api/entities/promotion#promotion) `priorityScore` field for
 more information.
-### constructor
-
-<MemberInfo kind="method" type={`(config: <a href='/reference/typescript-api/promotions/promotion-action#promotionactionconfig'>PromotionActionConfig</a><T, U>) => PromotionAction`}   />
-
-
 
 
 </div>
+## PromotionItemAction
+
 <GenerationInfo sourceFile="packages/core/src/config/promotion/promotion-action.ts" sourceLine="354" packageName="@vendure/core" />
 
 Represents a PromotionAction which applies to individual [OrderLine](/reference/typescript-api/entities/order-line#orderline)s.
@@ -63,14 +62,11 @@ class PromotionItemAction<T extends ConfigArgs = ConfigArgs, U extends Array<Pro
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(config: <a href='/reference/typescript-api/promotions/promotion-action#promotionitemactionconfig'>PromotionItemActionConfig</a><T, U>) => PromotionItemAction`}   />
-
-
 
 
 </div>
+## PromotionOrderAction
+
 <GenerationInfo sourceFile="packages/core/src/config/promotion/promotion-action.ts" sourceLine="464" packageName="@vendure/core" />
 
 Represents a PromotionAction which applies to the [Order](/reference/typescript-api/entities/order#order) as a whole.
@@ -100,14 +96,11 @@ class PromotionOrderAction<T extends ConfigArgs = ConfigArgs, U extends Promotio
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(config: <a href='/reference/typescript-api/promotions/promotion-action#promotionorderactionconfig'>PromotionOrderActionConfig</a><T, U>) => PromotionOrderAction`}   />
-
-
 
 
 </div>
+## PromotionShippingAction
+
 <GenerationInfo sourceFile="packages/core/src/config/promotion/promotion-action.ts" sourceLine="506" packageName="@vendure/core" />
 
 Represents a PromotionAction which applies to the shipping cost of an Order.
@@ -123,14 +116,11 @@ class PromotionShippingAction<T extends ConfigArgs = ConfigArgs, U extends Promo
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(config: <a href='/reference/typescript-api/promotions/promotion-action#promotionshippingactionconfig'>PromotionShippingActionConfig</a><T, U>) => PromotionShippingAction`}   />
-
-
 
 
 </div>
+## ExecutePromotionItemActionFn
+
 <GenerationInfo sourceFile="packages/core/src/config/promotion/promotion-action.ts" sourceLine="72" packageName="@vendure/core" />
 
 The function which is used by a PromotionItemAction to calculate the
@@ -145,6 +135,8 @@ type ExecutePromotionItemActionFn<T extends ConfigArgs, U extends Array<Promotio
     promotion: Promotion,
 ) => number | Promise<number>
 ```
+## ExecutePromotionLineActionFn
+
 <GenerationInfo sourceFile="packages/core/src/config/promotion/promotion-action.ts" sourceLine="88" packageName="@vendure/core" />
 
 The function which is used by a PromotionLineAction to calculate the
@@ -159,6 +151,8 @@ type ExecutePromotionLineActionFn<T extends ConfigArgs, U extends Array<Promotio
     promotion: Promotion,
 ) => number | Promise<number>
 ```
+## ExecutePromotionOrderActionFn
+
 <GenerationInfo sourceFile="packages/core/src/config/promotion/promotion-action.ts" sourceLine="104" packageName="@vendure/core" />
 
 The function which is used by a PromotionOrderAction to calculate the
@@ -173,6 +167,8 @@ type ExecutePromotionOrderActionFn<T extends ConfigArgs, U extends Array<Promoti
     promotion: Promotion,
 ) => number | Promise<number>
 ```
+## ExecutePromotionShippingActionFn
+
 <GenerationInfo sourceFile="packages/core/src/config/promotion/promotion-action.ts" sourceLine="120" packageName="@vendure/core" />
 
 The function which is used by a PromotionOrderAction to calculate the
@@ -188,6 +184,8 @@ type ExecutePromotionShippingActionFn<T extends ConfigArgs, U extends Array<Prom
     promotion: Promotion,
 ) => number | Promise<number>
 ```
+## PromotionActionSideEffectFn
+
 <GenerationInfo sourceFile="packages/core/src/config/promotion/promotion-action.ts" sourceLine="141" packageName="@vendure/core" since="1.8.0" experimental="true" />
 
 The signature of a PromotionAction's side-effect functions `onActivate` and `onDeactivate`.
@@ -200,6 +198,8 @@ type PromotionActionSideEffectFn<T extends ConfigArgs> = (
     promotion: Promotion,
 ) => void | Promise<void>
 ```
+## PromotionActionConfig
+
 <GenerationInfo sourceFile="packages/core/src/config/promotion/promotion-action.ts" sourceLine="155" packageName="@vendure/core" />
 
 Configuration for all types of [PromotionAction](/reference/typescript-api/promotions/promotion-action#promotionaction).
@@ -253,6 +253,8 @@ Used to reverse or clean up any side effects executed as part of the `onActivate
 
 
 </div>
+## PromotionItemActionConfig
+
 <GenerationInfo sourceFile="packages/core/src/config/promotion/promotion-action.ts" sourceLine="209" packageName="@vendure/core" />
 
 Configuration for a [PromotionItemAction](/reference/typescript-api/promotions/promotion-action#promotionitemaction)
@@ -278,6 +280,8 @@ the OrderLine, i.e. the number should be negative.
 
 
 </div>
+## PromotionLineActionConfig
+
 <GenerationInfo sourceFile="packages/core/src/config/promotion/promotion-action.ts" sourceLine="227" packageName="@vendure/core" />
 
 Configuration for a [PromotionLineAction](/reference/typescript-api/promotions/promotion-action#promotionlineaction)
@@ -303,6 +307,8 @@ the OrderLine, i.e. the number should be negative.
 
 
 </div>
+## PromotionOrderActionConfig
+
 <GenerationInfo sourceFile="packages/core/src/config/promotion/promotion-action.ts" sourceLine="244" packageName="@vendure/core" />
 
 
@@ -328,6 +334,8 @@ the Order, i.e. the number should be negative.
 
 
 </div>
+## PromotionShippingActionConfig
+
 <GenerationInfo sourceFile="packages/core/src/config/promotion/promotion-action.ts" sourceLine="261" packageName="@vendure/core" />
 
 
@@ -353,6 +361,8 @@ the Shipping, i.e. the number should be negative.
 
 
 </div>
+## PromotionLineAction
+
 <GenerationInfo sourceFile="packages/core/src/config/promotion/promotion-action.ts" sourceLine="409" packageName="@vendure/core" />
 
 Represents a PromotionAction which applies to individual [OrderLine](/reference/typescript-api/entities/order-line#orderline)s.
@@ -382,11 +392,6 @@ class PromotionLineAction<T extends ConfigArgs = ConfigArgs, U extends Array<Pro
 
 
 <div className="members-wrapper">
-
-### constructor
-
-<MemberInfo kind="method" type={`(config: <a href='/reference/typescript-api/promotions/promotion-action#promotionlineactionconfig'>PromotionLineActionConfig</a><T, U>) => PromotionLineAction`}   />
-
 
 
 

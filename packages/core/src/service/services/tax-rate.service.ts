@@ -16,6 +16,7 @@ import { createSelfRefreshingCache, SelfRefreshingCache } from '../../common/sel
 import { ListQueryOptions } from '../../common/types/common-types';
 import { assertFound } from '../../common/utils';
 import { ConfigService } from '../../config/config.service';
+import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { CustomerGroup } from '../../entity/customer-group/customer-group.entity';
 import { TaxCategory } from '../../entity/tax-category/tax-category.entity';
@@ -106,7 +107,9 @@ export class TaxRateService {
             .getRepository(ctx, TaxRate)
             .findOne({
                 where: { id: taxRateId },
-                relations: relations ?? ['category', 'zone', 'customerGroup'],
+                relations: findOptionsArrayToObject<TaxRate>(
+                    relations ?? ['category', 'zone', 'customerGroup'],
+                ),
             })
             .then(result => result ?? undefined);
     }
@@ -208,7 +211,7 @@ export class TaxRateService {
 
     private async findActiveTaxRates(ctx: RequestContext): Promise<TaxRate[]> {
         return await this.connection.getRepository(ctx, TaxRate).find({
-            relations: ['category', 'zone', 'customerGroup'],
+            relations: { category: true, zone: true, customerGroup: true },
             where: {
                 enabled: true,
             },

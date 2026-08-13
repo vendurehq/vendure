@@ -1,0 +1,199 @@
+{
+  "configurableOperation": {
+    "CollectionFilter": {
+      "facet-value-filter": {
+        "description": "Filtrovat podle hodnot vlastností",
+        "args": {
+          "facetValueIds": {
+            "label": "Hodnoty vlastností"
+          },
+          "containsAny": {
+            "label": "Obsahuje libovolnou",
+            "description": "Pokud je zaškrtnuto, varianty produktu musí mít alespoň jednu z vybraných hodnot vlastností. Pokud není zaškrtnuto, varianta musí mít všechny vybrané hodnoty."
+          },
+          "combineWithAnd": {
+            "label": "Režim kombinace",
+            "description": "Pokud je tento filtr kombinován s dalšími filtry, musí být splněny všechny podmínky (AND), nebo stačí jen jedna z nich (OR)?"
+          }
+        }
+      },
+      "variant-name-filter": {
+        "description": "Filtrovat podle názvu varianty produktu",
+        "args": {
+          "combineWithAnd": {
+            "label": "Režim kombinace",
+            "description": "Pokud je tento filtr kombinován s dalšími filtry, musí být splněny všechny podmínky (AND), nebo stačí jen jedna z nich (OR)?"
+          }
+        }
+      },
+      "variant-id-filter": {
+        "description": "Ručně vybrat varianty produktu",
+        "args": {
+          "variantIds": {
+            "label": "Varianty produktu"
+          },
+          "combineWithAnd": {
+            "label": "Režim kombinace",
+            "description": "Pokud je tento filtr kombinován s dalšími filtry, musí být splněny všechny podmínky (AND), nebo stačí jen jedna z nich (OR)?"
+          }
+        }
+      },
+      "product-id-filter": {
+        "description": "Ručně vybrat produkty",
+        "args": {
+          "productIds": {
+            "label": "Produkty"
+          },
+          "combineWithAnd": {
+            "label": "Režim kombinace",
+            "description": "Pokud je tento filtr kombinován s dalšími filtry, musí být splněny všechny podmínky (AND), nebo stačí jen jedna z nich (OR)?"
+          }
+        }
+      }
+    },
+    "EntityDuplicator": {
+      "product-duplicator": {
+        "description": "Výchozí duplikátor pro produkty",
+        "args": {
+          "includeVariants": {
+            "label": "Zahrnout varianty"
+          }
+        }
+      },
+      "collection-duplicator": {
+        "description": "Výchozí duplikátor pro kolekce"
+      },
+      "facet-duplicator": {
+        "description": "Výchozí duplikátor pro vlastnosti",
+        "args": {
+          "includeFacetValues": {
+            "label": "Zahrnout hodnoty vlastností"
+          }
+        }
+      },
+      "promotion-duplicator": {
+        "description": "Výchozí duplikátor pro akce"
+      }
+    },
+    "FulfillmentHandler": {
+      "manual-fulfillment": {
+        "description": "Ručně zadat údaje o expedici"
+      }
+    },
+    "PaymentMethodHandler": {
+      "dummy-payment-handler": {
+        "description": "Fiktivní poskytovatel plateb určený pouze pro testování a vývoj.",
+        "args": {
+          "automaticSettle": {
+            "label": "Autorizovat a vypořádat v 1 kroku",
+            "description": "Pokud je povoleno, platby budou vytvořeny ve stavu \"Settled\"."
+          }
+        }
+      },
+      "example-payment-provider": {
+        "description": "Ukázkový poskytovatel plateb"
+      }
+    },
+    "PromotionAction": {
+      "order_fixed_discount": {
+        "description": "Sleva na objednávku o pevnou částku"
+      },
+      "order_line_fixed_discount": {
+        "description": "Sleva na orderLine o pevnou částku"
+      },
+      "order_percentage_discount": {
+        "description": "Sleva na objednávku { discount }%"
+      },
+      "facet_based_discount": {
+        "description": "Sleva { discount }% na produkty s těmito vlastnostmi"
+      },
+      "products_percentage_discount": {
+        "description": "Sleva { discount }% na uvedené produkty",
+        "args": {
+          "productVariantIds": {
+            "label": "Varianty produktu"
+          }
+        }
+      },
+      "free_shipping": {
+        "description": "Doprava zdarma"
+      },
+      "buy_x_get_y_free": {
+        "description": "Koupit X produktů, získat Y produktů zdarma"
+      }
+    },
+    "PromotionCondition": {
+      "minimum_order_amount": {
+        "description": "Pokud je celková částka objednávky vyšší než { amount }"
+      },
+      "at_least_n_with_facets": {
+        "description": "Koupit alespoň { minimum } produktů s uvedenými vlastnostmi"
+      },
+      "contains_products": {
+        "description": "Koupit alespoň { minimum } z uvedených produktů",
+        "args": {
+          "productVariantIds": {
+            "label": "Varianty produktu"
+          }
+        }
+      },
+      "customer_group": {
+        "description": "Zákazník je členem uvedené skupiny",
+        "args": {
+          "customerGroupId": {
+            "label": "Skupina zákazníků"
+          }
+        }
+      },
+      "buy_x_get_y_free": {
+        "description": "Koupit X produktů, získat Y produktů zdarma",
+        "args": {
+          "variantIdsX": {
+            "label": "Koupit amountX z těchto variant"
+          },
+          "variantIdsY": {
+            "label": "Získat amountY z těchto variant zdarma"
+          }
+        }
+      }
+    },
+    "ShippingCalculator": {
+      "default-shipping-calculator": {
+        "description": "Výchozí kalkulátor dopravy s pevnou sazbou",
+        "args": {
+          "rate": {
+            "label": "Cena dopravy"
+          },
+          "includesTax": {
+            "label": "Cena včetně daně",
+            "options": {
+              "include": {
+                "label": "Včetně daně"
+              },
+              "exclude": {
+                "label": "Bez daně"
+              },
+              "auto": {
+                "label": "Automaticky (podle kanálu)"
+              }
+            }
+          },
+          "taxRate": {
+            "label": "Daňová sazba"
+          }
+        }
+      }
+    },
+    "ShippingEligibilityChecker": {
+      "default-shipping-eligibility-checker": {
+        "description": "Výchozí kontrola způsobilosti pro dopravu",
+        "args": {
+          "orderMinimum": {
+            "label": "Minimální hodnota objednávky",
+            "description": "Objednávka je způsobilá pouze tehdy, pokud je její celková částka větší nebo rovna této hodnotě"
+          }
+        }
+      }
+    }
+  }
+}

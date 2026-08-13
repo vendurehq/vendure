@@ -38,7 +38,7 @@ export const Route = createFileRoute('/_authenticated/_tax-categories/tax-catego
             ];
         },
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function TaxCategoryDetailPage() {

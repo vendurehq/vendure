@@ -79,7 +79,7 @@ export class NativeAuthenticationStrategy implements AuthenticationStrategy<Nati
     async verifyUserPassword(ctx: RequestContext, userId: ID, password: string): Promise<boolean> {
         const user = await this.connection.getRepository(ctx, User).findOne({
             where: { id: userId },
-            relations: ['authenticationMethods'],
+            relations: { authenticationMethods: true },
         });
         if (!user) {
             return false;
@@ -92,7 +92,7 @@ export class NativeAuthenticationStrategy implements AuthenticationStrategy<Nati
             (
                 await this.connection.getRepository(ctx, NativeAuthenticationMethod).findOne({
                     where: { id: nativeAuthMethod.id },
-                    select: ['passwordHash'],
+                    select: { passwordHash: true },
                 })
             )?.passwordHash ?? '';
         const passwordMatches = await this.passwordCipher.check(password, pw);

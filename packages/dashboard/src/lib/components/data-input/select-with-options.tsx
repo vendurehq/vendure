@@ -8,6 +8,7 @@ import {
 } from '@/vdb/framework/form-engine/form-engine-types.js';
 import {
     extractFieldOptions,
+    isFieldNullable,
     isReadonlyField,
     isStringFieldWithOptions,
     isStringStructFieldWithOptions,
@@ -83,24 +84,30 @@ export function SelectWithOptions({
     }
 
     // For single fields, use regular Select
-    const currentValue = value ?? '';
+    const isNullable = isFieldNullable(fieldDef);
+    const selectValue = isNullable ? (value == null || value === '' ? null : value) : (value ?? '');
 
-    const handleValueChange = (value: string) => {
-        if (value) {
-            onChange(value);
+    const handleValueChange = (newValue: string | null) => {
+        if (isNullable) {
+            onChange(newValue ?? null);
+        } else if (newValue) {
+            onChange(newValue);
         }
     };
 
     const selectItems = Object.fromEntries(
         options.map(option => [option.value, option.label ? getTranslation(option.label) : option.value]),
     );
+    // Add a null item for nullable selects
+    if (isNullable) selectItems.null = '';
 
     return (
-        <Select value={currentValue} onValueChange={handleValueChange} disabled={readOnly} items={selectItems}>
+        <Select value={selectValue} onValueChange={handleValueChange} disabled={readOnly} items={selectItems}>
             <SelectTrigger className="mb-0">
                 <SelectValue placeholder={placeholder || <Trans>Select an option</Trans>} />
             </SelectTrigger>
             <SelectContent>
+                {isNullable && <SelectItem value={null}>{'\u00a0'}</SelectItem>}
                 {options.map(option => (
                     <SelectItem key={option.value} value={option.value}>
                         {option.label ? getTranslation(option.label) : option.value}

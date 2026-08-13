@@ -40,10 +40,16 @@ export class DefaultInterceptor implements HttpInterceptor {
         this.dataService.client.startRequest().subscribe();
         return this.dataService.client.uiState().single$.pipe(
             switchMap(({ uiState }) => {
+                // The content language selects which translation of the data to return; the UI
+                // language tells the server which language to write its own descriptions and
+                // labels in. Accept-Language is set explicitly because browsers send one of their
+                // own from the OS locale, which would otherwise decide it.
+                const uiLanguage = uiState?.language;
                 const request = req.clone({
                     setParams: {
                         languageCode: uiState?.contentLanguage ?? '',
                     },
+                    setHeaders: uiLanguage ? { 'Accept-Language': uiLanguage.replace(/_/g, '-') } : {},
                 });
                 return next.handle(request);
             }),

@@ -10,11 +10,9 @@ import { API_KEY_AUTH_STRATEGY_NAME } from '../../config';
 import { ConfigService } from '../../config/config.service';
 import { Logger, LogLevel } from '../../config/logger/vendure-logger';
 import { CachedSession } from '../../config/session-cache/session-cache-strategy';
-import { Customer } from '../../entity/customer/customer.entity';
+import { CustomerChannelAssignmentService } from '../../service/helpers/customer-channel-assignment/customer-channel-assignment.service';
 import { RequestContextService } from '../../service/helpers/request-context/request-context.service';
 import { ApiKeyService } from '../../service/services/api-key.service';
-import { ChannelService } from '../../service/services/channel.service';
-import { CustomerService } from '../../service/services/customer.service';
 import { SessionService } from '../../service/services/session.service';
 import { extractSessionToken, ExtractTokenResult } from '../common/extract-session-token';
 import { getApiType } from '../common/get-api-type';
@@ -44,8 +42,7 @@ export class AuthGuard implements CanActivate {
         private configService: ConfigService,
         private requestContextService: RequestContextService,
         private sessionService: SessionService,
-        private customerService: CustomerService,
-        private channelService: ChannelService,
+        private customerChannelAssignmentService: CustomerChannelAssignmentService,
         private apiKeyService: ApiKeyService,
     ) {}
 
@@ -100,39 +97,14 @@ export class AuthGuard implements CanActivate {
         // does not correspond to the current channel, the activeChannelId on the session is set
         const activeChannelShouldBeSet =
             !session.activeChannelId || session.activeChannelId !== requestContext.channelId;
-        if (activeChannelShouldBeSet) {
-            await this.sessionService.setActiveChannel(session, requestContext.channel);
-            if (requestContext.activeUserId) {
-                const customer = await this.customerService.findOneByUserId(
-                    requestContext,
-                    requestContext.activeUserId,
-                    false,
-                );
-                // To avoid assigning the customer to the active channel on every request,
-                // it is only done on the first request and whenever the channel changes
-                if (customer) {
-                    try {
-                        await this.channelService.assignToChannels(requestContext, Customer, customer.id, [
-                            requestContext.channelId,
-                        ]);
-                    } catch (e: any) {
-                        const isDuplicateError =
-                            e.code === 'ER_DUP_ENTRY' /* mySQL/MariaDB */ ||
-                            e.code === '23505'; /* postgres */
-                        if (isDuplicateError) {
-                            // For a duplicate error, this means that concurrent requests have resulted in attempting to
-                            // assign the Customer to the channel more than once. In this case we can safely ignore the
-                            // error as the Customer was successfully assigned in the earlier call.
-                            // See https://github.com/vendurehq/vendure/issues/834
-                        } else {
-                            throw e;
-                        }
-                    }
-                }
-            }
-            return true;
+        if (!activeChannelShouldBeSet) {
+            return false;
         }
-        return false;
+        if (requestContext.activeUserId) {
+            await this.customerChannelAssignmentService.tryAssignToActiveChannel(requestContext);
+        }
+        await this.sessionService.setActiveChannel(session, requestContext.channel);
+        return true;
     }
 
     private async getSession(

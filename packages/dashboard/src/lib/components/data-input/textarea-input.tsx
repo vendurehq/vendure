@@ -21,3 +21,7 @@ export function TextareaInput(props: Readonly<DashboardFormComponentProps>) {
         />
     );
 }
+
+TextareaInput.metadata = {
+    isFullWidth: true,
+};

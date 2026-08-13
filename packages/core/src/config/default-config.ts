@@ -19,6 +19,7 @@ import { DefaultAssetNamingStrategy } from './asset-naming-strategy/default-asse
 import { NoAssetPreviewStrategy } from './asset-preview-strategy/no-asset-preview-strategy';
 import { NoAssetStorageStrategy } from './asset-storage-strategy/no-asset-storage-strategy';
 import { BcryptPasswordHashingStrategy } from './auth/bcrypt-password-hashing-strategy';
+import { DefaultCustomerChannelAssignmentStrategy } from './auth/default-customer-channel-assignment-strategy';
 import { DefaultEntityAccessControlStrategy } from './auth/default-entity-access-control-strategy';
 import { DefaultPasswordValidationStrategy } from './auth/default-password-validation-strategy';
 import { DefaultVerificationTokenStrategy } from './auth/default-verification-token-strategy';
@@ -40,11 +41,13 @@ import { DefaultActiveOrderStrategy } from './order/default-active-order-strateg
 import { DefaultChangedPriceHandlingStrategy } from './order/default-changed-price-handling-strategy';
 import { DefaultGuestCheckoutStrategy } from './order/default-guest-checkout-strategy';
 import { DefaultOrderItemPriceCalculationStrategy } from './order/default-order-item-price-calculation-strategy';
+import { DefaultOrderLineDiscountDistributionStrategy } from './order/default-order-line-discount-distribution-strategy';
 import { DefaultOrderPlacedStrategy } from './order/default-order-placed-strategy';
 import { defaultOrderProcess } from './order/default-order-process';
 import { DefaultOrderSellerStrategy } from './order/default-order-seller-strategy';
 import { DefaultStockAllocationStrategy } from './order/default-stock-allocation-strategy';
 import { MergeOrdersStrategy } from './order/merge-orders-strategy';
+import { NoOrderRecalculationStrategy } from './order/no-order-recalculation-strategy';
 import { DefaultOrderByCodeAccessStrategy } from './order/order-by-code-access-strategy';
 import { DefaultOrderCodeStrategy } from './order/order-code-strategy';
 import { UseGuestStrategy } from './order/use-guest-strategy';
@@ -56,8 +59,10 @@ import { cleanOrphanedSettingsStoreTask } from './settings-store/clean-orphaned-
 import { defaultShippingCalculator } from './shipping-method/default-shipping-calculator';
 import { defaultShippingEligibilityChecker } from './shipping-method/default-shipping-eligibility-checker';
 import { DefaultShippingLineAssignmentStrategy } from './shipping-method/default-shipping-line-assignment-strategy';
+import { DefaultEncryptionStrategy } from './system/default-encryption-strategy';
 import { InMemoryCacheStrategy } from './system/in-memory-cache-strategy';
 import { NoopInstrumentationStrategy } from './system/noop-instrumentation-strategy';
+import { PermissionSecretAccessStrategy } from './system/permission-secret-access-strategy';
 import { DefaultOrderTaxCalculationStrategy } from './tax/default-order-tax-calculation-strategy';
 import { DefaultTaxLineCalculationStrategy } from './tax/default-tax-line-calculation-strategy';
 import { DefaultTaxZoneStrategy } from './tax/default-tax-zone-strategy';
@@ -125,6 +130,7 @@ export const defaultConfig: RuntimeVendureConfig = {
         passwordValidationStrategy: new DefaultPasswordValidationStrategy({ minLength: 4, maxLength: 72 }),
         verificationTokenStrategy: new DefaultVerificationTokenStrategy(),
         entityAccessControlStrategy: new DefaultEntityAccessControlStrategy(),
+        customerChannelAssignmentStrategy: new DefaultCustomerChannelAssignmentStrategy(),
     },
     catalogOptions: {
         collectionFilters: defaultCollectionFilters,
@@ -180,11 +186,13 @@ export const defaultConfig: RuntimeVendureConfig = {
         orderCodeStrategy: new DefaultOrderCodeStrategy(),
         orderByCodeAccessStrategy: new DefaultOrderByCodeAccessStrategy('2h'),
         changedPriceHandlingStrategy: new DefaultChangedPriceHandlingStrategy(),
+        orderLineDiscountDistributionStrategy: new DefaultOrderLineDiscountDistributionStrategy(),
         orderPlacedStrategy: new DefaultOrderPlacedStrategy(),
         activeOrderStrategy: new DefaultActiveOrderStrategy(),
         orderSellerStrategy: new DefaultOrderSellerStrategy(),
         guestCheckoutStrategy: new DefaultGuestCheckoutStrategy(),
         orderInterceptors: [],
+        orderRecalculationStrategy: new NoOrderRecalculationStrategy(),
     },
     paymentOptions: {
         paymentMethodEligibilityCheckers: [],
@@ -259,5 +267,7 @@ export const defaultConfig: RuntimeVendureConfig = {
         healthChecks: [],
         errorHandlers: [],
         instrumentationStrategy: new NoopInstrumentationStrategy(),
+        encryptionStrategy: new DefaultEncryptionStrategy(),
+        secretAccessStrategy: new PermissionSecretAccessStrategy(),
     },
 };

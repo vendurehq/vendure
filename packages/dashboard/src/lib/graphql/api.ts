@@ -30,23 +30,30 @@ const awesomeClient = new AwesomeGraphQLClient({
             headers.set(uiConfig.api.channelTokenKey, channelToken);
         }
 
-        // Get the content language from user settings and add as query parameter
+        // The content language selects which translation of the data to return; the display
+        // language tells the server which language to write its own descriptions and labels in.
+        // Accept-Language is set explicitly because browsers send one of their own from the OS
+        // locale, which would otherwise decide it.
         let finalUrl = url;
         try {
             const userSettings = localStorage.getItem(LS_KEY_USER_SETTINGS);
             if (userSettings) {
                 const settings = JSON.parse(userSettings);
                 const contentLanguage = settings.contentLanguage;
+                const displayLanguage = settings.displayLanguage;
 
                 if (contentLanguage) {
                     const urlObj = new URL(finalUrl);
                     urlObj.searchParams.set('languageCode', contentLanguage);
                     finalUrl = urlObj.toString();
                 }
+                if (displayLanguage) {
+                    headers.set('Accept-Language', displayLanguage.replace(/_/g, '-'));
+                }
             }
         } catch (error) {
             // eslint-disable-next-line no-console
-            console.warn('Failed to read content language from user settings:', error);
+            console.warn('Failed to read languages from user settings:', error);
         }
 
         return fetch(finalUrl, {

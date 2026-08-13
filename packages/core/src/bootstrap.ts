@@ -7,7 +7,7 @@ import { getConnectionToken } from '@nestjs/typeorm';
 import { DEFAULT_COOKIE_NAME } from '@vendure/common/lib/shared-constants';
 import { Type } from '@vendure/common/lib/shared-types';
 import { satisfies } from 'semver';
-import { Connection, DataSourceOptions, EntitySubscriberInterface } from 'typeorm';
+import { DataSource, DataSourceOptions, EntitySubscriberInterface } from 'typeorm';
 import cookieSession = require('cookie-session');
 
 import { InternalServerError } from './common/error/errors';
@@ -17,10 +17,17 @@ import { Logger } from './config/logger/vendure-logger';
 import { RuntimeVendureConfig, VendureConfig } from './config/vendure-config';
 import { Administrator } from './entity/administrator/administrator.entity';
 import { coreEntitiesMap } from './entity/entities';
-import { registerCustomEntityFields } from './entity/register-custom-entity-fields';
+import {
+    getEntityNamesWithCustomFields,
+    registerCustomEntityFields,
+} from './entity/register-custom-entity-fields';
 import { runEntityMetadataModifiers } from './entity/run-entity-metadata-modifiers';
 import { setEntityIdStrategy } from './entity/set-entity-id-strategy';
 import { setMoneyStrategy } from './entity/set-money-strategy';
+import { patchTypeOrmDeepValue } from './entity/typeorm-deep-value-fix';
+import { patchTypeOrmDuplicateEagerLoad } from './entity/typeorm-duplicate-eager-load-fix';
+import { patchTypeOrmEmbeddedRelationColumns } from './entity/typeorm-embedded-relation-fix';
+import { patchTypeOrmRelationIdLoader } from './entity/typeorm-relation-id-loader-fix';
 import { validateCustomFieldsConfig } from './entity/validate-custom-fields-config';
 import { EventBus } from './event-bus';
 import { BootstrappedEvent } from './event-bus/events/bootstrapped-event';
@@ -30,6 +37,7 @@ import { setProcessContext } from './process-context/process-context';
 import { isTelemetryDisabled } from './telemetry/helpers/is-telemetry-disabled.helper';
 import { VENDURE_VERSION } from './version';
 import { VendureWorker } from './worker/vendure-worker';
+import { wrapEarlyMiddlewareHandler } from './wrap-early-middleware-handler';
 
 export type VendureBootstrapFunction = (config: VendureConfig) => Promise<INestApplication>;
 
@@ -219,7 +227,14 @@ export async function bootstrap(
     }
     const earlyMiddlewares = middleware.filter(mid => mid.beforeListen);
     earlyMiddlewares.forEach(mid => {
-        app.use(mid.route, mid.handler);
+        const handler = wrapEarlyMiddlewareHandler(mid);
+        if (handler !== mid.handler) {
+            Logger.info(
+                `Wrapped route-scoped "beforeListen" middleware on route "${mid.route}" to avoid ` +
+                    'suppressing the global body-parser on other routes.',
+            );
+        }
+        app.use(mid.route, handler);
     });
     await options?.onBeforeAppListen?.(app);
     await app.listen(port, hostname || '');
@@ -311,6 +326,11 @@ export async function preBootstrapConfig(
     Logger.useLogger(config.logger);
     config = await runPluginConfigurations(config);
     const entityIdStrategy = config.entityOptions.entityIdStrategy ?? config.entityIdStrategy;
+    patchTypeOrmDeepValue();
+    patchTypeOrmDuplicateEagerLoad();
+    patchTypeOrmEmbeddedRelationColumns();
+    patchTypeOrmRelationIdLoader();
+    registerCustomEntityFields(config);
     setEntityIdStrategy(entityIdStrategy, entities);
     const moneyStrategy = config.entityOptions.moneyStrategy;
     setMoneyStrategy(moneyStrategy, entities);
@@ -319,7 +339,6 @@ export async function preBootstrapConfig(
         process.exitCode = 1;
         throw new Error('CustomFields config error:\n- ' + customFieldValidationResult.errors.join('\n- '));
     }
-    registerCustomEntityFields(config);
     await runEntityMetadataModifiers(config);
     setExposedHeaders(config);
     return config;
@@ -363,6 +382,23 @@ function checkPluginCompatibility(
  * Run the configuration functions of all plugins and return the final config object.
  */
 export async function runPluginConfigurations(config: RuntimeVendureConfig): Promise<RuntimeVendureConfig> {
+    // Auto-initialise an empty custom-field array for every entity that supports custom
+    // fields (core or plugin-defined), so a plugin's `configuration` callback can do
+    // `config.customFields.SomeEntity.push(...)` without the defensive
+    // `if (!config.customFields.SomeEntity) config.customFields.SomeEntity = []` guard.
+    // Empty arrays are ignored by `registerCustomEntityFields`, so this is inert for
+    // entities nobody extends. See OSS-408. Seeding is scoped to this server's entities
+    // (core entities plus this config's plugin entities, via `getAllEntities`) rather than the
+    // global TypeORM metadata, to avoid phantom keys from entities imported into the process but
+    // not registered with this server — a second server in the same process, or an
+    // imported-but-uninstalled plugin (OSS-653). Derived from `config` so every caller of
+    // `runPluginConfigurations` is covered, not only the `preBootstrapConfig` path.
+    const entities = getAllEntities(config);
+    for (const entityName of getEntityNamesWithCustomFields(entities)) {
+        if (!Object.prototype.hasOwnProperty.call(config.customFields, entityName)) {
+            config.customFields[entityName] = [];
+        }
+    }
     for (const plugin of config.plugins) {
         const configFn = getConfigurationFunction(plugin);
         if (typeof configFn === 'function') {
@@ -478,7 +514,7 @@ function disableSynchronize(userConfig: Readonly<RuntimeVendureConfig>): Readonl
  * @param worker
  */
 async function validateDbTablesForWorker(worker: INestApplicationContext) {
-    const connection: Connection = worker.get(getConnectionToken());
+    const connection: DataSource = worker.get(getConnectionToken());
     await new Promise<void>(async (resolve, reject) => {
         const checkForTables = async (): Promise<boolean> => {
             try {

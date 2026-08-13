@@ -2,6 +2,8 @@
 title: "PermissionDefinition"
 generated: true
 ---
+## PermissionDefinition
+
 <GenerationInfo sourceFile="packages/core/src/common/permission-definition.ts" sourceLine="86" packageName="@vendure/core" />
 
 Defines a new Permission with which to control access to GraphQL resolvers & REST controllers.
@@ -47,11 +49,6 @@ class PermissionDefinition {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(config: <a href='/reference/typescript-api/auth/permission-definition#permissiondefinitionconfig'>PermissionDefinitionConfig</a>) => PermissionDefinition`}   />
-
-
 ### Permission
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/permission#permission'>Permission</a>`}   />
@@ -61,6 +58,8 @@ Returns the permission defined by this definition, for use in the
 
 
 </div>
+## CrudPermissionDefinition
+
 <GenerationInfo sourceFile="packages/core/src/common/permission-definition.ts" sourceLine="146" packageName="@vendure/core" />
 
 Defines a set of CRUD Permissions for the given name, i.e. a `name` of 'Wishlist' will create
@@ -107,11 +106,6 @@ class CrudPermissionDefinition extends PermissionDefinition {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(name: string, descriptionFn?: (operation: 'create' | 'read' | 'update' | 'delete') => string) => CrudPermissionDefinition`}   />
-
-
 ### Create
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/permission#permission'>Permission</a>`}   />
@@ -139,6 +133,8 @@ Returns the 'Delete' CRUD permission defined by this definition, for use in the
 
 
 </div>
+## RwPermissionDefinition
+
 <GenerationInfo sourceFile="packages/core/src/common/permission-definition.ts" sourceLine="245" packageName="@vendure/core" since="3.5.0" />
 
 Defines a set of Read-Write Permissions for the given name, i.e. a `name` of 'DashboardSavedViews' will create
@@ -189,11 +185,6 @@ class RwPermissionDefinition extends PermissionDefinition {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(name: string, descriptionFn?: (operation: 'read' | 'write') => string) => RwPermissionDefinition`}   />
-
-
 ### Read
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/permission#permission'>Permission</a>`}   />
@@ -209,6 +200,8 @@ Returns the 'Write' permission defined by this definition, for use in the
 
 
 </div>
+## PermissionDefinitionConfig
+
 <GenerationInfo sourceFile="packages/core/src/common/permission-definition.ts" sourceLine="10" packageName="@vendure/core" />
 
 Configures a [PermissionDefinition](/reference/typescript-api/auth/permission-definition#permissiondefinition)

@@ -1,6 +1,7 @@
 import { schemaCurrencyCodes } from '@/vdb/graphql/schema-enums.js';
 
 export const NEW_ENTITY_PATH = 'new';
+// Must match the literal passed to createFileRoute() in src/app/routes/_authenticated.tsx.
 export const AUTHENTICATED_ROUTE_PREFIX = '/_authenticated';
 export const DEFAULT_CHANNEL_CODE = '__default_channel__';
 export const SUPER_ADMIN_ROLE_CODE = '__super_admin_role__';

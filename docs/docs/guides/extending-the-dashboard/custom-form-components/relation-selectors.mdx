@@ -1,5 +1,5 @@
 ---
-title: 'Relation Selectors'
+title: 'Relation Selector Components'
 metaTitle: "Relation Selector Components for the Vendure Dashboard"
 metaDescription: "Build type-safe entity selection components with search, infinite scroll pagination, and single or multi-select modes for Vendure Dashboard forms."
 ---
@@ -33,7 +33,7 @@ import {
     createRelationSelectorConfig,
     graphql,
     ResultOf,
-    CustomFormComponentInputProps,
+    DashboardFormComponentProps,
 } from '@vendure/dashboard';
 
 // Define your GraphQL query
@@ -65,7 +65,7 @@ const productConfig = createRelationSelectorConfig({
     }),
 });
 
-export function ProductSelectorComponent({ value, onChange, disabled }: CustomFormComponentInputProps) {
+export function ProductSelectorComponent({ value, onChange, disabled }: DashboardFormComponentProps) {
     return (
         <SingleRelationInput value={value} onChange={onChange} config={productConfig} disabled={disabled} />
     );
@@ -75,9 +75,9 @@ export function ProductSelectorComponent({ value, onChange, disabled }: CustomFo
 ### Multi Selection
 
 ```tsx title="src/plugins/my-plugin/dashboard/components/product-multi-selector.tsx"
-import { MultiRelationInput, CustomFormComponentInputProps } from '@vendure/dashboard';
+import { MultiRelationInput, DashboardFormComponentProps } from '@vendure/dashboard';
 
-export function ProductMultiSelectorComponent({ value, onChange, disabled }: CustomFormComponentInputProps) {
+export function ProductMultiSelectorComponent({ value, onChange, disabled }: DashboardFormComponentProps) {
     return (
         <MultiRelationInput
             value={value || []}
@@ -126,7 +126,7 @@ import {
     createRelationSelectorConfig,
     graphql,
     ResultOf,
-    CustomFormComponentInputProps,
+    DashboardFormComponentProps,
 } from '@vendure/dashboard';
 
 const productListQuery = graphql(`
@@ -184,7 +184,7 @@ const richProductConfig = createRelationSelectorConfig<
     }),
 });
 
-export function RichProductSelectorComponent({ value, onChange, disabled }: CustomFormComponentInputProps) {
+export function RichProductSelectorComponent({ value, onChange, disabled }: DashboardFormComponentProps) {
     return (
         <SingleRelationInput
             value={value}
@@ -204,7 +204,7 @@ import {
     createRelationSelectorConfig,
     graphql,
     ResultOf,
-    CustomFormComponentInputProps,
+    DashboardFormComponentProps,
 } from '@vendure/dashboard';
 
 const customerListQuery = graphql(`
@@ -270,7 +270,7 @@ export function CustomerSelectorWithStatusComponent({
     value,
     onChange,
     disabled,
-}: CustomFormComponentInputProps) {
+}: DashboardFormComponentProps) {
     return (
         <MultiRelationInput
             value={value || []}
@@ -292,7 +292,7 @@ import {
     createRelationSelectorConfig,
     graphql,
     ResultOf,
-    CustomFormComponentInputProps,
+    DashboardFormComponentProps,
 } from '@vendure/dashboard';
 
 const reviewFragment = graphql(`
@@ -338,7 +338,7 @@ const reviewConfig = createRelationSelectorConfig<ResultOf<typeof reviewFragment
     }),
 });
 
-export function ReviewSelectorComponent({ value, onChange }: CustomFormComponentInputProps) {
+export function ReviewSelectorComponent({ value, onChange }: DashboardFormComponentProps) {
     return <SingleRelationInput value={value} onChange={onChange} config={reviewConfig} />;
 }
 ```
@@ -350,7 +350,7 @@ import {
     graphql,
     createRelationSelectorConfig,
     SingleRelationInput,
-    CustomFormComponentInputProps,
+    DashboardFormComponentProps,
 } from '@vendure/dashboard';
 
 const assetListQuery = graphql(`
@@ -383,7 +383,7 @@ const imageAssetConfig = createRelationSelectorConfig({
     }),
 });
 
-export function ImageSelectorComponent({ value, onChange }: CustomFormComponentInputProps) {
+export function ImageSelectorComponent({ value, onChange }: DashboardFormComponentProps) {
     return <SingleRelationInput value={value} onChange={onChange} config={imageAssetConfig} />;
 }
 ```
@@ -395,7 +395,7 @@ import {
     MultiRelationInput,
     createRelationSelectorConfig,
     graphql,
-    CustomFormComponentInputProps,
+    DashboardFormComponentProps,
 } from '@vendure/dashboard';
 
 const customerListQuery = graphql(`
@@ -435,7 +435,7 @@ const activeCustomerConfig = createRelationSelectorConfig({
     }),
 });
 
-export function ActiveCustomerSelectorComponent({ value, onChange }: CustomFormComponentInputProps) {
+export function ActiveCustomerSelectorComponent({ value, onChange }: DashboardFormComponentProps) {
     return <MultiRelationInput value={value || []} onChange={onChange} config={activeCustomerConfig} />;
 }
 ```
@@ -500,15 +500,15 @@ import {
     collectionRelationConfig,
     SingleRelationInput,
     MultiRelationInput,
-    CustomFormComponentInputProps,
+    DashboardFormComponentProps,
 } from '@vendure/dashboard';
 
 // Use pre-built configurations
-export function QuickProductSelector({ value, onChange }: CustomFormComponentInputProps) {
+export function QuickProductSelector({ value, onChange }: DashboardFormComponentProps) {
     return <SingleRelationInput value={value} onChange={onChange} config={productRelationConfig} />;
 }
 
-export function QuickCustomerMultiSelector({ value, onChange }: CustomFormComponentInputProps) {
+export function QuickCustomerMultiSelector({ value, onChange }: DashboardFormComponentProps) {
     return <MultiRelationInput value={value || []} onChange={onChange} config={customerRelationConfig} />;
 }
 ```

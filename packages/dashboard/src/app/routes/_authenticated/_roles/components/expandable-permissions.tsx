@@ -19,7 +19,7 @@ export function ExpandablePermissions({ role }: Readonly<{ role: ResultOf<typeof
     return (
         <div className="flex flex-wrap gap-2 items-center">
             {permissionsToPreview.map(permission => (
-                <Badge variant={'secondary'} key={permission}>
+                <Badge variant="default" key={permission}>
                     {permission}
                 </Badge>
             ))}
@@ -38,7 +38,7 @@ export function ExpandablePermissions({ role }: Readonly<{ role: ResultOf<typeof
                         <ScrollArea className="max-h-[300px]">
                             <div className="flex flex-wrap gap-2">
                                 {role.permissions.map(permission => (
-                                    <Badge variant={'secondary'} key={permission}>
+                                    <Badge variant="default" key={permission}>
                                         {permission}
                                     </Badge>
                                 ))}

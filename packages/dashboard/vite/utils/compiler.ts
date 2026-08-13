@@ -41,11 +41,41 @@ export interface CompileResult {
     pluginInfo: PluginInfo[];
 }
 
+const compileLocks = new Map<string, Promise<void>>();
+let packageJsonWriteId = 0;
+
 /**
  * Compiles TypeScript files and discovers Vendure plugins in both the compiled output
  * and in node_modules.
  */
 export async function compile(options: CompilerOptions): Promise<CompileResult> {
+    return withCompileLock(path.resolve(options.outputPath), () => compileInternal(options));
+}
+
+async function withCompileLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
+    // Serialize every compile for the same output path; callers that need
+    // last-one-wins behavior should debounce before calling compile().
+    const previous = compileLocks.get(key) ?? Promise.resolve();
+    let release!: () => void;
+    const current = new Promise<void>(resolve => {
+        release = resolve;
+    });
+    const queued = previous.catch(() => undefined).then(() => current);
+
+    compileLocks.set(key, queued);
+    await previous.catch(() => undefined);
+
+    try {
+        return await fn();
+    } finally {
+        release();
+        if (compileLocks.get(key) === queued) {
+            compileLocks.delete(key);
+        }
+    }
+}
+
+async function compileInternal(options: CompilerOptions): Promise<CompileResult> {
     const { vendureConfigPath, outputPath, pathAdapter, logger = noopLogger, pluginPackageScanner } = options;
     const getCompiledConfigPath =
         pathAdapter?.getCompiledConfigPath ?? defaultPathAdapter.getCompiledConfigPath;
@@ -92,11 +122,7 @@ export async function compile(options: CompilerOptions): Promise<CompileResult> 
         }),
     ).href.replace(/\.ts$/, '.js');
 
-    // Create package.json with type commonjs
-    await fs.writeFile(
-        path.join(outputPath, 'package.json'),
-        JSON.stringify({ type: options.module === 'esm' ? 'module' : 'commonjs', private: true }, null, 2),
-    );
+    await writePackageJson(outputPath, options.module);
 
     // Find the exported config symbol
     const sourceFile = ts.createSourceFile(
@@ -138,6 +164,20 @@ export async function compile(options: CompilerOptions): Promise<CompileResult> 
     logger.debug(`Loaded config in ${Date.now() - loadConfigStart}ms`);
 
     return { vendureConfig: config, exportedSymbolName, pluginInfo: plugins };
+}
+
+async function writePackageJson(outputPath: string, module?: 'commonjs' | 'esm'): Promise<void> {
+    const packageJsonPath = path.join(outputPath, 'package.json');
+    const tempPackageJsonPath = path.join(
+        outputPath,
+        `.package-${process.pid}-${Date.now()}-${packageJsonWriteId++}.json`,
+    );
+
+    await fs.writeFile(
+        tempPackageJsonPath,
+        JSON.stringify({ type: module === 'esm' ? 'module' : 'commonjs', private: true }, null, 2),
+    );
+    await fs.rename(tempPackageJsonPath, packageJsonPath);
 }
 
 /**

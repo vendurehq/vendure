@@ -8,6 +8,7 @@ import ms from 'ms';
 import { ApiType, getApiType } from '../../../api/common/get-api-type';
 import { RequestContext } from '../../../api/common/request-context';
 import { UserInputError } from '../../../common/error/errors';
+import { parseAcceptLanguage } from '../../../common/parse-accept-language';
 import { idsAreEqual } from '../../../common/utils';
 import { ConfigService } from '../../../config/config.service';
 import { CachedSession, CachedSessionUser } from '../../../config/session-cache/session-cache-strategy';
@@ -35,6 +36,25 @@ export class RequestContextService {
      * Creates a RequestContext based on the config provided. This can be useful when interacting
      * with services outside the request-response cycle, for example in stand-alone scripts or in
      * worker jobs.
+     *
+     * Without a `user`, the resulting context is anonymous and carries no permissions, which
+     * services that perform permission checks will reject. Pass the `User` the context should act
+     * as — commonly the superadmin for administrative scripts:
+     *
+     * ```ts
+     * const { superadminCredentials } = this.configService.authOptions;
+     * const superAdminUser = await this.connection.rawConnection.getRepository(User).findOneOrFail({
+     *     where: { identifier: superadminCredentials.identifier },
+     *     // The roles (and their channels) must be loaded, or the resulting context
+     *     // has the user's id but no permissions.
+     *     relations: { roles: { channels: true } },
+     * });
+     *
+     * const ctx = await this.requestContextService.create({
+     *     apiType: 'admin',
+     *     user: superAdminUser,
+     * });
+     * ```
      *
      * @since 1.5.0
      */
@@ -78,6 +98,7 @@ export class RequestContextService {
             apiType,
             channel,
             languageCode,
+            acceptedLanguageCodes: this.getAcceptedLanguageCodes(req),
             currencyCode,
             session,
             isAuthorized: true,
@@ -113,6 +134,7 @@ export class RequestContextService {
             apiType,
             channel,
             languageCode,
+            acceptedLanguageCodes: this.getAcceptedLanguageCodes(req),
             currencyCode,
             session,
             isAuthorized,
@@ -134,11 +156,19 @@ export class RequestContextService {
     }
 
     private getLanguageCode(req: Request, channel: Channel): LanguageCode | undefined {
+        const queryLanguageCode = req.query?.languageCode as string | undefined;
+        // We use a format check rather than an enum check to allow for custom/extended
+        // language codes while still blocking any SQL injection payloads.
+        const isValidFormat = queryLanguageCode && /^[a-zA-Z0-9_-]+$/.test(queryLanguageCode);
         return (
-            (req.query && (req.query.languageCode as LanguageCode)) ??
+            (isValidFormat ? (queryLanguageCode as LanguageCode) : undefined) ??
             channel.defaultLanguageCode ??
             this.configService.defaultLanguageCode
         );
+    }
+
+    private getAcceptedLanguageCodes(req: Request | undefined): LanguageCode[] {
+        return parseAcceptLanguage(req?.headers?.['accept-language']);
     }
 
     private getCurrencyCode(req: Request, channel: Channel): CurrencyCode | undefined {

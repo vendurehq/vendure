@@ -1,20 +1,22 @@
 import { Messages } from '@lingui/core';
 
+// `import.meta.glob` produces a static map of locale loaders that survives both
+// dev (Vite intercepts) and publish-time bundling (esbuild emits each match as
+// a chunk it can resolve). Previously this was a template-literal dynamic
+// `import()` with `@vite-ignore`, which broke esbuild's dep scanner when the
+// dashboard ships as a pre-built bundle (see issue #4719).
+const localeMessages = import.meta.glob<{ messages: Messages }>(
+    '../../i18n/locales/*.po',
+);
+
 export async function loadI18nMessages(locale: string): Promise<Messages> {
-    if (import.meta.env.PROD) {
-        // We add the vite-ignore directive because we do not want to transform and
-        // bundle this dynamic import. Instead, we actually want to load it at runtime
-        // as a normal dynamic JS import.
-        // These i18n JS files are generated during build by the `translationsPlugin` in the
-        // vite-plugin-translations.ts file.
-        const { messages } = await import(/* @vite-ignore */ `./i18n/${locale}.js`);
-        return messages;
-    } else {
-        // In dev mode we allow the dynamic import behaviour
-        const { messages } = await import(`../../i18n/locales/${locale}.po`);
-        const pluginTranslations = await import('virtual:plugin-translations');
-        const safeLocale = locale.replace(/-/g, '_');
-        const pluginTranslationsForLocale = pluginTranslations.default[safeLocale] ?? {};
-        return { ...messages, ...pluginTranslationsForLocale };
+    const loader = localeMessages[`../../i18n/locales/${locale}.po`];
+    if (!loader) {
+        throw new Error(`No translation catalog for locale "${locale}"`);
     }
+    const { messages } = await loader();
+    const pluginTranslations = await import('virtual:plugin-translations');
+    const safeLocale = locale.replace(/-/g, '_');
+    const pluginTranslationsForLocale = pluginTranslations.default[safeLocale] ?? {};
+    return { ...messages, ...pluginTranslationsForLocale };
 }

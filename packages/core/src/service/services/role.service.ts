@@ -31,6 +31,7 @@ import { Instrument } from '../../common/instrument-decorator';
 import { ListQueryOptions } from '../../common/types/common-types';
 import { assertFound, idsAreEqual } from '../../common/utils';
 import { ConfigService } from '../../config/config.service';
+import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Channel } from '../../entity/channel/channel.entity';
 import { Role } from '../../entity/role/role.entity';
@@ -118,7 +119,7 @@ export class RoleService {
             .getRepository(ctx, Role)
             .findOne({
                 where: { id: roleId },
-                relations: unique([...(relations ?? []), 'channels']),
+                relations: findOptionsArrayToObject<Role>([...(relations ?? []), 'channels']),
             })
             .then(async result => {
                 if (result && (await this.activeUserCanReadRole(ctx, result))) {
@@ -212,7 +213,9 @@ export class RoleService {
 
     private async getAllRolesWithChannels(ctx: RequestContext): Promise<Role[]> {
         const allRolesJson = await this.rolesCache.get(this.rolesCacheKey, async () => {
-            const roles = await this.connection.getRepository(ctx, Role).find({ relations: ['channels'] });
+            const roles = await this.connection
+                .getRepository(ctx, Role)
+                .find({ relations: { channels: true } });
             return JSON.stringify(roles);
         });
 

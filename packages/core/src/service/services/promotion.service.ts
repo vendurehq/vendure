@@ -9,18 +9,19 @@ import {
     DeletionResponse,
     DeletionResult,
     OrderType,
+    Permission,
     RemovePromotionsFromChannelInput,
     UpdatePromotionInput,
     UpdatePromotionResult,
 } from '@vendure/common/lib/generated-types';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { unique } from '@vendure/common/lib/unique';
-import { In, IsNull } from 'typeorm';
+import { In, IsNull, Raw } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
 import { ErrorResultUnion, JustErrorResults } from '../../common/error/error-result';
-import { UserInputError } from '../../common/error/errors';
+import { ForbiddenError, UserInputError } from '../../common/error/errors';
 import { MissingConditionsError } from '../../common/error/generated-graphql-admin-errors';
 import {
     CouponCodeExpiredError,
@@ -48,6 +49,7 @@ import { TranslatableSaver } from '../helpers/translatable-saver/translatable-sa
 import { TranslatorService } from '../helpers/translator/translator.service';
 
 import { ChannelService } from './channel.service';
+import { RoleService } from './role.service';
 
 /**
  * @description
@@ -71,6 +73,7 @@ export class PromotionService {
         private eventBus: EventBus,
         private translatableSaver: TranslatableSaver,
         private translator: TranslatorService,
+        private roleService: RoleService,
     ) {
         this.availableConditions = this.configService.promotionOptions.promotionConditions || [];
         this.availableActions = this.configService.promotionOptions.promotionActions || [];
@@ -176,13 +179,17 @@ export class PromotionService {
             beforeSave: async p => {
                 p.priorityScore = this.calculatePriorityScore(input);
                 if (input.conditions) {
-                    p.conditions = input.conditions.map(c =>
-                        this.configArgService.parseInput('PromotionCondition', c),
+                    p.conditions = this.configArgService.parseInputList(
+                        'PromotionCondition',
+                        input.conditions,
+                        promotion.conditions,
                     );
                 }
                 if (input.actions) {
-                    p.actions = input.actions.map(a =>
-                        this.configArgService.parseInput('PromotionAction', a),
+                    p.actions = this.configArgService.parseInputList(
+                        'PromotionAction',
+                        input.actions,
+                        promotion.actions,
                     );
                 }
             },
@@ -193,7 +200,9 @@ export class PromotionService {
     }
 
     async softDeletePromotion(ctx: RequestContext, promotionId: ID): Promise<DeletionResponse> {
-        const promotion = await this.connection.getEntityOrThrow(ctx, Promotion, promotionId);
+        const promotion = await this.connection.getEntityOrThrow(ctx, Promotion, promotionId, {
+            channelId: ctx.channelId,
+        });
         await this.connection
             .getRepository(ctx, Promotion)
             .update({ id: promotionId }, { deletedAt: new Date() });
@@ -208,6 +217,12 @@ export class PromotionService {
         ctx: RequestContext,
         input: AssignPromotionsToChannelInput,
     ): Promise<Promotion[]> {
+        const hasPermission = await this.roleService.userHasAnyPermissionsOnChannel(ctx, input.channelId, [
+            Permission.UpdatePromotion,
+        ]);
+        if (!hasPermission) {
+            throw new ForbiddenError();
+        }
         const promotions = await this.connection.findByIdsInChannel(
             ctx,
             Promotion,
@@ -222,6 +237,16 @@ export class PromotionService {
     }
 
     async removePromotionsFromChannel(ctx: RequestContext, input: RemovePromotionsFromChannelInput) {
+        const hasPermission = await this.roleService.userHasAnyPermissionsOnChannel(ctx, input.channelId, [
+            Permission.UpdatePromotion,
+        ]);
+        if (!hasPermission) {
+            throw new ForbiddenError();
+        }
+        const defaultChannel = await this.channelService.getDefaultChannel(ctx);
+        if (idsAreEqual(input.channelId, defaultChannel.id)) {
+            throw new UserInputError('error.items-cannot-be-removed-from-default-channel');
+        }
         const promotions = await this.connection.findByIdsInChannel(
             ctx,
             Promotion,
@@ -238,41 +263,47 @@ export class PromotionService {
     /**
      * @description
      * Checks the validity of a coupon code, by checking that it is associated with an existing,
-     * enabled and non-expired Promotion. Additionally, if there is a usage limit on the coupon code,
-     * this method will enforce that limit against the specified Customer.
+     * enabled and non-expired Promotion. The comparison is case-insensitive, so e.g. "SUMMER20"
+     * and "summer20" are treated as the same code. Additionally, if there is a usage limit on the
+     * coupon code, this method will enforce that limit against the specified Customer.
      */
     async validateCouponCode(
         ctx: RequestContext,
         couponCode: string,
         customerId?: ID,
+        excludeOrderId?: ID,
     ): Promise<JustErrorResults<ApplyCouponCodeResult> | Promotion> {
         const promotion = await this.connection.getRepository(ctx, Promotion).findOne({
             where: {
-                couponCode,
+                // Use Raw() with LOWER() for a case-insensitive DB lookup, so that e.g.
+                // "summer20" matches a promotion with couponCode "SUMMER20". LOWER() is
+                // supported across all Vendure DB backends (MariaDB, PostgreSQL, SQLite).
+                couponCode: Raw(alias => `LOWER(${alias}) = LOWER(:couponCode)`, { couponCode }),
                 enabled: true,
                 deletedAt: IsNull(),
                 channels: { id: ctx.channelId },
             },
-            relations: ['channels'],
+            relations: { channels: true },
         });
-        if (
-            !promotion ||
-            promotion.couponCode !== couponCode ||
-            !promotion.channels.find(c => idsAreEqual(c.id, ctx.channelId))
-        ) {
+        if (!promotion || !promotion.channels.find(c => idsAreEqual(c.id, ctx.channelId))) {
             return new CouponCodeInvalidError({ couponCode });
         }
         if (promotion.endsAt && +promotion.endsAt < +new Date()) {
             return new CouponCodeExpiredError({ couponCode });
         }
         if (customerId && promotion.perCustomerUsageLimit != null) {
-            const usageCount = await this.countPromotionUsagesForCustomer(ctx, promotion.id, customerId);
+            const usageCount = await this.countPromotionUsagesForCustomer(
+                ctx,
+                promotion.id,
+                customerId,
+                excludeOrderId,
+            );
             if (promotion.perCustomerUsageLimit <= usageCount) {
                 return new CouponCodeLimitError({ couponCode, limit: promotion.perCustomerUsageLimit });
             }
         }
         if (promotion.usageLimit !== null) {
-            const usageCount = await this.countPromotionUsages(ctx, promotion.id);
+            const usageCount = await this.countPromotionUsages(ctx, promotion.id, excludeOrderId);
             if (promotion.usageLimit <= usageCount) {
                 return new CouponCodeLimitError({ couponCode, limit: promotion.usageLimit });
             }
@@ -338,35 +369,171 @@ export class PromotionService {
         return this.connection.getRepository(ctx, Order).save(order);
     }
 
+    /**
+     * @description
+     * Returns a Set of Promotion IDs (as strings) that have exceeded their `usageLimit` or
+     * `perCustomerUsageLimit`. Only checks promotions without a coupon code
+     * (coupon-based promotions are validated separately in `validateCouponCode()`).
+     */
+    async getExhaustedPromotionIds(
+        ctx: RequestContext,
+        promotions: Promotion[],
+        customerId?: ID,
+    ): Promise<Set<string>> {
+        const exhaustedIds = new Set<string>();
+
+        const withUsageLimit = promotions.filter(p => !p.couponCode && p.usageLimit != null);
+
+        if (withUsageLimit.length) {
+            const usageCounts = await this.getUsageCountsBatch(
+                ctx,
+                withUsageLimit.map(p => p.id),
+            );
+            for (const promotion of withUsageLimit) {
+                const count = usageCounts.get(promotion.id.toString()) ?? 0;
+                if (promotion.usageLimit <= count) {
+                    exhaustedIds.add(promotion.id.toString());
+                }
+            }
+        }
+
+        // perCustomerUsageLimit can only be checked if we know the customer.
+        // For guest checkouts without a customer, we skip this check
+        // (matching the existing behavior in validateCouponCode).
+        // Skip promotions already exhausted by the global usageLimit check above.
+        const withPerCustomerLimit = promotions.filter(
+            p => !p.couponCode && p.perCustomerUsageLimit != null && !exhaustedIds.has(p.id.toString()),
+        );
+        if (customerId && withPerCustomerLimit.length) {
+            const perCustomerCounts = await this.getUsageCountsBatch(
+                ctx,
+                withPerCustomerLimit.map(p => p.id),
+                customerId,
+            );
+            for (const promotion of withPerCustomerLimit) {
+                const count = perCustomerCounts.get(promotion.id.toString()) ?? 0;
+                if (promotion.perCustomerUsageLimit <= count) {
+                    exhaustedIds.add(promotion.id.toString());
+                }
+            }
+        }
+
+        return exhaustedIds;
+    }
+
+    /**
+     * Returns a base query builder for counting promotion usages on placed orders.
+     * Excludes cancelled orders, draft orders, active (un-placed) orders, and
+     * seller-type orders.
+     */
+    private placedOrdersWithPromotionQb(ctx: RequestContext) {
+        return (
+            this.connection
+                .getRepository(ctx, Order)
+                .createQueryBuilder('order')
+                .innerJoin('order.promotions', 'promotion')
+                .andWhere('order.state != :state', { state: 'Cancelled' as OrderState })
+                // Draft orders also have active=false, so they must be excluded explicitly,
+                // otherwise a draft would count its own promotions as a consumed usage and
+                // toggle them on/off on each recalculation (#4753).
+                .andWhere('order.state != :draftState', { draftState: 'Draft' as OrderState })
+                .andWhere('order.active = :active', { active: false })
+                .andWhere('order.type != :type', { type: OrderType.Seller })
+        );
+    }
+
+    private async getUsageCountsBatch(
+        ctx: RequestContext,
+        promotionIds: ID[],
+        customerId?: ID,
+    ): Promise<Map<string, number>> {
+        if (!promotionIds.length) {
+            return new Map();
+        }
+        const qb = this.placedOrdersWithPromotionQb(ctx)
+            .select('promotion.id', 'promotionId')
+            .addSelect('COUNT(DISTINCT order.id)', 'usageCount')
+            .andWhere('promotion.id IN (:...promotionIds)', { promotionIds })
+            .groupBy('promotion.id');
+        if (customerId) {
+            qb.andWhere('order.customer = :customerId', { customerId });
+        }
+        const results = await qb.getRawMany<{ promotionId: string; usageCount: string }>();
+        return new Map(results.map(r => [r.promotionId.toString(), Number(r.usageCount)]));
+    }
+
+    /**
+     * Counts the number of times a promotion has been used by the given
+     * customer, including orders currently in the `ArrangingPayment` state
+     * (excluding the given order). Mirrors `countPromotionUsages` so that
+     * `perCustomerUsageLimit` is enforced under the same TOCTOU-safe
+     * semantics as `usageLimit`.
+     */
     private async countPromotionUsagesForCustomer(
         ctx: RequestContext,
         promotionId: ID,
         customerId: ID,
+        excludeOrderId?: ID,
     ): Promise<number> {
-        const qb = this.connection
+        const completedQb = this.placedOrdersWithPromotionQb(ctx)
+            .andWhere('promotion.id = :promotionId', { promotionId })
+            .andWhere('order.customer = :customerId', { customerId });
+
+        const pendingPaymentQb = this.connection
             .getRepository(ctx, Order)
             .createQueryBuilder('order')
-            .leftJoin('order.promotions', 'promotion')
+            .innerJoin('order.promotions', 'promotion')
             .where('promotion.id = :promotionId', { promotionId })
-            .andWhere('order.customer = :customerId', { customerId })
-            .andWhere('order.state != :state', { state: 'Cancelled' as OrderState })
-            .andWhere('order.active = :active', { active: false })
-            .andWhere('order.type != :type', { type: OrderType.Seller });
+            .andWhere('order.state = :state', { state: 'ArrangingPayment' as OrderState })
+            .andWhere('order.type != :type', { type: OrderType.Seller })
+            .andWhere('order.customer = :customerId', { customerId });
 
-        return qb.getCount();
+        if (excludeOrderId) {
+            completedQb.andWhere('order.id != :excludeOrderId', { excludeOrderId });
+            pendingPaymentQb.andWhere('order.id != :excludeOrderId', { excludeOrderId });
+        }
+
+        const [completedCount, pendingCount] = await Promise.all([
+            completedQb.getCount(),
+            pendingPaymentQb.getCount(),
+        ]);
+        return completedCount + pendingCount;
     }
 
-    private async countPromotionUsages(ctx: RequestContext, promotionId: ID): Promise<number> {
-        const qb = this.connection
+    /**
+     * Counts the number of times a promotion has been used, including orders
+     * currently in the ArrangingPayment state (excluding the given order).
+     * The ArrangingPayment count prevents concurrent checkouts from bypassing
+     * the usage limit via a TOCTOU race condition.
+     * See https://github.com/vendurehq/vendure/pull/4660
+     */
+    private async countPromotionUsages(
+        ctx: RequestContext,
+        promotionId: ID,
+        excludeOrderId?: ID,
+    ): Promise<number> {
+        const completedQb = this.placedOrdersWithPromotionQb(ctx).andWhere('promotion.id = :promotionId', {
+            promotionId,
+        });
+
+        const pendingPaymentQb = this.connection
             .getRepository(ctx, Order)
             .createQueryBuilder('order')
-            .leftJoin('order.promotions', 'promotion')
+            .innerJoin('order.promotions', 'promotion')
             .where('promotion.id = :promotionId', { promotionId })
-            .andWhere('order.state != :state', { state: 'Cancelled' as OrderState })
-            .andWhere('order.active = :active', { active: false })
+            .andWhere('order.state = :state', { state: 'ArrangingPayment' as OrderState })
             .andWhere('order.type != :type', { type: OrderType.Seller });
 
-        return qb.getCount();
+        if (excludeOrderId) {
+            completedQb.andWhere('order.id != :excludeOrderId', { excludeOrderId });
+            pendingPaymentQb.andWhere('order.id != :excludeOrderId', { excludeOrderId });
+        }
+
+        const [completedCount, pendingCount] = await Promise.all([
+            completedQb.getCount(),
+            pendingPaymentQb.getCount(),
+        ]);
+        return completedCount + pendingCount;
     }
 
     private calculatePriorityScore(input: CreatePromotionInput | UpdatePromotionInput): number {

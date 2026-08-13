@@ -55,13 +55,16 @@ jobs:
         steps:
             - name: Generate CI Bot Token
               id: app-token
-              uses: actions/create-github-app-token@v2
+              uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2.2.2
               with:
                   app-id: ${{ secrets.CI_BOT_APP_ID }}
                   private-key: ${{ secrets.CI_BOT_APP_PRIVATE_KEY }}
+                  # Least privilege: token is used to push the back-merge to the target branch and
+                  # to look up the bot user id (a public /users endpoint needing no extra permission).
+                  permission-contents: write
 
             - name: Checkout target branch
-              uses: actions/checkout@v4
+              uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
               with:
                   token: ${{ steps.app-token.outputs.token }}
                   ref: ${{ needs.resolve-branches.outputs.target }}

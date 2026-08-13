@@ -17,9 +17,21 @@ async function runDashboardTests() {
     try {
         page = await browser.newPage();
 
-        // Navigate to the dashboard
+        // Navigate to the dashboard. The first load makes the Vite dev server compile
+        // the dashboard's whole module graph, which on slow runners can far exceed the
+        // default 30s navigation timeout — so allow more time and retry.
         console.log('Navigating to dashboard...');
-        await page.goto('http://localhost:5173/dashboard');
+        for (let attempt = 1; ; attempt++) {
+            try {
+                await page.goto('http://localhost:5173/dashboard', { timeout: 120_000 });
+                break;
+            } catch (e) {
+                if (attempt >= 3) {
+                    throw e;
+                }
+                console.log(`Navigation failed (${e.message}), retrying (${attempt}/3)...`);
+            }
+        }
 
         // Wait for the page to load
         await page.waitForLoadState('networkidle');

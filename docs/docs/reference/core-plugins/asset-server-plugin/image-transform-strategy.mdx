@@ -2,7 +2,9 @@
 title: "ImageTransformStrategy"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/asset-server-plugin/src/config/image-transform-strategy.ts" sourceLine="56" packageName="@vendure/asset-server-plugin" since="3.1.0" />
+## ImageTransformStrategy
+
+<GenerationInfo sourceFile="packages/asset-server-plugin/src/config/image-transform-strategy.ts" sourceLine="65" packageName="@vendure/asset-server-plugin" since="3.1.0" />
 
 An injectable strategy which is used to determine the parameters for transforming an image.
 This can be used to implement custom image transformation logic, for example to
@@ -35,6 +37,8 @@ Given the input parameters, return the parameters which should be used to transf
 
 
 </div>
+## ImageTransformParameters
+
 <GenerationInfo sourceFile="packages/asset-server-plugin/src/config/image-transform-strategy.ts" sourceLine="14" packageName="@vendure/asset-server-plugin" since="3.1.0" />
 
 Parameters which are used to transform the image.
@@ -49,6 +53,7 @@ interface ImageTransformParameters {
     fpx: number | undefined;
     fpy: number | undefined;
     preset: string | undefined;
+    backgroundColor: string | undefined;
 }
 ```
 
@@ -94,10 +99,19 @@ interface ImageTransformParameters {
 <MemberInfo kind="property" type={`string | undefined`}   />
 
 
+### backgroundColor
+
+<MemberInfo kind="property" type={`string | undefined`}  since="3.8.0"  />
+
+A hex color string (e.g. `'#ffffff'`) to be used as the background color
+for images with alpha transparency. The alpha channel will be merged with
+this color using Sharp's `flatten()` method.
 
 
 </div>
-<GenerationInfo sourceFile="packages/asset-server-plugin/src/config/image-transform-strategy.ts" sourceLine="33" packageName="@vendure/asset-server-plugin" since="3.1.0" />
+## GetImageTransformParametersArgs
+
+<GenerationInfo sourceFile="packages/asset-server-plugin/src/config/image-transform-strategy.ts" sourceLine="42" packageName="@vendure/asset-server-plugin" since="3.1.0" />
 
 The arguments passed to the `getImageTransformParameters` method of an ImageTransformStrategy.
 

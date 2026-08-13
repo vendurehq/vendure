@@ -468,6 +468,41 @@ export class OrderStateTransitionError extends ErrorResult {
   }
 }
 
+export class PasswordResetTokenExpiredError extends ErrorResult {
+  readonly __typename = 'PasswordResetTokenExpiredError';
+  readonly errorCode = 'PASSWORD_RESET_TOKEN_EXPIRED_ERROR' as any;
+  readonly message = 'PASSWORD_RESET_TOKEN_EXPIRED_ERROR';
+  constructor(
+
+  ) {
+    super();
+  }
+}
+
+export class PasswordResetTokenInvalidError extends ErrorResult {
+  readonly __typename = 'PasswordResetTokenInvalidError';
+  readonly errorCode = 'PASSWORD_RESET_TOKEN_INVALID_ERROR' as any;
+  readonly message = 'PASSWORD_RESET_TOKEN_INVALID_ERROR';
+  constructor(
+
+  ) {
+    super();
+  }
+}
+
+export class PasswordValidationError extends ErrorResult {
+  readonly __typename = 'PasswordValidationError';
+  readonly errorCode = 'PASSWORD_VALIDATION_ERROR' as any;
+  readonly message = 'PASSWORD_VALIDATION_ERROR';
+  readonly validationErrorMessage: Scalars['String'];
+  constructor(
+    input: { validationErrorMessage: Scalars['String'] }
+  ) {
+    super();
+    this.validationErrorMessage = input.validationErrorMessage
+  }
+}
+
 export class PaymentMethodMissingError extends ErrorResult {
   readonly __typename = 'PaymentMethodMissingError';
   readonly errorCode = 'PAYMENT_METHOD_MISSING_ERROR' as any;
@@ -618,7 +653,7 @@ export class SettlePaymentError extends ErrorResult {
 }
 
 
-const errorTypeNames = new Set<string>(['AlreadyRefundedError', 'CancelActiveOrderError', 'CancelPaymentError', 'ChannelDefaultLanguageError', 'CouponCodeExpiredError', 'CouponCodeInvalidError', 'CouponCodeLimitError', 'CreateFulfillmentError', 'DuplicateEntityError', 'EmailAddressConflictError', 'EmptyOrderLineSelectionError', 'FacetInUseError', 'FulfillmentStateTransitionError', 'GuestCheckoutError', 'IneligibleShippingMethodError', 'InsufficientStockError', 'InsufficientStockOnHandError', 'InvalidCredentialsError', 'InvalidFulfillmentHandlerError', 'ItemsAlreadyFulfilledError', 'LanguageNotAvailableError', 'ManualPaymentStateError', 'MimeTypeError', 'MissingConditionsError', 'MultipleOrderError', 'NativeAuthStrategyError', 'NegativeQuantityError', 'NoActiveOrderError', 'NoChangesSpecifiedError', 'NothingToRefundError', 'OrderInterceptorError', 'OrderLimitError', 'OrderModificationError', 'OrderModificationStateError', 'OrderStateTransitionError', 'PaymentMethodMissingError', 'PaymentOrderMismatchError', 'PaymentStateTransitionError', 'ProductOptionGroupInUseError', 'ProductOptionInUseError', 'QuantityTooGreatError', 'RefundAmountError', 'RefundOrderStateError', 'RefundPaymentIdMissingError', 'RefundStateTransitionError', 'SettlePaymentError']);
+const errorTypeNames = new Set<string>(['AlreadyRefundedError', 'CancelActiveOrderError', 'CancelPaymentError', 'ChannelDefaultLanguageError', 'CouponCodeExpiredError', 'CouponCodeInvalidError', 'CouponCodeLimitError', 'CreateFulfillmentError', 'DuplicateEntityError', 'EmailAddressConflictError', 'EmptyOrderLineSelectionError', 'FacetInUseError', 'FulfillmentStateTransitionError', 'GuestCheckoutError', 'IneligibleShippingMethodError', 'InsufficientStockError', 'InsufficientStockOnHandError', 'InvalidCredentialsError', 'InvalidFulfillmentHandlerError', 'ItemsAlreadyFulfilledError', 'LanguageNotAvailableError', 'ManualPaymentStateError', 'MimeTypeError', 'MissingConditionsError', 'MultipleOrderError', 'NativeAuthStrategyError', 'NegativeQuantityError', 'NoActiveOrderError', 'NoChangesSpecifiedError', 'NothingToRefundError', 'OrderInterceptorError', 'OrderLimitError', 'OrderModificationError', 'OrderModificationStateError', 'OrderStateTransitionError', 'PasswordResetTokenExpiredError', 'PasswordResetTokenInvalidError', 'PasswordValidationError', 'PaymentMethodMissingError', 'PaymentOrderMismatchError', 'PaymentStateTransitionError', 'ProductOptionGroupInUseError', 'ProductOptionInUseError', 'QuantityTooGreatError', 'RefundAmountError', 'RefundOrderStateError', 'RefundPaymentIdMissingError', 'RefundStateTransitionError', 'SettlePaymentError']);
 function isGraphQLError(input: any): input is import('@vendure/common/lib/generated-types').ErrorResult {
   return input instanceof ErrorResult || errorTypeNames.has(input.__typename);
 }
@@ -717,6 +752,16 @@ export const adminErrorOperationTypeResolvers = {
   RemoveProductOptionGroupFromChannelResult: {
     __resolveType(value: any) {
       return isGraphQLError(value) ? (value as any).__typename : 'ProductOptionGroup';
+    },
+  },
+  RequestPasswordResetResult: {
+    __resolveType(value: any) {
+      return isGraphQLError(value) ? (value as any).__typename : 'Success';
+    },
+  },
+  ResetPasswordResult: {
+    __resolveType(value: any) {
+      return isGraphQLError(value) ? (value as any).__typename : 'CurrentUser';
     },
   },
   SetCustomerForDraftOrderResult: {

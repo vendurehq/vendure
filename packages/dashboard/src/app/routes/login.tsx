@@ -2,7 +2,7 @@ import { LoginForm } from '@/vdb/components/login/login-form.js';
 import { LoginBranding } from '@/vdb/components/shared/powered-by-vendure.js';
 import { useAuth } from '@/vdb/hooks/use-auth.js';
 import { createFileRoute, Navigate, redirect, useRouterState } from '@tanstack/react-router';
-import { z } from 'zod';
+import { z } from '@/vdb/lib/zod.js';
 
 const fallback = '/' as const;
 

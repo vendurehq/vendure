@@ -33,6 +33,8 @@ import {
     OrderLine,
     ProductOptionGroup,
     ProductVariantPrice,
+    StockLevel,
+    StockLocation,
     TaxCategory,
 } from '../../entity';
 import { FacetValue } from '../../entity/facet-value/facet-value.entity';
@@ -185,7 +187,11 @@ export class ProductVariantService {
             .innerJoinAndSelect('productvariant.channels', 'channel', 'channel.id = :channelId', {
                 channelId: ctx.channelId,
             })
-            .innerJoinAndSelect('productvariant.product', 'product', 'product.id = :productId', {
+            // Not selected: the join is only here to constrain the query to one Product. Selecting
+            // it would populate `productvariant.product` with a Product carrying none of its own
+            // relations, which then takes precedence over the fully-loaded one when `product` is
+            // among the requested relations.
+            .innerJoin('productvariant.product', 'product', 'product.id = :productId', {
                 productId,
             });
 
@@ -472,6 +478,68 @@ export class ProductVariantService {
                 defaultChannel.defaultCurrencyCode,
             );
         }
+        // Seed a StockLevel for the current channel's stock locations (idempotent), so that for a
+        // variant created directly within a non-default channel the channel-filtered `stockLevels`
+        // field resolves to a real entry rather than an empty array until stock is first adjusted.
+        await this.ensureStockLevelsForChannel(ctx, [createdVariant.id], ctx.channelId);
+
+        // Assign the new variant to any other channels the parent product is already assigned to,
+        // so that the variant is visible in all channels the product belongs to.
+        // We reuse assignProductVariantsToChannel which handles permissions, pricing
+        // (pricesIncludeTax + defaultCurrencyCode), stock-level seeding, asset assignment,
+        // and ProductVariantChannelEvent — matching the flow in
+        // ProductService.assignProductsToChannel().
+        const product = await this.connection.getRepository(ctx, Product).findOne({
+            where: { id: input.productId },
+            relations: { channels: true },
+            relationLoadStrategy: 'query',
+            loadEagerRelations: false,
+        });
+        if (product) {
+            const additionalChannelIds = product.channels
+                .map(c => c.id)
+                .filter(id => !idsAreEqual(id, ctx.channelId) && !idsAreEqual(id, defaultChannel.id));
+
+            if (additionalChannelIds.length) {
+                // Load the variant's options with their groups so we can assign them
+                // to the additional channels, matching ProductService.assignProductsToChannel()
+                const optionIds = input.optionIds || [];
+                let optionGroupIds: ID[] = [];
+                if (optionIds.length) {
+                    const variantOptions = await this.connection.getRepository(ctx, ProductOption).find({
+                        where: { id: In(optionIds) },
+                        relations: { group: true },
+                        loadEagerRelations: false,
+                    });
+                    optionGroupIds = unique(variantOptions.map(o => o.group.id));
+                }
+
+                for (const additionalChannelId of additionalChannelIds) {
+                    await this.assignProductVariantsToChannel(ctx, {
+                        productVariantIds: [createdVariant.id],
+                        channelId: additionalChannelId,
+                    });
+
+                    // Also assign option groups and options to the target channel,
+                    // matching ProductService.assignProductsToChannel()
+                    if (optionIds.length) {
+                        await Promise.all([
+                            ...optionGroupIds.map(id =>
+                                this.channelService.assignToChannels(ctx, ProductOptionGroup, id, [
+                                    additionalChannelId,
+                                ]),
+                            ),
+                            ...optionIds.map(id =>
+                                this.channelService.assignToChannels(ctx, ProductOption, id, [
+                                    additionalChannelId,
+                                ]),
+                            ),
+                        ]);
+                    }
+                }
+            }
+        }
+
         return createdVariant.id;
     }
 
@@ -820,10 +888,11 @@ export class ProductVariantService {
             where: {
                 id: In(input.productVariantIds),
             },
-            relations: ['taxCategory', 'assets'],
+            relations: { taxCategory: true, assets: true },
         });
         const priceFactor = input.priceFactor != null ? input.priceFactor : 1;
         const targetChannel = await this.connection.getEntityOrThrow(ctx, Channel, input.channelId);
+        const assignedVariantIds: ID[] = [];
         for (const variant of variants) {
             if (variant.deletedAt) {
                 continue;
@@ -841,7 +910,12 @@ export class ProductVariantService {
             );
             const assetIds = variant.assets?.map(a => a.assetId) || [];
             await this.assetService.assignToChannel(ctx, { channelId: input.channelId, assetIds });
+            assignedVariantIds.push(variant.id);
         }
+        // Seed a StockLevel for each of the target channel's stock locations so that per-channel
+        // inventory is usable immediately; otherwise the channel-filtered `stockLevels` field
+        // resolves to `[]` in the newly-assigned channel until stock is first adjusted there.
+        await this.ensureStockLevelsForChannel(ctx, assignedVariantIds, input.channelId);
         const result = await this.findByIds(
             ctx,
             variants.map(v => v.id),
@@ -852,6 +926,50 @@ export class ProductVariantService {
             );
         }
         return result;
+    }
+
+    /**
+     * Ensures a `stockOnHand: 0` StockLevel exists for each given variant at every StockLocation of
+     * the given channel. Idempotent, batched and concurrency-safe: it issues a single bulk insert
+     * with `orIgnore()`, so rows that already exist (unique productVariantId + stockLocationId) are
+     * skipped at the DB level and never overwritten — even under concurrent assignment/create requests.
+     */
+    private async ensureStockLevelsForChannel(
+        ctx: RequestContext,
+        variantIds: ID[],
+        channelId: ID,
+    ): Promise<void> {
+        if (variantIds.length === 0) {
+            return;
+        }
+        const stockLocations = await this.connection
+            .getRepository(ctx, StockLocation)
+            .createQueryBuilder('stockLocation')
+            .innerJoin('stockLocation.channels', 'channel')
+            .where('channel.id = :channelId', { channelId })
+            .getMany();
+        if (stockLocations.length === 0) {
+            return;
+        }
+        const newStockLevels = variantIds.flatMap(productVariantId =>
+            stockLocations.map(stockLocation => ({
+                productVariantId,
+                stockLocationId: stockLocation.id,
+                stockOnHand: 0,
+                stockAllocated: 0,
+            })),
+        );
+        await this.connection
+            .getRepository(ctx, StockLevel)
+            .createQueryBuilder()
+            .insert()
+            .values(newStockLevels)
+            // Fix for MySQL and MariaDB < 10.5: updateEntity(false) prevents TypeORM from using the
+            // RETURNING clause after the INSERT IGNORE, where an ignored-duplicate row reports
+            // insertId 0 and the re-select would otherwise throw. The seeded ids are never used here.
+            .updateEntity(false)
+            .orIgnore()
+            .execute();
     }
 
     async removeProductVariantsFromChannel(
@@ -884,7 +1002,7 @@ export class ProductVariantService {
                 where: {
                     productId: variant.productId,
                 },
-                relations: ['channels'],
+                relations: { channels: true },
             });
             const productChannelsFromVariants = ([] as Channel[]).concat(
                 ...productVariants.map(pv => pv.channels),

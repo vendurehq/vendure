@@ -10,6 +10,8 @@ import { SchedulerModule } from '../scheduler/scheduler.module';
 import { ActiveOrderService } from './helpers/active-order/active-order.service';
 import { ConfigArgService } from './helpers/config-arg/config-arg.service';
 import { CustomFieldRelationService } from './helpers/custom-field-relation/custom-field-relation.service';
+import { CustomerChannelAssignmentService } from './helpers/customer-channel-assignment/customer-channel-assignment.service';
+import { EncryptionKeyVerifierService } from './helpers/encryption-key-verifier/encryption-key-verifier.service';
 import { EntityDuplicatorService } from './helpers/entity-duplicator/entity-duplicator.service';
 import { EntityHydrator } from './helpers/entity-hydrator/entity-hydrator.service';
 import { EntitySlugService } from './helpers/entity-slug.service';
@@ -32,6 +34,7 @@ import { SettingsStoreService } from './helpers/settings-store/settings-store.se
 import { ShippingCalculator } from './helpers/shipping-calculator/shipping-calculator';
 import { SlugValidator } from './helpers/slug-validator/slug-validator';
 import { SlugService } from './helpers/slug.service';
+import { StoredMediaService } from './helpers/stored-media/stored-media.service';
 import { TranslatableSaver } from './helpers/translatable-saver/translatable-saver';
 import { TranslatorService } from './helpers/translator/translator.service';
 import { VerificationTokenGenerator } from './helpers/verification-token-generator/verification-token-generator';
@@ -59,6 +62,7 @@ import { ProductOptionService } from './services/product-option.service';
 import { ProductVariantService } from './services/product-variant.service';
 import { ProductService } from './services/product.service';
 import { PromotionService } from './services/promotion.service';
+import { ProvinceService } from './services/province.service';
 import { RoleService } from './services/role.service';
 import { SearchService } from './services/search.service';
 import { SellerService } from './services/seller.service';
@@ -98,6 +102,7 @@ const services = [
     ProductService,
     ProductVariantService,
     PromotionService,
+    ProvinceService,
     RoleService,
     SearchService,
     SellerService,
@@ -137,10 +142,13 @@ const helpers = [
     ProductPriceApplicator,
     EntityHydrator,
     RequestContextService,
+    CustomerChannelAssignmentService,
     TranslatorService,
     EntityDuplicatorService,
     FacetValueChecker,
     SettingsStoreService,
+    EncryptionKeyVerifierService,
+    StoredMediaService,
 ];
 
 /**

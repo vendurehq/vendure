@@ -44,7 +44,11 @@ export interface AuthContext {
      * @description
      * The user object.
      */
-    user: ResultOf<typeof CurrentUserQuery>['activeAdministrator'] | undefined;
+    user:
+        | (NonNullable<ResultOf<typeof CurrentUserQuery>['activeAdministrator']> & {
+              avatar: AdministratorAvatar | null;
+          })
+        | undefined;
     /**
      * @description
      * The channels object.
@@ -56,6 +60,15 @@ export interface AuthContext {
      */
     refreshCurrentUser: () => void;
 }
+
+export interface AdministratorAvatar {
+    preview: string;
+    mimeType: string;
+    width: number;
+    height: number;
+}
+
+export const CURRENT_ADMINISTRATOR_AVATAR_QUERY_KEY = ['currentUser', 'avatar'] as const;
 
 const LoginMutation = graphql(`
     mutation Login($username: String!, $password: String!) {
@@ -102,6 +115,19 @@ const CurrentUserQuery = graphql(`
     }
 `);
 
+const CurrentAdministratorAvatarQuery = `
+    query CurrentAdministratorAvatar {
+        activeAdministrator {
+            avatar {
+                preview
+                mimeType
+                width
+                height
+            }
+        }
+    }
+`;
+
 export const AuthContext = React.createContext<AuthContext | null>(null);
 
 export function AuthProvider({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -123,6 +149,9 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
             return api.query(CurrentUserQuery);
         },
         retry: false, // Disable retries to avoid waiting for multiple attempts
+        // Auth state is invalidated explicitly on login/logout, so don't let
+        // background refetches re-verify on every focus / re-mount.
+        staleTime: Infinity,
     });
 
     // Set active channel if needed
@@ -131,6 +160,18 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
             setActiveChannelId(currentUserData.me.channels[0].id);
         }
     }, [settings.activeChannelId, currentUserData?.me?.channels]);
+
+    // Determine isAuthenticated from currentUserData
+    const isAuthenticated = !!currentUserData?.me?.id;
+    const { data: avatarData } = useQuery<{
+        activeAdministrator: { avatar: AdministratorAvatar | null } | null;
+    }>({
+        queryKey: CURRENT_ADMINISTRATOR_AVATAR_QUERY_KEY,
+        queryFn: () => api.query(CurrentAdministratorAvatarQuery),
+        retry: false,
+        enabled: isAuthenticated,
+        staleTime: Infinity,
+    });
 
     // Auth actions
     const login = React.useCallback(
@@ -184,25 +225,61 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
 
     const logout = React.useCallback(
         async (onLogoutSuccess?: () => void) => {
+            // Clear any stale error from a previous logout attempt. Matches the
+            // login() pattern (line 149 below clears it on the success path)
+            // and ensures UI doesn't keep rendering a previous failure's
+            // message during a retry.
+            setAuthenticationError(undefined);
             setIsLoginLogoutInProgress(true);
             setStatus('verifying');
-            api.mutate(LogOutMutation)({}).then(async data => {
-                if (data?.logout.success) {
-                    // Clear all cached queries to prevent stale data
-                    queryClient.clear();
-                    // Clear selected channel from localStorage
-                    localStorage.removeItem(LS_KEY_SELECTED_CHANNEL_TOKEN);
+            // Try block scoped to the mutation call only. Exceptions thrown
+            // by the success-branch side-effects below (queryClient.clear,
+            // localStorage.removeItem, onLogoutSuccess) propagate naturally
+            // rather than being misclassified as transport failures.
+            let data;
+            try {
+                data = await api.mutate(LogOutMutation)({});
+            } catch (error) {
+                // Network/server failure. Transport failure doesn't tell us
+                // whether the server applied the logout, so refetch the
+                // current user to determine actual state rather than trusting
+                // the cached isAuthenticated snapshot (staleTime: Infinity
+                // means react-query won't auto-refetch this query).
+                setAuthenticationError(error instanceof Error ? error.message : String(error));
+                const { data: refreshedData, error: refreshedError } = await refetchCurrentUser();
+                if (refreshedError || !refreshedData?.me?.id) {
                     setStatus('unauthenticated');
-                    setIsLoginLogoutInProgress(false);
-                    onLogoutSuccess?.();
+                } else {
+                    setStatus('authenticated');
                 }
-            });
-        },
-        [queryClient],
-    );
+                setIsLoginLogoutInProgress(false);
+                return;
+            }
 
-    // Determine isAuthenticated from currentUserData
-    const isAuthenticated = !!currentUserData?.me?.id;
+            if (data?.logout.success) {
+                // Clear all cached queries to prevent stale data
+                queryClient.clear();
+                try {
+                    // localStorage can throw (quota exceeded, Safari private
+                    // mode, security errors, storage disabled). The server-side
+                    // logout already succeeded — don't let storage cleanup
+                    // failure block the UI state transition below.
+                    localStorage.removeItem(LS_KEY_SELECTED_CHANNEL_TOKEN);
+                } catch {
+                    // intentionally swallowed — see comment above
+                }
+                setStatus('unauthenticated');
+                setIsLoginLogoutInProgress(false);
+                onLogoutSuccess?.();
+            } else {
+                // Server responded but reported success=false. Restore the
+                // pre-logout authenticated status so the UI is interactive again.
+                setStatus(isAuthenticated ? 'authenticated' : 'unauthenticated');
+                setIsLoginLogoutInProgress(false);
+            }
+        },
+        [queryClient, isAuthenticated, refetchCurrentUser],
+    );
 
     // Handle status transitions based on query state
     React.useEffect(() => {
@@ -239,7 +316,12 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
                 isAuthenticated,
                 authenticationError,
                 status,
-                user: currentUserData?.activeAdministrator,
+                user: currentUserData?.activeAdministrator
+                    ? {
+                          ...currentUserData.activeAdministrator,
+                          avatar: avatarData?.activeAdministrator?.avatar ?? null,
+                      }
+                    : undefined,
                 channels: currentUserData?.me?.channels,
                 login,
                 logout,

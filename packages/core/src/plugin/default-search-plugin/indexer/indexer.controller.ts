@@ -13,6 +13,7 @@ import { Translatable, Translation } from '../../../common/types/locale-types';
 import { asyncObservable, idsAreEqual } from '../../../common/utils';
 import { ConfigService } from '../../../config/config.service';
 import { Logger } from '../../../config/logger/vendure-logger';
+import { findOptionsArrayToObject } from '../../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { Channel } from '../../../entity/channel/channel.entity';
 import { FacetValue } from '../../../entity/facet-value/facet-value.entity';
@@ -36,6 +37,7 @@ import {
     VariantChannelMessageData,
 } from '../types';
 
+import { dedupeSearchIndexItems } from './index-item-utils';
 import { MutableRequestContext } from './mutable-request-context';
 
 export const BATCH_SIZE = 1000;
@@ -371,10 +373,14 @@ export class IndexerController {
         where.channels = { id: In(channels.map(c => c.id)) };
         const [variants, count] = await this.connection.getRepository(ctx, ProductVariant).findAndCount({
             loadEagerRelations: false,
-            relations: variantRelations,
+            relations: findOptionsArrayToObject<ProductVariant>(variantRelations),
             where,
             take,
             skip,
+            // Ordering makes the take/skip pagination deterministic, otherwise variants
+            // can be repeated or skipped across batches when the catalog is concurrently
+            // modified during a reindex.
+            order: { id: 'ASC' },
             relationLoadStrategy: 'query',
         });
         return { variants, count };
@@ -391,7 +397,7 @@ export class IndexerController {
 
         const product = await this.connection.getRepository(ctx, Product).findOne({
             loadEagerRelations: false,
-            relations: productRelations,
+            relations: findOptionsArrayToObject<Product>(productRelations),
             relationLoadStrategy: 'query',
             where: { id: Equal(productId), channels: { id: In(channels.map(x => x.id)) } },
         });
@@ -509,9 +515,7 @@ export class IndexerController {
         }
         ctx.setChannel(originalChannel);
 
-        await this.queue.push(() =>
-            this.connection.getRepository(ctx, SearchIndexItem).save(items, { chunk: 2500 }),
-        );
+        await this.queue.push(() => this.upsertSearchIndexItems(ctx, items));
     }
 
     /**
@@ -546,7 +550,32 @@ export class IndexerController {
             collectionIds: [],
             collectionSlugs: [],
         });
-        await this.queue.push(() => this.connection.getRepository(ctx, SearchIndexItem).save(item));
+        await this.queue.push(() => this.upsertSearchIndexItems(ctx, [item]));
+    }
+
+    /**
+     * Persists the given items with an atomic upsert on the composite primary key, so that
+     * concurrent index writes (e.g. a reindex racing an update job in another worker process,
+     * or synthetic variant-less product rows, which all share `productVariantId: 0`) converge
+     * on the latest state rather than throwing a duplicate-key error, as the non-atomic
+     * check-then-insert of `save()` does.
+     * See https://github.com/vendurehq/vendure/issues/4805
+     */
+    private async upsertSearchIndexItems(ctx: RequestContext, items: SearchIndexItem[]) {
+        // The primary key is derived from the entity metadata because it is dynamic:
+        // the `indexCurrencyCode` option adds `currencyCode` as a fourth primary column.
+        const primaryKeyProperties = this.connection.rawConnection
+            .getMetadata(SearchIndexItem)
+            .primaryColumns.map(column => column.propertyName);
+        const dedupedItems = dedupeSearchIndexItems(items, primaryKeyProperties);
+        const repository = this.connection.getRepository(ctx, SearchIndexItem);
+        // A SearchIndexItem row binds ~24 parameters, so 500 rows per statement stays
+        // safely within the bound-parameter limits of all supported drivers (the lowest
+        // being sqlite's 32766).
+        const chunkSize = 500;
+        for (let i = 0; i < dedupedItems.length; i += chunkSize) {
+            await repository.upsert(dedupedItems.slice(i, i + chunkSize), primaryKeyProperties);
+        }
     }
 
     /**

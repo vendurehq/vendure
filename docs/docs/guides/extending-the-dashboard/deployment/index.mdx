@@ -30,22 +30,31 @@ Update your `vite.config.mts` to set the base path where the dashboard will be s
 
 ```typescript title="vite.config.mts"
 import { vendureDashboardPlugin } from '@vendure/dashboard/vite';
-import path from 'path';
+import { join, resolve } from 'path';
 import { pathToFileURL } from 'url';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-    base: '/dashboard/', // [!code highlight]
+    base: '/dashboard', // [!code highlight]
+    build: {
+        outDir: join(__dirname, 'dist/dashboard'), // [!code highlight]
+    },
     plugins: [
         vendureDashboardPlugin({
             vendureConfigPath: pathToFileURL('./src/vendure-config.ts'),
-            api: {
-                host: 'http://localhost',
-                port: 3000,
-            },
-            gqlOutputPath: path.resolve(__dirname, './src/gql/'),
+            // When served by DashboardPlugin in production, the dashboard can
+            // derive the API URL from the same origin that served the app.
+            api: process.env.NODE_ENV === 'production'
+                ? { host: 'auto', port: 'auto' }
+                : { host: 'http://localhost', port: 3000 },
+            gqlOutputPath: './src/gql',
         }),
     ],
+    resolve: {
+        alias: {
+            '@/gql': resolve(__dirname, './src/gql/graphql.ts'),
+        },
+    },
 });
 ```
 
@@ -58,8 +67,11 @@ If you want to use the Angular Admin UI and the Dashboard together, both plugins
 Add the DashboardPlugin to your `vendure-config.ts`:
 
 ```typescript title="src/vendure-config.ts"
+import { VendureConfig } from '@vendure/core';
 import { DashboardPlugin } from '@vendure/dashboard/plugin';
 import path from 'path';
+
+const IS_DEV = process.env.APP_ENV === 'dev';
 
 export const config: VendureConfig = {
     // ... other config
@@ -69,7 +81,9 @@ export const config: VendureConfig = {
             // Important: This must match the base path from vite.config.mts (without slashes) // [!code highlight]
             route: 'dashboard', // [!code highlight]
             // Path to the Vite build output directory
-            appDir: path.join(__dirname, './dist'),
+            appDir: IS_DEV
+                ? path.join(__dirname, '../dist/dashboard')
+                : path.join(__dirname, 'dashboard'), // [!code highlight]
         }),
     ],
 };
@@ -83,7 +97,7 @@ Before deploying your Vendure application, build the dashboard:
 npx vite build
 ```
 
-This command creates optimized production files in the `dist` directory that the DashboardPlugin will serve.
+This command creates optimized production files in the `dist/dashboard` directory that the DashboardPlugin will serve.
 
 ## Accessing the Dashboard
 
@@ -131,9 +145,14 @@ When hosting standalone, you must configure the dashboard to connect to your Adm
 
 ```typescript title="vite.config.mts"
 import { vendureDashboardPlugin } from '@vendure/dashboard/vite';
+import path from 'path';
+import { pathToFileURL } from 'url';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+    build: {
+        outDir: path.join(__dirname, 'dist/dashboard'),
+    },
     plugins: [
         vendureDashboardPlugin({
             vendureConfigPath: pathToFileURL('./src/vendure-config.ts'),
@@ -141,7 +160,7 @@ export default defineConfig({
                 host: process.env.VENDURE_API_HOST || 'https://api.mystore.com', // [!code highlight]
                 port: parseInt(process.env.VENDURE_API_PORT || '443'), // [!code highlight]
             }, // [!code highlight]
-            gqlOutputPath: path.resolve(__dirname, './src/gql/'),
+            gqlOutputPath: './src/gql',
         }),
     ],
 });
@@ -158,13 +177,15 @@ Environment variables are resolved at **build time** and embedded as static stri
    npx vite build
    ```
 
-2. **Deploy the contents of the `dist` directory to your hosting service**
+2. **Deploy the contents of the `dist/dashboard` directory to your hosting service**
 
 ### CORS Configuration
 
 When hosting the dashboard separately, configure CORS on your Vendure Server:
 
 ```typescript title="src/vendure-config.ts"
+import { VendureConfig } from '@vendure/core';
+
 export const config: VendureConfig = {
     apiOptions: {
         cors: {

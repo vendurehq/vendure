@@ -19,7 +19,7 @@ of a set of modules which are accessible from consuming applications as sub-pack
 
 etc. These library packages are located at [./src/lib](./src/lib)
 
-When built with `npm run build`, the output will be located in the `./package` sub directory. This is also the root of the published npm package.
+When built with `bun run build`, the output will be located in the `./package` sub directory. This is also the root of the published npm package.
 
 ### Application
 
@@ -31,7 +31,7 @@ Localization of UI strings is handled by [ngx-translate](https://ngx-translate.o
 
 Translation keys are automatically extracted by running:
 ```
-npm run extract-translations
+bun run extract-translations
 ```
 This scan the source files for any translation keys, and add them to each of the translation files located in [`./src/lib/static/i18n-messages/`](./src/lib/static/i18n-messages/).
 
@@ -44,7 +44,7 @@ de: 592 of 650 tokens translated (91%)
 
 This report data is also saved to the [i18n-coverage.json](./i18n-coverage.json) file.
 
-To add support for a new language, create a new empty json file (`{}`) in the `i18n-messages` directory named `<languageCode>.json`, where `languageCode` is one of the supported codes as given in the [LanguageCode enum type](../core/src/api/schema/common/language-code.graphql), then run `npm run extract-translations`
+To add support for a new language, create a new empty json file (`{}`) in the `i18n-messages` directory named `<languageCode>.json`, where `languageCode` is one of the supported codes as given in the [LanguageCode enum type](../core/src/api/schema/common/language-code.graphql), then run `bun run extract-translations`
 
-To verify localization changes add `<languageCode>.json` to `./src/lib/static/vendure-ui-config.json` in the array `availableLanguages`. This will make the localization available in Admin UI development mode using `npm run dev`
+To verify localization changes add `<languageCode>.json` to `./src/lib/static/vendure-ui-config.json` in the array `availableLanguages`. This will make the localization available in Admin UI development mode using `bun run dev`
 

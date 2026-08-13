@@ -1,4 +1,5 @@
 import { Badge } from '@/vdb/components/ui/badge.js';
+import { LoadingState } from '@/vdb/components/ui/state-views.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import {
     Command,
@@ -19,7 +20,7 @@ import {
 import { Form } from '@/vdb/components/ui/form.js';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/vdb/components/ui/tabs.js';
 import { api } from '@/vdb/graphql/api.js';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { zodResolver } from '@/vdb/lib/zod.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useDebounce } from '@uidotdev/usehooks';
@@ -35,10 +36,12 @@ export function AddOptionGroupDialog({
     productId,
     existingGroupIds,
     onSuccess,
+    trigger,
 }: Readonly<{
     productId: string;
     existingGroupIds?: string[];
     onSuccess?: () => void;
+    trigger?: React.ReactElement;
 }>) {
     const [open, setOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<string>('existing');
@@ -131,11 +134,15 @@ export function AddOptionGroupDialog({
                 }
             }}
         >
-            <DialogTrigger render={<Button variant="outline" size="sm" type="button" className="w-full gap-2" />}>
-                <Plus className="h-4 w-4" />
-                <Trans>Add option group</Trans>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            {trigger ? (
+                <DialogTrigger render={trigger} />
+            ) : (
+                <DialogTrigger render={<Button variant="outline" size="sm" type="button" className="w-full gap-2" />}>
+                    <Plus className="h-4 w-4" />
+                    <Trans>Add option group</Trans>
+                </DialogTrigger>
+            )}
+            <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>
                         <Trans>Add option group to product</Trans>
@@ -236,7 +243,11 @@ function OptionGroupSearch({
             />
             <CommandList className="max-h-[300px]">
                 <CommandEmpty>
-                    {isLoading ? <Trans>Loading...</Trans> : <Trans>No option groups found</Trans>}
+                    {isLoading ? (
+                        <LoadingState variant="spinner" className="py-4" />
+                    ) : (
+                        <Trans>No option groups found</Trans>
+                    )}
                 </CommandEmpty>
                 {sortedItems.map(group => {
                     const isAlreadyAssigned = existingGroupIds.includes(group.id);
@@ -256,7 +267,7 @@ function OptionGroupSearch({
                                 <div className="text-sm text-muted-foreground">{group.code}</div>
                             </div>
                             {isAlreadyAssigned && (
-                                <Badge variant="secondary" className="ml-2">
+                                <Badge variant="default" className="ml-2">
                                     <Check className="mr-1 h-3 w-3" />
                                     <Trans>Assigned</Trans>
                                 </Badge>

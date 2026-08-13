@@ -72,7 +72,7 @@ export class FacetValueService {
         const globalDefaultLanguageCode = this.configService.defaultLanguageCode;
         return repository
             .find({
-                relations: ['facet'],
+                relations: { facet: true },
             })
             .then(facetValues =>
                 facetValues.map(facetValue =>
@@ -119,7 +119,7 @@ export class FacetValueService {
             .getRepository(ctx, FacetValue)
             .findOne({
                 where: { id },
-                relations: ['facet'],
+                relations: { facet: true },
             })
             .then(
                 facetValue =>
@@ -204,6 +204,8 @@ export class FacetValueService {
     }
 
     async update(ctx: RequestContext, input: UpdateFacetValueInput): Promise<Translated<FacetValue>> {
+        // Ensure the entity belongs to the active channel before updating.
+        await this.connection.getEntityOrThrow(ctx, FacetValue, input.id, { channelId: ctx.channelId });
         const facetValue = await this.translatableSaver.update({
             ctx,
             input,
@@ -223,7 +225,9 @@ export class FacetValueService {
         let message = '';
         let result: DeletionResult;
 
-        const facetValue = await this.connection.getEntityOrThrow(ctx, FacetValue, id);
+        const facetValue = await this.connection.getEntityOrThrow(ctx, FacetValue, id, {
+            channelId: ctx.channelId,
+        });
         const i18nVars = {
             products: productCount,
             variants: variantCount,

@@ -116,6 +116,12 @@ export class PaymentMethodService {
     }
 
     async update(ctx: RequestContext, input: UpdatePaymentMethodInput): Promise<PaymentMethod> {
+        // Ensure the entity belongs to the active channel before updating. The loaded entity also
+        // provides the previously-stored (encrypted) handler/checker values, which are needed to
+        // preserve `secret` args that were not re-entered by the caller.
+        const existing = await this.connection.getEntityOrThrow(ctx, PaymentMethod, input.id, {
+            channelId: ctx.channelId,
+        });
         const updatedPaymentMethod = await this.translatableSaver.update({
             ctx,
             input,
@@ -126,13 +132,18 @@ export class PaymentMethodService {
                     pm.checker = this.configArgService.parseInput(
                         'PaymentMethodEligibilityChecker',
                         input.checker,
+                        existing.checker ?? undefined,
                     );
                 }
                 if (input.checker === null) {
                     pm.checker = null;
                 }
                 if (input.handler) {
-                    pm.handler = this.configArgService.parseInput('PaymentMethodHandler', input.handler);
+                    pm.handler = this.configArgService.parseInput(
+                        'PaymentMethodHandler',
+                        input.handler,
+                        existing.handler,
+                    );
                 }
             },
         });
@@ -262,7 +273,7 @@ export class PaymentMethodService {
     async getEligiblePaymentMethods(ctx: RequestContext, order: Order): Promise<PaymentMethodQuote[]> {
         const paymentMethods = await this.connection
             .getRepository(ctx, PaymentMethod)
-            .find({ where: { enabled: true }, relations: ['channels'] });
+            .find({ where: { enabled: true }, relations: { channels: true } });
         const results: PaymentMethodQuote[] = [];
         const paymentMethodsInChannel = paymentMethods
             .filter(p => p.channels.find(pc => idsAreEqual(pc.id, ctx.channelId)))
@@ -324,7 +335,7 @@ export class PaymentMethodService {
     async getActivePaymentMethods(ctx: RequestContext): Promise<PaymentMethod[]> {
         const paymentMethods = await this.connection.getRepository(ctx, PaymentMethod).find({
             where: { enabled: true, channels: { id: ctx.channelId } },
-            relations: ['channels', 'customFields'],
+            relations: { channels: true, customFields: true },
         });
         return paymentMethods.map(p => this.translator.translate(p, ctx));
     }

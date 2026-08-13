@@ -298,6 +298,28 @@ export class UserService {
 
     /**
      * @description
+     * Returns the User whose {@link NativeAuthenticationMethod} has the given `passwordResetToken` set,
+     * as a result of a prior call to the `setPasswordResetToken()` method. Note that this method does
+     * not check whether the token has expired.
+     *
+     * @since 3.8.0
+     */
+    async getUserByPasswordResetToken(
+        ctx: RequestContext,
+        passwordResetToken: string,
+    ): Promise<User | undefined> {
+        const user = await this.connection
+            .getRepository(ctx, User)
+            .createQueryBuilder('user')
+            .leftJoinAndSelect('user.authenticationMethods', 'aums')
+            .leftJoin('user.authenticationMethods', 'authenticationMethod')
+            .where('authenticationMethod.passwordResetToken = :passwordResetToken', { passwordResetToken })
+            .getOne();
+        return user ?? undefined;
+    }
+
+    /**
+     * @description
      * Verifies a passwordResetToken by looking for a User which has previously had it set using the
      * `setPasswordResetToken()` method, and checks that the token is valid and has not expired.
      *
@@ -310,13 +332,7 @@ export class UserService {
     ): Promise<
         User | PasswordResetTokenExpiredError | PasswordResetTokenInvalidError | PasswordValidationError
     > {
-        const user = await this.connection
-            .getRepository(ctx, User)
-            .createQueryBuilder('user')
-            .leftJoinAndSelect('user.authenticationMethods', 'aums')
-            .leftJoin('user.authenticationMethods', 'authenticationMethod')
-            .where('authenticationMethod.passwordResetToken = :passwordResetToken', { passwordResetToken })
-            .getOne();
+        const user = await this.getUserByPasswordResetToken(ctx, passwordResetToken);
         if (!user) {
             return new PasswordResetTokenInvalidError();
         }

@@ -23,6 +23,7 @@ export type SerializedRequestContext = {
     _apiType: ApiType;
     _channel: JsonCompatible<Channel>;
     _languageCode: LanguageCode;
+    _acceptedLanguageCodes?: LanguageCode[];
     _isAuthorized: boolean;
     _authorizedAsOwnerOnly: boolean;
 };
@@ -178,6 +179,7 @@ export function internal_getRequestContext(
  */
 export class RequestContext {
     private readonly _languageCode: LanguageCode;
+    private readonly _acceptedLanguageCodes: LanguageCode[];
     private readonly _currencyCode: CurrencyCode;
     private readonly _channel: Channel;
     private readonly _session?: CachedSession;
@@ -197,6 +199,7 @@ export class RequestContext {
         channel: Channel;
         session?: CachedSession;
         languageCode?: LanguageCode;
+        acceptedLanguageCodes?: LanguageCode[];
         currencyCode?: CurrencyCode;
         isAuthorized: boolean;
         authorizedAsOwnerOnly: boolean;
@@ -208,6 +211,7 @@ export class RequestContext {
         this._channel = channel;
         this._session = session;
         this._languageCode = languageCode || (channel && channel.defaultLanguageCode);
+        this._acceptedLanguageCodes = options.acceptedLanguageCodes ?? [];
         this._currencyCode = currencyCode || (channel && channel.defaultCurrencyCode);
         this._isAuthorized = options.isAuthorized;
         this._authorizedAsOwnerOnly = options.authorizedAsOwnerOnly;
@@ -246,6 +250,7 @@ export class RequestContext {
                 expires: ctxObject._session?.expires && new Date(ctxObject._session.expires),
             },
             languageCode: ctxObject._languageCode,
+            acceptedLanguageCodes: ctxObject._acceptedLanguageCodes,
             isAuthorized: ctxObject._isAuthorized,
             authorizedAsOwnerOnly: ctxObject._authorizedAsOwnerOnly,
         });
@@ -324,9 +329,22 @@ export class RequestContext {
      * Creates a shallow copy of the RequestContext instance. This means that
      * mutations to the copy itself will not affect the original, but deep mutations
      * (e.g. copy.channel.code = 'new') *will* also affect the original.
+     *
+     * Passing a `channel` re-scopes the copy to it, switching language and currency
+     * to the channel's defaults so downstream logic runs in the target channel.
      */
-    copy(): RequestContext {
-        return Object.assign(Object.create(Object.getPrototypeOf(this)), this);
+    copy(channel?: Channel): RequestContext {
+        return Object.assign(
+            Object.create(Object.getPrototypeOf(this)),
+            this,
+            channel
+                ? {
+                      _channel: channel,
+                      _languageCode: channel.defaultLanguageCode,
+                      _currencyCode: channel.defaultCurrencyCode,
+                  }
+                : {},
+        );
     }
 
     /**
@@ -359,6 +377,27 @@ export class RequestContext {
 
     get languageCode(): LanguageCode {
         return this._languageCode;
+    }
+
+    /**
+     * @description
+     * The languages the client asked to read this response in, most preferred first, taken from the
+     * `Accept-Language` header. Empty when the client sent no header.
+     *
+     * {@link RequestContext.languageCode} selects which translation of the data to return. These
+     * codes say which language the server should write its own text in, such as the descriptions
+     * and labels attached to a {@link ConfigurableOperationDef}. The two differ for an
+     * administrator reading the Admin UI in Japanese while editing the German translation of a
+     * product.
+     *
+     * A code here is not guaranteed to be a member of the {@link LanguageCode} enum, for the same
+     * reason `languageCode` is not: custom codes are permitted. A code with no translation behind
+     * it matches nothing and is skipped.
+     *
+     * @since 3.8.0
+     */
+    get acceptedLanguageCodes(): LanguageCode[] {
+        return this._acceptedLanguageCodes;
     }
 
     get currencyCode(): CurrencyCode {

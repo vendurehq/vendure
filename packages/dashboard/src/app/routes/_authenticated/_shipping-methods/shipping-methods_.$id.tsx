@@ -3,7 +3,7 @@ import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js'
 import { TranslatableFormFieldWrapper } from '@/vdb/components/shared/translatable-form-field.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { Input } from '@/vdb/components/ui/input.js';
-import { Textarea } from '@/vdb/components/ui/textarea.js';
+import { RichTextInput } from '@/vdb/components/data-input/rich-text-input.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
 import {    CustomFieldsPageBlock,
     DetailFormGrid,
@@ -44,7 +44,7 @@ export const Route = createFileRoute('/_authenticated/_shipping-methods/shipping
             ];
         },
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function ShippingMethodDetailPage() {
@@ -160,7 +160,7 @@ function ShippingMethodDetailPage() {
                             control={form.control}
                             name="description"
                             label={<Trans>Description</Trans>}
-                            render={({ field }) => <Textarea {...field} />}
+                            render={({ field }) => <RichTextInput {...field} />}
                         />
                     </div>
                     <DetailFormGrid>

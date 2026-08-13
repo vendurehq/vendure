@@ -238,6 +238,7 @@ union AddPaymentToOrderResult =
     | PaymentDeclinedError
     | OrderStateTransitionError
     | NoActiveOrderError
+    | CouponRemovedDuringCheckoutError
 union TransitionOrderToStateResult = Order | OrderStateTransitionError
 union SetCustomerForOrderResult =
     | Order

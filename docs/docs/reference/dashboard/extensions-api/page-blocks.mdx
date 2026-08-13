@@ -2,6 +2,8 @@
 title: "Page Blocks"
 generated: true
 ---
+## DashboardPageBlockDefinition
+
 <GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/layout.ts" sourceLine="128" packageName="@vendure/dashboard" since="3.3.0" />
 
 This allows you to insert a custom component into a specific location
@@ -11,6 +13,7 @@ on any page in the dashboard.
 interface DashboardPageBlockDefinition {
     id: string;
     title?: React.ReactNode;
+    description?: React.ReactNode;
     location: PageBlockLocation;
     component?: React.FunctionComponent<{ context: PageContextValue }>;
     shouldRender?: (context: PageContextValue) => boolean;
@@ -31,6 +34,11 @@ to the page in which it appears.
 <MemberInfo kind="property" type={`React.ReactNode`}   />
 
 An optional title for the page block
+### description
+
+<MemberInfo kind="property" type={`React.ReactNode`}  since="3.8.0"  />
+
+Optional supporting text displayed below the page block title.
 ### location
 
 <MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/page-blocks#pageblocklocation'>PageBlockLocation</a>`}   />
@@ -66,6 +74,8 @@ For more advanced control over rendering, use the `shouldRender` function.
 
 
 </div>
+## PageBlockPosition
+
 <GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/layout.ts" sourceLine="100" packageName="@vendure/dashboard" since="3.3.0" />
 
 The relative position of a PageBlock. This is determined by finding an existing
@@ -94,6 +104,8 @@ type PageBlockPosition = {
 
 
 </div>
+## PageBlockLocation
+
 <GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/layout.ts" sourceLine="112" packageName="@vendure/dashboard" since="3.3.0" />
 
 The location of a page block in the dashboard. The location can be found by turning on

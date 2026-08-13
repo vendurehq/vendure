@@ -30,11 +30,13 @@ export interface HistoryEntryProps {
     timelineIcon?: React.ReactNode;
     /**
      * @description
-     * Optional tailwind classes to apply to the icon. For instance
+     * Optional tailwind classes to apply to the icon. Prefer the subtle tone
+     * slots so the timeline reads as a calm status surface rather than a row of
+     * full-strength fills. For instance
      *
      * ```ts
-     * const success = 'bg-success text-success-foreground';
-     * const destructive = 'bg-destructive text-destructive-foreground';
+     * const success = 'bg-success-subtle text-success-subtle-foreground';
+     * const destructive = 'bg-destructive-subtle text-destructive-subtle-foreground';
      * ```
      */
     timelineIconClassName?: string;

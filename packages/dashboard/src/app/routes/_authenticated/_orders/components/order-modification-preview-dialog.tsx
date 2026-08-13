@@ -58,7 +58,9 @@ export function OrderModificationPreviewDialog({
     // Use a ref to track the last input sent to avoid duplicate calls
     const lastInputRef = useRef<ModifyOrderInput | null>(null);
     const previewMutation = useMutation({
-        mutationFn: api.mutate(addCustomFields(modifyOrderDocument)),
+        mutationFn: api.mutate(
+            addCustomFields(modifyOrderDocument, { includeNestedFragments: ['OrderLine', 'Fulfillment'] }),
+        ),
     });
 
     // Create form with dynamic fields for each payment
@@ -77,7 +79,12 @@ export function OrderModificationPreviewDialog({
     });
 
     const confirmMutation = useMutation({
-        mutationFn: (input: ModifyOrderInput) => api.mutate(addCustomFields(modifyOrderDocument))({ input }),
+        mutationFn: (input: ModifyOrderInput) =>
+            api.mutate(
+                addCustomFields(modifyOrderDocument, {
+                    includeNestedFragments: ['OrderLine', 'Fulfillment'],
+                }),
+            )({ input }),
     });
 
     // Trigger preview when dialog opens or input changes (while open)
@@ -245,12 +252,8 @@ export function OrderModificationPreviewDialog({
                                                                             render={({ field }) => (
                                                                                 <MoneyInput
                                                                                     {...field}
-                                                                                    value={
-                                                                                        field.value || 0
-                                                                                    }
-                                                                                    onChange={
-                                                                                        field.onChange
-                                                                                    }
+                                                                                    value={field.value || 0}
+                                                                                    onChange={field.onChange}
                                                                                     currency={
                                                                                         orderSnapshot.currencyCode
                                                                                     }
@@ -343,7 +346,9 @@ export function OrderModificationPreviewDialog({
                     )}
                 </div>
                 <DialogFooter>
-                    <DialogClose render={<Button type="button" variant="secondary" onClick={() => onResolve()} />}>
+                    <DialogClose
+                        render={<Button type="button" variant="secondary" onClick={() => onResolve()} />}
+                    >
                         <Trans>Cancel</Trans>
                     </DialogClose>
                     <Button

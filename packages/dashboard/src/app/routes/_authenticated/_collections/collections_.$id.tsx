@@ -1,5 +1,6 @@
 import { SlugInput } from '@/vdb/components/data-input/index.js';
 import { RichTextInput } from '@/vdb/components/data-input/rich-text-input.js';
+import { PageBreadcrumb } from '@/vdb/components/layout/generated-breadcrumbs.js';
 import { EntityAssets } from '@/vdb/components/shared/entity-assets.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
@@ -9,7 +10,9 @@ import { Field, FieldLabel } from '@/vdb/components/ui/field.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { Switch } from '@/vdb/components/ui/switch.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
-import {    CustomFieldsPageBlock,
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
+import {
+    CustomFieldsPageBlock,
     DetailFormGrid,
     Page,
     PageActionBar,
@@ -17,7 +20,6 @@ import {    CustomFieldsPageBlock,
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
-import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { useJobQueuePolling } from '@/vdb/hooks/use-job-queue-polling.js';
@@ -42,12 +44,27 @@ export const Route = createFileRoute('/_authenticated/_collections/collections_/
     loader: detailPageRouteLoader({
         pageId,
         queryDocument: collectionDetailDocument,
-        breadcrumb: (isNew, entity) => [
-            { path: '/collections', label: <Trans>Collections</Trans> },
-            isNew ? <Trans>New collection</Trans> : entity?.name,
-        ],
+        breadcrumb: (isNew, entity) => {
+            const breadcrumb: PageBreadcrumb[] = [
+                { path: '/collections', label: <Trans>Collections</Trans> },
+            ];
+            if (isNew) {
+                breadcrumb.push(<Trans>New collection</Trans>);
+            } else if (entity) {
+                // Breadcrumbs are always [root, ...ancestors, self]; link each ancestor.
+                const ancestors = (entity.breadcrumbs ?? []).slice(1, -1);
+                breadcrumb.push(
+                    ...ancestors.map(ancestor => ({
+                        path: `/collections/${ancestor.id}`,
+                        label: ancestor.name,
+                    })),
+                    entity.name,
+                );
+            }
+            return breadcrumb;
+        },
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function CollectionDetailPage() {
@@ -60,6 +77,9 @@ function CollectionDetailPage() {
     const { isPolling: pendingFilterApplication, startPolling } = useJobQueuePolling(
         'apply-collection-filters',
         () => queryClient.invalidateQueries({ queryKey: ['PaginatedListDataTable'] }),
+        // Scope persisted polling to this collection. While creating there is no stable id yet,
+        // so pass no scope: polling stays in-memory and never persists onto a fresh create form.
+        creatingNewEntity ? undefined : params.id,
     );
 
     const { form, submitHandler, entity, isPending, resetForm } = useDetailPage({
@@ -135,7 +155,10 @@ function CollectionDetailPage() {
         <Page pageId={pageId} form={form} submitHandler={submitHandler} entity={entity}>
             <PageTitle>{creatingNewEntity ? <Trans>New collection</Trans> : (entity?.name ?? '')}</PageTitle>
             <PageActionBar>
-                <ActionBarItem itemId="save-button" requiresPermission={['UpdateCollection', 'UpdateCatalog']}>
+                <ActionBarItem
+                    itemId="save-button"
+                    requiresPermission={['UpdateCollection', 'UpdateCatalog']}
+                >
                     <Button
                         type="submit"
                         disabled={
@@ -242,15 +265,17 @@ function CollectionDetailPage() {
                         />
                     </Field>
                 </PageBlock>
-                <PageBlock column="main" blockId="contents" title={<Trans>Contents</Trans>}>
-                    {pendingFilterApplication || shouldPreviewContents || creatingNewEntity ? (
+                <PageBlock column="main" blockId="contents" layout="bare">
+                    {shouldPreviewContents || creatingNewEntity ? (
                         <CollectionContentsPreviewTable
                             parentId={entity?.parent?.id}
                             filters={currentFiltersValue ?? []}
                             inheritFilters={currentInheritFiltersValue ?? false}
+                            applying={pendingFilterApplication}
+                            title={<Trans>Contents</Trans>}
                         />
                     ) : (
-                        <CollectionContentsTable collectionId={entity?.id} />
+                        <CollectionContentsTable collectionId={entity?.id} title={<Trans>Contents</Trans>} />
                     )}
                 </PageBlock>
             </PageLayout>

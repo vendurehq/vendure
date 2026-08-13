@@ -1,5 +1,5 @@
 import { cancel, intro, isCancel, log, select, spinner, text } from '@clack/prompts';
-import { constantCase, paramCase, pascalCase } from 'change-case';
+import { constantCase, kebabCase, pascalCase } from '../../../utilities/case-utils';
 import * as fs from 'fs-extra';
 import path from 'path';
 import { Project, SourceFile } from 'ts-morph';
@@ -181,7 +181,7 @@ export async function generatePlugin(
     const pluginFile = createFile(
         project,
         path.join(__dirname, 'templates/plugin.template.ts'),
-        path.join(options.pluginDir, paramCase(nameWithoutPlugin) + '.plugin.ts'),
+        path.join(options.pluginDir, kebabCase(nameWithoutPlugin) + '.plugin.ts'),
     );
     const pluginClass = pluginFile.getClass('TemplatePlugin');
     if (!pluginClass) {
@@ -245,13 +245,13 @@ function getPluginDirName(
     if (existingPluginDirPattern) {
         return path.join(
             existingPluginDirPattern.prefix,
-            paramCase(nameWithoutPlugin),
+            kebabCase(nameWithoutPlugin),
             existingPluginDirPattern.suffix,
         );
     } else {
         // Use the Vendure project directory (which may be in a monorepo package)
         // instead of cwd (which could be the monorepo root)
-        return path.join(vendureProjectDir, 'src', 'plugins', paramCase(nameWithoutPlugin));
+        return path.join(vendureProjectDir, 'src', 'plugins', kebabCase(nameWithoutPlugin));
     }
 }
 

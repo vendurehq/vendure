@@ -20,7 +20,7 @@ import {
 } from 'graphql';
 import path from 'path';
 
-import { deleteGeneratedDocs, generateFrontMatter } from './docgen-utils';
+import { deleteGeneratedDocs, generateFrontMatter } from '@vendure-io/docs-generator';
 
 /* eslint-disable no-console */
 
@@ -375,10 +375,10 @@ function renderGraphQLDocComponent(options: {
 deleteGeneratedDocs(outputPath);
 generateGraphqlDocs(outputPath);
 
-function generateGraphqlDocs(hugoOutputPath: string) {
+function generateGraphqlDocs(outputDir: string) {
     const timeStart = +new Date();
-    if (!fs.existsSync(hugoOutputPath)) {
-        fs.mkdirSync(hugoOutputPath, { recursive: true });
+    if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
     }
 
     let queriesOutput = generateFrontMatter('Queries') + '\n\n';
@@ -510,11 +510,11 @@ function generateGraphqlDocs(hugoOutputPath: string) {
         }
     }
 
-    fs.writeFileSync(path.join(hugoOutputPath, FileName.QUERY + '.mdx'), queriesOutput);
-    fs.writeFileSync(path.join(hugoOutputPath, FileName.MUTATION + '.mdx'), mutationsOutput);
-    fs.writeFileSync(path.join(hugoOutputPath, FileName.OBJECT + '.mdx'), objectTypesOutput);
-    fs.writeFileSync(path.join(hugoOutputPath, FileName.INPUT + '.mdx'), inputTypesOutput);
-    fs.writeFileSync(path.join(hugoOutputPath, FileName.ENUM + '.mdx'), enumsOutput);
+    fs.writeFileSync(path.join(outputDir, FileName.QUERY + '.mdx'), queriesOutput);
+    fs.writeFileSync(path.join(outputDir, FileName.MUTATION + '.mdx'), mutationsOutput);
+    fs.writeFileSync(path.join(outputDir, FileName.OBJECT + '.mdx'), objectTypesOutput);
+    fs.writeFileSync(path.join(outputDir, FileName.INPUT + '.mdx'), inputTypesOutput);
+    fs.writeFileSync(path.join(outputDir, FileName.ENUM + '.mdx'), enumsOutput);
 
     // Generate _index.mdx for the API section
     const apiTitle = targetApi === 'admin' ? 'Admin API' : 'Shop API';
@@ -524,7 +524,7 @@ function generateGraphqlDocs(hugoOutputPath: string) {
         `<LinkCard href="${docsUrl}${FileName.OBJECT}" title="Types" />\n` +
         `<LinkCard href="${docsUrl}${FileName.INPUT}" title="Input Objects" />\n` +
         `<LinkCard href="${docsUrl}${FileName.ENUM}" title="Enums" />\n`;
-    fs.writeFileSync(path.join(hugoOutputPath, '_index.mdx'), indexOutput);
+    fs.writeFileSync(path.join(outputDir, '_index.mdx'), indexOutput);
 
     console.log(`Generated 5 GraphQL API docs in ${+new Date() - timeStart}ms`);
 }

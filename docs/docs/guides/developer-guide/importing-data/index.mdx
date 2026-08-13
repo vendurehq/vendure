@@ -246,6 +246,7 @@ This guide illustrates how to populate that test data again on an existing Vendu
 ```ts title="src/populate-test-data.ts"
 import { populate } from '@vendure/core/cli';
 import { bootstrap, VendureConfig } from '@vendure/core';
+import path from 'path';
 import { config } from './vendure-config';
 
 populate(

@@ -62,13 +62,13 @@ The plugin uses Vite to build a React application for the GraphiQL UI. The build
 To develop the UI:
 
 ```bash
-npm run dev
+bun run dev
 ```
 
 To build the plugin:
 
 ```bash
-npm run build
+bun run build
 ```
 
 This will:

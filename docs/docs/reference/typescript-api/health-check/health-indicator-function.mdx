@@ -1,0 +1,15 @@
+---
+title: "HealthIndicatorFunction"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/health-check/terminus-compat.ts" sourceLine="52" packageName="@vendure/core" />
+
+A function that performs a single health check and resolves to a
+[HealthIndicatorResult](/reference/typescript-api/health-check/health-indicator-result#healthindicatorresult). Used as the return type of
+`HealthCheckStrategy.getHealthIndicator`.
+
+```ts title="Signature"
+type HealthIndicatorFunction = () =>
+    | PromiseLike<HealthIndicatorResult>
+    | HealthIndicatorResult
+```

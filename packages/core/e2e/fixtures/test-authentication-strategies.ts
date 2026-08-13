@@ -8,8 +8,14 @@ import {
 } from '@vendure/core';
 import { DocumentNode } from 'graphql';
 import gql from 'graphql-tag';
+import { Readable } from 'stream';
 
 export const VALID_AUTH_TOKEN = 'valid-auth-token';
+
+const TEST_ADMIN_AVATAR = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+    'base64',
+);
 
 export type TestAuthPayload = {
     token: string;
@@ -99,6 +105,11 @@ export class TestSSOStrategyAdmin implements AuthenticationStrategy<{ email: str
             lastName: 'SSO Admin Last Name',
             identifier: email,
             roles: [superAdminRole],
+            avatar: {
+                filename: 'external-profile.png',
+                mimetype: 'image/png',
+                createReadStream: () => Readable.from([TEST_ADMIN_AVATAR]),
+            },
         });
     }
 }
@@ -132,6 +143,44 @@ export class TestSSOStrategyShop implements AuthenticationStrategy<{ email: stri
             firstName: 'SSO Customer First Name',
             lastName: 'SSO Customer Last Name',
             verified: true,
+        });
+    }
+}
+
+/**
+ * Simulates an external provider which forwards an email address that has NOT been verified as
+ * belonging to the authenticating user (e.g. a custom OAuth provider that omits `email_verified`).
+ * Used to assert that such an identity cannot be linked to a pre-existing account.
+ */
+export class TestUnverifiedEmailStrategy implements AuthenticationStrategy<{ email: string }> {
+    readonly name = 'test_unverified_strategy';
+    private externalAuthenticationService: ExternalAuthenticationService;
+
+    init(injector: Injector) {
+        this.externalAuthenticationService = injector.get(ExternalAuthenticationService);
+    }
+
+    defineInputType(): DocumentNode {
+        return gql`
+            input TestUnverifiedInput {
+                email: String!
+            }
+        `;
+    }
+
+    async authenticate(ctx: RequestContext, data: { email: string }): Promise<User | false | string> {
+        const { email } = data;
+        const user = await this.externalAuthenticationService.findUser(ctx, this.name, email);
+        if (user) {
+            return user;
+        }
+        return this.externalAuthenticationService.createCustomerAndUser(ctx, {
+            strategy: this.name,
+            externalIdentifier: email,
+            emailAddress: email,
+            firstName: 'Unverified',
+            lastName: 'Customer',
+            verified: false,
         });
     }
 }

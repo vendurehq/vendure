@@ -249,6 +249,29 @@ describe('Transaction infrastructure', () => {
         expect(TransactionTestPlugin.errorHandler).not.toHaveBeenCalled();
     });
 
+    // Regression test for #4708:
+    // A resolver decorated with @Transaction('manual') that starts a transaction
+    // and then calls a service using `connection.withTransaction(ctx, …)` must
+    // remain able to perform DB operations on the same `ctx` after the inner
+    // wrapper returns. The bug was that the inner wrapper released the inherited
+    // QueryRunner, breaking any further DB op with QueryRunnerAlreadyReleasedError.
+    // Only runs on real drivers — the sqljs `release()` is a no-op and hides the bug.
+    // Placed near the end of the suite because it adds two admins to the shared
+    // verifyTestDocument-visible state.
+    itIfDb(['postgres', 'mysql'])(
+        'inner withTransaction does not release inherited QueryRunner from manual outer transaction',
+        async () => {
+            const { createTestAdministrator6 } = await adminClient.query(createTestAdministrator6Document, {
+                emailAddress: 'test-manual-inherited',
+            });
+            createdAdminGuard.assertSuccess(createTestAdministrator6);
+
+            const { verify } = await adminClient.query(verifyTestDocument);
+            expect(!!verify.admins.find(a => a.emailAddress === 'test-manual-inherited_a')).toBe(true);
+            expect(!!verify.admins.find(a => a.emailAddress === 'test-manual-inherited_b')).toBe(true);
+        },
+    );
+
     // Testing https://github.com/vendurehq/vendure/issues/1107
     it('passing transaction via EventBus with delay in committing transaction', async () => {
         TransactionTestPlugin.reset();
@@ -325,6 +348,17 @@ const createTestAdministrator5Document = graphql(
     `
         mutation CreateTestAdmin5($emailAddress: String!, $fail: Boolean!, $noContext: Boolean!) {
             createTestAdministrator5(emailAddress: $emailAddress, fail: $fail, noContext: $noContext) {
+                ...CreatedAdmin
+            }
+        }
+    `,
+    [createdAdminFragment],
+);
+
+const createTestAdministrator6Document = graphql(
+    `
+        mutation CreateTestAdmin6($emailAddress: String!) {
+            createTestAdministrator6(emailAddress: $emailAddress) {
                 ...CreatedAdmin
             }
         }

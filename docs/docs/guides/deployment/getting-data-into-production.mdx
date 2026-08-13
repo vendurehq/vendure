@@ -1,7 +1,7 @@
 ---
 title: "Getting data into production"
 metaTitle: "Getting Product and Catalog Data into a Production Vendure Instance"
-metaDescription: "Create the database schema, import initial data and product catalogs, and run custom data-import scripts when deploying Vendure to production."
+metaDescription: "Create the database schema with an initial migration, import initial data and product catalogs, and run custom data-import scripts when deploying Vendure to production."
 order: 4
 ---
 
@@ -14,30 +14,58 @@ The main tasks will be:
 3. Importing catalog data like products, variants, options, facets
 4. Importing other data used by your application
 
-## Creating the database schema
+## Creating the initial database schema
 
-The first item - creation of the schema - can be automatically handled by TypeORM's `synchronize` feature. Switching it on for the initial
-run will automatically create the schema. This can be done by using an environment variable:
+The recommended way to create the schema for a new production deployment is to generate an initial migration locally against an empty database. This migration will contain the full database schema for your current Vendure configuration, and can then be committed to source control and run in production in the same way as all later schema changes.
+
+To create the initial migration:
+
+1. Point your local Vendure config at an empty database of the same type as production.
+2. Keep `dbConnectionOptions.synchronize` set to `false`.
+3. Generate an initial migration:
+
+```bash
+npx vendure migrate -g initial-schema
+```
+
+4. Review the generated migration file and commit it to source control.
+5. Run pending migrations in production as part of your deployment process:
+
+```bash
+npx vendure migrate -r
+```
+
+If your server entry point already calls `runMigrations(config)` before `bootstrap(config)`, the committed initial migration will be applied automatically when the server starts.
+
+### Using synchronize for the first run
+
+Another possible way to create the schema for a brand-new, empty database is to temporarily enable TypeORM's `synchronize` feature for the first run. This is simpler, but an initial migration is preferable because it makes the production schema reproducible and auditable.
+
+If you use this approach, enable `synchronize` with an explicit boolean environment variable:
 
 ```ts title="src/vendure-config.ts"
 import { VendureConfig } from '@vendure/core';
+
+const shouldSynchronize = process.env.DB_SYNCHRONIZE === 'true';
 
 export const config: VendureConfig = {
     // ...
     dbConnectionOptions: {
         type: 'postgres',
-        synchronize: process.env.DB_SYNCHRONIZE, // [!code highlight]
+        synchronize: shouldSynchronize, // [!code highlight]
         host: process.env.DB_HOST,
-        port: process.env.DB_PORT,
-        username: process.env.DB_USER,
+        port: +(process.env.DB_PORT ?? 5432),
+        username: process.env.DB_USERNAME,
         password: process.env.DB_PASSWORD,
-        database: process.env.DB_DATABASE,
+        database: process.env.DB_NAME,
     },
     // ...
 };
 ```
 
-Set the `DB_SYNCHRONIZE` variable to `true` on first start, and then after the schema is created, set it to `false`.
+Set the `DB_SYNCHRONIZE` variable to `true` on first start, and then after the schema is created, set it to `false` or remove it. Do not pass the raw environment variable directly to `synchronize`, because environment variables are strings and the string `"false"` is still truthy.
+
+For ongoing schema changes, always use [migrations](/developer-guide/migrations/) rather than `synchronize`.
 
 ## Importing initial & catalog data
 

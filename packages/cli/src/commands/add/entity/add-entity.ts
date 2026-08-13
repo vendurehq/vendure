@@ -1,5 +1,5 @@
 import { cancel, isCancel, multiselect, spinner, text } from '@clack/prompts';
-import { paramCase, pascalCase } from 'change-case';
+import { kebabCase, pascalCase } from '../../../utilities/case-utils';
 import path from 'path';
 import { ClassDeclaration, SourceFile } from 'ts-morph';
 
@@ -77,8 +77,8 @@ export async function addEntity(
 
     const context: AddEntityOptions = {
         className: customEntityName,
-        fileName: paramCase(customEntityName) + '.entity',
-        translationFileName: paramCase(customEntityName) + '-translation.entity',
+        fileName: kebabCase(customEntityName) + '.entity',
+        translationFileName: kebabCase(customEntityName) + '-translation.entity',
         features: await getFeatures(options),
         config: options?.config,
     };

@@ -15,6 +15,36 @@ import * as pluginModule from '../src/commands/add/plugin/create-new-plugin';
 import * as serviceModule from '../src/commands/add/service/add-service';
 import * as uiExtensionsModule from '../src/commands/add/ui-extensions/add-ui-extensions';
 
+const stdinIsTTYDescriptor = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY');
+const stdoutIsTTYDescriptor = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY');
+
+function setStdinIsTTY(isTTY: boolean) {
+    Object.defineProperty(process.stdin, 'isTTY', {
+        configurable: true,
+        value: isTTY,
+    });
+}
+
+function setStdoutIsTTY(isTTY: boolean) {
+    Object.defineProperty(process.stdout, 'isTTY', {
+        configurable: true,
+        value: isTTY,
+    });
+}
+
+function restoreTTYDescriptors() {
+    if (stdinIsTTYDescriptor) {
+        Object.defineProperty(process.stdin, 'isTTY', stdinIsTTYDescriptor);
+    } else {
+        delete (process.stdin as { isTTY?: boolean }).isTTY;
+    }
+    if (stdoutIsTTYDescriptor) {
+        Object.defineProperty(process.stdout, 'isTTY', stdoutIsTTYDescriptor);
+    } else {
+        delete (process.stdout as { isTTY?: boolean }).isTTY;
+    }
+}
+
 // Mock clack prompts to prevent interactive prompts during tests
 vi.mock('@clack/prompts', () => ({
     intro: vi.fn(),
@@ -33,7 +63,7 @@ vi.mock('@clack/prompts', () => ({
     },
 }));
 
-type Spy = ReturnType<typeof vi.spyOn>;
+type Spy = any;
 
 let pluginRunSpy: Spy;
 let entityRunSpy: Spy;
@@ -44,6 +74,11 @@ let apiExtRunSpy: Spy;
 let uiExtRunSpy: Spy;
 
 beforeEach(() => {
+    vi.stubEnv('CI', 'false');
+    vi.stubEnv('VENDURE_CLI_NON_INTERACTIVE', 'false');
+    setStdinIsTTY(true);
+    setStdoutIsTTY(true);
+
     // Stub all core functions before every test
     const defaultReturnValue = { project: undefined as any, modifiedSourceFiles: [] };
 
@@ -61,6 +96,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+    vi.unstubAllEnvs();
+    restoreTTYDescriptors();
     vi.restoreAllMocks();
 });
 

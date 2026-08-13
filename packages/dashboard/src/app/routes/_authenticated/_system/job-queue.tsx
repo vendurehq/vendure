@@ -1,5 +1,5 @@
-import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
+import { StatusBadge } from '@/vdb/components/ui/status-badge.js';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -10,6 +10,7 @@ import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wra
 import { ListPage } from '@/vdb/framework/page/list-page.js';
 import { api } from '@/vdb/graphql/api.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
+import { defineStateEntries } from '@/vdb/components/ui/status-badge.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
@@ -25,23 +26,50 @@ import {
     RotateCcw,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { CancelJobsBulkAction } from './components/cancel-jobs-bulk-action.js';
 import { PayloadDialog } from './components/payload-dialog.js';
 import { cancelJobDocument, jobListDocument, jobQueueListDocument } from './job-queue.graphql.js';
 
-function getJobStateBadgeVariant(state: string) {
-    switch (state) {
-        case 'PENDING':
-        case 'RETRYING':
-            return 'warning';
-        case 'COMPLETED':
-            return 'success';
-        case 'FAILED':
-        case 'CANCELLED':
-            return 'destructive';
-        default:
-            return 'secondary';
+function formatDuration(ms: number): string {
+    if (ms < 1000) {
+        return `${ms}ms`;
     }
+
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    const parts: string[] = [];
+
+    if (days > 0) {
+        parts.push(`${days}d`);
+    }
+    if (hours % 24 > 0) {
+        parts.push(`${hours % 24}h`);
+    }
+    if (minutes % 60 > 0) {
+        parts.push(`${minutes % 60}m`);
+    }
+    if (seconds % 60 > 0) {
+        parts.push(`${seconds % 60}s`);
+    }
+
+    return parts.join(' ');
 }
+
+// Job-queue state dictionary. PENDING is a queued job waiting on the worker
+// (neutral, not warning); RUNNING is actively executing (progress — renders a
+// pulsing dot); RETRYING needs attention (warning); FAILED is a hard failure
+// (critical); CANCELLED is a terminal outcome, not a failure (neutral).
+const jobStateDictionary = defineStateEntries({
+    PENDING: { tone: 'neutral', defaultLabel: 'Pending' },
+    RUNNING: { tone: 'progress', defaultLabel: 'Running' },
+    RETRYING: { tone: 'warning', defaultLabel: 'Retrying' },
+    COMPLETED: { tone: 'success', defaultLabel: 'Completed' },
+    FAILED: { tone: 'critical', defaultLabel: 'Failed' },
+    CANCELLED: { tone: 'neutral', defaultLabel: 'Cancelled' },
+});
 
 export const Route = createFileRoute('/_authenticated/_system/job-queue')({
     component: JobQueuePage,
@@ -122,9 +150,7 @@ function JobQueuePage() {
             customizeColumns={{
                 createdAt: {
                     cell: ({ row }) => (
-                        <div title={row.original.createdAt}>
-                            {formatRelativeDate(row.original.createdAt)}
-                        </div>
+                        <div title={row.original.createdAt}>{formatRelativeDate(row.original.createdAt)}</div>
                     ),
                 },
                 data: {
@@ -177,26 +203,20 @@ function JobQueuePage() {
                         const state = STATES.find(s => s.value === row.original.state);
                         return (
                             <div className="flex items-center gap-2">
-                                <Badge
-                                    variant={getJobStateBadgeVariant(row.original.state)}
-                                >
-                                    {state && (
-                                        <state.icon
-                                            className={
-                                                row.original.state === 'RUNNING'
-                                                    ? 'animate-spin'
-                                                    : undefined
-                                            }
-                                        />
+                                <StatusBadge tone={jobStateDictionary.toneFor(row.original.state)}>
+                                    {/* RUNNING renders the progress tone's pulsing dot, so the
+                                        static state icon would be redundant — omit it there. */}
+                                    {state && row.original.state !== 'RUNNING' && (
+                                        <state.icon className="size-3" />
                                     )}
                                     {row.original.state}
-                                </Badge>
+                                </StatusBadge>
                                 {row.original.state === 'RUNNING' && (
-                                    <DropdownMenu
-                                        onOpenChange={open => (isActionMenuOpenRef.current = open)}
-                                    >
-                                        <DropdownMenuTrigger render={<Button variant="ghost" size="icon-xs" />}>
-                                                <MoreVertical />
+                                    <DropdownMenu onOpenChange={open => (isActionMenuOpenRef.current = open)}>
+                                        <DropdownMenuTrigger
+                                            render={<Button variant="ghost" size="icon-xs" />}
+                                        >
+                                            <MoreVertical />
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
                                             <DropdownMenuItem
@@ -216,7 +236,7 @@ function JobQueuePage() {
                 },
                 duration: {
                     cell: ({ row }) => {
-                        return row.original.duration ? `${row.original.duration}ms` : null;
+                        return row.original.duration ? formatDuration(row.original.duration) : null;
                     },
                 },
             }}
@@ -246,6 +266,12 @@ function JobQueuePage() {
                     options: STATES,
                 },
             }}
+            bulkActions={[
+                {
+                    component: CancelJobsBulkAction,
+                    order: 100,
+                },
+            ]}
             registerRefresher={refresher => {
                 refreshRef.current = refresher;
             }}
@@ -253,11 +279,11 @@ function JobQueuePage() {
             <ActionBarItem itemId="auto-refresh-button">
                 <DropdownMenu>
                     <DropdownMenuTrigger render={<Button variant="outline" size="sm" className="gap-2" />}>
-                            <RefreshCw className="h-4 w-4" />
-                            <span>
-                                <Trans>Auto refresh: {currentInterval?.label}</Trans>
-                            </span>
-                            <ChevronDown className="h-4 w-4" />
+                        <RefreshCw className="h-4 w-4" />
+                        <span>
+                            <Trans>Auto refresh: {currentInterval?.label}</Trans>
+                        </span>
+                        <ChevronDown className="h-4 w-4" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                         {REFRESH_INTERVALS.map(interval => (

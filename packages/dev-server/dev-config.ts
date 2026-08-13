@@ -1,6 +1,5 @@
 /* eslint-disable no-console */
 import { OnApplicationBootstrap } from '@nestjs/common';
-import { AdminUiPlugin } from '@vendure/admin-ui-plugin';
 import { AssetServerPlugin } from '@vendure/asset-server-plugin';
 import { ADMIN_API_PATH, API_PORT, SHOP_API_PATH } from '@vendure/common/lib/shared-constants';
 import {
@@ -9,10 +8,8 @@ import {
     DefaultSchedulerPlugin,
     DefaultSearchPlugin,
     dummyPaymentHandler,
-    LanguageCode,
     LogLevel,
     PluginCommonModule,
-    RefundDestinationStrategy,
     RequestContextService,
     SettingsStoreScopes,
     SettingsStoreService,
@@ -21,34 +18,25 @@ import {
 } from '@vendure/core';
 import { DashboardPlugin } from '@vendure/dashboard/plugin';
 import { defaultEmailHandlers, EmailPlugin, FileBasedTemplateLoader } from '@vendure/email-plugin';
-import { GraphiqlPlugin } from '@vendure/graphiql-plugin';
-import { TelemetryPlugin } from '@vendure/telemetry-plugin';
 import 'dotenv/config';
+import { createRequire } from 'node:module';
 import path from 'path';
 import { DataSourceOptions } from 'typeorm';
-import { FieldTestPlugin } from './test-plugins/field-test/field-test-plugin';
+
 import { NavModifierPlugin } from './test-plugins/nav-modifier-plugin/nav-modifier-plugin';
+// import { FieldTestPlugin } from './test-plugins/field-test/field-test-plugin';
+import { InsightsTestPlugin } from './test-plugins/insights-test/insights-test-plugin';
 import { ReviewsPlugin } from './test-plugins/reviews/reviews-plugin';
 
 const IS_INSTRUMENTED = process.env.IS_INSTRUMENTED === 'true';
-
-class TestStoreCreditDestination implements RefundDestinationStrategy {
-    readonly code = 'store-credit';
-    readonly description = [{ languageCode: LanguageCode.en, value: 'Refund as store credit' }];
-
-    isAvailable() {
-        return true;
-    }
-
-    createRefund(_ctx: any, _input: any, amount: number, order: any) {
-        console.log(`[StoreCreditDestination] Issuing ${amount} store credit for order ${order.code}`);
-        return {
-            state: 'Settled' as const,
-            transactionId: `sc-${Date.now()}`,
-            metadata: { storeCreditAmount: amount },
-        };
-    }
-}
+const SERVE_GRAPHIQL = process.env.VENDURE_SERVE_GRAPHIQL !== 'false';
+const SERVE_STATIC_DASHBOARD = process.env.VENDURE_SERVE_STATIC_DASHBOARD !== 'false';
+const loadPackage = createRequire(__filename);
+const dashboardUrl = process.env.VENDURE_DASHBOARD_URL || 'http://localhost:3000/dashboard';
+const dashboardAppDir =
+    path.basename(__dirname) === 'dist'
+        ? path.join(__dirname, './dashboard')
+        : path.join(__dirname, './dist/dashboard');
 
 @VendurePlugin({
     imports: [PluginCommonModule],
@@ -84,7 +72,8 @@ class ReadonlySettingsTestPlugin implements OnApplicationBootstrap {
  */
 export const devConfig: VendureConfig = {
     apiOptions: {
-        port: API_PORT,
+        port: Number(process.env.PORT) || Number(process.env.API_PORT) || API_PORT,
+        trustProxy: process.env.VENDURE_TRUST_PROXY === 'true',
         adminApiPath: ADMIN_API_PATH,
         adminApiPlayground: {
             settings: {
@@ -110,14 +99,13 @@ export const devConfig: VendureConfig = {
         },
     },
     dbConnectionOptions: {
-        synchronize: true,
+        synchronize: false,
         logging: false,
         migrations: [path.join(__dirname, 'migrations/*.ts')],
         ...getDbConfig(),
     },
     paymentOptions: {
         paymentMethodHandlers: [dummyPaymentHandler],
-        refundDestinations: [new TestStoreCreditDestination()],
     },
     settingsStoreFields: {
         MyPlugin: [
@@ -142,9 +130,10 @@ export const devConfig: VendureConfig = {
         // }),
         ReadonlySettingsTestPlugin,
         ReviewsPlugin,
-        FieldTestPlugin,
+        InsightsTestPlugin,
+        // FieldTestPlugin,
         NavModifierPlugin,
-        GraphiqlPlugin.init(),
+        ...(SERVE_GRAPHIQL ? [loadPackage('@vendure/graphiql-plugin').GraphiqlPlugin.init()] : []),
         AssetServerPlugin.init({
             route: 'assets',
             assetUploadDir: path.join(__dirname, 'assets'),
@@ -162,64 +151,19 @@ export const devConfig: VendureConfig = {
             templateLoader: new FileBasedTemplateLoader(path.join(__dirname, '../email-plugin/templates')),
             outputPath: path.join(__dirname, 'test-emails'),
             globalTemplateVars: {
-                verifyEmailAddressUrl: 'http://localhost:4201/verify',
-                passwordResetUrl: 'http://localhost:4201/reset-password',
-                changeEmailAddressUrl: 'http://localhost:4201/change-email-address',
+                verifyEmailAddressUrl: `${dashboardUrl}/verify`,
+                passwordResetUrl: `${dashboardUrl}/reset-password`,
+                changeEmailAddressUrl: `${dashboardUrl}/change-email-address`,
+                adminPasswordResetUrl: `${dashboardUrl}/reset-password`,
             },
         }),
-        ...(IS_INSTRUMENTED ? [TelemetryPlugin.init({})] : []),
-        // AdminUiPlugin.init({
-        //     route: 'admin',
-        //     port: 5001,
-        //     adminUiConfig: {},
-        //     // Un-comment to compile a custom admin ui
-        //     // app: compileUiExtensions({
-        //     //     outputPath: path.join(__dirname, './custom-admin-ui'),
-        //     //     extensions: [
-        //     //         {
-        //     //             id: 'ui-extensions-library',
-        //     //             extensionPath: path.join(__dirname, 'example-plugins/ui-extensions-library/ui'),
-        //     //             routes: [{ route: 'ui-library', filePath: 'routes.ts' }],
-        //     //             providers: ['providers.ts'],
-        //     //         },
-        //     //         {
-        //     //             globalStyles: path.join(
-        //     //                 __dirname,
-        //     //                 'test-plugins/with-ui-extension/ui/custom-theme.scss',
-        //     //             ),
-        //     //         },
-        //     //     ],
-        //     //     devMode: true,
-        //     // }),
-        // }),
-        AdminUiPlugin.init({
-            route: 'admin',
-            port: 5001,
-            adminUiConfig: {},
-            // Un-comment to compile a custom admin ui
-            // app: compileUiExtensions({
-            //     outputPath: path.join(__dirname, './custom-admin-ui'),
-            //     extensions: [
-            //         {
-            //             id: 'ui-extensions-library',
-            //             extensionPath: path.join(__dirname, 'example-plugins/ui-extensions-library/ui'),
-            //             routes: [{ route: 'ui-library', filePath: 'routes.ts' }],
-            //             providers: ['providers.ts'],
-            //         },
-            //         {
-            //             globalStyles: path.join(
-            //                 __dirname,
-            //                 'test-plugins/with-ui-extension/ui/custom-theme.scss',
-            //             ),
-            //         },
-            //     ],
-            //     devMode: true,
-            // }),
-        }),
-        DashboardPlugin.init({
-            route: 'dashboard',
-            appDir: path.join(__dirname, './dist'),
-        }),
+        ...(IS_INSTRUMENTED ? [loadPackage('@vendure/telemetry-plugin').TelemetryPlugin.init({})] : []),
+        SERVE_STATIC_DASHBOARD
+            ? DashboardPlugin.init({
+                  route: 'dashboard',
+                  appDir: dashboardAppDir,
+              })
+            : DashboardPlugin,
     ],
 };
 

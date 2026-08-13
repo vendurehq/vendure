@@ -15,14 +15,13 @@ import { Input } from '@/vdb/components/ui/input.js';
 import { api } from '@/vdb/graphql/api.js';
 import { graphql, ResultOf, VariablesOf } from '@/vdb/graphql/graphql.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { z, zodResolver } from '@/vdb/lib/zod.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import * as z from 'zod';
 import { createProductOptionDocument, createProductVariantsDocument } from '../products.graphql.js';
 import { ProductOptionSelect } from './product-option-select.js';
 

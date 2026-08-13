@@ -35,9 +35,10 @@ generated: true
     PaymentDeclinedError: '/reference/graphql-api/shop/object-types#paymentdeclinederror',
     OrderStateTransitionError: '/reference/graphql-api/shop/object-types#orderstatetransitionerror',
     NoActiveOrderError: '/reference/graphql-api/shop/object-types#noactiveordererror',
+    CouponRemovedDuringCheckoutError: '/reference/graphql-api/shop/object-types#couponremovedduringcheckouterror',
   }}
 >
-{`union AddPaymentToOrderResult = Order | OrderPaymentStateError | IneligiblePaymentMethodError | PaymentFailedError | PaymentDeclinedError | OrderStateTransitionError | NoActiveOrderError`}
+{`union AddPaymentToOrderResult = Order | OrderPaymentStateError | IneligiblePaymentMethodError | PaymentFailedError | PaymentDeclinedError | OrderStateTransitionError | NoActiveOrderError | CouponRemovedDuringCheckoutError`}
 </GraphQLDoc>
 
 <a name="address"></a>
@@ -706,6 +707,40 @@ type CouponCodeLimitError {
   message: String!
   couponCode: String!
   limit: Int!
+}`}
+</GraphQLDoc>
+
+<a name="couponremovedduringcheckouterror"></a>
+
+## CouponRemovedDuringCheckoutError
+
+<GraphQLDoc
+  type="type"
+  typeName="CouponRemovedDuringCheckoutError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/shop/enums#errorcode',
+    String: '/reference/graphql-api/shop/object-types#string',
+    Money: '/reference/graphql-api/shop/object-types#money',
+    CurrencyCode: '/reference/graphql-api/shop/enums#currencycode',
+  }}
+>
+{`"""
+Returned by \`addPaymentToOrder\` when one or more coupon codes were removed
+from the Order during payment-time revalidation and the removal would have
+increased the amount the customer is charged. Refusing the payment in this
+case prevents silently charging the customer more than they agreed to. The
+most common trigger is a usage-limited coupon's slot being claimed by a
+concurrent checkout, but the same protection applies when a coupon is
+stripped because the order no longer meets the promotion's eligibility
+conditions or because the promotion was disabled mid-checkout.
+"""
+type CouponRemovedDuringCheckoutError {
+  errorCode: ErrorCode!
+  message: String!
+  removedCouponCodes: [String!]!
+  previousTotalWithTax: Money!
+  newTotalWithTax: Money!
+  currencyCode: CurrencyCode!
 }`}
 </GraphQLDoc>
 

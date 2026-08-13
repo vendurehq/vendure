@@ -3,6 +3,7 @@ import { GlobalFlag } from '@vendure/common/lib/generated-types';
 import { ID } from '@vendure/common/lib/shared-types';
 import ms from 'ms';
 import { filter } from 'rxjs/operators';
+import { LockNotSupportedOnGivenDriverError } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
 import { Cache, CacheService, RequestContextCacheService } from '../../cache/index';
@@ -11,10 +12,13 @@ import { ProductVariant } from '../../entity/index';
 import { OrderLine } from '../../entity/order-line/order-line.entity';
 import { StockLevel } from '../../entity/stock-level/stock-level.entity';
 import { StockLocation } from '../../entity/stock-location/stock-location.entity';
-import { EventBus, StockLocationEvent } from '../../event-bus/index';
+import { ChangeChannelEvent, EventBus, StockLocationEvent } from '../../event-bus/index';
+import { Logger } from '../logger/vendure-logger';
 
 import { BaseStockLocationStrategy } from './default-stock-location-strategy';
 import { AvailableStock, LocationWithQuantity, StockLocationStrategy } from './stock-location-strategy';
+
+const loggerCtx = 'MultiChannelStockLocationStrategy';
 
 /**
  * @description
@@ -59,11 +63,21 @@ export class MultiChannelStockLocationStrategy extends BaseStockLocationStrategy
             getKey: id => this.getCacheKey(id),
         });
 
-        // When a StockLocation is updated, we need to invalidate the cache
+        // When a StockLocation is updated, we need to invalidate the cache.
+        // Note: `Cache.delete()` applies the configured `getKey` function itself,
+        // so it must be passed the raw id, not the result of `getCacheKey()`.
         this.eventBus
             .ofType(StockLocationEvent)
             .pipe(filter(event => event.type !== 'created'))
-            .subscribe(({ entity }) => this.channelIdCache.delete(this.getCacheKey(entity.id)));
+            .subscribe(({ entity }) => this.invalidateChannelIdCache(entity.id));
+
+        // Assigning a StockLocation to a Channel (or removing it) does not emit a
+        // StockLocationEvent, so we also need to invalidate the cache on ChangeChannelEvents
+        // which relate to StockLocations.
+        this.eventBus
+            .ofType(ChangeChannelEvent)
+            .pipe(filter(event => event.entityType === StockLocation))
+            .subscribe(({ entity }) => this.invalidateChannelIdCache(entity.id));
     }
 
     /**
@@ -100,7 +114,7 @@ export class MultiChannelStockLocationStrategy extends BaseStockLocationStrategy
         orderLine: OrderLine,
         quantity: number,
     ): Promise<LocationWithQuantity[]> {
-        const stockLevels = await this.getStockLevelsForVariant(ctx, orderLine.productVariantId);
+        const stockLevels = await this.getLockedStockLevelsForVariant(ctx, orderLine.productVariantId);
         const variant = await this.connection.getEntityOrThrow(
             ctx,
             ProductVariant,
@@ -164,18 +178,58 @@ export class MultiChannelStockLocationStrategy extends BaseStockLocationStrategy
         return `MultiChannelStockLocationStrategy:StockLocationChannelIds:${stockLocationId}`;
     }
 
-    private getStockLevelsForVariant(ctx: RequestContext, productVariantId: ID): Promise<StockLevel[]> {
-        return this.requestContextCache.get(
-            ctx,
-            `MultiChannelStockLocationStrategy.stockLevels.${productVariantId}`,
-            () =>
-                this.connection.getRepository(ctx, StockLevel).find({
-                    where: {
-                        productVariantId,
-                    },
-                    loadEagerRelations: false,
-                }),
-        );
+    /**
+     * Invalidation runs in an event subscriber, so there is nothing to await the returned
+     * promise. A rejection here would otherwise be silent, leaving the stale channel id list
+     * to live out its full TTL.
+     */
+    private invalidateChannelIdCache(stockLocationId: ID) {
+        void this.channelIdCache
+            .delete(stockLocationId)
+            .catch(err =>
+                Logger.error(
+                    `Failed to invalidate StockLocation channel id cache for id ${stockLocationId}: ${
+                        err instanceof Error ? err.message : String(err)
+                    }`,
+                    loggerCtx,
+                ),
+            );
+    }
+
+    /**
+     * @description
+     * Reads the variant's StockLevel rows with a pessimistic write lock. This both serializes
+     * concurrent allocations for the same variant and — crucially on MySQL/MariaDB, whose default
+     * REPEATABLE READ isolation would otherwise serve a plain read from the transaction snapshot
+     * taken before the lock — returns the latest committed values. The lock is held until the
+     * surrounding allocation transaction commits (see `StockMovementService.createAllocationsForOrderLines`,
+     * which runs this in a transaction). The request-context cache is deliberately bypassed so that
+     * a second order line for the same variant re-reads the post-allocation values rather than a
+     * stale cached snapshot.
+     */
+    private async getLockedStockLevelsForVariant(
+        ctx: RequestContext,
+        productVariantId: ID,
+    ): Promise<StockLevel[]> {
+        try {
+            return await this.connection
+                .getRepository(ctx, StockLevel)
+                .createQueryBuilder('stockLevel')
+                .setLock('pessimistic_write')
+                .where('stockLevel.productVariantId = :productVariantId', { productVariantId })
+                .getMany();
+        } catch (e) {
+            if (!(e instanceof LockNotSupportedOnGivenDriverError)) {
+                throw e;
+            }
+            // SQLite does not support pessimistic locking. It is single-writer in practice, so a
+            // concurrent write surfaces as SQLITE_BUSY rather than a silent lost update; SQLite is
+            // not recommended for concurrent production use.
+            return this.connection.getRepository(ctx, StockLevel).find({
+                where: { productVariantId },
+                loadEagerRelations: false,
+            });
+        }
     }
 
     private async getVariantStockSettings(ctx: RequestContext, variant: ProductVariant) {

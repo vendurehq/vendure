@@ -97,7 +97,7 @@ export const Route = createFileRoute(
             ],
         };
     },
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function OptionGroupOptionDetailPage() {
@@ -179,21 +179,6 @@ function OptionGroupOptionDetailPage() {
                 </ActionBarItem>
             </PageActionBar>
             <PageLayout>
-                {entity?.group && (
-                    <PageBlock column="side" blockId="option-group-info">
-                        <div className="space-y-2">
-                            <div className="text-sm font-medium">
-                                <Trans>Option Group</Trans>
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                                {entity?.group.name}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                                {entity?.group.code}
-                            </div>
-                        </div>
-                    </PageBlock>
-                )}
                 <PageBlock column="main" blockId="main-form">
                     <DetailFormGrid>
                         <TranslatableFormFieldWrapper

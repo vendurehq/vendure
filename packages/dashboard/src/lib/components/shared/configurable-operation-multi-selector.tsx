@@ -8,12 +8,13 @@ import {
 } from '@/vdb/components/ui/dropdown-menu.js';
 import { api } from '@/vdb/graphql/api.js';
 import { ConfigurableOperationDefFragment } from '@/vdb/graphql/fragments.js';
-import { Trans } from '@lingui/react/macro';
+import { useLingui } from '@lingui/react/macro';
 import { DefinedInitialDataOptions, useQuery, UseQueryOptions } from '@tanstack/react-query';
 import { ConfigurableOperationInput as ConfigurableOperationInputType } from '@vendure/common/lib/generated-types';
 import { Plus } from 'lucide-react';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ConfigurableOperationInput } from './configurable-operation-input.js';
+import { getInitialConfigArgValue } from './configurable-operation-utils.js';
 
 /**
  * Props interface for ConfigurableOperationMultiSelector component
@@ -31,7 +32,7 @@ export interface ConfigurableOperationMultiSelectorProps {
     queryKey: string;
     /** Dot-separated path to extract operations from query result (e.g., "promotionConditions") */
     dataPath: string;
-    /** Text to display on the add button */
+    /** Text to display on the add button. Must be pre-translated, e.g. with the `t` macro. */
     buttonText: string;
     /** Title to show at the top of the dropdown menu (only when showEnhancedDropdown is true) */
     dropdownTitle?: string;
@@ -46,6 +47,11 @@ export interface ConfigurableOperationMultiSelectorProps {
      * Simple style is used by collection filters for a cleaner, more compact appearance.
      */
     showEnhancedDropdown?: boolean;
+    /**
+     * Rendering style for the selected operations, forwarded to
+     * {@link ConfigurableOperationInput}. Defaults to 'sentence'.
+     */
+    variant?: 'sentence' | 'form';
     /** Callback when validity of required args changes (all operations must be valid) */
     onValidityChange?: (isValid: boolean) => void;
 }
@@ -79,8 +85,8 @@ type QueryData = {
  *   queryDocument={promotionConditionsDocument}
  *   queryKey="promotionConditions"
  *   dataPath="promotionConditions"
- *   buttonText="Add condition"
- *   dropdownTitle="Available Conditions"
+ *   buttonText={t`Add condition`}
+ *   dropdownTitle={t`Available Conditions`}
  *   showEnhancedDropdown={true}
  * />
  *
@@ -91,7 +97,7 @@ type QueryData = {
  *   queryOptions={getCollectionFiltersQueryOptions}
  *   queryKey="getCollectionFilters"
  *   dataPath="collectionFilters"
- *   buttonText="Add collection filter"
+ *   buttonText={t`Add collection filter`}
  *   showEnhancedDropdown={false}
  * />
  * ```
@@ -105,10 +111,15 @@ export function ConfigurableOperationMultiSelector({
     dataPath,
     buttonText,
     dropdownTitle,
-    emptyText = 'No options found',
+    emptyText,
     showEnhancedDropdown = true,
+    variant = 'sentence',
     onValidityChange,
 }: Readonly<ConfigurableOperationMultiSelectorProps>) {
+    const { t } = useLingui();
+    // Index of the most recently added operation, which should auto-open the
+    // popover of its first empty arg (sentence variant only).
+    const [autoOpenIndex, setAutoOpenIndex] = useState<number | null>(null);
     // Track validity for each operation by code+index to handle reordering/removal.
     // When operations change, we clear and let each ConfigurableOperationInput re-report.
     const validityMapRef = useRef<Record<string, boolean>>({});
@@ -172,26 +183,25 @@ export function ConfigurableOperationMultiSelector({
         if (!operationDef) {
             return;
         }
+        setAutoOpenIndex(value.length);
         onChange([
             ...value,
             {
                 code: operation.code,
                 arguments: operationDef.args.map(arg => ({
                     name: arg.name,
-                    value: arg.defaultValue != null ? arg.defaultValue.toString() : arg.list ? '[]' : '',
+                    value: getInitialConfigArgValue(arg),
                 })),
             },
         ]);
     };
 
-    const onOperationValueChange = (
-        operation: ConfigurableOperationInputType,
-        newVal: ConfigurableOperationInputType,
-    ) => {
-        onChange(value.map(op => (op.code === operation.code ? newVal : op)));
+    const onOperationValueChange = (index: number, newVal: ConfigurableOperationInputType) => {
+        onChange(value.map((op, i) => (i === index ? newVal : op)));
     };
 
     const onOperationRemove = (index: number) => {
+        setAutoOpenIndex(null);
         onChange(value.filter((_, i) => i !== index));
     };
 
@@ -226,31 +236,42 @@ export function ConfigurableOperationMultiSelector({
                         const hasCombinationMode = operation.arguments.find(
                             arg => arg.name === 'combineWithAnd',
                         );
+                        const isSentence = variant !== 'form';
+                        const combinationModePill = index > 0 && hasCombinationMode && (
+                            <CombinationModeInput
+                                value={
+                                    operation.arguments.find(arg => arg.name === 'combineWithAnd')?.value ??
+                                    'true'
+                                }
+                                onChange={(newValue: boolean | string) =>
+                                    onCombinationModeChange(index, newValue)
+                                }
+                                name={''}
+                                ref={() => {}}
+                                onBlur={() => {}}
+                                position={index}
+                            />
+                        );
                         return (
                             <div key={index + operation.code}>
-                                {index > 0 && hasCombinationMode ? (
-                                    <div className="my-2">
-                                        <CombinationModeInput
-                                            value={
-                                                operation.arguments.find(arg => arg.name === 'combineWithAnd')
-                                                    ?.value ?? 'true'
-                                            }
-                                            onChange={(newValue: boolean | string) =>
-                                                onCombinationModeChange(index, newValue)
-                                            }
-                                            name={''}
-                                            ref={() => {}}
-                                            onBlur={() => {}}
-                                            position={index}
-                                        />
-                                    </div>
+                                {isSentence ? (
+                                    index > 0 &&
+                                    (combinationModePill ? (
+                                        <div className="my-1.5">{combinationModePill}</div>
+                                    ) : (
+                                        <div className="border-t my-1.5" />
+                                    ))
+                                ) : combinationModePill ? (
+                                    <div className="my-2 flex justify-center">{combinationModePill}</div>
                                 ) : (
                                     <div className="h-4" />
                                 )}
                                 <ConfigurableOperationInput
                                     operationDefinition={operationDef}
                                     value={operation}
-                                    onChange={value => onOperationValueChange(operation, value)}
+                                    variant={variant}
+                                    autoOpenFirstEmptyArg={index === autoOpenIndex}
+                                    onChange={value => onOperationValueChange(index, value)}
                                     onRemove={() => onOperationRemove(index)}
                                     onValidityChange={isValid => updateOperationValidity(index, isValid)}
                                 />
@@ -263,10 +284,17 @@ export function ConfigurableOperationMultiSelector({
             <div className={hasOperations ? 'pt-2' : ''}>
                 <DropdownMenu>
                     <DropdownMenuTrigger render={<Button variant="outline" className="w-full sm:w-auto" />}>
-                            <Plus className="h-4 w-4" />
-                            <Trans>{buttonText}</Trans>
+                        <Plus className="h-4 w-4" />
+                        {buttonText}
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className={showEnhancedDropdown ? 'w-80 max-h-[min(600px,50vh)] overflow-y-auto' : 'w-96 max-h-[min(600px,50vh)] overflow-y-auto'} align="start">
+                    <DropdownMenuContent
+                        className={
+                            showEnhancedDropdown
+                                ? 'w-80 max-h-[min(600px,50vh)] overflow-y-auto'
+                                : 'w-96 max-h-[min(600px,50vh)] overflow-y-auto'
+                        }
+                        align="start"
+                    >
                         {showEnhancedDropdown && dropdownTitle && (
                             <div className="px-2 py-1.5 text-sm font-medium text-muted-foreground">
                                 {dropdownTitle}
@@ -296,7 +324,7 @@ export function ConfigurableOperationMultiSelector({
                                 </DropdownMenuItem>
                             ))
                         ) : (
-                            <DropdownMenuItem>{emptyText}</DropdownMenuItem>
+                            <DropdownMenuItem>{emptyText ?? t`No options found`}</DropdownMenuItem>
                         )}
                     </DropdownMenuContent>
                 </DropdownMenu>

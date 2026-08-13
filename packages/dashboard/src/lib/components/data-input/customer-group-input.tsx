@@ -33,6 +33,11 @@ export function CustomerGroupInput({
                 id: value,
             }),
         enabled: !!value,
+        // Opt out of the global keepPreviousData default: this query is keyed
+        // on the selected id, so any "previous" data corresponds to a
+        // different group. Showing it would render a stale chip with the
+        // wrong name during the swap.
+        placeholderData: undefined,
     });
 
     const onValueSelectHandler = (value: CustomerGroup) => {

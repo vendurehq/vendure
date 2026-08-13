@@ -24,9 +24,11 @@ import { ConfigService } from '../config/config.service';
 import { VendureEntity } from '../entity/base/base.entity';
 import { joinTreeRelationsDynamically } from '../service/helpers/utils/tree-relations-qb-joiner';
 
+import { findOptionsArrayToObject } from './find-options-array-to-object';
 import { findOptionsObjectToArray } from './find-options-object-to-array';
+import { toTypeOrmFindOptions } from './to-typeorm-find-options';
 import { TransactionWrapper } from './transaction-wrapper';
-import { GetEntityOrThrowOptions } from './types';
+import { GetEntityOrThrowOptions, VendureFindManyOptions, VendureFindOneOptions } from './types';
 
 /**
  * Repository methods intercepted by the access control Proxy.
@@ -321,7 +323,7 @@ export class TransactionalConnection {
             );
         } else {
             const optionsWithId = {
-                ...options,
+                ...toTypeOrmFindOptions<T, GetEntityOrThrowOptions<T>>(options),
                 where: {
                     ...(options.where || {}),
                     id,
@@ -352,21 +354,24 @@ export class TransactionalConnection {
         entity: Type<T>,
         id: ID,
         channelId: ID,
-        options: FindOneOptions<T> = {},
+        options: VendureFindOneOptions<T> = {},
     ) {
         const qb = this.getRepository(ctx, entity).createQueryBuilder('entity');
+        const findOptions = toTypeOrmFindOptions<T, VendureFindOneOptions<T>>(options);
 
-        if (options.relations) {
-            const joinedRelations = joinTreeRelationsDynamically(qb, entity, options.relations);
+        if (findOptions.relations && Object.keys(findOptions.relations).length > 0) {
+            const joinedRelations = joinTreeRelationsDynamically(qb, entity, findOptions.relations);
             // Remove any relations which are related to the 'collection' tree, as these are handled separately
             // to avoid duplicate joins.
-            options.relations = findOptionsObjectToArray(options.relations).filter(
-                relationPath => !joinedRelations.has(relationPath),
+            findOptions.relations = findOptionsArrayToObject<T>(
+                findOptionsObjectToArray(findOptions.relations).filter(
+                    relationPath => !joinedRelations.has(relationPath),
+                ),
             );
         }
         qb.setFindOptions({
             relationLoadStrategy: 'query', // default to query strategy for maximum performance
-            ...options,
+            ...findOptions,
         });
 
         qb.leftJoin('entity.channels', '__channel')
@@ -388,7 +393,7 @@ export class TransactionalConnection {
         entity: Type<T>,
         ids: ID[],
         channelId: ID,
-        options: FindManyOptions<T>,
+        options: VendureFindManyOptions<T>,
     ) {
         // the syntax described in https://github.com/typeorm/typeorm/issues/1239#issuecomment-366955628
         // breaks if the array is empty
@@ -397,21 +402,26 @@ export class TransactionalConnection {
         }
 
         const qb = this.getRepository(ctx, entity).createQueryBuilder('entity');
+        const findOptions = toTypeOrmFindOptions<T, VendureFindManyOptions<T>>(options);
 
-        if (Array.isArray(options.relations) && options.relations.length > 0) {
+        if (findOptions.relations && Object.keys(findOptions.relations).length > 0) {
             const joinedRelations = joinTreeRelationsDynamically(
                 qb as SelectQueryBuilder<VendureEntity>,
                 entity,
-                options.relations,
+                findOptions.relations,
             );
             // Remove any relations which are related to the 'collection' tree, as these are handled separately
             // to avoid duplicate joins.
-            options.relations = options.relations.filter(relationPath => !joinedRelations.has(relationPath));
+            findOptions.relations = findOptionsArrayToObject<T>(
+                findOptionsObjectToArray(findOptions.relations).filter(
+                    relationPath => !joinedRelations.has(relationPath),
+                ),
+            );
         }
 
         qb.setFindOptions({
             relationLoadStrategy: 'query', // default to query strategy for maximum performance
-            ...options,
+            ...findOptions,
         });
 
         qb.leftJoin('entity.channels', 'channel')

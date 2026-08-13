@@ -20,7 +20,7 @@ import { TelemetryConfig, TelemetryFeatures } from '../telemetry.types';
 export class FeaturesCollector {
     constructor(private readonly connection: TransactionalConnection) {}
 
-    async collect(config: TelemetryConfig): Promise<TelemetryFeatures> {
+    async collect(config: TelemetryConfig, currencyCount?: number): Promise<TelemetryFeatures> {
         const rawConnection = this.connection.rawConnection;
         const dbReady = rawConnection?.isInitialized;
 
@@ -40,6 +40,8 @@ export class FeaturesCollector {
             // Derived from already-collected config — no duplicate iteration
             customFieldsInUse: (config.customFieldsCount ?? 0) > 0,
             scheduledTasks: (config.scheduledTaskCount ?? 0) > 0,
+            // Derived from the already-collected i18n currency count — no duplicate query
+            multiCurrency: currencyCount === undefined ? undefined : currencyCount > 1,
         };
     }
 
@@ -66,9 +68,9 @@ export class FeaturesCollector {
         }
     }
 
-    // eslint-disable-next-line @typescript-eslint/ban-types
     private async safeCount<T>(
         dbReady: boolean | undefined,
+        // eslint-disable-next-line @typescript-eslint/ban-types
         entity: Function,
         map: (count: number) => T,
     ): Promise<T | undefined> {

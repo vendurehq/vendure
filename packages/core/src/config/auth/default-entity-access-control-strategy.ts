@@ -34,6 +34,7 @@ import { EntityAccessControlStrategy } from './entity-access-control-strategy';
  * ```
  *
  * @docsCategory auth
+ * @docsPage EntityAccessControlStrategy
  * @since 3.6.0
  * @experimental
  */

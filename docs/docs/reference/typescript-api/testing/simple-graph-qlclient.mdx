@@ -2,7 +2,7 @@
 title: "SimpleGraphQLClient"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/testing/src/simple-graphql-client.ts" sourceLine="40" packageName="@vendure/testing" />
+<GenerationInfo sourceFile="packages/testing/src/simple-graphql-client.ts" sourceLine="39" packageName="@vendure/testing" />
 
 A minimalistic GraphQL client for populating and querying test data.
 
@@ -11,6 +11,7 @@ class SimpleGraphQLClient {
     constructor(vendureConfig: Required<VendureConfig>, apiUrl: string = '')
     setAuthToken(token: string) => ;
     setChannelToken(token: string | null) => ;
+    setHeader(key: string, value: string | null) => ;
     getAuthToken() => string;
     query(query: DocumentNode | TypedDocumentNode<T, V>, variables?: V, queryParams?: QueryParams) => Promise<T>;
     fetch(url: string, options: RequestInit = {}) => Promise<Response>;
@@ -22,16 +23,12 @@ class SimpleGraphQLClient {
         mutation: DocumentNode;
         filePaths: string[];
         mapVariables: (filePaths: string[]) => any;
+        contentTypeOverrides?: { [index: number]: string };
     }) => Promise<any>;
 }
 ```
 
 <div className="members-wrapper">
-
-### constructor
-
-<MemberInfo kind="method" type={`(vendureConfig: Required<<a href='/reference/typescript-api/configuration/vendure-config#vendureconfig'>VendureConfig</a>>, apiUrl: string = '') => SimpleGraphQLClient`}   />
-
 
 ### setAuthToken
 
@@ -43,6 +40,12 @@ Sets the authToken to be used in each GraphQL request.
 <MemberInfo kind="method" type={`(token: string | null) => `}   />
 
 Sets the authToken to be used in each GraphQL request.
+### setHeader
+
+<MemberInfo kind="method" type={`(key: string, value: string | null) => `}  since="3.8.0"  />
+
+Sets an arbitrary header to be sent with each subsequent request, or removes it when passed
+`null`. Useful for headers the server reads directly, such as `Accept-Language`.
 ### getAuthToken
 
 <MemberInfo kind="method" type={`() => string`}   />
@@ -82,7 +85,7 @@ Logs in as the SuperAdmin user.
 Logs out so that the client is then treated as an anonymous user.
 ### fileUploadMutation
 
-<MemberInfo kind="method" type={`(options: {         mutation: DocumentNode;         filePaths: string[];         mapVariables: (filePaths: string[]) => any;     }) => Promise<any>`}   />
+<MemberInfo kind="method" type={`(options: {         mutation: DocumentNode;         filePaths: string[];         mapVariables: (filePaths: string[]) => any;         contentTypeOverrides?: { [index: number]: string };     }) => Promise<any>`}   />
 
 Perform a file upload mutation.
 

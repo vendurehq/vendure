@@ -1,7 +1,7 @@
 import { api } from '@/vdb/graphql/api.js';
 import { graphql, ResultOf } from '@/vdb/graphql/graphql.js';
 import { useLingui } from '@lingui/react/macro';
-import { useInfiniteQuery, useMutation } from '@tanstack/react-query';
+import { QueryKey, useInfiniteQuery, useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -54,6 +54,10 @@ export interface UseCustomerHistoryResult {
     hasNextPage: boolean;
 }
 
+export function customerHistoryQueryKey(customerId: string): QueryKey {
+    return ['CustomerHistory', customerId];
+}
+
 export function useCustomerHistory({
     customerId,
     pageSize = 10,
@@ -64,7 +68,7 @@ export function useCustomerHistory({
     const [isLoading, setIsLoading] = useState(false);
     const { i18n } = useLingui();
 
-    // Fetch order history
+    // Fetch customer history
     const {
         data,
         isLoading: isLoadingQuery,
@@ -82,7 +86,7 @@ export function useCustomerHistory({
                     take: pageSize,
                 },
             }),
-        queryKey: ['CustomerHistory', customerId],
+        queryKey: customerHistoryQueryKey(customerId),
         initialPageParam: 0,
         getNextPageParam: (lastPage, pages, lastPageParam) => {
             const totalItems = lastPage.customer?.history?.totalItems ?? 0;

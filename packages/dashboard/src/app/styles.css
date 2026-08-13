@@ -1,9 +1,7 @@
-@import '@fontsource-variable/inter';
-@import '@fontsource-variable/public-sans';
-@import '@fontsource-variable/geist-mono';
+@import '@vendure-io/design-tokens/css/fonts';
 @import 'tailwindcss';
 @import 'tw-animate-css';
-@import "shadcn/tailwind.css";
+@import '@vendure-io/design-tokens/css/shadcn';
 
 html[dir="rtl"] * {
     direction: rtl;
@@ -22,12 +20,24 @@ html[dir="rtl"] * {
 
 /*
  * Tailwind @theme inline block generated at build time by the themeVariablesPlugin.
- * It produces --color-*, --radius-*, --shadow-*, and --font-* mappings
- * directly from @vendure-io/design-tokens JS exports, plus dashboard-specific
- * extensions (dev-mode, brand). This keeps the dashboard in sync with the
- * design system without duplicating token values.
+ * It produces --color-*, --radius-*, --shadow-*, --font-*, and motion
+ * (--ease-*, --transition-duration-*, --animate-*) mappings directly from
+ * @vendure-io/design-tokens JS exports, plus dashboard-specific extensions
+ * (dev-mode, brand). It also emits the top-level @keyframes blocks backing the
+ * --animate-* tokens and the @utility text-style-* classes consumed by
+ * @vendure-io/ui. This keeps the dashboard in sync with the design system
+ * without duplicating token values.
  */
 @import 'virtual:admin-theme-inline';
+
+/*
+ * Replaced at build time by the themeVariablesPlugin with the @import
+ * statements for any stylesheets passed via the `theme.additionalStylesheets`
+ * option. Placed here so user styles participate in Tailwind's build pipeline.
+ * When no stylesheets are configured, this placeholder is removed.
+ */
+/* stylelint-disable-next-line no-invalid-position-at-import-rule */
+@import 'virtual:vendure-user-styles';
 
 @layer base {
     * {
@@ -43,6 +53,11 @@ html[dir="rtl"] * {
         isolation: isolate;
     }
 
+    /* Translucent so the same rule stays legible over light and dark backgrounds */
+    ::selection {
+        background-color: color-mix(in oklab, var(--brand) 30%, transparent);
+    }
+
     /* Restore h-svh on sidebar-gap to prevent sidebar fixed container
        from intercepting pointer events in the main content area */
     [data-slot="sidebar-gap"] {
@@ -52,6 +67,13 @@ html[dir="rtl"] * {
 
 @utility col-main {
     grid-column: span 3 / span 3;
+}
+@utility scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    &::-webkit-scrollbar {
+        display: none;
+    }
 }
 @utility col-side {
     grid-column: span 2 / span 2;

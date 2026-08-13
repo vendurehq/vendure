@@ -11,10 +11,7 @@ test.describe('Dashboard Insights', () => {
         await page.goto('/');
         await expect(page.getByTestId('page-heading')).toBeVisible();
 
-        // The DateRangePicker is a Button showing "Mar 1, 2026 - Mar 20, 2026"
-        const dateRangePicker = page.getByRole('button', {
-            name: /\w{3} \d{1,2}, \d{4}\s*-\s*\w{3} \d{1,2}, \d{4}/,
-        });
+        const dateRangePicker = page.locator('[data-slot="date-range-picker"]').getByRole('button');
         await expect(dateRangePicker).toBeVisible();
     });
 
@@ -22,8 +19,8 @@ test.describe('Dashboard Insights', () => {
         await page.goto('/');
         await expect(page.getByTestId('page-heading')).toBeVisible();
 
-        // Click "Edit Layout" button
-        const editButton = page.getByRole('button', { name: 'Edit Layout' });
+        // Click the icon-only "Edit layout" button
+        const editButton = page.getByRole('button', { name: 'Edit layout' });
         await expect(editButton).toBeVisible();
         await editButton.click();
 
@@ -33,7 +30,7 @@ test.describe('Dashboard Insights', () => {
         // Click "Save Layout" to exit edit mode
         await page.getByRole('button', { name: 'Save Layout' }).click();
 
-        // Button should return to "Edit Layout"
-        await expect(page.getByRole('button', { name: 'Edit Layout' })).toBeVisible();
+        // Button should return to the "Edit layout" icon button
+        await expect(page.getByRole('button', { name: 'Edit layout' })).toBeVisible();
     });
 });

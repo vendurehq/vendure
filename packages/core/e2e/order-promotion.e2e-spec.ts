@@ -26,6 +26,7 @@ import {
     createTestEnvironment,
     E2E_DEFAULT_CHANNEL_TOKEN,
     ErrorResultGuard,
+    SimpleGraphQLClient,
 } from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -51,7 +52,9 @@ import {
     deletePromotionDocument,
     getFacetListDocument,
     getProductsWithVariantPricesDocument,
+    getPromotionDocument,
     removeCustomersFromGroupDocument,
+    updatePromotionDocument,
 } from './graphql/shared-definitions';
 import {
     addItemToOrderDocument,
@@ -185,15 +188,55 @@ describe('Promotions applied to Orders', () => {
             expect(applyCouponCode.errorCode).toBe(ErrorCode.COUPON_CODE_EXPIRED_ERROR);
         });
 
-        it('coupon code application is case-sensitive', async () => {
+        it('coupon code application is case-insensitive', async () => {
             const { applyCouponCode } = await shopClient.query(applyCouponCodeDocument, {
                 couponCode: TEST_COUPON_CODE.toLowerCase(),
             });
-            orderResultGuard.assertErrorResult(applyCouponCode);
-            expect(applyCouponCode.message).toBe(
-                `Coupon code "${TEST_COUPON_CODE.toLowerCase()}" is not valid`,
-            );
-            expect(applyCouponCode.errorCode).toBe(ErrorCode.COUPON_CODE_INVALID_ERROR);
+            orderResultGuard.assertSuccess(applyCouponCode);
+            // The canonical coupon code from the promotion should be stored
+            expect(applyCouponCode.couponCodes).toEqual([TEST_COUPON_CODE]);
+            expect(applyCouponCode.discounts.length).toBe(1);
+            expect(applyCouponCode.discounts[0].description).toBe('Free with test coupon');
+            expect(applyCouponCode.totalWithTax).toBe(0);
+        });
+
+        it('removes a coupon code with different casing than it was applied', async () => {
+            // Re-apply with lowercase
+            const { applyCouponCode } = await shopClient.query(applyCouponCodeDocument, {
+                couponCode: TEST_COUPON_CODE.toLowerCase(),
+            });
+            orderResultGuard.assertSuccess(applyCouponCode);
+            expect(applyCouponCode.couponCodes).toEqual([TEST_COUPON_CODE]);
+
+            // #4364 — remove using different casing than how it was applied
+            const { removeCouponCode } = await shopClient.query(removeCouponCodeDocument, {
+                couponCode: TEST_COUPON_CODE.toLowerCase(),
+            });
+            expect(removeCouponCode!.couponCodes).toEqual([]);
+            expect(removeCouponCode!.discounts.length).toBe(0);
+        });
+
+        // #4364 — applying the same coupon code with different casings should not create duplicates
+        it('de-duplicates coupon codes case-insensitively', async () => {
+            // Apply with uppercase (canonical form)
+            const { applyCouponCode: first } = await shopClient.query(applyCouponCodeDocument, {
+                couponCode: TEST_COUPON_CODE,
+            });
+            orderResultGuard.assertSuccess(first);
+            expect(first.couponCodes).toEqual([TEST_COUPON_CODE]);
+
+            // Apply again with lowercase — should not duplicate
+            const { applyCouponCode: second } = await shopClient.query(applyCouponCodeDocument, {
+                couponCode: TEST_COUPON_CODE.toLowerCase(),
+            });
+            orderResultGuard.assertSuccess(second);
+            expect(second.couponCodes).toEqual([TEST_COUPON_CODE]);
+            expect(second.couponCodes.length).toBe(1);
+
+            // Clean up
+            await shopClient.query(removeCouponCodeDocument, {
+                couponCode: TEST_COUPON_CODE,
+            });
         });
 
         it('applies a valid coupon code', async () => {
@@ -218,6 +261,36 @@ describe('Promotions applied to Orders', () => {
                         to: 'AddingItems',
                     },
                 },
+                // From "coupon code application is case-insensitive" test
+                {
+                    type: HistoryEntryType.ORDER_COUPON_APPLIED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                        promotionId: 'T_3',
+                    },
+                },
+                // From "removes a coupon code with different casing" test
+                {
+                    type: HistoryEntryType.ORDER_COUPON_REMOVED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                    },
+                },
+                // From "de-duplicates coupon codes case-insensitively" test
+                {
+                    type: HistoryEntryType.ORDER_COUPON_APPLIED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                        promotionId: 'T_3',
+                    },
+                },
+                {
+                    type: HistoryEntryType.ORDER_COUPON_REMOVED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                    },
+                },
+                // From "applies a valid coupon code" test
                 {
                     type: HistoryEntryType.ORDER_COUPON_APPLIED,
                     data: {
@@ -263,6 +336,7 @@ describe('Promotions applied to Orders', () => {
                         to: 'AddingItems',
                     },
                 },
+                // From "coupon code application is case-insensitive" test
                 {
                     type: HistoryEntryType.ORDER_COUPON_APPLIED,
                     data: {
@@ -270,6 +344,36 @@ describe('Promotions applied to Orders', () => {
                         promotionId: 'T_3',
                     },
                 },
+                // From "removes a coupon code with different casing" test
+                {
+                    type: HistoryEntryType.ORDER_COUPON_REMOVED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                    },
+                },
+                // From "de-duplicates coupon codes case-insensitively" test
+                {
+                    type: HistoryEntryType.ORDER_COUPON_APPLIED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                        promotionId: 'T_3',
+                    },
+                },
+                {
+                    type: HistoryEntryType.ORDER_COUPON_REMOVED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                    },
+                },
+                // From "applies a valid coupon code" test
+                {
+                    type: HistoryEntryType.ORDER_COUPON_APPLIED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                        promotionId: 'T_3',
+                    },
+                },
+                // From "removes a coupon code" test
                 {
                     type: HistoryEntryType.ORDER_COUPON_REMOVED,
                     data: {
@@ -284,12 +388,40 @@ describe('Promotions applied to Orders', () => {
                 couponCode: 'NOT_THERE',
             });
 
+            // History should be unchanged from previous test — no new entry
+            // for the failed removal of 'NOT_THERE'
             expect(removeCouponCode!.history.items.map(i => omit(i, ['id']))).toEqual([
                 {
                     type: HistoryEntryType.ORDER_STATE_TRANSITION,
                     data: {
                         from: 'Created',
                         to: 'AddingItems',
+                    },
+                },
+                {
+                    type: HistoryEntryType.ORDER_COUPON_APPLIED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                        promotionId: 'T_3',
+                    },
+                },
+                {
+                    type: HistoryEntryType.ORDER_COUPON_REMOVED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                    },
+                },
+                {
+                    type: HistoryEntryType.ORDER_COUPON_APPLIED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                        promotionId: 'T_3',
+                    },
+                },
+                {
+                    type: HistoryEntryType.ORDER_COUPON_REMOVED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
                     },
                 },
                 {
@@ -468,6 +600,57 @@ describe('Promotions applied to Orders', () => {
             await deletePromotion(promotion.id);
         });
 
+        // #4889 — minimum of 0 must not create an unconditional discount
+        it('containsProducts does not apply when minimum is 0', async () => {
+            const item5000 = getVariantBySlug('item-5000')!;
+            const promotion = await createPromotion({
+                enabled: true,
+                name: 'Contains products, minimum 0',
+                conditions: [{
+                    code: containsProducts.code,
+                    arguments: [
+                        { name: 'minimum', value: '0' },
+                        { name: 'productVariantIds', value: JSON.stringify([item5000.id]) },
+                    ],
+                }],
+                actions: [freeOrderAction],
+            });
+            // add an item that is NOT in productVariantIds
+            const { addItemToOrder } = await shopClient.query(addItemToOrderDocument, {
+                productVariantId: getVariantBySlug('item-1000').id,
+                quantity: 1,
+            });
+            orderResultGuard.assertSuccess(addItemToOrder);
+            expect(addItemToOrder.discounts.length).toBe(0);
+            await deletePromotion(promotion.id);
+        });
+
+        // #4889 — same guard for the facet-based condition
+        it('atLeastNWithFacets does not apply when minimum is 0', async () => {
+            const { facets } = await adminClient.query(getFacetListDocument);
+            const saleFacetValue = facets.items[0].values[0];
+            const promotion = await createPromotion({
+                enabled: true,
+                name: 'Facets, minimum 0',
+                conditions: [{
+                    code: hasFacetValues.code,
+                    arguments: [
+                        { name: 'minimum', value: '0' },
+                        { name: 'facets', value: `["${saleFacetValue.id}"]` },
+                    ],
+                }],
+                actions: [freeOrderAction],
+            });
+            // add an item WITHOUT the Sale facet
+            const { addItemToOrder } = await shopClient.query(addItemToOrderDocument, {
+                productVariantId: getVariantBySlug('item-1000').id,
+                quantity: 1,
+            });
+            orderResultGuard.assertSuccess(addItemToOrder);
+            expect(addItemToOrder.discounts.length).toBe(0);
+            await deletePromotion(promotion.id);
+        });
+
         it('customerGroup', async () => {
             const { createCustomerGroup } = await adminClient.query(createCustomerGroupDocument, {
                 input: { name: 'Test Group', customerIds: ['T_1'] },
@@ -510,6 +693,64 @@ describe('Promotions applied to Orders', () => {
             expect(adjustOrderLine.totalWithTax).toBe(12000);
             expect(adjustOrderLine.discounts.length).toBe(0);
 
+            await deletePromotion(promotion.id);
+        });
+
+        // https://github.com/vendurehq/vendure/issues/4856
+        // A read → save round-trip (what the dashboard does on any edit) must not
+        // corrupt the customerGroupId. Before the fix, encode re-quoted the id
+        // (`'T_1'` → `'"T_1"'`), which then mis-decoded on the way back in and
+        // silently cleared the customer group. The single-create `customerGroup`
+        // test above never exercises this read → re-encode → save path where the
+        // corruption occurs, so this guards the round-trip explicitly.
+        it('customerGroup id survives a read-back → re-save round-trip', async () => {
+            const { createCustomerGroup } = await adminClient.query(createCustomerGroupDocument, {
+                input: { name: 'Round-trip Group', customerIds: ['T_1'] },
+            });
+
+            const promotion = await createPromotion({
+                enabled: true,
+                name: 'Round-trip promotion',
+                conditions: [
+                    {
+                        code: customerGroup.code,
+                        arguments: [{ name: 'customerGroupId', value: createCustomerGroup.id }],
+                    },
+                ],
+                actions: [freeOrderAction],
+            });
+
+            // Read the promotion back — this encodes the condition args for the client.
+            const { promotion: readBack } = await adminClient.query(getPromotionDocument, {
+                id: promotion.id,
+            });
+            const encodedGroupId = readBack!.conditions[0].args.find(
+                a => a.name === 'customerGroupId',
+            )?.value;
+            // Encode must emit the raw id, not a re-quoted `'"T_1"'`.
+            expect(encodedGroupId).toBe(createCustomerGroup.id);
+
+            // Save it again unchanged, exactly as the dashboard does on edit.
+            const { updatePromotion } = await adminClient.query(updatePromotionDocument, {
+                input: {
+                    id: promotion.id,
+                    conditions: readBack!.conditions.map(c => ({
+                        code: c.code,
+                        arguments: c.args.map(a => ({ name: a.name, value: a.value })),
+                    })),
+                },
+            });
+            const savedGroupId = (updatePromotion as PromotionFragment).conditions[0].args.find(
+                a => a.name === 'customerGroupId',
+            )?.value;
+            // After the round-trip the id is still the original group, not a corrupted
+            // `-1` (AutoIncrement) or a quote-accumulated value.
+            expect(savedGroupId).toBe(createCustomerGroup.id);
+
+            await adminClient.query(removeCustomersFromGroupDocument, {
+                groupId: createCustomerGroup.id,
+                customerIds: ['T_1'],
+            });
             await deletePromotion(promotion.id);
         });
     });
@@ -1655,6 +1896,324 @@ describe('Promotions applied to Orders', () => {
 
                 expect(applyCouponCode.totalWithTax).toBe(0);
                 expect(applyCouponCode.couponCodes).toEqual([TEST_COUPON_CODE]);
+            });
+        });
+
+        // https://github.com/vendurehq/vendure/pull/4660
+        describe('concurrent usage (race condition)', () => {
+            const RACE_COUPON_CODE = 'RACE_TEST';
+            const CONCURRENT_ATTEMPTS = 3;
+
+            beforeAll(async () => {
+                promoWithUsageLimit = await createPromotion({
+                    enabled: true,
+                    name: 'Race condition test coupon',
+                    couponCode: RACE_COUPON_CODE,
+                    usageLimit: 1,
+                    conditions: [],
+                    actions: [freeOrderAction],
+                });
+            });
+
+            afterAll(async () => {
+                await deletePromotion(promoWithUsageLimit.id);
+            });
+
+            // Pessimistic locking only works on real databases (Postgres, MySQL).
+            // SQLite/sql.js does not support SELECT ... FOR UPDATE.
+            it.skipIf(!process.env.DB || process.env.DB === 'sqljs')(
+                'prevents concurrent coupon code usage beyond the limit',
+                async () => {
+                    const config = testConfig();
+                    const shopApiUrl = `http://localhost:${String(config.apiOptions.port)}/${String(config.apiOptions.shopApiPath)}`;
+
+                    // Set up N independent clients, each with their own order in
+                    // ArrangingPayment state with the coupon applied. The setup is
+                    // intentionally split into three phases so that all N orders end
+                    // up co-holding the same usage-limited coupon — the precondition
+                    // the pessimistic lock is designed to handle. If we instead
+                    // transitioned each order to ArrangingPayment before the next
+                    // client called applyCouponCode, the count check inside
+                    // validateCouponCode would already see the previous order in
+                    // ArrangingPayment and reject every coupon application after
+                    // the first, so only one order would ever reach payment with
+                    // the coupon and the lock would never be exercised.
+                    const clients: SimpleGraphQLClient[] = [];
+
+                    // Phase 1: each client adds an item and applies the coupon
+                    // while still in AddingItems. No order is in ArrangingPayment
+                    // yet, so countPromotionUsages returns 0 each time and every
+                    // applyCouponCode call succeeds.
+                    for (let i = 0; i < CONCURRENT_ATTEMPTS; i++) {
+                        const client = new SimpleGraphQLClient(config, shopApiUrl);
+                        await client.asAnonymousUser();
+                        await client.query(addItemToOrderDocument, {
+                            productVariantId: getVariantBySlug('item-5000').id,
+                            quantity: 1,
+                        });
+                        const { applyCouponCode } = await client.query(applyCouponCodeDocument, {
+                            couponCode: RACE_COUPON_CODE,
+                        });
+                        orderResultGuard.assertSuccess(applyCouponCode);
+                        expect(applyCouponCode.couponCodes).toContain(RACE_COUPON_CODE);
+                        await client.query(setCustomerDocument, {
+                            input: {
+                                emailAddress: `race-${i}@test.com`,
+                                firstName: 'Race',
+                                lastName: `Test ${i}`,
+                            },
+                        });
+                        clients.push(client);
+                    }
+
+                    // Phase 2: transition every order to ArrangingPayment. The state
+                    // machine does not re-run validateCouponCode, so transitions all
+                    // succeed even though the per-promotion usage count is now > 1.
+                    for (const client of clients) {
+                        await proceedToArrangingPayment(client);
+                    }
+
+                    // Capture the pre-payment total from one client. All clients have
+                    // identical setup (same item, same coupon, same shipping method),
+                    // so this is the value `previousTotalWithTax` should equal in any
+                    // CouponRemovedDuringCheckoutError returned below. With freeOrderAction
+                    // applied, this is shipping cost only — the discount zeros the
+                    // line subtotal but does not zero shipping.
+                    const { activeOrder: preOrder } = await clients[0].query(getActiveOrderDocument);
+                    const expectedPreviousTotal = preOrder!.totalWithTax;
+                    const expectedCurrencyCode = preOrder!.currencyCode;
+
+                    // Fire concurrent addPaymentToOrder from all clients simultaneously.
+                    // The pessimistic lock serializes these so only one order can "claim"
+                    // the coupon at a time. Contenders that have their coupon stripped
+                    // by revalidation receive a CouponRemovedDuringCheckoutError instead
+                    // of being silently charged the new (higher) total — see the
+                    // explanatory comment in OrderService.addPaymentToOrder.
+                    const results = await Promise.all(
+                        clients.map(client => addPaymentToOrder(client, testSuccessfulPaymentMethod)),
+                    );
+
+                    // Discriminate by __typename rather than duck-typing on field shape:
+                    // a future schema change that, say, adds errorCode-shaped fields to
+                    // Order would silently break a duck-typed filter.
+                    const orderResults = results.filter(
+                        (r: any) => r.__typename === 'Order',
+                    ) as Array<{ couponCodes: string[]; totalWithTax: number }>;
+                    const errorResults = results.filter(
+                        (r: any) => r.__typename === 'CouponRemovedDuringCheckoutError',
+                    ) as Array<{
+                        __typename: 'CouponRemovedDuringCheckoutError';
+                        errorCode: string;
+                        message: string;
+                        removedCouponCodes: string[];
+                        previousTotalWithTax: number;
+                        newTotalWithTax: number;
+                        currencyCode: string;
+                    }>;
+
+                    // Sanity: every result should be classifiable as one or the other.
+                    expect(orderResults.length + errorResults.length).toBe(CONCURRENT_ATTEMPTS);
+
+                    // The number of winners is fully determined by the DB's default
+                    // isolation level — no timing non-determinism in either case —
+                    // so we assert each outcome exactly to catch any future drift:
+                    //
+                    //   - Postgres (READ COMMITTED): each non-locking SELECT sees
+                    //     latest committed data, so the last lock holder observes
+                    //     count = 0 and keeps the coupon. Exactly 1 winner.
+                    //   - MySQL/MariaDB (REPEATABLE READ): the consistent-read
+                    //     snapshot is established by the first non-locking SELECT
+                    //     in addPaymentToOrder, before this lock is acquired, so
+                    //     each contender's count query still sees the others as
+                    //     holding the coupon and every transaction strips. Exactly
+                    //     0 winners.
+                    //
+                    // Both outcomes uphold the safety invariant (the bug class we
+                    // guard against — N winners — would fail either branch). When
+                    // the MySQL snapshot gap is closed in a follow-up, this branch
+                    // should flip to 1 and force this assertion to be updated.
+                    // See the JSDoc on revalidateCouponCodesForOrder.
+                    const expectedWinners = process.env.DB === 'postgres' ? 1 : 0;
+                    expect(orderResults.length).toBe(expectedWinners);
+                    expect(errorResults.length).toBe(CONCURRENT_ATTEMPTS - expectedWinners);
+
+                    // Capture the post-strip total from one of the error clients' active
+                    // orders so we can assert newTotalWithTax exactly. The stripped order
+                    // has been recalculated server-side, so its current totalWithTax is
+                    // by definition what `newTotalWithTax` should report.
+                    let expectedNewTotal: number | undefined;
+                    if (errorResults.length > 0) {
+                        const errorClientIdx = results.findIndex(
+                            (r: any) => r.__typename === 'CouponRemovedDuringCheckoutError',
+                        );
+                        const { activeOrder: postOrder } = await clients[errorClientIdx].query(
+                            getActiveOrderDocument,
+                        );
+                        expectedNewTotal = postOrder!.totalWithTax;
+                        // The strip must have increased the total — otherwise the error
+                        // should never have been returned.
+                        expect(expectedNewTotal).toBeGreaterThan(expectedPreviousTotal);
+                    }
+
+                    // Every stripped contender returns CouponRemovedDuringCheckoutError
+                    // with exact pre/post totals and only the race coupon listed (no
+                    // unrelated codes leaked into removedCouponCodes).
+                    for (const err of errorResults) {
+                        expect(err.errorCode).toBe('COUPON_REMOVED_DURING_CHECKOUT_ERROR');
+                        expect(err.removedCouponCodes).toEqual([RACE_COUPON_CODE]);
+                        expect(err.previousTotalWithTax).toBe(expectedPreviousTotal);
+                        expect(err.newTotalWithTax).toBe(expectedNewTotal);
+                        expect(err.currencyCode).toBe(expectedCurrencyCode);
+                    }
+
+                    // Where there's a winner, it kept the coupon and settled.
+                    if (expectedWinners === 1) {
+                        expect(orderResults[0].couponCodes).toEqual([RACE_COUPON_CODE]);
+                    }
+                },
+            );
+        });
+    });
+
+    // https://github.com/vendurehq/vendure/issues/4353
+    describe('usage limit for auto-applied promotions (no coupon code)', () => {
+        async function createNewActiveOrder() {
+            const { addItemToOrder } = await shopClient.query(addItemToOrderDocument, {
+                productVariantId: getVariantBySlug('item-5000').id,
+                quantity: 1,
+            });
+            return addItemToOrder;
+        }
+
+        describe('usageLimit', () => {
+            let promoWithUsageLimit: PromotionFragment;
+            let completedOrderId: string;
+
+            beforeAll(async () => {
+                promoWithUsageLimit = await createPromotion({
+                    enabled: true,
+                    name: 'Auto-applied with usage limit',
+                    usageLimit: 1,
+                    conditions: [minOrderAmountCondition(1000)],
+                    actions: [freeOrderAction],
+                });
+            });
+
+            afterAll(async () => {
+                await deletePromotion(promoWithUsageLimit.id);
+            });
+
+            it('auto-applies promotion on first order', async () => {
+                await shopClient.asAnonymousUser();
+                const order = await createNewActiveOrder();
+                orderResultGuard.assertSuccess(order);
+
+                const { activeOrder } = await shopClient.query(getActiveOrderDocument);
+                expect(activeOrder!.discounts.length).toBe(1);
+                expect(activeOrder!.discounts[0].description).toBe('Auto-applied with usage limit');
+                expect(activeOrder!.totalWithTax).toBe(0);
+
+                await shopClient.query(setCustomerDocument, {
+                    input: {
+                        emailAddress: 'auto-limit-guest@test.com',
+                        firstName: 'Auto',
+                        lastName: 'Limit',
+                    },
+                });
+                await proceedToArrangingPayment(shopClient);
+                const result = await addPaymentToOrder(shopClient, testSuccessfulPaymentMethod);
+                orderResultGuard.assertSuccess(result);
+                expect(result.state).toBe('PaymentSettled');
+                expect(result.active).toBe(false);
+                completedOrderId = result.id;
+            });
+
+            it('does not auto-apply promotion after usage limit is reached', async () => {
+                await shopClient.asAnonymousUser();
+                await createNewActiveOrder();
+
+                const { activeOrder } = await shopClient.query(getActiveOrderDocument);
+                expect(activeOrder!.discounts.length).toBe(0);
+                expect(activeOrder!.totalWithTax).toBe(6000);
+            });
+
+            // #4353 — cancelled orders should not count toward usage limits
+            it('cancelled orders do not count against usage limit', async () => {
+                const { cancelOrder } = await adminClient.query(cancelOrderDocument, {
+                    input: {
+                        orderId: completedOrderId,
+                        cancelShipping: true,
+                        reason: 'test',
+                    },
+                });
+                orderResultGuard.assertSuccess(cancelOrder);
+                expect(cancelOrder.state).toBe('Cancelled');
+
+                await shopClient.asAnonymousUser();
+                await createNewActiveOrder();
+
+                const { activeOrder } = await shopClient.query(getActiveOrderDocument);
+                expect(activeOrder!.discounts.length).toBe(1);
+                expect(activeOrder!.discounts[0].description).toBe('Auto-applied with usage limit');
+                expect(activeOrder!.totalWithTax).toBe(0);
+            });
+        });
+
+        describe('perCustomerUsageLimit', () => {
+            let promoWithPerCustomerLimit: PromotionFragment;
+
+            beforeAll(async () => {
+                promoWithPerCustomerLimit = await createPromotion({
+                    enabled: true,
+                    name: 'Auto-applied with per-customer limit',
+                    perCustomerUsageLimit: 1,
+                    conditions: [minOrderAmountCondition(1000)],
+                    actions: [freeOrderAction],
+                });
+            });
+
+            afterAll(async () => {
+                await deletePromotion(promoWithPerCustomerLimit.id);
+            });
+
+            function logInAsRegisteredCustomer() {
+                return shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
+            }
+
+            it('auto-applies promotion on first order for signed-in customer', async () => {
+                await logInAsRegisteredCustomer();
+                const order = await createNewActiveOrder();
+                orderResultGuard.assertSuccess(order);
+
+                const { activeOrder } = await shopClient.query(getActiveOrderDocument);
+                expect(activeOrder!.discounts.length).toBe(1);
+                expect(activeOrder!.discounts[0].description).toBe('Auto-applied with per-customer limit');
+                expect(activeOrder!.totalWithTax).toBe(0);
+
+                await proceedToArrangingPayment(shopClient);
+                const result = await addPaymentToOrder(shopClient, testSuccessfulPaymentMethod);
+                orderResultGuard.assertSuccess(result);
+                expect(result.state).toBe('PaymentSettled');
+                expect(result.active).toBe(false);
+            });
+
+            it('does not auto-apply promotion after per-customer limit is reached', async () => {
+                await logInAsRegisteredCustomer();
+                await createNewActiveOrder();
+
+                const { activeOrder } = await shopClient.query(getActiveOrderDocument);
+                expect(activeOrder!.discounts.length).toBe(0);
+                expect(activeOrder!.totalWithTax).toBe(6000);
+            });
+
+            it('still auto-applies for a different customer', async () => {
+                await shopClient.asUserWithCredentials('trevor_donnelly7@hotmail.com', 'test');
+                await createNewActiveOrder();
+
+                const { activeOrder } = await shopClient.query(getActiveOrderDocument);
+                expect(activeOrder!.discounts.length).toBe(1);
+                expect(activeOrder!.discounts[0].description).toBe('Auto-applied with per-customer limit');
+                expect(activeOrder!.totalWithTax).toBe(0);
             });
         });
     });

@@ -35,7 +35,7 @@ import { JobListIndexService } from './job-list-index.service';
 import { RedisHealthIndicator } from './redis-health-indicator';
 import { getJobsByType } from './scripts/get-jobs-by-type';
 import { BullMQPluginOptions, CustomScriptDefinition } from './types';
-import { getPrefix } from './utils';
+import { flattenJobFilter, getPrefix } from './utils';
 
 /**
  * @description
@@ -162,7 +162,11 @@ export class BullMQJobQueueStrategy implements InspectableJobQueueStrategy {
 
     async destroy() {
         const workerClosePromises = Array.from(this.workers.values()).map(w => w.close());
-        await Promise.all([this.queue.close(), ...workerClosePromises]);
+        await Promise.all([
+            this.queue.close(),
+            this.jobListIndexService?.close(),
+            ...workerClosePromises,
+        ]);
     }
 
     async add<Data extends JobData<Data> = object>(job: Job<Data>): Promise<Job<Data>> {
@@ -200,49 +204,69 @@ export class BullMQJobQueueStrategy implements InspectableJobQueueStrategy {
         }
     }
 
+    /**
+     * Maps a Vendure JobState to the BullMQ job types which hold jobs in that state.
+     * Jobs awaiting a retry after failure are stored in the 'delayed' state, and
+     * cancelled jobs are stored as 'failed'.
+     */
+    private jobStateToJobTypes(state: string): JobType[] {
+        switch (state) {
+            case 'PENDING':
+                return ['wait', 'waiting-children', 'prioritized'];
+            case 'RUNNING':
+                return ['active'];
+            case 'COMPLETED':
+                return ['completed'];
+            case 'RETRYING':
+                return ['delayed'];
+            case 'FAILED':
+            case 'CANCELLED':
+                return ['failed'];
+            default:
+                return [];
+        }
+    }
+
     async findMany(options?: JobListOptions): Promise<PaginatedList<Job>> {
         const skip = options?.skip ?? 0;
         const take = options?.take ?? 10;
         let jobTypes: JobType[] = ALL_JOB_TYPES;
-        const stateFilter = options?.filter?.state;
+
+        const flatFilter = flattenJobFilter(options?.filter);
+
+        const stateFilter = flatFilter.state;
         if (stateFilter?.eq) {
-            switch (stateFilter.eq) {
-                case 'PENDING':
-                    jobTypes = ['wait', 'waiting-children', 'prioritized'];
-                    break;
-                case 'RUNNING':
-                    jobTypes = ['active'];
-                    break;
-                case 'COMPLETED':
-                    jobTypes = ['completed'];
-                    break;
-                case 'RETRYING':
-                    jobTypes = ['repeat'];
-                    break;
-                case 'FAILED':
-                    jobTypes = ['failed'];
-                    break;
-                case 'CANCELLED':
-                    jobTypes = ['failed'];
-                    break;
+            const mapped = this.jobStateToJobTypes(stateFilter.eq);
+            if (mapped.length) {
+                jobTypes = mapped;
             }
         }
-        const settledFilter = options?.filter?.isSettled;
+        if (stateFilter?.in?.length) {
+            const stateJobTypes = stateFilter.in.flatMap(state => this.jobStateToJobTypes(state));
+            if (stateJobTypes.length) {
+                jobTypes = [...new Set(stateJobTypes)];
+            }
+        }
+        const settledFilter = flatFilter.isSettled;
         if (settledFilter?.eq != null) {
             jobTypes =
                 settledFilter.eq === true
                     ? ['completed', 'failed']
-                    : ['wait', 'waiting-children', 'active', 'repeat', 'delayed', 'paused', 'prioritized'];
+                    : ['wait', 'waiting-children', 'active', 'delayed', 'paused', 'prioritized'];
         }
 
         let items: Bull.Job[] = [];
         let totalItems = 0;
 
+        const queueNameFilter = flatFilter.queueName;
+        const queueNames = queueNameFilter?.eq ? [queueNameFilter.eq] : (queueNameFilter?.in ?? []);
+
         try {
             const [total, jobIds] = await this.callCustomScript(getJobsByType, [
                 skip,
                 take,
-                options?.filter?.queueName?.eq ?? '',
+                queueNames.length,
+                ...queueNames,
                 ...jobTypes,
             ]);
             items = (

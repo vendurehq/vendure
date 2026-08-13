@@ -97,7 +97,9 @@ function hasNamedDependency(packageJsonPath: string, dependencyName: string): bo
     }
     try {
         const packageJson = fs.readJsonSync(packageJsonPath);
-        return !!packageJson.dependencies?.[dependencyName];
+        return !!(
+            packageJson.dependencies?.[dependencyName] ?? packageJson.devDependencies?.[dependencyName]
+        );
     } catch {
         return false;
     }

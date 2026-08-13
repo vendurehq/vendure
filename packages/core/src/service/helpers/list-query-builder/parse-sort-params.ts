@@ -6,7 +6,10 @@ import { ColumnMetadata } from 'typeorm/metadata/ColumnMetadata';
 
 import { UserInputError } from '../../../common/error/errors';
 import { NullOptionals, SortParameter } from '../../../common/types/common-types';
-import { CustomFieldConfig } from '../../../config/custom-field/custom-field-types';
+import {
+    CustomFieldConfig,
+    isNonListRelationCustomField,
+} from '../../../config/custom-field/custom-field-types';
 import { VendureEntity } from '../../../entity/base/base.entity';
 
 import { escapeCalculatedColumnExpression, getColumnMetadata } from './connection-utils';
@@ -43,7 +46,7 @@ export function parseSortParams<T extends VendureEntity>(
         if (matchingColumn) {
             output[`${alias}.${matchingColumn.propertyPath}`] = order as any;
         } else if (translationColumns.find(c => c.propertyName === key)) {
-            const translationsAlias = connection.namingStrategy.joinTableName(alias, 'translations', '', '');
+            const translationsAlias = `${alias}__translations`;
 
             const pathParts = [translationsAlias];
             const isLocaleStringCustomField =
@@ -56,10 +59,20 @@ export function parseSortParams<T extends VendureEntity>(
         } else if (calculatedColumnDef) {
             const instruction = calculatedColumnDef.listQuery;
             if (instruction && instruction.expression) {
-                output[escapeCalculatedColumnExpression(connection, instruction.expression)] = order as any;
+                // A simple `alias.property` path is left unescaped so that TypeORM can resolve
+                // the alias and apply its own driver-specific escaping. Pre-escaping it would
+                // prevent that resolution and fail when pagination requires a subquery.
+                const isSimplePropertyPath = /^\w+(\.\w+)+$/.test(instruction.expression);
+                const expression = isSimplePropertyPath
+                    ? instruction.expression
+                    : escapeCalculatedColumnExpression(connection, instruction.expression);
+                output[expression] = order as any;
             }
         } else if (customPropertyMap?.[key]) {
             output[customPropertyMap[key]] = order as any;
+        } else if (customFields?.some(f => f.name === key && isNonListRelationCustomField(f))) {
+            // Non-list relation custom fields are sorted by their id column
+            output[`${alias}.customFields.${key}Id`] = order as any;
         } else {
             throw new UserInputError('error.invalid-sort-field', {
                 fieldName: key,

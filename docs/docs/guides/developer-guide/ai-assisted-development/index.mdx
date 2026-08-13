@@ -1,0 +1,76 @@
+---
+title: 'AI-assisted development'
+metaTitle: 'AI-assisted Vendure development'
+metaDescription: 'Use AGENTS.md and Vendure CLI scaffolding to guide AI coding agents in a Vendure project.'
+---
+
+AI coding agents work best when the project gives them concrete local instructions and a predictable way to add
+Vendure code. New Vendure projects created with `@vendure/create` include an `AGENTS.md` file for this purpose.
+
+## Project instructions
+
+The generated `AGENTS.md` file summarizes the project layout, common commands, and Vendure-specific guidance.
+Agents should read this file before making changes. It explains where plugin code belongs, where runtime
+configuration lives, and which commands should be run after code changes.
+
+## Non-interactive scaffolding
+
+The Vendure CLI supports non-interactive commands, which are useful for AI agents and automation. For example:
+
+```bash
+# Create a plugin
+npx vendure add -p reviews
+
+# Add a service to a plugin
+npx vendure add -s ReviewService --selected-plugin ReviewsPlugin
+
+# Add job queue support to a service
+npx vendure add -j ReviewsPlugin --name sync-reviews --selected-service ReviewService
+```
+
+Prefer these commands over manually creating boilerplate, because the CLI can update the surrounding Vendure
+configuration for you.
+
+## Plugin configuration
+
+Plugin code should not read environment variables directly. Read deployment-specific values in
+`src/vendure-config.ts` and pass them through plugin init options:
+
+```ts title="src/vendure-config.ts"
+ReviewsPlugin.init({
+    apiKey: process.env.REVIEWS_API_KEY,
+});
+```
+
+Then inject the plugin options token into services that need those values. This keeps plugins reusable and makes
+tests easier to configure.
+
+## Transactions and request context
+
+When a `RequestContext` is available, pass it to Vendure services and to `TransactionalConnection` methods:
+
+```ts
+async update(ctx: RequestContext, id: ID) {
+    return this.connection.getRepository(ctx, Review).save({ id });
+}
+```
+
+This allows Vendure to apply the correct transaction and request-scoped behavior.
+
+## Job queues
+
+Create custom job queues in a Nest lifecycle hook, then reuse the queue when adding jobs:
+
+```ts
+async onModuleInit() {
+    this.queue = await this.jobQueueService.createQueue({
+        name: 'sync-reviews',
+        process: async job => {
+            // ...
+        },
+    });
+}
+```
+
+Do not pass a raw `RequestContext` as job data. Use `ctx.serialize()` or pass only the fields needed to recreate
+the context in the worker.

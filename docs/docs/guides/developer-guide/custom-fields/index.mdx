@@ -246,6 +246,77 @@ await this.entityHydrator.hydrate(ctx, customer, { relations: ['customFields.ava
 console.log(customer.avatar);
 ```
 
+### Relation ids
+
+From Vendure v3.8, single (non-list) relation custom fields also expose the id of the related entity directly
+on the entity, named `'<field name>Id'`. This means that when you only need the id of the related entity - for
+example to compare it against the active user id - no join is required:
+
+```ts
+const customer = await this.connection.getRepository(ctx, Customer).findOne({
+    where: { id: 1 },
+});
+// No join needed to access the id of the related Asset
+console.log(customer.customFields.avatarId);
+```
+
+The id property maps to the same database column which is used by the relation itself, so no
+migration is required.
+
+The id property can also be used to set the relation when writing to the database:
+
+```ts
+customer.customFields.avatarId = 42;
+await this.connection.getRepository(ctx, Customer).save(customer);
+```
+
+:::caution
+If the relation property itself (`customFields.avatar` in this example) is set to an entity object or `null`,
+it takes precedence over the id property when saving. To avoid surprises, do not set both properties
+to conflicting values on the same entity.
+:::
+
+The id is also exposed in the GraphQL APIs. Alongside the relation field itself, the generated
+`customFields` type contains a `'<field name>Id'` field, which can be selected without the cost of
+loading the full relation:
+
+```graphql
+query {
+    activeCustomer {
+        customFields {
+            avatar {
+                id
+                preview
+            }
+            # or, when only the id is needed:
+            avatarId
+        }
+    }
+}
+```
+
+The id field respects the same `public`, `internal` and `requiresPermission` settings as the
+relation field it belongs to.
+
+In list queries, the id field can also be used to filter and sort:
+
+```graphql
+query {
+    products(options: {
+        filter: {
+            ownerId: { eq: "42" }
+        }
+        sort: {
+            ownerId: ASC
+        }
+    }) {
+        items {
+            id
+        }
+    }
+}
+```
+
 ## Custom field config properties
 
 ### Common properties
