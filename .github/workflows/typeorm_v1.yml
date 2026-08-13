@@ -29,6 +29,13 @@ on:
             - 'package.json'
             - 'bun.lock'
             - 'bunfig.toml'
+            # The harness these jobs run through. Without it a change to the version
+            # profiles or the test runner reaches a release branch untested, and the
+            # first run against it is whenever some unrelated change to packages/
+            # happens to land.
+            - 'scripts/typeorm/**'
+            - '.github/actions/setup/**'
+            - '.github/workflows/typeorm_v1.yml'
     # `labeled` only. Actions has no workflow-level `if`, so the label gate below can
     # only skip jobs once a run already exists, and any other type would put a skipped
     # run in the checks list of every pull request in the repository. The cost is that
