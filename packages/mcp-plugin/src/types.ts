@@ -375,9 +375,17 @@ export interface McpToolSummary {
 }
 
 /**
- * Identifies the type of Vendure actor (user) associated with an MCP OAuth grant.
+ * The kind of Vendure user who gave consent, recorded on an MCP OAuth grant and on the
+ * authorization code it came from. Consent always requires someone signed in, so there is
+ * no anonymous case here.
  */
-export type McpActorType = 'customer' | 'admin' | 'anonymous';
+export type McpGrantUserType = 'customer' | 'admin';
+
+/**
+ * Who a logged MCP tool call ran as. `'anonymous'` covers calls to the shop endpoint with
+ * nobody signed in.
+ */
+export type McpActorType = McpGrantUserType | 'anonymous';
 
 /**
  * Terminal outcome of a single MCP tool call recorded in {@link McpToolCallLog}.

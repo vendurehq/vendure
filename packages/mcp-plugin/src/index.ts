@@ -4,6 +4,7 @@ export { McpToolExecutionService } from './registry/mcp-tool-execution.service';
 export type {
     McpActorType,
     McpDnsRebindingOptions,
+    McpGrantUserType,
     McpLogCapture,
     McpLogRedactFn,
     McpLoggingOptions,

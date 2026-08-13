@@ -1,7 +1,7 @@
 import { DeepPartial, EntityId, ID, VendureEntity } from '@vendure/core';
 import { Column, Entity, Index, ManyToOne } from 'typeorm';
 
-import { McpActorType } from '../types';
+import { McpGrantUserType } from '../types';
 
 import { McpOauthClient } from './mcp-oauth-client.entity';
 
@@ -36,7 +36,7 @@ export class McpAuthorizationCode extends VendureEntity {
     userId: ID;
 
     @Column({ type: 'varchar' })
-    userType: McpActorType;
+    userType: McpGrantUserType;
 
     @Column()
     redirectUri: string;

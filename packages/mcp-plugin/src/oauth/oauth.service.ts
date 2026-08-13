@@ -40,7 +40,7 @@ import { McpAuthorizationRequest } from '../entities/mcp-authorization-request.e
 import { McpOauthClient } from '../entities/mcp-oauth-client.entity';
 import { McpOauthGrant } from '../entities/mcp-oauth-grant.entity';
 import { McpAuthenticatedContext, ResolvedMcpPluginOptions } from '../internal-types';
-import { McpActorType } from '../types';
+import { McpGrantUserType } from '../types';
 
 import { McpCimdClientResolverService } from './cimd/cimd-client-resolver.service';
 import { isUrlClientId } from './cimd/cimd-url';
@@ -591,7 +591,7 @@ export class McpOauthService {
     private async approveAuthorizationRequest(
         requestToken: string,
         expectedToolset: McpToolset,
-        approver: { userId: ID | undefined; userType: McpActorType; channelId?: ID | null },
+        approver: { userId: ID | undefined; userType: McpGrantUserType; channelId?: ID | null },
     ): Promise<{ redirectUrl: string }> {
         const { ctx, request } = await this.consumeAuthorizationRequest(requestToken, expectedToolset);
         const { userId, userType, channelId = null } = approver;
@@ -740,7 +740,7 @@ export class McpOauthService {
         ctx: RequestContext,
         client: McpOauthClient,
         userId: ID,
-        userType: McpActorType,
+        userType: McpGrantUserType,
         resource: string,
         channelId: ID | null = null,
     ): Promise<OAuthTokenResponse> {

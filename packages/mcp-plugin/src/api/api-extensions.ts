@@ -45,6 +45,7 @@ export const adminApiExtensions = gql`
         createdAt: DateTime!
         updatedAt: DateTime!
         grantId: ID
+        "The id of the Vendure user the call ran as. Null when nobody was signed in."
         actor: String
         actorType: String!
         "Stored only when logging.captureClientIp is enabled. Requires the ReadCustomer permission to read."

@@ -28,8 +28,7 @@ class McpOauthGrant extends VendureEntity {
     @EntityId()
     userId: ID;
     @Column({ type: 'varchar' })
-    userType: McpActorType;
-    @Index()
+    userType: McpGrantUserType;
     @Column()
     resource: string;
     @Index()
@@ -90,7 +89,7 @@ class McpOauthGrant extends VendureEntity {
 
 ### userType
 
-<MemberInfo kind="property" type={`McpActorType`}   />
+<MemberInfo kind="property" type={`McpGrantUserType`}   />
 
 
 ### resource

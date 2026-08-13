@@ -322,6 +322,8 @@ export class McpRateLimiterService {
         if (executionContext.grant?.id != null) {
             return `mcp:${executionContext.grant.id}`;
         }
+        // No session and no grant: an in-process caller that passed a context without a session.
+        // Every such caller shares this one bucket, because there is nothing here to tell them apart.
         return 'none';
     }
 

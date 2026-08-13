@@ -19,17 +19,14 @@ class McpAuthorizationCode extends VendureEntity {
     oauthClient: McpOauthClient;
     @EntityId()
     oauthClientId: ID;
-    @Index()
     @EntityId()
     userId: ID;
     @Column({ type: 'varchar' })
-    userType: McpActorType;
+    userType: McpGrantUserType;
     @Column()
     redirectUri: string;
-    @Index()
     @Column()
     resource: string;
-    @Index()
     @EntityId({ nullable: true })
     channelId: ID | null;
     @Column()
@@ -39,9 +36,6 @@ class McpAuthorizationCode extends VendureEntity {
     @Index()
     @Column({ type: Date })
     expiresAt: Date;
-    @Index()
-    @Column({ type: Date, nullable: true })
-    consumedAt: Date | null;
 }
 ```
 * Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
@@ -72,7 +66,7 @@ class McpAuthorizationCode extends VendureEntity {
 
 ### userType
 
-<MemberInfo kind="property" type={`McpActorType`}   />
+<MemberInfo kind="property" type={`McpGrantUserType`}   />
 
 
 ### redirectUri
@@ -103,11 +97,6 @@ class McpAuthorizationCode extends VendureEntity {
 ### expiresAt
 
 <MemberInfo kind="property" type={`Date`}   />
-
-
-### consumedAt
-
-<MemberInfo kind="property" type={`Date | null`}   />
 
 
 
