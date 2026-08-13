@@ -45,7 +45,7 @@ class RequestContext {
     userHasPermissions(permissions: Permission[]) => boolean;
     userHasAllPermissions(permissions: Permission[]) => boolean;
     serialize() => SerializedRequestContext;
-    copy() => RequestContext;
+    copy(channel?: Channel) => RequestContext;
     req: Request | undefined
     apiType: ApiType
     channel: Channel
@@ -121,11 +121,14 @@ This is useful when you need to send a RequestContext object to another
 process, e.g. to pass it to the Job Queue via the [JobQueueService](/reference/typescript-api/job-queue/job-queue-service#jobqueueservice).
 ### copy
 
-<MemberInfo kind="method" type={`() => <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>`}   />
+<MemberInfo kind="method" type={`(channel?: <a href='/reference/typescript-api/entities/channel#channel'>Channel</a>) => <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>`}   />
 
 Creates a shallow copy of the RequestContext instance. This means that
 mutations to the copy itself will not affect the original, but deep mutations
 (e.g. copy.channel.code = 'new') *will* also affect the original.
+
+Passing a `channel` re-scopes the copy to it, switching language and currency
+to the channel's defaults so downstream logic runs in the target channel.
 ### req
 
 <MemberInfo kind="property" type={`Request | undefined`}   />
