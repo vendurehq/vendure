@@ -27,6 +27,8 @@ import { McpPluginOptions } from '../src/types';
 
 import { McpTestToolsPlugin } from './fixtures/mcp-test-tools';
 import { MCP_TOOL_CALL_LOGS_WITH_BODIES_QUERY } from './graphql/admin-definitions';
+import { provisionAdmin } from './utils/admin-fixtures';
+import { backdateLogCreatedAt } from './utils/log-fixtures';
 import { postMcp, rpc } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow } from './utils/oauth-test-client';
 
@@ -80,58 +82,6 @@ describe('MCP admin API', () => {
         return (await response.json()) as GraphQLResponse<T>;
     }
 
-    /** Creates an admin with exactly these permissions and returns its login token. */
-    async function provisionAdmin(key: string, permissions: string[]): Promise<string> {
-        const email = `${key}@example.test`;
-        const role = await adminClient.query(
-            gql`
-                mutation CreateRole($input: CreateRoleInput!) {
-                    createRole(input: $input) {
-                        id
-                    }
-                }
-            `,
-            {
-                input: {
-                    code: `mcp-${key}-role`,
-                    description: `${key} role`,
-                    permissions,
-                    channelIds: [defaultChannelGqlId],
-                },
-            },
-        );
-        await adminClient.query(
-            gql`
-                mutation CreateAdmin($input: CreateAdministratorInput!) {
-                    createAdministrator(input: $input) {
-                        id
-                    }
-                }
-            `,
-            {
-                input: {
-                    firstName: key,
-                    lastName: 'Admin',
-                    emailAddress: email,
-                    password: 'test',
-                    roleIds: [role.createRole.id],
-                },
-            },
-        );
-        const response = await fetch(adminApiUrl(), {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({
-                query: `mutation { login(username: "${email}", password: "test") { __typename } }`,
-            }),
-        });
-        const token = response.headers.get('vendure-auth-token');
-        if (!token) {
-            throw new Error(`Login failed for ${key}: ${await response.text()}`);
-        }
-        return token;
-    }
-
     /**
      * Inserts a tool-call log row, defaulting to the active channel. Pass `channelId` to
      * plant a row on another channel (isolation tests). Optionally backdates createdAt.
@@ -154,13 +104,8 @@ describe('MCP admin API', () => {
             }),
         );
         if (fields.ageMs) {
-            // createdAt is only auto-set on insert, so override it with an explicit UPDATE.
-            await repo
-                .createQueryBuilder()
-                .update()
-                .set({ createdAt: new Date(Date.now() - fields.ageMs) })
-                .where('id = :id', { id: row.id })
-                .execute();
+            const createdAt = new Date(Date.now() - fields.ageMs);
+            await backdateLogCreatedAt(connection, adminCtx, row.id, createdAt);
         }
     }
 
@@ -182,9 +127,13 @@ describe('MCP admin API', () => {
         `);
         defaultChannelGqlId = activeChannel.id;
 
-        readOnlyToken = await provisionAdmin('mcp-read-only', ['ReadMcpServer']);
-        updateOnlyToken = await provisionAdmin('mcp-update-only', ['UpdateMcpServer']);
-        settingsOnlyToken = await provisionAdmin('mcp-settings-only', ['ReadSettings', 'UpdateSettings']);
+        const adminApi = { adminClient, adminApiUrl: adminApiUrl(), channelId: defaultChannelGqlId };
+        readOnlyToken = await provisionAdmin(adminApi, 'mcp-read-only', ['ReadMcpServer']);
+        updateOnlyToken = await provisionAdmin(adminApi, 'mcp-update-only', ['UpdateMcpServer']);
+        settingsOnlyToken = await provisionAdmin(adminApi, 'mcp-settings-only', [
+            'ReadSettings',
+            'UpdateSettings',
+        ]);
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {

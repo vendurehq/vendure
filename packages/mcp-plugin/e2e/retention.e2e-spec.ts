@@ -18,6 +18,8 @@ import { McpPlugin } from '../src/plugin';
 import { mcpToolCallLogRetentionTask } from '../src/tasks/mcp-tool-call-log-retention.task';
 import { McpPluginOptions } from '../src/types';
 
+import { backdateLogCreatedAt } from './utils/log-fixtures';
+
 const productsCsvPath = path.join(__dirname, 'fixtures/e2e-products.csv');
 const DAY_MS = 86_400_000;
 
@@ -47,13 +49,8 @@ describe('MCP tool-call log retention', () => {
     async function seedLog(toolName: string, ageInDays: number): Promise<void> {
         const repo = connection.getRepository(adminCtx, McpToolCallLog);
         const row = await repo.save(repo.create({ toolName, actorType: 'admin', status: 'success' }));
-        // createdAt is only auto-set on insert, so override it with an explicit UPDATE.
-        await repo
-            .createQueryBuilder()
-            .update()
-            .set({ createdAt: new Date(Date.now() - ageInDays * DAY_MS) })
-            .where('id = :id', { id: row.id })
-            .execute();
+        const createdAt = new Date(Date.now() - ageInDays * DAY_MS);
+        await backdateLogCreatedAt(connection, adminCtx, row.id, createdAt);
     }
 
     async function toolNames(): Promise<string[]> {
