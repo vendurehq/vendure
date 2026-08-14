@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 
 import { CliCommandDefinition, CliCommandOption } from './cli-command-definition';
+import { CliCommandExit } from './cli-command-exit';
 
 export function registerCommands(program: Command, commands: CliCommandDefinition[]): void {
     commands.forEach(commandDef => {
@@ -21,6 +22,9 @@ export function registerCommands(program: Command, commands: CliCommandDefinitio
                 const result = await commandDef.action(...args);
                 process.exit(typeof result === 'number' ? result : 0);
             } catch (e: any) {
+                if (e instanceof CliCommandExit) {
+                    process.exit(e.exitCode);
+                }
                 const message = e?.message ?? String(e);
                 process.stderr.write(`${message}\n`);
                 process.exit(1);
