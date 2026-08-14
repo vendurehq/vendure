@@ -3,11 +3,10 @@ import pc from 'picocolors';
 
 import { Messages } from '../../constants';
 import { abortIfNonInteractive, pauseForPromptDisplay, withInteractiveTimeout } from '../../utilities/utils';
-import { cliCommands } from '../command-declarations';
-
 import { addApiExtension } from './api-extension/add-api-extension';
 import { addCodegen } from './codegen/add-codegen';
 import { addDashboard } from './dashboard/add-dashboard';
+import { addCommandDef } from './command';
 import { addEntity } from './entity/add-entity';
 import { addJobQueue } from './job-queue/add-job-queue';
 import { createNewPlugin } from './plugin/create-new-plugin';
@@ -278,9 +277,8 @@ async function handleInteractiveMode() {
     intro(pc.blue("✨ Let's add a new feature to your Vendure project!"));
 
     // Derive interactive options from command declarations (single source of truth)
-    const addCommandDef = cliCommands.find(cmd => cmd.name === 'add');
     const addOptions =
-        addCommandDef?.options
+        addCommandDef.options
             ?.filter(opt => opt.interactiveId && opt.interactiveFn)
             .map(opt => ({
                 value: opt.interactiveId as string,

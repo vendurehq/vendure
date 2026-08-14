@@ -9,9 +9,9 @@ The Vendure CLI supports two modes of operation:
 - **Interactive Mode**: Provides guided prompts and menus for easy use during development
 - **Non-Interactive Mode**: Allows direct command execution with arguments and options, perfect for scripting, CI/CD, and AI agents
 
-The CLI uses a structured approach where built-in commands are defined as
-`CliCommandDefinition` objects and external packages can contribute or replace
-commands via the CLI plugin API (`defineCliPlugin`).
+The CLI uses a structured approach where each built-in command owns a
+`CliCommandDefinition` next to its implementation, and external packages can
+contribute or replace commands via the CLI plugin API (`defineCliPlugin`).
 
 ## Command Definition Interface
 
@@ -332,31 +332,35 @@ Interactive prompts include timeout protection to prevent hanging in automated e
 
 ## Adding Built-in Commands
 
-To add a built-in command that ships with `@vendure/cli`, add it to the `cliCommands`
-array in `packages/cli/src/commands/command-declarations.ts`:
+Each built-in command owns its definition next to its implementation:
+
+1. Create `packages/cli/src/commands/<name>/command.ts` exporting a `CliCommandDefinition`
+2. Register it in the `builtinCommandDefs` array in `packages/cli/src/commands/builtins.ts`
 
 ```typescript
-export const cliCommands: CliCommandDefinition[] = [
-    // ... existing commands ...
-    {
-        name: 'new-command',
-        description: 'Description of the new command',
-        options: [
-            {
-                short: '-o',
-                long: '--option <value>',
-                description: 'Description of the option',
-                required: false,
-            },
-        ],
-        action: async (options) => {
-            const { newCommand } = await import('./new-command/new-command');
-            await newCommand(options);
-            return 0; // exit code; the host calls process.exit
+// packages/cli/src/commands/hello/command.ts
+import { CliCommandDefinition } from '../../shared/cli-command-definition';
+
+export const helloCommandDef: CliCommandDefinition = {
+    name: 'hello',
+    description: 'Description of the new command',
+    options: [
+        {
+            short: '-o',
+            long: '--option <value>',
+            description: 'Description of the option',
+            required: false,
         },
+    ],
+    action: async (options) => {
+        const { helloCommand } = await import('./hello');
+        await helloCommand(options);
+        return 0; // exit code; the host calls process.exit
     },
-];
+};
 ```
+
+Keep the lazy `import()` inside the action so heavy command modules are not loaded at CLI startup.
 
 ## Extending the CLI with Plugins
 
@@ -438,7 +442,8 @@ Optional project control in the **project** `package.json`:
 - `packages/cli/src/shared/command-registry-store.ts` - Command registry (add/replace)
 - `packages/cli/src/shared/resolve-cli-plugins.ts` - Plugin discovery & loading
 - `packages/cli/src/shared/command-registry.ts` - Commander registration utility
-- `packages/cli/src/commands/command-declarations.ts` - Built-in command declarations
+- `packages/cli/src/commands/builtins.ts` - Ordered list of built-in command definitions
+- `packages/cli/src/commands/<name>/command.ts` - Per-command definition (metadata + lazy action)
 - `packages/cli/src/index.ts` - Public API exports for plugin authors
 - `packages/cli/src/commands/add/add.ts` - Add command implementation with dual mode support
 - `packages/cli/src/commands/migrate/migrate.ts` - Migrate command implementation with dual mode support

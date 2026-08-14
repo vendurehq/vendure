@@ -20,7 +20,7 @@
  * });
  * ```
  */
-export { builtinCommands, cliCommands } from './commands/command-declarations';
+export { builtinCommandDefs, builtinCommands } from './commands/builtins';
 export type {
     CliCommandArgument,
     CliCommandConfig,

@@ -3,7 +3,7 @@
 import { Command } from 'commander';
 import pc from 'picocolors';
 
-import { cliCommands } from './commands/command-declarations';
+import { builtinCommandDefs } from './commands/builtins';
 import { CommandRegistry } from './shared/command-registry-store';
 import { registerCommands } from './shared/command-registry';
 import { resolveCliPlugins } from './shared/resolve-cli-plugins';
@@ -31,7 +31,7 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
         );
 
     const registry = new CommandRegistry();
-    registry.registerAll(cliCommands);
+    registry.registerAll(builtinCommandDefs);
 
     const plugins = resolveCliPlugins();
     for (const { plugin } of plugins) {
