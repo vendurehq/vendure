@@ -66,6 +66,11 @@ It does not use Bun for those generated dependency installs.
 | `doctor`  | Diagnose project, dependency, config, schema and DB health | `commands/doctor.md`  |
 | `codemod` | Run automated code transforms (e.g. UI migrations)        | `commands/codemod.md` |
 
+Installed **CLI plugins** (packages that declare `vendure.cliPlugin`) may add
+commands or replace built-ins such as `dev`. Prefer `vendure --help` in the
+project to see the effective command set. See the developer CLI guide section
+“Extending the CLI”.
+
 ## Critical rules for agents
 
 1. **Never hardcode `npx`.** Resolve the runner from the project's lockfile —

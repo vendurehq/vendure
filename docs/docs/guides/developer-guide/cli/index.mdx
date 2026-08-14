@@ -375,6 +375,67 @@ When you run CLI commands, it:
 The CLI automatically detects your monorepo structure. No additional configuration flags are required as long as your `tsconfig.json` files are properly set up with `extends`.
 :::
 
+## Extending the CLI
+
+Packages can add new top-level commands or replace built-in ones (for example overriding
+`vendure dev`) by exporting a CLI plugin.
+
+In the plugin package:
+
+```ts
+import { builtinCommands, defineCliPlugin } from '@vendure/cli';
+
+export default defineCliPlugin({
+    id: '@example/vendure-cli-plugin',
+    commands: [
+        {
+            name: 'hello',
+            description: 'A new command contributed by a plugin',
+            action: async () => {
+                console.log('hello');
+                return 0;
+            },
+        },
+        {
+            name: 'dev',
+            description: 'Replace or wrap the built-in dev command',
+            action: async (target, options) => {
+                // optional setup...
+                return builtinCommands.dev.action(target, options);
+            },
+        },
+    ],
+});
+```
+
+Declare the entry point in that package's `package.json`:
+
+```json
+{
+    "vendure": {
+        "cliPlugin": "./dist/cli-plugin.js"
+    }
+}
+```
+
+When you run `vendure`, the CLI auto-discovers **direct** dependencies that declare
+`vendure.cliPlugin`. You can optionally restrict or exclude plugins from the project
+`package.json`:
+
+```json
+{
+    "vendure": {
+        "cli": {
+            "plugins": ["@example/vendure-cli-plugin"],
+            "exclude": ["some-unwanted-plugin"]
+        }
+    }
+}
+```
+
+A command whose name matches a built-in replaces it (last loaded plugin wins). Plugins
+can still call the original via `builtinCommands.<name>.action(...)`.
+
 ## Getting Help
 
 To see all available commands and options:

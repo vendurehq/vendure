@@ -28,10 +28,29 @@ export interface CliCommandDefinition {
      * parsed options object, followed by the Command instance itself.
      * E.g. for `vendure codemod <transform> [path]`:
      *   action(transform, path, options, command)
+     *
+     * May return a numeric process exit code. The CLI host calls
+     * `process.exit` after the action settles so plugins can wrap built-ins
+     * without a premature exit.
      */
-    action: (...args: any[]) => Promise<void>;
+    action: (...args: any[]) => Promise<void | number>;
 }
 
 export interface CliCommandConfig {
     commands: CliCommandDefinition[];
+}
+
+/**
+ * Project-level CLI plugin discovery settings under `package.json#vendure.cli`.
+ */
+export interface ProjectCliPluginConfig {
+    /**
+     * When set and non-empty, only these packages are loaded as CLI plugins
+     * (each must still declare `vendure.cliPlugin`).
+     */
+    plugins?: string[];
+    /**
+     * Package names to skip even if they declare a CLI plugin entry.
+     */
+    exclude?: string[];
 }

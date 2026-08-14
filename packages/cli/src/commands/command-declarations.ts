@@ -156,7 +156,7 @@ export const cliCommands: CliCommandDefinition[] = [
         action: async options => {
             const { addCommand } = await import('./add/add');
             await addCommand(options);
-            process.exit(0);
+            return 0;
         },
     },
     {
@@ -208,8 +208,7 @@ export const cliCommands: CliCommandDefinition[] = [
         ],
         action: async (target, options) => {
             const { devCommand } = await import('./dev/dev');
-            const exitCode = await devCommand(target, options);
-            process.exit(exitCode);
+            return await devCommand(target, options);
         },
     },
     {
@@ -272,8 +271,7 @@ export const cliCommands: CliCommandDefinition[] = [
         ],
         action: async (target, options) => {
             const { buildCommand } = await import('./build/build');
-            const exitCode = await buildCommand(target, options);
-            process.exit(exitCode);
+            return await buildCommand(target, options);
         },
     },
     {
@@ -300,8 +298,7 @@ export const cliCommands: CliCommandDefinition[] = [
         ],
         action: async (target, options) => {
             const { startCommand } = await import('./start/start');
-            const exitCode = await startCommand(target, options);
-            process.exit(exitCode);
+            return await startCommand(target, options);
         },
     },
     {
@@ -347,7 +344,7 @@ export const cliCommands: CliCommandDefinition[] = [
         action: async options => {
             const { migrateCommand } = await import('./migrate/migrate');
             await migrateCommand(options);
-            process.exit(0);
+            return 0;
         },
     },
     {
@@ -368,7 +365,7 @@ export const cliCommands: CliCommandDefinition[] = [
         action: async (transform, path, _options) => {
             const { codemodCommand } = await import('./codemod/codemod');
             await codemodCommand(transform, path);
-            process.exit(0);
+            return 0;
         },
     },
     {
@@ -411,7 +408,7 @@ export const cliCommands: CliCommandDefinition[] = [
                 ...options,
                 outputDir: options?.dir,
             });
-            process.exit(0);
+            return 0;
         },
     },
     {
@@ -448,7 +445,15 @@ export const cliCommands: CliCommandDefinition[] = [
         action: async options => {
             const { doctorCommand } = await import('./doctor/doctor');
             await doctorCommand(options);
-            process.exit(0);
+            return 0;
         },
     },
 ];
+
+/**
+ * Built-in command definitions keyed by name. Plugins that wrap a command
+ * (e.g. Cloud overriding `dev`) can call `builtinCommands.dev.action(...)`.
+ */
+export const builtinCommands: Readonly<Record<string, CliCommandDefinition>> = Object.freeze(
+    Object.fromEntries(cliCommands.map(command => [command.name, command])),
+);

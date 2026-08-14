@@ -15,8 +15,16 @@ export function registerCommands(program: Command, commands: CliCommandDefinitio
         }
 
         command.action(async (...args: any[]) => {
-            // Commander passes positional args first, then the options object last
-            await commandDef.action(...args);
+            // Commander passes positional args first, then the options object last.
+            // Exit is owned by the host so plugins can wrap built-in actions.
+            try {
+                const result = await commandDef.action(...args);
+                process.exit(typeof result === 'number' ? result : 0);
+            } catch (e: any) {
+                const message = e?.message ?? String(e);
+                process.stderr.write(`${message}\n`);
+                process.exit(1);
+            }
         });
 
         // Add options if they exist
