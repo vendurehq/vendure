@@ -14,6 +14,8 @@ import {
 } from '@/vdb/providers/channel-provider.js';
 import { UserSettingsContext, type UserSettingsContextType } from '@/vdb/providers/user-settings.js';
 
+import { PageBlock } from '@/vdb/framework/layout-engine/page-layout.js';
+
 import { TranslatableFormFieldWrapper, TranslatableFormGroup } from './translatable-form-field.js';
 
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
@@ -148,7 +150,31 @@ function NameAndSlugGroup() {
     );
 }
 
-async function selectLanguage(trigger: HTMLElement, languageName: string) {
+function getLanguageTabs() {
+    return Array.from(container.querySelectorAll('[role="tab"]')) as HTMLElement[];
+}
+
+function getSelectedLanguageCode() {
+    const selectedTab = getLanguageTabs().find(
+        tab => tab.getAttribute('aria-selected') === 'true' || tab.getAttribute('data-state') === 'active',
+    );
+    if (selectedTab) {
+        return selectedTab.textContent?.replace(/[^A-Z]/g, '');
+    }
+    return container.querySelector('[data-slot="select-value"]')?.textContent;
+}
+
+async function selectLanguageTab(languageCode: string) {
+    const tab = getLanguageTabs().find(item => item.textContent?.includes(languageCode));
+    expect(tab).toBeDefined();
+    await act(async () => {
+        tab?.click();
+        await Promise.resolve();
+    });
+}
+
+async function selectLanguageOption(languageName: string) {
+    const trigger = container.querySelector('[role="combobox"]') as HTMLElement;
     await act(async () => {
         trigger.click();
         await Promise.resolve();
@@ -165,10 +191,6 @@ async function selectLanguage(trigger: HTMLElement, languageName: string) {
         option?.click();
         await Promise.resolve();
     });
-}
-
-function getTriggerCode(trigger: Element | null) {
-    return trigger?.querySelector('[data-slot="select-value"]')?.textContent;
 }
 
 function SetGermanNameErrorButton() {
@@ -201,7 +223,7 @@ function TranslatableFormStateProbe() {
 }
 
 describe('TranslatableFormGroup', () => {
-    it('renders a static code for one language and an inline dropdown for multiple languages', () => {
+    it('hides the language control for one language and shows tabs for a few languages', () => {
         act(() => {
             root.render(
                 <TestProviders languages={['en']}>
@@ -210,8 +232,8 @@ describe('TranslatableFormGroup', () => {
             );
         });
 
+        expect(container.querySelector('[role="tablist"]')).toBeNull();
         expect(container.querySelector('[role="combobox"]')).toBeNull();
-        expect(container.querySelector('[data-slot="badge"]')?.textContent).toBe('EN');
 
         act(() => {
             root.render(
@@ -221,8 +243,32 @@ describe('TranslatableFormGroup', () => {
             );
         });
 
-        expect(container.querySelectorAll('[role="tab"]')).toHaveLength(0);
-        expect(getTriggerCode(container.querySelector('[role="combobox"]'))).toBe('EN');
+        expect(getLanguageTabs().map(tab => tab.textContent)).toEqual(['EN', 'DE', 'FR']);
+        expect(getSelectedLanguageCode()).toBe('EN');
+        expect(container.querySelector('[role="combobox"]')).toBeNull();
+    });
+
+    it('places the language tabs in the PageBlock card header', () => {
+        act(() => {
+            root.render(
+                <TestProviders>
+                    <TranslatableFormGroup>
+                        <PageBlock column="main" blockId="main-form">
+                            <TranslatableFormFieldWrapper
+                                name="name"
+                                label="Name"
+                                render={({ field }) => <Input {...field} />}
+                            />
+                        </PageBlock>
+                    </TranslatableFormGroup>
+                </TestProviders>,
+            );
+        });
+
+        const header = container.querySelector('[data-slot="card-header"]');
+        expect(header?.querySelector('[role="tablist"]')).not.toBeNull();
+        expect(container.querySelector('[data-slot="field"] [role="tablist"]')).toBeNull();
+        expect(container.querySelector('[data-slot="field"] [role="combobox"]')).toBeNull();
     });
 
     it('switches every localized field without changing the global content language', async () => {
@@ -237,20 +283,16 @@ describe('TranslatableFormGroup', () => {
 
         const inputs = Array.from(container.querySelectorAll('input[id^="field-"]')) as HTMLInputElement[];
         expect(inputs.map(input => input.value)).toEqual(['English name', 'english-name']);
-        const triggers = Array.from(container.querySelectorAll('[role="combobox"]')) as HTMLElement[];
-        expect(triggers).toHaveLength(2);
+        expect(getLanguageTabs()).toHaveLength(2);
 
-        await selectLanguage(triggers[0], 'DEGerman');
+        await selectLanguageTab('DE');
 
         const germanInputs = Array.from(
             container.querySelectorAll('input[id^="field-"]'),
         ) as HTMLInputElement[];
         expect(germanInputs.map(input => input.value)).toEqual(['Deutscher Name', 'deutscher-name']);
         expect(germanInputs[0].placeholder).toBe('Fallback: English name');
-        expect(Array.from(container.querySelectorAll('[role="combobox"]')).map(getTriggerCode)).toEqual([
-            'DE',
-            'DE',
-        ]);
+        expect(getSelectedLanguageCode()).toBe('DE');
         expect(setContentLanguage).not.toHaveBeenCalled();
     });
 
@@ -264,15 +306,27 @@ describe('TranslatableFormGroup', () => {
             );
         });
 
-        const triggers = Array.from(container.querySelectorAll('[role="combobox"]')) as HTMLElement[];
-        await selectLanguage(triggers[0], 'DEGerman');
+        const firstTablist = container.querySelectorAll('[role="tablist"]')[0];
+        const firstGermanTab = Array.from(firstTablist.querySelectorAll('[role="tab"]')).find(tab =>
+            tab.textContent?.includes('DE'),
+        ) as HTMLElement;
+        await act(async () => {
+            firstGermanTab.click();
+            await Promise.resolve();
+        });
 
         const inputs = Array.from(container.querySelectorAll('input[id^="field-"]')) as HTMLInputElement[];
         expect(inputs.map(input => input.value)).toEqual(['Deutscher Name', 'English name']);
-        expect(Array.from(container.querySelectorAll('[role="combobox"]')).map(getTriggerCode)).toEqual([
-            'DE',
-            'EN',
-        ]);
+        const selectedCodes = Array.from(container.querySelectorAll('[role="tablist"]')).map(list =>
+            Array.from(list.querySelectorAll('[role="tab"]'))
+                .find(
+                    tab =>
+                        tab.getAttribute('aria-selected') === 'true' ||
+                        tab.getAttribute('data-state') === 'active',
+                )
+                ?.textContent?.replace(/[^A-Z]/g, ''),
+        );
+        expect(selectedCodes).toEqual(['DE', 'EN']);
     });
 
     it('exposes the selected language to custom form elements', () => {
@@ -335,7 +389,7 @@ describe('TranslatableFormGroup', () => {
             );
         });
 
-        expect(getTriggerCode(container.querySelector('[role="combobox"]'))).toBe('EN');
+        expect(getSelectedLanguageCode()).toBe('EN');
         expect((container.querySelector('input[id^="field-"]') as HTMLInputElement).value).toBe(
             'English name',
         );
@@ -350,13 +404,13 @@ describe('TranslatableFormGroup', () => {
             );
         });
 
-        expect(getTriggerCode(container.querySelector('[role="combobox"]'))).toBe('DE');
+        expect(getSelectedLanguageCode()).toBe('DE');
         expect((container.querySelector('input[id^="field-"]') as HTMLInputElement).value).toBe(
             'Deutscher Name',
         );
     });
 
-    it('opens the language dropdown from the keyboard', async () => {
+    it('exposes language tabs to the keyboard', () => {
         act(() => {
             root.render(
                 <TestProviders>
@@ -365,17 +419,15 @@ describe('TranslatableFormGroup', () => {
             );
         });
 
-        const trigger = container.querySelector('[role="combobox"]') as HTMLElement;
-        await act(async () => {
-            trigger.focus();
-            trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
-            await Promise.resolve();
-        });
-
-        expect(document.body.querySelectorAll('[role="option"]')).toHaveLength(2);
+        const tabs = getLanguageTabs();
+        expect(tabs.length).toBeGreaterThan(1);
+        expect(tabs.some(tab => tab.tabIndex >= 0)).toBe(true);
+        expect(container.querySelector('[role="tablist"]')?.getAttribute('aria-label')).toMatch(
+            /Content language/,
+        );
     });
 
-    it('lists every available language in the dropdown', async () => {
+    it('lists every available language in the dropdown when there are many languages', async () => {
         act(() => {
             root.render(
                 <TestProviders languages={['en', 'de', 'fr', 'es']}>
@@ -384,17 +436,12 @@ describe('TranslatableFormGroup', () => {
             );
         });
 
-        const trigger = container.querySelector('[role="combobox"]') as HTMLElement;
-        await act(async () => {
-            trigger.click();
-            await Promise.resolve();
-        });
-
-        expect(document.body.querySelectorAll('[role="option"]')).toHaveLength(4);
-        expect(document.body.textContent).toContain('ESSpanish');
+        expect(container.querySelector('[role="tablist"]')).toBeNull();
+        await selectLanguageOption('Spanish');
+        expect(getSelectedLanguageCode()).toMatch(/ES/);
     });
 
-    it('marks only the language containing an error in the dropdown', async () => {
+    it('marks only the language containing an error on its tab', async () => {
         act(() => {
             root.render(
                 <TestProviders>
@@ -409,17 +456,10 @@ describe('TranslatableFormGroup', () => {
         ) as HTMLButtonElement;
         act(() => errorButton.click());
 
-        const trigger = container.querySelector('[role="combobox"]') as HTMLElement;
-        expect(trigger.getAttribute('aria-label')).toBe('English');
-        await act(async () => {
-            trigger.click();
-            await Promise.resolve();
-        });
-        const germanOption = Array.from(document.body.querySelectorAll('[role="option"]')).find(item =>
-            item.textContent?.includes('DEGerman'),
-        ) as HTMLElement;
-        expect(germanOption.textContent).toContain('Has validation errors');
-        expect(germanOption.querySelector('svg')).not.toBeNull();
+        const germanTab = getLanguageTabs().find(tab => tab.textContent?.includes('DE')) as HTMLElement;
+        expect(germanTab.getAttribute('data-invalid')).toBe('true');
+        expect(germanTab.querySelector('svg')).not.toBeNull();
+        expect(getLanguageTabs()[0].getAttribute('data-invalid')).toBeNull();
     });
 
     it('opens the first language with a group error after an invalid submit', async () => {
@@ -450,7 +490,7 @@ describe('TranslatableFormGroup', () => {
             submitButton.click();
         });
 
-        expect(getTriggerCode(container.querySelector('[role="combobox"]'))).toBe('DE');
+        expect(getSelectedLanguageCode()).toBe('DE');
         expect((container.querySelector('input[id^="field-"]') as HTMLInputElement).value).toBe(
             'Deutscher Name',
         );

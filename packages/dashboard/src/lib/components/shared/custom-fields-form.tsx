@@ -107,7 +107,7 @@ export function CustomFieldsForm({
         return hasLocalizedFields ? <TranslatableFormGroup>{content}</TranslatableFormGroup> : content;
     }
 
-    // Tabbed view
+    // Tabbed view. Localized fields join the page-level translatable group when present.
     const content = (
         <Tabs defaultValue={groupedFields[0]?.tabName} className="w-full">
             <ScrollableTabsList>

@@ -162,8 +162,8 @@ test.describe('Custom Fields', () => {
         await expect(dp.formItem('Weight').getByRole('spinbutton')).toBeVisible();
     });
 
-    // #4972 — localized custom fields use synchronized inline language selectors
-    test('switches and persists localized custom fields with an inline language selector', async ({
+    // #4972 — localized custom fields use the card-header language tabs
+    test('switches and persists localized custom fields with the card language tabs', async ({
         page,
     }) => {
         const client = new VendureAdminClient(page);
@@ -201,17 +201,18 @@ test.describe('Custom Fields', () => {
             });
             const seoTitleInput = seoTitleItem.getByRole('textbox');
             await expect(seoTitleInput).toBeVisible();
-            const languageSelector = seoTitleItem.getByRole('combobox');
-            await expect(languageSelector).toContainText('EN');
+            const languageTabs = page.getByRole('tablist', { name: 'Content language' }).last();
+            await expect(languageTabs.getByRole('tab', { name: 'English' })).toHaveAttribute(
+                'data-state',
+                'active',
+            );
 
             const englishTitle = `English SEO title ${unique}`;
             const germanTitle = `Deutscher SEO-Titel ${unique}`;
             await seoTitleInput.fill(englishTitle);
-            await languageSelector.click();
-            await page.getByRole('option', { name: /DE German/ }).click();
+            await languageTabs.getByRole('tab', { name: 'German' }).click();
             await seoTitleInput.fill(germanTitle);
-            await languageSelector.click();
-            await page.getByRole('option', { name: /EN English/ }).click();
+            await languageTabs.getByRole('tab', { name: 'English' }).click();
             await expect(seoTitleInput).toHaveValue(englishTitle);
 
             await Promise.all([

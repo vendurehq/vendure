@@ -259,13 +259,12 @@ test.describe('Product detail features', () => {
             });
             const nameInput = nameField.getByRole('textbox');
             await expect(nameInput).toHaveValue(englishName, { timeout: 10_000 });
-            const nameLanguageSelector = nameField.getByRole('combobox');
-            const slugField = page.locator('[data-slot="field"]').filter({
-                has: page.locator('[data-slot="field-label"]').getByText('Slug', { exact: true }),
-            });
-            const slugLanguageSelector = slugField.getByRole('combobox');
-            await expect(nameLanguageSelector).toContainText('EN');
-            await expect(slugLanguageSelector).toContainText('EN');
+            const languageTabs = page.getByRole('tablist', { name: 'Content language' }).first();
+            await expect(languageTabs.getByRole('tab', { name: 'English' })).toHaveAttribute(
+                'data-state',
+                'active',
+            );
+            await expect(nameField.getByRole('combobox')).toHaveCount(0);
 
             let adminApiRequests = 0;
             page.on('request', request => {
@@ -274,20 +273,16 @@ test.describe('Product detail features', () => {
                 }
             });
 
-            await nameLanguageSelector.click();
-            await page.getByRole('option', { name: /DE German/ }).click();
-            await expect(slugLanguageSelector).toContainText('DE');
+            await languageTabs.getByRole('tab', { name: 'German' }).click();
             await expect(nameInput).toHaveValue('');
             await expect(nameInput).toHaveAttribute('placeholder', `Fallback: ${englishName}`);
             const germanName = `Deutsches Produkt ${unique}`;
             await nameInput.fill(germanName);
 
-            await nameLanguageSelector.click();
-            await page.getByRole('option', { name: /EN English/ }).click();
+            await languageTabs.getByRole('tab', { name: 'English' }).click();
             const revisedEnglishName = `${englishName} revised`;
             await nameInput.fill(revisedEnglishName);
-            await nameLanguageSelector.click();
-            await page.getByRole('option', { name: /DE German/ }).click();
+            await languageTabs.getByRole('tab', { name: 'German' }).click();
             await expect(nameInput).toHaveValue(germanName);
             expect(adminApiRequests).toBe(0);
 

@@ -1,6 +1,9 @@
 import { CustomFieldsForm } from '@/vdb/components/shared/custom-fields-form.js';
 import { NavigationConfirmation } from '@/vdb/components/shared/navigation-confirmation.js';
 import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
+import { TranslatableFormGroupContext } from '@/vdb/components/shared/translatable-form-context.js';
+import { TranslatableFormGroup } from '@/vdb/components/shared/translatable-form-field.js';
+import { TranslatableFormLanguageControl } from '@/vdb/components/shared/translatable-form-language-control.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/vdb/components/ui/card.js';
 import { Form } from '@/vdb/components/ui/form.js';
 import { Skeleton } from '@/vdb/components/ui/skeleton.js';
@@ -174,7 +177,7 @@ export function PageContentWithOptionalForm({
             <NavigationConfirmation form={form} />
             <form onSubmit={submitHandler} className="space-y-4">
                 {pageHeader}
-                {pageContent}
+                <TranslatableFormGroup>{pageContent}</TranslatableFormGroup>
             </form>
         </Form>
     ) : (
@@ -957,29 +960,88 @@ export function PageBlock({
             <LocationWrapper>
                 {layout === 'bare' ? (
                     <div className={cn('@container w-full', className, 'animate-in fade-in duration-300')}>
-                        {title || description ? (
-                            <div className="mb-4 grid gap-1">
-                                {title && <div className="text-style-card-title">{title}</div>}
-                                {description && (
-                                    <div className="text-muted-foreground text-sm">{description}</div>
-                                )}
-                            </div>
-                        ) : null}
+                        <PageBlockHeader title={title} description={description} layout="bare" />
                         {children}
                     </div>
                 ) : (
                     <Card className={cn('@container  w-full', className, 'animate-in fade-in duration-300')}>
-                        {title || description ? (
-                            <CardHeader>
-                                {title && <CardTitle>{title}</CardTitle>}
-                                {description && <CardDescription>{description}</CardDescription>}
-                            </CardHeader>
-                        ) : null}
+                        <PageBlockHeader title={title} description={description} layout="card" />
                         <CardContent>{children}</CardContent>
                     </Card>
                 )}
             </LocationWrapper>
         </PageBlockContext.Provider>
+    );
+}
+
+function usePageBlockLanguageChrome() {
+    const group = React.useContext(TranslatableFormGroupContext);
+    const pageBlock = React.useContext(PageBlockContext);
+    return Boolean(group && group.languages.length > 1 && group.hasFieldsInBlock(pageBlock?.blockId));
+}
+
+function PageBlockHeader({
+    title,
+    description,
+    layout,
+}: {
+    title?: React.ReactNode | string;
+    description?: React.ReactNode | string;
+    layout: 'card' | 'bare';
+}) {
+    const showLanguageChrome = usePageBlockLanguageChrome();
+    if (!title && !description && !showLanguageChrome) {
+        return null;
+    }
+
+    const languageControl = showLanguageChrome ? <TranslatableFormLanguageControl /> : null;
+    const heading = (
+        <div className="grid gap-1">
+            {title &&
+                (layout === 'bare' ? (
+                    <div className="text-style-card-title">{title}</div>
+                ) : (
+                    <CardTitle>{title}</CardTitle>
+                ))}
+            {description &&
+                (layout === 'bare' ? (
+                    <div className="text-muted-foreground text-sm">{description}</div>
+                ) : (
+                    <CardDescription>{description}</CardDescription>
+                ))}
+        </div>
+    );
+
+    if (layout === 'bare') {
+        return (
+            <div className="mb-4 flex items-start justify-between gap-3">
+                {heading}
+                {languageControl}
+            </div>
+        );
+    }
+
+    // Untitled cards only need a compact, right-aligned control in the card's
+    // existing top padding — not a full header band with a divider.
+    const isLanguageOnly = !title && !description && showLanguageChrome;
+
+    return (
+        <CardHeader
+            className={
+                isLanguageOnly
+                    ? 'flex-row items-center justify-end pb-0 -mt-1 -mb-(--card-gap)'
+                    : undefined
+            }
+        >
+            {title || description ? (
+                <div className="flex w-full items-start justify-between gap-3">
+                    {heading}
+                    {languageControl}
+                </div>
+            ) : (
+                languageControl
+            )}
+        </CardHeader>
     );
 }
 

@@ -2,34 +2,27 @@ import { OverriddenFormComponent } from '@/vdb/framework/form-engine/overridden-
 import { LocationWrapper } from '@/vdb/framework/layout-engine/location-wrapper.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
+import { usePageBlock } from '@/vdb/hooks/use-page-block.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
 import { getLocaleFallbackPlaceholder } from '@/vdb/utils/get-locale-fallback-placeholder.js';
 import { Trans } from '@lingui/react/macro';
-import { CircleAlert } from 'lucide-react';
-import React, { useEffect, useMemo } from 'react';
+import React, { useContext, useEffect, useMemo } from 'react';
 import { Controller, ControllerProps, FieldPath, FieldValues, useFormContext } from 'react-hook-form';
-import { Badge } from '../ui/badge.js';
 import { Field, FieldDescription, FieldError, FieldLabel } from '../ui/field.js';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select.js';
 import { applyControlProps } from './apply-control-props.js';
 import { FormFieldWrapper } from './form-field-wrapper.js';
-import { TranslatableFormGroupContext, useResolvedContentLanguage } from './translatable-form-context.js';
+import {
+    type RegisteredTranslatableField,
+    TranslatableFormGroupContext,
+    useResolvedContentLanguage,
+} from './translatable-form-context.js';
+import { TranslatableFormLanguageControl } from './translatable-form-language-control.js';
 
 function getValueAtPath(value: unknown, path: string): unknown {
     return path.split('.').reduce<any>((current, segment) => current?.[segment], value);
 }
 
-/**
- * @description
- * Groups translatable form fields under synchronized, field-level language selectors. Switching the
- * selected language from any localized field only changes which entry in the form's `translations` array
- * is edited; it does not change the Dashboard's global content language.
- *
- * @docsCategory form-components
- * @docsPage TranslatableFormFieldWrapper
- * @since 3.8.0
- */
-export function TranslatableFormGroup({
+function TranslatableFormGroupProvider({
     children,
     className,
 }: Readonly<{ children: React.ReactNode; className?: string }>) {
@@ -49,13 +42,25 @@ export function TranslatableFormGroup({
             ? contentLanguage
             : (activeChannel?.defaultLanguageCode ?? languages[0] ?? contentLanguage);
     const [languageCode, setLanguageCode] = React.useState(getInitialLanguage);
-    const [registeredFields, setRegisteredFields] = React.useState<string[]>([]);
+    const [registeredFields, setRegisteredFields] = React.useState<RegisteredTranslatableField[]>([]);
     const previousSubmitCount = React.useRef(submitCount);
 
-    const registerField = React.useCallback((fieldName: string) => {
-        setRegisteredFields(current => (current.includes(fieldName) ? current : [...current, fieldName]));
-        return () => setRegisteredFields(current => current.filter(name => name !== fieldName));
+    const registerField = React.useCallback((fieldName: string, blockId?: string) => {
+        setRegisteredFields(current =>
+            current.some(field => field.name === fieldName && field.blockId === blockId)
+                ? current
+                : [...current, { name: fieldName, blockId }],
+        );
+        return () =>
+            setRegisteredFields(current =>
+                current.filter(field => !(field.name === fieldName && field.blockId === blockId)),
+            );
     }, []);
+
+    const hasFieldsInBlock = React.useCallback(
+        (blockId?: string) => registeredFields.some(field => field.blockId === blockId),
+        [registeredFields],
+    );
 
     const languagesWithErrors = useMemo(
         () =>
@@ -66,9 +71,7 @@ export function TranslatableFormGroup({
                     return false;
                 }
                 const translationErrors = (errors as any)?.translations?.[translationIndex];
-                return registeredFields.some(
-                    fieldName => getValueAtPath(translationErrors, fieldName) != null,
-                );
+                return registeredFields.some(field => getValueAtPath(translationErrors, field.name) != null);
             }),
         [errors, languages, registeredFields, translations],
     );
@@ -86,93 +89,73 @@ export function TranslatableFormGroup({
         previousSubmitCount.current = submitCount;
     }, [languagesWithErrors, submitCount]);
 
+    const contextValue = useMemo(
+        () => ({
+            languageCode,
+            languages,
+            languagesWithErrors,
+            setLanguageCode,
+            registerField,
+            hasFieldsInBlock,
+        }),
+        [hasFieldsInBlock, languageCode, languages, languagesWithErrors, registerField],
+    );
+
+    // Only render an inline control when fields are not hosted in a PageBlock.
+    // Detail pages put the control in the card header instead.
+    const showInlineFallback =
+        languages.length > 1 &&
+        registeredFields.length > 0 &&
+        registeredFields.every(field => field.blockId == null);
+
     return (
-        <TranslatableFormGroupContext.Provider
-            value={{ languageCode, languages, languagesWithErrors, setLanguageCode, registerField }}
-        >
-            <div className={className}>{children}</div>
+        <TranslatableFormGroupContext.Provider value={contextValue}>
+            {showInlineFallback ? (
+                <div className={className}>
+                    <div className="mb-3 flex justify-end">
+                        <TranslatableFormLanguageControl />
+                    </div>
+                    {children}
+                </div>
+            ) : className ? (
+                <div className={className}>{children}</div>
+            ) : (
+                children
+            )}
         </TranslatableFormGroupContext.Provider>
     );
 }
 
 /**
- * A field label with an inline language selector which stays synchronized with every other localized
- * field in the nearest {@link TranslatableFormGroup}.
+ * @description
+ * Groups translatable form fields under a shared local language. Switching the selected language
+ * only changes which entry in the form's `translations` array is edited; it does not change the
+ * Dashboard's global content language.
+ *
+ * On detail pages the language control is rendered in the {@link PageBlock} card header. Nested
+ * groups join the nearest parent group so a page shares one language.
+ *
+ * @docsCategory form-components
+ * @docsPage TranslatableFormFieldWrapper
+ * @since 3.8.0
  */
-export function TranslatableFormFieldLabel({ children, ...props }: React.ComponentProps<typeof FieldLabel>) {
-    return (
-        <div className="flex min-h-6 items-center gap-2">
-            <FieldLabel {...props}>{children}</FieldLabel>
-            <TranslatableFormLanguageSelector />
-        </div>
-    );
+export function TranslatableFormGroup({
+    children,
+    className,
+}: Readonly<{ children: React.ReactNode; className?: string }>) {
+    const parentGroup = useContext(TranslatableFormGroupContext);
+    if (parentGroup) {
+        return className ? <div className={className}>{children}</div> : children;
+    }
+    return <TranslatableFormGroupProvider className={className}>{children}</TranslatableFormGroupProvider>;
 }
 
-function TranslatableFormLanguageSelector() {
-    const group = React.useContext(TranslatableFormGroupContext);
-    const { formatLanguageName } = useLocalFormat();
-
-    if (!group || group.languages.length === 0) {
-        return null;
-    }
-
-    const { languageCode, languages, languagesWithErrors, setLanguageCode } = group;
-    const languageName = formatLanguageName(languageCode);
-
-    if (languages.length === 1) {
-        return (
-            <Badge variant="outline" className="text-muted-foreground" title={languageName}>
-                {languageCode.toUpperCase()}
-            </Badge>
-        );
-    }
-
-    const languageItems = Object.fromEntries(languages.map(code => [code, formatLanguageName(code)]));
-    const currentLanguageHasErrors = languagesWithErrors.includes(languageCode);
-
-    return (
-        <Select
-            items={languageItems}
-            value={languageCode}
-            onValueChange={value => value != null && setLanguageCode(String(value))}
-        >
-            <SelectTrigger
-                size="sm"
-                aria-label={languageName}
-                aria-invalid={currentLanguageHasErrors || undefined}
-                className="h-6! gap-1 px-1.5 py-0 text-xs font-medium"
-            >
-                <SelectValue>{languageCode.toUpperCase()}</SelectValue>
-                {currentLanguageHasErrors && (
-                    <CircleAlert className="size-3 text-destructive" aria-hidden="true" />
-                )}
-            </SelectTrigger>
-            <SelectContent align="start">
-                {languages.map(code => {
-                    const hasErrors = languagesWithErrors.includes(code);
-                    return (
-                        <SelectItem key={code} value={code}>
-                            <Badge variant="outline" className="min-w-8 px-1.5 text-muted-foreground">
-                                {code.toUpperCase()}
-                            </Badge>
-                            {languageItems[code]}
-                            {hasErrors && (
-                                <>
-                                    <CircleAlert
-                                        className="ms-auto me-5 size-4 text-destructive"
-                                        aria-hidden="true"
-                                    />
-                                    <span className="sr-only">
-                                        <Trans>Has validation errors</Trans>
-                                    </span>
-                                </>
-                            )}
-                        </SelectItem>
-                    );
-                })}
-            </SelectContent>
-        </Select>
-    );
+/**
+ * @description
+ * Label used by localized fields. Language switching lives on the card header, not the field.
+ */
+export function TranslatableFormFieldLabel({ children, ...props }: React.ComponentProps<typeof FieldLabel>) {
+    return <FieldLabel {...props}>{children}</FieldLabel>;
 }
 
 export type TranslatableEntity = FieldValues & {
@@ -217,15 +200,16 @@ export const TranslatableFormField = <
     const { formatLanguageName } = useLocalFormat();
     const contentLanguage = useResolvedContentLanguage();
     const group = React.useContext(TranslatableFormGroupContext);
+    const pageBlock = usePageBlock({ optional: true });
     const { watch } = useFormContext();
 
     useEffect(() => {
         if (group) {
-            return group.registerField(String(name));
+            return group.registerField(String(name), pageBlock?.blockId);
         }
-    }, [group?.registerField, name]);
-    const formValues = watch();
-    const translations = Array.isArray(formValues) ? formValues?.[0]?.translations : formValues?.translations;
+    }, [group?.registerField, name, pageBlock?.blockId]);
+    const formValues = watch('translations');
+    const translations = Array.isArray(formValues) ? formValues : undefined;
     const existingIndex = translations?.findIndex(
         (translation: any) => translation?.languageCode === contentLanguage,
     );
@@ -290,7 +274,6 @@ export type TranslatableFormFieldWrapperProps<
  *
  * @example
  * ```tsx
- * <TranslatableFormGroup>
  * <PageBlock column="main" blockId="main-form">
  *     <DetailFormGrid>
  *         <TranslatableFormFieldWrapper
@@ -314,7 +297,6 @@ export type TranslatableFormFieldWrapperProps<
  *         render={({ field }) => <RichTextInput {...field} />}
  *     />
  * </PageBlock>
- * </TranslatableFormGroup>
  * ```
  *
  * @docsCategory form-components
