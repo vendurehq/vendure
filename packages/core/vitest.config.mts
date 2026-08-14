@@ -6,10 +6,6 @@ import { sharedTestConfig } from '../../vitest.shared.mjs';
 export default defineConfig({
     test: {
         ...sharedTestConfig,
-        // better-sqlite3 Statement finalizers crash vitest thread-worker teardown on
-        // Node 24 (`Assertion failed: (env) != nullptr` → ERR_IPC_CHANNEL_CLOSED),
-        // which fails CI on unit tests (24.x). Forks exit the process cleanly.
-        pool: 'forks',
     },
     plugins: [
         // SWC required to support decorators used in test plugins
