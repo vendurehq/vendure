@@ -1,4 +1,5 @@
 import { CliCommandDefinition } from '../../shared/cli-command-definition';
+import { runCliCommand } from '../../shared/cli-command-exit';
 
 export const doctorCommandDef: CliCommandDefinition = {
     name: 'doctor',
@@ -11,8 +12,7 @@ export const doctorCommandDef: CliCommandDefinition = {
         },
         {
             long: '--check <names...>',
-            description:
-                'Run specific checks only (project, dependencies, config, schema, database)',
+            description: 'Run specific checks only (project, dependencies, config, schema, database)',
             required: false,
         },
         {
@@ -32,8 +32,9 @@ export const doctorCommandDef: CliCommandDefinition = {
         },
     ],
     action: async options => {
-        const { doctorCommand } = await import('./doctor');
-        await doctorCommand(options);
-        return 0;
+        return runCliCommand(async () => {
+            const { doctorCommand } = await import('./doctor');
+            return doctorCommand(options);
+        });
     },
 };

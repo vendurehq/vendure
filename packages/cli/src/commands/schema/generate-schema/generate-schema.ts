@@ -13,6 +13,7 @@ import { writeFileSync } from 'fs-extra';
 import { getIntrospectionQuery, graphqlSync, printSchema } from 'graphql';
 import path from 'node:path';
 
+import { exitCliCommand, rethrowCliCommandExit } from '../../../shared/cli-command-exit';
 import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file';
 import { analyzeProject } from '../../../shared/shared-prompts';
 import { VendureConfigRef } from '../../../shared/vendure-config-ref';
@@ -54,8 +55,9 @@ export async function generateSchema(options: SchemaOptions) {
             writeFileSync(outFile, JSON.stringify(jsonSchema));
         }
         log.info(`Generated schema: ${outFile}`);
-    } catch (e) {
+    } catch (e: unknown) {
+        rethrowCliCommandExit(e);
         log.error(e instanceof Error ? e.message : String(e));
-        process.exit(1);
+        exitCliCommand(1);
     }
 }

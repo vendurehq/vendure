@@ -217,6 +217,8 @@ npx vendure migrate -g my-migration -o ./custom/migrations
 ### Basic Command Structure
 
 ```typescript
+import { runCliCommand } from '../../shared/cli-command-exit';
+
 {
     name: 'add',
     description: 'Add a feature to your Vendure project',
@@ -236,9 +238,10 @@ npx vendure migrate -g my-migration -o ./custom/migrations
         // ... more options
     ],
     action: async (options) => {
-        const { addCommand } = await import('./add/add');
-        await addCommand(options);
-        process.exit(0);
+        return runCliCommand(async () => {
+            const { addCommand } = await import('./add/add');
+            await addCommand(options);
+        });
     },
 }
 ```
@@ -340,6 +343,7 @@ Each built-in command owns its definition next to its implementation:
 ```typescript
 // packages/cli/src/commands/hello/command.ts
 import { CliCommandDefinition } from '../../shared/cli-command-definition';
+import { runCliCommand } from '../../shared/cli-command-exit';
 
 export const helloCommandDef: CliCommandDefinition = {
     name: 'hello',
@@ -352,10 +356,11 @@ export const helloCommandDef: CliCommandDefinition = {
             required: false,
         },
     ],
-    action: async (options) => {
-        const { helloCommand } = await import('./hello');
-        await helloCommand(options);
-        return 0; // exit code; the host calls process.exit
+    action: async options => {
+        return runCliCommand(async () => {
+            const { helloCommand } = await import('./hello');
+            await helloCommand(options);
+        });
     },
 };
 ```
@@ -430,7 +435,7 @@ Optional project control in the **project** `package.json`:
 ```
 
 - If `plugins` is set and non-empty, only those packages are loaded (each must
-  still declare `vendure.cliPlugin`).
+  still be a direct dependency and declare `vendure.cliPlugin`).
 - `exclude` always applies.
 - Allowlisted packages that cannot be resolved or loaded fail the CLI startup
   with an error (no silent skip).

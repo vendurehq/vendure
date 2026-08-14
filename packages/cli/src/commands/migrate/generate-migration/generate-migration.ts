@@ -4,6 +4,7 @@ import { generateMigration, VendureConfig } from '@vendure/core';
 import path from 'path';
 
 import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command';
+import { exitCliCommand } from '../../../shared/cli-command-exit';
 import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file';
 import { analyzeProject } from '../../../shared/shared-prompts';
 import { VendureConfigRef } from '../../../shared/vendure-config-ref';
@@ -38,7 +39,7 @@ async function runGenerateMigration(configFile?: string): Promise<CliCommandRetu
 
     if (isCancel(name)) {
         cancel(cancelledMessage);
-        process.exit(0);
+        exitCliCommand(0);
     }
     const config = await loadVendureConfigFile(vendureConfig, tsConfigPath);
 
@@ -63,7 +64,7 @@ async function runGenerateMigration(configFile?: string): Promise<CliCommandRetu
 
         if (isCancel(migrationDirSelect)) {
             cancel(cancelledMessage);
-            process.exit(0);
+            exitCliCommand(0);
         }
         migrationDir = migrationDirSelect as string;
     }
@@ -79,7 +80,7 @@ async function runGenerateMigration(configFile?: string): Promise<CliCommandRetu
 
         if (isCancel(confirmation)) {
             cancel(cancelledMessage);
-            process.exit(0);
+            exitCliCommand(0);
         }
         migrationDir = confirmation;
     }

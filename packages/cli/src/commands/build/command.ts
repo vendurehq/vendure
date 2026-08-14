@@ -1,4 +1,5 @@
 import { CliCommandDefinition } from '../../shared/cli-command-definition';
+import { runCliCommand } from '../../shared/cli-command-exit';
 
 export const buildCommandDef: CliCommandDefinition = {
     name: 'build',
@@ -59,7 +60,9 @@ export const buildCommandDef: CliCommandDefinition = {
         },
     ],
     action: async (target, options) => {
-        const { buildCommand } = await import('./build');
-        return await buildCommand(target, options);
+        return runCliCommand(async () => {
+            const { buildCommand } = await import('./build');
+            return buildCommand(target, options);
+        });
     },
 };

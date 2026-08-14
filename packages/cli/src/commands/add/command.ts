@@ -1,4 +1,5 @@
 import { CliCommandDefinition } from '../../shared/cli-command-definition';
+import { runCliCommand } from '../../shared/cli-command-exit';
 
 import { addApiExtension } from './api-extension/add-api-extension';
 import { addCodegen } from './codegen/add-codegen';
@@ -73,8 +74,7 @@ export const addCommandDef: CliCommandDefinition = {
                 },
                 {
                     long: '--selected-entity <n>',
-                    description:
-                        'Name of the entity for entity service (automatically sets type to entity)',
+                    description: 'Name of the entity for entity service (automatically sets type to entity)',
                     required: false,
                 },
             ],
@@ -153,8 +153,9 @@ export const addCommandDef: CliCommandDefinition = {
         },
     ],
     action: async options => {
-        const { addCommand } = await import('./add');
-        await addCommand(options);
-        return 0;
+        return runCliCommand(async () => {
+            const { addCommand } = await import('./add');
+            await addCommand(options);
+        });
     },
 };

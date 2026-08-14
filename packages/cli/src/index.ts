@@ -20,25 +20,12 @@
  * });
  * ```
  */
-export { builtinCommandDefs, builtinCommands } from './commands/builtins';
+export { builtinCommands } from './commands/builtins';
 export type {
     CliCommandArgument,
-    CliCommandConfig,
     CliCommandDefinition,
     CliCommandOption,
     ProjectCliPluginConfig,
 } from './shared/cli-command-definition';
-export { defineCliPlugin, isCliPlugin } from './shared/cli-plugin';
+export { defineCliPlugin } from './shared/cli-plugin';
 export type { CliPlugin } from './shared/cli-plugin';
-export { CommandRegistry } from './shared/command-registry-store';
-export { registerCommands } from './shared/command-registry';
-export {
-    listDirectDependencyNames,
-    resolveCliPlugins,
-    resolveCliProjectRoot,
-} from './shared/resolve-cli-plugins';
-export type {
-    PackageJsonLike,
-    ResolveCliPluginsOptions,
-    ResolvedCliPlugin,
-} from './shared/resolve-cli-plugins';

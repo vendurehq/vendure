@@ -1,4 +1,5 @@
 import { CliCommandDefinition } from '../../shared/cli-command-definition';
+import { runCliCommand } from '../../shared/cli-command-exit';
 
 export const migrateCommandDef: CliCommandDefinition = {
     name: 'migrate',
@@ -41,8 +42,9 @@ export const migrateCommandDef: CliCommandDefinition = {
         },
     ],
     action: async options => {
-        const { migrateCommand } = await import('./migrate');
-        await migrateCommand(options);
-        return 0;
+        return runCliCommand(async () => {
+            const { migrateCommand } = await import('./migrate');
+            await migrateCommand(options);
+        });
     },
 };

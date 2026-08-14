@@ -1,4 +1,5 @@
 import { CliCommandDefinition } from '../../shared/cli-command-definition';
+import { runCliCommand } from '../../shared/cli-command-exit';
 
 export const codemodCommandDef: CliCommandDefinition = {
     name: 'codemod',
@@ -16,8 +17,9 @@ export const codemodCommandDef: CliCommandDefinition = {
         },
     ],
     action: async (transform, path, _options) => {
-        const { codemodCommand } = await import('./codemod');
-        await codemodCommand(transform, path);
-        return 0;
+        return runCliCommand(async () => {
+            const { codemodCommand } = await import('./codemod');
+            await codemodCommand(transform, path);
+        });
     },
 };

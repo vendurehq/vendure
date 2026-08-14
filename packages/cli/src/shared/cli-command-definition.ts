@@ -36,10 +36,6 @@ export interface CliCommandDefinition {
     action: (...args: any[]) => Promise<void | number>;
 }
 
-export interface CliCommandConfig {
-    commands: CliCommandDefinition[];
-}
-
 /**
  * Project-level CLI plugin discovery settings under `package.json#vendure.cli`.
  */

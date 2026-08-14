@@ -25,36 +25,36 @@ export interface CliPlugin {
     commands: CliCommandDefinition[];
 }
 
+export function assertCliPlugin(value: unknown): asserts value is CliPlugin {
+    if (!value || typeof value !== 'object') {
+        throw new Error('CLI plugin must be an object');
+    }
+    const plugin = value as Partial<CliPlugin>;
+    if (typeof plugin.id !== 'string' || plugin.id.trim().length === 0) {
+        throw new Error('CLI plugin id must be a non-empty string');
+    }
+    if (!Array.isArray(plugin.commands)) {
+        throw new Error(`CLI plugin "${plugin.id}" must provide a commands array`);
+    }
+    for (const command of plugin.commands) {
+        if (!command || typeof command.name !== 'string' || command.name.trim().length === 0) {
+            throw new Error(`CLI plugin "${plugin.id}" has a command with an invalid name`);
+        }
+        if (typeof command.description !== 'string' || command.description.trim().length === 0) {
+            throw new Error(`CLI plugin "${plugin.id}" command "${command.name}" must provide a description`);
+        }
+        if (typeof command.action !== 'function') {
+            throw new Error(
+                `CLI plugin "${plugin.id}" command "${command.name}" must provide an action function`,
+            );
+        }
+    }
+}
+
 /**
  * Validates and returns a CLI plugin definition for export from a plugin package.
  */
 export function defineCliPlugin(plugin: CliPlugin): CliPlugin {
-    if (!plugin || typeof plugin !== 'object') {
-        throw new Error('defineCliPlugin: plugin must be an object');
-    }
-    if (typeof plugin.id !== 'string' || plugin.id.length === 0) {
-        throw new Error('defineCliPlugin: plugin.id must be a non-empty string');
-    }
-    if (!Array.isArray(plugin.commands)) {
-        throw new Error(`defineCliPlugin: plugin "${plugin.id}" must provide a commands array`);
-    }
-    for (const command of plugin.commands) {
-        if (!command || typeof command.name !== 'string' || command.name.length === 0) {
-            throw new Error(`defineCliPlugin: plugin "${plugin.id}" has a command with an invalid name`);
-        }
-        if (typeof command.action !== 'function') {
-            throw new Error(
-                `defineCliPlugin: plugin "${plugin.id}" command "${command.name}" must provide an action function`,
-            );
-        }
-    }
+    assertCliPlugin(plugin);
     return plugin;
-}
-
-export function isCliPlugin(value: unknown): value is CliPlugin {
-    if (!value || typeof value !== 'object') {
-        return false;
-    }
-    const candidate = value as Partial<CliPlugin>;
-    return typeof candidate.id === 'string' && Array.isArray(candidate.commands);
 }

@@ -1,10 +1,11 @@
 import { cancel, intro, isCancel, log, select, spinner, text } from '@clack/prompts';
-import { constantCase, kebabCase, pascalCase } from '../../../utilities/case-utils';
 import * as fs from 'fs-extra';
 import path from 'path';
 import { Project, SourceFile } from 'ts-morph';
+import { constantCase, kebabCase, pascalCase } from '../../../utilities/case-utils';
 
 import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command';
+import { exitCliCommand, rethrowCliCommandExit } from '../../../shared/cli-command-exit';
 import { analyzeProject } from '../../../shared/shared-prompts';
 import { VendureConfigRef } from '../../../shared/vendure-config-ref';
 import { VendurePluginRef } from '../../../shared/vendure-plugin-ref';
@@ -57,7 +58,7 @@ export async function createNewPlugin(
 
         if (isCancel(name)) {
             cancel(cancelledMessage);
-            process.exit(0);
+            exitCliCommand(0);
         } else {
             options.name = name;
         }
@@ -85,7 +86,7 @@ export async function createNewPlugin(
 
         if (isCancel(confirmation)) {
             cancel(cancelledMessage);
-            process.exit(0);
+            exitCliCommand(0);
         }
         options.pluginDir = confirmation;
     }
@@ -150,6 +151,7 @@ export async function createNewPlugin(
                     sourceFile.organizeImports();
                 }
             } catch (e: any) {
+                rethrowCliCommandExit(e);
                 log.error(`Error adding feature "${command.id}"`);
                 log.error(e.stack);
             }

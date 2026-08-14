@@ -433,6 +433,7 @@ When you run `vendure`, the CLI auto-discovers **direct** dependencies that decl
 }
 ```
 
+A package named in `plugins` must also be declared as a direct project dependency.
 A command whose name matches a built-in replaces it (last loaded plugin wins). Plugins
 can still call the original via `builtinCommands.<name>.action(...)`.
 

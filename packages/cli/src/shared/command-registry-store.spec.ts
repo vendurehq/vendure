@@ -3,13 +3,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { builtinCommands } from '../commands/builtins';
 import { defineCliPlugin } from './cli-plugin';
 import { CommandRegistry } from './command-registry-store';
-import {
-    PackageJsonLike,
-    listDirectDependencyNames,
-    resolveCliPlugins,
-} from './resolve-cli-plugins';
+import { PackageJsonLike, listDirectDependencyNames, resolveCliPlugins } from './resolve-cli-plugins';
 
 describe('defineCliPlugin()', () => {
     it('returns a valid plugin definition', () => {
@@ -33,7 +30,7 @@ describe('defineCliPlugin()', () => {
                 id: '',
                 commands: [],
             }),
-        ).toThrow(/plugin.id/);
+        ).toThrow(/plugin id/);
     });
 
     it('rejects commands without an action', () => {
@@ -115,7 +112,12 @@ describe('CommandRegistry', () => {
                 ],
             }),
         );
-        expect(registry.toArray().map(c => c.name).sort()).toEqual(['cloud', 'dev']);
+        expect(
+            registry
+                .toArray()
+                .map(c => c.name)
+                .sort(),
+        ).toEqual(['cloud', 'dev']);
     });
 
     it('allows wrapping a built-in action without premature exit', async () => {
@@ -151,6 +153,18 @@ describe('CommandRegistry', () => {
         const exitCode = await registry.get('dev')!.action();
         expect(exitCode).toBe(0);
         expect(order).toEqual(['before', 'builtin', 'after']);
+    });
+
+    it('returns an actual built-in failure code without terminating the process', async () => {
+        const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {
+            throw new Error('process.exit was called');
+        }) as never);
+
+        const exitCode = await builtinCommands.codemod.action('unknown-transform', undefined, {});
+
+        expect(exitCode).toBe(1);
+        expect(exitSpy).not.toHaveBeenCalled();
+        exitSpy.mockRestore();
     });
 });
 
@@ -328,11 +342,93 @@ describe('resolveCliPlugins()', () => {
                 cwd: '/tmp',
                 projectPackageJson: {
                     name: 'demo',
+                    dependencies: { '@missing/plugin': '1.0.0' },
                     vendure: { cli: { plugins: ['@missing/plugin'] } },
                 },
                 resolvePackage: () => null,
             }),
         ).toThrow(/listed in vendure.cli.plugins was not found/);
+    });
+
+    it('requires allowlisted plugins to be direct dependencies', () => {
+        expect(() =>
+            resolveCliPlugins({
+                cwd: '/tmp',
+                projectPackageJson: {
+                    name: 'demo',
+                    vendure: { cli: { plugins: ['@transitive/plugin'] } },
+                },
+                resolvePackage: () => ({
+                    dir: '/tmp/transitive-plugin',
+                    packageJson: {
+                        name: '@transitive/plugin',
+                        vendure: { cliPlugin: './cli-plugin.js' },
+                    },
+                }),
+            }),
+        ).toThrow(/not a direct dependency/);
+    });
+
+    it('resolves a hoisted plugin whose package.json is not exported', () => {
+        const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'vendure-cli-workspace-'));
+        tempDirs.push(workspaceRoot);
+        const projectRoot = path.join(workspaceRoot, 'packages', 'app');
+        const pluginRoot = path.join(workspaceRoot, 'node_modules', '@example', 'hoisted-plugin');
+        fs.ensureDirSync(projectRoot);
+        fs.ensureDirSync(pluginRoot);
+        fs.writeJsonSync(path.join(projectRoot, 'package.json'), {
+            name: 'app',
+            dependencies: { '@example/hoisted-plugin': '1.0.0' },
+        });
+        fs.writeJsonSync(path.join(pluginRoot, 'package.json'), {
+            name: '@example/hoisted-plugin',
+            exports: { '.': './index.js' },
+            vendure: { cliPlugin: './cli-plugin.js' },
+        });
+        fs.writeFileSync(path.join(pluginRoot, 'index.js'), 'module.exports = {};\n');
+        fs.writeFileSync(
+            path.join(pluginRoot, 'cli-plugin.js'),
+            `module.exports = {
+                id: '@example/hoisted-plugin',
+                commands: [{ name: 'hoisted', description: 'Hoisted', action: async () => 0 }],
+            };\n`,
+        );
+
+        const loaded = resolveCliPlugins({ cwd: projectRoot });
+
+        expect(loaded.map(plugin => plugin.packageName)).toEqual(['@example/hoisted-plugin']);
+    });
+
+    it('fails fast when a plugin exports an invalid command', () => {
+        const fixture = makeTempProject({
+            project: {
+                name: 'demo',
+                dependencies: { '@example/broken': '1.0.0' },
+            },
+            plugins: [
+                {
+                    name: '@example/broken',
+                    packageJson: {
+                        name: '@example/broken',
+                        vendure: { cliPlugin: './cli-plugin.js' },
+                    },
+                    entrySource: `module.exports = {
+                        id: '@example/broken',
+                        commands: [{ name: 'broken', description: 'Broken' }],
+                    };`,
+                },
+            ],
+        });
+
+        expect(() =>
+            resolveCliPlugins({
+                cwd: fixture.root,
+                projectPackageJson: fs.readJsonSync(
+                    path.join(fixture.root, 'package.json'),
+                ) as PackageJsonLike,
+                resolvePackage: fixture.resolvePackage,
+            }),
+        ).toThrow(/must provide an action function/);
     });
 
     it('lists direct dependency names from all dependency sections', () => {

@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 
 import { ProjectCliPluginConfig } from './cli-command-definition';
-import { CliPlugin, isCliPlugin } from './cli-plugin';
+import { assertCliPlugin, CliPlugin } from './cli-plugin';
 
 export interface PackageJsonLike {
     name?: string;
@@ -74,9 +74,7 @@ export function resolveCliProjectRoot(cwd: string = process.cwd()): string {
  */
 export function resolveCliPlugins(options: ResolveCliPluginsOptions = {}): ResolvedCliPlugin[] {
     const cwd = options.cwd ?? process.cwd();
-    const projectRoot = options.projectPackageJson
-        ? path.resolve(cwd)
-        : resolveCliProjectRoot(cwd);
+    const projectRoot = options.projectPackageJson ? path.resolve(cwd) : resolveCliProjectRoot(cwd);
     const projectPackageJson =
         options.projectPackageJson ?? readPackageJson(path.join(projectRoot, 'package.json'));
 
@@ -86,16 +84,24 @@ export function resolveCliPlugins(options: ResolveCliPluginsOptions = {}): Resol
 
     const cliConfig = projectPackageJson.vendure?.cli;
     const exclude = new Set(cliConfig?.exclude ?? []);
-    const allowlist =
-        cliConfig?.plugins && cliConfig.plugins.length > 0 ? cliConfig.plugins : undefined;
+    const allowlist = cliConfig?.plugins && cliConfig.plugins.length > 0 ? cliConfig.plugins : undefined;
+    const directDependencyNames = new Set(listDirectDependencyNames(projectPackageJson));
+
+    if (allowlist) {
+        const nonDirectPlugin = allowlist.find(packageName => !directDependencyNames.has(packageName));
+        if (nonDirectPlugin) {
+            throw new Error(
+                `CLI plugin package "${nonDirectPlugin}" is listed in vendure.cli.plugins but is not a direct dependency of ${projectRoot}`,
+            );
+        }
+    }
 
     const candidateNames = allowlist
         ? [...allowlist]
-        : listDirectDependencyNames(projectPackageJson).sort((a, b) => a.localeCompare(b));
+        : [...directDependencyNames].sort((a, b) => a.localeCompare(b));
 
     const resolvePackage =
-        options.resolvePackage ??
-        ((packageName: string) => defaultResolvePackage(projectRoot, packageName));
+        options.resolvePackage ?? ((packageName: string) => defaultResolvePackage(projectRoot, packageName));
 
     const loaded: ResolvedCliPlugin[] = [];
 
@@ -126,9 +132,7 @@ export function resolveCliPlugins(options: ResolveCliPluginsOptions = {}): Resol
 
         const entryPath = path.resolve(resolved.dir, entryRel);
         if (!fs.existsSync(entryPath)) {
-            throw new Error(
-                `CLI plugin "${packageName}" entry "${entryRel}" not found at ${entryPath}`,
-            );
+            throw new Error(`CLI plugin "${packageName}" entry "${entryRel}" not found at ${entryPath}`);
         }
 
         const plugin = loadCliPluginModule(entryPath, packageName);
@@ -171,8 +175,8 @@ function defaultResolvePackage(
     projectRoot: string,
     packageName: string,
 ): { dir: string; packageJson: PackageJsonLike } | null {
+    const requireFromProject = createRequire(path.join(projectRoot, 'package.json'));
     try {
-        const requireFromProject = createRequire(path.join(projectRoot, 'package.json'));
         const packageJsonPath = requireFromProject.resolve(`${packageName}/package.json`);
         const packageJson = readPackageJson(packageJsonPath);
         if (!packageJson) {
@@ -180,16 +184,45 @@ function defaultResolvePackage(
         }
         return { dir: path.dirname(packageJsonPath), packageJson };
     } catch {
-        // Fallback for packages without an exportable package.json (rare) or
-        // classic node_modules layout when createRequire fails.
-        const candidates = [
-            path.join(projectRoot, 'node_modules', ...packageName.split('/'), 'package.json'),
-        ];
-        for (const candidate of candidates) {
-            const packageJson = readPackageJson(candidate);
-            if (packageJson) {
-                return { dir: path.dirname(candidate), packageJson };
+        // Packages with a restrictive `exports` map commonly hide package.json.
+        // Resolve their public entry instead, then walk up to the owning package.
+        try {
+            let current = path.dirname(requireFromProject.resolve(packageName));
+            while (true) {
+                const packageJsonPath = path.join(current, 'package.json');
+                const packageJson = readPackageJson(packageJsonPath);
+                if (packageJson?.name === packageName) {
+                    return { dir: current, packageJson };
+                }
+                const parent = path.dirname(current);
+                if (parent === current) {
+                    break;
+                }
+                current = parent;
             }
+        } catch {
+            // A package may expose neither its root nor package.json. Classic
+            // node_modules layouts can still be resolved by walking ancestors,
+            // which also covers npm/pnpm workspace hoisting.
+            let current = projectRoot;
+            while (true) {
+                const packageJsonPath = path.join(
+                    current,
+                    'node_modules',
+                    ...packageName.split('/'),
+                    'package.json',
+                );
+                const packageJson = readPackageJson(packageJsonPath);
+                if (packageJson?.name === packageName) {
+                    return { dir: path.dirname(packageJsonPath), packageJson };
+                }
+                const parent = path.dirname(current);
+                if (parent === current) {
+                    break;
+                }
+                current = parent;
+            }
+            return null;
         }
         return null;
     }
@@ -200,16 +233,9 @@ function loadCliPluginModule(entryPath: string, packageName: string): CliPlugin 
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         const mod = require(entryPath) as { default?: unknown } | CliPlugin;
         const exported = (mod as { default?: unknown }).default ?? mod;
-        if (!isCliPlugin(exported)) {
-            throw new Error(
-                `CLI plugin "${packageName}" must export a CliPlugin (use defineCliPlugin)`,
-            );
-        }
+        assertCliPlugin(exported);
         return exported;
     } catch (e: any) {
-        if (e?.message?.includes('must export a CliPlugin') || e?.message?.includes('defineCliPlugin')) {
-            throw e;
-        }
         throw new Error(
             `Failed to load CLI plugin "${packageName}" from ${entryPath}: ${e?.message ?? String(e)}`,
         );
