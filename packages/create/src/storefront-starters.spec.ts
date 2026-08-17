@@ -52,11 +52,11 @@ describe('storefront starters', () => {
         expect(storefront.envFile).toBe('.env');
         expect(renderStorefrontEnvironment(storefront, setupContext)).toBe(
             [
-                'VENDURE_SHOP_API_URL=http://localhost:3000/shop-api',
-                'VENDURE_CHANNEL_TOKEN=__default_channel__',
-                'SITE_URL=http://localhost:3001',
-                'SITE_NAME=my-shop',
-                'REVALIDATION_SECRET=secret',
+                "VENDURE_SHOP_API_URL='http://localhost:3000/shop-api'",
+                "VENDURE_CHANNEL_TOKEN='__default_channel__'",
+                "SITE_URL='http://localhost:3001'",
+                "SITE_NAME='my-shop'",
+                "REVALIDATION_SECRET='secret'",
                 '',
             ].join('\n'),
         );
@@ -76,7 +76,21 @@ describe('storefront starters', () => {
             dev: 'next dev --port 3001',
             start: 'next start',
         });
-        expect(environment).toContain('NEXT_PUBLIC_SITE_URL=http://localhost:3001');
+        expect(environment).toContain("NEXT_PUBLIC_SITE_URL='http://localhost:3001'");
         expect(environment).not.toContain('\nSITE_URL=');
     });
+
+    it.each(['tanstack', 'nextjs'] as const)(
+        'preserves comment and quote characters in the %s environment file',
+        storefrontId => {
+            const storefront = getStorefrontStarter(storefrontId);
+            const environment = renderStorefrontEnvironment(storefront, {
+                ...setupContext,
+                projectName: 'shop#"demo"',
+            });
+            const siteNameKey = storefrontId === 'nextjs' ? 'NEXT_PUBLIC_SITE_NAME' : 'SITE_NAME';
+
+            expect(environment).toContain(`${siteNameKey}='shop#"demo"'`);
+        },
+    );
 });

@@ -112,8 +112,8 @@ export function checkNodeVersion(requiredVersion: string, currentVersion: string
         log(
             pc.red(
                 `You are running Node ${currentVersion}.` +
-                    `Vendure requires Node ${requiredVersion} or higher.` +
-                    'Please update your version of Node.',
+                    `Vendure requires Node ${requiredVersion}.` +
+                    ' Please update your version of Node.',
             ),
         );
         process.exit(1);

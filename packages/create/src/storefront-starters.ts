@@ -110,7 +110,15 @@ export function renderStorefrontEnvironment(
 ): string {
     return (
         Object.entries(storefront.environment(context))
-            .map(([key, value]) => `${key}=${value}`)
+            .map(([key, value]) => `${key}=${quoteEnvironmentValue(value)}`)
             .join('\n') + '\n'
     );
+}
+
+function quoteEnvironmentValue(value: string): string {
+    const delimiter = [`'`, `"`, '`'].find(candidate => !value.includes(candidate));
+    if (!delimiter) {
+        throw new Error('Environment values cannot contain single, double, and backtick quotes together.');
+    }
+    return `${delimiter}${value}${delimiter}`;
 }

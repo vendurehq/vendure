@@ -1,4 +1,4 @@
-export const REQUIRED_NODE_VERSION = '>=20.0.0';
+export const REQUIRED_NODE_VERSION = '^20.19.0 || >=22.12.0';
 /**
  * Oldest Node.js major release that has not reached end-of-life. Used to warn (not block)
  * users on EOL versions, for which native deps often stop publishing prebuilt binaries.
