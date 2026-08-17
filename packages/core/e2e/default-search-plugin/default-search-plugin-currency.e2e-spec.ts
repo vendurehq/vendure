@@ -36,7 +36,9 @@ const searchProductsByCurrencyDocument = graphql(`
     }
 `);
 
-describe('Default search plugin currency indexing', () => {
+const isNonSqliteDatabase = process.env.DB != null && process.env.DB !== 'sqljs';
+
+describe.skipIf(isNonSqliteDatabase)('Default search plugin currency indexing', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
             plugins: [DefaultSearchPlugin.init({ indexCurrencyCode: true }), DefaultJobQueuePlugin],
