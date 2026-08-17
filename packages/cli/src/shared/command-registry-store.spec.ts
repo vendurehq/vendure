@@ -262,7 +262,7 @@ describe('resolveCliPlugins()', () => {
                 projectPackageJson,
                 resolvePackage: fixture.resolvePackage,
             }),
-        ).toEqual([]);
+        ).toEqual({ loaded: [], failures: [] });
 
         const discovered = discoverCliPlugins({
             cwd: fixture.root,
@@ -285,7 +285,6 @@ describe('resolveCliPlugins()', () => {
                 vendure: {
                     cli: {
                         plugins: ['@example/c', '@example/a'],
-                        exclude: ['@example/a'],
                     },
                 },
             },
@@ -335,46 +334,100 @@ describe('resolveCliPlugins()', () => {
         const projectPackageJson = fs.readJsonSync(
             path.join(fixture.root, 'package.json'),
         ) as PackageJsonLike;
-        const loaded = resolveCliPlugins({
+        const result = resolveCliPlugins({
             cwd: fixture.root,
             projectPackageJson,
             resolvePackage: fixture.resolvePackage,
         });
 
-        expect(loaded.map(p => p.packageName)).toEqual(['@example/c']);
+        expect(result.failures).toEqual([]);
+        expect(result.loaded.map(p => p.packageName)).toEqual(['@example/c', '@example/a']);
     });
 
-    it('fails fast when an allowlisted plugin cannot be loaded', () => {
-        expect(() =>
-            resolveCliPlugins({
-                cwd: '/tmp',
-                projectPackageJson: {
-                    name: 'demo',
-                    dependencies: { '@missing/plugin': '1.0.0' },
-                    vendure: { cli: { plugins: ['@missing/plugin'] } },
+    it('reports a failure instead of throwing when an enabled plugin cannot be resolved', () => {
+        const result = resolveCliPlugins({
+            cwd: '/tmp',
+            projectPackageJson: {
+                name: 'demo',
+                dependencies: { '@missing/plugin': '1.0.0' },
+                vendure: { cli: { plugins: ['@missing/plugin'] } },
+            },
+            resolvePackage: () => null,
+        });
+
+        expect(result.loaded).toEqual([]);
+        expect(result.failures).toHaveLength(1);
+        expect(result.failures[0].packageName).toBe('@missing/plugin');
+        expect(result.failures[0].reason).toMatch(/could not be resolved/);
+    });
+
+    it('reports a failure when an enabled plugin is not a direct dependency', () => {
+        const result = resolveCliPlugins({
+            cwd: '/tmp',
+            projectPackageJson: {
+                name: 'demo',
+                vendure: { cli: { plugins: ['@transitive/plugin'] } },
+            },
+            resolvePackage: () => ({
+                dir: '/tmp/transitive-plugin',
+                packageJson: {
+                    name: '@transitive/plugin',
+                    vendure: { cliPlugin: './cli-plugin.js' },
                 },
-                resolvePackage: () => null,
             }),
-        ).toThrow(/listed in vendure.cli.plugins was not found/);
+        });
+
+        expect(result.loaded).toEqual([]);
+        expect(result.failures[0].reason).toMatch(/not a direct dependency/);
     });
 
-    it('requires allowlisted plugins to be direct dependencies', () => {
-        expect(() =>
-            resolveCliPlugins({
-                cwd: '/tmp',
-                projectPackageJson: {
-                    name: 'demo',
-                    vendure: { cli: { plugins: ['@transitive/plugin'] } },
+    it('keeps loading other plugins when one fails', () => {
+        const fixture = makeTempProject({
+            project: {
+                name: 'demo',
+                dependencies: {
+                    '@example/good': '1.0.0',
+                    '@example/broken': '1.0.0',
                 },
-                resolvePackage: () => ({
-                    dir: '/tmp/transitive-plugin',
+                vendure: {
+                    cli: { plugins: ['@example/broken', '@example/good'] },
+                },
+            },
+            plugins: [
+                {
+                    name: '@example/good',
                     packageJson: {
-                        name: '@transitive/plugin',
+                        name: '@example/good',
                         vendure: { cliPlugin: './cli-plugin.js' },
                     },
-                }),
-            }),
-        ).toThrow(/not a direct dependency/);
+                    entrySource: `
+                        module.exports = {
+                            id: '@example/good',
+                            commands: [{ name: 'good', description: 'Good', action: async () => 0 }],
+                        };
+                    `,
+                },
+                {
+                    name: '@example/broken',
+                    packageJson: {
+                        name: '@example/broken',
+                        vendure: { cliPlugin: './cli-plugin.js' },
+                    },
+                    entrySource: `throw new Error('boom at require time');`,
+                },
+            ],
+        });
+
+        const result = resolveCliPlugins({
+            cwd: fixture.root,
+            projectPackageJson: fs.readJsonSync(path.join(fixture.root, 'package.json')) as PackageJsonLike,
+            resolvePackage: fixture.resolvePackage,
+        });
+
+        expect(result.loaded.map(p => p.packageName)).toEqual(['@example/good']);
+        expect(result.failures).toHaveLength(1);
+        expect(result.failures[0].packageName).toBe('@example/broken');
+        expect(result.failures[0].reason).toMatch(/boom at require time/);
     });
 
     it('resolves a hoisted plugin whose package.json is not exported when enabled', () => {
@@ -403,12 +456,13 @@ describe('resolveCliPlugins()', () => {
             };\n`,
         );
 
-        const loaded = resolveCliPlugins({ cwd: projectRoot });
+        const result = resolveCliPlugins({ cwd: projectRoot });
 
-        expect(loaded.map(plugin => plugin.packageName)).toEqual(['@example/hoisted-plugin']);
+        expect(result.failures).toEqual([]);
+        expect(result.loaded.map(plugin => plugin.packageName)).toEqual(['@example/hoisted-plugin']);
     });
 
-    it('fails fast when a plugin exports an invalid command', () => {
+    it('reports a failure when a plugin exports an invalid command', () => {
         const fixture = makeTempProject({
             project: {
                 name: 'demo',
@@ -430,15 +484,56 @@ describe('resolveCliPlugins()', () => {
             ],
         });
 
-        expect(() =>
-            resolveCliPlugins({
-                cwd: fixture.root,
-                projectPackageJson: fs.readJsonSync(
-                    path.join(fixture.root, 'package.json'),
-                ) as PackageJsonLike,
-                resolvePackage: fixture.resolvePackage,
-            }),
-        ).toThrow(/must provide an action function/);
+        const result = resolveCliPlugins({
+            cwd: fixture.root,
+            projectPackageJson: fs.readJsonSync(path.join(fixture.root, 'package.json')) as PackageJsonLike,
+            resolvePackage: fixture.resolvePackage,
+        });
+
+        expect(result.loaded).toEqual([]);
+        expect(result.failures[0].reason).toMatch(/must provide an action function/);
+    });
+
+    it('reports an enabled but invalid plugin as failed when discovery validates', () => {
+        const fixture = makeTempProject({
+            project: {
+                name: 'demo',
+                dependencies: { '@example/broken': '1.0.0' },
+                vendure: { cli: { plugins: ['@example/broken'] } },
+            },
+            plugins: [
+                {
+                    name: '@example/broken',
+                    packageJson: {
+                        name: '@example/broken',
+                        vendure: { cliPlugin: './cli-plugin.js' },
+                    },
+                    entrySource: `module.exports = {
+                        id: '@example/broken',
+                        commands: [{ name: 'broken', description: 'Broken' }],
+                    };`,
+                },
+            ],
+        });
+        const projectPackageJson = fs.readJsonSync(
+            path.join(fixture.root, 'package.json'),
+        ) as PackageJsonLike;
+
+        const withoutValidation = discoverCliPlugins({
+            cwd: fixture.root,
+            projectPackageJson,
+            resolvePackage: fixture.resolvePackage,
+        });
+        expect(withoutValidation[0].status).toBe('enabled');
+
+        const withValidation = discoverCliPlugins({
+            cwd: fixture.root,
+            projectPackageJson,
+            resolvePackage: fixture.resolvePackage,
+            validate: true,
+        });
+        expect(withValidation[0].status).toBe('failed');
+        expect(withValidation[0].reason).toMatch(/must provide an action function/);
     });
 
     it('lists direct dependency names from all dependency sections', () => {

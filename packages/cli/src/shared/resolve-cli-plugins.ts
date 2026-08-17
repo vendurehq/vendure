@@ -27,13 +27,28 @@ export interface ResolvedCliPlugin {
     entryPath: string;
 }
 
-export type CliPluginDiscoveryStatus = 'enabled' | 'not-enabled' | 'excluded' | 'failed';
+export interface CliPluginLoadFailure {
+    packageName: string;
+    reason: string;
+}
+
+/**
+ * Result of loading enabled plugins. Failures are reported, not thrown, so a
+ * broken plugin cannot take down the whole CLI (including the `plugins`
+ * command needed to disable it).
+ */
+export interface CliPluginLoadResult {
+    loaded: ResolvedCliPlugin[];
+    failures: CliPluginLoadFailure[];
+}
+
+export type CliPluginDiscoveryStatus = 'enabled' | 'not-enabled' | 'failed';
 
 export interface DiscoveredCliPlugin {
     packageName: string;
     status: CliPluginDiscoveryStatus;
     /**
-     * Why the package was skipped or failed. Present for `excluded` and `failed`.
+     * Why the package was skipped or failed. Present for `failed`.
      */
     reason?: string;
     entryRel?: string;
@@ -59,8 +74,28 @@ export interface ResolveCliPluginsOptions {
     resolvePackage?: (packageName: string) => { dir: string; packageJson: PackageJsonLike } | null;
 }
 
+export interface DiscoverCliPluginsOptions extends ResolveCliPluginsOptions {
+    /**
+     * When true, enabled plugins are actually loaded so that a module which
+     * fails `require()` or plugin validation is reported as `failed` instead
+     * of `enabled`. Loading executes plugin code, so this is only done for
+     * the `plugins` command (the same code runs at every normal startup).
+     */
+    validate?: boolean;
+}
+
 /**
- * Finds the project root used for CLI plugin discovery by walking up from
+ * Context exposed to the `plugins` command so its validation matches the
+ * discovery/loading behaviour exactly.
+ */
+export interface CliPluginProjectContext {
+    projectRoot: string;
+    directDependencyNames: Set<string>;
+    resolvePackage: (packageName: string) => { dir: string; packageJson: PackageJsonLike } | null;
+}
+
+/**
+ * Finds the project root used for CLI plugin configuration by walking up from
  * `cwd` and preferring a package.json that configures `vendure.cli` or
  * depends on `@vendure/cli`.
  */
@@ -92,22 +127,22 @@ export function resolveCliProjectRoot(cwd: string = process.cwd()): string {
 }
 
 /**
- * Discovers direct dependencies that declare a CLI plugin, without loading them.
- *
- * Loading is opt-in via `vendure.cli.plugins` — see {@link resolveCliPlugins}.
+ * Discovers direct dependencies that declare a CLI plugin, without loading
+ * them (unless `validate` is set). Loading is opt-in via `vendure.cli.plugins`
+ * — see {@link resolveCliPlugins}.
  */
-export function discoverCliPlugins(options: ResolveCliPluginsOptions = {}): DiscoveredCliPlugin[] {
+export function discoverCliPlugins(options: DiscoverCliPluginsOptions = {}): DiscoveredCliPlugin[] {
     const context = getProjectPluginContext(options);
     if (!context) {
         return [];
     }
 
-    const { projectRoot, projectPackageJson, resolvePackage, allowlist, exclude } = context;
-    const directDependencyNames = new Set(listDirectDependencyNames(projectPackageJson));
+    const { projectRoot, directDependencyOrigins, allowlist, resolvePackage } = context;
+    const enabledSet = new Set(allowlist ?? []);
     const discovered = new Map<string, DiscoveredCliPlugin>();
 
     // Scan all direct deps for packages that declare a plugin entry.
-    for (const packageName of [...directDependencyNames].sort((a, b) => a.localeCompare(b))) {
+    for (const packageName of [...directDependencyOrigins.keys()].sort((a, b) => a.localeCompare(b))) {
         const resolved = resolvePackage(packageName);
         if (!resolved) {
             continue;
@@ -116,98 +151,41 @@ export function discoverCliPlugins(options: ResolveCliPluginsOptions = {}): Disc
         if (!entryRel || typeof entryRel !== 'string') {
             continue;
         }
-        const declaredCommands = normalizeDeclaredCommands(resolved.packageJson.vendure?.cliCommands);
-        const entryPath = path.resolve(resolved.dir, entryRel);
-
-        if (exclude.has(packageName)) {
-            discovered.set(packageName, {
-                packageName,
-                status: 'excluded',
-                reason: 'Listed in vendure.cli.exclude',
-                entryRel,
-                entryPath,
-                declaredCommands,
-            });
-            continue;
-        }
-
-        if (allowlist?.includes(packageName)) {
-            discovered.set(packageName, {
-                packageName,
-                status: 'enabled',
-                entryRel,
-                entryPath,
-                declaredCommands,
-            });
-            continue;
-        }
-
         discovered.set(packageName, {
             packageName,
-            status: 'not-enabled',
-            reason: 'Not listed in vendure.cli.plugins',
+            status: enabledSet.has(packageName) ? 'enabled' : 'not-enabled',
+            reason: enabledSet.has(packageName) ? undefined : 'Not listed in vendure.cli.plugins',
             entryRel,
-            entryPath,
-            declaredCommands,
+            entryPath: path.resolve(resolved.dir, entryRel),
+            declaredCommands: normalizeDeclaredCommands(resolved.packageJson.vendure?.cliCommands),
         });
     }
 
     // Allowlisted packages that are missing or invalid surface as failed.
-    if (allowlist) {
-        for (const packageName of allowlist) {
-            if (exclude.has(packageName)) {
-                discovered.set(packageName, {
-                    packageName,
-                    status: 'excluded',
-                    reason: 'Listed in vendure.cli.exclude',
-                });
-                continue;
-            }
-            if (!directDependencyNames.has(packageName)) {
-                discovered.set(packageName, {
-                    packageName,
-                    status: 'failed',
-                    reason: `Listed in vendure.cli.plugins but is not a direct dependency of ${projectRoot}`,
-                });
-                continue;
-            }
-            const resolved = resolvePackage(packageName);
-            if (!resolved) {
-                discovered.set(packageName, {
-                    packageName,
-                    status: 'failed',
-                    reason: `Listed in vendure.cli.plugins but was not found from ${projectRoot}`,
-                });
-                continue;
-            }
-            const entryRel = resolved.packageJson.vendure?.cliPlugin;
-            if (!entryRel || typeof entryRel !== 'string') {
-                discovered.set(packageName, {
-                    packageName,
-                    status: 'failed',
-                    reason: 'Does not declare vendure.cliPlugin in its package.json',
-                });
-                continue;
-            }
-            const entryPath = path.resolve(resolved.dir, entryRel);
-            if (!fs.existsSync(entryPath)) {
-                discovered.set(packageName, {
-                    packageName,
-                    status: 'failed',
-                    reason: `Entry "${entryRel}" not found at ${entryPath}`,
-                    entryRel,
-                    entryPath,
-                });
-                continue;
-            }
-            if (!discovered.has(packageName)) {
-                discovered.set(packageName, {
-                    packageName,
-                    status: 'enabled',
-                    entryRel,
-                    entryPath,
-                    declaredCommands: normalizeDeclaredCommands(resolved.packageJson.vendure?.cliCommands),
-                });
+    for (const packageName of allowlist ?? []) {
+        const failure = checkEnabledPluginStatically(packageName, context);
+        if (failure) {
+            const existing = discovered.get(packageName);
+            discovered.set(packageName, {
+                ...existing,
+                packageName,
+                status: 'failed',
+                reason: failure,
+            });
+            continue;
+        }
+        if (options.validate) {
+            const entry = discovered.get(packageName);
+            if (entry?.entryPath) {
+                try {
+                    loadCliPluginModule(entry.entryPath, packageName);
+                } catch (e: any) {
+                    discovered.set(packageName, {
+                        ...entry,
+                        status: 'failed',
+                        reason: e?.message ?? String(e),
+                    });
+                }
             }
         }
     }
@@ -219,62 +197,41 @@ export function discoverCliPlugins(options: ResolveCliPluginsOptions = {}): Disc
  * Loads CLI plugins that have been explicitly enabled in `vendure.cli.plugins`.
  *
  * Packages that declare `vendure.cliPlugin` but are not listed are discovered
- * (see {@link discoverCliPlugins}) but not executed.
+ * (see {@link discoverCliPlugins}) but not executed. Per-package failures are
+ * returned instead of thrown so the CLI stays usable.
  */
-export function resolveCliPlugins(options: ResolveCliPluginsOptions = {}): ResolvedCliPlugin[] {
+export function resolveCliPlugins(options: ResolveCliPluginsOptions = {}): CliPluginLoadResult {
     const context = getProjectPluginContext(options);
-    if (!context) {
-        return [];
-    }
-
-    const { projectRoot, resolvePackage, allowlist, exclude } = context;
-    if (!allowlist || allowlist.length === 0) {
-        return [];
+    if (!context || !context.allowlist || context.allowlist.length === 0) {
+        return { loaded: [], failures: [] };
     }
 
     const loaded: ResolvedCliPlugin[] = [];
+    const failures: CliPluginLoadFailure[] = [];
 
-    for (const packageName of allowlist) {
-        if (exclude.has(packageName)) {
+    for (const packageName of context.allowlist) {
+        const staticFailure = checkEnabledPluginStatically(packageName, context);
+        if (staticFailure) {
+            failures.push({ packageName, reason: staticFailure });
             continue;
         }
-
-        const directDependencyNames = new Set(listDirectDependencyNames(context.projectPackageJson));
-        if (!directDependencyNames.has(packageName)) {
-            throw new Error(
-                `CLI plugin package "${packageName}" is listed in vendure.cli.plugins but is not a direct dependency of ${projectRoot}`,
-            );
+        const resolved = context.resolvePackage(packageName);
+        // checkEnabledPluginStatically guarantees these are present.
+        const entryRel = resolved!.packageJson.vendure!.cliPlugin!;
+        const entryPath = path.resolve(resolved!.dir, entryRel);
+        try {
+            loaded.push({ packageName, plugin: loadCliPluginModule(entryPath, packageName), entryPath });
+        } catch (e: any) {
+            failures.push({ packageName, reason: e?.message ?? String(e) });
         }
-
-        const resolved = resolvePackage(packageName);
-        if (!resolved) {
-            throw new Error(
-                `CLI plugin package "${packageName}" listed in vendure.cli.plugins was not found from ${projectRoot}`,
-            );
-        }
-
-        const entryRel = resolved.packageJson.vendure?.cliPlugin;
-        if (!entryRel || typeof entryRel !== 'string') {
-            throw new Error(
-                `CLI plugin package "${packageName}" does not declare vendure.cliPlugin in its package.json`,
-            );
-        }
-
-        const entryPath = path.resolve(resolved.dir, entryRel);
-        if (!fs.existsSync(entryPath)) {
-            throw new Error(`CLI plugin "${packageName}" entry "${entryRel}" not found at ${entryPath}`);
-        }
-
-        const plugin = loadCliPluginModule(entryPath, packageName);
-        loaded.push({ packageName, plugin, entryPath });
     }
 
-    return loaded;
+    return { loaded, failures };
 }
 
 /**
- * Packages that declare a CLI plugin but are not currently loaded (not enabled
- * or excluded). Used for the one-line startup hint.
+ * Packages that declare a CLI plugin but are not currently enabled. Used for
+ * the one-line startup hint.
  */
 export function listInactiveCliPluginPackages(options: ResolveCliPluginsOptions = {}): string[] {
     return discoverCliPlugins(options)
@@ -291,10 +248,26 @@ export function findInactivePluginProvidingCommand(
     options: ResolveCliPluginsOptions = {},
 ): DiscoveredCliPlugin | undefined {
     return discoverCliPlugins(options).find(
-        plugin =>
-            plugin.status === 'not-enabled' &&
-            plugin.declaredCommands?.includes(commandName),
+        plugin => plugin.status === 'not-enabled' && plugin.declaredCommands?.includes(commandName),
     );
+}
+
+/**
+ * Exposes project root, direct dependencies and package resolution to the
+ * `plugins` command so its error messages match discovery behaviour.
+ */
+export function getCliPluginProjectContext(
+    options: ResolveCliPluginsOptions = {},
+): CliPluginProjectContext | null {
+    const context = getProjectPluginContext(options);
+    if (!context) {
+        return null;
+    }
+    return {
+        projectRoot: context.projectRoot,
+        directDependencyNames: new Set(context.directDependencyOrigins.keys()),
+        resolvePackage: context.resolvePackage,
+    };
 }
 
 export function listDirectDependencyNames(pkg: PackageJsonLike): string[] {
@@ -309,7 +282,21 @@ export function listDirectDependencyNames(pkg: PackageJsonLike): string[] {
     return Array.from(names);
 }
 
-function getProjectPluginContext(options: ResolveCliPluginsOptions) {
+interface ProjectPluginContext {
+    projectRoot: string;
+    projectPackageJson: PackageJsonLike;
+    /**
+     * Direct dependency name → directory of the package.json that declares it.
+     * In a monorepo this includes every package.json from cwd up to the
+     * project root, so plugins installed in a workspace package are found
+     * even when `@vendure/cli` is hoisted to the workspace root.
+     */
+    directDependencyOrigins: Map<string, string>;
+    allowlist: string[] | undefined;
+    resolvePackage: (packageName: string) => { dir: string; packageJson: PackageJsonLike } | null;
+}
+
+function getProjectPluginContext(options: ResolveCliPluginsOptions): ProjectPluginContext | null {
     const cwd = options.cwd ?? process.cwd();
     const projectRoot = options.projectPackageJson ? path.resolve(cwd) : resolveCliProjectRoot(cwd);
     const projectPackageJson =
@@ -319,28 +306,89 @@ function getProjectPluginContext(options: ResolveCliPluginsOptions) {
         return null;
     }
 
-    const cliConfig = projectPackageJson.vendure?.cli;
-    const exclude = new Set(cliConfig?.exclude ?? []);
+    const directDependencyOrigins = options.projectPackageJson
+        ? new Map(listDirectDependencyNames(projectPackageJson).map(name => [name, projectRoot]))
+        : collectDirectDependencyOrigins(cwd, projectRoot);
+
     // Explicit activation: only packages listed in plugins are loaded.
     // An empty or missing list means load nothing.
-    const allowlist = cliConfig?.plugins ? [...cliConfig.plugins] : undefined;
-    const resolvePackage =
-        options.resolvePackage ?? ((packageName: string) => defaultResolvePackage(projectRoot, packageName));
+    const allowlist = projectPackageJson.vendure?.cli?.plugins
+        ? [...projectPackageJson.vendure.cli.plugins]
+        : undefined;
 
-    return {
-        projectRoot,
-        projectPackageJson,
-        resolvePackage,
-        allowlist,
-        exclude,
-    };
+    const resolvePackage =
+        options.resolvePackage ??
+        ((packageName: string) =>
+            defaultResolvePackage(directDependencyOrigins.get(packageName) ?? projectRoot, packageName));
+
+    return { projectRoot, projectPackageJson, directDependencyOrigins, allowlist, resolvePackage };
+}
+
+/**
+ * Runs the non-loading checks for an enabled plugin. Returns a failure reason
+ * or undefined when the plugin looks loadable.
+ */
+function checkEnabledPluginStatically(
+    packageName: string,
+    context: ProjectPluginContext,
+): string | undefined {
+    if (!context.directDependencyOrigins.has(packageName)) {
+        return `Listed in vendure.cli.plugins but is not a direct dependency of ${context.projectRoot}`;
+    }
+    const resolved = context.resolvePackage(packageName);
+    if (!resolved) {
+        return `Listed in vendure.cli.plugins but could not be resolved from ${context.projectRoot}. Check that it is installed.`;
+    }
+    const entryRel = resolved.packageJson.vendure?.cliPlugin;
+    if (!entryRel || typeof entryRel !== 'string') {
+        return 'Does not declare vendure.cliPlugin in its package.json';
+    }
+    const entryPath = path.resolve(resolved.dir, entryRel);
+    if (!fs.existsSync(entryPath)) {
+        return `Entry "${entryRel}" not found at ${entryPath}. If this is a workspace package, it may need to be built.`;
+    }
+    return undefined;
+}
+
+/**
+ * Collects direct dependencies from every package.json between `cwd` and the
+ * project root (inclusive). The nearest declaration wins, so a workspace
+ * package's own dependencies take precedence over hoisted root entries.
+ */
+function collectDirectDependencyOrigins(cwd: string, projectRoot: string): Map<string, string> {
+    const origins = new Map<string, string>();
+    const resolvedRoot = path.resolve(projectRoot);
+    let current = path.resolve(cwd);
+
+    while (true) {
+        const pkg = readPackageJson(path.join(current, 'package.json'));
+        if (pkg) {
+            for (const name of listDirectDependencyNames(pkg)) {
+                if (!origins.has(name)) {
+                    origins.set(name, current);
+                }
+            }
+        }
+        if (current === resolvedRoot) {
+            break;
+        }
+        const parent = path.dirname(current);
+        if (parent === current) {
+            break;
+        }
+        current = parent;
+    }
+
+    return origins;
 }
 
 function normalizeDeclaredCommands(value: unknown): string[] | undefined {
     if (!Array.isArray(value)) {
         return undefined;
     }
-    const commands = value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+    const commands = value.filter(
+        (item): item is string => typeof item === 'string' && item.trim().length > 0,
+    );
     return commands.length > 0 ? commands : undefined;
 }
 
@@ -362,60 +410,64 @@ function readPackageJson(packageJsonPath: string): PackageJsonLike | null {
 }
 
 function defaultResolvePackage(
-    projectRoot: string,
+    baseDir: string,
     packageName: string,
 ): { dir: string; packageJson: PackageJsonLike } | null {
-    const requireFromProject = createRequire(path.join(projectRoot, 'package.json'));
+    const requireFromBase = createRequire(path.join(baseDir, 'package.json'));
+
+    // Tier 1: package.json is exported (or no exports map).
     try {
-        const packageJsonPath = requireFromProject.resolve(`${packageName}/package.json`);
+        const packageJsonPath = requireFromBase.resolve(`${packageName}/package.json`);
         const packageJson = readPackageJson(packageJsonPath);
-        if (!packageJson) {
-            return null;
+        if (packageJson) {
+            return { dir: path.dirname(packageJsonPath), packageJson };
         }
-        return { dir: path.dirname(packageJsonPath), packageJson };
     } catch {
-        // Packages with a restrictive `exports` map commonly hide package.json.
-        // Resolve their public entry instead, then walk up to the owning package.
-        try {
-            let current = path.dirname(requireFromProject.resolve(packageName));
-            while (true) {
-                const packageJsonPath = path.join(current, 'package.json');
-                const packageJson = readPackageJson(packageJsonPath);
-                if (packageJson?.name === packageName) {
-                    return { dir: current, packageJson };
-                }
-                const parent = path.dirname(current);
-                if (parent === current) {
-                    break;
-                }
-                current = parent;
-            }
-        } catch {
-            // A package may expose neither its root nor package.json. Classic
-            // node_modules layouts can still be resolved by walking ancestors,
-            // which also covers npm/pnpm workspace hoisting.
-            let current = projectRoot;
-            while (true) {
-                const packageJsonPath = path.join(
-                    current,
-                    'node_modules',
-                    ...packageName.split('/'),
-                    'package.json',
-                );
-                const packageJson = readPackageJson(packageJsonPath);
-                if (packageJson?.name === packageName) {
-                    return { dir: path.dirname(packageJsonPath), packageJson };
-                }
-                const parent = path.dirname(current);
-                if (parent === current) {
-                    break;
-                }
-                current = parent;
-            }
-            return null;
-        }
-        return null;
+        // fall through to tier 2
     }
+
+    // Tier 2: a restrictive `exports` map hides package.json. Resolve the
+    // public entry instead, then walk up to the owning package.
+    try {
+        let current = path.dirname(requireFromBase.resolve(packageName));
+        while (true) {
+            const packageJson = readPackageJson(path.join(current, 'package.json'));
+            if (packageJson?.name === packageName) {
+                return { dir: current, packageJson };
+            }
+            const parent = path.dirname(current);
+            if (parent === current) {
+                break;
+            }
+            current = parent;
+        }
+    } catch {
+        // fall through to tier 3
+    }
+
+    // Tier 3: path-based node_modules walk from the declaring package upward.
+    // Covers packages with no resolvable JS entry and npm aliases, where the
+    // installed package.json `name` differs from the dependency key so the
+    // tier 2 name check can never match.
+    let current = path.resolve(baseDir);
+    while (true) {
+        const packageJsonPath = path.join(
+            current,
+            'node_modules',
+            ...packageName.split('/'),
+            'package.json',
+        );
+        const packageJson = readPackageJson(packageJsonPath);
+        if (packageJson) {
+            return { dir: path.dirname(packageJsonPath), packageJson };
+        }
+        const parent = path.dirname(current);
+        if (parent === current) {
+            break;
+        }
+        current = parent;
+    }
+    return null;
 }
 
 function loadCliPluginModule(entryPath: string, packageName: string): CliPlugin {

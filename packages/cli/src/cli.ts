@@ -37,8 +37,16 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
     const registry = new CommandRegistry();
     registry.registerAll(builtinCommandDefs);
 
-    const plugins = resolveCliPlugins();
-    for (const { plugin } of plugins) {
+    // A broken plugin must not take down the CLI: built-ins (including the
+    // `plugins` command needed to disable it) stay available.
+    const { loaded, failures } = resolveCliPlugins();
+    for (const failure of failures) {
+        process.stderr.write(pc.red(`Failed to load CLI plugin "${failure.packageName}": ${failure.reason}\n`));
+        process.stderr.write(
+            `Skipping it. Fix the issue or disable it with: vendure plugins remove ${failure.packageName}\n`,
+        );
+    }
+    for (const { plugin } of loaded) {
         registry.applyPlugin(plugin);
     }
 

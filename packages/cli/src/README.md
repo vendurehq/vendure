@@ -450,16 +450,21 @@ Project control in the **project** `package.json`:
 {
   "vendure": {
     "cli": {
-      "plugins": ["@example/vendure-cli-plugin"],
-      "exclude": ["some-unwanted-plugin"]
+      "plugins": ["@example/vendure-cli-plugin"]
     }
   }
 }
 ```
 
-- `plugins` is the allowlist (missing or empty = load nothing).
-- `exclude` suppresses discovery hints and skips loading even if listed.
-- Allowlisted packages that cannot be resolved or loaded fail CLI startup.
+- `plugins` is the allowlist (missing or empty = load nothing). Disabling a
+  plugin is simply removing it from the list.
+- In a monorepo, direct dependencies of every `package.json` from the current
+  directory up to the project root are scanned, so a plugin installed in a
+  workspace package is found even when `@vendure/cli` is hoisted.
+- Enabled packages that cannot be resolved or loaded are **skipped with an
+  error on stderr** — the CLI (including `vendure plugins remove`) stays
+  usable. `vendure plugins` reports them as `failed` with the reason.
+
 ## File Structure
 
 - `packages/cli/src/shared/cli-command-definition.ts` - Interface definitions

@@ -48,12 +48,8 @@ export interface ProjectCliPluginConfig {
      * Allowlist of packages to load as CLI plugins, in registration order
      * (last listed wins when two plugins register the same command name).
      * Each must be a direct dependency and declare `vendure.cliPlugin`.
-     * When missing or empty, no plugins are loaded.
+     * When missing or empty, no plugins are loaded — disabling a plugin is
+     * simply not listing it.
      */
     plugins?: string[];
-    /**
-     * Package names to skip even if they declare a CLI plugin entry.
-     * Also suppresses the “packages provide CLI commands” startup hint.
-     */
-    exclude?: string[];
 }

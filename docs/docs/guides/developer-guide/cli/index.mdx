@@ -431,8 +431,7 @@ does **not** load them until they are listed in the project `package.json`:
 {
     "vendure": {
         "cli": {
-            "plugins": ["@example/vendure-cli-plugin"],
-            "exclude": ["some-unwanted-plugin"]
+            "plugins": ["@example/vendure-cli-plugin"]
         }
     }
 }
@@ -448,8 +447,12 @@ npx vendure plugins remove @example/vendure-cli-plugin
 ```
 
 A package named in `plugins` must also be a direct project dependency.
+Disabling a plugin is simply removing it from the list (`vendure plugins remove`).
 Commands are registered in allowlist order (last listed wins when names collide).
 Plugins can still call the original via `builtinCommands.<name>.action(...)`.
+
+A listed plugin that cannot be resolved or loaded is skipped with an error on
+stderr — the rest of the CLI (including `vendure plugins remove`) stays usable.
 
 ## Getting Help
 
