@@ -32,7 +32,7 @@ export const STOREFRONT_STARTERS = [
         frameworkName: 'TanStack Start',
         documentationUrl: 'https://tanstack.com/start/latest/docs/framework/react/overview',
         repository: 'vendurehq/tanstack-starter-vendure',
-        ref: 'v1.0.0',
+        ref: 'main',
         envFile: '.env',
         packageScripts: ({ storefrontPort }) => ({
             dev: `vite dev --port ${storefrontPort}`,
@@ -53,7 +53,7 @@ export const STOREFRONT_STARTERS = [
         frameworkName: 'Next.js',
         documentationUrl: 'https://nextjs.org/docs',
         repository: 'vendurehq/nextjs-starter-vendure',
-        ref: 'af950dcab732c3246d36f01c5cf2427cc9409b21',
+        ref: 'main',
         envFile: '.env.local',
         packageScripts: ({ storefrontPort }) => ({
             dev: `next dev --port ${storefrontPort}`,

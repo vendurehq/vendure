@@ -1015,7 +1015,8 @@ export function resolvePackageRootDir(packageName: string, rootDir: string) {
 
 /**
  * Downloads a storefront starter from GitHub and extracts it to the target directory.
- * Uses the GitHub API tarball endpoint to avoid requiring git.
+ * Uses the starter's main branch intentionally, so improvements and fixes are available to newly
+ * scaffolded projects without requiring a matching @vendure/create release.
  */
 export async function downloadAndExtractStorefront(
     targetDir: string,
