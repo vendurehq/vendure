@@ -28,7 +28,7 @@ export const STOREFRONT_STARTERS = [
     {
         id: 'tanstack',
         name: 'TanStack Start',
-        description: 'A TanStack Start storefront with routing, internationalization, and checkout',
+        description: 'Vite-powered routing with TanStack Router and Paraglide internationalization',
         frameworkName: 'TanStack Start',
         documentationUrl: 'https://tanstack.com/start/latest/docs/framework/react/overview',
         repository: 'vendurehq/tanstack-starter-vendure',
@@ -49,11 +49,11 @@ export const STOREFRONT_STARTERS = [
     {
         id: 'nextjs',
         name: 'Next.js',
-        description: 'A Next.js storefront with routing, internationalization, and checkout',
+        description: 'App Router storefront with next-intl internationalization',
         frameworkName: 'Next.js',
         documentationUrl: 'https://nextjs.org/docs',
         repository: 'vendurehq/nextjs-starter-vendure',
-        ref: 'main',
+        ref: 'af950dcab732c3246d36f01c5cf2427cc9409b21',
         envFile: '.env.local',
         packageScripts: ({ storefrontPort }) => ({
             dev: `next dev --port ${storefrontPort}`,
@@ -69,6 +69,13 @@ export const STOREFRONT_STARTERS = [
 ] as const satisfies readonly StorefrontStarter[];
 
 export type StorefrontId = (typeof STOREFRONT_STARTERS)[number]['id'];
+
+export function resolveCiStorefront(options: {
+    storefront?: StorefrontId;
+    withStorefront?: boolean;
+}): StorefrontId | undefined {
+    return options.storefront ?? (options.withStorefront ? 'nextjs' : undefined);
+}
 
 export function parseStorefrontId(value: string): StorefrontId {
     const normalizedValue = value.toLowerCase();
@@ -94,6 +101,8 @@ export function configureStorefrontPackageJson(
     storefront: StorefrontStarter,
     context: StorefrontSetupContext,
 ): StorefrontPackageJson {
+    // These entries intentionally override the downloaded package.json. Starter repositories must
+    // keep required flags out of their dev/start scripts, or mirror those flags here.
     return {
         ...packageJson,
         name: 'storefront',
@@ -110,15 +119,19 @@ export function renderStorefrontEnvironment(
 ): string {
     return (
         Object.entries(storefront.environment(context))
-            .map(([key, value]) => `${key}=${quoteEnvironmentValue(value)}`)
+            .map(([key, value]) => `${key}=${quoteEnvironmentValue(key, value)}`)
             .join('\n') + '\n'
     );
 }
 
-function quoteEnvironmentValue(value: string): string {
+function quoteEnvironmentValue(key: string, value: string): string {
     const delimiter = [`'`, `"`, '`'].find(candidate => !value.includes(candidate));
     if (!delimiter) {
-        throw new Error('Environment values cannot contain single, double, and backtick quotes together.');
+        throw new Error(
+            `Cannot write ${key} to the storefront env file: the value contains a single quote, ` +
+                'a double quote and a backtick, leaving no character to quote it with. ' +
+                'Choose a project name without one of those characters.',
+        );
     }
     return `${delimiter}${value}${delimiter}`;
 }

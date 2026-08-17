@@ -618,6 +618,8 @@ describe('checkNodeVersion', () => {
     it('enforces the Node.js versions supported by the storefront toolchain', () => {
         expect(semver.satisfies('20.18.0', REQUIRED_NODE_VERSION)).toBe(false);
         expect(semver.satisfies('20.19.0', REQUIRED_NODE_VERSION)).toBe(true);
+        expect(semver.satisfies('21.0.0', REQUIRED_NODE_VERSION)).toBe(false);
+        expect(semver.satisfies('22.11.0', REQUIRED_NODE_VERSION)).toBe(false);
         expect(semver.satisfies('22.12.0', REQUIRED_NODE_VERSION)).toBe(true);
     });
 });

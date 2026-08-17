@@ -59,6 +59,7 @@ import {
     getStorefrontStarter,
     parseStorefrontId,
     renderStorefrontEnvironment,
+    resolveCiStorefront,
     STOREFRONT_STARTERS,
     StorefrontId,
     StorefrontStarter,
@@ -98,7 +99,11 @@ program
         `Storefront to include with --ci: ${STOREFRONT_STARTERS.map(starter => starter.id).join(', ')}`,
         parseStorefrontId,
     )
-    .option('--with-storefront', 'Include Next.js storefront with --ci (deprecated)', false)
+    .option(
+        '--with-storefront',
+        'Include the Next.js storefront with --ci. Deprecated: use --storefront nextjs',
+        false,
+    )
     .option(
         '--db <database>',
         "Database to use with --ci: 'sqlite' or 'postgres' (postgres is started via Docker)",
@@ -108,7 +113,7 @@ program
     .parse(process.argv);
 
 const options = program.opts();
-const selectedCiStorefront = options.storefront ?? (options.withStorefront ? 'nextjs' : undefined);
+const selectedCiStorefront = resolveCiStorefront(options);
 void createVendureApp(
     projectName,
     options.useNpm,

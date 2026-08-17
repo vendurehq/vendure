@@ -91,9 +91,9 @@ export class ShippingMethodService {
     async findOne(
         ctx: RequestContext,
         shippingMethodId: ID,
-        includeDeleted: boolean = false,
+        includeDeleted = false,
         relations: RelationPaths<ShippingMethod> = [],
-        filterOnChannel: boolean = true,
+        filterOnChannel = true,
     ): Promise<Translated<ShippingMethod> | undefined> {
         let shippingMethod: ShippingMethod | undefined | null;
 

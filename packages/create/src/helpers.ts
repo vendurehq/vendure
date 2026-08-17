@@ -111,7 +111,7 @@ export function checkNodeVersion(requiredVersion: string, currentVersion: string
     if (!semver.satisfies(currentVersion, requiredVersion)) {
         log(
             pc.red(
-                `You are running Node ${currentVersion}.` +
+                `You are running Node ${currentVersion}. ` +
                     `Vendure requires Node ${requiredVersion}.` +
                     ' Please update your version of Node.',
             ),

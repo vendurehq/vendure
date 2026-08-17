@@ -5,6 +5,7 @@ import {
     getStorefrontStarter,
     parseStorefrontId,
     renderStorefrontEnvironment,
+    resolveCiStorefront,
     STOREFRONT_STARTERS,
 } from './storefront-starters';
 
@@ -28,6 +29,13 @@ describe('storefront starters', () => {
     it('rejects unknown storefront ids from the CLI', () => {
         expect(parseStorefrontId('TANSTACK')).toBe('tanstack');
         expect(() => parseStorefrontId('tansack')).toThrow('Allowed choices are: tanstack, nextjs.');
+    });
+
+    it('resolves the legacy CI storefront flag while preferring an explicit starter', () => {
+        expect(resolveCiStorefront({})).toBeUndefined();
+        expect(resolveCiStorefront({ withStorefront: true })).toBe('nextjs');
+        expect(resolveCiStorefront({ storefront: 'tanstack' })).toBe('tanstack');
+        expect(resolveCiStorefront({ storefront: 'tanstack', withStorefront: true })).toBe('tanstack');
     });
 
     it('configures the TanStack Start scripts for the generated workspace', () => {
@@ -93,4 +101,26 @@ describe('storefront starters', () => {
             expect(environment).toContain(`${siteNameKey}='shop#"demo"'`);
         },
     );
+
+    it('uses backticks when an environment value contains both other quote characters', () => {
+        const environment = renderStorefrontEnvironment(getStorefrontStarter('tanstack'), {
+            ...setupContext,
+            projectName: `shop'"demo`,
+        });
+
+        expect(environment).toContain('SITE_NAME=`shop\'"demo`');
+    });
+
+    it('identifies an environment key whose value cannot be quoted', () => {
+        expect(() =>
+            renderStorefrontEnvironment(getStorefrontStarter('nextjs'), {
+                ...setupContext,
+                projectName: `shop'"\`demo`,
+            }),
+        ).toThrow(
+            'Cannot write NEXT_PUBLIC_SITE_NAME to the storefront env file: the value contains a single quote, ' +
+                'a double quote and a backtick, leaving no character to quote it with. ' +
+                'Choose a project name without one of those characters.',
+        );
+    });
 });
