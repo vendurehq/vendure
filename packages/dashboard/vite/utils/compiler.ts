@@ -250,6 +250,10 @@ async function compileTypeScript({
     const compilerOptions: ts.CompilerOptions = {
         target: ts.ScriptTarget.ES2020,
         module: module === 'esm' ? ts.ModuleKind.ESNext : ts.ModuleKind.CommonJS,
+        // Plugin import graphs can transitively reach .tsx files (e.g. server-side
+        // React for PDF or email rendering). Without this, transpileModule emits raw
+        // JSX into the .js output and the compiled config fails to import.
+        jsx: ts.JsxEmit.ReactJSX,
         experimentalDecorators: true,
         emitDecoratorMetadata: true,
         esModuleInterop: true,
