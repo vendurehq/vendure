@@ -24,6 +24,7 @@ describe('detecting dashboard in workspace-symlinked packages', () => {
     const symlinkPath = join(fakeNodeModules, 'test-workspace-plugin');
     const tempDir = join(__dirname, './__temp/symlinked-workspace');
     const logger = process.env.LOG ? debugLogger : noopLogger;
+    let pluginInfo: Awaited<ReturnType<typeof discoverPlugins>>;
 
     beforeAll(async () => {
         await rm(tempDir, { recursive: true, force: true });
@@ -34,6 +35,14 @@ describe('detecting dashboard in workspace-symlinked packages', () => {
         // The target lives outside node_modules, which is what marks it as a
         // workspace (rather than installed) package to the discovery scanner.
         await symlink(workspacePkg, symlinkPath, 'dir');
+
+        pluginInfo = await discoverPlugins({
+            vendureConfigPath: join(fixtureDir, 'vendure-config.ts'),
+            outputPath: tempDir,
+            transformTsConfigPathMappings: ({ patterns }) => patterns,
+            logger,
+            pluginPackageScanner: { nodeModulesRoot: fakeNodeModules },
+        });
     });
 
     afterAll(async () => {
@@ -41,15 +50,7 @@ describe('detecting dashboard in workspace-symlinked packages', () => {
         await rm(tempDir, { recursive: true, force: true }).catch(() => undefined);
     });
 
-    it('registers the dashboard entry from the plugin source', async () => {
-        const pluginInfo = await discoverPlugins({
-            vendureConfigPath: join(fixtureDir, 'vendure-config.ts'),
-            outputPath: tempDir,
-            transformTsConfigPathMappings: ({ patterns }) => patterns,
-            logger,
-            pluginPackageScanner: { nodeModulesRoot: fakeNodeModules },
-        });
-
+    it('registers the dashboard entry from the plugin source', () => {
         const plugin = pluginInfo.find(p => p.name === 'TestWorkspacePlugin');
         expect(plugin).toBeDefined();
         expect(plugin?.dashboardEntryPath).toBe('./dashboard/index.tsx');
@@ -63,15 +64,7 @@ describe('detecting dashboard in workspace-symlinked packages', () => {
         expect(existsSync(resolvedEntry)).toBe(true);
     });
 
-    it('skips a workspace plugin whose dashboard entry does not exist', async () => {
-        const pluginInfo = await discoverPlugins({
-            vendureConfigPath: join(fixtureDir, 'vendure-config.ts'),
-            outputPath: tempDir,
-            transformTsConfigPathMappings: ({ patterns }) => patterns,
-            logger,
-            pluginPackageScanner: { nodeModulesRoot: fakeNodeModules },
-        });
-
+    it('skips a workspace plugin whose dashboard entry does not exist', () => {
         // The broken plugin is dropped...
         expect(pluginInfo.find(p => p.name === 'TestBrokenDashboardPlugin')).toBeUndefined();
         // ...but its valid sibling is still discovered.

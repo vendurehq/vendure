@@ -386,6 +386,28 @@ describe('viteConfigPlugin', () => {
         expect(aliases['@/vdb']).toBeDefined();
     });
 
+    it('sets the @/gql alias to graphql.ts inside gqlOutputPath', () => {
+        const plugin = viteConfigPlugin({ packageRoot, gqlOutputPath: '/fake/gql-output' });
+        const result = callConfig(plugin, {}, { command: 'serve' });
+        const aliases = result.resolve.alias as Record<string, string>;
+        expect(aliases['@/gql']).toBe(path.resolve('/fake/gql-output', 'graphql.ts'));
+    });
+
+    it('omits the @/gql alias when gqlOutputPath is not given', () => {
+        const plugin = viteConfigPlugin({ packageRoot });
+        const result = callConfig(plugin, {}, { command: 'serve' });
+        const aliases = result.resolve.alias as Record<string, string>;
+        expect('@/gql' in aliases).toBe(false);
+    });
+
+    it('lets a @/gql alias from the user config override the default', () => {
+        const plugin = viteConfigPlugin({ packageRoot, gqlOutputPath: '/fake/gql-output' });
+        const config = { resolve: { alias: { '@/gql': '/user/gql/graphql.ts' } } };
+        const result = callConfig(plugin, config, { command: 'serve' });
+        const aliases = result.resolve.alias as Record<string, string>;
+        expect(aliases['@/gql']).toBe('/user/gql/graphql.ts');
+    });
+
     it('sets optimizeDeps.exclude with virtual modules', () => {
         const plugin = viteConfigPlugin({ packageRoot });
         const result = callConfig(plugin, {}, { command: 'serve' });
@@ -743,21 +765,14 @@ describe('dashboardTailwindSourcePlugin', () => {
                 css,
                 '/some/app/extension-tailwind.css',
             );
-            expect(result.code).toContain(
-                `@source '${path.join(packageRoot, 'dist/bundle')}'`,
-            );
+            expect(result.code).toContain(`@source '${path.join(packageRoot, 'dist/bundle')}'`);
         });
 
         it('does NOT add bundle @source when transforming the regular styles.css (only extension-tailwind.css)', async () => {
             const packageRoot = '/fake/dashboard';
             const plugin = setupBundlePlugin([], packageRoot);
             const css = `@tailwind utilities;\n${markerComment}\n`;
-            const result = await callTransformWithContext(
-                plugin,
-                {},
-                css,
-                '/some/app/styles.css',
-            );
+            const result = await callTransformWithContext(plugin, {}, css, '/some/app/styles.css');
             // Bundle source dir should not appear; styles.css is the source-mode entry
             expect(result.code).not.toContain('dist/bundle');
         });
@@ -786,11 +801,7 @@ describe('bundleEntryPlugin', () => {
      * This helper extracts the actual handler so we can call it consistently
      * with how Vite would.
      */
-    function callBundleEntryTransform(
-        plugin: Plugin,
-        html: string,
-        ctx: { filename: string },
-    ) {
+    function callBundleEntryTransform(plugin: Plugin, html: string, ctx: { filename: string }) {
         const hook = plugin.transformIndexHtml as
             | ((html: string, ctx: { filename: string }) => any)
             | { order?: 'pre' | 'post'; handler: (html: string, ctx: { filename: string }) => any };
@@ -875,9 +886,7 @@ describe('viteConfigPlugin: useExperimentalBundle', () => {
         const plugin = viteConfigPlugin({ packageRoot, useExperimentalBundle: true });
         const result = callConfig(plugin, {}, { command: 'serve' });
         const aliases = result.resolve.alias as Record<string, string>;
-        expect(aliases['@vendure/dashboard']).toBe(
-            path.resolve(packageRoot, './dist/bundle/lib.js'),
-        );
+        expect(aliases['@vendure/dashboard']).toBe(path.resolve(packageRoot, './dist/bundle/lib.js'));
     });
 
     it('with flag: still keeps @/vdb and @/graphql aliases', () => {

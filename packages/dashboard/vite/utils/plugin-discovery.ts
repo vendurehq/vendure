@@ -134,10 +134,7 @@ export async function discoverPlugins({
 
             if (hasVendurePlugin && pluginName && dashboardPath) {
                 logger.debug(`[discoverPlugins] Found plugin "${pluginName}" in file: ${filePath}`);
-                // Keep the dashboard path relative to the plugin file
-                const resolvedDashboardPath = dashboardPath.startsWith('.')
-                    ? dashboardPath // Keep the relative path as-is
-                    : './' + path.relative(path.dirname(filePath), dashboardPath); // Make absolute path relative
+                const resolvedDashboardPath = dashboardPathRelativeToPlugin(filePath, dashboardPath);
 
                 // Check if this is a local plugin we found earlier
                 const sourcePluginPath = localPluginLocations.get(pluginName)?.sourceFile;
@@ -164,12 +161,7 @@ export async function discoverPlugins({
         if (!dashboardPath || registeredNames.has(name)) {
             continue;
         }
-        // Normalize like the compiled pass above: keep a relative path as-is,
-        // make an absolute path relative to the plugin source file.
-        const resolvedDashboardPath = dashboardPath.startsWith('.')
-            ? dashboardPath
-            : './' + path.relative(path.dirname(sourceFile), dashboardPath);
-
+        const resolvedDashboardPath = dashboardPathRelativeToPlugin(sourceFile, dashboardPath);
         const resolvedEntry = path.resolve(path.dirname(sourceFile), resolvedDashboardPath);
         if (!(await fs.pathExists(resolvedEntry))) {
             logger.warn(
@@ -189,6 +181,17 @@ export async function discoverPlugins({
     }
 
     return plugins;
+}
+
+/**
+ * Puts a declared dashboard entry path into the form the rest of the build
+ * expects: relative to the file that declares it. A path that already starts
+ * with `.` passes through unchanged; any other path becomes relative.
+ */
+function dashboardPathRelativeToPlugin(pluginFilePath: string, dashboardPath: string): string {
+    return dashboardPath.startsWith('.')
+        ? dashboardPath
+        : './' + path.relative(path.dirname(pluginFilePath), dashboardPath);
 }
 
 function getDecoratorObjectProps(decorator: any): any[] {
@@ -594,7 +597,6 @@ export async function findVendurePluginFiles({
 }
 
 function guessNodeModulesRoot(vendureConfigPath: string, logger: Logger): string {
-    let nodeModulesRoot: string;
     // If the node_modules root path has not been explicitly
     // specified, we will try to guess it by resolving the
     // `@vendure/core` package.
@@ -603,10 +605,45 @@ function guessNodeModulesRoot(vendureConfigPath: string, logger: Logger): string
         logger.debug(`Found core URL: ${coreUrl}`);
         const corePath = fileURLToPath(coreUrl);
         logger.debug(`Found core path: ${corePath}`);
-        nodeModulesRoot = path.join(path.dirname(corePath), '..', '..', '..');
+        const enclosingNodeModules = enclosingNodeModulesDir(corePath);
+        if (enclosingNodeModules) {
+            return enclosingNodeModules;
+        }
+        logger.debug(`@vendure/core resolved outside node_modules; searching for it instead`);
     } catch (e) {
         logger.warn(`Failed to resolve @vendure/core: ${e instanceof Error ? e.message : String(e)}`);
-        nodeModulesRoot = path.dirname(vendureConfigPath);
     }
-    return nodeModulesRoot;
+    const configDir = path.dirname(vendureConfigPath);
+    return findNodeModulesContaining(configDir, '@vendure/core') ?? configDir;
+}
+
+/**
+ * Returns the innermost `node_modules` directory that the given path sits inside,
+ * or undefined if the path is not inside one.
+ */
+function enclosingNodeModulesDir(filePath: string): string | undefined {
+    const marker = `${path.sep}node_modules${path.sep}`;
+    const index = filePath.lastIndexOf(marker);
+    return index === -1 ? undefined : filePath.slice(0, index) + path.sep + 'node_modules';
+}
+
+/**
+ * Walks up from `startDir` looking for a `node_modules` directory that contains
+ * `packageName`, and returns that directory. Call this when a package resolves to
+ * a source folder outside node_modules, where its own path cannot show where
+ * installed packages live.
+ */
+function findNodeModulesContaining(startDir: string, packageName: string): string | undefined {
+    let dir = startDir;
+    for (;;) {
+        const candidate = path.join(dir, 'node_modules');
+        if (fs.existsSync(path.join(candidate, packageName))) {
+            return candidate;
+        }
+        const parent = path.dirname(dir);
+        if (parent === dir) {
+            return undefined;
+        }
+        dir = parent;
+    }
 }
