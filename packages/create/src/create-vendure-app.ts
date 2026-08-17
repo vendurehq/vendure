@@ -54,6 +54,16 @@ import {
     startPostgresDatabase,
 } from './helpers';
 import { log, setLogLevel } from './logger';
+import {
+    configureStorefrontPackageJson,
+    getStorefrontStarter,
+    parseStorefrontId,
+    renderStorefrontEnvironment,
+    resolveCiStorefront,
+    STOREFRONT_STARTERS,
+    StorefrontId,
+    StorefrontStarter,
+} from './storefront-starters';
 import { CliLogLevel, PackageManager } from './types';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -84,7 +94,16 @@ program
     .option('--verbose', 'Alias for --log-level verbose', false)
     .option('--use-npm', 'Force npm, overriding auto-detection of the package manager that invoked the CLI')
     .option('--ci', 'Runs without prompts for use in CI scenarios', false)
-    .option('--with-storefront', 'Include Next.js storefront (only used with --ci)', false)
+    .option(
+        '--storefront <starter>',
+        `Storefront to include with --ci: ${STOREFRONT_STARTERS.map(starter => starter.id).join(', ')}`,
+        parseStorefrontId,
+    )
+    .option(
+        '--with-storefront',
+        'Include the Next.js storefront with --ci. Deprecated: use --storefront nextjs',
+        false,
+    )
     .option(
         '--db <database>',
         "Database to use with --ci: 'sqlite' or 'postgres' (postgres is started via Docker)",
@@ -94,12 +113,13 @@ program
     .parse(process.argv);
 
 const options = program.opts();
+const selectedCiStorefront = resolveCiStorefront(options);
 void createVendureApp(
     projectName,
     options.useNpm,
     options.verbose ? 'verbose' : options.logLevel || 'info',
     options.ci,
-    options.withStorefront,
+    selectedCiStorefront,
     // The --db regex validates case-insensitively, but the comparisons downstream
     // are against the lowercase literals.
     options.db?.toLowerCase(),
@@ -113,7 +133,7 @@ export async function createVendureApp(
     _useNpm: boolean, // Legacy flag: forces npm, overriding package-manager auto-detection
     logLevel: CliLogLevel,
     isCi: boolean = false,
-    withStorefront: boolean = false,
+    ciStorefront?: StorefrontId,
     ciDbType: 'sqlite' | 'postgres' = 'sqlite',
 ) {
     setLogLevel(logLevel);
@@ -191,13 +211,15 @@ export async function createVendureApp(
         viteConfigSource,
         agentsSource,
         populateProducts,
-        includeStorefront,
-    } =
-        mode === 'ci'
-            ? await getCiConfiguration(root, packageManager, port, withStorefront, ciDbType)
-            : mode === 'manual'
-              ? await getManualConfiguration(root, packageManager, port)
-              : await getQuickStartConfiguration(root, packageManager, port);
+        storefront: storefrontId,
+    } = mode === 'ci'
+        ? await getCiConfiguration(root, packageManager, port, ciStorefront, ciDbType)
+        : mode === 'manual'
+          ? await getManualConfiguration(root, packageManager, port)
+          : await getQuickStartConfiguration(root, packageManager, port);
+    const storefront = storefrontId ? getStorefrontStarter(storefrontId) : undefined;
+    const includeStorefront = storefront != null;
+
     // Determine the server root directory (either root or apps/server for monorepo)
     const serverRoot = includeStorefront ? path.join(root, 'apps', 'server') : root;
     const storefrontRoot = path.join(root, 'apps', 'storefront');
@@ -264,6 +286,8 @@ export async function createVendureApp(
         const rootReadmeContent = Handlebars.compile(rootReadmeTemplate)({
             name: appName,
             packageManager,
+            storefrontName: storefront?.frameworkName,
+            storefrontDocumentationUrl: storefront?.documentationUrl,
             serverPort: port,
             storefrontPort,
             superadminIdentifier: SUPER_ADMIN_USER_IDENTIFIER,
@@ -307,29 +331,29 @@ export async function createVendureApp(
     // Download storefront if needed
     if (includeStorefront) {
         const storefrontSpinner = spinner();
-        storefrontSpinner.start(`Downloading Next.js storefront...`);
+        storefrontSpinner.start(`Downloading ${storefront.name} storefront...`);
         try {
-            await downloadAndExtractStorefront(storefrontRoot);
-            // Update storefront package.json name and dev script port
-            const storefrontPackageJsonPath = path.join(storefrontRoot, 'package.json');
-            const storefrontPackageJson = await fs.readJson(storefrontPackageJsonPath);
-            storefrontPackageJson.name = 'storefront';
-            if (storefrontPackageJson.scripts?.dev) {
-                storefrontPackageJson.scripts.dev = `next dev --port ${storefrontPort}`;
-            }
-            await fs.writeJson(storefrontPackageJsonPath, storefrontPackageJson, { spaces: 2 });
+            await downloadAndExtractStorefront(storefrontRoot, storefront);
 
-            // Generate storefront .env.local from template
-            const storefrontEnvTemplate = await fs.readFile(templatePath('storefront-env.hbs'), 'utf-8');
-            const storefrontEnvContent = Handlebars.compile(storefrontEnvTemplate)({
+            const storefrontSetupContext = {
+                projectName: appName,
                 serverPort: port,
                 storefrontPort,
-                name: appName,
                 revalidationSecret: randomBytes(32).toString('base64'),
-            });
-            fs.writeFileSync(path.join(storefrontRoot, '.env.local'), storefrontEnvContent);
+            };
+            const storefrontPackageJsonPath = path.join(storefrontRoot, 'package.json');
+            const storefrontPackageJson = await fs.readJson(storefrontPackageJsonPath);
+            await fs.writeJson(
+                storefrontPackageJsonPath,
+                configureStorefrontPackageJson(storefrontPackageJson, storefront, storefrontSetupContext),
+                { spaces: 2 },
+            );
+            fs.writeFileSync(
+                path.join(storefrontRoot, storefront.envFile),
+                renderStorefrontEnvironment(storefront, storefrontSetupContext),
+            );
 
-            storefrontSpinner.stop(`Downloaded Next.js storefront`);
+            storefrontSpinner.stop(`Downloaded ${storefront.name} storefront`);
         } catch (e: any) {
             storefrontSpinner.stop(pc.red(`Failed to download storefront`));
             log(e.message, { level: 'verbose' });
@@ -631,7 +655,7 @@ export async function createVendureApp(
                         name,
                         packageManager,
                         superAdminCredentials,
-                        includeStorefront,
+                        storefront,
                         serverPort: port,
                         storefrontPort,
                     });
@@ -662,7 +686,7 @@ export async function createVendureApp(
                 name,
                 packageManager,
                 superAdminCredentials,
-                includeStorefront,
+                storefront,
                 serverPort: port,
                 storefrontPort,
             });
@@ -731,7 +755,7 @@ interface OutroOptions {
     name: string;
     packageManager: PackageManager;
     superAdminCredentials?: { identifier: string; password: string };
-    includeStorefront?: boolean;
+    storefront?: StorefrontStarter;
     serverPort?: number;
     storefrontPort?: number;
 }
@@ -743,7 +767,7 @@ function displayOutro(outroOptions: OutroOptions) {
         name,
         packageManager,
         superAdminCredentials,
-        includeStorefront,
+        storefront,
         serverPort = SERVER_PORT,
         storefrontPort = STOREFRONT_PORT,
     } = outroOptions;
@@ -766,14 +790,14 @@ function displayOutro(outroOptions: OutroOptions) {
 
     let nextSteps: string[];
 
-    if (includeStorefront) {
+    if (storefront) {
         nextSteps = [
             `Your new Vendure project was created!`,
             pc.gray(root),
             `\n`,
             `This is a monorepo with the following apps:`,
             `  ${pc.cyan('apps/server')}     - Vendure backend`,
-            `  ${pc.cyan('apps/storefront')} - Next.js frontend`,
+            `  ${pc.cyan('apps/storefront')} - ${storefront.frameworkName} frontend`,
             `\n`,
             `Next, run:`,
             pc.gray('$ ') + pc.blue(pc.bold(`cd ${name}`)),

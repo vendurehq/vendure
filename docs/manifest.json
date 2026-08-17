@@ -2780,7 +2780,7 @@
                   "title": "MultiChannelStockLocationStrategy",
                   "slug": "multi-channel-stock-location-strategy",
                   "file": "docs/reference/typescript-api/products-stock/multi-channel-stock-location-strategy.mdx",
-                  "lastModified": "2026-08-13T17:32:23+01:00"
+                  "lastModified": "2026-08-17T12:00:11+02:00"
                 },
                 {
                   "title": "ProductVariantPriceCalculationStrategy",
@@ -2874,7 +2874,7 @@
                   "title": "RequestContext",
                   "slug": "request-context",
                   "file": "docs/reference/typescript-api/request/request-context.mdx",
-                  "lastModified": "2026-08-13T14:40:56+02:00"
+                  "lastModified": "2026-08-17T12:00:11+02:00"
                 },
                 {
                   "title": "RequestContextService",
@@ -3096,7 +3096,7 @@
                   "title": "OrderService",
                   "slug": "order-service",
                   "file": "docs/reference/typescript-api/services/order-service.mdx",
-                  "lastModified": "2026-08-13T17:32:23+01:00"
+                  "lastModified": "2026-08-17T12:00:11+02:00"
                 },
                 {
                   "title": "OrderTestingService",
@@ -3186,7 +3186,7 @@
                   "title": "ShippingMethodService",
                   "slug": "shipping-method-service",
                   "file": "docs/reference/typescript-api/services/shipping-method-service.mdx",
-                  "lastModified": "2026-08-13T14:40:56+02:00"
+                  "lastModified": "2026-08-17T12:00:11+02:00"
                 },
                 {
                   "title": "SlugService",

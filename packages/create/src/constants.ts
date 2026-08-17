@@ -1,4 +1,4 @@
-export const REQUIRED_NODE_VERSION = '>=20.0.0';
+export const REQUIRED_NODE_VERSION = '^20.19.0 || >=22.12.0';
 /**
  * Oldest Node.js major release that has not reached end-of-life. Used to warn (not block)
  * users on EOL versions, for which native deps often stop publishing prebuilt binaries.
@@ -7,8 +7,6 @@ export const REQUIRED_NODE_VERSION = '>=20.0.0';
 export const OLDEST_NON_EOL_NODE_MAJOR = 22;
 export const SERVER_PORT = 3000;
 export const STOREFRONT_PORT = 3001;
-export const STOREFRONT_REPO = 'vendure-ecommerce/nextjs-starter-vendure';
-export const STOREFRONT_BRANCH = 'main';
 /**
  * The TypeScript version needs to pinned because minor versions often
  * introduce breaking changes.

@@ -94,7 +94,7 @@
         "@types/node": "^18.19.23",
         "@types/prompts": "^2.4.9",
         "@types/semver": "^7.5.8",
-        "better-sqlite3": "^11.6.0",
+        "better-sqlite3": "^12.11.1",
         "chokidar": "^3.6.0",
         "glob": "^10.3.10",
         "ioredis": "^5.3.2",
