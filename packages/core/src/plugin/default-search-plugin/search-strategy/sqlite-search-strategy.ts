@@ -123,7 +123,14 @@ export class SqliteSearchStrategy implements SearchStrategy {
             .limit(take)
             .offset(skip)
             .getRawMany()
-            .then(res => res.map(r => mapToSearchResult(r, ctx.channel.defaultCurrencyCode)));
+            .then(res =>
+                res.map(r =>
+                    mapToSearchResult(
+                        r,
+                        this.options.indexCurrencyCode ? r.si_currencyCode : ctx.channel.defaultCurrencyCode,
+                    ),
+                ),
+            );
     }
 
     async getTotalCount(ctx: RequestContext, input: SearchInput, enabledOnly: boolean): Promise<number> {
@@ -272,6 +279,9 @@ export class SqliteSearchStrategy implements SearchStrategy {
 
         qb.andWhere('si.channelId = :channelId', { channelId: ctx.channelId });
         applyLanguageConstraints(qb, ctx.languageCode, ctx.channel.defaultLanguageCode);
+        if (this.options.indexCurrencyCode) {
+            qb.andWhere('si.currencyCode = :currencyCode', { currencyCode: ctx.currencyCode });
+        }
 
         if (input.groupByProduct === true) {
             qb.groupBy('si.productId');
