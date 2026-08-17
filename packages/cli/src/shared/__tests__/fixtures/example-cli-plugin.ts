@@ -33,3 +33,24 @@ export default defineCliPlugin({
         },
     ],
 });
+
+/**
+ * Companion package.json fields for this plugin:
+ *
+ * {
+ *   "vendure": {
+ *     "cliPlugin": "./dist/cli-plugin.js",
+ *     "cliCommands": ["example", "dev"]
+ *   }
+ * }
+ *
+ * Consumers must also list the package in their project package.json:
+ *
+ * {
+ *   "vendure": {
+ *     "cli": {
+ *       "plugins": ["@vendure/cli-example-plugin"]
+ *     }
+ *   }
+ * }
+ */

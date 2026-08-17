@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { builtinCommands } from '../commands/builtins';
 import { defineCliPlugin } from './cli-plugin';
 import { CommandRegistry } from './command-registry-store';
-import { PackageJsonLike, listDirectDependencyNames, resolveCliPlugins } from './resolve-cli-plugins';
+import { PackageJsonLike, discoverCliPlugins, findInactivePluginProvidingCommand, listDirectDependencyNames, listInactiveCliPluginPackages, resolveCliPlugins } from './resolve-cli-plugins';
 
 describe('defineCliPlugin()', () => {
     it('returns a valid plugin definition', () => {
@@ -207,7 +207,7 @@ describe('resolveCliPlugins()', () => {
         };
     }
 
-    it('auto-discovers direct dependencies that declare vendure.cliPlugin', () => {
+    it('does not load plugins until they are listed in vendure.cli.plugins', () => {
         const fixture = makeTempProject({
             project: {
                 name: 'demo',
@@ -222,7 +222,7 @@ describe('resolveCliPlugins()', () => {
                     name: '@example/b',
                     packageJson: {
                         name: '@example/b',
-                        vendure: { cliPlugin: './cli-plugin.js' },
+                        vendure: { cliPlugin: './cli-plugin.js', cliCommands: ['from-b'] },
                     },
                     entrySource: `
                         module.exports = {
@@ -235,7 +235,7 @@ describe('resolveCliPlugins()', () => {
                     name: '@example/a',
                     packageJson: {
                         name: '@example/a',
-                        vendure: { cliPlugin: './cli-plugin.js' },
+                        vendure: { cliPlugin: './cli-plugin.js', cliCommands: ['from-a'] },
                     },
                     entrySource: `
                         module.exports = {
@@ -252,20 +252,28 @@ describe('resolveCliPlugins()', () => {
             ],
         });
 
-        const loaded = resolveCliPlugins({
+        const projectPackageJson = fs.readJsonSync(
+            path.join(fixture.root, 'package.json'),
+        ) as PackageJsonLike;
+
+        expect(
+            resolveCliPlugins({
+                cwd: fixture.root,
+                projectPackageJson,
+                resolvePackage: fixture.resolvePackage,
+            }),
+        ).toEqual([]);
+
+        const discovered = discoverCliPlugins({
             cwd: fixture.root,
-            projectPackageJson: fixture.resolvePackage
-                ? (fs.readJsonSync(path.join(fixture.root, 'package.json')) as PackageJsonLike)
-                : undefined,
+            projectPackageJson,
             resolvePackage: fixture.resolvePackage,
         });
-
-        // Alphabetical when no allowlist
-        expect(loaded.map(p => p.packageName)).toEqual(['@example/a', '@example/b']);
-        expect(loaded[0].plugin.commands[0].name).toBe('from-a');
+        expect(discovered.map(plugin => plugin.packageName)).toEqual(['@example/a', '@example/b']);
+        expect(discovered.every(plugin => plugin.status === 'not-enabled')).toBe(true);
     });
 
-    it('respects allowlist and exclude', () => {
+    it('loads allowlisted plugins in declared order', () => {
         const fixture = makeTempProject({
             project: {
                 name: 'demo',
@@ -369,7 +377,7 @@ describe('resolveCliPlugins()', () => {
         ).toThrow(/not a direct dependency/);
     });
 
-    it('resolves a hoisted plugin whose package.json is not exported', () => {
+    it('resolves a hoisted plugin whose package.json is not exported when enabled', () => {
         const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'vendure-cli-workspace-'));
         tempDirs.push(workspaceRoot);
         const projectRoot = path.join(workspaceRoot, 'packages', 'app');
@@ -379,6 +387,7 @@ describe('resolveCliPlugins()', () => {
         fs.writeJsonSync(path.join(projectRoot, 'package.json'), {
             name: 'app',
             dependencies: { '@example/hoisted-plugin': '1.0.0' },
+            vendure: { cli: { plugins: ['@example/hoisted-plugin'] } },
         });
         fs.writeJsonSync(path.join(pluginRoot, 'package.json'), {
             name: '@example/hoisted-plugin',
@@ -404,6 +413,7 @@ describe('resolveCliPlugins()', () => {
             project: {
                 name: 'demo',
                 dependencies: { '@example/broken': '1.0.0' },
+                vendure: { cli: { plugins: ['@example/broken'] } },
             },
             plugins: [
                 {
@@ -439,5 +449,47 @@ describe('resolveCliPlugins()', () => {
                 optionalDependencies: { c: '1' },
             }).sort(),
         ).toEqual(['a', 'b', 'c']);
+    });
+
+    it('finds an inactive plugin that declares a command name', () => {
+        const fixture = makeTempProject({
+            project: {
+                name: 'demo',
+                dependencies: { '@vendure/cloud': '1.0.0' },
+            },
+            plugins: [
+                {
+                    name: '@vendure/cloud',
+                    packageJson: {
+                        name: '@vendure/cloud',
+                        vendure: {
+                            cliPlugin: './cli-plugin.js',
+                            cliCommands: ['cloud-deploy'],
+                        },
+                    },
+                    entrySource: `
+                        module.exports = {
+                            id: '@vendure/cloud',
+                            commands: [{ name: 'cloud-deploy', description: 'Deploy', action: async () => 0 }],
+                        };
+                    `,
+                },
+            ],
+        });
+
+        const projectPackageJson = fs.readJsonSync(
+            path.join(fixture.root, 'package.json'),
+        ) as PackageJsonLike;
+        const match = findInactivePluginProvidingCommand('cloud-deploy', {
+            cwd: fixture.root,
+            projectPackageJson,
+            resolvePackage: fixture.resolvePackage,
+        });
+        expect(match?.packageName).toBe('@vendure/cloud');
+        expect(listInactiveCliPluginPackages({
+            cwd: fixture.root,
+            projectPackageJson,
+            resolvePackage: fixture.resolvePackage,
+        })).toEqual(['@vendure/cloud']);
     });
 });

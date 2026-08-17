@@ -38,15 +38,22 @@ export interface CliCommandDefinition {
 
 /**
  * Project-level CLI plugin discovery settings under `package.json#vendure.cli`.
+ *
+ * Plugin packages are discovered from direct dependencies that declare
+ * `vendure.cliPlugin`, but are only **loaded** when listed in `plugins`
+ * (explicit activation). Use `vendure plugins` to manage this list.
  */
 export interface ProjectCliPluginConfig {
     /**
-     * When set and non-empty, only these packages are loaded as CLI plugins
-     * (each must still declare `vendure.cliPlugin`).
+     * Allowlist of packages to load as CLI plugins, in registration order
+     * (last listed wins when two plugins register the same command name).
+     * Each must be a direct dependency and declare `vendure.cliPlugin`.
+     * When missing or empty, no plugins are loaded.
      */
     plugins?: string[];
     /**
      * Package names to skip even if they declare a CLI plugin entry.
+     * Also suppresses the “packages provide CLI commands” startup hint.
      */
     exclude?: string[];
 }

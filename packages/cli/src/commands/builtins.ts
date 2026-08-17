@@ -6,6 +6,7 @@ import { codemodCommandDef } from './codemod/command';
 import { devCommandDef } from './dev/command';
 import { doctorCommandDef } from './doctor/command';
 import { migrateCommandDef } from './migrate/command';
+import { pluginsCommandDef } from './plugins/command';
 import { schemaCommandDef } from './schema/command';
 import { startCommandDef } from './start/command';
 
@@ -22,6 +23,7 @@ export const builtinCommandDefs: CliCommandDefinition[] = [
     codemodCommandDef,
     schemaCommandDef,
     doctorCommandDef,
+    pluginsCommandDef,
 ];
 
 /**

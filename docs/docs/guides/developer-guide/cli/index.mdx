@@ -413,14 +413,19 @@ Declare the entry point in that package's `package.json`:
 ```json
 {
     "vendure": {
-        "cliPlugin": "./dist/cli-plugin.js"
+        "cliPlugin": "./dist/cli-plugin.js",
+        "cliCommands": ["hello", "dev"]
     }
 }
 ```
 
-When you run `vendure`, the CLI auto-discovers **direct** dependencies that declare
-`vendure.cliPlugin`. You can optionally restrict or exclude plugins from the project
-`package.json`:
+The optional `cliCommands` list lets the CLI give actionable errors for unknown
+commands without loading the plugin.
+
+### Explicit activation
+
+The CLI discovers **direct** dependencies that declare `vendure.cliPlugin`, but
+does **not** load them until they are listed in the project `package.json`:
 
 ```json
 {
@@ -433,9 +438,18 @@ When you run `vendure`, the CLI auto-discovers **direct** dependencies that decl
 }
 ```
 
-A package named in `plugins` must also be declared as a direct project dependency.
-A command whose name matches a built-in replaces it (last loaded plugin wins). Plugins
-can still call the original via `builtinCommands.<name>.action(...)`.
+Manage that list with:
+
+```bash
+npx vendure plugins
+npx vendure plugins --json
+npx vendure plugins add @example/vendure-cli-plugin
+npx vendure plugins remove @example/vendure-cli-plugin
+```
+
+A package named in `plugins` must also be a direct project dependency.
+Commands are registered in allowlist order (last listed wins when names collide).
+Plugins can still call the original via `builtinCommands.<name>.action(...)`.
 
 ## Getting Help
 
@@ -447,4 +461,5 @@ npx vendure add --help
 npx vendure migrate --help
 npx vendure schema --help
 npx vendure doctor --help
+npx vendure plugins --help
 ```

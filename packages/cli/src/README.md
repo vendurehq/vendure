@@ -406,22 +406,45 @@ Declare the entry in the plugin package's `package.json`:
 {
   "name": "@example/vendure-cli-plugin",
   "vendure": {
-    "cliPlugin": "./dist/cli-plugin.js"
+    "cliPlugin": "./dist/cli-plugin.js",
+    "cliCommands": ["hello", "dev"]
   }
 }
 ```
 
-### 2. Discovery
+`cliCommands` is optional metadata used for actionable unknown-command hints
+without loading plugin code.
+
+### 2. Discovery and explicit activation
 
 On startup the CLI:
 
 1. Resolves the project root (nearest `package.json` with `vendure.cli` or a
    dependency on `@vendure/cli`).
-2. Looks at **direct** `dependencies` / `devDependencies` / `optionalDependencies`.
-3. Loads every package that declares `vendure.cliPlugin`.
-4. Merges plugin commands into the registry (same name = replace; last plugin wins).
+2. Scans **direct** `dependencies` / `devDependencies` / `optionalDependencies`
+   for packages that declare `vendure.cliPlugin`.
+3. **Loads only packages listed in `vendure.cli.plugins`** (explicit activation).
+4. Merges plugin commands into the registry in allowlist order (same name =
+   replace; last enabled plugin wins). A non-dim stderr notice is printed when
+   a command is replaced.
 
-Optional project control in the **project** `package.json`:
+Packages that declare a plugin but are not enabled are **not** executed. The CLI
+prints a one-line hint instead:
+
+```text
+2 packages provide CLI commands. Run "vendure plugins" to review them.
+```
+
+Manage activation with:
+
+```bash
+vendure plugins
+vendure plugins --json
+vendure plugins add @example/vendure-cli-plugin
+vendure plugins remove @example/vendure-cli-plugin
+```
+
+Project control in the **project** `package.json`:
 
 ```json
 {
@@ -434,16 +457,14 @@ Optional project control in the **project** `package.json`:
 }
 ```
 
-- If `plugins` is set and non-empty, only those packages are loaded (each must
-  still be a direct dependency and declare `vendure.cliPlugin`).
-- `exclude` always applies.
-- Allowlisted packages that cannot be resolved or loaded fail the CLI startup
-  with an error (no silent skip).
-
+- `plugins` is the allowlist (missing or empty = load nothing).
+- `exclude` suppresses discovery hints and skips loading even if listed.
+- Allowlisted packages that cannot be resolved or loaded fail CLI startup.
 ## File Structure
 
 - `packages/cli/src/shared/cli-command-definition.ts` - Interface definitions
 - `packages/cli/src/shared/cli-plugin.ts` - `defineCliPlugin` / `CliPlugin`
+- `packages/cli/src/shared/cli-plugin-project-config.ts` - Read/write `vendure.cli` allowlist
 - `packages/cli/src/shared/command-registry-store.ts` - Command registry (add/replace)
 - `packages/cli/src/shared/resolve-cli-plugins.ts` - Plugin discovery & loading
 - `packages/cli/src/shared/command-registry.ts` - Commander registration utility
@@ -452,5 +473,6 @@ Optional project control in the **project** `package.json`:
 - `packages/cli/src/index.ts` - Public API exports for plugin authors
 - `packages/cli/src/commands/add/add.ts` - Add command implementation with dual mode support
 - `packages/cli/src/commands/migrate/migrate.ts` - Migrate command implementation with dual mode support
+- `packages/cli/src/commands/plugins/plugins.ts` - Explicit CLI plugin activation
 - `packages/cli/src/utilities/utils.ts` - Utility functions including timeout protection
 - `packages/cli/src/cli.ts` - Main CLI entry point

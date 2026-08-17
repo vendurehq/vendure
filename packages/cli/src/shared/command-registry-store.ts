@@ -22,8 +22,11 @@ export class CommandRegistry {
 
     register(command: CliCommandDefinition, source?: string): void {
         if (this.commands.has(command.name) && source) {
+            // Not dim: this is the main signal that a built-in (or earlier
+            // plugin) command was overridden, and precedence follows
+            // vendure.cli.plugins order (last enabled plugin wins).
             process.stderr.write(
-                pc.dim(`Replaced command "${command.name}" via ${source}\n`),
+                pc.yellow(`Replaced command "${command.name}" via ${source}\n`),
             );
         }
         this.commands.set(command.name, command);

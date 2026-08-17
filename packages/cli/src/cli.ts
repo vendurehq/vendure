@@ -6,7 +6,11 @@ import pc from 'picocolors';
 import { builtinCommandDefs } from './commands/builtins';
 import { CommandRegistry } from './shared/command-registry-store';
 import { registerCommands } from './shared/command-registry';
-import { resolveCliPlugins } from './shared/resolve-cli-plugins';
+import {
+    findInactivePluginProvidingCommand,
+    listInactiveCliPluginPackages,
+    resolveCliPlugins,
+} from './shared/resolve-cli-plugins';
 
 async function main(): Promise<void> {
     const program = new Command();
@@ -39,7 +43,75 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
     }
 
     registerCommands(program, registry.toArray());
+
+    program.on('command:*', operands => {
+        const unknown = operands[0] ?? '';
+        writeUnknownCommandHelp(unknown);
+        process.exit(1);
+    });
+
+    maybeWriteInactivePluginsHint(process.argv);
+
     await program.parseAsync(process.argv);
+}
+
+/**
+ * One-line hint when packages declare CLI plugins but are not enabled yet.
+ * Skipped for `vendure plugins` itself and for `--help` / `--version`.
+ */
+function maybeWriteInactivePluginsHint(argv: string[]): void {
+    const args = argv.slice(2);
+    if (args.length === 0) {
+        return;
+    }
+    const primary = args.find(arg => !arg.startsWith('-'));
+    if (
+        primary === 'plugins' ||
+        primary === 'help' ||
+        args.includes('--help') ||
+        args.includes('-h') ||
+        args.includes('--version') ||
+        args.includes('-V')
+    ) {
+        return;
+    }
+
+    const inactive = listInactiveCliPluginPackages();
+    if (inactive.length === 0) {
+        return;
+    }
+
+    const noun = inactive.length === 1 ? 'package provides' : 'packages provide';
+    process.stderr.write(
+        `${inactive.length} ${noun} CLI commands. Run "vendure plugins" to review them.\n`,
+    );
+}
+
+function writeUnknownCommandHelp(commandName: string): void {
+    process.stderr.write(`Unknown command "${commandName}".\n`);
+
+    const provider = findInactivePluginProvidingCommand(commandName);
+    if (provider) {
+        process.stderr.write(
+            `It is provided by ${provider.packageName}, which is installed but not enabled.\n`,
+        );
+        process.stderr.write(`Enable it with: vendure plugins add ${provider.packageName}\n`);
+        return;
+    }
+
+    const inactive = listInactiveCliPluginPackages();
+    if (inactive.length === 1) {
+        process.stderr.write(
+            `It may be provided by ${inactive[0]}, which is installed but not enabled.\n`,
+        );
+        process.stderr.write(`Enable it with: vendure plugins add ${inactive[0]}\n`);
+        return;
+    }
+    if (inactive.length > 1) {
+        process.stderr.write(
+            `${inactive.length} packages provide CLI commands but are not enabled. Run "vendure plugins" to review them.\n`,
+        );
+    }
 }
 
 void main().catch((e: any) => {
