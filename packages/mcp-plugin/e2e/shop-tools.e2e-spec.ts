@@ -644,7 +644,7 @@ describe('MCP built-in shop tools', () => {
         // assertion on the precise 'Vendure user no longer exists' branch rather than on whatever
         // generic message the HTTP transport happens to surface for it.
         const authenticated = await oauth.authenticateBearerToken(flow.access_token, 'shop');
-        expect(authenticated.grant.userId).toBe(doomedUser.id);
+        expect(authenticated.grant.actorId).toBe(doomedUser.id);
 
         const doomedCustomer = await connection
             .getRepository(adminCtx, Customer)

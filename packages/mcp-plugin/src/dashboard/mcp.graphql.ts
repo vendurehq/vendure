@@ -1,73 +1,12 @@
+import { graphql } from '@/gql';
+
 /**
- * GraphQL documents and response types for the MCP Server dashboard page.
- *
- * These are plain-string documents passed to `api.query` / `api.mutate`. The
- * response shapes below mirror the Admin API SDL declared in
- * `src/api/api-extensions.ts`.
+ * Every request the MCP Server dashboard page sends. The Admin API schema supplies the reply
+ * and variable types, so a change to `src/api/api-extensions.ts` that these requests do not
+ * match stops the dashboard code compiling.
  */
 
-export interface McpToolInfo {
-    id: string;
-    name: string;
-    toolset: string;
-    description: string;
-    pluginSource: string;
-    behavior: string;
-    enabled: boolean;
-}
-
-export interface McpOauthGrantInfo {
-    id: string;
-    createdAt: string;
-    updatedAt: string;
-    actorId: string | null;
-    actorType: string | null;
-    channelId: string | null;
-    oauthClientName: string | null;
-    lastActivityAt: string;
-    expiresAt: string;
-    revokedAt: string | null;
-}
-
-export interface McpOauthGrantList {
-    items: McpOauthGrantInfo[];
-    totalItems: number;
-}
-
-export interface McpToolCallLog {
-    id: string;
-    createdAt: string;
-    grantId: string | null;
-    actor: string | null;
-    actorType: string;
-    channelId: string | null;
-    toolName: string;
-    pluginSource: string | null;
-    durationMs: number | null;
-    status: string;
-}
-
-export interface McpToolCallLogList {
-    items: McpToolCallLog[];
-    totalItems: number;
-}
-
-export interface McpTopTool {
-    toolName: string;
-    count: number;
-}
-
-export interface McpStats {
-    totalCalls: number;
-    successRate: number;
-    errorRate: number;
-    p50LatencyMs: number | null;
-    p95LatencyMs: number | null;
-    callsPerHour: number;
-    topTools: McpTopTool[];
-}
-
-export const MCP_TOOLS_QUERY = `
+export const mcpToolsQuery = graphql(`
     query McpTools {
         mcpTools {
             id
@@ -79,9 +18,9 @@ export const MCP_TOOLS_QUERY = `
             enabled
         }
     }
-`;
+`);
 
-export const MCP_STATS_QUERY = `
+export const mcpStatsQuery = graphql(`
     query McpStats($timeRange: String) {
         mcpStats(timeRange: $timeRange) {
             totalCalls
@@ -96,9 +35,9 @@ export const MCP_STATS_QUERY = `
             }
         }
     }
-`;
+`);
 
-export const MCP_TOOL_CALL_LOGS_QUERY = `
+export const mcpToolCallLogsQuery = graphql(`
     query McpToolCallLogs($options: McpToolCallLogListOptions) {
         mcpToolCallLogs(options: $options) {
             items {
@@ -114,9 +53,9 @@ export const MCP_TOOL_CALL_LOGS_QUERY = `
             totalItems
         }
     }
-`;
+`);
 
-export const MCP_OAUTH_GRANTS_QUERY = `
+export const mcpOauthGrantsQuery = graphql(`
     query McpOauthGrants($includeInactive: Boolean!, $options: McpOauthGrantListOptions) {
         mcpOauthGrants(includeInactive: $includeInactive, options: $options) {
             items {
@@ -134,9 +73,9 @@ export const MCP_OAUTH_GRANTS_QUERY = `
             totalItems
         }
     }
-`;
+`);
 
-export const SET_MCP_TOOL_ENABLED = `
+export const setMcpToolEnabledDocument = graphql(`
     mutation SetMcpToolEnabled($toolName: String!, $toolset: String!, $enabled: Boolean!) {
         setMcpToolEnabled(toolName: $toolName, toolset: $toolset, enabled: $enabled) {
             name
@@ -144,18 +83,18 @@ export const SET_MCP_TOOL_ENABLED = `
             enabled
         }
     }
-`;
+`);
 
-export const REVOKE_MCP_OAUTH_GRANT = `
+export const revokeMcpOauthGrantDocument = graphql(`
     mutation RevokeMcpOauthGrant($id: ID!) {
         revokeMcpOauthGrant(id: $id)
     }
-`;
+`);
 
-export const AUTHORIZE_MCP_CLIENT = `
+export const authorizeMcpClientDocument = graphql(`
     mutation AuthorizeMcpClient($requestToken: String!, $approved: Boolean!) {
         authorizeMcpClient(requestToken: $requestToken, approved: $approved) {
             redirectUrl
         }
     }
-`;
+`);

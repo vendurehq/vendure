@@ -14,7 +14,6 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import { mcpServerPermission } from '../src/constants';
-import { AUTHORIZE_MCP_CLIENT } from '../src/dashboard/queries';
 import { McpAuthorizationCode } from '../src/entities/mcp-authorization-code.entity';
 import { McpAuthorizationRequest } from '../src/entities/mcp-authorization-request.entity';
 import { McpOauthGrant } from '../src/entities/mcp-oauth-grant.entity';
@@ -22,6 +21,8 @@ import { McpOauthService } from '../src/oauth/oauth.service';
 import { deriveHashKey, hashLookupToken } from '../src/oauth/token-hash';
 import { McpPlugin } from '../src/plugin';
 
+import { AUTHORIZE_MCP_CLIENT } from './graphql/mcp-documents';
+import { initializeParams, postMcp, rpc } from './utils/mcp-http-client';
 import {
     authorize,
     exchangeCode,
@@ -542,6 +543,17 @@ describe('McpPlugin OAuth edge & security cases', () => {
         );
     });
 
+    // A token an administrator approved works only on the admin endpoint. The grant records which
+    // kind of actor approved it, and this gate compares that record against the endpoint.
+    it('rejects an admin access token sent to the shop endpoint', async () => {
+        const flow = await runAdminFlow();
+
+        const res = await postMcp(baseUrl(), 'shop', rpc('initialize', initializeParams()), {
+            token: flow.access_token,
+        });
+        expect(res.status).toBe(401);
+    });
+
     // Admin consent without an authenticated admin session is rejected.
     it('rejects admin consent from an unauthenticated caller', async () => {
         const flow = await authorizeAdminToCodePreConsent();
@@ -677,9 +689,9 @@ describe('McpPlugin OAuth edge & security cases', () => {
 
         const authenticated = await oauth.authenticateBearerToken(flow.access_token, 'shop');
         expect(authenticated.ctx.apiType).toBe('shop');
-        expect(authenticated.grant.userType).toBe('customer');
-        expect(authenticated.ctx.activeUserId).toBe(authenticated.grant.userId);
-        expect(authenticated.grant.userId).toBeTruthy();
+        expect(authenticated.grant.actorType).toBe('customer');
+        expect(authenticated.ctx.activeUserId).toBe(authenticated.grant.actorId);
+        expect(authenticated.grant.actorId).toBeTruthy();
     });
 
     describe('authorizeMcpClient mutation', () => {
@@ -756,8 +768,8 @@ describe('McpPlugin OAuth edge & security cases', () => {
             const grant = await connection.rawConnection.getRepository(McpOauthGrant).findOne({
                 where: { accessTokenHash: lookupHash(access_token) },
             });
-            expect(grant?.userType).toBe('customer');
-            expect(grant?.userId).toBeTruthy();
+            expect(grant?.actorType).toBe('customer');
+            expect(grant?.actorId).toBeTruthy();
             expect(grant?.channelId).toBeTruthy();
         });
 

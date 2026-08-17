@@ -8,7 +8,7 @@ import { McpOauthClient } from './mcp-oauth-client.entity';
 /**
  * @description
  * A short-lived authorization code from the OAuth flow, exchanged for tokens. The
- * `code` is stored as a hash. `userId` and `userType` record who
+ * `code` is stored as a hash. `actorId` and `actorType` record who
  * approved, so a Vendure session can be created for them when the code is exchanged.
  *
  * @docsCategory core plugins/McpPlugin
@@ -33,10 +33,10 @@ export class McpAuthorizationCode extends VendureEntity {
 
     // Identity columns used by the token-exchange step to create a Vendure session.
     @EntityId()
-    userId: ID;
+    actorId: ID;
 
     @Column({ type: 'varchar' })
-    userType: McpGrantUserType;
+    actorType: McpGrantUserType;
 
     @Column()
     redirectUri: string;

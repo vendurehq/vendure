@@ -15,7 +15,7 @@ import {
 import { TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 
-import { MCP_STATS_QUERY, McpStats } from '../queries';
+import { mcpStatsQuery } from '../mcp.graphql';
 
 type TimeRange = '1h' | '24h' | '7d' | '30d';
 
@@ -53,7 +53,7 @@ export function StatsBlock() {
 
     const { data, isLoading, error } = useQuery({
         queryKey: ['mcp-stats', timeRange],
-        queryFn: () => api.query<{ mcpStats: McpStats }>(MCP_STATS_QUERY, { timeRange }),
+        queryFn: () => api.query(mcpStatsQuery, { timeRange }),
     });
 
     const stats = data?.mcpStats;

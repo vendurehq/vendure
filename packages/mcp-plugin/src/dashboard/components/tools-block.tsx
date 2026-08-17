@@ -7,6 +7,7 @@ import {
     type ColumnDef,
     DataTable,
     Input,
+    type ResultOf,
     Select,
     SelectContent,
     SelectItem,
@@ -21,11 +22,13 @@ import {
 import { TriangleAlert } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import { MCP_TOOLS_QUERY, McpToolInfo, SET_MCP_TOOL_ENABLED } from '../queries';
+import { mcpToolsQuery, setMcpToolEnabledDocument } from '../mcp.graphql';
 
 const ALL_TOOLSETS = '__all__';
 
-function SafetyBadge({ tool }: { tool: McpToolInfo }) {
+type McpTool = ResultOf<typeof mcpToolsQuery>['mcpTools'][number];
+
+function SafetyBadge({ tool }: { tool: McpTool }) {
     if (tool.behavior === 'destructive') {
         return (
             <Badge variant="destructive">
@@ -61,12 +64,12 @@ export function ToolsBlock() {
 
     const { data, isLoading, error } = useQuery({
         queryKey: ['mcp-tools'],
-        queryFn: () => api.query<{ mcpTools: McpToolInfo[] }>(MCP_TOOLS_QUERY),
+        queryFn: () => api.query(mcpToolsQuery),
     });
 
     const toggle = useMutation({
         mutationFn: (vars: { toolName: string; toolset: string; enabled: boolean }) =>
-            api.mutate(SET_MCP_TOOL_ENABLED, vars),
+            api.mutate(setMcpToolEnabledDocument, vars),
         onSuccess: () => {
             toast.success(t`Tool updated`);
             void qc.invalidateQueries({ queryKey: ['mcp-tools'] });
@@ -111,7 +114,7 @@ export function ToolsBlock() {
         );
     }
 
-    const columns: Array<ColumnDef<McpToolInfo>> = [
+    const columns: Array<ColumnDef<McpTool>> = [
         {
             accessorKey: 'name',
             header: () => <Trans>Name</Trans>,

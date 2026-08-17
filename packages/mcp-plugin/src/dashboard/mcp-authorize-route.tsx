@@ -22,7 +22,7 @@ import { AlertTriangleIcon } from 'lucide-react';
 
 import { isLoopbackHostname } from '../oauth/loopback';
 
-import { AUTHORIZE_MCP_CLIENT } from './queries';
+import { authorizeMcpClientDocument } from './mcp.graphql';
 
 /**
  * Shape returned by the `/mcp/oauth/authorization-request` REST endpoint. Mirrors
@@ -82,10 +82,7 @@ function ConsentCard({ requestToken }: { requestToken: string }) {
     });
 
     const authorize = useMutation({
-        mutationFn: (approved: boolean) =>
-            api.mutate(AUTHORIZE_MCP_CLIENT, { requestToken, approved }) as Promise<{
-                authorizeMcpClient: { redirectUrl: string };
-            }>,
+        mutationFn: (approved: boolean) => api.mutate(authorizeMcpClientDocument, { requestToken, approved }),
         onSuccess: data => {
             window.location.href = data.authorizeMcpClient.redirectUrl;
         },

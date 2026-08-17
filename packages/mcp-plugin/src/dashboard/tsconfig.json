@@ -3,7 +3,8 @@
     "module": "nodenext",
     "jsx": "react-jsx",
     "paths": {
-      "@/vdb/*": ["../../../dashboard/src/lib/*"]
+      "@/vdb/*": ["../../../dashboard/src/lib/*"],
+      "@/gql": ["../../codegen/generated/graphql.ts"]
     }
   }
 }

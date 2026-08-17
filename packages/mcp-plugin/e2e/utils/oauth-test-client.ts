@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 
-import { AUTHORIZE_MCP_CLIENT } from '../../src/dashboard/queries';
+import { AUTHORIZE_MCP_CLIENT } from '../graphql/mcp-documents';
 
 // Reusable client that drives the real MCP OAuth flow over HTTP against a running
 // test server, using the admin consent path. The superadmin bearer token (readily

@@ -304,8 +304,8 @@ export class McpOauthService {
             return this.denyAuthorizationRequest(requestToken, 'admin');
         }
         return this.approveAuthorizationRequest(requestToken, 'admin', {
-            userId: ctx.activeUserId,
-            userType: 'admin',
+            actorId: ctx.activeUserId,
+            actorType: 'admin',
         });
     }
 
@@ -327,8 +327,8 @@ export class McpOauthService {
         this.assertStorefrontConsentOrigin(ctx);
         await this.assertNotAnAdministrator(ctx);
         return this.approveAuthorizationRequest(requestToken, 'shop', {
-            userId: ctx.activeUserId,
-            userType: 'customer',
+            actorId: ctx.activeUserId,
+            actorType: 'customer',
             channelId: ctx.channelId ?? null,
         });
     }
@@ -400,8 +400,8 @@ export class McpOauthService {
         }
         return this.connection.getRepository(ctx, McpOauthGrant).find({
             where: {
-                userId: ctx.activeUserId,
-                userType: 'customer',
+                actorId: ctx.activeUserId,
+                actorType: 'customer',
                 revokedAt: IsNull(),
                 expiresAt: MoreThan(new Date()),
             },
@@ -422,7 +422,7 @@ export class McpOauthService {
         const grant = await this.connection
             .getRepository(ctx, McpOauthGrant)
             .findOne({ where: { id: grantId } });
-        if (!grant || grant.userType !== 'customer' || !idsAreEqual(grant.userId, ctx.activeUserId)) {
+        if (!grant || grant.actorType !== 'customer' || !idsAreEqual(grant.actorId, ctx.activeUserId)) {
             throw new EntityNotFoundError('McpOauthGrant', grantId);
         }
         if (!grant.revokedAt) {
@@ -449,8 +449,8 @@ export class McpOauthService {
             throw new UnauthorizedException('Invalid or expired access token');
         }
         if (
-            (apiType === 'admin' && grant.userType !== 'admin') ||
-            (apiType === 'shop' && grant.userType !== 'customer')
+            (apiType === 'admin' && grant.actorType !== 'admin') ||
+            (apiType === 'shop' && grant.actorType !== 'customer')
         ) {
             throw new UnauthorizedException('Access token does not allow this MCP endpoint');
         }
@@ -465,7 +465,7 @@ export class McpOauthService {
             ? await this.sessionService.getSessionFromToken(resolved.sessionToken)
             : undefined;
         if (!vendureSession) {
-            const user = await this.userService.getUserById(adminCtx, grant.userId);
+            const user = await this.userService.getUserById(adminCtx, grant.actorId);
             if (!user || user.deletedAt) {
                 await this.revokeGrant(adminCtx, grant);
                 throw new UnauthorizedException('Vendure user no longer exists');
@@ -591,11 +591,11 @@ export class McpOauthService {
     private async approveAuthorizationRequest(
         requestToken: string,
         expectedToolset: McpToolset,
-        approver: { userId: ID | undefined; userType: McpGrantUserType; channelId?: ID | null },
+        approver: { actorId: ID | undefined; actorType: McpGrantUserType; channelId?: ID | null },
     ): Promise<{ redirectUrl: string }> {
         const { ctx, request } = await this.consumeAuthorizationRequest(requestToken, expectedToolset);
-        const { userId, userType, channelId = null } = approver;
-        if (userId == null) {
+        const { actorId, actorType, channelId = null } = approver;
+        if (actorId == null) {
             throw new UnauthorizedException('Authenticated Vendure session required');
         }
         const codePlaintext = randomToken();
@@ -604,8 +604,8 @@ export class McpOauthService {
                 code: this.hashLookup(codePlaintext),
                 oauthClient: request.oauthClient,
                 oauthClientId: request.oauthClientId,
-                userId,
-                userType,
+                actorId,
+                actorType,
                 redirectUri: request.redirectUri,
                 resource: request.resource,
                 codeChallenge: request.codeChallenge,
@@ -664,8 +664,8 @@ export class McpOauthService {
         return this.issueTokenPair(
             ctx,
             code.oauthClient,
-            code.userId,
-            code.userType,
+            code.actorId,
+            code.actorType,
             code.resource,
             code.channelId,
         );
@@ -739,12 +739,12 @@ export class McpOauthService {
     private async issueTokenPair(
         ctx: RequestContext,
         client: McpOauthClient,
-        userId: ID,
-        userType: McpGrantUserType,
+        actorId: ID,
+        actorType: McpGrantUserType,
         resource: string,
         channelId: ID | null = null,
     ): Promise<OAuthTokenResponse> {
-        const user = await this.userService.getUserById(ctx, userId);
+        const user = await this.userService.getUserById(ctx, actorId);
         if (!user) {
             throw new BadRequestException('Vendure user no longer exists');
         }
@@ -759,8 +759,8 @@ export class McpOauthService {
                 previousRefreshTokenHash: null,
                 oauthClient: client,
                 oauthClientId: client.id,
-                userId,
-                userType,
+                actorId,
+                actorType,
                 resource,
                 accessTokenExpiresAt: addSeconds(now, this.resolvedOauth().accessTokenTtlSeconds),
                 expiresAt: addSeconds(now, this.resolvedOauth().refreshTokenTtlSeconds),

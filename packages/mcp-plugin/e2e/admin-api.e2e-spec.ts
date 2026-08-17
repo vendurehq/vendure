@@ -10,14 +10,6 @@ import gql from 'graphql-tag';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
-import {
-    MCP_OAUTH_GRANTS_QUERY,
-    MCP_STATS_QUERY,
-    MCP_TOOL_CALL_LOGS_QUERY,
-    MCP_TOOLS_QUERY,
-    REVOKE_MCP_OAUTH_GRANT,
-    SET_MCP_TOOL_ENABLED,
-} from '../src/dashboard/queries';
 import { McpOauthGrant } from '../src/entities/mcp-oauth-grant.entity';
 import { McpToolCallLog } from '../src/entities/mcp-tool-call-log.entity';
 import { McpPlugin } from '../src/plugin';
@@ -25,6 +17,14 @@ import { McpPluginOptions } from '../src/types';
 
 import { McpTestToolsPlugin } from './fixtures/mcp-test-tools';
 import { MCP_TOOL_CALL_LOGS_WITH_BODIES_QUERY } from './graphql/admin-definitions';
+import {
+    MCP_OAUTH_GRANTS_QUERY,
+    MCP_STATS_QUERY,
+    MCP_TOOL_CALL_LOGS_QUERY,
+    MCP_TOOLS_QUERY,
+    REVOKE_MCP_OAUTH_GRANT,
+    SET_MCP_TOOL_ENABLED,
+} from './graphql/mcp-documents';
 import { provisionAdmin } from './utils/admin-fixtures';
 import { backdateLogCreatedAt } from './utils/log-fixtures';
 import { postMcp, rpc } from './utils/mcp-http-client';
@@ -468,6 +468,102 @@ describe('MCP admin API', () => {
             expect(secondPage.data.mcpOauthGrants.items[0].id).not.toBe(
                 firstPage.data.mcpOauthGrants.items[0].id,
             );
+        });
+
+        it('sorts by a direct column and keeps a stable order', async () => {
+            // Two fresh grants guarantee at least two rows regardless of what ran before.
+            await runAuthorizationCodeFlow({ baseUrl: baseUrl(), issuer: ISSUER, superAdminToken });
+            await runAuthorizationCodeFlow({ baseUrl: baseUrl(), issuer: ISSUER, superAdminToken });
+
+            const ascending = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
+                includeInactive: true,
+                options: { sort: { createdAt: 'ASC' } },
+            });
+            expect(ascending.errors).toBeUndefined();
+            const ascendingTimes = (ascending.data.mcpOauthGrants.items as Array<{ createdAt: string }>).map(
+                g => new Date(g.createdAt).getTime(),
+            );
+            expect(ascendingTimes.length).toBeGreaterThanOrEqual(2);
+            expect([...ascendingTimes].sort((a, b) => a - b)).toEqual(ascendingTimes);
+
+            const descending = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
+                includeInactive: true,
+                options: { sort: { createdAt: 'DESC' } },
+            });
+            expect(descending.errors).toBeUndefined();
+            const descendingTimes = (
+                descending.data.mcpOauthGrants.items as Array<{ createdAt: string }>
+            ).map(g => new Date(g.createdAt).getTime());
+            expect([...descendingTimes].sort((a, b) => b - a)).toEqual(descendingTimes);
+        });
+
+        it('defaults to newest activity first when no sort is given', async () => {
+            await runAuthorizationCodeFlow({ baseUrl: baseUrl(), issuer: ISSUER, superAdminToken });
+            await runAuthorizationCodeFlow({ baseUrl: baseUrl(), issuer: ISSUER, superAdminToken });
+
+            const listed = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
+                includeInactive: true,
+            });
+            expect(listed.errors).toBeUndefined();
+            const activityTimes = (listed.data.mcpOauthGrants.items as Array<{ lastActivityAt: string }>).map(
+                g => new Date(g.lastActivityAt).getTime(),
+            );
+            expect(activityTimes.length).toBeGreaterThanOrEqual(2);
+            expect([...activityTimes].sort((a, b) => b - a)).toEqual(activityTimes);
+        });
+
+        it('sorts by a projected field that maps onto a related record', async () => {
+            const nameA = `sort-a-${Math.random().toString(36).slice(2)}`;
+            const nameZ = `sort-z-${Math.random().toString(36).slice(2)}`;
+            await runAuthorizationCodeFlow({
+                baseUrl: baseUrl(),
+                issuer: ISSUER,
+                superAdminToken,
+                clientName: nameA,
+            });
+            await runAuthorizationCodeFlow({
+                baseUrl: baseUrl(),
+                issuer: ISSUER,
+                superAdminToken,
+                clientName: nameZ,
+            });
+
+            const listed = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
+                includeInactive: true,
+                options: { sort: { oauthClientName: 'ASC' } },
+            });
+            expect(listed.errors).toBeUndefined();
+            const names = (listed.data.mcpOauthGrants.items as Array<{ oauthClientName: string | null }>)
+                .map(g => g.oauthClientName)
+                .filter((n): n is string => n === nameA || n === nameZ);
+            expect(names).toEqual([nameA, nameZ]);
+        });
+
+        it('filters by a projected field that maps onto a renamed column', async () => {
+            await runAuthorizationCodeFlow({ baseUrl: baseUrl(), issuer: ISSUER, superAdminToken });
+
+            // Count the admin-actor rows in an unfiltered listing, then require the filtered
+            // listing to return exactly those. Comparing against the unfiltered set keeps this
+            // test correct no matter how many grants earlier tests in this file created.
+            const all = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
+                includeInactive: true,
+            });
+            expect(all.errors).toBeUndefined();
+            const adminRowCount = (
+                all.data.mcpOauthGrants.items as Array<{ actorType: string | null }>
+            ).filter(g => g.actorType === 'admin').length;
+            expect(adminRowCount).toBeGreaterThanOrEqual(1);
+
+            const filtered = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
+                includeInactive: true,
+                options: { filter: { actorType: { eq: 'admin' } } },
+            });
+            expect(filtered.errors).toBeUndefined();
+            expect(filtered.data.mcpOauthGrants.totalItems).toBe(adminRowCount);
+            const filteredActorTypes = (
+                filtered.data.mcpOauthGrants.items as Array<{ actorType: string | null }>
+            ).map(g => g.actorType);
+            expect(new Set(filteredActorTypes)).toEqual(new Set(['admin']));
         });
     });
 

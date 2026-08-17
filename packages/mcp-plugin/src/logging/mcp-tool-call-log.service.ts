@@ -40,13 +40,13 @@ export class McpToolCallLogService {
                 // context is the only identity there is: an in-process caller passes a signed-in
                 // shopper's context, while the anonymous shop endpoint has nobody signed in.
                 actor:
-                    grant?.userId != null
-                        ? String(grant.userId)
+                    grant?.actorId != null
+                        ? String(grant.actorId)
                         : ctx.activeUserId != null
                           ? String(ctx.activeUserId)
                           : null,
                 actorType:
-                    grant?.userType ??
+                    grant?.actorType ??
                     (ctx.apiType === 'admin' ? 'admin' : ctx.activeUserId != null ? 'customer' : 'anonymous'),
                 // Calls under a grant are logged with the grant's channel. Null means the grant
                 // is global (admin approvals store no channel), so its rows stay visible on

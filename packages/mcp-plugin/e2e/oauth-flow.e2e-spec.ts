@@ -151,7 +151,7 @@ describe('McpPlugin OAuth end-to-end flow', () => {
             throw new Error('Expected a seeded superadmin user');
         }
         expect(authenticated.ctx.activeUserId).toBe(superadmin.id);
-        expect(authenticated.grant.userId).toBe(superadmin.id);
+        expect(authenticated.grant.actorId).toBe(superadmin.id);
     });
 
     // The grant's Vendure session is an ordinary Core session: a 32-byte random token
@@ -267,7 +267,7 @@ describe('McpPlugin OAuth end-to-end flow', () => {
         // Re-authenticating succeeds by creating a new session, and the McpOauthGrant now
         // points at a different Vendure session id.
         const reauthenticated = await oauth.authenticateBearerToken(access_token, 'admin');
-        expect(reauthenticated.ctx.activeUserId).toBe(mcpSessionBefore.userId);
+        expect(reauthenticated.ctx.activeUserId).toBe(mcpSessionBefore.actorId);
 
         const mcpSessionAfter = await connection
             .getRepository(ctx, McpOauthGrant)
@@ -398,7 +398,7 @@ describe('McpPlugin OAuth end-to-end flow', () => {
         superAdminToken = adminClient.getAuthToken();
 
         const authenticated = await oauth.authenticateBearerToken(access_token, 'admin');
-        expect(authenticated.grant.userId).toBe(doomedAdmin.user.id);
+        expect(authenticated.grant.actorId).toBe(doomedAdmin.user.id);
 
         await administratorService.softDelete(ctx, doomedAdmin.id);
 
@@ -567,8 +567,8 @@ describe('McpPlugin OAuth end-to-end flow', () => {
                 code: `expired-code-${uniqueSuffix}`,
                 oauthClient: client,
                 oauthClientId: client.id,
-                userId: superadmin.id,
-                userType: 'admin',
+                actorId: superadmin.id,
+                actorType: 'admin',
                 redirectUri: 'https://example.com/cb',
                 resource: `${ISSUER}/mcp/admin`,
                 codeChallenge: 'challenge',
@@ -727,8 +727,8 @@ describe('McpPlugin OAuth end-to-end flow', () => {
                 previousRefreshTokenHash: null,
                 oauthClient: client,
                 oauthClientId: client.id,
-                userId: superadmin.id,
-                userType: 'admin',
+                actorId: superadmin.id,
+                actorType: 'admin',
                 resource: `${ISSUER}/mcp/admin`,
                 accessTokenExpiresAt: new Date(Date.now() + 60_000),
                 expiresAt: new Date(Date.now() + MS_PER_DAY),

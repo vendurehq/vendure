@@ -108,6 +108,7 @@ export class McpAdminResolver {
             ctx,
             relations: ['oauthClient'],
             entityAlias: 'grant',
+            customPropertyMap: { oauthClientName: 'oauthClient.clientName' },
         });
         if (!args.includeInactive) {
             qb.andWhere('grant.revokedAt IS NULL').andWhere('grant.expiresAt > :now', {
@@ -120,14 +121,17 @@ export class McpAdminResolver {
                 channelId: ctx.channelId,
             });
         }
-        qb.orderBy('grant.lastActivityAt', 'DESC').addOrderBy('grant.id', 'DESC');
+        if (args.options?.sort == null || Object.keys(args.options.sort).length === 0) {
+            qb.orderBy('grant.lastActivityAt', 'DESC');
+        }
+        qb.addOrderBy('grant.id', 'DESC');
         const [grants, totalItems] = await qb.getManyAndCount();
         const items = grants.map(grant => ({
             id: grant.id,
             createdAt: grant.createdAt,
             updatedAt: grant.updatedAt,
-            actorId: grant.userId != null ? String(grant.userId) : null,
-            actorType: grant.userType ?? null,
+            actorId: grant.actorId != null ? String(grant.actorId) : null,
+            actorType: grant.actorType ?? null,
             channelId: grant.channelId,
             oauthClientName: grant.oauthClient?.clientName ?? null,
             lastActivityAt: grant.lastActivityAt,

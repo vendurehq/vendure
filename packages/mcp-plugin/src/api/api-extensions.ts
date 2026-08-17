@@ -18,7 +18,7 @@ export const adminApiExtensions = gql`
     }
 
     "An OAuth grant, summarised for the admin overview. Revoked and expired grants are included only when requested."
-    type McpOauthGrantInfo implements Node {
+    type McpOauthGrant implements Node {
         id: ID!
         createdAt: DateTime!
         updatedAt: DateTime!
@@ -32,7 +32,7 @@ export const adminApiExtensions = gql`
     }
 
     type McpOauthGrantList implements PaginatedList {
-        items: [McpOauthGrantInfo!]!
+        items: [McpOauthGrant!]!
         totalItems: Int!
     }
 
@@ -116,15 +116,8 @@ export const adminApiExtensions = gql`
     # Auto-generated at runtime
     input McpToolCallLogListOptions
 
-    # Declared by hand, pagination only: the grant list is a projection (McpOauthGrantInfo),
-    # so the sort and filter inputs core would generate for an entity do not apply. Results
-    # are always newest activity first.
-    input McpOauthGrantListOptions {
-        "Skips the first n results, for use in pagination"
-        skip: Int
-        "Takes n results, for use in pagination"
-        take: Int
-    }
+    # Auto-generated at runtime
+    input McpOauthGrantListOptions
 `;
 
 /**
