@@ -4,10 +4,13 @@ import {
     type ColumnFiltersState,
     PaginatedListDataTable,
     type SortingState,
+    useUserSettings,
 } from '@vendure/dashboard';
 import { useState } from 'react';
 
 import { mcpToolCallLogsQuery } from '../mcp.graphql';
+
+const tableSettingsKey = 'mcp-activity-table';
 
 function StatusBadge({ status }: { status: string }) {
     const variant = status === 'success' ? 'success' : status === 'error' ? 'destructive' : 'secondary';
@@ -25,6 +28,11 @@ export function ActivityBlock() {
     // Newest first: the tool-call log query applies no ordering of its own.
     const [sorting, setSorting] = useState<SortingState>([{ id: 'createdAt', desc: true }]);
     const [filters, setFilters] = useState<ColumnFiltersState>([]);
+    const { settings, setTableSettings } = useUserSettings();
+    const columnVisibility = settings.tableSettings?.[tableSettingsKey]?.columnVisibility ?? {
+        id: false,
+        pluginSource: false,
+    };
 
     return (
         <PaginatedListDataTable
@@ -39,6 +47,9 @@ export function ActivityBlock() {
             }}
             onSortChange={(_table, newSorting) => setSorting(newSorting)}
             onFilterChange={(_table, newFilters) => setFilters(newFilters)}
+            onColumnVisibilityChange={(_table, newVisibility) =>
+                setTableSettings(tableSettingsKey, 'columnVisibility', newVisibility)
+            }
             // No bulk actions on this panel, so no row-selection checkboxes.
             includeSelectionColumn={false}
             customizeColumns={{
@@ -66,7 +77,7 @@ export function ActivityBlock() {
                 },
             }}
             defaultColumnOrder={['createdAt', 'toolName', 'actor', 'actorType', 'status', 'durationMs']}
-            defaultVisibility={{ id: false, pluginSource: false }}
+            defaultVisibility={columnVisibility}
         />
     );
 }

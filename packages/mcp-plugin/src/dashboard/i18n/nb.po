@@ -242,9 +242,6 @@ msgstr "Feil ved innlasting av tilganger: {0}"
 msgid "The request could not be completed"
 msgstr "Forespørselen kunne ikke fullføres"
 
-msgid "Show inactive"
-msgstr "Vis inaktive"
-
 msgid "Active"
 msgstr "Aktiv"
 

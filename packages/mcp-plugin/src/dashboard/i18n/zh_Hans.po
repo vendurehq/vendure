@@ -242,9 +242,6 @@ msgstr "加载授权时出错：{0}"
 msgid "The request could not be completed"
 msgstr "无法完成请求"
 
-msgid "Show inactive"
-msgstr "显示非活动"
-
 msgid "Active"
 msgstr "活动"
 

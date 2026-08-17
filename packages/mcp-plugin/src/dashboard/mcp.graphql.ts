@@ -56,8 +56,8 @@ export const mcpToolCallLogsQuery = graphql(`
 `);
 
 export const mcpOauthGrantsQuery = graphql(`
-    query McpOauthGrants($includeInactive: Boolean!, $options: McpOauthGrantListOptions) {
-        mcpOauthGrants(includeInactive: $includeInactive, options: $options) {
+    query McpOauthGrants($options: McpOauthGrantListOptions) {
+        mcpOauthGrants(includeInactive: true, options: $options) {
             items {
                 id
                 createdAt
@@ -69,6 +69,7 @@ export const mcpOauthGrantsQuery = graphql(`
                 lastActivityAt
                 expiresAt
                 revokedAt
+                status
             }
             totalItems
         }

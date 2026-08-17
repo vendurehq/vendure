@@ -242,9 +242,6 @@ msgstr "権限付与の読み込みに失敗しました: {0}"
 msgid "The request could not be completed"
 msgstr "リクエストを完了できませんでした"
 
-msgid "Show inactive"
-msgstr "非アクティブを表示"
-
 msgid "Active"
 msgstr "アクティブ"
 

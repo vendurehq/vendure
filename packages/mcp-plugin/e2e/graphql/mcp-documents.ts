@@ -70,6 +70,7 @@ export const MCP_OAUTH_GRANTS_QUERY = `
                 lastActivityAt
                 expiresAt
                 revokedAt
+                status
             }
             totalItems
         }

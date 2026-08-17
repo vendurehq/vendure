@@ -242,9 +242,6 @@ msgstr "Chyba při načítání oprávnění: {0}"
 msgid "The request could not be completed"
 msgstr "Požadavek se nepodařilo dokončit"
 
-msgid "Show inactive"
-msgstr "Zobrazit neaktivní"
-
 msgid "Active"
 msgstr "Aktivní"
 

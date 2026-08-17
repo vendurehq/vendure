@@ -242,9 +242,6 @@ msgstr "Błąd podczas wczytywania uprawnień: {0}"
 msgid "The request could not be completed"
 msgstr "Nie udało się zrealizować żądania"
 
-msgid "Show inactive"
-msgstr "Pokaż nieaktywne"
-
 msgid "Active"
 msgstr "Aktywny"
 

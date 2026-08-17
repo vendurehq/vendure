@@ -242,9 +242,6 @@ msgstr "Hiba a hozzáférések betöltésekor: {0}"
 msgid "The request could not be completed"
 msgstr "A kérést nem sikerült teljesíteni"
 
-msgid "Show inactive"
-msgstr "Inaktívak megjelenítése"
-
 msgid "Active"
 msgstr "Aktív"
 

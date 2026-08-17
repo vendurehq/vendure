@@ -242,9 +242,6 @@ msgstr "Erro ao carregar as concessões: {0}"
 msgid "The request could not be completed"
 msgstr "Não foi possível concluir o pedido"
 
-msgid "Show inactive"
-msgstr "Mostrar inativos"
-
 msgid "Active"
 msgstr "Ativo"
 

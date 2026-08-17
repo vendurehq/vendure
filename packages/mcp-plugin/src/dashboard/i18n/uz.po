@@ -242,9 +242,6 @@ msgstr "Ruxsatlarni yuklashda xatolik: {0}"
 msgid "The request could not be completed"
 msgstr "So'rovni bajarib bo'lmadi"
 
-msgid "Show inactive"
-msgstr "Nofaollarni ko'rsatish"
-
 msgid "Active"
 msgstr "Faol"
 

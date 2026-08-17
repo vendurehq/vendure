@@ -242,9 +242,6 @@ msgstr "Pogreška prilikom učitavanja odobrenja: {0}"
 msgid "The request could not be completed"
 msgstr "Zahtjev nije mogao biti dovršen"
 
-msgid "Show inactive"
-msgstr "Prikaži neaktivne"
-
 msgid "Active"
 msgstr "Aktivan"
 

@@ -242,9 +242,6 @@ msgstr "अनुदानहरू लोड गर्दा त्रुटि
 msgid "The request could not be completed"
 msgstr "अनुरोध पूरा हुन सकेन"
 
-msgid "Show inactive"
-msgstr "निष्क्रिय देखाउनुहोस्"
-
 msgid "Active"
 msgstr "सक्रिय"
 

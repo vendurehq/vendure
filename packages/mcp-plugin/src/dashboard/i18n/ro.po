@@ -242,9 +242,6 @@ msgstr "Eroare la încărcarea autorizărilor: {0}"
 msgid "The request could not be completed"
 msgstr "Cererea nu a putut fi finalizată"
 
-msgid "Show inactive"
-msgstr "Afișare inactive"
-
 msgid "Active"
 msgstr "Activ"
 

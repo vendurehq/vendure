@@ -15,7 +15,7 @@ import { McpToolset } from '@vendure/mcp-sdk';
 import { DateUtils } from 'typeorm/util/DateUtils';
 
 import { mcpServerPermission } from '../constants';
-import { McpOauthGrant, McpToolCallLog } from '../entities';
+import { McpOauthGrant, McpOauthGrantStatus, McpToolCallLog } from '../entities';
 import { McpToolCallLogService } from '../logging/mcp-tool-call-log.service';
 import { McpOauthService } from '../oauth/oauth.service';
 import { McpToolRegistryService } from '../registry/mcp-tool-registry.service';
@@ -44,6 +44,7 @@ interface McpOauthGrantInfo {
     lastActivityAt: Date;
     expiresAt: Date;
     revokedAt: Date | null;
+    status: McpOauthGrantStatus;
 }
 
 // Written as `type`, not `interface`: these get cached, and CacheService only accepts
@@ -107,24 +108,23 @@ export class McpAdminResolver {
         const qb = this.listQueryBuilder.build(McpOauthGrant, args.options ?? undefined, {
             ctx,
             relations: ['oauthClient'],
-            entityAlias: 'grant',
             customPropertyMap: { oauthClientName: 'oauthClient.clientName' },
         });
         if (!args.includeInactive) {
-            qb.andWhere('grant.revokedAt IS NULL').andWhere('grant.expiresAt > :now', {
+            qb.andWhere('mcpoauthgrant.revokedAt IS NULL').andWhere('mcpoauthgrant.expiresAt > :now', {
                 now: new Date(),
             });
         }
         if (ctx.channelId != null) {
             // The active channel's grants, plus channel-less (global) grants
-            qb.andWhere('(grant.channelId = :channelId OR grant.channelId IS NULL)', {
+            qb.andWhere('(mcpoauthgrant.channelId = :channelId OR mcpoauthgrant.channelId IS NULL)', {
                 channelId: ctx.channelId,
             });
         }
-        if (args.options?.sort == null || Object.keys(args.options.sort).length === 0) {
-            qb.orderBy('grant.lastActivityAt', 'DESC');
+        if (Object.keys(args.options?.sort ?? {}).length === 0) {
+            qb.orderBy('mcpoauthgrant.lastActivityAt', 'DESC');
         }
-        qb.addOrderBy('grant.id', 'DESC');
+        qb.addOrderBy('mcpoauthgrant.id', 'DESC');
         const [grants, totalItems] = await qb.getManyAndCount();
         const items = grants.map(grant => ({
             id: grant.id,
@@ -137,6 +137,7 @@ export class McpAdminResolver {
             lastActivityAt: grant.lastActivityAt,
             expiresAt: grant.expiresAt,
             revokedAt: grant.revokedAt,
+            status: grant.status,
         }));
         return { items, totalItems };
     }

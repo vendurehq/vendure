@@ -242,9 +242,6 @@ msgstr "Грешка при зареждане на разрешенията: {0
 msgid "The request could not be completed"
 msgstr "Заявката не можа да бъде изпълнена"
 
-msgid "Show inactive"
-msgstr "Показване на неактивни"
-
 msgid "Active"
 msgstr "Активен"
 

@@ -29,6 +29,10 @@ export const adminApiExtensions = gql`
         lastActivityAt: DateTime!
         expiresAt: DateTime!
         revokedAt: DateTime
+        """
+        One of "active", "expired" or "revoked", worked out from revokedAt and expiresAt.
+        """
+        status: String!
     }
 
     type McpOauthGrantList implements PaginatedList {

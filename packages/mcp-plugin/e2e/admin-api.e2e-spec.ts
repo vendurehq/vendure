@@ -1,4 +1,5 @@
 import {
+    ConfigService,
     ID,
     mergeConfig,
     RequestContext,
@@ -564,6 +565,224 @@ describe('MCP admin API', () => {
                 filtered.data.mcpOauthGrants.items as Array<{ actorType: string | null }>
             ).map(g => g.actorType);
             expect(new Set(filteredActorTypes)).toEqual(new Set(['admin']));
+        });
+
+        // `status` is not a stored column; it is worked out from `revokedAt` and `expiresAt`
+        // (a calculated column on the entity). These tests pin the three values, the order
+        // they sort in, and that it filters like any other string field.
+        describe('status', () => {
+            /** Creates a grant and returns its id and client name. */
+            async function createGrant(prefix: string) {
+                const clientName = `${prefix}-${Math.random().toString(36).slice(2)}`;
+                await runAuthorizationCodeFlow({
+                    baseUrl: baseUrl(),
+                    issuer: ISSUER,
+                    superAdminToken,
+                    clientName,
+                });
+                const listed = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
+                    includeInactive: true,
+                });
+                const grant = (
+                    listed.data.mcpOauthGrants.items as Array<{
+                        id: string;
+                        oauthClientName: string | null;
+                        status: string;
+                    }>
+                ).find(g => g.oauthClientName === clientName);
+                if (!grant) {
+                    throw new Error(`Created grant for client "${clientName}" is missing from the listing`);
+                }
+                return { id: grant.id, clientName, status: grant.status };
+            }
+
+            /** Reads back one grant by client name from a full listing. */
+            async function readGrant(clientName: string, options?: Record<string, unknown>) {
+                const listed = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
+                    includeInactive: true,
+                    ...(options ? { options } : {}),
+                });
+                expect(listed.errors).toBeUndefined();
+                return (
+                    listed.data.mcpOauthGrants.items as Array<{
+                        oauthClientName: string | null;
+                        expiresAt: string;
+                        status: string;
+                    }>
+                ).find(g => g.oauthClientName === clientName);
+            }
+
+            it('reads active for a live grant, revoked once revoked, and expired once past its expiry', async () => {
+                const live = await createGrant('status-active');
+                expect(live.status).toBe('active');
+
+                const toRevoke = await createGrant('status-revoked');
+                const revoked = await adminGraphQL(superAdminToken, REVOKE_MCP_OAUTH_GRANT, {
+                    id: toRevoke.id,
+                });
+                expect(revoked.errors).toBeUndefined();
+                expect((await readGrant(toRevoke.clientName))?.status).toBe('revoked');
+
+                // `expiresAt` is set on insert, so ageing a grant takes its own UPDATE.
+                // The id from the API is encoded (the test config prefixes ids with "T_"),
+                // so it must be decoded before it can match the database column.
+                const toExpire = await createGrant('status-expired');
+                const idStrategy = server.app.get(ConfigService).entityOptions.entityIdStrategy;
+                const aged = await connection
+                    .getRepository(adminCtx, McpOauthGrant)
+                    .createQueryBuilder()
+                    .update()
+                    .set({ expiresAt: new Date(Date.now() - DAY_MS) })
+                    .where('id = :id', { id: idStrategy.decodeId(toExpire.id) })
+                    .execute();
+                const readBack = await readGrant(toExpire.clientName);
+                if (!readBack) {
+                    throw new Error('Backdated grant is missing from the listing');
+                }
+                expect(new Date(readBack.expiresAt).getTime()).toBeLessThan(Date.now());
+                expect(readBack.status).toBe('expired');
+                expect(aged.affected).toBe(1);
+            });
+
+            it('sorts by status, ascending putting active first, then expired, then revoked', async () => {
+                const rank: Record<string, number> = { active: 0, expired: 1, revoked: 2 };
+
+                const ascending = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
+                    includeInactive: true,
+                    options: { sort: { status: 'ASC' } },
+                });
+                expect(ascending.errors).toBeUndefined();
+                const ascendingRanks = (ascending.data.mcpOauthGrants.items as Array<{ status: string }>).map(
+                    g => rank[g.status],
+                );
+                expect(ascendingRanks.length).toBeGreaterThan(1);
+                expect(ascendingRanks).toEqual([...ascendingRanks].sort((a, b) => a - b));
+
+                const descending = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
+                    includeInactive: true,
+                    options: { sort: { status: 'DESC' } },
+                });
+                expect(descending.errors).toBeUndefined();
+                const descendingRanks = (
+                    descending.data.mcpOauthGrants.items as Array<{ status: string }>
+                ).map(g => rank[g.status]);
+                expect(descendingRanks).toEqual([...descendingRanks].sort((a, b) => b - a));
+            });
+
+            it('filters by status with eq and in, counting only the matching rows', async () => {
+                const all = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
+                    includeInactive: true,
+                });
+                const statuses = (all.data.mcpOauthGrants.items as Array<{ status: string }>).map(
+                    g => g.status,
+                );
+                const revokedCount = statuses.filter(s => s === 'revoked').length;
+                expect(revokedCount).toBeGreaterThanOrEqual(1);
+
+                const onlyRevoked = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
+                    includeInactive: true,
+                    options: { filter: { status: { eq: 'revoked' } } },
+                });
+                expect(onlyRevoked.errors).toBeUndefined();
+                expect(onlyRevoked.data.mcpOauthGrants.totalItems).toBe(revokedCount);
+                expect(
+                    new Set(
+                        (onlyRevoked.data.mcpOauthGrants.items as Array<{ status: string }>).map(
+                            g => g.status,
+                        ),
+                    ),
+                ).toEqual(new Set(['revoked']));
+
+                const notRevokedCount = statuses.filter(s => s !== 'revoked').length;
+                const activeOrExpired = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
+                    includeInactive: true,
+                    options: { filter: { status: { in: ['active', 'expired'] } } },
+                });
+                expect(activeOrExpired.errors).toBeUndefined();
+                expect(activeOrExpired.data.mcpOauthGrants.totalItems).toBe(notRevokedCount);
+                expect(
+                    (activeOrExpired.data.mcpOauthGrants.items as Array<{ status: string }>).every(
+                        g => g.status !== 'revoked',
+                    ),
+                ).toBe(true);
+            });
+
+            it('combines a status filter with a filter on a stored column', async () => {
+                const all = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
+                    includeInactive: true,
+                });
+                const expected = (
+                    all.data.mcpOauthGrants.items as Array<{ status: string; actorType: string | null }>
+                ).filter(g => g.status === 'revoked' && g.actorType === 'admin').length;
+
+                const combined = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
+                    includeInactive: true,
+                    options: {
+                        filter: { _and: [{ status: { eq: 'revoked' } }, { actorType: { eq: 'admin' } }] },
+                    },
+                });
+                expect(combined.errors).toBeUndefined();
+                expect(combined.data.mcpOauthGrants.totalItems).toBe(expected);
+            });
+
+            it('filters by status with contains, like any other string field', async () => {
+                const all = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
+                    includeInactive: true,
+                });
+                const statuses = (all.data.mcpOauthGrants.items as Array<{ status: string }>).map(
+                    g => g.status,
+                );
+                // "evoke" appears in "revoked" and in neither other status value.
+                const expected = statuses.filter(s => s.includes('evoke')).length;
+                expect(expected).toBeGreaterThanOrEqual(1);
+
+                const filtered = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
+                    includeInactive: true,
+                    options: { filter: { status: { contains: 'evoke' } } },
+                });
+                expect(filtered.errors).toBeUndefined();
+                expect(filtered.data.mcpOauthGrants.totalItems).toBe(expected);
+                expect(
+                    new Set(
+                        (filtered.data.mcpOauthGrants.items as Array<{ status: string }>).map(g => g.status),
+                    ),
+                ).toEqual(new Set(['revoked']));
+            });
+
+            it('applies a status filter nested under _or alongside a stored column', async () => {
+                // A fresh live grant with a known client name guarantees the OR keeps rows
+                // that fail the status clause, so this cannot pass by dropping either side.
+                const live = await createGrant('status-or');
+                expect(live.status).toBe('active');
+
+                const all = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
+                    includeInactive: true,
+                });
+                const items = all.data.mcpOauthGrants.items as Array<{
+                    status: string;
+                    oauthClientName: string | null;
+                }>;
+                const revokedCount = items.filter(g => g.status === 'revoked').length;
+                expect(revokedCount).toBeGreaterThanOrEqual(1);
+                const expected = items.filter(
+                    g => g.status === 'revoked' || g.oauthClientName === live.clientName,
+                ).length;
+                expect(expected).toBeGreaterThan(revokedCount);
+
+                const nested = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
+                    includeInactive: true,
+                    options: {
+                        filter: {
+                            _or: [
+                                { status: { eq: 'revoked' } },
+                                { oauthClientName: { eq: live.clientName } },
+                            ],
+                        },
+                    },
+                });
+                expect(nested.errors).toBeUndefined();
+                expect(nested.data.mcpOauthGrants.totalItems).toBe(expected);
+            });
         });
     });
 
