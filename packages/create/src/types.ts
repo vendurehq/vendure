@@ -1,3 +1,5 @@
+import type { StorefrontId } from './storefront-starters';
+
 export type DbType = 'mysql' | 'mariadb' | 'postgres' | 'sqlite';
 
 export interface FileSources {
@@ -19,7 +21,7 @@ export interface UserResponses extends FileSources {
     populateProducts: boolean;
     superadminIdentifier: string;
     superadminPassword: string;
-    includeStorefront: boolean;
+    storefront?: StorefrontId;
 }
 
 export type PackageManager = 'npm' | 'yarn' | 'pnpm' | 'bun';

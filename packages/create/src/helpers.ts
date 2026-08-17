@@ -22,12 +22,11 @@ import {
     PG_READY_MAX_ATTEMPTS,
     PG_READY_POLL_INTERVAL_MS,
     SOCKET_TIMEOUT_MS,
-    STOREFRONT_BRANCH,
-    STOREFRONT_REPO,
     TYPESCRIPT_VERSION,
     VITE_VERSION,
 } from './constants';
 import { log } from './logger';
+import { StorefrontStarter } from './storefront-starters';
 import { CliLogLevel, DbType, PackageManager } from './types';
 
 /**
@@ -1015,11 +1014,14 @@ export function resolvePackageRootDir(packageName: string, rootDir: string) {
 }
 
 /**
- * Downloads the Next.js storefront starter from GitHub and extracts it to the target directory.
+ * Downloads a storefront starter from GitHub and extracts it to the target directory.
  * Uses the GitHub API tarball endpoint to avoid requiring git.
  */
-export async function downloadAndExtractStorefront(targetDir: string): Promise<void> {
-    const tarballUrl = `https://api.github.com/repos/${STOREFRONT_REPO}/tarball/${STOREFRONT_BRANCH}`;
+export async function downloadAndExtractStorefront(
+    targetDir: string,
+    storefront: StorefrontStarter,
+): Promise<void> {
+    const tarballUrl = `https://api.github.com/repos/${storefront.repository}/tarball/${storefront.ref}`;
     const tempTarPath = path.join(targetDir, '..', 'storefront-temp.tar.gz');
 
     try {
