@@ -271,7 +271,7 @@ defineDashboardExtension({
 
 ### Conditioning your own entry with isVisible
 
-When you only need to condition an entry you own, `isVisible` is the shorthand. It is available on nav sections and on route `navMenuItem` entries, and it is ANDed with `requiresPermission`: both must pass for the entry to appear.
+When you only need to condition an entry you own, `isVisible` is the shorthand. It is available on nav sections and on route `navMenuItem` entries. On an item, it is ANDed with `requiresPermission`: both must pass for the item to appear. Sections are different; see the note below.
 
 ```tsx
 defineDashboardExtension({
@@ -303,7 +303,7 @@ Note also that `hasPermissions()` has OR semantics despite the plural name. It r
 
 ### Predicates and transforms must be pure
 
-Both run on every nav render, and the framework makes no promise about how often. Keep them pure, synchronous and cheap: do not fetch data, do not mutate the config you are handed, and do not depend on how many times you are called. A transform that mutates its input instead of returning a new object is a bug, even though the framework takes care not to hand you its own state.
+Both run on every nav render, and the framework makes no promise about how often. Keep them pure, synchronous and cheap: do not fetch data, do not mutate the config you are handed, and do not depend on how many times you are called. The framework hands your transform a fresh top-level `sections` array, so appending or removing entries cannot damage anything. The section objects inside it are the framework's own, though: mutating a section or its `items` array in place corrupts the menu for the rest of the session. Always return new objects, as the examples above do.
 
 ### This is presentation only, not authorization
 
