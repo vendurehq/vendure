@@ -1,4 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
+import type { DashboardUserContext } from '../user-context/dashboard-user-context.js';
 
 import { globalRegistry } from '../registry/global-registry.js';
 
@@ -117,6 +118,19 @@ export interface NavMenuItem {
      * Optional second key for the global `G` navigation chord.
      */
     shortcut?: NavigationShortcut;
+    /**
+     * @description
+     * A predicate evaluated on every nav render to decide whether this item is shown.
+     * It is ANDed with `requiresPermission`: both must pass for the item to appear.
+     *
+     * Must be pure, synchronous and cheap. The framework makes no promise about how
+     * often it is called.
+     *
+     * This controls presentation only and is never an authorization mechanism.
+     *
+     * @since 3.8.0
+     */
+    isVisible?: (ctx: DashboardUserContext) => boolean;
 }
 
 export interface NavMenuSection extends Omit<NavMenuItem, 'url' | 'shortcut'> {
@@ -165,6 +179,14 @@ export function addNavMenuItem(item: NavMenuItem, sectionId: string) {
         } else {
             navMenuConfig.sections.splice(sectionIndex, 1, item);
         }
+    }
+    if (sectionIndex === -1 && process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.warn(
+            `[Dashboard] No nav menu section with id "${sectionId}" exists, so the nav item ` +
+                `"${item.id}" was not added. Declare the section with the array form of ` +
+                `\`navSections\` before referencing it from a route's \`navMenuItem.sectionId\`.`,
+        );
     }
 }
 
@@ -269,3 +291,17 @@ export function validateNavigationShortcuts(config: NavMenuConfig): NavigationSh
         errors,
     };
 }
+
+/**
+ * @description
+ * Transforms the nav menu config on every render, with access to the logged-in user.
+ * Transforms compose by chaining: each receives the previous transform's output.
+ *
+ * Must be pure and synchronous. This controls presentation only and is never an
+ * authorization mechanism.
+ *
+ * @docsCategory extensions-api
+ * @docsPage Navigation
+ * @since 3.8.0
+ */
+export type NavMenuTransform = (config: NavMenuConfig, ctx: DashboardUserContext) => NavMenuConfig;

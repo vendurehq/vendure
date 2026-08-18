@@ -307,6 +307,42 @@ describe('defineDashboardExtension - navSections', () => {
             expect.objectContaining({ id: 'roles' }),
         ]);
     });
+
+    it('preserves isVisible defined on a route navMenuItem', () => {
+        const isVisible = () => true;
+        defineDashboardExtension({
+            navSections: [{ id: 'my-section', title: 'My Section' }],
+            routes: [
+                {
+                    path: '/my-page',
+                    component: () => null,
+                    navMenuItem: { sectionId: 'my-section', title: 'My Page', isVisible },
+                },
+            ],
+        });
+        executeDashboardExtensionCallbacks();
+
+        const section = getNavMenuConfig().sections.find(s => s.id === 'my-section');
+        const item = (section as any).items[0];
+        expect(item.isVisible).toBe(isVisible);
+    });
+
+    it('warns when a route navMenuItem targets an unknown sectionId', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        defineDashboardExtension({
+            routes: [
+                {
+                    path: '/orphan',
+                    component: () => null,
+                    navMenuItem: { sectionId: 'does-not-exist', title: 'Orphan' },
+                },
+            ],
+        });
+        executeDashboardExtensionCallbacks();
+
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining('does-not-exist'));
+        warn.mockRestore();
+    });
 });
 
 describe('DashboardWidgetDefinition - requiresPermissions', () => {
