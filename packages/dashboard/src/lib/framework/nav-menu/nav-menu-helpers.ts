@@ -55,7 +55,9 @@ export function setNavVisibility(config: NavMenuConfig, ids: string[], predicate
 /**
  * @description
  * Returns a new config in which every entry not named in `ids` is hidden. A section is
- * left visible when it is named, or when one of its items is named.
+ * left visible when it is named, or when one of its items is named. Naming a section
+ * directly also keeps all of its items, rather than hiding items that were not
+ * individually named.
  *
  * This controls presentation only and is never an authorization mechanism.
  *
@@ -81,10 +83,17 @@ export function keepOnlyNavItems(config: NavMenuConfig, ids: string[]): NavMenuC
                     ? section
                     : { ...section, isVisible: andPredicate(section.isVisible, hide) };
             }
+            // A section named directly keeps its children too. Otherwise naming a
+            // section would leave it with every item hidden, and resolveNavMenu
+            // would drop it as empty - which looks identical to the helper not
+            // working at all.
+            const keepAllItems = keep.has(section.id);
             const items = (section.items ?? []).map((item: NavMenuItem) =>
-                keep.has(item.id) ? item : { ...item, isVisible: andPredicate(item.isVisible, hide) },
+                keepAllItems || keep.has(item.id)
+                    ? item
+                    : { ...item, isVisible: andPredicate(item.isVisible, hide) },
             );
-            const sectionKept = keep.has(section.id) || (section.items ?? []).some(i => keep.has(i.id));
+            const sectionKept = keepAllItems || (section.items ?? []).some(i => keep.has(i.id));
             const next: NavMenuSection = { ...section, items };
             return sectionKept ? next : { ...next, isVisible: andPredicate(section.isVisible, hide) };
         }),

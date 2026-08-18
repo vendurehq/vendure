@@ -44,8 +44,12 @@ describe('setNavVisibility', () => {
     });
 
     it('ANDs onto an existing predicate rather than replacing it', () => {
-        const once = setNavVisibility(sample(), ['products'], () => true);
-        const twice = setNavVisibility(once, ['products'], () => false);
+        // Order matters. The FIRST predicate hides; the SECOND would show on its
+        // own. Only genuine AND-composition keeps the result false. Under an
+        // implementation that replaced isVisible instead of composing, the second
+        // call would win and this would be true.
+        const once = setNavVisibility(sample(), ['products'], () => false);
+        const twice = setNavVisibility(once, ['products'], () => true);
         const catalog = twice.sections.find(s => s.id === 'catalog') as any;
         expect(catalog.items[0].isVisible?.(ctx)).toBe(false);
     });
@@ -73,5 +77,27 @@ describe('keepOnlyNavItems', () => {
         const result = keepOnlyNavItems(sample(), ['pos-home']);
         const pos = result.sections.find(s => s.id === 'pos') as any;
         expect(pos.isVisible).toBeUndefined();
+    });
+
+    it('keeps a named section and all of its items', () => {
+        const result = keepOnlyNavItems(sample(), ['catalog']);
+        const catalog = result.sections.find(s => s.id === 'catalog') as any;
+        expect(catalog.isVisible).toBeUndefined();
+        expect(catalog.items.every((i: any) => i.isVisible === undefined)).toBe(true);
+    });
+
+    it('hides a section when neither it nor any of its items is named', () => {
+        const result = keepOnlyNavItems(sample(), ['pos-home']);
+        const catalog = result.sections.find(s => s.id === 'catalog') as any;
+        expect(catalog.isVisible?.(ctx)).toBe(false);
+    });
+
+    it('does not mutate the input config', () => {
+        const input = sample();
+        keepOnlyNavItems(input, ['pos-home']);
+        const catalog = input.sections.find(s => s.id === 'catalog') as any;
+        const insights = input.sections.find(s => s.id === 'insights') as any;
+        expect(catalog.items[0].isVisible).toBeUndefined();
+        expect(insights.isVisible).toBeUndefined();
     });
 });
