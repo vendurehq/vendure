@@ -48,7 +48,7 @@ export function useAdminCustomFields(): {
 
     const enabled = !!serverConfig && !!user?.id;
 
-    const { data, isSuccess } = useQuery({
+    const { data, isSuccess, isError } = useQuery({
         queryKey: ['activeAdministratorCustomFields', user?.id],
         queryFn: () => api.query(document),
         enabled,
@@ -65,6 +65,12 @@ export function useAdminCustomFields(): {
         // based on login state alone, not `enabled` - `enabled` also waits on
         // serverConfig, and there is a real window where the user is logged in but
         // serverConfig hasn't resolved yet, during which custom fields have not loaded.
-        ready: !user?.id || isSuccess,
+        //
+        // Fail open. `ready` means "we are done waiting", not "we succeeded":
+        // a settled-but-failed query must not pin the nav in its unresolved
+        // state forever. With custom fields unavailable, isVisible rules that
+        // read them see them absent - which is exactly the situation for every
+        // user today - and that is far better than an empty sidebar.
+        ready: !user?.id || isSuccess || isError,
     };
 }

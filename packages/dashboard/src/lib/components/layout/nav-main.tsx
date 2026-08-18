@@ -288,12 +288,27 @@ export function NavMain({ items }: Readonly<{ items: Array<NavMenuSection | NavM
         }
     };
 
-    // Update open sections when route changes (for client-side navigation)
-    React.useEffect(() => {
+    // Update open sections when route changes (for client-side navigation), and when
+    // `resolved` first becomes non-empty as the user context settles. useLayoutEffect,
+    // not useEffect: on mount `resolved` is still empty, so the state initializers above
+    // cannot know the active section, and correcting it after paint would flash every
+    // section collapsed for one frame.
+    React.useLayoutEffect(() => {
         const { activeTopSections, activeBottomSection } = findActiveSections(resolved);
 
-        // Replace open sections with only the active one
-        setOpenTopSectionIds(activeTopSections);
+        // Replace open sections with only the active one. Return the previous Set when
+        // the contents match so React bails out of the re-render: this effect is keyed
+        // on `resolved`, and an unconditional fresh Set would turn any future
+        // destabilisation of `ctx` from wasted work into an infinite render loop.
+        setOpenTopSectionIds(prev => {
+            if (
+                prev.size === activeTopSections.size &&
+                [...activeTopSections].every(id => prev.has(id))
+            ) {
+                return prev;
+            }
+            return activeTopSections;
+        });
 
         if (activeBottomSection) {
             setOpenBottomSectionId(activeBottomSection);
