@@ -1,4 +1,4 @@
-import { SUPER_ADMIN_ROLE_CODE } from '@vendure/common/lib/shared-constants';
+import { SUPER_ADMIN_ROLE_CODE } from '@/vdb/constants.js';
 
 /**
  * @description
