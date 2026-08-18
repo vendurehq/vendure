@@ -331,23 +331,6 @@ describe('McpToolRegistryService', () => {
             expect(() => service.onApplicationBootstrap()).toThrow(/must not declare its own\s+"confirm"/);
         });
 
-        it('derives an outputSchema in the output direction', () => {
-            const outputJson = {
-                type: 'object',
-                properties: { total: { type: 'number' } },
-                required: ['total'],
-                additionalProperties: false,
-            };
-            // Give input and output converters different json so a call to the wrong direction
-            // is caught: if the registry called jsonSchema.input() for an outputSchema, this
-            // assertion would see OBJECT_JSON instead.
-            const schema = specStandardSchema(OBJECT_JSON, value => ({ value }), outputJson);
-            const { service } = build([wrapper(shopTool({ outputSchema: schema }))]);
-            service.onApplicationBootstrap();
-            const tool = service.getRegistrySnapshot()[0];
-            expect(tool.jsonOutputSchema).toEqual(outputJson);
-        });
-
         it('strips a top-level $schema key from derived JSON', () => {
             const jsonWithSchemaKey = {
                 ...OBJECT_JSON,
@@ -371,9 +354,16 @@ describe('McpToolRegistryService', () => {
             // The author's own validate "fills the default" for a missing `total` — exactly the
             // kind of author-schema behavior that must NOT be used for the post-call drift check,
             // since it would silently mask the handler omitting a required field.
-            const schema = specStandardSchema(outputJson, value => ({
-                value: { ...(value as Record<string, unknown>), total: 0 },
-            }));
+            // Input and output converters return different json so a wrong-direction derivation
+            // is caught: compiled from the input side, the permissive `{ type: 'object' }` would
+            // accept the handler's `{}` and no drift warning would fire.
+            const schema = specStandardSchema(
+                { type: 'object' },
+                value => ({
+                    value: { ...(value as Record<string, unknown>), total: 0 },
+                }),
+                outputJson,
+            );
             const execute = () => ({});
             const { service } = build([wrapper(shopTool({ name: 'totals', outputSchema: schema }), execute)]);
             service.onApplicationBootstrap();

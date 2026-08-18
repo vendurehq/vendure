@@ -34,8 +34,6 @@ export interface McpRegisteredTool extends McpToolMetadata {
      * same object as `jsonInputSchema`.
      */
     wireJsonSchema: McpJsonSchema;
-    /** The declared output schema, if any (drives output-drift logging). */
-    jsonOutputSchema?: McpJsonSchema;
     /** Compiled validator for the declared output schema, if any. */
     compiledOutputSchema?: StandardSchemaWithJSON;
 }

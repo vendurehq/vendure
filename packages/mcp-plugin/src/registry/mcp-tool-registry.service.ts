@@ -289,7 +289,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             resolvedBehavior,
             annotations: this.deriveAnnotations(metadata, resolvedBehavior),
             jsonInputSchema,
-            jsonOutputSchema: resolvedOutput?.json,
             compiledInputSchema,
             wireJsonSchema,
             compiledOutputSchema,
