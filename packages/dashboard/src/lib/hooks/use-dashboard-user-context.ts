@@ -44,8 +44,8 @@ export function useDashboardUserContext(): { ctx: DashboardUserContext; ready: b
     const ctx = useMemo(
         () =>
             buildDashboardUserContext({
-                administrator: user as any,
-                channels: channels as any,
+                administrator: user ?? undefined,
+                channels: channels ?? undefined,
                 activeChannel: activeChannelWithPermissions,
                 customFields,
                 hasPermissions,
