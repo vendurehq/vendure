@@ -19,7 +19,8 @@ export class McpActiveOrderService {
      * The shopper's current cart, creating an empty one when they have none. Order lines are not
      * loaded.
      */
-    async findOrCreate(ctx: RequestContext): Promise<ActiveOrderRef | undefined> {
+    async findOrCreate(ctx: RequestContext): Promise<ActiveOrderRef> {
+        // Never undefined: core throws a UserInputError when it can neither find nor create one.
         return this.activeOrderService.getActiveOrder(ctx, undefined, true);
     }
 

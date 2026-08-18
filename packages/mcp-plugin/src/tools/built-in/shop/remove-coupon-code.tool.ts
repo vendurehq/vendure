@@ -38,7 +38,6 @@ export class RemoveCouponCodeTool implements McpToolHandler<RemoveCouponCodeInpu
 
     async execute(ctx: RequestContext, input: RemoveCouponCodeInput) {
         const order = await this.activeOrder.findOrCreate(ctx);
-        if (!order) return { order: null };
         return {
             order: this.serializer.order(await this.orderService.removeCouponCode(ctx, order.id, input.code)),
         };

@@ -48,7 +48,6 @@ export class PlaceOrderTool implements McpToolHandler<PlaceOrderInput> {
             };
         }
         const order = await this.activeOrder.findOrCreate(ctx);
-        if (!order) return this.serializer.orderOrError(undefined);
         const payment: PaymentInput = {
             method: input.paymentMethodCode,
             metadata: input.paymentMetadata ?? {},

@@ -39,7 +39,6 @@ export class RemoveFromCartTool implements McpToolHandler<RemoveFromCartInput> {
 
     async execute(ctx: RequestContext, input: RemoveFromCartInput) {
         const order = await this.activeOrder.findOrCreate(ctx);
-        if (!order) return this.serializer.orderOrError(undefined);
         return this.serializer.orderOrError(
             await this.orderService.removeItemFromOrder(ctx, order.id, input.orderLineId),
         );
