@@ -52,6 +52,12 @@ export function useAdminCustomFields(): {
         queryKey: ['activeAdministratorCustomFields', user?.id],
         queryFn: () => api.query(document),
         enabled,
+        // Fail open promptly. Without this the query inherits the default of 3
+        // retries, so `isError` - and therefore `ready` - would not arrive for
+        // several seconds of backoff, leaving the nav blank for exactly the
+        // stretch the fail-open exists to prevent. Matches every other query in
+        // this package, which all pin retry: false.
+        retry: false,
         // The global QueryClient sets placeholderData: keepPreviousData
         // (app/app-providers.tsx). This key carries administrator identity, so the
         // previous administrator's custom fields must not linger across a
