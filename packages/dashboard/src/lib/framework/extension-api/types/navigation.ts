@@ -119,8 +119,14 @@ export interface DashboardNavSectionDefinition {
     placement?: 'top' | 'bottom';
     /**
      * @description
-     * A predicate evaluated on every nav render to decide whether this section is shown.
-     * ANDed with `requiresPermission`. Presentation only, never authorization.
+     * A predicate evaluated on every nav render to decide whether this section is
+     * shown. When it returns false the section and all of its items are hidden.
+     *
+     * Note that section-level permission filtering is not applied: a section is kept
+     * as long as it still has at least one item. The `requiresPermission` of each
+     * individual item is still applied to the items inside the section.
+     *
+     * Presentation only, never authorization.
      *
      * @since 3.8.0
      */
