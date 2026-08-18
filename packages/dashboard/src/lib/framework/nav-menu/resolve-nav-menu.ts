@@ -25,6 +25,63 @@ function passesPermission(item: NavMenuItem | NavMenuSection, ctx: DashboardUser
     return ctx.hasPermissions(permissions);
 }
 
+const warnedIds = new Set<string>();
+
+function warnOnce(id: string, message: string) {
+    if (warnedIds.has(id)) {
+        return;
+    }
+    warnedIds.add(id);
+    // eslint-disable-next-line no-console
+    console.warn(message);
+}
+
+function isVisibleFor(item: NavMenuItem | NavMenuSection, ctx: DashboardUserContext): boolean {
+    if (!item.isVisible) {
+        return true;
+    }
+    try {
+        return item.isVisible(ctx);
+    } catch (e) {
+        // Fail open. An extension bug must not blank the sidebar. Note this rule is
+        // specific to presentation; route access control must fail CLOSED.
+        warnOnce(
+            `isVisible:${item.id}`,
+            `[Dashboard] The isVisible predicate for nav entry "${item.id}" threw, so the ` +
+                `entry is being shown. ${String(e)}`,
+        );
+        return true;
+    }
+}
+
+function applyTransforms(
+    config: NavMenuConfig,
+    ctx: DashboardUserContext,
+    transforms: NavMenuTransform[],
+): NavMenuConfig {
+    let result = config;
+    for (const [index, transform] of transforms.entries()) {
+        try {
+            const next = transform(result, ctx);
+            if (next && Array.isArray(next.sections)) {
+                result = next;
+            } else {
+                warnOnce(
+                    `transform-shape:${index}`,
+                    `[Dashboard] A navMenuTransform returned an invalid result. Expected an ` +
+                        `object with a "sections" array; the transform was skipped.`,
+                );
+            }
+        } catch (e) {
+            warnOnce(
+                `transform-threw:${index}`,
+                `[Dashboard] A navMenuTransform threw and was skipped. ${String(e)}`,
+            );
+        }
+    }
+    return result;
+}
+
 /**
  * @description
  * Applies nav menu transforms, then filters and sorts the result. Pure, so it can be
@@ -39,7 +96,7 @@ export function resolveNavMenu(
     ctx: DashboardUserContext,
     transforms: NavMenuTransform[],
 ): Array<NavMenuSection | NavMenuItem> {
-    const transformed = config;
+    const transformed = applyTransforms(config, ctx, transforms);
 
     return transformed.sections
         .slice()
@@ -47,13 +104,16 @@ export function resolveNavMenu(
         .map(section => {
             if ('items' in section) {
                 const items = (section.items ?? [])
-                    .filter(item => passesPermission(item, ctx))
+                    .filter(item => passesPermission(item, ctx) && isVisibleFor(item, ctx))
                     .sort(sortByOrder);
                 return { ...section, items };
             }
             return section;
         })
         .filter(section => {
+            if (!isVisibleFor(section, ctx)) {
+                return false;
+            }
             if ('items' in section) {
                 return !!section.items && section.items.length > 0;
             }

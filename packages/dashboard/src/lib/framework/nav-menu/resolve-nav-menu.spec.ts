@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { buildDashboardUserContext } from '../user-context/dashboard-user-context.js';
 
@@ -161,5 +161,138 @@ describe('resolveNavMenu — existing behaviour', () => {
             [],
         );
         expect(result.map(s => s.id)).toEqual(['explicit', 'noOrder']);
+    });
+});
+
+describe('resolveNavMenu — transforms and isVisible', () => {
+    it('hides an item whose isVisible returns false', () => {
+        const result = resolveNavMenu(
+            config([
+                { id: 'a', title: 'A', url: '/a', placement: 'top' },
+                { id: 'b', title: 'B', url: '/b', placement: 'top', isVisible: () => false },
+            ]),
+            ctxWith(),
+            [],
+        );
+        expect(result.map(s => s.id)).toEqual(['a']);
+    });
+
+    it('ANDs isVisible with requiresPermission', () => {
+        const entries = [
+            { perm: 'Read', visible: true, id: 'both' },
+            { perm: 'Read', visible: false, id: 'permOnly' },
+            { perm: 'Deny', visible: true, id: 'visibleOnly' },
+            { perm: 'Deny', visible: false, id: 'neither' },
+        ];
+        const result = resolveNavMenu(
+            config(
+                entries.map(e => ({
+                    id: e.id,
+                    title: e.id,
+                    url: `/${e.id}`,
+                    placement: 'top' as const,
+                    requiresPermission: e.perm,
+                    isVisible: () => e.visible,
+                })),
+            ),
+            ctxWith(['Read']),
+            [],
+        );
+        expect(result.map(s => s.id)).toEqual(['both']);
+    });
+
+    it('hides a section and its items when the section isVisible is false', () => {
+        const result = resolveNavMenu(
+            config([
+                {
+                    id: 'catalog',
+                    title: 'Catalog',
+                    placement: 'top',
+                    isVisible: () => false,
+                    items: [{ id: 'products', title: 'Products', url: '/p' }],
+                },
+            ]),
+            ctxWith(),
+            [],
+        );
+        expect(result).toEqual([]);
+    });
+
+    it('applies transforms in order, each seeing the previous output', () => {
+        const seen: string[] = [];
+        const result = resolveNavMenu(
+            config([{ id: 'a', title: 'A', url: '/a', placement: 'top' }]),
+            ctxWith(),
+            [
+                cfg => {
+                    seen.push('first');
+                    return {
+                        sections: [...cfg.sections, { id: 'b', title: 'B', url: '/b', placement: 'top' }],
+                    };
+                },
+                cfg => {
+                    seen.push(`second saw ${cfg.sections.length}`);
+                    return cfg;
+                },
+            ],
+        );
+        expect(seen).toEqual(['first', 'second saw 2']);
+        expect(result.map(s => s.id)).toEqual(['a', 'b']);
+    });
+
+    it('lets two transforms both condition the same item without clobbering', () => {
+        const and =
+            (id: string, pred: () => boolean) =>
+            (cfg: NavMenuConfig): NavMenuConfig => ({
+                sections: cfg.sections.map(s => {
+                    if (s.id !== id) return s;
+                    const prev = s.isVisible;
+                    return { ...s, isVisible: (c: any) => (prev?.(c) ?? true) && pred() };
+                }),
+            });
+        const result = resolveNavMenu(
+            config([{ id: 'a', title: 'A', url: '/a', placement: 'top' }]),
+            ctxWith(),
+            [and('a', () => true), and('a', () => false)],
+        );
+        expect(result).toEqual([]);
+    });
+
+    it('keeps an item visible and logs once when its predicate throws', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        const result = resolveNavMenu(
+            config([
+                {
+                    id: 'a',
+                    title: 'A',
+                    url: '/a',
+                    placement: 'top',
+                    isVisible: () => {
+                        throw new Error('boom');
+                    },
+                },
+            ]),
+            ctxWith(),
+            [],
+        );
+        expect(result.map(s => s.id)).toEqual(['a']);
+        expect(warn).toHaveBeenCalledTimes(1);
+        warn.mockRestore();
+    });
+
+    it('falls back to the untransformed config when a transform throws', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        const result = resolveNavMenu(
+            config([{ id: 'a', title: 'A', url: '/a', placement: 'top' }]),
+            ctxWith(),
+            [
+                () => {
+                    throw new Error('boom');
+                },
+            ],
+        );
+        expect(result.map(s => s.id)).toEqual(['a']);
+        expect(warn).toHaveBeenCalled();
+        warn.mockRestore();
     });
 });
