@@ -36,6 +36,17 @@ function warnOnce(id: string, message: string) {
     console.warn(message);
 }
 
+/**
+ * @description
+ * Clears the once-per-key warning dedup state. Intended for tests, so that a
+ * suite exercising the same failing entry twice sees a warning each time.
+ *
+ * @since 3.8.0
+ */
+export function resetNavMenuWarnings() {
+    warnedIds.clear();
+}
+
 function isVisibleFor(item: NavMenuItem | NavMenuSection, ctx: DashboardUserContext): boolean {
     if (!item.isVisible) {
         return true;
@@ -68,14 +79,14 @@ function applyTransforms(
             } else {
                 warnOnce(
                     `transform-shape:${index}`,
-                    `[Dashboard] A navMenuTransform returned an invalid result. Expected an ` +
-                        `object with a "sections" array; the transform was skipped.`,
+                    `[Dashboard] A navMenuTransform at index ${index} returned an invalid result. ` +
+                        `Expected an object with a "sections" array; the transform was skipped.`,
                 );
             }
         } catch (e) {
             warnOnce(
                 `transform-threw:${index}`,
-                `[Dashboard] A navMenuTransform threw and was skipped. ${String(e)}`,
+                `[Dashboard] A navMenuTransform at index ${index} threw and was skipped. ${String(e)}`,
             );
         }
     }

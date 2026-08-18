@@ -1,9 +1,9 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { buildDashboardUserContext } from '../user-context/dashboard-user-context.js';
 
 import { NavMenuConfig } from './nav-menu-extensions.js';
-import { resolveNavMenu } from './resolve-nav-menu.js';
+import { resetNavMenuWarnings, resolveNavMenu } from './resolve-nav-menu.js';
 
 const ctxWith = (permissions: string[] = []) =>
     buildDashboardUserContext({
@@ -15,6 +15,10 @@ const ctxWith = (permissions: string[] = []) =>
     });
 
 const config = (sections: NavMenuConfig['sections']): NavMenuConfig => ({ sections });
+
+beforeEach(() => {
+    resetNavMenuWarnings();
+});
 
 describe('resolveNavMenu — existing behaviour', () => {
     it('sorts sections by order, then their items by order then title', () => {
@@ -240,6 +244,24 @@ describe('resolveNavMenu — transforms and isVisible', () => {
         expect(result.map(s => s.id)).toEqual(['a', 'b']);
     });
 
+    it('sorts sections added by a transform along with the rest', () => {
+        const result = resolveNavMenu(
+            config([{ id: 'existing', title: 'Existing', url: '/e', placement: 'top', order: 200 }]),
+            ctxWith(),
+            [
+                cfg => ({
+                    sections: [
+                        ...cfg.sections,
+                        { id: 'added', title: 'Added', url: '/a', placement: 'top', order: 100 },
+                    ],
+                }),
+            ],
+        );
+        // 'added' is appended last but has the lower order, so it must sort first.
+        // Sorting before applying transforms would yield ['existing', 'added'].
+        expect(result.map(s => s.id)).toEqual(['added', 'existing']);
+    });
+
     it('lets two transforms both condition the same item without clobbering', () => {
         const and =
             (id: string, pred: () => boolean) =>
@@ -250,10 +272,14 @@ describe('resolveNavMenu — transforms and isVisible', () => {
                     return { ...s, isVisible: (c: any) => (prev?.(c) ?? true) && pred() };
                 }),
             });
+        // Order matters: the FIRST transform hides, the SECOND would show on its own.
+        // Correct composition keeps it hidden. An implementation that overwrote
+        // isVisible instead of ANDing would let the second transform win and the
+        // entry would appear — so this ordering is what makes the test meaningful.
         const result = resolveNavMenu(
             config([{ id: 'a', title: 'A', url: '/a', placement: 'top' }]),
             ctxWith(),
-            [and('a', () => true), and('a', () => false)],
+            [and('a', () => false), and('a', () => true)],
         );
         expect(result).toEqual([]);
     });
@@ -290,6 +316,37 @@ describe('resolveNavMenu — transforms and isVisible', () => {
                     throw new Error('boom');
                 },
             ],
+        );
+        expect(result.map(s => s.id)).toEqual(['a']);
+        expect(warn).toHaveBeenCalled();
+        warn.mockRestore();
+    });
+
+    it("keeps an earlier transform's output when a later transform throws", () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        const result = resolveNavMenu(
+            config([{ id: 'a', title: 'A', url: '/a', placement: 'top' }]),
+            ctxWith(),
+            [
+                cfg => ({
+                    sections: [...cfg.sections, { id: 'b', title: 'B', url: '/b', placement: 'top' }],
+                }),
+                () => {
+                    throw new Error('boom');
+                },
+            ],
+        );
+        expect(result.map(s => s.id)).toEqual(['a', 'b']);
+        expect(warn).toHaveBeenCalled();
+        warn.mockRestore();
+    });
+
+    it('skips a transform that returns an invalid shape', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        const result = resolveNavMenu(
+            config([{ id: 'a', title: 'A', url: '/a', placement: 'top' }]),
+            ctxWith(),
+            [(() => ({})) as any],
         );
         expect(result.map(s => s.id)).toEqual(['a']);
         expect(warn).toHaveBeenCalled();
