@@ -20,7 +20,7 @@ beforeEach(() => {
     resetNavMenuWarnings();
 });
 
-describe('resolveNavMenu — existing behaviour', () => {
+describe('resolveNavMenu - existing behaviour', () => {
     it('sorts sections by order, then their items by order then title', () => {
         const result = resolveNavMenu(
             config([
@@ -168,7 +168,7 @@ describe('resolveNavMenu — existing behaviour', () => {
     });
 });
 
-describe('resolveNavMenu — transforms and isVisible', () => {
+describe('resolveNavMenu - transforms and isVisible', () => {
     it('hides an item whose isVisible returns false', () => {
         const result = resolveNavMenu(
             config([
@@ -275,7 +275,7 @@ describe('resolveNavMenu — transforms and isVisible', () => {
         // Order matters: the FIRST transform hides, the SECOND would show on its own.
         // Correct composition keeps it hidden. An implementation that overwrote
         // isVisible instead of ANDing would let the second transform win and the
-        // entry would appear — so this ordering is what makes the test meaningful.
+        // entry would appear - so this ordering is what makes the test meaningful.
         const result = resolveNavMenu(
             config([{ id: 'a', title: 'A', url: '/a', placement: 'top' }]),
             ctxWith(),
