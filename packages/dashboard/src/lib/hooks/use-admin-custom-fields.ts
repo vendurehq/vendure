@@ -18,12 +18,18 @@ const activeAdministratorCustomFieldsDocument = graphql(`
 `);
 
 /**
+ * @description
  * Loads the Administrator custom fields for the logged-in user.
  *
  * The document is derived lazily rather than at module scope on purpose. At
  * module-evaluation time the global custom fields map is still empty, because
  * CurrentUserQuery is the query that unblocks the serverConfig request which
  * populates it. Do not hoist the `addCustomFields` call.
+ *
+ * @docsCategory hooks
+ * @docsPage useAdminCustomFields
+ * @docsWeight 0
+ * @since 3.8.0
  */
 export function useAdminCustomFields(): {
     customFields: Record<string, unknown> | undefined;
@@ -54,8 +60,11 @@ export function useAdminCustomFields(): {
     });
 
     return {
-        customFields: (data as any)?.activeAdministrator?.customFields ?? undefined,
-        // When logged out there is nothing to wait for, so report ready.
-        ready: !enabled || isSuccess,
+        customFields: (data as any)?.activeAdministrator?.customFields,
+        // When logged out there is nothing to wait for, so report ready. Note this is
+        // based on login state alone, not `enabled` - `enabled` also waits on
+        // serverConfig, and there is a real window where the user is logged in but
+        // serverConfig hasn't resolved yet, during which custom fields have not loaded.
+        ready: !user?.id || isSuccess,
     };
 }

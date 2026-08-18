@@ -30,6 +30,14 @@ export function useDashboardUserContext(): { ctx: DashboardUserContext; ready: b
     const { hasPermissions } = usePermissions();
     const { customFields, ready } = useAdminCustomFields();
 
+    // useAuth().channels carries permissions; useChannel().activeChannel does not
+    // (channelFragment has no `permissions` field), so resolve the active channel
+    // against the permission-bearing list. Same idiom as usePermissions.
+    const activeChannelWithPermissions = useMemo(
+        () => (channels ?? []).find(c => c.id === activeChannel?.id),
+        [channels, activeChannel?.id],
+    );
+
     // Memoize on leaf values, not on the hook return objects. AuthProvider returns a
     // fresh object literal on every render, so depending on it directly would produce
     // a new context every render and re-run every visibility rule.
@@ -38,11 +46,11 @@ export function useDashboardUserContext(): { ctx: DashboardUserContext; ready: b
             buildDashboardUserContext({
                 administrator: user as any,
                 channels: channels as any,
-                activeChannel: activeChannel as any,
+                activeChannel: activeChannelWithPermissions,
                 customFields,
                 hasPermissions,
             }),
-        [user, channels, activeChannel?.id, customFields, hasPermissions],
+        [user, channels, activeChannelWithPermissions, customFields, hasPermissions],
     );
 
     return { ctx, ready };
