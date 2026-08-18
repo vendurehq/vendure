@@ -123,4 +123,43 @@ describe('resolveNavMenu — existing behaviour', () => {
         );
         expect(result.map(s => s.placement)).toEqual(['bottom', 'top']);
     });
+
+    it('accepts the array form of requiresPermission with OR semantics', () => {
+        const result = resolveNavMenu(
+            config([
+                {
+                    id: 'anyOf',
+                    title: 'AnyOf',
+                    url: '/a',
+                    placement: 'top',
+                    requiresPermission: ['Nope', 'Read'],
+                },
+                {
+                    id: 'noneOf',
+                    title: 'NoneOf',
+                    url: '/n',
+                    placement: 'top',
+                    requiresPermission: ['Nope', 'AlsoNope'],
+                },
+            ]),
+            ctxWith(['Read']),
+            [],
+        );
+        expect(result.map(s => s.id)).toEqual(['anyOf']);
+    });
+
+    it('sorts entries without an order after entries with one', () => {
+        const result = resolveNavMenu(
+            config([
+                // 'AAA' sorts before 'ZZZ' alphabetically, so if the
+                // Number.MAX_SAFE_INTEGER fallback were dropped or changed to 0,
+                // this expectation would flip.
+                { id: 'noOrder', title: 'AAA', url: '/n', placement: 'top' },
+                { id: 'explicit', title: 'ZZZ', url: '/e', placement: 'top', order: 100 },
+            ]),
+            ctxWith(),
+            [],
+        );
+        expect(result.map(s => s.id)).toEqual(['explicit', 'noOrder']);
+    });
 });
