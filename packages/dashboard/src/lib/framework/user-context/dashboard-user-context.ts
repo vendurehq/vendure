@@ -120,6 +120,14 @@ export interface DashboardUserContext {
     isSuperAdmin: boolean;
 }
 
+/**
+ * @description
+ * The input shape for {@link buildDashboardUserContext}.
+ *
+ * @docsCategory extensions-api
+ * @docsPage Navigation
+ * @since 3.8.0
+ */
 export interface BuildDashboardUserContextInput {
     administrator:
         | {

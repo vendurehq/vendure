@@ -110,7 +110,11 @@ export interface NavMenuItem {
     /**
      * @description
      * This can be used to restrict the menu item to the given
-     * permission or permissions.
+     * permission or permissions. The user needs ANY of the listed
+     * permissions on the active channel, not all of them.
+     *
+     * ANDed with `isVisible` when both are set: an item appears only if it
+     * passes both checks.
      */
     requiresPermission?: string | string[];
     /**
