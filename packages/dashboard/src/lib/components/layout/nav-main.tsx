@@ -149,13 +149,30 @@ export function NavMain({ items }: Readonly<{ items: Array<NavMenuSection | NavM
         [isPathActive],
     );
 
+    // Only the presence of user-dependent rules justifies withholding the menu.
+    // With no transforms and no isVisible predicate anywhere, the resolved output
+    // cannot depend on administrator custom fields, so waiting on `ready` would
+    // impose a blank sidebar on every page load for no benefit.
+    const hasUserDependentRules = React.useMemo(() => {
+        if (getNavMenuTransforms().length > 0) {
+            return true;
+        }
+        return items.some(
+            entry =>
+                entry.isVisible !== undefined ||
+                ('items' in entry && (entry.items ?? []).some(i => i.isVisible !== undefined)),
+        );
+    }, [items]);
+
     const resolved = React.useMemo(
         () =>
             // Do not evaluate visibility rules before the user context is fully
             // loaded: rules reading customFields would briefly see them absent and
             // the menu would flicker.
-            ready ? resolveNavMenu({ sections: items }, ctx, getNavMenuTransforms()) : [],
-        [items, ctx, ready],
+            hasUserDependentRules && !ready
+                ? []
+                : resolveNavMenu({ sections: items }, ctx, getNavMenuTransforms()),
+        [items, ctx, ready, hasUserDependentRules],
     );
 
     // Initialize state with active sections on mount
