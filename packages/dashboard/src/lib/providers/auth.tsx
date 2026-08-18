@@ -111,6 +111,18 @@ const CurrentUserQuery = graphql(`
             firstName
             lastName
             emailAddress
+            user {
+                id
+                identifier
+                roles {
+                    id
+                    code
+                    description
+                    channels {
+                        id
+                    }
+                }
+            }
         }
     }
 `);
