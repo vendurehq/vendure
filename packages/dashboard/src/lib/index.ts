@@ -331,7 +331,6 @@ export * from './graphql/fragments.js';
 export * from './graphql/graphql.js';
 export * from './graphql/schema-enums.js';
 export * from './graphql/settings-store-operations.js';
-export * from './hooks/use-admin-custom-fields.js';
 export * from './hooks/use-alerts-context.js';
 export * from './hooks/use-alerts.js';
 export * from './hooks/use-auth.js';

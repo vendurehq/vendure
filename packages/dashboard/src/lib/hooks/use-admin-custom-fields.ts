@@ -18,18 +18,17 @@ const activeAdministratorCustomFieldsDocument = graphql(`
 `);
 
 /**
- * @description
- * Loads the Administrator custom fields for the logged-in user.
+ * Internal. Loads the Administrator custom fields for the logged-in user.
+ *
+ * Deliberately not part of the public API. It returns an untyped
+ * `Record<string, unknown>`, and its `ready` flag means "we have stopped waiting",
+ * not "we succeeded". Consumers should use `useDashboardUserContext()` and read
+ * `ctx.administrator.customFields`, which is typed and correctly gated.
  *
  * The document is derived lazily rather than at module scope on purpose. At
  * module-evaluation time the global custom fields map is still empty, because
  * CurrentUserQuery is the query that unblocks the serverConfig request which
  * populates it. Do not hoist the `addCustomFields` call.
- *
- * @docsCategory hooks
- * @docsPage useAdminCustomFields
- * @docsWeight 0
- * @since 3.8.0
  */
 export function useAdminCustomFields(): {
     customFields: Record<string, unknown> | undefined;
