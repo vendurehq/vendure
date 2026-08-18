@@ -171,7 +171,11 @@ export function NavMain({ items }: Readonly<{ items: Array<NavMenuSection | NavM
             // the menu would flicker.
             hasUserDependentRules && !ready
                 ? []
-                : resolveNavMenu({ sections: items }, ctx, getNavMenuTransforms()),
+                : // Copy the array: `items` is the live registry array, and transforms are
+                  // third-party code that must never be handed it. A transform that mutates
+                  // `config.sections` in place instead of returning a new object would
+                  // otherwise corrupt global nav state on every render.
+                  resolveNavMenu({ sections: [...items] }, ctx, getNavMenuTransforms()),
         [items, ctx, ready, hasUserDependentRules],
     );
 
