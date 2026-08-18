@@ -12,7 +12,9 @@ import {
 import {
     addNavMenuSection,
     getNavMenuConfig,
+    getNavMenuTransforms,
     NavMenuConfig,
+    NavMenuTransform,
     setNavMenuConfig,
 } from '../nav-menu/nav-menu-extensions.js';
 import { globalRegistry } from '../registry/global-registry.js';
@@ -29,6 +31,7 @@ function resetNavState() {
     // Re-register fresh callback and modifier sets
     (globalRegistry as any).registry.set('registerDashboardExtensionCallbacks', new Set<() => void>());
     (globalRegistry as any).registry.set('navMenuModifiers', []);
+    (globalRegistry as any).registry.set('navMenuTransforms', []);
 }
 
 function resetWidgetRegistry() {
@@ -342,6 +345,16 @@ describe('defineDashboardExtension - navSections', () => {
 
         expect(warn).toHaveBeenCalledWith(expect.stringContaining('does-not-exist'));
         warn.mockRestore();
+    });
+
+    it('accumulates navMenuTransforms in registration order', () => {
+        const first: NavMenuTransform = config => config;
+        const second: NavMenuTransform = config => config;
+        defineDashboardExtension({ navMenuTransforms: [first] });
+        defineDashboardExtension({ navMenuTransforms: [second] });
+        executeDashboardExtensionCallbacks();
+
+        expect(getNavMenuTransforms()).toEqual([first, second]);
     });
 });
 

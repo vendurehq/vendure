@@ -16,7 +16,7 @@ import { DocumentNode } from 'graphql';
 import { DataDisplayComponent } from '../component-registry/component-registry.js';
 import { DashboardAlertDefinition } from '../extension-api/types/alerts.js';
 import { DataTableDisplayComponent } from '../extension-api/types/data-table.js';
-import { NavMenuConfig } from '../nav-menu/nav-menu-extensions.js';
+import { NavMenuConfig, NavMenuTransform } from '../nav-menu/nav-menu-extensions.js';
 
 export interface GlobalRegistryContents {
     extensionSourceChangeCallbacks: Set<() => void>;
@@ -37,6 +37,7 @@ export interface GlobalRegistryContents {
     loginExtensions: DashboardLoginExtensions;
     historyEntries: Map<string, DashboardHistoryEntryComponent['component']>;
     navMenuModifiers: Array<(config: NavMenuConfig) => NavMenuConfig>;
+    navMenuTransforms: NavMenuTransform[];
     dashboardToolbarItemRegistry: Map<string, DashboardToolbarItemDefinition>;
     dashboardCustomProvidersRegistry: Map<string, DashboardCustomProviderDefinition>;
 }

@@ -143,6 +143,7 @@ export interface NavMenuConfig {
 }
 
 globalRegistry.register('navMenuConfig', { sections: [] });
+globalRegistry.register('navMenuTransforms', []);
 
 export function getNavMenuConfig() {
     return globalRegistry.get('navMenuConfig');
@@ -305,3 +306,17 @@ export function validateNavigationShortcuts(config: NavMenuConfig): NavigationSh
  * @since 3.8.0
  */
 export type NavMenuTransform = (config: NavMenuConfig, ctx: DashboardUserContext) => NavMenuConfig;
+
+/**
+ * @description
+ * Returns all registered nav menu transforms, in registration order.
+ *
+ * @since 3.8.0
+ */
+export function getNavMenuTransforms(): NavMenuTransform[] {
+    return globalRegistry.get('navMenuTransforms');
+}
+
+export function addNavMenuTransform(transform: NavMenuTransform) {
+    globalRegistry.get('navMenuTransforms').push(transform);
+}
