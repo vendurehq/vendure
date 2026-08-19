@@ -49,7 +49,7 @@ export class McpRateLimitExceededError extends Error {
 /**
  * @description
  * Enforces per-minute request limits. Counters live in CacheService and reset every minute.
- * Five kinds of counter exist, and each is charged at the one point in a request's life where
+ * Six kinds of counter exist, and each is charged at the one point in a request's life where
  * the work it protects would otherwise happen:
  *
  * - Anonymous IP: charged by the transport before an anonymous shop request is processed,
@@ -57,8 +57,8 @@ export class McpRateLimitExceededError extends Error {
  * - Failed authentication per IP: checked by the transport before a bearer token's database
  *   lookup, counted when the lookup rejects the token ({@link checkBearerAuthFailureRateLimit},
  *   {@link recordBearerAuthFailure}).
- * - Session and OAuth client: charged by the transport for protocol messages and by the tool
- *   registry for tool calls ({@link checkRateLimit}, {@link enforceRateLimit}).
+ * - Session, signed-in user and OAuth client: charged by the transport for protocol messages and
+ *   by the tool registry for tool calls ({@link checkRateLimit}, {@link enforceRateLimit}).
  * - Per tool: charged by the tool registry alongside the session and client counters.
  * - OAuth IP: charged by the guard in front of the OAuth controller's HTTP routes
  *   ({@link enforceOauthIpRateLimit}).
@@ -196,7 +196,7 @@ export class McpRateLimiterService {
     }
 
     /**
-     * Session and OAuth-client buckets, shared across every tool call in a request. The
+     * Session, user and OAuth-client buckets, shared across every tool call in a request. The
      * anonymous-IP bucket is absent by design: it applies to exactly the requests the transport
      * charges at the edge (see {@link checkAnonymousIpRateLimit}), and charging it here too would
      * count the same request twice.
@@ -211,6 +211,15 @@ export class McpRateLimiterService {
                 key: `session:${endpoint}:${this.actorSessionKey(input.executionContext)}`,
                 rpm: perSessionRpm,
                 scope: 'session',
+            });
+        }
+        const userKey = this.userKey(input.executionContext);
+        const perUserRpm = this.resolveRpm(rateLimits.perUser);
+        if (userKey && perUserRpm > 0) {
+            checks.push({
+                key: `user:${endpoint}:${userKey}`,
+                rpm: perUserRpm,
+                scope: 'user',
             });
         }
         const clientKey = this.clientKey(input.executionContext);
@@ -337,6 +346,17 @@ export class McpRateLimiterService {
             return `anonymous-ip:${this.ipKey(executionContext.clientIp)}`;
         }
         return this.sessionKey(executionContext);
+    }
+
+    /**
+     * The signed-in user behind the request, or `undefined` for an anonymous caller. Authorizing
+     * again gives someone a new grant, a new session and possibly a new client record, so those
+     * keys all change; their user id does not. Same key whether the call arrives over OAuth, over
+     * the anonymous shop endpoint while signed in, or from in-process code.
+     */
+    private userKey(executionContext: McpExecutionContext): string | undefined {
+        const userId = executionContext.ctx.activeUserId;
+        return userId != null ? String(userId) : undefined;
     }
 
     private clientKey(executionContext: McpExecutionContext): string | undefined {

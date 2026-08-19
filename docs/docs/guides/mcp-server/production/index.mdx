@@ -96,12 +96,13 @@ route-scoped middleware on `apiOptions.middleware` for `/mcp`, exactly as you wo
 ## Rate limiting
 
 [`rateLimits`](/reference/core-plugins/mcp-plugin/mcp-rate-limit-options/) applies per-minute request caps across
-five scopes. The defaults are sensible; override only what you need:
+six scopes. The defaults are sensible; override only what you need:
 
 | Scope | Default | Notes |
 |---|---|---|
 | `perSession` | 60 rpm | Per caller: the OAuth grant's session for authenticated calls, the client IP for anonymous `/mcp/shop` calls, the supplied Vendure session for in-process calls |
-| `perClient` | 120 rpm | Per registered OAuth client |
+| `perUser` | 120 rpm | Per signed-in user, counted across every session and OAuth client acting for them. Authorizing again does not reset it. Anonymous callers have no user |
+| `perClient` | 3000 rpm | Per registered OAuth client, counted across every user of that client. Sized for a whole application's traffic |
 | `anonymousIp` | 60 rpm | Per client IP for anonymous `/mcp/shop` calls. Set `false` to disable |
 | `oauthIp` | 60 rpm | Per client IP across the OAuth endpoints, and (as a separate bucket) per client IP for failed bearer-token authentications on the MCP endpoints. Set `false` to disable |
 | `perTool` | `place_order: 5`, `create_product: 10`, `refund_order: 5`, `cancel_order: 5` | Opt-in, keyed by tool name |

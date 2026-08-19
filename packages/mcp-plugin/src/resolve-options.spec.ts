@@ -10,7 +10,8 @@ describe('resolveMcpPluginOptions', () => {
         expect(resolved.shopAccess).toBe('anonymous');
         expect(resolved.oauth).toBeUndefined();
         expect(resolved.rateLimits.perSession).toEqual({ rpm: 60 });
-        expect(resolved.rateLimits.perClient).toEqual({ rpm: 120 });
+        expect(resolved.rateLimits.perUser).toEqual({ rpm: 120 });
+        expect(resolved.rateLimits.perClient).toEqual({ rpm: 3000 });
         expect(resolved.rateLimits.anonymousIp).toEqual({ rpm: 60 });
         expect(resolved.rateLimits.oauthIp).toEqual({ rpm: 60 });
         expect(Object.keys(resolved.rateLimits.perTool).sort()).toEqual([

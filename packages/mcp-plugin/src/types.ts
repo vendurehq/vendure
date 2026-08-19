@@ -144,49 +144,76 @@ export interface McpOauthOptions {
 /**
  * @description
  * Per-scope request-rate limits for MCP calls, expressed in requests per minute (`rpm`).
- * A value of `0` means unlimited.
+ * A value of `0` means unlimited. Every limit except `oauthIp` is counted separately for
+ * the admin and shop endpoints. The server refuses an over-limit request with HTTP `429`
+ * and a `Retry-After` header. An over-limit tool call inside an open session returns an
+ * `isError` tool result instead of an HTTP error.
  *
  * @docsCategory core plugins/McpPlugin
  * @since 3.8.0
  */
 export interface McpRateLimitOptions {
     /**
-     * Limit per MCP session: for logged-in users, this is their session.
-     * For anonymous `/mcp/shop` calls, it falls back to the client IP.
+     * @description
+     * Requests per minute allowed per MCP session. A signed-in caller is counted by their
+     * Vendure session. An anonymous `/mcp/shop` caller is counted by client IP instead.
      *
      * @default { rpm: 60 }
      */
     perSession?: { rpm: number };
     /**
-     * Limit per registered OAuth client.
+     * @description
+     * Requests per minute allowed per signed-in user, counted across every session and
+     * OAuth client acting for that user. Authorizing again starts a new session and can
+     * create a new client record. The user bucket keeps counting through both, because
+     * the user's id does not change. Anonymous callers have no user, so `anonymousIp`
+     * covers them instead.
      *
      * @default { rpm: 120 }
      */
+    perUser?: { rpm: number };
+    /**
+     * @description
+     * Requests per minute allowed per registered OAuth client, counted across every user
+     * of that client. One client record can serve all of a store's shoppers, so the
+     * default is sized for a whole application's traffic. `perUser` limits an individual.
+     * A client identified by a metadata document URL (CIMD) gets one record per URL.
+     * Requests that carry no OAuth grant, such as in-process or anonymous calls, have no
+     * client bucket.
+     *
+     * @default { rpm: 3000 }
+     */
     perClient?: { rpm: number };
     /**
-     * Opt-in per-tool limits, keyed by tool name (`0` = unlimited).
+     * @description
+     * Requests per minute allowed per tool, keyed by tool name. `0` means unlimited.
+     * Each caller has its own bucket per tool: an OAuth caller is counted by client plus
+     * session, an anonymous caller by client IP. A new authorization creates a new
+     * session, so its per-tool counters start fresh. The `oauthIp` limit bounds how often
+     * one address can authorize again. The `perUser` limit keeps counting across
+     * authorizations.
      *
      * @default { place_order: { rpm: 5 }, create_product: { rpm: 10 }, refund_order: { rpm: 5 }, cancel_order: { rpm: 5 } }
      */
     perTool?: Record<string, { rpm: number }>;
     /**
-     * Limit per client IP for anonymous `/mcp/shop` calls
-     *
-     * Behind a reverse proxy, enable Vendure's `trustProxy` so `req.ip` reports the client
-     * address rather than the proxy's.
+     * @description
+     * Requests per minute allowed per client IP for anonymous `/mcp/shop` calls. `false`
+     * disables the limit. Behind a reverse proxy, enable Vendure's `trustProxy` so
+     * `req.ip` reports the client address rather than the proxy's.
      *
      * @default { rpm: 60 }
      */
     anonymousIp?: { rpm: number } | false;
     /**
-     * Limit per client IP across the whole OAuth HTTP surface: every route on the OAuth
-     * controller shares this one bucket, including the `.well-known` metadata documents.
-     * The same limit also caps failed bearer-token authentications on the MCP endpoints
-     * (a separate bucket per IP), so a flood of invalid tokens stops costing a database
-     * lookup each once the limit is spent.
-     *
-     * Behind a reverse proxy, enable Vendure's `trustProxy` so `req.ip` reports the client
-     * address rather than the proxy's.
+     * @description
+     * Requests per minute allowed per client IP across the whole OAuth HTTP surface.
+     * Every route on the OAuth controller shares this one bucket, including the
+     * `.well-known` metadata documents. The same limit also caps failed bearer-token
+     * authentications on the MCP endpoints, in a separate bucket per IP. An address over
+     * that bucket's limit is refused before its token costs a database lookup. `false`
+     * disables the limit. Behind a reverse proxy, enable Vendure's `trustProxy` so
+     * `req.ip` reports the client address rather than the proxy's.
      *
      * @default { rpm: 60 }
      */

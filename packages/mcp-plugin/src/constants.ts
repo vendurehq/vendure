@@ -101,7 +101,8 @@ export const MAX_CONCURRENT_CIMD_FETCHES = 8;
  */
 export const DEFAULT_RATE_LIMIT_OPTIONS: Required<McpRateLimitOptions> = {
     perSession: { rpm: 60 },
-    perClient: { rpm: 120 },
+    perUser: { rpm: 120 },
+    perClient: { rpm: 3000 },
     perTool: {
         place_order: { rpm: 5 },
         create_product: { rpm: 10 },

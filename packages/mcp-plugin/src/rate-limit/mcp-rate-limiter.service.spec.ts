@@ -43,6 +43,19 @@ function anonHttpCtx(token: string, ip: string) {
     return { ctx: { session: { token } }, clientIp: ip } as any;
 }
 
+/** A signed-in caller: one conversation's session token plus the id of the user it belongs to. */
+function userCtx(token: string, userId: string) {
+    return { ctx: { session: { token }, activeUserId: userId } } as any;
+}
+
+/** An OAuth caller: the grant's own session, the user who consented, and the client record used. */
+function oauthCtx(token: string, userId: string, oauthClientId: string) {
+    return {
+        ctx: { session: { token }, activeUserId: userId },
+        grant: { id: `${oauthClientId}:${token}`, oauthClientId },
+    } as any;
+}
+
 describe('McpRateLimiterService rate limiting', () => {
     beforeEach(() => {
         vi.useFakeTimers();
@@ -315,6 +328,147 @@ describe('McpRateLimiterService rate limiting', () => {
                 executionContext: sessionCtx('assistant-user-b'),
                 endpoint: 'shop',
                 subject: 'tools/call',
+            }),
+        ).resolves.toBeUndefined();
+    });
+
+    it('counts one user across their separate sessions and reports the user scope', async () => {
+        const { service } = build({
+            rateLimits: {
+                perSession: { rpm: 0 },
+                perUser: { rpm: 2 },
+                perClient: { rpm: 0 },
+                anonymousIp: false,
+            },
+        });
+        // These are two conversations for one person: each has its own session bucket, and they
+        // share the user bucket.
+        await service.enforceRateLimit({
+            executionContext: userCtx('chat-1', 'user-7'),
+            endpoint: 'shop',
+            subject: 'ping',
+        });
+        await service.enforceRateLimit({
+            executionContext: userCtx('chat-2', 'user-7'),
+            endpoint: 'shop',
+            subject: 'ping',
+        });
+        await expect(
+            service.enforceRateLimit({
+                executionContext: userCtx('chat-3', 'user-7'),
+                endpoint: 'shop',
+                subject: 'ping',
+            }),
+        ).rejects.toMatchObject({ details: { scope: 'user' } });
+    });
+
+    it('keeps two users on separate per-user buckets', async () => {
+        const { service } = build({
+            rateLimits: {
+                perSession: { rpm: 0 },
+                perUser: { rpm: 1 },
+                perClient: { rpm: 0 },
+                anonymousIp: false,
+            },
+        });
+        await service.enforceRateLimit({
+            executionContext: userCtx('chat-1', 'user-7'),
+            endpoint: 'shop',
+            subject: 'ping',
+        });
+        await expect(
+            service.enforceRateLimit({
+                executionContext: userCtx('chat-1', 'user-8'),
+                endpoint: 'shop',
+                subject: 'ping',
+            }),
+        ).resolves.toBeUndefined();
+    });
+
+    it('keeps counting a user after they re-authorize into a new grant and client record', async () => {
+        const { service } = build({
+            rateLimits: {
+                perSession: { rpm: 0 },
+                perUser: { rpm: 1 },
+                perClient: { rpm: 0 },
+                anonymousIp: false,
+            },
+        });
+        // Authorizing again gives this person a new grant with a new session, and registering again
+        // gives them a new client record, so the session and client buckets both start fresh. The
+        // user bucket has to keep counting, or anyone who can run the authorization flow could reset
+        // their own limits at will.
+        await service.enforceRateLimit({
+            executionContext: oauthCtx('grant-1', 'user-7', 'client-1'),
+            endpoint: 'shop',
+            subject: 'ping',
+        });
+        await expect(
+            service.enforceRateLimit({
+                executionContext: oauthCtx('grant-2', 'user-7', 'client-2'),
+                endpoint: 'shop',
+                subject: 'ping',
+            }),
+        ).rejects.toMatchObject({ details: { scope: 'user' } });
+    });
+
+    it('shares one client bucket across the grants of a single OAuth client', async () => {
+        const { service } = build({
+            rateLimits: {
+                perSession: { rpm: 0 },
+                perUser: { rpm: 0 },
+                perClient: { rpm: 2 },
+                anonymousIp: false,
+            },
+        });
+        // Every shopper using one client shares its bucket, which is why the default is high.
+        await service.enforceRateLimit({
+            executionContext: oauthCtx('grant-1', 'user-7', 'client-1'),
+            endpoint: 'shop',
+            subject: 'ping',
+        });
+        await service.enforceRateLimit({
+            executionContext: oauthCtx('grant-2', 'user-8', 'client-1'),
+            endpoint: 'shop',
+            subject: 'ping',
+        });
+        await expect(
+            service.enforceRateLimit({
+                executionContext: oauthCtx('grant-3', 'user-9', 'client-1'),
+                endpoint: 'shop',
+                subject: 'ping',
+            }),
+        ).rejects.toMatchObject({ details: { scope: 'OAuth client' } });
+        // A second client has its own bucket.
+        await expect(
+            service.enforceRateLimit({
+                executionContext: oauthCtx('grant-4', 'user-7', 'client-2'),
+                endpoint: 'shop',
+                subject: 'ping',
+            }),
+        ).resolves.toBeUndefined();
+    });
+
+    it('gives an anonymous shop caller no per-user bucket', async () => {
+        const { service } = build({
+            rateLimits: {
+                perSession: { rpm: 0 },
+                perUser: { rpm: 1 },
+                perClient: { rpm: 0 },
+                anonymousIp: false,
+            },
+        });
+        // Nobody is signed in, so there is no user to key on; anonymousIp covers these callers.
+        await service.enforceRateLimit({
+            executionContext: anonHttpCtx('fresh-1', '1.2.3.4'),
+            endpoint: 'shop',
+            subject: 'ping',
+        });
+        await expect(
+            service.enforceRateLimit({
+                executionContext: anonHttpCtx('fresh-2', '1.2.3.4'),
+                endpoint: 'shop',
+                subject: 'ping',
             }),
         ).resolves.toBeUndefined();
     });

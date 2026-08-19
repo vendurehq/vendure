@@ -39,6 +39,7 @@ export function resolveMcpPluginOptions(options: McpPluginOptions = {}): Resolve
 function resolveRateLimits(rateLimits?: McpRateLimitOptions): Required<McpRateLimitOptions> {
     return {
         perSession: rateLimits?.perSession ?? DEFAULT_RATE_LIMIT_OPTIONS.perSession,
+        perUser: rateLimits?.perUser ?? DEFAULT_RATE_LIMIT_OPTIONS.perUser,
         perClient: rateLimits?.perClient ?? DEFAULT_RATE_LIMIT_OPTIONS.perClient,
         perTool: { ...DEFAULT_RATE_LIMIT_OPTIONS.perTool, ...rateLimits?.perTool },
         anonymousIp:

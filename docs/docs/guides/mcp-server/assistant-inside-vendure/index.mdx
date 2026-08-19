@@ -57,8 +57,10 @@ Four things to know about them:
   `McpToolCallEvent`. There is no OAuth grant on this path, so the log rows carry no grant or client.
 
 Permissions, tool enable/disable toggles, and rate limits behave exactly as they do for a request arriving over
-HTTP. Rate limits are counted per shopper session, so one chatty conversation cannot spend another shopper's
-allowance.
+HTTP. A signed-in shopper's calls are counted against two buckets: their Vendure session and their user id. A
+guest has no user id, so only the session bucket applies. Passing each shopper's own context keeps these buckets
+separate, so one shopper cannot spend another's allowance. Reusing one context for every shopper puts them all in
+one session bucket and one user bucket. A single chatty conversation can then lock the others out.
 
 ## The plugin
 
@@ -185,13 +187,18 @@ For a single instance that is usually fine. Beyond that, keep the history in sha
 the assistant is stateful — there is no connection or token to keep alive.
 
 **Handle a rate-limit refusal rather than failing.** It arrives as an ordinary failed tool result: `isError: true`
-with a text message. Tell the shopper to try again in a moment. The default is 60 tool calls per minute per
-shopper session; raise it with `rateLimits.perSession` if your model tends to chain several tools per reply.
+with a text message. Tell the shopper to try again in a moment. Two defaults bound a signed-in shopper:
+
+- `rateLimits.perSession` — 60 tool calls per minute, counted per Vendure session.
+- `rateLimits.perUser` — 120 tool calls per minute, counted across every session that shopper has open.
+
+Raise whichever one your model reaches first if it chains several tools per reply.
 
 ```ts title="src/vendure-config.ts"
 McpPlugin.init({
     rateLimits: {
         perSession: { rpm: 120 },
+        perUser: { rpm: 240 },
     },
 });
 ```

@@ -30,8 +30,9 @@ import { McpOauthService } from '../src/oauth/oauth.service';
 import { deriveHashKey, hashLookupToken, hashToken } from '../src/oauth/token-hash';
 import { McpPlugin } from '../src/plugin';
 import { mcpOauthRetentionTask } from '../src/tasks/mcp-oauth-retention.task';
+import { McpPluginOptions } from '../src/types';
 
-import { postMcp, rpc } from './utils/mcp-http-client';
+import { expectRateLimitRefusal, postMcp, rpc } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow } from './utils/oauth-test-client';
 import { withFailingUpdate } from './utils/oauth-test-fixtures';
 import { initTestServer } from './utils/test-server';
@@ -41,11 +42,13 @@ const TOKEN_SECRET = 'test-secret';
 const ISSUER = `http://localhost:${testConfig().apiOptions.port}`;
 
 describe('McpPlugin OAuth end-to-end flow', () => {
-    const config = mergeConfig(testConfig(), {
-        // A deliberately short log retention: how long dead grants are kept is governed by
-        // `oauth.grantRetentionDays`, not by how long tool-call logs are kept.
-        plugins: [McpPlugin.init({ oauth: { tokenSecret: TOKEN_SECRET }, logging: { ttlDays: 1 } })],
-    });
+    // A deliberately short log retention: how long dead grants are kept is governed by
+    // `oauth.grantRetentionDays`, not by how long tool-call logs are kept.
+    const pluginOptions: McpPluginOptions = {
+        oauth: { tokenSecret: TOKEN_SECRET },
+        logging: { ttlDays: 1 },
+    };
+    const config = mergeConfig(testConfig(), { plugins: [McpPlugin.init(pluginOptions)] });
     const { server, adminClient } = createTestEnvironment(config);
 
     const hashKey = deriveHashKey(TOKEN_SECRET);
@@ -54,6 +57,9 @@ describe('McpPlugin OAuth end-to-end flow', () => {
     let superAdminToken: string;
 
     beforeAll(async () => {
+        // Re-apply this suite's options: McpPlugin.init writes static state, and a later suite in
+        // this file calls it with its own.
+        McpPlugin.init(pluginOptions);
         await initTestServer(server);
         // Logging in as superadmin yields the Vendure bearer token the admin-consent
         // step needs; it stands in for an authenticated administrator.
@@ -744,5 +750,87 @@ describe('McpPlugin OAuth end-to-end flow', () => {
         expect(result.deletedClients).toBe(0);
         expect(await clientRepo.findOne({ where: { id: client.id } })).toBeTruthy();
         expect(await grantRepo.findOne({ where: { id: grant.id } })).toBeTruthy();
+    });
+});
+
+describe('McpPlugin per-user rate limiting', () => {
+    const pluginOptions: McpPluginOptions = {
+        oauth: { tokenSecret: TOKEN_SECRET },
+        // Only the user bucket is on. The session and client buckets are the two that a fresh
+        // authorization resets, so with those off a refusal below can only come from the user
+        // bucket. The OAuth-IP limit is off because the two flows spend several requests on the
+        // OAuth endpoints.
+        rateLimits: {
+            perSession: { rpm: 0 },
+            perUser: { rpm: 1 },
+            perClient: { rpm: 0 },
+            anonymousIp: false,
+            oauthIp: false,
+        },
+    };
+    const config = mergeConfig(testConfig(), { plugins: [McpPlugin.init(pluginOptions)] });
+    const { server, adminClient } = createTestEnvironment(config);
+    const baseUrl = () => `http://localhost:${config.apiOptions.port}`;
+
+    let consentToken: string;
+
+    beforeAll(async () => {
+        McpPlugin.init(pluginOptions);
+        await initTestServer(server);
+        // An administrator of this suite's own. Rate-limit counters are not cleared when a suite's
+        // server is destroyed, because the default in-memory cache strategy is one instance shared
+        // by every server booted in this process, and the suite above already charged the
+        // superadmin's user bucket.
+        // AdministratorService.create checks that the acting user may grant the roles, so this
+        // context acts as the superadmin.
+        const bareCtx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+        const superadminUser = await server.app
+            .get(TransactionalConnection)
+            .getRepository(bareCtx, User)
+            .findOneByOrFail({ identifier: 'superadmin' });
+        const ctx = await server.app
+            .get(RequestContextService)
+            .create({ apiType: 'admin', user: superadminUser });
+        const superAdminRole = await server.app.get(RoleService).getSuperAdminRole(ctx);
+        await server.app.get(AdministratorService).create(ctx, {
+            firstName: 'RateLimited',
+            lastName: 'Admin',
+            emailAddress: 'rate-limited@test.com',
+            password: 'test',
+            roleIds: [superAdminRole.id],
+        });
+        await adminClient.asUserWithCredentials('rate-limited@test.com', 'test');
+        consentToken = adminClient.getAuthToken();
+    }, TEST_SETUP_TIMEOUT_MS);
+
+    afterAll(async () => {
+        await server.destroy();
+    });
+
+    it('counts one administrator across two authorizations on two client records', async () => {
+        // Each flow registers a new client and gets a new grant with its own Vendure session, so the
+        // session and client buckets both start empty for the second token. Only the person is the
+        // same.
+        const first = await runAuthorizationCodeFlow({
+            baseUrl: baseUrl(),
+            issuer: ISSUER,
+            superAdminToken: consentToken,
+        });
+        const second = await runAuthorizationCodeFlow({
+            baseUrl: baseUrl(),
+            issuer: ISSUER,
+            superAdminToken: consentToken,
+        });
+        expect(second.client_id).not.toBe(first.client_id);
+
+        const allowed = await postMcp(baseUrl(), 'admin', rpc('ping', {}, 1), {
+            token: first.access_token,
+        });
+        expect(allowed.status).toBe(200);
+
+        const refused = await postMcp(baseUrl(), 'admin', rpc('ping', {}, 2), {
+            token: second.access_token,
+        });
+        expectRateLimitRefusal(refused, { scope: 'user', id: 2 });
     });
 });
