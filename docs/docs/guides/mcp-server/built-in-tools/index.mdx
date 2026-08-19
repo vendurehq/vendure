@@ -94,7 +94,7 @@ cart the quote was calculated for. Anything a shipping calculator attached to th
 | `set_shipping_method` | mutating | Public | Set the cart shipping method |
 | `get_eligible_shipping_methods` | readonly | Public | List shipping methods eligible for the cart |
 | `get_eligible_payment_methods` | readonly | Public | List payment methods eligible for the cart |
-| `place_order` | **destructive** | Public | Add payment and place the order |
+| `place_order` | **destructive** | Public | Move the cart to the payment stage if needed, then add payment and place the order |
 
 `add_to_cart` takes exactly one of `variantId` or `productId`. Product IDs and variant IDs are separate numbering
 sequences that overlap, so a product ID used where a variant ID belongs would otherwise resolve to a real but
@@ -138,7 +138,7 @@ variant IDs in the first place.
 | Tool | Safety | Permission | Description |
 |---|---|---|---|
 | `get_order` | readonly | ReadOrder | Get an order by ID |
-| `list_orders` | readonly | ReadOrder | List orders (paginated) |
+| `list_orders` | readonly | ReadOrder | List orders, most recently placed first (paginated, sortable) |
 | `add_note_to_order` | mutating | UpdateOrder | Add a note to an order timeline |
 | `update_order_state` | **destructive** | UpdateOrder | Transition an order to a new state |
 | `cancel_order` | **destructive** | UpdateOrder | Cancel an order and restock lines |

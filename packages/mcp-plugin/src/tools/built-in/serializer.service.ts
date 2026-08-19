@@ -48,6 +48,14 @@ export class McpToolSerializerService {
         return `${negative ? '-' : ''}${whole}.${fraction}`;
     }
 
+    /**
+     * Dates go out as ISO 8601 strings in UTC, which is the one format a language model can
+     * compare and quote without knowing anything about the server's timezone.
+     */
+    private isoDate(value: Date | undefined | null): string | null {
+        return value ? new Date(value).toISOString() : null;
+    }
+
     variant(variant: (ProductVariant & { name?: string }) | undefined | null) {
         if (!variant) return null;
         return {
@@ -148,6 +156,10 @@ export class McpToolSerializerService {
             totalWithTaxDecimal: this.decimal(order.totalWithTax),
             currencyCode: order.currencyCode,
             totalQuantity: order.totalQuantity,
+            createdAt: this.isoDate(order.createdAt),
+            updatedAt: this.isoDate(order.updatedAt),
+            // Null while the order is still an open cart, set when the customer checks out.
+            orderPlacedAt: this.isoDate(order.orderPlacedAt),
             lines:
                 order.lines?.map(line => ({
                     id: line.id,

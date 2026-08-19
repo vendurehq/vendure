@@ -2,6 +2,7 @@ import {
     ConfigService,
     ID,
     mergeConfig,
+    Order,
     Payment,
     RequestContext,
     RequestContextService,
@@ -527,6 +528,51 @@ describe('MCP built-in admin tools (direct mode)', () => {
         expect((response.body.result.structuredContent as { status?: string }).status).not.toBe(
             'confirmation_required',
         );
+    });
+
+    it("sorts the order list on request and returns each order's dates", async () => {
+        const token = await adminAccessToken();
+        const earlier = await createDraftOrder();
+        const later = await createDraftOrder();
+
+        // Two orders created a moment apart share the same createdAt to the second, so nothing
+        // could tell them apart in a sorted list. Give them placed dates a day apart instead,
+        // which is also the field the tool sorts by when the caller asks for no sort.
+        await connection
+            .getRepository(adminCtx, Order)
+            .update(earlier.id, { orderPlacedAt: new Date('2026-01-01T00:00:00.000Z') });
+        await connection
+            .getRepository(adminCtx, Order)
+            .update(later.id, { orderPlacedAt: new Date('2026-01-02T00:00:00.000Z') });
+
+        const listWith = async (args: Record<string, unknown>, id: number) => {
+            const response = await postMcp(baseUrl(), 'admin', callTool('list_orders', args, id), {
+                token,
+            });
+            expect(response.body.result.isError).toBeUndefined();
+            return (response.body.result.structuredContent as { items: Array<{ id: ID }> }).items;
+        };
+        const positionOf = (items: Array<{ id: ID }>, id: ID) =>
+            items.findIndex(item => String(item.id) === String(id));
+
+        // No sort arguments: the tool defaults to the most recently placed order first. Before this
+        // default existed the query ran with no ORDER BY at all and returned an arbitrary page.
+        const defaulted = await listWith({ limit: 100 }, 1);
+        expect(positionOf(defaulted, later.id)).toBeLessThan(positionOf(defaulted, earlier.id));
+
+        // Asking for the opposite direction reverses them, which is only true if the caller's sort
+        // reached the query.
+        const oldestFirst = await listWith({ sortBy: 'orderPlacedAt', sortDirection: 'ASC', limit: 100 }, 2);
+        expect(positionOf(oldestFirst, earlier.id)).toBeLessThan(positionOf(oldestFirst, later.id));
+
+        const placed = defaulted[positionOf(defaulted, later.id)] as {
+            createdAt?: string;
+            updatedAt?: string;
+            orderPlacedAt?: string | null;
+        };
+        expect(placed.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+        expect(placed.updatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+        expect(placed.orderPlacedAt).toBe('2026-01-02T00:00:00.000Z');
     });
 
     it('filters tools a caller lacks permission for and rejects them at call time', async () => {

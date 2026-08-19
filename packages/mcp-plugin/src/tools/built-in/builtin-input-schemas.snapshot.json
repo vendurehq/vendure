@@ -518,6 +518,24 @@
       "offset": {
         "type": "number",
         "description": "Number of orders to skip."
+      },
+      "sortBy": {
+        "type": "string",
+        "enum": [
+          "orderPlacedAt",
+          "updatedAt",
+          "createdAt",
+          "total"
+        ],
+        "description": "Field to sort by. Defaults to orderPlacedAt, which lists the most recently placed orders first. Orders that are still open carts have no orderPlacedAt and sort last."
+      },
+      "sortDirection": {
+        "type": "string",
+        "enum": [
+          "ASC",
+          "DESC"
+        ],
+        "description": "Sort direction. Defaults to DESC."
       }
     },
     "additionalProperties": false

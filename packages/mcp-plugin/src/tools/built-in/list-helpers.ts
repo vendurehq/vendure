@@ -1,4 +1,4 @@
-import { OrderListOptions } from '@vendure/common/lib/generated-types';
+import { OrderListOptions, SortOrder } from '@vendure/common/lib/generated-types';
 import { Collection, ListQueryOptions, Product, VendureEntity } from '@vendure/core';
 import { z } from 'zod';
 
@@ -75,9 +75,27 @@ export function publicCollectionListOptions(input: ListInput): ListQueryOptions<
     } as ListQueryOptions<Collection>;
 }
 
-export function orderListOptions(input: ListInput): OrderListOptions {
+/**
+ * The Order fields `list_orders` can sort by. Kept to the few an operations user asks for, so the
+ * tool's input stays small: when an order happened, when it last changed, and how big it is.
+ */
+export const ORDER_SORT_FIELDS = ['orderPlacedAt', 'updatedAt', 'createdAt', 'total'] as const;
+
+export type OrderSortField = (typeof ORDER_SORT_FIELDS)[number];
+
+interface OrderListInput extends ListInput {
+    sortBy?: OrderSortField;
+    sortDirection?: 'ASC' | 'DESC';
+}
+
+export function orderListOptions(input: OrderListInput): OrderListOptions {
+    const field = input.sortBy ?? 'orderPlacedAt';
+    const direction = input.sortDirection === 'ASC' ? SortOrder.ASC : SortOrder.DESC;
     return {
         take: input.limit ?? DEFAULT_LIST_PAGE_SIZE,
         skip: input.offset ?? 0,
+        // Without a sort the database returns rows in no defined order, so asking for "the recent
+        // orders" would get an arbitrary page. Newest placed first is what an operations user means.
+        sort: { [field]: direction },
     };
 }

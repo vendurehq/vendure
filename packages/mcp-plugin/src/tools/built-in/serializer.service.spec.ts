@@ -90,6 +90,24 @@ describe('McpToolSerializerService', () => {
         });
     });
 
+    it("turns an order's dates into ISO strings", () => {
+        const serialized = service.order({
+            id: 1,
+            code: 'T_1',
+            state: 'PaymentSettled',
+            createdAt: new Date('2026-08-16T09:21:00.000Z'),
+            updatedAt: new Date('2026-08-18T11:42:00.000Z'),
+            orderPlacedAt: new Date('2026-08-16T09:30:00.000Z'),
+            lines: [],
+        } as any);
+
+        expect(serialized).toMatchObject({
+            createdAt: '2026-08-16T09:21:00.000Z',
+            updatedAt: '2026-08-18T11:42:00.000Z',
+            orderPlacedAt: '2026-08-16T09:30:00.000Z',
+        });
+    });
+
     it('serializes an order and its lines', () => {
         expect(
             service.order({
@@ -128,6 +146,9 @@ describe('McpToolSerializerService', () => {
             totalWithTaxDecimal: '251.99',
             currencyCode: 'USD',
             totalQuantity: 1,
+            createdAt: null,
+            updatedAt: null,
+            orderPlacedAt: null,
             lines: [
                 {
                     id: 5,
