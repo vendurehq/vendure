@@ -113,8 +113,8 @@ describe('McpPlugin OAuth edge & security cases', () => {
     const baseUrl = () => `http://localhost:${config.apiOptions.port}`;
 
     /** Runs the full admin authorization-code flow and returns the resulting values. */
-    const runAdminFlow = (redirectUri?: string) =>
-        runAuthorizationCodeFlow({ baseUrl: baseUrl(), issuer: ISSUER, superAdminToken, redirectUri });
+    const runAdminFlow = () =>
+        runAuthorizationCodeFlow({ baseUrl: baseUrl(), issuer: ISSUER, superAdminToken });
 
     /** Runs the full shop authorization-code flow with the real customer session token. */
     const runShopFlow = () =>
