@@ -6,13 +6,10 @@ import {
     Badge,
     type ColumnDef,
     DataTable,
-    Input,
+    DataTableColumnHeader,
+    getFilteredRowModel,
+    getSortedRowModel,
     type ResultOf,
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
     Switch,
     toast,
     useMutation,
@@ -23,8 +20,6 @@ import { TriangleAlert } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { mcpToolsQuery, setMcpToolEnabledDocument } from '../mcp.graphql';
-
-const ALL_TOOLSETS = '__all__';
 
 type McpTool = ResultOf<typeof mcpToolsQuery>['mcpTools'][number];
 
@@ -53,14 +48,15 @@ function SafetyBadge({ tool }: { tool: McpTool }) {
 /**
  * Lists every registered MCP tool with its toolset, safety classification and a
  * toggle to enable/disable it. Toggling calls the server-enforced mutation
- * (gated by the UpdateMcpServer permission). Search and toolset filtering happen
- * client-side.
+ * (gated by the UpdateMcpServer permission). All tools are loaded in one request,
+ * so search, the toolset filter, sorting and pagination all run in the browser.
  */
 export function ToolsBlock() {
     const { t } = useLingui();
     const qc = useQueryClient();
     const [search, setSearch] = useState('');
-    const [toolset, setToolset] = useState<string>(ALL_TOOLSETS);
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
 
     const { data, isLoading, error } = useQuery({
         queryKey: ['mcp-tools'],
@@ -70,38 +66,51 @@ export function ToolsBlock() {
     const toggle = useMutation({
         mutationFn: (vars: { toolName: string; toolset: string; enabled: boolean }) =>
             api.mutate(setMcpToolEnabledDocument, vars),
+        // Flip the switch in the cached list immediately so it doesn't sit in its
+        // old position until the refetch lands. Rolled back if the server rejects.
+        onMutate: async vars => {
+            await qc.cancelQueries({ queryKey: ['mcp-tools'] });
+            const previous = qc.getQueryData<ResultOf<typeof mcpToolsQuery>>(['mcp-tools']);
+            qc.setQueryData<ResultOf<typeof mcpToolsQuery>>(['mcp-tools'], old =>
+                old
+                    ? {
+                          ...old,
+                          mcpTools: old.mcpTools.map(tool =>
+                              tool.name === vars.toolName && tool.toolset === vars.toolset
+                                  ? { ...tool, enabled: vars.enabled }
+                                  : tool,
+                          ),
+                      }
+                    : old,
+            );
+            return { previous };
+        },
         onSuccess: () => {
             toast.success(t`Tool updated`);
-            void qc.invalidateQueries({ queryKey: ['mcp-tools'] });
         },
-        onError: () => {
+        onError: (_error, _vars, context) => {
+            if (context?.previous) {
+                qc.setQueryData(['mcp-tools'], context.previous);
+            }
             toast.error(t`Could not update tool`);
+        },
+        // Refetch either way so the cache ends up matching the server.
+        onSettled: () => {
+            void qc.invalidateQueries({ queryKey: ['mcp-tools'] });
         },
     });
 
     const tools = data?.mcpTools ?? [];
 
-    const toolsetItems = useMemo(() => {
-        const names = Array.from(new Set(tools.map(tool => tool.toolset))).sort();
-        const items: Record<string, string> = { [ALL_TOOLSETS]: t`All toolsets` };
-        for (const name of names) {
-            items[name] = name;
-        }
-        return items;
-    }, [tools, t]);
-
     const filtered = useMemo(() => {
         const term = search.trim().toLowerCase();
-        return tools.filter(tool => {
-            if (toolset !== ALL_TOOLSETS && tool.toolset !== toolset) {
-                return false;
-            }
-            if (!term) {
-                return true;
-            }
-            return tool.name.toLowerCase().includes(term) || tool.description.toLowerCase().includes(term);
-        });
-    }, [tools, search, toolset]);
+        if (!term) {
+            return tools;
+        }
+        return tools.filter(
+            tool => tool.name.toLowerCase().includes(term) || tool.description.toLowerCase().includes(term),
+        );
+    }, [tools, search]);
 
     if (error) {
         return (
@@ -117,17 +126,34 @@ export function ToolsBlock() {
     const columns: Array<ColumnDef<McpTool>> = [
         {
             accessorKey: 'name',
-            header: () => <Trans>Name</Trans>,
+            header: headerContext => (
+                <DataTableColumnHeader
+                    headerContext={headerContext}
+                    customConfig={{ header: () => <Trans>Name</Trans> }}
+                />
+            ),
             cell: ({ row }) => <span className="font-medium font-mono text-sm">{row.original.name}</span>,
         },
         {
             accessorKey: 'toolset',
-            header: () => <Trans>Toolset</Trans>,
+            header: headerContext => (
+                <DataTableColumnHeader
+                    headerContext={headerContext}
+                    customConfig={{ header: () => <Trans>Toolset</Trans> }}
+                />
+            ),
+
+            filterFn: (row, columnId, filterValue: string[]) => filterValue.includes(row.getValue(columnId)),
             cell: ({ row }) => <Badge variant="outline">{row.original.toolset}</Badge>,
         },
         {
             accessorKey: 'pluginSource',
-            header: () => <Trans>Plugin</Trans>,
+            header: headerContext => (
+                <DataTableColumnHeader
+                    headerContext={headerContext}
+                    customConfig={{ header: () => <Trans>Plugin</Trans> }}
+                />
+            ),
             // The plugin that registered the tool, so operators can tell built-in tools apart
             // from ones their own plugins contribute.
             cell: ({ row }) => (
@@ -135,15 +161,25 @@ export function ToolsBlock() {
             ),
         },
         {
-            id: 'safety',
-            header: () => <Trans>Safety</Trans>,
+            accessorKey: 'behavior',
+            header: headerContext => (
+                <DataTableColumnHeader
+                    headerContext={headerContext}
+                    customConfig={{ header: () => <Trans>Safety</Trans> }}
+                />
+            ),
             cell: ({ row }) => <SafetyBadge tool={row.original} />,
         },
         {
             accessorKey: 'description',
             header: () => <Trans>Description</Trans>,
             cell: ({ row }) => (
-                <span className="text-sm text-muted-foreground line-clamp-2">{row.original.description}</span>
+                <span
+                    className="text-sm text-muted-foreground line-clamp-2 max-w-md whitespace-normal"
+                    title={row.original.description}
+                >
+                    {row.original.description}
+                </span>
             ),
         },
         {
@@ -152,7 +188,6 @@ export function ToolsBlock() {
             cell: ({ row }) => (
                 <Switch
                     checked={row.original.enabled}
-                    disabled={toggle.isPending}
                     onCheckedChange={checked =>
                         toggle.mutate({
                             toolName: row.original.name,
@@ -166,40 +201,43 @@ export function ToolsBlock() {
     ];
 
     return (
-        <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-                <Input
-                    placeholder={t`Search tools...`}
-                    value={search}
-                    onChange={event => setSearch(event.target.value)}
-                    className="h-8 w-full sm:w-64"
-                />
-                <Select
-                    items={toolsetItems}
-                    value={toolset}
-                    onValueChange={value => value && setToolset(value)}
-                >
-                    <SelectTrigger className="h-8 w-48">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {Object.entries(toolsetItems).map(([value, label]) => (
-                            <SelectItem key={value} value={value}>
-                                {label}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
-            <DataTable
-                columns={columns}
-                data={filtered}
-                totalItems={filtered.length}
-                isLoading={isLoading}
-                page={1}
-                itemsPerPage={100}
-                disableViewOptions
-            />
-        </div>
+        <DataTable
+            columns={columns}
+            data={filtered}
+            totalItems={filtered.length}
+            isLoading={isLoading}
+            onSearchTermChange={term => setSearch(term)}
+            facetedFilters={{
+                toolset: {
+                    title: t`Toolset`,
+                    options: [
+                        { label: 'admin', value: 'admin' },
+                        { label: 'shop', value: 'shop' },
+                    ],
+                },
+            }}
+            onRefresh={() => {
+                void qc.invalidateQueries({ queryKey: ['mcp-tools'] });
+            }}
+            setTableOptions={options => ({
+                ...options,
+                manualPagination: false,
+                manualSorting: false,
+                manualFiltering: false,
+                rowCount: undefined,
+                getSortedRowModel: getSortedRowModel(),
+                getFilteredRowModel: getFilteredRowModel(),
+                // Without this, any data refresh (e.g. the refetch after toggling
+                // a tool) would jump the table back to page 1. Search and filter
+                // changes still reset the page via the DataTable itself.
+                autoResetPageIndex: false,
+            })}
+            page={page}
+            itemsPerPage={pageSize}
+            onPageChange={(_table, newPage, newPageSize) => {
+                setPage(newPage);
+                setPageSize(newPageSize);
+            }}
+        />
     );
 }
