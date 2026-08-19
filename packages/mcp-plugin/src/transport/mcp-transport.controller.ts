@@ -414,14 +414,14 @@ export class McpTransportController {
     private getVendureSessionToken(
         headers: Record<string, string | string[] | undefined>,
     ): string | undefined {
-        const key = this.configService.authOptions.authTokenHeaderKey ?? 'vendure-auth-token';
+        const key = this.configService.authOptions.authTokenHeaderKey;
         const value = this.getHeader(headers, key);
         return value || undefined;
     }
 
     private setVendureSessionToken(res: Response, token?: string): void {
         if (token) {
-            res.setHeader(this.configService.authOptions.authTokenHeaderKey ?? 'vendure-auth-token', token);
+            res.setHeader(this.configService.authOptions.authTokenHeaderKey, token);
         }
     }
 
