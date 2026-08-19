@@ -1,66 +1,60 @@
 ---
-title: 'Production & Observability'
-metaTitle: 'MCP Server Production & Observability | Vendure'
-metaDescription: 'Harden the Vendure MCP server for production: token secrets, the issuer guard, rate limiting, DNS-rebinding protection, tool-call logging with tiered capture, and the three observability tiers.'
+title: 'Production Hardening'
+metaTitle: 'MCP Server Production Hardening | Vendure'
+metaDescription: 'Harden the Vendure MCP server for production: token secrets, the issuer guard, DNS-rebinding protection, reverse proxy configuration, and rate limiting.'
 order: 6
 ---
 
-This guide covers running the MCP server in production: the hardening you must configure, how rate limiting
-behaves, what the plugin logs, and the three ways to observe it. Every option below is documented in full on
-[`McpPluginOptions`](/reference/core-plugins/mcp-plugin/mcp-plugin-options/) and its sub-types; this guide explains
-the operational choices, not the field lists.
+Before deploying the Vendure MCP server to production, configure the following:
 
-## Hardening
+1. Token secret
+2. Issuer
+3. DNS-rebinding protection
+4. Reverse proxy
+5. Rate limits
 
-### Token secret
+Each option is documented in detail in
+[`McpPluginOptions`](/reference/core-plugins/mcp-plugin/mcp-plugin-options/).
 
-`oauth.tokenSecret` is the server secret used to HMAC-hash every MCP OAuth token at rest — authorization request
-tokens, authorization codes, access tokens and refresh tokens are all stored as hashes, never as the plaintext the
-client holds. Generate it once and keep it stable:
+Tool-call logging and monitoring are covered separately in
+[Logging & Observability](/guides/mcp-server/observability/).
+
+## Set the token secret
+
+`oauth.tokenSecret` is used to HMAC-hash MCP OAuth tokens before they are stored. Authorization request tokens,
+authorization codes, access tokens, and refresh tokens are stored as hashes rather than plaintext.
+
+Generate the secret once and keep it stable:
 
 ```sh
 openssl rand -base64 32
 ```
 
-Provide it via an environment variable, not source. **Rotating the secret invalidates every stored MCP OAuth
-token**, so all agents must re-authorize — rotate deliberately, not on a schedule.
+Store it in an environment variable or secret manager, not in source control. **Rotating the secret invalidates
+every stored MCP OAuth token**, so all agents must re-authorize.
 
-One credential sits outside that scheme. Each grant creates a dedicated Vendure session, and Vendure stores session
-tokens in the clear, so that row is a working bearer credential for the ordinary Admin and Shop GraphQL APIs, where
-the grant's own expiry check does not apply. It is a one-way hash of the access token and is never sent to the
-client, so reaching it means reading the database — treat the `session` table as secret material. Its lifetime is
-bounded by the grant: revoking a grant deletes the session at once, and the OAuth cleanup job deletes it after
-the grant expires. That job runs once a day by default (03:30, tunable via `oauth.retentionSchedule`), so a
-session can outlive its expired grant by up to a day — and if the scheduler is not running, until the session
-itself expires. To end a session right away, revoke its grant.
+## Set the issuer
 
-One caveat if you run several instances: the default cache is in-memory, so revoking a grant clears the cached
-session only on the instance that handled it. The other instances keep accepting it for up to 5 minutes
-(`sessionCacheTTL`). A shared cache (Redis or SQL) fixes this — see
-[Horizontal scaling](/guides/deployment/horizontal-scaling/).
+In production, set `oauth.issuer` to the public URL of your Vendure server. When `NODE_ENV=production`, the
+plugin rejects loopback addresses such as `localhost`.
 
-### The issuer guard
+:::warning
+Keep the issuer stable once clients have been connected. Changing it invalidates all existing grants — see
+[Changing the issuer](#changing-the-issuer).
+:::
 
-To stop a misconfigured server from issuing tokens against a localhost URL, the plugin refuses to boot when
-`NODE_ENV=production` and `oauth.issuer` is a loopback address. The default — localhost on your configured
-API port — is development-only, so in production you must set it to your public Vendure URL.
+`oauth.storefrontConsentUrl` is subject to the same loopback check when configured:
 
-Treat the issuer as fixed once agents are connected. Changing it invalidates every existing grant — the tokens
-were issued for the old address, so every call is refused and refresh fails, and each agent must authorize
-again. The old grants are not revoked; the cleanup job removes their sessions once the grants expire.
+| Your deployment | What to set |
+|---|---|
+| Only administrators authorize MCP clients | `oauth.issuer` alone. `storefrontConsentUrl` has no default and is not needed. Admin authorization redirects to `oauth.adminConsentPath` on the issuer. |
+| Customers authorize MCP clients | Also set `oauth.storefrontConsentUrl`. It must not be a loopback address, and it must use HTTPS: a consent page carries a customer's session, so it cannot be served over plain HTTP. |
 
-`oauth.storefrontConsentUrl` is checked the same way, but only if you supply it. It has **no default**, and it is
-needed only when customers will authorize MCP clients, so a deployment that uses the admin toolset alone starts
-without it (admin authorization redirects to `oauth.adminConsentPath` on the issuer instead). When you do supply
-it, it must not be a loopback address, and it must use HTTPS: a consent page carries a customer's session, so it
-cannot be served over plain HTTP.
+## Turn on DNS-rebinding protection
 
-`NODE_ENV` is the only trigger, so a deployment that never sets it never gets the guard. The check also runs in the
-server process only, not the worker, and only when an `oauth` block is configured.
-
-### DNS-rebinding protection
-
-Set [`dnsRebinding`](/reference/core-plugins/mcp-plugin/mcp-dns-rebinding-options/) to reject requests whose
+DNS-rebinding protection prevents an attacker from using a browser to reach your MCP server through an
+unexpected hostname or origin. Set
+[`dnsRebinding`](/reference/core-plugins/mcp-plugin/mcp-dns-rebinding-options/) to reject requests whose
 `Host` or `Origin` header is not in an allow-list, before they reach the MCP handler:
 
 ```ts
@@ -72,199 +66,158 @@ McpPlugin.init({
 });
 ```
 
-Both lists hold **bare hostnames**, not URLs. The guard reduces the incoming header to its hostname before
-comparing, so an entry written as `https://my-store.example.com` never matches anything, and an entry carrying a
-port never matches either.
+Both lists hold bare hostnames, not URLs. The two lists are independent: supplying only one leaves the other
+header unchecked, and an empty list disables that check. The guard is off when `dnsRebinding` is omitted. Enable
+this for any internet-facing deployment.
 
-The guard is off when `dnsRebinding` is omitted. Turn it on for any internet-facing deployment.
+## Configure your reverse proxy
 
-### Let the `Origin` header through your proxy
+Make sure your reverse proxy, CDN, or WAF forwards the browser's `Origin` header to Vendure instead of stripping
+it.
 
-Check that your reverse proxy, CDN or web application firewall forwards the browser's `Origin` header to Vendure
-rather than stripping it. Both consent checks — the customer one and the administrator one — allow a request that
-arrives without an `Origin`, because a consent page rendered on a server legitimately sends none; so if something
-in front of Vendure removes the header a real browser sent, forged cross-site approvals start being accepted and
-nothing in the logs looks wrong.
+Vendure allows consent requests without an `Origin` because server-rendered consent pages can legitimately have
+no `Origin` header. If your proxy strips an `Origin` header that was sent by the browser, however, cross-site
+approval requests could bypass the origin check.
 
-### CORS and body size
+Also enable Vendure's [`trustProxy`](/guides/deployment/production-configuration/#trust-proxy). This allows
+Vendure to determine the real client IP from the proxy headers. Without it, all clients may appear to come from
+the proxy's IP, causing them to share the same rate-limit bucket.
 
-The MCP endpoints are ordinary Vendure routes, so they inherit the app-wide settings — the plugin adds no
-bespoke CORS or body parser. CORS follows `apiOptions.cors`; the request body follows the framework's default
-limit (100 KB). If you need to raise the body limit for a tool that accepts large input, do it with a
-route-scoped middleware on `apiOptions.middleware` for `/mcp`, exactly as you would for any other route.
+Use HTTPS. MCP OAuth credentials and session-related requests must not be sent over an unencrypted connection.
+Terminate TLS at your reverse proxy or load balancer and ensure HTTPS is used for the public Vendure URL.
 
-## Rate limiting
+## Set rate limits
 
 [`rateLimits`](/reference/core-plugins/mcp-plugin/mcp-rate-limit-options/) applies per-minute request caps across
-six scopes. The defaults are sensible; override only what you need:
+six scopes. The defaults are sensible. Override only what you need:
 
 | Scope | Default | Notes |
 |---|---|---|
-| `perSession` | 60 rpm | Per caller: the OAuth grant's session for authenticated calls, the client IP for anonymous `/mcp/shop` calls, the supplied Vendure session for in-process calls |
-| `perUser` | 120 rpm | Per signed-in user, counted across every session and OAuth client acting for them. Authorizing again does not reset it. Anonymous callers have no user |
-| `perClient` | 3000 rpm | Per registered OAuth client, counted across every user of that client. Sized for a whole application's traffic |
+| `perSession` | 60 rpm | Per authenticated session, anonymous client IP, or in-process Vendure session |
+| `perUser` | 120 rpm | Per signed-in user, across every session and OAuth client acting for them. Authorizing again does not reset it |
+| `perClient` | 3000 rpm | Per registered OAuth client, across every user of that client |
 | `anonymousIp` | 60 rpm | Per client IP for anonymous `/mcp/shop` calls. Set `false` to disable |
-| `oauthIp` | 60 rpm | Per client IP across the OAuth endpoints, and (as a separate bucket) per client IP for failed bearer-token authentications on the MCP endpoints. Set `false` to disable |
+| `oauthIp` | 60 rpm | Per client IP across the OAuth endpoints and failed bearer-token authentications. Set `false` to disable |
 | `perTool` | `place_order: 5`, `create_product: 10`, `refund_order: 5`, `cancel_order: 5` | Opt-in, keyed by tool name |
 
-Things to know before you tune these:
+The exact semantics of each scope are on
+[`McpRateLimitOptions`](/reference/core-plugins/mcp-plugin/mcp-rate-limit-options/).
 
-- **Also rate-limit at your proxy or CDN.** The anonymous-IP limit protects the public shop endpoint,
-  but an attacker with many IP addresses can spread requests across them. Treat the built-in limits
-  as a baseline, not your only defence. Only disable the anonymous-IP limit (`anonymousIp: false`)
-  if something in front of Vendure already limits requests by IP.
-- **Anonymous callers are counted by IP.** A caller that omits the session-token header gets a new
-  session on every request, so sessions cannot be used to count anonymous traffic. For anonymous
-  `/mcp/shop` requests, the `perSession` and `perTool` limits therefore count by client IP. Callers
-  sharing one network (an office, a campus) share those allowances.
-- **Per-tool limits are opt-in.** A tool with no `perTool` entry (or an entry of `0`) is unlimited.
-  Add entries for expensive or sensitive tools — coupon and checkout tools are typical candidates.
-- **Use a shared cache if the limits matter.** The counters are stored in Vendure's `CacheService`.
-  The default store is in-memory and holds at most 10,000 entries for the whole application, so on a
-  busy store other cache activity pushes rate-limit counters out and the limits quietly stop working.
-  The SQL and Redis cache plugins do not have this problem, and with them all instances share one
-  set of counters instead of each counting separately. One caveat: counting is exact within a single
-  instance only. Two instances updating the same counter at the same moment can overwrite each
-  other's update, so under simultaneous load a shared counter can still admit somewhat more than the
-  configured number — treat these limits as abuse protection, not a precise quota. The session cache
-  works the same way — see the revocation note under [Token secret](#token-secret).
-- **Behind a reverse proxy, enable Vendure's `trustProxy`** (a core setting, not a plugin option) so
-  `req.ip` is the real client address rather than the proxy's. Otherwise every anonymous caller
-  appears to come from the same IP and they all share a single allowance.
+Choosing rate limits:
+
+| Situation | Recommendation |
+|---|---|
+| A single shopper hits the limit | Raise `perUser` |
+| Your application approaches the 3,000 rpm `perClient` limit | Raise `perClient`. A first-party assistant registers once, so all its shoppers share this bucket |
+| A tool is expensive or sensitive | Add a `perTool` limit. A tool with no entry (or an entry of `0`) is unlimited |
+| Your proxy already rate-limits by IP | Consider disabling `anonymousIp` |
+
+:::warning
+The built-in rate limits are not a replacement for proxy/CDN-level rate limiting. A client can distribute
+requests across multiple IP addresses to bypass an IP-based limit.
+:::
+
+A caller that exceeds a limit receives an HTTP 429 — see
+[What a rate-limited caller sees](#what-a-rate-limited-caller-sees).
+
+## How it behaves
+
+### Session lifetime and security
+
+Each OAuth grant creates a dedicated Vendure session. Vendure stores session tokens in plaintext, unlike OAuth
+tokens, which are stored as hashes. This means a session token can be used as a bearer credential for the regular
+Admin and Shop GraphQL APIs, without the grant's expiry check being applied.
+
+The session token is never sent to the client, but anyone who can access the database can potentially use it.
+**Treat the session table as sensitive data.**
+
+Sessions follow the lifetime of their OAuth grant:
+
+- Revoking a grant immediately deletes its session.
+- When a grant expires, the OAuth cleanup job removes its session.
+- The cleanup job runs once a day at 03:30 by default. You can change this with `oauth.retentionSchedule`.
+- Because of this, an expired grant's session may remain in the database for up to a day. If the cleanup job is
+  not running, it can remain until the session itself expires.
+
+If you need to invalidate a session immediately, revoke the corresponding grant.
+
+### Horizontal scaling
+
+If you run multiple server instances, there is one additional consideration: the default session cache is
+in-memory.
+
+When a grant is revoked, only the instance that handled the revocation clears its cached session. Other instances
+may continue accepting the session for up to 5 minutes, based on `sessionCacheTTL`.
+
+For multi-instance deployments, use a shared cache such as Redis or SQL to ensure session invalidation is
+propagated across all instances.
+
+See [Horizontal scaling](/guides/deployment/horizontal-scaling/) for configuration details.
+
+### Changing the issuer
+
+Changing the issuer invalidates every existing grant. The tokens were issued for the old address, so every call
+is refused and refresh fails. Each agent must authorize again. The old grants are not revoked. The cleanup job
+removes their sessions once the grants expire.
+
+### When the boot guard runs
+
+`NODE_ENV` is the only trigger, so a deployment that never sets it never gets the guard. The check also runs in
+the server process only, not the worker, and only when an `oauth` block is configured.
+
+### How anonymous callers are counted
+
+A caller that omits the session-token header gets a new session on every request, so sessions cannot be used to
+count anonymous traffic. For anonymous `/mcp/shop` requests, the `perSession` and `perTool` limits therefore
+count by client IP. Callers sharing one network (an office, a campus) share those allowances.
+
+### Where the rate-limit counters live
+
+The counters are stored in Vendure's `CacheService`. The default store is in-memory and holds at most 10,000
+entries for the whole application. On a busy store, other cache activity pushes rate-limit counters out and the
+limits quietly stop working. The SQL and Redis cache plugins do not have this problem. With them, all instances
+share one set of counters instead of each counting separately. One caveat: counting is exact within a single
+instance only. Two instances updating the same counter at the same moment can overwrite each other's update. A shared
+counter can therefore still admit somewhat more than the configured number. Treat these limits as abuse
+protection, not a precise quota. The session cache works the same way. See
+[Horizontal scaling](#horizontal-scaling).
+
+### What a rate-limited caller sees
 
 What a caller sees when it hits a limit depends on how far the request got.
 
-Most refusals happen before any tool runs: the anonymous-IP check comes first (before Vendure creates
-a session for the request), and setup calls like `initialize` and `tools/list` are checked right
-after. These refusals are HTTP 429 responses with a `Retry-After` header giving the seconds to wait.
-The body is a JSON-RPC error with code `-31029`, and `error.data.retryAfterSeconds` carries the same
-wait time for programmatic use.
+Most refusals happen before any tool runs. The anonymous-IP check runs before Vendure creates a session
+for the request. Setup calls like `initialize` and `tools/list` are checked right after. These refusals
+are HTTP 429 responses with a `Retry-After` header giving the seconds to wait. The body is a JSON-RPC
+error with code `-31029`, and `error.data.retryAfterSeconds` carries the same wait time for
+programmatic use.
 
-A request that already reached a tool is refused inside the tool call, so the client gets a failed
-tool result rather than a protocol error — which is what the MCP spec asks for.
+A request that already reached a tool is refused inside the tool call. The client gets a failed tool
+result rather than a protocol error, which is what the MCP spec asks for.
 
 Notifications expect no reply, so a rate-limited notification gets the same 429 and `Retry-After`
 with `id: null` in the error body.
 
-## Logging
+### CORS and request body size
 
-Every tool call can be recorded to the [`McpToolCallLog`](/reference/core-plugins/mcp-plugin/mcp-tool-call-log/)
-table. What gets stored is controlled by [`logging.capture`](/reference/core-plugins/mcp-plugin/mcp-logging-options/):
+The MCP endpoints are ordinary Vendure routes, so they inherit the app-wide settings. The plugin adds no
+bespoke CORS or body parser. CORS follows `apiOptions.cors`. The request body follows the framework's default
+limit (100 KB). To raise the body limit for a tool that accepts large input, add a route-scoped middleware on
+`apiOptions.middleware` for `/mcp`. Set `beforeListen: true` on that middleware entry. A body parser registered
+without it does not take effect.
 
-- **`'metadata'` (default) stores no request or response bodies.** The `input` and `output` columns are left
-  `null`; only metadata — tool name, actor, channel, status, duration — is recorded. The audit table therefore
-  holds **zero request/response PII** by default. This matches the recommended audit-log posture (OWASP, GDPR
-  data-minimisation, NIST SP 800-92).
-- **`'full'` stores the bodies verbatim.** The plugin ships **no** redactor — if you enable `full`, you are
-  responsible for sanitising the data. Supply a `redact` function to apply your own policy:
+## Troubleshooting
 
-  ```ts
-  McpPlugin.init({
-      logging: {
-          capture: 'full',
-          redact: ({ toolName, input, output }) => ({
-              input: stripPii(input),
-              output: stripPii(output),
-          }),
-      },
-  });
-  ```
+| What you see | Cause | Fix |
+|---|---|---|
+| The server refuses to boot with `NODE_ENV=production` | `oauth.issuer` (or a supplied `oauth.storefrontConsentUrl`) is a loopback address, the consent URL is not HTTPS, or `oauth.allowLoopbackCimdDocuments` is enabled | Set the issuer to your public Vendure URL, serve the consent page over HTTPS, and turn off `allowLoopbackCimdDocuments` |
+| The DNS-rebinding guard rejects requests even though the host is in your allow-list | The entry is written as a URL or carries a port; the guard reduces the incoming header to its hostname before comparing, so such entries never match | Write bare hostnames in `allowedHosts` and `allowedOrigins` |
+| Rate limits never trigger on a busy store | The default in-memory cache holds at most 10,000 entries for the whole application, and other cache activity evicts the counters | Use the SQL or Redis cache plugin |
+| Anonymous callers get 429s at low traffic | Behind a proxy, `req.ip` is the proxy's address, so every anonymous caller shares one allowance | Enable Vendure's [`trustProxy`](/guides/deployment/production-configuration/#trust-proxy) |
 
-  If you enable `full` without a `redact` function, the plugin logs a one-time warning at bootstrap that you may
-  be storing sensitive data. There is no `verbose` option and no built-in PII redactor — capture level plus your
-  own `redact` is the whole model. If your `redact` function throws, the call is still logged, but with both
-  `input` and `output` set to `null`.
+## See also
 
-  Storing the bodies is not the same as exposing them: reading the `input`/`output` fields of a call log through
-  the Admin API additionally requires the `ReadCustomer` permission, on top of the `ReadMcpServer` permission that
-  gates the query itself. A caller without it gets `null` for those two fields; the rest of the row is unaffected.
-
-  Each stored body is also capped at `logging.maxBodyBytes` (default 64,000 bytes), sized so a row always fits in
-  MySQL's `TEXT` column. A body over the limit is replaced by a marker object recording its size; the rest of the
-  row is stored normally.
-
-Logs are pruned automatically. `logging.ttlDays` (default 30) sets the retention window, and a scheduled task
-deletes expired rows daily at 02:30. Override the schedule with `logging.retentionSchedule`.
-
-Set `logging.captureClientIp: true` to also store the caller's IP address on each row. It's off by default
-because an IP address is personal data — turn it on only if you need to tell anonymous callers apart. Captured
-IPs are deleted after `ttlDays` like the rest of the log. Behind a reverse proxy, enable Vendure's `trustProxy`
-so `req.ip` reports the client address rather than the proxy's.
-
-## Observability: three tiers
-
-The plugin exposes tool-call activity three ways. Use whichever fits your stack — they are independent.
-
-### 1. The database log and admin API
-
-The `McpToolCallLog` table is the durable record. The Admin GraphQL API reads it back —
-`mcpToolCallLogs` (paginated), `mcpStats` (counts, success/error rate, p50/p95, calls-per-hour, top tools) — and
-the dashboard **MCP Server** overview surfaces the same data with charts and filters. These reads are gated by
-the `ReadMcpServer` permission (see below).
-
-### 2. The `McpToolCallEvent` on the EventBus
-
-Every call — success or error, shop or admin — publishes an
-[`McpToolCallEvent`](/reference/core-plugins/mcp-plugin/mcp-tool-call-event/) carrying the persisted log entry.
-Subscribe for real-time reactions (alerting, forwarding to an external audit sink, metrics):
-
-```ts
-eventBus.ofType(McpToolCallEvent).subscribe(event => {
-    // event.entry is the McpToolCallLog row (bodies null under 'metadata')
-});
-```
-
-### 3. OpenTelemetry spans
-
-The registry is instrumented with `@Instrument()`, so each tool call emits a `callTool` span nested under the
-`/mcp` HTTP trace whenever the [`@vendure/telemetry-plugin`](/reference/core-plugins/telemetry-plugin/) is active.
-Follow that plugin's [Telemetry guide](/guides/developer-guide/telemetry/) for the collector, Jaeger/Loki/Grafana
-setup — it is not repeated here. Two MCP-specific notes:
-
-- **Enrich the span with safe attributes only.** Use `registerMethodHooks` to add tool metadata to the span —
-  never the input or output, which may contain PII:
-
-  ```ts
-  import { registerMethodHooks } from '@vendure/telemetry-plugin';
-  import { McpToolRegistryService } from '@vendure/mcp-plugin';
-
-  const mcpHooks = registerMethodHooks(McpToolRegistryService, {
-      callTool: {
-          pre: ({ args: [, toolset, name], span }) => {
-              span.setAttribute('mcp.tool.name', name);
-              span.setAttribute('mcp.tool.toolset', toolset);
-          },
-          post: ({ result, span }) => {
-              span.setAttribute('mcp.tool.status', result.isError ? 'error' : 'success');
-          },
-      },
-  });
-  ```
-
-  Pass `mcpHooks` to `TelemetryPlugin` via its options. Do **not** read `args[3]` (the tool input) or the raw
-  result payload into an attribute.
-- **Metrics dashboards are export-only.** Vendure's telemetry exports spans but has no metrics read-back API, so
-  there is no built-in `mcpStats`-grade Grafana feed from OTel. The documented path is the OpenTelemetry Collector
-  `spanmetrics` connector, which derives metrics from the spans above — a Collector configuration, not a plugin
-  feature.
-
-## Admin permissions
-
-The MCP admin surface — the GraphQL API and the dashboard overview — runs under a dedicated `McpServer`
-permission, not the general Settings permission:
-
-- **`ReadMcpServer`** grants read access: the tool registry, active grants, call logs, and stats. On its own it
-  never exposes captured call bodies — under `logging.capture: 'full'` those can contain customer personal data,
-  so reading the `input`/`output` fields of a call log also requires `ReadCustomer`; without it they come back
-  `null`.
-- **`UpdateMcpServer`** grants mutations: toggling tools on/off, revoking grants, pruning logs, and
-  [approving admin consent requests](/guides/mcp-server/oauth-consent/#admin-consent-ships-with-the-dashboard).
-
-Grant `ReadMcpServer`/`UpdateMcpServer` to operators who manage the AI integration without giving them full
-store-settings access. One behaviour is intentional and worth knowing: the tool-registry query returns the full
-registry — it is not filtered per-caller, so any holder of `ReadMcpServer` sees every tool.
-
-## Related
-
-- [OAuth & Consent](/guides/mcp-server/oauth-consent/) — the endpoints these limits and guards protect.
+- [Logging & Observability](/guides/mcp-server/observability/) — tool-call logging, operator permissions, events, and OpenTelemetry spans.
+- [OAuth Protocol Reference](/guides/mcp-server/oauth-reference/) — the endpoints these limits and guards protect.
 - [Quick Start](/guides/mcp-server/quick-start/#database-migration) — the 5-entity migration note for `synchronize: false` deployments.
+- [`McpPluginOptions`](/reference/core-plugins/mcp-plugin/mcp-plugin-options/) — every option on this page, in full.

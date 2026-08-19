@@ -884,14 +884,29 @@ const manifestInput: DocsPackageManifestInput = {
                     file: file('docs/guides/mcp-server/custom-tools/index.mdx'),
                 },
                 {
-                    title: 'Production & Observability',
+                    title: 'Production Hardening',
                     slug: 'production',
                     file: file('docs/guides/mcp-server/production/index.mdx'),
+                },
+                {
+                    title: 'Logging & Observability',
+                    slug: 'observability',
+                    file: file('docs/guides/mcp-server/observability/index.mdx'),
+                },
+                {
+                    title: 'Administration',
+                    slug: 'administration',
+                    file: file('docs/guides/mcp-server/administration/index.mdx'),
                 },
                 {
                     title: 'Built-in Tool Reference',
                     slug: 'built-in-tools',
                     file: file('docs/guides/mcp-server/built-in-tools/index.mdx'),
+                },
+                {
+                    title: 'OAuth Protocol Reference',
+                    slug: 'oauth-reference',
+                    file: file('docs/guides/mcp-server/oauth-reference/index.mdx'),
                 },
             ],
         },

@@ -11,8 +11,9 @@ The plugin ships 42 built-in tools (browsing the catalog, managing a cart, placi
 like creating products or refunding orders), and any Vendure plugin can add its own with the
 [`@McpTool`](/reference/core-plugins/mcp-plugin/mcp-tool/) decorator.
 
-This guide gets a server running, connects a client, and shows you how to debug. For the OAuth handshake that
-authenticates agents, see the [OAuth & Consent](/guides/mcp-server/oauth-consent/) guide.
+This guide gets a server running, connects a client, and shows you how to debug. For how a person approves a
+client, see [OAuth & Consent](/guides/mcp-server/oauth-consent/); for the OAuth flow itself, see the
+[OAuth Protocol Reference](/guides/mcp-server/oauth-reference/).
 
 ## Install
 
@@ -50,7 +51,7 @@ for every field and its default.
 The `issuer` defaults to `http://localhost:<your API port>`, which is right for local development only. When
 `NODE_ENV=production` the plugin refuses to boot with a localhost issuer — set it to your real public URL. `storefrontConsentUrl` has no default and is needed only if customers will authorize MCP
 clients; when you do set it, it must be a public HTTPS URL. This is covered in the
-[Production & Observability](/guides/mcp-server/production/) guide.
+[Production Hardening](/guides/mcp-server/production/) guide.
 :::
 
 ### Database migration
@@ -130,7 +131,9 @@ reach for it.
 
 ## Next steps
 
-- [OAuth & Consent](/guides/mcp-server/oauth-consent/) — how agents authenticate, and the storefront consent page you need to build for shop OAuth.
+- [OAuth & Consent](/guides/mcp-server/oauth-consent/) — approving clients, and the storefront consent page you need to build for shop OAuth.
+- [OAuth Protocol Reference](/guides/mcp-server/oauth-reference/) — the flow, endpoints, and token lifetimes behind that authentication.
 - [Registering Custom Tools](/guides/mcp-server/custom-tools/) — add your own `@McpTool` tools.
-- [Production & Observability](/guides/mcp-server/production/) — hardening, rate limits, logging, and telemetry.
+- [Production Hardening](/guides/mcp-server/production/) — the go-live checklist and rate limits.
+- [Logging & Observability](/guides/mcp-server/observability/) — tool-call logging and telemetry.
 - [Built-in Tool Reference](/guides/mcp-server/built-in-tools/) — the 42 tools the plugin ships.

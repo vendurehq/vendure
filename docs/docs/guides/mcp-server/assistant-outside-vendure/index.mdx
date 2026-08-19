@@ -21,14 +21,14 @@ Pick something else if:
 - the assistant is a **Vendure plugin** in the same process. It can run the tools directly, with no token at all —
   see [Assistant inside Vendure](/guides/mcp-server/assistant-inside-vendure/).
 - the AI client belongs to the **shopper** — Claude Desktop, ChatGPT, Cursor. Those run this flow themselves; all
-  you build is [the customer consent page](/guides/mcp-server/oauth-consent/#the-customer-consent-page).
+  you build is [the customer consent page](/guides/mcp-server/oauth-consent/#before-you-start).
 
 ## You still need the consent page
 
 Every authorization for the shop toolset redirects the browser to your `oauth.storefrontConsentUrl`. There is no
 way around it, including for your own assistant — and that is exactly where the invisibility comes from. Your
 consent page recognises your own `client_id`, approves without drawing a screen, and redirects onward. So build
-that page first: [the customer consent page](/guides/mcp-server/oauth-consent/#the-customer-consent-page).
+that page first: [the customer consent page](/guides/mcp-server/oauth-consent/#before-you-start).
 
 ## The round trip
 
@@ -326,16 +326,15 @@ Three things change with a persisted pair:
 
 ## Operational notes
 
-**Raise `rateLimits.perClient`.** The per-client limit is counted per OAuth client record, and every shopper's
-grant sits behind the single record you registered above. So the default of **120 requests per minute is a ceiling
-for your whole store's assistant traffic**, not a per-shopper allowance. It was sized for one third-party client
-acting for one person. The per-session limit is separate: counted per grant, it caps each conversation at 60
-requests per minute, and that one is usually about right.
+**Know which rate limit binds first.** Every shopper's grant sits behind the single client record you registered
+above. `rateLimits.perClient` (default 3000 requests per minute) caps that record's total traffic. Each signed-in
+shopper is separately capped by `perUser` (default 120), and each session by `perSession` (default 60). Raise
+`perClient` when your assistant's total traffic approaches the default:
 
 ```ts title="src/vendure-config.ts"
 McpPlugin.init({
     rateLimits: {
-        perClient: { rpm: 3000 },
+        perClient: { rpm: 10_000 },
     },
 });
 ```
@@ -367,6 +366,7 @@ revision reserves.
 
 ## Next steps
 
-- [The customer consent page](/guides/mcp-server/oauth-consent/#the-customer-consent-page) — the page this flow redirects through, and where your own assistant gets waved past.
+- [The customer consent page](/guides/mcp-server/oauth-consent/#before-you-start) — the page this flow redirects through, and where your own assistant gets waved past.
 - [Built-in Tool Reference](/guides/mcp-server/built-in-tools/) — the tools your assistant can reach on the shop toolset.
-- [Production & Observability](/guides/mcp-server/production/) — token secret rotation, logging, and telemetry.
+- [Production Hardening](/guides/mcp-server/production/) — token secret rotation and the go-live checklist.
+- [Logging & Observability](/guides/mcp-server/observability/) — tool-call logging and telemetry.
