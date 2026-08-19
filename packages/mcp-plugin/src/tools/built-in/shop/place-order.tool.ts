@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { PaymentInput } from '@vendure/common/lib/generated-shop-types';
-import { OrderService, Permission, RequestContext } from '@vendure/core';
+import {
+    isGraphQlErrorResult,
+    OrderService,
+    Permission,
+    RequestContext,
+    TransactionalConnection,
+} from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
@@ -17,7 +23,9 @@ type PlaceOrderInput = z.infer<typeof placeOrderInput>;
 @McpTool({
     name: 'place_order',
     toolset: 'shop',
-    description: 'Add payment to the active cart and place the order.',
+    description:
+        'Place the order: move the active cart to the payment stage if it is still open, then add ' +
+        'payment. The cart needs a shipping method and enough stock first.',
     keywords: [
         'check out',
         'complete my purchase',
@@ -36,6 +44,7 @@ export class PlaceOrderTool implements McpToolHandler<PlaceOrderInput> {
         private activeOrder: McpActiveOrderService,
         private orderService: OrderService,
         private serializer: McpToolSerializerService,
+        private connection: TransactionalConnection,
     ) {}
 
     async execute(ctx: RequestContext, input: PlaceOrderInput) {
@@ -47,13 +56,35 @@ export class PlaceOrderTool implements McpToolHandler<PlaceOrderInput> {
                     'for this store and retry with the resulting access token.',
             };
         }
-        const order = await this.activeOrder.findOrCreate(ctx);
-        const payment: PaymentInput = {
-            method: input.paymentMethodCode,
-            metadata: input.paymentMetadata ?? {},
-        };
-        return this.serializer.orderOrError(
-            await this.orderService.addPaymentToOrder(ctx, order.id, payment),
-        );
+        // Taking a payment has to run inside a database transaction: `addPaymentToOrder` refuses to
+        // run without one-
+        return this.connection.withTransaction(ctx, async txCtx => {
+            const order = await this.activeOrder.findOrCreate(txCtx);
+
+            const current = await this.orderService.findOne(txCtx, order.id);
+            let movedOutOfCart = false;
+            if (current?.state === 'AddingItems') {
+                const transition = await this.orderService.transitionToState(
+                    txCtx,
+                    order.id,
+                    'ArrangingPayment',
+                );
+                if (isGraphQlErrorResult(transition)) {
+                    return this.serializer.orderOrError(transition);
+                }
+                movedOutOfCart = true;
+            }
+
+            const payment: PaymentInput = {
+                method: input.paymentMethodCode,
+                metadata: input.paymentMetadata ?? {},
+            };
+            const result = await this.orderService.addPaymentToOrder(txCtx, order.id, payment);
+
+            if (isGraphQlErrorResult(result) && movedOutOfCart) {
+                await this.orderService.transitionToState(txCtx, order.id, 'AddingItems');
+            }
+            return this.serializer.orderOrError(result);
+        });
     }
 }
