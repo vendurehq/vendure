@@ -25,8 +25,8 @@ export interface McpHttpResult {
 export interface PostMcpOptions {
     token?: string;
     accept?: string;
-    contentType?: string | null;
-    protocolVersion?: string | null;
+    contentType?: string;
+    protocolVersion?: string;
     /** Extra request headers (e.g. session/channel tokens, Host, Origin). */
     headers?: Record<string, string>;
 }
@@ -98,18 +98,15 @@ export async function postMcp(
         Accept: options.accept ?? MCP_ACCEPT,
         ...options.headers,
     };
-    if (options.contentType !== null) {
-        headers['Content-Type'] = options.contentType ?? 'application/json';
-    }
+    headers['Content-Type'] = options.contentType ?? 'application/json';
     if (options.token) {
         headers.Authorization = `Bearer ${options.token}`;
     }
-    // Send a protocol-version header on non-initialize calls unless explicitly overridden.
+    // Send a protocol-version header on non-initialize calls (an initialize request carries the
+    // version in its body instead).
     const isInitialize = !Array.isArray(message) && (message as any)?.method === 'initialize';
-    if (options.protocolVersion !== null && !isInitialize) {
+    if (!isInitialize) {
         headers['MCP-Protocol-Version'] = options.protocolVersion ?? LATEST_PROTOCOL_VERSION;
-    } else if (options.protocolVersion) {
-        headers['MCP-Protocol-Version'] = options.protocolVersion;
     }
     const response = await fetch(`${baseUrl}/mcp/${toolset}`, {
         method: 'POST',
