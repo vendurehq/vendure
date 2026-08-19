@@ -321,6 +321,16 @@ export function getNavMenuTransforms(): NavMenuTransform[] {
     return globalRegistry.get('navMenuTransforms');
 }
 
+/**
+ * @description
+ * Registers a nav menu transform. Transforms are applied in registration order on
+ * every nav render, each receiving the previous one's output.
+ *
+ * Prefer declaring `navMenuTransforms` on your dashboard extension over calling this
+ * directly; this exists for code that runs outside `defineDashboardExtension`.
+ *
+ * @since 3.8.0
+ */
 export function addNavMenuTransform(transform: NavMenuTransform) {
     globalRegistry.get('navMenuTransforms').push(transform);
 }
