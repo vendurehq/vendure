@@ -22,8 +22,6 @@ export interface SeedAuthorizationCodeOptions {
     clientId: string;
     /** Plaintext authorization code the test will exchange. */
     codePlaintext: string;
-    verifier?: string;
-    redirectUri?: string;
 }
 
 /** The token-endpoint input that redeems a seeded authorization code. */
@@ -46,14 +44,7 @@ export async function seedAuthorizationCode(
     ctx: RequestContext,
     options: SeedAuthorizationCodeOptions,
 ): Promise<{ client: McpOauthClient; exchangeInput: AuthorizationCodeExchangeInput }> {
-    const {
-        tokenSecret,
-        resource,
-        clientId,
-        codePlaintext,
-        verifier = DEFAULT_VERIFIER,
-        redirectUri = DEFAULT_REDIRECT_URI,
-    } = options;
+    const { tokenSecret, resource, clientId, codePlaintext } = options;
 
     const superadmin = await connection
         .getRepository(ctx, User)
@@ -68,7 +59,7 @@ export async function seedAuthorizationCode(
             clientName: clientId,
             clientUri: null,
             logoUri: null,
-            redirectUris: [redirectUri],
+            redirectUris: [DEFAULT_REDIRECT_URI],
             grantTypes: ['authorization_code', 'refresh_token'],
             tokenEndpointAuthMethod: 'none',
             lastUsedAt: null,
@@ -82,9 +73,9 @@ export async function seedAuthorizationCode(
             oauthClientId: client.id,
             actorId: superadmin.id,
             actorType: 'admin',
-            redirectUri,
+            redirectUri: DEFAULT_REDIRECT_URI,
             resource,
-            codeChallenge: crypto.createHash('sha256').update(verifier).digest('base64url'),
+            codeChallenge: crypto.createHash('sha256').update(DEFAULT_VERIFIER).digest('base64url'),
             codeChallengeMethod: 'S256',
             channelId: null,
             expiresAt: new Date(Date.now() + 5 * 60 * 1000),
@@ -97,8 +88,8 @@ export async function seedAuthorizationCode(
             grant_type: 'authorization_code',
             code: codePlaintext,
             client_id: clientId,
-            redirect_uri: redirectUri,
-            code_verifier: verifier,
+            redirect_uri: DEFAULT_REDIRECT_URI,
+            code_verifier: DEFAULT_VERIFIER,
             resource,
         },
     };
