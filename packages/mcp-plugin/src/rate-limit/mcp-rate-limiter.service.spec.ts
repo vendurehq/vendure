@@ -9,14 +9,9 @@ import { McpRateLimiterService, McpRateLimitExceededError } from './mcp-rate-lim
 function makeCache() {
     const store = new Map<string, unknown>();
     return {
-        store,
         get: (key: string) => Promise.resolve(store.get(key)),
         set: (key: string, value: unknown) => {
             store.set(key, value);
-            return Promise.resolve();
-        },
-        delete: (key: string) => {
-            store.delete(key);
             return Promise.resolve();
         },
     };
@@ -25,7 +20,7 @@ function makeCache() {
 function build(options: McpPluginOptions) {
     const cache = makeCache();
     const service = new McpRateLimiterService(cache as any, resolveMcpPluginOptions(options));
-    return { service, cache };
+    return { service };
 }
 
 /** An execution context with a distinct Vendure session token (per-subject keying). */
