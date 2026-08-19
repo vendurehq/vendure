@@ -23,6 +23,11 @@ interface Bm25Doc {
     length: number;
 }
 
+// Standard Okapi BM25 tuning values: K1 caps how much repeated occurrences of a term add,
+// B sets how strongly long documents are penalized. Retuning means editing these two lines.
+const K1 = 1.5;
+const B = 0.75;
+
 /**
  * Okapi BM25 over a fixed set of named documents. Rare query terms count more than common
  * ones (a "refund" hit says more than an "order" hit when half the tools mention orders).
@@ -34,11 +39,7 @@ export class Bm25Index {
     private readonly df = new Map<string, number>();
     private readonly avgLength: number;
 
-    constructor(
-        entries: Array<{ id: string; text: string }>,
-        private readonly k1 = 1.5,
-        private readonly b = 0.75,
-    ) {
+    constructor(entries: Array<{ id: string; text: string }>) {
         for (const { id, text } of entries) {
             const tokens = tokenize(text);
             const termCounts = new Map<string, number>();
@@ -68,8 +69,8 @@ export class Bm25Index {
             }
             const df = this.df.get(term) ?? 0;
             const idf = Math.log(1 + (this.docs.size - df + 0.5) / (df + 0.5));
-            const numerator = frequency * (this.k1 + 1);
-            const denominator = frequency + this.k1 * (1 - this.b + this.b * (doc.length / this.avgLength));
+            const numerator = frequency * (K1 + 1);
+            const denominator = frequency + K1 * (1 - B + B * (doc.length / this.avgLength));
             score += idf * (numerator / denominator);
         }
         return score;
