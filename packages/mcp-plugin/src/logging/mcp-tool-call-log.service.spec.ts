@@ -19,7 +19,6 @@ function build(options: McpPluginOptions, failures: LoggingFailures = {}) {
     const savedLogs: McpToolCallLog[] = [];
     const publishedEvents: McpToolCallEvent[] = [];
     const selectWhere: Array<{ clause: string; params: Record<string, unknown> }> = [];
-    const deleteWhere: Array<{ clause: string; params: Record<string, unknown> }> = [];
     const save = vi.fn((entity: McpToolCallLog) => {
         if (failures.saveThrows) {
             return Promise.reject(new Error('save failed'));
@@ -49,7 +48,6 @@ function build(options: McpPluginOptions, failures: LoggingFailures = {}) {
             where: (clause: string, params: Record<string, unknown>) => {
                 if (qb._mode === 'delete') {
                     qb._deleteIds = (params.ids as unknown[]) ?? [];
-                    deleteWhere.push({ clause, params });
                 } else {
                     selectWhere.push({ clause, params });
                 }
@@ -84,7 +82,7 @@ function build(options: McpPluginOptions, failures: LoggingFailures = {}) {
         eventBus as any,
         resolveMcpPluginOptions(options),
     );
-    return { service, savedLogs, publishedEvents, selectWhere, deleteWhere, save, publish };
+    return { service, savedLogs, publishedEvents, selectWhere, save, publish };
 }
 
 /** Minimal registered-tool stand-in for the logger (only name/pluginSource are read). */
