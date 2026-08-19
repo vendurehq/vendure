@@ -8,7 +8,9 @@ function andPredicate(existing: Predicate | undefined, added: Predicate): Predic
     if (!existing) {
         return added;
     }
-    return ctx => existing(ctx) && added(ctx);
+    // `added` first, so a constant false short-circuits before `existing` can throw.
+    // resolveNavMenu fails open on a throw, which would un-hide the entry.
+    return ctx => added(ctx) && existing(ctx);
 }
 
 /**
