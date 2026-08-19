@@ -10,7 +10,7 @@ export interface CimdTestServer {
     /** Base URL of the server, e.g. `http://127.0.0.1:54321`. */
     baseUrl: string;
     /** Sets the response served for `path`. Objects are JSON-stringified. */
-    setDocument(path: string, body: unknown, headers?: Record<string, string>): void;
+    setDocument(path: string, body: unknown): void;
     /** Serves an HTTP error status for `path`. */
     setError(path: string, statusCode: number): void;
     /** Number of requests received for `path` so far. */
@@ -19,7 +19,7 @@ export interface CimdTestServer {
 }
 
 export async function startCimdTestServer(): Promise<CimdTestServer> {
-    const documents = new Map<string, { body: string; headers: Record<string, string> }>();
+    const documents = new Map<string, string>();
     const errors = new Map<string, number>();
     const counts = new Map<string, number>();
     const server = http.createServer((req, res) => {
@@ -31,26 +31,20 @@ export async function startCimdTestServer(): Promise<CimdTestServer> {
             return res.end('error');
         }
         const document = documents.get(path);
-        if (!document) {
+        if (document === undefined) {
             res.statusCode = 404;
             return res.end('not found');
         }
         res.setHeader('content-type', 'application/json');
-        for (const [name, value] of Object.entries(document.headers)) {
-            res.setHeader(name, value);
-        }
-        res.end(document.body);
+        res.end(document);
     });
     await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
     const { port } = server.address() as AddressInfo;
     return {
         baseUrl: `http://127.0.0.1:${port}`,
-        setDocument: (path, body, headers = {}) => {
+        setDocument: (path, body) => {
             errors.delete(path);
-            documents.set(path, {
-                body: typeof body === 'string' ? body : JSON.stringify(body),
-                headers,
-            });
+            documents.set(path, typeof body === 'string' ? body : JSON.stringify(body));
         },
         setError: (path, statusCode) => {
             documents.delete(path);
