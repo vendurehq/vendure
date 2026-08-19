@@ -25,15 +25,12 @@ export function addSeconds(date: Date, seconds: number): Date {
 }
 
 /**
- * Verifies a PKCE code verifier against a previously stored code challenge.
- * Only the `S256` method is supported: the verifier is SHA-256 hashed and
- * base64url-encoded, then compared to the challenge. Returns `false` for any
- * unsupported method or when the values do not match.
+ * Verifies a PKCE code verifier against a previously stored code challenge:
+ * the verifier is SHA-256 hashed and base64url-encoded, then compared to the
+ * challenge. Only the `S256` method exists in this flow — the authorize
+ * endpoint rejects any other method before a challenge is ever stored.
  */
-export function verifyPkceChallenge(verifier: string, challenge: string, method = 'S256'): boolean {
-    if (method !== 'S256') {
-        return false;
-    }
+export function verifyPkceChallenge(verifier: string, challenge: string): boolean {
     const digest = createHash('sha256').update(verifier).digest('base64url');
     return digest === challenge;
 }

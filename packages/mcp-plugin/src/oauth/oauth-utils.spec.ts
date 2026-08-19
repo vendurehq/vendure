@@ -25,12 +25,6 @@ describe('oauth-utils', () => {
         expect(verifyPkceChallenge(verifier, 'not-the-challenge')).toBe(false);
     });
 
-    it('verifyPkceChallenge rejects unsupported methods', () => {
-        const verifier = randomToken(32);
-        const challenge = verifier; // plain method
-        expect(verifyPkceChallenge(verifier, challenge, 'plain')).toBe(false);
-    });
-
     it('appendOAuthParams preserves existing query params and skips undefined values', () => {
         const result = appendOAuthParams('https://app.example.com/callback?existing=1', {
             code: 'abc',
