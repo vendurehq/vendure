@@ -591,13 +591,10 @@ export class McpOauthService {
     private async approveAuthorizationRequest(
         requestToken: string,
         expectedToolset: McpToolset,
-        approver: { actorId: ID | undefined; actorType: McpGrantUserType; channelId?: ID | null },
+        approver: { actorId: ID; actorType: McpGrantUserType; channelId?: ID | null },
     ): Promise<{ redirectUrl: string }> {
         const { ctx, request } = await this.consumeAuthorizationRequest(requestToken, expectedToolset);
         const { actorId, actorType, channelId = null } = approver;
-        if (actorId == null) {
-            throw new UnauthorizedException('Authenticated Vendure session required');
-        }
         const codePlaintext = randomToken();
         await this.connection.getRepository(ctx, McpAuthorizationCode).save(
             new McpAuthorizationCode({
