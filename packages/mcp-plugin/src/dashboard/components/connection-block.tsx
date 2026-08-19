@@ -57,7 +57,7 @@ function EndpointCard({
  * ready-to-paste client config snippets, and a pointer to the MCP Inspector.
  */
 export function ConnectionBlock() {
-    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const origin = window.location.origin;
     const adminUrl = `${origin}/mcp/admin`;
     const shopUrl = `${origin}/mcp/shop`;
     const inspectorCommand = 'npx @modelcontextprotocol/inspector';
