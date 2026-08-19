@@ -113,12 +113,12 @@ describe('built-in shop tool providers', () => {
         });
     });
 
-    it('warns that search_products matches literal text, so a plural finds nothing', () => {
+    it('tells the caller how search_products matches, and what it does not search', () => {
         const description = metadataFor(
             shopProviders.find(provider => metadataFor(provider).name === 'search_products'),
         ).description;
 
-        expect(description).toContain('single word');
-        expect(description).toContain('singular');
+        expect(description).toContain('Every word must appear in the name or slug');
+        expect(description).toContain('descriptions are not searched');
     });
 });

@@ -108,7 +108,7 @@ variant IDs in the first place.
 | Tool | Safety | Permission | Description |
 |---|---|---|---|
 | `get_product` | readonly | Public | Get an enabled product by ID or slug, with its purchasable variants |
-| `search_products` | readonly | Public | Literal name/slug lookup — pass a single singular word |
+| `search_products` | readonly | Public | Name/slug lookup, word by word; every word must match, plurals handled |
 | `get_collection` | readonly | Public | Get a public collection by ID or slug |
 | `list_collections` | readonly | Public | List public collections (paginated) |
 

@@ -3,7 +3,7 @@ import { Permission, ProductService, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { page, paginationFields, publicProductListOptions } from '../list-helpers';
+import { page, paginationFields, productSearchWords, publicProductListOptions } from '../list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 
 const searchProductsInput = z.strictObject({
@@ -17,10 +17,8 @@ type SearchProductsInput = z.infer<typeof searchProductsInput>;
     name: 'search_products',
     toolset: 'shop',
     description:
-        'Find products by name. The query is matched as literal text inside product names and ' +
-        'slugs, so pass a single word in its singular form: "camera" finds "Instant Camera", ' +
-        'while "cameras" or "camera bags" find nothing. If a search comes back empty, try a ' +
-        'shorter or more general word before telling the shopper the item is not stocked.',
+        'Find products by name. Every word must appear in the name or slug, and descriptions are ' +
+        'not searched. If nothing comes back, try fewer or more general words.',
     keywords: [
         'find a product',
         'search the store',
@@ -41,13 +39,23 @@ export class SearchProductsTool implements McpToolHandler<SearchProductsInput> {
     ) {}
 
     async execute(ctx: RequestContext, input: SearchProductsInput) {
-        const result = await this.productService.findAll(ctx, publicProductListOptions(input), [
-            'featuredAsset',
-        ]);
+        const words = productSearchWords(input.query);
+        const singularWords = productSearchWords(input.query, true);
+        let result = await this.findProducts(ctx, input, words);
+        // A shopper's plural never appears inside a singular product name, so "cameras" misses
+        // "Instant Camera". Retrying with the plural endings trimmed off only ever widens the
+        // match, and it runs only once the words as typed have already come back empty.
+        if (result.totalItems === 0 && singularWords.join(' ') !== words.join(' ')) {
+            result = await this.findProducts(ctx, input, singularWords);
+        }
         return page(
             result.items.map(product => this.serializer.product(product)),
             result.totalItems,
             input,
         );
+    }
+
+    private findProducts(ctx: RequestContext, input: SearchProductsInput, words: string[]) {
+        return this.productService.findAll(ctx, publicProductListOptions(input, words), ['featuredAsset']);
     }
 }

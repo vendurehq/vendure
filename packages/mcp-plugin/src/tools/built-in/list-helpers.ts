@@ -8,10 +8,6 @@ interface ListInput {
     offset?: number;
 }
 
-interface ProductListInput extends ListInput {
-    query?: string;
-}
-
 /** The list envelope every list tool returns; `total` deliberately renames Vendure's `totalItems`. */
 export function page<T>(items: T[], totalItems: number, input: { offset?: number }) {
     const offset = input.offset ?? 0;
@@ -39,27 +35,53 @@ export function listOptions<T extends VendureEntity>(input: ListInput): ListQuer
     } as ListQueryOptions<T>;
 }
 
-function productListOptions(input: ProductListInput): ListQueryOptions<Product> {
-    const options = listOptions<Product>(input);
-    const query = (input.query ?? '').trim();
-    if (!query) {
-        return options;
+/**
+ * Trims a plural ending off a word. Only characters at the end are removed, and product matching
+ * is substring-based, so the trimmed word always finds everything the original word would find.
+ * Words under four characters are left alone so that "gas" or "bus" are not mangled.
+ */
+function singular(word: string): string {
+    if (word.length < 4) {
+        return word;
     }
-    return {
-        ...options,
-        filter: {
-            _or: [{ name: { contains: query } }, { slug: { contains: query } }],
-        },
-    } as ListQueryOptions<Product>;
+    // English adds "es" rather than "s" after s, x, z, ch and sh: boxes, watches, dresses, lenses.
+    if (/(?:s|x|z|ch|sh)es$/i.test(word)) {
+        return word.slice(0, -2);
+    }
+    // A plain plural "s", but not a word that ends in "ss" of its own accord, such as "glass".
+    if (/[^s]s$/i.test(word)) {
+        return word.slice(0, -1);
+    }
+    return word;
 }
 
-export function publicProductListOptions(input: ProductListInput): ListQueryOptions<Product> {
-    const options = productListOptions(input);
+/**
+ * Splits a search query into the words a product has to match. Pass `trimPlurals` to get the words
+ * with their plural endings removed; `search_products` uses that as a second attempt when the words
+ * as the shopper typed them find nothing.
+ */
+export function productSearchWords(query: string | undefined, trimPlurals = false): string[] {
+    const words = (query ?? '')
+        .trim()
+        .split(/\s+/)
+        .filter(word => word.length > 0);
+    return trimPlurals ? words.map(singular) : words;
+}
+
+/**
+ * Builds the query for a public product search: only enabled products, and every word has to turn
+ * up in the product's name or slug, in any order. Descriptions are not searched.
+ */
+export function publicProductListOptions(input: ListInput, words: string[] = []): ListQueryOptions<Product> {
+    const options = listOptions<Product>(input);
+    const wordFilters = words.map(word => ({
+        _or: [{ name: { contains: word } }, { slug: { contains: word } }],
+    }));
     return {
         ...options,
         filter: {
-            ...options.filter,
             enabled: { eq: true },
+            ...(wordFilters.length ? { _and: wordFilters } : {}),
         },
     } as ListQueryOptions<Product>;
 }

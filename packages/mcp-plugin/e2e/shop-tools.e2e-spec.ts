@@ -767,6 +767,28 @@ describe('MCP built-in shop tools', () => {
         }
     });
 
+    it('matches search_products word by word, and retries with plurals trimmed', async () => {
+        const search = async (query: string) => {
+            const response = await postMcp(baseUrl(), 'shop', callTool('search_products', { query }));
+            const result = response.body.result.structuredContent as {
+                items: Array<{ name: string }>;
+                total: number;
+            };
+            return { names: result.items.map(item => item.name).sort(), total: result.total };
+        };
+
+        // The seeded catalog holds exactly "Test Product" and "Test Shirt".
+        expect(await search('test')).toEqual({ names: ['Test Product', 'Test Shirt'], total: 2 });
+        // Word order does not matter, and each extra word narrows the result.
+        expect(await search('shirt test')).toEqual({ names: ['Test Shirt'], total: 1 });
+        // "shirts" appears in no product name, so this only passes if the second attempt with the
+        // plural ending trimmed off ran. This is also what proves the nested name/slug conditions
+        // survive the translated-column join that Product.name goes through.
+        expect(await search('shirts')).toEqual({ names: ['Test Shirt'], total: 1 });
+        // Every word has to match, so one word from each product matches neither product.
+        expect(await search('shirt product')).toEqual({ names: [], total: 0 });
+    });
+
     it('returns the product variants a shopper needs to add anything to a cart', async () => {
         const response = await postMcp(baseUrl(), 'shop', callTool('get_product', { slug: productSlug }, 1));
 
@@ -939,8 +961,11 @@ describe('MCP built-in shop tools', () => {
             expect(result.isError).toBeUndefined();
             expect(result.structuredContent).toBeDefined();
 
+            // Other tests in this file call search_products too, so take the newest log row,
+            // which is the call this test just made.
             const log = await connection.getRepository(adminCtx, McpToolCallLog).findOneOrFail({
                 where: { toolName: 'search_products' },
+                order: { id: 'DESC' },
             });
             // No grant exists on this path, so the attribution has to come off the context.
             expect(log.grantId).toBeNull();
