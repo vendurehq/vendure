@@ -9,7 +9,6 @@ import {
     Body,
     Controller,
     Get,
-    Headers,
     Inject,
     NotFoundException,
     Post,
@@ -95,26 +94,16 @@ export class McpTransportController {
     }
 
     @Post('shop')
-    async postShop(
-        @Req() req: Request,
-        @Res() res: Response,
-        @Body() body: unknown,
-        @Headers() headers: Record<string, string | string[] | undefined>,
-    ): Promise<void> {
+    async postShop(@Req() req: Request, @Res() res: Response, @Body() body: unknown): Promise<void> {
         if (this.options.shopAccess === 'disabled') {
             throw new NotFoundException();
         }
-        return this.handlePost('shop', req, res, body, headers);
+        return this.handlePost('shop', req, res, body);
     }
 
     @Post('admin')
-    async postAdmin(
-        @Req() req: Request,
-        @Res() res: Response,
-        @Body() body: unknown,
-        @Headers() headers: Record<string, string | string[] | undefined>,
-    ): Promise<void> {
-        return this.handlePost('admin', req, res, body, headers);
+    async postAdmin(@Req() req: Request, @Res() res: Response, @Body() body: unknown): Promise<void> {
+        return this.handlePost('admin', req, res, body);
     }
 
     @Get('shop')
@@ -130,13 +119,7 @@ export class McpTransportController {
         this.methodNotAllowed(res);
     }
 
-    private async handlePost(
-        toolset: McpToolset,
-        req: Request,
-        res: Response,
-        body: unknown,
-        headers: Record<string, string | string[] | undefined>,
-    ): Promise<void> {
+    private async handlePost(toolset: McpToolset, req: Request, res: Response, body: unknown): Promise<void> {
         // 1. DNS-rebinding front guard (writes its own 403 and returns false on rejection).
         if (this.hostGuard && !this.hostGuard(req, res)) {
             return;
@@ -145,7 +128,7 @@ export class McpTransportController {
             return;
         }
 
-        const token = this.getBearerToken(this.getHeader(headers, 'authorization'));
+        const token = this.getBearerToken(this.getHeader(req.headers, 'authorization'));
 
         if (toolset === 'shop' && this.options.shopAccess === 'authenticated' && !token) {
             this.setAuthChallenge(res, 'shop');
@@ -190,8 +173,8 @@ export class McpTransportController {
             // token (for multi-channel). An invalid channel token errors like the rest of Vendure.
             try {
                 const ctx = await this.createAnonymousShopContext(
-                    this.getVendureSessionToken(headers),
-                    this.getChannelToken(headers),
+                    this.getVendureSessionToken(req.headers),
+                    this.getChannelToken(req.headers),
                 );
                 // Echo the session token BEFORE delegating — the SDK handler owns the response write.
                 // (If a future SDK path resets headers, hook res.writeHead here instead.)
@@ -207,7 +190,7 @@ export class McpTransportController {
         }
 
         // 5. Handshake rate-limit pre-check (only meaningful for JSON bodies we can parse).
-        const contentType = this.getHeader(headers, 'content-type') ?? '';
+        const contentType = this.getHeader(req.headers, 'content-type') ?? '';
         const isJson = isJsonContentType(contentType);
         const parsedBody = isJson ? body : undefined;
         if (isJson) {
