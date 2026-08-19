@@ -68,12 +68,12 @@ export class McpCimdClientResolverService {
         url: URL,
         allowLoopback: boolean,
     ): Promise<CimdDocument> {
-        const fetched = await fetchCimdDocument(url, {
+        const body = await fetchCimdDocument(url, {
             timeoutMs: CIMD_FETCH_TIMEOUT_MS,
             maxBytes: CIMD_MAX_DOCUMENT_BYTES,
             allowLoopback,
         });
-        return parseCimdDocument(clientId, fetched.body);
+        return parseCimdDocument(clientId, body);
     }
 
     /** Writes the validated document to its client row, creating the row the first time. */

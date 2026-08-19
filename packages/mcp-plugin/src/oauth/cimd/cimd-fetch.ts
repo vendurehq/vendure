@@ -26,11 +26,6 @@ export interface CimdFetchOptions {
     lookup?: typeof dns.lookup;
 }
 
-export interface CimdFetchResult {
-    /** The raw response body. */
-    body: string;
-}
-
 // RFC 6890 special-use ranges (draft §8.6 forbids fetching anything that resolves here):
 // "this host", private, CGNAT, loopback, link-local, protocol-assignment, documentation,
 // benchmarking, multicast, reserved — and their IPv6 equivalents. IPv4-mapped IPv6
@@ -129,7 +124,7 @@ let activeFetchCount = 0;
  * At the concurrency cap it fails immediately, with the same generic error as a network
  * failure — refusing the burst rather than queueing it into a backlog.
  */
-export async function fetchCimdDocument(url: URL, options: CimdFetchOptions): Promise<CimdFetchResult> {
+export async function fetchCimdDocument(url: URL, options: CimdFetchOptions): Promise<string> {
     if (activeFetchCount >= MAX_CONCURRENT_CIMD_FETCHES) {
         throw new BadRequestException('client_id metadata document could not be fetched');
     }
@@ -141,11 +136,11 @@ export async function fetchCimdDocument(url: URL, options: CimdFetchOptions): Pr
     }
 }
 
-function runFetch(url: URL, options: CimdFetchOptions): Promise<CimdFetchResult> {
+function runFetch(url: URL, options: CimdFetchOptions): Promise<string> {
     const transport = url.protocol === 'https:' ? https : http;
     const deadline = AbortSignal.timeout(options.timeoutMs);
     const timedOut = () => new BadRequestException('client_id metadata document request timed out');
-    return new Promise<CimdFetchResult>((resolve, reject) => {
+    return new Promise<string>((resolve, reject) => {
         let settled = false;
         const fail = (error: Error) => {
             if (!settled) {
@@ -154,10 +149,10 @@ function runFetch(url: URL, options: CimdFetchOptions): Promise<CimdFetchResult>
                 reject(error);
             }
         };
-        const succeed = (result: CimdFetchResult) => {
+        const succeed = (body: string) => {
             if (!settled) {
                 settled = true;
-                resolve(result);
+                resolve(body);
             }
         };
         const request = transport.request(
@@ -195,7 +190,7 @@ function runFetch(url: URL, options: CimdFetchOptions): Promise<CimdFetchResult>
                     chunks.push(chunk);
                 });
                 response.on('end', () => {
-                    succeed({ body: Buffer.concat(chunks).toString('utf8') });
+                    succeed(Buffer.concat(chunks).toString('utf8'));
                 });
                 // The deadline destroys the request mid-body, which surfaces here rather than on
                 // the request itself, so it has to be reported as the timeout it is.

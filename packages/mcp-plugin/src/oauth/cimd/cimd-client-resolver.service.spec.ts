@@ -102,7 +102,7 @@ describe('McpCimdClientResolverService', () => {
     it('fetches, validates and stores the document when the row is stale', async () => {
         const stale = makeRow(CLIENT_ID, new Date('2026-08-03T11:00:00Z'));
         const { resolver, repository } = createResolver({ rows: [stale] });
-        fetchMock.mockResolvedValue({ body: documentBody() });
+        fetchMock.mockResolvedValue(documentBody());
 
         const result = await resolver.resolveClient({} as any, CLIENT_ID);
         expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -113,7 +113,7 @@ describe('McpCimdClientResolverService', () => {
 
     it('creates the row on first resolution', async () => {
         const { resolver, rows } = createResolver();
-        fetchMock.mockResolvedValue({ body: documentBody() });
+        fetchMock.mockResolvedValue(documentBody());
 
         const result = await resolver.resolveClient({} as any, CLIENT_ID);
         expect(rows).toContain(result);
@@ -133,9 +133,7 @@ describe('McpCimdClientResolverService', () => {
 
     it('does not store anything when the document is invalid', async () => {
         const { resolver, repository } = createResolver();
-        fetchMock.mockResolvedValue({
-            body: documentBody({ client_id: 'https://other.example.com/x.json' }),
-        });
+        fetchMock.mockResolvedValue(documentBody({ client_id: 'https://other.example.com/x.json' }));
 
         await expect(resolver.resolveClient({} as any, CLIENT_ID)).rejects.toThrow('must exactly match');
         expect(repository.save).not.toHaveBeenCalled();
@@ -147,7 +145,7 @@ describe('McpCimdClientResolverService', () => {
         const stale = makeRow(CLIENT_ID, new Date('2026-08-03T11:00:00Z'));
         stale.redirectUris = ['https://client.example.com/old-callback'];
         const { resolver } = createResolver({ rows: [stale], failWrites: true });
-        fetchMock.mockResolvedValue({ body: documentBody() });
+        fetchMock.mockResolvedValue(documentBody());
 
         await expect(resolver.resolveClient({} as any, CLIENT_ID)).rejects.toThrow('write failed');
     });
@@ -155,7 +153,7 @@ describe('McpCimdClientResolverService', () => {
     // Losing the race to insert the first row is the one write failure that is safe to absorb.
     it('serves the row another server inserted first when the write loses that race', async () => {
         const { resolver, rows } = createResolver({ failWrites: true });
-        fetchMock.mockResolvedValue({ body: documentBody() });
+        fetchMock.mockResolvedValue(documentBody());
         // The winning insert lands while this request is fetching.
         rows.push(makeRow(CLIENT_ID, new Date('2026-08-03T12:30:00Z')));
 
@@ -169,7 +167,7 @@ describe('McpCimdClientResolverService', () => {
         const { resolver, repository } = createResolver({ rows: [otherCasing] });
         // Stand in for a case-insensitive comparison: the query matches the case-variant row.
         repository.findOne.mockResolvedValue(otherCasing);
-        fetchMock.mockResolvedValue({ body: documentBody() });
+        fetchMock.mockResolvedValue(documentBody());
 
         const result = await resolver.resolveClient({} as any, CLIENT_ID);
         expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -196,25 +194,25 @@ describe('McpCimdClientResolverService', () => {
         expect(fetchMock).not.toHaveBeenCalled();
 
         const { resolver: permissive } = createResolver({ allowLoopback: true });
-        fetchMock.mockResolvedValue({
-            body: JSON.stringify({
+        fetchMock.mockResolvedValue(
+            JSON.stringify({
                 client_id: loopbackClientId,
                 client_name: 'Local Client',
                 redirect_uris: ['https://client.example.com/callback'],
             }),
-        });
+        );
         const result = await permissive.resolveClient({} as any, loopbackClientId);
         expect(result.clientName).toBe('Local Client');
     });
 
     it('merges concurrent resolutions of the same client_id into one fetch', async () => {
         const { resolver } = createResolver();
-        let release!: (value: cimdFetch.CimdFetchResult) => void;
+        let release!: (value: string) => void;
         fetchMock.mockReturnValue(new Promise(resolve => (release = resolve)));
 
         const first = resolver.resolveClient({} as any, CLIENT_ID);
         const second = resolver.resolveClient({} as any, CLIENT_ID);
-        release({ body: documentBody() });
+        release(documentBody());
         const [a, b] = await Promise.all([first, second]);
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(a.clientName).toBe('Example MCP Client');

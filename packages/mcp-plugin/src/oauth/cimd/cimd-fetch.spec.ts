@@ -33,7 +33,7 @@ describe('fetchCimdDocument', () => {
             res.end('{"ok":true}');
         });
         const result = await fetchCimdDocument(url, baseOptions);
-        expect(result.body).toBe('{"ok":true}');
+        expect(result).toBe('{"ok":true}');
     });
 
     it('accepts application/*+json content types', async () => {
@@ -41,7 +41,7 @@ describe('fetchCimdDocument', () => {
             res.setHeader('content-type', 'application/oauth-client-metadata+json; charset=utf-8');
             res.end('{}');
         });
-        await expect(fetchCimdDocument(url, baseOptions)).resolves.toMatchObject({ body: '{}' });
+        await expect(fetchCimdDocument(url, baseOptions)).resolves.toBe('{}');
     });
 
     it('rejects any non-200 status', async () => {
@@ -119,7 +119,7 @@ describe('fetchCimdDocument', () => {
         }) as any;
         const target = new URL(`http://cimd-host.example:${url.port}/metadata.json`);
         const result = await fetchCimdDocument(target, { ...baseOptions, lookup });
-        expect(result.body).toBe('{"via":"lookup"}');
+        expect(result).toBe('{"via":"lookup"}');
     });
 });
 
@@ -157,16 +157,14 @@ describe('fetchCimdDocument concurrency cap', () => {
         responses.forEach(res => res.end('{"ok":true}'));
         const results = await Promise.all(pending);
         expect(results).toHaveLength(MAX_CONCURRENT_CIMD_FETCHES);
-        results.forEach(result => expect(result.body).toBe('{"ok":true}'));
+        results.forEach(result => expect(result).toBe('{"ok":true}'));
 
         // A slot freed up when the batch above settled, so a brand-new fetch is admitted.
         const freedUrl = await startServer((req, res) => {
             res.setHeader('content-type', 'application/json');
             res.end('{"via":"freed-slot"}');
         });
-        await expect(fetchCimdDocument(freedUrl, baseOptions)).resolves.toMatchObject({
-            body: '{"via":"freed-slot"}',
-        });
+        await expect(fetchCimdDocument(freedUrl, baseOptions)).resolves.toBe('{"via":"freed-slot"}');
     });
 });
 
