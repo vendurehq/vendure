@@ -18,6 +18,25 @@ const activeAdministratorCustomFieldsDocument = graphql(`
 `);
 
 /**
+ * Narrows the response to the Administrator custom fields. `addCustomFields` grafts the
+ * selections on at runtime, so the generated result type cannot describe them.
+ */
+function readAdminCustomFields(data: unknown): Record<string, unknown> | undefined {
+    if (typeof data !== 'object' || data === null || !('activeAdministrator' in data)) {
+        return undefined;
+    }
+    const administrator = (data as { activeAdministrator: unknown }).activeAdministrator;
+    if (typeof administrator !== 'object' || administrator === null || !('customFields' in administrator)) {
+        return undefined;
+    }
+    const customFields = (administrator as { customFields: unknown }).customFields;
+    if (typeof customFields !== 'object' || customFields === null) {
+        return undefined;
+    }
+    return customFields as Record<string, unknown>;
+}
+
+/**
  * Internal. Loads the Administrator custom fields for the logged-in user.
  *
  * Deliberately not part of the public API. It returns an untyped
@@ -37,18 +56,29 @@ export function useAdminCustomFields(): {
     const serverConfig = useServerConfig();
     const { user } = useAuth();
 
+    // Keyed on the map, not on serverConfig: main.tsx fills the map in an effect, so a
+    // serverConfig-keyed memo runs a render too early and bakes in an empty map.
+    const customFieldsMap = getCustomFieldsMap();
+
     const document = useMemo(
+        () => addCustomFields(activeAdministratorCustomFieldsDocument, { customFieldsMap }),
+        [customFieldsMap],
+    );
+
+    // The selection set changes with the custom field config, so the cache key must too.
+    const customFieldSignature = useMemo(
         () =>
-            addCustomFields(activeAdministratorCustomFieldsDocument, {
-                customFieldsMap: getCustomFieldsMap(),
-            }),
-        [serverConfig],
+            (customFieldsMap.get('Administrator') ?? [])
+                .map(field => field.name)
+                .sort((a, b) => a.localeCompare(b))
+                .join(','),
+        [customFieldsMap],
     );
 
     const enabled = !!serverConfig && !!user?.id;
 
     const { data, isSuccess, isError, fetchStatus } = useQuery({
-        queryKey: ['activeAdministratorCustomFields', user?.id],
+        queryKey: ['activeAdministratorCustomFields', user?.id, customFieldSignature],
         queryFn: () => api.query(document),
         enabled,
         // Fail open promptly. Without this the query inherits the default of 3
@@ -65,7 +95,7 @@ export function useAdminCustomFields(): {
     });
 
     return {
-        customFields: (data as any)?.activeAdministrator?.customFields,
+        customFields: readAdminCustomFields(data),
         // When logged out there is nothing to wait for, so report ready. Note this is
         // based on login state alone, not `enabled` - `enabled` also waits on
         // serverConfig, and there is a real window where the user is logged in but
