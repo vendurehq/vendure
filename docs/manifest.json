@@ -12,7 +12,7 @@
           "title": "Installation",
           "slug": "installation",
           "file": "docs/guides/getting-started/installation/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-08-19T13:58:32+02:00"
         },
         {
           "title": "Introducing GraphQL",
@@ -686,7 +686,7 @@
           "title": "Storefront Starters",
           "slug": "storefront-starters",
           "file": "docs/guides/storefront/storefront-starters/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-08-19T13:58:32+02:00"
         },
         {
           "title": "Connect API",
