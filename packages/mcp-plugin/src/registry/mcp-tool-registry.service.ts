@@ -347,7 +347,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             return rateLimited;
         }
         const tool = this.tools.get(this.toolKey(toolset, name));
-        if (!tool || tool.toolset !== toolset) {
+        if (!tool) {
             return this.errorResult(`Unknown MCP tool: ${name}`);
         }
         const toggles = await this.getToolToggles(ctx);
