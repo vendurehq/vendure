@@ -1,4 +1,5 @@
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
+import { LanguageCode } from '@vendure/common/lib/generated-types';
 import {
     ConfigService,
     Customer,
@@ -7,6 +8,7 @@ import {
     mergeConfig,
     Order,
     OrderByCodeAccessStrategy,
+    PaymentMethodHandler,
     RequestContext,
     RequestContextService,
     Session,
@@ -14,7 +16,7 @@ import {
     User,
 } from '@vendure/core';
 import { McpTool, McpToolMetadata } from '@vendure/mcp-sdk';
-import { createTestEnvironment } from '@vendure/testing';
+import { createTestEnvironment, SimpleGraphQLClient } from '@vendure/testing';
 import gql from 'graphql-tag';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -41,6 +43,25 @@ const shopToolNames = shopToolProviders
     .map(provider => (Reflect.getMetadata(McpTool.KEY, provider) as McpToolMetadata).name)
     .sort();
 
+/**
+ * A payment method for the checkout test. The shared test data ships no payment method, and
+ * `place_order` cannot be exercised without one. It settles immediately, so a placed order lands in
+ * `PaymentSettled`.
+ */
+const testPaymentHandler = new PaymentMethodHandler({
+    code: 'e2e-payment-handler',
+    description: [{ languageCode: LanguageCode.en, value: 'E2E payment handler' }],
+    args: {},
+    createPayment: (ctx, order, amount, args, metadata) => ({
+        amount,
+        state: 'Settled' as const,
+        transactionId: 'e2e-checkout-1',
+        metadata,
+    }),
+    settlePayment: () => ({ success: true }),
+});
+const PAYMENT_METHOD_CODE = 'e2e-payment';
+
 class TestOrderByCodeAccessStrategy implements OrderByCodeAccessStrategy {
     allow = true;
 
@@ -53,6 +74,7 @@ describe('MCP built-in shop tools', () => {
     const orderByCodeAccessStrategy = new TestOrderByCodeAccessStrategy();
     const config = mergeConfig(testConfig(), {
         orderOptions: { orderByCodeAccessStrategy },
+        paymentOptions: { paymentMethodHandlers: [testPaymentHandler] },
         plugins: [
             McpPlugin.init({
                 oauth: {
@@ -995,6 +1017,98 @@ describe('MCP built-in shop tools', () => {
                 status: 'confirmation_required',
                 confirmed: false,
             });
+        });
+    });
+
+    // A signed-in customer paying for their cart, over the same HTTP transport a real client uses.
+    // `place_order` is the only tool that takes a payment, and a payment can only be taken inside a
+    // database transaction, which nothing outside the tool opens for it. Every other checkout tool
+    // works without one, so nothing short of a test that actually pays shows that gap.
+    describe('checkout', () => {
+        let checkoutAuthToken: string;
+
+        beforeAll(async () => {
+            const created = await adminClient.query(
+                gql`
+                    mutation CreateShopToolPaymentMethod($input: CreatePaymentMethodInput!) {
+                        createPaymentMethod(input: $input) {
+                            id
+                            code
+                        }
+                    }
+                `,
+                {
+                    input: {
+                        code: PAYMENT_METHOD_CODE,
+                        enabled: true,
+                        handler: { code: testPaymentHandler.code, arguments: [] },
+                        translations: [
+                            { languageCode: LanguageCode.en, name: 'E2E payment', description: '' },
+                        ],
+                    },
+                },
+            );
+            expect(created.createPaymentMethod.code).toBe(PAYMENT_METHOD_CODE);
+
+            // This customer needs a session on the default channel. The shared `shopClient` session
+            // is pinned to the second channel, which has no shipping methods to check out with.
+            const checkoutClient = new SimpleGraphQLClient(
+                config,
+                `http://localhost:${config.apiOptions.port}/${config.apiOptions.shopApiPath as string}`,
+            );
+            const login = await checkoutClient.asUserWithCredentials(customerEmail, 'test');
+            if (!login || login.errorCode) {
+                throw new Error(`Checkout customer login failed: ${JSON.stringify(login)}`);
+            }
+            checkoutAuthToken = checkoutClient.getAuthToken();
+        }, TEST_SETUP_TIMEOUT_MS);
+
+        it('walks a cart through checkout and places the order', async () => {
+            const flow = await runShopAuthorizationCodeFlow({
+                baseUrl: baseUrl(),
+                issuer: ISSUER,
+                vendureAuthToken: checkoutAuthToken,
+            });
+            const call = (name: string, args: Record<string, unknown>, id: number) =>
+                postMcp(baseUrl(), 'shop', callTool(name, args, id), { token: flow.access_token });
+
+            const added = await call('add_to_cart', { variantId, quantity: 1 }, 1);
+            expect(added.body.result.isError).toBeUndefined();
+
+            const address = await call(
+                'set_shipping_address',
+                {
+                    address: {
+                        streetLine1: '451 Sansome Street',
+                        city: 'San Francisco',
+                        postalCode: '94111',
+                        countryCode: 'US',
+                    },
+                },
+                2,
+            );
+            expect(address.body.result.isError).toBeUndefined();
+
+            const quotes = await call('get_eligible_shipping_methods', {}, 3);
+            const methodId = quotes.body.result.structuredContent.methods[0]?.id;
+            expect(methodId).toBeDefined();
+
+            const chosen = await call('set_shipping_method', { methodId }, 4);
+            expect(chosen.body.result.isError).toBeUndefined();
+
+            const placed = await call(
+                'place_order',
+                { paymentMethodCode: PAYMENT_METHOD_CODE, confirm: true },
+                5,
+            );
+
+            expect(placed.body.result.isError).toBeUndefined();
+            const placedOrder = placed.body.result.structuredContent.order;
+            expect(placedOrder.state).toBe('PaymentSettled');
+
+            const stored = await orderByCode(placedOrder.code);
+            expect(stored.state).toBe('PaymentSettled');
+            expect(stored.orderPlacedAt).toBeTruthy();
         });
     });
 });
