@@ -37,8 +37,8 @@ interface McpOauthGrantInfo {
     id: ID;
     createdAt: Date;
     updatedAt: Date;
-    actorId: string | null;
-    actorType: string | null;
+    actorId: string;
+    actorType: string;
     channelId: ID | null;
     oauthClientName: string | null;
     lastActivityAt: Date;
@@ -115,12 +115,10 @@ export class McpAdminResolver {
                 now: new Date(),
             });
         }
-        if (ctx.channelId != null) {
-            // The active channel's grants, plus channel-less (global) grants
-            qb.andWhere('(mcpoauthgrant.channelId = :channelId OR mcpoauthgrant.channelId IS NULL)', {
-                channelId: ctx.channelId,
-            });
-        }
+        // The active channel's grants, plus channel-less (global) grants
+        qb.andWhere('(mcpoauthgrant.channelId = :channelId OR mcpoauthgrant.channelId IS NULL)', {
+            channelId: ctx.channelId,
+        });
         if (Object.keys(args.options?.sort ?? {}).length === 0) {
             qb.orderBy('mcpoauthgrant.lastActivityAt', 'DESC');
         }
@@ -130,8 +128,8 @@ export class McpAdminResolver {
             id: grant.id,
             createdAt: grant.createdAt,
             updatedAt: grant.updatedAt,
-            actorId: grant.actorId != null ? String(grant.actorId) : null,
-            actorType: grant.actorType ?? null,
+            actorId: String(grant.actorId),
+            actorType: grant.actorType,
             channelId: grant.channelId,
             oauthClientName: grant.oauthClient?.clientName ?? null,
             lastActivityAt: grant.lastActivityAt,
@@ -152,13 +150,11 @@ export class McpAdminResolver {
             ctx,
             entityAlias: 'log',
         });
-        if (ctx.channelId != null) {
-            // Channel-less rows come from global (admin) grants and show on every
-            // channel, matching the grants query above.
-            qb.andWhere('(log.channelId = :channelId OR log.channelId IS NULL)', {
-                channelId: ctx.channelId,
-            });
-        }
+        // Channel-less rows come from global (admin) grants and show on every
+        // channel, matching the grants query above.
+        qb.andWhere('(log.channelId = :channelId OR log.channelId IS NULL)', {
+            channelId: ctx.channelId,
+        });
         return qb.getManyAndCount().then(([items, totalItems]) => ({ items, totalItems }));
     }
 
@@ -172,8 +168,7 @@ export class McpAdminResolver {
                 `Invalid timeRange "${timeRange}" - use one of ${Object.keys(STATS_TIME_RANGE_HOURS).join(', ')}`,
             );
         }
-        const channelKey = ctx.channelId != null ? String(ctx.channelId) : 'all';
-        const cacheKey = `mcp:stats:${channelKey}:${timeRange}`;
+        const cacheKey = `mcp:stats:${String(ctx.channelId)}:${timeRange}`;
         const cached = await this.cacheService.get<McpStats>(cacheKey);
         if (cached) {
             return cached;
@@ -282,7 +277,7 @@ export class McpAdminResolver {
             errorRate: totalCalls === 0 ? 0 : (totalCalls - successCount) / totalCalls,
             p50LatencyMs,
             p95LatencyMs,
-            callsPerHour: hours === 0 ? 0 : totalCalls / hours,
+            callsPerHour: totalCalls / hours,
             topTools,
         };
     }
@@ -320,11 +315,9 @@ export class McpAdminResolver {
             .getRepository(ctx, McpToolCallLog)
             .createQueryBuilder('log')
             .where('log.createdAt >= :since', { since });
-        if (ctx.channelId != null) {
-            qb.andWhere('(log.channelId = :channelId OR log.channelId IS NULL)', {
-                channelId: ctx.channelId,
-            });
-        }
+        qb.andWhere('(log.channelId = :channelId OR log.channelId IS NULL)', {
+            channelId: ctx.channelId,
+        });
         return qb;
     }
 }
