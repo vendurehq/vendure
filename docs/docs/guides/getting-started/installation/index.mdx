@@ -1,7 +1,7 @@
 ---
 title: 'Installation'
-metaTitle: "Installing Vendure with @vendure/create"
-metaDescription: "Step-by-step guide to scaffold a new Vendure project using @vendure/create. Covers quick start, manual config, database selection, and running the server."
+metaTitle: 'Installing Vendure with @vendure/create'
+metaDescription: 'Step-by-step guide to scaffold a new Vendure project using @vendure/create. Covers quick start, manual config, database selection, and running the server.'
 order: 1
 ---
 
@@ -38,8 +38,8 @@ If you have Docker Desktop installed, it will create and configure a Postgres da
 └
 ```
 
-Next you'll be prompted to include our official Next.js storefront starter in your project. This is optional, but recommended if you want to
-quickly see a working storefront connected to your Vendure server.
+Next, you will be prompted to include an official storefront starter in your project. Vendure officially supports
+[TanStack Start and Next.js starters](/storefront/storefront-starters/). This step is optional, but recommended if you want to quickly see a working storefront connected to your Vendure server.
 
 ```console
 ┌  Let's create a Vendure App ✨
@@ -51,9 +51,10 @@ quickly see a working storefront connected to your Vendure server.
 │
 ◇  Docker is running
 │
-◆  Would you like to include the Next.js storefront? # [!code highlight]
-│  ○ No # [!code highlight]
-│  ● Yes # [!code highlight]
+◆  Would you like to include a storefront? # [!code highlight]
+│  ○ None # [!code highlight]
+│  ● TanStack Start # [!code highlight]
+│  ○ Next.js # [!code highlight]
 └ # [!code highlight]
 ```
 
@@ -128,13 +129,13 @@ The final prompt will ask whether to populate your new Vendure server with some 
 
 #### 3. Optional storefront setup
 
-From v3.5.2 onwards, you can choose to include an official Next.js Storefront Starter as part of your new Vendure project.
+You can choose to include the official TanStack Start or Next.js Storefront Starter as part of your new Vendure project.
 
 #### 4. Complete setup
 
 Next, a project scaffold will be created and dependencies installed. This may take a few minutes.
 
-Once complete, you'll see a message like this:
+Once complete, you will see a message like this. This example uses the TanStack Start starter:
 
 ```console
 ◇  Setup complete! ─────────────────────────────────────╮
@@ -145,7 +146,7 @@ Once complete, you'll see a message like this:
 │                                                       │
 │  This is a monorepo with the following apps:          │
 │    apps/server     - Vendure backend                  │
-│    apps/storefront - Next.js frontend                 │
+│    apps/storefront - TanStack Start frontend          │
 │                                                       │
 │                                                       │
 │  Next, run:                                           │
@@ -192,9 +193,9 @@ You should now be able to access:
 - The Vendure Shop GraphQL API: [http://localhost:3000/shop-api](http://localhost:3000/shop-api)
 - The Vendure Dashboard: [http://localhost:3000/dashboard](http://localhost:3000/dashboard/)
 
-If you included the Next.js Storefront Starter, you can also access:
+If you included a Storefront Starter, you can also access:
 
-- The Next.js Storefront: [http://localhost:3001](http://localhost:3001/)
+- The storefront: [http://localhost:3001](http://localhost:3001/)
 
 ![Running apps](./app-screens.webp)
 

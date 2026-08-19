@@ -1,20 +1,36 @@
 ---
-title: "Storefront Starters"
-metaTitle: "Vendure Storefront Starter Projects"
-metaDescription: "Official and community-maintained storefront starters for Vendure, including Next.js, Remix, Qwik, and Angular templates with built-in e-commerce features."
+title: 'Storefront Starters'
+metaTitle: 'Vendure Storefront Starter Projects'
+metaDescription: 'Official TanStack Start and Next.js storefront starters for Vendure, with production-ready e-commerce features.'
 ---
+
+Vendure officially supports storefront starters for **TanStack Start** and **Next.js**. Both provide a production-ready foundation that you can customize for your store.
+
+New Vendure projects created with `@vendure/create` can include either starter. The tool configures the storefront and Vendure server together in a monorepo.
+
+## TanStack Start Storefront Starter
+
+The TanStack Start Storefront Starter uses TanStack Router, Vite, and Paraglide. It is organized into feature modules with clear dependency boundaries, and includes a managed workflow for adopting upstream starter releases without overwriting your customizations.
+
+It includes:
+
+- Product listings, details, search, facets, and sorting
+- Cart and checkout flows
+- Customer accounts, addresses, and order history
+- Multi-language and multi-currency support
+- Cache revalidation
+- A managed upgrade workflow
+
+- 🔗 [tanstack.vendure.io](https://tanstack.vendure.io/)
+- 💻 [github.com/vendurehq/tanstack-starter-vendure](https://github.com/vendurehq/tanstack-starter-vendure)
 
 ## Next.js Storefront Starter
 
-The Vendure team has created an official Next.js Storefront Starter that you can use as a base for your own storefront.
-
-:::info
-From v3.5.2 onwards, new Vendure projects created using the `@vendure/create` tool can choose to include this Next.js Storefront Starter by default.
-:::
+The Next.js Storefront Starter uses the App Router, next-intl, and Tailwind CSS.
 
 ![Next.js Storefront](./next-storefront.webp)
 
-This starter includes all basic functionality out of the box, including:
+It includes:
 
 - Product listing
 - Product details
@@ -30,42 +46,3 @@ This starter includes all basic functionality out of the box, including:
 :::note
 Prefer to build your own solution? Follow the rest of the guides in this section to learn how to build a Storefront from scratch.
 :::
-
-## Community-maintained Starters
-
-The Next.js starter is the official Vendure Storefront starter, but there are also several further starters that were originally created
-as demos by the Vendure team, and are now community-maintained.
-
-### Remix Storefront
-
-- 🔗 [remix-storefront.vendure.io](https://remix-storefront.vendure.io/)
-- 💻 [github.com/vendurehq/storefront-remix-starter](https://github.com/vendurehq/storefront-remix-starter)
-
-[Remix](https://remix.run/) is a React-based full-stack JavaScript framework which focuses on web standards, modern web app UX, and which helps you build better websites.
-
-Our official Remix Storefront starter provides you with a lightning-fast, modern storefront solution which can be deployed to any of the popular cloud providers like Vercel, Netlify, or Cloudflare Pages.
-
-![Remix Storefront](./remix-storefront.webp)
-
-### Qwik Storefront
-
-- 🔗 [qwik-storefront.vendure.io](https://qwik-storefront.vendure.io/)
-- 💻 [github.com/vendurehq/storefront-qwik-starter](https://github.com/vendurehq/storefront-qwik-starter)
-
-[Qwik](https://qwik.builder.io/) is a cutting-edge web framework that offers unmatched performance.
-
-Our official Qwik Storefront starter provides you with a lightning-fast, modern storefront solution which can be deployed to any of the popular cloud providers like Vercel, Netlify, or Cloudflare Pages.
-
-![Qwik Storefront](./qwik-storefront.webp)
-
-### Angular Storefront
-
-- 🔗 [angular-storefront.vendure.io](https://angular-storefront.vendure.io/)
-- 💻 [github.com/vendurehq/storefront-angular-starter](https://github.com/vendurehq/storefront-angular-starter)
-
-[Angular](https://angular.io/) is a popular, stable, enterprise-grade framework made by Google.
-
-Our official Angular Storefront starter is a modern Progressive Web App that uses Angular Universal server-side rendering.
-
-![Angular Storefront](./angular-storefront.webp)
-
