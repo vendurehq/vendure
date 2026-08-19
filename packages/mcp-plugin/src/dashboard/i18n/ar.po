@@ -233,12 +233,6 @@ msgstr "خطأ في تحميل إحصائيات MCP: {0}"
 msgid "Error loading tools: {0}"
 msgstr "خطأ في تحميل الأدوات: {0}"
 
-msgid "Error loading activity: {0}"
-msgstr "خطأ في تحميل النشاط: {0}"
-
-msgid "Error loading grants: {0}"
-msgstr "خطأ في تحميل المنح: {0}"
-
 msgid "The request could not be completed"
 msgstr "تعذر إكمال الطلب"
 

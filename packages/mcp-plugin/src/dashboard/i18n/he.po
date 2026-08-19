@@ -233,12 +233,6 @@ msgstr "שגיאה בטעינת הסטטיסטיקות של MCP: {0}"
 msgid "Error loading tools: {0}"
 msgstr "שגיאה בטעינת הכלים: {0}"
 
-msgid "Error loading activity: {0}"
-msgstr "שגיאה בטעינת הפעילות: {0}"
-
-msgid "Error loading grants: {0}"
-msgstr "שגיאה בטעינת ההרשאות: {0}"
-
 msgid "The request could not be completed"
 msgstr "לא ניתן היה להשלים את הבקשה"
 

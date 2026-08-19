@@ -233,12 +233,6 @@ msgstr "Pogreška prilikom učitavanja MCP statistike: {0}"
 msgid "Error loading tools: {0}"
 msgstr "Pogreška prilikom učitavanja alata: {0}"
 
-msgid "Error loading activity: {0}"
-msgstr "Pogreška prilikom učitavanja aktivnosti: {0}"
-
-msgid "Error loading grants: {0}"
-msgstr "Pogreška prilikom učitavanja odobrenja: {0}"
-
 msgid "The request could not be completed"
 msgstr "Zahtjev nije mogao biti dovršen"
 

@@ -233,12 +233,6 @@ msgstr "Errore durante il caricamento delle statistiche MCP: {0}"
 msgid "Error loading tools: {0}"
 msgstr "Errore durante il caricamento degli strumenti: {0}"
 
-msgid "Error loading activity: {0}"
-msgstr "Errore durante il caricamento dell'attività: {0}"
-
-msgid "Error loading grants: {0}"
-msgstr "Errore durante il caricamento delle concessioni: {0}"
-
 msgid "The request could not be completed"
 msgstr "Non è stato possibile completare la richiesta"
 

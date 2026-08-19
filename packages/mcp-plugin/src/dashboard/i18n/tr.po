@@ -233,12 +233,6 @@ msgstr "MCP istatistikleri yüklenirken hata oluştu: {0}"
 msgid "Error loading tools: {0}"
 msgstr "Araçlar yüklenirken hata oluştu: {0}"
 
-msgid "Error loading activity: {0}"
-msgstr "Etkinlik yüklenirken hata oluştu: {0}"
-
-msgid "Error loading grants: {0}"
-msgstr "Yetkiler yüklenirken hata oluştu: {0}"
-
 msgid "The request could not be completed"
 msgstr "İstek tamamlanamadı"
 

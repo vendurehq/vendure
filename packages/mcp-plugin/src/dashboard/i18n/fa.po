@@ -233,12 +233,6 @@ msgstr "خطا در بارگیری آمار MCP: {0}"
 msgid "Error loading tools: {0}"
 msgstr "خطا در بارگیری ابزارها: {0}"
 
-msgid "Error loading activity: {0}"
-msgstr "خطا در بارگیری فعالیت: {0}"
-
-msgid "Error loading grants: {0}"
-msgstr "خطا در بارگیری مجوزها: {0}"
-
 msgid "The request could not be completed"
 msgstr "درخواست کامل نشد"
 

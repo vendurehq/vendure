@@ -233,12 +233,6 @@ msgstr "MCP तथ्याङ्क लोड गर्दा त्रुट�
 msgid "Error loading tools: {0}"
 msgstr "उपकरणहरू लोड गर्दा त्रुटि: {0}"
 
-msgid "Error loading activity: {0}"
-msgstr "गतिविधि लोड गर्दा त्रुटि: {0}"
-
-msgid "Error loading grants: {0}"
-msgstr "अनुदानहरू लोड गर्दा त्रुटि: {0}"
-
 msgid "The request could not be completed"
 msgstr "अनुरोध पूरा हुन सकेन"
 

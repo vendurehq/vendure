@@ -233,12 +233,6 @@ msgstr "MCP 통계를 불러오는 중 오류가 발생했습니다: {0}"
 msgid "Error loading tools: {0}"
 msgstr "도구를 불러오는 중 오류가 발생했습니다: {0}"
 
-msgid "Error loading activity: {0}"
-msgstr "활동을 불러오는 중 오류가 발생했습니다: {0}"
-
-msgid "Error loading grants: {0}"
-msgstr "권한 부여를 불러오는 중 오류가 발생했습니다: {0}"
-
 msgid "The request could not be completed"
 msgstr "요청을 완료할 수 없습니다"
 

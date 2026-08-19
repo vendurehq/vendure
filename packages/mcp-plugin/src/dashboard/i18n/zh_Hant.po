@@ -233,12 +233,6 @@ msgstr "載入 MCP 統計資訊時發生錯誤：{0}"
 msgid "Error loading tools: {0}"
 msgstr "載入工具時發生錯誤：{0}"
 
-msgid "Error loading activity: {0}"
-msgstr "載入活動時發生錯誤：{0}"
-
-msgid "Error loading grants: {0}"
-msgstr "載入授權時發生錯誤：{0}"
-
 msgid "The request could not be completed"
 msgstr "無法完成請求"
 

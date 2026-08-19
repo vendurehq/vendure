@@ -233,12 +233,6 @@ msgstr "Fout bij het laden van MCP-statistieken: {0}"
 msgid "Error loading tools: {0}"
 msgstr "Fout bij het laden van tools: {0}"
 
-msgid "Error loading activity: {0}"
-msgstr "Fout bij het laden van activiteit: {0}"
-
-msgid "Error loading grants: {0}"
-msgstr "Fout bij het laden van toekenningen: {0}"
-
 msgid "The request could not be completed"
 msgstr "De aanvraag kon niet worden voltooid"
 

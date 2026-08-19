@@ -233,12 +233,6 @@ msgstr "Error loading MCP statistics: {0}"
 msgid "Error loading tools: {0}"
 msgstr "Error loading tools: {0}"
 
-msgid "Error loading activity: {0}"
-msgstr "Error loading activity: {0}"
-
-msgid "Error loading grants: {0}"
-msgstr "Error loading grants: {0}"
-
 msgid "The request could not be completed"
 msgstr "The request could not be completed"
 

@@ -233,12 +233,6 @@ msgstr "Помилка завантаження статистики MCP: {0}"
 msgid "Error loading tools: {0}"
 msgstr "Помилка завантаження інструментів: {0}"
 
-msgid "Error loading activity: {0}"
-msgstr "Помилка завантаження активності: {0}"
-
-msgid "Error loading grants: {0}"
-msgstr "Помилка завантаження дозволів: {0}"
-
 msgid "The request could not be completed"
 msgstr "Не вдалося виконати запит"
 

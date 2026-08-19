@@ -233,12 +233,6 @@ msgstr "Грешка при зареждане на MCP статистиките
 msgid "Error loading tools: {0}"
 msgstr "Грешка при зареждане на инструментите: {0}"
 
-msgid "Error loading activity: {0}"
-msgstr "Грешка при зареждане на активността: {0}"
-
-msgid "Error loading grants: {0}"
-msgstr "Грешка при зареждане на разрешенията: {0}"
-
 msgid "The request could not be completed"
 msgstr "Заявката не можа да бъде изпълнена"
 

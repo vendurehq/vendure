@@ -233,12 +233,6 @@ msgstr "Eroare la încărcarea statisticilor MCP: {0}"
 msgid "Error loading tools: {0}"
 msgstr "Eroare la încărcarea instrumentelor: {0}"
 
-msgid "Error loading activity: {0}"
-msgstr "Eroare la încărcarea activității: {0}"
-
-msgid "Error loading grants: {0}"
-msgstr "Eroare la încărcarea autorizărilor: {0}"
-
 msgid "The request could not be completed"
 msgstr "Cererea nu a putut fi finalizată"
 
