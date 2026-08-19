@@ -281,10 +281,6 @@ export interface RunShopAuthorizationCodeFlowOptions {
     issuer: string;
     /** A real Vendure customer session token, used to approve storefront consent. */
     vendureAuthToken: string;
-    /** Human-readable client name for DCR. Defaults to a unique value per call. */
-    clientName?: string;
-    /** Registered redirect URI. Defaults to `https://example.com/cb`. */
-    redirectUri?: string;
     /**
      * Channel token to submit the consent under, sent as the `vendure-token` header. A real
      * consent page must send this on a multi-channel store: the mutation takes the channel from
@@ -332,14 +328,9 @@ export async function submitShopConsent(options: SubmitShopConsentOptions): Prom
 export function runShopAuthorizationCodeFlow(
     options: RunShopAuthorizationCodeFlowOptions,
 ): Promise<AuthorizationCodeFlowResult> {
-    const {
-        baseUrl,
-        issuer,
-        vendureAuthToken,
-        clientName = `oauth-shop-test-client-${Math.random().toString(36).slice(2)}`,
-        redirectUri = 'https://example.com/cb',
-        channelToken,
-    } = options;
+    const { baseUrl, issuer, vendureAuthToken, channelToken } = options;
+    const clientName = `oauth-shop-test-client-${Math.random().toString(36).slice(2)}`;
+    const redirectUri = 'https://example.com/cb';
 
     return driveAuthorizationCodeFlow({
         baseUrl,
