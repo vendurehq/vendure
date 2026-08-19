@@ -326,8 +326,10 @@ describe('defineDashboardExtension - navSections', () => {
         executeDashboardExtensionCallbacks();
 
         const section = getNavMenuConfig().sections.find(s => s.id === 'my-section');
-        const item = (section as any).items[0];
-        expect(item.isVisible).toBe(isVisible);
+        if (!section || !('items' in section)) {
+            throw new Error('Expected "my-section" to be registered as a section');
+        }
+        expect(section.items?.[0].isVisible).toBe(isVisible);
     });
 
     it('warns when a route navMenuItem targets an unknown sectionId', () => {

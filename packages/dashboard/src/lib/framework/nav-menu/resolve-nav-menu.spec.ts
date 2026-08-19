@@ -2,8 +2,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { buildDashboardUserContext } from '../user-context/dashboard-user-context.js';
 
-import { NavMenuConfig } from './nav-menu-extensions.js';
+import { NavMenuConfig, NavMenuItem, NavMenuSection } from './nav-menu-extensions.js';
 import { resetNavMenuWarnings, resolveNavMenu } from './resolve-nav-menu.js';
+
+/** Reads item ids from a resolved entry, failing the test rather than casting. */
+function itemIds(entry: NavMenuSection | NavMenuItem | undefined): string[] {
+    if (!entry || !('items' in entry)) {
+        throw new Error(`Expected a section, got ${entry ? entry.id : 'nothing'}`);
+    }
+    return (entry.items ?? []).map(item => item.id);
+}
 
 const ctxWith = (permissions: string[] = []) =>
     buildDashboardUserContext({
@@ -47,7 +55,7 @@ describe('resolveNavMenu - existing behaviour', () => {
             [],
         );
         expect(result.map(s => s.id)).toEqual(['first', 'second']);
-        expect((result[0] as any).items.map((i: any) => i.id)).toEqual(['zebra', 'aardvark', 'apple']);
+        expect(itemIds(result[0])).toEqual(['zebra', 'aardvark', 'apple']);
     });
 
     it('orders bare items by order then title', () => {
@@ -84,8 +92,7 @@ describe('resolveNavMenu - existing behaviour', () => {
             ctxWith([]),
             [],
         );
-        const catalog = result[0] as any;
-        expect(catalog.items.map((i: any) => i.id)).toEqual(['products']);
+        expect(itemIds(result[0])).toEqual(['products']);
     });
 
     it('drops a section whose items are all filtered out', () => {
