@@ -1,4 +1,9 @@
-import { hostHeaderValidation, originValidation, toNodeHandler } from '@modelcontextprotocol/node';
+import {
+    hostHeaderValidation,
+    type NodeMcpRequestHandler,
+    originValidation,
+    toNodeHandler,
+} from '@modelcontextprotocol/node';
 import { AuthInfo, createMcpHandler, isJsonContentType } from '@modelcontextprotocol/server';
 import {
     Body,
@@ -32,12 +37,6 @@ import { McpToolRegistryService } from '../registry/mcp-tool-registry.service';
 
 import { createMcpServerForRequest } from './mcp-server.factory';
 
-/** A Node `(req, res, parsedBody?)` handler as produced by `toNodeHandler`. */
-type NodeMcpHandler = (req: Request, res: Response, parsedBody?: unknown) => Promise<void>;
-
-/** A `(req, res) => boolean` DNS-rebinding front guard (writes its own 403 on rejection). */
-type FrontGuard = (req: Request, res: Response) => boolean;
-
 /** Minimal JSON-RPC error envelope returned by the handshake pre-check. */
 interface JsonRpcError {
     jsonrpc: '2.0';
@@ -54,9 +53,9 @@ interface JsonRpcError {
  */
 @Controller('mcp')
 export class McpTransportController {
-    private readonly nodeHandler: NodeMcpHandler;
-    private readonly hostGuard?: FrontGuard;
-    private readonly originGuard?: FrontGuard;
+    private readonly nodeHandler: NodeMcpRequestHandler;
+    private readonly hostGuard?: ReturnType<typeof hostHeaderValidation>;
+    private readonly originGuard?: ReturnType<typeof originValidation>;
 
     constructor(
         private oauthService: McpOauthService,
@@ -91,12 +90,8 @@ export class McpTransportController {
             },
         });
         const dns = this.options.dnsRebinding;
-        this.hostGuard = dns?.allowedHosts?.length
-            ? (hostHeaderValidation(dns.allowedHosts) as FrontGuard)
-            : undefined;
-        this.originGuard = dns?.allowedOrigins?.length
-            ? (originValidation(dns.allowedOrigins) as FrontGuard)
-            : undefined;
+        this.hostGuard = dns?.allowedHosts?.length ? hostHeaderValidation(dns.allowedHosts) : undefined;
+        this.originGuard = dns?.allowedOrigins?.length ? originValidation(dns.allowedOrigins) : undefined;
     }
 
     @Post('shop')
