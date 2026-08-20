@@ -139,9 +139,9 @@ function ConsentCard({ requestToken }: { requestToken: string }) {
                  * exchange), so it leads the card. Everything the client reports about itself
                  * is untrusted and shown lower down.
                  */}
-                <div className="space-y-1 rounded-md border border-amber-500/40 bg-amber-500/5 p-3">
+                <div className="space-y-1 rounded-md border border-warning/40 bg-warning/5 p-3">
                     <div className="flex items-center gap-2 text-xs font-medium">
-                        <AlertTriangleIcon className="h-4 w-4 text-amber-600" />
+                        <AlertTriangleIcon className="h-4 w-4 text-warning" />
                         <Trans>The authorization code will be sent to</Trans>
                     </div>
                     {redirectHost ? (
@@ -157,7 +157,7 @@ function ConsentCard({ requestToken }: { requestToken: string }) {
                     </p>
                     {/* A loopback host means "this computer": any local app could receive the code. */}
                     {redirectHost != null && isLoopbackHostname(redirectHost) ? (
-                        <p className="text-xs font-medium text-amber-700">
+                        <p className="text-xs font-medium text-warning">
                             <Trans>
                                 This destination is on the local machine. Any application running on that
                                 machine could receive the authorization code.
