@@ -158,16 +158,14 @@ export class McpTransportController {
         }
 
         // 4. Authenticate and build the execution context.
+        if (toolset === 'admin' && !token) {
+            this.setAuthChallenge(res, 'admin');
+            throw new UnauthorizedException('Admin MCP endpoint requires a Bearer token');
+        }
+
         let executionContext: McpExecutionContext;
-        if (toolset === 'admin') {
-            if (!token) {
-                this.setAuthChallenge(res, 'admin');
-                throw new UnauthorizedException('Admin MCP endpoint requires a Bearer token');
-            }
-            const authContext = await this.authenticateBearerToken(token, 'admin', res, clientIp);
-            executionContext = { ...authContext, clientIp };
-        } else if (token) {
-            const authContext = await this.authenticateBearerToken(token, 'shop', res, clientIp);
+        if (token) {
+            const authContext = await this.authenticateBearerToken(token, toolset, res, clientIp);
             executionContext = { ...authContext, clientIp };
         } else {
             // Anonymous shop: thread the Vendure session token (for cart continuity) and the channel
