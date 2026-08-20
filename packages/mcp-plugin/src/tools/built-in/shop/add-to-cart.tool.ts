@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import {
+    ID,
     OrderService,
     Permission,
     ProductVariantService,
@@ -59,8 +60,6 @@ export class AddToCartTool implements McpToolHandler<AddToCartInput> {
     ) {}
 
     async execute(ctx: RequestContext, input: AddToCartInput) {
-        const hasVariant = input.variantId != null;
-        const hasProduct = input.productId != null;
         // Product IDs and variant IDs come from separate counting sequences that overlap, so a
         // product ID passed as a variant ID usually finds a real but unrelated variant: the wrong
         // item is added and nothing looks wrong. Making the caller say which kind of ID it is
@@ -70,15 +69,16 @@ export class AddToCartTool implements McpToolHandler<AddToCartInput> {
         // as a success, so throwing is the only way to report a failure. UserInputError is one of
         // the few error types whose message reaches the caller unchanged; other types are replaced
         // with a generic message before the response leaves the server.
-        if (hasVariant === hasProduct) {
-            throw new UserInputError('Pass exactly one of variantId or productId.');
+        const exactlyOneIdMessage = 'Pass exactly one of variantId or productId.';
+        if (input.variantId != null && input.productId != null) {
+            throw new UserInputError(exactlyOneIdMessage);
         }
 
-        let variantId = input.variantId;
-        if (hasProduct) {
+        let variantId: ID;
+        if (input.productId != null) {
             const variants = await this.productVariantService.getVariantsByProductId(
                 ctx,
-                input.productId as string | number,
+                input.productId,
                 {},
                 [],
             );
@@ -100,16 +100,15 @@ export class AddToCartTool implements McpToolHandler<AddToCartInput> {
                 );
             }
             variantId = variants.items[0].id;
+        } else if (input.variantId != null) {
+            variantId = input.variantId;
+        } else {
+            throw new UserInputError(exactlyOneIdMessage);
         }
 
         const order = await this.activeOrder.findOrCreate(ctx);
         return this.serializer.orderOrError(
-            await this.orderService.addItemToOrder(
-                ctx,
-                order.id,
-                variantId as string | number,
-                input.quantity,
-            ),
+            await this.orderService.addItemToOrder(ctx, order.id, variantId, input.quantity),
         );
     }
 }
