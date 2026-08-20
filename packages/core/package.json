@@ -28,6 +28,7 @@
         "e2e": "cross-env PACKAGE=core vitest --config ../../e2e-common/vitest.config.mts --run",
         "e2e:watch": "cross-env PACKAGE=core vitest --config ../../e2e-common/vitest.config.mts",
         "bench": "cross-env PACKAGE=core vitest --config ../../e2e-common/vitest.config.bench.ts --run",
+        "bench:pg-pipeline": "cross-env PACKAGE=core DB=postgres vitest --config ../../e2e-common/vitest.config.bench.ts --run e2e/postgres-pipelining.bench.ts --reporter=verbose",
         "i18n:extract": "node ./scripts/translate/i18n-tool.mjs extract",
         "i18n:apply": "node ./scripts/translate/i18n-tool.mjs apply",
         "ci": "npm run build"
@@ -99,7 +100,7 @@
         "glob": "^10.3.10",
         "ioredis": "^5.3.2",
         "mysql2": "^3.15.0",
-        "pg": "^8.13.1",
+        "pg": "^8.23.0",
         "rimraf": "^5.0.5",
         "sql.js": "1.13.0",
         "typescript": "5.8.2"

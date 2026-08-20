@@ -34,6 +34,9 @@ export function getPostgresConnectionOptions(databaseName: string) {
         username: 'admin',
         password: 'secret',
         database: databaseName,
+        extra: {
+            pipeline: true,
+        },
     };
 }
 

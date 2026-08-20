@@ -1,4 +1,4 @@
-import { mergeConfig } from '@vendure/core';
+import { mergeConfig, TransactionalConnection } from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
 import { fail } from 'assert';
 import path from 'path';
@@ -39,6 +39,18 @@ describe('Transaction infrastructure', () => {
 
     afterAll(async () => {
         await server.destroy();
+    });
+
+    itIfDb(['postgres'])('enables query pipelining on PostgreSQL connections', async () => {
+        const connection = server.app.get(TransactionalConnection).rawConnection;
+        const queryRunner = connection.createQueryRunner();
+
+        try {
+            const databaseConnection = await queryRunner.connect();
+            expect(databaseConnection.pipeline).toBe(true);
+        } finally {
+            await queryRunner.release();
+        }
     });
 
     it('non-failing mutation', async () => {

@@ -113,6 +113,9 @@ export function getDbConfig(): DataSourceOptions {
                 port: process.env.CI ? +(process.env.E2E_POSTGRES_PORT || 5432) : 5432,
                 username: 'vendure',
                 password: 'password',
+                extra: {
+                    pipeline: true,
+                },
             };
         case 'mariadb':
             return {
