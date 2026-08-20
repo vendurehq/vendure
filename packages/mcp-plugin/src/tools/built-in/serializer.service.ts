@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ShippingMethodQuote } from '@vendure/common/lib/generated-types';
 import {
     Asset,
+    Channel,
     Collection,
     ConfigService,
     CurrencyCode,
@@ -94,6 +95,14 @@ export class McpToolSerializerService {
             slug: collection.slug,
             description: collection.description,
             featuredAsset: collection.featuredAsset ? this.asset(collection.featuredAsset) : null,
+        };
+    }
+
+    channel(channel: Channel) {
+        return {
+            id: channel.id,
+            code: channel.code,
+            token: channel.token,
         };
     }
 

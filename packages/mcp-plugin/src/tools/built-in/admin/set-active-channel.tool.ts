@@ -12,6 +12,9 @@ import { McpCallerInfo, McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { McpOauthGrant } from '../../../entities/mcp-oauth-grant.entity';
+import { McpToolSerializerService } from '../serializer.service';
+
+import { userChannelIds } from './channel-access';
 
 const setActiveChannelInput = z.strictObject({
     channelToken: z.string().describe('Channel token of the channel to activate.'),
@@ -40,11 +43,12 @@ export class SetActiveChannelTool implements McpToolHandler<SetActiveChannelInpu
     constructor(
         private channelService: ChannelService,
         private connection: TransactionalConnection,
+        private serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: SetActiveChannelInput, caller?: McpCallerInfo) {
         const channel = await this.channelService.getChannelFromToken(ctx, input.channelToken);
-        const accessibleIds = ctx.session?.user?.channelPermissions.map(entry => entry.id) ?? [];
+        const accessibleIds = userChannelIds(ctx);
         if (!accessibleIds.some(id => idsAreEqual(id, channel.id))) {
             throw new ForbiddenError();
         }
@@ -58,6 +62,6 @@ export class SetActiveChannelTool implements McpToolHandler<SetActiveChannelInpu
         const grant = await this.connection.getEntityOrThrow(ctx, McpOauthGrant, caller.grant.id);
         grant.channelId = channel.id;
         await this.connection.getRepository(ctx, McpOauthGrant).save(grant);
-        return { channel: { id: channel.id, code: channel.code, token: channel.token } };
+        return { channel: this.serializer.channel(channel) };
     }
 }

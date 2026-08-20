@@ -4,6 +4,9 @@ import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { page, paginationFields, slicePage } from '../list-helpers';
+import { McpToolSerializerService } from '../serializer.service';
+
+import { userChannelIds } from './channel-access';
 
 const listChannelsInput = z.strictObject({
     ...paginationFields('channels'),
@@ -29,19 +32,18 @@ type ListChannelsInput = z.infer<typeof listChannelsInput>;
 })
 @Injectable()
 export class ListChannelsTool implements McpToolHandler<ListChannelsInput> {
-    constructor(private channelService: ChannelService) {}
+    constructor(
+        private channelService: ChannelService,
+        private serializer: McpToolSerializerService,
+    ) {}
 
     async execute(ctx: RequestContext, input: ListChannelsInput) {
-        const accessibleIds = ctx.session?.user?.channelPermissions.map(entry => entry.id) ?? [];
+        const accessibleIds = userChannelIds(ctx);
         const result = await this.channelService.findAll(ctx);
         const accessible = result.items.filter(channel =>
             accessibleIds.some(id => idsAreEqual(id, channel.id)),
         );
-        const items = slicePage(accessible, input).map(channel => ({
-            id: channel.id,
-            code: channel.code,
-            token: channel.token,
-        }));
+        const items = slicePage(accessible, input).map(channel => this.serializer.channel(channel));
         return page(items, accessible.length, input);
     }
 }
