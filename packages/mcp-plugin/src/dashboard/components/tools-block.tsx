@@ -23,15 +23,15 @@ import { mcpToolsQuery, setMcpToolEnabledDocument } from '../mcp.graphql';
 
 type McpTool = ResultOf<typeof mcpToolsQuery>['mcpTools'][number];
 
-function SafetyBadge({ tool }: { tool: McpTool }) {
-    if (tool.behavior === 'destructive') {
+function SafetyBadge({ behavior }: { behavior: McpTool['behavior'] }) {
+    if (behavior === 'destructive') {
         return (
             <Badge variant="destructive">
                 <Trans>Destructive</Trans>
             </Badge>
         );
     }
-    if (tool.behavior === 'readonly') {
+    if (behavior === 'readonly') {
         return (
             <Badge variant="secondary">
                 <Trans>Read-only</Trans>
@@ -168,7 +168,7 @@ export function ToolsBlock() {
                     customConfig={{ header: () => <Trans>Safety</Trans> }}
                 />
             ),
-            cell: ({ row }) => <SafetyBadge tool={row.original} />,
+            cell: ({ row }) => <SafetyBadge behavior={row.original.behavior} />,
         },
         {
             accessorKey: 'description',
