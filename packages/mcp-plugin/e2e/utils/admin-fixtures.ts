@@ -62,7 +62,14 @@ export async function provisionAdmin(
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-            query: `mutation { login(username: "${email}", password: "test") { __typename } }`,
+            query: `
+                mutation Login($username: String!, $password: String!) {
+                    login(username: $username, password: $password) {
+                        __typename
+                    }
+                }
+            `,
+            variables: { username: email, password: 'test' },
         }),
     });
     const token = response.headers.get('vendure-auth-token');
