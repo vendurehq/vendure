@@ -37,12 +37,19 @@ export class ShopGetCollectionTool implements McpToolHandler<GetCollectionInput>
     ) {}
 
     async execute(ctx: RequestContext, input: GetCollectionInput) {
-        const collection =
-            input.id != null
-                ? await this.collectionService.findOne(ctx, input.id, ['featuredAsset'])
-                : await this.collectionService.findOneBySlug(ctx, input.slug ?? '', ['featuredAsset']);
+        const collection = await this.findCollection(ctx, input);
         return {
             collection: collection && !collection.isPrivate ? this.serializer.collection(collection) : null,
         };
+    }
+
+    private async findCollection(ctx: RequestContext, input: GetCollectionInput) {
+        if (input.id != null) {
+            return this.collectionService.findOne(ctx, input.id, ['featuredAsset']);
+        }
+        if (input.slug != null) {
+            return this.collectionService.findOneBySlug(ctx, input.slug, ['featuredAsset']);
+        }
+        return undefined;
     }
 }

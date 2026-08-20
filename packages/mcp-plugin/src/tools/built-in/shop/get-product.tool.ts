@@ -40,10 +40,7 @@ export class ShopGetProductTool implements McpToolHandler<GetProductInput> {
     ) {}
 
     async execute(ctx: RequestContext, input: GetProductInput) {
-        const product =
-            input.id != null
-                ? await this.productService.findOne(ctx, input.id, ['featuredAsset', 'assets'])
-                : await this.productService.findOneBySlug(ctx, input.slug ?? '', ['featuredAsset', 'assets']);
+        const product = await this.findProduct(ctx, input);
         if (product?.enabled !== true) {
             return { product: null };
         }
@@ -59,5 +56,15 @@ export class ShopGetProductTool implements McpToolHandler<GetProductInput> {
                 variants: variants.items.map(variant => this.serializer.variant(variant)),
             },
         };
+    }
+
+    private async findProduct(ctx: RequestContext, input: GetProductInput) {
+        if (input.id != null) {
+            return this.productService.findOne(ctx, input.id, ['featuredAsset', 'assets']);
+        }
+        if (input.slug != null) {
+            return this.productService.findOneBySlug(ctx, input.slug, ['featuredAsset', 'assets']);
+        }
+        return undefined;
     }
 }
