@@ -33,6 +33,7 @@ import {
     MCP_GRANT_ACTIVITY_UPDATE_INTERVAL_MS,
     MCP_PLUGIN_OPTIONS,
     mcpServerPermission,
+    OAUTH_ENDPOINT_PATHS,
     SUPPORTED_OAUTH_GRANT_TYPES,
 } from '../constants';
 import { McpAuthorizationCode } from '../entities/mcp-authorization-code.entity';
@@ -154,10 +155,10 @@ export class McpOauthService {
         const issuer = this.issuerOrigin();
         return {
             issuer,
-            authorization_endpoint: `${issuer}/mcp/oauth/authorize`,
-            token_endpoint: `${issuer}/mcp/oauth/token`,
-            registration_endpoint: `${issuer}/mcp/oauth/register`,
-            revocation_endpoint: `${issuer}/mcp/oauth/revoke`,
+            authorization_endpoint: `${issuer}/${OAUTH_ENDPOINT_PATHS.authorize}`,
+            token_endpoint: `${issuer}/${OAUTH_ENDPOINT_PATHS.token}`,
+            registration_endpoint: `${issuer}/${OAUTH_ENDPOINT_PATHS.register}`,
+            revocation_endpoint: `${issuer}/${OAUTH_ENDPOINT_PATHS.revoke}`,
             response_types_supported: ['code'],
             grant_types_supported: SUPPORTED_OAUTH_GRANT_TYPES,
             code_challenge_methods_supported: ['S256'],

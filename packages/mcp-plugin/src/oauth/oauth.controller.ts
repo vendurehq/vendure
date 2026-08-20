@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 
+import { OAUTH_ENDPOINT_PATHS } from '../constants';
 import {
     McpOauthRateLimitExceptionFilter,
     McpOauthRateLimitGuard,
@@ -38,12 +39,12 @@ export class McpOauthController {
         return this.oauthService.protectedResourceMetadata(endpoint);
     }
 
-    @Post('mcp/oauth/register')
+    @Post(OAUTH_ENDPOINT_PATHS.register)
     register(@Body() input: RegisterClientInput) {
         return this.oauthService.registerClient(input);
     }
 
-    @Get('mcp/oauth/authorize')
+    @Get(OAUTH_ENDPOINT_PATHS.authorize)
     async authorize(@Query() input: AuthorizeInput, @Res() res: Response): Promise<void> {
         const redirectUrl = await this.oauthService.createAuthorizationRedirect(input);
         res.redirect(redirectUrl);
@@ -56,13 +57,13 @@ export class McpOauthController {
 
     // RFC 6749 §5.1 requires the token endpoint to respond with 200; override the NestJS
     // @Post default of 201.
-    @Post('mcp/oauth/token')
+    @Post(OAUTH_ENDPOINT_PATHS.token)
     @HttpCode(200)
     token(@Body() input: TokenInput) {
         return this.oauthService.exchangeToken(input);
     }
 
-    @Post('mcp/oauth/revoke')
+    @Post(OAUTH_ENDPOINT_PATHS.revoke)
     @HttpCode(200)
     revoke(@Body('token') token?: string) {
         return this.oauthService.revoke(token);
