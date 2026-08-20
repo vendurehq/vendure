@@ -30,6 +30,7 @@ import { IsNull, MoreThan } from 'typeorm';
 import {
     loggerCtx,
     MAX_CLIENT_METADATA_FIELD_LENGTH,
+    MAX_OAUTH_STATE_LENGTH,
     MCP_GRANT_ACTIVITY_UPDATE_INTERVAL_MS,
     MCP_PLUGIN_OPTIONS,
     mcpServerPermission,
@@ -220,8 +221,8 @@ export class McpOauthService {
                 error_description,
                 state: input.state,
             });
-        if (input.state && input.state.length > MAX_CLIENT_METADATA_FIELD_LENGTH) {
-            return invalidRequest(`state must not exceed ${MAX_CLIENT_METADATA_FIELD_LENGTH} characters`);
+        if (input.state && input.state.length > MAX_OAUTH_STATE_LENGTH) {
+            return invalidRequest(`state must not exceed ${MAX_OAUTH_STATE_LENGTH} characters`);
         }
         // RFC 7636 §4.2: a code_challenge is 43-128 characters.
         if (input.code_challenge.length < 43 || input.code_challenge.length > 128) {
@@ -271,7 +272,8 @@ export class McpOauthService {
         if (!requestToken) {
             throw new BadRequestException('request_token is required');
         }
-        const request = await this.findActiveAuthorizationRequest(requestToken);
+        const ctx = await this.createAdminCtx();
+        const request = await this.findActiveAuthorizationRequest(requestToken, ctx);
         const client = request.oauthClient;
         return {
             client_id: client.clientId,
@@ -742,7 +744,7 @@ export class McpOauthService {
         actorId: ID,
         actorType: McpGrantUserType,
         resource: string,
-        channelId: ID | null = null,
+        channelId: ID | null,
     ): Promise<OAuthTokenResponse> {
         const user = await this.userService.getUserById(ctx, actorId);
         if (!user) {
@@ -826,10 +828,9 @@ export class McpOauthService {
 
     private async findActiveAuthorizationRequest(
         requestToken: string,
-        ctx?: RequestContext,
+        ctx: RequestContext,
     ): Promise<McpAuthorizationRequest> {
-        const requestCtx = ctx ?? (await this.createAdminCtx());
-        const request = await this.connection.getRepository(requestCtx, McpAuthorizationRequest).findOne({
+        const request = await this.connection.getRepository(ctx, McpAuthorizationRequest).findOne({
             where: { requestToken: this.hashLookup(requestToken) },
             relations: ['oauthClient'],
         });

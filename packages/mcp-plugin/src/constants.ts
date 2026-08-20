@@ -78,9 +78,15 @@ export const CIMD_MAX_DOCUMENT_BYTES = 5 * 1024;
 export const CIMD_MAX_CLIENT_ID_LENGTH = 512;
 /**
  * Applies to `client_name`, `client_uri`, `logo_uri` and `redirect_uri` (whichever way the
- * client identified itself), and to the authorize request's `state` parameter.
+ * client identified itself).
  */
 export const MAX_CLIENT_METADATA_FIELD_LENGTH = 255;
+/**
+ * Cap on the authorize request's `state` parameter, which is stored in a varchar column on the
+ * pending authorization request row. Same number as the client-metadata cap above, declared
+ * separately so changing one does not change the other.
+ */
+export const MAX_OAUTH_STATE_LENGTH = 255;
 /**
  * How long a fetched document is reused before it is fetched again. The draft (§5.2) leaves the
  * lifetime to the server, so this is a fixed value rather than whatever the document's own
