@@ -59,36 +59,9 @@ export class McpToolCallLogService {
                 status: input.status,
                 oauthClientId: grant?.oauthClientId ?? null,
             });
-            const logging = this.options.logging;
-            if (logging.capture === 'full') {
-                let bodies: { input: unknown; output: unknown } | undefined;
-                if (logging.redact) {
-                    try {
-                        bodies = logging.redact({
-                            toolName: input.tool.name,
-                            input: input.input,
-                            output: input.output,
-                        });
-                    } catch (redactError) {
-                        // A broken redact function must not cost the audit row, and raw bodies must never be stored.
-                        const reason =
-                            redactError instanceof Error ? redactError.message : String(redactError);
-                        Logger.warn(
-                            `The configured logging.redact function threw while redacting tool call ` +
-                                `"${input.tool.name}": ${reason}. ` +
-                                `The call was recorded without its input/output bodies.`,
-                            loggerCtx,
-                        );
-                    }
-                } else {
-                    bodies = { input: input.input, output: input.output };
-                }
-                log.input = this.capBody(bodies?.input);
-                log.output = this.capBody(bodies?.output);
-            } else {
-                log.input = null;
-                log.output = null;
-            }
+            const bodies = this.captureBodies(input);
+            log.input = bodies.input;
+            log.output = bodies.output;
             await this.connection.getRepository(ctx, McpToolCallLog).save(log);
             saved = true;
             await this.eventBus.publish(new McpToolCallEvent(ctx, log));
@@ -103,6 +76,39 @@ export class McpToolCallLogService {
                 Logger.warn(`Failed to record MCP tool call "${input.tool.name}": ${reason}`, loggerCtx);
             }
         }
+    }
+
+    /**
+     * The `input` and `output` values to store on the log row. Both are null in `metadata` capture
+     * mode, and both are null when the operator's redact function throws.
+     */
+    private captureBodies(input: LogToolCallInput): { input: unknown; output: unknown } {
+        const logging = this.options.logging;
+        if (logging.capture !== 'full') {
+            return { input: null, output: null };
+        }
+        let bodies: { input: unknown; output: unknown } | undefined;
+        if (logging.redact) {
+            try {
+                bodies = logging.redact({
+                    toolName: input.tool.name,
+                    input: input.input,
+                    output: input.output,
+                });
+            } catch (redactError) {
+                // A broken redact function must not cost the audit row, and raw bodies must never be stored.
+                const reason = redactError instanceof Error ? redactError.message : String(redactError);
+                Logger.warn(
+                    `The configured logging.redact function threw while redacting tool call ` +
+                        `"${input.tool.name}": ${reason}. ` +
+                        `The call was recorded without its input/output bodies.`,
+                    loggerCtx,
+                );
+            }
+        } else {
+            bodies = { input: input.input, output: input.output };
+        }
+        return { input: this.capBody(bodies?.input), output: this.capBody(bodies?.output) };
     }
 
     private capBody(value: unknown): unknown {
