@@ -129,6 +129,7 @@ export class McpTransportController {
         }
 
         const token = this.getBearerToken(this.getHeader(req.headers, 'authorization'));
+        const clientIp = getClientIp(req);
 
         if (toolset === 'shop' && this.options.shopAccess === 'authenticated' && !token) {
             this.setAuthChallenge(res, 'shop');
@@ -139,7 +140,7 @@ export class McpTransportController {
         // the context below creates a Vendure session row when the caller has no usable session, so the
         // write has to sit inside the limit rather than behind it.
         if (toolset === 'shop' && !token) {
-            const exceeded = await this.rateLimiter.checkAnonymousIpRateLimit(toolset, getClientIp(req));
+            const exceeded = await this.rateLimiter.checkAnonymousIpRateLimit(toolset, clientIp);
             if (exceeded) {
                 this.sendRateLimitError(res, body, exceeded);
                 return;
@@ -149,7 +150,7 @@ export class McpTransportController {
         // 3b. Refuse an address that has spent its failed-authentication allowance BEFORE the
         // token is looked up, so a flood of made-up tokens stops costing a database query each.
         if (token) {
-            const exceeded = await this.rateLimiter.checkBearerAuthFailureRateLimit(getClientIp(req));
+            const exceeded = await this.rateLimiter.checkBearerAuthFailureRateLimit(clientIp);
             if (exceeded) {
                 this.sendRateLimitError(res, body, exceeded);
                 return;
@@ -163,11 +164,11 @@ export class McpTransportController {
                 this.setAuthChallenge(res, 'admin');
                 throw new UnauthorizedException('Admin MCP endpoint requires a Bearer token');
             }
-            const authContext = await this.authenticateBearerToken(token, 'admin', res, getClientIp(req));
-            executionContext = { ...authContext, clientIp: getClientIp(req) };
+            const authContext = await this.authenticateBearerToken(token, 'admin', res, clientIp);
+            executionContext = { ...authContext, clientIp };
         } else if (token) {
-            const authContext = await this.authenticateBearerToken(token, 'shop', res, getClientIp(req));
-            executionContext = { ...authContext, clientIp: getClientIp(req) };
+            const authContext = await this.authenticateBearerToken(token, 'shop', res, clientIp);
+            executionContext = { ...authContext, clientIp };
         } else {
             // Anonymous shop: thread the Vendure session token (for cart continuity) and the channel
             // token (for multi-channel). An invalid channel token errors like the rest of Vendure.
@@ -179,7 +180,7 @@ export class McpTransportController {
                 // Echo the session token BEFORE delegating — the SDK handler owns the response write.
                 // (If a future SDK path resets headers, hook res.writeHead here instead.)
                 this.setVendureSessionToken(res, ctx.session?.token);
-                executionContext = { ctx, clientIp: getClientIp(req) };
+                executionContext = { ctx, clientIp };
             } catch (e) {
                 // A signed-in user's session token is refused — tell the caller how to authorize.
                 if (e instanceof UnauthorizedException) {
