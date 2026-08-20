@@ -42,10 +42,7 @@ function resolveRateLimits(rateLimits?: McpRateLimitOptions): Required<McpRateLi
         perUser: rateLimits?.perUser ?? DEFAULT_RATE_LIMIT_OPTIONS.perUser,
         perClient: rateLimits?.perClient ?? DEFAULT_RATE_LIMIT_OPTIONS.perClient,
         perTool: { ...DEFAULT_RATE_LIMIT_OPTIONS.perTool, ...rateLimits?.perTool },
-        anonymousIp:
-            rateLimits?.anonymousIp === undefined
-                ? DEFAULT_RATE_LIMIT_OPTIONS.anonymousIp
-                : rateLimits.anonymousIp,
-        oauthIp: rateLimits?.oauthIp === undefined ? DEFAULT_RATE_LIMIT_OPTIONS.oauthIp : rateLimits.oauthIp,
+        anonymousIp: rateLimits?.anonymousIp ?? DEFAULT_RATE_LIMIT_OPTIONS.anonymousIp,
+        oauthIp: rateLimits?.oauthIp ?? DEFAULT_RATE_LIMIT_OPTIONS.oauthIp,
     };
 }
