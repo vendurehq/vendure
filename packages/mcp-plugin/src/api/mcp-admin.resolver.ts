@@ -105,7 +105,7 @@ export class McpAdminResolver {
     @Allow(mcpServerPermission.Read)
     async mcpOauthGrants(
         @Ctx() ctx: RequestContext,
-        @Args() args: { includeInactive?: boolean; options?: ListQueryOptions<McpOauthGrant> },
+        @Args() args: { includeInactive: boolean; options?: ListQueryOptions<McpOauthGrant> },
     ): Promise<{ items: McpOauthGrantInfo[]; totalItems: number }> {
         const qb = this.listQueryBuilder.build(McpOauthGrant, args.options ?? undefined, {
             ctx,
@@ -153,7 +153,8 @@ export class McpAdminResolver {
         // Channel-less rows come from global (admin) grants and show on every
         // channel, matching the grants query above.
         this.scopeToChannel(qb, 'log', ctx.channelId);
-        return qb.getManyAndCount().then(([items, totalItems]) => ({ items, totalItems }));
+        const [items, totalItems] = await qb.getManyAndCount();
+        return { items, totalItems };
     }
 
     @Query()
