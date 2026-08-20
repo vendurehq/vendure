@@ -5,7 +5,7 @@ generated: true
 <GenerationInfo sourceFile="packages/mcp-plugin/src/entities/mcp-authorization-code.entity.ts" sourceLine="17" packageName="@vendure/mcp-plugin" since="3.8.0" />
 
 A short-lived authorization code from the OAuth flow, exchanged for tokens. The
-`code` is stored as a hash. `userId` and `userType` record who
+`code` is stored as a hash. `actorId` and `actorType` record who
 approved, so a Vendure session can be created for them when the code is exchanged.
 
 ```ts title="Signature"
@@ -20,9 +20,9 @@ class McpAuthorizationCode extends VendureEntity {
     @EntityId()
     oauthClientId: ID;
     @EntityId()
-    userId: ID;
+    actorId: ID;
     @Column({ type: 'varchar' })
-    userType: McpGrantUserType;
+    actorType: McpGrantUserType;
     @Column()
     redirectUri: string;
     @Column()
@@ -48,7 +48,8 @@ class McpAuthorizationCode extends VendureEntity {
 
 <MemberInfo kind="property" type={`string`}   />
 
-
+A hash of the code handed to the client. The code itself is never stored, and the row
+disappears the moment it is exchanged for tokens.
 ### oauthClient
 
 <MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-oauth-client#mcpoauthclient'>McpOauthClient</a>`}   />
@@ -59,12 +60,12 @@ class McpAuthorizationCode extends VendureEntity {
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
 
 
-### userId
+### actorId
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
 
 
-### userType
+### actorType
 
 <MemberInfo kind="property" type={`McpGrantUserType`}   />
 
@@ -78,12 +79,14 @@ class McpAuthorizationCode extends VendureEntity {
 
 <MemberInfo kind="property" type={`string`}   />
 
-
+The endpoint this approval was for: the issuer URL plus `/mcp/admin` or `/mcp/shop`. The
+token request has to ask for the same one.
 ### channelId
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a> | null`}   />
 
-
+The channel the customer approved on, which the grant inherits. Null for an admin
+approval, which is not tied to a channel.
 ### codeChallenge
 
 <MemberInfo kind="property" type={`string`}   />
@@ -91,14 +94,15 @@ class McpAuthorizationCode extends VendureEntity {
 
 ### codeChallengeMethod
 
-<MemberInfo kind="property" type={`string`}   />
+<MemberInfo kind="property" type={`string`} default={`'S256'`}   />
 
-
+Always `S256`. The authorize endpoint refuses any other method.
 ### expiresAt
 
 <MemberInfo kind="property" type={`Date`}   />
 
-
+A minute after approval by default. A code nobody exchanges in time is left for the
+cleanup job.
 
 
 </div>

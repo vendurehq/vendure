@@ -2,7 +2,7 @@
 title: "McpStandardSchema"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/mcp-sdk/src/standard-schema.ts" sourceLine="39" packageName="@vendure/mcp-sdk" since="3.8.0" />
+<GenerationInfo sourceFile="packages/mcp-sdk/src/standard-schema.ts" sourceLine="49" packageName="@vendure/mcp-sdk" since="3.8.0" />
 
 A schema object implementing the [Standard Schema](https://standardschema.dev/) interface
 together with its JSON Schema conversion extension. Zod v4, ArkType, and Valibot schemas
@@ -42,7 +42,10 @@ interface McpStandardSchema<Input = unknown, Output = Input> {
 
 <MemberInfo kind="property" type={`{         readonly version: 1;         readonly vendor: string;         readonly validate: (             value: unknown,         ) => <a href='/reference/core-plugins/mcp-plugin/mcp-standard-schema-result#mcpstandardschemaresult'>McpStandardSchemaResult</a><Output> | Promise<<a href='/reference/core-plugins/mcp-plugin/mcp-standard-schema-result#mcpstandardschemaresult'>McpStandardSchemaResult</a><Output>>;         readonly types?: { readonly input: Input; readonly output: Output } | undefined;         readonly jsonSchema: {             input(options: {                 readonly target: string;                 readonly libraryOptions?: Record<string, unknown> | undefined;             }): Record<string, unknown>;             output(options: {                 readonly target: string;                 readonly libraryOptions?: Record<string, unknown> | undefined;             }): Record<string, unknown>;         };     }`}   />
 
-
+The Standard Schema properties that a schema library adds to each of its schemas. The MCP
+server reads `jsonSchema` once at startup, and calls `validate` on every tool call. The
+`version`, `vendor` and `types` properties belong to the Standard Schema contract, and are
+not read by the MCP server.
 
 
 </div>

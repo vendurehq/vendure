@@ -2,7 +2,7 @@
 title: "McpOauthGrant"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/mcp-plugin/src/entities/mcp-oauth-grant.entity.ts" sourceLine="16" packageName="@vendure/mcp-plugin" since="3.8.0" />
+<GenerationInfo sourceFile="packages/mcp-plugin/src/entities/mcp-oauth-grant.entity.ts" sourceLine="27" packageName="@vendure/mcp-plugin" since="3.8.0" />
 
 Represents one MCP OAuth grant: the hashed access + refresh token pair issued to a
 client, the granting user, and the dedicated Vendure session created for the grant.
@@ -26,9 +26,9 @@ class McpOauthGrant extends VendureEntity {
     oauthClientId: ID;
     @Index()
     @EntityId()
-    userId: ID;
+    actorId: ID;
     @Column({ type: 'varchar' })
-    userType: McpGrantUserType;
+    actorType: McpGrantUserType;
     @Column()
     resource: string;
     @Index()
@@ -49,6 +49,7 @@ class McpOauthGrant extends VendureEntity {
     @Index()
     @Column({ type: Date })
     lastActivityAt: Date;
+    status: McpOauthGrantStatus
 }
 ```
 * Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
@@ -61,17 +62,21 @@ class McpOauthGrant extends VendureEntity {
 
 <MemberInfo kind="property" type={`string`}   />
 
-
+A hash of the access token, which is how a request finds its grant. The token itself is
+never stored, and every refresh replaces this hash.
 ### refreshTokenHash
 
 <MemberInfo kind="property" type={`string`}   />
 
-
+A hash of the refresh token. The token itself is never stored, and every refresh replaces
+this hash.
 ### previousRefreshTokenHash
 
 <MemberInfo kind="property" type={`string | null`}   />
 
-
+A hash of the refresh token the last refresh replaced. Null until the first refresh. If a
+client turns up with this old token, the server assumes it was stolen and revokes the
+grant.
 ### oauthClient
 
 <MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-oauth-client#mcpoauthclient'>McpOauthClient</a>`}   />
@@ -82,51 +87,66 @@ class McpOauthGrant extends VendureEntity {
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
 
 
-### userId
+### actorId
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
 
-
-### userType
+The user who approved this grant. Tool calls made with it run as that user.
+### actorType
 
 <MemberInfo kind="property" type={`McpGrantUserType`}   />
 
-
+Whether an administrator or a customer approved this grant. It also decides which MCP
+endpoint the grant's tokens may call.
 ### resource
 
 <MemberInfo kind="property" type={`string`}   />
 
-
+The one endpoint these tokens work against: the issuer URL plus `/mcp/admin` or
+`/mcp/shop`. Presenting a token anywhere else is refused.
 ### accessTokenExpiresAt
 
 <MemberInfo kind="property" type={`Date`}   />
 
-
+When the current access token stops working. Every refresh pushes it out again by the
+configured access-token lifetime.
 ### expiresAt
 
 <MemberInfo kind="property" type={`Date`}   />
 
-
+When the grant itself dies, set from the refresh-token lifetime. Every refresh pushes it
+out again, so a client that keeps refreshing keeps the grant alive.
 ### revokedAt
 
 <MemberInfo kind="property" type={`Date | null`}   />
 
-
+Null while the grant still works. An administrator, the customer, or the client itself
+can revoke it, and the server does so on its own if an already-replaced refresh token
+comes back.
 ### vendureSessionId
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
 
-
+The Vendure session this grant's tool calls run in. Revoking the grant deletes that
+session, and so does the cleanup job once the grant has expired.
 ### channelId
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a> | null`}   />
 
-
+The channel the customer approved on. Null for an admin grant, whose calls run on the
+default channel.
 ### lastActivityAt
 
 <MemberInfo kind="property" type={`Date`}   />
 
+Updated on every refresh, and by tool calls at most once a minute, so it lags real
+activity by up to that long.
+### status
 
+<MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-oauth-grant-status#mcpoauthgrantstatus'>McpOauthGrantStatus</a>`}   />
+
+Worked out on read rather than stored, so it is always current without anything having to
+update it.
 
 
 </div>

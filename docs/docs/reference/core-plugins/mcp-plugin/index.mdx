@@ -39,17 +39,21 @@ class McpPlugin implements OnApplicationBootstrap {
 
 <MemberInfo kind="property" type={`ResolvedMcpPluginOptions`}   />
 
-
+The plugin options with every default applied. `init()` sets this, so it holds no value
+until the plugin is added to your Vendure config.
 ### init
 
 <MemberInfo kind="method" type={`(options: <a href='/reference/core-plugins/mcp-plugin/mcp-plugin-options#mcppluginoptions'>McpPluginOptions</a> = {}) => Type<<a href='/reference/core-plugins/mcp-plugin/#mcpplugin'>McpPlugin</a>>`}   />
 
-
+Sets the plugin options and returns the plugin class to add to your `plugins` array.
+Any option you leave out falls back to its default.
 ### onApplicationBootstrap
 
 <MemberInfo kind="method" type={`() => void`}   />
 
-
+Runs at startup, and only does work on the main server process. Builds the MCP message
+schemas up front so the first request does not pay for it. Also checks the configured
+OAuth options, and throws when one is invalid or unsafe for a production server.
 
 
 </div>

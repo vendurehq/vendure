@@ -41,11 +41,11 @@ retention task deletes them once their grants expire.
 The public URL of your Vendure server, e.g. `https://shop.example.com`. OAuth
 clients use it to find this server's login and token endpoints.
 
-It must be just `https://` plus the host (and port if needed) — no path, or the
-server refuses to start: clients fetch the server's OAuth info at fixed
-`/.well-known/...` addresses directly under the host, so a path here would point
-them at addresses that don't exist. If a proxy serves Vendure under a path, use a
-subdomain instead, or forward `/.well-known/*` to Vendure too.
+Give it the scheme and host only, plus a port if you need one. A path makes the
+server refuse to start. Clients fetch this server's OAuth information from fixed
+`/.well-known/...` addresses directly under the host, so a path here would send
+them to addresses that do not exist. If a proxy serves Vendure under a path, use a
+subdomain instead, or forward `/.well-known/*` to Vendure as well.
 
 When unset, it defaults to `http://localhost:<port>` using the port your server is
 configured with (`apiOptions.port`), so local development needs no configuration.
@@ -53,20 +53,18 @@ configured with (`apiOptions.port`), so local development needs no configuration
 
 <MemberInfo kind="property" type={`number`} default={`900`}   />
 
-Lifetime of an issued access token, in seconds.
+
 ### refreshTokenTtlSeconds
 
 <MemberInfo kind="property" type={`number`} default={`2592000`}   />
 
-Lifetime of an issued refresh token, in seconds. Every refresh resets it, so in
-practice this is how long a client may go without refreshing before its grant dies
-and the retention task deletes the Vendure session behind it. Refreshing rotates
-the OAuth token pair only; it never replaces that session.
+Every refresh resets this clock, so what it really sets is how long a client may go
+quiet before its grant dies and the cleanup job deletes the Vendure session behind it.
 ### authorizationCodeTtlSeconds
 
 <MemberInfo kind="property" type={`number`} default={`60`}   />
 
-Lifetime of an authorization code before it must be exchanged, in seconds.
+
 ### authorizationRequestTtlSeconds
 
 <MemberInfo kind="property" type={`number`} default={`600`}   />
@@ -77,9 +75,8 @@ Lifetime of a pending authorization request (consent window), in seconds.
 <MemberInfo kind="property" type={`string`} default={`'/dashboard/mcp/authorize'`}   />
 
 Path (relative to `issuer`) of the admin consent page that approves
-admin-scoped authorization requests. Must start with a single `/` —
-the consent page is served by the Vendure server itself, so a full URL
-here is refused at startup.
+admin-scoped authorization requests. Must start with a single `/`. The Vendure
+server serves this page itself, so a full URL here is refused at startup.
 ### storefrontConsentUrl
 
 <MemberInfo kind="property" type={`string`}   />
@@ -96,31 +93,28 @@ Allows a client to identify itself with a `client_id` URL that points at the loc
 your own development setup can be fetched.
 
 Leave this off anywhere reachable by others. With it on, anyone who can reach the authorize
-endpoint — no credentials needed — can make the server open a connection to any port on the
-machine it runs on. The server refuses to start with this enabled when `NODE_ENV` is
+endpoint can make the server open a connection to any port on the machine it runs on. No
+credentials are needed. The server refuses to start with this enabled when `NODE_ENV` is
 `production`.
 ### grantRetentionDays
 
 <MemberInfo kind="property" type={`number`} default={`30 (days)`}   />
 
-How long to keep a grant after it dies, by expiry or revocation, before the row itself is
-deleted. The grant is the only OAuth record with anything to audit, so it outlives the
-authorization it recorded.
+How long a dead grant, expired or revoked, is kept before the row is deleted. It sticks
+around this long because it is the only OAuth record worth auditing.
 
-Each tool-call log references the grant it was made under, and that link is nulled when the
-grant is deleted. Set this at or above `McpLoggingOptions.ttlDays` if every retained
-log should still be able to resolve its grant.
+Deleting a grant also clears the link from every tool-call log that points at it. Set this
+at or above `McpLoggingOptions.ttlDays` if your logs should keep that link.
 ### retentionSchedule
 
 <MemberInfo kind="property" type={`McpRetentionSchedule`} default={`cron => cron.everyDayAt(3, 30)`}   />
 
-Schedule for the cleanup job that prunes OAuth records which can no longer be used: the
-Vendure session created for each expired grant, expired authorization requests and
-codes, and grants dead for longer than `grantRetentionDays`.
+When the cleanup job runs. It clears out expired authorization requests and codes, grants
+dead for longer than `grantRetentionDays`, and the Vendure session behind each expired
+grant.
 
-An expired grant's Vendure session keeps working against the ordinary GraphQL APIs until
-this job deletes it, so a slower schedule lengthens that window. Revoking a grant deletes
-its session at once, without waiting for this job.
+That session keeps working against the ordinary GraphQL APIs until the job deletes it, so
+running the job less often widens that gap. Revoking a grant kills its session at once.
 
 
 </div>

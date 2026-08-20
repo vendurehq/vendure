@@ -46,7 +46,8 @@ class McpAuthorizationRequest extends VendureEntity {
 
 <MemberInfo kind="property" type={`string`}   />
 
-
+A hash of the token that the consent page carries in its URL. The token itself is never
+stored.
 ### oauthClient
 
 <MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-oauth-client#mcpoauthclient'>McpOauthClient</a>`}   />
@@ -74,24 +75,26 @@ class McpAuthorizationRequest extends VendureEntity {
 
 ### codeChallengeMethod
 
-<MemberInfo kind="property" type={`string`}   />
+<MemberInfo kind="property" type={`string`} default={`'S256'`}   />
 
-
+Always `S256`. The authorize endpoint refuses any other method.
 ### toolset
 
 <MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-toolset#mcptoolset'>McpToolset</a>`}   />
 
-
+Decides which consent page the browser is sent to, and which of the two approval
+mutations is allowed to answer this request.
 ### resource
 
 <MemberInfo kind="property" type={`string`}   />
 
-
+The endpoint being asked for: the issuer URL plus `/mcp/admin` or `/mcp/shop`.
 ### expiresAt
 
 <MemberInfo kind="property" type={`Date`}   />
 
-
+How long the user has to decide, ten minutes by default. A request nobody answers is left
+for the cleanup job.
 
 
 </div>

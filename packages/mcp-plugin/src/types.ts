@@ -39,11 +39,11 @@ export interface McpOauthOptions {
      * The public URL of your Vendure server, e.g. `https://shop.example.com`. OAuth
      * clients use it to find this server's login and token endpoints.
      *
-     * It must be just `https://` plus the host (and port if needed) — no path, or the
-     * server refuses to start: clients fetch the server's OAuth info at fixed
-     * `/.well-known/...` addresses directly under the host, so a path here would point
-     * them at addresses that don't exist. If a proxy serves Vendure under a path, use a
-     * subdomain instead, or forward `/.well-known/*` to Vendure too.
+     * Give it the scheme and host only, plus a port if you need one. A path makes the
+     * server refuse to start. Clients fetch this server's OAuth information from fixed
+     * `/.well-known/...` addresses directly under the host, so a path here would send
+     * them to addresses that do not exist. If a proxy serves Vendure under a path, use a
+     * subdomain instead, or forward `/.well-known/*` to Vendure as well.
      *
      * When unset, it defaults to `http://localhost:<port>` using the port your server is
      * configured with (`apiOptions.port`), so local development needs no configuration.
@@ -52,26 +52,18 @@ export interface McpOauthOptions {
      */
     issuer?: string;
     /**
-     * @description
-     * Lifetime of an issued access token, in seconds.
-     *
      * @default 900
      */
     accessTokenTtlSeconds?: number;
     /**
      * @description
-     * Lifetime of an issued refresh token, in seconds. Every refresh resets it, so in
-     * practice this is how long a client may go without refreshing before its grant dies
-     * and the retention task deletes the Vendure session behind it. Refreshing rotates
-     * the OAuth token pair only; it never replaces that session.
+     * Every refresh resets this clock, so what it really sets is how long a client may go
+     * quiet before its grant dies and the cleanup job deletes the Vendure session behind it.
      *
      * @default 2592000
      */
     refreshTokenTtlSeconds?: number;
     /**
-     * @description
-     * Lifetime of an authorization code before it must be exchanged, in seconds.
-     *
      * @default 60
      */
     authorizationCodeTtlSeconds?: number;
@@ -85,9 +77,8 @@ export interface McpOauthOptions {
     /**
      * @description
      * Path (relative to `issuer`) of the admin consent page that approves
-     * admin-scoped authorization requests. Must start with a single `/` —
-     * the consent page is served by the Vendure server itself, so a full URL
-     * here is refused at startup.
+     * admin-scoped authorization requests. Must start with a single `/`. The Vendure
+     * server serves this page itself, so a full URL here is refused at startup.
      *
      * @default '/dashboard/mcp/authorize'
      */
@@ -106,8 +97,8 @@ export interface McpOauthOptions {
      * your own development setup can be fetched.
      *
      * Leave this off anywhere reachable by others. With it on, anyone who can reach the authorize
-     * endpoint — no credentials needed — can make the server open a connection to any port on the
-     * machine it runs on. The server refuses to start with this enabled when `NODE_ENV` is
+     * endpoint can make the server open a connection to any port on the machine it runs on. No
+     * credentials are needed. The server refuses to start with this enabled when `NODE_ENV` is
      * `production`.
      *
      * @default false
@@ -115,26 +106,23 @@ export interface McpOauthOptions {
     allowLoopbackCimdDocuments?: boolean;
     /**
      * @description
-     * How long to keep a grant after it dies, by expiry or revocation, before the row itself is
-     * deleted. The grant is the only OAuth record with anything to audit, so it outlives the
-     * authorization it recorded.
+     * How long a dead grant, expired or revoked, is kept before the row is deleted. It sticks
+     * around this long because it is the only OAuth record worth auditing.
      *
-     * Each tool-call log references the grant it was made under, and that link is nulled when the
-     * grant is deleted. Set this at or above {@link McpLoggingOptions.ttlDays} if every retained
-     * log should still be able to resolve its grant.
+     * Deleting a grant also clears the link from every tool-call log that points at it. Set this
+     * at or above {@link McpLoggingOptions.ttlDays} if your logs should keep that link.
      *
      * @default 30 (days)
      */
     grantRetentionDays?: number;
     /**
      * @description
-     * Schedule for the cleanup job that prunes OAuth records which can no longer be used: the
-     * Vendure session created for each expired grant, expired authorization requests and
-     * codes, and grants dead for longer than `grantRetentionDays`.
+     * When the cleanup job runs. It clears out expired authorization requests and codes, grants
+     * dead for longer than `grantRetentionDays`, and the Vendure session behind each expired
+     * grant.
      *
-     * An expired grant's Vendure session keeps working against the ordinary GraphQL APIs until
-     * this job deletes it, so a slower schedule lengthens that window. Revoking a grant deletes
-     * its session at once, without waiting for this job.
+     * That session keeps working against the ordinary GraphQL APIs until the job deletes it, so
+     * running the job less often widens that gap. Revoking a grant kills its session at once.
      *
      * @default cron => cron.everyDayAt(3, 30)
      */
@@ -222,15 +210,30 @@ export interface McpRateLimitOptions {
 
 /**
  * @description
- * DNS-rebinding protection for the MCP transport. When `allowedHosts`/`allowedOrigins` are
- * provided, requests whose `Host`/`Origin` header is not in the list are rejected before the
- * MCP handler runs. When omitted, the guard is not applied.
+ * Protects the MCP transport against DNS rebinding. Both options take bare hostnames, never
+ * full URLs or header values. Omitting an option, or giving it an empty array, applies no
+ * check at all.
  *
  * @docsCategory core plugins/McpPlugin
  * @since 3.8.0
  */
 export interface McpDnsRebindingOptions {
+    /**
+     * @description
+     * Hostnames the `Host` header of an MCP request may name. Drop the port, and bracket an
+     * IPv6 address, for example `[::1]`. A request naming any other host is refused with HTTP
+     * `403` before the MCP handler runs.
+     */
     allowedHosts?: string[];
+    /**
+     * @description
+     * Hostnames the `Origin` header of an MCP request may name. Drop the scheme and the port,
+     * and bracket an IPv6 address, for example `[::1]`. A request naming any other origin is
+     * refused with HTTP `403` before the MCP handler runs.
+     *
+     * A request that sends no `Origin` header passes, because non-browser MCP clients do not
+     * send one. This option therefore constrains browsers, not every caller.
+     */
     allowedOrigins?: string[];
 }
 
@@ -261,30 +264,26 @@ export type McpLogRedactFn = (entry: { toolName: string; input: unknown; output:
  */
 export interface McpLoggingOptions {
     /**
-     * How long to keep tool-call logs before they are automatically deleted.
-     *
      * @default 30 (days)
      */
     ttlDays?: number;
 
     /**
-     * Controls how much data from each tool call is stored.
-     *
-     * - `'metadata'`: Stores only high-level info (tool name, actor, status, duration, IDs).
-     *
-     * - `'full'`: Also stores the full `input` and `output` of each call.
-     *   This may include sensitive data. Provide `redact` to sanitize it,
-     *   otherwise data is stored as-is.
+     * @description
+     * How much of each tool call is stored on its log row. `metadata` stores the tool name,
+     * the actor, the status, the duration and the related IDs. `full` also stores the call's
+     * `input` and `output`, which may hold personal data. Supply `redact` to sanitize those
+     * two bodies, and see `maxBodyBytes` for the size cap applied to each.
      *
      * @default 'metadata'
      */
     capture?: McpLogCapture;
 
     /**
-     * Optional function to sanitize a call's `input` and `output`
-     * before they are stored. Only applies when `capture` is `'full'`.
-     * If this function throws, the call is still recorded but with `input` and `output`
-     * set to `null`, and a warning is logged.
+     * @description
+     * Function that rewrites a call's `input` and `output` before they are stored. Runs only
+     * when `capture` is `'full'`. If it throws, the call is still recorded, both bodies are
+     * stored as `null`, and a warning is logged.
      *
      * @example
      * ```ts
@@ -297,27 +296,31 @@ export interface McpLoggingOptions {
     redact?: McpLogRedactFn;
 
     /**
-     * Maximum byte size for stored `input` and `output` bodies (JSON-serialized, post-redaction).
-     * Only applies when `capture` is `'full'`.
+     * @description
+     * The largest `input` or `output` body stored on a log row, in bytes, measured after
+     * redaction and JSON serialization. Applies only when `capture` is `'full'`. A larger
+     * body is replaced with a marker recording the reason and the real size, so the audit
+     * row is still written. The default fits within the 65,535-byte limit of a MySQL
+     * `TEXT` column.
      *
-     * Oversized values are replaced with a metadata marker (storing reason and actual size)
-     * to ensure the audit row is still created.
-     *
-     * @default 64000 Fits safely within MySQL `TEXT` columns (65,535 byte limit).
+     * @default 64000
      */
     maxBodyBytes?: number;
 
     /**
-     * Cron-style schedule for the cleanup job that deletes expired logs.
+     * @description
+     * Schedule for the cleanup job that deletes expired tool-call logs. Accepts a cron
+     * expression string, or a function that builds one.
      *
      * @default cron => cron.everyDayAt(2, 30)
      */
     retentionSchedule?: McpRetentionSchedule;
 
     /**
-     * Stores the caller's IP address on each tool-call log row. Off by default because an IP
-     * address is personal data. If your server runs behind a reverse proxy, also enable Vendure's `trustProxy` setting —
-     * otherwise every row stores the proxy's address instead of the real caller's.
+     * @description
+     * Whether each tool-call log row stores the caller's IP address. Off by default because an
+     * IP address is personal data. Behind a reverse proxy, enable Vendure's `trustProxy` so the
+     * stored address is the caller's rather than the proxy's.
      *
      * @default false
      */
@@ -333,8 +336,10 @@ export interface McpLoggingOptions {
  */
 export interface McpPluginOptions {
     /**
-     * Controls which tools are returned by the MCP `tools/list` call.
-     * See {@link McpToolExposureMode} for the available modes.
+     * @description
+     * Which tools the MCP `tools/list` call returns. See {@link McpToolExposureMode} for the
+     * available modes. In-process listing through {@link McpToolExecutionService} always lists
+     * the real tools and ignores this.
      *
      * @default 'direct'
      */
@@ -357,25 +362,13 @@ export interface McpPluginOptions {
     shopAccess?: 'disabled' | 'authenticated' | 'anonymous';
     /**
      * @description
-     * OAuth options. When omitted, the OAuth surface is disabled.
+     * Leave this out and the anonymous shop endpoint still works, but anything needing a token
+     * fails with `400 MCP OAuth is not configured`. That covers the admin endpoint, the
+     * authenticated shop endpoint, and the OAuth endpoints themselves.
      */
     oauth?: McpOauthOptions;
-    /**
-     * @description
-     * Per-scope request-rate limits. Sensible defaults apply when omitted; see
-     * {@link McpRateLimitOptions}.
-     */
     rateLimits?: McpRateLimitOptions;
-    /**
-     * @description
-     * DNS-rebinding protection for the MCP transport. See {@link McpDnsRebindingOptions}.
-     */
     dnsRebinding?: McpDnsRebindingOptions;
-    /**
-     * @description
-     * Tool-call logging and retention. Sensible defaults apply when omitted; see
-     * {@link McpLoggingOptions}.
-     */
     logging?: McpLoggingOptions;
 }
 
@@ -388,13 +381,41 @@ export interface McpPluginOptions {
  * @since 3.8.0
  */
 export interface McpToolSummary {
+    /**
+     * @description
+     * The tool's unique snake_case name within its toolset, e.g. `search_products`.
+     */
     name: string;
+    /**
+     * @description
+     * Human-readable title declared by the tool. The same value is copied onto
+     * `annotations.title`.
+     */
     title?: string;
+    /**
+     * @description
+     * What the tool does, written for an AI agent to read.
+     */
     description: string;
+    /**
+     * @description
+     * Which Vendure API the tool works over: `shop` for the Shop API, `admin` for the Admin API.
+     */
     toolset: McpToolset;
+    /**
+     * @description
+     * What the tool does to data: `readonly` only reads it, `mutating` changes it, and
+     * `destructive` changes it and needs a confirmation round-trip before running.
+     */
     behavior: McpToolBehavior;
+    /**
+     * @description
+     * MCP annotations derived from `behavior`. `readOnlyHint` and `idempotentHint` are true for
+     * a `readonly` tool. `destructiveHint` is true for a `destructive` tool.
+     */
     annotations: ToolAnnotations;
     /**
+     * @description
      * The input schema a call must satisfy: the tool's declared schema plus, for a destructive
      * tool, the optional `confirm` field the registry injects.
      */

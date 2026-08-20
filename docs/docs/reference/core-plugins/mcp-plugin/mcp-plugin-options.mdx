@@ -2,7 +2,7 @@
 title: "McpPluginOptions"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/mcp-plugin/src/types.ts" sourceLine="334" packageName="@vendure/mcp-plugin" since="3.8.0" />
+<GenerationInfo sourceFile="packages/mcp-plugin/src/types.ts" sourceLine="337" packageName="@vendure/mcp-plugin" since="3.8.0" />
 
 Options passed to `McpPlugin.init`.
 
@@ -23,7 +23,9 @@ interface McpPluginOptions {
 
 <MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-tool-exposure-mode#mcptoolexposuremode'>McpToolExposureMode</a>`} default={`'direct'`}   />
 
-
+Which tools the MCP `tools/list` call returns. See [McpToolExposureMode](/reference/core-plugins/mcp-plugin/mcp-tool-exposure-mode#mcptoolexposuremode) for the
+available modes. In-process listing through [McpToolExecutionService](/reference/core-plugins/mcp-plugin/mcp-tool-execution-service#mcptoolexecutionservice) always lists
+the real tools and ignores this.
 ### shopAccess
 
 <MemberInfo kind="property" type={`'disabled' | 'authenticated' | 'anonymous'`} default={`'anonymous'`}   />
@@ -42,24 +44,24 @@ In-process tool execution via [McpToolExecutionService](/reference/core-plugins/
 
 <MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-oauth-options#mcpoauthoptions'>McpOauthOptions</a>`}   />
 
-OAuth options. When omitted, the OAuth surface is disabled.
+Leave this out and the anonymous shop endpoint still works, but anything needing a token
+fails with `400 MCP OAuth is not configured`. That covers the admin endpoint, the
+authenticated shop endpoint, and the OAuth endpoints themselves.
 ### rateLimits
 
 <MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-rate-limit-options#mcpratelimitoptions'>McpRateLimitOptions</a>`}   />
 
-Per-scope request-rate limits. Sensible defaults apply when omitted; see
-[McpRateLimitOptions](/reference/core-plugins/mcp-plugin/mcp-rate-limit-options#mcpratelimitoptions).
+
 ### dnsRebinding
 
 <MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-dns-rebinding-options#mcpdnsrebindingoptions'>McpDnsRebindingOptions</a>`}   />
 
-DNS-rebinding protection for the MCP transport. See [McpDnsRebindingOptions](/reference/core-plugins/mcp-plugin/mcp-dns-rebinding-options#mcpdnsrebindingoptions).
+
 ### logging
 
 <MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-logging-options#mcploggingoptions'>McpLoggingOptions</a>`}   />
 
-Tool-call logging and retention. Sensible defaults apply when omitted; see
-[McpLoggingOptions](/reference/core-plugins/mcp-plugin/mcp-logging-options#mcploggingoptions).
+
 
 
 </div>

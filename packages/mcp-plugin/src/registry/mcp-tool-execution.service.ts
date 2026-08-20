@@ -9,7 +9,7 @@ import { McpToolRegistryService } from './mcp-tool-registry.service';
 
 /**
  * @description
- * Lists and runs MCP tools from code running inside the Vendure process — typically a chat
+ * Lists and runs MCP tools from code running inside the Vendure process, typically a chat
  * assistant a merchant builds as a plugin. Calls go through the same pipeline as HTTP requests,
  * so things like permissions, rate limits, validation, confirmations, and logging behave the same.
  *
@@ -45,7 +45,13 @@ export class McpToolExecutionService {
 
     /**
      * @description
-     * Lists the tools this caller may execute. Filters out disabled tools and those the user has no permission for.
+     * Returns the tools in the given toolset that this caller may execute. Each
+     * {@link McpToolSummary} carries the input schema a call to that tool must satisfy. The list
+     * leaves out disabled tools and tools the caller has no permission for.
+     *
+     * Pass the `RequestContext` of the shopper or administrator you are listing tools for. The
+     * `'shop'` toolset requires a Shop API context and `'admin'` requires an Admin API context.
+     * Passing the wrong one throws.
      *
      * Always lists the real tools. The `toolExposure: 'discovery'` option only shrinks the tool
      * list served over HTTP; it does not apply here.
@@ -57,11 +63,18 @@ export class McpToolExecutionService {
 
     /**
      * @description
-     * Runs a tool and returns its result.
+     * Runs one named tool in the given toolset and returns its `CallToolResult`. Pass the
+     * `RequestContext` of the shopper or administrator the tool runs as, the tool name, and the
+     * arguments that tool declares. Omitting `input` calls the tool with no arguments.
      *
-     * Most errors (invalid input, no permission, rate limits, tool failure, etc.)
-     * are returned as `isError` instead of throwing.  Destructive tools require `confirm: true`,
-     * otherwise they return a confirmation-needed response.
+     * The `'shop'` toolset requires a Shop API context and `'admin'` requires an Admin API
+     * context. Passing the wrong one throws.
+     *
+     * Most failures come back as a result with `isError: true` rather than as a thrown error.
+     * That covers invalid arguments, a missing permission, an exceeded rate limit, an unknown or
+     * disabled tool, and an error thrown by the tool itself. Destructive tools need
+     * `confirm: true` in the input, otherwise the result asks for confirmation instead of
+     * running the tool.
      */
     async executeTool(
         ctx: RequestContext,

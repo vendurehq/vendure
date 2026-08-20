@@ -19,12 +19,14 @@ interface McpStandardSchemaIssue {
 
 <MemberInfo kind="property" type={`string`}   />
 
-
+A human readable message describing why the value was rejected.
 ### path
 
 <MemberInfo kind="property" type={`ReadonlyArray<PropertyKey | { readonly key: PropertyKey }> | undefined`}   />
 
-
+Where the rejected value sits inside the validated input. Each segment is a property key,
+an array index, or an object carrying that key. It is absent when the issue applies to the
+value as a whole.
 
 
 </div>

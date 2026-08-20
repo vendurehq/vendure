@@ -129,15 +129,31 @@ import { McpPluginOptions } from './types';
     compatibility: '^3.8.0',
 })
 export class McpPlugin implements OnApplicationBootstrap {
+    /**
+     * @description
+     * The plugin options with every default applied. `init()` sets this, so it holds no value
+     * until the plugin is added to your Vendure config.
+     */
     static options: ResolvedMcpPluginOptions;
 
     constructor(private processContext: ProcessContext) {}
 
+    /**
+     * @description
+     * Sets the plugin options and returns the plugin class to add to your `plugins` array.
+     * Any option you leave out falls back to its default.
+     */
     static init(options: McpPluginOptions = {}): Type<McpPlugin> {
         this.options = resolveMcpPluginOptions(options);
         return McpPlugin;
     }
 
+    /**
+     * @description
+     * Runs at startup, and only does work on the main server process. Builds the MCP message
+     * schemas up front so the first request does not pay for it. Also checks the configured
+     * OAuth options, and throws when one is invalid or unsafe for a production server.
+     */
     onApplicationBootstrap(): void {
         // Only the main server serves the OAuth routes, so only it needs this check.
         if (!this.processContext.isServer) {

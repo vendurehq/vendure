@@ -20,6 +20,11 @@ export class McpAuthorizationCode extends VendureEntity {
         super(input);
     }
 
+    /**
+     * @description
+     * A hash of the code handed to the client. The code itself is never stored, and the row
+     * disappears the moment it is exchanged for tokens.
+     */
     @Index({ unique: true })
     @Column()
     code: string;
@@ -31,7 +36,6 @@ export class McpAuthorizationCode extends VendureEntity {
     @EntityId()
     oauthClientId: ID;
 
-    // Identity columns used by the token-exchange step to create a Vendure session.
     @EntityId()
     actorId: ID;
 
@@ -41,19 +45,39 @@ export class McpAuthorizationCode extends VendureEntity {
     @Column()
     redirectUri: string;
 
+    /**
+     * @description
+     * The endpoint this approval was for: the issuer URL plus `/mcp/admin` or `/mcp/shop`. The
+     * token request has to ask for the same one.
+     */
     @Column()
     resource: string;
 
-    // Optional channel scoping for the granted session.
+    /**
+     * @description
+     * The channel the customer approved on, which the grant inherits. Null for an admin
+     * approval, which is not tied to a channel.
+     */
     @EntityId({ nullable: true })
     channelId: ID | null;
 
     @Column()
     codeChallenge: string;
 
+    /**
+     * @description
+     * Always `S256`. The authorize endpoint refuses any other method.
+     *
+     * @default 'S256'
+     */
     @Column({ default: 'S256' })
     codeChallengeMethod: string;
 
+    /**
+     * @description
+     * A minute after approval by default. A code nobody exchanges in time is left for the
+     * cleanup job.
+     */
     @Index()
     @Column({ type: Date })
     expiresAt: Date;

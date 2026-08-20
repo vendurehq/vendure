@@ -2,7 +2,7 @@
 title: "McpToolMetadata"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/mcp-sdk/src/mcp-tool.decorator.ts" sourceLine="43" packageName="@vendure/mcp-sdk" since="3.8.0" />
+<GenerationInfo sourceFile="packages/mcp-sdk/src/mcp-tool.decorator.ts" sourceLine="48" packageName="@vendure/mcp-sdk" since="3.8.0" />
 
 Describes a single MCP tool. You attach this to a class with the [McpTool](/reference/core-plugins/mcp-plugin/mcp-tool#mcptool)decorator. The MCP server finds those classes on startup and exposes each one as a
 callable tool.
@@ -27,47 +27,78 @@ interface McpToolMetadata {
 
 <MemberInfo kind="property" type={`string`}   />
 
-
+The name of the tool, unique within its toolset, in snake_case, e.g. `search_products`.
+The names `search_tools` and `execute_tool` are reserved for the discovery meta-tools.
+The server refuses to start if a tool takes a reserved name, or a name already used in
+the same toolset.
 ### title
 
 <MemberInfo kind="property" type={`string`}   />
 
-
+A short title for people to read, passed to the client and indexed for `search_tools`
+queries.
 ### description
 
 <MemberInfo kind="property" type={`string`}   />
 
-
+A plain description of what the tool does, written for an AI agent to read. It is sent to
+the client with the tool list, and indexed for `search_tools` queries. For a destructive
+tool it is repeated in the confirmation prompt.
 ### keywords
 
 <MemberInfo kind="property" type={`string[]`}   />
 
-
+Extra search terms for the tool: synonyms and phrasings a user would actually say, e.g.
+`['money back', 'reimburse']` for a refund tool. They are indexed with the name, title and
+description to match `search_tools` queries in discovery mode. They are never shown to the
+agent or returned in a tool result.
 ### toolset
 
 <MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-toolset#mcptoolset'>McpToolset</a>`}   />
 
-
+A `shop` tool appears on the MCP shop endpoint, an `admin` tool on the admin endpoint.
+Names only have to be unique within one toolset.
 ### permissions
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/permission#permission'>Permission</a>[]`}   />
 
+The permissions needed to call the tool. The caller only needs one of them, the same OR
+logic as the `Allow` decorator.
 
+On a `shop` tool, omitting this or passing an empty array makes the tool public: every
+caller passes the permission check, including anonymous ones.
+
+On an `admin` tool it is required. The server refuses to start when it is omitted or empty.
+Use `[Permission.Authenticated]` if any signed-in administrator may call the tool.
 ### behavior
 
-<MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-tool-behavior#mcptoolbehavior'>McpToolBehavior</a>`}   />
+<MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-tool-behavior#mcptoolbehavior'>McpToolBehavior</a>`} default={`'mutating'`}   />
 
+How the tool behaves, which decides how it is exposed to the agent:
 
+- `readonly`: the tool changes nothing. Its `readOnlyHint` and `idempotentHint`
+  annotations are set to true.
+- `mutating`: the tool writes data and runs immediately.
+- `destructive`: the tool writes data and must be confirmed first. Its `destructiveHint`
+  annotation is set to true. An optional `confirm` field is added to the input schema the
+  caller sees. The registry refuses to run the tool unless the call passes `confirm: true`.
+  A destructive tool must not declare a `confirm` property of its own.
 ### inputSchema
 
 <MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-tool-schema#mcptoolschema'>McpToolSchema</a>`}   />
 
-
+The schema for the tool's arguments. Two forms are accepted: a plain JSON Schema object
+([McpJsonSchema](/reference/core-plugins/mcp-plugin/mcp-json-schema#mcpjsonschema)), or a Standard Schema object that can emit JSON Schema
+([McpStandardSchema](/reference/core-plugins/mcp-plugin/mcp-standard-schema#mcpstandardschema)), such as a Zod v4 schema. The registry compiles the schema once
+at startup, and validates every call's arguments against it. A tool that omits it takes no
+arguments.
 ### outputSchema
 
 <MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-tool-schema#mcptoolschema'>McpToolSchema</a>`}   />
 
-
+The schema for the tool's return value, in the same two forms as `inputSchema`. The registry
+validates each result against it and logs a warning on a mismatch. The call still succeeds,
+and the schema is not advertised to the client.
 
 
 </div>

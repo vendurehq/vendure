@@ -19,6 +19,11 @@ export class McpAuthorizationRequest extends VendureEntity {
         super(input);
     }
 
+    /**
+     * @description
+     * A hash of the token that the consent page carries in its URL. The token itself is never
+     * stored.
+     */
     @Index({ unique: true })
     @Column()
     requestToken: string;
@@ -39,15 +44,35 @@ export class McpAuthorizationRequest extends VendureEntity {
     @Column()
     codeChallenge: string;
 
+    /**
+     * @description
+     * Always `S256`. The authorize endpoint refuses any other method.
+     *
+     * @default 'S256'
+     */
     @Column({ default: 'S256' })
     codeChallengeMethod: string;
 
+    /**
+     * @description
+     * Decides which consent page the browser is sent to, and which of the two approval
+     * mutations is allowed to answer this request.
+     */
     @Column({ type: 'varchar' })
     toolset: McpToolset;
 
+    /**
+     * @description
+     * The endpoint being asked for: the issuer URL plus `/mcp/admin` or `/mcp/shop`.
+     */
     @Column()
     resource: string;
 
+    /**
+     * @description
+     * How long the user has to decide, ten minutes by default. A request nobody answers is left
+     * for the cleanup job.
+     */
     @Index()
     @Column({ type: Date })
     expiresAt: Date;
