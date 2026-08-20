@@ -768,8 +768,9 @@ export class McpOauthService {
             }),
         );
 
-        client.lastUsedAt = now;
-        await this.connection.getRepository(ctx, McpOauthClient).save(client);
+        await this.connection
+            .getRepository(ctx, McpOauthClient)
+            .update({ id: client.id }, { lastUsedAt: now });
         return this.tokenResponse(accessPlaintext, refreshPlaintext);
     }
 
