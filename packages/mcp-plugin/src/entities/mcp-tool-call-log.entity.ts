@@ -87,7 +87,7 @@ export class McpToolCallLog extends VendureEntity {
      * without the `ReadCustomer` permission.
      */
     @Column({ type: 'simple-json', nullable: true })
-    input: unknown | null;
+    input: unknown;
 
     /**
      * @description
@@ -95,7 +95,7 @@ export class McpToolCallLog extends VendureEntity {
      * the error message instead.
      */
     @Column({ type: 'simple-json', nullable: true })
-    output: unknown | null;
+    output: unknown;
 
     @Index()
     @Column({ type: 'int', nullable: true })
