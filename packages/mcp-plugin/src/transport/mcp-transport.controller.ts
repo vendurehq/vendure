@@ -230,7 +230,7 @@ export class McpTransportController {
         res.setHeader('Content-Type', 'application/json');
         const payload: JsonRpcError = {
             jsonrpc: '2.0',
-            id: this.firstRequestId(body) ?? null,
+            id: this.firstRequestId(body),
             // -32601 with HTTP 404 is exactly how the SDK answers a method it does not implement.
             error: { code: -32601, message: 'Method not found: subscriptions/listen' },
         };
@@ -278,7 +278,7 @@ export class McpTransportController {
         res.setHeader('Content-Type', 'application/json');
         const payload: JsonRpcError = {
             jsonrpc: '2.0',
-            id: id ?? null,
+            id,
             error: {
                 code: RATE_LIMIT_ERROR_CODE,
                 message: exceeded.message,
@@ -291,8 +291,8 @@ export class McpTransportController {
         res.send(JSON.stringify(payload));
     }
 
-    /** The id of the first message that carries one, or `undefined` if the body is all notifications. */
-    private firstRequestId(body: unknown): string | number | null | undefined {
+    /** The id of the first message that carries one, or `null` if the body is all notifications. */
+    private firstRequestId(body: unknown): string | number | null {
         const messages = Array.isArray(body) ? body : [body];
         for (const message of messages) {
             const id = (message as { id?: unknown } | null)?.id;
@@ -300,7 +300,7 @@ export class McpTransportController {
                 return id as string | number | null;
             }
         }
-        return undefined;
+        return null;
     }
 
     private buildAuthInfo(
