@@ -20,6 +20,7 @@ import {
 } from '@vendure/dashboard';
 import { AlertTriangleIcon } from 'lucide-react';
 
+import { OAUTH_ENDPOINT_PATHS } from '../oauth/endpoint-paths';
 import { isLoopbackHostname } from '../oauth/loopback';
 
 import { authorizeMcpClientDocument } from './mcp.graphql';
@@ -63,7 +64,7 @@ function ConsentCard({ requestToken }: { requestToken: string }) {
         queryKey: ['mcp-authorization-request', requestToken],
         queryFn: async (): Promise<AuthRequestInfo> => {
             const res = await fetch(
-                `/mcp/oauth/authorization-request?request_token=${encodeURIComponent(requestToken)}`,
+                `/${OAUTH_ENDPOINT_PATHS.authorizationRequest}?request_token=${encodeURIComponent(requestToken)}`,
                 { credentials: 'include' },
             );
             if (!res.ok) {

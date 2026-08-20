@@ -12,12 +12,12 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 
-import { OAUTH_ENDPOINT_PATHS } from '../constants';
 import {
     McpOauthRateLimitExceptionFilter,
     McpOauthRateLimitGuard,
 } from '../rate-limit/mcp-oauth-rate-limit.guard';
 
+import { OAUTH_ENDPOINT_PATHS } from './endpoint-paths';
 import { AuthorizeInput, RegisterClientInput, TokenInput } from './oauth-types';
 import { McpOauthService } from './oauth.service';
 
@@ -50,7 +50,7 @@ export class McpOauthController {
         res.redirect(redirectUrl);
     }
 
-    @Get('mcp/oauth/authorization-request')
+    @Get(OAUTH_ENDPOINT_PATHS.authorizationRequest)
     authorizationRequest(@Query('request_token') requestToken: string) {
         return this.oauthService.getAuthorizationRequestInfo(requestToken);
     }

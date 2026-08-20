@@ -33,7 +33,6 @@ import {
     MCP_GRANT_ACTIVITY_UPDATE_INTERVAL_MS,
     MCP_PLUGIN_OPTIONS,
     mcpServerPermission,
-    OAUTH_ENDPOINT_PATHS,
     SUPPORTED_OAUTH_GRANT_TYPES,
 } from '../constants';
 import { McpAuthorizationCode } from '../entities/mcp-authorization-code.entity';
@@ -45,6 +44,7 @@ import { McpGrantUserType } from '../types';
 
 import { McpCimdClientResolverService } from './cimd/cimd-client-resolver.service';
 import { isUrlClientId } from './cimd/cimd-url';
+import { OAUTH_ENDPOINT_PATHS } from './endpoint-paths';
 import {
     AuthorizationRequestInfo,
     AuthorizeInput,

@@ -64,18 +64,6 @@ export const DEFAULT_OAUTH_OPTIONS = {
 export const SUPPORTED_OAUTH_GRANT_TYPES = ['authorization_code', 'refresh_token'];
 
 /**
- * The OAuth endpoints this server both serves and advertises in its metadata document, so the
- * route and the advertised URL cannot drift apart. The `mcp/oauth/authorization-request` route
- * is deliberately absent: the consent page reads it, and it is not an advertised OAuth endpoint.
- */
-export const OAUTH_ENDPOINT_PATHS = {
-    register: 'mcp/oauth/register',
-    authorize: 'mcp/oauth/authorize',
-    token: 'mcp/oauth/token',
-    revoke: 'mcp/oauth/revoke',
-} as const;
-
-/**
  * CIMD (client_id metadata document) fetch budget — draft-ietf-oauth-client-id-metadata-document-02
  * recommends a ~5 KB size cap (§8.7); the deadline covers connection plus body.
  */
