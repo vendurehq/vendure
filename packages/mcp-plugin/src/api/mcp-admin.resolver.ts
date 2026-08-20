@@ -21,6 +21,7 @@ import { McpToolCallLogService } from '../logging/mcp-tool-call-log.service';
 import { McpOauthService } from '../oauth/oauth.service';
 import { McpToolRegistryService } from '../registry/mcp-tool-registry.service';
 import { McpRegisteredTool } from '../registry/registry-types';
+import { McpToolCallStatus } from '../types';
 
 /** A registered tool and whether it is currently enabled. */
 interface McpToolInfo {
@@ -239,7 +240,7 @@ export class McpAdminResolver {
             .select('log.status', 'status')
             .addSelect('COUNT(*)', 'count')
             .groupBy('log.status')
-            .getRawMany<{ status: string; count: string | number }>();
+            .getRawMany<{ status: McpToolCallStatus; count: string | number }>();
 
         let totalCalls = 0;
         let successCount = 0;
