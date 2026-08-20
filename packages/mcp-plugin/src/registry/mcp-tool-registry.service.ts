@@ -47,6 +47,10 @@ const EXECUTE_TOOL = 'execute_tool';
 const RESERVED_META_TOOL_NAMES: readonly string[] = [SEARCH_TOOLS, EXECUTE_TOOL];
 const NO_ARGS_SCHEMA: McpJsonSchema = { type: 'object', properties: {}, additionalProperties: false };
 const ALL_TOOLSETS: readonly McpToolset[] = ['shop', 'admin'];
+// How many tools search_tools returns. Enforced in searchTools and stated in both the
+// no-results hint and the meta-tool's own schema description, so all three stay in step.
+const SEARCH_DEFAULT_LIMIT = 10;
+const SEARCH_MAX_LIMIT = 50;
 // Error types a tool throws on purpose, with a message meant to be read by the caller. Anything
 // else is treated as an internal failure: logged server-side, genericized for the caller.
 const CALLER_SAFE_ERROR_TYPES = [
@@ -451,7 +455,10 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         }
         const params = (input ?? {}) as { query?: unknown; limit?: unknown };
         const query = typeof params.query === 'string' ? params.query.toLowerCase() : '';
-        const limit = Math.min(Math.max(typeof params.limit === 'number' ? params.limit : 10, 1), 50);
+        const limit = Math.min(
+            Math.max(typeof params.limit === 'number' ? params.limit : SEARCH_DEFAULT_LIMIT, 1),
+            SEARCH_MAX_LIMIT,
+        );
         const toggles = await this.getToolToggles(executionContext.ctx);
         const tools = this.visibleTools(executionContext, toolset, toggles);
         const index = this.bm25.get(toolset);
@@ -471,7 +478,8 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                 hint:
                     `No ${toolset} tools matched "${query}". ` +
                     `Try a broader query, or call search_tools with an empty query to list tools by name ` +
-                    `(capped at limit — default 10, maximum 50, so raise limit to see more).`,
+                    `(capped at limit — default ${SEARCH_DEFAULT_LIMIT}, maximum ${SEARCH_MAX_LIMIT}, ` +
+                    `so raise limit to see more).`,
             });
         }
         return this.successResult({ tools: matches });
@@ -517,7 +525,10 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                     type: 'string',
                     description: 'Keywords to match against tool names and descriptions.',
                 },
-                limit: { type: 'number', description: 'Maximum number of results (1-50, default 10).' },
+                limit: {
+                    type: 'number',
+                    description: `Maximum number of results (1-${SEARCH_MAX_LIMIT}, default ${SEARCH_DEFAULT_LIMIT}).`,
+                },
             },
             required: ['query'],
             additionalProperties: false,
