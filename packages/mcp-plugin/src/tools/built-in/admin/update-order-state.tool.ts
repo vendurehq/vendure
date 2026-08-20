@@ -3,12 +3,15 @@ import { OrderService, OrderState, Permission, RequestContext } from '@vendure/c
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
+import { enumString } from '../enum-string-schema';
 import { idSchema } from '../id-schema';
 import { McpToolSerializerService } from '../serializer.service';
 
 const updateOrderStateInput = z.strictObject({
     id: idSchema.describe('Order ID.'),
-    state: z.string().describe('Target order state, e.g. "Shipped" or "Cancelled".'),
+    // The state machine decides whether the target state is legal, so any string is accepted
+    // here and checked by the transition call in execute().
+    state: enumString<OrderState>(z.string().describe('Target order state, e.g. "Shipped" or "Cancelled".')),
 });
 
 type UpdateOrderStateInput = z.infer<typeof updateOrderStateInput>;
@@ -37,10 +40,8 @@ export class UpdateOrderStateTool implements McpToolHandler<UpdateOrderStateInpu
     ) {}
 
     async execute(ctx: RequestContext, input: UpdateOrderStateInput) {
-        // The strict input schema guarantees `state` is a string; the state machine validates that it
-        // is a legal target, so we cast the validated string straight to OrderState.
         return this.serializer.orderOrError(
-            await this.orderService.transitionToState(ctx, input.id, input.state as OrderState),
+            await this.orderService.transitionToState(ctx, input.id, input.state),
         );
     }
 }

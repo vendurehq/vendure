@@ -4,6 +4,7 @@ import { Permission, ProductVariantService, RequestContext } from '@vendure/core
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
+import { enumString } from '../enum-string-schema';
 import { idSchema } from '../id-schema';
 import { McpToolSerializerService } from '../serializer.service';
 
@@ -21,13 +22,9 @@ const createVariantInputSchema = z.strictObject({
     featuredAssetId: idSchema.describe('Featured asset ID.').optional(),
     assetIds: z.array(idSchema.describe('Vendure ID.')).describe('Asset IDs to attach.').optional(),
     stockOnHand: z.number().describe('Initial stock on hand.').optional(),
-    // Cast is type-only (no runtime effect, schema still emits `type: "string"`): the generated
-    // service call expects the real GlobalFlag enum, but the JSON schema for this field is a
-    // plain string, so z.infer alone would type it as `string`.
-    trackInventory: z
-        .string()
-        .describe('Inventory tracking: "TRUE", "FALSE", or "INHERIT".')
-        .optional() as unknown as z.ZodOptional<z.ZodType<GlobalFlag>>,
+    trackInventory: enumString<GlobalFlag>(
+        z.string().describe('Inventory tracking: "TRUE", "FALSE", or "INHERIT".'),
+    ).optional(),
     enabled: z.boolean().describe('Whether the variant is enabled.').optional(),
     customFields: z.looseObject({}).describe('Variant custom fields.').optional(),
 });
