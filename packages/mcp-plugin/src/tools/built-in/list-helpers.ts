@@ -32,7 +32,7 @@ export function listOptions<T extends VendureEntity>(input: ListInput): ListQuer
     return {
         take: input.limit ?? DEFAULT_LIST_PAGE_SIZE,
         skip: input.offset ?? 0,
-    } as ListQueryOptions<T>;
+    };
 }
 
 /**
@@ -83,7 +83,7 @@ export function publicProductListOptions(input: ListInput, words: string[] = [])
             enabled: { eq: true },
             ...(wordFilters.length ? { _and: wordFilters } : {}),
         },
-    } as ListQueryOptions<Product>;
+    };
 }
 
 export function publicCollectionListOptions(input: ListInput): ListQueryOptions<Collection> {
@@ -94,7 +94,7 @@ export function publicCollectionListOptions(input: ListInput): ListQueryOptions<
             ...options.filter,
             isPrivate: { eq: false },
         },
-    } as ListQueryOptions<Collection>;
+    };
 }
 
 /**

@@ -1,14 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { ShippingMethodQuote } from '@vendure/common/lib/generated-types';
-import { ConfigService, CurrencyCode, ID, Order, Product, ProductVariant } from '@vendure/core';
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null;
-}
-
-function isErrorResult(value: unknown): value is Record<string, unknown> {
-    return isRecord(value) && '__typename' in value && 'message' in value;
-}
+import {
+    Asset,
+    Collection,
+    ConfigService,
+    CurrencyCode,
+    Customer,
+    GraphQLErrorResult,
+    isGraphQlErrorResult,
+    Order,
+    Product,
+    ProductVariant,
+} from '@vendure/core';
 
 /**
  * Turns Vendure entities into the JSON that the built-in tools return.
@@ -56,7 +59,7 @@ export class McpToolSerializerService {
         return value ? new Date(value).toISOString() : null;
     }
 
-    variant(variant: (ProductVariant & { name?: string }) | undefined | null) {
+    variant(variant: ProductVariant | undefined | null) {
         if (!variant) return null;
         return {
             id: variant.id,
@@ -71,7 +74,7 @@ export class McpToolSerializerService {
         };
     }
 
-    product(product: (Product & { name?: string; slug?: string; description?: string }) | undefined | null) {
+    product(product: Product | undefined | null) {
         if (!product) return null;
         return {
             id: product.id,
@@ -83,12 +86,7 @@ export class McpToolSerializerService {
         };
     }
 
-    collection(
-        collection:
-            | { id: ID; name?: string; slug?: string; description?: string; featuredAsset?: unknown }
-            | undefined
-            | null,
-    ) {
+    collection(collection: Collection | undefined | null) {
         if (!collection) return null;
         return {
             id: collection.id,
@@ -99,13 +97,8 @@ export class McpToolSerializerService {
         };
     }
 
-    customer(
-        customer:
-            | { id?: ID; firstName?: string; lastName?: string; emailAddress?: string; phoneNumber?: string }
-            | undefined
-            | null,
-    ) {
-        if (!customer || !('id' in customer)) return null;
+    customer(customer: Customer | undefined | null) {
+        if (!customer) return null;
         return {
             id: customer.id,
             firstName: customer.firstName,
@@ -117,30 +110,15 @@ export class McpToolSerializerService {
 
     /**
      * Vendure's customer mutations return either the Customer or one of its typed error results.
-     * This exists because that union type cannot be passed to the `customer` method above
-     * directly.
+     * This method tells the two apart.
      *
      * An error result becomes null, so a tool using this reports a failure only as a null
      * customer, without the reason. That is the behaviour these tools already had. Note this is
      * deliberately not named like `orderOrError` below, which does the opposite and hands the
      * error result back to the caller intact.
      */
-    customerFromResult(customer: unknown) {
-        if (isErrorResult(customer)) {
-            return null;
-        }
-        return this.customer(
-            customer as
-                | {
-                      id?: ID;
-                      firstName?: string;
-                      lastName?: string;
-                      emailAddress?: string;
-                      phoneNumber?: string;
-                  }
-                | undefined
-                | null,
-        );
+    customerFromResult(result: Customer | GraphQLErrorResult) {
+        return isGraphQlErrorResult(result) ? null : this.customer(result);
     }
 
     order(order: Order | undefined | null) {
@@ -175,11 +153,11 @@ export class McpToolSerializerService {
      * Vendure mutations return either the entity or one of its typed error results. An error result
      * is handed back untouched so the model sees Vendure's own message.
      */
-    orderOrError(result: unknown) {
-        if (isErrorResult(result)) {
+    orderOrError(result: Order | GraphQLErrorResult) {
+        if (isGraphQlErrorResult(result)) {
             return { result };
         }
-        return { order: this.order(result as Order | undefined) };
+        return { order: this.order(result) };
     }
 
     /**
@@ -204,8 +182,7 @@ export class McpToolSerializerService {
      * Private because no tool returns an asset on its own; assets only ever appear inside a
      * product or a collection.
      */
-    private asset(asset: unknown) {
-        if (!isRecord(asset)) return null;
+    private asset(asset: Asset) {
         return {
             id: asset.id,
             name: asset.name,
@@ -217,9 +194,9 @@ export class McpToolSerializerService {
             source: asset.source,
             preview: asset.preview,
             focalPoint: asset.focalPoint,
-            tags: Array.isArray(asset.tags)
-                ? asset.tags.map(tag => (isRecord(tag) ? tag.value : tag))
-                : undefined,
+            // Undefined unless the caller loaded the asset's `tags` relation, which no built-in
+            // tool currently does.
+            tags: asset.tags?.map(tag => tag.value),
         };
     }
 }

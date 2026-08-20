@@ -39,7 +39,11 @@ describe('McpToolSerializerService', () => {
     });
 
     it('passes a Vendure error result straight through instead of serializing it', () => {
-        const errorResult = { __typename: 'OrderLimitError', message: 'Too many items' };
+        const errorResult = {
+            __typename: 'OrderLimitError',
+            errorCode: 'ORDER_LIMIT_ERROR',
+            message: 'Too many items',
+        };
         expect(service.orderOrError(errorResult)).toEqual({ result: errorResult });
     });
 

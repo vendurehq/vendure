@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { summate } from '@vendure/common/lib/shared-utils';
-import { ID, idsAreEqual, OrderService, Payment, Permission, RequestContext } from '@vendure/core';
+import { idsAreEqual, OrderService, Payment, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
@@ -55,7 +55,7 @@ export class RefundOrderTool implements McpToolHandler<RefundOrderToolInput> {
         const payments = order?.payments ?? [];
 
         const payment = input.paymentId
-            ? payments.find(p => idsAreEqual(p.id, input.paymentId as ID))
+            ? payments.find(p => idsAreEqual(p.id, input.paymentId))
             : payments.find(p => p.state === 'Settled' && getRefundableAmount(p) > 0);
         const paymentId = input.paymentId ?? payment?.id;
 
