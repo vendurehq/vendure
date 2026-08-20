@@ -18,8 +18,6 @@ export interface AuthorizationCodeFlowResult {
     resource: string;
     /** The PKCE verifier; tests may re-use it to exchange the code themselves. */
     code_verifier: string;
-    /** The PKCE challenge derived from the verifier. */
-    code_challenge: string;
     /** The plaintext request token extracted from the consent redirect. */
     request_token: string;
     /** The plaintext authorization code extracted from the consent redirect. */
@@ -30,7 +28,7 @@ export interface AuthorizationCodeFlowResult {
     refresh_token: string;
 }
 
-export interface SubmitAdminConsentOptions {
+interface SubmitAdminConsentOptions {
     /** Base URL of the running test server, e.g. `http://localhost:3260`. */
     baseUrl: string;
     /** The plaintext request token identifying the pending authorization request. */
@@ -115,6 +113,12 @@ export function extractRequestToken(authorizeResponse: Response): string {
     }
     return requestToken;
 }
+
+/**
+ * A syntactically valid `code_challenge` for tests that never exchange the code, so the value
+ * itself never matters. 43 characters is the shortest PKCE allows (RFC 7636 4.2).
+ */
+export const PLACEHOLDER_CODE_CHALLENGE = 'a'.repeat(43);
 
 /** A fixed-length PKCE verifier and its matching S256 challenge. */
 export function pkcePair(): { code_verifier: string; code_challenge: string } {
@@ -210,7 +214,6 @@ async function driveAuthorizationCodeFlow(
         redirect_uri: redirectUri,
         resource,
         code_verifier,
-        code_challenge,
         request_token,
         code,
         access_token,

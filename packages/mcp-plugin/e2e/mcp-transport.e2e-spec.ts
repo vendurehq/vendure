@@ -9,7 +9,11 @@ import { McpPluginOptions } from '../src/types';
 
 import { McpTestToolsPlugin } from './fixtures/mcp-test-tools';
 import { callTool, expectRateLimitRefusal, postMcp, rpc } from './utils/mcp-http-client';
-import { runAuthorizationCodeFlow, runShopAuthorizationCodeFlow } from './utils/oauth-test-client';
+import {
+    PLACEHOLDER_CODE_CHALLENGE,
+    runAuthorizationCodeFlow,
+    runShopAuthorizationCodeFlow,
+} from './utils/oauth-test-client';
 import { initTestServer } from './utils/test-server';
 
 const TOKEN_SECRET = 'mcp-transport-secret-0000000000000000000000';
@@ -437,7 +441,7 @@ describe('MCP transport shopAccess: disabled', () => {
         authorizeUrl.searchParams.set('response_type', 'code');
         authorizeUrl.searchParams.set('client_id', 'irrelevant-client-id');
         authorizeUrl.searchParams.set('redirect_uri', 'https://example.com/cb');
-        authorizeUrl.searchParams.set('code_challenge', 'x'.repeat(43));
+        authorizeUrl.searchParams.set('code_challenge', PLACEHOLDER_CODE_CHALLENGE);
         authorizeUrl.searchParams.set('code_challenge_method', 'S256');
         authorizeUrl.searchParams.set('resource', `${ISSUER}/mcp/shop`);
 

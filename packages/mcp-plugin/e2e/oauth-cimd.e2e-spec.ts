@@ -7,7 +7,7 @@ import { McpOauthClient } from '../src/entities/mcp-oauth-client.entity';
 import { McpPlugin } from '../src/plugin';
 
 import { CimdTestServer, startCimdTestServer } from './utils/cimd-test-server';
-import { runAuthorizationCodeFlow } from './utils/oauth-test-client';
+import { PLACEHOLDER_CODE_CHALLENGE, runAuthorizationCodeFlow } from './utils/oauth-test-client';
 import { initTestServer } from './utils/test-server';
 
 // CIMD (Client ID Metadata Documents, draft-ietf-oauth-client-id-metadata-document): the
@@ -56,7 +56,7 @@ describe('McpPlugin OAuth CIMD client registration', () => {
         url.searchParams.set('response_type', 'code');
         url.searchParams.set('client_id', clientId);
         url.searchParams.set('redirect_uri', REDIRECT_URI);
-        url.searchParams.set('code_challenge', 'a'.repeat(43));
+        url.searchParams.set('code_challenge', PLACEHOLDER_CODE_CHALLENGE);
         url.searchParams.set('code_challenge_method', 'S256');
         url.searchParams.set('resource', `${issuer}/mcp/admin`);
         return url;
