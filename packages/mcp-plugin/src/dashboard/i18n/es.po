@@ -26,9 +26,6 @@ msgstr "Tipo de actor"
 msgid "Admin endpoint"
 msgstr "Endpoint de administración"
 
-msgid "All toolsets"
-msgstr "Todos los conjuntos de herramientas"
-
 msgid "Approve"
 msgstr "Aprobar"
 
@@ -142,9 +139,6 @@ msgstr "Revocar concesión"
 
 msgid "Safety"
 msgstr "Seguridad"
-
-msgid "Search tools..."
-msgstr "Buscar herramientas..."
 
 msgid "Shop endpoint"
 msgstr "Endpoint de la tienda"

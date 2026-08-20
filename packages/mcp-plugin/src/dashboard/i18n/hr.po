@@ -26,9 +26,6 @@ msgstr "Vrsta izvršitelja"
 msgid "Admin endpoint"
 msgstr "Administratorska krajnja točka"
 
-msgid "All toolsets"
-msgstr "Svi skupovi alata"
-
 msgid "Approve"
 msgstr "Odobri"
 
@@ -142,9 +139,6 @@ msgstr "Opozovi odobrenje"
 
 msgid "Safety"
 msgstr "Sigurnost"
-
-msgid "Search tools..."
-msgstr "Pretraži alate..."
 
 msgid "Shop endpoint"
 msgstr "Krajnja točka trgovine"

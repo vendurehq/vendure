@@ -26,9 +26,6 @@ msgstr "Тип субъекта"
 msgid "Admin endpoint"
 msgstr "Конечная точка администратора"
 
-msgid "All toolsets"
-msgstr "Все наборы инструментов"
-
 msgid "Approve"
 msgstr "Одобрить"
 
@@ -142,9 +139,6 @@ msgstr "Отозвать разрешение"
 
 msgid "Safety"
 msgstr "Безопасность"
-
-msgid "Search tools..."
-msgstr "Поиск инструментов..."
 
 msgid "Shop endpoint"
 msgstr "Конечная точка магазина"

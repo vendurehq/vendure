@@ -26,9 +26,6 @@ msgstr "कर्ताको प्रकार"
 msgid "Admin endpoint"
 msgstr "एडमिन एन्डपोइन्ट"
 
-msgid "All toolsets"
-msgstr "सबै उपकरण सेटहरू"
-
 msgid "Approve"
 msgstr "स्वीकृत गर्नुहोस्"
 
@@ -142,9 +139,6 @@ msgstr "अनुदान रद्द गर्नुहोस्"
 
 msgid "Safety"
 msgstr "सुरक्षा"
-
-msgid "Search tools..."
-msgstr "उपकरणहरू खोज्नुहोस्..."
 
 msgid "Shop endpoint"
 msgstr "पसल एन्डपोइन्ट"

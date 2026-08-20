@@ -26,9 +26,6 @@ msgstr "Szereplő típusa"
 msgid "Admin endpoint"
 msgstr "Admin végpont"
 
-msgid "All toolsets"
-msgstr "Összes eszközkészlet"
-
 msgid "Approve"
 msgstr "Jóváhagyás"
 
@@ -142,9 +139,6 @@ msgstr "Hozzáférés visszavonása"
 
 msgid "Safety"
 msgstr "Biztonság"
-
-msgid "Search tools..."
-msgstr "Eszközök keresése..."
 
 msgid "Shop endpoint"
 msgstr "Bolt végpont"

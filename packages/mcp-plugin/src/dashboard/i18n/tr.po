@@ -26,9 +26,6 @@ msgstr "Aktör türü"
 msgid "Admin endpoint"
 msgstr "Yönetici uç noktası"
 
-msgid "All toolsets"
-msgstr "Tüm araç setleri"
-
 msgid "Approve"
 msgstr "Onayla"
 
@@ -142,9 +139,6 @@ msgstr "Yetkiyi iptal et"
 
 msgid "Safety"
 msgstr "Güvenlik"
-
-msgid "Search tools..."
-msgstr "Araç ara..."
 
 msgid "Shop endpoint"
 msgstr "Mağaza uç noktası"

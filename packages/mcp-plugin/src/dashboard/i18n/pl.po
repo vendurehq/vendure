@@ -26,9 +26,6 @@ msgstr "Typ podmiotu"
 msgid "Admin endpoint"
 msgstr "Punkt końcowy administratora"
 
-msgid "All toolsets"
-msgstr "Wszystkie zestawy narzędzi"
-
 msgid "Approve"
 msgstr "Zatwierdź"
 
@@ -142,9 +139,6 @@ msgstr "Cofnij uprawnienie"
 
 msgid "Safety"
 msgstr "Bezpieczeństwo"
-
-msgid "Search tools..."
-msgstr "Szukaj narzędzi..."
 
 msgid "Shop endpoint"
 msgstr "Punkt końcowy sklepu"

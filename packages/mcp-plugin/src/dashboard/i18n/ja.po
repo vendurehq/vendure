@@ -26,9 +26,6 @@ msgstr "アクタータイプ"
 msgid "Admin endpoint"
 msgstr "管理エンドポイント"
 
-msgid "All toolsets"
-msgstr "すべてのツールセット"
-
 msgid "Approve"
 msgstr "承認"
 
@@ -142,9 +139,6 @@ msgstr "権限付与を取り消す"
 
 msgid "Safety"
 msgstr "安全性"
-
-msgid "Search tools..."
-msgstr "ツールを検索..."
 
 msgid "Shop endpoint"
 msgstr "ショップエンドポイント"

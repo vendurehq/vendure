@@ -26,9 +26,6 @@ msgstr "操作者类型"
 msgid "Admin endpoint"
 msgstr "管理端点"
 
-msgid "All toolsets"
-msgstr "所有工具集"
-
 msgid "Approve"
 msgstr "批准"
 
@@ -142,9 +139,6 @@ msgstr "撤销授权"
 
 msgid "Safety"
 msgstr "安全性"
-
-msgid "Search tools..."
-msgstr "搜索工具..."
 
 msgid "Shop endpoint"
 msgstr "商店端点"

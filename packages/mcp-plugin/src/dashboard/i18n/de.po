@@ -26,9 +26,6 @@ msgstr "Akteurtyp"
 msgid "Admin endpoint"
 msgstr "Admin-Endpunkt"
 
-msgid "All toolsets"
-msgstr "Alle Toolsets"
-
 msgid "Approve"
 msgstr "Genehmigen"
 
@@ -142,9 +139,6 @@ msgstr "Berechtigung widerrufen"
 
 msgid "Safety"
 msgstr "Sicherheit"
-
-msgid "Search tools..."
-msgstr "Tools suchen..."
 
 msgid "Shop endpoint"
 msgstr "Shop-Endpunkt"

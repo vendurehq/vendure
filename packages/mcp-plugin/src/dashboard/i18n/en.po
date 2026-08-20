@@ -26,9 +26,6 @@ msgstr "Actor type"
 msgid "Admin endpoint"
 msgstr "Admin endpoint"
 
-msgid "All toolsets"
-msgstr "All toolsets"
-
 msgid "Approve"
 msgstr "Approve"
 
@@ -142,9 +139,6 @@ msgstr "Revoke grant"
 
 msgid "Safety"
 msgstr "Safety"
-
-msgid "Search tools..."
-msgstr "Search tools..."
 
 msgid "Shop endpoint"
 msgstr "Shop endpoint"

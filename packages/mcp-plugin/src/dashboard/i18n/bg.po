@@ -26,9 +26,6 @@ msgstr "Тип извършител"
 msgid "Admin endpoint"
 msgstr "Административна крайна точка"
 
-msgid "All toolsets"
-msgstr "Всички набори от инструменти"
-
 msgid "Approve"
 msgstr "Одобряване"
 
@@ -142,9 +139,6 @@ msgstr "Отмяна на разрешението"
 
 msgid "Safety"
 msgstr "Безопасност"
-
-msgid "Search tools..."
-msgstr "Търсене на инструменти..."
 
 msgid "Shop endpoint"
 msgstr "Крайна точка на магазина"

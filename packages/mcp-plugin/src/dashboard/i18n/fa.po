@@ -26,9 +26,6 @@ msgstr "نوع عامل"
 msgid "Admin endpoint"
 msgstr "نقطه پایانی مدیریت"
 
-msgid "All toolsets"
-msgstr "همه مجموعه‌ابزارها"
-
 msgid "Approve"
 msgstr "تأیید"
 
@@ -142,9 +139,6 @@ msgstr "لغو مجوز"
 
 msgid "Safety"
 msgstr "ایمنی"
-
-msgid "Search tools..."
-msgstr "جستجوی ابزارها..."
 
 msgid "Shop endpoint"
 msgstr "نقطه پایانی فروشگاه"

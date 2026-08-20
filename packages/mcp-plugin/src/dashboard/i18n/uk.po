@@ -26,9 +26,6 @@ msgstr "Тип суб'єкта"
 msgid "Admin endpoint"
 msgstr "Адміністративна кінцева точка"
 
-msgid "All toolsets"
-msgstr "Усі набори інструментів"
-
 msgid "Approve"
 msgstr "Схвалити"
 
@@ -142,9 +139,6 @@ msgstr "Відкликати дозвіл"
 
 msgid "Safety"
 msgstr "Безпека"
-
-msgid "Search tools..."
-msgstr "Пошук інструментів..."
 
 msgid "Shop endpoint"
 msgstr "Кінцева точка магазину"

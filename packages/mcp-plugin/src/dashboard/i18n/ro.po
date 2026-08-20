@@ -26,9 +26,6 @@ msgstr "Tip de actor"
 msgid "Admin endpoint"
 msgstr "Endpoint admin"
 
-msgid "All toolsets"
-msgstr "Toate seturile de instrumente"
-
 msgid "Approve"
 msgstr "Aprobă"
 
@@ -142,9 +139,6 @@ msgstr "Revocă autorizarea"
 
 msgid "Safety"
 msgstr "Siguranță"
-
-msgid "Search tools..."
-msgstr "Caută instrumente..."
 
 msgid "Shop endpoint"
 msgstr "Endpoint magazin"

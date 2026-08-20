@@ -26,9 +26,6 @@ msgstr "Amaldor turi"
 msgid "Admin endpoint"
 msgstr "Admin so'nggi nuqtasi"
 
-msgid "All toolsets"
-msgstr "Barcha asboblar to'plami"
-
 msgid "Approve"
 msgstr "Tasdiqlash"
 
@@ -142,9 +139,6 @@ msgstr "Ruxsatni bekor qilish"
 
 msgid "Safety"
 msgstr "Xavfsizlik"
-
-msgid "Search tools..."
-msgstr "Asboblarni qidirish..."
 
 msgid "Shop endpoint"
 msgstr "Do'kon so'nggi nuqtasi"

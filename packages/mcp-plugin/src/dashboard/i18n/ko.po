@@ -26,9 +26,6 @@ msgstr "행위자 유형"
 msgid "Admin endpoint"
 msgstr "관리자 엔드포인트"
 
-msgid "All toolsets"
-msgstr "모든 도구 세트"
-
 msgid "Approve"
 msgstr "승인"
 
@@ -142,9 +139,6 @@ msgstr "권한 취소"
 
 msgid "Safety"
 msgstr "안전성"
-
-msgid "Search tools..."
-msgstr "도구 검색..."
 
 msgid "Shop endpoint"
 msgstr "상점 엔드포인트"

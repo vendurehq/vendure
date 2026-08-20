@@ -26,9 +26,6 @@ msgstr "Typ aktéra"
 msgid "Admin endpoint"
 msgstr "Koncový bod administrace"
 
-msgid "All toolsets"
-msgstr "Všechny sady nástrojů"
-
 msgid "Approve"
 msgstr "Schválit"
 
@@ -142,9 +139,6 @@ msgstr "Odvolat oprávnění"
 
 msgid "Safety"
 msgstr "Bezpečnost"
-
-msgid "Search tools..."
-msgstr "Hledat nástroje..."
 
 msgid "Shop endpoint"
 msgstr "Koncový bod obchodu"

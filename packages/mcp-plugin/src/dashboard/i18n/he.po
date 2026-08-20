@@ -26,9 +26,6 @@ msgstr "סוג מבצע"
 msgid "Admin endpoint"
 msgstr "נקודת קצה של הניהול"
 
-msgid "All toolsets"
-msgstr "כל ערכות הכלים"
-
 msgid "Approve"
 msgstr "אישור"
 
@@ -142,9 +139,6 @@ msgstr "בטל הרשאה"
 
 msgid "Safety"
 msgstr "בטיחות"
-
-msgid "Search tools..."
-msgstr "חיפוש כלים..."
 
 msgid "Shop endpoint"
 msgstr "נקודת קצה של החנות"

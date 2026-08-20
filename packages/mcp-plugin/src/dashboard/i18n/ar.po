@@ -26,9 +26,6 @@ msgstr "نوع الفاعل"
 msgid "Admin endpoint"
 msgstr "نقطة نهاية الإدارة"
 
-msgid "All toolsets"
-msgstr "جميع مجموعات الأدوات"
-
 msgid "Approve"
 msgstr "موافقة"
 
@@ -142,9 +139,6 @@ msgstr "إلغاء المنح"
 
 msgid "Safety"
 msgstr "الأمان"
-
-msgid "Search tools..."
-msgstr "البحث في الأدوات..."
 
 msgid "Shop endpoint"
 msgstr "نقطة نهاية المتجر"

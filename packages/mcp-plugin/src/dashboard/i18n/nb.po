@@ -26,9 +26,6 @@ msgstr "Aktørtype"
 msgid "Admin endpoint"
 msgstr "Admin-endepunkt"
 
-msgid "All toolsets"
-msgstr "Alle verktøysett"
-
 msgid "Approve"
 msgstr "Godkjenn"
 
@@ -142,9 +139,6 @@ msgstr "Tilbakekall tilgang"
 
 msgid "Safety"
 msgstr "Sikkerhet"
-
-msgid "Search tools..."
-msgstr "Søk etter verktøy..."
 
 msgid "Shop endpoint"
 msgstr "Butikk-endepunkt"

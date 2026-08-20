@@ -26,9 +26,6 @@ msgstr "Actortype"
 msgid "Admin endpoint"
 msgstr "Admin-endpoint"
 
-msgid "All toolsets"
-msgstr "Alle toolsets"
-
 msgid "Approve"
 msgstr "Goedkeuren"
 
@@ -142,9 +139,6 @@ msgstr "Toekenning intrekken"
 
 msgid "Safety"
 msgstr "Veiligheid"
-
-msgid "Search tools..."
-msgstr "Tools zoeken..."
 
 msgid "Shop endpoint"
 msgstr "Shop-endpoint"
