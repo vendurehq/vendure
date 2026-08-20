@@ -14,7 +14,6 @@ export const mcpOauthRetentionTask = new ScheduledTask({
     id: 'mcp-oauth-retention',
     description: 'Deletes expired MCP OAuth records',
     schedule: cron => cron.everyDayAt(3, 30),
-    params: {},
     async execute({ injector, scheduledContext }) {
         return injector.get(McpOauthRetentionService).deleteExpiredOauthRecords(scheduledContext);
     },

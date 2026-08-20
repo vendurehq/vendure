@@ -11,7 +11,6 @@ export const mcpToolCallLogRetentionTask = new ScheduledTask({
     id: 'mcp-tool-call-log-retention',
     description: 'Deletes expired MCP tool call logs',
     schedule: cron => cron.everyDayAt(2, 30),
-    params: {},
     async execute({ injector, scheduledContext }) {
         const deletedCount = await injector
             .get(McpToolCallLogService)
