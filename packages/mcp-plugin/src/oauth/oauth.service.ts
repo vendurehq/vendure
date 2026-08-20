@@ -101,6 +101,7 @@ export class McpOauthService {
     ) {}
 
     async registerClient(input: RegisterClientInput): Promise<RegisteredClientResponse> {
+        this.resolvedOauth();
         if (!input.client_name) {
             throw new BadRequestException('client_name is required');
         }
