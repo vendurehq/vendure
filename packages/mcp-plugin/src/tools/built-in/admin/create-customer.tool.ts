@@ -3,16 +3,13 @@ import { CustomerService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
+import { emailAddressSchema } from '../email-schema';
 import { McpToolSerializerService } from '../serializer.service';
 
 const customerInputSchema = z.strictObject({
     firstName: z.string().describe('Customer first name.'),
     lastName: z.string().describe('Customer last name.'),
-    emailAddress: z
-        .string()
-        .describe('Customer email address.')
-        .meta({ format: 'email' })
-        .refine(value => z.regexes.email.test(value), 'Invalid email address'),
+    emailAddress: emailAddressSchema,
     phoneNumber: z.string().describe('Customer phone number.').optional(),
     title: z.string().describe('Customer title, e.g. "Mr" or "Ms".').optional(),
     customFields: z.looseObject({}).describe('Customer custom fields.').optional(),
