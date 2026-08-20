@@ -2,9 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { DiscoveryModule, DiscoveryService } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import { Permission } from '@vendure/common/lib/generated-types';
+import type { RequestContext } from '@vendure/core';
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { McpTool, McpToolHandler, McpToolMetadata, McpToolSchema } from './mcp-tool.decorator';
+import { McpCallerInfo, McpTool, McpToolHandler, McpToolMetadata, McpToolSchema } from './mcp-tool.decorator';
 
 @Injectable()
 @McpTool({
@@ -15,7 +16,7 @@ import { McpTool, McpToolHandler, McpToolMetadata, McpToolSchema } from './mcp-t
     permissions: [Permission.Public],
 })
 class SearchProductsTool implements McpToolHandler<{ term: string }, { items: unknown[] }> {
-    execute(ctx: any, input: { term: string }) {
+    execute(ctx: RequestContext, input: { term: string }, caller?: McpCallerInfo) {
         return { items: [] };
     }
 }
