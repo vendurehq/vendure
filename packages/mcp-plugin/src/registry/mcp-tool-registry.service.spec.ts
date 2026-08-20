@@ -194,6 +194,12 @@ describe('McpToolRegistryService', () => {
             required: ['q'],
             additionalProperties: false,
         };
+        const DELETE_JSON = {
+            type: 'object',
+            properties: { id: { type: 'string' } },
+            required: ['id'],
+            additionalProperties: false,
+        };
 
         it('accepts a Standard Schema inputSchema and derives its JSON Schema at boot', () => {
             const schema = specStandardSchema(OBJECT_JSON, value => ({ value }));
@@ -257,13 +263,7 @@ describe('McpToolRegistryService', () => {
                 }
                 return { value };
             };
-            const deleteJson = {
-                type: 'object',
-                properties: { id: { type: 'string' } },
-                required: ['id'],
-                additionalProperties: false,
-            };
-            const schema = specStandardSchema(deleteJson, strictValidate);
+            const schema = specStandardSchema(DELETE_JSON, strictValidate);
             const execute = vi.fn((_ctx: unknown, _input: unknown) => ({ deleted: true }));
             const { service } = build([
                 wrapper(
@@ -294,13 +294,7 @@ describe('McpToolRegistryService', () => {
         });
 
         it('rejects non-boolean confirm on a destructive Standard Schema tool', async () => {
-            const deleteJson = {
-                type: 'object',
-                properties: { id: { type: 'string' } },
-                required: ['id'],
-                additionalProperties: false,
-            };
-            const schema = specStandardSchema(deleteJson, value => ({ value }));
+            const schema = specStandardSchema(DELETE_JSON, value => ({ value }));
             const execute = vi.fn();
             const { service } = build([
                 wrapper(
@@ -377,14 +371,8 @@ describe('McpToolRegistryService', () => {
         });
 
         it('rejects a destructive Standard Schema tool whose parsed value is not a plain object', async () => {
-            const deleteJson = {
-                type: 'object',
-                properties: { id: { type: 'string' } },
-                required: ['id'],
-                additionalProperties: false,
-            };
             // A transform-to-string author schema: parses "successfully" to a bare string.
-            const schema = specStandardSchema(deleteJson, () => ({ value: 'x1' }));
+            const schema = specStandardSchema(DELETE_JSON, () => ({ value: 'x1' }));
             const execute = vi.fn();
             const { service } = build([
                 wrapper(
