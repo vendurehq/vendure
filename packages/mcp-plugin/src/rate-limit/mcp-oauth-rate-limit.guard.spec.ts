@@ -11,7 +11,7 @@ import { McpRateLimitExceededError } from './mcp-rate-limiter.service';
 /** A fake Nest ExecutionContext/ArgumentsHost exposing just the request/response the guard/filter read. */
 function fakeHost(
     req: { ip?: string },
-    res: {
+    res?: {
         setHeader: ReturnType<typeof vi.fn>;
         status: ReturnType<typeof vi.fn>;
         json: ReturnType<typeof vi.fn>;
@@ -36,7 +36,7 @@ describe('McpOauthRateLimitGuard', () => {
         const rateLimiter = { enforceOauthIpRateLimit: vi.fn().mockResolvedValue(undefined) };
         const guard = new McpOauthRateLimitGuard(rateLimiter as any);
 
-        await expect(guard.canActivate(fakeHost({ ip: '1.2.3.4' }, fakeResponse()))).resolves.toBe(true);
+        await expect(guard.canActivate(fakeHost({ ip: '1.2.3.4' }))).resolves.toBe(true);
         expect(rateLimiter.enforceOauthIpRateLimit).toHaveBeenCalledWith('1.2.3.4');
     });
 
@@ -52,7 +52,7 @@ describe('McpOauthRateLimitGuard', () => {
         };
         const guard = new McpOauthRateLimitGuard(rateLimiter as any);
 
-        const call = guard.canActivate(fakeHost({ ip: '1.2.3.4' }, fakeResponse()));
+        const call = guard.canActivate(fakeHost({ ip: '1.2.3.4' }));
         await expect(call).rejects.toBeInstanceOf(McpOauthRateLimitExceededHttpException);
         await expect(call).rejects.toMatchObject({ retryAfterSeconds: 7 });
     });
@@ -62,7 +62,7 @@ describe('McpOauthRateLimitGuard', () => {
         const rateLimiter = { enforceOauthIpRateLimit: vi.fn().mockRejectedValue(boom) };
         const guard = new McpOauthRateLimitGuard(rateLimiter as any);
 
-        await expect(guard.canActivate(fakeHost({ ip: '1.2.3.4' }, fakeResponse()))).rejects.toBe(boom);
+        await expect(guard.canActivate(fakeHost({ ip: '1.2.3.4' }))).rejects.toBe(boom);
     });
 });
 
