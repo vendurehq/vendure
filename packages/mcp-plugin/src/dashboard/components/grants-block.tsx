@@ -24,7 +24,7 @@ import { mcpOauthGrantsQuery, revokeMcpOauthGrantDocument } from '../mcp.graphql
 const tableSettingsKey = 'mcp-grants-table';
 
 /** Shows the status value the server sent: "active", "expired" or "revoked". */
-function StatusBadge({ status }: { status: string }) {
+function GrantStatusBadge({ status }: { status: string }) {
     if (status === 'revoked') {
         return (
             <Badge variant="destructive">
@@ -126,7 +126,7 @@ export function GrantsBlock() {
                 expiresAt: { header: () => <Trans>Expires</Trans> },
                 status: {
                     header: () => <Trans>Status</Trans>,
-                    cell: ({ row }) => <StatusBadge status={row.original.status} />,
+                    cell: ({ row }) => <GrantStatusBadge status={row.original.status} />,
                 },
             }}
             facetedFilters={{

@@ -12,7 +12,7 @@ import { mcpToolCallLogsQuery } from '../mcp.graphql';
 
 const tableSettingsKey = 'mcp-activity-table';
 
-function StatusBadge({ status }: { status: string }) {
+function CallStatusBadge({ status }: { status: string }) {
     const variant = status === 'success' ? 'success' : status === 'error' ? 'destructive' : 'secondary';
     return <Badge variant={variant}>{status}</Badge>;
 }
@@ -68,7 +68,7 @@ export function ActivityBlock() {
                 },
                 status: {
                     header: () => <Trans>Status</Trans>,
-                    cell: ({ row }) => <StatusBadge status={row.original.status} />,
+                    cell: ({ row }) => <CallStatusBadge status={row.original.status} />,
                 },
                 durationMs: {
                     header: () => <Trans>Duration</Trans>,
