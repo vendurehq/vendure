@@ -30,14 +30,14 @@ export const mcpServerPermission = new CrudPermissionDefinition('McpServer');
 /** Throttles how often a bearer-token call bumps `McpOauthGrant.lastActivityAt`. */
 export const MCP_GRANT_ACTIVITY_UPDATE_INTERVAL_MS = 60_000;
 
+/** Turns the day-valued retention options into a cutoff date. */
+export const MS_PER_DAY = 86_400_000;
+
 /**
  * How long a registered or CIMD-resolved `McpOauthClient` is kept once created without ever
  * being used.
  */
-export const MCP_UNUSED_OAUTH_CLIENT_RETENTION_MS = 24 * 60 * 60 * 1000;
-
-/** Turns the day-valued retention options into a cutoff date. */
-export const MS_PER_DAY = 86_400_000;
+export const MCP_UNUSED_OAUTH_CLIENT_RETENTION_MS = MS_PER_DAY;
 /** Rows deleted per statement by a retention sweep — small enough not to lock a large table. */
 export const RETENTION_DELETE_BATCH_SIZE = 500;
 /** Default retention window for tool-call logs, in days. */
