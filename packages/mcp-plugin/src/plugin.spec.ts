@@ -2,9 +2,9 @@ import { preloadSchemas } from '@modelcontextprotocol/server';
 import { getConfigurationFunction, Logger, ProcessContext } from '@vendure/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { DEFAULT_OAUTH_OPTIONS } from './constants';
 import { ResolvedMcpPluginOptions } from './internal-types';
 import { McpPlugin } from './plugin';
+import { resolveMcpPluginOptions } from './resolve-options';
 import { mcpOauthRetentionTask } from './tasks/mcp-oauth-retention.task';
 import { McpPluginOptions } from './types';
 
@@ -55,10 +55,7 @@ describe('McpPlugin production config guard', () => {
     }
 
     function setOauth(oauth: McpPluginOptions['oauth']): void {
-        McpPlugin.options = {
-            toolExposure: 'direct',
-            oauth: oauth && { ...DEFAULT_OAUTH_OPTIONS, ...oauth },
-        };
+        McpPlugin.options = resolveMcpPluginOptions({ toolExposure: 'direct', oauth });
     }
 
     it('throws in production when the issuer is a localhost URL', () => {
