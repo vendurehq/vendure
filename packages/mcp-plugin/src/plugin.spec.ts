@@ -248,6 +248,13 @@ describe('McpPlugin logging options + retention task', () => {
         expect(resolveDayTime(task)).toBe('4:15');
     });
 
+    it('accepts a plain cron-string schedule, like core does', async () => {
+        McpPlugin.init({ logging: { retentionSchedule: '0 3 * * *' } });
+        const config = await runConfiguration();
+        const task = config.schedulerOptions.tasks.find((t: any) => t.id === 'mcp-tool-call-log-retention');
+        expect(task.options.schedule).toBe('0 3 * * *');
+    });
+
     it("honours a custom ttlDays and capture: 'full'", () => {
         McpPlugin.init({ logging: { ttlDays: 7, capture: 'full' } });
         expect(McpPlugin.options.logging?.ttlDays).toBe(7);

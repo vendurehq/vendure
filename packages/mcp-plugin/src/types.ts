@@ -234,7 +234,7 @@ export interface McpDnsRebindingOptions {
     allowedOrigins?: string[];
 }
 
-export type McpRetentionSchedule = Exclude<ScheduledTaskConfig['schedule'], string>;
+export type McpRetentionSchedule = ScheduledTaskConfig['schedule'];
 
 /** How much of each MCP tool call {@link McpLoggingOptions.capture} persists. */
 export type McpLogCapture = 'metadata' | 'full';
