@@ -12,8 +12,8 @@ import { isLoopbackHostname } from './loopback';
  * parameters, and other short-lived OAuth values that are transmitted over
  * the wire.
  */
-export function randomToken(byteLength = 32): string {
-    return randomBytes(byteLength).toString('base64url');
+export function randomToken(): string {
+    return randomBytes(32).toString('base64url');
 }
 
 /**
