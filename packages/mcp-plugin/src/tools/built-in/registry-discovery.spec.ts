@@ -15,7 +15,6 @@ import {
     StockLevelService,
     TransactionalConnection,
 } from '@vendure/core';
-import { McpTool, McpToolMetadata } from '@vendure/mcp-sdk';
 import { describe, expect, it, vi } from 'vitest';
 
 import { MCP_PLUGIN_OPTIONS } from '../../constants';
@@ -29,14 +28,11 @@ import { adminToolProviders } from './admin';
 import { mcpBuiltInToolProviders } from './providers';
 import { McpToolSerializerService } from './serializer.service';
 import { shopToolProviders } from './shop';
+import { metadataFor } from './spec-helpers';
 
-const shopToolNames = shopToolProviders
-    .map(provider => (Reflect.getMetadata(McpTool.KEY, provider) as McpToolMetadata).name)
-    .sort();
+const shopToolNames = shopToolProviders.map(provider => metadataFor(provider).name).sort();
 
-const adminToolNames = adminToolProviders
-    .map(provider => (Reflect.getMetadata(McpTool.KEY, provider) as McpToolMetadata).name)
-    .sort();
+const adminToolNames = adminToolProviders.map(provider => metadataFor(provider).name).sort();
 
 describe('built-in registry discovery', () => {
     async function bootRegistry() {

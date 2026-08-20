@@ -1,9 +1,9 @@
 import { fromJsonSchema, JsonSchemaType } from '@modelcontextprotocol/server';
 import { Permission } from '@vendure/core';
-import { McpTool, McpToolMetadata } from '@vendure/mcp-sdk';
 import { describe, expect, it } from 'vitest';
 
 import { mcpBuiltInToolProviders } from './providers';
+import { metadataFor, toJsonInputSchema } from './spec-helpers';
 
 const allowedOpenObjectPaths = new Set([
     'set_billing_address.address.customFields',
@@ -17,25 +17,6 @@ const allowedOpenObjectPaths = new Set([
     'create_variant.input.customFields',
     'update_variant.input.customFields',
 ]);
-
-function toJsonInputSchema(schema: unknown): Record<string, unknown> {
-    const std = (
-        schema as { ['~standard']?: { jsonSchema?: { input?: (o: object) => Record<string, unknown> } } }
-    )?.['~standard'];
-    if (std?.jsonSchema?.input) {
-        const { $schema, ...json } = std.jsonSchema.input({ target: 'draft-2020-12' });
-        return json;
-    }
-    return schema as Record<string, unknown>;
-}
-
-function metadataFor(provider: unknown): McpToolMetadata {
-    const metadata = Reflect.getMetadata(McpTool.KEY, provider) as McpToolMetadata | undefined;
-    if (!metadata) {
-        throw new Error(`Missing @McpTool metadata on ${String(provider)}`);
-    }
-    return metadata;
-}
 
 function assertStrictObjectSchemas(schema: unknown, path: string): void {
     if (!schema || typeof schema !== 'object') {

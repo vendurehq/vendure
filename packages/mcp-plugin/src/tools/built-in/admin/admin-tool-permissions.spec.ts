@@ -1,7 +1,6 @@
 import { Type } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PERMISSIONS_METADATA_KEY, Permission } from '@vendure/core';
-import { McpTool, McpToolMetadata } from '@vendure/mcp-sdk';
 import { describe, expect, it } from 'vitest';
 
 // Core admin resolvers are not exported from the @vendure/core barrel, so we import them directly to
@@ -12,6 +11,7 @@ import { CustomerGroupResolver } from '../../../../../core/src/api/resolvers/adm
 import { CustomerResolver } from '../../../../../core/src/api/resolvers/admin/customer.resolver';
 import { OrderResolver } from '../../../../../core/src/api/resolvers/admin/order.resolver';
 import { ProductResolver } from '../../../../../core/src/api/resolvers/admin/product.resolver';
+import { metadataFor } from '../spec-helpers';
 
 import { adminToolProviders } from './index';
 
@@ -55,14 +55,6 @@ const TOOL_OPERATION_MAP: Record<string, ResolverOperation> = {
 const AUTHENTICATED_EXCEPTIONS = ['set_active_channel'];
 
 const reflector = new Reflector();
-
-function metadataFor(provider: Type<any>): McpToolMetadata {
-    const metadata = Reflect.getMetadata(McpTool.KEY, provider) as McpToolMetadata | undefined;
-    if (!metadata) {
-        throw new Error(`Missing @McpTool metadata on ${provider.name}`);
-    }
-    return metadata;
-}
 
 function resolverPermissions({ resolver, method }: ResolverOperation): Permission[] {
     const handler = resolver.prototype[method];

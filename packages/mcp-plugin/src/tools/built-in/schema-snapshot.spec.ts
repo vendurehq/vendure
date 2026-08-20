@@ -14,34 +14,15 @@
  * then re-run the spec normally (without the env var) to confirm it passes, and diff the
  * snapshot file to review exactly what changed.
  */
-import { McpTool, McpToolMetadata } from '@vendure/mcp-sdk';
 import { writeFileSync } from 'fs';
 import { join } from 'path';
 import { describe, expect, it } from 'vitest';
 
 import snapshot from './builtin-input-schemas.snapshot.json';
 import { mcpBuiltInToolProviders } from './providers';
+import { metadataFor, toJsonInputSchema } from './spec-helpers';
 
 const snapshotPath = join(__dirname, 'builtin-input-schemas.snapshot.json');
-
-function toJsonInputSchema(schema: unknown): Record<string, unknown> {
-    const std = (
-        schema as { ['~standard']?: { jsonSchema?: { input?: (o: object) => Record<string, unknown> } } }
-    )?.['~standard'];
-    if (std?.jsonSchema?.input) {
-        const { $schema, ...json } = std.jsonSchema.input({ target: 'draft-2020-12' });
-        return json;
-    }
-    return schema as Record<string, unknown>;
-}
-
-function metadataFor(provider: unknown): McpToolMetadata {
-    const metadata = Reflect.getMetadata(McpTool.KEY, provider) as McpToolMetadata | undefined;
-    if (!metadata) {
-        throw new Error(`Missing @McpTool metadata on ${String(provider)}`);
-    }
-    return metadata;
-}
 
 const providers = mcpBuiltInToolProviders.filter(provider => typeof provider === 'function');
 const entries = providers
