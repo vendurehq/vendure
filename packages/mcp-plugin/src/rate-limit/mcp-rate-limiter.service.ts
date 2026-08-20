@@ -139,12 +139,7 @@ export class McpRateLimiterService {
         if (state && state.count > check.rpm) {
             // Keep counting refused attempts, so the cache entry stays alive while the flood lasts.
             await this.incrementBucket(check.key, now);
-            const retryAfterSeconds = Math.max(1, Math.ceil((state.resetAt - now) / 1000));
-            return {
-                message: `Rate limit exceeded for MCP request (${check.scope}). Retry after ${retryAfterSeconds} seconds.`,
-                retryAfterSeconds,
-                scope: check.scope,
-            };
+            return this.exceededDetails('MCP request', check.scope, state.resetAt, now);
         }
         return undefined;
     }
@@ -175,14 +170,24 @@ export class McpRateLimiterService {
         );
         const exceeded = results.find(({ check, state }) => state.count > check.rpm);
         if (exceeded) {
-            const retryAfterSeconds = Math.max(1, Math.ceil((exceeded.state.resetAt - now) / 1000));
-            return {
-                message: `Rate limit exceeded for ${subject} (${exceeded.check.scope}). Retry after ${retryAfterSeconds} seconds.`,
-                retryAfterSeconds,
-                scope: exceeded.check.scope,
-            };
+            return this.exceededDetails(subject, exceeded.check.scope, exceeded.state.resetAt, now);
         }
         return undefined;
+    }
+
+    /** The refusal both rate-limit paths return: the retry delay, and the message that states it. */
+    private exceededDetails(
+        subject: string,
+        scope: string,
+        resetAt: number,
+        now: number,
+    ): McpRateLimitExceeded {
+        const retryAfterSeconds = Math.max(1, Math.ceil((resetAt - now) / 1000));
+        return {
+            message: `Rate limit exceeded for ${subject} (${scope}). Retry after ${retryAfterSeconds} seconds.`,
+            retryAfterSeconds,
+            scope,
+        };
     }
 
     /** Builds the list of buckets to check for a request: the shared buckets, then one per tool. */
