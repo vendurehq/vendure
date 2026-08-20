@@ -52,7 +52,7 @@ export class UpdateCustomerTool implements McpToolHandler<UpdateCustomerToolInpu
 
     async execute(ctx: RequestContext, input: UpdateCustomerToolInput) {
         return {
-            customer: this.serializer.customer(
+            customer: this.serializer.customerFromResult(
                 await this.customerService.update(ctx, { ...input.input, id: input.id }),
             ),
         };
