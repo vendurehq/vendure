@@ -68,6 +68,9 @@ export class McpRateLimitExceededError extends Error {
  */
 @Injectable()
 export class McpRateLimiterService {
+    /** Tail of the increment queue per bucket key; an entry is removed once its tail settles. */
+    private inFlightIncrements = new Map<string, Promise<void>>();
+
     constructor(
         private cacheService: CacheService,
         @Inject(MCP_PLUGIN_OPTIONS) private options: ResolvedMcpPluginOptions,
@@ -297,9 +300,6 @@ export class McpRateLimiterService {
         }
         return state;
     }
-
-    /** Tail of the increment queue per bucket key; an entry is removed once its tail settles. */
-    private inFlightIncrements = new Map<string, Promise<void>>();
 
     private incrementBucket(key: string, now: number): Promise<BucketState> {
         const run = async (): Promise<BucketState> => {
