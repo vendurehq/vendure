@@ -93,7 +93,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     }
 
     // ---------------------------------------------------------------------------------------------
-    // Public surface (eight members)
+    // Public surface (nine members)
     // ---------------------------------------------------------------------------------------------
 
     /** Every registered tool. Consumed by the admin API. */
@@ -114,7 +114,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             return this.discoveryMetaTools;
         }
         const toggles = await this.getToolToggles(executionContext.ctx);
-        return this.visibleTools(executionContext, toolset, toggles);
+        return this.visibleTools(executionContext.ctx, toolset, toggles);
     }
 
     /**
@@ -155,7 +155,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
      */
     async getCallableTools(ctx: RequestContext, toolset: McpToolset): Promise<McpToolSummary[]> {
         const toggles = await this.getToolToggles(ctx);
-        return this.visibleTools({ ctx }, toolset, toggles).map(tool => this.toolSummary(tool));
+        return this.visibleTools(ctx, toolset, toggles).map(tool => this.toolSummary(tool));
     }
 
     /**
@@ -209,6 +209,14 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         await this.settingsStoreService.set(ctx, MCP_TOOL_TOGGLES_STORE_KEY, toggles);
         this.toggleCache = new WeakMap();
         this.toggleCache.set(ctx, toggles);
+    }
+
+    /**
+     * Canonical `${toolset}:${name}` key. Used both as the in-memory registry key and as the
+     * PERSISTED key in the tool-toggle settings map — changing the format orphans stored toggles.
+     */
+    toolKey(toolset: McpToolset, name: string): string {
+        return `${toolset}:${name}`;
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -267,7 +275,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                     `may call it.`,
             );
         }
-        const resolvedBehavior = this.getToolBehavior(metadata);
+        const resolvedBehavior = metadata.behavior ?? 'mutating';
         const jsonInputSchema = resolvedInput?.json ?? NO_ARGS_SCHEMA;
         if (resolvedBehavior === 'destructive' && jsonInputSchema.properties?.confirm !== undefined) {
             throw new Error(
@@ -275,7 +283,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                     `"confirm" property — the registry injects it.`,
             );
         }
-        const wireJsonSchema = this.wireInputSchema({ resolvedBehavior, jsonInputSchema });
+        const wireJsonSchema = this.wireInputSchema(resolvedBehavior, jsonInputSchema);
         const compiledInputSchema = resolvedInput?.standard
             ? this.toRegisteredStandardSchema(
                   resolvedInput.standard,
@@ -315,7 +323,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     }
 
     private registerTool(tool: McpRegisteredTool): void {
-        if (this.isReservedMetaToolName(tool.name)) {
+        if (RESERVED_META_TOOL_NAMES.includes(tool.name)) {
             throw new Error(`MCP tool name "${tool.name}" is reserved for discovery`);
         }
         const key = this.toolKey(tool.toolset, tool.name);
@@ -460,7 +468,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             SEARCH_MAX_LIMIT,
         );
         const toggles = await this.getToolToggles(executionContext.ctx);
-        const tools = this.visibleTools(executionContext, toolset, toggles);
+        const tools = this.visibleTools(executionContext.ctx, toolset, toggles);
         const index = this.bm25.get(toolset);
         const matches = tools
             .map(tool => ({
@@ -566,20 +574,14 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     // ---------------------------------------------------------------------------------------------
 
     private visibleTools(
-        executionContext: McpExecutionContext,
+        ctx: RequestContext,
         toolset: McpToolset,
         toggles: Record<string, boolean>,
     ): McpRegisteredTool[] {
         return [...this.tools.values()]
             .filter(tool => tool.toolset === toolset)
             .filter(tool => this.isToolEnabled(tool, toggles))
-            .filter(tool =>
-                this.hasPermissions(executionContext.ctx, tool.permissions ?? [Permission.Public]),
-            );
-    }
-
-    private getToolBehavior(tool: McpToolMetadata): McpToolBehavior {
-        return tool.behavior ?? 'mutating';
+            .filter(tool => this.hasPermissions(ctx, tool.permissions ?? [Permission.Public]));
     }
 
     private deriveAnnotations(tool: McpToolMetadata, behavior: McpToolBehavior): ToolAnnotations {
@@ -613,12 +615,13 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
 
     /** Augments a destructive tool's WIRE schema with an optional `confirm`, on a clone (never the SSOT). */
     private wireInputSchema(
-        tool: Pick<McpRegisteredTool, 'resolvedBehavior' | 'jsonInputSchema'>,
+        resolvedBehavior: McpToolBehavior,
+        jsonInputSchema: McpJsonSchema,
     ): McpJsonSchema {
-        if (tool.resolvedBehavior !== 'destructive') {
-            return tool.jsonInputSchema;
+        if (resolvedBehavior !== 'destructive') {
+            return jsonInputSchema;
         }
-        const wire = structuredClone(tool.jsonInputSchema);
+        const wire = structuredClone(jsonInputSchema);
         wire.properties = {
             ...(wire.properties ?? {}),
             confirm: {
@@ -695,18 +698,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         name?: string | symbol;
     }): string {
         return wrapper.host?.metatype?.name ?? String(wrapper.name ?? 'unknown');
-    }
-
-    /**
-     * Canonical `${toolset}:${name}` key. Used both as the in-memory registry key and as the
-     * PERSISTED key in the tool-toggle settings map — changing the format orphans stored toggles.
-     */
-    toolKey(toolset: McpToolset, name: string): string {
-        return `${toolset}:${name}`;
-    }
-
-    private isReservedMetaToolName(name: string): boolean {
-        return RESERVED_META_TOOL_NAMES.includes(name);
     }
 
     private isMcpJsonSchema(value: unknown): value is McpJsonSchema {
