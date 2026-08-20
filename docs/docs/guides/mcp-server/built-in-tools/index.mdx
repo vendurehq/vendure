@@ -5,19 +5,19 @@ metaDescription: 'The 42 tools the Vendure MCP plugin ships — 19 shop and 23 a
 order: 9
 ---
 
-The plugin ships **42 built-in tools**: **19 on the shop toolset** and **23 on the admin toolset**. This page
-groups them by area and explains the model they follow. It is not exhaustive on every input field — the live
-`tools/list` response for your configuration is the authoritative set, because it already accounts for
-permissions, tool toggles, and exposure mode.
+The plugin ships 42 built-in tools: 19 on the shop toolset and 23 on the admin toolset. This page groups them by
+area and explains the model they follow. It is not exhaustive on every input field. The live `tools/list`
+response for your configuration is the authoritative set: it already accounts for permissions, tool toggles, and
+exposure mode.
 
-## The model
+## How the tools are organized
 
-**Toolsets.** Every tool belongs to `shop` or `admin`, which decides the endpoint that serves it
-(`/mcp/shop` or `/mcp/admin`) and the permissions it is checked against.
-
-**Permissions (OR).** A tool declares one or more [`Permission`](/reference/typescript-api/common/permission/)
-values and the caller needs *any one* of them. Shop tools use `Public` (anonymous) or `Authenticated`
-(signed-in customer); admin tools use fine-grained permissions such as `ReadOrder` or `UpdateProduct`.
+- **Toolset.** Every tool belongs to `shop` or `admin`, which decides the endpoint that serves it
+  (`/mcp/shop` or `/mcp/admin`) and the permissions it is checked against.
+- **Permissions.** A tool declares one or more [`Permission`](/reference/typescript-api/common/permission/)
+  values with OR semantics: the caller needs any one of them. Shop tools use `Public` (anonymous) or
+  `Authenticated` (signed-in customer). Admin tools use fine-grained permissions such as `ReadOrder` or
+  `UpdateProduct`.
 
 ### How tool safety is derived
 
@@ -27,11 +27,12 @@ Each tool declares a single `behavior`, one of:
 - **mutating** — writes data and runs immediately. This is the default when `behavior` is omitted.
 - **destructive** — writes data and requires the confirmation round-trip below before running.
 
-The declared behavior drives the MCP annotations an agent sees (`readOnlyHint`, `destructiveHint`).
+The declared behavior drives the MCP annotations an agent sees: `readOnlyHint` and `idempotentHint` are true for
+`readonly` tools, and `destructiveHint` is true for `destructive` tools.
 
 ### Destructive confirmation
 
-A **destructive** tool is gated: the registry advertises an optional `confirm` parameter, and a call without
+A destructive tool is gated: the registry advertises an optional `confirm` parameter. A call without
 `confirm: true` returns a non-error prompt describing the action instead of running it. The agent must re-call
 with confirmation. Five built-in tools are destructive:
 
@@ -43,21 +44,21 @@ with confirmation. Five built-in tools are destructive:
 | `refund_order` | admin |
 | `update_order_state` | admin |
 
-Note that `place_order` is on the **shop** toolset — the shop tools are *not* confirmation-free. Placing an order
-is a real-money action, so it is gated like the destructive admin tools.
+`place_order` sits on the shop toolset, so the shop tools are not confirmation-free. Placing an order is a
+real-money action, and it is gated like the destructive admin tools.
 
 ### Tool toggles
 
-Administrators can enable or disable any individual tool (via the dashboard MCP Server overview, or the
-`setMcpToolEnabled` mutation, gated by `UpdateMcpServer`). A disabled tool disappears from `tools/list` and
-cannot be called. This is the primary lever for scoping what an agent can do.
+Administrators can enable or disable any individual tool, from the dashboard MCP Server overview or through the
+`setMcpToolEnabled` mutation (gated by `UpdateMcpServer`). A disabled tool disappears from `tools/list` and
+cannot be called. Tool toggles are the primary lever for scoping what an agent can do.
 
 ## How prices are returned
 
 Prices on products, variants, orders and shipping quotes appear twice. The plain field is a whole number in the
 currency's smallest unit, which is what Vendure stores and what you should use for any calculation. The field
-whose name ends in `Decimal` is the same amount written out with the decimal point in the right place, which is
-what you should show to a shopper or hand to a language model.
+whose name ends in `Decimal` is the same amount written out with the decimal point in the right place. Show that
+one to a shopper, or hand it to a language model.
 
 ```json
 {
@@ -70,8 +71,8 @@ what you should show to a shopper or hand to a language model.
 ```
 
 The number of decimal places comes from your store's `moneyStrategy.precision` setting, which defaults to 2. It
-is one setting for the whole store rather than one per currency, so a store selling in currencies with different
-numbers of decimal places will need to handle that itself.
+is one setting for the whole store rather than one per currency. A store selling in currencies with different
+numbers of decimal places handles that itself.
 
 A shipping quote carries no currency of its own, so `get_eligible_shipping_methods` takes the currency from the
 cart the quote was calculated for. Anything a shipping calculator attached to the quote under `metadata` or
@@ -97,11 +98,10 @@ cart the quote was calculated for. Anything a shipping calculator attached to th
 | `place_order` | **destructive** | Public | Move the cart to the payment stage if needed, then add payment and place the order |
 
 `add_to_cart` takes exactly one of `variantId` or `productId`. Product IDs and variant IDs are separate numbering
-sequences that overlap, so a product ID used where a variant ID belongs would otherwise resolve to a real but
-unrelated variant and put the wrong item in the cart. Requiring the caller to say which kind of ID it holds is
-what prevents that. Given a `productId` for a product with several variants, the tool adds nothing and returns an
-error listing each variant with its ID, so the caller can retry with the right one. Use `get_product` to get
-variant IDs in the first place.
+sequences that overlap. A product ID used where a variant ID belongs would resolve to a real but unrelated
+variant, and put the wrong item in the cart. Given a `productId` for a product with several variants, the tool
+adds nothing. It returns an error listing each variant with its ID, so the caller can retry with the right one.
+Use `get_product` to get variant IDs in the first place.
 
 ### Catalog (browse)
 
@@ -179,26 +179,34 @@ variant IDs in the first place.
 
 `toolExposure` controls what `tools/list` returns.
 
-**`direct` (default)** lists every permitted, enabled tool. Prefer it: modern agents and hosts do their own
-tool-search, and listing tools normally is what lets that work. Scope an agent by disabling tools, not by hiding
-the list.
+### `direct` (default)
 
-**`discovery` (opt-in)** replaces the full list with exactly two meta-tools:
+Lists every permitted, enabled tool. Prefer it: modern agents and hosts do their own tool search. Scope an agent
+by disabling tools, not by hiding the list.
 
-- `search_tools({ query, limit? })` — returns the tools whose name, title, description, or author-supplied
-  keywords best match the query (ranked with BM25), each with its input schema. `query` is required; passing it as
-  an empty string skips ranking and returns the first `limit` tools by name (`limit` defaults to 10 and is clamped
-  to 50), so it is a sample of what is available rather than the full list.
-- `execute_tool({ name, arguments })` — runs a tool found via `search_tools`, validating `arguments` against that
-  tool's schema exactly as a direct call would.
+### `discovery` (opt-in)
 
-Reach for discovery only when the full list is a problem — a host with a low tool cap (42 tools exceeds some
-clients' limits), or a model with no built-in tool search (older Claude/GPT, Gemini, Grok, GLM, and most
-open-source models). It is a compatibility escape hatch, not the recommended default.
+Replaces the full list with exactly two meta-tools.
+
+`search_tools({ query, limit? })` returns the tools that best match the query, ranked with BM25 over each tool's
+name, title, description, and author-supplied keywords. Each result includes the tool's input schema. `query` is
+required. An empty string skips ranking and returns the first `limit` tools by name, as a sample of what is
+available rather than the full list. `limit` defaults to 10 and is clamped to between 1 and 50.
+
+`execute_tool({ name, arguments })` runs a tool found via `search_tools`. It validates `arguments` against that
+tool's schema exactly as a direct call would.
+
+Reach for discovery only when the full list is a problem:
+
+- A host with a low tool cap: 42 tools exceeds some clients' limits.
+- A model with no built-in tool search: older Claude and GPT models, Gemini, Grok, GLM, and most open-source
+  models.
+
+Discovery is a compatibility escape hatch, not the recommended default.
 
 :::note
-Discovery keeps the same permission and confirmation rules as direct mode; it only changes how tools are listed
-and invoked, never what a caller is allowed to do.
+Discovery keeps the same permission and confirmation rules as direct mode. It changes how tools are listed and
+invoked, never what a caller is allowed to do.
 :::
 
 ## See also
