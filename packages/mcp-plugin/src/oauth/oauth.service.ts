@@ -238,7 +238,7 @@ export class McpOauthService {
                         'Set it to your storefront consent page URL. Staff-only deployments do not need it.',
                     loggerCtx,
                 );
-                return appendOAuthParams(input.redirect_uri, {
+                return appendOAuthParams(redirectUri, {
                     error: 'server_error',
                     error_description: 'This store is not configured to authorize customer access.',
                     state: input.state,
@@ -253,7 +253,7 @@ export class McpOauthService {
                 requestToken: this.hashLookup(requestTokenPlaintext),
                 oauthClient: client,
                 oauthClientId: client.id,
-                redirectUri: input.redirect_uri,
+                redirectUri,
                 state: input.state ?? null,
                 codeChallenge: input.code_challenge,
                 codeChallengeMethod: 'S256',
@@ -635,8 +635,9 @@ export class McpOauthService {
         const { resource } = this.resolveResource(input.resource);
         const ctx = await this.createAdminCtx();
         const codeRepo = this.connection.getRepository(ctx, McpAuthorizationCode);
+        const codeHash = this.hashLookup(input.code);
         const code = await codeRepo.findOne({
-            where: { code: this.hashLookup(input.code) },
+            where: { code: codeHash },
             relations: ['oauthClient'],
         });
         if (!code || code.expiresAt <= new Date()) {
@@ -654,7 +655,7 @@ export class McpOauthService {
         const claim = await codeRepo
             .createQueryBuilder()
             .delete()
-            .where('code = :code', { code: this.hashLookup(input.code) })
+            .where('code = :code', { code: codeHash })
             .execute();
         if (!claim.affected) {
             throw new BadRequestException('Authorization code invalid or expired');
