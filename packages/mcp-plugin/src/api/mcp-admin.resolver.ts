@@ -12,6 +12,7 @@ import {
     UserInputError,
 } from '@vendure/core';
 import { McpToolset } from '@vendure/mcp-sdk';
+import { ObjectLiteral, SelectQueryBuilder } from 'typeorm';
 import { DateUtils } from 'typeorm/util/DateUtils';
 
 import { mcpServerPermission } from '../constants';
@@ -116,9 +117,7 @@ export class McpAdminResolver {
             });
         }
         // The active channel's grants, plus channel-less (global) grants
-        qb.andWhere('(mcpoauthgrant.channelId = :channelId OR mcpoauthgrant.channelId IS NULL)', {
-            channelId: ctx.channelId,
-        });
+        this.scopeToChannel(qb, 'mcpoauthgrant', ctx.channelId);
         if (Object.keys(args.options?.sort ?? {}).length === 0) {
             qb.orderBy('mcpoauthgrant.lastActivityAt', 'DESC');
         }
@@ -152,9 +151,7 @@ export class McpAdminResolver {
         });
         // Channel-less rows come from global (admin) grants and show on every
         // channel, matching the grants query above.
-        qb.andWhere('(log.channelId = :channelId OR log.channelId IS NULL)', {
-            channelId: ctx.channelId,
-        });
+        this.scopeToChannel(qb, 'log', ctx.channelId);
         return qb.getManyAndCount().then(([items, totalItems]) => ({ items, totalItems }));
     }
 
@@ -315,10 +312,17 @@ export class McpAdminResolver {
             .getRepository(ctx, McpToolCallLog)
             .createQueryBuilder('log')
             .where('log.createdAt >= :since', { since });
-        qb.andWhere('(log.channelId = :channelId OR log.channelId IS NULL)', {
-            channelId: ctx.channelId,
-        });
+        this.scopeToChannel(qb, 'log', ctx.channelId);
         return qb;
+    }
+
+    /**
+     * Limits a query to the active channel's rows plus rows that belong to no channel. Written
+     * once because the grants list, the tool-call log list and the statistics window all need
+     * the same condition.
+     */
+    private scopeToChannel<T extends ObjectLiteral>(qb: SelectQueryBuilder<T>, alias: string, channelId: ID) {
+        qb.andWhere(`(${alias}.channelId = :channelId OR ${alias}.channelId IS NULL)`, { channelId });
     }
 }
 
