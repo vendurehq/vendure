@@ -1198,7 +1198,7 @@
                   "title": "Bootstrap",
                   "slug": "bootstrap",
                   "file": "docs/reference/typescript-api/common/bootstrap.mdx",
-                  "lastModified": "2026-08-13T14:40:56+02:00"
+                  "lastModified": "2026-08-21T05:35:30Z"
                 },
                 {
                   "title": "CurrencyCode",
@@ -2724,7 +2724,7 @@
                   "title": "Plugin Utilities",
                   "slug": "plugin-utilities",
                   "file": "docs/reference/typescript-api/plugin/plugin-utilities.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-21T05:35:30Z"
                 },
                 {
                   "title": "PluginCommonModule",
@@ -2736,13 +2736,13 @@
                   "title": "VendurePlugin",
                   "slug": "vendure-plugin",
                   "file": "docs/reference/typescript-api/plugin/vendure-plugin.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-08-21T05:35:30Z"
                 },
                 {
                   "title": "VendurePluginMetadata",
                   "slug": "vendure-plugin-metadata",
                   "file": "docs/reference/typescript-api/plugin/vendure-plugin-metadata.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-21T05:35:30Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -2780,7 +2780,7 @@
                   "title": "MultiChannelStockLocationStrategy",
                   "slug": "multi-channel-stock-location-strategy",
                   "file": "docs/reference/typescript-api/products-stock/multi-channel-stock-location-strategy.mdx",
-                  "lastModified": "2026-08-17T12:00:11+02:00"
+                  "lastModified": "2026-08-13T17:32:23+01:00"
                 },
                 {
                   "title": "ProductVariantPriceCalculationStrategy",
@@ -2874,7 +2874,7 @@
                   "title": "RequestContext",
                   "slug": "request-context",
                   "file": "docs/reference/typescript-api/request/request-context.mdx",
-                  "lastModified": "2026-08-17T12:00:11+02:00"
+                  "lastModified": "2026-08-13T14:40:56+02:00"
                 },
                 {
                   "title": "RequestContextService",
@@ -3096,7 +3096,7 @@
                   "title": "OrderService",
                   "slug": "order-service",
                   "file": "docs/reference/typescript-api/services/order-service.mdx",
-                  "lastModified": "2026-08-17T12:00:11+02:00"
+                  "lastModified": "2026-08-13T17:32:23+01:00"
                 },
                 {
                   "title": "OrderTestingService",
@@ -3186,7 +3186,7 @@
                   "title": "ShippingMethodService",
                   "slug": "shipping-method-service",
                   "file": "docs/reference/typescript-api/services/shipping-method-service.mdx",
-                  "lastModified": "2026-08-17T12:00:11+02:00"
+                  "lastModified": "2026-08-13T14:40:56+02:00"
                 },
                 {
                   "title": "SlugService",
@@ -3566,7 +3566,7 @@
                   "title": "BootstrapWorker",
                   "slug": "bootstrap-worker",
                   "file": "docs/reference/typescript-api/worker/bootstrap-worker.mdx",
-                  "lastModified": "2026-08-13T14:40:56+02:00"
+                  "lastModified": "2026-08-21T05:35:30Z"
                 },
                 {
                   "title": "VendureWorker",
