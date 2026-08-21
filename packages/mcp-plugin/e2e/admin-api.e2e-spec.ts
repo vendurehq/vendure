@@ -17,11 +17,10 @@ import { McpPlugin } from '../src/plugin';
 import { McpPluginOptions } from '../src/types';
 
 import { McpTestToolsPlugin } from './fixtures/mcp-test-tools';
-import { MCP_TOOL_CALL_LOGS_WITH_BODIES_QUERY } from './graphql/admin-definitions';
 import {
     MCP_OAUTH_GRANTS_QUERY,
     MCP_STATS_QUERY,
-    MCP_TOOL_CALL_LOGS_QUERY,
+    MCP_TOOL_CALL_LOGS_WITH_BODIES_QUERY,
     MCP_TOOLS_QUERY,
     REVOKE_MCP_OAUTH_GRANT,
     SET_MCP_TOOL_ENABLED,
@@ -171,7 +170,7 @@ describe('MCP admin API', () => {
         });
 
         it('mcpToolCallLogs honours filter options', async () => {
-            const result = await adminGraphQL(superAdminToken, MCP_TOOL_CALL_LOGS_QUERY, {
+            const result = await adminGraphQL(superAdminToken, MCP_TOOL_CALL_LOGS_WITH_BODIES_QUERY, {
                 options: { filter: { status: { eq: 'error' } } },
             });
             expect(result.errors).toBeUndefined();
@@ -207,8 +206,7 @@ describe('MCP admin API', () => {
 
         it('mcpStats rejects an unknown timeRange', async () => {
             const result = await adminGraphQL(superAdminToken, MCP_STATS_QUERY, { timeRange: 'bogus' });
-            expect(result.errors).toBeDefined();
-            expect(result.errors?.length ?? 0).toBeGreaterThan(0);
+            expect(result.errors?.[0]?.extensions?.code).toBe('USER_INPUT_ERROR');
             expect(result.data?.mcpStats ?? null).toBeNull();
         });
 
@@ -227,6 +225,10 @@ describe('MCP admin API', () => {
         });
     });
 
+    // Each refusal below asserts the GraphQL error code, not merely that some error came back.
+    // A typo in the query, a renamed variable or a schema change also produces "some error", so a
+    // presence-only check would keep passing while proving nothing about permissions. Vendure's
+    // ForbiddenError carries the code FORBIDDEN.
     describe('permission matrix', () => {
         it('SuperAdmin can read and mutate', async () => {
             const read = await adminGraphQL(superAdminToken, MCP_TOOLS_QUERY);
@@ -252,7 +254,7 @@ describe('MCP admin API', () => {
                 toolset: 'admin',
                 enabled: false,
             });
-            expect(mutate.errors).toBeDefined();
+            expect(mutate.errors?.[0]?.extensions?.code).toBe('FORBIDDEN');
             expect(mutate.data?.setMcpToolEnabled ?? null).toBeNull();
         });
 
@@ -266,13 +268,13 @@ describe('MCP admin API', () => {
             expect(mutate.data.setMcpToolEnabled).toMatchObject({ name: 'admin_list', enabled: true });
 
             const read = await adminGraphQL(updateOnlyToken, MCP_TOOLS_QUERY);
-            expect(read.errors).toBeDefined();
+            expect(read.errors?.[0]?.extensions?.code).toBe('FORBIDDEN');
             expect(read.data?.mcpTools ?? null).toBeNull();
         });
 
         it('a settings-only admin is rejected from the MCP admin API', async () => {
             const read = await adminGraphQL(settingsOnlyToken, MCP_TOOLS_QUERY);
-            expect(read.errors).toBeDefined();
+            expect(read.errors?.[0]?.extensions?.code).toBe('FORBIDDEN');
             expect(read.data?.mcpTools ?? null).toBeNull();
 
             const mutate = await adminGraphQL(settingsOnlyToken, SET_MCP_TOOL_ENABLED, {
@@ -280,7 +282,7 @@ describe('MCP admin API', () => {
                 toolset: 'admin',
                 enabled: false,
             });
-            expect(mutate.errors).toBeDefined();
+            expect(mutate.errors?.[0]?.extensions?.code).toBe('FORBIDDEN');
             expect(mutate.data?.setMcpToolEnabled ?? null).toBeNull();
         });
     });
@@ -786,10 +788,12 @@ describe('MCP admin API', () => {
         });
     });
 
-    // A restricted admin operating on their own channel must not reach another channel's
-    // audit log, grants, or prune. McpToolCallLog.channelId / McpOauthGrant.channelId are
-    // plain id columns (no FK to Channel), so an unused id models "another channel" here —
-    // the scoping is symmetric in channelId, so proving default-vs-foreign proves B-vs-A.
+    // An admin working in one channel must not reach another channel's audit log or grants,
+    // and must not prune another channel's rows. McpToolCallLog.channelId and
+    // McpOauthGrant.channelId are plain id columns with no foreign key to Channel, so an
+    // unused id stands in for "another channel" here. The scoping treats every channel id
+    // the same way, so proving the default channel cannot reach a foreign id covers all
+    // channel pairs.
     describe('channel isolation', () => {
         const FOREIGN_CHANNEL_ID = '999999';
 

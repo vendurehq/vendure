@@ -17,7 +17,7 @@ import { McpPlugin } from '../src/plugin';
 import { McpPluginOptions } from '../src/types';
 
 import { McpTestToolsPlugin } from './fixtures/mcp-test-tools';
-import { MCP_TOOL_CALL_LOGS_WITH_BODIES_QUERY } from './graphql/admin-definitions';
+import { MCP_TOOL_CALL_LOGS_WITH_BODIES_QUERY } from './graphql/mcp-documents';
 import { provisionAdmin } from './utils/admin-fixtures';
 import { callTool, postMcp } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow } from './utils/oauth-test-client';
@@ -80,7 +80,7 @@ describe('MCP tool-call logging', () => {
 
         const row = await logRow('shop_ping');
         expect(row.status).toBe('success');
-        // Anonymous shop call → no OAuth grant, actor type derived from the shop apiType.
+        // An anonymous shop call has no OAuth grant, so the actor type comes from the shop apiType.
         expect(row.actorType).toBe('anonymous');
         expect(row.grantId).toBeNull();
         expect(row.oauthClientId).toBeNull();
@@ -232,8 +232,6 @@ describe('MCP tool-call log input/output permission gating (full capture)', () =
     const baseUrl = () => `http://localhost:${config.apiOptions.port}`;
     const adminApiUrl = () => `${baseUrl()}/${config.apiOptions.adminApiPath ?? 'admin-api'}`;
 
-    let connection: TransactionalConnection;
-    let adminCtx: RequestContext;
     let superAdminToken: string;
     let defaultChannelGqlId: string;
 
@@ -242,8 +240,6 @@ describe('MCP tool-call log input/output permission gating (full capture)', () =
         await initTestServer(server);
         await adminClient.asSuperAdmin();
         superAdminToken = adminClient.getAuthToken();
-        connection = server.app.get(TransactionalConnection);
-        adminCtx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
 
         const { activeChannel } = await adminClient.query(gql`
             query {
@@ -261,12 +257,6 @@ describe('MCP tool-call log input/output permission gating (full capture)', () =
     afterAll(async () => {
         await server.destroy();
     });
-
-    async function logRow(toolName: string): Promise<McpToolCallLog> {
-        return connection
-            .getRepository(adminCtx, McpToolCallLog)
-            .findOneOrFail({ where: { toolName }, order: { createdAt: 'DESC', id: 'DESC' } });
-    }
 
     /** Runs a GraphQL request against the admin API as the given token, without touching the shared adminClient's login state. */
     async function adminGraphQL<T = any>(
@@ -315,12 +305,5 @@ describe('MCP tool-call log input/output permission gating (full capture)', () =
         // captureClientIp is on for this describe, so the caller's (loopback) address is stored.
         expect(typeof row.clientIp).toBe('string');
         expect(row.clientIp.length).toBeGreaterThan(0);
-    });
-
-    it('an HTTP tool call stores a non-empty clientIp when captureClientIp is enabled', async () => {
-        const row = await logRow('shop_ping');
-        // Loopback in CI/local test runs, e.g. '::1' or '127.0.0.1' — just assert it's captured.
-        expect(typeof row.clientIp).toBe('string');
-        expect(row.clientIp?.length).toBeGreaterThan(0);
     });
 });

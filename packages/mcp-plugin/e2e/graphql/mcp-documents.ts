@@ -38,8 +38,14 @@ export const MCP_STATS_QUERY = `
     }
 `;
 
-export const MCP_TOOL_CALL_LOGS_QUERY = `
-    query McpToolCallLogs($options: McpToolCallLogListOptions) {
+/**
+ * Every field of a log row, bodies and client IP included. Requesting them needs no extra
+ * permission: a caller without `ReadCustomer` receives nulls for `input`, `output` and `clientIp`
+ * rather than an error, which is what `logging.e2e-spec.ts` asserts. So this one document serves
+ * both the tests that read the bodies and the tests that only read metadata.
+ */
+export const MCP_TOOL_CALL_LOGS_WITH_BODIES_QUERY = `
+    query McpToolCallLogsWithBodies($options: McpToolCallLogListOptions) {
         mcpToolCallLogs(options: $options) {
             items {
                 id
@@ -50,6 +56,10 @@ export const MCP_TOOL_CALL_LOGS_QUERY = `
                 status
                 durationMs
                 pluginSource
+                channelId
+                input
+                output
+                clientIp
             }
             totalItems
         }
