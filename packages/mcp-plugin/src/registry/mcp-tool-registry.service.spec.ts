@@ -92,8 +92,6 @@ const adminTool = (over: Partial<McpToolMetadata> = {}): McpToolMetadata => ({
 function specStandardSchema(
     json: Record<string, unknown>,
     validate: (value: unknown) => { value?: unknown; issues?: Array<{ message: string }> },
-    // Defaults to `json` so existing callers (which don't care about the input/output
-    // distinction) keep getting the same schema back from both converters.
     outputJson: Record<string, unknown> = json,
 ) {
     return {
@@ -150,7 +148,7 @@ describe('McpToolRegistryService', () => {
 
         it('aborts boot when a schema cannot be compiled (names the tool)', () => {
             // The default validator supports 2020-12, 2019-09, draft-07 and draft-06; any other
-            // declared dialect is rejected before compilation, which is what we're testing here.
+            // declared dialect is rejected before compilation.
             const badSchema = {
                 type: 'object',
                 $schema: 'http://json-schema.org/draft-03/schema#',
@@ -207,7 +205,7 @@ describe('McpToolRegistryService', () => {
             service.onApplicationBootstrap();
             const tool = service.getRegistrySnapshot()[0];
             expect(tool.jsonInputSchema).toEqual(OBJECT_JSON);
-            expect(tool.wireJsonSchema).toEqual(OBJECT_JSON); // non-destructive: wire === derived
+            expect(tool.wireJsonSchema).toEqual(OBJECT_JSON);
         });
 
         it('prefers the Standard Schema branch when an object carries both ~standard and a top-level type (Valibot shape)', () => {
@@ -218,7 +216,7 @@ describe('McpToolRegistryService', () => {
             const { service } = build([wrapper(shopTool({ inputSchema: valibotLike }))]);
             service.onApplicationBootstrap();
             const tool = service.getRegistrySnapshot()[0];
-            expect(tool.jsonInputSchema).toEqual(OBJECT_JSON); // converter output, not the object itself
+            expect(tool.jsonInputSchema).toEqual(OBJECT_JSON);
         });
 
         it('rejects a validate-only Standard Schema (no JSON Schema conversion) with upgrade guidance', () => {
@@ -371,7 +369,6 @@ describe('McpToolRegistryService', () => {
         });
 
         it('rejects a destructive Standard Schema tool whose parsed value is not a plain object', async () => {
-            // A transform-to-string author schema: parses "successfully" to a bare string.
             const schema = specStandardSchema(DELETE_JSON, () => ({ value: 'x1' }));
             const execute = vi.fn();
             const { service } = build([
@@ -518,7 +515,8 @@ describe('McpToolRegistryService', () => {
 
     describe('rate-limit enforcement', () => {
         it('rate-limits before the existence/toggle/permission checks (denied calls still count)', async () => {
-            // A permission-denied call must still consume the bucket — otherwise it is a free hammer.
+            // A permission-denied call must still consume the bucket; otherwise denied calls cost
+            // nothing and can be retried without limit.
             const { service, rateLimiter } = build([
                 wrapper(shopTool({ permissions: [Permission.ReadCatalog] })),
             ]);
@@ -526,7 +524,6 @@ describe('McpToolRegistryService', () => {
             rateLimiter.enforceRateLimit.mockRejectedValueOnce(rateLimitError());
             const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'get_thing', {});
             expect(rateLimiter.enforceRateLimit).toHaveBeenCalledOnce();
-            // The rate-limit result wins over the permission error because it runs first.
             expect(result.isError).toBe(true);
             expect((result.content as any)[0].text).toMatch(/Rate limit exceeded/);
         });
@@ -555,8 +552,8 @@ describe('McpToolRegistryService', () => {
         });
 
         it('rate-limits execute_tool before its unknown-name early return (bucket keyed by the inner tool)', async () => {
-            // The discovery funnel must not be a rate-limit-free hammer: an unknown inner tool name
-            // still consumes a bucket because the limit runs before the not-found return.
+            // An unknown inner tool name still consumes a bucket because the limit runs before the
+            // not-found return; otherwise the discovery path could be called without limit.
             const { service, rateLimiter } = build([wrapper(shopTool())], {
                 toolExposure: 'discovery',
             });
@@ -569,7 +566,6 @@ describe('McpToolRegistryService', () => {
             expect(rateLimiter.enforceRateLimit).toHaveBeenCalledWith(
                 expect.objectContaining({ endpoint: 'shop', subject: 'no_such_tool' }),
             );
-            // Rate-limit result wins over the not-found error because it runs first.
             expect(result.isError).toBe(true);
             expect((result.content as any)[0].text).toMatch(/Rate limit exceeded/);
         });
@@ -761,8 +757,6 @@ describe('McpToolRegistryService', () => {
         });
 
         it('returns matching summaries carrying the wire schema', async () => {
-            // get_thing is non-destructive, so its wire schema equals its canonical schema
-            // (no injected confirm) — the destructive case is covered separately below.
             const { service } = build([wrapper(shopTool())], { toolExposure: 'discovery' });
             service.onApplicationBootstrap();
             const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'search_tools', {
@@ -865,8 +859,8 @@ describe('McpToolRegistryService', () => {
         });
 
         it('returns the fallback hint for a stopword-only query instead of matching everything', async () => {
-            // 'in' is a substring of 'shipping' — the old substring scorer matched it (+3+1); BM25's
-            // whole-word tokenizer drops stopwords entirely, so this query must yield the hint.
+            // 'in' is a substring of 'shipping': a substring scorer would match this query,
+            // whole-word BM25 with stopword removal must not.
             const { service } = build(
                 [wrapper(shopTool({ description: 'Sets the shipping method for the cart.' }))],
                 { toolExposure: 'discovery' },
@@ -889,9 +883,6 @@ describe('McpToolRegistryService', () => {
             expect(names).toEqual(['get_thing', 'other_thing']);
         });
 
-        // An empty query does NOT list everything: it is clamped to `limit` like any other query.
-        // Nothing covered this, which is how the "lists everything" claim survived in the docs and
-        // in the zero-result hint.
         it('empty query is clamped to limit rather than listing everything', async () => {
             const many = Array.from({ length: 12 }, (_, i) =>
                 wrapper(shopTool({ name: `tool_${String(i).padStart(2, '0')}` })),

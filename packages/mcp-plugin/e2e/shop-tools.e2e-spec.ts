@@ -331,7 +331,6 @@ describe('MCP built-in shop tools', () => {
         expect(response.headers.get('www-authenticate') ?? '').toMatch(/^Bearer .*resource_metadata=/);
     });
 
-    // Read-only cart helpers must not create an empty Order for a fresh session.
     it('keeps a fresh anonymous session order-free until add_to_cart creates and binds a cart', async () => {
         const beforeCount = await connection.getRepository(adminCtx, Order).count();
         const getCart = await postMcp(baseUrl(), 'shop', callTool('get_cart', {}, 1));
@@ -787,13 +786,11 @@ describe('MCP built-in shop tools', () => {
 
         // The seeded catalog holds exactly "Test Product" and "Test Shirt".
         expect(await search('test')).toEqual({ names: ['Test Product', 'Test Shirt'], total: 2 });
-        // Word order does not matter, and each extra word narrows the result.
         expect(await search('shirt test')).toEqual({ names: ['Test Shirt'], total: 1 });
         // "shirts" appears in no product name, so this only passes if the second attempt with the
         // plural ending trimmed off ran. This is also what proves the nested name/slug conditions
         // survive the translated-column join that Product.name goes through.
         expect(await search('shirts')).toEqual({ names: ['Test Shirt'], total: 1 });
-        // Every word has to match, so one word from each product matches neither product.
         expect(await search('shirt product')).toEqual({ names: [], total: 0 });
     });
 
@@ -870,7 +867,6 @@ describe('MCP built-in shop tools', () => {
         expect(text).toContain('SHIRT-S');
         expect(text).toContain('SHIRT-M');
         expect(text).toContain('SHIRT-L');
-        // Refusing means refusing: no cart was created and nothing was added to one.
         expect(await connection.getRepository(adminCtx, Order).count()).toBe(ordersBefore);
     });
 
@@ -1148,10 +1144,6 @@ describe('MCP built-in shop tools', () => {
         });
     });
 
-    // The cart-editing, coupon and customer-read tools. Everything here previously had no
-    // end-to-end coverage at all: only `src/tools/built-in/schema-snapshot.spec.ts` touched them,
-    // and that pins names and schemas without ever running a handler.
-    //
     // The cart tools are Permission.Public, so they run on a plain anonymous session threaded
     // through the `vendure-auth-token` header. That gives each test its own cart, with no OAuth
     // flow and no shared state. The two customer reads need Permission.Authenticated, so they use
@@ -1348,7 +1340,6 @@ describe('MCP built-in shop tools', () => {
                 postalCode: '98101',
                 countryCode: 'US',
             });
-            // The two addresses are separate fields; setting one must not overwrite the other.
             expect(order.shippingAddress.streetLine1).toBe('1 Shipping Way');
         });
 
@@ -1451,8 +1442,6 @@ describe('MCP built-in shop tools', () => {
             };
             const slugs = listed.items.map(collection => collection.slug);
             expect(slugs).toContain(publicCollectionSlug);
-            // The private collection is the point of the test: an unauthenticated shopper must not
-            // be able to enumerate it.
             expect(slugs).not.toContain(privateCollectionSlug);
             expect(listed.total).toBe(listed.items.length);
         });

@@ -44,11 +44,9 @@ function singular(word: string): string {
     if (word.length < 4) {
         return word;
     }
-    // English adds "es" rather than "s" after s, x, z, ch and sh: boxes, watches, dresses, lenses.
     if (/(?:s|x|z|ch|sh)es$/i.test(word)) {
         return word.slice(0, -2);
     }
-    // A plain plural "s", but not a word that ends in "ss" of its own accord, such as "glass".
     if (/[^s]s$/i.test(word)) {
         return word.slice(0, -1);
     }

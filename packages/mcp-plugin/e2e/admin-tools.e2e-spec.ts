@@ -562,7 +562,6 @@ describe('MCP built-in admin tools (direct mode)', () => {
             expect(tool.inputSchema.required ?? []).not.toContain('confirm');
         }
 
-        // A representative readonly tool advertises no confirm parameter.
         const listOrders = tools.find(tool => tool.name === 'list_orders');
         expect(listOrders?.inputSchema.properties?.confirm).toBeUndefined();
     });
@@ -577,7 +576,6 @@ describe('MCP built-in admin tools (direct mode)', () => {
         });
         expect(preview.body.result.isError).toBeUndefined();
         expect(preview.body.result.structuredContent).toMatchObject({ status: 'confirmation_required' });
-        // Proof of no mutation: the order's state is unchanged by the preview.
         expect(await orderState(order.graphqlId)).toBe(stateBefore);
 
         const confirmed = await postMcp(
@@ -638,8 +636,6 @@ describe('MCP built-in admin tools (direct mode)', () => {
         const defaulted = await listWith({ limit: 100 }, 1);
         expect(positionOf(defaulted, later.id)).toBeLessThan(positionOf(defaulted, earlier.id));
 
-        // Asking for the opposite direction reverses them, which is only true if the caller's sort
-        // reached the query.
         const oldestFirst = await listWith({ sortBy: 'orderPlacedAt', sortDirection: 'ASC', limit: 100 }, 2);
         expect(positionOf(oldestFirst, earlier.id)).toBeLessThan(positionOf(oldestFirst, later.id));
 
@@ -808,7 +804,6 @@ describe('MCP built-in admin tools (direct mode)', () => {
 
     it('adjust_stock applies the delta to stock on hand when confirmed', async () => {
         const token = await adminAccessToken();
-        // Reads the current on-hand quantity for the fixture location (0 if no level exists yet).
         const readOnHand = async () => {
             const res = await postMcp(baseUrl(), 'admin', callTool('get_stock_levels', { variantId }, 1), {
                 token,
@@ -836,7 +831,6 @@ describe('MCP built-in admin tools (direct mode)', () => {
             { token },
         );
         expect(adjusted.body.result.isError).toBeUndefined();
-        // The confirmed call returns the refreshed stock levels; the adjusted location reflects the delta.
         const returned = adjusted.body.result.structuredContent.stockLevels as Array<{
             stockOnHand: number;
             stockLocationId: ID;
@@ -973,10 +967,6 @@ describe('MCP built-in admin tools (direct mode)', () => {
         });
     });
 
-    // The admin tools that write catalog, customer and order data, plus `list_products`. None of
-    // these had any end-to-end coverage: `src/tools/built-in/schema-snapshot.spec.ts` pins their
-    // names and schemas, but nothing ran a handler, and fourteen of the eighteen untested tools
-    // across both toolsets write data.
     describe('catalog, customer and order writes', () => {
         let assetIds: ID[];
         let customerGroupId: ID;
@@ -1126,7 +1116,6 @@ describe('MCP built-in admin tools (direct mode)', () => {
                 items: Array<{ id: ID; name: string }>;
                 hasMore: boolean;
             };
-            // offset must actually skip: the last page holds a different product and ends the list.
             expect(lastPage.items[0].id).not.toBe(firstPage.items[0].id);
             expect(lastPage.hasMore).toBe(false);
         });
@@ -1171,7 +1160,6 @@ describe('MCP built-in admin tools (direct mode)', () => {
             );
             expect(conflict.body.result.isError).toBeUndefined();
             expect(conflict.body.result.structuredContent).toEqual({ customer: null });
-            // The refused update left the record alone.
             const afterConflict = await connection
                 .getRepository(adminCtx, Customer)
                 .findOneByOrFail({ id: seededCustomerId });
@@ -1313,7 +1301,6 @@ describe('MCP built-in admin tools (direct mode)', () => {
             expect(stored.assets.map(entry => String(entry.assetId)).sort()).toEqual(
                 assetIds.map(String).sort(),
             );
-            // featuredAssetId is a separate field, and the tool passes it through separately.
             expect(String(stored.featuredAsset.id)).toBe(String(assetIds[1]));
         });
 
@@ -1400,7 +1387,6 @@ describe('MCP built-in admin tools (direct mode)', () => {
             const token = await adminAccessToken();
             const order = await createDraftOrder();
 
-            // Destructive, so an unconfirmed call must preview only and leave the order where it is.
             const preview = await postMcp(
                 baseUrl(),
                 'admin',
@@ -1496,7 +1482,6 @@ describe('MCP built-in admin tools (direct mode)', () => {
                 // storage strategy answers every read with a fixed 48x48 placeholder, so those
                 // three describe the placeholder rather than the uploaded file.
 
-                // The bytes really were fetched, and one row really was stored.
                 expect(fileServer.requestCount('/pixel.png')).toBe(fetchesBefore + 1);
                 expect(await assetRepo().count()).toBe(countBefore + 1);
                 const [newest] = await assetRepo().find({ order: { id: 'DESC' }, take: 1 });

@@ -47,12 +47,13 @@ const EXECUTE_TOOL = 'execute_tool';
 const RESERVED_META_TOOL_NAMES: readonly string[] = [SEARCH_TOOLS, EXECUTE_TOOL];
 const NO_ARGS_SCHEMA: McpJsonSchema = { type: 'object', properties: {}, additionalProperties: false };
 const ALL_TOOLSETS: readonly McpToolset[] = ['shop', 'admin'];
-// How many tools search_tools returns. Enforced in searchTools and stated in both the
-// no-results hint and the meta-tool's own schema description, so all three stay in step.
+// These limits are also stated in the no-results hint and the meta-tool's own schema
+// description, so changing them means changing all three places.
 const SEARCH_DEFAULT_LIMIT = 10;
 const SEARCH_MAX_LIMIT = 50;
 // Error types a tool throws on purpose, with a message meant to be read by the caller. Anything
-// else is treated as an internal failure: logged server-side, genericized for the caller.
+// else is treated as an internal failure: logged server-side, and the caller gets a generic
+// message instead.
 const CALLER_SAFE_ERROR_TYPES = [
     UserInputError,
     IllegalOperationError,
@@ -91,10 +92,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         this.discoveryMetaTools = this.buildDiscoveryMetaTools();
         this.bm25 = this.buildSearchIndexes();
     }
-
-    // ---------------------------------------------------------------------------------------------
-    // Public surface (nine members)
-    // ---------------------------------------------------------------------------------------------
 
     /** Every registered tool. Consumed by the admin API. */
     getRegistrySnapshot(): McpRegisteredTool[] {
@@ -143,7 +140,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                 return this.callToolFromEnvelope(executionContext, toolset, input);
             }
         }
-        // The SDK already validated `input` against the registered wire schema.
         return this.callRegisteredTool(executionContext, toolset, name, input, false);
     }
 
@@ -218,10 +214,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     toolKey(toolset: McpToolset, name: string): string {
         return `${toolset}:${name}`;
     }
-
-    // ---------------------------------------------------------------------------------------------
-    // Discovery + bootstrap schema gate
-    // ---------------------------------------------------------------------------------------------
 
     private discoverTools(): void {
         this.tools.clear();
@@ -337,10 +329,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         this.tools.set(key, tool);
     }
 
-    // ---------------------------------------------------------------------------------------------
-    // Execution funnel (shared by direct + discovery)
-    // ---------------------------------------------------------------------------------------------
-
     private async callRegisteredTool(
         executionContext: McpExecutionContext,
         toolset: McpToolset,
@@ -349,11 +337,12 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         validateInput: boolean,
     ): Promise<CallToolResult> {
         const ctx = executionContext.ctx;
-        // Rate limit first — the controller pre-check skips tools/call, so this is the only gate.
-        // A direct call naming a tool outside the caller's visible set never reaches here: the SDK
-        // rejects it earlier, uncharged. Accepted, because that caller holds a token and anonymous
-        // traffic is IP-limited in the controller. Exceedance flattens to isError here (only the
-        // pre-check carries -31029 + data).
+        // Rate-limit first: the controller's pre-check skips tools/call requests, so this is the
+        // only place a tool call is counted. A direct call naming a tool outside the caller's
+        // visible set never reaches here (the SDK rejects it first) and so is never counted.
+        // That is acceptable because such a caller holds a token, and anonymous traffic is
+        // IP-limited in the controller. A limit hit here becomes a plain isError result; only the
+        // controller pre-check returns the -31029 code with retry data.
         const rateLimited = await this.enforceRateLimitOrError(executionContext, toolset, name);
         if (rateLimited) {
             return rateLimited;
@@ -377,7 +366,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             }
             toolInput = (validated.value ?? {}) as Record<string, unknown>;
         }
-        // Destructive-confirmation gate: require confirm:true, then strip it before executing.
         if (tool.resolvedBehavior === 'destructive') {
             if (toolInput.confirm !== true) {
                 return this.confirmationRequiredResult(tool);
@@ -446,10 +434,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         return this.callRegisteredTool(executionContext, toolset, name, args ?? {}, true);
     }
 
-    // ---------------------------------------------------------------------------------------------
-    // Discovery meta-tools
-    // ---------------------------------------------------------------------------------------------
-
     private async searchTools(
         executionContext: McpExecutionContext,
         toolset: McpToolset,
@@ -480,7 +464,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             .slice(0, limit)
             .map(item => this.toolSummary(item.tool));
         if (matches.length === 0) {
-            // Zero-result fallback hint rather than a dead-end empty list.
             return this.successResult({
                 tools: [],
                 hint:
@@ -569,10 +552,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         ];
     }
 
-    // ---------------------------------------------------------------------------------------------
-    // Filtering, behavior, permissions
-    // ---------------------------------------------------------------------------------------------
-
     private visibleTools(
         ctx: RequestContext,
         toolset: McpToolset,
@@ -632,10 +611,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         // Deliberately NOT added to `required` so the first (preview) call may omit it.
         return wire;
     }
-
-    // ---------------------------------------------------------------------------------------------
-    // Helpers
-    // ---------------------------------------------------------------------------------------------
 
     /**
      * Maps the server-internal call state to the plain-data `McpCallerInfo` a tool actually
@@ -754,8 +729,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         const std = schema['~standard'];
         const validate = destructive
             ? async (value: unknown) => {
-                  // The wire schema advertises the registry-owned `confirm` flag, which the
-                  // author's schema does not know about: validate the rest, then re-attach it.
+                  // The author's schema does not know about the registry-owned `confirm` flag.
                   const { confirm, ...rest } = (value ?? {}) as Record<string, unknown>;
                   if (confirm !== undefined && typeof confirm !== 'boolean') {
                       return { issues: [{ message: '"confirm" must be a boolean', path: ['confirm'] }] };

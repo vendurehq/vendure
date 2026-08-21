@@ -164,10 +164,11 @@ export class McpRateLimiterService {
             return undefined;
         }
         const now = Date.now();
-        // Charge first, judge after. Each increment is atomic per bucket key (see incrementBucket),
-        // so overlapping requests each advance the counter — the previous read-then-write split let
-        // N overlapping requests collectively count as one. Charging refused requests also rewrites
-        // the bucket, which keeps an actively-refusing bucket recent in an LRU-evicting cache.
+        // Increment every bucket first, then look for one over its limit. Each increment is atomic
+        // per bucket key (see incrementBucket), so overlapping requests each advance the counter
+        // instead of counting as one. Refused requests are counted too, which also rewrites the
+        // bucket and keeps an actively-refusing bucket recent in a cache that evicts the least
+        // recently used entries.
         const results = await Promise.all(
             checks.map(async check => ({ check, state: await this.incrementBucket(check.key, now) })),
         );
@@ -370,8 +371,8 @@ export class McpRateLimiterService {
             : undefined;
     }
 
-    // The caller identity for per-tool buckets. OAuth callers keep the grant's session in the key —
-    // do NOT collapse it to the client alone, or one first-party client serving every shopper would
+    // The caller identity for per-tool buckets. OAuth callers keep the grant's session in the key.
+    // Do NOT collapse it to the client alone, or one first-party client serving every shopper would
     // share a single per-tool bucket store-wide. Anonymous and in-process callers use the same
     // identity as the session bucket (IP for anonymous HTTP, own session for in-process).
     private toolActorKey(executionContext: McpExecutionContext): string {

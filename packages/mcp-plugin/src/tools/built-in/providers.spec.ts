@@ -9,7 +9,8 @@ const allowedOpenObjectPaths = new Set([
     'set_billing_address.address.customFields',
     'set_shipping_address.address.customFields',
     'place_order.paymentMetadata',
-    // Admin: customFields are genuine open bags on the create/update input objects.
+    // The admin create/update inputs deliberately accept any keys under customFields, because each
+    // project defines its own custom fields.
     'create_customer.input.customFields',
     'update_customer.input.customFields',
     'create_product.input.customFields',

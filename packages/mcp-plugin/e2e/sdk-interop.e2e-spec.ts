@@ -193,15 +193,13 @@ describe('MCP SDK interop (official @modelcontextprotocol/client 2.x)', () => {
         expect(provider.capturedAuthorizationUrl).toBeInstanceOf(URL);
         expect(provider.clientInformation()).toBeTruthy(); // DCR registered a client_id
 
-        // Approve consent server-side and complete the token exchange (form-urlencoded, SDK-driven).
         const code = await approveViaAdminConsent(provider.capturedAuthorizationUrl!, superAdminToken);
         await transport.finishAuth(code);
         expect(provider.tokens()?.access_token).toBeTruthy();
         expect(provider.tokens()?.refresh_token).toBeTruthy();
 
-        // Reconnect with a fresh transport — now authenticated via the stored bearer — and exercise
-        // the tool surface. A transport is single-use once started, so the reconnect needs a new
-        // instance; it reads the tokens the provider persisted during finishAuth.
+        // A transport is single-use once started, so the reconnect needs a new instance; it reads
+        // the tokens the provider persisted during finishAuth.
         const authedTransport = new StreamableHTTPClientTransport(new URL(`${baseUrl()}/mcp/admin`), {
             authProvider: provider as any,
         });
@@ -258,7 +256,6 @@ describe('MCP SDK interop (official @modelcontextprotocol/client 2.x)', () => {
             const invalid = await client.callTool({ name: 'admin_zod_echo', arguments: { text: '' } });
             expect(invalid.isError).toBe(true);
 
-            // Destructive preview: no confirm ⇒ confirmation-required result, nothing executed.
             const preview = await client.callTool({ name: 'admin_zod_delete', arguments: { id: 'x1' } });
             expect(preview.isError).toBeFalsy();
             expect(preview.structuredContent).toMatchObject({
@@ -312,7 +309,7 @@ describe('MCP SDK interop (official @modelcontextprotocol/client 2.x)', () => {
         const rotated = (await refreshResponse.json()) as { access_token: string; refresh_token: string };
         expect(rotated.access_token).toBeTruthy();
         expect(rotated.refresh_token).toBeTruthy();
-        expect(rotated.refresh_token).not.toBe(firstRefresh); // rotation
+        expect(rotated.refresh_token).not.toBe(firstRefresh);
 
         // Replaying the old refresh token is rejected — once rotated, it's no longer on record. This
         // only proves the old token is dead, not that the whole grant is revoked; that's tested in

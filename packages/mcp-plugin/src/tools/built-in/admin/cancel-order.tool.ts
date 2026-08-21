@@ -42,7 +42,6 @@ export class CancelOrderTool implements McpToolHandler<CancelOrderToolInput> {
             await this.orderService.cancelOrder(ctx, {
                 orderId: input.id,
                 reason: input.reason,
-                // Default to cancelling shipping unless the caller explicitly opts out.
                 cancelShipping: input.cancelShipping !== false,
             }),
         );

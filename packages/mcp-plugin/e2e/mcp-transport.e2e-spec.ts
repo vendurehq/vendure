@@ -188,7 +188,6 @@ describe('MCP transport rate limiting', () => {
     });
 
     it('handshake rate limit returns 429 + Retry-After WITH machine-readable error.data', async () => {
-        // anonymousIp rpm = 2, so the third sequential anonymous ping trips the limit.
         await postMcp(baseUrl(), 'shop', rpc('ping', {}, 1));
         await postMcp(baseUrl(), 'shop', rpc('ping', {}, 2));
         const tripped = await postMcp(baseUrl(), 'shop', rpc('ping', {}, 3));
@@ -326,15 +325,14 @@ describe('MCP transport per-tool rate limiting', () => {
     });
 
     it('keys per-tool buckets by IP for anonymous callers — dropping the session token does not reset the limit', async () => {
-        // shop_echo rpm = 1. The first anonymous call is allowed and issues a session token.
         const first = await postMcp(baseUrl(), 'shop', callTool('shop_echo', { text: 'x' }, 1));
         expect(first.body.result.isError).toBeUndefined();
         const sessionToken = first.headers.get(AUTH_TOKEN_HEADER) as string;
         expect(sessionToken).toBeTruthy();
 
-        // A cooperating client that threads the token is refused. Per-tool limits are enforced
-        // inside the registry, after the SDK has dispatched the call, and the SDK strips custom
-        // error codes there — so the refusal is isError content, not a -31029 JSON-RPC error.
+        // Per-tool limits are enforced inside the registry, after the SDK has dispatched the call,
+        // and the SDK strips custom error codes there — so the refusal is isError content, not a
+        // -31029 JSON-RPC error.
         const second = await postMcp(baseUrl(), 'shop', callTool('shop_echo', { text: 'x' }, 2), {
             headers: { [AUTH_TOKEN_HEADER]: sessionToken },
         });

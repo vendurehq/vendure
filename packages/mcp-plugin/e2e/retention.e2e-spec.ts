@@ -22,7 +22,6 @@ import { initTestServer } from './utils/test-server';
 const DAY_MS = 86_400_000;
 
 describe('MCP tool-call log retention', () => {
-    // 30-day retention window; rows older than that are pruned.
     const options: McpPluginOptions = { logging: { ttlDays: 30 } };
     const config = mergeConfig(testConfig(), { plugins: [McpPlugin.init(options)] });
     const { server } = createTestEnvironment(config);

@@ -97,9 +97,10 @@ describe('uploadAssetFromUrl', () => {
 });
 
 describe('SSRF hardening is delegated to the core DefaultAssetImportStrategy', () => {
-    // The private/reserved-IP block, DNS-rebinding closure (IP pinning) and timeout now live in core's
-    // fetcher (assertPublicUrl + fetchUrl). These checks confirm the plugin routes a caller-supplied URL
-    // through that guard rather than re-implementing it — they exercise the real strategy, no server.
+    // The private/reserved-IP block, the DNS-rebinding protection (the resolved IP is pinned) and the
+    // timeout now live in core's fetcher (assertPublicUrl + fetchUrl). These checks confirm the plugin
+    // routes a caller-supplied URL through that guard rather than re-implementing it. They run against
+    // the real strategy, with no server involved.
     it.each(['http://127.0.0.1:9/', 'http://[::1]:9/', 'http://169.254.169.254/latest/meta-data/'])(
         'rejects the non-public URL %s via the core guard',
         async url => {

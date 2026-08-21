@@ -2,13 +2,6 @@ import crypto from 'crypto';
 
 import { AUTHORIZE_MCP_CLIENT } from '../graphql/mcp-documents';
 
-// Reusable client that drives the real MCP OAuth flow over HTTP against a running
-// test server, using the admin consent path. The superadmin bearer token (readily
-// available from the test harness) stands in for the authenticated administrator,
-// so no separate customer credentials are needed.
-//
-// Flow: register (DCR) -> authorize -> admin consent mutation -> token exchange.
-
 export interface AuthorizationCodeFlowResult {
     /** The plaintext OAuth client_id returned by Dynamic Client Registration. */
     client_id: string;
@@ -259,7 +252,6 @@ export function runAuthorizationCodeFlow(
         clientName,
         redirectUri,
         clientId,
-        // Consent is the Admin API mutation, authenticated as superadmin via the bearer token.
         approve: async requestToken => {
             const consentBody = await submitAdminConsent({
                 baseUrl,

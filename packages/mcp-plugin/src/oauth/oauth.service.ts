@@ -165,8 +165,8 @@ export class McpOauthService {
             grant_types_supported: SUPPORTED_OAUTH_GRANT_TYPES,
             code_challenge_methods_supported: ['S256'],
             token_endpoint_auth_methods_supported: ['none'],
-            // CIMD (draft-ietf-oauth-client-id-metadata-document §6): clients gate on this
-            // flag before sending a URL client_id. MUST be present because we support it.
+            // CIMD (draft-ietf-oauth-client-id-metadata-document §6): clients check this
+            // flag before sending a URL client_id, so it must be present because we support it.
             client_id_metadata_document_supported: true,
         };
     }
@@ -201,10 +201,10 @@ export class McpOauthService {
         if (input.code_challenge_method !== 'S256') {
             throw new BadRequestException('Only PKCE S256 is supported');
         }
-        // Everything that can be judged from the request alone is checked first, because
-        // resolving the client may fetch a metadata document from the address the caller named,
-        // and this endpoint takes no credentials. `resolvedOauth` refuses a server with no OAuth
-        // configured, and `resolveResource` a request that names no toolset of ours.
+        // Everything that can be validated from the request alone is checked first, because
+        // resolving the client may fetch a metadata document from a URL the caller supplied,
+        // and this endpoint takes no credentials. `resolvedOauth` rejects a server with no
+        // OAuth configured, and `resolveResource` rejects a resource we do not serve.
         this.resolvedOauth();
         const { resource, toolset } = this.resolveResource(input.resource);
         const ctx = await this.createAdminCtx();
@@ -474,9 +474,9 @@ export class McpOauthService {
                 await this.revokeGrant(adminCtx, grant);
                 throw new UnauthorizedException('Vendure user no longer exists');
             }
-            // The lapsed session row may still be in the table — Vendure clears expired
-            // sessions with a background job, not on read — so remove it, and its cache
-            // entry, before creating the replacement the grant will point at.
+            // The lapsed session row may still be in the table, because Vendure clears expired
+            // sessions with a background job rather than on read. Remove the row and its cache
+            // entry before creating the replacement session the grant will point at.
             const staleSessionToken = await this.deleteVendureSessionRow(adminCtx, grant.vendureSessionId);
             await deleteCachedVendureSession(this.configService, staleSessionToken);
             const createdSession = await this.createVendureSession(adminCtx, user);
@@ -504,9 +504,9 @@ export class McpOauthService {
             isAuthorized: true,
             authorizedAsOwnerOnly: false,
         });
-        // Bump the audit timestamp at most once per interval, in the background, as a
-        // single-column update — the request must not wait for it. Mirrors core's
-        // handling of ApiKey.lastUsedAt in auth-guard.ts.
+        // Update the audit timestamp at most once per interval, in the background, as a
+        // single-column update; the request must not wait for it. Mirrors how core
+        // updates ApiKey.lastUsedAt in auth-guard.ts.
         const staleBefore = new Date(Date.now() - MCP_GRANT_ACTIVITY_UPDATE_INTERVAL_MS);
         if (!grant.lastActivityAt || grant.lastActivityAt < staleBefore) {
             this.connection

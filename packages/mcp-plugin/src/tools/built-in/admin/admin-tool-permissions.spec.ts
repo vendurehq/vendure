@@ -20,8 +20,8 @@ interface ResolverOperation {
     method: string;
 }
 
-// ONLY the tool -> core operation map is hand-authored; the PERMISSION VALUES are read live off the
-// resolver @Allow metadata below.
+// Only this tool -> core operation map is written by hand. The permission values themselves are read
+// off the resolver @Allow metadata below, so they can never go stale.
 const TOOL_OPERATION_MAP: Record<string, ResolverOperation> = {
     list_orders: { resolver: OrderResolver, method: 'orders' },
     get_order: { resolver: OrderResolver, method: 'order' },
@@ -49,8 +49,8 @@ const TOOL_OPERATION_MAP: Record<string, ResolverOperation> = {
     list_channels: { resolver: ChannelResolver, method: 'channels' },
 };
 
-// Tools with no 1:1 core resolver operation, gated only by [Authenticated] by design.
-// set_active_channel only rewrites the caller's own grant row — core has no equivalent operation,
+// Tools with no matching core resolver operation, deliberately guarded by [Authenticated] alone.
+// set_active_channel only rewrites the caller's own grant row, which core has no operation for,
 // and the channel it switches to is checked against the caller's own accessible channels.
 const AUTHENTICATED_EXCEPTIONS = ['set_active_channel'];
 

@@ -73,8 +73,6 @@ describe('McpPlugin OAuth single-use code', () => {
         const { connection, oauth, ctx, seedCode } = await testEnv();
         const { exchangeInput } = await seedCode('rotation-client', 'rotation-code');
 
-        // Exercise the real authorization-code grant so a genuine access+refresh pair and an
-        // McpOauthGrant exist before we rotate.
         const first = await oauth.exchangeToken(exchangeInput);
 
         const priorGrant = await connection.getRepository(ctx, McpOauthGrant).findOne({
@@ -109,13 +107,12 @@ describe('McpPlugin OAuth single-use code', () => {
         expect(rotatedGrant.previousRefreshTokenHash).toBe(lookupHash(first.refresh_token));
         expect(rotatedGrant.revokedAt).toBeNull();
 
-        // The prior access token no longer resolves...
         const staleAccess = await connection.getRepository(ctx, McpOauthGrant).findOne({
             where: { accessTokenHash: lookupHash(first.access_token) },
         });
         expect(staleAccess).toBeNull();
 
-        // ...while the Vendure session behind the grant is untouched: same row, same token.
+        // The Vendure session behind the grant is untouched: same row, same token.
         // Only the OAuth credentials rotate.
         const sessionAfter = await connection
             .getRepository(ctx, Session)
@@ -178,7 +175,6 @@ describe('McpPlugin OAuth single-use code', () => {
             resource: RESOURCE,
         });
 
-        // Reusing the rotated-away refresh token is rejected...
         await expect(
             oauth.exchangeToken({
                 grant_type: 'refresh_token',
@@ -188,8 +184,6 @@ describe('McpPlugin OAuth single-use code', () => {
             }),
         ).rejects.toThrow('Refresh token invalid or expired');
 
-        // ...and revokes the whole grant: the row is marked revoked and its
-        // Vendure session is deleted.
         const grant = await connection.getRepository(ctx, McpOauthGrant).findOne({
             where: { accessTokenHash: lookupHash(second.access_token) },
         });
@@ -202,7 +196,6 @@ describe('McpPlugin OAuth single-use code', () => {
             .findOne({ where: { id: grant.vendureSessionId } });
         expect(grantSession).toBeNull();
 
-        // The rotated-to tokens are dead as well.
         await expect(oauth.authenticateBearerToken(second.access_token, 'admin')).rejects.toThrow(
             /invalid or expired/i,
         );

@@ -31,8 +31,9 @@ type AdjustStockInput = z.infer<typeof adjustStockInput>;
         'increase stock on hand',
         'fix inventory quantity',
     ],
-    // Parity fix: stock is adjusted via the core updateProductVariants mutation, gated by
-    // UpdateCatalog/UpdateProduct — UpdateStockLocation governs the StockLocation entity, not quantities.
+    // Stock is adjusted through the core updateProductVariants mutation, which requires
+    // UpdateCatalog/UpdateProduct. UpdateStockLocation would be the wrong permission here: it
+    // covers the StockLocation entity itself, not the quantities held at a location.
     permissions: [Permission.UpdateProduct],
     behavior: 'destructive',
     inputSchema: adjustStockInput,

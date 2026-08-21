@@ -117,7 +117,6 @@ export class McpAdminResolver {
                 now: new Date(),
             });
         }
-        // The active channel's grants, plus channel-less (global) grants
         this.scopeToChannel(qb, 'mcpoauthgrant', ctx.channelId);
         if (Object.keys(args.options?.sort ?? {}).length === 0) {
             qb.orderBy('mcpoauthgrant.lastActivityAt', 'DESC');

@@ -24,7 +24,7 @@ interface Bm25Doc {
 }
 
 // Standard Okapi BM25 tuning values: K1 caps how much repeated occurrences of a term add,
-// B sets how strongly long documents are penalized. Retuning means editing these two lines.
+// B sets how strongly long documents are penalized.
 const K1 = 1.5;
 const B = 0.75;
 

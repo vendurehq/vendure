@@ -110,7 +110,6 @@ describe('McpToolCallLogService tool-call logging', () => {
             durationMs: 1,
             status: 'success',
         });
-        // Metadata capture is the default: the row carries no request/response bodies at all.
         expect(savedLogs[0].input).toBeNull();
         expect(savedLogs[0].output).toBeNull();
     });
@@ -127,7 +126,6 @@ describe('McpToolCallLogService tool-call logging', () => {
             durationMs: 1,
             status: 'success',
         });
-        // No built-in redaction: the plugin stores exactly what the tool sent/returned.
         expect(savedLogs[0].input).toEqual(input);
         expect(savedLogs[0].output).toEqual(output);
     });
@@ -147,14 +145,12 @@ describe('McpToolCallLogService tool-call logging', () => {
             durationMs: 1,
             status: 'success',
         });
-        // The plugin calls the operator function with the tool name + the raw input/output...
         expect(redact).toHaveBeenCalledOnce();
         expect(seen[0]).toEqual({
             toolName: 'my_tool',
             input: { email: 'a@b.com' },
             output: { secret: 1 },
         });
-        // ...and persists exactly what it returns (a null body is stored as null).
         expect(savedLogs[0].input).toEqual({ redacted: true });
         expect(savedLogs[0].output).toBeNull();
     });
@@ -174,9 +170,9 @@ describe('McpToolCallLogService tool-call logging', () => {
                 status: 'success',
             }),
         ).resolves.toBeUndefined();
-        // A broken redact function must not cost the audit row: it's still saved (with its
-        // metadata) and published, just fail-closed with no bodies rather than storing the raw
-        // (unredacted) ones.
+        // A broken redact function must not prevent the row from being saved: it is still saved
+        // (with its metadata) and published, just with no bodies rather than the raw (unredacted)
+        // ones.
         expect(save).toHaveBeenCalledOnce();
         expect(savedLogs).toHaveLength(1);
         expect(savedLogs[0].input).toBeNull();
@@ -277,7 +273,6 @@ describe('McpToolCallLogService tool-call logging', () => {
         });
         expect(publishedEvents).toHaveLength(2);
         expect(publishedEvents[0]).toBeInstanceOf(McpToolCallEvent);
-        // The event carries the exact persisted row instance, not a copy.
         expect(publishedEvents[0].entry).toBe(savedLogs[0]);
         expect(publishedEvents[1].entry).toBe(savedLogs[1]);
         expect(publishedEvents[0].ctx).toBe(ctx);

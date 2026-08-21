@@ -87,8 +87,8 @@ describe('McpPlugin production config guard', () => {
         expect(() => plugin.onApplicationBootstrap()).toThrow();
     });
 
-    // The whole point of this task: a deployment that only uses the admin toolset must be able
-    // to start in production without ever configuring a storefront consent page.
+    // A deployment that only uses the admin toolset must be able to start in production
+    // without ever configuring a storefront consent page.
     it('does not throw in production when the issuer is public and storefrontConsentUrl is unset', () => {
         process.env.NODE_ENV = 'production';
         setOauth({ tokenSecret: 'x', issuer: 'https://shop.example.com' });
@@ -108,7 +108,7 @@ describe('McpPlugin production config guard', () => {
     });
 
     // Every OAuth and MCP URL is built from the issuer, and the `.well-known` documents are
-    // served at the server root — so an issuer with a path yields URLs nothing serves. Refused
+    // served at the server root, so an issuer with a path yields URLs nothing serves. Refused
     // in development too, because that is where such a misconfiguration is discovered cheaply.
     it('throws when the issuer is more than a scheme, host and port', () => {
         process.env.NODE_ENV = 'development';
@@ -301,7 +301,7 @@ describe('McpPlugin OAuth retention task', () => {
     const oauthTask = (config: any) =>
         config.schedulerOptions.tasks.find((t: any) => t.id === 'mcp-oauth-retention');
 
-    // 03:30 rather than 02:30, so the two sweeps do not contend on every Vendure instance.
+    // 03:30 rather than 02:30, so the two sweeps do not run at the same time on every Vendure instance.
     it('registers the OAuth retention task at 03:30 when no schedule is given', async () => {
         McpPlugin.init({});
         const config = await runConfiguration();

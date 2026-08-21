@@ -149,7 +149,6 @@ describe('McpPlugin OAuth end-to-end flow', () => {
         const { access_token } = await runFlow();
         const authenticated = await oauth.authenticateBearerToken(access_token, 'admin');
 
-        // The resolved context and stored token both bind to the superadmin who approved consent.
         const superadmin = await connection
             .getRepository(ctx, User)
             .findOne({ where: { identifier: 'superadmin' } });
@@ -182,13 +181,11 @@ describe('McpPlugin OAuth end-to-end flow', () => {
 
         const { access_token } = await runFlow();
 
-        // The stored grant row is keyed by the lookup hash, not the plaintext.
         const stored = await connection
             .getRepository(ctx, McpOauthGrant)
             .findOne({ where: { accessTokenHash: lookupHash(access_token) } });
         expect(stored).toBeTruthy();
 
-        // The plaintext token must never appear in the token column.
         const plaintextRow = await connection
             .getRepository(ctx, McpOauthGrant)
             .findOne({ where: { accessTokenHash: access_token } });
@@ -208,7 +205,6 @@ describe('McpPlugin OAuth end-to-end flow', () => {
         expect(rotated.access_token).toBeTruthy();
         expect(rotated.access_token).not.toBe(first.access_token);
 
-        // Replaying the now-rotated original refresh token is rejected.
         await expect(
             oauth.exchangeToken({
                 grant_type: 'refresh_token',
@@ -247,8 +243,6 @@ describe('McpPlugin OAuth end-to-end flow', () => {
 
         const { access_token } = await runFlow();
 
-        // Find the grant row backing this access token, and note which Vendure
-        // session currently backs it.
         const mcpSessionBefore = await connection
             .getRepository(ctx, McpOauthGrant)
             .findOne({ where: { accessTokenHash: lookupHash(access_token) } });
@@ -270,8 +264,6 @@ describe('McpPlugin OAuth end-to-end flow', () => {
         await connection.getRepository(ctx, Session).save(vendureSession);
         await configService.authOptions.sessionCacheStrategy.delete(vendureSession.token);
 
-        // Re-authenticating succeeds by creating a new session, and the McpOauthGrant now
-        // points at a different Vendure session id.
         const reauthenticated = await oauth.authenticateBearerToken(access_token, 'admin');
         expect(reauthenticated.ctx.activeUserId).toBe(mcpSessionBefore.actorId);
 
@@ -302,8 +294,6 @@ describe('McpPlugin OAuth end-to-end flow', () => {
 
         await oauth.authenticateBearerToken(access_token, 'admin');
 
-        // The update is fired in the background, so poll briefly for it to land rather
-        // than assuming it has completed by the time authenticateBearerToken returns.
         let updated: McpOauthGrant | null = null;
         for (let attempt = 0; attempt < 20; attempt++) {
             updated = await connection.getRepository(ctx, McpOauthGrant).findOne({ where: { id: grant.id } });
@@ -326,7 +316,6 @@ describe('McpPlugin OAuth end-to-end flow', () => {
         const { access_token } = await runFlow();
         const grant = await grantFor(ctx, access_token);
 
-        // Sanity check: the token authenticates fine before we touch anything.
         const before = await postMcp(baseUrl(), 'admin', rpc('tools/list', {}, 1), { token: access_token });
         expect(before.status).toBe(200);
 
@@ -411,7 +400,6 @@ describe('McpPlugin OAuth end-to-end flow', () => {
         await expect(oauth.authenticateBearerToken(access_token, 'admin')).rejects.toThrow(
             'Vendure user no longer exists',
         );
-        // The refusal also revoked the grant, so the refresh token is dead too.
         const grant = await grantFor(ctx, access_token);
         expect(grant.revokedAt).toBeTruthy();
         await expect(
@@ -519,7 +507,6 @@ describe('McpPlugin OAuth end-to-end flow', () => {
         const findRequest = () => requestRepo.findOne({ where: { requestToken: lookupHash(request_token) } });
         const findCode = () => codeRepo.findOne({ where: { code: lookupHash(code) } });
 
-        // Approving the request deleted it, and exchanging the code deleted that too.
         expect(await findRequest()).toBeNull();
         expect(await findCode()).toBeNull();
 
@@ -648,9 +635,6 @@ describe('McpPlugin OAuth end-to-end flow', () => {
         expect(await grantRepo.findOne({ where: { id: grant.id } })).toBeNull();
     });
 
-    // A client that registered (or was CIMD-resolved) but never went on to obtain a token —
-    // e.g. it abandoned the flow after DCR — is cleaned up once it has sat unused past the
-    // retention window.
     it('deletes a never-used client older than the retention window with no grants', async () => {
         const retention = server.app.get(McpOauthRetentionService);
         const connection = server.app.get(TransactionalConnection);
@@ -668,8 +652,6 @@ describe('McpPlugin OAuth end-to-end flow', () => {
         expect(await clientRepo.findOne({ where: { id: client.id } })).toBeNull();
     });
 
-    // A client is still within its grace period to complete the flow, so it must survive even
-    // though it, too, has never been used.
     it('keeps a never-used client younger than the retention window', async () => {
         const retention = server.app.get(McpOauthRetentionService);
         const connection = server.app.get(TransactionalConnection);

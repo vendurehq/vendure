@@ -69,8 +69,8 @@ function parseBody(text: string, contentType: string): any {
         return undefined;
     }
     if (contentType.includes('text/event-stream')) {
-        // Collect every `data:` frame. A single frame → its object; multiple frames (a JSON-RPC
-        // batch) → the array of objects the client reassembles.
+        // A single `data:` frame parses to its object; multiple frames (a JSON-RPC batch) parse to
+        // the array of objects the client reassembles.
         const frames = text
             .split('\n')
             .filter(line => line.startsWith('data:'))

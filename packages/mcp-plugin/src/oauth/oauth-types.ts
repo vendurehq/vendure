@@ -2,9 +2,7 @@ import { McpToolset } from '@vendure/mcp-sdk';
 
 import { McpOauthOptions } from '../types';
 
-// Request and response shapes for the MCP OAuth HTTP endpoints. Field names are
-// snake_case to match the OAuth 2.1 wire contract. Shared by McpOauthService and the
-// OAuth HTTP controller.
+// Field names are snake_case to match the OAuth 2.1 wire contract.
 
 export interface RegisterClientInput {
     client_name?: string;

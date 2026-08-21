@@ -89,7 +89,7 @@ describe('MCP protocol conformance (direct mode)', () => {
         const names = res.body.result.tools.map((t: any) => t.name);
         expect(names).toContain('shop_echo');
         expect(names).toContain('shop_ping');
-        expect(names).not.toContain('admin_list'); // admin tools not exposed on the shop endpoint
+        expect(names).not.toContain('admin_list');
     });
 
     it('tools/call runs a real tool end-to-end', async () => {
@@ -122,10 +122,8 @@ describe('MCP protocol conformance (direct mode)', () => {
         expect(res.body).toHaveLength(2);
     });
 
-    // Three ways to break shop_echo's schema, which requires `text: string` and sets
-    // additionalProperties:false. Each case asserts the validation message rather than only that
-    // the call failed: an isError-only check is satisfied by a refusal for any unrelated reason,
-    // and it cannot tell the three cases apart.
+    // Each case asserts the exact validation message: an isError-only check would pass on a
+    // refusal for any unrelated reason and could not tell the three cases apart.
     it.each([
         {
             label: 'a property of the wrong type',
@@ -525,7 +523,6 @@ describe('MCP DNS-rebinding guard', () => {
         });
 
         expect(res.status).toBe(403);
-        // The refusal is a JSON-RPC error naming the rejected hostname, not an empty 403.
         expect(res.body.jsonrpc).toBe('2.0');
         expect(res.body.error.message).toBe('Invalid Origin: evil.example.com');
         expect(res.body.result).toBeUndefined();

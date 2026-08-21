@@ -117,7 +117,6 @@ describe('McpRateLimiterService rate limiting', () => {
         expect(
             await service.checkRateLimit({ executionContext: a, endpoint: 'admin', subject: 'ping' }),
         ).toBeDefined();
-        // B is untouched.
         expect(
             await service.checkRateLimit({ executionContext: b, endpoint: 'admin', subject: 'ping' }),
         ).toBeUndefined();
@@ -172,8 +171,9 @@ describe('McpRateLimiterService rate limiting', () => {
             rateLimits: { perSession: { rpm: 5 }, perClient: { rpm: 0 }, anonymousIp: false },
         });
         const ctx = sessionCtx('subject-a');
-        // Before the consume step was fused, every overlapping request read the same count and wrote
-        // the same count + 1, so all 20 were allowed. The increment is now queued per bucket key.
+        // Before the read and write were combined into one queued step, every overlapping request
+        // read the same count and wrote count + 1, so all 20 were allowed. Increments now queue
+        // per bucket key.
         const results = await Promise.all(
             Array.from({ length: 20 }, () =>
                 service.checkRateLimit({ executionContext: ctx, endpoint: 'admin', subject: 'ping' }),
@@ -187,8 +187,8 @@ describe('McpRateLimiterService rate limiting', () => {
         const { service } = build({
             rateLimits: { perSession: { rpm: 2 }, perClient: { rpm: 0 }, anonymousIp: false },
         });
-        // A caller that omits the session header is minted a fresh token on every request. The
-        // bucket must not be fresh with it.
+        // A caller that omits the session header gets a fresh session token on every request. The
+        // bucket must survive the token change, so these callers are keyed by IP instead.
         await service.enforceRateLimit({
             executionContext: anonHttpCtx('fresh-1', '1.2.3.4'),
             endpoint: 'shop',
@@ -312,7 +312,7 @@ describe('McpRateLimiterService rate limiting', () => {
             rateLimits: { perSession: { rpm: 1 }, perClient: { rpm: 0 }, anonymousIp: false },
         });
         // McpToolExecutionService passes { ctx } with no clientIp. Two merchant-assistant users
-        // must not share a bucket — that would make perSession a store-wide limit.
+        // must not share a bucket; that would make perSession a store-wide limit.
         await service.enforceRateLimit({
             executionContext: sessionCtx('assistant-user-a'),
             endpoint: 'shop',
@@ -434,7 +434,6 @@ describe('McpRateLimiterService rate limiting', () => {
                 subject: 'ping',
             }),
         ).rejects.toMatchObject({ details: { scope: 'OAuth client' } });
-        // A second client has its own bucket.
         await expect(
             service.enforceRateLimit({
                 executionContext: oauthCtx('grant-4', 'user-7', 'client-2'),

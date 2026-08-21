@@ -81,8 +81,6 @@ describe('McpPlugin OAuth edge & security cases', () => {
         await adminClient.asSuperAdmin();
         superAdminToken = adminClient.getAuthToken();
 
-        // Log in a real seeded customer on the shop client to obtain a customer session
-        // token. The storefront consent step approves the grant with this token.
         const { customers } = await adminClient.query<{
             customers: { items: Array<{ emailAddress: string }> };
         }>(gql`
@@ -126,8 +124,6 @@ describe('McpPlugin OAuth edge & security cases', () => {
             vendureAuthToken: customerAuthToken,
         });
 
-    // Drives DCR + authorize + admin consent and stops at the freshly created code, so a
-    // test can craft its own token-exchange request. The code has not yet been consumed.
     const authorizeAdminToCode = async (overrides?: { redirectUri?: string; resource?: string }) => {
         const redirectUri = overrides?.redirectUri ?? 'https://example.com/cb';
         const { code_verifier, code_challenge } = pkcePair();
@@ -173,8 +169,6 @@ describe('McpPlugin OAuth edge & security cases', () => {
         return { client_id, redirect_uri: redirectUri, code, code_verifier, resource };
     };
 
-    // --- Rejection gates at token exchange ---
-
     it('rejects token exchange with an invalid PKCE verifier', async () => {
         const oauth = server.app.get(McpOauthService);
         const flow = await authorizeAdminToCode();
@@ -185,7 +179,7 @@ describe('McpPlugin OAuth edge & security cases', () => {
                 code: flow.code,
                 client_id: flow.client_id,
                 redirect_uri: flow.redirect_uri,
-                code_verifier: 'b'.repeat(64), // wrong verifier
+                code_verifier: 'b'.repeat(64),
                 resource: flow.resource,
             }),
         ).rejects.toThrow(/PKCE/i);
@@ -224,7 +218,6 @@ describe('McpPlugin OAuth edge & security cases', () => {
             params: {
                 response_type: 'code',
                 client_id,
-                // A redirect_uri the client never registered.
                 redirect_uri: 'https://evil.example.com/cb',
                 code_challenge,
                 code_challenge_method: 'S256',
@@ -237,7 +230,6 @@ describe('McpPlugin OAuth edge & security cases', () => {
 
     it('rejects token exchange when redirect_uri does not match the authorization code', async () => {
         const oauth = server.app.get(McpOauthService);
-        // The code is bound to this redirect_uri at authorize time.
         const flow = await authorizeAdminToCode({ redirectUri: 'https://example.com/code-uri' });
 
         await expect(
@@ -245,7 +237,7 @@ describe('McpPlugin OAuth edge & security cases', () => {
                 grant_type: 'authorization_code',
                 code: flow.code,
                 client_id: flow.client_id,
-                redirect_uri: 'https://example.com/different-uri', // not the redirect_uri the code carries
+                redirect_uri: 'https://example.com/different-uri',
                 code_verifier: flow.code_verifier,
                 resource: flow.resource,
             }),
@@ -333,7 +325,7 @@ describe('McpPlugin OAuth edge & security cases', () => {
 
         const flow = await authorizeAdminToCode();
 
-        // The stored code is the lookup-hash of the plaintext; expire it directly in the DB.
+        // The stored code is the lookup-hash of the plaintext.
         const repo = connection.getRepository(ctx, McpAuthorizationCode);
         const stored = await repo.findOneOrFail({ where: { code: lookupHash(flow.code) } });
         stored.expiresAt = new Date(Date.now() - 1000);
@@ -358,9 +350,6 @@ describe('McpPlugin OAuth edge & security cases', () => {
     // (an unhandled 500); SQLite ignores column lengths, so only an explicit check catches
     // this. Each case below is rejected before any row is written.
 
-    // An over-long `state` is rejected with an error redirect rather than reaching the
-    // McpAuthorizationRequest.state column. The state is still echoed back on the redirect —
-    // it never reaches the database on this path.
     it('rejects authorize with a state longer than 255 characters', async () => {
         const redirectUri = 'https://example.com/cb';
         const registerRes = await registerClient({
@@ -425,7 +414,6 @@ describe('McpPlugin OAuth edge & security cases', () => {
         expect(location.searchParams.get('error_description')).toMatch(/code_challenge/i);
     });
 
-    // DCR rejects a redirect_uri that would overflow the column it is stored in.
     it('rejects DCR registration with a redirect_uri longer than 255 characters', async () => {
         const longRedirectUri = `https://example.com/${'x'.repeat(300)}`;
         const registerRes = await registerClient({
@@ -438,8 +426,6 @@ describe('McpPlugin OAuth edge & security cases', () => {
         expect(registerRes.status).toBe(400);
     });
 
-    // DCR drops an unusable client_uri/logo_uri rather than failing the whole registration:
-    // an over-long client_uri and a non-https logo_uri are both stored as null.
     it('drops an over-long client_uri and a non-https logo_uri instead of failing registration', async () => {
         const registerRes = await registerClient({
             baseUrl: baseUrl(),
@@ -484,8 +470,6 @@ describe('McpPlugin OAuth edge & security cases', () => {
         expect(registerRes.status).toBe(400);
     });
 
-    // --- Security checks ---
-
     // revoke() is a soft-revoke: the grant row survives (so McpToolCallLog audit links are
     // preserved) with revokedAt set, and the token is rejected at the resource afterwards.
     it('soft-revokes the grant: keeps the row with revokedAt set and rejects the token', async () => {
@@ -495,13 +479,11 @@ describe('McpPlugin OAuth edge & security cases', () => {
         const ctx = await requestContextService.create({ apiType: 'admin' });
         const flow = await runAdminFlow();
 
-        // Sanity: the token authenticates before revocation.
         const ok = await oauth.authenticateBearerToken(flow.access_token, 'admin');
         expect(ok.ctx.apiType).toBe('admin');
 
         await oauth.revoke(flow.access_token);
 
-        // Soft revoke: the row is kept (not deleted) with revokedAt stamped.
         const grant = await connection
             .getRepository(ctx, McpOauthGrant)
             .findOne({ where: { accessTokenHash: lookupHash(flow.access_token) } });
@@ -513,8 +495,6 @@ describe('McpPlugin OAuth edge & security cases', () => {
         );
     });
 
-    // A token whose stored resource has been tampered with is rejected on the resource gate,
-    // even though the token itself is otherwise valid.
     it('rejects an access token whose stored resource has been tampered with', async () => {
         const oauth = server.app.get(McpOauthService);
         const connection = server.app.get(TransactionalConnection);
@@ -523,7 +503,6 @@ describe('McpPlugin OAuth edge & security cases', () => {
 
         const flow = await runAdminFlow();
 
-        // Mutate the persisted resource to a different (but well-formed) value.
         const repo = connection.getRepository(ctx, McpOauthGrant);
         const stored = await repo.findOneOrFail({
             where: { accessTokenHash: lookupHash(flow.access_token) },
@@ -631,8 +610,6 @@ describe('McpPlugin OAuth edge & security cases', () => {
         );
     });
 
-    // The same cookie-authenticated consent from the issuer's own origin (the real consent
-    // page) is allowed and creates an authorization code.
     it('allows cookie-authenticated admin consent from the consent page origin', async () => {
         const oauth = server.app.get(McpOauthService);
         const flow = await authorizeAdminToCodePreConsent();
@@ -685,8 +662,6 @@ describe('McpPlugin OAuth edge & security cases', () => {
         expect(body.data?.authorizeMcpClient).toBeUndefined();
         expect(body.errors?.length).toBeGreaterThan(0);
     });
-
-    // --- Shop happy path ---
 
     it('issues a shop token via the full storefront flow and authenticates the customer', async () => {
         const oauth = server.app.get(McpOauthService);
@@ -929,10 +904,6 @@ describe('McpPlugin OAuth edge & security cases', () => {
         });
     });
 
-    // --- helpers that stop before consent ---
-
-    // Drives DCR + authorize for the admin resource and returns the request token, so a
-    // test can exercise the admin consent mutation directly without approving yet.
     async function authorizeAdminToCodePreConsent() {
         const redirectUri = 'https://example.com/cb';
         const registerRes = await registerClient({
@@ -1237,7 +1208,6 @@ describe('OAuth lifetime and consent-path options', () => {
         expect(response.status).toBe(302);
         const location = new URL(response.headers.get('location') as string);
         expect(location.pathname).toBe(ADMIN_CONSENT_PATH);
-        // Same origin as the server, and carrying the request token the consent page needs.
         expect(location.origin).toBe(baseUrl());
         expect(location.searchParams.get('request_token')).toBeTruthy();
     });

@@ -96,7 +96,8 @@ export class McpToolCallLogService {
                     output: input.output,
                 });
             } catch (redactError) {
-                // A broken redact function must not cost the audit row, and raw bodies must never be stored.
+                // A broken redact function must not prevent the log row from being saved, and raw
+                // (unredacted) bodies must never be stored.
                 const reason = redactError instanceof Error ? redactError.message : String(redactError);
                 Logger.warn(
                     `The configured logging.redact function threw while redacting tool call ` +

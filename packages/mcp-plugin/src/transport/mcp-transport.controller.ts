@@ -66,7 +66,6 @@ export class McpTransportController {
         private sessionService: SessionService,
         private channelService: ChannelService,
     ) {
-        // One stateless handler; the per-request factory reads the resolved context from authInfo.extra.
         const handler = createMcpHandler(
             async mcpCtx => {
                 const extra = mcpCtx.authInfo?.extra as
@@ -120,7 +119,7 @@ export class McpTransportController {
     }
 
     private async handlePost(toolset: McpToolset, req: Request, res: Response, body: unknown): Promise<void> {
-        // 1. DNS-rebinding front guard (writes its own 403 and returns false on rejection).
+        // DNS-rebinding protection. Each guard writes its own 403 response and returns false when it rejects.
         if (this.hostGuard && !this.hostGuard(req, res)) {
             return;
         }
@@ -136,9 +135,9 @@ export class McpTransportController {
             throw new UnauthorizedException('Shop MCP endpoint requires a Bearer token');
         }
 
-        // 3. Meter anonymous shop traffic by IP before anything else touches the database. Building
-        // the context below creates a Vendure session row when the caller has no usable session, so the
-        // write has to sit inside the limit rather than behind it.
+        // Rate-limit anonymous shop traffic by IP before anything touches the database. Building the
+        // context below inserts a Vendure session row when the caller has no usable session, so this
+        // check must run first or the insert would happen even for rate-limited callers.
         if (toolset === 'shop' && !token) {
             const exceeded = await this.rateLimiter.checkAnonymousIpRateLimit(toolset, clientIp);
             if (exceeded) {
@@ -147,8 +146,8 @@ export class McpTransportController {
             }
         }
 
-        // 3b. Refuse an address that has spent its failed-authentication allowance BEFORE the
-        // token is looked up, so a flood of made-up tokens stops costing a database query each.
+        // Refuse an IP that has used up its failed-authentication allowance before the token is
+        // looked up, so a flood of made-up tokens does not cost a database query each.
         if (token) {
             const exceeded = await this.rateLimiter.checkBearerAuthFailureRateLimit(clientIp);
             if (exceeded) {
@@ -157,7 +156,6 @@ export class McpTransportController {
             }
         }
 
-        // 4. Authenticate and build the execution context.
         if (toolset === 'admin' && !token) {
             this.setAuthChallenge(res, 'admin');
             throw new UnauthorizedException('Admin MCP endpoint requires a Bearer token');
@@ -168,19 +166,18 @@ export class McpTransportController {
             const authContext = await this.authenticateBearerToken(token, toolset, res, clientIp);
             executionContext = { ...authContext, clientIp };
         } else {
-            // Anonymous shop: thread the Vendure session token (for cart continuity) and the channel
-            // token (for multi-channel). An invalid channel token errors like the rest of Vendure.
+            // The session token keeps the caller's cart across calls. An invalid channel token
+            // errors like the rest of Vendure.
             try {
                 const ctx = await this.createAnonymousShopContext(
                     this.getVendureSessionToken(req.headers),
                     this.getChannelToken(req.headers),
                 );
-                // Echo the session token BEFORE delegating — the SDK handler owns the response write.
-                // (If a future SDK path resets headers, hook res.writeHead here instead.)
+                // Set the session token header before delegating, because the SDK handler writes the
+                // response. (If a future SDK version resets headers, set it in res.writeHead instead.)
                 this.setVendureSessionToken(res, ctx.session?.token);
                 executionContext = { ctx, clientIp };
             } catch (e) {
-                // A signed-in user's session token is refused — tell the caller how to authorize.
                 if (e instanceof UnauthorizedException) {
                     this.setAuthChallenge(res, 'shop');
                 }
@@ -188,7 +185,6 @@ export class McpTransportController {
             }
         }
 
-        // 5. Handshake rate-limit pre-check (only meaningful for JSON bodies we can parse).
         const contentType = this.getHeader(req.headers, 'content-type') ?? '';
         const isJson = isJsonContentType(contentType);
         const parsedBody = isJson ? body : undefined;
@@ -200,13 +196,11 @@ export class McpTransportController {
             }
         }
 
-        // 6. Refuse subscription streams before the SDK can open one.
         if (isJson && this.callsSubscriptionsListen(body)) {
             this.sendSubscriptionsUnsupported(res, body);
             return;
         }
 
-        // 7. Attach the resolved context as pass-through authInfo and delegate to the SDK handler.
         (req as Request & { auth?: AuthInfo }).auth = this.buildAuthInfo(executionContext, toolset, token);
         await this.nodeHandler(req, res, parsedBody);
     }
@@ -310,7 +304,7 @@ export class McpTransportController {
     ): AuthInfo {
         const grant = executionContext.grant;
         return {
-            // Pass-through only — the SDK performs no token verification.
+            // Pass-through only; the SDK does not verify this token.
             token: token ?? 'anonymous',
             clientId: grant?.oauthClientId != null ? String(grant.oauthClientId) : 'anonymous',
             scopes: [],

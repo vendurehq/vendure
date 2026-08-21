@@ -81,9 +81,9 @@ export function validateCimdClientIdUrl(clientId: string, options: CimdClientIdU
     if (isIP(bareHost) !== 0 && !(options.allowLoopback && loopback)) {
         throw new BadRequestException('client_id URL must use a hostname, not an IP address');
     }
-    // Last: the string must survive parsing unchanged. The parser rewrites a URL in ways the
-    // checks above cannot see — it resolves "." and ".." segments, treats "\" as a path
-    // separator etc...
+    // Last: the string must survive parsing unchanged. The parser rewrites a URL in ways
+    // the checks above cannot see, such as resolving "." and ".." segments and treating
+    // "\" as a path separator.
     if (url.href !== clientId) {
         throw new BadRequestException(
             `client_id URL must be given in canonical form (${url.href}), not "${clientId}"`,

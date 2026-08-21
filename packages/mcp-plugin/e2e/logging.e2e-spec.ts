@@ -177,7 +177,6 @@ describe('MCP tool-call logging', () => {
         );
         expect(created.createChannel.token).toBeDefined();
 
-        // Query the log list and the stats as the superadmin, but on the second channel.
         const result = await fetch(`${baseUrl()}/${config.apiOptions.adminApiPath ?? 'admin-api'}`, {
             method: 'POST',
             headers: {
@@ -250,7 +249,6 @@ describe('MCP tool-call log input/output permission gating (full capture)', () =
         `);
         defaultChannelGqlId = activeChannel.id;
 
-        // Trigger a real tool call so a full-capture row with non-null input/output exists.
         await postMcp(baseUrl(), 'shop', callTool('shop_ping', { text: 'jane.doe@example.com' }, 1));
     }, TEST_SETUP_TIMEOUT_MS);
 
@@ -302,7 +300,6 @@ describe('MCP tool-call log input/output permission gating (full capture)', () =
         expect(row.output).not.toBeNull();
         expect(row.input).toMatchObject({ text: 'jane.doe@example.com' });
         expect(row.output).toMatchObject({ text: 'jane.doe@example.com' });
-        // captureClientIp is on for this describe, so the caller's (loopback) address is stored.
         expect(typeof row.clientIp).toBe('string');
         expect(row.clientIp.length).toBeGreaterThan(0);
     });

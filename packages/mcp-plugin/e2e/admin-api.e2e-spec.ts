@@ -182,7 +182,6 @@ describe('MCP admin API', () => {
             const result = await adminGraphQL(superAdminToken, MCP_STATS_QUERY, { timeRange: '24h' });
             expect(result.errors).toBeUndefined();
             const stats = result.data.mcpStats;
-            // The expired row is outside the 24h window, so only the 5 recent rows count.
             expect(stats.totalCalls).toBe(5);
             expect(stats.successRate).toBeCloseTo(0.8, 5);
             expect(stats.errorRate).toBeCloseTo(0.2, 5);
@@ -198,7 +197,6 @@ describe('MCP admin API', () => {
         it('mcpStats serves a cached result within the TTL window', async () => {
             const first = await adminGraphQL(superAdminToken, MCP_STATS_QUERY, { timeRange: '7d' });
             const firstTotal = first.data.mcpStats.totalCalls;
-            // A new row would change the count if the result weren't cached.
             await insertLog({ toolName: 'stats_tool_a', status: 'success', durationMs: 15 });
             const second = await adminGraphQL(superAdminToken, MCP_STATS_QUERY, { timeRange: '7d' });
             expect(second.data.mcpStats.totalCalls).toBe(firstTotal);
@@ -325,7 +323,6 @@ describe('MCP admin API', () => {
             const namesAfter = (after.body.result.tools as Array<{ name: string }>).map(t => t.name);
             expect(namesAfter).not.toContain('admin_list');
 
-            // A disabled tool isn't offered, so calling it is rejected by the protocol.
             const denied = await postMcp(
                 baseUrl(),
                 'admin',
@@ -368,7 +365,6 @@ describe('MCP admin API', () => {
             expect(newGrants.length).toBe(1);
             const grantId = newGrants[0].id;
 
-            // The new grant works against the transport before we revoke it.
             const okCall = await postMcp(baseUrl(), 'admin', rpc('tools/list', {}, 1), {
                 token: access_token,
             });
@@ -384,7 +380,6 @@ describe('MCP admin API', () => {
             const afterIds = (afterRevoke.data.mcpOauthGrants.items as Array<{ id: string }>).map(g => g.id);
             expect(afterIds).not.toContain(grantId);
 
-            // After revoking, the token no longer authenticates (401).
             const deniedCall = await postMcp(baseUrl(), 'admin', rpc('tools/list', {}, 2), {
                 token: access_token,
             });
@@ -418,7 +413,6 @@ describe('MCP admin API', () => {
             expect(revoked.errors).toBeUndefined();
             expect(revoked.data.revokeMcpOauthGrant).toBe(true);
 
-            // Listing with includeInactive: false still hides it.
             const defaultListed = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
                 includeInactive: false,
             });
@@ -427,7 +421,6 @@ describe('MCP admin API', () => {
             ).some(g => g.oauthClientName === clientName);
             expect(stillVisibleByDefault).toBe(false);
 
-            // Asking for inactive grants surfaces it, with a non-null revokedAt.
             const afterRevoke = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
                 includeInactive: true,
             });
@@ -570,8 +563,7 @@ describe('MCP admin API', () => {
         });
 
         // `status` is not a stored column; it is worked out from `revokedAt` and `expiresAt`
-        // (a calculated column on the entity). These tests pin the three values, the order
-        // they sort in, and that it filters like any other string field.
+        // (a calculated column on the entity).
         describe('status', () => {
             /** Creates a grant and returns its id and client name. */
             async function createGrant(prefix: string) {
@@ -799,7 +791,6 @@ describe('MCP admin API', () => {
 
         beforeAll(async () => {
             await connection.getRepository(adminCtx, McpToolCallLog).createQueryBuilder().delete().execute();
-            // Recent + expired rows on the active channel and on a foreign channel.
             await insertLog({ toolName: 'iso_local', status: 'success', durationMs: 5 });
             await insertLog({
                 toolName: 'iso_local_old',
@@ -844,7 +835,6 @@ describe('MCP admin API', () => {
                 REMOVE_EXPIRED_LOGS,
             );
             expect(result.errors).toBeUndefined();
-            // Only the active channel's one expired row is pruned; the foreign one survives.
             expect(result.data?.removeExpiredMcpToolCallLogs).toBe(1);
             const remaining = await connection.getRepository(adminCtx, McpToolCallLog).find();
             const names = remaining.map(r => r.toolName);
@@ -873,7 +863,6 @@ describe('MCP admin API', () => {
             expect(created).toBeDefined();
             const grantId = created?.id;
 
-            // Move it to a foreign channel via the raw row (matched by client name).
             const raw = await connection
                 .getRepository(adminCtx, McpOauthGrant)
                 .createQueryBuilder('grant')
@@ -885,8 +874,6 @@ describe('MCP admin API', () => {
                 .getRepository(adminCtx, McpOauthGrant)
                 .update({ id: raw?.id }, { channelId: FOREIGN_CHANNEL_ID });
 
-            // The active-channel admin no longer sees it (F2), and revoking it reports
-            // not-found rather than succeeding (F3).
             const afterMove = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
                 includeInactive: false,
             });
