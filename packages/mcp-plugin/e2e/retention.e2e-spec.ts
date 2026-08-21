@@ -75,7 +75,7 @@ describe('MCP tool-call log retention', () => {
 
         const injector = new Injector(server.app.get(ModuleRef));
         const result = (await mcpToolCallLogRetentionTask.execute(injector)) as { deletedCount: number };
-        expect(result.deletedCount).toBeGreaterThanOrEqual(1);
+        expect(result.deletedCount).toBe(1);
 
         const names = await toolNames();
         expect(names).not.toContain('task-expired');

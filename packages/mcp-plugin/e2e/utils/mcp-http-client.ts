@@ -169,7 +169,16 @@ export function expectRateLimitRefusal(
     expect(result.body.id).toBe(expected.id);
     expect(result.body.result).toBeUndefined();
     expect(result.body.error.code).toBe(-31029);
-    expect(result.body.error.message).toBeTruthy();
+    // The message is the only part of a refusal a human reads, and its scope and delay must agree
+    // with the data block and the Retry-After header asserted above. The subject — the method, tool
+    // or actor key the budget was charged to — is the one part that varies by caller, so it is
+    // matched loosely here and pinned exactly by the callers that care which subject was charged.
+    expect(result.body.error.message).toMatch(
+        new RegExp(
+            `^Rate limit exceeded for \\S.* \\(${expected.scope}\\)\\. ` +
+                `Retry after ${retryAfterHeader} seconds\\.$`,
+        ),
+    );
     expect(result.body.error.data.scope).toBe(expected.scope);
     expect(result.body.error.data.retryAfterSeconds).toBe(retryAfterHeader);
 }

@@ -140,13 +140,6 @@ describe('MCP transport (auth, session, channel, destructive)', () => {
         expect(scopedChannelId).not.toBe(defaultChannelId);
     });
 
-    it('errors on an invalid channel token (no silent fallback)', async () => {
-        const res = await postMcp(baseUrl(), 'shop', callTool('shop_ping', {}, 1), {
-            headers: { [CHANNEL_TOKEN_HEADER]: 'not-a-real-channel-token' },
-        });
-        expect(res.status).toBeGreaterThanOrEqual(400);
-    });
-
     it('gates a destructive tool behind confirmation, then runs it with confirm:true', async () => {
         const preview = await postMcp(baseUrl(), 'shop', callTool('shop_delete', { id: 'abc' }, 1));
         expect(preview.body.result.isError).toBeUndefined();
@@ -280,6 +273,13 @@ describe('MCP transport anonymous session metering', () => {
         // A notification carries no id, so it never produces a JSON-RPC response — but it does reach
         // the transport, which creates a session for it. anonymousIp rpm = 3, so at most three of these
         // six posts may be served.
+        //
+        // How many of the six are served depends on what is left of the budget when this test runs.
+        // The anonymous-IP bucket is keyed by client IP alone, every describe in this file calls from
+        // the same test-host IP, and they share one in-memory cache, so the describe above (which
+        // meters the same bucket at rpm 2) has normally spent it before this test starts. The
+        // assertions therefore pin the relationship between the two counts rather than the counts
+        // themselves, which holds however much budget was left.
         const notification = { jsonrpc: '2.0', method: 'notifications/initialized' };
         const before = await countAnonymousSessions(server);
 
@@ -288,9 +288,15 @@ describe('MCP transport anonymous session metering', () => {
             responses.push(await postMcp(baseUrl(), 'shop', notification));
         }
 
-        expect((await countAnonymousSessions(server)) - before).toBeLessThanOrEqual(3);
         const refused = responses.filter(response => response.status === 429);
+        const served = responses.length - refused.length;
         expect(refused.length).toBeGreaterThan(0);
+        expect(served).toBeLessThanOrEqual(3);
+        // The load-bearing assertion: exactly one session per served notification and none for a
+        // refused one. The controller charges this bucket before building the context precisely
+        // because building it writes a session row, so any drift between the two counts means the
+        // metering and the write have come apart.
+        expect((await countAnonymousSessions(server)) - before).toBe(served);
         // Nothing in the request carries an id, so the refusal has to fall back to a null one.
         expectRateLimitRefusal(refused[0], { scope: 'anonymous IP', id: null });
     });

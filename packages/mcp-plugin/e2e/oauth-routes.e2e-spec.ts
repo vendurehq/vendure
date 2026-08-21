@@ -49,8 +49,7 @@ describe('McpPlugin OAuth routes', () => {
             body: form.toString(),
         });
 
-        expect(res.status).toBeGreaterThanOrEqual(200);
-        expect(res.status).toBeLessThan(300);
+        expect(res.status).toBe(201);
         const body = await res.json();
         expect(body).toHaveProperty('client_id');
         expect(body.client_name).toBe('Form Client');
