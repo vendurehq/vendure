@@ -683,6 +683,14 @@ describe('MCP built-in shop tools', () => {
         expect(grantAfter.revokedAt).toBeTruthy();
     });
 
+    // Pins today's answer to an unknown channel token, and is now the suite's only test of it: a
+    // looser duplicate in mcp-transport.e2e-spec.ts accepted any status at or above 400.
+    //
+    // OPEN QUESTION: refusing the request is right, but this is an HTTP 500 whose body is Vendure's
+    // REST error rather than a JSON-RPC error envelope, and whose message is the untranslated key
+    // 'CHANNEL_NOT_FOUND: error.channel-not-found'. An MCP client therefore receives a raw internal
+    // error for what is a bad request. The status and the body shape are an open decision; this test
+    // records what happens today so a change to either cannot pass unnoticed.
     it('rejects an invalid vendure-token instead of falling back to the default channel', async () => {
         const response = await postMcp(baseUrl(), 'shop', callTool('get_product', { id: productId }), {
             headers: { [CHANNEL_TOKEN_HEADER]: 'not-a-real-channel-token' },
@@ -990,7 +998,10 @@ describe('MCP built-in shop tools', () => {
 
             await expect(
                 executionService.executeTool(adminCtx, 'shop', 'search_products', {}),
-            ).rejects.toThrow(/shop/);
+            ).rejects.toThrow(
+                'The "shop" MCP toolset requires a shop API RequestContext, but the supplied ' +
+                    'context is for the "admin" API.',
+            );
         });
 
         // The discovery meta-tools are deliberately unreachable here: an in-process caller names
@@ -1134,6 +1145,316 @@ describe('MCP built-in shop tools', () => {
             const stored = await orderByCode(placedOrder.code);
             expect(stored.state).toBe('PaymentSettled');
             expect(stored.orderPlacedAt).toBeTruthy();
+        });
+    });
+
+    // The cart-editing, coupon and customer-read tools. Everything here previously had no
+    // end-to-end coverage at all: only `src/tools/built-in/schema-snapshot.spec.ts` touched them,
+    // and that pins names and schemas without ever running a handler.
+    //
+    // The cart tools are Permission.Public, so they run on a plain anonymous session threaded
+    // through the `vendure-auth-token` header. That gives each test its own cart, with no OAuth
+    // flow and no shared state. The two customer reads need Permission.Authenticated, so they use
+    // a real grant.
+    describe('cart editing, coupons and customer reads', () => {
+        const COUPON_CODE = 'MCP-E2E-10';
+        const COUPON_PERCENTAGE = 10;
+        let readsAccessToken: string;
+        let customerOrderCodes: string[];
+
+        beforeAll(async () => {
+            const promotion = await adminClient.query(
+                gql`
+                    mutation CreateCouponPromotion($input: CreatePromotionInput!) {
+                        createPromotion(input: $input) {
+                            __typename
+                            ... on Promotion {
+                                couponCode
+                            }
+                            ... on ErrorResult {
+                                errorCode
+                                message
+                            }
+                        }
+                    }
+                `,
+                {
+                    input: {
+                        enabled: true,
+                        couponCode: COUPON_CODE,
+                        // No conditions: entering the coupon is the only thing that applies it,
+                        // which is what the two coupon tools are being tested on.
+                        conditions: [],
+                        actions: [
+                            {
+                                code: 'order_percentage_discount',
+                                arguments: [{ name: 'discount', value: String(COUPON_PERCENTAGE) }],
+                            },
+                        ],
+                        translations: [
+                            { languageCode: LanguageCode.en, name: 'MCP e2e coupon', description: '' },
+                        ],
+                    },
+                },
+            );
+            expect(promotion.createPromotion.couponCode).toBe(COUPON_CODE);
+
+            // A session on the default channel. The shared `shopClient` session is pinned to the
+            // second channel, which the channel-deletion test above has already removed.
+            const readsClient = new SimpleGraphQLClient(
+                config,
+                `http://localhost:${config.apiOptions.port}/${config.apiOptions.shopApiPath as string}`,
+            );
+            const login = await readsClient.asUserWithCredentials(customerEmail, 'test');
+            if (!login || login.errorCode) {
+                throw new Error(`Customer login failed: ${JSON.stringify(login)}`);
+            }
+            const flow = await runShopAuthorizationCodeFlow({
+                baseUrl: baseUrl(),
+                issuer: ISSUER,
+                vendureAuthToken: readsClient.getAuthToken(),
+            });
+            readsAccessToken = flow.access_token;
+
+            // What this customer's orders are, read from the admin side. Taking the expected set
+            // from here rather than from the checkout test above means this does not depend on
+            // which order that test placed, only that it placed one.
+            const orders = await adminClient.query(
+                gql`
+                    query CustomerOrdersForMcpReads($emailAddress: String!) {
+                        customers(options: { filter: { emailAddress: { eq: $emailAddress } } }) {
+                            items {
+                                orders(options: { take: 100 }) {
+                                    items {
+                                        code
+                                    }
+                                }
+                            }
+                        }
+                    }
+                `,
+                { emailAddress: customerEmail },
+            );
+            customerOrderCodes = (orders.customers.items[0]?.orders.items as Array<{ code: string }>).map(
+                order => order.code,
+            );
+        }, TEST_SETUP_TIMEOUT_MS);
+
+        /** Starts an anonymous cart holding `quantity` of the fixture variant. */
+        async function anonymousCart(quantity = 1): Promise<{ sessionToken: string; lineId: ID }> {
+            const added = await postMcp(
+                baseUrl(),
+                'shop',
+                callTool('add_to_cart', { variantId, quantity }, 1),
+            );
+            const sessionToken = added.headers.get(AUTH_TOKEN_HEADER);
+            expect(sessionToken).toBeTruthy();
+            expect(added.body.result.isError).toBeUndefined();
+            return {
+                sessionToken: sessionToken as string,
+                lineId: added.body.result.structuredContent.order.lines[0].id,
+            };
+        }
+
+        it('update_cart_line changes the quantity of an existing line', async () => {
+            const { sessionToken, lineId } = await anonymousCart(1);
+
+            const updated = await postMcp(
+                baseUrl(),
+                'shop',
+                callTool('update_cart_line', { orderLineId: lineId, quantity: 4 }, 2),
+                { headers: { [AUTH_TOKEN_HEADER]: sessionToken } },
+            );
+
+            expect(updated.body.result.isError).toBeUndefined();
+            const order = updated.body.result.structuredContent.order;
+            expect(order.totalQuantity).toBe(4);
+            expect(order.lines).toHaveLength(1);
+            expect(order.lines[0].quantity).toBe(4);
+
+            // A second request, which re-reads the cart from the database, sees the same quantity —
+            // so the change was written, not just reflected back from the request that made it.
+            const reread = await postMcp(baseUrl(), 'shop', callTool('get_cart', {}, 3), {
+                headers: { [AUTH_TOKEN_HEADER]: sessionToken },
+            });
+            expect(reread.body.result.structuredContent.order.lines[0].quantity).toBe(4);
+        });
+
+        it('remove_from_cart deletes the line and empties the cart', async () => {
+            const { sessionToken, lineId } = await anonymousCart(2);
+
+            const removed = await postMcp(
+                baseUrl(),
+                'shop',
+                callTool('remove_from_cart', { orderLineId: lineId }, 2),
+                { headers: { [AUTH_TOKEN_HEADER]: sessionToken } },
+            );
+
+            expect(removed.body.result.isError).toBeUndefined();
+            const order = removed.body.result.structuredContent.order;
+            expect(order.lines).toEqual([]);
+            expect(order.totalQuantity).toBe(0);
+
+            const reread = await postMcp(baseUrl(), 'shop', callTool('get_cart', {}, 3), {
+                headers: { [AUTH_TOKEN_HEADER]: sessionToken },
+            });
+            expect(reread.body.result.structuredContent.order.lines).toEqual([]);
+        });
+
+        it('set_billing_address writes the billing address, leaving the shipping address alone', async () => {
+            const { sessionToken } = await anonymousCart();
+            const call = (name: string, args: Record<string, unknown>, id: number) =>
+                postMcp(baseUrl(), 'shop', callTool(name, args, id), {
+                    headers: { [AUTH_TOKEN_HEADER]: sessionToken },
+                });
+
+            const shipping = await call(
+                'set_shipping_address',
+                {
+                    address: {
+                        streetLine1: '1 Shipping Way',
+                        city: 'Portland',
+                        postalCode: '97201',
+                        countryCode: 'US',
+                    },
+                },
+                2,
+            );
+            expect(shipping.body.result.isError).toBeUndefined();
+
+            const billing = await call(
+                'set_billing_address',
+                {
+                    address: {
+                        fullName: 'Billing Person',
+                        streetLine1: '2 Billing Road',
+                        city: 'Seattle',
+                        postalCode: '98101',
+                        countryCode: 'US',
+                    },
+                },
+                3,
+            );
+
+            expect(billing.body.result.isError).toBeUndefined();
+            // setBillingAddress returns a plain Order rather than an error union, so the tool wraps
+            // it as `{ order }` with no `result` branch — different from the cart tools above.
+            expect(billing.body.result.structuredContent.result).toBeUndefined();
+            const order = await orderByCode(billing.body.result.structuredContent.order.code);
+            expect(order.billingAddress).toMatchObject({
+                fullName: 'Billing Person',
+                streetLine1: '2 Billing Road',
+                city: 'Seattle',
+                postalCode: '98101',
+                countryCode: 'US',
+            });
+            // The two addresses are separate fields; setting one must not overwrite the other.
+            expect(order.shippingAddress.streetLine1).toBe('1 Shipping Way');
+        });
+
+        it('apply_coupon_code discounts the cart and remove_coupon_code puts the price back', async () => {
+            const { sessionToken } = await anonymousCart();
+            const call = (name: string, args: Record<string, unknown>, id: number) =>
+                postMcp(baseUrl(), 'shop', callTool(name, args, id), {
+                    headers: { [AUTH_TOKEN_HEADER]: sessionToken },
+                });
+
+            const before = await call('get_cart', {}, 2);
+            const fullTotal = before.body.result.structuredContent.order.totalWithTax as number;
+            expect(fullTotal).toBeGreaterThan(0);
+
+            const applied = await call('apply_coupon_code', { code: COUPON_CODE }, 3);
+            expect(applied.body.result.isError).toBeUndefined();
+            // The discount has to reach the price, not merely be recorded: a coupon the pricing
+            // engine ignored would leave the total untouched.
+            const discountedTotal = applied.body.result.structuredContent.order.totalWithTax as number;
+            expect(discountedTotal).toBeLessThan(fullTotal);
+
+            const removed = await call('remove_coupon_code', { code: COUPON_CODE }, 4);
+            expect(removed.body.result.isError).toBeUndefined();
+            expect(removed.body.result.structuredContent.order.totalWithTax).toBe(fullTotal);
+        });
+
+        it('apply_coupon_code hands back Vendure error result for a code that does not exist', async () => {
+            const { sessionToken } = await anonymousCart();
+
+            const applied = await postMcp(
+                baseUrl(),
+                'shop',
+                callTool('apply_coupon_code', { code: 'NO-SUCH-COUPON' }, 2),
+                { headers: { [AUTH_TOKEN_HEADER]: sessionToken } },
+            );
+
+            // A typed Vendure error result is a successful tool call carrying `result`, not an
+            // isError envelope — the model is meant to read Vendure's own message and react.
+            expect(applied.body.result.isError).toBeUndefined();
+            expect(applied.body.result.structuredContent.order).toBeUndefined();
+            expect(applied.body.result.structuredContent.result).toMatchObject({
+                errorCode: 'COUPON_CODE_INVALID_ERROR',
+            });
+        });
+
+        it('get_my_account returns the signed-in customer behind the grant', async () => {
+            const response = await postMcp(baseUrl(), 'shop', callTool('get_my_account', {}, 1), {
+                token: readsAccessToken,
+            });
+
+            expect(response.body.result.isError).toBeUndefined();
+            const customer = response.body.result.structuredContent.customer;
+            expect(customer).not.toBeNull();
+            expect(customer.emailAddress).toBe(customerEmail);
+        });
+
+        it('get_my_account is not callable without a grant', async () => {
+            // Permission.Authenticated, so an anonymous session must not see it at all: it is
+            // filtered out of the exposed set, and the SDK then rejects the unknown name.
+            const listed = await postMcp(baseUrl(), 'shop', rpc('tools/list', {}, 1));
+            const names = (listed.body.result.tools as Array<{ name: string }>).map(tool => tool.name);
+            expect(names).not.toContain('get_my_account');
+            expect(names).not.toContain('list_my_orders');
+            expect(names).toContain('list_collections');
+
+            const denied = await postMcp(baseUrl(), 'shop', callTool('get_my_account', {}, 2));
+            expect(denied.body.error).toBeDefined();
+            expect(denied.body.result).toBeUndefined();
+        });
+
+        it("list_my_orders returns exactly the customer's own placed orders", async () => {
+            const response = await postMcp(baseUrl(), 'shop', callTool('list_my_orders', {}, 1), {
+                token: readsAccessToken,
+            });
+
+            expect(response.body.result.isError).toBeUndefined();
+            const listed = response.body.result.structuredContent as {
+                items: Array<{ code: string; orderPlacedAt: string | null }>;
+                total: number;
+                hasMore: boolean;
+            };
+            // This test needs the customer to own at least one order, and the checkout describe
+            // above is what places it. The guard is here so that dependency fails loudly: without
+            // it, running this test on its own would compare two empty lists and pass while
+            // proving nothing.
+            expect(customerOrderCodes.length).toBeGreaterThan(0);
+            expect(listed.items.map(order => order.code).sort()).toEqual([...customerOrderCodes].sort());
+            expect(listed.total).toBe(customerOrderCodes.length);
+            expect(listed.hasMore).toBe(false);
+            expect(listed.items[0].orderPlacedAt).toBeTruthy();
+        });
+
+        it('list_collections returns the public collections and hides the private one', async () => {
+            const response = await postMcp(baseUrl(), 'shop', callTool('list_collections', {}, 1));
+
+            expect(response.body.result.isError).toBeUndefined();
+            const listed = response.body.result.structuredContent as {
+                items: Array<{ id: ID; slug: string }>;
+                total: number;
+            };
+            const slugs = listed.items.map(collection => collection.slug);
+            expect(slugs).toContain(publicCollectionSlug);
+            // The private collection is the point of the test: an unauthenticated shopper must not
+            // be able to enumerate it.
+            expect(slugs).not.toContain(privateCollectionSlug);
+            expect(listed.total).toBe(listed.items.length);
         });
     });
 });
