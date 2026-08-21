@@ -31,7 +31,12 @@ import { patchTypeOrmRelationIdLoader } from './entity/typeorm-relation-id-loade
 import { validateCustomFieldsConfig } from './entity/validate-custom-fields-config';
 import { EventBus } from './event-bus';
 import { BootstrappedEvent } from './event-bus/events/bootstrapped-event';
-import { getCompatibility, getConfigurationFunction, getEntitiesFromPlugins } from './plugin/plugin-metadata';
+import {
+    flattenPlugins,
+    getCompatibility,
+    getConfigurationFunction,
+    getEntitiesFromPlugins,
+} from './plugin/plugin-metadata';
 import { getPluginStartupMessages } from './plugin/plugin-utils';
 import { setProcessContext } from './process-context/process-context';
 import { isTelemetryDisabled } from './telemetry/helpers/is-telemetry-disabled.helper';
@@ -303,6 +308,7 @@ export async function preBootstrapConfig(
     userConfig: Partial<VendureConfig>,
 ): Promise<Readonly<RuntimeVendureConfig>> {
     if (userConfig) {
+        userConfig.plugins = flattenPlugins(userConfig.plugins ?? []);
         await setConfig(userConfig);
     }
 

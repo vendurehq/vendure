@@ -2,9 +2,24 @@ import BetterSqlite3 from 'better-sqlite3';
 import fs from 'fs-extra';
 import os from 'os';
 import path from 'path';
+import { Column, Entity } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { VendureEntity } from './entity/base/base.entity';
 import { flattenReplication, generateMigration, withDatabase } from './migrate';
+import { VendurePlugin } from './plugin/vendure-plugin';
+
+@Entity()
+class ComposedMigrationEntity extends VendureEntity {
+    @Column()
+    value: string;
+}
+
+@VendurePlugin({ entities: [ComposedMigrationEntity] })
+class MigrationEntityPlugin {}
+
+@VendurePlugin({ plugins: [MigrationEntityPlugin] })
+class CompositeMigrationPlugin {}
 
 /**
  * Integration coverage for the `fromEmpty` (shadow-database) baseline generation. Uses
@@ -92,6 +107,16 @@ describe('generateMigration fromEmpty', () => {
         const content = fs.readFileSync(migrationFile as string, 'utf-8');
         expect(content).toContain('CREATE TABLE');
         expect(content).toContain('"product"');
+    }, 60_000);
+
+    it('includes entities from composed plugins', async () => {
+        const migrationFile = await generateMigration(
+            { ...config, plugins: [CompositeMigrationPlugin] },
+            { name: 'composedPlugin', outputDir, fromEmpty: true },
+        );
+
+        expect(migrationFile).toBeTruthy();
+        expect(fs.readFileSync(migrationFile as string, 'utf-8')).toContain('"composed_migration_entity"');
     }, 60_000);
 });
 

@@ -1,4 +1,4 @@
-import { Module, Type as NestType, Provider } from '@nestjs/common';
+import { DynamicModule, Module, Type as NestType, Provider } from '@nestjs/common';
 import { MODULE_METADATA } from '@nestjs/common/constants';
 import { ModuleMetadata } from '@nestjs/common/interfaces';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
@@ -21,6 +21,14 @@ import { PLUGIN_METADATA } from './plugin-metadata';
  * @docsPage VendurePluginMetadata
  */
 export interface VendurePluginMetadata extends ModuleMetadata {
+    /**
+     * @description
+     * Other Vendure plugins that this plugin composes. Vendure registers these plugins before this plugin
+     * and adds them to its NestJS module imports.
+     *
+     * @since 3.8.0
+     */
+    plugins?: Array<Type<any> | DynamicModule>;
     /**
      * @description
      * A function which can modify the {@link VendureConfig} object before the server bootstraps.
@@ -171,6 +179,10 @@ export function VendurePlugin(pluginMetadata: VendurePluginMetadata): ClassDecor
             }
         }
         const nestModuleMetadata = pick(pluginMetadata, Object.values(MODULE_METADATA) as any);
+        nestModuleMetadata.imports = [
+            ...(nestModuleMetadata.imports ?? []),
+            ...(pluginMetadata.plugins ?? []),
+        ];
         // Automatically add any of the Plugin's "providers" to the "exports" array. This is done
         // because when a plugin defines GraphQL resolvers, these resolvers are used to dynamically
         // created a new Module in the ApiModule, and if those resolvers depend on any providers,
