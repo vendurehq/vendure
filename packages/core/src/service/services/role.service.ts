@@ -44,8 +44,6 @@ import {
 } from '../helpers/utils/get-user-channels-permissions';
 import { patchEntity } from '../helpers/utils/patch-entity';
 
-import { ChannelService } from './channel.service';
-
 /**
  * @description
  * Contains methods relating to {@link Role} entities.
@@ -65,7 +63,6 @@ export class RoleService {
 
     constructor(
         private connection: TransactionalConnection,
-        private channelService: ChannelService,
         private listQueryBuilder: ListQueryBuilder,
         private configService: ConfigService,
         private eventBus: EventBus,
@@ -276,7 +273,7 @@ export class RoleService {
             targetChannels = [ctx.channel];
         }
         await this.checkActiveUserHasSufficientPermissions(ctx, targetChannels, input.permissions);
-        const role = await this.createRoleForChannels(ctx, input, targetChannels);
+        const role = await this.createRoleEntity(ctx, input);
         await this.eventBus.publish(new RoleEvent(ctx, role, 'created', input));
         return role;
     }
@@ -330,10 +327,6 @@ export class RoleService {
         return {
             result: DeletionResult.DELETED,
         };
-    }
-
-    async assignRoleToChannel(ctx: RequestContext, roleId: ID, channelId: ID) {
-        await this.channelService.assignToChannels(ctx, Role, roleId, [channelId]);
     }
 
     private async getPermittedChannels(ctx: RequestContext, channelIds: ID[]): Promise<Channel[]> {
@@ -405,25 +398,19 @@ export class RoleService {
     }
 
     /**
-     * Ensure that the SuperAdmin role exists and that it has all possible Permissions.
+     * Ensure that the SuperAdmin role exists. The effective permissions of a SuperAdmin
+     * are derived at check time from the `SuperAdmin` permission, so the role's own
+     * permission array is not re-synced with all assignable permissions on boot.
      */
     private async ensureSuperAdminRoleExists() {
-        const assignablePermissions = this.getAllAssignablePermissions();
         try {
-            const superAdminRole = await this.getSuperAdminRole();
-            superAdminRole.permissions = assignablePermissions;
-            await this.connection.rawConnection.getRepository(Role).save(superAdminRole, { reload: false });
+            await this.getSuperAdminRole();
         } catch (err: any) {
-            const defaultChannel = await this.channelService.getDefaultChannel();
-            await this.createRoleForChannels(
-                RequestContext.empty(),
-                {
-                    code: SUPER_ADMIN_ROLE_CODE,
-                    description: SUPER_ADMIN_ROLE_DESCRIPTION,
-                    permissions: assignablePermissions,
-                },
-                [defaultChannel],
-            );
+            await this.createRoleEntity(RequestContext.empty(), {
+                code: SUPER_ADMIN_ROLE_CODE,
+                description: SUPER_ADMIN_ROLE_DESCRIPTION,
+                permissions: [Permission.SuperAdmin],
+            });
         }
     }
 
@@ -434,16 +421,11 @@ export class RoleService {
         try {
             await this.getCustomerRole();
         } catch (err: any) {
-            const defaultChannel = await this.channelService.getDefaultChannel();
-            await this.createRoleForChannels(
-                RequestContext.empty(),
-                {
-                    code: CUSTOMER_ROLE_CODE,
-                    description: CUSTOMER_ROLE_DESCRIPTION,
-                    permissions: [Permission.Authenticated],
-                },
-                [defaultChannel],
-            );
+            await this.createRoleEntity(RequestContext.empty(), {
+                code: CUSTOMER_ROLE_CODE,
+                description: CUSTOMER_ROLE_DESCRIPTION,
+                permissions: [Permission.Authenticated],
+            });
         }
     }
 
@@ -465,13 +447,12 @@ export class RoleService {
         }
     }
 
-    private createRoleForChannels(ctx: RequestContext, input: CreateRoleInput, channels: Channel[]) {
+    private createRoleEntity(ctx: RequestContext, input: CreateRoleInput) {
         const role = new Role({
             code: input.code,
             description: input.description,
             permissions: unique([Permission.Authenticated, ...input.permissions]),
         });
-        role.channels = channels;
         return this.connection.getRepository(ctx, Role).save(role);
     }
 

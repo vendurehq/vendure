@@ -12,11 +12,12 @@ import { RelationPaths } from '../../api/decorators/relations.decorator';
 import { Instrument } from '../../common';
 import { EntityNotFoundError, InternalServerError, UserInputError } from '../../common/error/errors';
 import { ListQueryOptions } from '../../common/types/common-types';
-import { assertFound, idsAreEqual, normalizeEmailAddress } from '../../common/utils';
+import { idsAreEqual, normalizeEmailAddress } from '../../common/utils';
 import { ConfigService } from '../../config';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Administrator } from '../../entity/administrator/administrator.entity';
 import { NativeAuthenticationMethod } from '../../entity/authentication-method/native-authentication-method.entity';
+import { RoleAssignment } from '../../entity/role-assignment/role-assignment.entity';
 import { Role } from '../../entity/role/role.entity';
 import { User } from '../../entity/user/user.entity';
 import { EventBus } from '../../event-bus';
@@ -344,10 +345,17 @@ export class AdministratorService {
                 superadminCredentials.identifier,
                 superadminCredentials.password,
             );
-            const { id } = await this.connection.getRepository(ctx, Administrator).save(administrator);
-            const createdAdministrator = await assertFound(this.findOne(ctx, id));
-            createdAdministrator.user.roles.push(superAdminRole);
-            await this.connection.getRepository(ctx, User).save(createdAdministrator.user, { reload: false });
+            await this.connection.getRepository(ctx, Administrator).save(administrator);
+            // A single anchor assignment on the default channel marks the user as holding the
+            // SuperAdmin role. Effective permissions are derived at check time from the
+            // SuperAdmin permission, so no per-channel fan-out is needed.
+            await this.connection.getRepository(ctx, RoleAssignment).save(
+                new RoleAssignment({
+                    userId: administrator.user.id,
+                    roleId: superAdminRole.id,
+                    channelId: ctx.channelId,
+                }),
+            );
         } else {
             const superAdministrator = await this.connection.rawConnection
                 .getRepository(Administrator)
