@@ -1644,7 +1644,7 @@
                   "title": "Channel",
                   "slug": "channel",
                   "file": "docs/reference/typescript-api/entities/channel.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-21T09:34:51Z"
                 },
                 {
                   "title": "Collection",
@@ -1818,7 +1818,13 @@
                   "title": "Role",
                   "slug": "role",
                   "file": "docs/reference/typescript-api/entities/role.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-21T09:34:51Z"
+                },
+                {
+                  "title": "RoleAssignment",
+                  "slug": "role-assignment",
+                  "file": "docs/reference/typescript-api/entities/role-assignment.mdx",
+                  "lastModified": "2026-08-21T09:34:51Z"
                 },
                 {
                   "title": "Seller",
@@ -1896,7 +1902,7 @@
                   "title": "User",
                   "slug": "user",
                   "file": "docs/reference/typescript-api/entities/user.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-21T09:34:51Z"
                 },
                 {
                   "title": "VendureEntity",
@@ -2892,7 +2898,7 @@
                   "title": "AdministratorService",
                   "slug": "administrator-service",
                   "file": "docs/reference/typescript-api/services/administrator-service.mdx",
-                  "lastModified": "2026-06-30T07:18:09+02:00"
+                  "lastModified": "2026-08-21T09:34:51Z"
                 },
                 {
                   "title": "AssetService",
@@ -3048,7 +3054,7 @@
                   "title": "RoleService",
                   "slug": "role-service",
                   "file": "docs/reference/typescript-api/services/role-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-21T09:34:51Z"
                 },
                 {
                   "title": "SearchService",
@@ -3548,7 +3554,7 @@
                   "title": "S3AssetStorageStrategy",
                   "slug": "s3asset-storage-strategy",
                   "file": "docs/reference/core-plugins/asset-server-plugin/s3asset-storage-strategy.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-21T09:34:51Z"
                 },
                 {
                   "title": "SharpAssetPreviewStrategy",
