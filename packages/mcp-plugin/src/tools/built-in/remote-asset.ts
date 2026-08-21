@@ -1,4 +1,10 @@
-import { AssetImportStrategy, AssetService, RequestContext, UserInputError } from '@vendure/core';
+import {
+    AssetImportStrategy,
+    AssetService,
+    isGraphQlErrorResult,
+    RequestContext,
+    UserInputError,
+} from '@vendure/core';
 import { pipeline, Readable, Transform } from 'stream';
 
 const DEFAULT_MAX_ASSET_BYTES = 20 * 1024 * 1024;
@@ -33,5 +39,15 @@ export async function uploadAssetFromUrl(
     }
     const source = await assetImportStrategy.getStreamFromPath(url);
     const capped = capStreamBytes(source, options.maxBytes ?? DEFAULT_MAX_ASSET_BYTES);
-    return assetService.createFromFileStream(capped, url, ctx);
+    const created = await assetService.createFromFileStream(capped, url, ctx);
+    if (isGraphQlErrorResult(created)) {
+        // The store's `assetOptions.permittedFileTypes` refused this file. Throwing matches the
+        // scheme and size rejections above, and it is the only way to tell the caller why: the
+        // error result's own `message` is the fixed string "MIME_TYPE_ERROR", which Vendure
+        // translates in its GraphQL layer, and an MCP tool call never passes through that layer.
+        throw new UserInputError(
+            `Unsupported asset file type for "${created.fileName}": ${created.mimeType}`,
+        );
+    }
+    return created;
 }

@@ -188,10 +188,10 @@ export class McpToolSerializerService {
     }
 
     /**
-     * Private because no tool returns an asset on its own; assets only ever appear inside a
-     * product or a collection.
+     * Called directly by `upload_asset`, and from `product()` and `collection()` for the asset
+     * fields they carry.
      */
-    private asset(asset: Asset) {
+    asset(asset: Asset) {
         return {
             id: asset.id,
             name: asset.name,

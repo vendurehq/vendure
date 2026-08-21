@@ -4,6 +4,7 @@ import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { uploadAssetFromUrl } from '../remote-asset';
+import { McpToolSerializerService } from '../serializer.service';
 
 const uploadAssetInput = z.strictObject({
     url: z.string().describe('Public HTTP(S) URL of the asset to fetch and store.'),
@@ -32,16 +33,16 @@ export class UploadAssetTool implements McpToolHandler<UploadAssetInput> {
     constructor(
         private assetService: AssetService,
         private configService: ConfigService,
+        private serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: UploadAssetInput) {
-        return {
-            asset: await uploadAssetFromUrl(
-                ctx,
-                input.url,
-                this.assetService,
-                this.configService.importExportOptions.assetImportStrategy,
-            ),
-        };
+        const asset = await uploadAssetFromUrl(
+            ctx,
+            input.url,
+            this.assetService,
+            this.configService.importExportOptions.assetImportStrategy,
+        );
+        return { asset: this.serializer.asset(asset) };
     }
 }

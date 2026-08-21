@@ -1,9 +1,16 @@
+import { LanguageCode } from '@vendure/common/lib/generated-types';
 import {
+    Asset,
+    AssetService,
     ConfigService,
+    Customer,
+    DefaultAssetImportStrategy,
     ID,
     mergeConfig,
     Order,
     Payment,
+    Product,
+    ProductVariant,
     RequestContext,
     RequestContextService,
     StockAdjustment,
@@ -13,6 +20,9 @@ import {
 import { McpTool, McpToolMetadata } from '@vendure/mcp-sdk';
 import { createTestEnvironment, SimpleGraphQLClient } from '@vendure/testing';
 import gql from 'graphql-tag';
+import * as http from 'http';
+import { AddressInfo } from 'net';
+import { Readable } from 'stream';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
@@ -37,6 +47,59 @@ const destructiveToolNames = adminToolMetadata
     .filter(metadata => metadata.behavior === 'destructive')
     .map(metadata => metadata.name)
     .sort();
+
+/** A 1x1 red PNG, the smallest thing `upload_asset` can be asked to fetch and store. */
+const PIXEL_PNG = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC',
+    'base64',
+);
+
+/** Bytes that no image format claims, used by the two file-type rejection fixtures. */
+const NOT_AN_IMAGE = Buffer.from('this is not an image');
+
+/**
+ * A loopback HTTP server standing in for the public web address `upload_asset` fetches from, so the
+ * test needs no network access. Counts requests, so a test can prove the bytes were really fetched.
+ */
+async function startAssetFileServer(): Promise<{
+    baseUrl: string;
+    requestCount: (path: string) => number;
+    close: () => Promise<void>;
+}> {
+    const counts = new Map<string, number>();
+    const server = http.createServer((req, res) => {
+        const path = (req.url ?? '').split('?')[0];
+        counts.set(path, (counts.get(path) ?? 0) + 1);
+        // Plain text under a .txt name, so the store's permittedFileTypes refuses it.
+        if (path === '/notes.txt') {
+            res.setHeader('content-type', 'text/plain');
+            res.setHeader('content-length', String(NOT_AN_IMAGE.length));
+            return res.end(NOT_AN_IMAGE);
+        }
+        // Text bytes behind an image name and an image content type, so nothing but the leading
+        // bytes gives the file away.
+        if (path === '/not-really.png') {
+            res.setHeader('content-type', 'image/png');
+            res.setHeader('content-length', String(NOT_AN_IMAGE.length));
+            return res.end(NOT_AN_IMAGE);
+        }
+        if (path !== '/pixel.png') {
+            res.statusCode = 404;
+            return res.end('not found');
+        }
+        res.setHeader('content-type', 'image/png');
+        res.setHeader('content-length', String(PIXEL_PNG.length));
+        res.end(PIXEL_PNG);
+    });
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address() as AddressInfo;
+    return {
+        baseUrl: `http://127.0.0.1:${port}`,
+        requestCount: path => counts.get(path) ?? 0,
+        close: () =>
+            new Promise((resolve, reject) => server.close(error => (error ? reject(error) : resolve()))),
+    };
+}
 
 const SECOND_CHANNEL_CODE = 'admin-tools-second-channel';
 const LIMITED_ADMIN_PASSWORD = 'test';
@@ -114,8 +177,23 @@ async function provisionLimitedAdmin(
 }
 
 describe('MCP built-in admin tools (direct mode)', () => {
+    // Every test that needs a grant spends three requests of the 60-per-minute OAuth-IP budget
+    // (register, authorize, token). This file runs enough of them that the budget would be spent
+    // mid-run and later tests would fail on a 429 raised during their setup, not on anything they
+    // test. Neither describe in this file tests OAuth rate limiting, so the budget is off.
+    const options: McpPluginOptions = {
+        oauth: { tokenSecret: TOKEN_SECRET },
+        rateLimits: { oauthIp: false },
+    };
     const config = mergeConfig(testConfig(), {
-        plugins: [McpPlugin.init({ oauth: { tokenSecret: TOKEN_SECRET } })],
+        // `upload_asset` fetches over HTTP, and core's default import strategy refuses hostnames
+        // that resolve to private or loopback addresses (its server-side request forgery guard).
+        // The fixture server this suite starts is on 127.0.0.1, so the strategy is configured to
+        // allow it. Nothing else in the suite fetches a URL.
+        importExportOptions: {
+            assetImportStrategy: new DefaultAssetImportStrategy({ allowPrivateNetworks: true }),
+        },
+        plugins: [McpPlugin.init(options)],
     });
     const { server, adminClient, shopClient } = createTestEnvironment(config);
     const baseUrl = () => `http://localhost:${config.apiOptions.port}`;
@@ -137,7 +215,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
     let channelAdminToken: string;
 
     beforeAll(async () => {
-        McpPlugin.init({ oauth: { tokenSecret: TOKEN_SECRET } });
+        McpPlugin.init(options);
         await initTestServer(server);
         await adminClient.asSuperAdmin();
         superAdminToken = adminClient.getAuthToken();
@@ -235,7 +313,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
         secondChannelDbId = idStrategy.decodeId(channelResult.createChannel.id);
 
         const adminApiUrl = `${baseUrl()}/${config.apiOptions.adminApiPath ?? 'admin-api'}`;
-        // A limited administrator (ReadCustomer only) proves permission filtering + call-time rejection.
+        // A limited administrator (ReadCustomer only) proves permission filtering and call-time rejection.
         limitedAdminToken = await provisionLimitedAdmin(adminClient, defaultChannelId, adminApiUrl);
         // An administrator who may read channels, but only holds a role in the default channel. It can
         // call the channel tools, so it proves they are scoped to the caller's own channels.
@@ -586,13 +664,11 @@ describe('MCP built-in admin tools (direct mode)', () => {
         // Reading the channel list is settings-level, so it is hidden from an admin who only reads customers.
         expect(names).not.toContain('list_channels');
 
-        // list_orders was filtered out of the exposed set, so it is not callable: the SDK rejects the
-        // unknown tool at the protocol level. (The registry's in-funnel permission check — which returns
-        // an isError result for a registered-but-unpermitted tool — is covered by the registry unit spec
-        // and exercised end-to-end via the discovery execute_tool funnel.)
+        // list_orders was filtered out of the exposed set, so it is not callable: the SDK rejects it
+        // as an unknown tool, with a top-level JSON-RPC error and no tool result. The registry's own
+        // permission check, which answers with an isError result instead, is covered by the registry
+        // unit spec and by the discovery-mode execute_tool test below.
         const denied = await postMcp(baseUrl(), 'admin', callTool('list_orders', {}, 2), { token });
-        // Assert exactly that mechanism: a top-level JSON-RPC protocol error and no tool result — not
-        // the in-funnel `isError` permission path (which discovery mode + the registry unit spec prove).
         expect(denied.body.error).toBeDefined();
         expect(denied.body.result).toBeUndefined();
     });
@@ -896,10 +972,654 @@ describe('MCP built-in admin tools (direct mode)', () => {
             errorCode: 'REFUND_PAYMENT_ID_MISSING_ERROR',
         });
     });
+
+    // The admin tools that write catalog, customer and order data, plus `list_products`. None of
+    // these had any end-to-end coverage: `src/tools/built-in/schema-snapshot.spec.ts` pins their
+    // names and schemas, but nothing ran a handler, and fourteen of the eighteen untested tools
+    // across both toolsets write data.
+    describe('catalog, customer and order writes', () => {
+        let assetIds: ID[];
+        let customerGroupId: ID;
+        let emptyProductId: ID;
+        let secondCustomerEmail: string;
+        let seededCustomerId: ID;
+
+        beforeAll(async () => {
+            const idStrategy = server.app.get(ConfigService).entityOptions.entityIdStrategy;
+
+            // The shared test data ships no assets, so `update_product_assets` has nothing to
+            // attach until two exist. They are created through AssetService rather than through
+            // `upload_asset`, so that test does not depend on the tool it sits next to.
+            const assetService = server.app.get(AssetService);
+            assetIds = [];
+            for (const name of ['mcp-asset-a.png', 'mcp-asset-b.png']) {
+                const created = await assetService.createFromFileStream(
+                    Readable.from(PIXEL_PNG),
+                    name,
+                    adminCtx,
+                );
+                // createFromFileStream answers either the Asset or a MimeTypeError.
+                if (!('id' in created)) {
+                    throw new Error(`Could not create asset fixture: ${JSON.stringify(created)}`);
+                }
+                assetIds.push(created.id);
+            }
+
+            const customers = await adminClient.query(gql`
+                query AdminWriteToolCustomer {
+                    customers(options: { take: 1 }) {
+                        items {
+                            id
+                        }
+                    }
+                }
+            `);
+            const seededCustomerGraphqlId = customers.customers.items[0]?.id;
+            if (!seededCustomerGraphqlId) {
+                throw new Error('Expected at least one seeded customer');
+            }
+            seededCustomerId = idStrategy.decodeId(seededCustomerGraphqlId);
+
+            // A second customer of this describe's own, so the email-conflict case below has an
+            // address that genuinely belongs to someone else and does not depend on which other
+            // tests in this file have run.
+            secondCustomerEmail = `conflict-target-${Math.random().toString(36).slice(2)}@example.test`;
+            await adminClient.query(
+                gql`
+                    mutation CreateConflictTargetCustomer($input: CreateCustomerInput!) {
+                        createCustomer(input: $input) {
+                            __typename
+                            ... on Customer {
+                                id
+                            }
+                            ... on ErrorResult {
+                                errorCode
+                                message
+                            }
+                        }
+                    }
+                `,
+                {
+                    input: {
+                        firstName: 'Conflict',
+                        lastName: 'Target',
+                        emailAddress: secondCustomerEmail,
+                    },
+                },
+            );
+
+            const group = await adminClient.query(
+                gql`
+                    mutation CreateMcpCustomerGroup($input: CreateCustomerGroupInput!) {
+                        createCustomerGroup(input: $input) {
+                            id
+                        }
+                    }
+                `,
+                { input: { name: 'MCP tool group', customerIds: [] } },
+            );
+            customerGroupId = idStrategy.decodeId(group.createCustomerGroup.id);
+
+            // A product with no variants yet. `create_variant` cannot be tested against the seeded
+            // product: that product already has a variant with no options, and a second variant with
+            // no options would be a duplicate option combination, which Vendure refuses.
+            const emptyProduct = await adminClient.query(
+                gql`
+                    mutation CreateEmptyProductForVariantTool($input: CreateProductInput!) {
+                        createProduct(input: $input) {
+                            id
+                        }
+                    }
+                `,
+                {
+                    input: {
+                        enabled: true,
+                        translations: [
+                            {
+                                languageCode: LanguageCode.en,
+                                name: 'MCP Variant Host',
+                                slug: `mcp-variant-host-${Math.random().toString(36).slice(2, 8)}`,
+                                description: '',
+                            },
+                        ],
+                    },
+                },
+            );
+            emptyProductId = idStrategy.decodeId(emptyProduct.createProduct.id);
+        }, TEST_SETUP_TIMEOUT_MS);
+
+        it('list_products pages through the catalog', async () => {
+            const token = await adminAccessToken();
+
+            // The catalog size is read from an unpaged call rather than hardcoded: other tests in
+            // this file create products, so a fixed number would break as they are added.
+            const all = await postMcp(baseUrl(), 'admin', callTool('list_products', {}, 1), { token });
+            expect(all.body.result.isError).toBeUndefined();
+            const catalog = all.body.result.structuredContent as {
+                items: Array<{ id: ID; name: string }>;
+                total: number;
+                hasMore: boolean;
+            };
+            expect(catalog.total).toBeGreaterThan(1);
+            expect(catalog.items).toHaveLength(catalog.total);
+            expect(catalog.hasMore).toBe(false);
+
+            const first = await postMcp(baseUrl(), 'admin', callTool('list_products', { limit: 1 }, 2), {
+                token,
+            });
+            const firstPage = first.body.result.structuredContent as {
+                items: Array<{ id: ID; name: string }>;
+                total: number;
+                hasMore: boolean;
+            };
+            expect(firstPage.items).toHaveLength(1);
+            expect(firstPage.total).toBe(catalog.total);
+            expect(firstPage.hasMore).toBe(true);
+
+            const last = await postMcp(
+                baseUrl(),
+                'admin',
+                callTool('list_products', { limit: 1, offset: catalog.total - 1 }, 3),
+                { token },
+            );
+            const lastPage = last.body.result.structuredContent as {
+                items: Array<{ id: ID; name: string }>;
+                hasMore: boolean;
+            };
+            // offset must actually skip: the last page holds a different product and ends the list.
+            expect(lastPage.items[0].id).not.toBe(firstPage.items[0].id);
+            expect(lastPage.hasMore).toBe(false);
+        });
+
+        it('update_customer changes the stored customer, and reports an email conflict as customer: null', async () => {
+            const token = await adminAccessToken();
+
+            const updated = await postMcp(
+                baseUrl(),
+                'admin',
+                callTool(
+                    'update_customer',
+                    { id: seededCustomerId, input: { firstName: 'Renamed', phoneNumber: '555-0100' } },
+                    1,
+                ),
+                { token },
+            );
+
+            expect(updated.body.result.isError).toBeUndefined();
+            expect(updated.body.result.structuredContent.customer).toMatchObject({
+                firstName: 'Renamed',
+                phoneNumber: '555-0100',
+            });
+            const stored = await connection
+                .getRepository(adminCtx, Customer)
+                .findOneByOrFail({ id: seededCustomerId });
+            expect(stored.firstName).toBe('Renamed');
+
+            // Moving this customer onto another customer's email address returns a typed Vendure
+            // error result. The customer tools map that to `customer: null` rather than passing the
+            // error object back, which is the opposite of what the order tools do with theirs — so
+            // this pins the shape a model actually receives on a conflict.
+            const conflict = await postMcp(
+                baseUrl(),
+                'admin',
+                callTool(
+                    'update_customer',
+                    { id: seededCustomerId, input: { emailAddress: secondCustomerEmail } },
+                    2,
+                ),
+                { token },
+            );
+            expect(conflict.body.result.isError).toBeUndefined();
+            expect(conflict.body.result.structuredContent).toEqual({ customer: null });
+            // The refused update left the record alone.
+            const afterConflict = await connection
+                .getRepository(adminCtx, Customer)
+                .findOneByOrFail({ id: seededCustomerId });
+            expect(afterConflict.emailAddress).not.toBe(secondCustomerEmail);
+        });
+
+        it('update_product writes the new name and enabled state', async () => {
+            const token = await adminAccessToken();
+
+            const updated = await postMcp(
+                baseUrl(),
+                'admin',
+                callTool(
+                    'update_product',
+                    {
+                        id: productId,
+                        input: {
+                            enabled: false,
+                            translations: [{ languageCode: 'en', name: 'Renamed Test Product' }],
+                        },
+                    },
+                    1,
+                ),
+                { token },
+            );
+
+            expect(updated.body.result.isError).toBeUndefined();
+            expect(updated.body.result.structuredContent.product).toMatchObject({
+                name: 'Renamed Test Product',
+            });
+
+            // Read back through a second tool call, so this proves a write rather than an echo.
+            const read = await postMcp(baseUrl(), 'admin', callTool('get_product', { id: productId }, 2), {
+                token,
+            });
+            expect(read.body.result.structuredContent.product.name).toBe('Renamed Test Product');
+
+            // Put the product back, so the disabled state does not leak into later tests.
+            await postMcp(
+                baseUrl(),
+                'admin',
+                callTool(
+                    'update_product',
+                    {
+                        id: productId,
+                        input: {
+                            enabled: true,
+                            translations: [{ languageCode: 'en', name: 'Test Product' }],
+                        },
+                    },
+                    3,
+                ),
+                { token },
+            );
+        });
+
+        it('update_variant writes the new price and SKU', async () => {
+            const token = await adminAccessToken();
+
+            const updated = await postMcp(
+                baseUrl(),
+                'admin',
+                callTool('update_variant', { id: variantId, input: { price: 4242, sku: 'MCP-SKU-1' } }, 1),
+                { token },
+            );
+
+            expect(updated.body.result.isError).toBeUndefined();
+            const variants = updated.body.result.structuredContent.variants as Array<{
+                id: ID;
+                sku: string;
+                price: number;
+            }>;
+            // The tool takes one id and calls the plural service method, so the result is a
+            // one-element array rather than a single variant.
+            expect(variants).toHaveLength(1);
+            expect(variants[0]).toMatchObject({ sku: 'MCP-SKU-1', price: 4242 });
+
+            const stored = await connection
+                .getRepository(adminCtx, ProductVariant)
+                .findOneByOrFail({ id: variantId });
+            expect(stored.sku).toBe('MCP-SKU-1');
+        });
+
+        it('create_variant adds a variant to an existing product', async () => {
+            const token = await adminAccessToken();
+            const sku = `MCP-NEW-${Math.random().toString(36).slice(2, 8)}`;
+
+            const created = await postMcp(
+                baseUrl(),
+                'admin',
+                callTool(
+                    'create_variant',
+                    {
+                        productId: emptyProductId,
+                        input: {
+                            sku,
+                            price: 1999,
+                            stockOnHand: 7,
+                            translations: [{ languageCode: 'en', name: 'MCP Extra Variant' }],
+                        },
+                    },
+                    1,
+                ),
+                { token },
+            );
+
+            expect(created.body.result.isError).toBeUndefined();
+            const variants = created.body.result.structuredContent.variants as Array<{
+                id: ID;
+                sku: string;
+                name: string;
+            }>;
+            expect(variants[0]).toMatchObject({ sku, name: 'MCP Extra Variant' });
+
+            const stored = await connection
+                .getRepository(adminCtx, ProductVariant)
+                .findOneOrFail({ where: { sku }, relations: ['product'] });
+            expect(String(stored.product.id)).toBe(String(emptyProductId));
+        });
+
+        it('update_product_assets sets the asset list and the featured asset', async () => {
+            const token = await adminAccessToken();
+
+            const updated = await postMcp(
+                baseUrl(),
+                'admin',
+                callTool(
+                    'update_product_assets',
+                    { id: productId, assetIds, featuredAssetId: assetIds[1] },
+                    1,
+                ),
+                { token },
+            );
+
+            expect(updated.body.result.isError).toBeUndefined();
+            const stored = await connection
+                .getRepository(adminCtx, Product)
+                .findOneOrFail({ where: { id: productId }, relations: ['assets', 'featuredAsset'] });
+            expect(stored.assets.map(entry => String(entry.assetId)).sort()).toEqual(
+                assetIds.map(String).sort(),
+            );
+            // featuredAssetId is a separate field, and the tool passes it through separately.
+            expect(String(stored.featuredAsset.id)).toBe(String(assetIds[1]));
+        });
+
+        it('add_note_to_order writes a history entry against the order', async () => {
+            const token = await adminAccessToken();
+            const order = await createDraftOrder();
+
+            const noted = await postMcp(
+                baseUrl(),
+                'admin',
+                callTool(
+                    'add_note_to_order',
+                    { id: order.id, note: 'Called the customer', isPublic: true },
+                    1,
+                ),
+                { token },
+            );
+
+            expect(noted.body.result.isError).toBeUndefined();
+            expect(noted.body.result.structuredContent.order.id).toBeDefined();
+            const stored = await adminClient.query(
+                gql`
+                    query McpOrderNotes($id: ID!, $type: String!) {
+                        order(id: $id) {
+                            history(options: { filter: { type: { eq: $type } } }) {
+                                items {
+                                    type
+                                    isPublic
+                                    data
+                                }
+                            }
+                        }
+                    }
+                `,
+                { id: order.graphqlId, type: 'ORDER_NOTE' },
+            );
+            const notes = stored.order.history.items as Array<{
+                isPublic: boolean;
+                data: { note?: string };
+            }>;
+            expect(notes).toHaveLength(1);
+            expect(notes[0].data.note).toBe('Called the customer');
+            // isPublic reaches the stored entry — it decides whether the shopper can read the note.
+            expect(notes[0].isPublic).toBe(true);
+        });
+
+        it('add_customer_to_group puts the customer in the group', async () => {
+            const token = await adminAccessToken();
+
+            const added = await postMcp(
+                baseUrl(),
+                'admin',
+                callTool(
+                    'add_customer_to_group',
+                    { customerId: seededCustomerId, groupId: customerGroupId },
+                    1,
+                ),
+                { token },
+            );
+
+            expect(added.body.result.isError).toBeUndefined();
+            const members = await adminClient.query(
+                gql`
+                    query McpGroupMembers($id: ID!) {
+                        customerGroup(id: $id) {
+                            customers {
+                                items {
+                                    id
+                                }
+                            }
+                        }
+                    }
+                `,
+                { id: customerGroupId },
+            );
+            const idStrategy = server.app.get(ConfigService).entityOptions.entityIdStrategy;
+            const memberIds = (members.customerGroup.customers.items as Array<{ id: string }>).map(customer =>
+                String(idStrategy.decodeId(customer.id)),
+            );
+            expect(memberIds).toContain(String(seededCustomerId));
+        });
+
+        it('update_order_state gates the transition behind confirm, then performs it', async () => {
+            const token = await adminAccessToken();
+            const order = await createDraftOrder();
+
+            // Destructive, so an unconfirmed call must preview only and leave the order where it is.
+            const preview = await postMcp(
+                baseUrl(),
+                'admin',
+                callTool('update_order_state', { id: order.id, state: 'Cancelled' }, 1),
+                { token },
+            );
+            expect(preview.body.result.isError).toBeUndefined();
+            expect(preview.body.result.structuredContent).toMatchObject({
+                status: 'confirmation_required',
+                confirmed: false,
+            });
+            expect(await orderState(order.graphqlId)).toBe('Draft');
+
+            const confirmed = await postMcp(
+                baseUrl(),
+                'admin',
+                callTool('update_order_state', { id: order.id, state: 'Cancelled', confirm: true }, 2),
+                { token },
+            );
+            expect(confirmed.body.result.isError).toBeUndefined();
+            expect(confirmed.body.result.structuredContent.order.state).toBe('Cancelled');
+            expect(await orderState(order.graphqlId)).toBe('Cancelled');
+        });
+
+        it('update_order_state hands back the transition error for a state the order cannot reach', async () => {
+            const token = await adminAccessToken();
+            const order = await createDraftOrder();
+
+            const refused = await postMcp(
+                baseUrl(),
+                'admin',
+                callTool('update_order_state', { id: order.id, state: 'Shipped', confirm: true }, 1),
+                { token },
+            );
+
+            // The state machine's refusal is a typed error result on a successful call, so the model
+            // reads Vendure's own explanation instead of a generic tool failure.
+            expect(refused.body.result.isError).toBeUndefined();
+            expect(refused.body.result.structuredContent.order).toBeUndefined();
+            expect(refused.body.result.structuredContent.result).toMatchObject({
+                __typename: 'OrderStateTransitionError',
+                errorCode: 'ORDER_STATE_TRANSITION_ERROR',
+            });
+            expect(await orderState(order.graphqlId)).toBe('Draft');
+        });
+
+        describe('upload_asset', () => {
+            let fileServer: Awaited<ReturnType<typeof startAssetFileServer>>;
+
+            beforeAll(async () => {
+                fileServer = await startAssetFileServer();
+            });
+
+            afterAll(async () => {
+                await fileServer.close();
+            });
+
+            const assetRepo = () => connection.getRepository(adminCtx, Asset);
+
+            /** Calls the tool over HTTP the way an MCP client does, with a fresh admin grant. */
+            async function callUploadAsset(args: Record<string, unknown>, consentToken?: string) {
+                const token = await adminAccessToken(consentToken ?? superAdminToken);
+                return postMcp(baseUrl(), 'admin', callTool('upload_asset', args, 1), { token });
+            }
+
+            it('stores the asset and answers with the stored asset, not the entity', async () => {
+                const fetchesBefore = fileServer.requestCount('/pixel.png');
+                const countBefore = await assetRepo().count();
+
+                const response = await callUploadAsset({ url: `${fileServer.baseUrl}/pixel.png` });
+
+                expect(response.body.result.isError).toBeUndefined();
+                const asset = response.body.result.structuredContent.asset;
+                // The fields McpToolSerializerService picks, and nothing else. The Asset entity
+                // itself cannot be sent: it carries `translations`, each translation points back
+                // at an Asset, and JSON.stringify refuses that loop.
+                expect(Object.keys(asset).sort()).toEqual([
+                    'fileSize',
+                    'focalPoint',
+                    'height',
+                    'id',
+                    'mimeType',
+                    'name',
+                    'preview',
+                    'source',
+                    'type',
+                    'width',
+                ]);
+                expect(asset).toMatchObject({ name: 'pixel.png', mimeType: 'image/png', type: 'IMAGE' });
+                expect(asset.source).toContain('pixel');
+                expect(asset.preview).toContain('pixel');
+                // `width`, `height` and `fileSize` go unasserted on purpose: the testing asset
+                // storage strategy answers every read with a fixed 48x48 placeholder, so those
+                // three describe the placeholder rather than the uploaded file.
+
+                // The bytes really were fetched, and one row really was stored.
+                expect(fileServer.requestCount('/pixel.png')).toBe(fetchesBefore + 1);
+                expect(await assetRepo().count()).toBe(countBefore + 1);
+                const [newest] = await assetRepo().find({ order: { id: 'DESC' }, take: 1 });
+                expect(newest.source).toBe(asset.source);
+            });
+
+            it('names the asset from the URL path and drops the query string', async () => {
+                const response = await callUploadAsset({ url: `${fileServer.baseUrl}/pixel.png?v=2` });
+
+                expect(response.body.result.isError).toBeUndefined();
+                expect(response.body.result.structuredContent.asset.name).toBe('pixel.png');
+            });
+
+            it('stores a separate asset each time, with no reuse of an identical URL', async () => {
+                const first = await callUploadAsset({ url: `${fileServer.baseUrl}/pixel.png` });
+                const second = await callUploadAsset({ url: `${fileServer.baseUrl}/pixel.png` });
+
+                expect(second.body.result.structuredContent.asset.id).not.toBe(
+                    first.body.result.structuredContent.asset.id,
+                );
+            });
+
+            it('refuses a file type the store does not permit, and stores nothing', async () => {
+                const countBefore = await assetRepo().count();
+
+                const response = await callUploadAsset({ url: `${fileServer.baseUrl}/notes.txt` });
+
+                expect(response.body.result.isError).toBe(true);
+                expect(response.body.result.content[0].text).toBe(
+                    'Unsupported asset file type for "notes.txt": text/plain',
+                );
+                expect(await assetRepo().count()).toBe(countBefore);
+            });
+
+            it('accepts bytes it cannot identify when the file extension is permitted', async () => {
+                // Core weighs three signals: the declared content type, the file extension, and
+                // the leading bytes. Bytes it cannot identify pass as long as the extension is
+                // permitted, which core made deliberate in 037056aa1 so that SVG uploads work.
+                // So this tool does not promise the stored file is really an image.
+                const response = await callUploadAsset({ url: `${fileServer.baseUrl}/not-really.png` });
+
+                expect(response.body.result.isError).toBeUndefined();
+                expect(response.body.result.structuredContent.asset).toMatchObject({
+                    name: 'not-really.png',
+                    mimeType: 'image/png',
+                });
+            });
+
+            it('answers a source URL that 404s with the generic failure, and stores nothing', async () => {
+                // OPEN QUESTION, pinned rather than fixed. Core's asset import strategy does not
+                // look at the HTTP status, so the 404 body flows on and something downstream
+                // throws "no elements in sequence". That error is not caller-safe, so the caller
+                // gets the generic text and no idea the URL was wrong. Whether this tool should
+                // answer a broken URL with a readable reason is a separate decision.
+                const countBefore = await assetRepo().count();
+
+                const response = await callUploadAsset({ url: `${fileServer.baseUrl}/gone.png` });
+
+                expect(response.body.result.isError).toBe(true);
+                expect(response.body.result.content[0].text).toBe('The tool failed unexpectedly');
+                expect(await assetRepo().count()).toBe(countBefore);
+            });
+
+            it('refuses a URL that is not http or https, and stores nothing', async () => {
+                const countBefore = await assetRepo().count();
+
+                const response = await callUploadAsset({ url: 'file:///etc/passwd' });
+
+                // A UserInputError is caller-safe, so its own message comes back rather than the
+                // generic internal-failure text.
+                expect(response.body.result.isError).toBe(true);
+                expect(response.body.result.content[0].text).toContain(
+                    'Unsupported asset URL scheme (only http and https URLs are allowed)',
+                );
+                expect(await assetRepo().count()).toBe(countBefore);
+            });
+
+            it('refuses an empty URL with the same scheme message', async () => {
+                const response = await callUploadAsset({ url: '' });
+
+                expect(response.body.result.isError).toBe(true);
+                expect(response.body.result.content[0].text).toContain('Unsupported asset URL scheme');
+            });
+
+            it('refuses a missing url, and refuses an argument the schema does not declare', async () => {
+                const missing = await callUploadAsset({});
+                expect(missing.body.result.isError).toBe(true);
+                expect(missing.body.result.content[0].text).toContain('expected string, received undefined');
+
+                const unknown = await callUploadAsset({
+                    url: `${fileServer.baseUrl}/pixel.png`,
+                    tags: ['x'],
+                });
+                expect(unknown.body.result.isError).toBe(true);
+                expect(unknown.body.result.content[0].text).toContain('Unrecognized key: "tags"');
+            });
+
+            it('is not callable by an administrator without CreateAsset, and stores nothing', async () => {
+                // Direct mode leaves an unpermitted tool out of the exposed set, so the SDK
+                // rejects the call as an unknown tool before the registry sees it: a top-level
+                // JSON-RPC error and no tool result. The registry's own permission check is a
+                // separate path, covered for every tool by the tests above.
+                const countBefore = await assetRepo().count();
+
+                const response = await callUploadAsset(
+                    { url: `${fileServer.baseUrl}/pixel.png` },
+                    limitedAdminToken,
+                );
+
+                expect(response.body.error).toBeDefined();
+                expect(response.body.result).toBeUndefined();
+                expect(await assetRepo().count()).toBe(countBefore);
+            });
+        });
+    });
 });
 
 describe('MCP built-in admin tools (discovery mode)', () => {
-    const options: McpPluginOptions = { toolExposure: 'discovery', oauth: { tokenSecret: TOKEN_SECRET } };
+    const options: McpPluginOptions = {
+        toolExposure: 'discovery',
+        oauth: { tokenSecret: TOKEN_SECRET },
+        rateLimits: { oauthIp: false },
+    };
     const config = mergeConfig(testConfig(), { plugins: [McpPlugin.init(options)] });
     const { server, adminClient } = createTestEnvironment(config);
     const baseUrl = () => `http://localhost:${config.apiOptions.port}`;
@@ -989,6 +1709,45 @@ describe('MCP built-in admin tools (discovery mode)', () => {
                 errorCode: 'EMPTY_ORDER_LINE_SELECTION_ERROR',
             },
         });
+    });
+
+    // search_tools is the only way an agent finds anything in discovery mode, which is the mode for
+    // hosts with a small tool cap. If it ignored permissions it would advertise tools every call
+    // would then refuse. Direct mode's equivalent assertion is
+    // 'filters tools a caller lacks permission for and rejects them at call time' above.
+    it('search_tools omits the tools the calling administrator has no permission for', async () => {
+        const superAdminSearch = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool('search_tools', { query: 'customers orders', limit: 50 }, 1),
+            { token: await adminAccessToken() },
+        );
+        const superAdminNames = (
+            superAdminSearch.body.result.structuredContent.tools as Array<{ name: string }>
+        ).map(tool => tool.name);
+        // The comparison is what makes this test mean something: the same query must reach both
+        // tools for a superadmin, or the limited administrator's missing result proves nothing.
+        expect(superAdminNames).toContain('list_customers');
+        expect(superAdminNames).toContain('list_orders');
+
+        const limitedFlow = await runAuthorizationCodeFlow({
+            baseUrl: baseUrl(),
+            issuer: ISSUER,
+            superAdminToken: limitedAdminToken,
+        });
+        const limitedSearch = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool('search_tools', { query: 'customers orders', limit: 50 }, 2),
+            { token: limitedFlow.access_token },
+        );
+        expect(limitedSearch.body.result.isError).toBeUndefined();
+        const limitedNames = (
+            limitedSearch.body.result.structuredContent.tools as Array<{ name: string }>
+        ).map(tool => tool.name);
+        // ReadCustomer is held, ReadOrder is not.
+        expect(limitedNames).toContain('list_customers');
+        expect(limitedNames).not.toContain('list_orders');
     });
 
     it('rejects an unpermitted tool at call time through the execute_tool funnel (defense-in-depth)', async () => {
