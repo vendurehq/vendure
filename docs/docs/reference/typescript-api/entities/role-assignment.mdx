@@ -1,0 +1,70 @@
+---
+title: "RoleAssignment"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/role-assignment/role-assignment.entity.ts" sourceLine="20" packageName="@vendure/core" />
+
+A RoleAssignment grants a [User](/reference/typescript-api/entities/user#user) the permissions of a [Role](/reference/typescript-api/entities/role#role) on a specific
+[Channel](/reference/typescript-api/entities/channel#channel). It is the source of truth for permission resolution: a Role is a
+channel-agnostic template, and the RoleAssignment supplies the channel scope at the
+moment the Role is granted to a User. This allows a single Role definition to be
+shared across many Users, each scoped to their own Channels.
+
+```ts title="Signature"
+class RoleAssignment extends VendureEntity {
+    constructor(input?: DeepPartial<RoleAssignment>)
+    @ManyToOne(type => User, { onDelete: 'CASCADE' })
+    user: User;
+    @EntityId()
+    userId: ID;
+    @Index()
+    @ManyToOne(type => Role, { onDelete: 'CASCADE' })
+    role: Role;
+    @EntityId()
+    roleId: ID;
+    @Index()
+    @ManyToOne(type => Channel, { onDelete: 'CASCADE' })
+    channel: Channel;
+    @EntityId()
+    channelId: ID;
+}
+```
+* Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
+
+
+
+<div className="members-wrapper">
+
+### user
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/user#user'>User</a>`}   />
+
+
+### userId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
+
+
+### role
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/role#role'>Role</a>`}   />
+
+
+### roleId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
+
+
+### channel
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>`}   />
+
+
+### channelId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
+
+
+
+
+</div>

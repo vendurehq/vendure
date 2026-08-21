@@ -2,13 +2,13 @@
 title: "RoleService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/role.service.ts" sourceLine="55" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/role.service.ts" sourceLine="53" packageName="@vendure/core" />
 
 Contains methods relating to [Role](/reference/typescript-api/entities/role#role) entities.
 
 ```ts title="Signature"
 class RoleService {
-    constructor(connection: TransactionalConnection, channelService: ChannelService, listQueryBuilder: ListQueryBuilder, configService: ConfigService, eventBus: EventBus, requestContextCache: RequestContextCacheService, cacheService: CacheService)
+    constructor(connection: TransactionalConnection, listQueryBuilder: ListQueryBuilder, configService: ConfigService, eventBus: EventBus, requestContextCache: RequestContextCacheService, cacheService: CacheService)
     initRoles() => ;
     findAll(ctx: RequestContext, options?: ListQueryOptions<Role>, relations?: RelationPaths<Role>) => Promise<PaginatedList<Role>>;
     findOne(ctx: RequestContext, roleId: ID, relations?: RelationPaths<Role>) => Promise<Role | undefined>;
@@ -22,7 +22,6 @@ class RoleService {
     create(ctx: RequestContext, input: CreateRoleInput) => Promise<Role>;
     update(ctx: RequestContext, input: UpdateRoleInput) => Promise<Role>;
     delete(ctx: RequestContext, id: ID) => Promise<DeletionResponse>;
-    assignRoleToChannel(ctx: RequestContext, roleId: ID, channelId: ID) => ;
 }
 ```
 
@@ -91,11 +90,6 @@ Returns true if the User has all the specified permissions on that Channel
 ### delete
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, id: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<DeletionResponse>`}   />
-
-
-### assignRoleToChannel
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, roleId: <a href='/reference/typescript-api/common/id#id'>ID</a>, channelId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => `}   />
 
 
 
