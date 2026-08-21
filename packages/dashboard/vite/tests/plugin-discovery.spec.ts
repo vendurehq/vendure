@@ -13,12 +13,14 @@ const decoratorForms = [
         prelude: `import { VendurePlugin } from '@vendure/core';`,
         decorate: '__decorate',
         vendurePlugin: 'VendurePlugin',
+        otherDecorator: 'OtherDecorator',
     },
     {
         name: 'tslib_1.__decorate',
-        prelude: `const tslib_1 = require('tslib');\nconst core_1 = require('@vendure/core');`,
+        prelude: `const tslib_1 = require('tslib');\nconst core_1 = require('@vendure/core');\nconst other_1 = require('other-package');`,
         decorate: 'tslib_1.__decorate',
         vendurePlugin: '(0, core_1.VendurePlugin)',
+        otherDecorator: '(0, other_1.OtherDecorator)',
     },
 ];
 
@@ -137,4 +139,37 @@ describe('plugin discovery', () => {
             ]);
         },
     );
+
+    // OSS-724: Dashboard metadata from other decorators must be ignored.
+    it.each(decoratorForms)('ignores non-Vendure decorators with $name', async decoratorForm => {
+        const { pluginPath, pluginSourcePath, plugins } = await discoverFromCompiledSource({
+            pluginNames: ['VendureDashboardPlugin', 'OtherDashboardClass'],
+            tsSource: `
+                import { VendurePlugin } from '@vendure/core';
+                import { OtherDecorator } from 'other-package';
+                @VendurePlugin({ dashboard: './dashboard/vendure.tsx' })
+                export class VendureDashboardPlugin {}
+                @OtherDecorator({ dashboard: './dashboard/other.tsx' })
+                export class OtherDashboardClass {}
+            `,
+            compiledJs: `
+                ${decoratorForm.prelude}
+                VendureDashboardPlugin = ${decoratorForm.decorate}([
+                    ${decoratorForm.vendurePlugin}({ dashboard: './dashboard/vendure.tsx' })
+                ], VendureDashboardPlugin);
+                OtherDashboardClass = ${decoratorForm.decorate}([
+                    ${decoratorForm.otherDecorator}({ dashboard: './dashboard/other.tsx' })
+                ], OtherDashboardClass);
+            `,
+        });
+
+        expect(plugins).toEqual([
+            {
+                name: 'VendureDashboardPlugin',
+                pluginPath,
+                dashboardEntryPath: './dashboard/vendure.tsx',
+                sourcePluginPath: pluginSourcePath,
+            },
+        ]);
+    });
 });

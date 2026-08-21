@@ -123,6 +123,7 @@ export async function discoverPlugins({
 function getDecoratorObjectProps(decorator: any): any[] {
     if (
         decorator.type === 'CallExpression' &&
+        isVendurePluginDecoratorCall(decorator.callee) &&
         decorator.arguments.length === 1 &&
         decorator.arguments[0].type === 'ObjectExpression'
     ) {
@@ -130,6 +131,17 @@ function getDecoratorObjectProps(decorator: any): any[] {
         return decorator.arguments[0].properties ?? [];
     }
     return [];
+}
+
+function isVendurePluginDecoratorCall(callee: any): boolean {
+    if (callee.type === 'Identifier') {
+        return callee.name === 'VendurePlugin';
+    }
+    if (callee.type === 'SequenceExpression') {
+        const expression = callee.expressions.at(-1);
+        return expression?.type === 'MemberExpression' && expression.property?.name === 'VendurePlugin';
+    }
+    return false;
 }
 
 function getDashboardPath(decorators: any): string | undefined {
