@@ -122,34 +122,40 @@ describe('MCP protocol conformance (direct mode)', () => {
         expect(res.body).toHaveLength(2);
     });
 
-    it('the SDK rejects schema-violating input before the handler runs', async () => {
+    // Three ways to break shop_echo's schema, which requires `text: string` and sets
+    // additionalProperties:false. Each case asserts the validation message rather than only that
+    // the call failed: an isError-only check is satisfied by a refusal for any unrelated reason,
+    // and it cannot tell the three cases apart.
+    it.each([
+        {
+            label: 'a property of the wrong type',
+            args: { text: 123 },
+            id: 15,
+            detail: 'data/text must be string',
+        },
+        {
+            label: 'an unknown extra property',
+            args: { text: 'hi', bogus: 1 },
+            id: 16,
+            detail: 'data must NOT have additional properties',
+        },
+        {
+            label: 'a missing required property',
+            args: {},
+            id: 17,
+            detail: "data must have required property 'text'",
+        },
+    ])('the SDK rejects $label before the handler runs', async ({ args, id, detail }) => {
         const res = await postMcp(
             baseUrl(),
             'shop',
-            rpc('tools/call', { name: 'shop_echo', arguments: { text: 123 } }, 15),
+            rpc('tools/call', { name: 'shop_echo', arguments: args }, id),
         );
-        // shop_echo requires `text: string`; the SDK validates the registered schema and returns isError.
-        expect(res.body.result.isError).toBe(true);
-    });
 
-    it('the SDK rejects an unknown/extra property (additionalProperties:false)', async () => {
-        const res = await postMcp(
-            baseUrl(),
-            'shop',
-            rpc('tools/call', { name: 'shop_echo', arguments: { text: 'hi', bogus: 1 } }, 16),
-        );
-        // shop_echo's schema is additionalProperties:false, so the extra `bogus` is rejected pre-handler.
         expect(res.body.result.isError).toBe(true);
-    });
-
-    it('the SDK rejects input missing a required property', async () => {
-        const res = await postMcp(
-            baseUrl(),
-            'shop',
-            rpc('tools/call', { name: 'shop_echo', arguments: {} }, 17),
+        expect(res.body.result.content[0].text).toBe(
+            `Input validation error: Invalid arguments for tool shop_echo: ${detail}`,
         );
-        // shop_echo requires `text`; omitting it is rejected pre-handler.
-        expect(res.body.result.isError).toBe(true);
     });
 
     it('an in-tool error flattens to isError', async () => {
@@ -160,8 +166,8 @@ describe('MCP protocol conformance (direct mode)', () => {
         );
         expect(res.status).toBe(200);
         expect(res.body.result.isError).toBe(true);
-        // shop_boom throws a plain Error("boom"), which the funnel treats as internal: the caller
-        // gets a generic message, never the real one.
+        // shop_boom throws a plain Error("boom"). Unexpected errors count as internal, so the
+        // caller gets a generic message, never the real one.
         expect(res.body.result.content[0].text).not.toContain('boom');
         expect(res.body.result.content[0].text).toContain('failed unexpectedly');
     });
@@ -390,8 +396,8 @@ describe('MCP discovery mode', () => {
             confirmed: false,
         });
 
-        // confirm lives only on the wire schema; the funnel must validate against that (not the
-        // canonical SSOT schema, which would reject the unknown `confirm`) and then strip it.
+        // `confirm` exists only on the wire schema, so execute_tool must validate against that
+        // schema (the tool's own schema would reject the unknown `confirm`) and then strip it.
         const confirmed = await postMcp(
             baseUrl(),
             'shop',
@@ -453,9 +459,15 @@ describe('MCP modern protocol era rate limiting', () => {
 });
 
 describe('MCP DNS-rebinding guard', () => {
+    // Both halves of the guard are configured on one server. `allowedOrigins` can share it because
+    // a request with no Origin header passes the origin check by design — only browsers send the
+    // header, and only browser-originated requests are what it defends against — so the Host tests
+    // below, which send no Origin, are unaffected by its presence.
+    //
+    // Entries in both lists are bare hostnames: no scheme, no port.
     const options: McpPluginOptions = {
         oauth: { tokenSecret: TOKEN_SECRET },
-        dnsRebinding: { allowedHosts: ['localhost', '127.0.0.1'] },
+        dnsRebinding: { allowedHosts: ['localhost', '127.0.0.1'], allowedOrigins: ['localhost'] },
     };
     const config = mergeConfig(testConfig(), { plugins: [McpTestToolsPlugin, McpPlugin.init(options)] });
     const { server } = createTestEnvironment(config);
@@ -502,6 +514,30 @@ describe('MCP DNS-rebinding guard', () => {
 
     it('allows a request with an allow-listed Host', async () => {
         const res = await postMcp(baseUrl(), 'shop', rpc('ping', {}, 2));
+        expect(res.status).toBe(200);
+    });
+
+    // Origin needs no raw-http workaround: undici strips a custom Host header but passes Origin
+    // through untouched.
+    it('rejects a request whose Origin header is not allow-listed → 403', async () => {
+        const res = await postMcp(baseUrl(), 'shop', rpc('ping', {}, 3), {
+            headers: { Origin: 'https://evil.example.com' },
+        });
+
+        expect(res.status).toBe(403);
+        // The refusal is a JSON-RPC error naming the rejected hostname, not an empty 403.
+        expect(res.body.jsonrpc).toBe('2.0');
+        expect(res.body.error.message).toBe('Invalid Origin: evil.example.com');
+        expect(res.body.result).toBeUndefined();
+    });
+
+    it('allows a request with an allow-listed Origin', async () => {
+        const res = await postMcp(baseUrl(), 'shop', rpc('ping', {}, 4), {
+            // The allow-list holds hostnames, so the port here is deliberately not on it and must
+            // still be accepted.
+            headers: { Origin: `http://localhost:${config.apiOptions.port}` },
+        });
+
         expect(res.status).toBe(200);
     });
 });
