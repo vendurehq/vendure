@@ -20,6 +20,7 @@ import { McpOauthGrant } from '../src/entities/mcp-oauth-grant.entity';
 import { McpOauthService } from '../src/oauth/oauth.service';
 import { deriveHashKey, hashLookupToken } from '../src/oauth/token-hash';
 import { McpPlugin } from '../src/plugin';
+import { McpPluginOptions } from '../src/types';
 
 import { AUTHORIZE_MCP_CLIENT } from './graphql/mcp-documents';
 import { initializeParams, postMcp, rpc } from './utils/mcp-http-client';
@@ -174,7 +175,6 @@ describe('McpPlugin OAuth edge & security cases', () => {
 
     // --- Rejection gates at token exchange ---
 
-    // A token request with the wrong PKCE verifier is rejected.
     it('rejects token exchange with an invalid PKCE verifier', async () => {
         const oauth = server.app.get(McpOauthService);
         const flow = await authorizeAdminToCode();
@@ -191,7 +191,6 @@ describe('McpPlugin OAuth edge & security cases', () => {
         ).rejects.toThrow(/PKCE/i);
     });
 
-    // A token request whose client_id differs from the code's is rejected.
     it('rejects token exchange with a client_id that does not match the code', async () => {
         const oauth = server.app.get(McpOauthService);
         const flow = await authorizeAdminToCode();
@@ -208,7 +207,6 @@ describe('McpPlugin OAuth edge & security cases', () => {
         ).rejects.toThrow(/does not match client/i);
     });
 
-    // A redirect_uri not registered for the client is rejected at authorize.
     it('rejects authorize when redirect_uri is not registered for the client', async () => {
         const redirectUri = 'https://example.com/registered';
         const registerRes = await registerClient({
@@ -237,7 +235,6 @@ describe('McpPlugin OAuth edge & security cases', () => {
         expect(await res.text()).toMatch(/redirect_uri is not registered/i);
     });
 
-    // A token request whose redirect_uri differs from the code's is rejected.
     it('rejects token exchange when redirect_uri does not match the authorization code', async () => {
         const oauth = server.app.get(McpOauthService);
         // The code is bound to this redirect_uri at authorize time.
@@ -255,7 +252,6 @@ describe('McpPlugin OAuth edge & security cases', () => {
         ).rejects.toThrow(/does not match client or redirect_uri/i);
     });
 
-    // Authorize without a `resource` parameter is rejected.
     it('rejects authorize when the resource parameter is missing', async () => {
         const redirectUri = 'https://example.com/cb';
         const registerRes = await registerClient({
@@ -283,7 +279,6 @@ describe('McpPlugin OAuth edge & security cases', () => {
         expect(await res.text()).toMatch(/resource is required/i);
     });
 
-    // A token request without a `resource` is rejected.
     it('rejects token exchange when the resource is missing', async () => {
         const oauth = server.app.get(McpOauthService);
         const flow = await authorizeAdminToCode();
@@ -297,10 +292,9 @@ describe('McpPlugin OAuth edge & security cases', () => {
                 code_verifier: flow.code_verifier,
                 resource: undefined,
             }),
-        ).rejects.toThrow(/resource (is|are) required|are required/i);
+        ).rejects.toThrow('code, client_id, redirect_uri, code_verifier and resource are required');
     });
 
-    // A token request whose resource differs from the code's is rejected.
     it('rejects token exchange when the requested resource does not match the code', async () => {
         const oauth = server.app.get(McpOauthService);
         const flow = await authorizeAdminToCode(); // code bound to the admin resource
@@ -317,7 +311,6 @@ describe('McpPlugin OAuth edge & security cases', () => {
         ).rejects.toThrow(/does not match token request resource/i);
     });
 
-    // A refresh request whose resource differs from the token's is rejected.
     it('rejects a refresh-token exchange when the resource does not match', async () => {
         const oauth = server.app.get(McpOauthService);
         const flow = await runAdminFlow(); // admin tokens, resource = ${ISSUER}/mcp/admin
@@ -332,7 +325,6 @@ describe('McpPlugin OAuth edge & security cases', () => {
         ).rejects.toThrow(/does not match token request resource/i);
     });
 
-    // An authorization code past its expiry is rejected on exchange.
     it('rejects an expired authorization code', async () => {
         const oauth = server.app.get(McpOauthService);
         const connection = server.app.get(TransactionalConnection);
@@ -546,6 +538,11 @@ describe('McpPlugin OAuth edge & security cases', () => {
 
     // A token an administrator approved works only on the admin endpoint. The grant records which
     // kind of actor approved it, and this gate compares that record against the endpoint.
+    //
+    // Both directions are tested because the gate is written as one condition per direction, so a
+    // mistake in either half is invisible to a test of the other. Each asserts the message as well
+    // as the status: three separate checks in `authenticateBearerToken` answer 401, so a
+    // status-only assertion cannot say which one refused the call.
     it('rejects an admin access token sent to the shop endpoint', async () => {
         const flow = await runAdminFlow();
 
@@ -553,9 +550,21 @@ describe('McpPlugin OAuth edge & security cases', () => {
             token: flow.access_token,
         });
         expect(res.status).toBe(401);
+        expect(res.body.message).toBe('Access token does not allow this MCP endpoint');
     });
 
-    // Admin consent without an authenticated admin session is rejected.
+    // The dangerous direction: a shopper's token must never reach the admin tool set. A mistake
+    // here hands a customer every administrator tool.
+    it('rejects a customer access token sent to the admin endpoint', async () => {
+        const flow = await runShopFlow();
+
+        const res = await postMcp(baseUrl(), 'admin', rpc('initialize', initializeParams()), {
+            token: flow.access_token,
+        });
+        expect(res.status).toBe(401);
+        expect(res.body.message).toBe('Access token does not allow this MCP endpoint');
+    });
+
     it('rejects admin consent from an unauthenticated caller', async () => {
         const flow = await authorizeAdminToCodePreConsent();
 
@@ -644,8 +653,6 @@ describe('McpPlugin OAuth edge & security cases', () => {
         await expect(oauth.approveAdminRequest(ctx, flow.request_token, true)).rejects.toThrow(/permission/i);
     });
 
-    // Admin consent with `approved: false` returns an access_denied redirect and creates no
-    // authorization code.
     it('returns access_denied (and no code) when admin consent is not approved', async () => {
         const flow = await authorizeAdminToCodePreConsent();
 
@@ -681,7 +688,6 @@ describe('McpPlugin OAuth edge & security cases', () => {
 
     // --- Shop happy path ---
 
-    // The full shop flow issues tokens that authenticate as the customer.
     it('issues a shop token via the full storefront flow and authenticates the customer', async () => {
         const oauth = server.app.get(McpOauthService);
         const flow = await runShopFlow();
@@ -1059,5 +1065,180 @@ describe('OAuth surface per-IP rate limit', () => {
         expect(response.status).toBe(429);
         expect(response.headers.get('retry-after')).toMatch(/^\d+$/);
         expect(await response.json()).toMatchObject({ error: 'rate_limit_exceeded' });
+    });
+});
+
+// Every configurable OAuth lifetime, plus the admin consent path, set to a value nothing else in
+// the plugin would produce and then checked against what the flow actually wrote.
+//
+// The lifetimes' *behaviour* is covered elsewhere by backdating rows, so expiry works. What is
+// unproven without these tests is that the option is wired to it: a field read from the wrong place,
+// or a rename that left the default in use, would pass every other test in this repository. That is
+// why each test asserts the exact stored instant rather than merely that some expiry exists — the
+// default values (900s, 2592000s, 60s, 600s) all satisfy a loose assertion just as happily.
+describe('OAuth lifetime and consent-path options', () => {
+    const ACCESS_TOKEN_TTL_SECONDS = 137;
+    const REFRESH_TOKEN_TTL_SECONDS = 4321;
+    const AUTHORIZATION_CODE_TTL_SECONDS = 23;
+    const AUTHORIZATION_REQUEST_TTL_SECONDS = 271;
+    const ADMIN_CONSENT_PATH = '/custom/mcp/consent';
+    const options: McpPluginOptions = {
+        oauth: {
+            tokenSecret: TOKEN_SECRET,
+            accessTokenTtlSeconds: ACCESS_TOKEN_TTL_SECONDS,
+            refreshTokenTtlSeconds: REFRESH_TOKEN_TTL_SECONDS,
+            authorizationCodeTtlSeconds: AUTHORIZATION_CODE_TTL_SECONDS,
+            authorizationRequestTtlSeconds: AUTHORIZATION_REQUEST_TTL_SECONDS,
+            adminConsentPath: ADMIN_CONSENT_PATH,
+        },
+        rateLimits: { oauthIp: false },
+    };
+    const config = mergeConfig(testConfig(), { plugins: [McpPlugin.init(options)] });
+    const { server, adminClient } = createTestEnvironment(config);
+    const baseUrl = () => `http://localhost:${config.apiOptions.port}`;
+    const hashKey = deriveHashKey(TOKEN_SECRET);
+    const lookupHash = (value: string) => hashLookupToken(value, hashKey);
+
+    let superAdminToken: string;
+    let connection: TransactionalConnection;
+    let adminCtx: RequestContext;
+
+    beforeAll(async () => {
+        // Multiple test servers in this file share the McpPlugin class's static options field
+        // (read at bootstrap), so this describe must reassert its own config immediately before
+        // booting its server.
+        McpPlugin.init(options);
+        await initTestServer(server);
+        await adminClient.asSuperAdmin();
+        superAdminToken = adminClient.getAuthToken();
+        connection = server.app.get(TransactionalConnection);
+        adminCtx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+    }, TEST_SETUP_TIMEOUT_MS);
+
+    afterAll(async () => {
+        await server.destroy();
+    });
+
+    /** Runs `work`, and reports the wall-clock window it ran in so an expiry can be bounded by it. */
+    async function timed<T>(work: () => Promise<T>): Promise<{ value: T; from: number; to: number }> {
+        const from = Date.now();
+        const value = await work();
+        return { value, from, to: Date.now() };
+    }
+
+    /**
+     * Asserts a stored expiry is exactly `ttlSeconds` after the moment the row was written. The row
+     * was written somewhere inside the timed window, so the expiry must fall inside that window
+     * shifted forward by the lifetime. One second of slack at the lower end covers a stored
+     * timestamp truncated to whole seconds.
+     */
+    function expectExpiry(expiresAt: Date, ttlSeconds: number, window: { from: number; to: number }): void {
+        expect(expiresAt.getTime()).toBeGreaterThanOrEqual(window.from + ttlSeconds * 1000 - 1000);
+        expect(expiresAt.getTime()).toBeLessThanOrEqual(window.to + ttlSeconds * 1000);
+    }
+
+    /** Registers a client and authorizes, stopping at the consent redirect. */
+    async function authorizeToConsent(): Promise<{ response: Response; requestToken: string }> {
+        const redirectUri = 'https://example.com/cb';
+        const registerResponse = await registerClient({
+            baseUrl: baseUrl(),
+            body: {
+                client_name: `lifetime-client-${Math.random().toString(36).slice(2)}`,
+                redirect_uris: [redirectUri],
+            },
+        });
+        const { client_id } = (await registerResponse.json()) as { client_id: string };
+        const response = await authorize({
+            baseUrl: baseUrl(),
+            params: {
+                response_type: 'code',
+                client_id,
+                redirect_uri: redirectUri,
+                code_challenge: PLACEHOLDER_CODE_CHALLENGE,
+                code_challenge_method: 'S256',
+                resource: `${ISSUER}/mcp/admin`,
+            },
+        });
+        return { response, requestToken: extractRequestToken(response) };
+    }
+
+    it('accessTokenTtlSeconds sets the grant access-token expiry and the token response expires_in', async () => {
+        const flow = await timed(() =>
+            runAuthorizationCodeFlow({ baseUrl: baseUrl(), issuer: ISSUER, superAdminToken }),
+        );
+
+        const grant = await connection
+            .getRepository(adminCtx, McpOauthGrant)
+            .findOneOrFail({ where: { accessTokenHash: lookupHash(flow.value.access_token) } });
+        expectExpiry(grant.accessTokenExpiresAt, ACCESS_TOKEN_TTL_SECONDS, flow);
+
+        // The same number has to reach the wire: expires_in is what tells a client when to refresh.
+        const form = new URLSearchParams({
+            grant_type: 'refresh_token',
+            refresh_token: flow.value.refresh_token,
+            client_id: flow.value.client_id,
+            resource: flow.value.resource,
+        });
+        const refreshed = await fetch(`${baseUrl()}/mcp/oauth/token`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/x-www-form-urlencoded' },
+            body: form.toString(),
+        });
+        expect(refreshed.status).toBe(200);
+        expect(((await refreshed.json()) as { expires_in: number }).expires_in).toBe(
+            ACCESS_TOKEN_TTL_SECONDS,
+        );
+    });
+
+    it("refreshTokenTtlSeconds sets the grant's own lifetime", async () => {
+        const flow = await timed(() =>
+            runAuthorizationCodeFlow({ baseUrl: baseUrl(), issuer: ISSUER, superAdminToken }),
+        );
+
+        const grant = await connection
+            .getRepository(adminCtx, McpOauthGrant)
+            .findOneOrFail({ where: { accessTokenHash: lookupHash(flow.value.access_token) } });
+        // `expiresAt` is the grant's lifetime, which the refresh token's validity rides on; it is a
+        // different column from the access-token expiry asserted above, and a much larger number.
+        expectExpiry(grant.expiresAt, REFRESH_TOKEN_TTL_SECONDS, flow);
+    });
+
+    it('authorizationRequestTtlSeconds sets the pending consent request expiry', async () => {
+        const authorized = await timed(() => authorizeToConsent());
+
+        const request = await connection
+            .getRepository(adminCtx, McpAuthorizationRequest)
+            .findOneOrFail({ where: { requestToken: lookupHash(authorized.value.requestToken) } });
+        expectExpiry(request.expiresAt, AUTHORIZATION_REQUEST_TTL_SECONDS, authorized);
+    });
+
+    it('authorizationCodeTtlSeconds sets the issued code expiry', async () => {
+        const { requestToken } = await authorizeToConsent();
+
+        // The code row is written when consent is recorded, so only that call is timed.
+        const consented = await timed(() =>
+            submitAdminConsent({ baseUrl: baseUrl(), superAdminToken, requestToken, approved: true }),
+        );
+        const redirectUrl = consented.value.data?.authorizeMcpClient?.redirectUrl;
+        if (!redirectUrl) {
+            throw new Error(`Consent failed: ${JSON.stringify(consented.value.errors)}`);
+        }
+        const code = new URL(redirectUrl).searchParams.get('code') as string;
+
+        const codeRow = await connection
+            .getRepository(adminCtx, McpAuthorizationCode)
+            .findOneOrFail({ where: { code: lookupHash(code) } });
+        expectExpiry(codeRow.expiresAt, AUTHORIZATION_CODE_TTL_SECONDS, consented);
+    });
+
+    it('adminConsentPath is where the authorize step sends the administrator', async () => {
+        const { response } = await authorizeToConsent();
+
+        expect(response.status).toBe(302);
+        const location = new URL(response.headers.get('location') as string);
+        expect(location.pathname).toBe(ADMIN_CONSENT_PATH);
+        // Same origin as the server, and carrying the request token the consent page needs.
+        expect(location.origin).toBe(baseUrl());
+        expect(location.searchParams.get('request_token')).toBeTruthy();
     });
 });
