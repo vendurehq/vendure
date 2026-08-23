@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { runDashboardExtensions } from 'virtual:dashboard-extensions';
 
-import { onExtensionSourceChange } from './define-dashboard-extension.js';
+import { executeDashboardExtensionCallbacks, onExtensionSourceChange } from './define-dashboard-extension.js';
 
 /**
  * @description
@@ -15,7 +15,10 @@ export function useDashboardExtensions() {
     const [reloadCount, setReloadCount] = useState(0);
 
     useEffect(() => {
-        void runDashboardExtensions().then(() => setExtensionsLoaded(true));
+        void runDashboardExtensions().then(() => {
+            executeDashboardExtensionCallbacks();
+            setExtensionsLoaded(true);
+        });
         onExtensionSourceChange(() => {
             // Setting this state var is only really done
             // in order to force a re-render of components using this hook.

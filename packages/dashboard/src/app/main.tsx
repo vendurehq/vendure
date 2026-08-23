@@ -5,7 +5,6 @@ import {
     clearCustomFieldsMap,
     setCustomFieldsMap,
 } from '@/vdb/framework/document-introspection/add-custom-fields.js';
-import { executeDashboardExtensionCallbacks } from '@/vdb/framework/extension-api/define-dashboard-extension.js';
 import { useDashboardExtensions } from '@/vdb/framework/extension-api/use-dashboard-extensions.js';
 import { useExtendedRouter } from '@/vdb/framework/page/use-extended-router.js';
 import { useAuth } from '@/vdb/hooks/use-auth.js';
@@ -143,12 +142,6 @@ function App() {
         });
         registerDefaults();
     }, []);
-
-    useEffect(() => {
-        if (extensionsLoaded) {
-            executeDashboardExtensionCallbacks();
-        }
-    }, [extensionsLoaded]);
 
     if (!i18nLoaded || !extensionsLoaded) {
         // Show a minimal full-screen splash so the user sees that the app is
