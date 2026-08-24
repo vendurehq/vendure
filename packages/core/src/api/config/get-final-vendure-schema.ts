@@ -74,7 +74,7 @@ export async function getFinalVendureSchema(
     // Paths must be normalized to use forward-slash separators.
     // See https://github.com/nestjs/graphql/issues/336
     const normalizedPaths = typePaths.map(p => p.split(path.sep).join('/'));
-    const typeDefs = await typesLoader.mergeTypesByPaths(normalizedPaths);
+    const typeDefs = await mergeTypesByPathsCached(typesLoader, normalizedPaths);
     let schema = buildSchema(typeDefs);
     schema = buildSchemaFromVendureConfig(schema, config, apiType);
     if (options.output === 'sdl') {
@@ -82,6 +82,37 @@ export async function getFinalVendureSchema(
     } else {
         return schema;
     }
+}
+
+/**
+ * Loads and merges type definitions with a per-glob-pattern cache, so that
+ * patterns shared between the shop and admin APIs (the `common` schema files)
+ * are only globbed, read and parsed once per process. Patterns are merged in
+ * sorted order to reproduce the file ordering of a single uncached
+ * `mergeTypesByPaths()` call over all patterns.
+ */
+const typeDefsCache = new Map<string, Promise<string | null>>();
+async function mergeTypesByPathsCached(typesLoader: GraphQLTypesLoader, paths: string[]): Promise<string> {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { mergeTypeDefs } = require('@graphql-tools/merge');
+    const parts = await Promise.all(
+        [...paths].sort().map(p => {
+            let cached = typeDefsCache.get(p);
+            if (!cached) {
+                cached = typesLoader.mergeTypesByPaths([p]);
+                typeDefsCache.set(p, cached);
+            }
+            return cached;
+        }),
+    );
+    return mergeTypeDefs(
+        parts.filter(notNullOrUndefined),
+        {
+            throwOnConflict: true,
+            commentDescriptions: true,
+            reverseDirectives: true,
+        },
+    );
 }
 
 export function buildSchemaFromVendureConfig(
