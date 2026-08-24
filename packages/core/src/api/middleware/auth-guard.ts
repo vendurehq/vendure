@@ -167,11 +167,7 @@ export class AuthGuard implements CanActivate {
 
         const ctx = await this.requestContextService.fromRequest(req, info);
 
-        const apiKey = await this.apiKeyService.findOneByLookupId(ctx, parseResult.lookupId, [
-            'user',
-            'user.roles',
-            'user.roles.channels',
-        ]);
+        const apiKey = await this.apiKeyService.findOneByLookupId(ctx, parseResult.lookupId, ['user']);
         if (!apiKey) {
             return;
         }

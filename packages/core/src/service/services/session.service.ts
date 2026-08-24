@@ -13,6 +13,7 @@ import { TransactionalConnection } from '../../connection/transactional-connecti
 import { ApiKey } from '../../entity/api-key/api-key.entity';
 import { Channel } from '../../entity/channel/channel.entity';
 import { Order } from '../../entity/order/order.entity';
+import { RoleAssignment } from '../../entity/role-assignment/role-assignment.entity';
 import { Role } from '../../entity/role/role.entity';
 import { AnonymousSession } from '../../entity/session/anonymous-session.entity';
 import { AuthenticatedSession } from '../../entity/session/authenticated-session.entity';
@@ -21,7 +22,7 @@ import { User } from '../../entity/user/user.entity';
 import { JobQueue } from '../../job-queue/job-queue';
 import { JobQueueService } from '../../job-queue/job-queue.service';
 import { RequestContextService } from '../helpers/request-context/request-context.service';
-import { getUserChannelsPermissions } from '../helpers/utils/get-user-channels-permissions';
+import { RolePermissionResolver } from '../helpers/role-permission-resolver/role-permission-resolver';
 
 import { OrderService } from './order.service';
 
@@ -45,6 +46,7 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
         private orderService: OrderService,
         private jobQueueService: JobQueueService,
         private requestContextService: RequestContextService,
+        private rolePermissionResolver: RolePermissionResolver,
     ) {
         this.sessionCacheStrategy = this.configService.authOptions.sessionCacheStrategy;
 
@@ -98,6 +100,17 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
             if (event.entity instanceof Channel || event.entity instanceof Role) {
                 await this.withTimeout(this.sessionCacheStrategy.clear());
             }
+            // A RoleAssignment write only affects one user's permissions, so their cached
+            // sessions are evicted individually. This subscriber is the single invalidation
+            // path for assignment writes, which is why RoleAssignmentService performs them
+            // through entity-based repository operations (a QueryBuilder or `delete(id)` call
+            // would not fire it).
+            if (event.entity instanceof RoleAssignment) {
+                const userId = event.entity.userId ?? event.entity.user?.id;
+                if (userId != null) {
+                    await this.clearSessionCacheForUser(userId);
+                }
+            }
         }
     }
 
@@ -135,7 +148,9 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
                 invalidated: false,
             }),
         );
-        await this.withTimeout(this.sessionCacheStrategy.set(this.serializeSession(authenticatedSession)));
+        await this.withTimeout(
+            this.sessionCacheStrategy.set(await this.serializeSession(authenticatedSession)),
+        );
         return authenticatedSession;
     }
 
@@ -153,7 +168,7 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
         });
         // save the new session
         const newSession = await this.connection.rawConnection.getRepository(AnonymousSession).save(session);
-        const serializedSession = this.serializeSession(newSession);
+        const serializedSession = await this.serializeSession(newSession);
         await this.withTimeout(this.sessionCacheStrategy.set(serializedSession));
         return serializedSession;
     }
@@ -169,7 +184,7 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
         if (!serializedSession || stale || expired) {
             const session = await this.findSessionByToken(sessionToken);
             if (session) {
-                serializedSession = this.serializeSession(session);
+                serializedSession = await this.serializeSession(session);
                 await this.withTimeout(this.sessionCacheStrategy.set(serializedSession));
                 return serializedSession;
             } else {
@@ -182,8 +197,10 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
     /**
      * @description
      * Serializes a {@link Session} instance into a simplified plain object suitable for caching.
+     * The per-channel permissions of an authenticated session's user are resolved from the
+     * user's {@link RoleAssignment}s via the {@link RolePermissionResolver}.
      */
-    serializeSession(session: AuthenticatedSession | AnonymousSession): CachedSession {
+    async serializeSession(session: AuthenticatedSession | AnonymousSession): Promise<CachedSession> {
         const { sessionCacheTTL } = this.configService.authOptions;
         const sessionCacheTTLSeconds =
             typeof sessionCacheTTL === 'string' ? ms(sessionCacheTTL as StringValue) / 1000 : sessionCacheTTL;
@@ -200,11 +217,15 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
         if (this.isAuthenticatedSession(session)) {
             serializedSession.authenticationStrategy = session.authenticationStrategy;
             const { user } = session;
+            const { channels, globalPermissions } = await this.rolePermissionResolver.resolvePermissions(
+                user.id,
+            );
             serializedSession.user = {
                 id: user.id,
                 identifier: user.identifier,
                 verified: user.verified,
-                channelPermissions: getUserChannelsPermissions(user),
+                channelPermissions: channels,
+                ...(globalPermissions.length ? { globalPermissions } : {}),
             };
         }
         return serializedSession;
@@ -231,8 +252,6 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
             .getRepository(Session)
             .createQueryBuilder('session')
             .leftJoinAndSelect('session.user', 'user')
-            .leftJoinAndSelect('user.roles', 'roles')
-            .leftJoinAndSelect('roles.channels', 'channels')
             .where('session.token = :token', { token })
             .andWhere('session.invalidated = false')
             .getOne();
@@ -254,12 +273,12 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
     ): Promise<CachedSession> {
         const session = await this.connection.getRepository(ctx, Session).findOne({
             where: { id: serializedSession.id },
-            relations: ['user', 'user.roles', 'user.roles.channels'],
+            relations: ['user'],
         });
         if (session) {
             session.activeOrder = order;
             await this.connection.getRepository(ctx, Session).save(session, { reload: false });
-            const updatedSerializedSession = this.serializeSession(session);
+            const updatedSerializedSession = await this.serializeSession(session);
             await this.withTimeout(this.sessionCacheStrategy.set(updatedSerializedSession));
             return updatedSerializedSession;
         }
@@ -274,12 +293,12 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
         if (serializedSession.activeOrderId) {
             const session = await this.connection.getRepository(ctx, Session).findOne({
                 where: { id: serializedSession.id },
-                relations: ['user', 'user.roles', 'user.roles.channels'],
+                relations: ['user'],
             });
             if (session) {
                 session.activeOrder = null;
                 await this.connection.getRepository(ctx, Session).save(session);
-                const updatedSerializedSession = this.serializeSession(session);
+                const updatedSerializedSession = await this.serializeSession(session);
                 await this.configService.authOptions.sessionCacheStrategy.set(updatedSerializedSession);
                 return updatedSerializedSession;
             }
@@ -294,12 +313,12 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
     async setActiveChannel(serializedSession: CachedSession, channel: Channel): Promise<CachedSession> {
         const session = await this.connection.rawConnection.getRepository(Session).findOne({
             where: { id: serializedSession.id },
-            relations: ['user', 'user.roles', 'user.roles.channels'],
+            relations: ['user'],
         });
         if (session) {
             session.activeChannel = channel;
             await this.connection.rawConnection.getRepository(Session).save(session, { reload: false });
-            const updatedSerializedSession = this.serializeSession(session);
+            const updatedSerializedSession = await this.serializeSession(session);
             await this.withTimeout(this.sessionCacheStrategy.set(updatedSerializedSession));
             return updatedSerializedSession;
         }
@@ -315,6 +334,24 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
             .getRepository(ctx, AuthenticatedSession)
             .find({ where: { user: { id: user.id } } });
         await this.connection.getRepository(ctx, AuthenticatedSession).remove(userSessions);
+        for (const session of userSessions) {
+            await this.withTimeout(this.sessionCacheStrategy.delete(session.token));
+        }
+    }
+
+    /**
+     * @description
+     * Evicts all cached sessions of the given user from the session cache without deleting
+     * the sessions themselves, so the user stays logged in. The next request on each session
+     * re-serializes it via {@link SessionService.serializeSession}, resolving fresh per-channel
+     * permissions. Use after changing data which affects a user's permissions.
+     *
+     * @since 4.0.0
+     */
+    async clearSessionCacheForUser(userId: ID): Promise<void> {
+        const userSessions = await this.connection.rawConnection
+            .getRepository(AuthenticatedSession)
+            .find({ where: { user: { id: userId } }, select: { id: true, token: true } });
         for (const session of userSessions) {
             await this.withTimeout(this.sessionCacheStrategy.delete(session.token));
         }
