@@ -22,12 +22,6 @@ import { gql } from 'apollo-angular';
 import { Observable } from 'rxjs';
 import { mergeMap, take } from 'rxjs/operators';
 
-export interface PermissionsByChannel {
-    channelId: string;
-    channelCode: string;
-    permissions: { [K in Permission]: boolean };
-}
-
 export const GET_ADMINISTRATOR_DETAIL = gql`
     query GetAdministratorDetail($id: ID!) {
         administrator(id: $id) {
@@ -42,7 +36,7 @@ export const GET_ADMINISTRATOR_DETAIL = gql`
     templateUrl: './admin-detail.component.html',
     styleUrls: ['./admin-detail.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    standalone: false,
 })
 export class AdminDetailComponent
     extends TypedBaseDetailComponent<typeof GetAdministratorDetailDocument, 'administrator'>
@@ -64,12 +58,7 @@ export class AdminDetailComponent
     permissionDefinitions: PermissionDefinition[];
     allRoles$: Observable<RoleFragment[]>;
     selectedRoles: RoleFragment[] = [];
-    selectedRolePermissions: { [channelId: string]: PermissionsByChannel } = {} as any;
-    selectedChannelId: string | null = null;
-
-    getAvailableChannels(): PermissionsByChannel[] {
-        return Object.values(this.selectedRolePermissions);
-    }
+    selectedRolePermissions: Permission[] = [];
 
     constructor(
         private changeDetector: ChangeDetectorRef,
@@ -105,27 +94,6 @@ export class AdminDetailComponent
 
     rolesChanged(roles: RoleFragment[]) {
         this.buildPermissionsMap();
-    }
-
-    getPermissionsForSelectedChannel(): string[] {
-        function getActivePermissions(input: PermissionsByChannel['permissions']): string[] {
-            return Object.entries(input)
-                .filter(([permission, active]) => active)
-                .map(([permission, active]) => permission);
-        }
-        if (this.selectedChannelId) {
-            const selectedChannel = this.selectedRolePermissions[this.selectedChannelId];
-            if (selectedChannel) {
-                const permissionMap = this.selectedRolePermissions[this.selectedChannelId].permissions;
-                return getActivePermissions(permissionMap);
-            }
-        }
-        const channels = Object.values(this.selectedRolePermissions);
-        if (0 < channels.length) {
-            this.selectedChannelId = channels[0].channelId;
-            return getActivePermissions(channels[0].permissions);
-        }
-        return [];
     }
 
     create() {
@@ -217,39 +185,17 @@ export class AdminDetailComponent
     }
 
     private buildPermissionsMap() {
-        const permissionsControl = this.detailForm.get('roles');
-        if (permissionsControl) {
-            const roles = permissionsControl.value;
-            const channelIdPermissionsMap = new Map<string, Set<Permission>>();
-            const channelIdCodeMap = new Map<string, string>();
-
-            for (const role of roles ?? []) {
-                for (const channel of role.channels) {
-                    const channelPermissions = channelIdPermissionsMap.get(channel.id);
-                    const permissionSet = channelPermissions || new Set<Permission>();
-
-                    role.permissions.forEach(p => permissionSet.add(p));
-                    channelIdPermissionsMap.set(channel.id, permissionSet);
-                    channelIdCodeMap.set(channel.id, channel.code);
-                }
+        // A Role is a channel-agnostic template: the Channels its permissions apply to are
+        // determined per-user by RoleAssignments, so the display is a single union of the
+        // selected Roles' permissions.
+        const rolesControl = this.detailForm.get('roles');
+        if (rolesControl) {
+            const roles = rolesControl.value ?? [];
+            const permissionSet = new Set<Permission>();
+            for (const role of roles) {
+                role.permissions.forEach(p => permissionSet.add(p as Permission));
             }
-
-            this.selectedRolePermissions = {} as any;
-            for (const channelId of Array.from(channelIdPermissionsMap.keys())) {
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                const permissionSet = channelIdPermissionsMap.get(channelId)!;
-                const permissionsHash: { [K in Permission]: boolean } = {} as any;
-                for (const def of this.serverConfigService.getPermissionDefinitions()) {
-                    permissionsHash[def.name] = permissionSet.has(def.name as Permission);
-                }
-                this.selectedRolePermissions[channelId] = {
-                    /* eslint-disable @typescript-eslint/no-non-null-assertion */
-                    channelId,
-                    channelCode: channelIdCodeMap.get(channelId)!,
-                    permissions: permissionsHash,
-                    /* eslint-enable @typescript-eslint/no-non-null-assertion */
-                };
-            }
+            this.selectedRolePermissions = Array.from(permissionSet);
         }
     }
 }

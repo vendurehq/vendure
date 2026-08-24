@@ -32,7 +32,7 @@ export const GET_ROLE_DETAIL = gql`
     templateUrl: './role-detail.component.html',
     styleUrls: ['./role-detail.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    standalone: false,
 })
 export class RoleDetailComponent
     extends TypedBaseDetailComponent<typeof GetRoleDetailDocument, 'role'>
@@ -41,7 +41,6 @@ export class RoleDetailComponent
     detailForm = this.formBuilder.group({
         code: ['', Validators.required],
         description: ['', Validators.required],
-        channelIds: [[] as string[]],
         permissions: [[] as Permission[]],
     });
     permissionDefinitions = this.serverConfigService.getPermissionDefinitions();
@@ -84,7 +83,7 @@ export class RoleDetailComponent
     }
 
     create() {
-        const { code, description, permissions, channelIds } = this.detailForm.value;
+        const { code, description, permissions } = this.detailForm.value;
         if (!code || !description) {
             return;
         }
@@ -92,7 +91,6 @@ export class RoleDetailComponent
             code,
             description,
             permissions: permissions ?? [],
-            channelIds,
         };
         this.dataService.administrator.createRole(role).subscribe(
             data => {
@@ -137,12 +135,7 @@ export class RoleDetailComponent
         this.detailForm.patchValue({
             description: role.description,
             code: role.code,
-            channelIds: role.channels.map(c => c.id),
             permissions: role.permissions,
         });
-        // This was required to get the channel selector component to
-        // correctly display its contents. A while spent debugging the root
-        // cause did not yield a solution, therefore this next line.
-        this.changeDetector.detectChanges();
     }
 }
