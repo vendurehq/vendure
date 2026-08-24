@@ -105,14 +105,16 @@ async function mergeTypesByPathsCached(typesLoader: GraphQLTypesLoader, paths: s
             return cached;
         }),
     );
-    return mergeTypeDefs(
-        parts.filter(notNullOrUndefined),
-        {
-            throwOnConflict: true,
-            commentDescriptions: true,
-            reverseDirectives: true,
-        },
-    );
+    // These options mirror the ones GraphQLTypesLoader.mergeTypesByPaths() uses
+    // internally, which is a private implementation detail of @nestjs/graphql.
+    // If an upgrade changes them there, the two merge passes here could diverge
+    // from a single uncached merge — verify with scripts/bootstrap-bench/dump-sdl.js
+    // when bumping @nestjs/graphql.
+    return mergeTypeDefs(parts.filter(notNullOrUndefined), {
+        throwOnConflict: true,
+        commentDescriptions: true,
+        reverseDirectives: true,
+    });
 }
 
 export function buildSchemaFromVendureConfig(

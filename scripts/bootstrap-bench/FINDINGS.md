@@ -76,33 +76,12 @@ proxy-handler smoke tests.
 
 ## Tolerating slow user code at boot (beyond in-process optimization)
 
-Real plugins do awaited external HTTP calls (license checks), open extra DB
-connections and create dozens of job queues in lifecycle hooks, and Nest runs
-module hooks strictly serially — core cannot optimize that away. Two workstreams:
-
-- **Early-listen prototype (working, prototype branch, not yet merged)**:
-  opt-in `experimentalEarlyListen` bootstrap option binds the port with a bare
-  `net.Server` (`pauseOnConnect`) right after `preBootstrapConfig()`, holds up to
-  1000 connections, and replays them into Nest's HTTP server after `app.init()`.
-  Measured: port connectable ~430ms into boot instead of ~1400ms with a simulated
-  400ms external call; all held GraphQL requests complete correctly; clean
-  SIGTERM during the holding phase. Before merging: make `app.close()` close the
-  early listener (e2e harnesses call it directly), extend signal coverage, and
-  decide on the `address()`/`isListening` shims vs constructing the real listener
-  up front.
-
-- **Checkpoint/restore research (decision-ready)**: the shippable option now is a
-  **standby-process pool** exploiting Vendure's existing seam (config is set
-  before `AppModule` is dynamically imported): keep generic processes that have
-  loaded node+core+deps but no tenant config, bind one to a tenant on demand —
-  removes the module-load fraction entirely. True `fork()`-after-preload is not
-  viable in Node (multi-threaded runtime). CRIU/k8s container checkpointing is
-  still forensic-oriented in 2026 (containerd support unmerged) and captures
-  secrets in plain memory dumps; Firecracker/microVM suspend-resume only applies
-  if the platform owns the VM layer. Recommended next step regardless of
-  mechanism: an additive opt-in restore-hook API in core
-  (`beforeCheckpoint`/`afterRestore`, strong-reference registry, LIFO/FIFO
-  ordering per CRaC), which doubles as graceful pause/resume scaffolding.
+Real plugins do awaited external HTTP calls, open extra DB connections and
+create dozens of job queues in lifecycle hooks, and Nest runs module hooks
+strictly serially — core cannot optimize that away. An "early listen" mode
+(bind the port immediately, hold incoming connections, replay them once the
+app is ready) has been prototyped and measured as effective; it is tracked
+separately and is not part of this change.
 
 ## Remaining opportunities (not implemented)
 
