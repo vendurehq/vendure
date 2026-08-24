@@ -6,6 +6,7 @@ import { IsNull } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
 import { Instrument } from '../../common/instrument-decorator';
+import { idsAreEqual } from '../../common/utils';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Customer } from '../../entity/customer/customer.entity';
 import { RoleAssignment } from '../../entity/role-assignment/role-assignment.entity';
@@ -113,5 +114,54 @@ export class RoleAssignmentService {
             where: { userId, channelId },
         });
         return unique(assignments.map(a => a.roleId));
+    }
+
+    /**
+     * @description
+     * Replaces the User's Role assignments on the given Channel with the given Roles,
+     * leaving assignments on other Channels untouched.
+     *
+     * This implements the `roleIds` inputs of the administrator and API-key mutations, which
+     * are read as "replace this User's Roles on the active Channel" — a `roleIds` grant
+     * always carried a channel in the request (the `vendure-token` header), it was just
+     * never part of the write.
+     */
+    // TODO(OSS-300): whether the `roleIds` inputs survive at all (vs. an explicit
+    // `roleAssignments` vocabulary only) is an open decision — see the implementation plan.
+    async replaceUserAssignmentsOnChannel(
+        ctx: RequestContext,
+        userId: ID,
+        roleIds: ID[],
+        channelId: ID = ctx.channelId,
+    ): Promise<void> {
+        const repository = this.connection.getRepository(ctx, RoleAssignment);
+        const existing = await repository.find({ where: { userId, channelId } });
+        const targetRoleIds = unique(roleIds);
+        const toRemove = existing.filter(a => !targetRoleIds.some(id => idsAreEqual(id, a.roleId)));
+        const toAdd = targetRoleIds.filter(id => !existing.some(a => idsAreEqual(a.roleId, id)));
+        if (toRemove.length) {
+            await repository.remove(toRemove);
+        }
+        if (toAdd.length) {
+            await repository.save(toAdd.map(roleId => new RoleAssignment({ userId, roleId, channelId })));
+        }
+    }
+
+    /**
+     * @description
+     * Assigns the Role to the User on the given Channel. Idempotent: an existing identical
+     * assignment is left as-is.
+     */
+    async assignRoleOnChannel(
+        ctx: RequestContext,
+        userId: ID,
+        roleId: ID,
+        channelId: ID = ctx.channelId,
+    ): Promise<void> {
+        const repository = this.connection.getRepository(ctx, RoleAssignment);
+        const existing = await repository.findOne({ where: { userId, roleId, channelId } });
+        if (!existing) {
+            await repository.save(new RoleAssignment({ userId, roleId, channelId }));
+        }
     }
 }

@@ -5,19 +5,18 @@ import {
     UpdateAdministratorInput,
 } from '@vendure/common/lib/generated-types';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
-import { In, IsNull } from 'typeorm';
+import { IsNull } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
 import { Instrument } from '../../common';
 import { EntityNotFoundError, InternalServerError, UserInputError } from '../../common/error/errors';
 import { ListQueryOptions } from '../../common/types/common-types';
-import { idsAreEqual, normalizeEmailAddress } from '../../common/utils';
+import { assertFound, idsAreEqual, normalizeEmailAddress } from '../../common/utils';
 import { ConfigService } from '../../config';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Administrator } from '../../entity/administrator/administrator.entity';
 import { NativeAuthenticationMethod } from '../../entity/authentication-method/native-authentication-method.entity';
-import { Role } from '../../entity/role/role.entity';
 import { RoleAssignment } from '../../entity/role-assignment/role-assignment.entity';
 import { User } from '../../entity/user/user.entity';
 import { EventBus } from '../../event-bus';
@@ -30,6 +29,7 @@ import { RequestContextService } from '../helpers/request-context/request-contex
 import { checkSuperadminCredentials } from '../helpers/utils/check-superadmin-credentials';
 import { patchEntity } from '../helpers/utils/patch-entity';
 
+import { RoleAssignmentService } from './role-assignment.service';
 import { RoleService } from './role.service';
 import { UserService } from './user.service';
 
@@ -49,6 +49,7 @@ export class AdministratorService {
         private passwordCipher: PasswordCipher,
         private userService: UserService,
         private roleService: RoleService,
+        private roleAssignmentService: RoleAssignmentService,
         private customFieldRelationService: CustomFieldRelationService,
         private eventBus: EventBus,
         private requestContextService: RequestContextService,
@@ -70,7 +71,7 @@ export class AdministratorService {
     ): Promise<PaginatedList<Administrator>> {
         return this.listQueryBuilder
             .build(Administrator, options, {
-                relations: relations ?? ['user', 'user.roles'],
+                relations: relations ?? ['user'],
                 where: { deletedAt: IsNull() },
                 ctx,
             })
@@ -93,7 +94,7 @@ export class AdministratorService {
         return this.connection
             .getRepository(ctx, Administrator)
             .findOne({
-                relations: relations ?? ['user', 'user.roles'],
+                relations: relations ?? ['user'],
                 where: {
                     id: administratorId,
                     deletedAt: IsNull(),
@@ -128,18 +129,25 @@ export class AdministratorService {
      * Create a new Administrator.
      */
     async create(ctx: RequestContext, input: CreateAdministratorInput): Promise<Administrator> {
-        await this.checkActiveUserCanGrantRoles(ctx, input.roleIds);
+        await this.roleService.assertActiveUserCanGrantRoles(ctx, input.roleIds, [ctx.channelId]);
         const normalizedEmail = normalizeEmailAddress(input.emailAddress);
         await this.checkForDuplicateEmailAddress(ctx, normalizedEmail);
         const administrator = new Administrator(input);
         administrator.emailAddress = normalizedEmail;
         administrator.user = await this.userService.createAdminUser(ctx, input.emailAddress, input.password);
-        let createdAdministrator = await this.connection
+        const savedAdministrator = await this.connection
             .getRepository(ctx, Administrator)
             .save(administrator);
-        for (const roleId of input.roleIds) {
-            createdAdministrator = await this.assignRole(ctx, createdAdministrator.id, roleId);
-        }
+        // The `roleIds` input grants the Roles on the active Channel.
+        // TODO(OSS-300): whether the `roleIds` inputs survive at all (vs. the explicit
+        // `roleAssignments` vocabulary only) is an open decision — see the implementation plan.
+        await this.roleAssignmentService.replaceUserAssignmentsOnChannel(
+            ctx,
+            savedAdministrator.user.id,
+            input.roleIds,
+            ctx.channelId,
+        );
+        const createdAdministrator = await assertFound(this.findOne(ctx, savedAdministrator.id));
         await this.customFieldRelationService.updateRelations(
             ctx,
             Administrator,
@@ -160,7 +168,7 @@ export class AdministratorService {
             throw new EntityNotFoundError('Administrator', input.id);
         }
         if (input.roleIds) {
-            await this.checkActiveUserCanGrantRoles(ctx, input.roleIds);
+            await this.roleService.assertActiveUserCanGrantRoles(ctx, input.roleIds, [ctx.channelId]);
         }
         if (input.emailAddress) {
             const normalizedEmail = normalizeEmailAddress(input.emailAddress);
@@ -190,19 +198,29 @@ export class AdministratorService {
                     throw new InternalServerError('error.superadmin-must-have-superadmin-role');
                 }
             }
-            const removeIds = administrator.user.roles
-                .map(role => role.id)
-                .filter(roleId => (input.roleIds as ID[]).indexOf(roleId) === -1);
-
-            const addIds = (input.roleIds as ID[]).filter(
-                roleId => !administrator.user.roles.some(role => role.id === roleId),
+            // The `roleIds` input replaces the user's Role assignments on the active Channel;
+            // assignments on other Channels are untouched.
+            // TODO(OSS-300): whether the `roleIds` inputs survive at all (vs. the explicit
+            // `roleAssignments` vocabulary only) is an open decision — see the implementation plan.
+            const userId = administrator.user.id;
+            const previousRoleIds = await this.roleAssignmentService.getAssignedRoleIdsOnChannel(
+                ctx,
+                userId,
+                ctx.channelId,
             );
-
-            administrator.user.roles = [];
-            await this.connection.getRepository(ctx, User).save(administrator.user, { reload: false });
-            for (const roleId of input.roleIds) {
-                updatedAdministrator = await this.assignRole(ctx, administrator.id, roleId);
-            }
+            const removeIds = previousRoleIds.filter(
+                roleId => !(input.roleIds as ID[]).some(id => idsAreEqual(id, roleId)),
+            );
+            const addIds = (input.roleIds as ID[]).filter(
+                roleId => !previousRoleIds.some(id => idsAreEqual(id, roleId)),
+            );
+            await this.roleAssignmentService.replaceUserAssignmentsOnChannel(
+                ctx,
+                userId,
+                input.roleIds,
+                ctx.channelId,
+            );
+            updatedAdministrator = await assertFound(this.findOne(ctx, administrator.id));
             await this.eventBus.publish(new RoleChangeEvent(ctx, updatedAdministrator, addIds, 'assigned'));
             await this.eventBus.publish(new RoleChangeEvent(ctx, updatedAdministrator, removeIds, 'removed'));
         }
@@ -218,30 +236,7 @@ export class AdministratorService {
 
     /**
      * @description
-     * Checks that the active user is allowed to grant the specified Roles when creating or
-     * updating an Administrator.
-     */
-    private async checkActiveUserCanGrantRoles(ctx: RequestContext, roleIds: ID[]) {
-        const roles = await this.connection.getRepository(ctx, Role).find({
-            where: { id: In(roleIds) },
-            relations: { channels: true },
-        });
-        const permissionsRequired = getChannelPermissions(roles);
-        for (const channelPermissions of permissionsRequired) {
-            const activeUserHasRequiredPermissions = await this.roleService.userHasAllPermissionsOnChannel(
-                ctx,
-                channelPermissions.id,
-                channelPermissions.permissions,
-            );
-            if (!activeUserHasRequiredPermissions) {
-                throw new UserInputError('error.active-user-does-not-have-sufficient-permissions');
-            }
-        }
-    }
-
-    /**
-     * @description
-     * Assigns a Role to the Administrator's User entity.
+     * Assigns a Role to the Administrator's User on the active Channel.
      */
     async assignRole(ctx: RequestContext, administratorId: ID, roleId: ID): Promise<Administrator> {
         const administrator = await this.findOne(ctx, administratorId);
@@ -252,9 +247,13 @@ export class AdministratorService {
         if (!role) {
             throw new EntityNotFoundError('Role', roleId);
         }
-        administrator.user.roles.push(role);
-        await this.connection.getRepository(ctx, User).save(administrator.user, { reload: false });
-        return administrator;
+        await this.roleAssignmentService.assignRoleOnChannel(
+            ctx,
+            administrator.user.id,
+            roleId,
+            ctx.channelId,
+        );
+        return assertFound(this.findOne(ctx, administratorId));
     }
 
     /**
@@ -297,12 +296,16 @@ export class AdministratorService {
      */
     private async isSoleSuperadmin(ctx: RequestContext, id: ID) {
         const superAdminRole = await this.roleService.getSuperAdminRole(ctx);
+        const superAdminUserIds = await this.roleAssignmentService.resolveUserIdsWithRole(
+            ctx,
+            superAdminRole.id,
+        );
         const allAdmins = await this.connection.getRepository(ctx, Administrator).find({
-            relations: ['user', 'user.roles'],
+            relations: ['user'],
             where: { deletedAt: IsNull() },
         });
-        const superAdmins = allAdmins.filter(
-            admin => !!admin.user.roles.find(r => idsAreEqual(r.id, superAdminRole.id)),
+        const superAdmins = allAdmins.filter(admin =>
+            superAdminUserIds.some(userId => idsAreEqual(userId, admin.user.id)),
         );
         if (superAdmins.length === 0) {
             return false;
