@@ -10,7 +10,7 @@ import { deriveHashKey, hashLookupToken } from '../src/oauth/token-hash';
 import { McpPlugin } from '../src/plugin';
 
 import { seedAuthorizationCode, withFailingUpdate } from './utils/oauth-test-fixtures';
-import { initTestServer } from './utils/test-server';
+import { testServerInit } from './utils/test-server';
 
 const TOKEN_SECRET = 'test-secret';
 const RESOURCE = `http://localhost:${testConfig().apiOptions.port}/mcp/admin`;
@@ -25,7 +25,7 @@ describe('McpPlugin OAuth single-use code', () => {
     const lookupHash = (value: string) => hashLookupToken(value, hashKey);
 
     beforeAll(async () => {
-        await initTestServer(server);
+        await server.init(testServerInit);
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {

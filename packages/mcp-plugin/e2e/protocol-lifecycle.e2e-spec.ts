@@ -20,7 +20,7 @@ import {
     rpc,
 } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow } from './utils/oauth-test-client';
-import { initTestServer } from './utils/test-server';
+import { testServerInit } from './utils/test-server';
 
 const TOKEN_SECRET = 'protocol-lifecycle-secret-000000000000000000';
 const ISSUER = `http://localhost:${testConfig().apiOptions.port}`;
@@ -41,7 +41,7 @@ describe('MCP protocol conformance (direct mode)', () => {
 
     beforeAll(async () => {
         McpPlugin.init(options);
-        await initTestServer(server);
+        await server.init(testServerInit);
         await adminClient.asSuperAdmin();
         const flow = await runAuthorizationCodeFlow({
             baseUrl: baseUrl(),
@@ -325,7 +325,7 @@ describe('MCP discovery mode', () => {
 
     beforeAll(async () => {
         McpPlugin.init(options);
-        await initTestServer(server);
+        await server.init(testServerInit);
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -425,7 +425,7 @@ describe('MCP modern protocol era rate limiting', () => {
 
     beforeAll(async () => {
         McpPlugin.init(options);
-        await initTestServer(server);
+        await server.init(testServerInit);
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -473,7 +473,7 @@ describe('MCP DNS-rebinding guard', () => {
 
     beforeAll(async () => {
         McpPlugin.init(options);
-        await initTestServer(server);
+        await server.init(testServerInit);
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {

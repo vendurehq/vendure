@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import { McpPlugin } from '../src/plugin';
 
-import { initTestServer } from './utils/test-server';
+import { testServerInit } from './utils/test-server';
 
 describe('McpPlugin OAuth routes', () => {
     const config = mergeConfig(testConfig(), {
@@ -14,7 +14,7 @@ describe('McpPlugin OAuth routes', () => {
     const { server } = createTestEnvironment(config);
 
     beforeAll(async () => {
-        await initTestServer(server);
+        await server.init(testServerInit);
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {

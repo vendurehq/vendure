@@ -9,7 +9,7 @@ import { McpPlugin } from '../src/plugin';
 
 import { McpZodToolsPlugin } from './fixtures/mcp-zod-tools';
 import { submitAdminConsent } from './utils/oauth-test-client';
-import { initTestServer } from './utils/test-server';
+import { testServerInit } from './utils/test-server';
 
 // The MCP endpoints are served relative to the configured OAuth `issuer`, and the official
 // client auto-discovers every endpoint from the published metadata. The issuer must therefore be
@@ -138,7 +138,7 @@ describe('MCP SDK interop (official @modelcontextprotocol/client 2.x)', () => {
     let superAdminToken: string;
 
     beforeAll(async () => {
-        await initTestServer(server);
+        await server.init(testServerInit);
         await adminClient.asSuperAdmin();
         superAdminToken = adminClient.getAuthToken();
     }, TEST_SETUP_TIMEOUT_MS);

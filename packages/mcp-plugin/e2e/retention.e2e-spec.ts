@@ -17,7 +17,7 @@ import { mcpToolCallLogRetentionTask } from '../src/tasks/mcp-tool-call-log-rete
 import { McpPluginOptions } from '../src/types';
 
 import { backdateLogCreatedAt } from './utils/log-fixtures';
-import { initTestServer } from './utils/test-server';
+import { testServerInit } from './utils/test-server';
 
 const DAY_MS = 86_400_000;
 
@@ -32,7 +32,7 @@ describe('MCP tool-call log retention', () => {
 
     beforeAll(async () => {
         McpPlugin.init(options);
-        await initTestServer(server);
+        await server.init(testServerInit);
         connection = server.app.get(TransactionalConnection);
         toolCallLog = server.app.get(McpToolCallLogService);
         adminCtx = await server.app.get(RequestContextService).create({ apiType: 'admin' });

@@ -8,7 +8,7 @@ import { McpPlugin } from '../src/plugin';
 
 import { CimdTestServer, startCimdTestServer } from './utils/cimd-test-server';
 import { PLACEHOLDER_CODE_CHALLENGE, runAuthorizationCodeFlow } from './utils/oauth-test-client';
-import { initTestServer } from './utils/test-server';
+import { testServerInit } from './utils/test-server';
 
 // CIMD (Client ID Metadata Documents, draft-ietf-oauth-client-id-metadata-document): the
 // client_id is a URL; the server fetches the client's metadata from it instead of
@@ -63,7 +63,7 @@ describe('McpPlugin OAuth CIMD client registration', () => {
     }
 
     beforeAll(async () => {
-        await initTestServer(server);
+        await server.init(testServerInit);
         baseUrl = `http://localhost:${config.apiOptions.port}`;
         await adminClient.asSuperAdmin();
         superAdminToken = adminClient.getAuthToken();

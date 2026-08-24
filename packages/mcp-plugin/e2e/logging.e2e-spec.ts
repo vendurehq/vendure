@@ -21,7 +21,7 @@ import { MCP_TOOL_CALL_LOGS_WITH_BODIES_QUERY } from './graphql/mcp-documents';
 import { provisionAdmin } from './utils/admin-fixtures';
 import { callTool, postMcp } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow } from './utils/oauth-test-client';
-import { initTestServer } from './utils/test-server';
+import { testServerInit } from './utils/test-server';
 
 const TOKEN_SECRET = 'logging-secret-000000000000000000000000000';
 const ISSUER = `http://localhost:${testConfig().apiOptions.port}`;
@@ -40,7 +40,7 @@ describe('MCP tool-call logging', () => {
 
     beforeAll(async () => {
         McpPlugin.init(options);
-        await initTestServer(server);
+        await server.init(testServerInit);
         await adminClient.asSuperAdmin();
         connection = server.app.get(TransactionalConnection);
         eventBus = server.app.get(EventBus);
@@ -236,7 +236,7 @@ describe('MCP tool-call log input/output permission gating (full capture)', () =
 
     beforeAll(async () => {
         McpPlugin.init(options);
-        await initTestServer(server);
+        await server.init(testServerInit);
         await adminClient.asSuperAdmin();
         superAdminToken = adminClient.getAuthToken();
 

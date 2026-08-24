@@ -35,7 +35,7 @@ import { McpPluginOptions } from '../src/types';
 import { expectRateLimitRefusal, postMcp, rpc } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow } from './utils/oauth-test-client';
 import { withFailingUpdate } from './utils/oauth-test-fixtures';
-import { initTestServer } from './utils/test-server';
+import { testServerInit } from './utils/test-server';
 
 const TOKEN_SECRET = 'test-secret';
 // The issuer the plugin derives when none is configured: localhost on the configured API port.
@@ -60,9 +60,7 @@ describe('McpPlugin OAuth end-to-end flow', () => {
         // Re-apply this suite's options: McpPlugin.init writes static state, and a later suite in
         // this file calls it with its own.
         McpPlugin.init(pluginOptions);
-        await initTestServer(server);
-        // Logging in as superadmin yields the Vendure bearer token the admin-consent
-        // step needs; it stands in for an authenticated administrator.
+        await server.init(testServerInit);
         await adminClient.asSuperAdmin();
         superAdminToken = adminClient.getAuthToken();
     }, TEST_SETUP_TIMEOUT_MS);
@@ -758,7 +756,7 @@ describe('McpPlugin per-user rate limiting', () => {
 
     beforeAll(async () => {
         McpPlugin.init(pluginOptions);
-        await initTestServer(server);
+        await server.init(testServerInit);
         // An administrator of this suite's own. Rate-limit counters are not cleared when a suite's
         // server is destroyed, because the default in-memory cache strategy is one instance shared
         // by every server booted in this process, and the suite above already charged the

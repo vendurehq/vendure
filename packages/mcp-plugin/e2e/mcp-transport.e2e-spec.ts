@@ -14,7 +14,7 @@ import {
     runAuthorizationCodeFlow,
     runShopAuthorizationCodeFlow,
 } from './utils/oauth-test-client';
-import { initTestServer } from './utils/test-server';
+import { testServerInit } from './utils/test-server';
 
 const TOKEN_SECRET = 'mcp-transport-secret-0000000000000000000000';
 const ISSUER = `http://localhost:${testConfig().apiOptions.port}`;
@@ -42,7 +42,7 @@ describe('MCP transport (auth, session, channel, destructive)', () => {
 
     beforeAll(async () => {
         McpPlugin.init(options);
-        await initTestServer(server);
+        await server.init(testServerInit);
         await adminClient.asSuperAdmin();
         adminToken = (
             await runAuthorizationCodeFlow({
@@ -180,7 +180,7 @@ describe('MCP transport rate limiting', () => {
 
     beforeAll(async () => {
         McpPlugin.init(options);
-        await initTestServer(server);
+        await server.init(testServerInit);
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -229,7 +229,7 @@ describe('MCP transport failed-authentication metering', () => {
 
     beforeAll(async () => {
         McpPlugin.init(options);
-        await initTestServer(server);
+        await server.init(testServerInit);
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -261,7 +261,7 @@ describe('MCP transport anonymous session metering', () => {
 
     beforeAll(async () => {
         McpPlugin.init(options);
-        await initTestServer(server);
+        await server.init(testServerInit);
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -317,7 +317,7 @@ describe('MCP transport per-tool rate limiting', () => {
 
     beforeAll(async () => {
         McpPlugin.init(options);
-        await initTestServer(server);
+        await server.init(testServerInit);
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -365,7 +365,7 @@ describe('MCP transport content-type casing', () => {
 
     beforeAll(async () => {
         McpPlugin.init(options);
-        await initTestServer(server);
+        await server.init(testServerInit);
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -406,7 +406,7 @@ describe('MCP transport shopAccess: disabled', () => {
 
     beforeAll(async () => {
         McpPlugin.init(options);
-        await initTestServer(server);
+        await server.init(testServerInit);
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -470,7 +470,7 @@ describe('MCP transport shopAccess: authenticated', () => {
 
     beforeAll(async () => {
         McpPlugin.init(options);
-        await initTestServer(server);
+        await server.init(testServerInit);
         await adminClient.asSuperAdmin();
 
         // Log in a real seeded customer on the shop client to obtain a customer session token —

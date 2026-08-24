@@ -32,7 +32,7 @@ import { shopToolProviders } from '../src/tools/built-in/shop';
 
 import { callTool, postMcp, rpc } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow, runShopAuthorizationCodeFlow } from './utils/oauth-test-client';
-import { initTestServer } from './utils/test-server';
+import { testServerInit } from './utils/test-server';
 
 const TOKEN_SECRET = 'shop-tools-secret-000000000000000000000';
 const ISSUER = `http://localhost:${testConfig().apiOptions.port}`;
@@ -108,7 +108,7 @@ describe('MCP built-in shop tools', () => {
     let secondChannelToken: string;
 
     beforeAll(async () => {
-        await initTestServer(server);
+        await server.init(testServerInit);
         await adminClient.asSuperAdmin();
 
         connection = server.app.get(TransactionalConnection);

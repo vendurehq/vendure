@@ -6,7 +6,7 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 import { McpPlugin } from '../src/plugin';
 
 import { callTool, postMcp, rpc } from './utils/mcp-http-client';
-import { initTestServer } from './utils/test-server';
+import { testServerInit } from './utils/test-server';
 
 describe('McpPlugin bootstrap', () => {
     const config = mergeConfig(testConfig(), {
@@ -16,7 +16,7 @@ describe('McpPlugin bootstrap', () => {
     const baseUrl = `http://localhost:${config.apiOptions.port}`;
 
     beforeAll(async () => {
-        await initTestServer(server);
+        await server.init(testServerInit);
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {

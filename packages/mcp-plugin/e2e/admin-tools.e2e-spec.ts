@@ -34,7 +34,7 @@ import { McpPluginOptions } from '../src/types';
 
 import { callTool, postMcp, rpc } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow } from './utils/oauth-test-client';
-import { initTestServer } from './utils/test-server';
+import { testServerInit } from './utils/test-server';
 
 const TOKEN_SECRET = 'admin-tools-secret-0000000000000000000000';
 const ISSUER = `http://localhost:${testConfig().apiOptions.port}`;
@@ -216,7 +216,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
 
     beforeAll(async () => {
         McpPlugin.init(options);
-        await initTestServer(server);
+        await server.init(testServerInit);
         await adminClient.asSuperAdmin();
         superAdminToken = adminClient.getAuthToken();
 
@@ -1614,7 +1614,7 @@ describe('MCP built-in admin tools (discovery mode)', () => {
 
     beforeAll(async () => {
         McpPlugin.init(options);
-        await initTestServer(server);
+        await server.init(testServerInit);
         await adminClient.asSuperAdmin();
         superAdminToken = adminClient.getAuthToken();
         const { activeChannel } = await adminClient.query(gql`

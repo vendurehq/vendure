@@ -36,7 +36,7 @@ import {
     submitAdminConsent,
     submitShopConsent,
 } from './utils/oauth-test-client';
-import { initTestServer } from './utils/test-server';
+import { testServerInit } from './utils/test-server';
 
 const TOKEN_SECRET = 'test-secret';
 // The issuer the plugin derives when none is configured: localhost on the configured API port.
@@ -76,8 +76,7 @@ describe('McpPlugin OAuth edge & security cases', () => {
             },
             rateLimits: { oauthIp: false },
         });
-        await initTestServer(server);
-        // Superadmin bearer approves admin consent; it stands in for an authenticated admin.
+        await server.init(testServerInit);
         await adminClient.asSuperAdmin();
         superAdminToken = adminClient.getAuthToken();
 
@@ -949,7 +948,7 @@ describe('shop authorization with no storefrontConsentUrl configured', () => {
         // (read at bootstrap), so this describe must reassert its own oauth config immediately
         // before booting its server.
         McpPlugin.init({ oauth: { tokenSecret: TOKEN_SECRET }, rateLimits: { oauthIp: false } });
-        await initTestServer(noConsentUrlServer);
+        await noConsentUrlServer.init(testServerInit);
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -1010,7 +1009,7 @@ describe('OAuth surface per-IP rate limit', () => {
             oauth: { tokenSecret: TOKEN_SECRET },
             rateLimits: { oauthIp: { rpm: 3 } },
         });
-        await initTestServer(rateLimitedServer);
+        await rateLimitedServer.init(testServerInit);
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -1079,7 +1078,7 @@ describe('OAuth lifetime and consent-path options', () => {
         // (read at bootstrap), so this describe must reassert its own config immediately before
         // booting its server.
         McpPlugin.init(options);
-        await initTestServer(server);
+        await server.init(testServerInit);
         await adminClient.asSuperAdmin();
         superAdminToken = adminClient.getAuthToken();
         connection = server.app.get(TransactionalConnection);

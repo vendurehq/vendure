@@ -29,7 +29,7 @@ import { provisionAdmin } from './utils/admin-fixtures';
 import { backdateLogCreatedAt } from './utils/log-fixtures';
 import { postMcp, rpc } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow } from './utils/oauth-test-client';
-import { initTestServer } from './utils/test-server';
+import { testServerInit } from './utils/test-server';
 
 const TOKEN_SECRET = 'admin-api-secret-00000000000000000000000';
 const ISSUER = `http://localhost:${testConfig().apiOptions.port}`;
@@ -109,7 +109,7 @@ describe('MCP admin API', () => {
 
     beforeAll(async () => {
         McpPlugin.init(pluginOptions);
-        await initTestServer(server);
+        await server.init(testServerInit);
         await adminClient.asSuperAdmin();
         superAdminToken = adminClient.getAuthToken();
 
