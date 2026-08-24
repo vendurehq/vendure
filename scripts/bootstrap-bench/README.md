@@ -31,7 +31,22 @@ the queue/subscription upgrade: ~905ms median (bootstrap phase ~550ms).
 - Per-package require cost: `node -r ./scripts/bootstrap-bench/require-times.js scripts/bootstrap-bench/server-entry.js`
 - `BENCH_PORT=<port>` overrides the API port (default 4999) — needed for parallel runs.
 
-## Baseline (2026-08-24, M-series mac, node 24.14.1, medians of 7 runs)
+## Results of the optimization pass (2026-08-24, medians, quiet machine, 9-11 runs)
+
+A/B of this branch's perf commits vs their merge-base, identical harness. Server
+totals include a full GET /health round-trip after bootstrap.
+
+| target | baseline | optimized | + warm NODE_COMPILE_CACHE |
+|---|---|---|---|
+| server total          | 744ms | 679ms (-8.7%)  | 657ms (-11.7%) |
+| worker total          | 414ms | 314ms (-24.3%) | 300ms (-27.6%) |
+| server-heavy total    | 871ms | 729ms (-16.3%) | 647ms (-25.7%) |
+| server-heavy bootstrap phase | 521ms | 418ms (-19.8%) | — |
+| require @vendure/core (server) | 333ms | 244ms (-26.8%) | ~207-226ms |
+
+See FINDINGS.md for the full write-up.
+
+## Original baseline (2026-08-24, M-series mac, node 24.14.1, medians of 7 runs)
 
 | phase                | server | server-heavy | worker |
 |----------------------|--------|--------------|--------|
