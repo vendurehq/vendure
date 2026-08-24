@@ -1,6 +1,6 @@
 import { GraphQLTypesLoader } from '@nestjs/graphql';
 import { notNullOrUndefined } from '@vendure/common/lib/shared-utils';
-import { buildSchema, extendSchema, GraphQLSchema, printSchema } from 'graphql/index';
+import { buildSchema, concatAST, extendSchema, GraphQLSchema, printSchema } from 'graphql/index';
 import path from 'path';
 
 import {
@@ -123,11 +123,13 @@ function extendSchemaWithPluginApiExtensions(
     plugins: RuntimeVendureConfig['plugins'],
     apiType: 'admin' | 'shop',
 ) {
-    getPluginAPIExtensions(plugins, apiType)
+    // All extension documents are evaluated against the un-extended schema and then
+    // merged into a single extendSchema() pass, since each full-schema rebuild is
+    // costly and would otherwise run once per plugin.
+    const documentNodes = getPluginAPIExtensions(plugins, apiType)
         .map(e => (typeof e.schema === 'function' ? e.schema(schema) : e.schema))
-        .filter(notNullOrUndefined)
-        .forEach(documentNode => (schema = extendSchema(schema, documentNode)));
-    return schema;
+        .filter(notNullOrUndefined);
+    return documentNodes.length ? extendSchema(schema, concatAST(documentNodes)) : schema;
 }
 
 export function isUsingDefaultEntityIdStrategy(entityIdStrategy: EntityIdStrategy<any>): boolean {
