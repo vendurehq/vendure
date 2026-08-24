@@ -967,6 +967,59 @@ describe('MCP built-in admin tools (direct mode)', () => {
         });
     });
 
+    it('refund_order rejects a paymentId that belongs to a different order and leaves that order untouched', async () => {
+        const token = await adminAccessToken();
+        const orderA = await createSettledOrder();
+        const orderB = await createSettledOrder();
+        const orderBPaymentBefore = await connection
+            .getRepository(adminCtx, Payment)
+            .findOneOrFail({ where: { id: orderB.paymentId }, relations: ['refunds'] });
+        expect(orderBPaymentBefore.refunds).toHaveLength(0);
+
+        const response = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool(
+                'refund_order',
+                { id: orderA.orderId, paymentId: orderB.paymentId, amount: 100, confirm: true },
+                1,
+            ),
+            { token },
+        );
+
+        expect(response.body.result.isError).toBeUndefined();
+        expect(response.body.result.structuredContent.result).toMatchObject({
+            __typename: 'RefundPaymentIdMissingError',
+            errorCode: 'REFUND_PAYMENT_ID_MISSING_ERROR',
+            message: 'The requested payment was not found on this order.',
+        });
+
+        // Order B's payment must be exactly as it was: the wrong order was never touched.
+        const orderBPaymentAfter = await connection
+            .getRepository(adminCtx, Payment)
+            .findOneOrFail({ where: { id: orderB.paymentId }, relations: ['refunds'] });
+        expect(orderBPaymentAfter.refunds).toHaveLength(0);
+    });
+
+    it('refund_order returns RefundPaymentIdMissingError when the paymentId exists on no order', async () => {
+        const token = await adminAccessToken();
+        const { orderId } = await createSettledOrder();
+
+        const response = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool('refund_order', { id: orderId, paymentId: 999999, amount: 100, confirm: true }, 1),
+            { token },
+        );
+
+        expect(response.body.result.isError).toBeUndefined();
+        expect(response.body.result.structuredContent.result).toMatchObject({
+            __typename: 'RefundPaymentIdMissingError',
+            errorCode: 'REFUND_PAYMENT_ID_MISSING_ERROR',
+            message: 'The requested payment was not found on this order.',
+        });
+    });
+
     describe('catalog, customer and order writes', () => {
         let assetIds: ID[];
         let customerGroupId: ID;

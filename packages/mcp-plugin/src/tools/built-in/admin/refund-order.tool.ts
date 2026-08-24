@@ -17,7 +17,7 @@ const refundOrderInput = z.strictObject({
     reason: z.string().describe('Reason for the refund.').optional(),
     paymentId: idSchema
         .describe(
-            "Payment to refund. Defaults to the order's first Settled payment that still has a refundable amount.",
+            "Payment to refund; must belong to this order. Defaults to the order's first Settled payment that still has a refundable amount.",
         )
         .optional(),
 });
@@ -57,21 +57,22 @@ export class RefundOrderTool implements McpToolHandler<RefundOrderToolInput> {
         const payment = input.paymentId
             ? payments.find(p => idsAreEqual(p.id, input.paymentId))
             : payments.find(p => p.state === 'Settled' && getRefundableAmount(p) > 0);
-        const paymentId = input.paymentId ?? payment?.id;
 
-        if (!paymentId) {
+        if (!payment) {
             return {
                 result: {
                     __typename: 'RefundPaymentIdMissingError',
                     errorCode: 'REFUND_PAYMENT_ID_MISSING_ERROR',
-                    message: 'No payment is available to refund.',
+                    message: input.paymentId
+                        ? 'The requested payment was not found on this order.'
+                        : 'No payment is available to refund.',
                 },
             };
         }
         return {
             result: await this.orderService.refundOrder(ctx, {
-                paymentId,
-                amount: input.amount ?? (payment ? getRefundableAmount(payment) : 0),
+                paymentId: payment.id,
+                amount: input.amount ?? getRefundableAmount(payment),
                 reason: input.reason,
                 shipping: 0,
                 adjustment: 0,
