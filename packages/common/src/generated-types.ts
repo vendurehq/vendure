@@ -1074,7 +1074,6 @@ export type CreateProvinceInput = {
 };
 
 export type CreateRoleInput = {
-  channelIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   code: Scalars['String']['input'];
   description: Scalars['String']['input'];
   permissions: Array<Permission>;
@@ -6069,7 +6068,6 @@ export type Return = Node & StockMovement & {
 
 export type Role = Node & {
   __typename?: 'Role';
-  channels: Array<Channel>;
   code: Scalars['String']['output'];
   createdAt: Scalars['DateTime']['output'];
   description: Scalars['String']['output'];
@@ -7163,7 +7161,6 @@ export type UpdateProvinceInput = {
 };
 
 export type UpdateRoleInput = {
-  channelIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   code?: InputMaybe<Scalars['String']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   id: Scalars['ID']['input'];
