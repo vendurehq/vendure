@@ -31,7 +31,6 @@ import { CustomFieldRelationService } from '../helpers/custom-field-relation/cus
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
 import { TranslatableSaver } from '../helpers/translatable-saver/translatable-saver';
 import { TranslatorService } from '../helpers/translator/translator.service';
-import { getChannelPermissions } from '../helpers/utils/get-user-channels-permissions';
 
 import { ChannelService } from './channel.service';
 import { RoleService } from './role.service';
