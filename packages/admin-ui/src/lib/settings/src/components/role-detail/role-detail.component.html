@@ -63,12 +63,6 @@
     </vdr-page-detail-layout>
     <vdr-page-block class="mt-2">
         <vdr-card [title]="'settings.permissions' | translate">
-            <vdr-form-field [label]="'settings.channel' | translate">
-                <vdr-channel-assignment-control
-                    formControlName="channelIds"
-                    [vdrDisabled]="!('UpdateAdministrator' | hasPermission)"
-                ></vdr-channel-assignment-control>
-            </vdr-form-field>
             <vdr-permission-grid
                 class="mt-2"
                 [permissionDefinitions]="permissionDefinitions"

@@ -8,11 +8,6 @@ export const ROLE_FRAGMENT = gql`
         code
         description
         permissions
-        channels {
-            id
-            code
-            token
-        }
     }
 `;
 

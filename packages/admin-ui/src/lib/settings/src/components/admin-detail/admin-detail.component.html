@@ -114,22 +114,9 @@
                 bindLabel="description"
             ></ng-select>
 
-            <ul class="nav mt-2" role="tablist">
-                <li role="presentation" class="nav-item" *ngFor="let channel of getAvailableChannels()">
-                    <button
-                        [id]="channel.channelId"
-                        (click)="selectedChannelId = channel.channelId"
-                        class="btn btn-link nav-link"
-                        [class.active]="selectedChannelId === channel.channelId"
-                        [attr.aria-selected]="selectedChannelId === channel.channelId"
-                        type="button"
-                    >
-                        {{ channel.channelCode | channelCodeToLabel | translate }}
-                    </button>
-                </li>
-            </ul>
             <vdr-permission-grid
-                [activePermissions]="getPermissionsForSelectedChannel()"
+                class="mt-2"
+                [activePermissions]="selectedRolePermissions"
                 [permissionDefinitions]="permissionDefinitions"
                 [readonly]="true"
             ></vdr-permission-grid>
