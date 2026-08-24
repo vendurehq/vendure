@@ -43,10 +43,21 @@ which gets determined by the User who does the request.
 """
 input CreateApiKeyInput {
     """
-    Which roles to attach to this ApiKey.
+    Which roles to attach to this ApiKey, granted on the active Channel.
     You may only grant roles which you, yourself have.
+    Cannot be combined with roleAssignments.
     """
-    roleIds: [ID!]!
+    roleIds: [ID!]
+        @deprecated(
+            reason: "Use roleAssignments instead. roleIds grants the Roles on the active Channel only."
+        )
+
+    """
+    Which roles to attach to this ApiKey on which Channels.
+    You may only grant roles which you, yourself have on those Channels.
+    Cannot be combined with roleIds.
+    """
+    roleAssignments: [RoleAssignmentInput!]
 
     translations: [CreateApiKeyTranslationInput!]!
 }
@@ -62,10 +73,21 @@ input UpdateApiKeyInput {
     "ID of the ApiKey"
     id: ID!
     """
-    Which roles to attach to this ApiKey.
+    Which roles to attach to this ApiKey, replacing its Roles on the active Channel.
     You may only grant roles which you, yourself have.
+    Cannot be combined with roleAssignments.
     """
     roleIds: [ID!]
+        @deprecated(
+            reason: "Use roleAssignments instead. roleIds replaces the Roles on the active Channel only."
+        )
+
+    """
+    Replaces the full set of the ApiKey's RoleAssignments across all Channels.
+    You may only grant roles which you, yourself have on those Channels.
+    Cannot be combined with roleIds.
+    """
+    roleAssignments: [RoleAssignmentInput!]
 
     translations: [UpdateApiKeyTranslationInput!]
 }
