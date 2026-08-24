@@ -18,10 +18,6 @@ export const administratorItemFragment = graphql(`
                 updatedAt
                 code
                 description
-                channels {
-                    id
-                    code
-                }
             }
         }
     }

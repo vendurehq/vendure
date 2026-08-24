@@ -1,17 +1,17 @@
-import { ChannelSelector } from '@/vdb/components/shared/channel-selector.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
-import {    DetailFormGrid,
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
+import {
+    DetailFormGrid,
     Page,
     PageActionBar,
     PageBlock,
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
-import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { Trans, useLingui } from '@lingui/react/macro';
@@ -54,7 +54,6 @@ function RoleDetailPage() {
                 code: entity.code,
                 description: entity.description,
                 permissions: entity.permissions,
-                channelIds: entity.channels.map(channel => channel.id),
             };
         },
         params: { id: params.id },
@@ -102,39 +101,18 @@ function RoleDetailPage() {
                         />
                     </DetailFormGrid>
                 </PageBlock>
-                <PageBlock column="main" blockId="channels">
-                    <div className="space-y-8">
-                        <div className="md:grid md:grid-cols-2 gap-4">
-                            <FormFieldWrapper
-                                control={form.control}
-                                name="channelIds"
-                                label={<Trans>Channels</Trans>}
-                                description={
-                                    <Trans>
-                                        The selected permissions will be applied to the these channels.
-                                    </Trans>
-                                }
-                                render={({ field }) => (
-                                    <ChannelSelector
-                                        multiple={true}
-                                        value={field.value ?? []}
-                                        onChange={value => field.onChange(value)}
-                                    />
-                                )}
+                <PageBlock column="main" blockId="permissions">
+                    <FormFieldWrapper
+                        control={form.control}
+                        name="permissions"
+                        label={<Trans>Permissions</Trans>}
+                        render={({ field }) => (
+                            <PermissionsTableGrid
+                                value={field.value ?? []}
+                                onChange={value => field.onChange(value)}
                             />
-                        </div>
-                        <FormFieldWrapper
-                            control={form.control}
-                            name="permissions"
-                            label={<Trans>Permissions</Trans>}
-                            render={({ field }) => (
-                                <PermissionsTableGrid
-                                    value={field.value ?? []}
-                                    onChange={value => field.onChange(value)}
-                                />
-                            )}
-                        />
-                    </div>
+                        )}
+                    />
                 </PageBlock>
             </PageLayout>
         </Page>
