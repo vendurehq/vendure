@@ -1,4 +1,3 @@
-import { stitchSchemas, ValidationLevel } from '@graphql-tools/stitch';
 import {
     buildASTSchema,
     GraphQLInputFieldConfigMap,
@@ -9,6 +8,8 @@ import {
 
 import { InternalServerError } from '../../common/error/errors';
 import { AuthenticationStrategy } from '../../config/auth/authentication-strategy';
+
+import { mergeTypesIntoSchema } from './merge-types-into-schema';
 
 /**
  * This function is responsible for constructing the `AuthenticationInput` GraphQL input type.
@@ -46,9 +47,5 @@ export function generateAuthenticationTypes(
         fields,
     });
 
-    return stitchSchemas({
-        subschemas: [schema, ...strategySchemas],
-        types: [authenticationInput],
-        typeMergingOptions: { validationSettings: { validationLevel: ValidationLevel.Off } },
-    });
+    return mergeTypesIntoSchema(schema, [authenticationInput], strategySchemas);
 }
