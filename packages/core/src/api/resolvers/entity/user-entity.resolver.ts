@@ -4,6 +4,7 @@ import { AuthenticationMethod as AuthenticationMethodType } from '@vendure/commo
 import { NATIVE_AUTH_STRATEGY_NAME } from '../../../config/auth/native-authentication-strategy';
 import { AuthenticationMethod } from '../../../entity/authentication-method/authentication-method.entity';
 import { ExternalAuthenticationMethod } from '../../../entity/authentication-method/external-authentication-method.entity';
+import { RoleAssignment } from '../../../entity/role-assignment/role-assignment.entity';
 import { Role } from '../../../entity/role/role.entity';
 import { User } from '../../../entity/user/user.entity';
 import { RoleAssignmentService } from '../../../service/services/role-assignment.service';
@@ -41,5 +42,15 @@ export class UserEntityResolver {
     @ResolveField()
     async roles(@Ctx() ctx: RequestContext, @Parent() user: User): Promise<Role[]> {
         return this.roleAssignmentService.resolveUserRoles(ctx, user.id);
+    }
+}
+
+@Resolver('User')
+export class UserAdminEntityResolver {
+    constructor(private roleAssignmentService: RoleAssignmentService) {}
+
+    @ResolveField()
+    async roleAssignments(@Ctx() ctx: RequestContext, @Parent() user: User): Promise<RoleAssignment[]> {
+        return this.roleAssignmentService.getVisibleAssignmentsForUser(ctx, user.id);
     }
 }

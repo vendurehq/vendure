@@ -32,6 +32,7 @@ import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-build
 import { TranslatableSaver } from '../helpers/translatable-saver/translatable-saver';
 import { TranslatorService } from '../helpers/translator/translator.service';
 
+import { AdministratorService } from './administrator.service';
 import { ChannelService } from './channel.service';
 import { RoleAssignmentService } from './role-assignment.service';
 import { RoleService } from './role.service';
@@ -42,6 +43,7 @@ import { UserService } from './user.service';
 @Instrument()
 export class ApiKeyService {
     constructor(
+        private administratorService: AdministratorService,
         private channelService: ChannelService,
         private configService: ConfigService,
         private connection: TransactionalConnection,
@@ -104,7 +106,10 @@ export class ApiKeyService {
          */
         userIdApiKeyUser?: ID,
     ): Promise<CreateApiKeyResult> {
-        await this.roleService.assertActiveUserCanGrantRoles(ctx, input.roleIds, [ctx.channelId]);
+        this.assertRoleInputsAreExclusive(input);
+        if (input.roleIds) {
+            await this.roleService.assertActiveUserCanGrantRoles(ctx, input.roleIds, [ctx.channelId]);
+        }
 
         const ownerUser = await this.connection.getEntityOrThrow(ctx, User, userIdOwner);
         const strategy = this.getApiKeyStrategyByApiType(ctx.apiType);
@@ -113,15 +118,23 @@ export class ApiKeyService {
             ? await this.connection.getEntityOrThrow(ctx, User, userIdApiKeyUser)
             : await this.userService.createApiKeyUser(ctx, this.generateApiKeyUserIdentifier(lookupId));
         if (!userIdApiKeyUser) {
-            // The `roleIds` input grants the Roles on the active Channel. An impersonated
-            // existing User (userIdApiKeyUser) keeps their own assignments instead.
-            // TODO(OSS-300): whether the `roleIds` inputs survive at all is an open decision.
-            await this.roleAssignmentService.replaceUserAssignmentsOnChannel(
-                ctx,
-                apiKeyUser.id,
-                input.roleIds,
-                ctx.channelId,
-            );
+            // An impersonated existing User (userIdApiKeyUser) keeps their own assignments
+            // instead of being granted new ones.
+            if (input.roleAssignments) {
+                await this.administratorService.setRoleAssignmentsForUser(
+                    ctx,
+                    apiKeyUser.id,
+                    input.roleAssignments,
+                );
+            } else if (input.roleIds) {
+                // The deprecated `roleIds` input grants the Roles on the active Channel.
+                await this.roleAssignmentService.replaceUserAssignmentsOnChannel(
+                    ctx,
+                    apiKeyUser.id,
+                    input.roleIds,
+                    ctx.channelId,
+                );
+            }
         }
 
         const secret = await strategy.generateSecret(ctx);
@@ -177,6 +190,7 @@ export class ApiKeyService {
             relations: ['user'],
         });
 
+        this.assertRoleInputsAreExclusive(input);
         if (input.roleIds) {
             await this.roleService.assertActiveUserCanGrantRoles(ctx, input.roleIds, [ctx.channelId]);
         }
@@ -189,8 +203,16 @@ export class ApiKeyService {
             beforeSave: async () => {
                 // Keep in mind that if the user of the ApiKey is being impersonated,
                 // this would change the role assignments of the impersonated user!
-                // The `roleIds` input replaces the user's assignments on the active Channel.
-                if (input.roleIds) {
+                if (input.roleAssignments) {
+                    // Replaces the full set of the user's assignments across all Channels.
+                    await this.administratorService.setRoleAssignmentsForUser(
+                        ctx,
+                        entity.user.id,
+                        input.roleAssignments,
+                    );
+                } else if (input.roleIds) {
+                    // The deprecated `roleIds` input replaces the user's assignments on
+                    // the active Channel.
                     await this.roleAssignmentService.replaceUserAssignmentsOnChannel(
                         ctx,
                         entity.user.id,
@@ -206,6 +228,14 @@ export class ApiKeyService {
         await this.eventBus.publish(new ApiKeyEvent(ctx, apiKey, 'updated', input));
 
         return assertFound(this.findOne(ctx, input.id, relations));
+    }
+
+    private assertRoleInputsAreExclusive(
+        input: Pick<CreateApiKeyInput | UpdateApiKeyInput, 'roleAssignments'> & { roleIds?: ID[] | null },
+    ) {
+        if (input.roleIds && input.roleAssignments) {
+            throw new UserInputError('error.role-ids-and-role-assignments-are-mutually-exclusive');
+        }
     }
 
     /**

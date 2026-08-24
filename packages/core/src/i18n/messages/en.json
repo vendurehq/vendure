@@ -53,6 +53,7 @@
     "promotion-channels-can-only-be-changed-from-default-channel": "Promotions channels may only be changed from the Default Channel",
     "regex-filter-pattern-too-long": "The regex filter pattern exceeds the maximum allowed length of { max } characters",
     "regex-filter-pattern-unsafe": "The regex filter pattern is not allowed as it may cause excessive resource consumption",
+    "role-ids-and-role-assignments-are-mutually-exclusive": "The roleIds and roleAssignments inputs cannot be used together",
     "stockonhand-cannot-be-negative": "stockOnHand cannot be a negative value",
     "superadmin-must-have-superadmin-role": "Cannot remove the SuperAdmin role from the sole SuperAdmin",
     "target-customer-not-assigned-to-order-channels": "The target Customer is not assigned to the same Channels as the Order. Missing channels IDs: { missingChannelIds }",
