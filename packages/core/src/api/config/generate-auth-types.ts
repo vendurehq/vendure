@@ -4,7 +4,7 @@ import {
     GraphQLInputObjectType,
     GraphQLSchema,
     isInputObjectType,
-} from 'graphql';
+} from 'graphql/index.js';
 
 import { InternalServerError } from '../../common/error/errors';
 import { AuthenticationStrategy } from '../../config/auth/authentication-strategy';
@@ -31,9 +31,9 @@ export function generateAuthenticationTypes(
     for (const strategy of authenticationStrategies) {
         const inputSchema = buildASTSchema(strategy.defineInputType());
 
-        const inputType = Object.values(
-            inputSchema.getTypeMap(),
-        ).find((type): type is GraphQLInputObjectType => isInputObjectType(type));
+        const inputType = Object.values(inputSchema.getTypeMap()).find(
+            (type): type is GraphQLInputObjectType => isInputObjectType(type),
+        );
         if (!inputType) {
             throw new InternalServerError(
                 `${strategy.constructor.name}.defineInputType() does not define a GraphQL Input type`,
