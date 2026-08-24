@@ -1,6 +1,3 @@
-// Importing from the decorators subpath avoids eagerly loading the whole
-// @nestjs/graphql barrel (drivers, federation, graphql-tools) at require time.
-import { Args, Mutation, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql/dist/decorators';
 import {
     Permission,
     QuerySearchArgs,
@@ -8,21 +5,29 @@ import {
     SearchResponse,
 } from '@vendure/common/lib/generated-types';
 import { Omit } from '@vendure/common/lib/omit';
+import {
+    Args,
+    Mutation,
+    Parent,
+    Query,
+    ResolveField,
+    Resolver,
+} from '../../../common/nestjs-graphql-internals';
 
 import { RequestContext } from '../../../api/common/request-context';
 import { Allow } from '../../../api/decorators/allow.decorator';
 import { Ctx } from '../../../api/decorators/request-context.decorator';
 import { SearchResolver as BaseSearchResolver } from '../../../api/resolvers/admin/search.resolver';
-import { InternalServerError } from '../../../common/error/errors';
 import { Collection } from '../../../entity/collection/collection.entity';
 import { FacetValue } from '../../../entity/facet-value/facet-value.entity';
 import { FulltextSearchService } from '../fulltext-search.service';
 import { SearchJobBufferService } from '../search-job-buffer/search-job-buffer.service';
 
 @Resolver('SearchResponse')
-export class ShopFulltextSearchResolver
-    implements Pick<BaseSearchResolver, 'search' | 'facetValues' | 'collections'>
-{
+export class ShopFulltextSearchResolver implements Pick<
+    BaseSearchResolver,
+    'search' | 'facetValues' | 'collections'
+> {
     constructor(private fulltextSearchService: FulltextSearchService) {}
 
     @Query()

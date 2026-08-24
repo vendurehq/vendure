@@ -1,10 +1,8 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
-// Importing from the services subpath avoids eagerly loading the whole
-// @nestjs/graphql barrel (drivers, federation, graphql-tools) at require time.
-import { GqlExecutionContext } from '@nestjs/graphql/dist/services/gql-execution-context';
 import { IdOperators } from '@vendure/common/lib/generated-types';
 import { GraphQLNamedType, GraphQLSchema, OperationDefinitionNode } from 'graphql';
 import { Observable } from 'rxjs';
+import { GqlExecutionContext } from '../../common/nestjs-graphql-internals';
 
 import { GraphqlValueTransformer } from '../common/graphql-value-transformer';
 import { IdCodecService } from '../common/id-codec.service';

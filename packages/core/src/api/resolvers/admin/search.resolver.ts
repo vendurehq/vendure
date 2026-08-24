@@ -1,11 +1,8 @@
-// Importing from the decorators subpath avoids eagerly loading the whole
-// @nestjs/graphql barrel (drivers, federation, graphql-tools) at require time.
-import { Mutation, Query, ResolveField, Resolver } from '@nestjs/graphql/dist/decorators';
 import { Permission, SearchResponse } from '@vendure/common/lib/generated-types';
 import { Omit } from '@vendure/common/lib/omit';
+import { Mutation, Query, ResolveField, Resolver } from '../../../common/nestjs-graphql-internals';
 
 import { InternalServerError } from '../../../common/error/errors';
-import { Translated } from '../../../common/types/locale-types';
 import { Collection, FacetValue } from '../../../entity';
 import { Allow } from '../../decorators/allow.decorator';
 
