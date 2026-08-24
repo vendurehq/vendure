@@ -2724,7 +2724,7 @@
                   "title": "Plugin Utilities",
                   "slug": "plugin-utilities",
                   "file": "docs/reference/typescript-api/plugin/plugin-utilities.mdx",
-                  "lastModified": "2026-08-21T07:56:41+02:00"
+                  "lastModified": "2026-08-24T11:42:08Z"
                 },
                 {
                   "title": "PluginCommonModule",
@@ -3578,7 +3578,7 @@
                   "title": "WorkerHealthCheckConfig",
                   "slug": "worker-health-check-config",
                   "file": "docs/reference/typescript-api/worker/worker-health-check-config.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-08-24T11:42:08Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -4031,13 +4031,13 @@
                   "title": "UseDetailPage",
                   "slug": "use-detail-page",
                   "file": "docs/reference/dashboard/detail-views/use-detail-page.mdx",
-                  "lastModified": "2026-07-20T15:59:41+02:00"
+                  "lastModified": "2026-08-24T11:42:08Z"
                 },
                 {
                   "title": "UseGeneratedForm",
                   "slug": "use-generated-form",
                   "file": "docs/reference/dashboard/detail-views/use-generated-form.mdx",
-                  "lastModified": "2026-07-22T14:03:14Z"
+                  "lastModified": "2026-08-24T11:42:08Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
