@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CreateAdministratorInput, Permission } from '@vendure/common/lib/generated-types';
+import { Permission } from '@vendure/common/lib/generated-types';
 import { normalizeString } from '@vendure/common/lib/normalize-string';
 import {
     AdministratorService,
@@ -12,6 +12,7 @@ import {
     manualFulfillmentHandler,
     RequestContext,
     RequestContextService,
+    RoleAssignmentService,
     RoleService,
     SellerService,
     ShippingMethod,
@@ -32,6 +33,7 @@ export class MultivendorService {
         private administratorService: AdministratorService,
         private sellerService: SellerService,
         private roleService: RoleService,
+        private roleAssignmentService: RoleAssignmentService,
         private channelService: ChannelService,
         private shippingMethodService: ShippingMethodService,
         private configService: ConfigService,
@@ -132,12 +134,8 @@ export class MultivendorService {
         if (isGraphQlErrorResult(channel)) {
             throw new InternalServerError(channel.message);
         }
-        const superAdminRole = await this.roleService.getSuperAdminRole(ctx);
-        const customerRole = await this.roleService.getCustomerRole(ctx);
-        await this.roleService.assignRoleToChannel(ctx, superAdminRole.id, channel.id);
         const role = await this.roleService.create(ctx, {
             code: `${shopCode}-admin`,
-            channelIds: [channel.id],
             description: `Administrator of ${input.shopName}`,
             permissions: [
                 Permission.CreateCatalog,
@@ -168,8 +166,16 @@ export class MultivendorService {
             lastName: input.seller.lastName,
             emailAddress: input.seller.emailAddress,
             password: input.seller.password,
-            roleIds: [role.id],
+            // `roleIds` grants roles on the active channel, but this administrator
+            // needs the role on the newly-created seller channel.
+            roleIds: [],
         });
+        await this.roleAssignmentService.replaceUserAssignmentsOnChannel(
+            ctx,
+            administrator.user.id,
+            [role.id],
+            channel.id,
+        );
         return channel;
     }
 
