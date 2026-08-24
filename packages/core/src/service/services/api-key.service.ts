@@ -8,7 +8,7 @@ import {
     UpdateApiKeyInput,
 } from '@vendure/common/lib/generated-types';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
-import { In, IsNull, UpdateResult } from 'typeorm';
+import { IsNull, UpdateResult } from 'typeorm';
 
 import { ApiType, RelationPaths, RequestContext } from '../../api';
 import {
@@ -22,7 +22,7 @@ import {
 import { API_KEY_AUTH_STRATEGY_NAME, ConfigService, Logger } from '../../config';
 import { ApiKeyStrategy } from '../../config/api-key-strategy/api-key-strategy';
 import { TransactionalConnection } from '../../connection';
-import { AuthenticationMethod, Role, User } from '../../entity';
+import { AuthenticationMethod, User } from '../../entity';
 import { ApiKeyTranslation } from '../../entity/api-key/api-key-translation.entity';
 import { ApiKey } from '../../entity/api-key/api-key.entity';
 import { EventBus } from '../../event-bus';
@@ -33,6 +33,7 @@ import { TranslatableSaver } from '../helpers/translatable-saver/translatable-sa
 import { TranslatorService } from '../helpers/translator/translator.service';
 
 import { ChannelService } from './channel.service';
+import { RoleAssignmentService } from './role-assignment.service';
 import { RoleService } from './role.service';
 import { SessionService } from './session.service';
 import { UserService } from './user.service';
@@ -47,6 +48,7 @@ export class ApiKeyService {
         private customFieldRelationService: CustomFieldRelationService,
         private eventBus: EventBus,
         private listQueryBuilder: ListQueryBuilder,
+        private roleAssignmentService: RoleAssignmentService,
         private roleService: RoleService,
         private sessionService: SessionService,
         private translatableSaver: TranslatableSaver,
@@ -63,37 +65,6 @@ export class ApiKeyService {
         return apiType === 'admin'
             ? this.configService.authOptions.adminApiKeyStrategy
             : this.configService.authOptions.shopApiKeyStrategy;
-    }
-
-    /**
-     * @description
-     * Checks that the active user is allowed to grant the specified Roles for an API-Key
-     *
-     * // TODO this is taken & slightly modified from adminservice, could merge to not repeat logic
-     *
-     * @throws {UserInputError} If the active User has insufficient permissions
-     * @returns Role-Entities with relations to Channels
-     */
-    private async assertActiveUserCanGrantRoles(ctx: RequestContext, roleIds: ID[]): Promise<Role[]> {
-        if (roleIds.length === 0) return [];
-
-        const roles = await this.connection.getRepository(ctx, Role).find({
-            where: { id: In(roleIds) },
-            relations: { channels: true },
-        });
-        const permissionsRequired = getChannelPermissions(roles);
-        for (const channelPermissions of permissionsRequired) {
-            const isAllowed = await this.roleService.userHasAllPermissionsOnChannel(
-                ctx,
-                channelPermissions.id,
-                channelPermissions.permissions,
-            );
-
-            if (!isAllowed)
-                throw new UserInputError('error.active-user-does-not-have-sufficient-permissions');
-        }
-
-        return roles;
     }
 
     /**
@@ -133,21 +104,25 @@ export class ApiKeyService {
          */
         userIdApiKeyUser?: ID,
     ): Promise<CreateApiKeyResult> {
-        const roles = await this.assertActiveUserCanGrantRoles(ctx, input.roleIds);
+        await this.roleService.assertActiveUserCanGrantRoles(ctx, input.roleIds, [ctx.channelId]);
 
         const ownerUser = await this.connection.getEntityOrThrow(ctx, User, userIdOwner);
         const strategy = this.getApiKeyStrategyByApiType(ctx.apiType);
         const lookupId = await strategy.generateLookupId(ctx);
         const apiKeyUser = userIdApiKeyUser
-            ? await this.connection.getEntityOrThrow(ctx, User, userIdApiKeyUser, {
-                  // ApiKeyUsers generally require roles and their channels, its important for sessions!
-                  relations: { roles: { channels: true } },
-              })
-            : await this.userService.createApiKeyUser(
-                  ctx,
-                  roles,
-                  this.generateApiKeyUserIdentifier(lookupId),
-              );
+            ? await this.connection.getEntityOrThrow(ctx, User, userIdApiKeyUser)
+            : await this.userService.createApiKeyUser(ctx, this.generateApiKeyUserIdentifier(lookupId));
+        if (!userIdApiKeyUser) {
+            // The `roleIds` input grants the Roles on the active Channel. An impersonated
+            // existing User (userIdApiKeyUser) keeps their own assignments instead.
+            // TODO(OSS-300): whether the `roleIds` inputs survive at all is an open decision.
+            await this.roleAssignmentService.replaceUserAssignmentsOnChannel(
+                ctx,
+                apiKeyUser.id,
+                input.roleIds,
+                ctx.channelId,
+            );
+        }
 
         const secret = await strategy.generateSecret(ctx);
         const apiKey = strategy.constructApiKey(lookupId, secret);
@@ -203,7 +178,7 @@ export class ApiKeyService {
         });
 
         if (input.roleIds) {
-            entity.user.roles = await this.assertActiveUserCanGrantRoles(ctx, input.roleIds);
+            await this.roleService.assertActiveUserCanGrantRoles(ctx, input.roleIds, [ctx.channelId]);
         }
 
         const apiKey = await this.translatableSaver.update({
@@ -213,9 +188,15 @@ export class ApiKeyService {
             translationType: ApiKeyTranslation,
             beforeSave: async () => {
                 // Keep in mind that if the user of the ApiKey is being impersonated,
-                // this would change the roles of the impersonated user!
+                // this would change the role assignments of the impersonated user!
+                // The `roleIds` input replaces the user's assignments on the active Channel.
                 if (input.roleIds) {
-                    await this.connection.getRepository(ctx, User).save(entity.user, { reload: false });
+                    await this.roleAssignmentService.replaceUserAssignmentsOnChannel(
+                        ctx,
+                        entity.user.id,
+                        input.roleIds,
+                        ctx.channelId,
+                    );
                 }
             },
         });
@@ -276,8 +257,7 @@ export class ApiKeyService {
         const entity = await this.connection.getEntityOrThrow(ctx, ApiKey, id, {
             channelId: ctx.channelId,
             includeSoftDeleted: false,
-            // Need roles and channels for session
-            relations: { user: { roles: { channels: true } } },
+            relations: { user: true },
         });
 
         const strategy = this.getApiKeyStrategyByApiType(ctx.apiType);
