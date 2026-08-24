@@ -115,6 +115,28 @@ function createHeavyPlugins(core, count = 20) {
 
         plugins.push(PluginClass);
     }
+
+    // Awaited external HTTP call at bootstrap (license-check pattern seen in the
+    // wild). Deterministic: calls a local server that delays its response by
+    // BENCH_EXT_HTTP_MS. Off by default so it doesn't drown other signals.
+    const extHttpMs = Number(process.env.BENCH_EXT_HTTP_MS || 0);
+    if (extHttpMs > 0) {
+        const http = require('http');
+        const ExternalCallPlugin = class {
+            async onApplicationBootstrap() {
+                const server = http.createServer((req, res) => {
+                    setTimeout(() => res.end('ok'), extHttpMs);
+                });
+                await new Promise(resolve => server.listen(0, resolve));
+                const { port } = server.address();
+                await fetch(`http://127.0.0.1:${port}/verify`).then(r => r.text());
+                server.close();
+            }
+        };
+        Object.defineProperty(ExternalCallPlugin, 'name', { value: 'BenchExternalCallPlugin' });
+        VendurePlugin({ compatibility: '>0.0.0' })(ExternalCallPlugin);
+        plugins.push(ExternalCallPlugin);
+    }
     return plugins;
 }
 

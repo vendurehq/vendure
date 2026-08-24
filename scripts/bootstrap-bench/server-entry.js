@@ -13,9 +13,12 @@ async function main() {
     const t0 = performance.now();
     const app = await core.bootstrap(config);
     const bootstrapMs = performance.now() - t0;
+    const res = await fetch(`http://127.0.0.1:${config.apiOptions.port}/health`);
+    await res.text();
+    const firstResponseMs = performance.now();
     const totalMs = performance.now();
     console.log(
-        JSON.stringify({ target: 'server', startupMs, requireCoreMs, bootstrapMs, totalMs }),
+        JSON.stringify({ target: 'server', startupMs, requireCoreMs, bootstrapMs, firstResponseMs, totalMs }),
     );
     await Promise.race([app.close(), new Promise(resolve => setTimeout(resolve, 3000))]);
     process.exit(0);
