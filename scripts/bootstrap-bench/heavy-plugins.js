@@ -1,9 +1,12 @@
 /**
- * Generates N synthetic plugins modeled on real-world plugin patterns:
+ * Generates N synthetic plugins modeled on real-world plugin patterns, based on
+ * a survey of the vendure-platform and flowtech-monorepo codebases:
  * - an entity with a handful of columns
  * - admin + shop GraphQL API extensions (one query each)
  * - custom fields added via a configuration function
- * - onModuleInit + onApplicationBootstrap hooks that each run a DB query
+ * - onModuleInit: 1-2 job queues created via JobQueueService, an EventBus
+ *   subscription with a DB-touching handler, and a DB query
+ * - onApplicationBootstrap: sequential strategy `.init()` fan-out + a DB query
  *
  * Written in plain JS (decorators invoked manually) so benchmark runs measure
  * compiled-JS cost only, with no ts-node overhead.
@@ -53,19 +56,43 @@ function createHeavyPlugins(core, count = 20) {
         const shopResolver = makeResolver(`benchShopQuery${i}`);
 
         // --- plugin class with lifecycle hooks ---
+        const queueCount = i % 2 === 0 ? 2 : 1;
         const PluginClass = class {
-            constructor(connection) {
+            constructor(connection, jobQueueService, eventBus) {
                 this.connection = connection;
+                this.jobQueueService = jobQueueService;
+                this.eventBus = eventBus;
+                // pluggable-strategy pattern: 3 strategies inited sequentially at bootstrap
+                this.strategies = [0, 1, 2].map(() => ({
+                    init: async () => new Promise(resolve => setImmediate(resolve)),
+                }));
             }
             async onModuleInit() {
+                for (let q = 0; q < queueCount; q++) {
+                    await this.jobQueueService.createQueue({
+                        name: `bench-queue-${i}-${q}`,
+                        process: async job => {
+                            await this.connection.rawConnection.getRepository(EntityClass).count();
+                            return job.data;
+                        },
+                    });
+                }
+                this.eventBus.ofType(core.ProductEvent).subscribe(() => {
+                    void this.connection.rawConnection.getRepository(EntityClass).count();
+                });
                 await this.connection.rawConnection.getRepository(EntityClass).count();
             }
             async onApplicationBootstrap() {
+                for (const strategy of this.strategies) {
+                    await strategy.init();
+                }
                 await this.connection.rawConnection.getRepository(EntityClass).count();
             }
         };
         Object.defineProperty(PluginClass, 'name', { value: `BenchPlugin${i}` });
         Inject(TransactionalConnection)(PluginClass, undefined, 0);
+        Inject(core.JobQueueService)(PluginClass, undefined, 1);
+        Inject(core.EventBus)(PluginClass, undefined, 2);
 
         VendurePlugin({
             imports: [PluginCommonModule],

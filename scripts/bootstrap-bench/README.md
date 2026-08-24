@@ -20,7 +20,10 @@ node scripts/bootstrap-bench/bench.js <target> [--runs=7] [--cpu-prof]
 
 Targets: `server`, `worker`, `phases` and heavy variants `server-heavy`,
 `worker-heavy`, `phases-heavy` (adds 20 synthetic plugins with entities, admin/shop
-API extensions, custom fields and DB-querying lifecycle hooks — see `heavy-plugins.js`).
+API extensions, custom fields, job-queue creation (30 queues), event-bus
+subscriptions and DB-querying lifecycle hooks, modeled on a survey of two real
+production codebases — see `heavy-plugins.js`). Heavy server-total baseline after
+the queue/subscription upgrade: ~905ms median (bootstrap phase ~550ms).
 
 - `phases` mirrors `bootstrap()` step-by-step (keep in sync with `packages/core/src/bootstrap.ts`).
 - `--cpu-prof` writes .cpuprofile files to `profiles/`; analyze with
