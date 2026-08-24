@@ -270,6 +270,9 @@ export class RequestContext {
         if (!user || !this.channelId) {
             return false;
         }
+        if (user.globalPermissions && this.arraysIntersect(user.globalPermissions, permissions)) {
+            return true;
+        }
         const permissionsOnChannel = user.channelPermissions.find(c => idsAreEqual(c.id, this.channelId));
         if (permissionsOnChannel) {
             return this.arraysIntersect(permissionsOnChannel.permissions, permissions);
@@ -298,11 +301,15 @@ export class RequestContext {
         if (!user || !this.channelId) {
             return false;
         }
+        const globalPermissions = user.globalPermissions ?? [];
         const permissionsOnChannel = user.channelPermissions.find(c => idsAreEqual(c.id, this.channelId));
-        if (permissionsOnChannel) {
-            return permissions.every(permission => permissionsOnChannel.permissions.includes(permission));
+        const channelPermissions = permissionsOnChannel?.permissions ?? [];
+        if (globalPermissions.length === 0 && channelPermissions.length === 0) {
+            return false;
         }
-        return false;
+        return permissions.every(
+            permission => globalPermissions.includes(permission) || channelPermissions.includes(permission),
+        );
     }
 
     /**

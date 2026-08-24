@@ -54,9 +54,6 @@ export class UserService {
             .findOne({
                 where: { id: userId },
                 relations: {
-                    roles: {
-                        channels: true,
-                    },
                     authenticationMethods: true,
                 },
             })
@@ -75,8 +72,6 @@ export class UserService {
             .getRepository(ctx, User)
             .createQueryBuilder('user')
             .innerJoin(table, table, `${table}.userId = user.id`)
-            .leftJoinAndSelect('user.roles', 'roles')
-            .leftJoinAndSelect('roles.channels', 'channels')
             .leftJoinAndSelect('user.authenticationMethods', 'authenticationMethods')
             .where('user.deletedAt IS NULL');
 

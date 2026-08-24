@@ -34,14 +34,14 @@ import { ConfigService } from '../../config/config.service';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Channel } from '../../entity/channel/channel.entity';
 import { Role } from '../../entity/role/role.entity';
-import { User } from '../../entity/user/user.entity';
 import { EventBus } from '../../event-bus';
 import { RoleEvent } from '../../event-bus/events/role-event';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
 import {
-    getChannelPermissions,
-    getUserChannelsPermissions,
-} from '../helpers/utils/get-user-channels-permissions';
+    ResolvedUserPermissions,
+    RolePermissionResolver,
+} from '../helpers/role-permission-resolver/role-permission-resolver';
+import { getChannelPermissions } from '../helpers/utils/get-user-channels-permissions';
 import { patchEntity } from '../helpers/utils/patch-entity';
 
 /**
@@ -68,6 +68,7 @@ export class RoleService {
         private eventBus: EventBus,
         private requestContextCache: RequestContextCacheService,
         private cacheService: CacheService,
+        private rolePermissionResolver: RolePermissionResolver,
     ) {
         // When a Role is created, updated or deleted, we need to invalidate the roles cache
         this.eventBus.ofType(RoleEvent).subscribe(event => {
@@ -238,29 +239,27 @@ export class RoleService {
         ctx: RequestContext,
         channelId: ID,
     ): Promise<Permission[]> {
+        const { channels, globalPermissions } = await this.getActiveUserResolvedPermissions(ctx);
+        const channel = channels.find(c => idsAreEqual(c.id, channelId));
+        return unique([...globalPermissions, ...(channel?.permissions ?? [])]);
+    }
+
+    /**
+     * Resolves (and request-caches) the active user's effective permissions. Cached per
+     * request since guard-heavy code paths (e.g. the GetActiveAdministrator query in the
+     * admin ui) would otherwise re-resolve for every check, causing unbounded quadratic
+     * slowdown on instances with many channels.
+     */
+    private async getActiveUserResolvedPermissions(ctx: RequestContext): Promise<ResolvedUserPermissions> {
         const { activeUserId } = ctx;
         if (activeUserId == null) {
-            return [];
+            return { channels: [], globalPermissions: [] };
         }
-        // For apps with many channels, this is a performance bottleneck as it will be called
-        // for each channel in certain code paths such as the GetActiveAdministrator query in the
-        // admin ui. Caching the result prevents unbounded quadratic slowdown.
-        const userChannels = await this.requestContextCache.get(
+        return this.requestContextCache.get(
             ctx,
-            `RoleService.getActiveUserPermissionsOnChannel.user(${activeUserId})`,
-            async () => {
-                const user = await this.connection.getEntityOrThrow(ctx, User, activeUserId, {
-                    relations: ['roles', 'roles.channels'],
-                });
-                return getUserChannelsPermissions(user);
-            },
+            `RoleService.getActiveUserResolvedPermissions.user(${activeUserId})`,
+            () => this.rolePermissionResolver.resolvePermissions(activeUserId),
         );
-
-        const channel = userChannels.find(c => idsAreEqual(c.id, channelId));
-        if (!channel) {
-            return [];
-        }
-        return channel.permissions;
     }
 
     async create(ctx: RequestContext, input: CreateRoleInput): Promise<Role> {

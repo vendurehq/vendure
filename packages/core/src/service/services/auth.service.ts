@@ -79,17 +79,6 @@ export class AuthService {
         user: User,
         authenticationStrategyName: string,
     ): Promise<AuthenticatedSession | NotVerifiedError> {
-        if (!user.roles || !user.roles[0]?.channels) {
-            const userWithRoles = await this.connection
-                .getRepository(ctx, User)
-                .createQueryBuilder('user')
-                .leftJoinAndSelect('user.roles', 'role')
-                .leftJoinAndSelect('role.channels', 'channel')
-                .where('user.id = :userId', { userId: user.id })
-                .getOne();
-            user.roles = userWithRoles?.roles || [];
-        }
-
         const extAuths = (user.authenticationMethods ?? []).filter(
             am => am instanceof ExternalAuthenticationMethod,
         );
