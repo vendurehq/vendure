@@ -84,7 +84,6 @@ import {
 } from './resolvers/entity/product-variant-entity.resolver';
 import { RefundEntityResolver } from './resolvers/entity/refund-entity.resolver';
 import { RefundLineEntityResolver } from './resolvers/entity/refund-line-entity.resolver';
-import { RoleEntityResolver } from './resolvers/entity/role-entity.resolver';
 import { ShippingLineEntityResolver } from './resolvers/entity/shipping-line-entity.resolver';
 import { ShippingMethodEntityResolver } from './resolvers/entity/shipping-method-entity.resolver';
 import { TaxRateEntityResolver } from './resolvers/entity/tax-rate-entity.resolver';
@@ -163,7 +162,6 @@ export const entityResolvers = [
     ProductVariantEntityResolver,
     RefundEntityResolver,
     RefundLineEntityResolver,
-    RoleEntityResolver,
     ShippingLineEntityResolver,
     UserEntityResolver,
     TaxRateEntityResolver,

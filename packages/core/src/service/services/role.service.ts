@@ -21,18 +21,12 @@ import { RelationPaths } from '../../api/decorators/relations.decorator';
 import { CacheService } from '../../cache';
 import { RequestContextCacheService } from '../../cache/request-context-cache.service';
 import { getAllPermissionsMetadata } from '../../common/constants';
-import {
-    EntityNotFoundError,
-    ForbiddenError,
-    InternalServerError,
-    UserInputError,
-} from '../../common/error/errors';
+import { EntityNotFoundError, InternalServerError, UserInputError } from '../../common/error/errors';
 import { Instrument } from '../../common/instrument-decorator';
 import { ListQueryOptions } from '../../common/types/common-types';
 import { assertFound, idsAreEqual } from '../../common/utils';
 import { ConfigService } from '../../config/config.service';
 import { TransactionalConnection } from '../../connection/transactional-connection';
-import { Channel } from '../../entity/channel/channel.entity';
 import { Role } from '../../entity/role/role.entity';
 import { EventBus } from '../../event-bus';
 import { RoleEvent } from '../../event-bus/events/role-event';
@@ -41,7 +35,6 @@ import {
     ResolvedUserPermissions,
     RolePermissionResolver,
 } from '../helpers/role-permission-resolver/role-permission-resolver';
-import { getChannelPermissions } from '../helpers/utils/get-user-channels-permissions';
 import { patchEntity } from '../helpers/utils/patch-entity';
 
 /**
@@ -87,8 +80,9 @@ export class RoleService {
         options?: ListQueryOptions<Role>,
         relations?: RelationPaths<Role>,
     ): Promise<PaginatedList<Role>> {
-        // Compute the set of Role IDs the active user can read (channel + permission check) up front to ensure sort/skip/take operate only over visible Roles.
-        const allRoles = await this.getAllRolesWithChannels(ctx);
+        // Compute the set of Role IDs the active user can read up front to ensure
+        // sort/skip/take operate only over visible Roles.
+        const allRoles = await this.getAllRoles(ctx);
 
         const visibleRoleIds: ID[] = [];
         for (const role of allRoles) {
@@ -103,7 +97,7 @@ export class RoleService {
 
         const [items, totalItems] = await this.listQueryBuilder
             .build(Role, options, {
-                relations: unique([...(relations ?? []), 'channels']),
+                relations: relations ?? [],
                 ctx,
             })
             .andWhere({ id: In(visibleRoleIds) })
@@ -116,17 +110,13 @@ export class RoleService {
             .getRepository(ctx, Role)
             .findOne({
                 where: { id: roleId },
-                relations: unique([...(relations ?? []), 'channels']),
+                relations: relations ?? [],
             })
             .then(async result => {
                 if (result && (await this.activeUserCanReadRole(ctx, result))) {
                     return result;
                 }
             });
-    }
-
-    getChannelsForRole(ctx: RequestContext, roleId: ID): Promise<Channel[]> {
-        return this.findOne(ctx, roleId).then(role => (role ? role.channels : []));
     }
 
     /**
@@ -194,23 +184,16 @@ export class RoleService {
     }
 
     private async activeUserCanReadRole(ctx: RequestContext, role: Role): Promise<boolean> {
-        const permissionsRequired = getChannelPermissions([role]);
-        for (const channelPermissions of permissionsRequired) {
-            const activeUserHasRequiredPermissions = await this.userHasAllPermissionsOnChannel(
-                ctx,
-                channelPermissions.id,
-                channelPermissions.permissions,
-            );
-            if (!activeUserHasRequiredPermissions) {
-                return false;
-            }
-        }
-        return true;
+        // A Role is visible to the active user if they hold its full permission envelope on
+        // at least one Channel. Since the SuperAdmin permission cannot be granted to
+        // user-created Roles (see checkPermissionsAreValid), this keeps the SuperAdmin role
+        // visible only to SuperAdmins by set arithmetic alone.
+        return this.activeUserHoldsPermissionsOnAnyChannel(ctx, role.permissions);
     }
 
-    private async getAllRolesWithChannels(ctx: RequestContext): Promise<Role[]> {
+    private async getAllRoles(ctx: RequestContext): Promise<Role[]> {
         const allRolesJson = await this.rolesCache.get(this.rolesCacheKey, async () => {
-            const roles = await this.connection.getRepository(ctx, Role).find({ relations: ['channels'] });
+            const roles = await this.connection.getRepository(ctx, Role).find();
             return JSON.stringify(roles);
         });
 
@@ -262,16 +245,79 @@ export class RoleService {
         );
     }
 
+    /**
+     * @description
+     * Returns true if the active user holds all of the specified permissions on at least one
+     * Channel.
+     *
+     * This is the fail-closed floor beneath the permission guards: a Role is a
+     * channel-agnostic template carrying no channel scope of its own, so the only meaningful
+     * question a guard can ask about the actor is whether they could grant the Role's
+     * permissions somewhere. An actor with no permissions anywhere is always denied.
+     *
+     * @since 4.0.0
+     */
+    async activeUserHoldsPermissionsOnAnyChannel(
+        ctx: RequestContext,
+        permissions: Permission[],
+    ): Promise<boolean> {
+        const { channels, globalPermissions } = await this.getActiveUserResolvedPermissions(ctx);
+        if (permissions.every(permission => globalPermissions.includes(permission))) {
+            return true;
+        }
+        return channels.some(channelPermissions =>
+            permissions.every(
+                permission =>
+                    channelPermissions.permissions.includes(permission) ||
+                    globalPermissions.includes(permission),
+            ),
+        );
+    }
+
+    /**
+     * @description
+     * Asserts that the active user may grant every one of the given Roles, and returns those
+     * Roles. The rule is that an administrator may only grant permissions which they
+     * themselves possess: on at least one Channel (the fail-closed floor for channel-agnostic
+     * Roles), and — when the Channels the grant applies to are known — on each of those
+     * Channels.
+     *
+     * @throws {EntityNotFoundError} if one of the given ids does not match an existing Role
+     * @throws {UserInputError} if the active user has insufficient permissions
+     * @since 4.0.0
+     */
+    async assertActiveUserCanGrantRoles(
+        ctx: RequestContext,
+        roleIds: ID[],
+        channelIds?: ID[],
+    ): Promise<Role[]> {
+        if (roleIds.length === 0) {
+            return [];
+        }
+        const roles = await this.connection.getRepository(ctx, Role).find({
+            where: { id: In(roleIds) },
+        });
+        for (const roleId of roleIds) {
+            if (!roles.some(role => idsAreEqual(role.id, roleId))) {
+                throw new EntityNotFoundError('Role', roleId);
+            }
+        }
+        for (const role of roles) {
+            if (!(await this.activeUserHoldsPermissionsOnAnyChannel(ctx, role.permissions))) {
+                throw new UserInputError('error.active-user-does-not-have-sufficient-permissions');
+            }
+            for (const channelId of channelIds ?? []) {
+                if (!(await this.userHasAllPermissionsOnChannel(ctx, channelId, role.permissions))) {
+                    throw new UserInputError('error.active-user-does-not-have-sufficient-permissions');
+                }
+            }
+        }
+        return roles;
+    }
+
     async create(ctx: RequestContext, input: CreateRoleInput): Promise<Role> {
         this.checkPermissionsAreValid(input.permissions);
-
-        let targetChannels: Channel[] = [];
-        if (input.channelIds) {
-            targetChannels = await this.getPermittedChannels(ctx, input.channelIds);
-        } else {
-            targetChannels = [ctx.channel];
-        }
-        await this.checkActiveUserHasSufficientPermissions(ctx, targetChannels, input.permissions);
+        await this.checkActiveUserHasSufficientPermissions(ctx, input.permissions);
         const role = await this.createRoleEntity(ctx, input);
         await this.eventBus.publish(new RoleEvent(ctx, role, 'created', input));
         return role;
@@ -286,15 +332,8 @@ export class RoleService {
         if (role.code === SUPER_ADMIN_ROLE_CODE || role.code === CUSTOMER_ROLE_CODE) {
             throw new InternalServerError('error.cannot-modify-role', { roleCode: role.code });
         }
-        const targetChannels = input.channelIds
-            ? await this.getPermittedChannels(ctx, input.channelIds)
-            : undefined;
         if (input.permissions) {
-            await this.checkActiveUserHasSufficientPermissions(
-                ctx,
-                targetChannels ?? role.channels,
-                input.permissions,
-            );
+            await this.checkActiveUserHasSufficientPermissions(ctx, input.permissions);
         }
         patchEntity(role, {
             code: input.code,
@@ -303,9 +342,6 @@ export class RoleService {
                 ? unique([Permission.Authenticated, ...input.permissions])
                 : undefined,
         });
-        if (targetChannels) {
-            role.channels = targetChannels;
-        }
         await this.connection.getRepository(ctx, Role).save(role, { reload: false });
         const updatedRole = await assertFound(this.findOne(ctx, role.id));
         await this.eventBus.publish(new RoleEvent(ctx, updatedRole, 'updated', input));
@@ -328,23 +364,6 @@ export class RoleService {
         };
     }
 
-    private async getPermittedChannels(ctx: RequestContext, channelIds: ID[]): Promise<Channel[]> {
-        let permittedChannels: Channel[] = [];
-        for (const channelId of channelIds) {
-            const channel = await this.connection.getEntityOrThrow(ctx, Channel, channelId);
-            const hasPermission = await this.userHasPermissionOnChannel(
-                ctx,
-                channelId,
-                Permission.CreateAdministrator,
-            );
-            if (!hasPermission) {
-                throw new ForbiddenError();
-            }
-            permittedChannels = [...permittedChannels, channel];
-        }
-        return permittedChannels;
-    }
-
     private checkPermissionsAreValid(permissions?: Permission[] | null) {
         if (!permissions) {
             return;
@@ -359,30 +378,19 @@ export class RoleService {
 
     /**
      * @description
-     * Checks that the active User has sufficient Permissions on the target Channels to create
-     * a Role with the given Permissions. The rule is that an Administrator may only grant
-     * Permissions that they themselves already possess.
+     * Checks that the active User may create or update a Role carrying the given Permissions.
+     * The rule is that an Administrator may only grant Permissions that they themselves
+     * already possess — on at least one Channel, since a channel-agnostic Role has no channel
+     * scope of its own. Without this floor, any administrator with `CreateRole` could mint a
+     * Role with arbitrary permissions.
      */
     private async checkActiveUserHasSufficientPermissions(
         ctx: RequestContext,
-        targetChannels: Channel[],
-        permissions: Permission[],
+        permissions?: Permission[] | null,
     ) {
-        const permissionsRequired = getChannelPermissions([
-            new Role({
-                permissions: unique([Permission.Authenticated, ...permissions]),
-                channels: targetChannels,
-            }),
-        ]);
-        for (const channelPermissions of permissionsRequired) {
-            const activeUserHasRequiredPermissions = await this.userHasAllPermissionsOnChannel(
-                ctx,
-                channelPermissions.id,
-                channelPermissions.permissions,
-            );
-            if (!activeUserHasRequiredPermissions) {
-                throw new UserInputError('error.active-user-does-not-have-sufficient-permissions');
-            }
+        const permissionsToGrant = unique([Permission.Authenticated, ...(permissions ?? [])]);
+        if (!(await this.activeUserHoldsPermissionsOnAnyChannel(ctx, permissionsToGrant))) {
+            throw new UserInputError('error.active-user-does-not-have-sufficient-permissions');
         }
     }
 
