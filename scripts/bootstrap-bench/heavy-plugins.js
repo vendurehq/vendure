@@ -1,6 +1,6 @@
 /**
  * Generates N synthetic plugins modeled on real-world plugin patterns, based on
- * a survey of the vendure-platform and flowtech-monorepo codebases:
+ * a survey of two real-world production Vendure codebases:
  * - an entity with a handful of columns
  * - admin + shop GraphQL API extensions (one query each)
  * - custom fields added via a configuration function

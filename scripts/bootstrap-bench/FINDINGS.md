@@ -14,7 +14,7 @@ GET /health round-trip after bootstrap resolves.
 | server-heavy bootstrap phase | 521ms | 418ms (-19.8%) | — |
 
 ¹ "heavy" = 20 synthetic plugins modeled on a survey of two production codebases
-(vendure-platform, flowtech-monorepo): entities, admin+shop API extensions, custom
+(two real-world production Vendure codebases): entities, admin+shop API extensions, custom
 fields, 30 job queues, 20 event-bus subscriptions, strategy-init fan-outs, DB
 queries in lifecycle hooks. The schema-build fixes scale with plugin count, so
 real ~50-plugin deployments should see gains at least in the heavy row's range.
@@ -80,7 +80,7 @@ Real plugins do awaited external HTTP calls (license checks), open extra DB
 connections and create dozens of job queues in lifecycle hooks, and Nest runs
 module hooks strictly serially — core cannot optimize that away. Two workstreams:
 
-- **Early-listen prototype (working, on branch `worktree-agent-ab5fad2ef9b3839ca`)**:
+- **Early-listen prototype (working, prototype branch, not yet merged)**:
   opt-in `experimentalEarlyListen` bootstrap option binds the port with a bare
   `net.Server` (`pauseOnConnect`) right after `preBootstrapConfig()`, holds up to
   1000 connections, and replays them into Nest's HTTP server after `app.init()`.
