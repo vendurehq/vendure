@@ -191,7 +191,7 @@ export type introspection_types = {
     'RequestPasswordResetResult': { kind: 'UNION'; name: 'RequestPasswordResetResult'; fields: {}; possibleTypes: 'NativeAuthStrategyError' | 'Success'; };
     'RequestUpdateCustomerEmailAddressResult': { kind: 'UNION'; name: 'RequestUpdateCustomerEmailAddressResult'; fields: {}; possibleTypes: 'EmailAddressConflictError' | 'InvalidCredentialsError' | 'NativeAuthStrategyError' | 'Success'; };
     'ResetPasswordResult': { kind: 'UNION'; name: 'ResetPasswordResult'; fields: {}; possibleTypes: 'CurrentUser' | 'NativeAuthStrategyError' | 'NotVerifiedError' | 'PasswordResetTokenExpiredError' | 'PasswordResetTokenInvalidError' | 'PasswordValidationError'; };
-    'Role': { kind: 'OBJECT'; name: 'Role'; fields: { 'channels': { name: 'channels'; type: { kind: 'NON_NULL'; name: never; ofType: { kind: 'LIST'; name: never; ofType: { kind: 'NON_NULL'; name: never; ofType: { kind: 'OBJECT'; name: 'Channel'; ofType: null; }; }; }; } }; 'code': { name: 'code'; type: { kind: 'NON_NULL'; name: never; ofType: { kind: 'SCALAR'; name: 'String'; ofType: null; }; } }; 'createdAt': { name: 'createdAt'; type: { kind: 'NON_NULL'; name: never; ofType: { kind: 'SCALAR'; name: 'DateTime'; ofType: null; }; } }; 'description': { name: 'description'; type: { kind: 'NON_NULL'; name: never; ofType: { kind: 'SCALAR'; name: 'String'; ofType: null; }; } }; 'id': { name: 'id'; type: { kind: 'NON_NULL'; name: never; ofType: { kind: 'SCALAR'; name: 'ID'; ofType: null; }; } }; 'permissions': { name: 'permissions'; type: { kind: 'NON_NULL'; name: never; ofType: { kind: 'LIST'; name: never; ofType: { kind: 'NON_NULL'; name: never; ofType: { kind: 'ENUM'; name: 'Permission'; ofType: null; }; }; }; } }; 'updatedAt': { name: 'updatedAt'; type: { kind: 'NON_NULL'; name: never; ofType: { kind: 'SCALAR'; name: 'DateTime'; ofType: null; }; } }; }; };
+    'Role': { kind: 'OBJECT'; name: 'Role'; fields: { 'code': { name: 'code'; type: { kind: 'NON_NULL'; name: never; ofType: { kind: 'SCALAR'; name: 'String'; ofType: null; }; } }; 'createdAt': { name: 'createdAt'; type: { kind: 'NON_NULL'; name: never; ofType: { kind: 'SCALAR'; name: 'DateTime'; ofType: null; }; } }; 'description': { name: 'description'; type: { kind: 'NON_NULL'; name: never; ofType: { kind: 'SCALAR'; name: 'String'; ofType: null; }; } }; 'id': { name: 'id'; type: { kind: 'NON_NULL'; name: never; ofType: { kind: 'SCALAR'; name: 'ID'; ofType: null; }; } }; 'permissions': { name: 'permissions'; type: { kind: 'NON_NULL'; name: never; ofType: { kind: 'LIST'; name: never; ofType: { kind: 'NON_NULL'; name: never; ofType: { kind: 'ENUM'; name: 'Permission'; ofType: null; }; }; }; } }; 'updatedAt': { name: 'updatedAt'; type: { kind: 'NON_NULL'; name: never; ofType: { kind: 'SCALAR'; name: 'DateTime'; ofType: null; }; } }; }; };
     'RoleList': { kind: 'OBJECT'; name: 'RoleList'; fields: { 'items': { name: 'items'; type: { kind: 'NON_NULL'; name: never; ofType: { kind: 'LIST'; name: never; ofType: { kind: 'NON_NULL'; name: never; ofType: { kind: 'OBJECT'; name: 'Role'; ofType: null; }; }; }; } }; 'totalItems': { name: 'totalItems'; type: { kind: 'NON_NULL'; name: never; ofType: { kind: 'SCALAR'; name: 'Int'; ofType: null; }; } }; }; };
     'SearchInput': { kind: 'INPUT_OBJECT'; name: 'SearchInput'; isOneOf: false; inputFields: [{ name: 'term'; type: { kind: 'SCALAR'; name: 'String'; ofType: null; }; defaultValue: null }, { name: 'facetValueIds'; type: { kind: 'LIST'; name: never; ofType: { kind: 'NON_NULL'; name: never; ofType: { kind: 'SCALAR'; name: 'ID'; ofType: null; }; }; }; defaultValue: null }, { name: 'facetValueOperator'; type: { kind: 'ENUM'; name: 'LogicalOperator'; ofType: null; }; defaultValue: null }, { name: 'facetValueFilters'; type: { kind: 'LIST'; name: never; ofType: { kind: 'NON_NULL'; name: never; ofType: { kind: 'INPUT_OBJECT'; name: 'FacetValueFilterInput'; ofType: null; }; }; }; defaultValue: null }, { name: 'collectionId'; type: { kind: 'SCALAR'; name: 'ID'; ofType: null; }; defaultValue: null }, { name: 'collectionIds'; type: { kind: 'LIST'; name: never; ofType: { kind: 'NON_NULL'; name: never; ofType: { kind: 'SCALAR'; name: 'ID'; ofType: null; }; }; }; defaultValue: null }, { name: 'collectionSlug'; type: { kind: 'SCALAR'; name: 'String'; ofType: null; }; defaultValue: null }, { name: 'collectionSlugs'; type: { kind: 'LIST'; name: never; ofType: { kind: 'NON_NULL'; name: never; ofType: { kind: 'SCALAR'; name: 'String'; ofType: null; }; }; }; defaultValue: null }, { name: 'groupByProduct'; type: { kind: 'SCALAR'; name: 'Boolean'; ofType: null; }; defaultValue: null }, { name: 'take'; type: { kind: 'SCALAR'; name: 'Int'; ofType: null; }; defaultValue: null }, { name: 'skip'; type: { kind: 'SCALAR'; name: 'Int'; ofType: null; }; defaultValue: null }, { name: 'sort'; type: { kind: 'INPUT_OBJECT'; name: 'SearchResultSortParameter'; ofType: null; }; defaultValue: null }]; };
     'SearchReindexResponse': { kind: 'OBJECT'; name: 'SearchReindexResponse'; fields: { 'success': { name: 'success'; type: { kind: 'NON_NULL'; name: never; ofType: { kind: 'SCALAR'; name: 'Boolean'; ofType: null; }; } }; }; };
@@ -255,17 +255,17 @@ export type introspection_types = {
  * instead save to a .ts instead of a .d.ts file.
  */
 export type introspection = {
-    name: never;
-    query: 'Query';
-    mutation: 'Mutation';
-    subscription: never;
-    types: introspection_types;
+  name: never;
+  query: 'Query';
+  mutation: 'Mutation';
+  subscription: never;
+  types: introspection_types;
 };
 
-import 'gql.tada';
+import * as gqlTada from 'gql.tada';
 
 declare module 'gql.tada' {
-    interface setupSchema {
-        introspection: introspection;
-    }
+  interface setupSchema {
+    introspection: introspection
+  }
 }
