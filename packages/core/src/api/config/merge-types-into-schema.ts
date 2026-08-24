@@ -6,10 +6,6 @@ import {
     // hazard issue when testing this file in vitest. See https://github.com/vitejs/vite/issues/7879
 } from 'graphql/index.js';
 
-// Using require here to prevent issues when running vitest tests also.
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { rewireTypes } = require('@graphql-tools/utils');
-
 /**
  * Rebuilds the schema with the given types added, replacing any existing types of the
  * same name and rewiring all references to a replaced type throughout the schema.
@@ -26,6 +22,10 @@ export function mergeTypesIntoSchema(
     types: GraphQLNamedType[],
     additionalSchemas: GraphQLSchema[] = [],
 ): GraphQLSchema {
+    // Required lazily (and via require to prevent issues when running vitest tests)
+    // so that @graphql-tools/utils is not loaded at require time of @vendure/core.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { rewireTypes } = require('@graphql-tools/utils');
     const config = schema.toConfig();
     const typeMap: Record<string, GraphQLNamedType> = {};
     for (const type of config.types) {

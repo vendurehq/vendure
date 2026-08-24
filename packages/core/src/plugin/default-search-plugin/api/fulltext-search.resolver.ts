@@ -1,4 +1,6 @@
-import { Args, Mutation, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql';
+// Importing from the decorators subpath avoids eagerly loading the whole
+// @nestjs/graphql barrel (drivers, federation, graphql-tools) at require time.
+import { Args, Mutation, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql/dist/decorators';
 import {
     Permission,
     QuerySearchArgs,

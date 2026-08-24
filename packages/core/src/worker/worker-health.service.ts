@@ -1,5 +1,4 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
-import express from 'express';
 import http from 'http';
 
 import { Logger } from '../config/logger/vendure-logger';
@@ -38,6 +37,10 @@ export class WorkerHealthService implements OnModuleDestroy {
     private server: http.Server | undefined;
 
     initializeHealthCheckEndpoint(config: WorkerHealthCheckConfig): Promise<void> {
+        // Required lazily so that express is only loaded when the worker health
+        // check endpoint is actually enabled.
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const express: typeof import('express') = require('express');
         const { port, hostname, route } = config;
         const healthRoute = route || '/health';
         const app = express();

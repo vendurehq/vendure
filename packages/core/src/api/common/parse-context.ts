@@ -1,5 +1,8 @@
 import { ArgumentsHost, ExecutionContext } from '@nestjs/common';
-import { GqlContextType, GqlExecutionContext } from '@nestjs/graphql';
+import type { GqlContextType } from '@nestjs/graphql';
+// Importing from the services subpath avoids eagerly loading the whole
+// @nestjs/graphql barrel (drivers, federation, graphql-tools) at require time.
+import { GqlExecutionContext } from '@nestjs/graphql/dist/services/gql-execution-context';
 import { Request, Response } from 'express';
 import { GraphQLResolveInfo } from 'graphql';
 
