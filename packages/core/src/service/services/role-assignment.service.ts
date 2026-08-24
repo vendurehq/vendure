@@ -1,21 +1,39 @@
 import { Injectable } from '@nestjs/common';
+import { Permission } from '@vendure/common/lib/generated-types';
 import { CUSTOMER_ROLE_CODE } from '@vendure/common/lib/shared-constants';
-import { ID } from '@vendure/common/lib/shared-types';
+import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { unique } from '@vendure/common/lib/unique';
 import { IsNull } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
+import { RelationPaths } from '../../api/decorators/relations.decorator';
 import { Instrument } from '../../common/instrument-decorator';
+import { ListQueryOptions } from '../../common/types/common-types';
 import { idsAreEqual } from '../../common/utils';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Customer } from '../../entity/customer/customer.entity';
 import { RoleAssignment } from '../../entity/role-assignment/role-assignment.entity';
 import { Role } from '../../entity/role/role.entity';
 import { User } from '../../entity/user/user.entity';
+import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
 import {
     ResolvedUserPermissions,
     RolePermissionResolver,
 } from '../helpers/role-permission-resolver/role-permission-resolver';
+
+/**
+ * @description
+ * A `(roleId, channelId)` pair identifying the grant of a Role on a Channel, as used by
+ * {@link RoleAssignmentService.setAssignmentsForUser}.
+ *
+ * @docsCategory services
+ * @docsPage RoleAssignmentService
+ * @since 4.0.0
+ */
+export interface RoleChannelPair {
+    roleId: ID;
+    channelId: ID;
+}
 
 /**
  * @description
@@ -38,7 +56,79 @@ export class RoleAssignmentService {
     constructor(
         private connection: TransactionalConnection,
         private rolePermissionResolver: RolePermissionResolver,
+        private listQueryBuilder: ListQueryBuilder,
     ) {}
+
+    /**
+     * @description
+     * Returns a paginated list of RoleAssignments, restricted to the Channels on which the
+     * active user holds the `ReadAdministrator` permission. Users holding it globally
+     * (i.e. SuperAdmins) see all assignments.
+     */
+    async findAll(
+        ctx: RequestContext,
+        options?: ListQueryOptions<RoleAssignment>,
+        relations?: RelationPaths<RoleAssignment>,
+    ): Promise<PaginatedList<RoleAssignment>> {
+        const visibleChannelIds = this.getVisibleChannelIds(ctx);
+        if (visibleChannelIds !== 'all' && visibleChannelIds.length === 0) {
+            return { items: [], totalItems: 0 };
+        }
+        const qb = this.listQueryBuilder.build(RoleAssignment, options, {
+            relations: relations ?? [],
+            ctx,
+        });
+        if (visibleChannelIds !== 'all') {
+            qb.andWhere(`${qb.alias}.channelId IN (:...visibleChannelIds)`, { visibleChannelIds });
+        }
+        return qb.getManyAndCount().then(([items, totalItems]) => ({ items, totalItems }));
+    }
+
+    /**
+     * @description
+     * Returns all RoleAssignments of the given User across all Channels, with no visibility
+     * filtering applied.
+     *
+     * @internal
+     */
+    getAssignmentsForUser(ctx: RequestContext, userId: ID): Promise<RoleAssignment[]> {
+        return this.connection.getRepository(ctx, RoleAssignment).find({ where: { userId } });
+    }
+
+    /**
+     * @description
+     * Returns the RoleAssignments of the given User which are visible to the active user:
+     * users always see their own assignments in full, otherwise assignments are restricted
+     * to the Channels on which the active user holds the `ReadAdministrator` permission.
+     */
+    async getVisibleAssignmentsForUser(ctx: RequestContext, userId: ID): Promise<RoleAssignment[]> {
+        const assignments = await this.getAssignmentsForUser(ctx, userId);
+        if (ctx.activeUserId != null && idsAreEqual(ctx.activeUserId, userId)) {
+            return assignments;
+        }
+        const visibleChannelIds = this.getVisibleChannelIds(ctx);
+        if (visibleChannelIds === 'all') {
+            return assignments;
+        }
+        return assignments.filter(assignment =>
+            visibleChannelIds.some(channelId => idsAreEqual(channelId, assignment.channelId)),
+        );
+    }
+
+    private getVisibleChannelIds(ctx: RequestContext): ID[] | 'all' {
+        const user = ctx.session?.user;
+        if (!user) {
+            return [];
+        }
+        if (user.globalPermissions?.includes(Permission.ReadAdministrator)) {
+            return 'all';
+        }
+        return user.channelPermissions
+            .filter(channelPermissions =>
+                channelPermissions.permissions.includes(Permission.ReadAdministrator),
+            )
+            .map(channelPermissions => channelPermissions.id);
+    }
 
     /**
      * @description
@@ -124,10 +214,9 @@ export class RoleAssignmentService {
      * This implements the `roleIds` inputs of the administrator and API-key mutations, which
      * are read as "replace this User's Roles on the active Channel" — a `roleIds` grant
      * always carried a channel in the request (the `vendure-token` header), it was just
-     * never part of the write.
+     * never part of the write. The `roleIds` inputs are deprecated in favor of the
+     * `roleAssignments` vocabulary and will be removed in a future major version.
      */
-    // TODO(OSS-300): whether the `roleIds` inputs survive at all (vs. an explicit
-    // `roleAssignments` vocabulary only) is an open decision — see the implementation plan.
     async replaceUserAssignmentsOnChannel(
         ctx: RequestContext,
         userId: ID,
@@ -145,6 +234,60 @@ export class RoleAssignmentService {
         if (toAdd.length) {
             await repository.save(toAdd.map(roleId => new RoleAssignment({ userId, roleId, channelId })));
         }
+    }
+
+    /**
+     * @description
+     * Atomically replaces the full set of the User's RoleAssignments across all Channels
+     * with the given `(roleId, channelId)` pairs: pairs not in the new set are removed,
+     * new pairs are added, unchanged pairs are left as-is.
+     *
+     * @since 4.0.0
+     */
+    async setAssignmentsForUser(
+        ctx: RequestContext,
+        userId: ID,
+        assignments: RoleChannelPair[],
+    ): Promise<RoleAssignment[]> {
+        const repository = this.connection.getRepository(ctx, RoleAssignment);
+        const existing = await repository.find({ where: { userId } });
+        const target = this.dedupePairs(assignments);
+        const toRemove = existing.filter(
+            assignment =>
+                !target.some(
+                    pair =>
+                        idsAreEqual(pair.roleId, assignment.roleId) &&
+                        idsAreEqual(pair.channelId, assignment.channelId),
+                ),
+        );
+        const toAdd = target.filter(
+            pair =>
+                !existing.some(
+                    assignment =>
+                        idsAreEqual(assignment.roleId, pair.roleId) &&
+                        idsAreEqual(assignment.channelId, pair.channelId),
+                ),
+        );
+        if (toRemove.length) {
+            await repository.remove(toRemove);
+        }
+        if (toAdd.length) {
+            await repository.save(
+                toAdd.map(({ roleId, channelId }) => new RoleAssignment({ userId, roleId, channelId })),
+            );
+        }
+        return repository.find({ where: { userId } });
+    }
+
+    private dedupePairs(pairs: RoleChannelPair[]): RoleChannelPair[] {
+        return pairs.filter(
+            (pair, index) =>
+                pairs.findIndex(
+                    other =>
+                        idsAreEqual(other.roleId, pair.roleId) &&
+                        idsAreEqual(other.channelId, pair.channelId),
+                ) === index,
+        );
     }
 
     /**
