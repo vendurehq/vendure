@@ -20,7 +20,7 @@ import { CUSTOMER_ROLE_CODE } from '@vendure/common/lib/shared-constants';
 import { notNullOrUndefined } from '@vendure/common/lib/shared-utils';
 import { gql } from 'apollo-angular';
 import { Observable } from 'rxjs';
-import { mergeMap, take } from 'rxjs/operators';
+import { mergeMap, take, takeUntil } from 'rxjs/operators';
 
 export const GET_ADMINISTRATOR_DETAIL = gql`
     query GetAdministratorDetail($id: ID!) {
@@ -59,6 +59,7 @@ export class AdminDetailComponent
     allRoles$: Observable<RoleFragment[]>;
     selectedRoles: RoleFragment[] = [];
     selectedRolePermissions: Permission[] = [];
+    private activeChannelId: string;
 
     constructor(
         private changeDetector: ChangeDetectorRef,
@@ -85,6 +86,17 @@ export class AdminDetailComponent
                 }
             }
         });
+        // The role select edits the User's Roles on the active Channel: on save, its value
+        // is written as RoleAssignments pinned to the active Channel.
+        this.dataService.client
+            .userStatus()
+            .mapStream(({ userStatus }) => userStatus.activeChannelId)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe(activeChannelId => {
+                if (activeChannelId) {
+                    this.activeChannelId = activeChannelId;
+                }
+            });
         this.permissionDefinitions = this.serverConfigService.getPermissionDefinitions();
     }
 
@@ -107,7 +119,12 @@ export class AdminDetailComponent
             lastName,
             password,
             customFields,
-            roleIds: roles?.map(role => role.id).filter(notNullOrUndefined) ?? [],
+            // The selected Roles are granted on the active Channel.
+            roleAssignments:
+                roles
+                    ?.map(role => role.id)
+                    .filter(notNullOrUndefined)
+                    .map(roleId => ({ roleId, channelId: this.activeChannelId })) ?? [],
         };
         this.dataService.administrator.createAdministrator(administrator).subscribe(
             data => {
@@ -130,8 +147,21 @@ export class AdminDetailComponent
         this.entity$
             .pipe(
                 take(1),
-                mergeMap(({ id }) => {
+                mergeMap(({ id, user }) => {
                     const formValue = this.detailForm.value;
+                    // roleAssignments is a full replace-set across all Channels, but this
+                    // editor only manages the Roles on the active Channel: keep the User's
+                    // assignments on other Channels and replace the active Channel's set
+                    // with the form selection.
+                    const roleAssignments = [
+                        ...user.roleAssignments
+                            .filter(assignment => assignment.channelId !== this.activeChannelId)
+                            .map(({ roleId, channelId }) => ({ roleId, channelId })),
+                        ...(formValue.roles ?? [])
+                            .map(role => role.id)
+                            .filter(notNullOrUndefined)
+                            .map(roleId => ({ roleId, channelId: this.activeChannelId })),
+                    ];
                     const administrator: UpdateAdministratorInput = {
                         id,
                         emailAddress: formValue.emailAddress,
@@ -139,7 +169,7 @@ export class AdminDetailComponent
                         lastName: formValue.lastName,
                         password: formValue.password,
                         customFields: formValue.customFields,
-                        roleIds: formValue.roles?.map(role => role.id),
+                        roleAssignments,
                     };
                     return this.dataService.administrator.updateAdministrator(administrator);
                 }),

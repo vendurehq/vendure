@@ -26,6 +26,10 @@ export const ADMINISTRATOR_FRAGMENT = gql`
             roles {
                 ...Role
             }
+            roleAssignments {
+                roleId
+                channelId
+            }
         }
     }
     ${ROLE_FRAGMENT}
