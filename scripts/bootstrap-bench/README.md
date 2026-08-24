@@ -31,6 +31,33 @@ the queue/subscription upgrade: ~905ms median (bootstrap phase ~550ms).
 - Per-package require cost: `node -r ./scripts/bootstrap-bench/require-times.js scripts/bootstrap-bench/server-entry.js`
 - `BENCH_PORT=<port>` overrides the API port (default 4999) — needed for parallel runs.
 
+## Simulating small cloud instances
+
+Two options, in increasing fidelity:
+
+1. Efficiency cores (instant, native, noisy — magnitude only):
+   `taskpolicy -c background node scripts/bootstrap-bench/bench.js server --runs=7`
+2. Docker with cgroup limits (recommended). The compiled dist is platform-independent,
+   so only node_modules needs a Linux install:
+   ```bash
+   docker volume create vendure-bench
+   # copy repo (sans node_modules/.git) into the volume, then Linux install:
+   docker run --rm -v "$PWD":/src:ro -v vendure-bench:/work oven/bun:1 bash -c \
+     "mkdir -p /work/repo && cd /src && tar cf - --exclude=node_modules --exclude=.git . | tar xf - -C /work/repo && cd /work/repo && bun install"
+   # better-sqlite3 needs the node toolchain to build:
+   docker run --rm -v vendure-bench:/work node:24 bash -c \
+     "cd /work/repo/node_modules/better-sqlite3 && npm run install"
+   docker run --rm -v vendure-bench:/work node:24 bash -c \
+     "cd /work/repo && rm -f scripts/bootstrap-bench/bench.sqlite && node scripts/bootstrap-bench/populate-db.js"
+   # benchmark under constraint:
+   docker run --rm --cpus=1 --memory=2g --memory-swap=2g -v vendure-bench:/work node:24 bash -c \
+     "cd /work/repo && node scripts/bootstrap-bench/bench.js server --runs=7"
+   ```
+   For A/B runs, swap `packages/core/dist` variants back-to-back INSIDE one container
+   run — cross-container comparisons are polluted by VM page-cache state.
+   Note the constrained core is still an M4-class core; real cloud vCPUs are
+   typically 1.5-3x slower per core, so scale expectations accordingly.
+
 ## Results of the optimization pass (2026-08-24, medians, quiet machine, 9-11 runs)
 
 A/B of this branch's perf commits vs their merge-base, identical harness. Server
