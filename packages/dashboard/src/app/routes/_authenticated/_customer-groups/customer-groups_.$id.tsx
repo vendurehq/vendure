@@ -15,6 +15,7 @@ import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wra
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { Trans, useLingui } from '@lingui/react/macro';
+import { useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import { CustomerGroupMembersTable } from './components/customer-group-members-table.js';
@@ -44,6 +45,7 @@ function CustomerGroupDetailPage() {
     const navigate = useNavigate();
     const creatingNewEntity = params.id === NEW_ENTITY_PATH;
     const { t } = useLingui();
+    const queryClient = useQueryClient();
 
     const { form, submitHandler, entity, isPending, resetForm } = useDetailPage({
         pageId,
@@ -64,6 +66,7 @@ function CustomerGroupDetailPage() {
                     ? t`Successfully created customer group`
                     : t`Successfully updated customer group`,
             );
+            await queryClient.invalidateQueries({ queryKey: ['customerGroups'] });
             resetForm();
             if (creatingNewEntity && data?.id) {
                 await navigate({ to: `../$id`, params: { id: data.id } });

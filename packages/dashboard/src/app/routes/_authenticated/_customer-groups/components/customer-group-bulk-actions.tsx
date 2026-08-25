@@ -8,6 +8,7 @@ export const DeleteCustomerGroupsBulkAction: BulkActionComponent<any> = ({ selec
             mutationDocument={deleteCustomerGroupsDocument}
             entityName="customer groups"
             requiredPermissions={['DeleteCustomerGroup']}
+            invalidateQueries={['customerGroups']}
             selection={selection}
             table={table}
         />
