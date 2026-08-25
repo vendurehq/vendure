@@ -87,6 +87,43 @@ import { VendureEntity } from '../../entity/base/base.entity';
  * }
  * ```
  *
+ * @example
+ * ```ts
+ * // Per-channel customer accounts, so the same email address can hold a separate
+ * // account with a separate password at each Channel (#1705).
+ * //
+ * // Nothing in the schema prevents this: `User.identifier` and
+ * // `Customer.emailAddress` are not unique columns. What makes one address into
+ * // one platform-wide account is that `UserService.getUserByEmailAddress()`
+ * // applies no Channel filter - and every other identity check funnels through
+ * // it, so scoping `User` here reaches login, registration, password reset and
+ * // email change together.
+ * //
+ * // Filter rather than namespace the identifier: `user.identifier` is what the
+ * // email plugin passes to `setRecipient()` and what `currentUser.identifier`
+ * // returns, so a prefixed one makes verification mail undeliverable.
+ * class PerChannelCustomerIdentityStrategy extends DefaultEntityAccessControlStrategy {
+ *     applyAccessControl(qb, entityType, ctx) {
+ *         if (ctx.apiType !== 'shop') return;
+ *         if (entityType === Customer) {
+ *             qb.andWhere(
+ *                 `${qb.alias}.id IN (SELECT m."customerId" FROM customer_channels_channel m
+ *                                     WHERE m."channelId" = :aclChannelId)`,
+ *                 { aclChannelId: ctx.channelId },
+ *             );
+ *         }
+ *         if (entityType === User) {
+ *             qb.andWhere(
+ *                 `${qb.alias}.id IN (SELECT c."userId" FROM customer c
+ *                                     INNER JOIN customer_channels_channel m ON m."customerId" = c.id
+ *                                     WHERE m."channelId" = :aclChannelId AND c."userId" IS NOT NULL)`,
+ *                 { aclChannelId: ctx.channelId },
+ *             );
+ *         }
+ *     }
+ * }
+ * ```
+ *
  * :::info
  *
  * This is configured via the `authOptions.entityAccessControlStrategy` property
