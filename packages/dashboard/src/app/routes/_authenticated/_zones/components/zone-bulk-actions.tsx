@@ -14,6 +14,7 @@ export const DeleteZonesBulkAction: BulkActionComponent<any> = ({ selection, tab
             mutationDocument={deleteZonesDocument}
             entityName="zones"
             requiredPermissions={['DeleteZone']}
+            invalidateQueries={['zones']}
             selection={selection}
             table={table}
         />

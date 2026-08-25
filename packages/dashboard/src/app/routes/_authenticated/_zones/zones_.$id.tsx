@@ -16,6 +16,7 @@ import {
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { Trans, useLingui } from '@lingui/react/macro';
+import { useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import { ZoneCountriesTable } from './components/zone-countries-table.js';
@@ -43,6 +44,7 @@ function ZoneDetailPage() {
     const navigate = useNavigate();
     const creatingNewEntity = params.id === NEW_ENTITY_PATH;
     const { t } = useLingui();
+    const queryClient = useQueryClient();
 
     const { form, submitHandler, entity, isPending, resetForm } = useDetailPage({
         pageId,
@@ -59,6 +61,7 @@ function ZoneDetailPage() {
         params: { id: params.id },
         onSuccess: async data => {
             toast.success(creatingNewEntity ? t`Successfully created zone` : t`Successfully updated zone`);
+            await queryClient.invalidateQueries({ queryKey: ['zones'] });
             resetForm();
             if (creatingNewEntity) {
                 await navigate({ to: `../$id`, params: { id: data.id } });
