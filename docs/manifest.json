@@ -1068,7 +1068,7 @@
                   "title": "NativeAuthenticationStrategy",
                   "slug": "native-authentication-strategy",
                   "file": "docs/reference/typescript-api/auth/native-authentication-strategy.mdx",
-                  "lastModified": "2026-02-09T11:17:54+01:00"
+                  "lastModified": "2026-08-25T09:10:29Z"
                 },
                 {
                   "title": "NoopSessionCacheStrategy",
@@ -2287,10 +2287,16 @@
               "file": "docs/reference/typescript-api/migration/index.mdx",
               "children": [
                 {
+                  "title": "DescribeDiagnostic",
+                  "slug": "describe-diagnostic",
+                  "file": "docs/reference/typescript-api/migration/describe-diagnostic.mdx",
+                  "lastModified": "2026-08-25T09:10:29Z"
+                },
+                {
                   "title": "GenerateMigration",
                   "slug": "generate-migration",
                   "file": "docs/reference/typescript-api/migration/generate-migration.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-08-25T09:10:29Z"
                 },
                 {
                   "title": "MigrateAssetTranslationData",
@@ -2305,22 +2311,46 @@
                   "lastModified": "2026-07-10T09:53:10+02:00"
                 },
                 {
+                  "title": "MigrationDiagnostic",
+                  "slug": "migration-diagnostic",
+                  "file": "docs/reference/typescript-api/migration/migration-diagnostic.mdx",
+                  "lastModified": "2026-08-25T09:10:29Z"
+                },
+                {
                   "title": "MigrationOptions",
                   "slug": "migration-options",
                   "file": "docs/reference/typescript-api/migration/migration-options.mdx",
                   "lastModified": "2026-01-28T14:49:21+01:00"
                 },
                 {
+                  "title": "NoMigrationsMatchedDiagnostic",
+                  "slug": "no-migrations-matched-diagnostic",
+                  "file": "docs/reference/typescript-api/migration/no-migrations-matched-diagnostic.mdx",
+                  "lastModified": "2026-08-25T09:10:29Z"
+                },
+                {
                   "title": "RevertLastMigration",
                   "slug": "revert-last-migration",
                   "file": "docs/reference/typescript-api/migration/revert-last-migration.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-08-25T09:10:29Z"
                 },
                 {
                   "title": "RunMigrations",
                   "slug": "run-migrations",
                   "file": "docs/reference/typescript-api/migration/run-migrations.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-08-25T09:10:29Z"
+                },
+                {
+                  "title": "RunMigrationsOptions",
+                  "slug": "run-migrations-options",
+                  "file": "docs/reference/typescript-api/migration/run-migrations-options.mdx",
+                  "lastModified": "2026-08-25T09:10:29Z"
+                },
+                {
+                  "title": "SchemaOutOfSyncDiagnostic",
+                  "slug": "schema-out-of-sync-diagnostic",
+                  "file": "docs/reference/typescript-api/migration/schema-out-of-sync-diagnostic.mdx",
+                  "lastModified": "2026-08-25T09:10:29Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -2766,7 +2796,7 @@
                   "title": "RequestContext",
                   "slug": "request-context",
                   "file": "docs/reference/typescript-api/request/request-context.mdx",
-                  "lastModified": "2026-08-17T12:00:11+02:00"
+                  "lastModified": "2026-08-25T09:10:29Z"
                 },
                 {
                   "title": "RequestContextService",
@@ -2910,7 +2940,7 @@
                   "title": "ChannelService",
                   "slug": "channel-service",
                   "file": "docs/reference/typescript-api/services/channel-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-25T09:10:29Z"
                 },
                 {
                   "title": "CollectionService",
@@ -2940,7 +2970,7 @@
                   "title": "CustomerService",
                   "slug": "customer-service",
                   "file": "docs/reference/typescript-api/services/customer-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-25T09:10:29Z"
                 },
                 {
                   "title": "EntitySlugService",
@@ -3030,7 +3060,7 @@
                   "title": "ProductVariantService",
                   "slug": "product-variant-service",
                   "file": "docs/reference/typescript-api/services/product-variant-service.mdx",
-                  "lastModified": "2026-06-24T18:05:35+02:00"
+                  "lastModified": "2026-08-25T09:10:29Z"
                 },
                 {
                   "title": "PromotionService",
@@ -3126,7 +3156,7 @@
                   "title": "UserService",
                   "slug": "user-service",
                   "file": "docs/reference/typescript-api/services/user-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-25T09:10:29Z"
                 },
                 {
                   "title": "ZoneService",
@@ -3798,7 +3828,7 @@
                   "title": "Mutations",
                   "slug": "mutations",
                   "file": "docs/reference/graphql-api/shop/mutations.mdx",
-                  "lastModified": "2026-03-05T15:08:55+01:00"
+                  "lastModified": "2026-08-25T09:10:29Z"
                 },
                 {
                   "title": "Queries",
