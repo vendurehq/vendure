@@ -1084,6 +1084,23 @@ describe('MCP built-in shop tools', () => {
         expect(await connection.getRepository(adminCtx, Order).count()).toBe(ordersBefore);
     });
 
+    it('refuses an anonymous caller with no cart for the missing cart, not for the missing login', async () => {
+        const ordersBefore = await connection.getRepository(adminCtx, Order).count();
+
+        const placed = await postMcp(
+            baseUrl(),
+            'shop',
+            callTool('place_order', { paymentMethodCode: 'not-configured', confirm: true }, 1),
+        );
+
+        // The same refusal the other cart tools give this caller. Asking for a login first would send
+        // a shopper with nothing to pay for through the OAuth flow, only to be refused afterwards.
+        expect(placed.body.result.isError).toBe(true);
+        expect(placed.body.result.content[0].text).toMatch(/There is no active cart/);
+        expect(placed.body.result.structuredContent.requiresAuthorization).toBeUndefined();
+        expect(await connection.getRepository(adminCtx, Order).count()).toBe(ordersBefore);
+    });
+
     // A stock MCP SDK client threads no headers, so the sessionToken payload field is the only
     // thing keeping these calls on one cart. place_order is destructive AND anonymous-callable,
     // so `confirm` and `sessionToken` must compose in a single call.

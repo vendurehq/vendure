@@ -40,7 +40,7 @@ describe('PlaceOrderTool', () => {
                 },
             },
         ) as any;
-        const tool = new PlaceOrderTool(orderService, orderService, serializer, connectionStub());
+        const tool = new PlaceOrderTool(activeOrderReturning(1), orderService, serializer, connectionStub());
 
         const result = await tool.execute({} as any, { paymentMethodCode: 'standard-payment' });
 
@@ -60,6 +60,23 @@ describe('PlaceOrderTool', () => {
             tool.execute({ activeUserId: 42 } as any, { paymentMethodCode: 'standard-payment' }),
         ).rejects.toBeInstanceOf(UserInputError);
         expect(withTransaction).not.toHaveBeenCalled();
+    });
+
+    it('refuses an anonymous caller with no cart for the missing cart, not for the missing login', async () => {
+        // The other cart tools answer "no cart" to this caller. Answering "log in first" here would
+        // send a shopper with nothing to pay for through the OAuth flow, and they would then hit the
+        // no-cart refusal anyway.
+        const activeOrder = {
+            findOrThrow: () =>
+                Promise.reject(
+                    new UserInputError('There is no active cart. Add an item with add_to_cart first.'),
+                ),
+        } as any;
+        const tool = new PlaceOrderTool(activeOrder, {} as any, serializer, connectionStub());
+
+        await expect(tool.execute({} as any, { paymentMethodCode: 'standard-payment' })).rejects.toThrow(
+            /There is no active cart/,
+        );
     });
 
     it('moves a cart to ArrangingPayment before adding payment', async () => {
