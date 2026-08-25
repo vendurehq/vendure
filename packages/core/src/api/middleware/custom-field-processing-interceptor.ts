@@ -33,6 +33,20 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
     private readonly createInputsWithCustomFields = new Set<string>();
     private readonly updateInputsWithCustomFields = new Set<string>();
 
+    /**
+     * Inputs which carry custom fields but do not follow the
+     * `Create<Entity>Input` / `Update<Entity>Input` naming convention, mapped to the
+     * entity whose custom field config governs them.
+     *
+     * `RegisterCustomerInput` gains a `customFields` field from
+     * `addRegisterCustomerCustomFieldsInput()` whenever the Customer entity has
+     * public, writable custom fields - so without this entry those fields would be
+     * settable at registration but never validated or defaulted.
+     */
+    private static readonly nonStandardInputEntityNames: { [inputName: string]: string } = {
+        RegisterCustomerInput: 'Customer',
+    };
+
     constructor(
         private readonly configService: ConfigService,
         private readonly moduleRef: ModuleRef,
@@ -83,8 +97,14 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
         return (
             this.createInputsWithCustomFields.has(typeName) ||
             this.updateInputsWithCustomFields.has(typeName) ||
+            this.isNonStandardInputWithCustomFields(typeName) ||
             typeName === 'OrderLineCustomFieldsInput'
         );
+    }
+
+    private isNonStandardInputWithCustomFields(typeName: string): boolean {
+        const entityName = CustomFieldProcessingInterceptor.nonStandardInputEntityNames[typeName];
+        return !!entityName && !!this.configService.customFields[entityName as keyof CustomFields];
     }
 
     private async processInputVariables(
@@ -108,6 +128,11 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
     private shouldApplyDefaults(typeName: string, operation: OperationDefinitionNode): boolean {
         // For regular create inputs, always apply defaults
         if (this.createInputsWithCustomFields.has(typeName)) {
+            return true;
+        }
+
+        // RegisterCustomerInput creates a Customer, so it behaves as a create input.
+        if (this.isNonStandardInputWithCustomFields(typeName)) {
             return true;
         }
 
@@ -217,6 +242,10 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
     }
 
     private getEntityNameFromInputType(typeName: string): string {
+        const nonStandard = CustomFieldProcessingInterceptor.nonStandardInputEntityNames[typeName];
+        if (nonStandard) {
+            return nonStandard;
+        }
         // Remove "Create" or "Update" prefix and "Input" suffix
         // e.g., "CreateProductInput" -> "Product", "UpdateCustomerInput" -> "Customer"
         if (typeName.startsWith('Create')) {
@@ -235,7 +264,7 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
         variableValues?: { [key: string]: any },
     ) {
         if (variableValues) {
-            const entityName = typeName.replace(/(Create|Update)(.+)Input/, '$2');
+            const entityName = this.getEntityNameFromInputType(typeName);
             const customFieldConfig = this.configService.customFields[entityName as keyof CustomFields];
 
             if (typeName === 'OrderLineCustomFieldsInput') {
