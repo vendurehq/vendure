@@ -2,8 +2,8 @@
  * One-time setup: creates and populates bench.sqlite with the standard mock data.
  * Run: node scripts/bootstrap-bench/populate-db.js
  */
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const dbFile = path.join(__dirname, 'bench.sqlite');
 if (fs.existsSync(dbFile)) {

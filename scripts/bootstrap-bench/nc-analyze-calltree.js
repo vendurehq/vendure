@@ -15,9 +15,16 @@
  *
  * If --from/--to are omitted, the whole profile is analyzed.
  */
-const fs = require('fs');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 
-const file = process.argv[2];
+const file = path.resolve(process.argv[2] || '');
+const repoRoot = path.resolve(__dirname, '..', '..');
+if (!(file.startsWith(repoRoot + path.sep) || file.startsWith(os.tmpdir() + path.sep))) {
+    console.error('The profile path must be inside the repository or the OS temp dir.');
+    process.exit(1);
+}
 const from = Number((process.argv.find(a => a.startsWith('--from=')) || '').split('=')[1] || '-Infinity');
 const to = Number((process.argv.find(a => a.startsWith('--to=')) || '').split('=')[1] || 'Infinity');
 const top = Number((process.argv.find(a => a.startsWith('--top=')) || '').split('=')[1] || 30);

@@ -2,7 +2,7 @@
  * Shared config for the bootstrap benchmark. Uses only plugins that ship inside
  * @vendure/core so that only core + common need to be built.
  */
-const path = require('path');
+const path = require('node:path');
 
 function getBenchConfig(core, { synchronize = false, logLevel } = {}) {
     const {

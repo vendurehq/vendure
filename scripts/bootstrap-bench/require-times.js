@@ -3,7 +3,7 @@
  * file, summed by package) and module counts.
  * Usage: node -r ./scripts/bootstrap-bench/require-times.js <entry> [BENCH_REQUIRE_REPORT=stderr]
  */
-const Module = require('module');
+const Module = require('node:module');
 
 const stack = [];
 const byGroup = new Map();

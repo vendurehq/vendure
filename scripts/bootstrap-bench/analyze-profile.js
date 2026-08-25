@@ -2,9 +2,16 @@
  * Aggregates a .cpuprofile by self-time, grouped by npm package (or file for
  * workspace code). Usage: node analyze-profile.js <file.cpuprofile> [--top=30] [--files]
  */
-const fs = require('fs');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 
-const file = process.argv[2];
+const file = path.resolve(process.argv[2] || '');
+const repoRoot = path.resolve(__dirname, '..', '..');
+if (!(file.startsWith(repoRoot + path.sep) || file.startsWith(os.tmpdir() + path.sep))) {
+    console.error('The profile path must be inside the repository or the OS temp dir.');
+    process.exit(1);
+}
 const top = Number((process.argv.find(a => a.startsWith('--top=')) || '').split('=')[1] || 30);
 const byFile = process.argv.includes('--files');
 const profile = JSON.parse(fs.readFileSync(file, 'utf-8'));
@@ -18,7 +25,7 @@ for (let i = 0; i < samples.length; i++) {
 }
 
 function groupKey(url) {
-    if (!url || !url.includes('/')) return url || '(program)';
+    if (!url?.includes('/')) return url || '(program)';
     const nm = url.lastIndexOf('node_modules/');
     if (nm >= 0) {
         const rest = url.slice(nm + 'node_modules/'.length);

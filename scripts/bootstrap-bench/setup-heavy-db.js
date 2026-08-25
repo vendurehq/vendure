@@ -3,8 +3,8 @@
  * with synchronize:true so the synthetic plugin tables + custom field columns
  * get created. Run after populate-db.js.
  */
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const base = path.join(__dirname, 'bench.sqlite');
 const heavyDb = path.join(__dirname, 'bench-heavy.sqlite');

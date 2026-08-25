@@ -16,18 +16,14 @@ const { Resolver, Query } = require('@nestjs/graphql');
 const gql = require('graphql-tag');
 
 function createHeavyPlugins(core, count = 20) {
-    const { VendurePlugin, PluginCommonModule, VendureEntity, TransactionalConnection, Injector } = core;
+    const { VendurePlugin, PluginCommonModule, VendureEntity, TransactionalConnection } = core;
     const { Inject } = require('@nestjs/common');
     const plugins = [];
 
     for (let i = 0; i < count; i++) {
         // --- entity ---
         const entityName = `BenchEntity${i}`;
-        const EntityClass = class extends VendureEntity {
-            constructor(input) {
-                super(input);
-            }
-        };
+        const EntityClass = class extends VendureEntity {};
         Object.defineProperty(EntityClass, 'name', { value: entityName });
         for (const col of ['name', 'code', 'description']) {
             Column({ type: 'varchar', default: '' })(EntityClass.prototype, col);
@@ -121,7 +117,7 @@ function createHeavyPlugins(core, count = 20) {
     // BENCH_EXT_HTTP_MS. Off by default so it doesn't drown other signals.
     const extHttpMs = Number(process.env.BENCH_EXT_HTTP_MS || 0);
     if (extHttpMs > 0) {
-        const http = require('http');
+        const http = require('node:http');
         const ExternalCallPlugin = class {
             async onApplicationBootstrap() {
                 const server = http.createServer((req, res) => {

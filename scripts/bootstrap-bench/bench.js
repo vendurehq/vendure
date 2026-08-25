@@ -7,9 +7,9 @@
  * Spawns a fresh node process per run and aggregates the timing JSON each entry
  * script prints. With --cpu-prof, writes .cpuprofile files to ./profiles/.
  */
-const { spawnSync } = require('child_process');
-const path = require('path');
-const fs = require('fs');
+const { spawnSync } = require('node:child_process');
+const path = require('node:path');
+const fs = require('node:fs');
 
 const args = process.argv.slice(2);
 const target = args.find(a => !a.startsWith('--')) || 'server';
@@ -41,7 +41,7 @@ if (cpuProf) {
 
 const results = [];
 for (let i = 0; i < runs; i++) {
-    const res = spawnSync('node', [...nodeArgs, entry], {
+    const res = spawnSync(process.execPath, [...nodeArgs, entry], {
         encoding: 'utf-8',
         env: { ...process.env },
         timeout: 120_000,
@@ -61,7 +61,7 @@ function stats(values) {
     const sorted = [...values].sort((a, b) => a - b);
     const median = sorted[Math.floor(sorted.length / 2)];
     const mean = values.reduce((a, b) => a + b, 0) / values.length;
-    return { min: sorted[0], median, mean, max: sorted[sorted.length - 1] };
+    return { min: sorted[0], median, mean, max: sorted.at(-1) };
 }
 
 const keys = Object.keys(results[0]).filter(k => k !== 'target');
