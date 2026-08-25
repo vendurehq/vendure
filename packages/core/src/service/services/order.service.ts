@@ -122,7 +122,11 @@ import { ShippingCalculator } from '../helpers/shipping-calculator/shipping-calc
 import { TranslatorService } from '../helpers/translator/translator.service';
 import { couponCodesMatch } from '../helpers/utils/coupon-codes-match';
 import { isForeignKeyViolationError } from '../helpers/utils/db-errors';
-import { getOrdersFromLines, totalCoveredByPayments } from '../helpers/utils/order-utils';
+import {
+    assertOrderIsInChannel,
+    getOrdersFromLines,
+    totalCoveredByPayments,
+} from '../helpers/utils/order-utils';
 import { patchEntity } from '../helpers/utils/patch-entity';
 
 import { ChannelService } from './channel.service';
@@ -1370,6 +1374,7 @@ export class OrderService implements OnApplicationBootstrap {
             const refund = await this.connection.getEntityOrThrow(txCtx, Refund, refundId, {
                 relations: ['payment', 'payment.order'],
             });
+            await assertOrderIsInChannel(txCtx, this.connection, refund.payment.order.id, 'Refund', refundId);
             if (transactionId && refund.transactionId !== transactionId) {
                 refund.transactionId = transactionId;
             }
@@ -1968,6 +1973,12 @@ export class OrderService implements OnApplicationBootstrap {
         const payment = await this.connection.getEntityOrThrow(ctx, Payment, input.paymentId, {
             relations: ['order'],
         });
+        // An empty `lines` array is a legitimate way to refund shipping or an arbitrary amount, but
+        // it also means the PaymentOrderMismatchError check below has nothing to compare against.
+        // The Channel check is therefore the only thing which keeps the Payment (which is not
+        // ChannelAware) inside the caller's Channel, and it must run before the PaymentMethodHandler
+        // is asked to move any money.
+        await assertOrderIsInChannel(ctx, this.connection, payment.order.id, 'Payment', input.paymentId);
         if (orders && orders.length && !idsAreEqual(payment.order.id, orders[0].id)) {
             return new PaymentOrderMismatchError();
         }
@@ -1999,6 +2010,7 @@ export class OrderService implements OnApplicationBootstrap {
             const refund = await this.connection.getEntityOrThrow(txCtx, Refund, input.id, {
                 relations: ['payment', 'payment.order'],
             });
+            await assertOrderIsInChannel(txCtx, this.connection, refund.payment.order.id, 'Refund', input.id);
             refund.transactionId = input.transactionId;
             const fromState = refund.state;
             const toState = 'Settled';
@@ -2082,7 +2094,9 @@ export class OrderService implements OnApplicationBootstrap {
 
     async deleteOrderNote(ctx: RequestContext, id: ID): Promise<DeletionResponse> {
         try {
-            await this.historyService.deleteOrderHistoryEntry(ctx, id);
+            await this.historyService.deleteOrderHistoryEntry(ctx, id, {
+                type: HistoryEntryType.ORDER_NOTE,
+            });
             return {
                 result: DeletionResult.DELETED,
             };
