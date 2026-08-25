@@ -2922,7 +2922,7 @@
                   "title": "AdministratorService",
                   "slug": "administrator-service",
                   "file": "docs/reference/typescript-api/services/administrator-service.mdx",
-                  "lastModified": "2026-07-24T11:20:03+02:00"
+                  "lastModified": "2026-08-25T12:28:07Z"
                 },
                 {
                   "title": "AssetService",
@@ -2994,7 +2994,7 @@
                   "title": "FulfillmentService",
                   "slug": "fulfillment-service",
                   "file": "docs/reference/typescript-api/services/fulfillment-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-25T12:28:07Z"
                 },
                 {
                   "title": "GlobalSettingsService",
@@ -3006,7 +3006,7 @@
                   "title": "HistoryService",
                   "slug": "history-service",
                   "file": "docs/reference/typescript-api/services/history-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-25T12:28:07Z"
                 },
                 {
                   "title": "InitializerService",
@@ -3018,7 +3018,7 @@
                   "title": "OrderService",
                   "slug": "order-service",
                   "file": "docs/reference/typescript-api/services/order-service.mdx",
-                  "lastModified": "2026-08-17T12:00:11+02:00"
+                  "lastModified": "2026-08-25T12:28:07Z"
                 },
                 {
                   "title": "OrderTestingService",
@@ -3036,7 +3036,7 @@
                   "title": "PaymentService",
                   "slug": "payment-service",
                   "file": "docs/reference/typescript-api/services/payment-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-25T12:28:07Z"
                 },
                 {
                   "title": "ProductOptionGroupService",
@@ -3078,7 +3078,7 @@
                   "title": "RoleService",
                   "slug": "role-service",
                   "file": "docs/reference/typescript-api/services/role-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-25T12:28:07Z"
                 },
                 {
                   "title": "SearchService",
