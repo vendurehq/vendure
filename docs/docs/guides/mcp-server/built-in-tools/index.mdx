@@ -1,11 +1,11 @@
 ---
 title: 'Built-in Tool Reference'
 metaTitle: 'MCP Built-in Tool Reference | Vendure'
-metaDescription: 'The 42 tools the Vendure MCP plugin ships — 19 shop and 23 admin — grouped by area, with their safety classification, permissions, and how tool exposure and confirmation work.'
+metaDescription: 'The 41 tools the Vendure MCP plugin ships — 18 shop and 23 admin — grouped by area, with their safety classification, permissions, and how tool exposure and confirmation work.'
 order: 9
 ---
 
-The plugin ships 42 built-in tools: 19 on the shop toolset and 23 on the admin toolset. This page groups them by
+The plugin ships 41 built-in tools: 18 on the shop toolset and 23 on the admin toolset. This page groups them by
 area and explains the model they follow. It is not exhaustive on every input field. The live `tools/list`
 response for your configuration is the authoritative set: it already accounts for permissions, tool toggles, and
 exposure mode.
@@ -90,8 +90,7 @@ cart the quote was calculated for. Anything a shipping calculator attached to th
 | `get_cart` | readonly | Public | Get the active cart |
 | `apply_coupon_code` | mutating | Public | Apply a coupon code to the cart |
 | `remove_coupon_code` | mutating | Public | Remove a coupon code from the cart |
-| `set_shipping_address` | mutating | Public | Set the cart shipping address |
-| `set_billing_address` | mutating | Public | Set the cart billing address |
+| `set_checkout_addresses` | mutating | Public | Set the cart shipping address, billing address, or both in one call |
 | `set_shipping_method` | mutating | Public | Set the cart shipping method |
 | `get_eligible_shipping_methods` | readonly | Public | List shipping methods eligible for the cart |
 | `get_eligible_payment_methods` | readonly | Public | List payment methods eligible for the cart |
@@ -103,6 +102,21 @@ variant, and put the wrong item in the cart. Given a `productId` for a product w
 adds nothing. It returns an error listing each variant with its ID, so the caller can retry with the right one.
 Use `get_product` to get variant IDs in the first place.
 
+`set_checkout_addresses` takes `shippingAddress`, `billingAddress`, and `billingSameAsShipping`, in any
+combination except these two: a call with none of them is refused, and so is `billingAddress` together with
+`billingSameAsShipping`. `billingSameAsShipping: true` copies the shipping address into the billing address,
+taking it from `shippingAddress` in the same call or, failing that, from the shipping address already on the
+cart; with neither, the call is refused. When the call writes both addresses it does so in one database
+transaction, so a rejected billing address (an unknown country code, say) leaves the shipping address as it
+was too.
+
+A new shipping address can make the shipping method the shopper already chose ineligible. Vendure then
+swaps the cart's shipping line to the cheapest method that is still eligible, or drops the line when none is.
+It does either without reporting it, so the tool reports it instead: the response carries
+`shippingMethodChanged: true` and a `message` saying which of the two happened, and `order.shippingLines`
+shows the current state. A response without `shippingMethodChanged` means the chosen method survived the
+change.
+
 `place_order` answers `status: "placed"` with the order when the store marks the order as placed. It answers
 `status: "awaiting_payment"` with the order and a `message` when the payment went through but the store did not
 mark the order as placed, for example a payment that covers only part of the total. In that case the order stays
@@ -111,7 +125,9 @@ in `ArrangingPayment` and the cart tools refuse changes until the order is paid 
 `payments`, each carrying `state`, `amount`, `amountDecimal`,
 `transactionId`, `errorMessage` and `publicMetadata`. `publicMetadata` is the `public` key of the payment's
 metadata, the same part the Shop API shows a customer, so anything the handler stored for itself is not
-returned.
+returned. Every order also carries `shippingWithTax` (with its `Decimal` twin) and `shippingLines`, one
+entry per shipping line with its `shippingMethodId` and `priceWithTax`. An empty `shippingLines` array
+means the cart has no shipping method chosen.
 
 ### Catalog (browse)
 
@@ -255,7 +271,7 @@ tool's schema exactly as a direct call would.
 
 Reach for discovery only when the full list is a problem:
 
-- A host with a low tool cap: 42 tools exceeds some clients' limits.
+- A host with a low tool cap: 41 tools exceeds some clients' limits.
 - A model with no built-in tool search: older Claude and GPT models, Gemini, Grok, GLM, and most open-source
   models.
 

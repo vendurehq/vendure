@@ -4,6 +4,7 @@ import {
     ConfigService,
     Customer,
     CustomerService,
+    defaultShippingEligibilityChecker,
     ID,
     mergeConfig,
     Order,
@@ -12,6 +13,7 @@ import {
     RequestContext,
     RequestContextService,
     Session,
+    ShippingEligibilityChecker,
     TransactionalConnection,
     User,
 } from '@vendure/core';
@@ -96,10 +98,29 @@ class TestOrderByCodeAccessStrategy implements OrderByCodeAccessStrategy {
     }
 }
 
+// Eligible only for a US shipping address. The set_checkout_addresses tests use it to show what
+// core does when a new address makes the chosen shipping method ineligible.
+const US_ONLY_SHIPPING_METHOD_CODE = 'mcp-e2e-us-only';
+const UK_ADDRESS = {
+    streetLine1: '10 Downing Street',
+    city: 'London',
+    postalCode: 'SW1A 2AA',
+    countryCode: 'GB',
+};
+const usOnlyShippingChecker = new ShippingEligibilityChecker({
+    code: US_ONLY_SHIPPING_METHOD_CODE,
+    description: [{ languageCode: LanguageCode.en, value: 'US addresses only' }],
+    args: {},
+    check: (ctx, order) => order.shippingAddress?.countryCode === 'US',
+});
+
 describe('MCP built-in shop tools', () => {
     const orderByCodeAccessStrategy = new TestOrderByCodeAccessStrategy();
     const config = mergeConfig(testConfig(), {
         orderOptions: { orderByCodeAccessStrategy },
+        shippingOptions: {
+            shippingEligibilityCheckers: [defaultShippingEligibilityChecker, usOnlyShippingChecker],
+        },
         paymentOptions: { paymentMethodHandlers: [testPaymentHandler, pendingPaymentHandler] },
         plugins: [
             McpPlugin.init({
@@ -137,6 +158,9 @@ describe('MCP built-in shop tools', () => {
     let secondChannelId: string;
     let secondChannelDbId: ID;
     let secondChannelToken: string;
+    let usOnlyShippingMethodId: string;
+    // Language, currency and zones every channel this suite creates shares with the default one.
+    let channelInputDefaults: Record<string, unknown>;
 
     beforeAll(async () => {
         await server.init(testServerInit);
@@ -197,6 +221,35 @@ describe('MCP built-in shop tools', () => {
         publicCollectionId = idStrategy.decodeId(collection.id);
         publicCollectionSlug = collection.slug;
 
+        // A shipping method only a US address can use, for the set_checkout_addresses tests.
+        const usOnly = await adminClient.query(
+            gql`
+                mutation CreateUsOnlyShippingMethod($input: CreateShippingMethodInput!) {
+                    createShippingMethod(input: $input) {
+                        id
+                        code
+                    }
+                }
+            `,
+            {
+                input: {
+                    code: US_ONLY_SHIPPING_METHOD_CODE,
+                    fulfillmentHandler: 'manual-fulfillment',
+                    checker: { code: usOnlyShippingChecker.code, arguments: [] },
+                    calculator: {
+                        code: 'default-shipping-calculator',
+                        arguments: [
+                            { name: 'rate', value: '700' },
+                            { name: 'includesTax', value: 'auto' },
+                            { name: 'taxRate', value: '0' },
+                        ],
+                    },
+                    translations: [{ languageCode: LanguageCode.en, name: 'US only shipping' }],
+                },
+            },
+        );
+        expect(usOnly.createShippingMethod.code).toBe(US_ONLY_SHIPPING_METHOD_CODE);
+        usOnlyShippingMethodId = usOnly.createShippingMethod.id;
         // A second fixture product carrying three variants. add_to_cart must refuse a product ID
         // when the product has more than one variant, and there is nothing to test that against
         // unless such a product exists.
@@ -224,6 +277,13 @@ describe('MCP built-in shop tools', () => {
         shirtId = idStrategy.decodeId(shirt.id);
         shirtVariantCount = shirt.variants.length;
 
+        channelInputDefaults = {
+            defaultLanguageCode: fixture.activeChannel.defaultLanguageCode,
+            defaultCurrencyCode: fixture.activeChannel.defaultCurrencyCode,
+            pricesIncludeTax: false,
+            defaultShippingZoneId: zoneId,
+            defaultTaxZoneId: zoneId,
+        };
         const channelResult = await adminClient.query(
             gql`
                 mutation CreateShopToolChannel($input: CreateChannelInput!) {
@@ -243,11 +303,7 @@ describe('MCP built-in shop tools', () => {
                 input: {
                     code: 'shop-tools-second-channel',
                     token: 'shop-tools-second-channel-token',
-                    defaultLanguageCode: fixture.activeChannel.defaultLanguageCode,
-                    defaultCurrencyCode: fixture.activeChannel.defaultCurrencyCode,
-                    pricesIncludeTax: false,
-                    defaultShippingZoneId: zoneId,
-                    defaultTaxZoneId: zoneId,
+                    ...channelInputDefaults,
                 },
             },
         );
@@ -1366,9 +1422,9 @@ describe('MCP built-in shop tools', () => {
             expect(added.body.result.isError).toBeUndefined();
 
             const address = await call(
-                'set_shipping_address',
+                'set_checkout_addresses',
                 {
-                    address: {
+                    shippingAddress: {
                         streetLine1: '451 Sansome Street',
                         city: 'San Francisco',
                         postalCode: '94111',
@@ -1418,9 +1474,9 @@ describe('MCP built-in shop tools', () => {
             expect(orphanCoupon.body.result.content[0].text).toMatch(/There is no active cart/);
 
             const orphanAddress = await call(
-                'set_shipping_address',
+                'set_checkout_addresses',
                 {
-                    address: {
+                    shippingAddress: {
                         streetLine1: '451 Sansome Street',
                         city: 'San Francisco',
                         postalCode: '94111',
@@ -1460,9 +1516,9 @@ describe('MCP built-in shop tools', () => {
             expect(added.body.result.isError).toBeUndefined();
 
             const address = await call(
-                'set_shipping_address',
+                'set_checkout_addresses',
                 {
-                    address: {
+                    shippingAddress: {
                         streetLine1: '451 Sansome Street',
                         city: 'San Francisco',
                         postalCode: '94111',
@@ -1653,7 +1709,7 @@ describe('MCP built-in shop tools', () => {
             expect(reread.body.result.structuredContent.order.lines).toEqual([]);
         });
 
-        it('set_billing_address writes the billing address, leaving the shipping address alone', async () => {
+        it('set_checkout_addresses with only billingAddress writes it, leaving the shipping address alone', async () => {
             const { sessionToken } = await anonymousCart();
             const call = (name: string, args: Record<string, unknown>, id: number) =>
                 postMcp(baseUrl(), 'shop', callTool(name, args, id), {
@@ -1661,9 +1717,9 @@ describe('MCP built-in shop tools', () => {
                 });
 
             const shipping = await call(
-                'set_shipping_address',
+                'set_checkout_addresses',
                 {
-                    address: {
+                    shippingAddress: {
                         streetLine1: '1 Shipping Way',
                         city: 'Portland',
                         postalCode: '97201',
@@ -1675,9 +1731,9 @@ describe('MCP built-in shop tools', () => {
             expect(shipping.body.result.isError).toBeUndefined();
 
             const billing = await call(
-                'set_billing_address',
+                'set_checkout_addresses',
                 {
-                    address: {
+                    billingAddress: {
                         fullName: 'Billing Person',
                         streetLine1: '2 Billing Road',
                         city: 'Seattle',
@@ -1689,8 +1745,8 @@ describe('MCP built-in shop tools', () => {
             );
 
             expect(billing.body.result.isError).toBeUndefined();
-            // setBillingAddress returns a plain Order rather than an error union, so the tool wraps
-            // it as `{ order }` with no `result` branch — different from the cart tools above.
+            // Both core address setters return a plain Order rather than an error union, so the tool
+            // wraps it as `{ order }` with no `result` branch — different from the cart tools above.
             expect(billing.body.result.structuredContent.result).toBeUndefined();
             const order = await orderByCode(billing.body.result.structuredContent.order.code);
             expect(order.billingAddress).toMatchObject({
@@ -1701,6 +1757,281 @@ describe('MCP built-in shop tools', () => {
                 countryCode: 'US',
             });
             expect(order.shippingAddress.streetLine1).toBe('1 Shipping Way');
+        });
+
+        it('set_checkout_addresses writes both addresses in one call', async () => {
+            const { sessionToken, order: cart } = await anonymousCart();
+            const call = (name: string, args: Record<string, unknown>, id: number) =>
+                postMcp(baseUrl(), 'shop', callTool(name, args, id), {
+                    headers: { [AUTH_TOKEN_HEADER]: sessionToken },
+                });
+
+            const both = await call(
+                'set_checkout_addresses',
+                {
+                    shippingAddress: { streetLine1: '1 Shipping Way', city: 'Portland', countryCode: 'US' },
+                    billingAddress: { streetLine1: '2 Billing Road', city: 'Seattle', countryCode: 'US' },
+                },
+                2,
+            );
+
+            expect(both.body.result.isError).toBeUndefined();
+            const stored = await orderByCode(cart.code);
+            expect(stored.shippingAddress.streetLine1).toBe('1 Shipping Way');
+            expect(stored.billingAddress.streetLine1).toBe('2 Billing Road');
+        });
+
+        it('set_checkout_addresses copies the shipping address into billing on billingSameAsShipping', async () => {
+            const { sessionToken, order: cart } = await anonymousCart();
+            const call = (name: string, args: Record<string, unknown>, id: number) =>
+                postMcp(baseUrl(), 'shop', callTool(name, args, id), {
+                    headers: { [AUTH_TOKEN_HEADER]: sessionToken },
+                });
+
+            // A fresh cart has no shipping address to copy, so the flag alone is refused and nothing
+            // is written.
+            const nothingToCopy = await call('set_checkout_addresses', { billingSameAsShipping: true }, 2);
+            expect(nothingToCopy.body.result.isError).toBe(true);
+            expect(nothingToCopy.body.result.content[0].text).toMatch(/needs a shipping address/);
+
+            const together = await call(
+                'set_checkout_addresses',
+                {
+                    shippingAddress: {
+                        fullName: 'Same Person',
+                        streetLine1: '3 Copy Street',
+                        city: 'Denver',
+                        countryCode: 'US',
+                        defaultShippingAddress: true,
+                    },
+                    billingSameAsShipping: true,
+                },
+                3,
+            );
+            expect(together.body.result.isError).toBeUndefined();
+            let stored = await orderByCode(cart.code);
+            expect(stored.billingAddress).toMatchObject({
+                fullName: 'Same Person',
+                streetLine1: '3 Copy Street',
+                city: 'Denver',
+                countryCode: 'US',
+            });
+            // The address-book flag describes the customer's saved addresses, not an order, so it
+            // is not carried into the billing copy.
+            expect('defaultShippingAddress' in stored.billingAddress).toBe(false);
+
+            // With a shipping address already on the cart, the flag alone copies that one.
+            const later = await call(
+                'set_checkout_addresses',
+                { shippingAddress: { streetLine1: '4 Later Lane', city: 'Boise', countryCode: 'US' } },
+                4,
+            );
+            expect(later.body.result.isError).toBeUndefined();
+            const copied = await call('set_checkout_addresses', { billingSameAsShipping: true }, 5);
+            expect(copied.body.result.isError).toBeUndefined();
+            stored = await orderByCode(cart.code);
+            expect(stored.billingAddress.streetLine1).toBe('4 Later Lane');
+        });
+
+        it('set_checkout_addresses refuses an empty call and a billing address paired with the copy flag', async () => {
+            const { sessionToken } = await anonymousCart();
+            const call = (args: Record<string, unknown>, id: number) =>
+                postMcp(baseUrl(), 'shop', callTool('set_checkout_addresses', args, id), {
+                    headers: { [AUTH_TOKEN_HEADER]: sessionToken },
+                });
+
+            const empty = await call({}, 2);
+            expect(empty.body.result.isError).toBe(true);
+            expect(empty.body.result.content[0].text).toMatch(
+                /Pass shippingAddress, billingAddress, or billingSameAsShipping/,
+            );
+
+            const conflicting = await call(
+                {
+                    billingAddress: { streetLine1: '2 Billing Road', countryCode: 'US' },
+                    billingSameAsShipping: true,
+                },
+                3,
+            );
+            expect(conflicting.body.result.isError).toBe(true);
+            expect(conflicting.body.result.content[0].text).toMatch(/cannot both be given/);
+        });
+
+        it('set_checkout_addresses writes neither address when the billing address is rejected', async () => {
+            const { sessionToken, order: cart } = await anonymousCart();
+
+            // 'ZZ' is not a country, so core throws while setting the billing address. That throw
+            // has to roll back the shipping address written a moment earlier in the same call.
+            const rejected = await postMcp(
+                baseUrl(),
+                'shop',
+                callTool(
+                    'set_checkout_addresses',
+                    {
+                        shippingAddress: {
+                            streetLine1: '1 Shipping Way',
+                            city: 'Portland',
+                            countryCode: 'US',
+                        },
+                        billingAddress: { streetLine1: '2 Billing Road', countryCode: 'ZZ' },
+                    },
+                    2,
+                ),
+                { headers: { [AUTH_TOKEN_HEADER]: sessionToken } },
+            );
+
+            expect(rejected.body.result.isError).toBe(true);
+            const stored = await orderByCode(cart.code);
+            expect(stored.shippingAddress?.streetLine1).toBeUndefined();
+            expect(stored.billingAddress?.streetLine1).toBeUndefined();
+        });
+
+        it('set_checkout_addresses reports shippingMethodChanged when the new address makes the store swap the method', async () => {
+            const { sessionToken } = await anonymousCart();
+            const call = (name: string, args: Record<string, unknown>, id: number) =>
+                postMcp(baseUrl(), 'shop', callTool(name, args, id), {
+                    headers: { [AUTH_TOKEN_HEADER]: sessionToken },
+                });
+            const usAddress = {
+                streetLine1: '451 Sansome Street',
+                city: 'San Francisco',
+                postalCode: '94111',
+                countryCode: 'US',
+            };
+
+            const first = await call('set_checkout_addresses', { shippingAddress: usAddress }, 2);
+            expect(first.body.result.isError).toBeUndefined();
+            expect(first.body.result.structuredContent.shippingMethodChanged).toBeUndefined();
+
+            const quotes = await call('get_eligible_shipping_methods', {}, 3);
+            const usOnly = quotes.body.result.structuredContent.methods.find(
+                (method: any) => method.code === US_ONLY_SHIPPING_METHOD_CODE,
+            );
+            expect(usOnly).toBeDefined();
+            const chosen = await call('set_shipping_method', { methodId: usOnly.id }, 4);
+            expect(chosen.body.result.isError).toBeUndefined();
+
+            // Another US address keeps the method, and the response says nothing about a removal.
+            const moved = await call(
+                'set_checkout_addresses',
+                { shippingAddress: { ...usAddress, streetLine1: '1 Market Street' } },
+                5,
+            );
+            expect(moved.body.result.isError).toBeUndefined();
+            expect(moved.body.result.structuredContent.shippingMethodChanged).toBeUndefined();
+            const keptLines = moved.body.result.structuredContent.order.shippingLines;
+            expect(keptLines).toHaveLength(1);
+            expect(String(keptLines[0].shippingMethodId)).toBe(String(usOnly.id));
+
+            // A UK address makes the US-only method ineligible. The default channel has other
+            // methods that ship anywhere, so core swaps the shipping line to the cheapest of them
+            // while it reprices the cart. The tool has to say so rather than answer with a bare order.
+            const abroad = await call('set_checkout_addresses', { shippingAddress: UK_ADDRESS }, 6);
+            expect(abroad.body.result.isError).toBeUndefined();
+            expect(abroad.body.result.structuredContent.shippingMethodChanged).toBe(true);
+            expect(abroad.body.result.structuredContent.message).toMatch(/replaced it with the cheapest/);
+            const swappedLines = abroad.body.result.structuredContent.order.shippingLines;
+            expect(swappedLines).toHaveLength(1);
+            expect(String(swappedLines[0].shippingMethodId)).not.toBe(String(usOnly.id));
+        });
+
+        it('set_checkout_addresses reports shippingMethodChanged when no method is left for the new address', async () => {
+            // A channel whose only shipping method is the US-only one, so there is nothing to swap
+            // to and core drops the shipping line instead. It is created here rather than shared:
+            // the second channel is deleted by an earlier test.
+            const created = await adminClient.query(
+                gql`
+                    mutation CreateDropCaseChannel($input: CreateChannelInput!) {
+                        createChannel(input: $input) {
+                            ... on Channel {
+                                id
+                                token
+                            }
+                            ... on ErrorResult {
+                                errorCode
+                                message
+                            }
+                        }
+                    }
+                `,
+                {
+                    input: {
+                        code: 'shop-tools-us-only-channel',
+                        token: 'shop-tools-us-only-channel-token',
+                        ...channelInputDefaults,
+                    },
+                },
+            );
+            expect(created.createChannel.id).toBeDefined();
+            await adminClient.query(
+                gql`
+                    mutation AssignDropCaseProduct($input: AssignProductsToChannelInput!) {
+                        assignProductsToChannel(input: $input) {
+                            id
+                        }
+                    }
+                `,
+                {
+                    input: {
+                        channelId: created.createChannel.id,
+                        productIds: [productAdminId],
+                        priceFactor: 1,
+                    },
+                },
+            );
+            await adminClient.query(
+                gql`
+                    mutation AssignDropCaseShippingMethod($input: AssignShippingMethodsToChannelInput!) {
+                        assignShippingMethodsToChannel(input: $input) {
+                            id
+                        }
+                    }
+                `,
+                {
+                    input: {
+                        channelId: created.createChannel.id,
+                        shippingMethodIds: [usOnlyShippingMethodId],
+                    },
+                },
+            );
+            const channel = { headers: { [CHANNEL_TOKEN_HEADER]: created.createChannel.token } };
+            const added = await postMcp(
+                baseUrl(),
+                'shop',
+                callTool('add_to_cart', { variantId, quantity: 1 }, 1),
+                channel,
+            );
+            expect(added.body.result.isError).toBeUndefined();
+            const sessionToken = added.body.result.structuredContent.sessionToken as string;
+            const call = (name: string, args: Record<string, unknown>, id: number) =>
+                postMcp(baseUrl(), 'shop', callTool(name, args, id), {
+                    headers: { ...channel.headers, [AUTH_TOKEN_HEADER]: sessionToken },
+                });
+
+            const first = await call(
+                'set_checkout_addresses',
+                {
+                    shippingAddress: {
+                        streetLine1: '451 Sansome Street',
+                        city: 'San Francisco',
+                        countryCode: 'US',
+                    },
+                },
+                2,
+            );
+            expect(first.body.result.isError).toBeUndefined();
+            const quotes = await call('get_eligible_shipping_methods', {}, 3);
+            const methods = quotes.body.result.structuredContent.methods;
+            expect(methods.map((method: any) => method.code)).toEqual([US_ONLY_SHIPPING_METHOD_CODE]);
+            const chosen = await call('set_shipping_method', { methodId: methods[0].id }, 4);
+            expect(chosen.body.result.isError).toBeUndefined();
+
+            const abroad = await call('set_checkout_addresses', { shippingAddress: UK_ADDRESS }, 5);
+            expect(abroad.body.result.isError).toBeUndefined();
+            expect(abroad.body.result.structuredContent.shippingMethodChanged).toBe(true);
+            expect(abroad.body.result.structuredContent.message).toMatch(/no shipping method/);
+            expect(abroad.body.result.structuredContent.order.shippingLines).toEqual([]);
+            expect(abroad.body.result.structuredContent.order.shippingWithTax).toBe(0);
         });
 
         it('apply_coupon_code discounts the cart and remove_coupon_code puts the price back', async () => {

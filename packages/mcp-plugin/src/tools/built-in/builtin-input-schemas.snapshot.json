@@ -1571,10 +1571,10 @@
     },
     "additionalProperties": false
   },
-  "shop:set_billing_address": {
+  "shop:set_checkout_addresses": {
     "type": "object",
     "properties": {
-      "address": {
+      "shippingAddress": {
         "type": "object",
         "properties": {
           "fullName": {
@@ -1621,18 +1621,10 @@
           "streetLine1",
           "countryCode"
         ],
-        "additionalProperties": false
-      }
-    },
-    "required": [
-      "address"
-    ],
-    "additionalProperties": false
-  },
-  "shop:set_shipping_address": {
-    "type": "object",
-    "properties": {
-      "address": {
+        "additionalProperties": false,
+        "description": "Where the order is delivered."
+      },
+      "billingAddress": {
         "type": "object",
         "properties": {
           "fullName": {
@@ -1679,12 +1671,14 @@
           "streetLine1",
           "countryCode"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Where the invoice goes."
+      },
+      "billingSameAsShipping": {
+        "type": "boolean",
+        "description": "Use the shipping address as the billing address too. Copies shippingAddress from this call, or the shipping address already on the cart. Cannot be combined with billingAddress."
       }
     },
-    "required": [
-      "address"
-    ],
     "additionalProperties": false
   },
   "shop:set_shipping_method": {

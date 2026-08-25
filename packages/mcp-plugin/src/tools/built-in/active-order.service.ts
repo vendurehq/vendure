@@ -47,8 +47,12 @@ export class McpActiveOrderService {
             return undefined;
         }
         return (
-            (await this.orderService.findOne(ctx, order.id, ['lines', 'lines.productVariant', 'payments'])) ??
-            order
+            (await this.orderService.findOne(ctx, order.id, [
+                'lines',
+                'lines.productVariant',
+                'payments',
+                'shippingLines',
+            ])) ?? order
         );
     }
 

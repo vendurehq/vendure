@@ -213,6 +213,16 @@ export class McpToolSerializerService {
                     productVariant: line.productVariant ? this.variant(line.productVariant) : null,
                 })) ?? [],
             payments: order.payments ? order.payments.map(payment => this.payment(payment)) : undefined,
+            shippingWithTax: order.shippingWithTax,
+            shippingWithTaxDecimal: this.decimal(order.shippingWithTax),
+            shippingLines: order.shippingLines
+                ? order.shippingLines.map(line => ({
+                      id: line.id,
+                      shippingMethodId: line.shippingMethodId,
+                      priceWithTax: line.priceWithTax,
+                      priceWithTaxDecimal: this.decimal(line.priceWithTax),
+                  }))
+                : undefined,
         };
     }
 

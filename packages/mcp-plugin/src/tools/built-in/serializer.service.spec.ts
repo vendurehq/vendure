@@ -216,6 +216,25 @@ describe('McpToolSerializerService', () => {
         expect(serialized?.payments?.[0].publicMetadata).toBeNull();
     });
 
+    it("serializes an order's shipping lines, and omits them when the relation was not loaded", () => {
+        const withLines = service.order({
+            id: 1,
+            code: 'T_1',
+            state: 'ArrangingPayment',
+            lines: [],
+            shippingWithTax: 500,
+            shippingLines: [{ id: 9, shippingMethodId: 2, priceWithTax: 500 }],
+        } as any);
+        expect(withLines).toMatchObject({
+            shippingWithTax: 500,
+            shippingWithTaxDecimal: '5.00',
+            shippingLines: [{ id: 9, shippingMethodId: 2, priceWithTax: 500, priceWithTaxDecimal: '5.00' }],
+        });
+
+        const withoutRelation = service.order({ id: 1, code: 'T_1', state: 'AddingItems', lines: [] } as any);
+        expect(withoutRelation?.shippingLines).toBeUndefined();
+    });
+
     it('omits payments when the relation was not loaded', () => {
         const serialized = service.order({ id: 1, code: 'T_1', state: 'AddingItems', lines: [] } as any);
 
@@ -283,6 +302,9 @@ describe('McpToolSerializerService', () => {
                     },
                 },
             ],
+            shippingWithTax: undefined,
+            shippingWithTaxDecimal: '0.00',
+            shippingLines: undefined,
         });
     });
 });
