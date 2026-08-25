@@ -18,7 +18,6 @@ import { RefundOrderTool } from './refund-order.tool';
 import { SetActiveChannelTool } from './set-active-channel.tool';
 import { UpdateCustomerTool } from './update-customer.tool';
 import { UpdateOrderStateTool } from './update-order-state.tool';
-import { UpdateProductAssetsTool } from './update-product-assets.tool';
 import { UpdateProductTool } from './update-product.tool';
 import { UpdateVariantTool } from './update-variant.tool';
 import { UploadAssetTool } from './upload-asset.tool';
@@ -42,7 +41,6 @@ export const adminToolProviders = [
     UpdateProductTool,
     CreateVariantTool,
     UpdateVariantTool,
-    UpdateProductAssetsTool,
     UploadAssetTool,
     GetStockLevelsTool,
     AdjustStockTool,

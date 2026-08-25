@@ -41,7 +41,6 @@ const TOOL_OPERATION_MAP: Record<string, ResolverOperation> = {
     update_product: { resolver: ProductResolver, method: 'updateProduct' },
     create_variant: { resolver: ProductResolver, method: 'createProductVariants' },
     update_variant: { resolver: ProductResolver, method: 'updateProductVariants' },
-    update_product_assets: { resolver: ProductResolver, method: 'updateProduct' },
     upload_asset: { resolver: AssetResolver, method: 'createAssets' },
     // Reading a variant's stock is gated by the productVariant read query (the stockLevels field
     // resolver itself carries no @Allow).

@@ -1,11 +1,11 @@
 ---
 title: 'Built-in Tool Reference'
 metaTitle: 'MCP Built-in Tool Reference | Vendure'
-metaDescription: 'The 43 tools the Vendure MCP plugin ships — 19 shop and 24 admin — grouped by area, with their safety classification, permissions, and how tool exposure and confirmation work.'
+metaDescription: 'The 42 tools the Vendure MCP plugin ships — 19 shop and 23 admin — grouped by area, with their safety classification, permissions, and how tool exposure and confirmation work.'
 order: 9
 ---
 
-The plugin ships 43 built-in tools: 19 on the shop toolset and 24 on the admin toolset. This page groups them by
+The plugin ships 42 built-in tools: 19 on the shop toolset and 23 on the admin toolset. This page groups them by
 area and explains the model they follow. It is not exhaustive on every input field. The live `tools/list`
 response for your configuration is the authoritative set: it already accounts for permissions, tool toggles, and
 exposure mode.
@@ -139,7 +139,7 @@ returned.
 | `get_product` | readonly | ReadProduct | Get a product by ID, with its variants and option groups |
 | `list_products` | readonly | ReadProduct | List and filter products (paginated) |
 | `create_product` | mutating | CreateProduct | Create a product |
-| `update_product` | mutating | UpdateProduct | Update a product's details |
+| `update_product` | mutating | UpdateProduct | Update a product's details, including its images and featured image |
 | `create_variant` | mutating | UpdateProduct | Create a product variant |
 | `update_variant` | mutating | UpdateProduct | Update a variant's price, SKU or stock |
 
@@ -191,7 +191,6 @@ and `taxCategoryId` do not, so their values come from the dashboard or the Admin
 | Tool | Safety | Permission | Description |
 |---|---|---|---|
 | `upload_asset` | mutating | CreateAsset | Upload an asset from a public HTTP(S) URL |
-| `update_product_assets` | mutating | UpdateProduct | Change a product's images and featured image |
 
 ### Filtering and paging admin lists
 
@@ -256,7 +255,7 @@ tool's schema exactly as a direct call would.
 
 Reach for discovery only when the full list is a problem:
 
-- A host with a low tool cap: 43 tools exceeds some clients' limits.
+- A host with a low tool cap: 42 tools exceeds some clients' limits.
 - A model with no built-in tool search: older Claude and GPT models, Gemini, Grok, GLM, and most open-source
   models.
 

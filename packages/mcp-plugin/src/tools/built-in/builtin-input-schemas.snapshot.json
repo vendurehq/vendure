@@ -1188,53 +1188,6 @@
     ],
     "additionalProperties": false
   },
-  "admin:update_product_assets": {
-    "type": "object",
-    "properties": {
-      "id": {
-        "anyOf": [
-          {
-            "type": "string"
-          },
-          {
-            "type": "number"
-          }
-        ],
-        "description": "Product ID."
-      },
-      "assetIds": {
-        "type": "array",
-        "items": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "number"
-            }
-          ],
-          "description": "Vendure ID."
-        },
-        "description": "Ordered asset IDs to set on the product."
-      },
-      "featuredAssetId": {
-        "anyOf": [
-          {
-            "type": "string"
-          },
-          {
-            "type": "number"
-          }
-        ],
-        "description": "Featured asset ID."
-      }
-    },
-    "required": [
-      "id",
-      "assetIds"
-    ],
-    "additionalProperties": false
-  },
   "admin:update_variant": {
     "type": "object",
     "properties": {

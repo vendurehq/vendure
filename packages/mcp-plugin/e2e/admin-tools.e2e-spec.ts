@@ -1249,7 +1249,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
         beforeAll(async () => {
             const idStrategy = server.app.get(ConfigService).entityOptions.entityIdStrategy;
 
-            // The shared test data ships no assets, so `update_product_assets` has nothing to
+            // The shared test data ships no assets, so `update_product` has nothing to
             // attach until two exist. They are created through AssetService rather than through
             // `upload_asset`, so that test does not depend on the tool it sits next to.
             const assetService = server.app.get(AssetService);
@@ -1552,15 +1552,15 @@ describe('MCP built-in admin tools (direct mode)', () => {
             expect(String(stored.product.id)).toBe(String(emptyProductId));
         });
 
-        it('update_product_assets sets the asset list and the featured asset', async () => {
+        it('update_product sets the asset list and the featured asset', async () => {
             const token = await adminAccessToken();
 
             const updated = await postMcp(
                 baseUrl(),
                 'admin',
                 callTool(
-                    'update_product_assets',
-                    { id: productId, assetIds, featuredAssetId: assetIds[1] },
+                    'update_product',
+                    { id: productId, input: { assetIds, featuredAssetId: assetIds[1] } },
                     1,
                 ),
                 { token },
