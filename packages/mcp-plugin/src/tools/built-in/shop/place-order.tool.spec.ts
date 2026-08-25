@@ -9,7 +9,10 @@ import { PlaceOrderTool } from './place-order.tool';
  */
 
 const serializer = {
+    // Only reached for a Vendure error result now: the tool serializes a successful order itself so
+    // that it can tag the answer with a status.
     orderOrError: (result: unknown) => ({ passedThrough: result }),
+    order: (order: unknown) => order,
 } as any;
 
 /**
@@ -50,6 +53,7 @@ describe('PlaceOrderTool', () => {
             findOne: () => Promise.resolve({ id: 1, state: 'AddingItems' }),
             transitionToState,
             addPaymentToOrder,
+            getOrderPayments: () => Promise.resolve([]),
         } as any;
         const tool = new PlaceOrderTool(activeOrderReturning(1), orderService, serializer, connectionStub());
 
@@ -69,6 +73,7 @@ describe('PlaceOrderTool', () => {
             findOne: () => Promise.resolve({ id: 1, state: 'ArrangingPayment' }),
             transitionToState,
             addPaymentToOrder,
+            getOrderPayments: () => Promise.resolve([]),
         } as any;
         const tool = new PlaceOrderTool(activeOrderReturning(1), orderService, serializer, connectionStub());
 
@@ -113,7 +118,14 @@ describe('PlaceOrderTool', () => {
                 transitions.push(state);
                 return Promise.resolve({ id: 1, state });
             },
-            addPaymentToOrder: () => Promise.resolve({ __typename: 'PaymentFailedError', message: 'no' }),
+            // `errorCode` is what marks a Vendure result as an error, so the stub needs it to send
+            // the tool down the failure path.
+            addPaymentToOrder: () =>
+                Promise.resolve({
+                    __typename: 'PaymentFailedError',
+                    errorCode: 'PAYMENT_FAILED_ERROR',
+                    message: 'no',
+                }),
         } as any;
         const tool = new PlaceOrderTool(activeOrderReturning(1), orderService, serializer, connectionStub());
 
@@ -145,6 +157,75 @@ describe('PlaceOrderTool', () => {
         expect(addPaymentToOrder).not.toHaveBeenCalled();
     });
 
+    it('answers status placed when the order was placed', async () => {
+        const getOrderPayments = vi.fn().mockResolvedValue([{ id: 9, state: 'Settled' }]);
+        const orderService = {
+            findOne: () => Promise.resolve({ id: 1, state: 'ArrangingPayment' }),
+            transitionToState: vi.fn(),
+            addPaymentToOrder: () =>
+                Promise.resolve({ id: 1, state: 'PaymentSettled', orderPlacedAt: new Date() }),
+            getOrderPayments,
+        } as any;
+        const tool = new PlaceOrderTool(activeOrderReturning(1), orderService, serializer, connectionStub());
+
+        const result = await tool.execute({ activeUserId: 42 } as any, {
+            paymentMethodCode: 'standard-payment',
+        });
+
+        expect(result).toMatchObject({ status: 'placed' });
+        expect(getOrderPayments).toHaveBeenCalledWith(expect.objectContaining({ inTransaction: true }), 1);
+    });
+
+    it('answers status awaiting_payment, keeps the order at the payment stage, and shows the payment', async () => {
+        const transitionToState = vi.fn();
+        const payment = {
+            id: 9,
+            state: 'Created',
+            metadata: { public: { redirectUrl: 'https://pay.example.com/x' } },
+        };
+        const orderService = {
+            findOne: () => Promise.resolve({ id: 1, state: 'ArrangingPayment' }),
+            transitionToState,
+            addPaymentToOrder: () =>
+                Promise.resolve({ id: 1, state: 'ArrangingPayment', orderPlacedAt: null }),
+            getOrderPayments: () => Promise.resolve([payment]),
+        } as any;
+        const tool = new PlaceOrderTool(activeOrderReturning(1), orderService, serializer, connectionStub());
+
+        const result = (await tool.execute({ activeUserId: 42 } as any, {
+            paymentMethodCode: 'redirect-payment',
+        })) as any;
+
+        expect(result.status).toBe('awaiting_payment');
+        expect(result.message).toContain('the order is not placed yet');
+        expect(result.message).toContain('The cart cannot be edited while the order is in ArrangingPayment.');
+        expect(result.order.payments).toEqual([payment]);
+        // A pending payment has to stay attached to this order so the provider can settle it later,
+        // which a move back to the cart state would break.
+        expect(transitionToState).not.toHaveBeenCalledWith(
+            expect.anything(),
+            expect.anything(),
+            'AddingItems',
+        );
+    });
+
+    it('drops the cart-editing sentence when the unplaced order is not in ArrangingPayment', async () => {
+        const orderService = {
+            findOne: () => Promise.resolve({ id: 1, state: 'ArrangingPayment' }),
+            transitionToState: vi.fn(),
+            addPaymentToOrder: () => Promise.resolve({ id: 1, state: 'PaymentSettled', orderPlacedAt: null }),
+            getOrderPayments: () => Promise.resolve([]),
+        } as any;
+        const tool = new PlaceOrderTool(activeOrderReturning(1), orderService, serializer, connectionStub());
+
+        const result = (await tool.execute({ activeUserId: 42 } as any, {
+            paymentMethodCode: 'standard-payment',
+        })) as any;
+
+        expect(result.status).toBe('awaiting_payment');
+        expect(result.message).not.toContain('ArrangingPayment');
+    });
+
     it('takes the payment inside a transaction', async () => {
         // `OrderService.addPaymentToOrder` throws unless the context it is given carries an open
         // transaction, and a tool call does not go through a resolver, so nothing else opens one.
@@ -153,6 +234,7 @@ describe('PlaceOrderTool', () => {
             findOne: () => Promise.resolve({ id: 1, state: 'ArrangingPayment' }),
             transitionToState: vi.fn(),
             addPaymentToOrder,
+            getOrderPayments: () => Promise.resolve([]),
         } as any;
         const tool = new PlaceOrderTool(activeOrderReturning(1), orderService, serializer, connectionStub());
 

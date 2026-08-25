@@ -112,6 +112,59 @@ describe('McpToolSerializerService', () => {
         });
     });
 
+    it("serializes an order's payments and shows only the public part of their metadata", () => {
+        const serialized = service.order({
+            id: 1,
+            code: 'T_1',
+            state: 'ArrangingPayment',
+            lines: [],
+            payments: [
+                {
+                    id: 4,
+                    method: 'redirect-payment',
+                    amount: 25199,
+                    state: 'Created',
+                    transactionId: 'tx-1',
+                    errorMessage: undefined,
+                    metadata: { public: { redirectUrl: 'https://pay.example.com/x' }, secret: 'hidden' },
+                },
+            ],
+        } as any);
+
+        expect(serialized?.payments).toEqual([
+            {
+                id: 4,
+                method: 'redirect-payment',
+                amount: 25199,
+                amountDecimal: '251.99',
+                state: 'Created',
+                transactionId: 'tx-1',
+                errorMessage: undefined,
+                publicMetadata: { redirectUrl: 'https://pay.example.com/x' },
+            },
+        ]);
+        expect(JSON.stringify(serialized)).not.toContain('hidden');
+    });
+
+    it('gives publicMetadata null when the handler stored no public metadata', () => {
+        const serialized = service.order({
+            id: 1,
+            code: 'T_1',
+            state: 'ArrangingPayment',
+            lines: [],
+            payments: [{ id: 4, method: 'cash', amount: 100, state: 'Settled', metadata: {} }],
+        } as any);
+
+        expect(serialized?.payments?.[0].publicMetadata).toBeNull();
+    });
+
+    it('omits payments when the relation was not loaded', () => {
+        const serialized = service.order({ id: 1, code: 'T_1', state: 'AddingItems', lines: [] } as any);
+
+        expect(serialized?.payments).toBeUndefined();
+        expect('payments' in JSON.parse(JSON.stringify(serialized))).toBe(false);
+    });
+
     it('serializes an order and its lines', () => {
         expect(
             service.order({

@@ -40,6 +40,7 @@ export class ShopGetOrderTool implements McpToolHandler<GetOrderInput> {
             'lines',
             'customer',
             'customer.user',
+            'payments',
         ]);
         if (!order) return { order: null };
         const canAccess = await this.configService.orderOptions.orderByCodeAccessStrategy.canAccessOrder(

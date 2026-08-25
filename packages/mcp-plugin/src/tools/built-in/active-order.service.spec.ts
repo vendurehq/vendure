@@ -101,6 +101,7 @@ describe('McpActiveOrderService', () => {
             expect(orderService.findOne).toHaveBeenCalledWith(ctxWithSession, '1', [
                 'lines',
                 'lines.productVariant',
+                'payments',
             ]);
             expect(result).toBe(orderWithRelations);
         });

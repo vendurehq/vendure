@@ -42,6 +42,7 @@ export class ListMyOrdersTool implements McpToolHandler<ListMyOrdersInput> {
         if (!customer) return page([], 0, input);
         const result = await this.orderService.findByCustomerId(ctx, customer.id, listOptions<Order>(input), [
             'lines',
+            'payments',
         ]);
         return page(
             result.items.map(order => this.serializer.order(order)),

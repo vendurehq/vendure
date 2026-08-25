@@ -62,6 +62,32 @@ const testPaymentHandler = new PaymentMethodHandler({
 });
 const PAYMENT_METHOD_CODE = 'e2e-payment';
 
+/**
+ * A payment method that takes a payment which does not finish the checkout: it pays one minor unit
+ * and leaves the rest of the total outstanding, so Vendure keeps the order in `ArrangingPayment` and
+ * never marks it as placed. Core still answers with the order rather than an error, which is the
+ * case `place_order` has to report as `awaiting_payment`. The metadata is split the way a redirect
+ * provider splits it, with the shopper's next step under `public` and provider-only data outside it.
+ */
+const pendingPaymentHandler = new PaymentMethodHandler({
+    code: 'e2e-pending-payment-handler',
+    description: [{ languageCode: LanguageCode.en, value: 'E2E pending payment handler' }],
+    args: {},
+    createPayment: () => ({
+        amount: 1,
+        state: 'Settled' as const,
+        transactionId: 'e2e-pending-1',
+        metadata: {
+            public: { redirectUrl: 'https://pay.example.com/e2e-pending-1' },
+            secret: 'provider-only',
+        },
+    }),
+    settlePayment: () => ({ success: true }),
+});
+const PENDING_PAYMENT_METHOD_CODE = 'e2e-pending-payment';
+const PENDING_PAYMENT_CUSTOMER_EMAIL = 'mcp-pending-payment@e2e.example.com';
+const PENDING_PAYMENT_CUSTOMER_PASSWORD = 'test';
+
 class TestOrderByCodeAccessStrategy implements OrderByCodeAccessStrategy {
     allow = true;
 
@@ -74,7 +100,7 @@ describe('MCP built-in shop tools', () => {
     const orderByCodeAccessStrategy = new TestOrderByCodeAccessStrategy();
     const config = mergeConfig(testConfig(), {
         orderOptions: { orderByCodeAccessStrategy },
-        paymentOptions: { paymentMethodHandlers: [testPaymentHandler] },
+        paymentOptions: { paymentMethodHandlers: [testPaymentHandler, pendingPaymentHandler] },
         plugins: [
             McpPlugin.init({
                 oauth: {
@@ -1224,41 +1250,90 @@ describe('MCP built-in shop tools', () => {
     // works without one, so nothing short of a test that actually pays shows that gap.
     describe('checkout', () => {
         let checkoutAuthToken: string;
+        let pendingPaymentAuthToken: string;
 
         beforeAll(async () => {
-            const created = await adminClient.query(
+            // A handler registered in the config is not usable on its own: an enabled PaymentMethod
+            // record has to point at it before an order can be paid with it.
+            const createPaymentMethod = async (code: string, handlerCode: string, name: string) => {
+                const created = await adminClient.query(
+                    gql`
+                        mutation CreateShopToolPaymentMethod($input: CreatePaymentMethodInput!) {
+                            createPaymentMethod(input: $input) {
+                                id
+                                code
+                            }
+                        }
+                    `,
+                    {
+                        input: {
+                            code,
+                            enabled: true,
+                            handler: { code: handlerCode, arguments: [] },
+                            translations: [{ languageCode: LanguageCode.en, name, description: '' }],
+                        },
+                    },
+                );
+                expect(created.createPaymentMethod.code).toBe(code);
+            };
+            await createPaymentMethod(PAYMENT_METHOD_CODE, testPaymentHandler.code, 'E2E payment');
+            await createPaymentMethod(
+                PENDING_PAYMENT_METHOD_CODE,
+                pendingPaymentHandler.code,
+                'E2E pending payment',
+            );
+
+            // The pending-payment test needs a customer of its own, and the fixture seeds only one,
+            // so this makes a second. Passing a password here also marks the new user as verified,
+            // which it has to be before it can log in.
+            const createdCustomer = await adminClient.query(
                 gql`
-                    mutation CreateShopToolPaymentMethod($input: CreatePaymentMethodInput!) {
-                        createPaymentMethod(input: $input) {
-                            id
-                            code
+                    mutation CreateShopToolPendingPaymentCustomer(
+                        $input: CreateCustomerInput!
+                        $password: String!
+                    ) {
+                        createCustomer(input: $input, password: $password) {
+                            __typename
+                            ... on Customer {
+                                emailAddress
+                            }
+                            ... on ErrorResult {
+                                errorCode
+                                message
+                            }
                         }
                     }
                 `,
                 {
                     input: {
-                        code: PAYMENT_METHOD_CODE,
-                        enabled: true,
-                        handler: { code: testPaymentHandler.code, arguments: [] },
-                        translations: [
-                            { languageCode: LanguageCode.en, name: 'E2E payment', description: '' },
-                        ],
+                        emailAddress: PENDING_PAYMENT_CUSTOMER_EMAIL,
+                        firstName: 'Pending',
+                        lastName: 'Payment',
                     },
+                    password: PENDING_PAYMENT_CUSTOMER_PASSWORD,
                 },
             );
-            expect(created.createPaymentMethod.code).toBe(PAYMENT_METHOD_CODE);
+            expect(createdCustomer.createCustomer.emailAddress).toBe(PENDING_PAYMENT_CUSTOMER_EMAIL);
 
-            // This customer needs a session on the default channel. The shared `shopClient` session
-            // is pinned to the second channel, which has no shipping methods to check out with.
-            const checkoutClient = new SimpleGraphQLClient(
-                config,
-                `http://localhost:${config.apiOptions.port}/${config.apiOptions.shopApiPath as string}`,
+            // These customers need a session on the default channel. The shared `shopClient`
+            // session is pinned to the second channel, which has no shipping methods to check out
+            // with.
+            const loginOnDefaultChannel = async (emailAddress: string, password: string) => {
+                const client = new SimpleGraphQLClient(
+                    config,
+                    `http://localhost:${config.apiOptions.port}/${config.apiOptions.shopApiPath as string}`,
+                );
+                const login = await client.asUserWithCredentials(emailAddress, password);
+                if (!login || login.errorCode) {
+                    throw new Error(`Checkout customer login failed: ${JSON.stringify(login)}`);
+                }
+                return client.getAuthToken();
+            };
+            checkoutAuthToken = await loginOnDefaultChannel(customerEmail, 'test');
+            pendingPaymentAuthToken = await loginOnDefaultChannel(
+                PENDING_PAYMENT_CUSTOMER_EMAIL,
+                PENDING_PAYMENT_CUSTOMER_PASSWORD,
             );
-            const login = await checkoutClient.asUserWithCredentials(customerEmail, 'test');
-            if (!login || login.errorCode) {
-                throw new Error(`Checkout customer login failed: ${JSON.stringify(login)}`);
-            }
-            checkoutAuthToken = checkoutClient.getAuthToken();
         }, TEST_SETUP_TIMEOUT_MS);
 
         it('walks a cart through checkout and places the order', async () => {
@@ -1301,12 +1376,94 @@ describe('MCP built-in shop tools', () => {
             );
 
             expect(placed.body.result.isError).toBeUndefined();
+            expect(placed.body.result.structuredContent.status).toBe('placed');
             const placedOrder = placed.body.result.structuredContent.order;
             expect(placedOrder.state).toBe('PaymentSettled');
+            expect(placedOrder.payments).toHaveLength(1);
+            expect(placedOrder.payments[0]).toMatchObject({
+                state: 'Settled',
+                method: PAYMENT_METHOD_CODE,
+            });
 
             const stored = await orderByCode(placedOrder.code);
             expect(stored.state).toBe('PaymentSettled');
             expect(stored.orderPlacedAt).toBeTruthy();
+        });
+
+        // This test uses the customer created for it on purpose. It leaves an order sitting in
+        // `ArrangingPayment`, and `OrderService.findByCustomerId` only leaves out `Draft` orders, so
+        // an unplaced order on the shared customer would show up in the `list_my_orders` test below
+        // and break its expectation that the first listed order has an `orderPlacedAt`.
+        it('answers awaiting_payment when the payment leaves the order unplaced', async () => {
+            const flow = await runShopAuthorizationCodeFlow({
+                baseUrl: baseUrl(),
+                issuer: ISSUER,
+                vendureAuthToken: pendingPaymentAuthToken,
+            });
+            const call = (name: string, args: Record<string, unknown>, id: number) =>
+                postMcp(baseUrl(), 'shop', callTool(name, args, id), { token: flow.access_token });
+
+            const added = await call('add_to_cart', { variantId, quantity: 1 }, 1);
+            expect(added.body.result.isError).toBeUndefined();
+
+            const address = await call(
+                'set_shipping_address',
+                {
+                    address: {
+                        streetLine1: '451 Sansome Street',
+                        city: 'San Francisco',
+                        postalCode: '94111',
+                        countryCode: 'US',
+                    },
+                },
+                2,
+            );
+            expect(address.body.result.isError).toBeUndefined();
+
+            const quotes = await call('get_eligible_shipping_methods', {}, 3);
+            const methodId = quotes.body.result.structuredContent.methods[0]?.id;
+            expect(methodId).toBeDefined();
+
+            const chosen = await call('set_shipping_method', { methodId }, 4);
+            expect(chosen.body.result.isError).toBeUndefined();
+
+            const placed = await call(
+                'place_order',
+                { paymentMethodCode: PENDING_PAYMENT_METHOD_CODE, confirm: true },
+                5,
+            );
+
+            expect(placed.body.result.isError).toBeUndefined();
+            const answer = placed.body.result.structuredContent;
+            expect(answer.status).toBe('awaiting_payment');
+            expect(answer.message).toContain('not placed yet');
+            expect(answer.message).toContain('ArrangingPayment');
+            expect(answer.order.state).toBe('ArrangingPayment');
+            expect(answer.order.orderPlacedAt).toBeNull();
+            expect(answer.order.payments).toHaveLength(1);
+            expect(answer.order.payments[0]).toMatchObject({
+                state: 'Settled',
+                amount: 1,
+                method: PENDING_PAYMENT_METHOD_CODE,
+                transactionId: 'e2e-pending-1',
+                publicMetadata: { redirectUrl: 'https://pay.example.com/e2e-pending-1' },
+            });
+            // Whatever the handler kept outside the `public` key stays with the provider.
+            expect(JSON.stringify(placed.body)).not.toContain('provider-only');
+
+            const cart = await call('get_cart', {}, 6);
+            expect(cart.body.result.isError).toBeUndefined();
+            const cartOrder = cart.body.result.structuredContent.order;
+            expect(cartOrder.state).toBe('ArrangingPayment');
+            expect(cartOrder.payments).toHaveLength(1);
+            expect(cartOrder.payments[0]).toMatchObject({
+                state: 'Settled',
+                publicMetadata: { redirectUrl: 'https://pay.example.com/e2e-pending-1' },
+            });
+
+            const stored = await orderByCode(answer.order.code);
+            expect(stored.state).toBe('ArrangingPayment');
+            expect(stored.orderPlacedAt).toBeFalsy();
         });
     });
 

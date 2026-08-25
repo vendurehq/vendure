@@ -10,6 +10,7 @@ import {
     GraphQLErrorResult,
     isGraphQlErrorResult,
     Order,
+    Payment,
     Product,
     ProductVariant,
 } from '@vendure/core';
@@ -130,6 +131,23 @@ export class McpToolSerializerService {
         return isGraphQlErrorResult(result) ? null : this.customer(result);
     }
 
+    /**
+     * A payment taken against an order. The state and the amount tell a caller whether this payment
+     * finished the checkout, or left part of the total unpaid.
+     */
+    payment(payment: Payment) {
+        return {
+            id: payment.id,
+            method: payment.method,
+            amount: payment.amount,
+            amountDecimal: this.decimal(payment.amount),
+            state: payment.state,
+            transactionId: payment.transactionId,
+            errorMessage: payment.errorMessage,
+            publicMetadata: payment.metadata?.public ?? null,
+        };
+    }
+
     order(order: Order | undefined | null) {
         if (!order) return null;
         return {
@@ -155,6 +173,7 @@ export class McpToolSerializerService {
                     linePriceWithTaxDecimal: this.decimal(line.linePriceWithTax),
                     productVariant: line.productVariant ? this.variant(line.productVariant) : null,
                 })) ?? [],
+            payments: order.payments ? order.payments.map(payment => this.payment(payment)) : undefined,
         };
     }
 

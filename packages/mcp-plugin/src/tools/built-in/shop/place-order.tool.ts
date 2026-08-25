@@ -24,8 +24,8 @@ type PlaceOrderInput = z.infer<typeof placeOrderInput>;
     name: 'place_order',
     toolset: 'shop',
     description:
-        'Place the order: move the active cart to the payment stage if it is still open, then add ' +
-        'payment. The cart needs a shipping method and enough stock first.',
+        'Add payment to the active cart and place the order. Requires a shipping method and enough ' +
+        'stock. Returns "placed" or "awaiting_payment" with payment details.',
     keywords: [
         'check out',
         'complete my purchase',
@@ -82,10 +82,30 @@ export class PlaceOrderTool implements McpToolHandler<PlaceOrderInput> {
             };
             const result = await this.orderService.addPaymentToOrder(txCtx, order.id, payment);
 
-            if (isGraphQlErrorResult(result) && movedOutOfCart) {
-                await this.orderService.transitionToState(txCtx, order.id, 'AddingItems');
+            if (isGraphQlErrorResult(result)) {
+                if (movedOutOfCart) {
+                    await this.orderService.transitionToState(txCtx, order.id, 'AddingItems');
+                }
+                return this.serializer.orderOrError(result);
             }
-            return this.serializer.orderOrError(result);
+
+            result.payments = await this.orderService.getOrderPayments(txCtx, result.id);
+
+            if (result.orderPlacedAt) {
+                return { status: 'placed' as const, order: this.serializer.order(result) };
+            }
+
+            let message =
+                'Payment was created, but the order is not placed yet. Look at order.payments for ' +
+                "each payment's state and any publicMetadata with the shopper's next step.";
+            if (result.state === 'ArrangingPayment') {
+                message += ' The cart cannot be edited while the order is in ArrangingPayment.';
+            }
+            return {
+                status: 'awaiting_payment' as const,
+                order: this.serializer.order(result),
+                message,
+            };
         });
     }
 }

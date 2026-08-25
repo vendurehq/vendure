@@ -32,7 +32,10 @@ export class McpActiveOrderService {
         if (!order) {
             return undefined;
         }
-        return (await this.orderService.findOne(ctx, order.id, ['lines', 'lines.productVariant'])) ?? order;
+        return (
+            (await this.orderService.findOne(ctx, order.id, ['lines', 'lines.productVariant', 'payments'])) ??
+            order
+        );
     }
 
     /**
