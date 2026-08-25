@@ -2,17 +2,21 @@
 title: "RunMigrations"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/migrate.ts" sourceLine="40" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/migrate.ts" sourceLine="107" packageName="@vendure/core" />
 
 Runs any pending database migrations. See [TypeORM migration docs](https://typeorm.io/#/migrations)
 for more information about the underlying migration mechanism.
 
 ```ts title="Signature"
-function runMigrations(userConfig: Partial<VendureConfig>): Promise<string[]>
+function runMigrations(userConfig: Partial<VendureConfig>, options?: RunMigrationsOptions): Promise<string[]>
 ```
 Parameters
 
 ### userConfig
 
 <MemberInfo kind="parameter" type={`Partial<<a href='/reference/typescript-api/configuration/vendure-config#vendureconfig'>VendureConfig</a>>`} />
+
+### options
+
+<MemberInfo kind="parameter" type={`<a href='/reference/typescript-api/migration/run-migrations-options#runmigrationsoptions'>RunMigrationsOptions</a>`} />
 

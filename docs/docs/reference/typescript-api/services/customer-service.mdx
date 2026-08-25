@@ -103,6 +103,13 @@ Registers a new Customer account with the [NativeAuthenticationStrategy](/refere
 the email verification flow (unless [AuthOptions](/reference/typescript-api/auth/auth-options#authoptions) `requireVerification` is set to `false`)
 by publishing an [AccountRegistrationEvent](/reference/typescript-api/events/event-types#accountregistrationevent).
 
+If an account with the given email address already exists via another authentication method
+(for example an external/SSO strategy) and has no native credential yet, a native credential is
+added in an unactivated state (no password) and an [AccountRegistrationEvent](/reference/typescript-api/events/event-types#accountregistrationevent) is always
+published, even when `requireVerification` is `false`. The password can then only be set by
+whoever controls the email address, by completing the verification flow. This prevents an
+unauthenticated caller from taking over such an account by registering a password against it.
+
 This method is intended to be used in storefront Customer-creation flows.
 ### refreshVerificationToken
 

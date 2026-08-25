@@ -27,7 +27,7 @@ class ProductVariantService {
     update(ctx: RequestContext, input: UpdateProductVariantInput[]) => Promise<Array<Translated<ProductVariant>>>;
     createOrUpdateProductVariantPrice(ctx: RequestContext, productVariantId: ID, price: number, channelId: ID, currencyCode?: CurrencyCode, customFields?: CustomFieldsObject) => Promise<ProductVariantPrice>;
     deleteProductVariantPrice(ctx: RequestContext, variantId: ID, channelId: ID, currencyCode: CurrencyCode) => ;
-    softDelete(ctx: RequestContext, id: ID | ID[]) => Promise<DeletionResponse>;
+    softDelete(ctx: RequestContext, id: ID | ID[], checkChannel: boolean = true) => Promise<DeletionResponse>;
     hydratePriceFields(ctx: RequestContext, variant: ProductVariant, priceField: F) => Promise<ProductVariant[F]>;
     applyChannelPriceAndTax(variant: ProductVariant, ctx: RequestContext, order?: Order, throwIfNoPriceFound:  = false) => Promise<ProductVariant>;
     assignProductVariantsToChannel(ctx: RequestContext, input: AssignProductVariantsToChannelInput) => Promise<Array<Translated<ProductVariant>>>;
@@ -136,9 +136,13 @@ If the `currencyCode` is not specified, the default currency of the Channel will
 
 ### softDelete
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, id: <a href='/reference/typescript-api/common/id#id'>ID</a> | <a href='/reference/typescript-api/common/id#id'>ID</a>[]) => Promise<DeletionResponse>`}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, id: <a href='/reference/typescript-api/common/id#id'>ID</a> | <a href='/reference/typescript-api/common/id#id'>ID</a>[], checkChannel: boolean = true) => Promise<DeletionResponse>`}   />
 
+Soft-deletes the ProductVariant(s) with the given id(s).
 
+The lookup is scoped to the active Channel, so an id which does not belong to
+`ctx.channelId` throws an [EntityNotFoundError](/reference/typescript-api/errors/error-types#entitynotfounderror). Previously an unknown or
+out-of-channel id was silently reported as deleted.
 ### hydratePriceFields
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, variant: <a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>, priceField: F) => Promise<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>[F]>`}   />
