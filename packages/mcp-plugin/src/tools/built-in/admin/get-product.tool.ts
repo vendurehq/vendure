@@ -1,5 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { Permission, ProductService, RequestContext } from '@vendure/core';
+import {
+    Permission,
+    ProductOptionGroupService,
+    ProductService,
+    ProductVariantService,
+    RequestContext,
+} from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
@@ -17,7 +23,9 @@ type GetProductInput = z.infer<typeof getProductInput>;
 @McpTool({
     name: 'get_product',
     toolset: 'admin',
-    description: 'Get a product by id.',
+    description:
+        'Get a product by id, with its variants and option groups. Variant IDs are what ' +
+        'get_stock_levels, adjust_stock and update_variant take; option IDs are what create_variant takes.',
     keywords: [
         'look up a product record',
         'view a product in the back office',
@@ -34,14 +42,25 @@ type GetProductInput = z.infer<typeof getProductInput>;
 export class AdminGetProductTool implements McpToolHandler<GetProductInput> {
     constructor(
         private productService: ProductService,
+        private productVariantService: ProductVariantService,
+        private productOptionGroupService: ProductOptionGroupService,
         private serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: GetProductInput) {
+        const product = await this.productService.findOne(ctx, input.id, ['featuredAsset', 'assets']);
+        if (!product) {
+            return { product: null };
+        }
+
+        const variants = await this.productVariantService.getVariantsByProductId(ctx, product.id, {}, []);
+        const optionGroups = await this.productOptionGroupService.getOptionGroupsByProductId(ctx, product.id);
         return {
-            product: this.serializer.product(
-                await this.productService.findOne(ctx, input.id, ['featuredAsset', 'assets']),
-            ),
+            product: {
+                ...this.serializer.product(product),
+                variants: variants.items.map(variant => this.serializer.variant(variant)),
+                optionGroups: optionGroups.map(group => this.serializer.optionGroup(group)),
+            },
         };
     }
 }

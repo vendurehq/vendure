@@ -10,6 +10,7 @@ import { AdminGetOrderTool } from './get-order.tool';
 import { AdminGetProductTool } from './get-product.tool';
 import { GetStockLevelsTool } from './get-stock-levels.tool';
 import { ListChannelsTool } from './list-channels.tool';
+import { ListCustomerGroupsTool } from './list-customer-groups.tool';
 import { ListCustomersTool } from './list-customers.tool';
 import { ListOrdersTool } from './list-orders.tool';
 import { ListProductsTool } from './list-products.tool';
@@ -34,6 +35,7 @@ export const adminToolProviders = [
     CreateCustomerTool,
     UpdateCustomerTool,
     AddCustomerToGroupTool,
+    ListCustomerGroupsTool,
     ListProductsTool,
     AdminGetProductTool,
     CreateProductTool,

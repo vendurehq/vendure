@@ -7,12 +7,15 @@ import {
     ConfigService,
     CurrencyCode,
     Customer,
+    CustomerGroup,
     GraphQLErrorResult,
     isGraphQlErrorResult,
     Order,
     Payment,
     Product,
+    ProductOptionGroup,
     ProductVariant,
+    StockLevel,
 } from '@vendure/core';
 
 /**
@@ -88,6 +91,37 @@ export class McpToolSerializerService {
         };
     }
 
+    /**
+     * A product's option group with its options, for example "size" with small, medium and large.
+     * The option IDs are what `create_variant` and `update_variant` take, so an agent can build a
+     * variant without going to the dashboard for them.
+     */
+    optionGroup(group: ProductOptionGroup) {
+        return {
+            id: group.id,
+            code: group.code,
+            name: group.name,
+            options: (group.options ?? []).map(option => ({
+                id: option.id,
+                code: option.code,
+                name: option.name,
+            })),
+        };
+    }
+
+    /**
+     * One stock location's figures for a variant. `stockLocationId` is what `adjust_stock` needs;
+     * the location name is there so an agent can tell locations apart without another lookup.
+     */
+    stockLevel(level: StockLevel) {
+        return {
+            stockLocationId: level.stockLocationId,
+            stockLocationName: level.stockLocation?.name ?? null,
+            stockOnHand: level.stockOnHand,
+            stockAllocated: level.stockAllocated,
+        };
+    }
+
     collection(collection: Collection | undefined | null) {
         if (!collection) return null;
         return {
@@ -116,6 +150,11 @@ export class McpToolSerializerService {
             emailAddress: customer.emailAddress,
             phoneNumber: customer.phoneNumber,
         };
+    }
+
+    /** A customer group, whose ID is what `add_customer_to_group` takes. */
+    customerGroup(group: CustomerGroup) {
+        return { id: group.id, name: group.name };
     }
 
     /**

@@ -770,6 +770,9 @@ describe('MCP built-in admin tools (direct mode)', () => {
         expect(names).not.toContain('create_product');
         // Reading the channel list is settings-level, so it is hidden from an admin who only reads customers.
         expect(names).not.toContain('list_channels');
+        // Customer groups need ReadCustomerGroup, which this administrator does not hold, even though
+        // it may read customers.
+        expect(names).not.toContain('list_customer_groups');
 
         // list_orders was filtered out of the exposed set, so it is not callable: the SDK rejects it
         // as an unknown tool, with a top-level JSON-RPC error and no tool result. The registry's own
@@ -891,6 +894,93 @@ describe('MCP built-in admin tools (direct mode)', () => {
         expect(conflict.body.result.structuredContent).toEqual({ customer: null });
     });
 
+    it('get_product returns the variants whose IDs the stock and variant tools take', async () => {
+        const token = await adminAccessToken();
+        const response = await postMcp(baseUrl(), 'admin', callTool('get_product', { id: productId }, 1), {
+            token,
+        });
+
+        expect(response.body.result.isError).toBeUndefined();
+        const product = response.body.result.structuredContent.product as {
+            variants: Array<{ id: ID; sku: string; enabled: boolean; priceDecimal: string }>;
+            optionGroups: unknown[];
+        };
+        expect(product.variants.length).toBeGreaterThan(0);
+        expect(product.variants[0]).toMatchObject({
+            id: expect.anything(),
+            sku: expect.any(String),
+            enabled: expect.any(Boolean),
+            priceDecimal: expect.any(String),
+        });
+        // This seeded product has a single variant with no options, so it has no option groups. The
+        // test below reads the seeded shirt, which does have them.
+        expect(product.optionGroups).toEqual([]);
+    });
+
+    it('get_product returns option groups with the option IDs create_variant takes', async () => {
+        const token = await adminAccessToken();
+        const listed = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool('list_products', { filter: { slug: { eq: 'test-shirt' } } }, 1),
+            { token },
+        );
+        const shirt = (listed.body.result.structuredContent.items as Array<{ id: ID }>)[0];
+        expect(shirt).toBeDefined();
+
+        const response = await postMcp(baseUrl(), 'admin', callTool('get_product', { id: shirt.id }, 2), {
+            token,
+        });
+        expect(response.body.result.isError).toBeUndefined();
+        const optionGroups = response.body.result.structuredContent.product.optionGroups as Array<{
+            id: ID;
+            code: string;
+            name: string;
+            options: Array<{ id: ID; code: string; name: string }>;
+        }>;
+        expect(optionGroups.length).toBeGreaterThan(0);
+        expect(optionGroups[0]).toMatchObject({
+            id: expect.anything(),
+            code: expect.any(String),
+            name: expect.any(String),
+        });
+        expect(optionGroups[0].options.length).toBeGreaterThan(0);
+        expect(optionGroups[0].options[0]).toMatchObject({
+            id: expect.anything(),
+            code: expect.any(String),
+            name: expect.any(String),
+        });
+    });
+
+    it('get_product shows a disabled variant, which an administrator has to be able to find', async () => {
+        const token = await adminAccessToken();
+        const setEnabled = (enabled: boolean, requestId: number) =>
+            postMcp(
+                baseUrl(),
+                'admin',
+                callTool('update_variant', { id: variantId, input: { enabled } }, requestId),
+                { token },
+            );
+
+        const disabled = await setEnabled(false, 1);
+        expect(disabled.body.result.isError).toBeUndefined();
+
+        const response = await postMcp(baseUrl(), 'admin', callTool('get_product', { id: productId }, 2), {
+            token,
+        });
+        const variants = response.body.result.structuredContent.product.variants as Array<{
+            id: ID;
+            enabled: boolean;
+        }>;
+        expect(variants.find(variant => String(variant.id) === String(variantId))).toMatchObject({
+            enabled: false,
+        });
+
+        // Put the variant back, so the disabled state does not leak into later tests.
+        const restored = await setEnabled(true, 3);
+        expect(restored.body.result.isError).toBeUndefined();
+    });
+
     it('reads stock levels for a variant through get_stock_levels', async () => {
         const token = await adminAccessToken();
         const response = await postMcp(baseUrl(), 'admin', callTool('get_stock_levels', { variantId }, 1), {
@@ -901,6 +991,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
             stockOnHand: number;
             stockAllocated: number;
             stockLocationId: ID;
+            stockLocationName: string;
         }>;
         expect(Array.isArray(stockLevels)).toBe(true);
         // The seeded variant carries stock at the default location (stockOnHand 100 in the fixture CSV),
@@ -908,9 +999,17 @@ describe('MCP built-in admin tools (direct mode)', () => {
         const atLocation = stockLevels.find(
             level => String(level.stockLocationId) === String(stockLocationId),
         );
-        expect(atLocation).toBeDefined();
-        expect(typeof atLocation?.stockOnHand).toBe('number');
-        expect(typeof atLocation?.stockAllocated).toBe('number');
+        expect(atLocation).toEqual({
+            stockLocationId: expect.anything(),
+            stockLocationName: expect.any(String),
+            stockOnHand: expect.any(Number),
+            stockAllocated: expect.any(Number),
+        });
+        // The raw StockLevel row is not handed back, so a caller sees only the figures and the
+        // location id that adjust_stock takes.
+        expect(atLocation).not.toHaveProperty('createdAt');
+        expect(atLocation).not.toHaveProperty('productVariantId');
+        expect(atLocation).not.toHaveProperty('stockLocation');
     });
 
     it('adjust_stock applies the delta to stock on hand when confirmed', async () => {
@@ -944,12 +1043,21 @@ describe('MCP built-in admin tools (direct mode)', () => {
         expect(adjusted.body.result.isError).toBeUndefined();
         const returned = adjusted.body.result.structuredContent.stockLevels as Array<{
             stockOnHand: number;
+            stockAllocated: number;
             stockLocationId: ID;
+            stockLocationName: string;
         }>;
         const returnedAtLocation = returned.find(
             level => String(level.stockLocationId) === String(stockLocationId),
         );
-        expect(returnedAtLocation?.stockOnHand).toBe(before + delta);
+        // Both stock tools answer with the same shape, so an agent can read one and write the other
+        // without reshaping anything.
+        expect(returnedAtLocation).toEqual({
+            stockLocationId: expect.anything(),
+            stockLocationName: expect.any(String),
+            stockOnHand: before + delta,
+            stockAllocated: expect.any(Number),
+        });
         // A fresh read confirms the change persisted, not just that the response echoed it.
         expect(await readOnHand()).toBe(before + delta);
 
@@ -1545,6 +1653,24 @@ describe('MCP built-in admin tools (direct mode)', () => {
                 String(idStrategy.decodeId(customer.id)),
             );
             expect(memberIds).toContain(String(seededCustomerId));
+        });
+
+        it('list_customer_groups returns the group id add_customer_to_group needs', async () => {
+            const token = await adminAccessToken();
+
+            const listed = await postMcp(baseUrl(), 'admin', callTool('list_customer_groups', {}, 1), {
+                token,
+            });
+
+            expect(listed.body.result.isError).toBeUndefined();
+            const result = listed.body.result.structuredContent as {
+                items: Array<{ id: ID; name: string }>;
+                total: number;
+            };
+            expect(result.total).toBeGreaterThanOrEqual(1);
+            expect(result.items.find(group => String(group.id) === String(customerGroupId))).toMatchObject({
+                name: 'MCP tool group',
+            });
         });
 
         it('update_order_state gates the transition behind confirm, then performs it', async () => {

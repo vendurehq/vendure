@@ -10,6 +10,7 @@ import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { idSchema } from '../id-schema';
+import { McpToolSerializerService } from '../serializer.service';
 
 const adjustStockInput = z.strictObject({
     variantId: idSchema.describe('Product variant ID.'),
@@ -43,6 +44,7 @@ export class AdjustStockTool implements McpToolHandler<AdjustStockInput> {
     constructor(
         private productVariantService: ProductVariantService,
         private stockLevelService: StockLevelService,
+        private serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: AdjustStockInput) {
@@ -59,8 +61,7 @@ export class AdjustStockTool implements McpToolHandler<AdjustStockInput> {
                 ],
             },
         ]);
-        return {
-            stockLevels: await this.stockLevelService.getStockLevelsForVariant(ctx, input.variantId),
-        };
+        const updated = await this.stockLevelService.getStockLevelsForVariant(ctx, input.variantId);
+        return { stockLevels: updated.map(level => this.serializer.stockLevel(level)) };
     }
 }

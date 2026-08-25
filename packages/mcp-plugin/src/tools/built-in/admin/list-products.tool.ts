@@ -40,7 +40,7 @@ type ListProductsInput = z.infer<typeof listProductsInput>;
 @McpTool({
     name: 'list_products',
     toolset: 'admin',
-    description: 'List and filter catalog products.',
+    description: "List and filter catalog products. Use get_product for a product's variant IDs.",
     keywords: [
         'show the whole catalog',
         'list every product',

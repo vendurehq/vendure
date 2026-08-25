@@ -49,6 +49,62 @@ describe('McpToolSerializerService', () => {
         expect(service.orderOrError(errorResult)).toEqual(errorResult);
     });
 
+    it("serializes an option group with its options, which is where a variant's optionIds come from", () => {
+        expect(
+            service.optionGroup({
+                id: 3,
+                code: 'size',
+                name: 'Size',
+                options: [
+                    { id: 7, code: 'small', name: 'Small' },
+                    { id: 8, code: 'large', name: 'Large' },
+                ],
+            } as any),
+        ).toEqual({
+            id: 3,
+            code: 'size',
+            name: 'Size',
+            options: [
+                { id: 7, code: 'small', name: 'Small' },
+                { id: 8, code: 'large', name: 'Large' },
+            ],
+        });
+    });
+
+    it('serializes a stock level with the location id adjust_stock needs', () => {
+        expect(
+            service.stockLevel({
+                stockLocationId: 1,
+                stockLocation: { id: 1, name: 'Default Stock Location' },
+                stockOnHand: 100,
+                stockAllocated: 3,
+            } as any),
+        ).toEqual({
+            stockLocationId: 1,
+            stockLocationName: 'Default Stock Location',
+            stockOnHand: 100,
+            stockAllocated: 3,
+        });
+    });
+
+    it('gives a stock level a null location name when the location relation was not loaded', () => {
+        expect(
+            service.stockLevel({ stockLocationId: 1, stockOnHand: 100, stockAllocated: 0 } as any),
+        ).toEqual({
+            stockLocationId: 1,
+            stockLocationName: null,
+            stockOnHand: 100,
+            stockAllocated: 0,
+        });
+    });
+
+    it('serializes a customer group', () => {
+        expect(service.customerGroup({ id: 2, name: 'Wholesale' } as any)).toEqual({
+            id: 2,
+            name: 'Wholesale',
+        });
+    });
+
     it('adds decimal prices and the order currency to a shipping quote', () => {
         expect(
             service.shippingQuote(

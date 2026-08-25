@@ -1,11 +1,11 @@
 ---
 title: 'Built-in Tool Reference'
 metaTitle: 'MCP Built-in Tool Reference | Vendure'
-metaDescription: 'The 42 tools the Vendure MCP plugin ships — 19 shop and 23 admin — grouped by area, with their safety classification, permissions, and how tool exposure and confirmation work.'
+metaDescription: 'The 43 tools the Vendure MCP plugin ships — 19 shop and 24 admin — grouped by area, with their safety classification, permissions, and how tool exposure and confirmation work.'
 order: 9
 ---
 
-The plugin ships 42 built-in tools: 19 on the shop toolset and 23 on the admin toolset. This page groups them by
+The plugin ships 43 built-in tools: 19 on the shop toolset and 24 on the admin toolset. This page groups them by
 area and explains the model they follow. It is not exhaustive on every input field. The live `tools/list`
 response for your configuration is the authoritative set: it already accounts for permissions, tool toggles, and
 exposure mode.
@@ -136,12 +136,16 @@ returned.
 
 | Tool | Safety | Permission | Description |
 |---|---|---|---|
-| `get_product` | readonly | ReadProduct | Get a product by ID |
+| `get_product` | readonly | ReadProduct | Get a product by ID, with its variants and option groups |
 | `list_products` | readonly | ReadProduct | List and filter products (paginated) |
 | `create_product` | mutating | CreateProduct | Create a product |
 | `update_product` | mutating | UpdateProduct | Update a product's details |
 | `create_variant` | mutating | UpdateProduct | Create a product variant |
 | `update_variant` | mutating | UpdateProduct | Update a variant's price, SKU or stock |
+
+`get_product` is where variant IDs (for `get_stock_levels`, `adjust_stock` and `update_variant`) and option IDs
+(for `create_variant`) come from. `get_stock_levels` and `adjust_stock` both answer with one entry per stock
+location, carrying `stockLocationId`, `stockLocationName`, `stockOnHand` and `stockAllocated`.
 
 ### Orders
 
@@ -163,6 +167,10 @@ returned.
 | `create_customer` | mutating | CreateCustomer | Create a customer record |
 | `update_customer` | mutating | UpdateCustomer | Update a customer's details |
 | `add_customer_to_group` | mutating | UpdateCustomerGroup | Add a customer to a group |
+| `list_customer_groups` | readonly | ReadCustomerGroup | List customer groups |
+
+Every required ID input of a built-in tool has a tool that returns it. Optional inputs such as `facetValueIds`
+and `taxCategoryId` do not, so their values come from the dashboard or the Admin API.
 
 ### Stock & inventory
 
@@ -248,7 +256,7 @@ tool's schema exactly as a direct call would.
 
 Reach for discovery only when the full list is a problem:
 
-- A host with a low tool cap: 42 tools exceeds some clients' limits.
+- A host with a low tool cap: 43 tools exceeds some clients' limits.
 - A model with no built-in tool search: older Claude and GPT models, Gemini, Grok, GLM, and most open-source
   models.
 

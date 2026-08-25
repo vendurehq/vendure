@@ -4,6 +4,7 @@ import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { idSchema } from '../id-schema';
+import { McpToolSerializerService } from '../serializer.service';
 
 const getStockLevelsInput = z.strictObject({
     variantId: idSchema.describe('Product variant ID.'),
@@ -29,11 +30,13 @@ type GetStockLevelsInput = z.infer<typeof getStockLevelsInput>;
 })
 @Injectable()
 export class GetStockLevelsTool implements McpToolHandler<GetStockLevelsInput> {
-    constructor(private stockLevelService: StockLevelService) {}
+    constructor(
+        private stockLevelService: StockLevelService,
+        private serializer: McpToolSerializerService,
+    ) {}
 
     async execute(ctx: RequestContext, input: GetStockLevelsInput) {
-        return {
-            stockLevels: await this.stockLevelService.getStockLevelsForVariant(ctx, input.variantId),
-        };
+        const levels = await this.stockLevelService.getStockLevelsForVariant(ctx, input.variantId);
+        return { stockLevels: levels.map(level => this.serializer.stockLevel(level)) };
     }
 }

@@ -34,6 +34,7 @@ const TOOL_OPERATION_MAP: Record<string, ResolverOperation> = {
     create_customer: { resolver: CustomerResolver, method: 'createCustomer' },
     update_customer: { resolver: CustomerResolver, method: 'updateCustomer' },
     add_customer_to_group: { resolver: CustomerGroupResolver, method: 'addCustomersToGroup' },
+    list_customer_groups: { resolver: CustomerGroupResolver, method: 'customerGroups' },
     list_products: { resolver: ProductResolver, method: 'products' },
     get_product: { resolver: ProductResolver, method: 'product' },
     create_product: { resolver: ProductResolver, method: 'createProduct' },
