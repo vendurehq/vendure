@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { CustomerService, Order, OrderService, Permission, RequestContext } from '@vendure/core';
+import { CustomerService, OrderService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { listOptions, page, paginationFields } from '../list-helpers';
+import { orderListOptions, page, paginationFields } from '../list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 
 const listMyOrdersInput = z.strictObject({
@@ -15,7 +15,7 @@ type ListMyOrdersInput = z.infer<typeof listMyOrdersInput>;
 @McpTool({
     name: 'list_my_orders',
     toolset: 'shop',
-    description: 'List orders belonging to the authenticated customer.',
+    description: 'List orders belonging to the authenticated customer, newest first.',
     keywords: [
         'my order history',
         'my past purchases',
@@ -40,7 +40,7 @@ export class ListMyOrdersTool implements McpToolHandler<ListMyOrdersInput> {
         if (!ctx.activeUserId) return page([], 0, input);
         const customer = await this.customerService.findOneByUserId(ctx, ctx.activeUserId);
         if (!customer) return page([], 0, input);
-        const result = await this.orderService.findByCustomerId(ctx, customer.id, listOptions<Order>(input), [
+        const result = await this.orderService.findByCustomerId(ctx, customer.id, orderListOptions(input), [
             'lines',
             'payments',
         ]);
