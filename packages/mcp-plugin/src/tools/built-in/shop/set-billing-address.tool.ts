@@ -40,7 +40,7 @@ export class SetBillingAddressTool implements McpToolHandler<SetBillingAddressIn
     ) {}
 
     async execute(ctx: RequestContext, input: SetBillingAddressInput) {
-        const order = await this.activeOrder.findOrCreate(ctx);
+        const order = await this.activeOrder.findOrThrow(ctx);
         // setBillingAddress returns a plain Order (no error union), so order() rather than orderOrError().
         return {
             order: this.serializer.order(

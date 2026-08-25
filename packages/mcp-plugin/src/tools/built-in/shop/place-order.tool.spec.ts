@@ -1,3 +1,4 @@
+import { UserInputError } from '@vendure/core';
 import { describe, expect, it, vi } from 'vitest';
 
 import { PlaceOrderTool } from './place-order.tool';
@@ -26,7 +27,7 @@ function connectionStub() {
 }
 
 function activeOrderReturning(id: number) {
-    return { findOrCreate: () => Promise.resolve({ id, currencyCode: 'USD' }) } as any;
+    return { findOrThrow: () => Promise.resolve({ id, currencyCode: 'USD' }) } as any;
 }
 
 describe('PlaceOrderTool', () => {
@@ -44,6 +45,21 @@ describe('PlaceOrderTool', () => {
         const result = await tool.execute({} as any, { paymentMethodCode: 'standard-payment' });
 
         expect(result).toMatchObject({ requiresAuthorization: true });
+    });
+
+    it('refuses without a cart and opens no transaction', async () => {
+        const noCart = 'There is no active cart. Add an item with add_to_cart first.';
+        const activeOrder = {
+            findOrThrow: () => Promise.reject(new UserInputError(noCart)),
+        } as any;
+        const withTransaction = vi.fn();
+        const orderService = {} as any;
+        const tool = new PlaceOrderTool(activeOrder, orderService, serializer, { withTransaction } as any);
+
+        await expect(
+            tool.execute({ activeUserId: 42 } as any, { paymentMethodCode: 'standard-payment' }),
+        ).rejects.toBeInstanceOf(UserInputError);
+        expect(withTransaction).not.toHaveBeenCalled();
     });
 
     it('moves a cart to ArrangingPayment before adding payment', async () => {

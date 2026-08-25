@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ActiveOrderService, Order, OrderService, RequestContext } from '@vendure/core';
+import { ActiveOrderService, Order, OrderService, RequestContext, UserInputError } from '@vendure/core';
 
 export type ActiveOrderRef = Pick<Order, 'id' | 'currencyCode'>;
 
@@ -17,7 +17,8 @@ export class McpActiveOrderService {
 
     /**
      * The shopper's current cart, creating an empty one when they have none. Order lines are not
-     * loaded.
+     * loaded. `add_to_cart` is the only caller: a cart begins when the first item is added, both in
+     * the browser and here, so every other cart mutation uses `findOrThrow` instead.
      */
     async findOrCreate(ctx: RequestContext): Promise<ActiveOrderRef> {
         if (!ctx.session) {
@@ -25,6 +26,19 @@ export class McpActiveOrderService {
         }
         // Never undefined: core throws a UserInputError when it can neither find nor create one.
         return this.activeOrderService.getActiveOrder(ctx, undefined, true);
+    }
+
+    /**
+     * The shopper's current cart, refusing when they have none. Only `add_to_cart` may start a cart,
+     * so every other cart mutation goes through here: acting on a cart that does not exist would
+     * otherwise create an empty order and report success against it.
+     */
+    async findOrThrow(ctx: RequestContext): Promise<ActiveOrderRef> {
+        const order = await this.find(ctx);
+        if (!order) {
+            throw new UserInputError('There is no active cart. Add an item with add_to_cart first.');
+        }
+        return order;
     }
 
     async findWithLines(ctx: RequestContext): Promise<Order | undefined> {

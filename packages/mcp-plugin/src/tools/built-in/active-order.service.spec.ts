@@ -1,3 +1,4 @@
+import { UserInputError } from '@vendure/core';
 import { describe, expect, it, vi } from 'vitest';
 
 import { McpActiveOrderService } from './active-order.service';
@@ -65,6 +66,38 @@ describe('McpActiveOrderService', () => {
 
             await expect(service.findOrCreate({} as never)).rejects.toThrow(/without a session/);
             expect(activeOrderService.getActiveOrder).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('findOrThrow', () => {
+        it('returns the cart when there is one', async () => {
+            const activeOrder = { id: '1', code: 'T_1' };
+            const activeOrderService = {
+                getActiveOrder: vi.fn().mockResolvedValue(activeOrder),
+            };
+            const orderService = {
+                findOne: vi.fn(),
+            };
+            const service = new McpActiveOrderService(activeOrderService as never, orderService as never);
+
+            const result = await service.findOrThrow(ctxWithSession);
+
+            expect(result).toBe(activeOrder);
+            expect(activeOrderService.getActiveOrder).toHaveBeenCalledWith(ctxWithSession, undefined);
+            expect(orderService.findOne).not.toHaveBeenCalled();
+        });
+
+        it('throws a UserInputError naming add_to_cart when there is no cart', async () => {
+            const activeOrderService = {
+                getActiveOrder: vi.fn().mockResolvedValue(undefined),
+            };
+            const orderService = { findOne: vi.fn() };
+            const service = new McpActiveOrderService(activeOrderService as never, orderService as never);
+
+            await expect(service.findOrThrow(ctxWithSession)).rejects.toBeInstanceOf(UserInputError);
+            await expect(service.findOrThrow(ctxWithSession)).rejects.toThrow(
+                'There is no active cart. Add an item with add_to_cart first.',
+            );
         });
     });
 

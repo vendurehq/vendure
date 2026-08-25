@@ -1388,6 +1388,42 @@ describe('MCP built-in shop tools', () => {
             const stored = await orderByCode(placedOrder.code);
             expect(stored.state).toBe('PaymentSettled');
             expect(stored.orderPlacedAt).toBeTruthy();
+
+            // The session still points at the order that was just placed. Core's active-order
+            // strategy sees that order is no longer active and clears the pointer, so these calls
+            // arrive with no cart, and each one must refuse rather than start an empty cart that
+            // would look to the shopper like the order they just paid for. Clearing the session's
+            // stale activeOrderId is fine; what must not happen is that a call creates an Order.
+            const ordersAfterCheckout = await connection.getRepository(adminCtx, Order).count();
+
+            const orphanCoupon = await call('apply_coupon_code', { code: 'ANY-CODE' }, 6);
+            expect(orphanCoupon.body.result.isError).toBe(true);
+            expect(orphanCoupon.body.result.content[0].text).toMatch(/There is no active cart/);
+
+            const orphanAddress = await call(
+                'set_shipping_address',
+                {
+                    address: {
+                        streetLine1: '451 Sansome Street',
+                        city: 'San Francisco',
+                        postalCode: '94111',
+                        countryCode: 'US',
+                    },
+                },
+                7,
+            );
+            expect(orphanAddress.body.result.isError).toBe(true);
+            expect(orphanAddress.body.result.content[0].text).toMatch(/There is no active cart/);
+
+            const orphanPlace = await call(
+                'place_order',
+                { paymentMethodCode: PAYMENT_METHOD_CODE, confirm: true },
+                8,
+            );
+            expect(orphanPlace.body.result.isError).toBe(true);
+            expect(orphanPlace.body.result.content[0].text).toMatch(/There is no active cart/);
+
+            expect(await connection.getRepository(adminCtx, Order).count()).toBe(ordersAfterCheckout);
         });
 
         // This test uses the customer created for it on purpose. It leaves an order sitting in

@@ -106,8 +106,9 @@ Use `get_product` to get variant IDs in the first place.
 `place_order` answers `status: "placed"` with the order when the store marks the order as placed. It answers
 `status: "awaiting_payment"` with the order and a `message` when the payment went through but the store did not
 mark the order as placed, for example a payment that covers only part of the total. In that case the order stays
-in `ArrangingPayment` and the cart tools refuse changes until the order is paid in full. Every order returned by `place_order`, `get_cart`, `get_order`, `list_my_orders` and the admin
-`get_order` and `list_orders` includes `payments`, each carrying `state`, `amount`, `amountDecimal`,
+in `ArrangingPayment` and the cart tools refuse changes until the order is paid in full. Every order returned by
+`place_order`, `get_cart`, `get_order`, `list_my_orders` and the admin `get_order` and `list_orders` includes
+`payments`, each carrying `state`, `amount`, `amountDecimal`,
 `transactionId`, `errorMessage` and `publicMetadata`. `publicMetadata` is the `public` key of the payment's
 metadata, the same part the Shop API shows a customer, so anything the handler stored for itself is not
 returned.

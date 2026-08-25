@@ -57,11 +57,12 @@ export class PlaceOrderTool implements McpToolHandler<PlaceOrderInput> {
                     'for this store and retry with the resulting access token.',
             };
         }
+        // Looked up before the transaction opens so that a call with no cart to pay for refuses
+        // without starting one.
+        const order = await this.activeOrder.findOrThrow(ctx);
         // Taking a payment has to run inside a database transaction: `addPaymentToOrder` refuses to
         // run without one.
         return this.connection.withTransaction(ctx, async txCtx => {
-            const order = await this.activeOrder.findOrCreate(txCtx);
-
             const current = await this.orderService.findOne(txCtx, order.id);
             let movedOutOfCart = false;
             if (current?.state === 'AddingItems') {

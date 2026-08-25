@@ -40,7 +40,7 @@ export class SetShippingAddressTool implements McpToolHandler<SetShippingAddress
     ) {}
 
     async execute(ctx: RequestContext, input: SetShippingAddressInput) {
-        const order = await this.activeOrder.findOrCreate(ctx);
+        const order = await this.activeOrder.findOrThrow(ctx);
         return {
             order: this.serializer.order(
                 await this.orderService.setShippingAddress(ctx, order.id, input.address),
