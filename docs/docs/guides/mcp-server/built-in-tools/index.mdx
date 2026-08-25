@@ -137,7 +137,7 @@ returned.
 | Tool | Safety | Permission | Description |
 |---|---|---|---|
 | `get_product` | readonly | ReadProduct | Get a product by ID |
-| `list_products` | readonly | ReadProduct | List products (paginated) |
+| `list_products` | readonly | ReadProduct | List and filter products (paginated) |
 | `create_product` | mutating | CreateProduct | Create a product |
 | `update_product` | mutating | UpdateProduct | Update a product's details |
 | `create_variant` | mutating | UpdateProduct | Create a product variant |
@@ -148,7 +148,7 @@ returned.
 | Tool | Safety | Permission | Description |
 |---|---|---|---|
 | `get_order` | readonly | ReadOrder | Get an order by ID |
-| `list_orders` | readonly | ReadOrder | List orders, most recently placed first (paginated, sortable) |
+| `list_orders` | readonly | ReadOrder | List and filter orders, most recently placed first (paginated, sortable) |
 | `add_note_to_order` | mutating | UpdateOrder | Add a note to an order timeline |
 | `update_order_state` | **destructive** | UpdateOrder | Transition an order to a new state |
 | `cancel_order` | **destructive** | UpdateOrder | Cancel an order and restock lines |
@@ -159,7 +159,7 @@ returned.
 | Tool | Safety | Permission | Description |
 |---|---|---|---|
 | `get_customer` | readonly | ReadCustomer | Get a customer by ID |
-| `list_customers` | readonly | ReadCustomer | List customers (paginated) |
+| `list_customers` | readonly | ReadCustomer | List and filter customers (paginated) |
 | `create_customer` | mutating | CreateCustomer | Create a customer record |
 | `update_customer` | mutating | UpdateCustomer | Update a customer's details |
 | `add_customer_to_group` | mutating | UpdateCustomerGroup | Add a customer to a group |
@@ -184,6 +184,46 @@ returned.
 |---|---|---|---|
 | `upload_asset` | mutating | CreateAsset | Upload an asset from a public HTTP(S) URL |
 | `update_product_assets` | mutating | UpdateProduct | Change a product's images and featured image |
+
+### Filtering and paging admin lists
+
+Every list tool takes `limit` (a whole number from 1 to 100, defaulting to 25) and `offset`. A value outside
+that range is refused with a validation error naming the field, so a call for 0 rows or 1000 rows is refused
+instead of returning every row in the channel.
+The cap of 100 belongs to the MCP tools; it is deliberately stricter than the Admin API's `adminListQueryLimit`,
+which defaults to 1000, because a tool result has to fit in a model's context.
+
+`list_products`, `list_orders` and `list_customers` also take a `filter` object. Its keys are fields and its
+values are operator objects, and every condition in it has to hold for a record to be returned. There is no
+way to express "either or": for that, call the tool twice.
+
+| Value type | Operators |
+|---|---|
+| String | `eq`, `contains`, `in` (an array of exact values) |
+| Date | `before`, `after`, each an ISO 8601 date-time such as `2026-08-25T12:00:00Z` |
+| Number | `eq`, `gte`, `lte` |
+| Boolean | `eq` |
+
+`contains` is case-insensitive on Postgres; on other databases it follows the collation of the column.
+
+| Tool | Filterable fields |
+|---|---|
+| `list_products` | `name`, `slug`, `sku` (matches any of the product's variants), `enabled`, `updatedAt` |
+| `list_orders` | `code`, `state`, `active`, `customerLastName`, `orderPlacedAt`, `updatedAt`, `totalWithTax` |
+| `list_customers` | `emailAddress`, `firstName`, `lastName`, `phoneNumber`, `postalCode` (matches any of the customer's addresses), `createdAt` |
+
+Finding the orders that have been sitting at payment since before noon:
+
+```json
+{
+  "filter": {
+    "state": { "eq": "ArrangingPayment" },
+    "updatedAt": { "before": "2026-08-25T12:00:00Z" }
+  }
+}
+```
+
+`totalWithTax` is a whole number in the currency's smallest unit, like every other price these tools return.
 
 ## Tool exposure: direct vs discovery
 

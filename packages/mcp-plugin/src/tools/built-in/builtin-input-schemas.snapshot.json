@@ -484,11 +484,15 @@
     "type": "object",
     "properties": {
       "limit": {
-        "type": "number",
-        "description": "Maximum number of channels to return."
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "description": "Maximum number of channels to return, 1 to 100. Defaults to 25."
       },
       "offset": {
-        "type": "number",
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991,
         "description": "Number of channels to skip."
       }
     },
@@ -498,12 +502,147 @@
     "type": "object",
     "properties": {
       "limit": {
-        "type": "number",
-        "description": "Maximum number of customers to return."
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "description": "Maximum number of customers to return, 1 to 100. Defaults to 25."
       },
       "offset": {
-        "type": "number",
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991,
         "description": "Number of customers to skip."
+      },
+      "filter": {
+        "type": "object",
+        "properties": {
+          "emailAddress": {
+            "type": "object",
+            "properties": {
+              "eq": {
+                "type": "string",
+                "description": "Exact match."
+              },
+              "contains": {
+                "type": "string",
+                "description": "Substring match. Case-insensitive on Postgres, otherwise follows the database's collation."
+              },
+              "in": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Any of these exact values."
+              }
+            },
+            "additionalProperties": false
+          },
+          "firstName": {
+            "type": "object",
+            "properties": {
+              "eq": {
+                "type": "string",
+                "description": "Exact match."
+              },
+              "contains": {
+                "type": "string",
+                "description": "Substring match. Case-insensitive on Postgres, otherwise follows the database's collation."
+              },
+              "in": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Any of these exact values."
+              }
+            },
+            "additionalProperties": false
+          },
+          "lastName": {
+            "type": "object",
+            "properties": {
+              "eq": {
+                "type": "string",
+                "description": "Exact match."
+              },
+              "contains": {
+                "type": "string",
+                "description": "Substring match. Case-insensitive on Postgres, otherwise follows the database's collation."
+              },
+              "in": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Any of these exact values."
+              }
+            },
+            "additionalProperties": false
+          },
+          "phoneNumber": {
+            "type": "object",
+            "properties": {
+              "eq": {
+                "type": "string",
+                "description": "Exact match."
+              },
+              "contains": {
+                "type": "string",
+                "description": "Substring match. Case-insensitive on Postgres, otherwise follows the database's collation."
+              },
+              "in": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Any of these exact values."
+              }
+            },
+            "additionalProperties": false
+          },
+          "postalCode": {
+            "type": "object",
+            "properties": {
+              "eq": {
+                "type": "string",
+                "description": "Exact match."
+              },
+              "contains": {
+                "type": "string",
+                "description": "Substring match. Case-insensitive on Postgres, otherwise follows the database's collation."
+              },
+              "in": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Any of these exact values."
+              }
+            },
+            "additionalProperties": false,
+            "description": "Matches the postal code of any of the customer's addresses."
+          },
+          "createdAt": {
+            "type": "object",
+            "properties": {
+              "before": {
+                "description": "ISO 8601 date-time, exclusive.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "after": {
+                "description": "ISO 8601 date-time, exclusive.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "description": "Conditions a customer must meet; all of them apply together. Example: {\"emailAddress\":{\"eq\":\"jane@example.com\"}} finds the customer with that email."
       }
     },
     "additionalProperties": false
@@ -512,12 +651,149 @@
     "type": "object",
     "properties": {
       "limit": {
-        "type": "number",
-        "description": "Maximum number of orders to return."
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "description": "Maximum number of orders to return, 1 to 100. Defaults to 25."
       },
       "offset": {
-        "type": "number",
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991,
         "description": "Number of orders to skip."
+      },
+      "filter": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "object",
+            "properties": {
+              "eq": {
+                "type": "string",
+                "description": "Exact match."
+              },
+              "contains": {
+                "type": "string",
+                "description": "Substring match. Case-insensitive on Postgres, otherwise follows the database's collation."
+              },
+              "in": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Any of these exact values."
+              }
+            },
+            "additionalProperties": false
+          },
+          "state": {
+            "type": "object",
+            "properties": {
+              "eq": {
+                "type": "string",
+                "description": "Exact match."
+              },
+              "contains": {
+                "type": "string",
+                "description": "Substring match. Case-insensitive on Postgres, otherwise follows the database's collation."
+              },
+              "in": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Any of these exact values."
+              }
+            },
+            "additionalProperties": false,
+            "description": "Order state, for example PaymentSettled or ArrangingPayment."
+          },
+          "active": {
+            "type": "object",
+            "properties": {
+              "eq": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false,
+            "description": "true for open carts, false for placed or cancelled orders."
+          },
+          "customerLastName": {
+            "type": "object",
+            "properties": {
+              "eq": {
+                "type": "string",
+                "description": "Exact match."
+              },
+              "contains": {
+                "type": "string",
+                "description": "Substring match. Case-insensitive on Postgres, otherwise follows the database's collation."
+              },
+              "in": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Any of these exact values."
+              }
+            },
+            "additionalProperties": false
+          },
+          "orderPlacedAt": {
+            "type": "object",
+            "properties": {
+              "before": {
+                "description": "ISO 8601 date-time, exclusive.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "after": {
+                "description": "ISO 8601 date-time, exclusive.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              }
+            },
+            "additionalProperties": false
+          },
+          "updatedAt": {
+            "type": "object",
+            "properties": {
+              "before": {
+                "description": "ISO 8601 date-time, exclusive.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "after": {
+                "description": "ISO 8601 date-time, exclusive.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              }
+            },
+            "additionalProperties": false
+          },
+          "totalWithTax": {
+            "type": "object",
+            "properties": {
+              "eq": {
+                "type": "number"
+              },
+              "gte": {
+                "type": "number"
+              },
+              "lte": {
+                "type": "number"
+              }
+            },
+            "additionalProperties": false,
+            "description": "Whole number in the currency's smallest unit, like every price these tools return."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Conditions an order must meet; all of them apply together. Example: {\"state\":{\"eq\":\"ArrangingPayment\"},\"updatedAt\":{\"before\":\"2026-08-25T12:00:00Z\"}} finds orders stuck at payment since before noon."
       },
       "sortBy": {
         "type": "string",
@@ -544,12 +820,114 @@
     "type": "object",
     "properties": {
       "limit": {
-        "type": "number",
-        "description": "Maximum number of products to return."
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "description": "Maximum number of products to return, 1 to 100. Defaults to 25."
       },
       "offset": {
-        "type": "number",
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991,
         "description": "Number of products to skip."
+      },
+      "filter": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "object",
+            "properties": {
+              "eq": {
+                "type": "string",
+                "description": "Exact match."
+              },
+              "contains": {
+                "type": "string",
+                "description": "Substring match. Case-insensitive on Postgres, otherwise follows the database's collation."
+              },
+              "in": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Any of these exact values."
+              }
+            },
+            "additionalProperties": false
+          },
+          "slug": {
+            "type": "object",
+            "properties": {
+              "eq": {
+                "type": "string",
+                "description": "Exact match."
+              },
+              "contains": {
+                "type": "string",
+                "description": "Substring match. Case-insensitive on Postgres, otherwise follows the database's collation."
+              },
+              "in": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Any of these exact values."
+              }
+            },
+            "additionalProperties": false
+          },
+          "sku": {
+            "type": "object",
+            "properties": {
+              "eq": {
+                "type": "string",
+                "description": "Exact match."
+              },
+              "contains": {
+                "type": "string",
+                "description": "Substring match. Case-insensitive on Postgres, otherwise follows the database's collation."
+              },
+              "in": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Any of these exact values."
+              }
+            },
+            "additionalProperties": false,
+            "description": "Matches any of the product's variant SKUs. The result lists products, not variants, so it does not show which variant matched."
+          },
+          "enabled": {
+            "type": "object",
+            "properties": {
+              "eq": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          },
+          "updatedAt": {
+            "type": "object",
+            "properties": {
+              "before": {
+                "description": "ISO 8601 date-time, exclusive.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "after": {
+                "description": "ISO 8601 date-time, exclusive.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "description": "Conditions a product must meet; all of them apply together. Example: {\"sku\":{\"contains\":\"L2201\"}} finds the product a variant SKU belongs to."
       }
     },
     "additionalProperties": false
@@ -1105,11 +1483,15 @@
     "type": "object",
     "properties": {
       "limit": {
-        "type": "number",
-        "description": "Maximum number of collections to return."
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "description": "Maximum number of collections to return, 1 to 100. Defaults to 25."
       },
       "offset": {
-        "type": "number",
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991,
         "description": "Number of collections to skip."
       },
       "parentId": {
@@ -1130,11 +1512,15 @@
     "type": "object",
     "properties": {
       "limit": {
-        "type": "number",
-        "description": "Maximum number of orders to return."
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "description": "Maximum number of orders to return, 1 to 100. Defaults to 25."
       },
       "offset": {
-        "type": "number",
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991,
         "description": "Number of orders to skip."
       }
     },
@@ -1200,11 +1586,15 @@
         "description": "Text to look up in product names and slugs."
       },
       "limit": {
-        "type": "number",
-        "description": "Maximum number of products to return."
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "description": "Maximum number of products to return, 1 to 100. Defaults to 25."
       },
       "offset": {
-        "type": "number",
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991,
         "description": "Number of products to skip."
       }
     },

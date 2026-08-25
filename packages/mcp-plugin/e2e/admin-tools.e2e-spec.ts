@@ -649,6 +649,119 @@ describe('MCP built-in admin tools (direct mode)', () => {
         expect(placed.orderPlacedAt).toBe('2026-01-02T00:00:00.000Z');
     });
 
+    /**
+     * Calls a list tool and returns its envelope. The filter tests below all need the same three
+     * lines, and each one gets a fresh grant so it does not depend on any other test's token.
+     */
+    async function listFiltered<T>(
+        tool: string,
+        args: Record<string, unknown>,
+    ): Promise<{ items: T[]; total: number }> {
+        const token = await adminAccessToken();
+        const response = await postMcp(baseUrl(), 'admin', callTool(tool, args, 1), { token });
+        expect(response.body.result.isError).toBeUndefined();
+        return response.body.result.structuredContent as { items: T[]; total: number };
+    }
+
+    it('list_customers finds one customer by email address, and answers an empty page for an unknown one', async () => {
+        const found = await listFiltered<{ emailAddress: string }>('list_customers', {
+            filter: { emailAddress: { eq: seededCustomerEmail } },
+        });
+        expect(found.items).toHaveLength(1);
+        expect(found.items[0].emailAddress).toBe(seededCustomerEmail);
+        expect(found.total).toBe(1);
+
+        const missing = await listFiltered<{ emailAddress: string }>('list_customers', {
+            filter: { emailAddress: { eq: 'nobody-at-all@example.test' } },
+        });
+        expect(missing.items).toEqual([]);
+        expect(missing.total).toBe(0);
+    });
+
+    it('list_orders returns only the orders in the state asked for', async () => {
+        await createDraftOrder();
+
+        const drafts = await listFiltered<{ state: string }>('list_orders', {
+            limit: 100,
+            filter: { state: { eq: 'Draft' } },
+        });
+        expect(drafts.items.length).toBeGreaterThan(0);
+        expect(drafts.items.every(order => order.state === 'Draft')).toBe(true);
+    });
+
+    it('list_orders filters on the date an order was placed', async () => {
+        const earlier = await createDraftOrder();
+        const later = await createDraftOrder();
+        // Draft orders have no orderPlacedAt of their own, so the dates are written directly, the
+        // same way the sort test above does it.
+        await connection
+            .getRepository(adminCtx, Order)
+            .update(earlier.id, { orderPlacedAt: new Date('2026-01-01T00:00:00.000Z') });
+        await connection
+            .getRepository(adminCtx, Order)
+            .update(later.id, { orderPlacedAt: new Date('2026-01-02T00:00:00.000Z') });
+
+        const placedAfter = await listFiltered<{ id: ID }>('list_orders', {
+            limit: 100,
+            filter: { orderPlacedAt: { after: '2026-01-01T12:00:00.000Z' } },
+        });
+        const ids = placedAfter.items.map(order => String(order.id));
+        expect(ids).toContain(String(later.id));
+        expect(ids).not.toContain(String(earlier.id));
+    });
+
+    it('list_orders filters on when an order last changed', async () => {
+        const future = new Date(Date.now() + 60_000).toISOString();
+
+        const changedBefore = await listFiltered<{ id: ID }>('list_orders', {
+            filter: { updatedAt: { before: future } },
+        });
+        expect(changedBefore.items.length).toBeGreaterThan(0);
+
+        const changedAfter = await listFiltered<{ id: ID }>('list_orders', {
+            filter: { updatedAt: { after: future } },
+        });
+        expect(changedAfter.items).toEqual([]);
+        expect(changedAfter.total).toBe(0);
+    });
+
+    it('list_products finds the product a variant SKU belongs to', async () => {
+        const bySku = await listFiltered<{ slug: string }>('list_products', {
+            filter: { sku: { contains: 'SHIRT-L' } },
+        });
+        // The fixture shirt has three variants and only one of them carries this SKU, so a product
+        // must not come back once per matching variant either.
+        expect(bySku.items).toHaveLength(1);
+        expect(bySku.items[0].slug).toBe('test-shirt');
+    });
+
+    it('list_products returns only disabled products when asked for them', async () => {
+        const disabled = await listFiltered<{ enabled: boolean }>('list_products', {
+            filter: { enabled: { eq: false } },
+        });
+        // The fixture catalog is all enabled, and the write tests that disable a product run in a
+        // later describe, so what matters here is that nothing enabled slips through.
+        expect(disabled.items.every(product => product.enabled === false)).toBe(true);
+    });
+
+    it('list_orders refuses a page size or a filter value its schema does not allow', async () => {
+        const token = await adminAccessToken();
+        const refusal = async (args: Record<string, unknown>, id: number) => {
+            const response = await postMcp(baseUrl(), 'admin', callTool('list_orders', args, id), { token });
+            expect(response.body.result.isError).toBe(true);
+            return response.body.result.content[0].text as string;
+        };
+
+        // A limit of 0 used to reach core, which reads a falsy take as "no limit" and returned the
+        // whole table; 101 used to come back as the raw error.list-query-limit-exceeded key.
+        expect(await refusal({ limit: 0 }, 1)).toContain('limit');
+        expect(await refusal({ limit: 101 }, 2)).toContain('limit');
+        expect(await refusal({ offset: -1 }, 3)).toContain('offset');
+        // Only the operators the tool advertises are accepted, and a date has to be ISO 8601.
+        expect(await refusal({ filter: { state: { regex: 'x' } } }, 4)).toContain('regex');
+        expect(await refusal({ filter: { orderPlacedAt: { after: 'yesterday' } } }, 5)).toContain('after');
+    });
+
     it('filters tools a caller lacks permission for and rejects them at call time', async () => {
         const token = await adminAccessToken(limitedAdminToken);
         const listed = await postMcp(baseUrl(), 'admin', rpc('tools/list', {}, 1), { token });

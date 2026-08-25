@@ -3,11 +3,27 @@ import { Customer, CustomerService, Permission, RequestContext } from '@vendure/
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { listOptions, page, paginationFields } from '../list-helpers';
+import { dateFilter, listOptions, page, paginationFields, stringFilter } from '../list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 
 const listCustomersInput = z.strictObject({
     ...paginationFields('customers'),
+    filter: z
+        .strictObject({
+            emailAddress: stringFilter.optional(),
+            firstName: stringFilter.optional(),
+            lastName: stringFilter.optional(),
+            phoneNumber: stringFilter.optional(),
+            postalCode: stringFilter
+                .describe("Matches the postal code of any of the customer's addresses.")
+                .optional(),
+            createdAt: dateFilter.optional(),
+        })
+        .describe(
+            'Conditions a customer must meet; all of them apply together. Example: ' +
+                '{"emailAddress":{"eq":"jane@example.com"}} finds the customer with that email.',
+        )
+        .optional(),
 });
 
 type ListCustomersInput = z.infer<typeof listCustomersInput>;
@@ -15,7 +31,7 @@ type ListCustomersInput = z.infer<typeof listCustomersInput>;
 @McpTool({
     name: 'list_customers',
     toolset: 'admin',
-    description: 'List customer records, with pagination.',
+    description: 'List and filter customer records.',
     keywords: [
         'show all customers',
         'browse our clients',
@@ -23,6 +39,7 @@ type ListCustomersInput = z.infer<typeof listCustomersInput>;
         'list every buyer',
         'who are our customers',
         'pull the customer list',
+        'find customer by email',
     ],
     permissions: [Permission.ReadCustomer],
     behavior: 'readonly',

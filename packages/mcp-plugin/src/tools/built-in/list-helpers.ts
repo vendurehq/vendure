@@ -1,11 +1,12 @@
 import { OrderListOptions, SortOrder } from '@vendure/common/lib/generated-types';
-import { Collection, ListQueryOptions, Product, VendureEntity } from '@vendure/core';
+import { Collection, ListQueryOptions, Order, Product, VendureEntity } from '@vendure/core';
 import { z } from 'zod';
 
 /** Common pagination fields shared by the list tool inputs (already validated by the tool schema). */
 interface ListInput {
     limit?: number;
     offset?: number;
+    filter?: Record<string, unknown>;
 }
 
 /** The list envelope every list tool returns; `total` deliberately renames Vendure's `totalItems`. */
@@ -16,12 +17,49 @@ export function page<T>(items: T[], totalItems: number, input: { offset?: number
 
 const DEFAULT_LIST_PAGE_SIZE = 25;
 
+export const MAX_LIST_PAGE_SIZE = 100;
+
 export function paginationFields(noun: string) {
     return {
-        limit: z.number().describe(`Maximum number of ${noun} to return.`).optional(),
-        offset: z.number().describe(`Number of ${noun} to skip.`).optional(),
+        limit: z
+            .number()
+            .int()
+            .min(1)
+            .max(MAX_LIST_PAGE_SIZE)
+            .describe(
+                `Maximum number of ${noun} to return, 1 to ${MAX_LIST_PAGE_SIZE}. ` +
+                    `Defaults to ${DEFAULT_LIST_PAGE_SIZE}.`,
+            )
+            .optional(),
+        offset: z.number().int().min(0).describe(`Number of ${noun} to skip.`).optional(),
     };
 }
+
+const isoDate = z.iso.datetime({ offset: true }).transform(value => new Date(value));
+
+export const stringFilter = z.strictObject({
+    eq: z.string().describe('Exact match.').optional(),
+    contains: z
+        .string()
+        .describe(
+            "Substring match. Case-insensitive on Postgres, otherwise follows the database's collation.",
+        )
+        .optional(),
+    in: z.array(z.string()).describe('Any of these exact values.').optional(),
+});
+
+export const dateFilter = z.strictObject({
+    before: isoDate.describe('ISO 8601 date-time, exclusive.').optional(),
+    after: isoDate.describe('ISO 8601 date-time, exclusive.').optional(),
+});
+
+export const numberFilter = z.strictObject({
+    eq: z.number().optional(),
+    gte: z.number().optional(),
+    lte: z.number().optional(),
+});
+
+export const booleanFilter = z.strictObject({ eq: z.boolean().optional() });
 
 export function slicePage<T>(all: T[], input: ListInput): T[] {
     const offset = input.offset ?? 0;
@@ -32,6 +70,7 @@ export function listOptions<T extends VendureEntity>(input: ListInput): ListQuer
     return {
         take: input.limit ?? DEFAULT_LIST_PAGE_SIZE,
         skip: input.offset ?? 0,
+        ...(input.filter ? { filter: input.filter as ListQueryOptions<T>['filter'] } : {}),
     };
 }
 
@@ -71,7 +110,7 @@ export function productSearchWords(query: string | undefined, trimPlurals = fals
  * up in the product's name or slug, in any order. Descriptions are not searched.
  */
 export function publicProductListOptions(input: ListInput, words: string[] = []): ListQueryOptions<Product> {
-    const options = listOptions<Product>(input);
+    const options = listOptions<Product>({ limit: input.limit, offset: input.offset });
     const wordFilters = words.map(word => ({
         _or: [{ name: { contains: word } }, { slug: { contains: word } }],
     }));
@@ -85,11 +124,10 @@ export function publicProductListOptions(input: ListInput, words: string[] = [])
 }
 
 export function publicCollectionListOptions(input: ListInput): ListQueryOptions<Collection> {
-    const options = listOptions<Collection>(input);
+    const options = listOptions<Collection>({ limit: input.limit, offset: input.offset });
     return {
         ...options,
         filter: {
-            ...options.filter,
             isPrivate: { eq: false },
         },
     };
@@ -112,8 +150,7 @@ export function orderListOptions(input: OrderListInput): OrderListOptions {
     const field = input.sortBy ?? 'orderPlacedAt';
     const direction = input.sortDirection === 'ASC' ? SortOrder.ASC : SortOrder.DESC;
     return {
-        take: input.limit ?? DEFAULT_LIST_PAGE_SIZE,
-        skip: input.offset ?? 0,
+        ...(listOptions<Order>(input) as OrderListOptions),
         // Without a sort the database returns rows in no defined order, so asking for "the recent
         // orders" would get an arbitrary page. Newest placed first is what an operations user means.
         sort: { [field]: direction },

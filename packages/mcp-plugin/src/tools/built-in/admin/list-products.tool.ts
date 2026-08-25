@@ -3,11 +3,36 @@ import { Permission, Product, ProductService, RequestContext } from '@vendure/co
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { listOptions, page, paginationFields } from '../list-helpers';
+import {
+    booleanFilter,
+    dateFilter,
+    listOptions,
+    page,
+    paginationFields,
+    stringFilter,
+} from '../list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 
 const listProductsInput = z.strictObject({
     ...paginationFields('products'),
+    filter: z
+        .strictObject({
+            name: stringFilter.optional(),
+            slug: stringFilter.optional(),
+            sku: stringFilter
+                .describe(
+                    "Matches any of the product's variant SKUs. The result lists products, not " +
+                        'variants, so it does not show which variant matched.',
+                )
+                .optional(),
+            enabled: booleanFilter.optional(),
+            updatedAt: dateFilter.optional(),
+        })
+        .describe(
+            'Conditions a product must meet; all of them apply together. Example: ' +
+                '{"sku":{"contains":"L2201"}} finds the product a variant SKU belongs to.',
+        )
+        .optional(),
 });
 
 type ListProductsInput = z.infer<typeof listProductsInput>;
@@ -15,7 +40,7 @@ type ListProductsInput = z.infer<typeof listProductsInput>;
 @McpTool({
     name: 'list_products',
     toolset: 'admin',
-    description: 'List the products in the catalog, with pagination.',
+    description: 'List and filter catalog products.',
     keywords: [
         'show the whole catalog',
         'list every product',
@@ -23,6 +48,7 @@ type ListProductsInput = z.infer<typeof listProductsInput>;
         'full product list',
         'see the inventory of products',
         'catalog listing for staff',
+        'find product by sku',
     ],
     permissions: [Permission.ReadProduct],
     behavior: 'readonly',

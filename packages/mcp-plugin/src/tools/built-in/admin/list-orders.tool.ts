@@ -3,11 +3,44 @@ import { OrderService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { ORDER_SORT_FIELDS, orderListOptions, page, paginationFields } from '../list-helpers';
+import {
+    booleanFilter,
+    dateFilter,
+    numberFilter,
+    ORDER_SORT_FIELDS,
+    orderListOptions,
+    page,
+    paginationFields,
+    stringFilter,
+} from '../list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 
 const listOrdersInput = z.strictObject({
     ...paginationFields('orders'),
+    filter: z
+        .strictObject({
+            code: stringFilter.optional(),
+            state: stringFilter
+                .describe('Order state, for example PaymentSettled or ArrangingPayment.')
+                .optional(),
+            active: booleanFilter
+                .describe('true for open carts, false for placed or cancelled orders.')
+                .optional(),
+            customerLastName: stringFilter.optional(),
+            orderPlacedAt: dateFilter.optional(),
+            updatedAt: dateFilter.optional(),
+            totalWithTax: numberFilter
+                .describe(
+                    "Whole number in the currency's smallest unit, like every price these tools return.",
+                )
+                .optional(),
+        })
+        .describe(
+            'Conditions an order must meet; all of them apply together. Example: ' +
+                '{"state":{"eq":"ArrangingPayment"},"updatedAt":{"before":"2026-08-25T12:00:00Z"}} ' +
+                'finds orders stuck at payment since before noon.',
+        )
+        .optional(),
     sortBy: z
         .enum(ORDER_SORT_FIELDS)
         .describe(
@@ -23,7 +56,7 @@ type ListOrdersInput = z.infer<typeof listOrdersInput>;
 @McpTool({
     name: 'list_orders',
     toolset: 'admin',
-    description: 'List orders for operations users, most recently placed first by default.',
+    description: 'List and filter orders for operations users, most recently placed first by default.',
     keywords: [
         'show all orders',
         'recent orders in the store',
@@ -31,6 +64,8 @@ type ListOrdersInput = z.infer<typeof listOrdersInput>;
         'every order placed',
         'orders dashboard for staff',
         'pull the full order list',
+        'orders in a given state',
+        'find orders by customer last name',
     ],
     permissions: [Permission.ReadOrder],
     behavior: 'readonly',
