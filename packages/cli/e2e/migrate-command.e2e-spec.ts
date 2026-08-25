@@ -226,6 +226,29 @@ describe(
                 expect(runResult.migrationsRan?.length).toBeGreaterThan(0);
             });
 
+            // #5001 — a `migrations` glob that stopped matching must not be reported as "up to date"
+            it('should report unmatched migration patterns when migrations have already been applied', async () => {
+                process.chdir(TEST_PROJECT_DIR);
+
+                // Apply a migration so the `migrations` table is non-empty
+                const generateResult = await generateMigrationOperation({
+                    name: 'TestMigration',
+                    outputDir: MIGRATIONS_DIR,
+                });
+                expect(generateResult.success).toBe(true);
+                expect((await runMigrationsOperation()).migrationsRan?.length).toBeGreaterThan(0);
+
+                // Simulate the glob resolving to nothing (wrong cwd, or unbuilt `dist/migrations/*.js`)
+                await fs.emptyDir(MIGRATIONS_DIR);
+
+                const result = await runMigrationsOperation();
+
+                expect(result.migrationsRan).toHaveLength(0);
+                expect(result.hasWarnings).toBe(true);
+                expect(result.message).toContain('No migration files matched');
+                expect(result.message).not.toContain('No pending migrations found');
+            });
+
             it('should handle database connection errors gracefully', async () => {
                 process.chdir(TEST_PROJECT_DIR);
 
@@ -252,9 +275,8 @@ describe(
                 });
 
                 // Re-import the operation after the mock so that it picks up the mocked helper
-                const { runMigrationsOperation: runMigrationsWithInvalidDb } = await import(
-                    '../src/commands/migrate/migration-operations'
-                );
+                const { runMigrationsOperation: runMigrationsWithInvalidDb } =
+                    await import('../src/commands/migrate/migration-operations');
 
                 const result = await runMigrationsWithInvalidDb();
 

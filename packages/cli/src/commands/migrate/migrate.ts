@@ -84,7 +84,12 @@ async function handleNonInteractiveMode(options: MigrateOptions) {
         return;
     }
     if (result.success) {
-        log.success(result.message);
+        // A warning is not a success, even though the exit code stays 0.
+        if (result.hasWarnings) {
+            log.warn(result.message);
+        } else {
+            log.success(result.message);
+        }
     } else {
         log.error(result.message);
         process.exit(1);
