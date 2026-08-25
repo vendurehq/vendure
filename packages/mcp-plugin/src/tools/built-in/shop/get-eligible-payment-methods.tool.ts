@@ -21,6 +21,7 @@ const getEligiblePaymentMethodsInput = z.strictObject({});
     ],
     permissions: [Permission.Public],
     behavior: 'readonly',
+    usesActiveOrder: true,
     inputSchema: getEligiblePaymentMethodsInput,
 })
 @Injectable()

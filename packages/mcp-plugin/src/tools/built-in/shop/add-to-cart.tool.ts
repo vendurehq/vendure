@@ -48,6 +48,7 @@ type AddToCartInput = z.infer<typeof addToCartInput>;
     ],
     permissions: [Permission.Public],
     behavior: 'mutating',
+    usesActiveOrder: true,
     inputSchema: addToCartInput,
 })
 @Injectable()

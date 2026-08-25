@@ -81,6 +81,11 @@ describe('MCP built-in shop tools', () => {
                     tokenSecret: TOKEN_SECRET,
                     storefrontConsentUrl: 'https://storefront.example.com/mcp/authorize',
                 },
+                // This suite makes more than 60 anonymous calls in well under a minute. Both
+                // default limits an anonymous caller charges (per session and per IP, 60 a minute
+                // each) would start refusing part way through. mcp-transport.e2e-spec.ts is where
+                // those limits are tested; an rpm of 0 turns a bucket off.
+                rateLimits: { perSession: { rpm: 0 }, anonymousIp: false },
             }),
         ],
     });
@@ -293,6 +298,21 @@ describe('MCP built-in shop tools', () => {
         return connection.getRepository(adminCtx, Session).findOneOrFail({ where: { token } });
     }
 
+    /**
+     * Starts an anonymous cart holding `quantity` of the fixture variant. The token comes from
+     * the result payload (the transport sets no header for a token-less request); tests pass it
+     * back as the `sessionToken` argument, or thread it as the `vendure-auth-token` header,
+     * which stays supported for clients that can echo headers.
+     */
+    async function anonymousCart(quantity = 1): Promise<{ sessionToken: string; lineId: ID; order: any }> {
+        const added = await postMcp(baseUrl(), 'shop', callTool('add_to_cart', { variantId, quantity }, 1));
+        expect(added.body.result.isError).toBeUndefined();
+        const sessionToken = added.body.result.structuredContent.sessionToken;
+        expect(sessionToken).toBeTruthy();
+        const order = added.body.result.structuredContent.order;
+        return { sessionToken: sessionToken as string, lineId: order.lines[0].id, order };
+    }
+
     async function orderByCode(code: string): Promise<Order> {
         return connection.getRepository(adminCtx, Order).findOneOrFail({
             where: { code },
@@ -331,42 +351,166 @@ describe('MCP built-in shop tools', () => {
         expect(response.headers.get('www-authenticate') ?? '').toMatch(/^Bearer .*resource_metadata=/);
     });
 
-    it('keeps a fresh anonymous session order-free until add_to_cart creates and binds a cart', async () => {
-        const beforeCount = await connection.getRepository(adminCtx, Order).count();
+    it('creates no session or order for token-less reads; add_to_cart lazily creates and binds both', async () => {
+        const beforeOrders = await connection.getRepository(adminCtx, Order).count();
+        const beforeSessions = await connection.getRepository(adminCtx, Session).count();
+
+        // Token-less reads answer, set no session-token header, append no sessionToken, and
+        // write no session row.
         const getCart = await postMcp(baseUrl(), 'shop', callTool('get_cart', {}, 1));
-        const sessionToken = getCart.headers.get(AUTH_TOKEN_HEADER);
-        expect(sessionToken).toBeTruthy();
+        expect(getCart.headers.get(AUTH_TOKEN_HEADER)).toBeNull();
         expect(getCart.body.result.structuredContent).toEqual({ order: null });
 
         for (const [id, name] of [
             [2, 'get_eligible_payment_methods'],
             [3, 'get_eligible_shipping_methods'],
         ] as const) {
-            const response = await postMcp(baseUrl(), 'shop', callTool(name, {}, id), {
-                headers: { [AUTH_TOKEN_HEADER]: sessionToken as string },
-            });
-            expect(response.headers.get(AUTH_TOKEN_HEADER)).toBe(sessionToken);
+            const response = await postMcp(baseUrl(), 'shop', callTool(name, {}, id));
             expect(response.body.result.structuredContent).toEqual({ methods: [] });
         }
 
-        expect(await connection.getRepository(adminCtx, Order).count()).toBe(beforeCount);
-        expect((await anonymousSession(sessionToken as string)).activeOrderId).toBeFalsy();
+        expect(await connection.getRepository(adminCtx, Session).count()).toBe(beforeSessions);
+        expect(await connection.getRepository(adminCtx, Order).count()).toBe(beforeOrders);
 
-        const added = await postMcp(
+        // The first write creates the session and hands its token back in the payload — the only
+        // channel a real MCP client reliably echoes.
+        const { sessionToken, order } = await anonymousCart(1);
+        expect(order.totalQuantity).toBe(1);
+
+        const session = await anonymousSession(sessionToken);
+        expect(session.activeOrderId).toBeTruthy();
+        expect(await connection.getRepository(adminCtx, Order).count()).toBe(beforeOrders + 1);
+        expect(String(session.activeOrderId)).toBe(String((await orderByCode(order.code)).id));
+    });
+
+    // The zero-config real-host flow: separate POSTs, no headers threaded, cart identity carried
+    // only by the sessionToken field that shop tools return and accept.
+    it('carries the anonymous cart across separate calls via the sessionToken payload field alone', async () => {
+        const { sessionToken, order: added } = await anonymousCart(1);
+        const orderCode = added.code;
+
+        const cart = await postMcp(baseUrl(), 'shop', callTool('get_cart', { sessionToken }, 2));
+        expect(cart.body.result.isError).toBeUndefined();
+        const order = cart.body.result.structuredContent.order;
+        expect(order.code).toBe(orderCode);
+        expect(order.totalQuantity).toBe(1);
+        expect(order.lines).toHaveLength(1);
+        // The result echoes the token back so the agent can keep threading it.
+        expect(cart.body.result.structuredContent.sessionToken).toBe(sessionToken);
+    });
+
+    it('refuses an unknown sessionToken argument with a message telling the agent to start over', async () => {
+        const result = await postMcp(
             baseUrl(),
             'shop',
-            callTool('add_to_cart', { variantId, quantity: 1 }, 4),
-            { headers: { [AUTH_TOKEN_HEADER]: sessionToken as string } },
+            callTool('get_cart', { sessionToken: 'not-a-real-session-token' }, 1),
         );
-        expect(added.body.result.isError).toBeUndefined();
-        expect(added.body.result.structuredContent.order.totalQuantity).toBe(1);
+        expect(result.body.result.isError).toBe(true);
+        expect(result.body.result.content[0].text).toMatch(/not valid or has expired/);
+    });
 
-        const session = await anonymousSession(sessionToken as string);
-        expect(session.activeOrderId).toBeTruthy();
-        expect(await connection.getRepository(adminCtx, Order).count()).toBe(beforeCount + 1);
-        expect(String(session.activeOrderId)).toBe(
-            String((await orderByCode(added.body.result.structuredContent.order.code)).id),
+    it("refuses a signed-in customer's session token passed as the sessionToken argument", async () => {
+        const result = await postMcp(
+            baseUrl(),
+            'shop',
+            callTool('get_cart', { sessionToken: customerAuthToken }, 1),
         );
+        expect(result.body.result.isError).toBe(true);
+        expect(result.body.result.content[0].text).toMatch(/belongs to a signed-in user/);
+    });
+
+    it('returns the sessionToken on a failed write so the caller keeps the session it created', async () => {
+        const failed = await postMcp(
+            baseUrl(),
+            'shop',
+            callTool('add_to_cart', { productId: '999999', quantity: 1 }, 1),
+        );
+        expect(failed.body.result.isError).toBe(true);
+        const sessionToken = failed.body.result.structuredContent?.sessionToken as string;
+        expect(sessionToken).toBeTruthy();
+        // The session the failed call created is real and reusable.
+        const session = await anonymousSession(sessionToken);
+        expect(session).toBeTruthy();
+    });
+
+    it('carries the sessionToken on a place_order confirmation preview, and starts no cart without one', async () => {
+        const { sessionToken, order: added } = await anonymousCart(1);
+
+        const preview = await postMcp(
+            baseUrl(),
+            'shop',
+            callTool('place_order', { paymentMethodCode: 'not-configured', sessionToken }, 2),
+        );
+        expect(preview.body.result.isError).toBeUndefined();
+        expect(preview.body.result.structuredContent).toEqual({
+            status: 'confirmation_required',
+            confirmed: false,
+            sessionToken,
+        });
+        // The preview ran no handler, so the cart is exactly as it was.
+        const cart = await postMcp(baseUrl(), 'shop', callTool('get_cart', { sessionToken }, 3));
+        expect(cart.body.result.structuredContent.order.code).toBe(added.code);
+
+        // A preview with no token has no cart to preserve, so it must not start one.
+        const sessionsBefore = await connection.getRepository(adminCtx, Session).count();
+        const tokenless = await postMcp(
+            baseUrl(),
+            'shop',
+            callTool('place_order', { paymentMethodCode: 'not-configured' }, 4),
+        );
+        expect(tokenless.body.result.structuredContent).toEqual({
+            status: 'confirmation_required',
+            confirmed: false,
+        });
+        expect(await connection.getRepository(adminCtx, Session).count()).toBe(sessionsBefore);
+    });
+
+    it('treats a blank sessionToken argument as no token rather than refusing the call', async () => {
+        const read = await postMcp(baseUrl(), 'shop', callTool('get_cart', { sessionToken: '' }, 1));
+        expect(read.body.result.isError).toBeUndefined();
+        expect(read.body.result.structuredContent.order).toBeNull();
+
+        const sessionsBefore = await connection.getRepository(adminCtx, Session).count();
+        const write = await postMcp(
+            baseUrl(),
+            'shop',
+            callTool('add_to_cart', { variantId, quantity: 1, sessionToken: '   ' }, 2),
+        );
+        expect(write.body.result.isError).toBeUndefined();
+        const sessionToken = write.body.result.structuredContent.sessionToken as string;
+        expect(sessionToken).toBeTruthy();
+        expect(write.body.result.structuredContent.order.totalQuantity).toBe(1);
+        expect(await connection.getRepository(adminCtx, Session).count()).toBe(sessionsBefore + 1);
+    });
+
+    it('search_products with no token creates no session row and returns no sessionToken', async () => {
+        const before = await connection.getRepository(adminCtx, Session).count();
+        const response = await postMcp(baseUrl(), 'shop', callTool('search_products', { query: 'test' }, 1));
+        expect(response.body.result.isError).toBeUndefined();
+        expect(response.body.result.structuredContent.sessionToken).toBeUndefined();
+        expect(await connection.getRepository(adminCtx, Session).count()).toBe(before);
+    });
+
+    // A legacy-era batch gives no cart continuity: the SDK dispatches every batch member at once
+    // (JSON-RPC 2.0 allows a server to process a batch in any order), so get_cart races
+    // add_to_cart and may or may not see its cart. This pins the deterministic parts: both calls
+    // answer, and add_to_cart's result carries the sessionToken that later separate POSTs thread.
+    it('a legacy-era batch [add_to_cart, get_cart] answers both calls, with the token on the write', async () => {
+        const batch = [callTool('add_to_cart', { variantId, quantity: 1 }, 1), callTool('get_cart', {}, 2)];
+        const response = await postMcp(baseUrl(), 'shop', batch);
+        const messages: any[] = Array.isArray(response.body) ? response.body : [response.body];
+        const added = messages.find(message => message.id === 1).result;
+        const cart = messages.find(message => message.id === 2).result;
+
+        expect(added.isError).toBeUndefined();
+        expect(added.structuredContent.order.totalQuantity).toBe(1);
+        const sessionToken = added.structuredContent.sessionToken as string;
+        expect(sessionToken).toBeTruthy();
+        expect(cart.isError).toBeUndefined();
+
+        // Continuity works from the NEXT request on, using the returned token.
+        const followUp = await postMcp(baseUrl(), 'shop', callTool('get_cart', { sessionToken }, 3));
+        expect(followUp.body.result.structuredContent.order.code).toBe(added.structuredContent.order.code);
     });
 
     it('creates an anonymous cart in the channel selected by vendure-token', async () => {
@@ -403,6 +547,28 @@ describe('MCP built-in shop tools', () => {
         expect(added.body.result.isError).toBeUndefined();
         const order = await orderByCode(added.body.result.structuredContent.order.code);
         expect(order.channels.map(channel => String(channel.id))).toContain(String(grant.channelId));
+    });
+
+    // An authenticated caller's cart is fixed by the grant. A sessionToken argument is refused
+    // rather than ignored, so the agent learns it cannot switch carts; and no sessionToken is
+    // ever appended to an authenticated caller's results.
+    it('refuses sessionToken on an OAuth-authenticated call, and grant results carry no sessionToken', async () => {
+        const flow = await shopFlow();
+
+        const refused = await postMcp(
+            baseUrl(),
+            'shop',
+            callTool('get_cart', { sessionToken: 'anything' }, 1),
+            { token: flow.access_token },
+        );
+        expect(refused.body.result.isError).toBe(true);
+        expect(refused.body.result.content[0].text).toMatch(/omit it/);
+
+        const cart = await postMcp(baseUrl(), 'shop', callTool('get_cart', {}, 2), {
+            token: flow.access_token,
+        });
+        expect(cart.body.result.isError).toBeUndefined();
+        expect(cart.body.result.structuredContent.sessionToken).toBeUndefined();
     });
 
     // The Shop API's "connected assistants" surface: list and revoke the signed-in customer's
@@ -821,7 +987,7 @@ describe('MCP built-in shop tools', () => {
             'shop',
             callTool('add_to_cart', { variantId, quantity: 1 }, 1),
         );
-        const sessionToken = added.headers.get(AUTH_TOKEN_HEADER) as string;
+        const sessionToken = added.body.result.structuredContent.sessionToken as string;
 
         const quotes = await postMcp(baseUrl(), 'shop', callTool('get_eligible_shipping_methods', {}, 2), {
             headers: { [AUTH_TOKEN_HEADER]: sessionToken },
@@ -892,15 +1058,12 @@ describe('MCP built-in shop tools', () => {
         expect(await connection.getRepository(adminCtx, Order).count()).toBe(ordersBefore);
     });
 
-    it('uses the SDK for cart then gates place_order before executing confirm:true in the same session', async () => {
-        const sessionResponse = await postMcp(baseUrl(), 'shop', rpc('ping', {}, 1));
-        const sessionToken = sessionResponse.headers.get(AUTH_TOKEN_HEADER);
-        expect(sessionToken).toBeTruthy();
-
+    // A stock MCP SDK client threads no headers, so the sessionToken payload field is the only
+    // thing keeping these calls on one cart. place_order is destructive AND anonymous-callable,
+    // so `confirm` and `sessionToken` must compose in a single call.
+    it('uses the SDK for cart then gates place_order before executing confirm:true with the same sessionToken', async () => {
         const client = new Client({ name: 'shop-tools-sdk-e2e', version: '1.0.0' });
-        const transport = new StreamableHTTPClientTransport(new URL(`${baseUrl()}/mcp/shop`), {
-            requestInit: { headers: { [AUTH_TOKEN_HEADER]: sessionToken as string } },
-        });
+        const transport = new StreamableHTTPClientTransport(new URL(`${baseUrl()}/mcp/shop`));
         await client.connect(transport);
         try {
             const added = await client.callTool({
@@ -909,10 +1072,12 @@ describe('MCP built-in shop tools', () => {
             });
             expect(added.isError).toBeUndefined();
             expect((added.structuredContent as any).order.totalQuantity).toBe(1);
+            const sessionToken = (added.structuredContent as any).sessionToken as string;
+            expect(sessionToken).toBeTruthy();
 
             const preview = await client.callTool({
                 name: 'place_order',
-                arguments: { paymentMethodCode: 'not-configured' },
+                arguments: { paymentMethodCode: 'not-configured', sessionToken },
             });
             expect(preview.isError).toBeUndefined();
             expect(preview.structuredContent).toMatchObject({
@@ -922,7 +1087,7 @@ describe('MCP built-in shop tools', () => {
 
             const confirmed = await client.callTool({
                 name: 'place_order',
-                arguments: { paymentMethodCode: 'not-configured', confirm: true },
+                arguments: { paymentMethodCode: 'not-configured', confirm: true, sessionToken },
             });
             expect(confirmed.isError).toBeUndefined();
             expect(confirmed.structuredContent).toEqual({
@@ -930,9 +1095,10 @@ describe('MCP built-in shop tools', () => {
                 message:
                     'Placing an order requires an authorized customer. Complete the OAuth flow ' +
                     'for this store and retry with the resulting access token.',
+                sessionToken,
             });
 
-            const session = await anonymousSession(sessionToken as string);
+            const session = await anonymousSession(sessionToken);
             expect(session.activeOrderId).toBeTruthy();
             expect(String(session.activeOrderId)).toBe(
                 String((await orderByCode((added.structuredContent as any).order.code)).id),
@@ -1231,22 +1397,6 @@ describe('MCP built-in shop tools', () => {
                 order => order.code,
             );
         }, TEST_SETUP_TIMEOUT_MS);
-
-        /** Starts an anonymous cart holding `quantity` of the fixture variant. */
-        async function anonymousCart(quantity = 1): Promise<{ sessionToken: string; lineId: ID }> {
-            const added = await postMcp(
-                baseUrl(),
-                'shop',
-                callTool('add_to_cart', { variantId, quantity }, 1),
-            );
-            const sessionToken = added.headers.get(AUTH_TOKEN_HEADER);
-            expect(sessionToken).toBeTruthy();
-            expect(added.body.result.isError).toBeUndefined();
-            return {
-                sessionToken: sessionToken as string,
-                lineId: added.body.result.structuredContent.order.lines[0].id,
-            };
-        }
 
         it('update_cart_line changes the quantity of an existing line', async () => {
             const { sessionToken, lineId } = await anonymousCart(1);

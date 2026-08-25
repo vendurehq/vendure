@@ -35,9 +35,8 @@ export interface RateLimitInput {
 }
 
 /**
- * Thrown when a rate-limit bucket is exceeded. The controller's handshake pre-check maps this to a
- * JSON-RPC `-31029` error whose `data` carries `{ retryAfterSeconds, scope }`; inside a tool call it
- * is caught and flattened to an `isError` result.
+ * Thrown when a rate limit is exceeded. The error details include the affected scope and
+ * how long the caller should wait before retrying.
  */
 export class McpRateLimitExceededError extends Error {
     constructor(public readonly details: McpRateLimitExceeded) {
@@ -47,24 +46,8 @@ export class McpRateLimitExceededError extends Error {
 }
 
 /**
- * @description
- * Enforces per-minute request limits. Counters live in CacheService and reset every minute.
- * Six kinds of counter exist, and each is charged at the one point in a request's life where
- * the work it protects would otherwise happen:
- *
- * - Anonymous IP: charged by the transport before an anonymous shop request is processed,
- *   because processing one writes a session row ({@link checkAnonymousIpRateLimit}).
- * - Failed authentication per IP: checked by the transport before a bearer token's database
- *   lookup, counted when the lookup rejects the token ({@link checkBearerAuthFailureRateLimit},
- *   {@link recordBearerAuthFailure}).
- * - Session, signed-in user and OAuth client: charged by the transport for protocol messages and
- *   by the tool registry for tool calls ({@link checkRateLimit}, {@link enforceRateLimit}).
- * - Per tool: charged by the tool registry alongside the session and client counters.
- * - OAuth IP: charged by the guard in front of the OAuth controller's HTTP routes
- *   ({@link enforceOauthIpRateLimit}).
- *
- * Naming: `check*` methods return the exceeded-limit details (or `undefined` when within the
- * limit); `enforce*` methods throw {@link McpRateLimitExceededError} instead.
+ * Enforces rate limits for MCP requests, authentication attempts, sessions, users, OAuth clients,
+ * and individual tools. Limits are tracked using the configured cache service.
  */
 @Injectable()
 export class McpRateLimiterService {
@@ -94,9 +77,10 @@ export class McpRateLimiterService {
 
     /**
      * Charges the anonymous-IP bucket alone, without a resolved context. The transport calls this
-     * before it builds one for an anonymous shop request, because building it creates a Vendure session
-     * row — the write belongs inside the limit rather than behind it. This is the only place that
-     * bucket is charged; {@link buildSharedBucketChecks} deliberately leaves it out.
+     * before it builds one for an anonymous shop request, so a rate-limited caller costs no database
+     * work — not the session-header lookup, and not the session row a shop tool creates lazily.
+     * This is the only place that bucket is charged; {@link buildSharedBucketChecks} deliberately
+     * leaves it out.
      */
     async checkAnonymousIpRateLimit(
         endpoint: McpToolset,
@@ -344,8 +328,9 @@ export class McpRateLimiterService {
 
     /**
      * The identity behind session-scoped buckets. An anonymous HTTP caller (no OAuth grant, but a
-     * client IP) is minted a fresh Vendure session token on every request that omits the session
-     * header, so the token cannot key a limit — those callers are keyed by IP instead.
+     * client IP) often has no session at all when limits run — a shop tool creates one lazily —
+     * and any token it does carry is caller-supplied, so the token cannot key a limit. Those
+     * callers are keyed by IP instead.
      */
     private actorSessionKey(executionContext: McpExecutionContext): string {
         if (executionContext.grant == null && executionContext.clientIp != null) {

@@ -110,6 +110,16 @@ export interface McpToolMetadata {
     behavior?: McpToolBehavior;
     /**
      * @description
+     * Set to `true` for Shop tools that use the shopper's active Order. This enables anonymous
+     * callers to continue the same cart using a `sessionToken`.
+     *
+     * Only valid for Shop tools. The `sessionToken` field is managed automatically.
+     *
+     * @default false
+     */
+    usesActiveOrder?: boolean;
+    /**
+     * @description
      * The schema for the tool's arguments. Two forms are accepted: a plain JSON Schema object
      * ({@link McpJsonSchema}), or a Standard Schema object that can emit JSON Schema
      * ({@link McpStandardSchema}), such as a Zod v4 schema. The registry compiles the schema once

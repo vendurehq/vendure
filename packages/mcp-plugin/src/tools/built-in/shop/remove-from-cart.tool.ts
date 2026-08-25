@@ -27,6 +27,7 @@ type RemoveFromCartInput = z.infer<typeof removeFromCartInput>;
     ],
     permissions: [Permission.Public],
     behavior: 'mutating',
+    usesActiveOrder: true,
     inputSchema: removeFromCartInput,
 })
 @Injectable()

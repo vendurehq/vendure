@@ -21,7 +21,9 @@ import { MCP_PLUGIN_OPTIONS } from '../../constants';
 import { McpToolCallLogService } from '../../logging/mcp-tool-call-log.service';
 import { McpRateLimiterService } from '../../rate-limit/mcp-rate-limiter.service';
 import { McpToolRegistryService } from '../../registry/mcp-tool-registry.service';
+import { McpToolSchemaService } from '../../registry/mcp-tool-schema.service';
 import { resolveMcpPluginOptions } from '../../resolve-options';
+import { McpShopSessionService } from '../../shop-session/mcp-shop-session.service';
 
 import { McpActiveOrderService } from './active-order.service';
 import { adminToolProviders } from './admin';
@@ -41,6 +43,7 @@ describe('built-in registry discovery', () => {
             providers: [
                 ...mcpBuiltInToolProviders,
                 McpToolRegistryService,
+                McpToolSchemaService,
                 McpActiveOrderService,
                 McpToolSerializerService,
                 { provide: ActiveOrderService, useValue: {} },
@@ -53,6 +56,7 @@ describe('built-in registry discovery', () => {
                 { provide: OrderService, useValue: {} },
                 { provide: ProductService, useValue: {} },
                 { provide: ProductVariantService, useValue: {} },
+                { provide: McpShopSessionService, useValue: {} },
                 { provide: SettingsStoreService, useValue: { get: vi.fn(), set: vi.fn() } },
                 { provide: StockLevelService, useValue: {} },
                 { provide: TransactionalConnection, useValue: {} },

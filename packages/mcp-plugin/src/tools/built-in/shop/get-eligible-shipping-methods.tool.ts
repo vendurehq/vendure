@@ -22,6 +22,7 @@ const getEligibleShippingMethodsInput = z.strictObject({});
     ],
     permissions: [Permission.Public],
     behavior: 'readonly',
+    usesActiveOrder: true,
     inputSchema: getEligibleShippingMethodsInput,
 })
 @Injectable()

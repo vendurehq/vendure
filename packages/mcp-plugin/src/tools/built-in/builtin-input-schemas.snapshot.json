@@ -585,7 +585,7 @@
             "type": "number"
           }
         ],
-        "description": "Payment to refund. Defaults to the order's first Settled payment that still has a refundable amount."
+        "description": "Payment to refund; must belong to this order. Defaults to the order's first Settled payment that still has a refundable amount."
       }
     },
     "required": [

@@ -16,22 +16,20 @@ export interface McpRegisteredTool extends McpToolMetadata {
     /** MCP annotations derived from behavior; surfaced to the agent in `tools/list` and `search_tools`. */
     annotations: ToolAnnotations;
     /**
-     * The canonical input schema (single source of truth). Derived once at discovery: the tool's
-     * `inputSchema`, or the no-args default when none is declared. Never mutated — the destructive
-     * `confirm` field is injected onto a clone (see the wire schema below).
+     * The tool's original input schema. Derived once during discovery from the tool's
+     * `inputSchema`, or a default no-args schema when none is provided. This schema is
+     * never modified; additional fields are added to a separate copy for the wire schema.
      */
     jsonInputSchema: McpJsonSchema;
     /**
-     * Compiled validator for the WIRE input schema (canonical schema plus the injected optional
-     * `confirm` field for destructive tools). Compiled once at bootstrap; registered with the SDK
-     * per request and reused for discovery-path (`execute_tool`) inner-argument validation.
+     * Validator for the final input schema. Created once during startup and reused to
+     * validate tool calls.
      */
     compiledInputSchema: StandardSchemaWithJSON;
     /**
-     * The WIRE input schema: the canonical schema plus, for destructive tools, the injected
-     * optional `confirm` field. This is what is registered with the SDK and advertised in tool
-     * summaries — the schema a call must actually satisfy. For non-destructive tools it is the
-     * same object as `jsonInputSchema`.
+     * The final input schema exposed to callers. It is based on `jsonInputSchema` and may
+     * include optional `confirm` or `sessionToken` fields when required. If no fields are
+     * added, it is the same schema as `jsonInputSchema`.
      */
     wireJsonSchema: McpJsonSchema;
     /** Compiled validator for the declared output schema, if any. */

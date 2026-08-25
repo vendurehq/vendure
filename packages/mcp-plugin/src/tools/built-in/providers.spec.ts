@@ -95,6 +95,30 @@ describe('built-in shop tool providers', () => {
         });
     });
 
+    it('marks only tools that use the active order', () => {
+        const activeOrderTools = shopProviders
+            .filter(provider => metadataFor(provider).usesActiveOrder)
+            .map(provider => metadataFor(provider).name)
+            .sort();
+
+        expect(activeOrderTools).toEqual(
+            [
+                'add_to_cart',
+                'apply_coupon_code',
+                'get_cart',
+                'get_eligible_payment_methods',
+                'get_eligible_shipping_methods',
+                'place_order',
+                'remove_coupon_code',
+                'remove_from_cart',
+                'set_billing_address',
+                'set_shipping_address',
+                'set_shipping_method',
+                'update_cart_line',
+            ].sort(),
+        );
+    });
+
     it('tells the caller how search_products matches, and what it does not search', () => {
         const description = metadataFor(
             shopProviders.find(provider => metadataFor(provider).name === 'search_products'),

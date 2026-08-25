@@ -26,6 +26,7 @@ type ApplyCouponCodeInput = z.infer<typeof applyCouponCodeInput>;
     ],
     permissions: [Permission.Public],
     behavior: 'mutating',
+    usesActiveOrder: true,
     inputSchema: applyCouponCodeInput,
 })
 @Injectable()

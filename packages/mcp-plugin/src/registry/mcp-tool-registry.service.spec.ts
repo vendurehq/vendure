@@ -6,9 +6,11 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { McpRateLimitExceededError } from '../rate-limit/mcp-rate-limiter.service';
 import { resolveMcpPluginOptions } from '../resolve-options';
+import { McpShopSessionService } from '../shop-session/mcp-shop-session.service';
 import { McpPluginOptions } from '../types';
 
 import { McpToolRegistryService } from './mcp-tool-registry.service';
+import { McpToolSchemaService } from './mcp-tool-schema.service';
 
 // Type-level: the SDK-local Standard Schema type must satisfy the protocol SDK's type.
 const _standardSchemaTypeCheck: StandardSchemaWithJSON = undefined as unknown as McpStandardSchema;
@@ -36,6 +38,10 @@ function makeCtx(opts: { activeUserId?: number; granted?: Permission[] } = {}) {
     return {
         activeUserId: opts.activeUserId,
         userHasPermissions: (perms: Permission[]) => perms.some(p => (opts.granted ?? []).includes(p)),
+        // The session swap in McpShopSessionService clones the context via copy().
+        copy() {
+            return { ...this };
+        },
     } as any;
 }
 
@@ -61,14 +67,22 @@ function build(
     const toolCallLog = {
         logToolCall: vi.fn(() => Promise.resolve(undefined)),
     };
+    const sessionService = {
+        getSessionFromToken: vi.fn((_token: string) => Promise.resolve(undefined as unknown)),
+        createAnonymousSession: vi.fn(() =>
+            Promise.resolve({ id: 'anon-id', token: 'anon-token', expires: new Date(Date.now() + 60_000) }),
+        ),
+    };
     const service = new McpToolRegistryService(
         discoveryService as any,
         settingsStoreService as any,
         rateLimiter as any,
         toolCallLog as any,
+        new McpToolSchemaService(),
+        new McpShopSessionService(sessionService as any),
         resolveMcpPluginOptions(options),
     );
-    return { service, rateLimiter, toolCallLog, settingsStoreService, store };
+    return { service, rateLimiter, toolCallLog, settingsStoreService, sessionService, store };
 }
 
 const shopTool = (over: Partial<McpToolMetadata> = {}): McpToolMetadata => ({
@@ -182,6 +196,11 @@ describe('McpToolRegistryService', () => {
         it('boots a shop tool with no permissions declared (defaults to Public)', () => {
             const { service } = build([wrapper(shopTool({ permissions: undefined }))]);
             expect(() => service.onApplicationBootstrap()).not.toThrow();
+        });
+
+        it('rejects usesActiveOrder on an admin tool', () => {
+            const { service } = build([wrapper(adminTool({ usesActiveOrder: true }))]);
+            expect(() => service.onApplicationBootstrap()).toThrow(/usesActiveOrder.*shop tool/);
         });
     });
 
@@ -320,7 +339,7 @@ describe('McpToolRegistryService', () => {
             const { service } = build([
                 wrapper(shopTool({ name: 'delete_thing', behavior: 'destructive', inputSchema: schema })),
             ]);
-            expect(() => service.onApplicationBootstrap()).toThrow(/must not declare its own\s+"confirm"/);
+            expect(() => service.onApplicationBootstrap()).toThrow(/must not declare "confirm"/);
         });
 
         it('strips a top-level $schema key from derived JSON', () => {
@@ -576,6 +595,7 @@ describe('McpToolRegistryService', () => {
             shopTool({
                 name: 'delete_thing',
                 behavior: 'destructive',
+                usesActiveOrder: true,
                 inputSchema: {
                     type: 'object',
                     properties: { id: { type: 'string' } },
@@ -594,6 +614,58 @@ describe('McpToolRegistryService', () => {
                 status: 'confirmation_required',
                 confirmed: false,
             });
+            expect(execute).not.toHaveBeenCalled();
+        });
+
+        it('returns the resolved sessionToken with the confirmation so the confirming call keeps the cart', async () => {
+            const session = { id: 's1', token: 'cart-token', expires: new Date(Date.now() + 60_000) };
+            const execute = vi.fn();
+            const { service, sessionService } = build([wrapper(destructive(), execute)]);
+            sessionService.getSessionFromToken.mockResolvedValue(session);
+            service.onApplicationBootstrap();
+
+            const result = await service.callToolDirect({ ctx: makeCtx() }, 'shop', 'delete_thing', {
+                id: 'x',
+                sessionToken: 'cart-token',
+            });
+
+            expect(result.structuredContent).toEqual({
+                status: 'confirmation_required',
+                confirmed: false,
+                sessionToken: 'cart-token',
+            });
+            expect(execute).not.toHaveBeenCalled();
+        });
+
+        it('starts no session for a confirmation preview called without a token', async () => {
+            const execute = vi.fn();
+            const { service, sessionService } = build([wrapper(destructive(), execute)]);
+            service.onApplicationBootstrap();
+
+            const result = await service.callToolDirect({ ctx: makeCtx() }, 'shop', 'delete_thing', {
+                id: 'x',
+            });
+
+            expect(sessionService.createAnonymousSession).not.toHaveBeenCalled();
+            expect(result.structuredContent).toEqual({
+                status: 'confirmation_required',
+                confirmed: false,
+            });
+            expect(execute).not.toHaveBeenCalled();
+        });
+
+        it('refuses an invalid sessionToken before asking for confirmation', async () => {
+            const execute = vi.fn();
+            const { service } = build([wrapper(destructive(), execute)]);
+            service.onApplicationBootstrap();
+
+            const result = await service.callToolDirect({ ctx: makeCtx() }, 'shop', 'delete_thing', {
+                id: 'x',
+                sessionToken: 'gone',
+            });
+
+            expect(result.isError).toBe(true);
+            expect((result.content as any)[0].text).toMatch(/not valid or has expired/);
             expect(execute).not.toHaveBeenCalled();
         });
 
@@ -621,7 +693,166 @@ describe('McpToolRegistryService', () => {
                 inputSchema: { type: 'object', properties: { confirm: { type: 'boolean' } } },
             });
             const { service } = build([wrapper(tool)]);
-            expect(() => service.onApplicationBootstrap()).toThrow(/must not declare its own\s+"confirm"/);
+            expect(() => service.onApplicationBootstrap()).toThrow(/must not declare "confirm"/);
+        });
+    });
+
+    describe('sessionToken injection (anonymous shop cart identity)', () => {
+        const cartTool = (over: Partial<McpToolMetadata> = {}) =>
+            shopTool({
+                name: 'touch_cart',
+                behavior: 'mutating',
+                usesActiveOrder: true,
+                inputSchema: {
+                    type: 'object',
+                    properties: { note: { type: 'string' } },
+                    additionalProperties: false,
+                },
+                ...over,
+            });
+
+        it('injects sessionToken into the wire schema of a public shop tool, leaving the SSOT clean', () => {
+            const { service } = build([wrapper(cartTool())]);
+            service.onApplicationBootstrap();
+            const tool = service.getRegistrySnapshot()[0];
+            expect(tool.wireJsonSchema.properties?.sessionToken).toMatchObject({ type: 'string' });
+            expect(tool.jsonInputSchema.properties?.sessionToken).toBeUndefined();
+        });
+
+        it('leaves an unrelated public mutation sessionless', async () => {
+            const { service, sessionService } = build([
+                wrapper(shopTool({ name: 'subscribe_to_newsletter', behavior: 'mutating' })),
+            ]);
+            service.onApplicationBootstrap();
+
+            const tool = service.getRegistrySnapshot()[0];
+            expect(tool.wireJsonSchema.properties?.sessionToken).toBeUndefined();
+
+            const result = await service.callToolDirect(
+                { ctx: makeCtx() },
+                'shop',
+                'subscribe_to_newsletter',
+                {},
+            );
+            expect(sessionService.createAnonymousSession).not.toHaveBeenCalled();
+            expect(result.structuredContent).toEqual({ ok: true });
+        });
+
+        it('does not inject sessionToken for admin tools', () => {
+            const { service } = build([wrapper(adminTool())]);
+            service.onApplicationBootstrap();
+            const tool = service.getRegistrySnapshot()[0];
+            expect(tool.wireJsonSchema.properties?.sessionToken).toBeUndefined();
+        });
+
+        it('does not inject sessionToken for a shop tool that requires authentication', () => {
+            const { service } = build([
+                wrapper(cartTool({ name: 'my_orders', permissions: [Permission.Authenticated] })),
+            ]);
+            service.onApplicationBootstrap();
+            const tool = service.getRegistrySnapshot()[0];
+            expect(tool.wireJsonSchema.properties?.sessionToken).toBeUndefined();
+        });
+
+        it('fails boot when an anonymous-callable shop tool declares sessionToken in its input or output schema', () => {
+            const declaresInInput = cartTool({
+                inputSchema: { type: 'object', properties: { sessionToken: { type: 'string' } } },
+            });
+            const declaresInOutput = cartTool({
+                outputSchema: { type: 'object', properties: { sessionToken: { type: 'string' } } },
+            });
+            for (const tool of [declaresInInput, declaresInOutput]) {
+                const { service } = build([wrapper(tool)]);
+                expect(() => service.onApplicationBootstrap()).toThrow(/must not declare "sessionToken"/);
+            }
+        });
+
+        it('strips sessionToken before the handler and the log, and appends the resolved token after both', async () => {
+            const session = { id: 's1', token: 'existing-token', expires: new Date(Date.now() + 60_000) };
+            const execute = vi.fn((_ctx: unknown, _input: unknown) => ({ ok: true }));
+            const { service, sessionService, toolCallLog } = build([wrapper(cartTool(), execute)]);
+            sessionService.getSessionFromToken.mockResolvedValue(session);
+            service.onApplicationBootstrap();
+
+            const result = await service.callToolDirect({ ctx: makeCtx() }, 'shop', 'touch_cart', {
+                note: 'hi',
+                sessionToken: 'existing-token',
+            });
+
+            expect(sessionService.getSessionFromToken).toHaveBeenCalledWith('existing-token');
+            expect(execute.mock.calls[0][1]).toEqual({ note: 'hi' });
+            // Credential hygiene: the logged input is the stripped one, and the logged output is
+            // the handler output from before the append.
+            expect(toolCallLog.logToolCall).toHaveBeenCalledWith(
+                expect.objectContaining({ input: { note: 'hi' }, output: { ok: true } }),
+            );
+            expect(result.structuredContent).toEqual({ ok: true, sessionToken: 'existing-token' });
+        });
+
+        it('creates no session for a readonly tool called without one', async () => {
+            const { service, sessionService } = build([
+                wrapper(shopTool({ name: 'look' }), () => ({ items: [] })),
+            ]);
+            service.onApplicationBootstrap();
+
+            const read = await service.callToolDirect({ ctx: makeCtx() }, 'shop', 'look', {});
+            expect(sessionService.createAnonymousSession).not.toHaveBeenCalled();
+            expect(read.structuredContent).toEqual({ items: [] });
+        });
+
+        it("refuses a signed-in user's session token", async () => {
+            const execute = vi.fn();
+            const { service, sessionService } = build([wrapper(cartTool(), execute)]);
+            sessionService.getSessionFromToken.mockResolvedValue({
+                id: 's2',
+                token: 'user-token',
+                user: { id: 1 },
+            });
+            service.onApplicationBootstrap();
+            const result = await service.callToolDirect({ ctx: makeCtx() }, 'shop', 'touch_cart', {
+                sessionToken: 'user-token',
+            });
+            expect(result.isError).toBe(true);
+            expect((result.content as any)[0].text).toMatch(/belongs to a signed-in user/);
+            expect(execute).not.toHaveBeenCalled();
+        });
+
+        it('appends no sessionToken to the results of an OAuth-authenticated call', async () => {
+            const execute = vi.fn(() => ({ ok: true }));
+            const { service } = build([wrapper(cartTool(), execute)]);
+            service.onApplicationBootstrap();
+            const grant = { id: 'g1', oauthClientId: 'c1' } as any;
+
+            const allowed = await service.callToolDirect(
+                { ctx: makeCtx({ activeUserId: 1 }), grant },
+                'shop',
+                'touch_cart',
+                {},
+            );
+            expect(allowed.structuredContent).toEqual({ ok: true });
+        });
+
+        it('wraps a non-object result so the sessionToken is never lost', async () => {
+            const { service } = build([wrapper(cartTool(), () => ['a', 'b'])]);
+            service.onApplicationBootstrap();
+
+            const result = await service.callToolDirect({ ctx: makeCtx() }, 'shop', 'touch_cart', {});
+
+            expect(result.structuredContent).toEqual({ result: ['a', 'b'], sessionToken: 'anon-token' });
+        });
+
+        it('returns the sessionToken on a failed call so the caller keeps the session it acted on', async () => {
+            const execute = vi.fn(() => {
+                throw new UserInputError('no such variant');
+            });
+            const { service, sessionService } = build([wrapper(cartTool(), execute)]);
+            service.onApplicationBootstrap();
+
+            const result = await service.callToolDirect({ ctx: makeCtx() }, 'shop', 'touch_cart', {});
+
+            expect(result.isError).toBe(true);
+            expect(sessionService.createAnonymousSession).toHaveBeenCalledOnce();
+            expect(result.structuredContent).toEqual({ sessionToken: 'anon-token' });
         });
     });
 

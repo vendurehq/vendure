@@ -37,7 +37,9 @@ import { McpOauthRateLimitGuard } from './rate-limit/mcp-oauth-rate-limit.guard'
 import { McpRateLimiterService } from './rate-limit/mcp-rate-limiter.service';
 import { McpToolExecutionService } from './registry/mcp-tool-execution.service';
 import { McpToolRegistryService } from './registry/mcp-tool-registry.service';
+import { McpToolSchemaService } from './registry/mcp-tool-schema.service';
 import { resolveMcpPluginOptions } from './resolve-options';
+import { McpShopSessionService } from './shop-session/mcp-shop-session.service';
 import { mcpOauthRetentionTask } from './tasks/mcp-oauth-retention.task';
 import { mcpToolCallLogRetentionTask } from './tasks/mcp-tool-call-log-retention.task';
 import { McpActiveOrderService } from './tools/built-in/active-order.service';
@@ -76,7 +78,9 @@ import { McpPluginOptions } from './types';
         McpOauthRetentionService,
         McpCimdClientResolverService,
         McpToolRegistryService,
+        McpToolSchemaService,
         McpToolExecutionService,
+        McpShopSessionService,
         McpRateLimiterService,
         McpOauthRateLimitGuard,
         McpToolCallLogService,

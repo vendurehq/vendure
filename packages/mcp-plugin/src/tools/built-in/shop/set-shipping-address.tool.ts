@@ -28,6 +28,7 @@ type SetShippingAddressInput = z.infer<typeof setShippingAddressInput>;
     ],
     permissions: [Permission.Public],
     behavior: 'mutating',
+    usesActiveOrder: true,
     inputSchema: setShippingAddressInput,
 })
 @Injectable()

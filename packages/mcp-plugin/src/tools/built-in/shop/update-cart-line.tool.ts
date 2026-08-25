@@ -28,6 +28,7 @@ type UpdateCartLineInput = z.infer<typeof updateCartLineInput>;
     ],
     permissions: [Permission.Public],
     behavior: 'mutating',
+    usesActiveOrder: true,
     inputSchema: updateCartLineInput,
 })
 @Injectable()

@@ -26,6 +26,14 @@ const CHANNEL_TOKEN_HEADER = 'vendure-token';
 const countAnonymousSessions = (server: TestServer) =>
     server.app.get(TransactionalConnection).rawConnection.getRepository(AnonymousSession).count();
 
+/** Mints an anonymous session by POSTing a cart write, returning the sessionToken from its payload. */
+async function bootstrapSessionToken(url: string, id: number): Promise<string> {
+    const bootstrap = await postMcp(url, 'shop', callTool('shop_cart_write', {}, id));
+    const sessionToken = bootstrap.body.result.structuredContent.sessionToken as string;
+    expect(sessionToken).toBeTruthy();
+    return sessionToken;
+}
+
 describe('MCP transport (auth, session, channel, destructive)', () => {
     // Test isolation, not a behavior change: with default rate limits, this describe's anonymous
     // shop calls would share the IP-keyed per-session bucket with later describes in this file
@@ -114,15 +122,22 @@ describe('MCP transport (auth, session, channel, destructive)', () => {
         expect(adminNames).not.toContain('shop_ping');
     });
 
-    it('threads the anonymous session token so two calls hit the same session', async () => {
-        const first = await postMcp(baseUrl(), 'shop', callTool('shop_ping', {}, 1));
-        const echoedToken = first.headers.get(AUTH_TOKEN_HEADER);
-        expect(echoedToken).toBeTruthy();
+    it('threads the anonymous session token as a header so two calls hit the same session', async () => {
+        // A token-less request no longer creates a session, so the token is bootstrapped from the
+        // payload of a session-creating (non-readonly) call and then threaded as the request
+        // header, which stays supported for clients that can echo headers.
+        const sessionToken = await bootstrapSessionToken(baseUrl(), 1);
+
+        const first = await postMcp(baseUrl(), 'shop', callTool('shop_ping', {}, 2), {
+            headers: { [AUTH_TOKEN_HEADER]: sessionToken },
+        });
+        // The header path still echoes the resumed session's token back in the response header.
+        expect(first.headers.get(AUTH_TOKEN_HEADER)).toBe(sessionToken);
         const firstSessionId = first.body.result.structuredContent.sessionId;
         expect(firstSessionId).toBeTruthy();
 
-        const second = await postMcp(baseUrl(), 'shop', callTool('shop_ping', {}, 2), {
-            headers: { [AUTH_TOKEN_HEADER]: echoedToken as string },
+        const second = await postMcp(baseUrl(), 'shop', callTool('shop_ping', {}, 3), {
+            headers: { [AUTH_TOKEN_HEADER]: sessionToken },
         });
         expect(second.body.result.structuredContent.sessionId).toBe(firstSessionId);
     });
@@ -153,6 +168,7 @@ describe('MCP transport (auth, session, channel, destructive)', () => {
             'shop',
             callTool('shop_delete', { id: 'abc', confirm: true }, 2),
         );
+        // This mutation does not use the active order, so it creates no anonymous session.
         expect(confirmed.body.result.structuredContent).toEqual({ deleted: 'abc' });
     });
 
@@ -195,8 +211,8 @@ describe('MCP transport rate limiting', () => {
     });
 
     it('refuses a request once the bucket is spent without creating a session for it', async () => {
-        // The anonymous-IP bucket is already spent by the previous test (60s window). The refusal has
-        // to come before the context is built, because building it writes an anonymous session row.
+        // The anonymous-IP bucket is already spent by the previous test (60s window). The refusal
+        // comes before the context is built, so a refused request costs no database work at all.
         const before = await countAnonymousSessions(server);
         const refused = await postMcp(baseUrl(), 'shop', rpc('ping', {}, 4));
         expect(refused.body.error.code).toBe(-31029);
@@ -268,17 +284,15 @@ describe('MCP transport anonymous session metering', () => {
         await server.destroy();
     });
 
-    it('meters a notification flood and stops creating anonymous sessions', async () => {
+    it('meters a notification flood, which creates no anonymous sessions at all', async () => {
         // A notification carries no id, so it never produces a JSON-RPC response — but it does reach
-        // the transport, which creates a session for it. anonymousIp rpm = 3, so at most three of these
-        // six posts may be served.
+        // the transport and is metered. anonymousIp rpm = 3, so at most three of these six posts may
+        // be served.
         //
         // How many of the six are served depends on what is left of the budget when this test runs.
         // The anonymous-IP bucket is keyed by client IP alone, every describe in this file calls from
         // the same test-host IP, and they share one in-memory cache, so the describe above (which
-        // meters the same bucket at rpm 2) has normally spent it before this test starts. The
-        // assertions therefore pin the relationship between the two counts rather than the counts
-        // themselves, which holds however much budget was left.
+        // meters the same bucket at rpm 2) has normally spent it before this test starts.
         const notification = { jsonrpc: '2.0', method: 'notifications/initialized' };
         const before = await countAnonymousSessions(server);
 
@@ -291,11 +305,10 @@ describe('MCP transport anonymous session metering', () => {
         const served = responses.length - refused.length;
         expect(refused.length).toBeGreaterThan(0);
         expect(served).toBeLessThanOrEqual(3);
-        // The load-bearing assertion: exactly one session per served notification and none for a
-        // refused one. The controller charges this bucket before building the context precisely
-        // because building it writes a session row, so any drift between the two counts means the
-        // metering and the write have come apart.
-        expect((await countAnonymousSessions(server)) - before).toBe(served);
+        // The load-bearing assertion: no session row for served notifications either. Sessions are
+        // created lazily by shop tools that need one, so a protocol message — served or refused —
+        // never writes one.
+        expect(await countAnonymousSessions(server)).toBe(before);
         // Nothing in the request carries an id, so the refusal has to fall back to a null one.
         expectRateLimitRefusal(refused[0], { scope: 'anonymous IP', id: null });
     });
@@ -324,27 +337,30 @@ describe('MCP transport per-tool rate limiting', () => {
         await server.destroy();
     });
 
-    it('keys per-tool buckets by IP for anonymous callers — dropping the session token does not reset the limit', async () => {
+    it('keys per-tool buckets by IP for anonymous callers — with or without a session token', async () => {
         const first = await postMcp(baseUrl(), 'shop', callTool('shop_echo', { text: 'x' }, 1));
         expect(first.body.result.isError).toBeUndefined();
-        const sessionToken = first.headers.get(AUTH_TOKEN_HEADER) as string;
-        expect(sessionToken).toBeTruthy();
 
         // Per-tool limits are enforced inside the registry, after the SDK has dispatched the call,
         // and the SDK strips custom error codes there — so the refusal is isError content, not a
         // -31029 JSON-RPC error.
-        const second = await postMcp(baseUrl(), 'shop', callTool('shop_echo', { text: 'x' }, 2), {
-            headers: { [AUTH_TOKEN_HEADER]: sessionToken },
-        });
+        //
+        // The regression this pins: per-tool buckets used to be keyed by session, and a token-less
+        // caller was minted a fresh session — and a fresh bucket — on every request, so only
+        // cooperating callers were ever limited. Same IP, no token: refused. (This describe also
+        // runs with anonymousIp: false, the documented configuration under which the old keys left
+        // no limit applying at all.)
+        const second = await postMcp(baseUrl(), 'shop', callTool('shop_echo', { text: 'x' }, 2));
         expect(second.body.error).toBeUndefined();
         expect(second.body.result.isError).toBe(true);
         expect(second.body.result.content[0].text).toMatch(/Rate limit exceeded/);
 
-        // The regression: a caller that OMITS the session header used to be minted a fresh session
-        // — and a fresh bucket — on every request, so only cooperating callers were ever limited.
-        // Same IP, no header: still refused. (This describe also runs with anonymousIp: false, the
-        // documented configuration under which the old keys left no limit applying at all.)
-        const third = await postMcp(baseUrl(), 'shop', callTool('shop_echo', { text: 'x' }, 3));
+        // Holding a real session doesn't buy a fresh bucket either. The active-order fixture is not
+        // per-tool limited here, so it can mint the session this call threads.
+        const sessionToken = await bootstrapSessionToken(baseUrl(), 3);
+        const third = await postMcp(baseUrl(), 'shop', callTool('shop_echo', { text: 'x' }, 4), {
+            headers: { [AUTH_TOKEN_HEADER]: sessionToken },
+        });
         expect(third.body.result.isError).toBe(true);
         expect(third.body.result.content[0].text).toMatch(/Rate limit exceeded/);
     });
@@ -373,13 +389,12 @@ describe('MCP transport content-type casing', () => {
     });
 
     it('meters an uppercase-header handshake exactly like lowercase (bypass closed)', async () => {
-        // perSession rpm = 2, so the third ping (charge 3) trips the limit — same shape as the
+        // perSession rpm = 2, so the third request (charge 3) trips the limit — same shape as the
         // -31029 test above, but on the per-session bucket (keyed by IP for anonymous callers)
         // rather than the anonymous-IP edge gate, so an uppercase Content-Type can't dodge the
-        // handshake pre-check by skipping the JSON parse.
-        const first = await postMcp(baseUrl(), 'shop', rpc('ping', {}, 1));
-        const sessionToken = first.headers.get(AUTH_TOKEN_HEADER) as string;
-        expect(sessionToken).toBeTruthy();
+        // handshake pre-check by skipping the JSON parse. The first charge comes from a tool call
+        // that also mints the session token the two pings then thread as a header.
+        const sessionToken = await bootstrapSessionToken(baseUrl(), 1);
 
         await postMcp(baseUrl(), 'shop', rpc('ping', {}, 2), {
             headers: { [AUTH_TOKEN_HEADER]: sessionToken },

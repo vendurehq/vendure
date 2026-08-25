@@ -44,6 +44,22 @@ export class ShopEchoTool implements McpToolHandler {
 
 @Injectable()
 @McpTool({
+    name: 'shop_cart_write',
+    description: 'Represents a write to the active cart for session transport tests.',
+    toolset: 'shop',
+    behavior: 'mutating',
+    usesActiveOrder: true,
+    permissions: [Permission.Public],
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+})
+export class ShopCartWriteTool implements McpToolHandler {
+    execute(ctx: RequestContext) {
+        return { sessionId: ctx.session?.id ?? null };
+    }
+}
+
+@Injectable()
+@McpTool({
     name: 'shop_boom',
     description: 'Always throws — used to verify in-tool errors flatten to isError.',
     toolset: 'shop',
@@ -108,6 +124,14 @@ export class AdminListTool implements McpToolHandler {
 
 @VendurePlugin({
     imports: [PluginCommonModule],
-    providers: [ShopPingTool, ShopEchoTool, ShopBoomTool, ShopBadInputTool, ShopDeleteTool, AdminListTool],
+    providers: [
+        ShopPingTool,
+        ShopEchoTool,
+        ShopCartWriteTool,
+        ShopBoomTool,
+        ShopBadInputTool,
+        ShopDeleteTool,
+        AdminListTool,
+    ],
 })
 export class McpTestToolsPlugin {}

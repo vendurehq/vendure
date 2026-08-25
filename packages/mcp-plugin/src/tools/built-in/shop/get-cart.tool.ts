@@ -11,7 +11,7 @@ const getCartInput = z.strictObject({});
 @McpTool({
     name: 'get_cart',
     toolset: 'shop',
-    description: 'Get the active cart for the current MCP session.',
+    description: 'Get the active cart. Pass the sessionToken from earlier cart responses to see that cart.',
     keywords: [
         "what's in my basket",
         'show my shopping bag',
@@ -22,6 +22,7 @@ const getCartInput = z.strictObject({});
     ],
     permissions: [Permission.Public],
     behavior: 'readonly',
+    usesActiveOrder: true,
     inputSchema: getCartInput,
 })
 @Injectable()

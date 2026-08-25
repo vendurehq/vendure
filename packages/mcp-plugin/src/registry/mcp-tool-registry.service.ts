@@ -1,11 +1,4 @@
-import {
-    CallToolResult,
-    fromJsonSchema,
-    JsonSchemaType,
-    StandardSchemaV1,
-    StandardSchemaWithJSON,
-    ToolAnnotations,
-} from '@modelcontextprotocol/server';
+import { CallToolResult, ToolAnnotations } from '@modelcontextprotocol/server';
 import { Inject, Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { DiscoveryService } from '@nestjs/core';
 import {
@@ -23,12 +16,10 @@ import {
 import {
     McpCallerInfo,
     McpJsonSchema,
-    McpStandardSchema,
     McpTool,
     McpToolBehavior,
     McpToolHandler,
     McpToolMetadata,
-    McpToolSchema,
     McpToolset,
 } from '@vendure/mcp-sdk';
 
@@ -36,16 +27,17 @@ import { loggerCtx, MCP_PLUGIN_OPTIONS, MCP_TOOL_TOGGLES_STORE_KEY } from '../co
 import { McpExecutionContext, ResolvedMcpPluginOptions } from '../internal-types';
 import { McpToolCallLogService } from '../logging/mcp-tool-call-log.service';
 import { McpRateLimiterService, McpRateLimitExceededError } from '../rate-limit/mcp-rate-limiter.service';
+import { McpShopSessionService } from '../shop-session/mcp-shop-session.service';
 import { McpToolSummary } from '../types';
 
 import { Bm25Index } from './bm25';
+import { McpToolSchemaService } from './mcp-tool-schema.service';
 import { McpExposedTool, McpRegisteredTool } from './registry-types';
 
 /** Discovery meta-tool names — reserved so user tools cannot collide with them. */
 const SEARCH_TOOLS = 'search_tools';
 const EXECUTE_TOOL = 'execute_tool';
 const RESERVED_META_TOOL_NAMES: readonly string[] = [SEARCH_TOOLS, EXECUTE_TOOL];
-const NO_ARGS_SCHEMA: McpJsonSchema = { type: 'object', properties: {}, additionalProperties: false };
 const ALL_TOOLSETS: readonly McpToolset[] = ['shop', 'admin'];
 // These limits are also stated in the no-results hint and the meta-tool's own schema
 // description, so changing them means changing all three places.
@@ -84,6 +76,8 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         private settingsStoreService: SettingsStoreService,
         private rateLimiter: McpRateLimiterService,
         private toolCallLog: McpToolCallLogService,
+        private toolSchema: McpToolSchemaService,
+        private shopSession: McpShopSessionService,
         @Inject(MCP_PLUGIN_OPTIONS) private options: ResolvedMcpPluginOptions,
     ) {}
 
@@ -239,27 +233,20 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     }
 
     /**
-     * Builds one registered tool, applying the bootstrap schema gate: reject non-JSON schemas,
-     * default a missing input schema, assert destructive tools don't declare their own `confirm`,
-     * and compile the wire input (and any output) schema once — a throw here aborts boot.
+     * Builds a registered tool and prepares its schemas. Rejects unsupported schemas, adds a default
+     * input schema when needed, ensures registry-managed fields are not declared by the tool itself,
+     * and compiles the input and output schemas once at startup. Errors here prevent startup.
      */
     private buildRegisteredTool(
         metadata: McpToolMetadata,
         handler: McpToolHandler,
         pluginSource: string,
     ): McpRegisteredTool {
-        const resolvedInput = this.resolveAuthorSchema(
-            metadata.inputSchema,
-            `${metadata.name} inputSchema`,
-            pluginSource,
-            'input',
-        );
-        const resolvedOutput = this.resolveAuthorSchema(
-            metadata.outputSchema,
-            `${metadata.name} outputSchema`,
-            pluginSource,
-            'output',
-        );
+        if (metadata.usesActiveOrder && metadata.toolset !== 'shop') {
+            throw new Error(
+                `MCP tool "${metadata.name}" usesActiveOrder, which is only valid on a shop tool.`,
+            );
+        }
         if (metadata.toolset === 'admin' && (metadata.permissions?.length ?? 0) === 0) {
             throw new Error(
                 `Admin MCP tool "${metadata.name}" declares no permissions. Declare the permissions ` +
@@ -268,50 +255,24 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             );
         }
         const resolvedBehavior = metadata.behavior ?? 'mutating';
-        const jsonInputSchema = resolvedInput?.json ?? NO_ARGS_SCHEMA;
-        if (resolvedBehavior === 'destructive' && jsonInputSchema.properties?.confirm !== undefined) {
-            throw new Error(
-                `MCP tool "${metadata.name}" (${pluginSource}) is destructive and must not declare its own ` +
-                    `"confirm" property — the registry injects it.`,
-            );
-        }
-        const wireJsonSchema = this.wireInputSchema(resolvedBehavior, jsonInputSchema);
-        const compiledInputSchema = resolvedInput?.standard
-            ? this.toRegisteredStandardSchema(
-                  resolvedInput.standard,
-                  wireJsonSchema,
-                  resolvedBehavior === 'destructive',
-              )
-            : this.compileSchema(wireJsonSchema, `${metadata.name} inputSchema`, pluginSource);
-        const compiledOutputSchema = resolvedOutput
-            ? this.compileSchema(resolvedOutput.json, `${metadata.name} outputSchema`, pluginSource)
-            : undefined;
+        const schemas = this.toolSchema.prepareToolSchemas({
+            toolName: metadata.name,
+            pluginSource,
+            inputSchema: metadata.inputSchema,
+            outputSchema: metadata.outputSchema,
+            injectedFields: {
+                confirm: resolvedBehavior === 'destructive',
+                sessionToken: this.acceptsSessionToken(metadata),
+            },
+        });
         return {
             ...metadata,
             handler,
             pluginSource,
             resolvedBehavior,
             annotations: this.deriveAnnotations(metadata, resolvedBehavior),
-            jsonInputSchema,
-            compiledInputSchema,
-            wireJsonSchema,
-            compiledOutputSchema,
+            ...schemas,
         };
-    }
-
-    private compileSchema(
-        schema: McpJsonSchema,
-        label: string,
-        pluginSource: string,
-    ): StandardSchemaWithJSON {
-        try {
-            return fromJsonSchema(schema as unknown as JsonSchemaType);
-        } catch (e) {
-            throw new Error(
-                `MCP tool ${label} (${pluginSource}) failed to compile: ${e instanceof Error ? e.message : String(e)}. ` +
-                    `Author schemas as JSON Schema 2020-12 without a "$schema" key.`,
-            );
-        }
     }
 
     private registerTool(tool: McpRegisteredTool): void {
@@ -360,24 +321,50 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         }
         let toolInput: Record<string, unknown> = (input ?? {}) as Record<string, unknown>;
         if (validateInput) {
-            const validated = await this.validateAgainst(tool.compiledInputSchema, toolInput);
+            const validated = await this.toolSchema.validate(tool.compiledInputSchema, toolInput);
             if (!validated.ok) {
                 return this.errorResult(`Invalid arguments for tool "${name}": ${validated.message}`);
             }
             toolInput = (validated.value ?? {}) as Record<string, unknown>;
         }
-        if (tool.resolvedBehavior === 'destructive') {
-            if (toolInput.confirm !== true) {
-                return this.confirmationRequiredResult(tool);
+        // A destructive tool called without `confirm: true` only describes what it would do.
+        const isConfirmationPreview = tool.resolvedBehavior === 'destructive' && toolInput.confirm !== true;
+
+        // Active-order tools exchange the registry-owned sessionToken argument for the context the
+        // handler acts on. The prepared input no longer contains the credential, so logs do not either.
+        let sessionTokenForResult: string | undefined;
+        if (this.acceptsSessionToken(tool)) {
+            const prepared = await this.shopSession.prepareToolCall({
+                ctx: executionContext.ctx,
+                input: toolInput,
+                isOAuthCall: executionContext.grant != null,
+                // A preview runs no handler, so it must not start a cart of its own.
+                createSessionIfMissing: tool.resolvedBehavior !== 'readonly' && !isConfirmationPreview,
+            });
+            if (prepared.kind === 'refused') {
+                return this.errorResult(prepared.message);
             }
+            toolInput = prepared.input;
+            executionContext.ctx = prepared.ctx;
+            sessionTokenForResult = prepared.sessionToken;
+        }
+        // The preview carries the token too, so the confirming call can act on the same cart.
+        if (isConfirmationPreview) {
+            return this.confirmationRequiredResult(tool, sessionTokenForResult);
+        }
+        if (tool.resolvedBehavior === 'destructive') {
             const { confirm, ...rest } = toolInput;
             toolInput = rest;
         }
         const startedAt = Date.now();
         try {
-            const output = await tool.handler.execute(ctx, toolInput, this.toCallerInfo(executionContext));
+            const output = await tool.handler.execute(
+                executionContext.ctx,
+                toolInput,
+                this.toCallerInfo(executionContext),
+            );
             if (tool.compiledOutputSchema) {
-                const validated = await this.validateAgainst(tool.compiledOutputSchema, output);
+                const validated = await this.toolSchema.validate(tool.compiledOutputSchema, output);
                 if (!validated.ok) {
                     Logger.warn(
                         `MCP tool "${tool.name}" returned output that does not match its schema: ${validated.message}`,
@@ -393,7 +380,9 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                 durationMs: Date.now() - startedAt,
                 status: 'success',
             });
-            return this.successResult(output);
+            return this.successResult(
+                this.shopSession.addSessionTokenToResult(output, sessionTokenForResult),
+            );
         } catch (e) {
             const message = e instanceof Error ? e.message : 'MCP tool failed';
             const callerSafe = this.isCallerSafeError(e);
@@ -414,7 +403,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                 durationMs: Date.now() - startedAt,
                 status: 'error',
             });
-            return this.errorResult(callerSafe ? message : GENERIC_TOOL_ERROR_MESSAGE);
+            return this.errorResult(callerSafe ? message : GENERIC_TOOL_ERROR_MESSAGE, sessionTokenForResult);
         }
     }
 
@@ -477,9 +466,9 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     }
 
     /**
-     * A concise tool summary for search results and in-process tool listings — carries the
-     * WIRE input schema — the one the call must satisfy, including the injected `confirm` on
-     * destructive tools.
+     * A concise tool summary used in search results and tool listings. Includes the final input
+     * schema that callers must satisfy, including any registry-added fields such as `confirm`
+     * or `sessionToken`.
      */
     private toolSummary(tool: McpRegisteredTool): McpToolSummary {
         return {
@@ -540,14 +529,22 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                     'Search for available Vendure MCP tools by keyword. Returns matching tools with their ' +
                     'input schemas so you can then run one via execute_tool.',
                 annotations: { readOnlyHint: true, idempotentHint: true },
-                compiledInputSchema: this.compileSchema(searchSchema, SEARCH_TOOLS, 'McpPlugin'),
+                compiledInputSchema: this.toolSchema.compileJsonSchema(
+                    searchSchema,
+                    SEARCH_TOOLS,
+                    'McpPlugin',
+                ),
             },
             {
                 name: EXECUTE_TOOL,
                 description:
                     'Execute a Vendure MCP tool found via search_tools. Provide the tool name and its arguments.',
                 annotations: {},
-                compiledInputSchema: this.compileSchema(executeSchema, EXECUTE_TOOL, 'McpPlugin'),
+                compiledInputSchema: this.toolSchema.compileJsonSchema(
+                    executeSchema,
+                    EXECUTE_TOOL,
+                    'McpPlugin',
+                ),
             },
         ];
     }
@@ -574,42 +571,36 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
 
     /**
      * OR-semantics permission check. `Public`/`Authenticated` short-circuit ONLY when they are the
-     * sole declared permission; an empty list means Public (kept explicitly because
-     * `ctx.userHasPermissions([])` returns false).
+     * sole declared permission; any other list goes to `ctx.userHasPermissions`, which is false for
+     * a caller with no user.
      */
     private hasPermissions(ctx: RequestContext, permissions: Permission[]): boolean {
-        if (permissions.length === 0) {
+        if (this.isPubliclyCallable(permissions)) {
             return true;
         }
-        if (permissions.length === 1) {
-            if (permissions[0] === Permission.Public) {
-                return true;
-            }
-            if (permissions[0] === Permission.Authenticated) {
-                return !!ctx.activeUserId;
-            }
+        if (permissions.length === 1 && permissions[0] === Permission.Authenticated) {
+            return !!ctx.activeUserId;
         }
         return ctx.userHasPermissions(permissions);
     }
 
-    /** Augments a destructive tool's WIRE schema with an optional `confirm`, on a clone (never the SSOT). */
-    private wireInputSchema(
-        resolvedBehavior: McpToolBehavior,
-        jsonInputSchema: McpJsonSchema,
-    ): McpJsonSchema {
-        if (resolvedBehavior !== 'destructive') {
-            return jsonInputSchema;
-        }
-        const wire = structuredClone(jsonInputSchema);
-        wire.properties = {
-            ...(wire.properties ?? {}),
-            confirm: {
-                type: 'boolean',
-                description: 'Set to true to confirm and run this destructive action. Omit to preview it.',
-            },
-        };
-        // Deliberately NOT added to `required` so the first (preview) call may omit it.
-        return wire;
+    /**
+     * Empty, or exactly `[Permission.Public]`: anyone may call the tool, signed in or not. The empty
+     * case is spelled out because `ctx.userHasPermissions([])` returns false.
+     */
+    private isPubliclyCallable(permissions: Permission[]): boolean {
+        return permissions.length === 0 || (permissions.length === 1 && permissions[0] === Permission.Public);
+    }
+
+    /** Public shop tools that use the active order exchange the optional `sessionToken`. */
+    private acceptsSessionToken(
+        tool: Pick<McpRegisteredTool, 'toolset' | 'permissions' | 'usesActiveOrder'>,
+    ): boolean {
+        return (
+            tool.toolset === 'shop' &&
+            tool.usesActiveOrder === true &&
+            this.isPubliclyCallable(tool.permissions ?? [])
+        );
     }
 
     /**
@@ -649,149 +640,11 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         }
     }
 
-    private async validateAgainst(
-        compiled: StandardSchemaWithJSON,
-        value: unknown,
-    ): Promise<{ ok: true; value: unknown } | { ok: false; message: string }> {
-        const result = await compiled['~standard'].validate(value);
-        if (result.issues) {
-            const message = result.issues.map(issue => this.formatIssue(issue)).join('; ');
-            return { ok: false, message };
-        }
-        return { ok: true, value: result.value };
-    }
-
-    private formatIssue(issue: StandardSchemaV1.Issue): string {
-        const path = (issue.path ?? [])
-            .map(segment => (typeof segment === 'object' ? String(segment.key) : String(segment)))
-            .join('.');
-        return path ? `${path}: ${issue.message}` : issue.message;
-    }
-
     private getPluginSource(wrapper: {
         host?: { metatype?: { name?: string } };
         name?: string | symbol;
     }): string {
         return wrapper.host?.metatype?.name ?? String(wrapper.name ?? 'unknown');
-    }
-
-    private isMcpJsonSchema(value: unknown): value is McpJsonSchema {
-        return typeof value === 'object' && value !== null && (value as { type?: unknown }).type === 'object';
-    }
-
-    private standardProps(value: unknown): Record<string, unknown> | undefined {
-        if (typeof value !== 'object' || value === null) {
-            return undefined;
-        }
-        const std = (value as Record<string, unknown>)['~standard'];
-        return typeof std === 'object' && std !== null ? (std as Record<string, unknown>) : undefined;
-    }
-
-    private isStandardSchema(value: unknown): value is McpStandardSchema {
-        const std = this.standardProps(value);
-        return (
-            typeof std?.validate === 'function' &&
-            typeof (std.jsonSchema as { input?: unknown } | undefined)?.input === 'function'
-        );
-    }
-
-    private deriveJsonSchema(
-        schema: McpStandardSchema,
-        label: string,
-        pluginSource: string,
-        direction: 'input' | 'output',
-    ): McpJsonSchema {
-        let json: Record<string, unknown>;
-        try {
-            json = schema['~standard'].jsonSchema[direction]({ target: 'draft-2020-12' });
-        } catch (e) {
-            throw new Error(
-                `MCP tool ${label} (${pluginSource}): the Standard Schema could not be converted to ` +
-                    `JSON Schema: ${e instanceof Error ? e.message : String(e)}`,
-            );
-        }
-        // Converters commonly stamp a $schema key; fromJsonSchema rejects it.
-        delete json.$schema;
-        if (!this.isMcpJsonSchema(json)) {
-            throw new Error(
-                `MCP tool ${label} (${pluginSource}): the Standard Schema must describe an object at the ` +
-                    `top level (the converted JSON Schema has type "${String((json as { type?: unknown }).type)}").`,
-            );
-        }
-        return json;
-    }
-
-    private toRegisteredStandardSchema(
-        schema: McpStandardSchema,
-        wireJsonSchema: McpJsonSchema,
-        destructive: boolean,
-    ): StandardSchemaWithJSON {
-        const std = schema['~standard'];
-        const validate = destructive
-            ? async (value: unknown) => {
-                  // The author's schema does not know about the registry-owned `confirm` flag.
-                  const { confirm, ...rest } = (value ?? {}) as Record<string, unknown>;
-                  if (confirm !== undefined && typeof confirm !== 'boolean') {
-                      return { issues: [{ message: '"confirm" must be a boolean', path: ['confirm'] }] };
-                  }
-                  const result = await std.validate(rest);
-                  if (result.issues) {
-                      return result;
-                  }
-                  const parsed = result.value;
-                  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-                      return {
-                          issues: [
-                              { message: "a destructive tool's input schema must parse to a plain object" },
-                          ],
-                      };
-                  }
-                  return {
-                      value: confirm === undefined ? parsed : { ...parsed, confirm },
-                  };
-              }
-            : (value: unknown) => std.validate(value);
-        return {
-            '~standard': {
-                version: 1,
-                vendor: 'vendure-mcp',
-                validate,
-                jsonSchema: {
-                    input: () => wireJsonSchema as Record<string, unknown>,
-                    output: () => wireJsonSchema as Record<string, unknown>,
-                },
-            },
-        } as StandardSchemaWithJSON;
-    }
-
-    private resolveAuthorSchema(
-        raw: McpToolSchema | undefined,
-        label: string,
-        pluginSource: string,
-        direction: 'input' | 'output',
-    ): { json: McpJsonSchema; standard?: McpStandardSchema } | undefined {
-        if (raw === undefined) {
-            return undefined;
-        }
-        // Checked before isMcpJsonSchema: some Standard Schema objects (e.g. Valibot's)
-        // also carry a top-level `type: 'object'` property.
-        if (this.isStandardSchema(raw)) {
-            return { json: this.deriveJsonSchema(raw, label, pluginSource, direction), standard: raw };
-        }
-        if (typeof this.standardProps(raw)?.validate === 'function') {
-            throw new Error(
-                `MCP tool ${label} (${pluginSource}): the schema implements Standard Schema validation but ` +
-                    `cannot emit JSON Schema. Use a library version with JSON Schema conversion ` +
-                    `(e.g. zod v4), or author the schema as plain JSON Schema.`,
-            );
-        }
-        if (this.isMcpJsonSchema(raw)) {
-            return { json: raw };
-        }
-        throw new Error(
-            `MCP tool ${label} (${pluginSource}): the schema must be a plain JSON Schema object ` +
-                `({ type: 'object', ... }) or a Standard Schema with JSON conversion (e.g. a zod v4 schema).`,
-        );
     }
 
     /** Whether a thrown error is one a tool raises on purpose with a message meant for the caller. */
@@ -806,11 +659,17 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         };
     }
 
-    private errorResult(message: string): CallToolResult {
-        return { isError: true, content: [{ type: 'text', text: message }] };
+    private errorResult(message: string, sessionToken?: string): CallToolResult {
+        return {
+            isError: true,
+            content: [{ type: 'text', text: message }],
+            // A failed call may still have resolved or created a session; handing its token back
+            // lets the caller keep the same cart on retry instead of leaving an orphan row.
+            ...(sessionToken !== undefined ? { structuredContent: { sessionToken } } : {}),
+        };
     }
 
-    private confirmationRequiredResult(tool: McpRegisteredTool): CallToolResult {
+    private confirmationRequiredResult(tool: McpRegisteredTool, sessionToken?: string): CallToolResult {
         return {
             content: [
                 {
@@ -820,7 +679,11 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                         `Re-call "${tool.name}" with "confirm": true to proceed.`,
                 },
             ],
-            structuredContent: { status: 'confirmation_required', confirmed: false },
+            structuredContent: {
+                status: 'confirmation_required',
+                confirmed: false,
+                ...(sessionToken !== undefined ? { sessionToken } : {}),
+            },
         };
     }
 }

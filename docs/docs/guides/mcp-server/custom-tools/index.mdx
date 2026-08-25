@@ -166,6 +166,33 @@ is missing or empty.
 If any administrator may call it, say so with `[Permission.Authenticated]`. An explicit `[Permission.Public]`
 behaves the same on the admin endpoint but reads as "anonymous allowed".
 
+## Optional: Use the shopper's active order
+
+Set `usesActiveOrder: true` on a Shop tool that uses the shopper's active Order (cart). This lets anonymous callers continue the same cart across tool calls using a `sessionToken`.
+
+Session creation depends on the tool's `behavior`:
+
+- `readonly` tools only use an existing session.
+- `mutating` and confirmed `destructive` tools create an anonymous session when needed.
+
+Leave `usesActiveOrder` unset for tools that do not need the shopper's cart.
+
+```ts
+@McpTool({
+    name: 'add_warranty_to_cart',
+    toolset: 'shop',
+    description: 'Add a warranty to the active cart.',
+    permissions: [Permission.Public],
+    behavior: 'mutating',
+    usesActiveOrder: true,
+    inputSchema: warrantyInput,
+})
+```
+
+:::warning
+Do not add or handle `sessionToken` yourself. The MCP plugin manages it automatically and provides `execute` with the resolved `RequestContext`.
+:::
+
 ## Optional: Require confirmation on a destructive tool
 
 Use `behavior: 'destructive'` for tools that delete, cancel, refund, or otherwise make an irreversible or
@@ -238,6 +265,7 @@ The full field list, types, and defaults are on
 | `toolset` | `'shop'` or `'admin'` — which endpoint serves it |
 | `permissions` | `Permission[]`, OR semantics. Omitted/empty on `shop` defaults to Public; required on `admin` — boot fails without it |
 | `behavior` | Safety classification: `'readonly'`, `'mutating'` (default), or `'destructive'` |
+| `usesActiveOrder` | Set on Shop tools that need the active cart; enables registry-managed anonymous `sessionToken` handling |
 | `inputSchema` / `outputSchema` | JSON Schema or Standard Schema (e.g. Zod v4); input validated pre-call, output drift-checked post-call |
 | `keywords` | Search-only synonyms for discovery mode |
 
@@ -277,6 +305,7 @@ A tool never needs to depend on `@vendure/mcp-plugin`. Everything a tool impleme
 | An admin tool fails at startup | Its `permissions` is missing or empty | Add at least one permission |
 | A destructive tool fails at bootstrap | Its schema declares `confirm` | Remove `confirm`; the registry adds it automatically |
 | A destructive tool is rejected at runtime | Its schema does not parse to a plain object | Make the schema produce a plain object |
+| An active-order tool fails at bootstrap | It is an admin tool, or its schema declares `sessionToken` | Use `usesActiveOrder` only on Shop tools and let the registry manage `sessionToken` |
 | A startup error about a duplicate tool name | Another tool in the same toolset uses that name, built-in tools included | Rename yours with a plugin-specific prefix |
 
 ## See also

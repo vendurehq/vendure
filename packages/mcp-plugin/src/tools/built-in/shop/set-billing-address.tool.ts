@@ -28,6 +28,7 @@ type SetBillingAddressInput = z.infer<typeof setBillingAddressInput>;
     ],
     permissions: [Permission.Public],
     behavior: 'mutating',
+    usesActiveOrder: true,
     inputSchema: setBillingAddressInput,
 })
 @Injectable()

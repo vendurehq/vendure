@@ -26,6 +26,7 @@ type RemoveCouponCodeInput = z.infer<typeof removeCouponCodeInput>;
     ],
     permissions: [Permission.Public],
     behavior: 'mutating',
+    usesActiveOrder: true,
     inputSchema: removeCouponCodeInput,
 })
 @Injectable()

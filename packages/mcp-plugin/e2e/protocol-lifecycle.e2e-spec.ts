@@ -408,6 +408,7 @@ describe('MCP discovery mode', () => {
                 6,
             ),
         );
+        // This mutation does not use the active order, so it creates no anonymous session.
         expect(confirmed.body.result.structuredContent).toEqual({ deleted: 'abc' });
     });
 });
@@ -441,14 +442,13 @@ describe('MCP modern protocol era rate limiting', () => {
         // Only the modern era puts the server identity in the result's `_meta`, so this is what
         // makes the test evidence about the era rather than about tools/list.
         expect(first.body.result._meta[SERVER_INFO_META_KEY]).toBeDefined();
-        const sessionToken = first.headers.get(AUTH_TOKEN_HEADER) as string;
-        expect(sessionToken).toBeTruthy();
+        // A token-less request creates no session and returns no session-token header — shop tools
+        // hand the token back in their result payloads instead.
+        expect(first.headers.get(AUTH_TOKEN_HEADER)).toBeNull();
 
         // The per-session bucket is keyed by IP for anonymous callers, so the second request lands
-        // in the same (now spent) bucket regardless; the token is threaded for cart continuity.
-        const tripped = await postModernMcp(baseUrl(), 'shop', 'tools/list', {}, 2, {
-            headers: { [AUTH_TOKEN_HEADER]: sessionToken },
-        });
+        // in the same (now spent) bucket.
+        const tripped = await postModernMcp(baseUrl(), 'shop', 'tools/list', {}, 2);
         expectRateLimitRefusal(tripped, { scope: 'session', id: 2 });
         // The pre-check names the bucket's subject after the method it read, so seeing `tools/list`
         // here is the proof that it read the method from the top level of a modern request.

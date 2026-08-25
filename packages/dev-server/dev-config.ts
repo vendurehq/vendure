@@ -128,7 +128,15 @@ export const devConfig: VendureConfig = {
         ReviewsPlugin,
         // FieldTestPlugin,
         NavModifierPlugin,
-        McpPlugin.init({ oauth: { tokenSecret: 'dev-secret' } }),
+        McpPlugin.init({
+            oauth: {
+                tokenSecret: 'dev-secret',
+                // Needed to let a customer authorize an MCP client. The authorize endpoint sends the
+                // shopper here with a request_token; the page then calls the authorizeMcpClient
+                // mutation. No such page exists in this dev setup, so this is only a valid target.
+                storefrontConsentUrl: 'https://storefront.example.com/mcp/authorize',
+            },
+        }),
         GraphiqlPlugin.init(),
         AssetServerPlugin.init({
             route: 'assets',

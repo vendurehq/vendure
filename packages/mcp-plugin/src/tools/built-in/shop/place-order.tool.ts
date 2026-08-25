@@ -36,6 +36,7 @@ type PlaceOrderInput = z.infer<typeof placeOrderInput>;
     ],
     permissions: [Permission.Public],
     behavior: 'destructive',
+    usesActiveOrder: true,
     inputSchema: placeOrderInput,
 })
 @Injectable()

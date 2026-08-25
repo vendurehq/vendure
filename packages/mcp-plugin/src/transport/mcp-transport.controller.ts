@@ -16,14 +16,7 @@ import {
     Res,
     UnauthorizedException,
 } from '@nestjs/common';
-import {
-    ChannelService,
-    ConfigService,
-    Logger,
-    RequestContext,
-    RequestContextService,
-    SessionService,
-} from '@vendure/core';
+import { ChannelService, ConfigService, Logger, RequestContext, RequestContextService } from '@vendure/core';
 import { McpToolset } from '@vendure/mcp-sdk';
 import type { Request, Response } from 'express';
 
@@ -33,6 +26,7 @@ import { McpExecutionContext, ResolvedMcpPluginOptions } from '../internal-types
 import { McpOauthService } from '../oauth/oauth.service';
 import { McpRateLimiterService, McpRateLimitExceeded } from '../rate-limit/mcp-rate-limiter.service';
 import { McpToolRegistryService } from '../registry/mcp-tool-registry.service';
+import { McpShopSessionService } from '../shop-session/mcp-shop-session.service';
 
 import { createMcpServerForRequest } from './mcp-server.factory';
 
@@ -63,7 +57,7 @@ export class McpTransportController {
         private configService: ConfigService,
         @Inject(MCP_PLUGIN_OPTIONS) private options: ResolvedMcpPluginOptions,
         private requestContextService: RequestContextService,
-        private sessionService: SessionService,
+        private shopSession: McpShopSessionService,
         private channelService: ChannelService,
     ) {
         const handler = createMcpHandler(
@@ -135,9 +129,7 @@ export class McpTransportController {
             throw new UnauthorizedException('Shop MCP endpoint requires a Bearer token');
         }
 
-        // Rate-limit anonymous shop traffic by IP before anything touches the database. Building the
-        // context below inserts a Vendure session row when the caller has no usable session, so this
-        // check must run first or the insert would happen even for rate-limited callers.
+        // Rate-limit anonymous shop requests by IP before accessing the database.
         if (toolset === 'shop' && !token) {
             const exceeded = await this.rateLimiter.checkAnonymousIpRateLimit(toolset, clientIp);
             if (exceeded) {
@@ -166,15 +158,14 @@ export class McpTransportController {
             const authContext = await this.authenticateBearerToken(token, toolset, res, clientIp);
             executionContext = { ...authContext, clientIp };
         } else {
-            // The session token keeps the caller's cart across calls. An invalid channel token
-            // errors like the rest of Vendure.
+            // A `vendure-auth-token` header can resume an anonymous session. Most MCP clients cannot
+            // persist headers, so the session token is usually passed as a tool argument instead.
             try {
                 const ctx = await this.createAnonymousShopContext(
                     this.getVendureSessionToken(req.headers),
                     this.getChannelToken(req.headers),
                 );
-                // Set the session token header before delegating, because the SDK handler writes the
-                // response. (If a future SDK version resets headers, set it in res.writeHead instead.)
+                // Preserve the session token from the header in the response so the client can reuse it.
                 this.setVendureSessionToken(res, ctx.session?.token);
                 executionContext = { ctx, clientIp };
             } catch (e) {
@@ -358,17 +349,10 @@ export class McpTransportController {
         sessionToken?: string,
         channelToken?: string,
     ): Promise<RequestContext> {
-        const existingSession = sessionToken
-            ? await this.sessionService.getSessionFromToken(sessionToken)
-            : undefined;
-        if (existingSession?.user) {
-            throw new UnauthorizedException(
-                'The session token belongs to a signed-in user and cannot be used for anonymous shop access. ' +
-                    'An agent acting for a customer needs an OAuth grant; an assistant running inside Vendure ' +
-                    'can call tools through McpToolExecutionService.',
-            );
+        const resolution = await this.shopSession.resolveHeaderToken(sessionToken);
+        if ('refusal' in resolution) {
+            throw new UnauthorizedException(resolution.refusal);
         }
-        const vendureSession = existingSession ?? (await this.sessionService.createAnonymousSession());
         const adminCtx = await this.requestContextService.create({ apiType: 'admin' });
         const channel = channelToken
             ? await this.channelService.getChannelFromToken(adminCtx, channelToken)
@@ -376,7 +360,7 @@ export class McpTransportController {
         return new RequestContext({
             apiType: 'shop',
             channel,
-            session: vendureSession,
+            session: resolution.session,
             isAuthorized: false,
             authorizedAsOwnerOnly: true,
         });
