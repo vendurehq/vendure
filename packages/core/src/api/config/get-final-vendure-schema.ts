@@ -95,8 +95,12 @@ const typeDefsCache = new Map<string, Promise<string | null>>();
 async function mergeTypesByPathsCached(typesLoader: GraphQLTypesLoader, paths: string[]): Promise<string> {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { mergeTypeDefs } = require('@graphql-tools/merge');
+    // The comparator must use plain code-unit ordering (not localeCompare), since
+    // the goal is to reproduce the file ordering of the default Array.sort() that
+    // GraphQLTypesLoader applies to the globbed file paths.
+    const sortedPaths = [...paths].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
     const parts = await Promise.all(
-        [...paths].sort().map(p => {
+        sortedPaths.map(async p => {
             let cached = typeDefsCache.get(p);
             if (!cached) {
                 cached = typesLoader.mergeTypesByPaths([p]);

@@ -28,7 +28,7 @@ export class ShopFulltextSearchResolver implements Pick<
     BaseSearchResolver,
     'search' | 'facetValues' | 'collections'
 > {
-    constructor(private fulltextSearchService: FulltextSearchService) {}
+    constructor(private readonly fulltextSearchService: FulltextSearchService) {}
 
     @Query()
     @Allow(Permission.Public)
@@ -64,8 +64,8 @@ export class ShopFulltextSearchResolver implements Pick<
 @Resolver('SearchResponse')
 export class AdminFulltextSearchResolver implements BaseSearchResolver {
     constructor(
-        private fulltextSearchService: FulltextSearchService,
-        private searchJobBufferService: SearchJobBufferService,
+        private readonly fulltextSearchService: FulltextSearchService,
+        private readonly searchJobBufferService: SearchJobBufferService,
     ) {}
 
     @Query()
