@@ -1,4 +1,4 @@
-import { UserInputError } from '@vendure/core';
+import { IllegalOperationError, UserInputError } from '@vendure/core';
 import { describe, expect, it, vi } from 'vitest';
 
 import { McpActiveOrderService } from './active-order.service';
@@ -59,12 +59,13 @@ describe('McpActiveOrderService', () => {
             expect(orderService.findOne).not.toHaveBeenCalled();
         });
 
-        it('throws a clear error when the ctx has no session', async () => {
+        it('throws an IllegalOperationError naming the Owner permission when the ctx has no session', async () => {
             const activeOrderService = { getActiveOrder: vi.fn() };
             const orderService = { findOne: vi.fn() };
             const service = new McpActiveOrderService(activeOrderService as never, orderService as never);
 
-            await expect(service.findOrCreate({} as never)).rejects.toThrow(/without a session/);
+            await expect(service.findOrCreate({} as never)).rejects.toBeInstanceOf(IllegalOperationError);
+            await expect(service.findOrCreate({} as never)).rejects.toThrow(/Owner permission/);
             expect(activeOrderService.getActiveOrder).not.toHaveBeenCalled();
         });
     });

@@ -16,7 +16,14 @@ import {
     Res,
     UnauthorizedException,
 } from '@nestjs/common';
-import { ChannelService, ConfigService, Logger, RequestContext, RequestContextService } from '@vendure/core';
+import {
+    ChannelService,
+    ConfigService,
+    I18nRequest,
+    Logger,
+    RequestContext,
+    RequestContextService,
+} from '@vendure/core';
 import { McpToolset } from '@vendure/mcp-sdk';
 import type { Request, Response } from 'express';
 
@@ -87,7 +94,7 @@ export class McpTransportController {
     }
 
     @Post('shop')
-    async postShop(@Req() req: Request, @Res() res: Response, @Body() body: unknown): Promise<void> {
+    async postShop(@Req() req: I18nRequest, @Res() res: Response, @Body() body: unknown): Promise<void> {
         if (this.options.shopAccess === 'disabled') {
             throw new NotFoundException();
         }
@@ -95,7 +102,7 @@ export class McpTransportController {
     }
 
     @Post('admin')
-    async postAdmin(@Req() req: Request, @Res() res: Response, @Body() body: unknown): Promise<void> {
+    async postAdmin(@Req() req: I18nRequest, @Res() res: Response, @Body() body: unknown): Promise<void> {
         return this.handlePost('admin', req, res, body);
     }
 
@@ -112,7 +119,12 @@ export class McpTransportController {
         this.methodNotAllowed(res);
     }
 
-    private async handlePost(toolset: McpToolset, req: Request, res: Response, body: unknown): Promise<void> {
+    private async handlePost(
+        toolset: McpToolset,
+        req: I18nRequest,
+        res: Response,
+        body: unknown,
+    ): Promise<void> {
         // DNS-rebinding protection. Each guard writes its own 403 response and returns false when it rejects.
         if (this.hostGuard && !this.hostGuard(req, res)) {
             return;
@@ -155,13 +167,14 @@ export class McpTransportController {
 
         let executionContext: McpExecutionContext;
         if (token) {
-            const authContext = await this.authenticateBearerToken(token, toolset, res, clientIp);
+            const authContext = await this.authenticateBearerToken(token, toolset, req, res, clientIp);
             executionContext = { ...authContext, clientIp };
         } else {
             // A `vendure-auth-token` header can resume an anonymous session. Most MCP clients cannot
             // persist headers, so the session token is usually passed as a tool argument instead.
             try {
                 const ctx = await this.createAnonymousShopContext(
+                    req,
                     this.getVendureSessionToken(req.headers),
                     this.getChannelToken(req.headers),
                 );
@@ -309,11 +322,12 @@ export class McpTransportController {
     private async authenticateBearerToken(
         token: string,
         toolset: McpToolset,
+        req: I18nRequest,
         res: Response,
         clientIp?: string,
     ) {
         try {
-            return await this.oauthService.authenticateBearerToken(token, toolset);
+            return await this.oauthService.authenticateBearerToken(token, toolset, req);
         } catch (e) {
             if (e instanceof UnauthorizedException) {
                 await this.rateLimiter.recordBearerAuthFailure(clientIp);
@@ -346,6 +360,7 @@ export class McpTransportController {
     }
 
     private async createAnonymousShopContext(
+        req: I18nRequest,
         sessionToken?: string,
         channelToken?: string,
     ): Promise<RequestContext> {
@@ -363,6 +378,8 @@ export class McpTransportController {
             session: resolution.session,
             isAuthorized: false,
             authorizedAsOwnerOnly: true,
+            req,
+            translationFn: req.t,
         });
     }
 

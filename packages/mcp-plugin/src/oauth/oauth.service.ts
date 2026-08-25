@@ -13,6 +13,7 @@ import {
     ChannelService,
     ConfigService,
     EntityNotFoundError,
+    I18nRequest,
     ID,
     idsAreEqual,
     Logger,
@@ -445,7 +446,11 @@ export class McpOauthService {
         await deleteCachedVendureSession(this.configService, sessionToken);
     }
 
-    async authenticateBearerToken(token: string, apiType: McpToolset): Promise<McpAuthenticatedContext> {
+    async authenticateBearerToken(
+        token: string,
+        apiType: McpToolset,
+        req?: I18nRequest,
+    ): Promise<McpAuthenticatedContext> {
         const adminCtx = await this.createAdminCtx();
         const resolved = await this.findGrantAndSessionToken(adminCtx, token);
         const grant = resolved?.grant;
@@ -503,6 +508,8 @@ export class McpOauthService {
             session: vendureSession,
             isAuthorized: true,
             authorizedAsOwnerOnly: false,
+            req,
+            translationFn: req?.t,
         });
         // Update the audit timestamp at most once per interval, in the background, as a
         // single-column update; the request must not wait for it. Mirrors how core

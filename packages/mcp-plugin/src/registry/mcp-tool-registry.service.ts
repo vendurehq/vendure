@@ -5,6 +5,7 @@ import {
     EntityNotFoundError,
     ForbiddenError,
     GraphQLErrorResult,
+    I18nError,
     IllegalOperationError,
     Instrument,
     isGraphQlErrorResult,
@@ -376,8 +377,19 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                     durationMs: Date.now() - startedAt,
                     status: 'error',
                 });
+
+                const messageKey = `errorResult.${errorResult.message}`;
+                const translated = this.translateForCaller(
+                    executionContext.ctx,
+                    messageKey,
+                    errorResult as unknown as Record<string, unknown>,
+                );
+                const translatedResult = {
+                    ...errorResult,
+                    message: translated === messageKey ? errorResult.message : translated,
+                };
                 return this.vendureErrorResult(
-                    this.shopSession.addSessionTokenToResult(errorResult, sessionTokenForResult),
+                    this.shopSession.addSessionTokenToResult(translatedResult, sessionTokenForResult),
                 );
             }
             if (tool.compiledOutputSchema) {
@@ -403,6 +415,10 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         } catch (e) {
             const message = e instanceof Error ? e.message : 'MCP tool failed';
             const callerSafe = this.isCallerSafeError(e);
+            const callerMessage =
+                callerSafe && e instanceof I18nError
+                    ? this.translateForCaller(executionContext.ctx, e.message, e.variables)
+                    : message;
             if (!callerSafe) {
                 Logger.error(
                     `MCP tool "${tool.name}" failed: ${message}`,
@@ -420,7 +436,10 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                 durationMs: Date.now() - startedAt,
                 status: 'error',
             });
-            return this.errorResult(callerSafe ? message : GENERIC_TOOL_ERROR_MESSAGE, sessionTokenForResult);
+            return this.errorResult(
+                callerSafe ? callerMessage : GENERIC_TOOL_ERROR_MESSAGE,
+                sessionTokenForResult,
+            );
         }
     }
 
@@ -667,6 +686,27 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     /** Whether a thrown error is one a tool raises on purpose with a message meant for the caller. */
     private isCallerSafeError(e: unknown): boolean {
         return CALLER_SAFE_ERROR_TYPES.some(ErrorType => e instanceof ErrorType);
+    }
+
+    /**
+     * Translates an i18n key using the request's language. Returns the original text when translation
+     * is unavailable or fails.
+     */
+    private translateForCaller(
+        ctx: RequestContext,
+        key: string,
+        variables?: Record<string, unknown>,
+    ): string {
+        const req = ctx.req;
+        if (!req || !('t' in req) || typeof req.t !== 'function') {
+            return key;
+        }
+        try {
+            const translated: unknown = req.t(key, variables);
+            return typeof translated === 'string' && translated !== key ? translated : key;
+        } catch {
+            return key;
+        }
     }
 
     private successResult(output: unknown): CallToolResult {

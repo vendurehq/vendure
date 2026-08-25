@@ -1,6 +1,6 @@
 import { StandardSchemaWithJSON } from '@modelcontextprotocol/server';
 import { Permission } from '@vendure/common/lib/generated-types';
-import { Logger, UserInputError } from '@vendure/core';
+import { Logger, OrderStateTransitionError, UserInputError } from '@vendure/core';
 import { McpStandardSchema, McpToolMetadata, McpToolset } from '@vendure/mcp-sdk';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -34,10 +34,19 @@ function wrapper(metadata: McpToolMetadata, execute: (...args: any[]) => any = (
 }
 
 /** Mock RequestContext with OR permission semantics. */
-function makeCtx(opts: { activeUserId?: number; granted?: Permission[] } = {}) {
+function makeCtx(
+    opts: {
+        activeUserId?: number;
+        granted?: Permission[];
+        translate?: (key: string, vars?: any) => string;
+    } = {},
+) {
     return {
         activeUserId: opts.activeUserId,
         userHasPermissions: (perms: Permission[]) => perms.some(p => (opts.granted ?? []).includes(p)),
+        // Stands in for the request core's translation middleware has touched. Left off, the
+        // registry has nothing to translate with and hands the caller the raw text.
+        req: opts.translate ? { t: opts.translate } : undefined,
         // The session swap in McpShopSessionService clones the context via copy().
         copy() {
             return { ...this };
@@ -1217,6 +1226,114 @@ describe('McpToolRegistryService', () => {
             expect(toolCallLog.logToolCall).toHaveBeenCalledWith(
                 expect.objectContaining({ status: 'error', output: { message: 'MCP tool failed' } }),
             );
+        });
+    });
+
+    describe('caller-facing error text', () => {
+        // Stands in for the request's translate function. i18next runs its ICU formatter on every
+        // string it returns, including one it has no entry for, so the fake throws on a brace the
+        // way the real formatter would.
+        const dictionary: Record<string, (vars: any) => string> = {
+            'error.order-does-not-contain-line-with-id': vars =>
+                `This order does not contain an OrderLine with the id ${String(vars.id)}`,
+            'errorResult.ORDER_STATE_TRANSITION_ERROR': vars =>
+                `Cannot transition Order from "${String(vars.fromState)}" to "${String(vars.toState)}"`,
+        };
+        const translate = (key: string, vars?: any) => {
+            if (key.includes('{')) {
+                throw new Error('ICU: unexpected brace');
+            }
+            return dictionary[key] ? dictionary[key](vars) : key;
+        };
+
+        const callWith = async (execute: () => unknown, ctx: any) => {
+            const { service, toolCallLog } = build([wrapper(shopTool(), execute)]);
+            service.onApplicationBootstrap();
+            const result = await service.callToolDirect({ ctx }, 'shop', 'get_thing', {});
+            return { result, toolCallLog };
+        };
+
+        it('translates a core error key and fills in its variables', async () => {
+            const { result, toolCallLog } = await callWith(() => {
+                throw new UserInputError('error.order-does-not-contain-line-with-id', { id: 999 });
+            }, makeCtx({ translate }));
+
+            expect(result.isError).toBe(true);
+            expect((result.content as any)[0].text).toBe(
+                'This order does not contain an OrderLine with the id 999',
+            );
+            // Operators search the log for the stable key, so it is never translated.
+            expect(toolCallLog.logToolCall).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    status: 'error',
+                    output: { message: 'error.order-does-not-contain-line-with-id' },
+                }),
+            );
+        });
+
+        it('leaves the key alone when the context carries no translate function', async () => {
+            const { result } = await callWith(() => {
+                throw new UserInputError('error.order-does-not-contain-line-with-id', { id: 999 });
+            }, makeCtx());
+
+            expect(result.isError).toBe(true);
+            expect((result.content as any)[0].text).toBe('error.order-does-not-contain-line-with-id');
+        });
+
+        it('keeps a plain sentence containing a brace, which the formatter cannot parse', async () => {
+            const { result } = await callWith(() => {
+                throw new UserInputError('Value {x} is not allowed');
+            }, makeCtx({ translate }));
+
+            expect((result.content as any)[0].text).toBe('Value {x} is not allowed');
+        });
+
+        it('keeps a plain sentence that has no translation', async () => {
+            const { result } = await callWith(() => {
+                throw new UserInputError('There is no active cart. Add an item with add_to_cart first.');
+            }, makeCtx({ translate }));
+
+            expect((result.content as any)[0].text).toBe(
+                'There is no active cart. Add an item with add_to_cart first.',
+            );
+        });
+
+        it('translates the message of a Vendure error result, using its fields as the variables', async () => {
+            const { result, toolCallLog } = await callWith(
+                () =>
+                    new OrderStateTransitionError({
+                        fromState: 'AddingItems',
+                        toState: 'ArrangingPayment',
+                        transitionError: 'x',
+                    }),
+                makeCtx({ translate }),
+            );
+
+            expect(result.isError).toBe(true);
+            expect((result.structuredContent as any).message).toBe(
+                'Cannot transition Order from "AddingItems" to "ArrangingPayment"',
+            );
+            expect((result.structuredContent as any).errorCode).toBe('ORDER_STATE_TRANSITION_ERROR');
+            expect(toolCallLog.logToolCall).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    status: 'error',
+                    output: expect.objectContaining({ message: 'ORDER_STATE_TRANSITION_ERROR' }),
+                }),
+            );
+        });
+
+        it('keeps the original message of an error result core has no translation for', async () => {
+            const { result } = await callWith(
+                () => ({
+                    __typename: 'MyError',
+                    errorCode: 'MY_ERROR',
+                    message: 'MY_ERROR',
+                }),
+                makeCtx({ translate }),
+            );
+
+            expect(result.isError).toBe(true);
+            expect((result.structuredContent as any).message).toBe('MY_ERROR');
         });
     });
 

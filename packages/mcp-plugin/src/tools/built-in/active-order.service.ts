@@ -1,5 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { ActiveOrderService, Order, OrderService, RequestContext, UserInputError } from '@vendure/core';
+import {
+    ActiveOrderService,
+    IllegalOperationError,
+    Order,
+    OrderService,
+    RequestContext,
+    UserInputError,
+} from '@vendure/core';
 
 export type ActiveOrderRef = Pick<Order, 'id' | 'currencyCode'>;
 
@@ -22,7 +29,10 @@ export class McpActiveOrderService {
      */
     async findOrCreate(ctx: RequestContext): Promise<ActiveOrderRef> {
         if (!ctx.session) {
-            throw new Error('McpActiveOrderService.findOrCreate was called without a session on the ctx');
+            throw new IllegalOperationError(
+                'add_to_cart requires a Vendure session and this call has none. In-process callers on the Shop API ' +
+                    'must give the mutation that calls the tool the Owner permission, so that Vendure creates a session.',
+            );
         }
         // Never undefined: core throws a UserInputError when it can neither find nor create one.
         return this.activeOrderService.getActiveOrder(ctx, undefined, true);

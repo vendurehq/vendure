@@ -1,5 +1,5 @@
 import { preloadSchemas } from '@modelcontextprotocol/server';
-import { getConfigurationFunction, Logger, ProcessContext } from '@vendure/core';
+import { getConfigurationFunction, I18nService, Logger, ProcessContext } from '@vendure/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ResolvedMcpPluginOptions } from './internal-types';
@@ -51,7 +51,7 @@ describe('McpPlugin production config guard', () => {
 
     function createPlugin(isServer: boolean): McpPlugin {
         const processContext = { isServer } as ProcessContext;
-        return new McpPlugin(processContext);
+        return new McpPlugin(processContext, {} as I18nService);
     }
 
     function setOauth(oauth: McpPluginOptions['oauth']): void {
@@ -213,7 +213,7 @@ describe('McpPlugin SDK schema preload', () => {
     it('builds the MCP SDK wire schemas at bootstrap instead of on the first request', () => {
         McpPlugin.init({});
         vi.mocked(preloadSchemas).mockClear();
-        new McpPlugin({ isServer: true } as ProcessContext).onApplicationBootstrap();
+        new McpPlugin({ isServer: true } as ProcessContext, {} as I18nService).onApplicationBootstrap();
         expect(preloadSchemas).toHaveBeenCalledOnce();
     });
 });
@@ -261,7 +261,7 @@ describe('McpPlugin logging options + retention task', () => {
     it("warns at bootstrap when capture is 'full' without a redact function", () => {
         McpPlugin.init({ logging: { capture: 'full' } });
         const warnSpy = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
-        new McpPlugin({ isServer: true } as ProcessContext).onApplicationBootstrap();
+        new McpPlugin({ isServer: true } as ProcessContext, {} as I18nService).onApplicationBootstrap();
         expect(warnSpy).toHaveBeenCalledOnce();
         warnSpy.mockRestore();
     });
@@ -269,7 +269,7 @@ describe('McpPlugin logging options + retention task', () => {
     it("does not warn when capture is 'full' with a redact function", () => {
         McpPlugin.init({ logging: { capture: 'full', redact: ({ input, output }) => ({ input, output }) } });
         const warnSpy = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
-        new McpPlugin({ isServer: true } as ProcessContext).onApplicationBootstrap();
+        new McpPlugin({ isServer: true } as ProcessContext, {} as I18nService).onApplicationBootstrap();
         expect(warnSpy).not.toHaveBeenCalled();
         warnSpy.mockRestore();
     });
@@ -277,7 +277,7 @@ describe('McpPlugin logging options + retention task', () => {
     it('does not warn under the default metadata capture', () => {
         McpPlugin.init({});
         const warnSpy = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
-        new McpPlugin({ isServer: true } as ProcessContext).onApplicationBootstrap();
+        new McpPlugin({ isServer: true } as ProcessContext, {} as I18nService).onApplicationBootstrap();
         expect(warnSpy).not.toHaveBeenCalled();
         warnSpy.mockRestore();
     });

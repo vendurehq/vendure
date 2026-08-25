@@ -89,6 +89,8 @@ const pendingPaymentHandler = new PaymentMethodHandler({
 const PENDING_PAYMENT_METHOD_CODE = 'e2e-pending-payment';
 const PENDING_PAYMENT_CUSTOMER_EMAIL = 'mcp-pending-payment@e2e.example.com';
 const PENDING_PAYMENT_CUSTOMER_PASSWORD = 'test';
+const NO_SHIPPING_CUSTOMER_EMAIL = 'mcp-no-shipping@e2e.example.com';
+const NO_SHIPPING_CUSTOMER_PASSWORD = 'test';
 
 class TestOrderByCodeAccessStrategy implements OrderByCodeAccessStrategy {
     allow = true;
@@ -1324,6 +1326,7 @@ describe('MCP built-in shop tools', () => {
     describe('checkout', () => {
         let checkoutAuthToken: string;
         let pendingPaymentAuthToken: string;
+        let noShippingAuthToken: string;
 
         beforeAll(async () => {
             // A handler registered in the config is not usable on its own: an enabled PaymentMethod
@@ -1356,37 +1359,41 @@ describe('MCP built-in shop tools', () => {
                 'E2E pending payment',
             );
 
-            // The pending-payment test needs a customer of its own, and the fixture seeds only one,
-            // so this makes a second. Passing a password here also marks the new user as verified,
-            // which it has to be before it can log in.
-            const createdCustomer = await adminClient.query(
-                gql`
-                    mutation CreateShopToolPendingPaymentCustomer(
-                        $input: CreateCustomerInput!
-                        $password: String!
-                    ) {
-                        createCustomer(input: $input, password: $password) {
-                            __typename
-                            ... on Customer {
-                                emailAddress
-                            }
-                            ... on ErrorResult {
-                                errorCode
-                                message
+            // Two tests here need a customer of their own, and the fixture seeds only one, so this
+            // makes them. Passing a password also marks the new user as verified, which it has to
+            // be before it can log in.
+            const createCustomer = async (emailAddress: string, name: string, password: string) => {
+                const createdCustomer = await adminClient.query(
+                    gql`
+                        mutation CreateShopToolCheckoutCustomer(
+                            $input: CreateCustomerInput!
+                            $password: String!
+                        ) {
+                            createCustomer(input: $input, password: $password) {
+                                __typename
+                                ... on Customer {
+                                    emailAddress
+                                }
+                                ... on ErrorResult {
+                                    errorCode
+                                    message
+                                }
                             }
                         }
-                    }
-                `,
-                {
-                    input: {
-                        emailAddress: PENDING_PAYMENT_CUSTOMER_EMAIL,
-                        firstName: 'Pending',
-                        lastName: 'Payment',
+                    `,
+                    {
+                        input: { emailAddress, firstName: name, lastName: 'Checkout' },
+                        password,
                     },
-                    password: PENDING_PAYMENT_CUSTOMER_PASSWORD,
-                },
+                );
+                expect(createdCustomer.createCustomer.emailAddress).toBe(emailAddress);
+            };
+            await createCustomer(
+                PENDING_PAYMENT_CUSTOMER_EMAIL,
+                'Pending',
+                PENDING_PAYMENT_CUSTOMER_PASSWORD,
             );
-            expect(createdCustomer.createCustomer.emailAddress).toBe(PENDING_PAYMENT_CUSTOMER_EMAIL);
+            await createCustomer(NO_SHIPPING_CUSTOMER_EMAIL, 'NoShipping', NO_SHIPPING_CUSTOMER_PASSWORD);
 
             // These customers need a session on the default channel. The shared `shopClient`
             // session is pinned to the second channel, which has no shipping methods to check out
@@ -1406,6 +1413,10 @@ describe('MCP built-in shop tools', () => {
             pendingPaymentAuthToken = await loginOnDefaultChannel(
                 PENDING_PAYMENT_CUSTOMER_EMAIL,
                 PENDING_PAYMENT_CUSTOMER_PASSWORD,
+            );
+            noShippingAuthToken = await loginOnDefaultChannel(
+                NO_SHIPPING_CUSTOMER_EMAIL,
+                NO_SHIPPING_CUSTOMER_PASSWORD,
             );
         }, TEST_SETUP_TIMEOUT_MS);
 
@@ -1574,6 +1585,42 @@ describe('MCP built-in shop tools', () => {
             expect(stored.state).toBe('ArrangingPayment');
             expect(stored.orderPlacedAt).toBeFalsy();
         });
+
+        // Like the test above, this one uses a customer created for it. It leaves a cart sitting in
+        // `AddingItems`, and `OrderService.findByCustomerId` only leaves out `Draft` orders, so an
+        // unplaced order on the shared customer would show up in the `list_my_orders` test further
+        // down and break its expectation that the first listed order has an `orderPlacedAt`.
+        it('place_order without a shipping method answers a translated refusal', async () => {
+            const flow = await runShopAuthorizationCodeFlow({
+                baseUrl: baseUrl(),
+                issuer: ISSUER,
+                vendureAuthToken: noShippingAuthToken,
+            });
+            const call = (name: string, args: Record<string, unknown>, id: number) =>
+                postMcp(baseUrl(), 'shop', callTool(name, args, id), { token: flow.access_token });
+
+            const added = await call('add_to_cart', { variantId, quantity: 1 }, 1);
+            expect(added.body.result.isError).toBeUndefined();
+
+            const address = await call('set_checkout_addresses', { shippingAddress: UK_ADDRESS }, 2);
+            expect(address.body.result.isError).toBeUndefined();
+
+            const placed = await call(
+                'place_order',
+                { paymentMethodCode: PAYMENT_METHOD_CODE, confirm: true },
+                3,
+            );
+
+            expect(placed.body.result.isError).toBe(true);
+            const failure = placed.body.result.structuredContent;
+            expect(failure.errorCode).toBe('ORDER_STATE_TRANSITION_ERROR');
+            expect(failure.message).toBe('Cannot transition Order from "AddingItems" to "ArrangingPayment"');
+            // Core builds this nested field with ctx.translate, so it only reads as a sentence when
+            // the context the OAuth flow built carries the request's translate function.
+            expect(failure.transitionError).toBe(
+                'Cannot transition Order to the "ArrangingPayment" state without a ShippingMethod',
+            );
+        });
     });
 
     // The cart tools are Permission.Public, so they run on a plain anonymous session threaded
@@ -1686,6 +1733,43 @@ describe('MCP built-in shop tools', () => {
                 headers: { [AUTH_TOKEN_HEADER]: sessionToken },
             });
             expect(reread.body.result.structuredContent.order.lines[0].quantity).toBe(4);
+        });
+
+        it('translates a core error into English and keeps its variables', async () => {
+            const { sessionToken } = await anonymousCart();
+
+            const failed = await postMcp(
+                baseUrl(),
+                'shop',
+                callTool('update_cart_line', { orderLineId: 999999, quantity: 2 }, 2),
+                { headers: { [AUTH_TOKEN_HEADER]: sessionToken } },
+            );
+
+            expect(failed.body.result.isError).toBe(true);
+            // Core throws the key "error.order-does-not-contain-line-with-id" here. Reaching the
+            // agent as a sentence with the ID in it proves the translation middleware ran.
+            expect(failed.body.result.content[0].text).toBe(
+                'This order does not contain an OrderLine with the id 999999',
+            );
+        });
+
+        it('translates into the language of the Accept-Language header', async () => {
+            const { sessionToken } = await anonymousCart();
+
+            const failed = await postMcp(
+                baseUrl(),
+                'shop',
+                callTool('update_cart_line', { orderLineId: 999999, quantity: 2 }, 2),
+                {
+                    headers: { [AUTH_TOKEN_HEADER]: sessionToken, 'Accept-Language': 'de' },
+                },
+            );
+
+            expect(failed.body.result.isError).toBe(true);
+            // Only a distinctive word is pinned, because the German sentence in core carries a
+            // typo that a later release may correct.
+            expect(failed.body.result.content[0].text).toMatch(/Bestellung/);
+            expect(failed.body.result.content[0].text).toContain('999999');
         });
 
         it('remove_from_cart deletes the line and empties the cart', async () => {

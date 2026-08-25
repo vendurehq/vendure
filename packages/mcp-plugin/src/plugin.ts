@@ -1,7 +1,8 @@
 import { preloadSchemas } from '@modelcontextprotocol/server';
-import { OnApplicationBootstrap, Type } from '@nestjs/common';
+import { MiddlewareConsumer, NestModule, OnApplicationBootstrap, Type } from '@nestjs/common';
 import { DiscoveryModule } from '@nestjs/core';
 import {
+    I18nService,
     Logger,
     PluginCommonModule,
     ProcessContext,
@@ -132,7 +133,7 @@ import { McpPluginOptions } from './types';
     },
     compatibility: '^3.8.0',
 })
-export class McpPlugin implements OnApplicationBootstrap {
+export class McpPlugin implements NestModule, OnApplicationBootstrap {
     /**
      * @description
      * The plugin options with every default applied. `init()` sets this, so it holds no value
@@ -140,7 +141,18 @@ export class McpPlugin implements OnApplicationBootstrap {
      */
     static options: ResolvedMcpPluginOptions;
 
-    constructor(private processContext: ProcessContext) {}
+    constructor(
+        private processContext: ProcessContext,
+        private i18nService: I18nService,
+    ) {}
+
+    /**
+     * Adds Vendure's error translation middleware to MCP routes, so callers receive translated
+     * error messages instead of i18n keys.
+     */
+    configure(consumer: MiddlewareConsumer): void {
+        consumer.apply(this.i18nService.handle()).forRoutes('mcp/shop', 'mcp/admin');
+    }
 
     /**
      * @description

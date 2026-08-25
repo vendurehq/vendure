@@ -166,9 +166,10 @@ export class AssistantResolver {
 If your assistant should work for guests as well as logged-in shoppers, use the `Owner` permission on the Shop API
 mutation. Vendure creates a shopper's session only when the operation being called asks for `Owner`.
 
-Without a session, a guest has no active order. Tools that read or change the cart, the checkout, or the order all
-fail with `error.no-active-session`. Tools that only read public catalogue data, such as `search_products`, work
-without a session.
+Without a session, a guest has no active order, and the cart, checkout and order tools all refuse. `add_to_cart`
+answers that it requires a Vendure session and that the mutation calling it must use the `Owner` permission; every
+other cart tool answers "There is no active cart. Add an item with add_to_cart first." Tools that only read public
+catalogue data, such as `search_products`, work without a session.
 
 `Owner` also works for logged-in shoppers, so one permission covers both.
 
