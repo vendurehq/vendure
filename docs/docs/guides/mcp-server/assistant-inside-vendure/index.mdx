@@ -62,7 +62,9 @@ decides which shopper the tool runs as, so a hand-built context runs the tool as
 ### Failed calls
 
 A failed tool call returns `isError: true` with a text explanation instead of throwing. An error thrown inside the
-tool comes back the same way.
+tool comes back the same way. So does a Vendure error result that a tool returns, for example the
+`CouponCodeInvalidError` from `apply_coupon_code`. In that case `structuredContent` is the error object itself,
+with its `errorCode` and `message`, so the caller can act on the code.
 
 Passing the wrong kind of context throws instead. The `'shop'` toolset requires a Shop API context, and `'admin'`
 requires an Admin API context.

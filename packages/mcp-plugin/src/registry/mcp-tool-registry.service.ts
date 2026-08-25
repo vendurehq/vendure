@@ -4,8 +4,10 @@ import { DiscoveryService } from '@nestjs/core';
 import {
     EntityNotFoundError,
     ForbiddenError,
+    GraphQLErrorResult,
     IllegalOperationError,
     Instrument,
+    isGraphQlErrorResult,
     Logger,
     Permission,
     RequestContext,
@@ -363,6 +365,21 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                 toolInput,
                 this.toCallerInfo(executionContext),
             );
+
+            if (isGraphQlErrorResult(output as GraphQLErrorResult | undefined)) {
+                const errorResult = { ...(output as GraphQLErrorResult) };
+                await this.toolCallLog.logToolCall({
+                    executionContext,
+                    tool,
+                    input: toolInput,
+                    output: errorResult,
+                    durationMs: Date.now() - startedAt,
+                    status: 'error',
+                });
+                return this.vendureErrorResult(
+                    this.shopSession.addSessionTokenToResult(errorResult, sessionTokenForResult),
+                );
+            }
             if (tool.compiledOutputSchema) {
                 const validated = await this.toolSchema.validate(tool.compiledOutputSchema, output);
                 if (!validated.ok) {
@@ -666,6 +683,19 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             // A failed call may still have resolved or created a session; handing its token back
             // lets the caller keep the same cart on retry instead of leaving an orphan row.
             ...(sessionToken !== undefined ? { structuredContent: { sessionToken } } : {}),
+        };
+    }
+
+    /**
+     * A failed call whose reason is a Vendure error result. Unlike `errorResult`, the whole object
+     * is kept: the text shows it, and the structured content is the object itself, so a caller can
+     * act on `errorCode` rather than parse a sentence.
+     */
+    private vendureErrorResult(output: unknown): CallToolResult {
+        return {
+            isError: true,
+            content: [{ type: 'text', text: JSON.stringify(output, null, 2) }],
+            structuredContent: output as Record<string, unknown>,
         };
     }
 

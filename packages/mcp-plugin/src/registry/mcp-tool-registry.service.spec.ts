@@ -530,6 +530,35 @@ describe('McpToolRegistryService', () => {
             expect(execute).toHaveBeenCalledOnce();
             expect(result.structuredContent).toEqual({ items: [] });
         });
+
+        it('reports a Vendure error result returned by a tool as a failed call', async () => {
+            // Vendure services answer a refused operation with an error result object instead of
+            // throwing. A caller that only reads `isError` must not take that for success, and
+            // the error code has to stay readable, so the object itself is the structured content.
+            // A class, as core's error results are.
+            class OrderModificationError {
+                readonly __typename = 'OrderModificationError';
+                readonly errorCode = 'ORDER_MODIFICATION_ERROR';
+                readonly message = 'The order cannot be modified';
+            }
+            const fields = {
+                __typename: 'OrderModificationError',
+                errorCode: 'ORDER_MODIFICATION_ERROR',
+                message: 'The order cannot be modified',
+            };
+            const { service, toolCallLog } = build([wrapper(shopTool(), () => new OrderModificationError())]);
+            service.onApplicationBootstrap();
+            const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'get_thing', {});
+            expect(result.isError).toBe(true);
+            expect(result.structuredContent).toEqual(fields);
+            // A plain copy, not the instance: the MCP SDK validates structured content as a record
+            // and refuses an object with any other prototype.
+            expect(Object.getPrototypeOf(result.structuredContent)).toBe(Object.prototype);
+            expect((result.content as any)[0].text).toContain('ORDER_MODIFICATION_ERROR');
+            expect(toolCallLog.logToolCall).toHaveBeenCalledWith(
+                expect.objectContaining({ status: 'error', output: fields }),
+            );
+        });
     });
 
     describe('rate-limit enforcement', () => {

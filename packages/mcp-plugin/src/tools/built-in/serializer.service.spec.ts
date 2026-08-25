@@ -44,7 +44,9 @@ describe('McpToolSerializerService', () => {
             errorCode: 'ORDER_LIMIT_ERROR',
             message: 'Too many items',
         };
-        expect(service.orderOrError(errorResult)).toEqual({ result: errorResult });
+        // Returned bare, not wrapped: the registry recognises a Vendure error result at the top
+        // level of a tool's output and reports the call as failed.
+        expect(service.orderOrError(errorResult)).toEqual(errorResult);
     });
 
     it('adds decimal prices and the order currency to a shipping quote', () => {

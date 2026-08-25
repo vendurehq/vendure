@@ -584,15 +584,13 @@ describe('MCP built-in admin tools (direct mode)', () => {
             callTool('cancel_order', { id: order.id, confirm: true }, 2),
             { token },
         );
-        expect(confirmed.body.result.isError).toBeUndefined();
+        expect(confirmed.body.result.isError).toBe(true);
         // The gate passed and the handler ran the real cancelOrder. An empty draft has no lines to
         // cancel, so the tool surfaces the concrete EmptyOrderLineSelectionError union — proof the
         // handler executed and shaped its business result, not merely that the confirm gate opened.
         expect(confirmed.body.result.structuredContent).toMatchObject({
-            result: {
-                __typename: 'EmptyOrderLineSelectionError',
-                errorCode: 'EMPTY_ORDER_LINE_SELECTION_ERROR',
-            },
+            __typename: 'EmptyOrderLineSelectionError',
+            errorCode: 'EMPTY_ORDER_LINE_SELECTION_ERROR',
         });
     });
 
@@ -1012,7 +1010,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
         );
 
         expect(response.body.result.isError).toBeUndefined();
-        expect(response.body.result.structuredContent.result).toMatchObject({
+        expect(response.body.result.structuredContent.refund).toMatchObject({
             total: paymentBefore.amount,
         });
         // A DB-level check that the payment was actually refunded, not just that the response echoed it.
@@ -1037,7 +1035,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
             { token },
         );
         expect(partial.body.result.isError).toBeUndefined();
-        expect(partial.body.result.structuredContent.result).toMatchObject({ total: partialAmount });
+        expect(partial.body.result.structuredContent.refund).toMatchObject({ total: partialAmount });
 
         // Calling again with only the order id must default to the REMAINDER. Before the fix, the
         // default fell back to the order total, which now exceeds what's left on the payment, so
@@ -1049,7 +1047,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
             { token },
         );
         expect(remainder.body.result.isError).toBeUndefined();
-        expect(remainder.body.result.structuredContent.result).toMatchObject({
+        expect(remainder.body.result.structuredContent.refund).toMatchObject({
             total: paymentBefore.amount - partialAmount,
         });
 
@@ -1073,8 +1071,8 @@ describe('MCP built-in admin tools (direct mode)', () => {
             callTool('refund_order', { id: orderId, confirm: true }, 2),
             { token },
         );
-        expect(response.body.result.isError).toBeUndefined();
-        expect(response.body.result.structuredContent.result).toMatchObject({
+        expect(response.body.result.isError).toBe(true);
+        expect(response.body.result.structuredContent).toMatchObject({
             __typename: 'RefundPaymentIdMissingError',
             errorCode: 'REFUND_PAYMENT_ID_MISSING_ERROR',
         });
@@ -1100,8 +1098,8 @@ describe('MCP built-in admin tools (direct mode)', () => {
             { token },
         );
 
-        expect(response.body.result.isError).toBeUndefined();
-        expect(response.body.result.structuredContent.result).toMatchObject({
+        expect(response.body.result.isError).toBe(true);
+        expect(response.body.result.structuredContent).toMatchObject({
             __typename: 'RefundPaymentIdMissingError',
             errorCode: 'REFUND_PAYMENT_ID_MISSING_ERROR',
             message: 'The requested payment was not found on this order.',
@@ -1125,8 +1123,8 @@ describe('MCP built-in admin tools (direct mode)', () => {
             { token },
         );
 
-        expect(response.body.result.isError).toBeUndefined();
-        expect(response.body.result.structuredContent.result).toMatchObject({
+        expect(response.body.result.isError).toBe(true);
+        expect(response.body.result.structuredContent).toMatchObject({
             __typename: 'RefundPaymentIdMissingError',
             errorCode: 'REFUND_PAYMENT_ID_MISSING_ERROR',
             message: 'The requested payment was not found on this order.',
@@ -1588,11 +1586,11 @@ describe('MCP built-in admin tools (direct mode)', () => {
                 { token },
             );
 
-            // The state machine's refusal is a typed error result on a successful call, so the model
-            // reads Vendure's own explanation instead of a generic tool failure.
-            expect(refused.body.result.isError).toBeUndefined();
+            // The state machine's refusal is a Vendure error result, so the call is reported as failed and
+            // the model reads Vendure's own error code instead of a generic tool failure.
+            expect(refused.body.result.isError).toBe(true);
             expect(refused.body.result.structuredContent.order).toBeUndefined();
-            expect(refused.body.result.structuredContent.result).toMatchObject({
+            expect(refused.body.result.structuredContent).toMatchObject({
                 __typename: 'OrderStateTransitionError',
                 errorCode: 'ORDER_STATE_TRANSITION_ERROR',
             });
@@ -1850,15 +1848,13 @@ describe('MCP built-in admin tools (discovery mode)', () => {
             callTool('execute_tool', { name: 'cancel_order', arguments: { id: orderId, confirm: true } }, 2),
             { token },
         );
-        expect(confirmed.body.result.isError).toBeUndefined();
+        expect(confirmed.body.result.isError).toBe(true);
         // Through the discovery funnel too, confirm:true reaches the real cancelOrder: an empty draft
         // has no lines to cancel, so the concrete EmptyOrderLineSelectionError union comes back — not
         // the confirmation gate.
         expect(confirmed.body.result.structuredContent).toMatchObject({
-            result: {
-                __typename: 'EmptyOrderLineSelectionError',
-                errorCode: 'EMPTY_ORDER_LINE_SELECTION_ERROR',
-            },
+            __typename: 'EmptyOrderLineSelectionError',
+            errorCode: 'EMPTY_ORDER_LINE_SELECTION_ERROR',
         });
     });
 

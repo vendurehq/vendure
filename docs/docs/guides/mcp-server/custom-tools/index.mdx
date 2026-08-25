@@ -76,6 +76,11 @@ export class FindLowStockVariantsTool implements McpToolHandler<LowStockInput> {
 }
 ```
 
+To refuse a call, throw a `UserInputError` from `@vendure/core`. The agent receives `isError: true` with your message.
+Returning a Vendure error result, an object with `errorCode`, `message` and `__typename` such as the
+`CouponCodeInvalidError` that `OrderService.applyCouponCode` can return, is reported the same way, with the object
+as the structured content.
+
 Tool names share a flat namespace within each toolset, including built-in tools. Use a plugin-specific prefix
 such as `wishlist_add_item` rather than a generic name such as `add_item`, to avoid colliding with a future
 Vendure release.

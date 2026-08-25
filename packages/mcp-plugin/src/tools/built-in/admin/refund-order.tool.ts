@@ -1,6 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { summate } from '@vendure/common/lib/shared-utils';
-import { idsAreEqual, OrderService, Payment, Permission, RequestContext } from '@vendure/core';
+import {
+    idsAreEqual,
+    isGraphQlErrorResult,
+    OrderService,
+    Payment,
+    Permission,
+    RequestContext,
+} from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
@@ -59,24 +66,22 @@ export class RefundOrderTool implements McpToolHandler<RefundOrderToolInput> {
             : payments.find(p => p.state === 'Settled' && getRefundableAmount(p) > 0);
 
         if (!payment) {
+            // A bare Vendure error result: the registry reports it as a failed call.
             return {
-                result: {
-                    __typename: 'RefundPaymentIdMissingError',
-                    errorCode: 'REFUND_PAYMENT_ID_MISSING_ERROR',
-                    message: input.paymentId
-                        ? 'The requested payment was not found on this order.'
-                        : 'No payment is available to refund.',
-                },
+                __typename: 'RefundPaymentIdMissingError',
+                errorCode: 'REFUND_PAYMENT_ID_MISSING_ERROR',
+                message: input.paymentId
+                    ? 'The requested payment was not found on this order.'
+                    : 'No payment is available to refund.',
             };
         }
-        return {
-            result: await this.orderService.refundOrder(ctx, {
-                paymentId: payment.id,
-                amount: input.amount ?? getRefundableAmount(payment),
-                reason: input.reason,
-                shipping: 0,
-                adjustment: 0,
-            }),
-        };
+        const refund = await this.orderService.refundOrder(ctx, {
+            paymentId: payment.id,
+            amount: input.amount ?? getRefundableAmount(payment),
+            reason: input.reason,
+            shipping: 0,
+            adjustment: 0,
+        });
+        return isGraphQlErrorResult(refund) ? refund : { refund };
     }
 }

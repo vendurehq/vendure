@@ -1736,11 +1736,11 @@ describe('MCP built-in shop tools', () => {
                 { headers: { [AUTH_TOKEN_HEADER]: sessionToken } },
             );
 
-            // A typed Vendure error result is a successful tool call carrying `result`, not an
-            // isError envelope — the model is meant to read Vendure's own message and react.
-            expect(applied.body.result.isError).toBeUndefined();
+            // A Vendure error result is reported as a failed call, with the error object as the structured
+            // content, so the model reads Vendure's own error code and reacts to it.
+            expect(applied.body.result.isError).toBe(true);
             expect(applied.body.result.structuredContent.order).toBeUndefined();
-            expect(applied.body.result.structuredContent.result).toMatchObject({
+            expect(applied.body.result.structuredContent).toMatchObject({
                 errorCode: 'COUPON_CODE_INVALID_ERROR',
             });
         });

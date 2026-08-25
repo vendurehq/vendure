@@ -179,11 +179,13 @@ export class McpToolSerializerService {
 
     /**
      * Vendure mutations return either the entity or one of its typed error results. An error result
-     * is handed back untouched so the model sees Vendure's own message.
+     * is handed back untouched and bare: the registry recognises a Vendure error result at the top
+     * level of a tool's output and reports the call as failed, with the error's `errorCode` and
+     * `message` as the structured content.
      */
     orderOrError(result: Order | GraphQLErrorResult) {
         if (isGraphQlErrorResult(result)) {
-            return { result };
+            return result;
         }
         return { order: this.order(result) };
     }
