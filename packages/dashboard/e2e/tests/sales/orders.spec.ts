@@ -602,7 +602,13 @@ test.describe('Orders', () => {
             await expect(selectPaymentMethod).toBeVisible({ timeout: 10_000 });
             await selectPaymentMethod.click();
 
-            const standardPayment = dialog.getByRole('option', { name: /Test Payment/ });
+            // Options are labelled `${name} (${code})`. Match `test-payment` (created by
+            // `createNewOrder`) exactly: `payment-methods.spec.ts` creates "E2E Test Payment",
+            // and a substring match resolves to both until that spec renames or deletes it.
+            const standardPayment = dialog.getByRole('option', {
+                name: 'Test Payment (test-payment)',
+                exact: true,
+            });
             await expect(standardPayment).toBeVisible({ timeout: 10_000 });
             await standardPayment.click();
 
@@ -828,8 +834,12 @@ async function createFulfilledOrder(client: VendureAdminClient): Promise<string>
  * Admin API, and returns the order ID.
  */
 async function createNewOrder(client: VendureAdminClient) {
-    // Ensure a payment method exists
-    const { paymentMethods } = await client.gql(`query { paymentMethods { items { id } } }`);
+    // Ensure `test-payment` exists. Filter by code rather than checking for an empty
+    // list: `payment-methods.spec.ts` creates its own method, and specs run in parallel,
+    // so an unfiltered list can be non-empty without `test-payment` in it.
+    const { paymentMethods } = await client.gql(
+        `query { paymentMethods(options: { filter: { code: { eq: "test-payment" } } }) { items { id } } }`,
+    );
     if (paymentMethods.items.length === 0) {
         await client.gql(`
             mutation {
