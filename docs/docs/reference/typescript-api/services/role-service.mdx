@@ -12,6 +12,7 @@ class RoleService {
     initRoles() => ;
     findAll(ctx: RequestContext, options?: ListQueryOptions<Role>, relations?: RelationPaths<Role>) => Promise<PaginatedList<Role>>;
     findOne(ctx: RequestContext, roleId: ID, relations?: RelationPaths<Role>) => Promise<Role | undefined>;
+    activeUserHasPermissionsOfRoles(ctx: RequestContext, roleIds: ID[]) => Promise<boolean>;
     getChannelsForRole(ctx: RequestContext, roleId: ID) => Promise<Channel[]>;
     getSuperAdminRole(ctx?: RequestContext) => Promise<Role>;
     getCustomerRole(ctx?: RequestContext) => Promise<Role>;
@@ -43,6 +44,17 @@ class RoleService {
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, roleId: <a href='/reference/typescript-api/common/id#id'>ID</a>, relations?: RelationPaths<<a href='/reference/typescript-api/entities/role#role'>Role</a>>) => Promise<<a href='/reference/typescript-api/entities/role#role'>Role</a> | undefined>`}   />
 
 
+### activeUserHasPermissionsOfRoles
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, roleIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[]) => Promise<boolean>`}  since="3.7.3"  />
+
+Returns `true` if the active user holds every Permission granted by the given Roles, on every
+Channel to which those Roles are assigned. This is the one rule which decides whether the active
+user may read a Role, grant it to an Administrator, or see an Administrator who holds it.
+
+The Roles are always read from the database, never from the Role cache. The answer authorises
+writes, and a Role missing from a stale cache would be treated as granting nothing, which is
+the wrong direction to fail in.
 ### getChannelsForRole
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, roleId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>[]>`}   />
