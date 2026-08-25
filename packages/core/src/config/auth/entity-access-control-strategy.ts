@@ -94,31 +94,49 @@ import { VendureEntity } from '../../entity/base/base.entity';
  * //
  * // Nothing in the schema prevents this: `User.identifier` and
  * // `Customer.emailAddress` are not unique columns. What makes one address into
- * // one platform-wide account is that `UserService.getUserByEmailAddress()`
- * // applies no Channel filter - and every other identity check funnels through
- * // it, so scoping `User` here reaches login, registration, password reset and
- * // email change together.
+ * // one platform-wide account is that the lookups behind registration and login
+ * // apply no Channel filter. Scoping `User` here reaches all of them at once,
+ * // because `applyAccessControl()` runs for every `User` query built through
+ * // `getRepository(ctx, User)` - which is the email lookup, and also the
+ * // token-verification, password-reset and identifier-change queries that do not
+ * // go through it.
  * //
  * // Filter rather than namespace the identifier: `user.identifier` is what the
  * // email plugin passes to `setRecipient()` and what `currentUser.identifier`
  * // returns, so a prefixed one makes verification mail undeliverable.
+ * //
+ * // Note the subqueries are built with `qb.subQuery()` and relation property
+ * // paths rather than written as SQL, so TypeORM resolves the junction tables,
+ * // the `entityPrefix` and the driver's identifier quoting. Hand-written SQL
+ * // here silently ignores a configured prefix, and double-quoted identifiers
+ * // are rejected by MySQL unless ANSI_QUOTES is enabled.
  * class PerChannelCustomerIdentityStrategy extends DefaultEntityAccessControlStrategy {
  *     applyAccessControl(qb, entityType, ctx) {
  *         if (ctx.apiType !== 'shop') return;
  *         if (entityType === Customer) {
- *             qb.andWhere(
- *                 `${qb.alias}.id IN (SELECT m."customerId" FROM customer_channels_channel m
- *                                     WHERE m."channelId" = :aclChannelId)`,
- *                 { aclChannelId: ctx.channelId },
- *             );
+ *             qb.andWhere(sub => {
+ *                 const query = sub.subQuery()
+ *                     .select('aclCustomer.id')
+ *                     .from(Customer, 'aclCustomer')
+ *                     .innerJoin('aclCustomer.channels', 'aclChannel')
+ *                     .where('aclChannel.id = :aclChannelId')
+ *                     .getQuery();
+ *                 return `${qb.alias}.id IN ${query}`;
+ *             }).setParameter('aclChannelId', ctx.channelId);
  *         }
  *         if (entityType === User) {
- *             qb.andWhere(
- *                 `${qb.alias}.id IN (SELECT c."userId" FROM customer c
- *                                     INNER JOIN customer_channels_channel m ON m."customerId" = c.id
- *                                     WHERE m."channelId" = :aclChannelId AND c."userId" IS NOT NULL)`,
- *                 { aclChannelId: ctx.channelId },
- *             );
+ *             // The join to `aclCustomer.user` also confines this to
+ *             // customer-owned Users: an Administrator's User has no Customer.
+ *             qb.andWhere(sub => {
+ *                 const query = sub.subQuery()
+ *                     .select('aclUser.id')
+ *                     .from(Customer, 'aclCustomer')
+ *                     .innerJoin('aclCustomer.user', 'aclUser')
+ *                     .innerJoin('aclCustomer.channels', 'aclChannel')
+ *                     .where('aclChannel.id = :aclChannelId')
+ *                     .getQuery();
+ *                 return `${qb.alias}.id IN ${query}`;
+ *             }).setParameter('aclChannelId', ctx.channelId);
  *         }
  *     }
  * }
