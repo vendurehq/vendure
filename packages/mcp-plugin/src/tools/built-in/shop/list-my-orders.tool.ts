@@ -42,6 +42,7 @@ export class ListMyOrdersTool implements McpToolHandler<ListMyOrdersInput> {
         if (!customer) return page([], 0, input);
         const result = await this.orderService.findByCustomerId(ctx, customer.id, orderListOptions(input), [
             'lines',
+            'shippingLines',
             'payments',
         ]);
         return page(

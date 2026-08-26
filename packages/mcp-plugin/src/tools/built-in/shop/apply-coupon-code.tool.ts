@@ -15,7 +15,9 @@ type ApplyCouponCodeInput = z.infer<typeof applyCouponCodeInput>;
 @McpTool({
     name: 'apply_coupon_code',
     toolset: 'shop',
-    description: 'Apply a coupon code to the active cart.',
+    description:
+        'Apply a coupon code to the active cart. A valid code can appear in couponCodes without reducing ' +
+        'the total. Compare the returned total and discounts with the previous cart before reporting a discount.',
     keywords: [
         'use a promo code',
         'redeem a discount',

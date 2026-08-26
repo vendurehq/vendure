@@ -131,6 +131,10 @@ returned. Every order also carries `shippingWithTax` (with its `Decimal` twin) a
 entry per shipping line with its `shippingMethodId` and `priceWithTax`. An empty `shippingLines` array
 means the cart has no shipping method chosen.
 
+Every order includes `couponCodes` and `discounts`, with discounts grouped by promotion. Discount amounts are negative and include both standard and `Decimal` values.
+A valid coupon does not always reduce the cart price. It may appear in `couponCodes` without changing the total or `discounts`, so compare these fields with the previous cart before reporting a discount.
+Orders returned with Vendure errors, such as insufficient stock, have the same shape as successful order results.
+
 ### Catalog (browse)
 
 | Tool | Safety | Permission | Description |

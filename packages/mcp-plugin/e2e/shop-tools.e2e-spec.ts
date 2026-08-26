@@ -159,6 +159,7 @@ describe('MCP built-in shop tools', () => {
     let defaultChannelAdminId: string;
     let defaultCurrencyCode: CurrencyCode;
     let secondVariantId: ID;
+    let secondVariantAdminId: string;
     let shirtId: ID;
     let shirtVariantCount: number;
     let publicCollectionId: ID;
@@ -293,6 +294,7 @@ describe('MCP built-in shop tools', () => {
         // The parallel add_to_cart test needs a variant other than the first product's, so that
         // the two calls produce two lines rather than merging into one.
         secondVariantId = idStrategy.decodeId(shirt.variants[0].id);
+        secondVariantAdminId = shirt.variants[0].id;
 
         channelInputDefaults = {
             defaultLanguageCode: fixture.activeChannel.defaultLanguageCode,
@@ -1125,6 +1127,10 @@ describe('MCP built-in shop tools', () => {
         orderByCodeAccessStrategy.allow = true;
         const allowed = await postMcp(baseUrl(), 'shop', callTool('get_order', { code }, 2));
         expect(allowed.body.result.structuredContent.order).toMatchObject({ code });
+        // Every order result carries the same keys, whichever tool produced it.
+        expect(Array.isArray(allowed.body.result.structuredContent.order.shippingLines)).toBe(true);
+        expect(allowed.body.result.structuredContent.order).toHaveProperty('couponCodes');
+        expect(allowed.body.result.structuredContent.order).toHaveProperty('discounts');
 
         orderByCodeAccessStrategy.allow = false;
         try {
@@ -2294,12 +2300,166 @@ describe('MCP built-in shop tools', () => {
             expect(applied.body.result.isError).toBeUndefined();
             // The discount has to reach the price, not merely be recorded: a coupon the pricing
             // engine ignored would leave the total untouched.
-            const discountedTotal = applied.body.result.structuredContent.order.totalWithTax as number;
-            expect(discountedTotal).toBeLessThan(fullTotal);
+            const appliedOrder = applied.body.result.structuredContent.order;
+            expect(appliedOrder.totalWithTax as number).toBeLessThan(fullTotal);
+            // Without these two keys the agent cannot tell a coupon that reduced the price from
+            // one Vendure merely accepted.
+            expect(appliedOrder.couponCodes).toEqual([COUPON_CODE]);
+            expect(appliedOrder.discounts).toHaveLength(1);
+            expect(appliedOrder.discounts[0].description).toBe('MCP e2e coupon');
+            expect(appliedOrder.discounts[0].amountWithTax).toBeLessThan(0);
+            expect(typeof appliedOrder.discounts[0].amountWithTaxDecimal).toBe('string');
 
             const removed = await call('remove_coupon_code', { code: COUPON_CODE }, 4);
             expect(removed.body.result.isError).toBeUndefined();
-            expect(removed.body.result.structuredContent.order.totalWithTax).toBe(fullTotal);
+            const removedOrder = removed.body.result.structuredContent.order;
+            expect(removedOrder.totalWithTax).toBe(fullTotal);
+            expect(removedOrder.couponCodes).toEqual([]);
+            expect(removedOrder.discounts).toEqual([]);
+        });
+
+        it('apply_coupon_code lists a code whose conditions the cart does not meet without any discount', async () => {
+            const bigSpendCode = 'MCP-E2E-BIG-SPEND';
+            const promotion = await adminClient.query(
+                gql`
+                    mutation CreateBigSpendPromotion($input: CreatePromotionInput!) {
+                        createPromotion(input: $input) {
+                            __typename
+                            ... on Promotion {
+                                couponCode
+                            }
+                            ... on ErrorResult {
+                                errorCode
+                                message
+                            }
+                        }
+                    }
+                `,
+                {
+                    input: {
+                        enabled: true,
+                        couponCode: bigSpendCode,
+                        // A minimum spend no cart in this suite reaches, so the promotion is valid
+                        // but never earns its discount.
+                        conditions: [
+                            {
+                                code: 'minimum_order_amount',
+                                arguments: [
+                                    { name: 'amount', value: '100000000' },
+                                    { name: 'taxInclusive', value: 'false' },
+                                ],
+                            },
+                        ],
+                        actions: [
+                            {
+                                code: 'order_percentage_discount',
+                                arguments: [{ name: 'discount', value: String(COUPON_PERCENTAGE) }],
+                            },
+                        ],
+                        translations: [
+                            {
+                                languageCode: LanguageCode.en,
+                                name: 'MCP e2e big spend coupon',
+                                description: '',
+                            },
+                        ],
+                    },
+                },
+            );
+            expect(promotion.createPromotion.couponCode).toBe(bigSpendCode);
+
+            const { sessionToken, order: cart } = await anonymousCart();
+            const call = (name: string, args: Record<string, unknown>, id: number) =>
+                postMcp(baseUrl(), 'shop', callTool(name, args, id), {
+                    headers: { [AUTH_TOKEN_HEADER]: sessionToken },
+                });
+
+            const applied = await call('apply_coupon_code', { code: bigSpendCode }, 2);
+            // Vendure accepts a code whose conditions do not hold and leaves it on the cart, so
+            // the call succeeds and the price does not move. Only discounts shows that.
+            expect(applied.body.result.isError).toBeUndefined();
+            const order = applied.body.result.structuredContent.order;
+            expect(order.couponCodes).toContain(bigSpendCode);
+            expect(order.discounts).toEqual([]);
+            expect(order.totalWithTax).toBe(cart.totalWithTax);
+
+            const removed = await call('remove_coupon_code', { code: bigSpendCode }, 3);
+            expect(removed.body.result.isError).toBeUndefined();
+            expect(removed.body.result.structuredContent.order.couponCodes).toEqual([]);
+        });
+
+        it('add_to_cart cut short by stock answers the resulting cart in the normal order shape', async () => {
+            const updateVariant = gql`
+                mutation UpdateShirtVariantStock($input: [UpdateProductVariantInput!]!) {
+                    updateProductVariants(input: $input) {
+                        id
+                        stockOnHand
+                        trackInventory
+                    }
+                }
+            `;
+            const current = await adminClient.query(
+                gql`
+                    query ShirtVariantStock($id: ID!) {
+                        productVariant(id: $id) {
+                            stockOnHand
+                            trackInventory
+                        }
+                    }
+                `,
+                { id: secondVariantAdminId },
+            );
+            await adminClient.query(updateVariant, {
+                input: [{ id: secondVariantAdminId, trackInventory: 'TRUE', stockOnHand: 3 }],
+            });
+
+            try {
+                const cutShort = await postMcp(
+                    baseUrl(),
+                    'shop',
+                    callTool('add_to_cart', { variantId: secondVariantId, quantity: 5 }, 1),
+                );
+                expect(cutShort.body.result.isError).toBe(true);
+                const structured = cutShort.body.result.structuredContent;
+                expect(structured).toMatchObject({
+                    errorCode: 'INSUFFICIENT_STOCK_ERROR',
+                    quantityAvailable: 3,
+                    message: 'Only 3 items were added to the order due to insufficient stock',
+                });
+                // Core attaches the cart as it stands after the partial add. It goes through the
+                // same serializer as a successful result, so totals and decimal prices are there
+                // and the raw entity graph is not.
+                expect(structured.order.totalQuantity).toBe(3);
+                expect(structured.order.lines[0].quantity).toBe(3);
+                expect(typeof structured.order.totalWithTaxDecimal).toBe('string');
+                expect(structured.order.lines[0].productVariant).not.toHaveProperty('productVariantPrices');
+                const sessionToken = structured.sessionToken as string;
+                expect(sessionToken).toBeTruthy();
+
+                const noneLeft = await postMcp(
+                    baseUrl(),
+                    'shop',
+                    callTool('add_to_cart', { variantId: secondVariantId, quantity: 1 }, 2),
+                    { headers: { [AUTH_TOKEN_HEADER]: sessionToken } },
+                );
+                expect(noneLeft.body.result.isError).toBe(true);
+                expect(noneLeft.body.result.structuredContent).toMatchObject({
+                    errorCode: 'INSUFFICIENT_STOCK_ERROR',
+                    quantityAvailable: 0,
+                    message: 'No items were added to the order due to insufficient stock',
+                });
+                expect(noneLeft.body.result.structuredContent.order.totalQuantity).toBe(3);
+            } finally {
+                await adminClient.query(updateVariant, {
+                    input: [
+                        {
+                            id: secondVariantAdminId,
+                            trackInventory: current.productVariant.trackInventory,
+                            stockOnHand: current.productVariant.stockOnHand,
+                        },
+                    ],
+                });
+            }
         });
 
         it('apply_coupon_code hands back Vendure error result for a code that does not exist', async () => {
@@ -2353,7 +2513,7 @@ describe('MCP built-in shop tools', () => {
 
             expect(response.body.result.isError).toBeUndefined();
             const listed = response.body.result.structuredContent as {
-                items: Array<{ code: string; orderPlacedAt: string | null }>;
+                items: Array<{ code: string; orderPlacedAt: string | null; shippingLines?: unknown }>;
                 total: number;
                 hasMore: boolean;
             };
@@ -2366,6 +2526,10 @@ describe('MCP built-in shop tools', () => {
             expect(listed.total).toBe(customerOrderCodes.length);
             expect(listed.hasMore).toBe(false);
             expect(listed.items[0].orderPlacedAt).toBeTruthy();
+            // Every order result carries the same keys, whichever tool produced it.
+            expect(Array.isArray(listed.items[0].shippingLines)).toBe(true);
+            expect(listed.items[0]).toHaveProperty('couponCodes');
+            expect(listed.items[0]).toHaveProperty('discounts');
         });
 
         it('list_collections returns the public collections and hides the private one', async () => {

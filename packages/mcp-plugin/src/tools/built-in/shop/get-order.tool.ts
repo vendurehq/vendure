@@ -38,6 +38,7 @@ export class ShopGetOrderTool implements McpToolHandler<GetOrderInput> {
     async execute(ctx: RequestContext, input: GetOrderInput) {
         const order = await this.orderService.findOneByCode(ctx, input.code, [
             'lines',
+            'shippingLines',
             'customer',
             'customer.user',
             'payments',

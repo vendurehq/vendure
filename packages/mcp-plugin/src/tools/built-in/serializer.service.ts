@@ -204,6 +204,16 @@ export class McpToolSerializerService {
             updatedAt: this.isoDate(order.updatedAt),
             // Null while the order is still an open cart, set when the customer checks out.
             orderPlacedAt: this.isoDate(order.orderPlacedAt),
+            couponCodes: order.couponCodes,
+            discounts: order.discounts.map(discount => ({
+                adjustmentSource: discount.adjustmentSource,
+                type: discount.type,
+                description: discount.description,
+                amount: discount.amount,
+                amountDecimal: this.decimal(discount.amount),
+                amountWithTax: discount.amountWithTax,
+                amountWithTaxDecimal: this.decimal(discount.amountWithTax),
+            })),
             lines:
                 order.lines?.map(line => ({
                     id: line.id,
@@ -227,16 +237,27 @@ export class McpToolSerializerService {
     }
 
     /**
-     * Vendure mutations return either the entity or one of its typed error results. An error result
-     * is handed back untouched and bare: the registry recognises a Vendure error result at the top
-     * level of a tool's output and reports the call as failed, with the error's `errorCode` and
-     * `message` as the structured content.
+     * Vendure mutations return either an entity or a typed error. Errors are returned directly so
+     * the registry can report them as failed tool calls. Errors containing orders or money values
+     * are serialized consistently with successful results.
      */
     orderOrError(result: Order | GraphQLErrorResult) {
-        if (isGraphQlErrorResult(result)) {
-            return result;
+        if (!isGraphQlErrorResult(result)) {
+            return { order: this.order(result) };
         }
-        return { order: this.order(result) };
+        const errorResult: Record<string, unknown> = { ...result };
+        if (errorResult.order instanceof Order) {
+            errorResult.order = this.order(errorResult.order);
+        }
+        if (
+            errorResult.errorCode === 'COUPON_REMOVED_DURING_CHECKOUT_ERROR' &&
+            typeof errorResult.newTotalWithTax === 'number' &&
+            typeof errorResult.previousTotalWithTax === 'number'
+        ) {
+            errorResult.newTotalWithTaxDecimal = this.decimal(errorResult.newTotalWithTax);
+            errorResult.previousTotalWithTaxDecimal = this.decimal(errorResult.previousTotalWithTax);
+        }
+        return errorResult;
     }
 
     /**

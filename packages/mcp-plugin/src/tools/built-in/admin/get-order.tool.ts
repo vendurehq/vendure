@@ -40,7 +40,12 @@ export class AdminGetOrderTool implements McpToolHandler<GetOrderInput> {
     async execute(ctx: RequestContext, input: GetOrderInput) {
         return {
             order: this.serializer.order(
-                await this.orderService.findOne(ctx, input.id, ['lines', 'customer', 'payments']),
+                await this.orderService.findOne(ctx, input.id, [
+                    'lines',
+                    'shippingLines',
+                    'customer',
+                    'payments',
+                ]),
             ),
         };
     }

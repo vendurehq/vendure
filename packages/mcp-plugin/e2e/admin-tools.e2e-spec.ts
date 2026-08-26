@@ -602,6 +602,30 @@ describe('MCP built-in admin tools (direct mode)', () => {
         expect((response.body.result.structuredContent as { status?: string }).status).not.toBe(
             'confirmation_required',
         );
+
+        // Every order result carries the same keys, whichever tool produced it.
+        const items = (response.body.result.structuredContent as { items: Array<Record<string, unknown>> })
+            .items;
+        expect(items.length).toBeGreaterThan(0);
+        expect(Array.isArray(items[0].shippingLines)).toBe(true);
+        expect(items[0]).toHaveProperty('couponCodes');
+        expect(items[0]).toHaveProperty('discounts');
+    });
+
+    it('get_order returns the same order shape as the order list', async () => {
+        const token = await adminAccessToken();
+        const draft = await createDraftOrder();
+
+        const response = await postMcp(baseUrl(), 'admin', callTool('get_order', { id: draft.id }, 1), {
+            token,
+        });
+
+        expect(response.body.result.isError).toBeUndefined();
+        const order = (response.body.result.structuredContent as { order: Record<string, unknown> }).order;
+        expect(String(order.id)).toBe(String(draft.id));
+        expect(Array.isArray(order.shippingLines)).toBe(true);
+        expect(order).toHaveProperty('couponCodes');
+        expect(order).toHaveProperty('discounts');
     });
 
     it("sorts the order list on request and returns each order's dates", async () => {

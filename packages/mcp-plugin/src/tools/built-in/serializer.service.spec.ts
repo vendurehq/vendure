@@ -1,3 +1,4 @@
+import { InsufficientStockError, Order } from '@vendure/core';
 import { describe, expect, it } from 'vitest';
 
 import { McpToolSerializerService } from './serializer.service';
@@ -161,6 +162,7 @@ describe('McpToolSerializerService', () => {
             updatedAt: new Date('2026-08-18T11:42:00.000Z'),
             orderPlacedAt: new Date('2026-08-16T09:30:00.000Z'),
             lines: [],
+            discounts: [],
         } as any);
 
         expect(serialized).toMatchObject({
@@ -176,6 +178,7 @@ describe('McpToolSerializerService', () => {
             code: 'T_1',
             state: 'ArrangingPayment',
             lines: [],
+            discounts: [],
             payments: [
                 {
                     id: 4,
@@ -210,6 +213,7 @@ describe('McpToolSerializerService', () => {
             code: 'T_1',
             state: 'ArrangingPayment',
             lines: [],
+            discounts: [],
             payments: [{ id: 4, method: 'cash', amount: 100, state: 'Settled', metadata: {} }],
         } as any);
 
@@ -222,6 +226,7 @@ describe('McpToolSerializerService', () => {
             code: 'T_1',
             state: 'ArrangingPayment',
             lines: [],
+            discounts: [],
             shippingWithTax: 500,
             shippingLines: [{ id: 9, shippingMethodId: 2, priceWithTax: 500 }],
         } as any);
@@ -231,12 +236,24 @@ describe('McpToolSerializerService', () => {
             shippingLines: [{ id: 9, shippingMethodId: 2, priceWithTax: 500, priceWithTaxDecimal: '5.00' }],
         });
 
-        const withoutRelation = service.order({ id: 1, code: 'T_1', state: 'AddingItems', lines: [] } as any);
+        const withoutRelation = service.order({
+            id: 1,
+            code: 'T_1',
+            state: 'AddingItems',
+            lines: [],
+            discounts: [],
+        } as any);
         expect(withoutRelation?.shippingLines).toBeUndefined();
     });
 
     it('omits payments when the relation was not loaded', () => {
-        const serialized = service.order({ id: 1, code: 'T_1', state: 'AddingItems', lines: [] } as any);
+        const serialized = service.order({
+            id: 1,
+            code: 'T_1',
+            state: 'AddingItems',
+            lines: [],
+            discounts: [],
+        } as any);
 
         expect(serialized?.payments).toBeUndefined();
         expect('payments' in JSON.parse(JSON.stringify(serialized))).toBe(false);
@@ -253,6 +270,8 @@ describe('McpToolSerializerService', () => {
                 totalWithTax: 25199,
                 currencyCode: 'USD',
                 totalQuantity: 1,
+                couponCodes: [],
+                discounts: [],
                 lines: [
                     {
                         id: 5,
@@ -283,6 +302,8 @@ describe('McpToolSerializerService', () => {
             createdAt: null,
             updatedAt: null,
             orderPlacedAt: null,
+            couponCodes: [],
+            discounts: [],
             lines: [
                 {
                     id: 5,
@@ -305,6 +326,105 @@ describe('McpToolSerializerService', () => {
             shippingWithTax: undefined,
             shippingWithTaxDecimal: '0.00',
             shippingLines: undefined,
+        });
+    });
+
+    it("lists an order's coupon codes and the discounts they earned", () => {
+        const serialized = service.order({
+            id: 1,
+            code: 'T_1',
+            state: 'AddingItems',
+            lines: [],
+            couponCodes: ['SAVE10', 'FREESHIP'],
+            // Core groups these by promotion before the serializer sees them, and the amounts it
+            // hands over are negative.
+            discounts: [
+                {
+                    adjustmentSource: 'PROMOTION:1',
+                    type: 'DISTRIBUTED_ORDER_PROMOTION',
+                    description: 'Ten percent off',
+                    amount: -2100,
+                    amountWithTax: -2520,
+                },
+                {
+                    adjustmentSource: 'PROMOTION:2',
+                    type: 'DISTRIBUTED_ORDER_PROMOTION',
+                    description: 'Free shipping',
+                    amount: -500,
+                    amountWithTax: -600,
+                },
+            ],
+        } as any);
+
+        expect(serialized?.couponCodes).toEqual(['SAVE10', 'FREESHIP']);
+        expect(serialized?.discounts).toEqual([
+            {
+                adjustmentSource: 'PROMOTION:1',
+                type: 'DISTRIBUTED_ORDER_PROMOTION',
+                description: 'Ten percent off',
+                amount: -2100,
+                amountDecimal: '-21.00',
+                amountWithTax: -2520,
+                amountWithTaxDecimal: '-25.20',
+            },
+            {
+                adjustmentSource: 'PROMOTION:2',
+                type: 'DISTRIBUTED_ORDER_PROMOTION',
+                description: 'Free shipping',
+                amount: -500,
+                amountDecimal: '-5.00',
+                amountWithTax: -600,
+                amountWithTaxDecimal: '-6.00',
+            },
+        ]);
+    });
+
+    it('lets core complain about an order whose lines were not loaded', () => {
+        // Reading discounts off an order with no lines is core's error to raise. Swallowing it
+        // here would answer a caller that forgot the relation with an empty discount list.
+        const notLoaded = new Order();
+
+        expect(() => service.order(notLoaded)).toThrow();
+    });
+
+    it('serializes the order that core attaches to an insufficient-stock error', () => {
+        const cart = new Order();
+        cart.id = 1;
+        cart.code = 'T_1';
+        cart.lines = [];
+        cart.shippingLines = [];
+        // totalWithTax is a getter over these two, so the fixture sets what it reads.
+        cart.subTotalWithTax = 25199;
+        cart.shippingWithTax = 0;
+
+        const serialized: any = service.orderOrError(
+            new InsufficientStockError({ order: cart, quantityAvailable: 3 }),
+        );
+
+        expect(serialized.errorCode).toBe('INSUFFICIENT_STOCK_ERROR');
+        expect(serialized.quantityAvailable).toBe(3);
+        // The registry finds a Vendure error result by these keys, so they have to survive the copy.
+        expect(serialized.__typename).toBe('InsufficientStockError');
+        expect(serialized.message).toBeTruthy();
+        expect(serialized.order.totalWithTaxDecimal).toBe('251.99');
+        expect(serialized.order.discounts).toEqual([]);
+    });
+
+    it("adds decimal twins to the coupon-removed error's two totals", () => {
+        const removed = {
+            __typename: 'CouponRemovedDuringCheckoutError',
+            errorCode: 'COUPON_REMOVED_DURING_CHECKOUT_ERROR',
+            message: 'COUPON_REMOVED_DURING_CHECKOUT_ERROR',
+            currencyCode: 'USD',
+            newTotalWithTax: 25199,
+            previousTotalWithTax: 22679,
+            removedCouponCodes: ['SAVE10'],
+        };
+
+        expect(service.orderOrError(removed)).toEqual({
+            ...removed,
+            newTotalWithTaxDecimal: '251.99',
+            previousTotalWithTaxDecimal: '226.79',
         });
     });
 });
@@ -372,6 +492,7 @@ describe('money scaling', () => {
                 totalWithTax: 25199,
                 currencyCode: 'USD',
                 totalQuantity: 1,
+                discounts: [],
                 lines: [{ id: 5, quantity: 1, linePriceWithTax: 25199, productVariant: null }],
             } as any),
         ).toMatchObject({

@@ -79,7 +79,11 @@ export class ListOrdersTool implements McpToolHandler<ListOrdersInput> {
     ) {}
 
     async execute(ctx: RequestContext, input: ListOrdersInput) {
-        const result = await this.orderService.findAll(ctx, orderListOptions(input), ['lines', 'payments']);
+        const result = await this.orderService.findAll(ctx, orderListOptions(input), [
+            'lines',
+            'shippingLines',
+            'payments',
+        ]);
         return page(
             result.items.map(order => this.serializer.order(order)),
             result.totalItems,
