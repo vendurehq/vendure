@@ -1,6 +1,8 @@
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
-import { LanguageCode } from '@vendure/common/lib/generated-types';
+import { CurrencyCode, LanguageCode } from '@vendure/common/lib/generated-types';
 import {
+    ActiveOrderService,
+    ChannelService,
     ConfigService,
     Customer,
     CustomerService,
@@ -9,6 +11,7 @@ import {
     mergeConfig,
     Order,
     OrderByCodeAccessStrategy,
+    OrderService,
     PaymentMethodHandler,
     RequestContext,
     RequestContextService,
@@ -152,6 +155,9 @@ describe('MCP built-in shop tools', () => {
     let productAdminId: string;
     let productSlug: string;
     let variantId: ID;
+    let variantAdminId: string;
+    let defaultChannelAdminId: string;
+    let defaultCurrencyCode: CurrencyCode;
     let secondVariantId: ID;
     let shirtId: ID;
     let shirtVariantCount: number;
@@ -177,6 +183,7 @@ describe('MCP built-in shop tools', () => {
         const fixture = await adminClient.query(gql`
             query ShopToolFixture {
                 activeChannel {
+                    id
                     defaultLanguageCode
                     defaultCurrencyCode
                 }
@@ -222,6 +229,9 @@ describe('MCP built-in shop tools', () => {
         productId = idStrategy.decodeId(product.id);
         productSlug = product.slug;
         variantId = idStrategy.decodeId(product.variants[0].id);
+        variantAdminId = product.variants[0].id;
+        defaultChannelAdminId = fixture.activeChannel.id;
+        defaultCurrencyCode = fixture.activeChannel.defaultCurrencyCode;
         publicCollectionId = idStrategy.decodeId(collection.id);
         publicCollectionSlug = collection.slug;
 
@@ -516,6 +526,106 @@ describe('MCP built-in shop tools', () => {
         });
         expect(order.lines).toHaveLength(2);
         expect(String((await anonymousSession(session.token)).activeOrderId)).toBe(String(order.id));
+    });
+
+    // When the currency of a request differs from the currency of the order it writes to, core
+    // re-prices the whole order into the request's currency. The plugin sends no currency with a
+    // request, so every tool call used to run in the channel's default currency and flipped a cart
+    // the storefront had built in another one. Cart tools now run in the cart's own currency.
+    it("keeps the cart's own currency when a tool writes to a cart the storefront built", async () => {
+        const second = defaultCurrencyCode === CurrencyCode.EUR ? CurrencyCode.USD : CurrencyCode.EUR;
+        const channelUpdate = await adminClient.query(
+            gql`
+                mutation AllowSecondCurrency($input: UpdateChannelInput!) {
+                    updateChannel(input: $input) {
+                        ... on Channel {
+                            id
+                            availableCurrencyCodes
+                        }
+                        ... on ErrorResult {
+                            errorCode
+                            message
+                        }
+                    }
+                }
+            `,
+            {
+                input: {
+                    id: defaultChannelAdminId,
+                    availableCurrencyCodes: [defaultCurrencyCode, second],
+                },
+            },
+        );
+        expect(channelUpdate.updateChannel.availableCurrencyCodes).toContain(second);
+
+        const variantUpdate = await adminClient.query(
+            gql`
+                mutation SetSecondCurrencyPrice($input: [UpdateProductVariantInput!]!) {
+                    updateProductVariants(input: $input) {
+                        id
+                        prices {
+                            currencyCode
+                            price
+                        }
+                    }
+                }
+            `,
+            {
+                input: [{ id: variantAdminId, prices: [{ currencyCode: second, price: 2000 }] }],
+            },
+        );
+        expect(variantUpdate.updateProductVariants[0].prices).toContainEqual({
+            currencyCode: second,
+            price: 2000,
+        });
+
+        // The cart a storefront request would build: the shopper is browsing in the second
+        // currency, so their request carries it and the order is stored in it.
+        const session = await server.app.get(SessionService).createAnonymousSession();
+        const channel = await server.app.get(ChannelService).getDefaultChannel();
+        const storefrontCtx = new RequestContext({
+            apiType: 'shop',
+            channel,
+            session,
+            currencyCode: second,
+            isAuthorized: false,
+            authorizedAsOwnerOnly: true,
+        });
+        const created = await server.app
+            .get(ActiveOrderService)
+            .getActiveOrder(storefrontCtx, undefined, true);
+        await server.app.get(OrderService).addItemToOrder(storefrontCtx, created.id, variantId, 1);
+        const beforeMcp = await connection
+            .getRepository(adminCtx, Order)
+            .findOneOrFail({ where: { id: created.id } });
+        expect(beforeMcp.currencyCode).toBe(second);
+
+        const added = await postMcp(
+            baseUrl(),
+            'shop',
+            callTool('add_to_cart', { variantId, quantity: 1, sessionToken: session.token }, 1),
+        );
+        expect(added.body.result.isError).toBeUndefined();
+        expect(added.body.result.structuredContent.order.currencyCode).toBe(second);
+
+        const orderLineId = added.body.result.structuredContent.order.lines[0].id;
+        const updated = await postMcp(
+            baseUrl(),
+            'shop',
+            callTool('update_cart_line', { orderLineId, quantity: 3, sessionToken: session.token }, 2),
+        );
+        expect(updated.body.result.isError).toBeUndefined();
+        expect(updated.body.result.structuredContent.order.currencyCode).toBe(second);
+
+        const stored = await connection
+            .getRepository(adminCtx, Order)
+            .findOneOrFail({ where: { id: created.id }, relations: ['lines'] });
+        expect(stored.currencyCode).toBe(second);
+        expect(stored.lines).toHaveLength(1);
+        expect(stored.lines[0].quantity).toBe(3);
+        // The price the line was charged at. Re-pricing into another currency would replace it
+        // with that currency's price for the same variant.
+        expect(stored.lines[0].listPrice).toBe(2000);
     });
 
     // The zero-config real-host flow: separate POSTs, no headers threaded, cart identity carried

@@ -96,6 +96,8 @@ cart the quote was calculated for. Anything a shipping calculator attached to th
 | `get_eligible_payment_methods` | readonly | Public | List payment methods eligible for the cart |
 | `place_order` | **destructive** | Public | Move the cart to the payment stage if needed, then add payment. Answers with a status |
 
+Cart tools use an existing cart's currency. A cart started through `add_to_cart` uses the channel's default currency.
+
 `add_to_cart` takes exactly one of `variantId` or `productId`. Product IDs and variant IDs are separate numbering
 sequences that overlap. A product ID used where a variant ID belongs would resolve to a real but unrelated
 variant, and put the wrong item in the cart. Given a `productId` for a product with several variants, the tool

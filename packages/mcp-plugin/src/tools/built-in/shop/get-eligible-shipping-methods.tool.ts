@@ -36,7 +36,7 @@ export class GetEligibleShippingMethodsTool implements McpToolHandler<Record<str
     async execute(ctx: RequestContext) {
         const order = await this.activeOrder.find(ctx);
         if (!order) return { methods: [] };
-        const quotes = await this.orderService.getEligibleShippingMethods(ctx, order.id);
+        const quotes = await this.orderService.getEligibleShippingMethods(order.ctx, order.id);
         // The currency comes from the order because a quote does not carry one.
         return { methods: quotes.map(quote => this.serializer.shippingQuote(quote, order.currencyCode)) };
     }

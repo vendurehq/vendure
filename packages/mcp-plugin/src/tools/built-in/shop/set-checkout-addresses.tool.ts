@@ -82,7 +82,7 @@ export class SetCheckoutAddressesTool implements McpToolHandler<SetCheckoutAddre
 
     async execute(ctx: RequestContext, input: SetCheckoutAddressesInput) {
         const cart = await this.activeOrder.findOrThrow(ctx);
-        return this.connection.withTransaction(ctx, async txCtx => {
+        return this.connection.withTransaction(cart.ctx, async txCtx => {
             const before = await this.orderService.findOne(txCtx, cart.id, ['shippingLines']);
             const methodsBefore = shippingMethodIds(before);
 

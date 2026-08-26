@@ -109,7 +109,7 @@ export class AddToCartTool implements McpToolHandler<AddToCartInput> {
 
         const order = await this.activeOrder.findOrCreate(ctx);
         return this.serializer.orderOrError(
-            await this.orderService.addItemToOrder(ctx, order.id, variantId, input.quantity),
+            await this.orderService.addItemToOrder(order.ctx, order.id, variantId, input.quantity),
         );
     }
 }

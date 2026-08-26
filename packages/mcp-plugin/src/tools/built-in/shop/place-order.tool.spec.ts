@@ -22,12 +22,16 @@ const serializer = {
  */
 function connectionStub() {
     return {
-        withTransaction: (ctx: any, work: any) => work({ ...ctx, inTransaction: true }),
+        withTransaction: vi.fn((ctx: any, work: any) => work({ ...ctx, inTransaction: true })),
     } as any;
 }
 
 function activeOrderReturning(id: number) {
-    return { findOrThrow: () => Promise.resolve({ id, currencyCode: 'USD' }) } as any;
+    // The real service hands back a context in the cart's currency, and the tool has to run its
+    // transaction on that one. The stub returns the context it was given so a test can check.
+    return {
+        findOrThrow: (ctx: unknown) => Promise.resolve({ id, currencyCode: 'USD', ctx }),
+    } as any;
 }
 
 describe('PlaceOrderTool', () => {
@@ -88,10 +92,14 @@ describe('PlaceOrderTool', () => {
             addPaymentToOrder,
             getOrderPayments: () => Promise.resolve([]),
         } as any;
-        const tool = new PlaceOrderTool(activeOrderReturning(1), orderService, serializer, connectionStub());
+        const connection = connectionStub();
+        const tool = new PlaceOrderTool(activeOrderReturning(1), orderService, serializer, connection);
+        const ctx = { activeUserId: 42 } as any;
 
-        await tool.execute({ activeUserId: 42 } as any, { paymentMethodCode: 'standard-payment' });
+        await tool.execute(ctx, { paymentMethodCode: 'standard-payment' });
 
+        // The transaction opens on the context the active-order service bound to the cart.
+        expect(connection.withTransaction).toHaveBeenCalledWith(ctx, expect.anything());
         expect(transitionToState).toHaveBeenCalledWith(expect.anything(), 1, 'ArrangingPayment');
         expect(addPaymentToOrder).toHaveBeenCalledWith(expect.anything(), 1, {
             method: 'standard-payment',

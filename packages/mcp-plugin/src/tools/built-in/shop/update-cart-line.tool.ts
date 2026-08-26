@@ -42,7 +42,7 @@ export class UpdateCartLineTool implements McpToolHandler<UpdateCartLineInput> {
     async execute(ctx: RequestContext, input: UpdateCartLineInput) {
         const order = await this.activeOrder.findOrThrow(ctx);
         return this.serializer.orderOrError(
-            await this.orderService.adjustOrderLine(ctx, order.id, input.orderLineId, input.quantity),
+            await this.orderService.adjustOrderLine(order.ctx, order.id, input.orderLineId, input.quantity),
         );
     }
 }

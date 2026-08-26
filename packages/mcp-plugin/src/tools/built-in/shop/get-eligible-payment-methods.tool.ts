@@ -34,6 +34,6 @@ export class GetEligiblePaymentMethodsTool implements McpToolHandler<Record<stri
     async execute(ctx: RequestContext) {
         const order = await this.activeOrder.find(ctx);
         if (!order) return { methods: [] };
-        return { methods: await this.orderService.getEligiblePaymentMethods(ctx, order.id) };
+        return { methods: await this.orderService.getEligiblePaymentMethods(order.ctx, order.id) };
     }
 }

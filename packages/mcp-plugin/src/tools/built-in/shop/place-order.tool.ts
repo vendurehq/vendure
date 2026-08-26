@@ -60,7 +60,7 @@ export class PlaceOrderTool implements McpToolHandler<PlaceOrderInput> {
         }
         // Taking a payment has to run inside a database transaction: `addPaymentToOrder` refuses to
         // run without one.
-        return this.connection.withTransaction(ctx, async txCtx => {
+        return this.connection.withTransaction(order.ctx, async txCtx => {
             const current = await this.orderService.findOne(txCtx, order.id);
             let movedOutOfCart = false;
             if (current?.state === 'AddingItems') {

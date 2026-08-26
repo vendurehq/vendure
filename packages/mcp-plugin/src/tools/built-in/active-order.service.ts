@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import { CurrencyCode } from '@vendure/common/lib/generated-types';
 import {
     ActiveOrderService,
+    ID,
     IllegalOperationError,
     Order,
     OrderService,
@@ -11,7 +13,21 @@ import {
 } from '@vendure/core';
 import { LockNotSupportedOnGivenDriverError } from 'typeorm';
 
-export type ActiveOrderRef = Pick<Order, 'id' | 'currencyCode'>;
+export interface ActiveOrderRef {
+    id: ID;
+    currencyCode: CurrencyCode;
+    ctx: RequestContext;
+}
+
+/**
+ * A copy of `ctx` in the given currency, everything else unchanged. Core swaps the same private
+ * field on a copy when it changes an order's currency (OrderService.updateOrderCurrency).
+ */
+function withCurrency(ctx: RequestContext, currencyCode: CurrencyCode): RequestContext {
+    const copy = ctx.copy();
+    (copy as any)._currencyCode = currencyCode;
+    return copy;
+}
 
 @Injectable()
 export class McpActiveOrderService {
@@ -23,7 +39,17 @@ export class McpActiveOrderService {
 
     /** The shopper's current cart, or undefined when they have none. Order lines are not loaded. */
     async find(ctx: RequestContext): Promise<ActiveOrderRef | undefined> {
-        return this.activeOrder(ctx);
+        const order = await this.activeOrder(ctx);
+        return order ? this.bindToCart(ctx, order) : undefined;
+    }
+
+    /** The cart reference the tools act on, with a context in the cart's currency. */
+    private bindToCart(ctx: RequestContext, order: Order): ActiveOrderRef {
+        return {
+            id: order.id,
+            currencyCode: order.currencyCode,
+            ctx: ctx.currencyCode === order.currencyCode ? ctx : withCurrency(ctx, order.currencyCode),
+        };
     }
 
     /**
@@ -38,11 +64,12 @@ export class McpActiveOrderService {
                     'must give the mutation that calls the tool the Owner permission, so that Vendure creates a session.',
             );
         }
-        return this.connection.withTransaction(ctx, async txCtx => {
+        const order = await this.connection.withTransaction(ctx, async txCtx => {
             await this.lockSessionRow(txCtx);
             // Never undefined: core throws a UserInputError when it can neither find nor create one.
             return this.activeOrderService.getActiveOrder(txCtx, undefined, true);
         });
+        return this.bindToCart(ctx, order);
     }
 
     /**

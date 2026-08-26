@@ -40,7 +40,7 @@ export class ApplyCouponCodeTool implements McpToolHandler<ApplyCouponCodeInput>
     async execute(ctx: RequestContext, input: ApplyCouponCodeInput) {
         const order = await this.activeOrder.findOrThrow(ctx);
         return this.serializer.orderOrError(
-            await this.orderService.applyCouponCode(ctx, order.id, input.code),
+            await this.orderService.applyCouponCode(order.ctx, order.id, input.code),
         );
     }
 }
