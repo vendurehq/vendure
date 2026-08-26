@@ -754,6 +754,11 @@ describe('McpToolRegistryService', () => {
             service.onApplicationBootstrap();
             const tool = service.getRegistrySnapshot()[0];
             expect(tool.wireJsonSchema.properties?.sessionToken).toMatchObject({ type: 'string' });
+            expect(tool.wireJsonSchema.properties?.sessionToken).toMatchObject({
+                description:
+                    'Session token returned by cart tools. To start a cart, call add_to_cart once without this field. ' +
+                    'For later calls, including parallel calls, pass the latest returned token to use the same cart.',
+            });
             expect(tool.jsonInputSchema.properties?.sessionToken).toBeUndefined();
         });
 

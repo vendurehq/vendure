@@ -128,8 +128,8 @@ export class McpToolSchemaService {
             wire.properties.sessionToken = {
                 type: 'string',
                 description:
-                    'Session token returned by active-order shop tools. Pass the value from the most recent ' +
-                    'response to keep working with the same cart. Omit on your first call.',
+                    'Session token returned by cart tools. To start a cart, call add_to_cart once without this field. ' +
+                    'For later calls, including parallel calls, pass the latest returned token to use the same cart.',
             };
         }
         return wire;

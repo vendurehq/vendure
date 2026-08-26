@@ -13,6 +13,7 @@ import {
     RequestContext,
     RequestContextService,
     Session,
+    SessionService,
     ShippingEligibilityChecker,
     TransactionalConnection,
     User,
@@ -151,6 +152,7 @@ describe('MCP built-in shop tools', () => {
     let productAdminId: string;
     let productSlug: string;
     let variantId: ID;
+    let secondVariantId: ID;
     let shirtId: ID;
     let shirtVariantCount: number;
     let publicCollectionId: ID;
@@ -278,6 +280,9 @@ describe('MCP built-in shop tools', () => {
         }
         shirtId = idStrategy.decodeId(shirt.id);
         shirtVariantCount = shirt.variants.length;
+        // The parallel add_to_cart test needs a variant other than the first product's, so that
+        // the two calls produce two lines rather than merging into one.
+        secondVariantId = idStrategy.decodeId(shirt.variants[0].id);
 
         channelInputDefaults = {
             defaultLanguageCode: fixture.activeChannel.defaultLanguageCode,
@@ -465,6 +470,52 @@ describe('MCP built-in shop tools', () => {
         expect(session.activeOrderId).toBeTruthy();
         expect(await connection.getRepository(adminCtx, Order).count()).toBe(beforeOrders + 1);
         expect(String(session.activeOrderId)).toBe(String((await orderByCode(order.code)).id));
+    });
+
+    // `McpActiveOrderService.findOrCreate` now locks the session row inside a transaction, so the
+    // second call waits for the first to commit and then finds its order. Without the lock both
+    // calls saw an empty cart, both created an order, and the session kept only one of them.
+    //
+    // The race only shows under `DB=postgres`. The default sql.js database runs its queries on the
+    // event loop, so the first call is already finished before the second one starts and the two
+    // never overlap.
+    it('adds both lines to one cart when two add_to_cart calls share a session and run at once', async () => {
+        const session = await server.app.get(SessionService).createAnonymousSession();
+        const ordersBefore = await connection.getRepository(adminCtx, Order).count();
+
+        const [first, second] = await Promise.all([
+            postMcp(
+                baseUrl(),
+                'shop',
+                callTool('add_to_cart', { variantId, quantity: 1, sessionToken: session.token }, 1),
+            ),
+            postMcp(
+                baseUrl(),
+                'shop',
+                callTool(
+                    'add_to_cart',
+                    { variantId: secondVariantId, quantity: 1, sessionToken: session.token },
+                    2,
+                ),
+            ),
+        ]);
+
+        for (const response of [first, second]) {
+            expect(response.status).toBe(200);
+            expect(response.body.result.isError).toBeUndefined();
+            expect(response.body.result.structuredContent.sessionToken).toBe(session.token);
+        }
+        expect(first.body.result.structuredContent.order.code).toBe(
+            second.body.result.structuredContent.order.code,
+        );
+        expect(await connection.getRepository(adminCtx, Order).count()).toBe(ordersBefore + 1);
+
+        const order = await connection.getRepository(adminCtx, Order).findOneOrFail({
+            where: { code: first.body.result.structuredContent.order.code },
+            relations: ['lines'],
+        });
+        expect(order.lines).toHaveLength(2);
+        expect(String((await anonymousSession(session.token)).activeOrderId)).toBe(String(order.id));
     });
 
     // The zero-config real-host flow: separate POSTs, no headers threaded, cart identity carried

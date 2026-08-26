@@ -5,8 +5,11 @@ import {
     Order,
     OrderService,
     RequestContext,
+    Session,
+    TransactionalConnection,
     UserInputError,
 } from '@vendure/core';
+import { LockNotSupportedOnGivenDriverError } from 'typeorm';
 
 export type ActiveOrderRef = Pick<Order, 'id' | 'currencyCode'>;
 
@@ -15,6 +18,7 @@ export class McpActiveOrderService {
     constructor(
         private activeOrderService: ActiveOrderService,
         private orderService: OrderService,
+        private connection: TransactionalConnection,
     ) {}
 
     /** The shopper's current cart, or undefined when they have none. Order lines are not loaded. */
@@ -34,8 +38,39 @@ export class McpActiveOrderService {
                     'must give the mutation that calls the tool the Owner permission, so that Vendure creates a session.',
             );
         }
-        // Never undefined: core throws a UserInputError when it can neither find nor create one.
-        return this.activeOrderService.getActiveOrder(ctx, undefined, true);
+        return this.connection.withTransaction(ctx, async txCtx => {
+            await this.lockSessionRow(txCtx);
+            // Never undefined: core throws a UserInputError when it can neither find nor create one.
+            return this.activeOrderService.getActiveOrder(txCtx, undefined, true);
+        });
+    }
+
+    /**
+     * Prevents concurrent cart calls from creating multiple active orders for the same session.
+     * Locks the session row and refreshes its active order before the tool runs.
+     * SQLite runs without the lock because it allows only one writer at a time.
+     */
+    private async lockSessionRow(txCtx: RequestContext): Promise<void> {
+        const session = txCtx.session;
+        if (!session) return;
+
+        let row: Session | null;
+        try {
+            row = await this.connection
+                .getRepository(txCtx, Session)
+                .createQueryBuilder('session')
+                .setLock('pessimistic_write')
+                .where('session.id = :id', { id: session.id })
+                .getOne();
+        } catch (e) {
+            if (e instanceof LockNotSupportedOnGivenDriverError) {
+                return;
+            }
+            throw e;
+        }
+        if (row) {
+            session.activeOrderId = row.activeOrderId ?? undefined;
+        }
     }
 
     /**
