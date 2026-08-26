@@ -27,6 +27,7 @@ import { setEntityIdStrategy } from './entity/set-entity-id-strategy';
 import { setMoneyStrategy } from './entity/set-money-strategy';
 import { patchTypeOrmDeepValue } from './entity/typeorm-deep-value-fix';
 import { patchTypeOrmDuplicateEagerLoad } from './entity/typeorm-duplicate-eager-load-fix';
+import { patchTypeOrmEagerRelationJoins } from './entity/typeorm-eager-relation-join-fix';
 import { patchTypeOrmEmbeddedRelationColumns } from './entity/typeorm-embedded-relation-fix';
 import { patchTypeOrmRelationIdLoader } from './entity/typeorm-relation-id-loader-fix';
 import { validateCustomFieldsConfig } from './entity/validate-custom-fields-config';
@@ -335,6 +336,7 @@ export async function preBootstrapConfig(
     const entityIdStrategy = config.entityOptions.entityIdStrategy ?? config.entityIdStrategy;
     patchTypeOrmDeepValue();
     patchTypeOrmDuplicateEagerLoad();
+    patchTypeOrmEagerRelationJoins();
     patchTypeOrmEmbeddedRelationColumns();
     patchTypeOrmRelationIdLoader();
     registerCustomEntityFields(config);
