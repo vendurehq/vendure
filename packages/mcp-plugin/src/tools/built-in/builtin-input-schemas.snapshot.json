@@ -86,7 +86,9 @@
         "description": "Stock location ID."
       },
       "delta": {
-        "type": "number",
+        "type": "integer",
+        "minimum": -2147483648,
+        "maximum": 2147483647,
         "description": "Amount to add (positive) or remove (negative) from stock on hand."
       }
     },
@@ -369,7 +371,9 @@
             "description": "Asset IDs to attach."
           },
           "stockOnHand": {
-            "type": "number",
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647,
             "description": "Initial stock on hand."
           },
           "trackInventory": {
@@ -1287,7 +1291,9 @@
             "description": "Asset IDs to attach."
           },
           "stockOnHand": {
-            "type": "number",
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647,
             "description": "Stock on hand."
           },
           "trackInventory": {
@@ -1353,8 +1359,10 @@
         "description": "Product ID, as returned by search_products or get_product. Never pass a variant ID here. Use this only when the product has a single variant; if it has several, the call is refused and the variants are listed so you can pass one as variantId instead."
       },
       "quantity": {
-        "type": "number",
-        "description": "Quantity."
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 2147483647,
+        "description": "Quantity, a whole number of at least 1."
       }
     },
     "required": [
@@ -1716,8 +1724,10 @@
         "description": "Order line ID."
       },
       "quantity": {
-        "type": "number",
-        "description": "Quantity."
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 2147483647,
+        "description": "New quantity for the line, a whole number. 0 removes the line."
       }
     },
     "required": [

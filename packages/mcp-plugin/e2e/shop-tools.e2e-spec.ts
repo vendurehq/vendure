@@ -1309,6 +1309,22 @@ describe('MCP built-in shop tools', () => {
         expect(await connection.getRepository(adminCtx, Order).count()).toBe(ordersBefore);
     });
 
+    it('add_to_cart refuses a fractional, zero or oversized quantity', async () => {
+        const ordersBefore = await connection.getRepository(adminCtx, Order).count();
+
+        for (const quantity of [1.5, 0, 2147483648]) {
+            const added = await postMcp(
+                baseUrl(),
+                'shop',
+                callTool('add_to_cart', { variantId, quantity }, 1),
+            );
+
+            expect(added.body.result.isError).toBe(true);
+            expect(added.body.result.content[0].text).toContain('quantity');
+        }
+        expect(await connection.getRepository(adminCtx, Order).count()).toBe(ordersBefore);
+    });
+
     it('refuses an anonymous caller with no cart for the missing cart, not for the missing login', async () => {
         const ordersBefore = await connection.getRepository(adminCtx, Order).count();
 

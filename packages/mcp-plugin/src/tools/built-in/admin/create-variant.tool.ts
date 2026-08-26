@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 import { enumString } from '../enum-string-schema';
 import { idSchema } from '../id-schema';
+import { int32Schema } from '../int32-schema';
 import { McpToolSerializerService } from '../serializer.service';
 
 import { variantTranslationSchema } from './translation-schemas';
@@ -21,7 +22,7 @@ const createVariantInputSchema = z.strictObject({
     taxCategoryId: idSchema.describe('Tax category ID.').optional(),
     featuredAssetId: idSchema.describe('Featured asset ID.').optional(),
     assetIds: z.array(idSchema.describe('Vendure ID.')).describe('Asset IDs to attach.').optional(),
-    stockOnHand: z.number().describe('Initial stock on hand.').optional(),
+    stockOnHand: int32Schema.describe('Initial stock on hand.').optional(),
     trackInventory: enumString<GlobalFlag>(
         z.string().describe('Inventory tracking: "TRUE", "FALSE", or "INHERIT".'),
     ).optional(),

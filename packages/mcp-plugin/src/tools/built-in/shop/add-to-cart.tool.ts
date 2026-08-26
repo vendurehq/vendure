@@ -12,6 +12,7 @@ import { z } from 'zod';
 
 import { McpActiveOrderService } from '../active-order.service';
 import { idSchema } from '../id-schema';
+import { int32Schema } from '../int32-schema';
 import { McpToolSerializerService } from '../serializer.service';
 
 const addToCartInput = z.strictObject({
@@ -27,7 +28,7 @@ const addToCartInput = z.strictObject({
                 'refused and the variants are listed so you can pass one as variantId instead.',
         )
         .optional(),
-    quantity: z.number().describe('Quantity.'),
+    quantity: int32Schema.min(1).describe('Quantity, a whole number of at least 1.'),
 });
 
 type AddToCartInput = z.infer<typeof addToCartInput>;

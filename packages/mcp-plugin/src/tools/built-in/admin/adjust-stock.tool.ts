@@ -5,17 +5,19 @@ import {
     ProductVariantService,
     RequestContext,
     StockLevelService,
+    UserInputError,
 } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { idSchema } from '../id-schema';
+import { GRAPHQL_INT_MAX, GRAPHQL_INT_MIN, int32Schema } from '../int32-schema';
 import { McpToolSerializerService } from '../serializer.service';
 
 const adjustStockInput = z.strictObject({
     variantId: idSchema.describe('Product variant ID.'),
     locationId: idSchema.describe('Stock location ID.'),
-    delta: z.number().describe('Amount to add (positive) or remove (negative) from stock on hand.'),
+    delta: int32Schema.describe('Amount to add (positive) or remove (negative) from stock on hand.'),
 });
 
 type AdjustStockInput = z.infer<typeof adjustStockInput>;
@@ -50,13 +52,20 @@ export class AdjustStockTool implements McpToolHandler<AdjustStockInput> {
     async execute(ctx: RequestContext, input: AdjustStockInput) {
         const levels = await this.stockLevelService.getStockLevelsForVariant(ctx, input.variantId);
         const current = levels.find(level => idsAreEqual(level.stockLocationId, input.locationId));
+        const stockOnHand = (current?.stockOnHand ?? 0) + input.delta;
+        if (stockOnHand < GRAPHQL_INT_MIN || stockOnHand > GRAPHQL_INT_MAX) {
+            throw new UserInputError(
+                `A delta of ${input.delta} would set stock on hand to ${stockOnHand}, outside ` +
+                    `${GRAPHQL_INT_MIN} to ${GRAPHQL_INT_MAX}.`,
+            );
+        }
         await this.productVariantService.update(ctx, [
             {
                 id: input.variantId,
                 stockLevels: [
                     {
                         stockLocationId: input.locationId,
-                        stockOnHand: (current?.stockOnHand ?? 0) + input.delta,
+                        stockOnHand,
                     },
                 ],
             },

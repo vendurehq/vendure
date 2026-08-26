@@ -5,11 +5,12 @@ import { z } from 'zod';
 
 import { McpActiveOrderService } from '../active-order.service';
 import { idSchema } from '../id-schema';
+import { int32Schema } from '../int32-schema';
 import { McpToolSerializerService } from '../serializer.service';
 
 const updateCartLineInput = z.strictObject({
     orderLineId: idSchema.describe('Order line ID.'),
-    quantity: z.number().describe('Quantity.'),
+    quantity: int32Schema.min(0).describe('New quantity for the line, a whole number. 0 removes the line.'),
 });
 
 type UpdateCartLineInput = z.infer<typeof updateCartLineInput>;

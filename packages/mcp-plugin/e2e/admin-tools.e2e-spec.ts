@@ -1098,6 +1098,30 @@ describe('MCP built-in admin tools (direct mode)', () => {
         });
     });
 
+    it('adjust_stock refuses a fractional delta', async () => {
+        const token = await adminAccessToken();
+        const stockLevel = () =>
+            connection
+                .getRepository(adminCtx, StockLevel)
+                .findOneOrFail({ where: { productVariantId: variantId, stockLocationId } });
+        const before = await stockLevel();
+
+        const response = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool(
+                'adjust_stock',
+                { variantId, locationId: stockLocationId, delta: 1.5, confirm: true },
+                1,
+            ),
+            { token },
+        );
+
+        expect(response.body.result.isError).toBe(true);
+        expect(response.body.result.content[0].text).toContain('delta');
+        expect((await stockLevel()).stockOnHand).toBe(before.stockOnHand);
+    });
+
     it('adjust_stock refuses a variant that is not in the active channel', async () => {
         const token = await adminAccessToken();
         // The seeded variant belongs to the default channel only, so once this grant is switched to the
@@ -1537,6 +1561,20 @@ describe('MCP built-in admin tools (direct mode)', () => {
                 .getRepository(adminCtx, ProductVariant)
                 .findOneByOrFail({ id: variantId });
             expect(stored.sku).toBe('MCP-SKU-1');
+        });
+
+        it('update_variant refuses an oversized stockOnHand value', async () => {
+            const token = await adminAccessToken();
+
+            const oversized = await postMcp(
+                baseUrl(),
+                'admin',
+                callTool('update_variant', { id: variantId, input: { stockOnHand: 2147483648 } }, 1),
+                { token },
+            );
+
+            expect(oversized.body.result.isError).toBe(true);
+            expect(oversized.body.result.content[0].text).toContain('stockOnHand');
         });
 
         it('create_variant adds a variant to an existing product', async () => {
