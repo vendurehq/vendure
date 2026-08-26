@@ -15,14 +15,20 @@ import { McpPluginOptions, McpRateLimitOptions } from './types';
  * plugin's `configuration` hook defaults later because it needs the configured API port.
  */
 export function resolveMcpPluginOptions(options: McpPluginOptions = {}): ResolvedMcpPluginOptions {
+    const oauth = options.oauth && { ...DEFAULT_OAUTH_OPTIONS, ...options.oauth };
+    const ttlDays = options.logging?.ttlDays ?? DEFAULT_LOG_TTL_DAYS;
+    assertRetentionDays('logging.ttlDays', ttlDays);
+    if (oauth) {
+        assertRetentionDays('oauth.grantRetentionDays', oauth.grantRetentionDays);
+    }
     return {
         toolExposure: options.toolExposure ?? DEFAULT_TOOL_EXPOSURE,
         shopAccess: options.shopAccess ?? DEFAULT_SHOP_ACCESS,
-        oauth: options.oauth && { ...DEFAULT_OAUTH_OPTIONS, ...options.oauth },
+        oauth,
         rateLimits: resolveRateLimits(options.rateLimits),
         dnsRebinding: options.dnsRebinding,
         logging: {
-            ttlDays: options.logging?.ttlDays ?? DEFAULT_LOG_TTL_DAYS,
+            ttlDays,
             capture: options.logging?.capture ?? DEFAULT_LOG_CAPTURE,
             redact: options.logging?.redact,
             maxBodyBytes: options.logging?.maxBodyBytes ?? DEFAULT_LOG_MAX_BODY_BYTES,
@@ -30,6 +36,12 @@ export function resolveMcpPluginOptions(options: McpPluginOptions = {}): Resolve
             captureClientIp: options.logging?.captureClientIp ?? false,
         },
     };
+}
+
+function assertRetentionDays(name: string, value: number): void {
+    if (!Number.isFinite(value) || value < 0) {
+        throw new Error(`McpPlugin: ${name} must be a non-negative finite number, got ${String(value)}.`);
+    }
 }
 
 /**

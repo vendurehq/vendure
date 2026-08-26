@@ -99,6 +99,9 @@ export class McpOauthRetentionService {
         if (!oauth) {
             return Promise.resolve(0);
         }
+        if (oauth.grantRetentionDays === 0) {
+            return Promise.resolve(0);
+        }
         const cutoff = new Date(Date.now() - oauth.grantRetentionDays * MS_PER_DAY);
         return this.deleteInBatches(ctx, McpOauthGrant, () =>
             this.connection

@@ -48,4 +48,25 @@ describe('resolveMcpPluginOptions', () => {
             accessTokenTtlSeconds: 1,
         });
     });
+
+    it.each([-1, NaN, Infinity])('rejects logging.ttlDays of %s', value => {
+        expect(() => resolveMcpPluginOptions({ logging: { ttlDays: value } })).toThrow(
+            /logging\.ttlDays must be a non-negative finite number/,
+        );
+    });
+
+    it.each([-1, NaN, Infinity])('rejects oauth.grantRetentionDays of %s', value => {
+        expect(() =>
+            resolveMcpPluginOptions({ oauth: { tokenSecret: 's', grantRetentionDays: value } }),
+        ).toThrow(/oauth\.grantRetentionDays must be a non-negative finite number/);
+    });
+
+    it('accepts 0 for both retention windows, which means keep forever', () => {
+        const resolved = resolveMcpPluginOptions({
+            logging: { ttlDays: 0 },
+            oauth: { tokenSecret: 's', grantRetentionDays: 0 },
+        });
+        expect(resolved.logging.ttlDays).toBe(0);
+        expect(resolved.oauth?.grantRetentionDays).toBe(0);
+    });
 });

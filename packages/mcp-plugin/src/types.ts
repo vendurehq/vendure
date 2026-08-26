@@ -112,6 +112,8 @@ export interface McpOauthOptions {
      * Deleting a grant also clears the link from every tool-call log that points at it. Set this
      * at or above {@link McpLoggingOptions.ttlDays} if your logs should keep that link.
      *
+     * Must be non-negative. Set to `0` to retain dead grants.
+     *
      * @default 30 (days)
      */
     grantRetentionDays?: number;
@@ -264,6 +266,9 @@ export type McpLogRedactFn = (entry: { toolName: string; input: unknown; output:
  */
 export interface McpLoggingOptions {
     /**
+     * @description
+     * How many days to retain tool-call logs. Must be non-negative. Set to `0` to retain all logs.
+     *
      * @default 30 (days)
      */
     ttlDays?: number;

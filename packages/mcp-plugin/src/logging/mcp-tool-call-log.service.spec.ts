@@ -68,7 +68,8 @@ function build(options: McpPluginOptions, failures: LoggingFailures = {}) {
         };
         return qb;
     };
-    const connection = { getRepository: () => ({ save, createQueryBuilder }) };
+    const getRepository = vi.fn(() => ({ save, createQueryBuilder }));
+    const connection = { getRepository };
     const publish = vi.fn((event: McpToolCallEvent) => {
         if (failures.publishThrows) {
             return Promise.reject(new Error('subscriber failed'));
@@ -82,7 +83,7 @@ function build(options: McpPluginOptions, failures: LoggingFailures = {}) {
         eventBus as any,
         resolveMcpPluginOptions(options),
     );
-    return { service, savedLogs, publishedEvents, selectWhere, save, publish };
+    return { service, savedLogs, publishedEvents, selectWhere, save, publish, getRepository };
 }
 
 /** Minimal registered-tool stand-in for the logger (only name/pluginSource are read). */
@@ -330,6 +331,13 @@ describe('McpToolCallLogService tool-call logging', () => {
         } finally {
             vi.useRealTimers();
         }
+    });
+
+    it('deleteExpiredToolCallLogs keeps every row and runs no query when ttlDays is 0', async () => {
+        const { service, getRepository } = build({ logging: { ttlDays: 0 } }, { deleteAffected: 3 });
+        const count = await service.deleteExpiredToolCallLogs({} as any);
+        expect(count).toBe(0);
+        expect(getRepository).not.toHaveBeenCalled();
     });
 
     it('deleteExpiredToolCallLogs defaults to a 30-day window and returns 0 when nothing matched', async () => {

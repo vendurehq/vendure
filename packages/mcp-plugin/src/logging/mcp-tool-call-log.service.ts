@@ -126,6 +126,9 @@ export class McpToolCallLogService {
 
     async deleteExpiredToolCallLogs(ctx: RequestContext, channelId?: ID | null): Promise<number> {
         const ttlDays = this.options.logging.ttlDays;
+        if (ttlDays === 0) {
+            return 0;
+        }
         const cutoff = new Date(Date.now() - ttlDays * MS_PER_DAY);
         const repository = this.connection.getRepository(ctx, McpToolCallLog);
         let totalDeleted = 0;

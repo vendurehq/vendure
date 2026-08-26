@@ -105,6 +105,8 @@ around this long because it is the only OAuth record worth auditing.
 
 Deleting a grant also clears the link from every tool-call log that points at it. Set this
 at or above `McpLoggingOptions.ttlDays` if your logs should keep that link.
+
+Must be non-negative. Set to `0` to retain dead grants.
 ### retentionSchedule
 
 <MemberInfo kind="property" type={`McpRetentionSchedule`} default={`cron => cron.everyDayAt(3, 30)`}   />
