@@ -51,7 +51,7 @@ describe('built-in registry discovery', () => {
                 { provide: AssetService, useValue: {} },
                 { provide: ChannelService, useValue: {} },
                 { provide: CollectionService, useValue: {} },
-                { provide: ConfigService, useValue: {} },
+                { provide: ConfigService, useValue: { authOptions: { customPermissions: [] } } },
                 { provide: CustomerGroupService, useValue: {} },
                 { provide: CustomerService, useValue: {} },
                 { provide: OrderService, useValue: {} },

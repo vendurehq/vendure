@@ -2,6 +2,7 @@ import { CallToolResult, ToolAnnotations } from '@modelcontextprotocol/server';
 import { Inject, Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { DiscoveryService } from '@nestjs/core';
 import {
+    ConfigService,
     EntityNotFoundError,
     ForbiddenError,
     GraphQLErrorResult,
@@ -57,6 +58,8 @@ const CALLER_SAFE_ERROR_TYPES = [
     UnauthorizedError,
 ] as const;
 const GENERIC_TOOL_ERROR_MESSAGE = 'The tool failed unexpectedly';
+// Enforce SEP-986 because some MCP clients reject non-conforming tool names.
+const TOOL_NAME_PATTERN = /^[A-Za-z0-9._-]{1,128}$/;
 
 /**
  * @description
@@ -68,6 +71,7 @@ const GENERIC_TOOL_ERROR_MESSAGE = 'The tool failed unexpectedly';
 @Instrument()
 export class McpToolRegistryService implements OnApplicationBootstrap {
     private readonly tools = new Map<string, McpRegisteredTool>();
+    private knownPermissions?: Set<string>;
     private discoveryMetaTools: McpExposedTool[] = [];
     private bm25 = new Map<McpToolset, Bm25Index>();
     // Not readonly: a toggle write must be visible to every live RequestContext, not just the one
@@ -81,6 +85,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         private toolCallLog: McpToolCallLogService,
         private toolSchema: McpToolSchemaService,
         private shopSession: McpShopSessionService,
+        private configService: ConfigService,
         @Inject(MCP_PLUGIN_OPTIONS) private options: ResolvedMcpPluginOptions,
     ) {}
 
@@ -245,6 +250,20 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         handler: McpToolHandler,
         pluginSource: string,
     ): McpRegisteredTool {
+        if (typeof metadata.name !== 'string' || !TOOL_NAME_PATTERN.test(metadata.name)) {
+            throw new Error(
+                `MCP tool name "${String(metadata.name)}" must contain 1–128 letters, digits, ` +
+                    `periods, hyphens, or underscores.`,
+            );
+        }
+        for (const permission of metadata.permissions ?? []) {
+            if (!this.getKnownPermissions().has(permission)) {
+                throw new Error(
+                    `MCP tool "${metadata.name}" declares unknown permission "${permission}". ` +
+                        `Register it in authOptions.customPermissions.`,
+                );
+            }
+        }
         if (metadata.usesActiveOrder && metadata.toolset !== 'shop') {
             throw new Error(
                 `MCP tool "${metadata.name}" usesActiveOrder, which is only valid on a shop tool.`,
@@ -276,6 +295,18 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             annotations: this.deriveAnnotations(metadata, resolvedBehavior),
             ...schemas,
         };
+    }
+
+    private getKnownPermissions(): Set<string> {
+        if (!this.knownPermissions) {
+            this.knownPermissions = new Set<string>([
+                ...Object.values(Permission),
+                ...this.configService.authOptions.customPermissions.flatMap(definition =>
+                    definition.getMetadata().map(metadata => metadata.name),
+                ),
+            ]);
+        }
+        return this.knownPermissions;
     }
 
     private registerTool(tool: McpRegisteredTool): void {

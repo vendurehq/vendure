@@ -1,6 +1,6 @@
 import { StandardSchemaWithJSON } from '@modelcontextprotocol/server';
 import { Permission } from '@vendure/common/lib/generated-types';
-import { Logger, OrderStateTransitionError, UserInputError } from '@vendure/core';
+import { Logger, OrderStateTransitionError, PermissionDefinition, UserInputError } from '@vendure/core';
 import { McpStandardSchema, McpToolMetadata, McpToolset } from '@vendure/mcp-sdk';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -58,6 +58,7 @@ function build(
     wrappers: Array<ReturnType<typeof wrapper>>,
     options: McpPluginOptions = {},
     store: Record<string, unknown> = {},
+    customPermissions: PermissionDefinition[] = [],
 ) {
     const discoveryService = {
         getProviders: () => wrappers,
@@ -82,6 +83,7 @@ function build(
             Promise.resolve({ id: 'anon-id', token: 'anon-token', expires: new Date(Date.now() + 60_000) }),
         ),
     };
+    const configService = { authOptions: { customPermissions } };
     const service = new McpToolRegistryService(
         discoveryService as any,
         settingsStoreService as any,
@@ -89,6 +91,7 @@ function build(
         toolCallLog as any,
         new McpToolSchemaService(),
         new McpShopSessionService(sessionService as any),
+        configService as any,
         resolveMcpPluginOptions(options),
     );
     return { service, rateLimiter, toolCallLog, settingsStoreService, sessionService, store };
@@ -181,6 +184,41 @@ describe('McpToolRegistryService', () => {
             expect(() => service.onApplicationBootstrap()).toThrow(
                 /get_thing inputSchema.*failed to compile/,
             );
+        });
+
+        it.each(['bad name', 'bad/name'])('rejects the tool name %s at boot', name => {
+            const { service } = build([wrapper(shopTool({ name }))]);
+            expect(() => service.onApplicationBootstrap()).toThrow(`MCP tool name "${name}"`);
+        });
+
+        it('rejects a tool name longer than 128 characters', () => {
+            const { service } = build([wrapper(shopTool({ name: 'a'.repeat(129) }))]);
+            expect(() => service.onApplicationBootstrap()).toThrow(/must contain 1–128/);
+        });
+
+        it('rejects a non-string tool name', () => {
+            const { service } = build([wrapper(shopTool({ name: null as any }))]);
+            expect(() => service.onApplicationBootstrap()).toThrow(/MCP tool name/);
+        });
+
+        it('rejects a permission that is not a Vendure permission (names it)', () => {
+            const { service } = build([
+                wrapper(shopTool({ permissions: ['NotARealPermission' as Permission] })),
+            ]);
+            expect(() => service.onApplicationBootstrap()).toThrow(
+                /declares unknown permission "NotARealPermission"/,
+            );
+        });
+
+        it('accepts a permission registered through authOptions.customPermissions', () => {
+            const { service } = build(
+                [wrapper(shopTool({ permissions: ['ReadWishlist' as Permission] }))],
+                {},
+                {},
+                [new PermissionDefinition({ name: 'ReadWishlist' })],
+            );
+            service.onApplicationBootstrap();
+            expect(service.getRegistrySnapshot().map(t => t.name)).toEqual(['get_thing']);
         });
 
         it('rejects an admin tool with no permissions declared (names the tool)', () => {
