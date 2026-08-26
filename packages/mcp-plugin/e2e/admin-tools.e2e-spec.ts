@@ -734,7 +734,13 @@ describe('MCP built-in admin tools (direct mode)', () => {
     });
 
     it('list_orders filters on when an order last changed', async () => {
-        const future = new Date(Date.now() + 60_000).toISOString();
+        // The bound is two days out rather than a minute out. On Postgres and MySQL the stored
+        // updatedAt is the local wall clock, while core writes a date filter bound as the UTC wall
+        // clock, so any bound closer to the data than the server's UTC offset falls on the wrong
+        // side of it. Two days clears the largest offset anyone runs, which is 14 hours. What this
+        // test checks is that the tool applies an updatedAt filter at all, and a distant bound
+        // still proves that.
+        const future = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString();
 
         const changedBefore = await listFiltered<{ id: ID }>('list_orders', {
             filter: { updatedAt: { before: future } },
