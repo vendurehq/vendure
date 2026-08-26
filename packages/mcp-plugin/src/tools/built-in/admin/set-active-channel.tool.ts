@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
     ChannelService,
+    EntityNotFoundError,
     ForbiddenError,
     idsAreEqual,
     InternalServerError,
@@ -52,16 +53,18 @@ export class SetActiveChannelTool implements McpToolHandler<SetActiveChannelInpu
         if (!accessibleIds.some(id => idsAreEqual(id, channel.id))) {
             throw new ForbiddenError();
         }
-        // Persist the choice on the one merged grant row. Subsequent requests re-authenticate against
-        // this grant, so its channelId becomes the active channel for later calls.
+        // Update only channelId so a concurrent token refresh cannot overwrite rotated hashes.
         if (!caller?.grant) {
             // An authenticated MCP caller always carries a grant; its absence means the caller info
             // was not wired up, so fail loudly rather than report a switch that never persisted.
             throw new InternalServerError('MCP set_active_channel requires an authenticated grant');
         }
-        const grant = await this.connection.getEntityOrThrow(ctx, McpOauthGrant, caller.grant.id);
-        grant.channelId = channel.id;
-        await this.connection.getRepository(ctx, McpOauthGrant).save(grant);
+        const result = await this.connection
+            .getRepository(ctx, McpOauthGrant)
+            .update({ id: caller.grant.id }, { channelId: channel.id });
+        if (result.affected === 0) {
+            throw new EntityNotFoundError('McpOauthGrant', caller.grant.id);
+        }
         return { channel: this.serializer.channel(channel) };
     }
 }
