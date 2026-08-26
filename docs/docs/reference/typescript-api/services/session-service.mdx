@@ -14,8 +14,8 @@ class SessionService implements EntitySubscriberInterface, OnModuleInit {
     createAnonymousSession() => Promise<CachedSession>;
     getSessionFromToken(sessionToken: string) => Promise<CachedSession | undefined>;
     serializeSession(session: AuthenticatedSession | AnonymousSession) => CachedSession;
-    setActiveOrder(ctx: RequestContext, serializedSession: CachedSession, order: Order) => Promise<CachedSession>;
-    unsetActiveOrder(ctx: RequestContext, serializedSession: CachedSession) => Promise<CachedSession>;
+    setActiveOrder(ctx: RequestContext, serializedSession: T, order: Order) => Promise<CachedSession | T>;
+    unsetActiveOrder(ctx: RequestContext, serializedSession: T) => Promise<CachedSession | T>;
     setActiveChannel(serializedSession: CachedSession, channel: Channel) => Promise<CachedSession>;
     deleteSessionsByUser(ctx: RequestContext, user: User) => Promise<void>;
     deleteApiKeySession(ctx: RequestContext, apiKey: ApiKey) => Promise<void>;
@@ -58,14 +58,20 @@ Returns the cached session object matching the given session token.
 Serializes a [Session](/reference/typescript-api/entities/session#session) instance into a simplified plain object suitable for caching.
 ### setActiveOrder
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, serializedSession: <a href='/reference/typescript-api/auth/session-cache-strategy#cachedsession'>CachedSession</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => Promise<<a href='/reference/typescript-api/auth/session-cache-strategy#cachedsession'>CachedSession</a>>`}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, serializedSession: T, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => Promise<<a href='/reference/typescript-api/auth/session-cache-strategy#cachedsession'>CachedSession</a> | T>`}   />
 
 Sets the `activeOrder` on the given cached session object and updates the cache.
+
+Accepts the session of a deserialized [RequestContext](/reference/typescript-api/request/request-context#requestcontext) too, which has no token. The
+returned session is re-read from the database, so it does have one, unless the session row
+no longer exists, in which case the input is returned as is.
 ### unsetActiveOrder
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, serializedSession: <a href='/reference/typescript-api/auth/session-cache-strategy#cachedsession'>CachedSession</a>) => Promise<<a href='/reference/typescript-api/auth/session-cache-strategy#cachedsession'>CachedSession</a>>`}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, serializedSession: T) => Promise<<a href='/reference/typescript-api/auth/session-cache-strategy#cachedsession'>CachedSession</a> | T>`}   />
 
 Clears the `activeOrder` on the given cached session object and updates the cache.
+
+Accepts the session of a deserialized [RequestContext](/reference/typescript-api/request/request-context#requestcontext) too, see `setActiveOrder`.
 ### setActiveChannel
 
 <MemberInfo kind="method" type={`(serializedSession: <a href='/reference/typescript-api/auth/session-cache-strategy#cachedsession'>CachedSession</a>, channel: <a href='/reference/typescript-api/entities/channel#channel'>Channel</a>) => Promise<<a href='/reference/typescript-api/auth/session-cache-strategy#cachedsession'>CachedSession</a>>`}   />
