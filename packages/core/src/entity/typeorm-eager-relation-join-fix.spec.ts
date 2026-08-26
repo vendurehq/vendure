@@ -43,7 +43,12 @@ describe('joinEagerRelationsInsteadOfQuerying()', () => {
         joinEagerRelationsInsteadOfQuerying(qb);
 
         expect(joinEagerRelations).toHaveBeenCalledTimes(1);
-        expect(joinEagerRelations).toHaveBeenCalledWith(qb, 'product', qb.expressionMap.mainAlias.metadata, 'left');
+        expect(joinEagerRelations).toHaveBeenCalledWith(
+            qb,
+            'product',
+            qb.expressionMap.mainAlias.metadata,
+            'left',
+        );
         expect(qb.relationMetadatas).toEqual([]);
     });
 
@@ -80,6 +85,31 @@ describe('joinEagerRelationsInsteadOfQuerying()', () => {
         joinEagerRelationsInsteadOfQuerying(qb);
 
         expect(joinEagerRelations).not.toHaveBeenCalled();
+    });
+
+    it('joins an eager relation custom field, whose path names its embedded entity', () => {
+        joinEagerRelations.mockClear();
+        const owner = relation('customFields.owner');
+        const qb = queryBuilder({ eagerRelations: [owner] });
+
+        joinEagerRelationsInsteadOfQuerying(qb);
+
+        expect(joinEagerRelations).toHaveBeenCalledTimes(1);
+        expect(qb.relationMetadatas).toEqual([]);
+    });
+
+    it('leaves an eager relation custom field alone when the caller named it', () => {
+        joinEagerRelations.mockClear();
+        const owner = relation('customFields.owner');
+        const qb = queryBuilder({
+            eagerRelations: [owner],
+            relations: { customFields: { owner: true } },
+        });
+
+        joinEagerRelationsInsteadOfQuerying(qb);
+
+        expect(joinEagerRelations).not.toHaveBeenCalled();
+        expect(qb.relationMetadatas).toEqual([owner]);
     });
 
     it('does nothing under the join strategy, where eager relations are joined already', () => {

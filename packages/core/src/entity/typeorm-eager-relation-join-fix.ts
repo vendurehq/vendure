@@ -91,9 +91,11 @@ export function joinEagerRelationsInsteadOfQuerying(qb: any): void {
 }
 
 /**
- * Whether the find options name the given relation path, by any of the forms TypeORM accepts —
- * `{ translations: true }`, `{ translations: { ... } }` or a nested path such as
- * `{ variants: { translations: true } }`.
+ * Whether the find options name the given relation path, in either of the forms TypeORM accepts:
+ * `{ translations: true }` and `{ translations: { ... } }`.
+ *
+ * A relation declared on an embedded entity has a dotted property path, so an eager relation
+ * custom field is `customFields.owner` here and is named as `{ customFields: { owner: true } }`.
  */
 function isNamedInRelations(relations: any, propertyPath: string): boolean {
     let value = relations;
