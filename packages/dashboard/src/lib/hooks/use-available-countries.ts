@@ -6,7 +6,7 @@ export const availableCountriesQueryKey = ['availableCountries'];
 
 const availableCountriesDocument = graphql(`
     query GetAvailableCountries {
-        countries(options: { filter: { enabled: { eq: true } } }) {
+        countries(options: { filter: { enabled: { eq: true } }, sort: { name: ASC } }) {
             items {
                 id
                 code

@@ -2,7 +2,7 @@ import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js'
 import { AccordionContent, AccordionItem, AccordionTrigger } from '@/vdb/components/ui/accordion.js';
 import { Form } from '@/vdb/components/ui/form.js';
 import { Input } from '@/vdb/components/ui/input.js';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/vdb/components/ui/select.js';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/vdb/components/ui/select.js';
 import { LS_KEY_SHIPPING_TEST_ADDRESS } from '@/vdb/constants.js';
 import { useAvailableCountries } from '@/vdb/hooks/use-available-countries.js';
 import { Trans } from '@lingui/react/macro';
@@ -200,19 +200,29 @@ export function TestAddressForm({ onAddressChange }: Readonly<TestAddressFormPro
                                 render={({ field }) => (
                                     <Select
                                         items={countriesData ? Object.fromEntries(countriesData.countries.items.map(c => [c.code, c.name])) : {}}
-                                        onValueChange={field.onChange}
-                                        value={field.value}
+                                        onValueChange={value => value && field.onChange(value)}
+                                        value={field.value ?? ''}
                                         disabled={isLoadingCountries}
                                     >
                                         <SelectTrigger>
-                                            <SelectValue placeholder="Select a country" />
+                                            <SelectValue placeholder="Select a country">
+                                                {(value: string) =>
+                                                    countriesData?.countries.items.find(
+                                                        c => c.code === value,
+                                                    )?.name
+                                                }
+                                            </SelectValue>
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {countriesData?.countries.items.map(country => (
-                                                <SelectItem key={country.code} value={country.code}>
-                                                    {country.name}
-                                                </SelectItem>
-                                            ))}
+                                            {countriesData && (
+                                                <SelectGroup>
+                                                    {countriesData.countries.items.map(country => (
+                                                        <SelectItem key={country.code} value={country.code}>
+                                                            {country.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectGroup>
+                                            )}
                                         </SelectContent>
                                     </Select>
                                 )}

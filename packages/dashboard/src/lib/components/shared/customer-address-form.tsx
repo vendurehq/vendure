@@ -7,7 +7,7 @@ import { Checkbox } from '../ui/checkbox.js';
 import { FieldDescription, FieldLabel } from '../ui/field.js';
 import { Form } from '../ui/form.js';
 import { Input } from '../ui/input.js';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select.js';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '../ui/select.js';
 import { FormFieldWrapper } from './form-field-wrapper.js';
 import { CustomFieldsForm } from './custom-fields-form.js';
 
@@ -168,21 +168,34 @@ export function CustomerAddressForm<T>({
                         renderFormControl={false}
                         render={({ field }) => (
                             <Select
-                                items={countriesData ? Object.fromEntries(countriesData.countries.items.map(c => [c.code, c.name])) : {}}
-                                onValueChange={field.onChange}
-                                defaultValue={field.value || undefined}
-                                value={field.value || undefined}
+                                items={
+                                    countriesData
+                                        ? Object.fromEntries(
+                                              countriesData.countries.items.map(c => [c.code, c.name]),
+                                          )
+                                        : {}
+                                }
+                                value={field.value ?? ''}
+                                onValueChange={value => value && field.onChange(value)}
                                 disabled={isLoadingCountries}
                             >
                                 <SelectTrigger>
-                                    <SelectValue placeholder={t`Select a country`} />
+                                    <SelectValue placeholder={t`Select a country`}>
+                                        {(value: string) =>
+                                            countriesData?.countries.items.find(c => c.code === value)?.name
+                                        }
+                                    </SelectValue>
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {countriesData?.countries.items.map(country => (
-                                        <SelectItem key={country.code} value={country.code}>
-                                            {country.name}
-                                        </SelectItem>
-                                    ))}
+                                    {countriesData && (
+                                        <SelectGroup>
+                                            {countriesData.countries.items.map(country => (
+                                                <SelectItem key={country.code} value={country.code}>
+                                                    {country.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectGroup>
+                                    )}
                                 </SelectContent>
                             </Select>
                         )}
