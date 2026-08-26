@@ -135,7 +135,7 @@ describe('McpActiveOrderService', () => {
 
             const result = await service.find(cartCtx() as never);
 
-            expect(Object.keys(result ?? {}).sort()).toEqual(['ctx', 'currencyCode', 'id']);
+            expect(Object.keys(result ?? {}).sort()).toEqual(['ctx', 'currencyCode', 'id', 'state']);
         });
     });
 

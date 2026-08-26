@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CreateAddressInput } from '@vendure/common/lib/generated-shop-types';
 import {
     Order,
+    OrderModificationError,
     OrderService,
     Permission,
     RequestContext,
@@ -11,7 +12,7 @@ import {
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { McpActiveOrderService } from '../active-order.service';
+import { cartIsEditable, McpActiveOrderService } from '../active-order.service';
 import { McpToolSerializerService } from '../serializer.service';
 
 import { addressInputSchema } from './address-schema';
@@ -82,6 +83,9 @@ export class SetCheckoutAddressesTool implements McpToolHandler<SetCheckoutAddre
 
     async execute(ctx: RequestContext, input: SetCheckoutAddressesInput) {
         const cart = await this.activeOrder.findOrThrow(ctx);
+        if (!cartIsEditable(cart)) {
+            return this.serializer.orderOrError(new OrderModificationError());
+        }
         return this.connection.withTransaction(cart.ctx, async txCtx => {
             const before = await this.orderService.findOne(txCtx, cart.id, ['shippingLines']);
             const methodsBefore = shippingMethodIds(before);

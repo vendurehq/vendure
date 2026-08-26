@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { OrderService, Permission, RequestContext } from '@vendure/core';
+import { OrderModificationError, OrderService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { McpActiveOrderService } from '../active-order.service';
+import { cartIsEditable, McpActiveOrderService } from '../active-order.service';
 import { McpToolSerializerService } from '../serializer.service';
 
 const removeCouponCodeInput = z.strictObject({
@@ -39,6 +39,9 @@ export class RemoveCouponCodeTool implements McpToolHandler<RemoveCouponCodeInpu
 
     async execute(ctx: RequestContext, input: RemoveCouponCodeInput) {
         const order = await this.activeOrder.findOrThrow(ctx);
+        if (!cartIsEditable(order)) {
+            return this.serializer.orderOrError(new OrderModificationError());
+        }
         return {
             order: this.serializer.order(
                 await this.orderService.removeCouponCode(order.ctx, order.id, input.code),

@@ -16,7 +16,14 @@ import { LockNotSupportedOnGivenDriverError } from 'typeorm';
 export interface ActiveOrderRef {
     id: ID;
     currencyCode: CurrencyCode;
+    state: Order['state'];
     ctx: RequestContext;
+}
+
+const EDITABLE_ORDER_STATES: Array<Order['state']> = ['AddingItems', 'Draft'];
+
+export function cartIsEditable(cart: ActiveOrderRef): boolean {
+    return EDITABLE_ORDER_STATES.includes(cart.state);
 }
 
 /**
@@ -48,6 +55,7 @@ export class McpActiveOrderService {
         return {
             id: order.id,
             currencyCode: order.currencyCode,
+            state: order.state,
             ctx: ctx.currencyCode === order.currencyCode ? ctx : withCurrency(ctx, order.currencyCode),
         };
     }

@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { OrderService, Permission, RequestContext } from '@vendure/core';
+import { OrderModificationError, OrderService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { McpActiveOrderService } from '../active-order.service';
+import { cartIsEditable, McpActiveOrderService } from '../active-order.service';
 import { McpToolSerializerService } from '../serializer.service';
 
 const applyCouponCodeInput = z.strictObject({
@@ -41,6 +41,9 @@ export class ApplyCouponCodeTool implements McpToolHandler<ApplyCouponCodeInput>
 
     async execute(ctx: RequestContext, input: ApplyCouponCodeInput) {
         const order = await this.activeOrder.findOrThrow(ctx);
+        if (!cartIsEditable(order)) {
+            return this.serializer.orderOrError(new OrderModificationError());
+        }
         return this.serializer.orderOrError(
             await this.orderService.applyCouponCode(order.ctx, order.id, input.code),
         );

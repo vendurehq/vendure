@@ -1769,6 +1769,44 @@ describe('MCP built-in shop tools', () => {
             expect(stored.orderPlacedAt).toBeFalsy();
         });
 
+        // Acts on the order the test above left waiting for payment. A fresh authorization flow
+        // starts a session with no cart of its own, and core then falls back to the customer's
+        // active order, which is that one.
+        it('refuses coupon and address changes once the order is waiting for payment', async () => {
+            const flow = await runShopAuthorizationCodeFlow({
+                baseUrl: baseUrl(),
+                issuer: ISSUER,
+                vendureAuthToken: pendingPaymentAuthToken,
+            });
+            const call = (name: string, args: Record<string, unknown>, id: number) =>
+                postMcp(baseUrl(), 'shop', callTool(name, args, id), { token: flow.access_token });
+
+            const cart = await call('get_cart', {}, 1);
+            expect(cart.body.result.isError).toBeUndefined();
+            const waitingForPayment = cart.body.result.structuredContent.order;
+            expect(waitingForPayment.state).toBe('ArrangingPayment');
+
+            const applied = await call('apply_coupon_code', { code: 'ANY-CODE' }, 2);
+            const removed = await call('remove_coupon_code', { code: 'ANY-CODE' }, 3);
+            const address = await call('set_checkout_addresses', { shippingAddress: UK_ADDRESS }, 4);
+
+            const cartClosedMessage = 'Order contents may only be modified when in the "AddingItems" state';
+            for (const refusal of [applied, removed, address]) {
+                expect(refusal.body.result.isError).toBe(true);
+                expect(refusal.body.result.structuredContent.errorCode).toBe('ORDER_MODIFICATION_ERROR');
+                // The text content is the error result as JSON, so the quotes around the state name
+                // are escaped inside it.
+                expect(refusal.body.result.content[0].text).toContain(JSON.stringify(cartClosedMessage));
+            }
+
+            // Proves nothing was written, not only that an error came back. The stored address is
+            // still the US one the order was checked out with, not the UK one just sent.
+            const untouched = await orderByCode(waitingForPayment.code);
+            expect(untouched.couponCodes).toEqual([]);
+            expect(untouched.totalWithTax).toBe(waitingForPayment.totalWithTax);
+            expect(untouched.shippingAddress.countryCode).toBe('US');
+        });
+
         // Like the test above, this one uses a customer created for it. It leaves a cart sitting in
         // `AddingItems`, and `OrderService.findByCustomerId` only leaves out `Draft` orders, so an
         // unplaced order on the shared customer would show up in the `list_my_orders` test further
