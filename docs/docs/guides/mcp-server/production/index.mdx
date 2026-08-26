@@ -35,8 +35,7 @@ every stored MCP OAuth token**, so all agents must re-authorize.
 
 ## Set the issuer
 
-In production, set `oauth.issuer` to the public URL of your Vendure server. When `NODE_ENV=production`, the
-plugin rejects loopback addresses such as `localhost`.
+In production, `oauth.issuer` must be a public HTTPS origin.
 
 :::warning
 Keep the issuer stable once clients have been connected. Changing it invalidates all existing grants — see
@@ -210,7 +209,7 @@ without it does not take effect.
 
 | What you see | Cause | Fix |
 |---|---|---|
-| The server refuses to boot with `NODE_ENV=production` | `oauth.issuer` (or a supplied `oauth.storefrontConsentUrl`) is a loopback address, the consent URL is not HTTPS, or `oauth.allowLoopbackCimdDocuments` is enabled | Set the issuer to your public Vendure URL, serve the consent page over HTTPS, and turn off `allowLoopbackCimdDocuments` |
+| The server refuses to boot with `NODE_ENV=production` | `oauth.issuer` is not public HTTPS, `oauth.storefrontConsentUrl` is not public HTTPS, or `oauth.allowLoopbackCimdDocuments` is enabled | Use public HTTPS URLs and turn off `allowLoopbackCimdDocuments` |
 | The DNS-rebinding guard rejects requests even though the host is in your allow-list | The entry is written as a URL or carries a port; the guard reduces the incoming header to its hostname before comparing, so such entries never match | Write bare hostnames in `allowedHosts` and `allowedOrigins` |
 | Rate limits never trigger on a busy store | The default in-memory cache holds at most 10,000 entries for the whole application, and other cache activity evicts the counters | Use the SQL or Redis cache plugin |
 | Anonymous callers get 429s at low traffic | Behind a proxy, `req.ip` is the proxy's address, so every anonymous caller shares one allowance | Enable Vendure's [`trustProxy`](/guides/deployment/production-configuration/#trust-proxy) |

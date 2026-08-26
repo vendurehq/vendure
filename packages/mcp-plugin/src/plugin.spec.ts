@@ -198,6 +198,18 @@ describe('McpPlugin production config guard', () => {
         const plugin = createPlugin(true);
         expect(() => plugin.onApplicationBootstrap()).not.toThrow();
     });
+
+    it('throws in production when the issuer is public but plain HTTP', () => {
+        process.env.NODE_ENV = 'production';
+        setOauth({ tokenSecret: 'x', issuer: 'http://example.com' });
+        expect(() => createPlugin(true).onApplicationBootstrap()).toThrow(/must use https in production/);
+    });
+
+    it('does not throw outside production when the issuer is plain HTTP', () => {
+        process.env.NODE_ENV = 'development';
+        setOauth({ tokenSecret: 'x', issuer: 'http://example.com' });
+        expect(() => createPlugin(true).onApplicationBootstrap()).not.toThrow();
+    });
 });
 
 describe('McpPlugin SDK schema preload', () => {

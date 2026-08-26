@@ -213,6 +213,11 @@ export class McpPlugin implements NestModule, OnApplicationBootstrap {
                         `Set it to your public Vendure server URL so clients can reach it.`,
                 );
             }
+            if (new URL(oauth.issuer ?? '').protocol !== 'https:') {
+                throw new Error(
+                    `McpPlugin: oauth.issuer must use https in production ("${oauth.issuer ?? ''}").`,
+                );
+            }
             if (oauth.storefrontConsentUrl != null) {
                 if (this.isLoopbackUrl(oauth.storefrontConsentUrl)) {
                     throw new Error(
