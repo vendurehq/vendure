@@ -210,6 +210,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
     let variantId: ID;
     let variantGraphqlId: string;
     let stockLocationId: ID;
+    let stockLocationGraphqlId: string;
     let secondChannelToken: string;
     let secondChannelDbId: ID;
     let channelAdminToken: string;
@@ -262,7 +263,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
         const zoneId = fixture.zones.items[0]?.id;
         productGraphqlId = fixture.products.items[0]?.id;
         variantGraphqlId = fixture.productVariants.items[0]?.id;
-        const stockLocationGraphqlId = fixture.stockLocations.items[0]?.id;
+        stockLocationGraphqlId = fixture.stockLocations.items[0]?.id;
         seededCustomerEmail = fixture.customers.items[0]?.emailAddress;
         if (
             !productGraphqlId ||
@@ -1124,6 +1125,23 @@ describe('MCP built-in admin tools (direct mode)', () => {
 
     it('adjust_stock refuses a variant that is not in the active channel', async () => {
         const token = await adminAccessToken();
+        // adjust_stock checks the stock location before it touches the variant, so the location has to
+        // be visible from the second channel for this test to reach the variant check at all.
+        await adminClient.query(
+            gql`
+                mutation AssignStockLocationToSecondChannel($input: AssignStockLocationsToChannelInput!) {
+                    assignStockLocationsToChannel(input: $input) {
+                        id
+                    }
+                }
+            `,
+            {
+                input: {
+                    stockLocationIds: [stockLocationGraphqlId],
+                    channelId: String(secondChannelDbId),
+                },
+            },
+        );
         // The seeded variant belongs to the default channel only, so once this grant is switched to the
         // second channel the variant is out of scope for it.
         const switched = await postMcp(
@@ -1148,7 +1166,115 @@ describe('MCP built-in admin tools (direct mode)', () => {
         );
 
         expect(response.body.result.isError).toBe(true);
+        // The refusal has to be core's answer about the variant, not the tool's answer about the
+        // location, or this test proves nothing about variant scoping.
+        expect(response.body.result.content[0].text).toContain('No ProductVariant with the id');
         expect((await stockLevel()).stockOnHand).toBe(before.stockOnHand);
+
+        // Put the stock location back in one channel only, so later tests see the fixture as they
+        // expect it.
+        await adminClient.query(
+            gql`
+                mutation RemoveStockLocationFromSecondChannel($input: RemoveStockLocationsFromChannelInput!) {
+                    removeStockLocationsFromChannel(input: $input) {
+                        id
+                    }
+                }
+            `,
+            {
+                input: {
+                    stockLocationIds: [stockLocationGraphqlId],
+                    channelId: String(secondChannelDbId),
+                },
+            },
+        );
+    });
+
+    it('adjust_stock refuses a stock location that does not exist', async () => {
+        const token = await adminAccessToken();
+        const stockLevel = () =>
+            connection
+                .getRepository(adminCtx, StockLevel)
+                .findOneOrFail({ where: { productVariantId: variantId, stockLocationId } });
+        const before = await stockLevel();
+
+        const response = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool('adjust_stock', { variantId, locationId: 99999, delta: -5, confirm: true }, 1),
+            { token },
+        );
+
+        // An id nobody recognises has to come back as a mistake the caller can correct, rather than as
+        // the generic failure an unhandled database error would produce.
+        expect(response.body.result.isError).toBe(true);
+        expect(response.body.result.content[0].text).toContain(
+            'Stock location 99999 is not available in the active channel.',
+        );
+        expect((await stockLevel()).stockOnHand).toBe(before.stockOnHand);
+    });
+
+    it('adjust_stock refuses a stock location that belongs to another channel', async () => {
+        const stockLevel = () =>
+            connection
+                .getRepository(adminCtx, StockLevel)
+                .findOneOrFail({ where: { productVariantId: variantId, stockLocationId } });
+        const before = await stockLevel();
+
+        // Putting the product in the second channel makes the variant reachable from there while its
+        // stock stays at a location the second channel cannot see.
+        await adminClient.query(
+            gql`
+                mutation AssignProductToSecondChannel($input: AssignProductsToChannelInput!) {
+                    assignProductsToChannel(input: $input) {
+                        id
+                    }
+                }
+            `,
+            {
+                input: {
+                    productIds: [productGraphqlId],
+                    channelId: String(secondChannelDbId),
+                    priceFactor: 1,
+                },
+            },
+        );
+
+        const token = await adminAccessToken();
+        const switched = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool('set_active_channel', { channelToken: secondChannelToken }, 1),
+            { token },
+        );
+        expect(switched.body.result.isError).toBeUndefined();
+
+        const response = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool('adjust_stock', { variantId, locationId: stockLocationId, delta: 5, confirm: true }, 2),
+            { token },
+        );
+
+        // A location the caller's channel cannot see reads as no stock at all, so without a check the
+        // delta would be written as the whole new quantity and the stock already held would vanish.
+        expect(response.body.result.isError).toBe(true);
+        expect(response.body.result.content[0].text).toContain('is not available in the active channel');
+        expect((await stockLevel()).stockOnHand).toBe(before.stockOnHand);
+
+        // Put the product back in one channel only, so later tests see the fixture as they expect it.
+        await adminClient.query(
+            gql`
+                mutation RemoveProductFromSecondChannel($input: RemoveProductsFromChannelInput!) {
+                    removeProductsFromChannel(input: $input) {
+                        id
+                    }
+                }
+            `,
+            {
+                input: { productIds: [productGraphqlId], channelId: String(secondChannelDbId) },
+            },
+        );
     });
 
     it('refund_order defaults to the first Settled payment and refunds its full remainder', async () => {

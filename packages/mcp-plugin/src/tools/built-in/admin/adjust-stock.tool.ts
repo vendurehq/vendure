@@ -5,6 +5,7 @@ import {
     ProductVariantService,
     RequestContext,
     StockLevelService,
+    StockLocationService,
     UserInputError,
 } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
@@ -46,10 +47,20 @@ export class AdjustStockTool implements McpToolHandler<AdjustStockInput> {
     constructor(
         private productVariantService: ProductVariantService,
         private stockLevelService: StockLevelService,
+        private stockLocationService: StockLocationService,
         private serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: AdjustStockInput) {
+        // The stock level read below only sees locations in the active channel, but core's write path
+        // sees every location. Without this check a location from another channel reads as no stock at
+        // all, and the delta would be written as the whole new quantity, replacing the stock held there.
+        const location = await this.stockLocationService.findOne(ctx, input.locationId);
+        if (!location) {
+            throw new UserInputError(
+                `Stock location ${input.locationId} is not available in the active channel.`,
+            );
+        }
         const levels = await this.stockLevelService.getStockLevelsForVariant(ctx, input.variantId);
         const current = levels.find(level => idsAreEqual(level.stockLocationId, input.locationId));
         const stockOnHand = (current?.stockOnHand ?? 0) + input.delta;

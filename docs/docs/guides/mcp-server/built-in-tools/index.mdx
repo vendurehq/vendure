@@ -167,7 +167,8 @@ Orders returned with Vendure errors, such as insufficient stock, have the same s
 
 `get_product` is where variant IDs (for `get_stock_levels`, `adjust_stock` and `update_variant`) and option IDs
 (for `create_variant`) come from. `get_stock_levels` and `adjust_stock` both answer with one entry per stock
-location, carrying `stockLocationId`, `stockLocationName`, `stockOnHand` and `stockAllocated`.
+location, carrying `stockLocationId`, `stockLocationName`, `stockOnHand` and `stockAllocated`. `adjust_stock`
+refuses a stock location that is not in the administrator's active channel.
 
 ### Orders
 

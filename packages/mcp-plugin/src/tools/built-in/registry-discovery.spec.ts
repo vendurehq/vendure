@@ -14,6 +14,7 @@ import {
     ProductVariantService,
     SettingsStoreService,
     StockLevelService,
+    StockLocationService,
     TransactionalConnection,
 } from '@vendure/core';
 import { describe, expect, it, vi } from 'vitest';
@@ -61,6 +62,7 @@ describe('built-in registry discovery', () => {
                 { provide: McpShopSessionService, useValue: {} },
                 { provide: SettingsStoreService, useValue: { get: vi.fn(), set: vi.fn() } },
                 { provide: StockLevelService, useValue: {} },
+                { provide: StockLocationService, useValue: {} },
                 { provide: TransactionalConnection, useValue: {} },
                 { provide: McpRateLimiterService, useValue: {} },
                 { provide: McpToolCallLogService, useValue: {} },
