@@ -94,7 +94,23 @@ function CollapsedSectionMenu({
 export function NavMain({ items }: Readonly<{ items: Array<NavMenuSection | NavMenuItem> }>) {
     const router = useRouter();
     const routerState = useRouterState();
-    const { ctx, ready } = useDashboardUserContext();
+    // With no transforms and no isVisible predicate anywhere, the resolved output cannot
+    // depend on administrator custom fields. That makes this the signal for both the
+    // request and the render gate: a vanilla install neither fetches the custom fields nor
+    // waits on them, which would otherwise mean an extra Admin API round trip and a blank
+    // sidebar on every page load for no benefit.
+    const hasUserDependentRules = React.useMemo(() => {
+        if (getNavMenuTransforms().length > 0) {
+            return true;
+        }
+        return items.some(
+            entry =>
+                entry.isVisible !== undefined ||
+                ('items' in entry && (entry.items ?? []).some(i => i.isVisible !== undefined)),
+        );
+    }, [items]);
+
+    const { ctx, ready } = useDashboardUserContext({ includeCustomFields: hasUserDependentRules });
     const { i18n } = useLingui();
     const { state: sidebarState, isMobile, setOpenMobile, open, setOpen } = useSidebar();
     const isCollapsed = sidebarState === 'collapsed' && !isMobile;
@@ -148,21 +164,6 @@ export function NavMain({ items }: Readonly<{ items: Array<NavMenuSection | NavM
         },
         [isPathActive],
     );
-
-    // Only the presence of user-dependent rules justifies withholding the menu.
-    // With no transforms and no isVisible predicate anywhere, the resolved output
-    // cannot depend on administrator custom fields, so waiting on `ready` would
-    // impose a blank sidebar on every page load for no benefit.
-    const hasUserDependentRules = React.useMemo(() => {
-        if (getNavMenuTransforms().length > 0) {
-            return true;
-        }
-        return items.some(
-            entry =>
-                entry.isVisible !== undefined ||
-                ('items' in entry && (entry.items ?? []).some(i => i.isVisible !== undefined)),
-        );
-    }, [items]);
 
     const resolved = React.useMemo(
         () =>

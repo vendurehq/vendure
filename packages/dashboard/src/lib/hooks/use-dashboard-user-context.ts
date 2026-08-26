@@ -10,6 +10,26 @@ import { useMemo } from 'react';
 
 /**
  * @description
+ * Options for {@link useDashboardUserContext}.
+ *
+ * @docsCategory hooks
+ * @docsPage useDashboardUserContext
+ * @since 3.8.0
+ */
+export interface DashboardUserContextOptions {
+    /**
+     * @description
+     * Whether to load the administrator's custom fields. Pass false when your rules only
+     * read roles, channels or permissions: it saves an Admin API request, and
+     * `ctx.administrator.customFields` is then undefined while `ready` is true immediately.
+     *
+     * @default true
+     */
+    includeCustomFields?: boolean;
+}
+
+/**
+ * @description
  * Returns the {@link DashboardUserContext} for the logged-in administrator, plus a
  * `ready` flag which is false while Administrator custom fields are still loading.
  *
@@ -24,11 +44,17 @@ import { useMemo } from 'react';
  * @docsWeight 0
  * @since 3.8.0
  */
-export function useDashboardUserContext(): { ctx: DashboardUserContext; ready: boolean } {
+export function useDashboardUserContext(options?: DashboardUserContextOptions): {
+    ctx: DashboardUserContext;
+    ready: boolean;
+} {
+    // Read the flag out of `options` rather than passing the object down: callers
+    // construct it inline, so its identity changes on every render.
+    const includeCustomFields = options?.includeCustomFields ?? true;
     const { user, channels } = useAuth();
     const { activeChannel } = useChannel();
     const { hasPermissions } = usePermissions();
-    const { customFields, ready } = useAdminCustomFields();
+    const { customFields, ready } = useAdminCustomFields({ enabled: includeCustomFields });
 
     // useAuth().channels carries permissions; useChannel().activeChannel does not
     // (channelFragment has no `permissions` field), so resolve the active channel

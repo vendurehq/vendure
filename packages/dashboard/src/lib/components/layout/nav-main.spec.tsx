@@ -228,4 +228,30 @@ describe('NavMain', () => {
     it('renders a vanilla config even while the user context is not ready', () => {
         expect(getRenderedNavIds(render(vanillaConfig(), { ready: false }))).toEqual(VANILLA_IDS);
     });
+
+    // The same signal also suppresses the custom fields request, so a vanilla install
+    // does not pay an Admin API round trip on boot for a feature it does not use.
+    it('opts out of loading administrator custom fields for a vanilla config', () => {
+        render(vanillaConfig());
+
+        expect(useDashboardUserContextMock).toHaveBeenCalledWith({ includeCustomFields: false });
+    });
+
+    it('loads administrator custom fields when an entry carries a predicate', () => {
+        const items = vanillaConfig();
+        const catalog = items.find(entry => entry.id === 'catalog') as NavMenuSection;
+        catalog.isVisible = () => true;
+
+        render(items);
+
+        expect(useDashboardUserContextMock).toHaveBeenCalledWith({ includeCustomFields: true });
+    });
+
+    it('loads administrator custom fields when a transform is registered', () => {
+        addNavMenuTransform(config => config);
+
+        render(vanillaConfig());
+
+        expect(useDashboardUserContextMock).toHaveBeenCalledWith({ includeCustomFields: true });
+    });
 });

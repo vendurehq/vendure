@@ -41,10 +41,11 @@ const channels = [
 ];
 
 let result: HookResult | undefined;
+let probeOptions: Parameters<typeof useDashboardUserContext>[0];
 
 // Defined once so a re-render reconciles the same instance instead of remounting.
 function Probe() {
-    result = useDashboardUserContext();
+    result = useDashboardUserContext(probeOptions);
     return null;
 }
 
@@ -63,6 +64,7 @@ describe('useDashboardUserContext', () => {
         document.body.appendChild(container);
         root = createRoot(container);
         result = undefined;
+        probeOptions = undefined;
         useAuthMock.mockReturnValue({ user: administrator, channels });
         // useChannel's activeChannel comes from a fragment with no `permissions` field.
         useChannelMock.mockReturnValue({ activeChannel: { id: 'ch-2', token: 'store', code: 'store' } });
@@ -76,6 +78,20 @@ describe('useDashboardUserContext', () => {
         });
         container.remove();
         vi.clearAllMocks();
+    });
+
+    it('loads administrator custom fields by default', async () => {
+        await render();
+
+        expect(useAdminCustomFieldsMock).toHaveBeenCalledWith({ enabled: true });
+    });
+
+    it('passes the opt-out through so no request is made', async () => {
+        probeOptions = { includeCustomFields: false };
+
+        await render();
+
+        expect(useAdminCustomFieldsMock).toHaveBeenCalledWith({ enabled: false });
     });
 
     it('composes the administrator and their roles', async () => {

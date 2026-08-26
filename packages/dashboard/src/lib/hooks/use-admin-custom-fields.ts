@@ -48,8 +48,11 @@ function readAdminCustomFields(data: unknown): Record<string, unknown> | undefin
  * module-evaluation time the global custom fields map is still empty, because
  * CurrentUserQuery is the query that unblocks the serverConfig request which
  * populates it. Do not hoist the `addCustomFields` call.
+ *
+ * Pass `enabled: false` when nothing will read the result, to skip the request
+ * altogether. `ready` is then true immediately, since there is nothing to wait for.
  */
-export function useAdminCustomFields(): {
+export function useAdminCustomFields({ enabled: enabledByCaller = true }: { enabled?: boolean } = {}): {
     customFields: Record<string, unknown> | undefined;
     ready: boolean;
 } {
@@ -75,7 +78,7 @@ export function useAdminCustomFields(): {
         [customFieldsMap],
     );
 
-    const enabled = !!serverConfig && !!user?.id;
+    const enabled = enabledByCaller && !!serverConfig && !!user?.id;
 
     const { data, isSuccess, isError, fetchStatus } = useQuery({
         queryKey: ['activeAdministratorCustomFields', user?.id, customFieldSignature],
@@ -96,16 +99,17 @@ export function useAdminCustomFields(): {
 
     return {
         customFields: readAdminCustomFields(data),
-        // When logged out there is nothing to wait for, so report ready. Note this is
-        // based on login state alone, not `enabled` - `enabled` also waits on
-        // serverConfig, and there is a real window where the user is logged in but
-        // serverConfig hasn't resolved yet, during which custom fields have not loaded.
+        // When the caller opted out, or when logged out, there is nothing to wait for,
+        // so report ready. Note the login check is on login state alone, not `enabled` -
+        // `enabled` also waits on serverConfig, and there is a real window where the user
+        // is logged in but serverConfig hasn't resolved yet, during which custom fields
+        // have not loaded.
         //
         // Fail open. `ready` means "we are done waiting", not "we succeeded".
         // isError covers a settled failure; fetchStatus === 'paused' covers the
         // offline case, where the default networkMode leaves the query pending
         // forever with neither flag set. Holding the nav hostage to either is
         // worse than rendering it with custom fields absent.
-        ready: !user?.id || isSuccess || isError || fetchStatus === 'paused',
+        ready: !enabledByCaller || !user?.id || isSuccess || isError || fetchStatus === 'paused',
     };
 }

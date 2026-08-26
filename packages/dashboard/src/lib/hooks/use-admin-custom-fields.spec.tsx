@@ -28,9 +28,9 @@ describe('useAdminCustomFields', () => {
     let root: ReturnType<typeof createRoot>;
     let result: HookResult | undefined;
 
-    async function render() {
+    async function render(options?: Parameters<typeof useAdminCustomFields>[0]) {
         function Probe() {
-            result = useAdminCustomFields();
+            result = useAdminCustomFields(options);
             return null;
         }
         const client = new QueryClient({
@@ -86,6 +86,16 @@ describe('useAdminCustomFields', () => {
         // The map only fills once serverConfig lands, so ready here would let
         // predicates observe absent custom fields.
         expect(result?.ready).toBe(false);
+        expect(apiQueryMock).not.toHaveBeenCalled();
+    });
+
+    it('does not query and reports ready when the caller opts out', async () => {
+        // A dashboard with no isVisible predicate and no nav transform has nothing to
+        // read the result, so the request must not be made at all.
+        await render({ enabled: false });
+
+        expect(result?.ready).toBe(true);
+        expect(result?.customFields).toBeUndefined();
         expect(apiQueryMock).not.toHaveBeenCalled();
     });
 
