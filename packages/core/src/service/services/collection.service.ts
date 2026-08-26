@@ -20,10 +20,11 @@ import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { unique } from '@vendure/common/lib/unique';
 import { merge } from 'rxjs';
 import { debounceTime, filter } from 'rxjs/operators';
-import { In, IsNull } from 'typeorm';
+import { In, IsNull, QueryRunner } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
+import { TRANSACTION_MANAGER_KEY } from '../../common/constants';
 import { ForbiddenError, IllegalOperationError, UserInputError } from '../../common/error/errors';
 import { Instrument } from '../../common/instrument-decorator';
 import { ListQueryOptions } from '../../common/types/common-types';
@@ -31,6 +32,7 @@ import { Translated } from '../../common/types/locale-types';
 import { assertFound, idsAreEqual } from '../../common/utils';
 import { ConfigService } from '../../config/config.service';
 import { Logger } from '../../config/logger/vendure-logger';
+import { TransactionSubscriber, TransactionSubscriberError } from '../../connection/transaction-subscriber';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { CollectionTranslation } from '../../entity/collection/collection-translation.entity';
 import { Collection } from '../../entity/collection/collection.entity';
@@ -96,6 +98,7 @@ export class CollectionService implements OnModuleInit {
         private translator: TranslatorService,
         private roleService: RoleService,
         private requestContextService: RequestContextService,
+        private transactionSubscriber: TransactionSubscriber,
     ) {}
 
     /**
@@ -684,9 +687,44 @@ export class CollectionService implements OnModuleInit {
      *
      * If no `collectionIds` option is passed, then all collections will be re-evaluated.
      *
+     * If called from within a transaction, the job is not enqueued until that transaction has
+     * committed. The returned promise therefore resolves before the job exists, and the job is
+     * never enqueued at all if the transaction rolls back.
+     *
      * @since 3.1.3
      */
     async triggerApplyFiltersJob(
+        ctx: RequestContext,
+        options?: { collectionIds?: ID[]; applyToChangedVariantsOnly?: boolean },
+    ) {
+        const queryRunner: QueryRunner | undefined = (ctx as any)[TRANSACTION_MANAGER_KEY]?.queryRunner;
+        if (!queryRunner?.isTransactionActive) {
+            await this.addApplyFiltersJob(ctx, options);
+            return;
+        }
+        // The job reads the Collections on its own connection, so it cannot see rows written by a
+        // transaction which has not committed yet. Enqueueing the job here would let it start,
+        // find nothing and skip the work, leaving the collection permanently empty. Awaiting the
+        // commit here instead would deadlock, because the commit only happens once the caller has
+        // returned, so the job is enqueued from the commit callback.
+        void this.transactionSubscriber
+            .awaitCommit(queryRunner)
+            .then(() => {
+                // The query runner is released on commit, so the job must not hold a reference to it.
+                const committedCtx = ctx.copy();
+                delete (committedCtx as any)[TRANSACTION_MANAGER_KEY];
+                return this.addApplyFiltersJob(committedCtx, options);
+            })
+            .catch((err: any) => {
+                if (err instanceof TransactionSubscriberError) {
+                    // The transaction rolled back, so there are no changes to apply filters to.
+                    return;
+                }
+                Logger.error(`Could not enqueue the apply-collection-filters job: ${err.message as string}`);
+            });
+    }
+
+    private async addApplyFiltersJob(
         ctx: RequestContext,
         options?: { collectionIds?: ID[]; applyToChangedVariantsOnly?: boolean },
     ) {
