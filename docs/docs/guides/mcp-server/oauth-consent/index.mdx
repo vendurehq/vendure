@@ -416,6 +416,9 @@ channel, with two effects:
 - the authorization is recorded against the default channel
 - the shopper's own active channel moves to the default too
 
+The grant stays bound to the channel used for approval. To use another channel, revoke the grant
+and authorize again from the intended channel.
+
 The lookup call never needs the token, because it reads nothing channel-specific.
 
 ## Troubleshooting
