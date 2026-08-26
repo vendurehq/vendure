@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildDashboardUserContext } from '../user-context/dashboard-user-context.js';
 
 import { NavMenuConfig, NavMenuItem, NavMenuSection } from './nav-menu-extensions.js';
+import { setNavVisibility } from './nav-menu-helpers.js';
 import { resetNavMenuWarnings, resolveNavMenu } from './resolve-nav-menu.js';
 
 /** Reads item ids from a resolved entry, failing the test rather than casting. */
@@ -345,6 +346,25 @@ describe('resolveNavMenu - transforms and isVisible', () => {
         );
         expect(result.map(s => s.id)).toEqual(['a', 'b']);
         expect(warn).toHaveBeenCalled();
+        warn.mockRestore();
+    });
+
+    it('keeps an entry hidden when a later plugin adds a predicate that throws', () => {
+        // End to end version of the nav-menu-helpers case: the entry must be absent
+        // from the resolved menu, not merely evaluate to false in isolation.
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        const result = resolveNavMenu(
+            config([{ id: 'a', title: 'A', url: '/a', placement: 'top' }]),
+            ctxWith(),
+            [
+                cfg => setNavVisibility(cfg, ['a'], () => false),
+                cfg =>
+                    setNavVisibility(cfg, ['a'], () => {
+                        throw new Error('boom');
+                    }),
+            ],
+        );
+        expect(result).toEqual([]);
         warn.mockRestore();
     });
 

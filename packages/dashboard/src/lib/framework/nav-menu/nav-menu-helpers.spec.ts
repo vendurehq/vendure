@@ -1,9 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { buildDashboardUserContext } from '../user-context/dashboard-user-context.js';
 
 import { NavMenuConfig, NavMenuItem, NavMenuSection } from './nav-menu-extensions.js';
 import { keepOnlyNavItems, setNavVisibility } from './nav-menu-helpers.js';
+import { resetNavMenuWarnings } from './resolve-nav-menu.js';
 
 const ctx = buildDashboardUserContext({
     administrator: undefined,
@@ -50,6 +51,10 @@ function bareItem(config: NavMenuConfig, id: string): NavMenuItem {
 function items(config: NavMenuConfig, sectionId: string): NavMenuItem[] {
     return section(config, sectionId).items ?? [];
 }
+
+beforeEach(() => {
+    resetNavMenuWarnings();
+});
 
 describe('setNavVisibility', () => {
     it('sets a predicate on a nested item by id', () => {
@@ -119,5 +124,29 @@ describe('keepOnlyNavItems', () => {
         });
         const result = keepOnlyNavItems(withThrower, ['pos-home']);
         expect(items(result, 'catalog')[0].isVisible?.(ctx)).toBe(false);
+    });
+});
+
+describe('composition of throwing predicates', () => {
+    it('still hides an entry when the newly added predicate throws', () => {
+        // The mirror of the keepOnlyNavItems case above, with the throw on the other
+        // side. A throw that escapes the composed predicate makes resolveNavMenu fail
+        // open, which would un-hide an entry an earlier plugin had hidden.
+        const hidden = setNavVisibility(sample(), ['products'], () => false);
+        const result = setNavVisibility(hidden, ['products'], () => {
+            throw new Error('predicate from a later plugin is broken');
+        });
+        expect(items(result, 'catalog')[0].isVisible?.(ctx)).toBe(false);
+    });
+
+    it('warns about the throwing predicate rather than swallowing it silently', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        const hidden = setNavVisibility(sample(), ['products'], () => true);
+        const result = setNavVisibility(hidden, ['products'], () => {
+            throw new Error('predicate from a later plugin is broken');
+        });
+        expect(items(result, 'catalog')[0].isVisible?.(ctx)).toBe(true);
+        expect(warn).toHaveBeenCalledTimes(1);
+        warn.mockRestore();
     });
 });

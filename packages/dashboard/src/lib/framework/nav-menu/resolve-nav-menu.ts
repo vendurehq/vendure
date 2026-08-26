@@ -27,7 +27,11 @@ function passesPermission(item: NavMenuItem | NavMenuSection, ctx: DashboardUser
 
 const warnedIds = new Set<string>();
 
-function warnOnce(id: string, message: string) {
+/**
+ * Warns once per key. Also used by the nav menu helpers, which swallow a throw from a
+ * composed predicate and would otherwise report nothing.
+ */
+export function warnOnce(id: string, message: string) {
     if (warnedIds.has(id)) {
         return;
     }
