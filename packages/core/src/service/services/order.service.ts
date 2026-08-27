@@ -573,7 +573,6 @@ export class OrderService implements OnApplicationBootstrap {
         }
 
         const updatedOrder = await this.addCustomerToOrder(ctx, order.id, targetCustomer);
-        await this.eventBus.publish(new OrderEvent(ctx, updatedOrder, 'updated', targetCustomer));
         await this.historyService.createHistoryEntryForOrder({
             ctx,
             orderId,
@@ -2059,6 +2058,7 @@ export class OrderService implements OnApplicationBootstrap {
                 }
             }
         }
+        await this.eventBus.publish(new OrderEvent(ctx, updatedOrder, 'updated', customer));
         return updatedOrder;
     }
 
@@ -2254,8 +2254,7 @@ export class OrderService implements OnApplicationBootstrap {
                 }
                 const customer = await this.customerService.findOneByUserId(txCtx, user.id);
                 if (order && customer) {
-                    order.customer = customer;
-                    await this.connection.getRepository(txCtx, Order).save(order, { reload: false });
+                    order = await this.addCustomerToOrder(txCtx, order, customer);
                 }
                 return order;
             });
