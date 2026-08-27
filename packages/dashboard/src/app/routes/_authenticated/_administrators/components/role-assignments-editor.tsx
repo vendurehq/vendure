@@ -2,6 +2,7 @@ import { ChannelSelector } from '@/vdb/components/shared/channel-selector.js';
 import { RoleSelector } from '@/vdb/components/shared/role-selector.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
+import { useGrantableRoles } from '@/vdb/hooks/use-grantable-roles.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { Plus, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -20,15 +21,24 @@ interface EditorRow {
 export interface RoleAssignmentsEditorProps {
     value: RoleAssignmentPair[];
     onChange: (value: RoleAssignmentPair[]) => void;
+    /**
+     * Offer only the Roles and Channels the active user may actually grant. The server
+     * enforces this on save regardless; restricting the inputs keeps a combination that
+     * cannot be saved from being picked in the first place.
+     */
+    restrictToGrantable?: boolean;
 }
 
 let nextRowKey = 0;
 
 /**
  * The generated form seeds a list-of-input-object field with one blank item, so incomplete
- * pairs arrive here on the create page and must not be treated as assignments.
+ * pairs arrive here on the create page and must not be treated as assignments, nor reach the
+ * replace-set input on save.
  */
-function completePairs(pairs: RoleAssignmentPair[] | undefined): RoleAssignmentPair[] {
+export function completeRoleAssignmentPairs(
+    pairs: RoleAssignmentPair[] | null | undefined,
+): RoleAssignmentPair[] {
     return (pairs ?? []).filter(pair => !!pair?.roleId && !!pair?.channelId);
 }
 
@@ -83,18 +93,23 @@ function pairsAreEqual(a: RoleAssignmentPair[], b: RoleAssignmentPair[]): boolea
  * granted on. The form value is the flat list of (roleId, channelId) pairs taken by the
  * `roleAssignments` input, which replaces the User's assignments across all Channels.
  */
-export function RoleAssignmentsEditor({ value, onChange }: Readonly<RoleAssignmentsEditorProps>) {
+export function RoleAssignmentsEditor({
+    value,
+    onChange,
+    restrictToGrantable,
+}: Readonly<RoleAssignmentsEditorProps>) {
     const { activeChannel } = useChannel();
     const { t } = useLingui();
-    const [rows, setRows] = useState<EditorRow[]>(() => groupPairsIntoRows(completePairs(value)));
+    const { nonGrantableRoleIds, grantableChannelIds } = useGrantableRoles();
+    const [rows, setRows] = useState<EditorRow[]>(() => groupPairsIntoRows(completeRoleAssignmentPairs(value)));
     // A row with no Role, or a Role with no Channels, produces no pairs, so it exists only
     // in the UI. External value changes (form reset, refetch) are therefore detected by
     // comparing against the pairs last emitted rather than mirrored on every render.
-    const lastEmitted = useRef<RoleAssignmentPair[]>(completePairs(value));
+    const lastEmitted = useRef<RoleAssignmentPair[]>(completeRoleAssignmentPairs(value));
     const seededEmptyRow = useRef(false);
 
     useEffect(() => {
-        const incoming = completePairs(value);
+        const incoming = completeRoleAssignmentPairs(value);
         if (!pairsAreEqual(incoming, lastEmitted.current)) {
             lastEmitted.current = incoming;
             setRows(groupPairsIntoRows(incoming));
@@ -107,7 +122,7 @@ export function RoleAssignmentsEditor({ value, onChange }: Readonly<RoleAssignme
         if (seededEmptyRow.current) {
             return;
         }
-        if (completePairs(value).length > 0) {
+        if (completeRoleAssignmentPairs(value).length > 0) {
             seededEmptyRow.current = true;
             return;
         }
@@ -155,7 +170,10 @@ export function RoleAssignmentsEditor({ value, onChange }: Readonly<RoleAssignme
                             multiple={false}
                             value={row.roleId}
                             onChange={roleId => emit(rows.map(r => (r === row ? { ...r, roleId } : r)))}
-                            excludeIds={rows.filter(r => r !== row && r.roleId).map(r => r.roleId)}
+                            excludeIds={[
+                                ...rows.filter(r => r !== row && r.roleId).map(r => r.roleId),
+                                ...(restrictToGrantable ? nonGrantableRoleIds(row.channelIds) : []),
+                            ]}
                         />
                     </div>
                     <div className="flex-[2]">
@@ -164,6 +182,9 @@ export function RoleAssignmentsEditor({ value, onChange }: Readonly<RoleAssignme
                             value={row.channelIds}
                             onChange={channelIds =>
                                 emit(rows.map(r => (r === row ? { ...r, channelIds } : r)))
+                            }
+                            includeIds={
+                                restrictToGrantable ? grantableChannelIds(row.roleId) : undefined
                             }
                         />
                     </div>

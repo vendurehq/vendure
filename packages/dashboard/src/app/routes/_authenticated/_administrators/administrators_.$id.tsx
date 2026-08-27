@@ -23,15 +23,12 @@ import {
     updateAdministratorDocument,
 } from './administrators.graphql.js';
 import { EffectivePermissionsPanel } from './components/effective-permissions-panel.js';
-import { RoleAssignmentsEditor } from './components/role-assignments-editor.js';
+import {
+    completeRoleAssignmentPairs,
+    RoleAssignmentsEditor,
+} from './components/role-assignments-editor.js';
 
 const pageId = 'administrator-detail';
-
-function completeRoleAssignments(
-    assignments: Array<{ roleId: string; channelId: string }> | null | undefined,
-) {
-    return (assignments ?? []).filter(assignment => !!assignment?.roleId && !!assignment?.channelId);
-}
 
 export const Route = createFileRoute('/_authenticated/_administrators/administrators_/$id')({
     component: AdministratorDetailPage,
@@ -80,7 +77,7 @@ function AdministratorDetailPage() {
         transformCreateInput: input => {
             const transformed = {
                 ...input,
-                roleAssignments: completeRoleAssignments(input.roleAssignments),
+                roleAssignments: completeRoleAssignmentPairs(input.roleAssignments),
             };
             delete transformed.roleIds;
             return transformed;
@@ -89,7 +86,7 @@ function AdministratorDetailPage() {
             const transformed = {
                 ...input,
                 password: input.password || undefined,
-                roleAssignments: completeRoleAssignments(input.roleAssignments),
+                roleAssignments: completeRoleAssignmentPairs(input.roleAssignments),
             };
             delete transformed.roleIds;
             return transformed;

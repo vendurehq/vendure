@@ -20,10 +20,15 @@ export interface ChannelSelectorProps<T extends boolean> {
     value: T extends true ? string[] : string;
     onChange: (value: T extends true ? string[] : string) => void;
     multiple?: T;
+    /**
+     * Channel ids to restrict the list to. An allowlist rather than an exclusion list, so
+     * that a Channel the caller knows nothing about is never offered.
+     */
+    includeIds?: string[];
 }
 
 export function ChannelSelector<T extends boolean>(props: ChannelSelectorProps<T>) {
-    const { value, onChange, multiple } = props;
+    const { value, onChange, multiple, includeIds } = props;
     const { t } = useLingui();
 
     const { data: channelsData } = useQuery({
@@ -32,11 +37,13 @@ export function ChannelSelector<T extends boolean>(props: ChannelSelectorProps<T
         staleTime: 1000 * 60 * 5,
     });
 
-    const items = (channelsData?.channels.items ?? []).map(channel => ({
-        value: channel.id,
-        label: channel.code,
-        display: <ChannelCodeLabel code={channel.code} />,
-    }));
+    const items = (channelsData?.channels.items ?? [])
+        .filter(channel => !includeIds || includeIds.includes(channel.id))
+        .map(channel => ({
+            value: channel.id,
+            label: channel.code,
+            display: <ChannelCodeLabel code={channel.code} />,
+        }));
 
     return (
         <MultiSelect
