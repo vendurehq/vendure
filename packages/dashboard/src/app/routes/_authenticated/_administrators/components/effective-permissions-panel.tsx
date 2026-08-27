@@ -2,13 +2,18 @@ import { ChannelCodeLabel } from '@/vdb/components/shared/channel-code-label.js'
 import { MultiSelect } from '@/vdb/components/shared/multi-select.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { Trans } from '@lingui/react/macro';
-import { useState } from 'react';
+import { ReactNode, useState } from 'react';
 
 import { RoleAssignmentPair } from './role-assignments-editor.js';
 import { RolePermissionsDisplay } from './role-permissions-display.js';
 
 export interface EffectivePermissionsPanelProps {
     assignments: RoleAssignmentPair[];
+    /**
+     * Caption under the heading, naming whose permissions are shown. Owned by the calling
+     * page, since the panel is shared between the administrator and API key detail pages.
+     */
+    description: ReactNode;
 }
 
 /**
@@ -16,7 +21,10 @@ export interface EffectivePermissionsPanelProps {
  * there. Permissions are only meaningful per Channel under the role assignment model, so the
  * Channel is picked explicitly rather than the Roles being unioned across all of them.
  */
-export function EffectivePermissionsPanel({ assignments }: Readonly<EffectivePermissionsPanelProps>) {
+export function EffectivePermissionsPanel({
+    assignments,
+    description,
+}: Readonly<EffectivePermissionsPanelProps>) {
     const { channels, activeChannel } = useChannel();
     const [pickedChannelId, setPickedChannelId] = useState<string | undefined>();
 
@@ -51,7 +59,7 @@ export function EffectivePermissionsPanel({ assignments }: Readonly<EffectivePer
         <div className="mt-6 flex flex-col gap-2">
             <div className="flex items-center gap-2">
                 <span className="text-sm font-medium">
-                    <Trans>Permissions on</Trans>
+                    <Trans>Effective permissions on</Trans>
                 </span>
                 <div className="w-64">
                     <MultiSelect
@@ -62,6 +70,7 @@ export function EffectivePermissionsPanel({ assignments }: Readonly<EffectivePer
                     />
                 </div>
             </div>
+            <p className="text-sm text-muted-foreground">{description}</p>
             <RolePermissionsDisplay value={roleIds} />
         </div>
     );

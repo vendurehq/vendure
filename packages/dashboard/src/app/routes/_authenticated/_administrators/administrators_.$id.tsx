@@ -165,7 +165,15 @@ function AdministratorDetailPage() {
                             <RoleAssignmentsEditor value={field.value ?? []} onChange={field.onChange} />
                         )}
                     />
-                    <EffectivePermissionsPanel assignments={roleAssignments ?? []} />
+                    <EffectivePermissionsPanel
+                        assignments={roleAssignments ?? []}
+                        description={
+                            <Trans>
+                                What this administrator can do on the selected channel, derived
+                                from the roles assigned above. Edit the roles to change it.
+                            </Trans>
+                        }
+                    />
                 </PageBlock>
             </PageLayout>
         </Page>
