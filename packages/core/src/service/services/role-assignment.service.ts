@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CUSTOMER_ROLE_CODE } from '@vendure/common/lib/shared-constants';
+import { CUSTOMER_ROLE_CODE, SUPER_ADMIN_ROLE_CODE } from '@vendure/common/lib/shared-constants';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { unique } from '@vendure/common/lib/unique';
 import { IsNull } from 'typeorm';
@@ -10,6 +10,7 @@ import { Instrument } from '../../common/instrument-decorator';
 import { ListQueryOptions } from '../../common/types/common-types';
 import { idsAreEqual } from '../../common/utils';
 import { TransactionalConnection } from '../../connection/transactional-connection';
+import { Channel } from '../../entity/channel/channel.entity';
 import { Customer } from '../../entity/customer/customer.entity';
 import { RoleAssignment } from '../../entity/role-assignment/role-assignment.entity';
 import { Role } from '../../entity/role/role.entity';
@@ -245,6 +246,65 @@ export class RoleAssignmentService {
                         idsAreEqual(other.channelId, pair.channelId),
                 ) === index,
         );
+    }
+
+    /**
+     * @description
+     * Materializes a RoleAssignment on the given Channel for every User currently holding
+     * the SuperAdmin Role on any Channel. Called on Channel creation: SuperAdmin *access*
+     * to the new Channel is already granted at check time by the
+     * {@link RolePermissionResolver}, so these rows are not what grants it — they keep
+     * assignment reads (dashboard, plugins) consistent with what SuperAdmins can do.
+     *
+     * @since 4.0.0
+     */
+    async assignSuperAdminRoleHoldersToChannel(ctx: RequestContext, channelId: ID): Promise<void> {
+        const superAdminRole = await this.connection
+            .getRepository(ctx, Role)
+            .findOne({ where: { code: SUPER_ADMIN_ROLE_CODE } });
+        if (!superAdminRole) {
+            // During bootstrap a Channel can be created before the SuperAdmin role exists.
+            return;
+        }
+        const repository = this.connection.getRepository(ctx, RoleAssignment);
+        const holderRows = await repository
+            .createQueryBuilder('assignment')
+            .select('DISTINCT assignment.userId', 'userId')
+            .where('assignment.roleId = :roleId', { roleId: superAdminRole.id })
+            .getRawMany<{ userId: ID }>();
+        const existing = await repository.find({ where: { roleId: superAdminRole.id, channelId } });
+        const toAdd = holderRows
+            .map(row => row.userId)
+            .filter(userId => !existing.some(assignment => idsAreEqual(assignment.userId, userId)));
+        if (toAdd.length) {
+            await repository.save(
+                toAdd.map(userId => new RoleAssignment({ userId, roleId: superAdminRole.id, channelId })),
+            );
+        }
+    }
+
+    /**
+     * @description
+     * Assigns the Role to the User on every existing Channel. The counterpart of
+     * {@link assignSuperAdminRoleHoldersToChannel}, used when a new SuperAdmin user is
+     * seeded on an instance which already has Channels beyond the default one (e.g. after
+     * `superadminCredentials.identifier` is changed in the config). Idempotent: Channels
+     * on which the assignment already exists are left as-is.
+     *
+     * @since 4.0.0
+     */
+    async assignRoleOnAllChannels(ctx: RequestContext, userId: ID, roleId: ID): Promise<void> {
+        const channels = await this.connection.getRepository(ctx, Channel).find();
+        const repository = this.connection.getRepository(ctx, RoleAssignment);
+        const existing = await repository.find({ where: { userId, roleId } });
+        const toAdd = channels.filter(
+            channel => !existing.some(assignment => idsAreEqual(assignment.channelId, channel.id)),
+        );
+        if (toAdd.length) {
+            await repository.save(
+                toAdd.map(channel => new RoleAssignment({ userId, roleId, channelId: channel.id })),
+            );
+        }
     }
 
     /**

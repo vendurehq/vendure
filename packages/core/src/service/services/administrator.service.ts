@@ -19,7 +19,6 @@ import { TransactionalConnection } from '../../connection/transactional-connecti
 import { Administrator } from '../../entity/administrator/administrator.entity';
 import { NativeAuthenticationMethod } from '../../entity/authentication-method/native-authentication-method.entity';
 import { Channel } from '../../entity/channel/channel.entity';
-import { RoleAssignment } from '../../entity/role-assignment/role-assignment.entity';
 import { User } from '../../entity/user/user.entity';
 import { EventBus } from '../../event-bus';
 import { AdministratorEvent } from '../../event-bus/events/administrator-event';
@@ -472,15 +471,15 @@ export class AdministratorService {
                 superadminCredentials.password,
             );
             await this.connection.getRepository(ctx, Administrator).save(administrator);
-            // A single anchor assignment on the default channel marks the user as holding the
-            // SuperAdmin role. Effective permissions are derived at check time from the
-            // SuperAdmin permission, so no per-channel fan-out is needed.
-            await this.connection.getRepository(ctx, RoleAssignment).save(
-                new RoleAssignment({
-                    userId: administrator.user.id,
-                    roleId: superAdminRole.id,
-                    channelId: ctx.channelId,
-                }),
+            // Effective permissions are derived at check time from the SuperAdmin permission,
+            // so these rows are not what grants access — assigning on every Channel keeps
+            // assignment reads consistent with that access when the user is seeded on an
+            // instance which already has Channels beyond the default one (e.g. after
+            // superadminCredentials.identifier is changed in the config).
+            await this.roleAssignmentService.assignRoleOnAllChannels(
+                ctx,
+                administrator.user.id,
+                superAdminRole.id,
             );
         } else {
             const superAdministrator = await this.connection.rawConnection

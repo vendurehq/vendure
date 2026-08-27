@@ -6,7 +6,7 @@ import {
     LanguageCode,
     Permission,
 } from '@vendure/common/lib/generated-types';
-import { DEFAULT_CHANNEL_CODE } from '@vendure/common/lib/shared-constants';
+import { DEFAULT_CHANNEL_CODE, SUPER_ADMIN_ROLE_CODE } from '@vendure/common/lib/shared-constants';
 import {
     createErrorResultGuard,
     createTestEnvironment,
@@ -145,6 +145,16 @@ describe('Channels', () => {
             p => p !== Permission.Owner && p !== Permission.Public,
         );
         expect(secondChannelData!.permissions.sort()).toEqual(nonOwnerPermissions);
+    });
+
+    it('materializes superadmin role assignments on new channel', async () => {
+        const { roleAssignments } = await adminClient.query(getRoleAssignmentsDocument);
+
+        const superAdminChannelTokens = roleAssignments.items
+            .filter(assignment => assignment.role.code === SUPER_ADMIN_ROLE_CODE)
+            .map(assignment => assignment.channel.token);
+
+        expect(superAdminChannelTokens.sort()).toEqual([E2E_DEFAULT_CHANNEL_TOKEN, SECOND_CHANNEL_TOKEN]);
     });
 
     it('customer has Authenticated permission on new channel', async () => {
@@ -453,6 +463,25 @@ const updateGlobalLanguagesDocument = graphql(`
             ... on GlobalSettings {
                 id
                 availableLanguages
+            }
+        }
+    }
+`);
+
+const getRoleAssignmentsDocument = graphql(`
+    query GetRoleAssignments {
+        roleAssignments {
+            items {
+                id
+                userId
+                role {
+                    id
+                    code
+                }
+                channel {
+                    id
+                    token
+                }
             }
         }
     }

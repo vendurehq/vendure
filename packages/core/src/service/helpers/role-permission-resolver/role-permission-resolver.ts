@@ -47,9 +47,12 @@ export interface ResolvedUserPermissions {
  *
  * - **SuperAdmin**: a User holding a Role which carries the `SuperAdmin` permission (only
  *   the system SuperAdmin role can) receives all assignable permissions on every Channel,
- *   resolved at check time. Channel creation therefore needs no assignment bookkeeping —
+ *   resolved at check time. Access therefore never depends on per-channel assignment rows —
  *   a new Channel is administrable the moment it exists — and the SuperAdmin role's own
- *   permission array does not need re-syncing when custom permissions are added.
+ *   permission array does not need re-syncing when custom permissions are added. Channel
+ *   creation nevertheless materializes SuperAdmin assignment rows (see
+ *   {@link RoleAssignmentService.assignSuperAdminRoleHoldersToChannel}) so that assignment
+ *   reads stay consistent with that access.
  * - **Customer role**: a User with a Customer record receives the Customer role's
  *   permissions on the Customer's member Channels, derived from the channel membership
  *   itself. Customer-role assignments are never written — they would only duplicate the
