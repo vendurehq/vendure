@@ -1,9 +1,7 @@
 import { CopyableText } from '@/vdb/components/shared/copyable-text.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
-import { RoleSelector } from '@/vdb/components/shared/role-selector.js';
 import { TranslatableFormFieldWrapper } from '@/vdb/components/shared/translatable-form-field.js';
-import { MultiSelect } from '@/vdb/components/shared/multi-select.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
@@ -19,20 +17,16 @@ import {
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
-import { api } from '@/vdb/graphql/api.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
-import { usePermissions } from '@/vdb/hooks/use-permissions.js';
 import { Trans, useLingui } from '@lingui/react/macro';
-import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import {
-    activeAdministratorRolesDocument,
-    apiKeyDetailDocument,
-    createApiKeyDocument,
-    updateApiKeyDocument,
-} from './api-keys.graphql.js';
+    completeRoleAssignmentPairs,
+    RoleAssignmentsEditor,
+} from '../_administrators/components/role-assignments-editor.js';
+import { apiKeyDetailDocument, createApiKeyDocument, updateApiKeyDocument } from './api-keys.graphql.js';
 import { ApiKeySecretDialog } from './components/api-key-secret-dialog.js';
 import { RotateApiKeyButton } from './components/rotate-api-key-button.js';
 
@@ -60,27 +54,9 @@ function ApiKeyDetailPage() {
     const { t } = useLingui();
     const { formatDate, formatRelativeDate } = useLocalFormat();
 
-    const { hasPermissions } = usePermissions();
-    const isSuperAdmin = hasPermissions(['SuperAdmin']);
-
     const [secretDialogOpen, setSecretDialogOpen] = useState(false);
     const [generatedApiKey, setGeneratedApiKey] = useState('');
     const [generatedLookupId, setGeneratedLookupId] = useState<string | undefined>();
-
-    // Non-SuperAdmin users can only assign their own roles to API keys.
-    // SuperAdmin can assign any role, so we use the standard RoleSelector.
-    const { data: adminRoles } = useQuery({
-        queryKey: ['activeAdministratorRoles'],
-        queryFn: () => api.query(activeAdministratorRolesDocument, {}),
-        select: data => data.activeAdministrator?.user.roles ?? [],
-        enabled: !isSuperAdmin,
-    });
-
-    const availableRoles = (adminRoles ?? []).map(role => ({
-        value: role.id,
-        label: role.code,
-        display: role.description || role.code,
-    }));
 
     const { form, submitHandler, entity, isPending, resetForm } = useDetailPage({
         pageId,
@@ -89,7 +65,10 @@ function ApiKeyDetailPage() {
         updateDocument: updateApiKeyDocument,
         setValuesForUpdate: entity => ({
             id: entity.id,
-            roleIds: entity.user.roles.map(role => role.id),
+            roleAssignments: entity.user.roleAssignments.map(({ roleId, channelId }) => ({
+                roleId,
+                channelId,
+            })),
             translations: entity.translations.map(t => ({
                 id: t.id,
                 languageCode: t.languageCode,
@@ -97,6 +76,25 @@ function ApiKeyDetailPage() {
             })),
             customFields: entity.customFields,
         }),
+        // The generated form seeds the roleAssignments list with one blank item and the
+        // deprecated roleIds with []; incomplete pairs must not reach the replace-set input,
+        // and roleIds is mutually exclusive with roleAssignments so it must not be sent.
+        transformCreateInput: input => {
+            const transformed = {
+                ...input,
+                roleAssignments: completeRoleAssignmentPairs(input.roleAssignments),
+            };
+            delete transformed.roleIds;
+            return transformed;
+        },
+        transformUpdateInput: input => {
+            const transformed = {
+                ...input,
+                roleAssignments: completeRoleAssignmentPairs(input.roleAssignments),
+            };
+            delete transformed.roleIds;
+            return transformed;
+        },
         params: { id: params.id },
         onSuccess: async data => {
             if (creatingNewEntity) {
@@ -170,31 +168,21 @@ function ApiKeyDetailPage() {
                 <PageBlock column="main" blockId="roles" title={<Trans>Roles</Trans>}>
                     <FormFieldWrapper
                         control={form.control}
-                        name="roleIds"
-                        render={({ field }) =>
-                            isSuperAdmin ? (
-                                <RoleSelector
-                                    value={field.value ?? []}
-                                    onChange={field.onChange}
-                                    multiple={true}
-                                />
-                            ) : (
-                                <MultiSelect
-                                    value={field.value ?? []}
-                                    onChange={field.onChange}
-                                    multiple={true}
-                                    items={availableRoles}
-                                    placeholder={t`Select roles`}
-                                    searchPlaceholder={t`Search roles...`}
-                                />
-                            )
-                        }
+                        name="roleAssignments"
+                        render={({ field }) => (
+                            <RoleAssignmentsEditor
+                                value={field.value ?? []}
+                                onChange={field.onChange}
+                                restrictToGrantable
+                            />
+                        )}
                     />
-                    {!isSuperAdmin && (
-                        <p className="text-xs text-muted-foreground mt-2">
-                            <Trans>Only roles assigned to your account are available.</Trans>
-                        </p>
-                    )}
+                    <p className="text-xs text-muted-foreground mt-2">
+                        <Trans>
+                            You can only grant a role on a channel where you hold all of that
+                            role's permissions yourself.
+                        </Trans>
+                    </p>
                 </PageBlock>
                 <CustomFieldsPageBlock column="main" entityType="ApiKey" control={form.control} />
                 {!creatingNewEntity && entity && (
