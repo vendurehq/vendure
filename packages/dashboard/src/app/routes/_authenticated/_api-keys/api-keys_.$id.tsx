@@ -22,6 +22,7 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import { useState } from 'react';
+import { EffectivePermissionsPanel } from '../_administrators/components/effective-permissions-panel.js';
 import {
     completeRoleAssignmentPairs,
     RoleAssignmentsEditor,
@@ -122,6 +123,8 @@ function ApiKeyDetailPage() {
         },
     });
 
+    const roleAssignments = form.watch('roleAssignments');
+
     const handleRotateSuccess = (newApiKey: string) => {
         setGeneratedApiKey(newApiKey);
         setGeneratedLookupId(entity?.lookupId);
@@ -183,6 +186,15 @@ function ApiKeyDetailPage() {
                             role's permissions yourself.
                         </Trans>
                     </p>
+                    <EffectivePermissionsPanel
+                        assignments={roleAssignments ?? []}
+                        description={
+                            <Trans>
+                                What this API key can do on the selected channel, derived from the
+                                roles assigned above. Edit the roles to change it.
+                            </Trans>
+                        }
+                    />
                 </PageBlock>
                 <CustomFieldsPageBlock column="main" entityType="ApiKey" control={form.control} />
                 {!creatingNewEntity && entity && (
