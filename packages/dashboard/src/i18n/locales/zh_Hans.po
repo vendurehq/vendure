@@ -514,7 +514,7 @@ msgstr "转到下一页"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:210
 msgid "Add role"
-msgstr ""
+msgstr "添加角色"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:142
 msgid "Remove link"
@@ -855,7 +855,7 @@ msgstr "订单行已删除"
 
 #: src/app/routes/_authenticated/_roles/components/role-usage.tsx:81
 msgid "User"
-msgstr ""
+msgstr "用户"
 
 #: src/lib/components/layout/channel-switcher.tsx:158
 msgid "Content:"
@@ -1498,7 +1498,7 @@ msgstr "国家"
 
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:69
 msgid "Read"
-msgstr ""
+msgstr "读取"
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:124
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:209
@@ -1678,7 +1678,7 @@ msgstr "未进行修改"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:171
 msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
-msgstr ""
+msgstr "此管理员在所选渠道可执行的操作，由上方分配的角色决定。如需更改，请编辑角色。"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:222
 msgid "Default shipping zone"
@@ -2025,7 +2025,7 @@ msgstr "退出"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:195
 msgid "Remove role"
-msgstr ""
+msgstr "移除角色"
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts:50
@@ -2487,7 +2487,7 @@ msgstr "属性"
 #. placeholder {0}: grantingRoles(permission.name) .map(role => role.description || role.code) .join(', ')
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:98
 msgid "Granted by {0}"
-msgstr ""
+msgstr "由 {0} 授予"
 
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:293
 msgid "Stock on Hand"
@@ -2522,7 +2522,7 @@ msgstr "分配现有"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:158
 msgid "Role"
-msgstr ""
+msgstr "角色"
 
 #: src/lib/components/data-table/filters/data-table-enum-filter.tsx:19
 #: src/lib/components/data-table/human-readable-operator.tsx:36
@@ -2628,7 +2628,7 @@ msgstr "已成功从渠道中删除 {successCount} 个属性"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:192
 msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
-msgstr ""
+msgstr "此 API 密钥在所选渠道可执行的操作，由上方分配的角色决定。如需更改，请编辑角色。"
 
 #: src/app/routes/_authenticated/_products/products.tsx:117
 msgid "New Product"
@@ -3052,7 +3052,7 @@ msgstr "修改"
 
 #: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:62
 msgid "Effective permissions on"
-msgstr ""
+msgstr "有效权限："
 
 #: src/lib/components/layout/manage-languages-dialog.tsx:337
 msgid "No global languages configured"
@@ -3184,7 +3184,7 @@ msgstr "订单指标"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:184
 msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
-msgstr ""
+msgstr "只有当您自己在某个渠道拥有该角色的全部权限时，才能在该渠道授予此角色。"
 
 #: src/lib/components/layout/language-dialog.tsx:49
 msgid "Select display language"
@@ -3338,7 +3338,7 @@ msgstr "此选项组正被现有变体使用。强制移除可能会影响这些
 
 #: src/app/routes/_authenticated/_roles/components/role-usage.tsx:58
 msgid "This role is not assigned to any user"
-msgstr ""
+msgstr "此角色未分配给任何用户"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:63
 msgid "Email update requested"
@@ -3664,7 +3664,7 @@ msgstr "选项组名称"
 
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:166
 msgid "The assigned roles grant no permissions on this channel."
-msgstr ""
+msgstr "已分配的角色未在此渠道授予任何权限。"
 
 #: src/lib/components/data-input/combination-mode-input.tsx:46
 msgid "AND"
@@ -4295,7 +4295,7 @@ msgstr "时间表模式"
 
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:224
 msgid "Show granted only"
-msgstr ""
+msgstr "仅显示已授予的权限"
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx:67
 msgid "Payment failed"
@@ -4448,7 +4448,7 @@ msgstr "新建选项组"
 #. placeholder {0}: items.length
 #: src/app/routes/_authenticated/_roles/components/role-usage.tsx:107
 msgid "Showing the first {0} of {totalItems} assignments"
-msgstr ""
+msgstr "正在显示 {totalItems} 个分配中的前 {0} 个"
 
 #: src/lib/components/data-table/views-sheet.tsx:141
 msgid "No global views have been created yet."
@@ -5714,7 +5714,7 @@ msgstr "useWidgetFilters 必须在 WidgetFiltersProvider 中使用"
 
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:224
 msgid "Show all permissions"
-msgstr ""
+msgstr "显示所有权限"
 
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx:129
 msgid "Edit Address"
@@ -5759,7 +5759,7 @@ msgstr "设置将此变体视为缺货的库存水平。使用负值可启用延
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:119
 msgid "Used by"
-msgstr ""
+msgstr "使用者"
 
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx:206
 #: src/lib/components/layout/manage-languages-dialog.tsx:382
@@ -6033,7 +6033,7 @@ msgstr "订单流程"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:204
 msgid "No roles assigned"
-msgstr ""
+msgstr "未分配角色"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:194
 msgid "Phone number"

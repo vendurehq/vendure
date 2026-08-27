@@ -514,7 +514,7 @@ msgstr "Gå till nästa sida"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:210
 msgid "Add role"
-msgstr ""
+msgstr "Lägg till roll"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:142
 msgid "Remove link"
@@ -855,7 +855,7 @@ msgstr "Beställningsrad borttagen"
 
 #: src/app/routes/_authenticated/_roles/components/role-usage.tsx:81
 msgid "User"
-msgstr ""
+msgstr "Användare"
 
 #: src/lib/components/layout/channel-switcher.tsx:158
 msgid "Content:"
@@ -1498,7 +1498,7 @@ msgstr "Länder"
 
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:69
 msgid "Read"
-msgstr ""
+msgstr "Läsa"
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:124
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:209
@@ -1678,7 +1678,7 @@ msgstr "Inga ändringar gjorda"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:171
 msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
-msgstr ""
+msgstr "Vad den här administratören kan göra på den valda kanalen, härlett från rollerna som tilldelats ovan. Redigera rollerna för att ändra det."
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:222
 msgid "Default shipping zone"
@@ -2025,7 +2025,7 @@ msgstr "Logga ut"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:195
 msgid "Remove role"
-msgstr ""
+msgstr "Ta bort roll"
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts:50
@@ -2487,7 +2487,7 @@ msgstr "Facetter"
 #. placeholder {0}: grantingRoles(permission.name) .map(role => role.description || role.code) .join(', ')
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:98
 msgid "Granted by {0}"
-msgstr ""
+msgstr "Beviljad av {0}"
 
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:293
 msgid "Stock on Hand"
@@ -2522,7 +2522,7 @@ msgstr "Tilldela befintlig"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:158
 msgid "Role"
-msgstr ""
+msgstr "Roll"
 
 #: src/lib/components/data-table/filters/data-table-enum-filter.tsx:19
 #: src/lib/components/data-table/human-readable-operator.tsx:36
@@ -2628,7 +2628,7 @@ msgstr "{successCount} facetter borttagna från kanal"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:192
 msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
-msgstr ""
+msgstr "Vad den här API-nyckeln kan göra på den valda kanalen, härlett från rollerna som tilldelats ovan. Redigera rollerna för att ändra det."
 
 #: src/app/routes/_authenticated/_products/products.tsx:117
 msgid "New Product"
@@ -3052,7 +3052,7 @@ msgstr "Ändra"
 
 #: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:62
 msgid "Effective permissions on"
-msgstr ""
+msgstr "Effektiva behörigheter på"
 
 #: src/lib/components/layout/manage-languages-dialog.tsx:337
 msgid "No global languages configured"
@@ -3184,7 +3184,7 @@ msgstr "Beställningsmått"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:184
 msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
-msgstr ""
+msgstr "Du kan bara bevilja en roll på en kanal där du själv har alla rollens behörigheter."
 
 #: src/lib/components/layout/language-dialog.tsx:49
 msgid "Select display language"
@@ -3338,7 +3338,7 @@ msgstr "Denna alternativgrupp används av befintliga varianter. Att tvinga bortt
 
 #: src/app/routes/_authenticated/_roles/components/role-usage.tsx:58
 msgid "This role is not assigned to any user"
-msgstr ""
+msgstr "Den här rollen är inte tilldelad någon användare"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:63
 msgid "Email update requested"
@@ -3664,7 +3664,7 @@ msgstr "Alternativgruppsnamn"
 
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:166
 msgid "The assigned roles grant no permissions on this channel."
-msgstr ""
+msgstr "De tilldelade rollerna ger inga behörigheter på den här kanalen."
 
 #: src/lib/components/data-input/combination-mode-input.tsx:46
 msgid "AND"
@@ -4295,7 +4295,7 @@ msgstr "Schemamönster"
 
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:224
 msgid "Show granted only"
-msgstr ""
+msgstr "Visa endast beviljade"
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx:67
 msgid "Payment failed"
@@ -4448,7 +4448,7 @@ msgstr "Ny alternativgrupp"
 #. placeholder {0}: items.length
 #: src/app/routes/_authenticated/_roles/components/role-usage.tsx:107
 msgid "Showing the first {0} of {totalItems} assignments"
-msgstr ""
+msgstr "Visar de första {0} av {totalItems} tilldelningar"
 
 #: src/lib/components/data-table/views-sheet.tsx:141
 msgid "No global views have been created yet."
@@ -5714,7 +5714,7 @@ msgstr "useWidgetFilters måste användas inom en WidgetFiltersProvider"
 
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:224
 msgid "Show all permissions"
-msgstr ""
+msgstr "Visa alla behörigheter"
 
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx:129
 msgid "Edit Address"
@@ -5759,7 +5759,7 @@ msgstr "Anger lagernivån vid vilken denna variant anses vara slut i lager. Anv�
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:119
 msgid "Used by"
-msgstr ""
+msgstr "Används av"
 
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx:206
 #: src/lib/components/layout/manage-languages-dialog.tsx:382
@@ -6033,7 +6033,7 @@ msgstr "Orderprocess"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:204
 msgid "No roles assigned"
-msgstr ""
+msgstr "Inga roller tilldelade"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:194
 msgid "Phone number"

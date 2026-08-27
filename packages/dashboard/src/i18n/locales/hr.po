@@ -514,7 +514,7 @@ msgstr "Idi na sljedeću stranicu"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:210
 msgid "Add role"
-msgstr ""
+msgstr "Dodaj ulogu"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:142
 msgid "Remove link"
@@ -855,7 +855,7 @@ msgstr "Redak narudžbe uklonjen"
 
 #: src/app/routes/_authenticated/_roles/components/role-usage.tsx:81
 msgid "User"
-msgstr ""
+msgstr "Korisnik"
 
 #: src/lib/components/layout/channel-switcher.tsx:158
 msgid "Content:"
@@ -1498,7 +1498,7 @@ msgstr "Zemlje"
 
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:69
 msgid "Read"
-msgstr ""
+msgstr "Čitanje"
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:124
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:209
@@ -1678,7 +1678,7 @@ msgstr "Nisu napravljene izmjene"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:171
 msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
-msgstr ""
+msgstr "Što ovaj administrator može raditi na odabranom kanalu, izvedeno iz gore dodijeljenih uloga. Uredite uloge da biste to promijenili."
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:222
 msgid "Default shipping zone"
@@ -2025,7 +2025,7 @@ msgstr "Odjava"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:195
 msgid "Remove role"
-msgstr ""
+msgstr "Ukloni ulogu"
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts:50
@@ -2487,7 +2487,7 @@ msgstr "Svojstva"
 #. placeholder {0}: grantingRoles(permission.name) .map(role => role.description || role.code) .join(', ')
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:98
 msgid "Granted by {0}"
-msgstr ""
+msgstr "Dodijeljeno: {0}"
 
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:293
 msgid "Stock on Hand"
@@ -2522,7 +2522,7 @@ msgstr "Dodijeli postojeće"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:158
 msgid "Role"
-msgstr ""
+msgstr "Uloga"
 
 #: src/lib/components/data-table/filters/data-table-enum-filter.tsx:19
 #: src/lib/components/data-table/human-readable-operator.tsx:36
@@ -2628,7 +2628,7 @@ msgstr "Uspješno uklonjeno {successCount} svojstava iz kanala"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:192
 msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
-msgstr ""
+msgstr "Što ovaj API ključ može raditi na odabranom kanalu, izvedeno iz gore dodijeljenih uloga. Uredite uloge da biste to promijenili."
 
 #: src/app/routes/_authenticated/_products/products.tsx:117
 msgid "New Product"
@@ -3052,7 +3052,7 @@ msgstr "Izmijeni"
 
 #: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:62
 msgid "Effective permissions on"
-msgstr ""
+msgstr "Efektivne dozvole na"
 
 #: src/lib/components/layout/manage-languages-dialog.tsx:337
 msgid "No global languages configured"
@@ -3184,7 +3184,7 @@ msgstr "Metrike narudžbi"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:184
 msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
-msgstr ""
+msgstr "Ulogu na kanalu možete dodijeliti samo ako sami imate sve dozvole te uloge."
 
 #: src/lib/components/layout/language-dialog.tsx:49
 msgid "Select display language"
@@ -3338,7 +3338,7 @@ msgstr "Ova grupa opcija koristi se u postojećim varijantama. Prisilno uklanjan
 
 #: src/app/routes/_authenticated/_roles/components/role-usage.tsx:58
 msgid "This role is not assigned to any user"
-msgstr ""
+msgstr "Ova uloga nije dodijeljena nijednom korisniku"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:63
 msgid "Email update requested"
@@ -3664,7 +3664,7 @@ msgstr "Naziv grupe opcija"
 
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:166
 msgid "The assigned roles grant no permissions on this channel."
-msgstr ""
+msgstr "Dodijeljene uloge ne daju nikakve dozvole na ovom kanalu."
 
 #: src/lib/components/data-input/combination-mode-input.tsx:46
 msgid "AND"
@@ -4295,7 +4295,7 @@ msgstr "Uzorak rasporeda"
 
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:224
 msgid "Show granted only"
-msgstr ""
+msgstr "Prikaži samo dodijeljene"
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx:67
 msgid "Payment failed"
@@ -4448,7 +4448,7 @@ msgstr "Nova grupa opcija"
 #. placeholder {0}: items.length
 #: src/app/routes/_authenticated/_roles/components/role-usage.tsx:107
 msgid "Showing the first {0} of {totalItems} assignments"
-msgstr ""
+msgstr "Prikazano prvih {0} od {totalItems} dodjela"
 
 #: src/lib/components/data-table/views-sheet.tsx:141
 msgid "No global views have been created yet."
@@ -5714,7 +5714,7 @@ msgstr "useWidgetFilters mora se koristiti unutar WidgetFiltersProvider"
 
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:224
 msgid "Show all permissions"
-msgstr ""
+msgstr "Prikaži sve dozvole"
 
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx:129
 msgid "Edit Address"
@@ -5759,7 +5759,7 @@ msgstr "Postavlja razinu zaliha pri kojoj se ova varijanta smatra rasprodanom. K
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:119
 msgid "Used by"
-msgstr ""
+msgstr "Koriste je"
 
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx:206
 #: src/lib/components/layout/manage-languages-dialog.tsx:382
@@ -6033,7 +6033,7 @@ msgstr "Proces narudžbe"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:204
 msgid "No roles assigned"
-msgstr ""
+msgstr "Nema dodijeljenih uloga"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:194
 msgid "Phone number"

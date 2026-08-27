@@ -514,7 +514,7 @@ msgstr "رفتن به صفحه بعدی"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:210
 msgid "Add role"
-msgstr ""
+msgstr "افزودن نقش"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:142
 msgid "Remove link"
@@ -855,7 +855,7 @@ msgstr "خط سفارش حذف شد"
 
 #: src/app/routes/_authenticated/_roles/components/role-usage.tsx:81
 msgid "User"
-msgstr ""
+msgstr "کاربر"
 
 #: src/lib/components/layout/channel-switcher.tsx:158
 msgid "Content:"
@@ -1498,7 +1498,7 @@ msgstr "کشورها"
 
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:69
 msgid "Read"
-msgstr ""
+msgstr "خواندن"
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:124
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:209
@@ -1678,7 +1678,7 @@ msgstr "هیچ تغییری انجام نشد"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:171
 msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
-msgstr ""
+msgstr "کارهایی که این مدیر می‌تواند در کانال انتخاب‌شده انجام دهد، برگرفته از نقش‌های اختصاص‌یافته در بالا. برای تغییر، نقش‌ها را ویرایش کنید."
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:222
 msgid "Default shipping zone"
@@ -2025,7 +2025,7 @@ msgstr "خروج"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:195
 msgid "Remove role"
-msgstr ""
+msgstr "حذف نقش"
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts:50
@@ -2487,7 +2487,7 @@ msgstr "ویژگی‌ها"
 #. placeholder {0}: grantingRoles(permission.name) .map(role => role.description || role.code) .join(', ')
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:98
 msgid "Granted by {0}"
-msgstr ""
+msgstr "اعطا شده توسط {0}"
 
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:293
 msgid "Stock on Hand"
@@ -2522,7 +2522,7 @@ msgstr "تخصیص موجود"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:158
 msgid "Role"
-msgstr ""
+msgstr "نقش"
 
 #: src/lib/components/data-table/filters/data-table-enum-filter.tsx:19
 #: src/lib/components/data-table/human-readable-operator.tsx:36
@@ -2628,7 +2628,7 @@ msgstr "{successCount} ویژگی با موفقیت از کانال حذف شد"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:192
 msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
-msgstr ""
+msgstr "کارهایی که این کلید API می‌تواند در کانال انتخاب‌شده انجام دهد، برگرفته از نقش‌های اختصاص‌یافته در بالا. برای تغییر، نقش‌ها را ویرایش کنید."
 
 #: src/app/routes/_authenticated/_products/products.tsx:117
 msgid "New Product"
@@ -3052,7 +3052,7 @@ msgstr "تغییر"
 
 #: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:62
 msgid "Effective permissions on"
-msgstr ""
+msgstr "مجوزهای مؤثر در"
 
 #: src/lib/components/layout/manage-languages-dialog.tsx:337
 msgid "No global languages configured"
@@ -3184,7 +3184,7 @@ msgstr "معیارهای سفارش"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:184
 msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
-msgstr ""
+msgstr "فقط در کانالی می‌توانید نقشی اعطا کنید که خودتان همه مجوزهای آن نقش را در آن دارید."
 
 #: src/lib/components/layout/language-dialog.tsx:49
 msgid "Select display language"
@@ -3338,7 +3338,7 @@ msgstr "این گروه گزینه توسط متغیرهای موجود استف
 
 #: src/app/routes/_authenticated/_roles/components/role-usage.tsx:58
 msgid "This role is not assigned to any user"
-msgstr ""
+msgstr "این نقش به هیچ کاربری اختصاص داده نشده است"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:63
 msgid "Email update requested"
@@ -3664,7 +3664,7 @@ msgstr "نام گروه گزینه"
 
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:166
 msgid "The assigned roles grant no permissions on this channel."
-msgstr ""
+msgstr "نقش‌های اختصاص‌یافته هیچ مجوزی در این کانال اعطا نمی‌کنند."
 
 #: src/lib/components/data-input/combination-mode-input.tsx:46
 msgid "AND"
@@ -4295,7 +4295,7 @@ msgstr "الگوی برنامه"
 
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:224
 msgid "Show granted only"
-msgstr ""
+msgstr "نمایش فقط اعطاشده‌ها"
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx:67
 msgid "Payment failed"
@@ -4448,7 +4448,7 @@ msgstr "گروه گزینه جدید"
 #. placeholder {0}: items.length
 #: src/app/routes/_authenticated/_roles/components/role-usage.tsx:107
 msgid "Showing the first {0} of {totalItems} assignments"
-msgstr ""
+msgstr "نمایش {0} مورد اول از {totalItems} تخصیص"
 
 #: src/lib/components/data-table/views-sheet.tsx:141
 msgid "No global views have been created yet."
@@ -5714,7 +5714,7 @@ msgstr "useWidgetFilters باید در داخل WidgetFiltersProvider استفا
 
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:224
 msgid "Show all permissions"
-msgstr ""
+msgstr "نمایش همه مجوزها"
 
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx:129
 msgid "Edit Address"
@@ -5759,7 +5759,7 @@ msgstr "سطح موجودی را تنظیم می‌کند که در آن این 
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:119
 msgid "Used by"
-msgstr ""
+msgstr "استفاده شده توسط"
 
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx:206
 #: src/lib/components/layout/manage-languages-dialog.tsx:382
@@ -6033,7 +6033,7 @@ msgstr "فرآیند سفارش"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:204
 msgid "No roles assigned"
-msgstr ""
+msgstr "هیچ نقشی اختصاص داده نشده است"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:194
 msgid "Phone number"

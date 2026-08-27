@@ -514,7 +514,7 @@ msgstr "Ugrás a következő oldalra"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:210
 msgid "Add role"
-msgstr ""
+msgstr "Szerepkör hozzáadása"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:142
 msgid "Remove link"
@@ -855,7 +855,7 @@ msgstr "Megrendeléssor eltávolítva"
 
 #: src/app/routes/_authenticated/_roles/components/role-usage.tsx:81
 msgid "User"
-msgstr ""
+msgstr "Felhasználó"
 
 #: src/lib/components/layout/channel-switcher.tsx:158
 msgid "Content:"
@@ -1498,7 +1498,7 @@ msgstr "Országok"
 
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:69
 msgid "Read"
-msgstr ""
+msgstr "Olvasás"
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:124
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:209
@@ -1678,7 +1678,7 @@ msgstr "Nem történt módosítás"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:171
 msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
-msgstr ""
+msgstr "Amit ez az adminisztrátor a kiválasztott csatornán tehet, a fent hozzárendelt szerepkörökből származtatva. A módosításhoz szerkessze a szerepköröket."
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:222
 msgid "Default shipping zone"
@@ -2019,7 +2019,7 @@ msgstr "Kijelentkezés"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:195
 msgid "Remove role"
-msgstr ""
+msgstr "Szerepkör eltávolítása"
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts:50
@@ -2481,7 +2481,7 @@ msgstr "Tulajdonságok"
 #. placeholder {0}: grantingRoles(permission.name) .map(role => role.description || role.code) .join(', ')
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:98
 msgid "Granted by {0}"
-msgstr ""
+msgstr "Megadta: {0}"
 
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:293
 msgid "Stock on Hand"
@@ -2516,7 +2516,7 @@ msgstr "Meglévő hozzárendelése"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:158
 msgid "Role"
-msgstr ""
+msgstr "Szerepkör"
 
 #: src/lib/components/data-table/filters/data-table-enum-filter.tsx:19
 #: src/lib/components/data-table/human-readable-operator.tsx:36
@@ -2618,7 +2618,7 @@ msgstr "{successCount} tulajdonság sikeresen eltávolítva a csatornából"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:192
 msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
-msgstr ""
+msgstr "Amit ez az API-kulcs a kiválasztott csatornán tehet, a fent hozzárendelt szerepkörökből származtatva. A módosításhoz szerkessze a szerepköröket."
 
 #: src/app/routes/_authenticated/_products/products.tsx:117
 msgid "New Product"
@@ -3042,7 +3042,7 @@ msgstr "Módosítás"
 
 #: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:62
 msgid "Effective permissions on"
-msgstr ""
+msgstr "Effektív jogosultságok itt:"
 
 #: src/lib/components/layout/manage-languages-dialog.tsx:337
 msgid "No global languages configured"
@@ -3174,7 +3174,7 @@ msgstr "Megrendelési statisztikák"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:184
 msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
-msgstr ""
+msgstr "Szerepkört csak olyan csatornán adhat meg, ahol saját maga is rendelkezik a szerepkör összes jogosultságával."
 
 #: src/lib/components/layout/language-dialog.tsx:49
 msgid "Select display language"
@@ -3328,7 +3328,7 @@ msgstr "Ez az opciócsoport meglévő változatok által használatban van. A k�
 
 #: src/app/routes/_authenticated/_roles/components/role-usage.tsx:58
 msgid "This role is not assigned to any user"
-msgstr ""
+msgstr "Ez a szerepkör nincs hozzárendelve egyetlen felhasználóhoz sem"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:63
 msgid "Email update requested"
@@ -3651,7 +3651,7 @@ msgstr "Opciócsoport neve"
 
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:166
 msgid "The assigned roles grant no permissions on this channel."
-msgstr ""
+msgstr "A hozzárendelt szerepkörök nem adnak jogosultságot ezen a csatornán."
 
 #: src/lib/components/data-input/combination-mode-input.tsx:46
 msgid "AND"
@@ -4282,7 +4282,7 @@ msgstr "Ütemezési minta"
 
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:224
 msgid "Show granted only"
-msgstr ""
+msgstr "Csak a megadottak megjelenítése"
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx:67
 msgid "Payment failed"
@@ -4435,7 +4435,7 @@ msgstr "Új opciócsoport"
 #. placeholder {0}: items.length
 #: src/app/routes/_authenticated/_roles/components/role-usage.tsx:107
 msgid "Showing the first {0} of {totalItems} assignments"
-msgstr ""
+msgstr "Az első {0} megjelenítése a(z) {totalItems} hozzárendelésből"
 
 #: src/lib/components/data-table/views-sheet.tsx:141
 msgid "No global views have been created yet."
@@ -5701,7 +5701,7 @@ msgstr "A useWidgetFilters csak WidgetFiltersProvider-en belül használható"
 
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:224
 msgid "Show all permissions"
-msgstr ""
+msgstr "Összes jogosultság megjelenítése"
 
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx:129
 msgid "Edit Address"
@@ -5746,7 +5746,7 @@ msgstr "Beállítja azt a készletszintet, amelynél ez a termékváltozat kész
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:119
 msgid "Used by"
-msgstr ""
+msgstr "Használja"
 
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx:206
 #: src/lib/components/layout/manage-languages-dialog.tsx:382
@@ -6016,7 +6016,7 @@ msgstr "Rendelési folyamat"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:204
 msgid "No roles assigned"
-msgstr ""
+msgstr "Nincs hozzárendelt szerepkör"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:194
 msgid "Phone number"
