@@ -51,6 +51,6 @@ export class UserAdminEntityResolver {
 
     @ResolveField()
     async roleAssignments(@Ctx() ctx: RequestContext, @Parent() user: User): Promise<RoleAssignment[]> {
-        return this.roleAssignmentService.getVisibleAssignmentsForUser(ctx, user.id);
+        return this.roleAssignmentService.getAssignmentsForUser(ctx, user.id);
     }
 }

@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { Permission } from '@vendure/common/lib/generated-types';
 import { CUSTOMER_ROLE_CODE } from '@vendure/common/lib/shared-constants';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { unique } from '@vendure/common/lib/unique';
@@ -61,73 +60,31 @@ export class RoleAssignmentService {
 
     /**
      * @description
-     * Returns a paginated list of RoleAssignments, restricted to the Channels on which the
-     * active user holds the `ReadAdministrator` permission. Users holding it globally
-     * (i.e. SuperAdmins) see all assignments.
+     * Returns a paginated list of RoleAssignments. No per-channel visibility filtering is
+     * applied: any caller holding the `ReadAdministrator` permission reads the assignments
+     * of all Users on all Channels. Assignments are read whole or not at all, because a
+     * partial read that is written back through {@link setAssignmentsForUser}'s replace-set
+     * semantics would misread the hidden rows as removals.
      */
     async findAll(
         ctx: RequestContext,
         options?: ListQueryOptions<RoleAssignment>,
         relations?: RelationPaths<RoleAssignment>,
     ): Promise<PaginatedList<RoleAssignment>> {
-        const visibleChannelIds = this.getVisibleChannelIds(ctx);
-        if (visibleChannelIds !== 'all' && visibleChannelIds.length === 0) {
-            return { items: [], totalItems: 0 };
-        }
         const qb = this.listQueryBuilder.build(RoleAssignment, options, {
             relations: relations ?? [],
             ctx,
         });
-        if (visibleChannelIds !== 'all') {
-            qb.andWhere(`${qb.alias}.channelId IN (:...visibleChannelIds)`, { visibleChannelIds });
-        }
         return qb.getManyAndCount().then(([items, totalItems]) => ({ items, totalItems }));
     }
 
     /**
      * @description
-     * Returns all RoleAssignments of the given User across all Channels, with no visibility
-     * filtering applied.
-     *
-     * @internal
+     * Returns all RoleAssignments of the given User across all Channels. See
+     * {@link findAll} on why no visibility filtering is applied.
      */
     getAssignmentsForUser(ctx: RequestContext, userId: ID): Promise<RoleAssignment[]> {
         return this.connection.getRepository(ctx, RoleAssignment).find({ where: { userId } });
-    }
-
-    /**
-     * @description
-     * Returns the RoleAssignments of the given User which are visible to the active user:
-     * users always see their own assignments in full, otherwise assignments are restricted
-     * to the Channels on which the active user holds the `ReadAdministrator` permission.
-     */
-    async getVisibleAssignmentsForUser(ctx: RequestContext, userId: ID): Promise<RoleAssignment[]> {
-        const assignments = await this.getAssignmentsForUser(ctx, userId);
-        if (ctx.activeUserId != null && idsAreEqual(ctx.activeUserId, userId)) {
-            return assignments;
-        }
-        const visibleChannelIds = this.getVisibleChannelIds(ctx);
-        if (visibleChannelIds === 'all') {
-            return assignments;
-        }
-        return assignments.filter(assignment =>
-            visibleChannelIds.some(channelId => idsAreEqual(channelId, assignment.channelId)),
-        );
-    }
-
-    private getVisibleChannelIds(ctx: RequestContext): ID[] | 'all' {
-        const user = ctx.session?.user;
-        if (!user) {
-            return [];
-        }
-        if (user.globalPermissions?.includes(Permission.ReadAdministrator)) {
-            return 'all';
-        }
-        return user.channelPermissions
-            .filter(channelPermissions =>
-                channelPermissions.permissions.includes(Permission.ReadAdministrator),
-            )
-            .map(channelPermissions => channelPermissions.id);
     }
 
     /**
