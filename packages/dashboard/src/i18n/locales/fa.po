@@ -32,8 +32,8 @@ msgid "Tracking code"
 msgstr "کد پیگیری"
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:113
-msgid "The selected permissions will be applied to the these channels."
-msgstr "مجوزهای انتخاب شده به این کانال‌ها اعمال خواهد شد."
+#~ msgid "The selected permissions will be applied to the these channels."
+#~ msgstr "مجوزهای انتخاب شده به این کانال‌ها اعمال خواهد شد."
 
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:248
 msgid "Product options"
@@ -47,7 +47,7 @@ msgstr "نرخ مالیات جدید"
 msgid "Assign an existing option group or create a new one"
 msgstr "تخصیص یک گروه گزینه موجود یا ایجاد گروه جدید"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:34
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:77
 msgid "New role"
 msgstr "نقش جدید"
@@ -90,7 +90,7 @@ msgstr "ویرایش مقدار JSON"
 msgid "Using external authentication strategy: {strategy}"
 msgstr "استفاده از استراتژی احراز هویت خارجی: {strategy}"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:225
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:230
 msgid "Select a reason..."
 msgstr "یک دلیل انتخاب کنید..."
 
@@ -153,7 +153,7 @@ msgstr "{selectionLength} فایل حذف شد"
 msgid "Successfully updated tax rate"
 msgstr "نرخ مالیات با موفقیت به‌روزرسانی شد"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:237
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:242
 msgid "Enter custom reason..."
 msgstr "دلیل سفارشی را وارد کنید..."
 
@@ -241,7 +241,7 @@ msgstr "{fulfilled, plural, one {{fulfilled} کار با موفقیت لغو ش�
 msgid "Seller"
 msgstr "فروشنده"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:131
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:136
 msgid "SKU:"
 msgstr "کد کالا:"
 
@@ -294,7 +294,7 @@ msgstr "آیا مطمئن هستید که می‌خواهید این نوع را
 #~ msgid "All resources are up and running"
 #~ msgstr "تمام منابع در حال اجرا هستند"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:90
 msgid "Failed to create administrator"
 msgstr "ایجاد مدیر ناموفق بود"
 
@@ -322,7 +322,7 @@ msgstr "به‌روزرسانی کشور ناموفق بود"
 msgid "Type at least 2 characters to search..."
 msgstr "حداقل ۲ حرف برای جستجو تایپ کنید..."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:121
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:125
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:182
 #: src/app/routes/_authenticated/_profile/profile.tsx:108
 msgid "Last name"
@@ -388,7 +388,7 @@ msgstr "ایجاد کانال ناموفق بود"
 msgid "Dev Mode"
 msgstr "حالت توسعه"
 
-#: src/app/routes/_authenticated/_roles/roles.tsx:88
+#: src/app/routes/_authenticated/_roles/roles.tsx:68
 msgid "New Role"
 msgstr "نقش جدید"
 
@@ -396,7 +396,7 @@ msgstr "نقش جدید"
 msgid "Failed to delete assets: {message}"
 msgstr "حذف فایل‌ها ناموفق بود: {message}"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:105
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:109
 msgid "Return to stock"
 msgstr "بازگشت به انبار"
 
@@ -498,7 +498,7 @@ msgstr "محصول والد"
 msgid "City"
 msgstr "شهر"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:37
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:15
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:22
 msgid "Administrators"
@@ -511,6 +511,10 @@ msgstr "قیمت ناخالص: <0/>"
 #: src/lib/components/data-table/data-table-pagination.tsx:82
 msgid "Go to next page"
 msgstr "رفتن به صفحه بعدی"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:178
+msgid "Add role"
+msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:142
 msgid "Remove link"
@@ -597,12 +601,12 @@ msgstr "در حال افزودن..."
 msgid "Move Collections"
 msgstr "جابجایی مجموعه‌ها"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:139
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:143
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:55
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:170
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:32
-#: src/app/routes/_authenticated/_roles/roles.tsx:18
-#: src/app/routes/_authenticated/_roles/roles.tsx:27
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
+#: src/app/routes/_authenticated/_roles/roles.tsx:16
+#: src/app/routes/_authenticated/_roles/roles.tsx:25
 msgid "Roles"
 msgstr "نقش‌ها"
 
@@ -817,7 +821,7 @@ msgid "Show password"
 msgstr "نمایش رمز عبور"
 
 #. placeholder {0}: formatCurrency(refund.totalRefundableAmount, order.currencyCode)
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:282
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:287
 msgid "(max: {0})"
 msgstr "(حداکثر: {0})"
 
@@ -848,6 +852,10 @@ msgstr "یادداشت بازپرداخت را وارد کنید"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:153
 msgid "Order line removed"
 msgstr "خط سفارش حذف شد"
+
+#: src/app/routes/_authenticated/_roles/components/role-usage.tsx:81
+msgid "User"
+msgstr ""
 
 #: src/lib/components/layout/channel-switcher.tsx:158
 msgid "Content:"
@@ -946,7 +954,7 @@ msgstr "آدرس صورتحساب برای سفارش تنظیم شد"
 msgid "Failed to update zone"
 msgstr "به‌روزرسانی منطقه ناموفق بود"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:133
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:137
 #: src/app/routes/_authenticated/_profile/profile.tsx:120
 #: src/app/routes/_authenticated/_profile/profile.tsx:137
 #: src/lib/components/login/login-form.tsx:93
@@ -967,7 +975,7 @@ msgstr "وظیفه زمان‌بندی شده اجرا خواهد شد"
 msgid "New stock location"
 msgstr "محل انبار جدید"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:129
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:109
 msgid "Permissions"
 msgstr "مجوزها"
 
@@ -1261,7 +1269,7 @@ msgstr "وضعیت پرداخت با موفقیت به‌روزرسانی شد"
 msgid "Create new"
 msgstr "ایجاد جدید"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:249
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:254
 msgid "Refund total"
 msgstr "کل بازپرداخت"
 
@@ -1496,7 +1504,7 @@ msgstr "کشورها"
 msgid "Failed to rename view"
 msgstr "تغییر نام نما ناموفق بود"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:306
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:311
 msgid "Available"
 msgstr "موجود"
 
@@ -1588,7 +1596,7 @@ msgstr "رفتن به صفحه آخر"
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:168
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:311
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx:352
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:358
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:363
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:71
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:273
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:498
@@ -1769,7 +1777,7 @@ msgstr "به‌روزرسانی دسته‌بندی مالیاتی ناموفق 
 msgid "Refund settled successfully"
 msgstr "بازپرداخت با موفقیت تسویه شد"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:109
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
@@ -1865,7 +1873,7 @@ msgstr "تکثیر"
 msgid "No results"
 msgstr "نتیجه‌ای وجود ندارد"
 
-#: src/lib/components/data-table/data-table-view-options.tsx:89
+#: src/lib/components/data-table/data-table-view-options.tsx:95
 msgid "Column settings"
 msgstr "تنظیمات ستون"
 
@@ -1951,7 +1959,7 @@ msgstr "گسترش سند پرس‌وجو ناموفق بود"
 msgid "Failed to update note"
 msgstr "به‌روزرسانی یادداشت ناموفق بود"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:201
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:206
 msgid "Refund shipping"
 msgstr "بازپرداخت هزینه ارسال"
 
@@ -2004,6 +2012,10 @@ msgstr "یک زبان انتخاب کنید"
 #: src/lib/components/layout/nav-user.tsx:164
 msgid "Log out"
 msgstr "خروج"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:163
+msgid "Remove role"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts:50
@@ -2493,6 +2505,10 @@ msgstr "حذف ستون"
 msgid "Assign existing"
 msgstr "تخصیص موجود"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:132
+msgid "Role"
+msgstr ""
+
 #: src/lib/components/data-table/filters/data-table-enum-filter.tsx:19
 #: src/lib/components/data-table/human-readable-operator.tsx:36
 msgid "is null"
@@ -2643,7 +2659,7 @@ msgstr "لطفا یک مجموعه هدف انتخاب کنید"
 msgid "Review the changes before applying them to the order."
 msgstr "قبل از اعمال تغییرات به سفارش، آنها را بررسی کنید."
 
-#: src/lib/components/shared/role-selector.tsx:52
+#: src/lib/components/shared/role-selector.tsx:58
 msgid "Select a role"
 msgstr "یک نقش انتخاب کنید"
 
@@ -2693,7 +2709,7 @@ msgstr "کانال"
 #~ msgstr "بررسی سلامت"
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:170
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:317
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:322
 msgid "Amount"
 msgstr "مقدار"
 
@@ -2708,11 +2724,11 @@ msgid "New customer"
 msgstr "مشتری جدید"
 
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:33
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:90
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:94
 msgid "Image"
 msgstr "تصویر"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:77
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:81
 msgid "Successfully created administrator"
 msgstr "مدیر با موفقیت ایجاد شد"
 
@@ -2784,7 +2800,7 @@ msgstr "کل بازپرداخت از حداکثر مبلغ قابل بازپرد
 msgid "Delete Global View"
 msgstr "حذف نمای عمومی"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:109
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
@@ -2893,7 +2909,7 @@ msgstr "مقدار پیش‌فرض: {value}"
 msgid "Order history"
 msgstr "تاریخچه سفارش"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:263
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:268
 msgid "Override"
 msgstr "بازنویسی"
 
@@ -3005,7 +3021,7 @@ msgstr "منطقه جدید"
 msgid "Failed to update collection position"
 msgstr "به‌روزرسانی موقعیت مجموعه ناموفق بود"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:102
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:106
 msgid "Refund"
 msgstr "بازپرداخت"
 
@@ -3163,7 +3179,7 @@ msgid "in"
 msgstr "در"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:188
-#: src/lib/components/shared/role-selector.tsx:53
+#: src/lib/components/shared/role-selector.tsx:59
 msgid "Search roles..."
 msgstr "جستجوی نقش‌ها..."
 
@@ -3181,7 +3197,7 @@ msgstr "انواع محصول"
 msgid "Manage Global Views"
 msgstr "مدیریت نماهای عمومی"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:365
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:370
 msgid "Processing..."
 msgstr "در حال پردازش..."
 
@@ -3196,7 +3212,7 @@ msgstr "انتخاب بازه تاریخ"
 
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:87
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:44
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:93
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:97
 msgid "Product"
 msgstr "محصول"
 
@@ -3275,12 +3291,12 @@ msgstr "کل سفارش‌ها"
 msgid "No eligible shipping methods found for this order."
 msgstr "هیچ روش ارسال واجد شرایطی برای این سفارش یافت نشد."
 
-#: src/app/routes/_authenticated/_products/components/product-options-table.tsx:118
+#: src/app/routes/_authenticated/_products/components/product-options-table.tsx:126
 msgid "Add product option"
 msgstr "افزودن گزینه محصول"
 
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:66
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:189
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:194
 #: src/app/routes/_authenticated/_orders/orders.tsx:85
 msgid "Shipping"
 msgstr "ارسال"
@@ -3292,6 +3308,10 @@ msgstr "useWidgetDimensions باید در داخل DashboardBaseWidget استف�
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:493
 msgid "This option group is in use by existing variants. Force removing it may affect those variants. Are you sure?"
 msgstr "این گروه گزینه توسط متغیرهای موجود استفاده می‌شود. حذف اجباری آن ممکن است بر آن متغیرها تأثیر بگذارد. آیا مطمئن هستید؟"
+
+#: src/app/routes/_authenticated/_roles/components/role-usage.tsx:58
+msgid "This role is not assigned to any user"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:63
 msgid "Email update requested"
@@ -3398,12 +3418,13 @@ msgstr "مساوی نیست با"
 msgid "Settle payment"
 msgstr "تسویه پرداخت"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:135
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:38
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:216
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:343
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:111
+#: src/app/routes/_authenticated/_roles/components/role-usage.tsx:84
 #: src/lib/components/layout/channel-switcher.tsx:146
 msgid "Channels"
 msgstr "کانال‌ها"
@@ -3664,7 +3685,7 @@ msgid "Add option group"
 msgstr "افزودن گروه گزینه"
 
 #. placeholder {0}: formatCurrency(refund.amountToRefundTotal, order.currencyCode)
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:367
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:372
 msgid "Refund {0}"
 msgstr "بازپرداخت {0}"
 
@@ -3702,7 +3723,7 @@ msgstr "فیلتر کردن گونه‌ها..."
 msgid "Add a price in another currency"
 msgstr "افزودن قیمت با ارز دیگر"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:127
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:131
 #: src/app/routes/_authenticated/_profile/profile.tsx:114
 msgid "Email Address or identifier"
 msgstr "آدرس ایمیل یا شناسه"
@@ -3868,6 +3889,10 @@ msgstr "این هفته"
 #~ msgid "Successfully created product option group"
 #~ msgstr "گروه گزینه‌های محصول با موفقیت ایجاد شد"
 
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:48
+msgid "Permissions on"
+msgstr ""
+
 #. placeholder {0}: formatCurrency(outstandingAmount, currencyCode)
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:130
 msgid "Add a manual payment of {0}"
@@ -3881,7 +3906,7 @@ msgstr "در است"
 msgid "Email"
 msgstr "ایمیل"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:90
 msgid "Failed to update administrator"
 msgstr "به‌روزرسانی مدیر ناموفق بود"
 
@@ -3910,7 +3935,7 @@ msgctxt "theme"
 msgid "Light"
 msgstr "روشن"
 
-#: src/lib/components/data-table/data-table-view-options.tsx:120
+#: src/lib/components/data-table/data-table-view-options.tsx:130
 msgid "Reset"
 msgstr "بازنشانی"
 
@@ -4087,7 +4112,7 @@ msgstr "مجموع سفارش"
 msgid "Visible to admins only"
 msgstr "فقط برای مدیران قابل مشاهده"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:99
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:103
 msgid "Qty"
 msgstr "تعداد"
 
@@ -4206,7 +4231,7 @@ msgid "{title}"
 msgstr "{title}"
 
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:244
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:83
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:87
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:178
 msgid "Order lines"
 msgstr "خطوط سفارش"
@@ -4229,7 +4254,7 @@ msgstr "استرداد به مبلغ {formattedDiff} مورد نیاز است. �
 
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:100
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:57
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:96
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:100
 msgid "Unit price"
 msgstr "قیمت واحد"
 
@@ -4384,6 +4409,11 @@ msgstr "گروه گزینه جدید"
 #: src/app/routes/_authenticated/_system/healthchecks.tsx:58
 #~ msgid "Last updated {0}"
 #~ msgstr "آخرین به‌روزرسانی {0}"
+
+#. placeholder {0}: items.length
+#: src/app/routes/_authenticated/_roles/components/role-usage.tsx:107
+msgid "Showing the first {0} of {totalItems} assignments"
+msgstr ""
 
 #: src/lib/components/data-table/views-sheet.tsx:141
 msgid "No global views have been created yet."
@@ -4672,7 +4702,7 @@ msgstr "تحویل شماره {0} ایجاد شد"
 msgid "Running pending search index updates"
 msgstr "اجرای به‌روزرسانی‌های در انتظار نمایه جستجو"
 
-#: src/app/routes/_authenticated/_roles/roles.tsx:53
+#: src/app/routes/_authenticated/_roles/roles.tsx:50
 msgid "This is a default Role and cannot be modified"
 msgstr "این یک نقش پیش‌فرض است و نمی‌تواند تغییر کند"
 
@@ -4798,7 +4828,7 @@ msgstr "به Vendure خوش آمدید"
 msgid "Shipping Methods"
 msgstr "روش‌های ارسال"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:144
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:149
 msgid "({maxRefundable} refundable)"
 msgstr "({maxRefundable} قابل بازپرداخت)"
 
@@ -4941,7 +4971,7 @@ msgstr "نرخ‌های مالیات"
 msgid "Failed to load global settings"
 msgstr "بارگذاری تنظیمات عمومی ناموفق بود"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:75
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:79
 msgid "Select items to refund and optionally return to stock"
 msgstr "اقلام را برای بازپرداخت انتخاب کنید و به صورت اختیاری به انبار برگردانید"
 
@@ -5094,7 +5124,7 @@ msgstr "ذخیره گروه گزینه"
 msgid "Click \"Run Test\" to test this shipping method."
 msgstr "برای آزمایش این روش ارسال روی \"اجرای آزمون\" کلیک کنید."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:78
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:82
 msgid "Successfully updated administrator"
 msgstr "مدیر با موفقیت به‌روزرسانی شد"
 
@@ -5224,7 +5254,7 @@ msgstr "مقادیر ویژگی جدید برای افزودن:"
 msgid "Failed to process refund"
 msgstr "پردازش بازپرداخت ناموفق بود"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:115
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:119
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:176
 #: src/app/routes/_authenticated/_profile/profile.tsx:102
 msgid "First name"
@@ -5301,7 +5331,7 @@ msgid "Duplicate value \"{trimmed}\" already exists"
 msgstr "مقدار تکراری \"{trimmed}\" از قبل وجود دارد"
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:233
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:217
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:222
 msgid "Reason"
 msgstr "دلیل"
 
@@ -5382,7 +5412,7 @@ msgstr "زبان"
 msgid "New Collection"
 msgstr "مجموعه جدید"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:72
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:76
 msgid "Refund and cancel order"
 msgstr "بازپرداخت و لغو سفارش"
 
@@ -5419,8 +5449,8 @@ msgstr "{entityIdsLength} {entityType} با موفقیت به کانال اخت�
 msgid "Global Languages"
 msgstr "زبان‌های عمومی"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:97
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:39
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:101
 msgid "New administrator"
 msgstr "مدیر جدید"
 
@@ -5688,6 +5718,10 @@ msgstr "سطح موجودی را تنظیم می‌کند که در آن این 
 #~ msgid "Create product options"
 #~ msgstr "ایجاد گزینه‌های محصول"
 
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:119
+msgid "Used by"
+msgstr ""
+
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx:206
 #: src/lib/components/layout/manage-languages-dialog.tsx:382
 msgid "Saving..."
@@ -5885,7 +5919,7 @@ msgstr "هیچ آدرسی یافت نشد"
 msgid "Fulfillment ID"
 msgstr "شناسه تحویل"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:290
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:295
 msgid "Select payments to refund"
 msgstr "پرداخت‌ها را برای بازپرداخت انتخاب کنید"
 
@@ -5957,6 +5991,10 @@ msgstr "گزینه"
 #: src/app/routes/_authenticated/_orders/components/order-process-dialog.tsx:82
 msgid "Order process"
 msgstr "فرآیند سفارش"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:172
+msgid "No roles assigned"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:194
 msgid "Phone number"

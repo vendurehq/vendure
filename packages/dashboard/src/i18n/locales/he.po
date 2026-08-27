@@ -32,8 +32,8 @@ msgid "Tracking code"
 msgstr "קוד מעקב"
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:113
-msgid "The selected permissions will be applied to the these channels."
-msgstr "ההרשאות שנבחרו יוחלו על ערוצים אלה."
+#~ msgid "The selected permissions will be applied to the these channels."
+#~ msgstr "ההרשאות שנבחרו יוחלו על ערוצים אלה."
 
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:248
 msgid "Product options"
@@ -47,7 +47,7 @@ msgstr "שיעור מס חדש"
 msgid "Assign an existing option group or create a new one"
 msgstr "הקצאת קבוצת אפשרויות קיימת או יצירת קבוצה חדשה"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:34
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:77
 msgid "New role"
 msgstr "תפקיד חדש"
@@ -90,7 +90,7 @@ msgstr "עריכת ערך JSON"
 msgid "Using external authentication strategy: {strategy}"
 msgstr "משתמש באסטרטגיית אימות חיצונית: {strategy}"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:225
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:230
 msgid "Select a reason..."
 msgstr "בחר סיבה..."
 
@@ -153,7 +153,7 @@ msgstr "נמחקו {selectionLength} קבצים"
 msgid "Successfully updated tax rate"
 msgstr "שיעור המס עודכן בהצלחה"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:237
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:242
 msgid "Enter custom reason..."
 msgstr "הזן סיבה מותאמת אישית..."
 
@@ -241,7 +241,7 @@ msgstr "{fulfilled, plural, one {{fulfilled} משימה בוטלה בהצלחה}
 msgid "Seller"
 msgstr "מוכר"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:131
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:136
 msgid "SKU:"
 msgstr "מק״ט:"
 
@@ -294,7 +294,7 @@ msgstr "האם אתה בטוח שברצונך למחוק גרסה זו?"
 #~ msgid "All resources are up and running"
 #~ msgstr "כל המשאבים פעילים"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:90
 msgid "Failed to create administrator"
 msgstr "יצירת מנהל נכשלה"
 
@@ -322,7 +322,7 @@ msgstr "עדכון המדינה נכשל"
 msgid "Type at least 2 characters to search..."
 msgstr "הקלד לפחות 2 תווים לחיפוש..."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:121
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:125
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:182
 #: src/app/routes/_authenticated/_profile/profile.tsx:108
 msgid "Last name"
@@ -388,7 +388,7 @@ msgstr "יצירת הערוץ נכשלה"
 msgid "Dev Mode"
 msgstr "מצב פיתוח"
 
-#: src/app/routes/_authenticated/_roles/roles.tsx:88
+#: src/app/routes/_authenticated/_roles/roles.tsx:68
 msgid "New Role"
 msgstr "תפקיד חדש"
 
@@ -396,7 +396,7 @@ msgstr "תפקיד חדש"
 msgid "Failed to delete assets: {message}"
 msgstr "מחיקת הקבצים נכשלה: {message}"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:105
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:109
 msgid "Return to stock"
 msgstr "החזר למלאי"
 
@@ -498,7 +498,7 @@ msgstr "מוצר הורה"
 msgid "City"
 msgstr "עיר"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:37
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:15
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:22
 msgid "Administrators"
@@ -511,6 +511,10 @@ msgstr "מחיר ברוטו: <0/>"
 #: src/lib/components/data-table/data-table-pagination.tsx:82
 msgid "Go to next page"
 msgstr "עבור לעמוד הבא"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:178
+msgid "Add role"
+msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:142
 msgid "Remove link"
@@ -597,12 +601,12 @@ msgstr "מוסיף..."
 msgid "Move Collections"
 msgstr "העבר אוספים"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:139
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:143
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:55
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:170
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:32
-#: src/app/routes/_authenticated/_roles/roles.tsx:18
-#: src/app/routes/_authenticated/_roles/roles.tsx:27
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
+#: src/app/routes/_authenticated/_roles/roles.tsx:16
+#: src/app/routes/_authenticated/_roles/roles.tsx:25
 msgid "Roles"
 msgstr "תפקידים"
 
@@ -817,7 +821,7 @@ msgid "Show password"
 msgstr "הצג סיסמה"
 
 #. placeholder {0}: formatCurrency(refund.totalRefundableAmount, order.currencyCode)
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:282
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:287
 msgid "(max: {0})"
 msgstr "(מקס: {0})"
 
@@ -848,6 +852,10 @@ msgstr "הזן הערת החזר"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:153
 msgid "Order line removed"
 msgstr "שורת ההזמנה הוסרה"
+
+#: src/app/routes/_authenticated/_roles/components/role-usage.tsx:81
+msgid "User"
+msgstr ""
 
 #: src/lib/components/layout/channel-switcher.tsx:158
 msgid "Content:"
@@ -946,7 +954,7 @@ msgstr "כתובת חיוב הוגדרה עבור ההזמנה"
 msgid "Failed to update zone"
 msgstr "עדכון האזור נכשל"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:133
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:137
 #: src/app/routes/_authenticated/_profile/profile.tsx:120
 #: src/app/routes/_authenticated/_profile/profile.tsx:137
 #: src/lib/components/login/login-form.tsx:93
@@ -967,7 +975,7 @@ msgstr "המשימה המתוזמנת תתבצע"
 msgid "New stock location"
 msgstr "מיקום מלאי חדש"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:129
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:109
 msgid "Permissions"
 msgstr "הרשאות"
 
@@ -1261,7 +1269,7 @@ msgstr "מצב התשלום עודכן בהצלחה"
 msgid "Create new"
 msgstr "יצירת חדש"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:249
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:254
 msgid "Refund total"
 msgstr "סך ההחזר"
 
@@ -1496,7 +1504,7 @@ msgstr "מדינות"
 msgid "Failed to rename view"
 msgstr "שינוי שם התצוגה נכשל"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:306
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:311
 msgid "Available"
 msgstr "זמין"
 
@@ -1588,7 +1596,7 @@ msgstr "עבור לעמוד האחרון"
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:168
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:311
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx:352
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:358
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:363
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:71
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:273
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:498
@@ -1769,7 +1777,7 @@ msgstr "עדכון קטגוריית המס נכשל"
 msgid "Refund settled successfully"
 msgstr "ההחזר סולק בהצלחה"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:109
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
@@ -1865,7 +1873,7 @@ msgstr "שכפל"
 msgid "No results"
 msgstr "אין תוצאות"
 
-#: src/lib/components/data-table/data-table-view-options.tsx:89
+#: src/lib/components/data-table/data-table-view-options.tsx:95
 msgid "Column settings"
 msgstr "הגדרות עמודות"
 
@@ -1951,7 +1959,7 @@ msgstr "הרחבת מסמך השאילתה נכשלה"
 msgid "Failed to update note"
 msgstr "עדכון ההערה נכשל"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:201
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:206
 msgid "Refund shipping"
 msgstr "החזר משלוח"
 
@@ -2004,6 +2012,10 @@ msgstr "בחר שפה"
 #: src/lib/components/layout/nav-user.tsx:164
 msgid "Log out"
 msgstr "התנתק"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:163
+msgid "Remove role"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts:50
@@ -2493,6 +2505,10 @@ msgstr "מחק עמודה"
 msgid "Assign existing"
 msgstr "הקצאת קיים"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:132
+msgid "Role"
+msgstr ""
+
 #: src/lib/components/data-table/filters/data-table-enum-filter.tsx:19
 #: src/lib/components/data-table/human-readable-operator.tsx:36
 msgid "is null"
@@ -2643,7 +2659,7 @@ msgstr "אנא בחר אוסף יעד"
 msgid "Review the changes before applying them to the order."
 msgstr "בדוק את השינויים לפני החלתם על ההזמנה."
 
-#: src/lib/components/shared/role-selector.tsx:52
+#: src/lib/components/shared/role-selector.tsx:58
 msgid "Select a role"
 msgstr "בחר תפקיד"
 
@@ -2693,7 +2709,7 @@ msgstr "ערוץ"
 #~ msgstr "בדיקות תקינות"
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:170
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:317
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:322
 msgid "Amount"
 msgstr "סכום"
 
@@ -2708,11 +2724,11 @@ msgid "New customer"
 msgstr "לקוח חדש"
 
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:33
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:90
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:94
 msgid "Image"
 msgstr "תמונה"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:77
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:81
 msgid "Successfully created administrator"
 msgstr "מנהל נוצר בהצלחה"
 
@@ -2784,7 +2800,7 @@ msgstr "סך ההחזר עולה על הסכום המקסימלי להחזר ש�
 msgid "Delete Global View"
 msgstr "מחק תצוגה גלובלית"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:109
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
@@ -2893,7 +2909,7 @@ msgstr "ערך חלופי: {value}"
 msgid "Order history"
 msgstr "היסטוריית הזמנה"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:263
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:268
 msgid "Override"
 msgstr "דריסה"
 
@@ -3005,7 +3021,7 @@ msgstr "אזור חדש"
 msgid "Failed to update collection position"
 msgstr "נכשל בעדכון מיקום האוסף"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:102
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:106
 msgid "Refund"
 msgstr "החזר"
 
@@ -3163,7 +3179,7 @@ msgid "in"
 msgstr "ב"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:188
-#: src/lib/components/shared/role-selector.tsx:53
+#: src/lib/components/shared/role-selector.tsx:59
 msgid "Search roles..."
 msgstr "חפש תפקידים..."
 
@@ -3181,7 +3197,7 @@ msgstr "גרסאות מוצר"
 msgid "Manage Global Views"
 msgstr "נהל תצוגות גלובליות"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:365
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:370
 msgid "Processing..."
 msgstr "מעבד..."
 
@@ -3196,7 +3212,7 @@ msgstr "בחר טווח תאריכים"
 
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:87
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:44
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:93
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:97
 msgid "Product"
 msgstr "מוצר"
 
@@ -3275,12 +3291,12 @@ msgstr "סך הזמנות"
 msgid "No eligible shipping methods found for this order."
 msgstr "לא נמצאו שיטות משלוח זכאיות להזמנה זו."
 
-#: src/app/routes/_authenticated/_products/components/product-options-table.tsx:118
+#: src/app/routes/_authenticated/_products/components/product-options-table.tsx:126
 msgid "Add product option"
 msgstr "הוסף אפשרות מוצר"
 
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:66
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:189
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:194
 #: src/app/routes/_authenticated/_orders/orders.tsx:85
 msgid "Shipping"
 msgstr "משלוח"
@@ -3292,6 +3308,10 @@ msgstr "יש להשתמש ב-useWidgetDimensions בתוך DashboardBaseWidget"
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:493
 msgid "This option group is in use by existing variants. Force removing it may affect those variants. Are you sure?"
 msgstr "קבוצת האפשרויות הזו בשימוש על ידי גרסאות קיימות. הסרה מאולצת עלולה להשפיע על גרסאות אלו. האם אתה בטוח?"
+
+#: src/app/routes/_authenticated/_roles/components/role-usage.tsx:58
+msgid "This role is not assigned to any user"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:63
 msgid "Email update requested"
@@ -3398,12 +3418,13 @@ msgstr "לא שווה ל"
 msgid "Settle payment"
 msgstr "סלק תשלום"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:135
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:38
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:216
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:343
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:111
+#: src/app/routes/_authenticated/_roles/components/role-usage.tsx:84
 #: src/lib/components/layout/channel-switcher.tsx:146
 msgid "Channels"
 msgstr "ערוצים"
@@ -3664,7 +3685,7 @@ msgid "Add option group"
 msgstr "הוסף קבוצת אפשרויות"
 
 #. placeholder {0}: formatCurrency(refund.amountToRefundTotal, order.currencyCode)
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:367
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:372
 msgid "Refund {0}"
 msgstr "החזר {0}"
 
@@ -3702,7 +3723,7 @@ msgstr "סינון וריאנטים..."
 msgid "Add a price in another currency"
 msgstr "הוסף מחיר במטבע אחר"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:127
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:131
 #: src/app/routes/_authenticated/_profile/profile.tsx:114
 msgid "Email Address or identifier"
 msgstr "כתובת דוא\"ל או מזהה"
@@ -3868,6 +3889,10 @@ msgstr "השבוע"
 #~ msgid "Successfully created product option group"
 #~ msgstr "קבוצת אפשרויות מוצר נוצרה בהצלחה"
 
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:48
+msgid "Permissions on"
+msgstr ""
+
 #. placeholder {0}: formatCurrency(outstandingAmount, currencyCode)
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:130
 msgid "Add a manual payment of {0}"
@@ -3881,7 +3906,7 @@ msgstr "ב"
 msgid "Email"
 msgstr "דוא״ל"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:90
 msgid "Failed to update administrator"
 msgstr "עדכון מנהל נכשל"
 
@@ -3910,7 +3935,7 @@ msgctxt "theme"
 msgid "Light"
 msgstr "בהיר"
 
-#: src/lib/components/data-table/data-table-view-options.tsx:120
+#: src/lib/components/data-table/data-table-view-options.tsx:130
 msgid "Reset"
 msgstr "אפס"
 
@@ -4087,7 +4112,7 @@ msgstr "סך הזמנה"
 msgid "Visible to admins only"
 msgstr "גלוי למנהלים בלבד"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:99
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:103
 msgid "Qty"
 msgstr "כמות"
 
@@ -4206,7 +4231,7 @@ msgid "{title}"
 msgstr "{title}"
 
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:244
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:83
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:87
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:178
 msgid "Order lines"
 msgstr "שורות הזמנה"
@@ -4229,7 +4254,7 @@ msgstr "נדרש החזר כספי של {formattedDiff}. בחר סכומי תש�
 
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:100
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:57
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:96
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:100
 msgid "Unit price"
 msgstr "מחיר ליחידה"
 
@@ -4384,6 +4409,11 @@ msgstr "קבוצת אפשרויות חדשה"
 #: src/app/routes/_authenticated/_system/healthchecks.tsx:58
 #~ msgid "Last updated {0}"
 #~ msgstr "עודכן לאחרונה {0}"
+
+#. placeholder {0}: items.length
+#: src/app/routes/_authenticated/_roles/components/role-usage.tsx:107
+msgid "Showing the first {0} of {totalItems} assignments"
+msgstr ""
 
 #: src/lib/components/data-table/views-sheet.tsx:141
 msgid "No global views have been created yet."
@@ -4672,7 +4702,7 @@ msgstr "משלוח מס' {0} נוצר"
 msgid "Running pending search index updates"
 msgstr "מריץ עדכוני אינדקס חיפוש ממתינים"
 
-#: src/app/routes/_authenticated/_roles/roles.tsx:53
+#: src/app/routes/_authenticated/_roles/roles.tsx:50
 msgid "This is a default Role and cannot be modified"
 msgstr "זהו תפקיד ברירת מחדל ולא ניתן לשנות אותו"
 
@@ -4798,7 +4828,7 @@ msgstr "ברוך הבא ל-Vendure"
 msgid "Shipping Methods"
 msgstr "שיטות משלוח"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:144
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:149
 msgid "({maxRefundable} refundable)"
 msgstr "({maxRefundable} ניתן להחזר)"
 
@@ -4941,7 +4971,7 @@ msgstr "שיעורי מס"
 msgid "Failed to load global settings"
 msgstr "טעינת ההגדרות הגלובליות נכשלה"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:75
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:79
 msgid "Select items to refund and optionally return to stock"
 msgstr "בחר פריטים להחזר ואופציונלית החזר למלאי"
 
@@ -5094,7 +5124,7 @@ msgstr "שמור קבוצת אפשרויות"
 msgid "Click \"Run Test\" to test this shipping method."
 msgstr "לחץ על \"הרץ בדיקה\" כדי לבדוק שיטת משלוח זו."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:78
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:82
 msgid "Successfully updated administrator"
 msgstr "מנהל עודכן בהצלחה"
 
@@ -5224,7 +5254,7 @@ msgstr "ערכי מאפיינים חדשים להוספה:"
 msgid "Failed to process refund"
 msgstr "נכשל בעיבוד ההחזר"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:115
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:119
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:176
 #: src/app/routes/_authenticated/_profile/profile.tsx:102
 msgid "First name"
@@ -5301,7 +5331,7 @@ msgid "Duplicate value \"{trimmed}\" already exists"
 msgstr "הערך הכפול \"{trimmed}\" כבר קיים"
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:233
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:217
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:222
 msgid "Reason"
 msgstr "סיבה"
 
@@ -5382,7 +5412,7 @@ msgstr "שפה"
 msgid "New Collection"
 msgstr "אוסף חדש"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:72
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:76
 msgid "Refund and cancel order"
 msgstr "החזר ובטל הזמנה"
 
@@ -5419,8 +5449,8 @@ msgstr "{entityIdsLength} {entityType} הוקצו לערוץ בהצלחה"
 msgid "Global Languages"
 msgstr "שפות גלובליות"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:97
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:39
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:101
 msgid "New administrator"
 msgstr "מנהל חדש"
 
@@ -5688,6 +5718,10 @@ msgstr "מגדיר את רמת המלאי שבה גרסה זו נחשבת אזל
 #~ msgid "Create product options"
 #~ msgstr "צור אפשרויות מוצר"
 
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:119
+msgid "Used by"
+msgstr ""
+
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx:206
 #: src/lib/components/layout/manage-languages-dialog.tsx:382
 msgid "Saving..."
@@ -5885,7 +5919,7 @@ msgstr "לא נמצאו כתובות"
 msgid "Fulfillment ID"
 msgstr "מזהה משלוח"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:290
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:295
 msgid "Select payments to refund"
 msgstr "בחר תשלומים להחזר"
 
@@ -5957,6 +5991,10 @@ msgstr "אפשרות"
 #: src/app/routes/_authenticated/_orders/components/order-process-dialog.tsx:82
 msgid "Order process"
 msgstr "תהליך הזמנה"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:172
+msgid "No roles assigned"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:194
 msgid "Phone number"

@@ -32,8 +32,8 @@ msgid "Tracking code"
 msgstr "Nyomkövetési kód"
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:113
-msgid "The selected permissions will be applied to the these channels."
-msgstr "A kiválasztott jogosultságok ezekre a csatornákra lesznek alkalmazva."
+#~ msgid "The selected permissions will be applied to the these channels."
+#~ msgstr "A kiválasztott jogosultságok ezekre a csatornákra lesznek alkalmazva."
 
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:248
 msgid "Product options"
@@ -47,7 +47,7 @@ msgstr "Új adókulcs"
 msgid "Assign an existing option group or create a new one"
 msgstr "Meglévő opciócsoport hozzárendelése vagy új létrehozása"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:34
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:77
 msgid "New role"
 msgstr "Új szerepkör"
@@ -90,7 +90,7 @@ msgstr "JSON érték szerkesztése"
 msgid "Using external authentication strategy: {strategy}"
 msgstr "Külső hitelesítési stratégia használata: {strategy}"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:225
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:230
 msgid "Select a reason..."
 msgstr "Válasszon indokot..."
 
@@ -153,7 +153,7 @@ msgstr "{selectionLength} média törölve"
 msgid "Successfully updated tax rate"
 msgstr "Adókulcs sikeresen frissítve"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:237
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:242
 msgid "Enter custom reason..."
 msgstr "Adjon meg egyéni indokot..."
 
@@ -241,7 +241,7 @@ msgstr "{fulfilled, plural, one {{fulfilled} feladat sikeresen megszakítva} oth
 msgid "Seller"
 msgstr "Eladó"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:131
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:136
 msgid "SKU:"
 msgstr "SKU:"
 
@@ -294,7 +294,7 @@ msgstr "Biztosan törli ezt a termékváltozatot?"
 #~ msgid "All resources are up and running"
 #~ msgstr "Minden erőforrás működik"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:90
 msgid "Failed to create administrator"
 msgstr "Rendszergazda létrehozása sikertelen"
 
@@ -322,7 +322,7 @@ msgstr "Ország frissítése sikertelen"
 msgid "Type at least 2 characters to search..."
 msgstr "Írjon be legalább 2 karaktert a kereséshez..."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:121
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:125
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:182
 #: src/app/routes/_authenticated/_profile/profile.tsx:108
 msgid "Last name"
@@ -388,7 +388,7 @@ msgstr "Csatorna létrehozása sikertelen"
 msgid "Dev Mode"
 msgstr "Fejlesztői mód"
 
-#: src/app/routes/_authenticated/_roles/roles.tsx:88
+#: src/app/routes/_authenticated/_roles/roles.tsx:68
 msgid "New Role"
 msgstr "Új szerepkör"
 
@@ -396,7 +396,7 @@ msgstr "Új szerepkör"
 msgid "Failed to delete assets: {message}"
 msgstr "Média törlése sikertelen: {message}"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:105
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:109
 msgid "Return to stock"
 msgstr "Visszahelyezés a készletbe"
 
@@ -498,7 +498,7 @@ msgstr "Szülő termék"
 msgid "City"
 msgstr "Város"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:37
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:15
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:22
 msgid "Administrators"
@@ -511,6 +511,10 @@ msgstr "Bruttó ár: <0/>"
 #: src/lib/components/data-table/data-table-pagination.tsx:82
 msgid "Go to next page"
 msgstr "Ugrás a következő oldalra"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:178
+msgid "Add role"
+msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:142
 msgid "Remove link"
@@ -597,12 +601,12 @@ msgstr "Hozzáadás folyamatban..."
 msgid "Move Collections"
 msgstr "Gyűjtemények áthelyezése"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:139
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:143
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:55
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:170
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:32
-#: src/app/routes/_authenticated/_roles/roles.tsx:18
-#: src/app/routes/_authenticated/_roles/roles.tsx:27
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
+#: src/app/routes/_authenticated/_roles/roles.tsx:16
+#: src/app/routes/_authenticated/_roles/roles.tsx:25
 msgid "Roles"
 msgstr "Szerepkörök"
 
@@ -817,7 +821,7 @@ msgid "Show password"
 msgstr "Jelszó megjelenítése"
 
 #. placeholder {0}: formatCurrency(refund.totalRefundableAmount, order.currencyCode)
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:282
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:287
 msgid "(max: {0})"
 msgstr "(max: {0})"
 
@@ -848,6 +852,10 @@ msgstr "Adja meg a visszatérítési megjegyzést"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:153
 msgid "Order line removed"
 msgstr "Megrendeléssor eltávolítva"
+
+#: src/app/routes/_authenticated/_roles/components/role-usage.tsx:81
+msgid "User"
+msgstr ""
 
 #: src/lib/components/layout/channel-switcher.tsx:158
 msgid "Content:"
@@ -946,7 +954,7 @@ msgstr "Számlázási cím beállítva a megrendeléshez"
 msgid "Failed to update zone"
 msgstr "Zóna frissítése sikertelen"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:133
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:137
 #: src/app/routes/_authenticated/_profile/profile.tsx:120
 #: src/app/routes/_authenticated/_profile/profile.tsx:137
 #: src/lib/components/login/login-form.tsx:93
@@ -967,7 +975,7 @@ msgstr "Az ütemezett feladat végre lesz hajtva"
 msgid "New stock location"
 msgstr "Új raktárhely"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:129
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:109
 msgid "Permissions"
 msgstr "Jogosultságok"
 
@@ -1261,7 +1269,7 @@ msgstr "Fizetés állapota sikeresen frissítve"
 msgid "Create new"
 msgstr "Új létrehozása"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:249
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:254
 msgid "Refund total"
 msgstr "Visszatérítés összege"
 
@@ -1496,7 +1504,7 @@ msgstr "Országok"
 msgid "Failed to rename view"
 msgstr "Nézet átnevezése sikertelen"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:306
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:311
 msgid "Available"
 msgstr "Elérhető"
 
@@ -1588,7 +1596,7 @@ msgstr "Ugrás az utolsó oldalra"
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:168
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:311
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx:352
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:358
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:363
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:71
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:273
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:498
@@ -1769,7 +1777,7 @@ msgstr "Adókategória frissítése sikertelen"
 msgid "Refund settled successfully"
 msgstr "A visszatérítés sikeresen rendezve"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:109
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
@@ -1859,7 +1867,7 @@ msgstr "Duplikálás"
 msgid "No results"
 msgstr "Nincs eredmény"
 
-#: src/lib/components/data-table/data-table-view-options.tsx:89
+#: src/lib/components/data-table/data-table-view-options.tsx:95
 msgid "Column settings"
 msgstr "Oszlopbeállítások"
 
@@ -1945,7 +1953,7 @@ msgstr "A lekérdezési dokumentum kiterjesztése sikertelen"
 msgid "Failed to update note"
 msgstr "Megjegyzés frissítése sikertelen"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:201
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:206
 msgid "Refund shipping"
 msgstr "Szállítási díj visszatérítése"
 
@@ -1998,6 +2006,10 @@ msgstr "Nyelv kiválasztása"
 #: src/lib/components/layout/nav-user.tsx:164
 msgid "Log out"
 msgstr "Kijelentkezés"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:163
+msgid "Remove role"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts:50
@@ -2487,6 +2499,10 @@ msgstr "Oszlop törlése"
 msgid "Assign existing"
 msgstr "Meglévő hozzárendelése"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:132
+msgid "Role"
+msgstr ""
+
 #: src/lib/components/data-table/filters/data-table-enum-filter.tsx:19
 #: src/lib/components/data-table/human-readable-operator.tsx:36
 msgid "is null"
@@ -2633,7 +2649,7 @@ msgstr "Kérjük, válasszon célgyűjteményt"
 msgid "Review the changes before applying them to the order."
 msgstr "Tekintse át a változtatásokat, mielőtt alkalmazza azokat a megrendelésre."
 
-#: src/lib/components/shared/role-selector.tsx:52
+#: src/lib/components/shared/role-selector.tsx:58
 msgid "Select a role"
 msgstr "Szerepkör kiválasztása"
 
@@ -2683,7 +2699,7 @@ msgstr "Csatorna"
 #~ msgstr "Állapotfigyelés"
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:170
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:317
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:322
 msgid "Amount"
 msgstr "Összeg"
 
@@ -2698,11 +2714,11 @@ msgid "New customer"
 msgstr "Új vásárló"
 
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:33
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:90
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:94
 msgid "Image"
 msgstr "Kép"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:77
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:81
 msgid "Successfully created administrator"
 msgstr "A rendszergazda sikeresen létrehozva"
 
@@ -2774,7 +2790,7 @@ msgstr "A visszatérítés összege meghaladja a maximálisan visszatéríthető
 msgid "Delete Global View"
 msgstr "Globális nézet törlése"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:109
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
@@ -2883,7 +2899,7 @@ msgstr "Tartalék: {value}"
 msgid "Order history"
 msgstr "Megrendelési előzmények"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:263
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:268
 msgid "Override"
 msgstr "Felülbírálás"
 
@@ -2995,7 +3011,7 @@ msgstr "Új zóna"
 msgid "Failed to update collection position"
 msgstr "Gyűjtemény pozíciójának frissítése sikertelen"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:102
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:106
 msgid "Refund"
 msgstr "Visszatérítés"
 
@@ -3153,7 +3169,7 @@ msgid "in"
 msgstr "ebben"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:188
-#: src/lib/components/shared/role-selector.tsx:53
+#: src/lib/components/shared/role-selector.tsx:59
 msgid "Search roles..."
 msgstr "Szerepkörök keresése..."
 
@@ -3171,7 +3187,7 @@ msgstr "Termékváltozatok"
 msgid "Manage Global Views"
 msgstr "Globális nézetek kezelése"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:365
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:370
 msgid "Processing..."
 msgstr "Feldolgozás..."
 
@@ -3186,7 +3202,7 @@ msgstr "Válasszon dátumtartományt"
 
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:87
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:44
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:93
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:97
 msgid "Product"
 msgstr "Termék"
 
@@ -3265,12 +3281,12 @@ msgstr "Megrendelések összesen"
 msgid "No eligible shipping methods found for this order."
 msgstr "Nem található megfelelő szállítási mód ehhez a megrendeléshez."
 
-#: src/app/routes/_authenticated/_products/components/product-options-table.tsx:118
+#: src/app/routes/_authenticated/_products/components/product-options-table.tsx:126
 msgid "Add product option"
 msgstr "Termékopció hozzáadása"
 
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:66
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:189
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:194
 #: src/app/routes/_authenticated/_orders/orders.tsx:85
 msgid "Shipping"
 msgstr "Szállítás"
@@ -3282,6 +3298,10 @@ msgstr "A useWidgetDimensions csak DashboardBaseWidget-en belül használható"
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:493
 msgid "This option group is in use by existing variants. Force removing it may affect those variants. Are you sure?"
 msgstr "Ez az opciócsoport meglévő változatok által használatban van. A kényszerített eltávolítás hatással lehet azokra a változatokra. Biztosan folytatja?"
+
+#: src/app/routes/_authenticated/_roles/components/role-usage.tsx:58
+msgid "This role is not assigned to any user"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:63
 msgid "Email update requested"
@@ -3388,12 +3408,13 @@ msgstr "nem egyenlő"
 msgid "Settle payment"
 msgstr "Fizetés rendezése"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:135
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:38
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:216
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:343
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:111
+#: src/app/routes/_authenticated/_roles/components/role-usage.tsx:84
 #: src/lib/components/layout/channel-switcher.tsx:146
 msgid "Channels"
 msgstr "Csatornák"
@@ -3651,7 +3672,7 @@ msgid "Add option group"
 msgstr "Opciócsoport hozzáadása"
 
 #. placeholder {0}: formatCurrency(refund.amountToRefundTotal, order.currencyCode)
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:367
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:372
 msgid "Refund {0}"
 msgstr "{0} visszatérítése"
 
@@ -3689,7 +3710,7 @@ msgstr "Változatok szűrése..."
 msgid "Add a price in another currency"
 msgstr "Ár hozzáadása másik pénznemben"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:127
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:131
 #: src/app/routes/_authenticated/_profile/profile.tsx:114
 msgid "Email Address or identifier"
 msgstr "E-mail cím vagy azonosító"
@@ -3855,6 +3876,10 @@ msgstr "Ez a hét"
 #~ msgid "Successfully created product option group"
 #~ msgstr "A termékopció-csoport sikeresen létrehozva"
 
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:48
+msgid "Permissions on"
+msgstr ""
+
 #. placeholder {0}: formatCurrency(outstandingAmount, currencyCode)
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:130
 msgid "Add a manual payment of {0}"
@@ -3868,7 +3893,7 @@ msgstr "szerepel"
 msgid "Email"
 msgstr "E-mail"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:90
 msgid "Failed to update administrator"
 msgstr "Rendszergazda frissítése sikertelen"
 
@@ -3897,7 +3922,7 @@ msgctxt "theme"
 msgid "Light"
 msgstr "Világos"
 
-#: src/lib/components/data-table/data-table-view-options.tsx:120
+#: src/lib/components/data-table/data-table-view-options.tsx:130
 msgid "Reset"
 msgstr "Visszaállítás"
 
@@ -4074,7 +4099,7 @@ msgstr "Megrendelés összege"
 msgid "Visible to admins only"
 msgstr "Csak rendszergazdák számára látható"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:99
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:103
 msgid "Qty"
 msgstr "Menny."
 
@@ -4193,7 +4218,7 @@ msgid "{title}"
 msgstr "{title}"
 
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:244
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:83
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:87
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:178
 msgid "Order lines"
 msgstr "Megrendeléssorok"
@@ -4216,7 +4241,7 @@ msgstr "{formattedDiff} összegű visszatérítés szükséges. A folytatáshoz 
 
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:100
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:57
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:96
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:100
 msgid "Unit price"
 msgstr "Egységár"
 
@@ -4371,6 +4396,11 @@ msgstr "Új opciócsoport"
 #: src/app/routes/_authenticated/_system/healthchecks.tsx:58
 #~ msgid "Last updated {0}"
 #~ msgstr "Utoljára frissítve: {0}"
+
+#. placeholder {0}: items.length
+#: src/app/routes/_authenticated/_roles/components/role-usage.tsx:107
+msgid "Showing the first {0} of {totalItems} assignments"
+msgstr ""
 
 #: src/lib/components/data-table/views-sheet.tsx:141
 msgid "No global views have been created yet."
@@ -4659,7 +4689,7 @@ msgstr "#{0} teljesítés létrehozva"
 msgid "Running pending search index updates"
 msgstr "Függő keresési index frissítések futtatása"
 
-#: src/app/routes/_authenticated/_roles/roles.tsx:53
+#: src/app/routes/_authenticated/_roles/roles.tsx:50
 msgid "This is a default Role and cannot be modified"
 msgstr "Ez egy alapértelmezett szerepkör, és nem módosítható"
 
@@ -4785,7 +4815,7 @@ msgstr "Üdvözöljük a Vendure-ban"
 msgid "Shipping Methods"
 msgstr "Szállítási módok"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:144
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:149
 msgid "({maxRefundable} refundable)"
 msgstr "({maxRefundable} visszatéríthető)"
 
@@ -4928,7 +4958,7 @@ msgstr "Adókulcsok"
 msgid "Failed to load global settings"
 msgstr "Globális beállítások betöltése sikertelen"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:75
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:79
 msgid "Select items to refund and optionally return to stock"
 msgstr "Válassza ki a visszatérítendő elemeket, és szükség esetén adja vissza őket a készletbe"
 
@@ -5081,7 +5111,7 @@ msgstr "Opciócsoport mentése"
 msgid "Click \"Run Test\" to test this shipping method."
 msgstr "Kattintson a \"Teszt futtatása\" gombra a szállítási mód teszteléséhez."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:78
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:82
 msgid "Successfully updated administrator"
 msgstr "Rendszergazda sikeresen frissítve"
 
@@ -5211,7 +5241,7 @@ msgstr "Hozzáadandó új tulajdonságértékek:"
 msgid "Failed to process refund"
 msgstr "Visszatérítés feldolgozása sikertelen"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:115
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:119
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:176
 #: src/app/routes/_authenticated/_profile/profile.tsx:102
 msgid "First name"
@@ -5288,7 +5318,7 @@ msgid "Duplicate value \"{trimmed}\" already exists"
 msgstr "A(z) \"{trimmed}\" duplikált érték már létezik"
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:233
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:217
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:222
 msgid "Reason"
 msgstr "Ok"
 
@@ -5369,7 +5399,7 @@ msgstr "Nyelv"
 msgid "New Collection"
 msgstr "Új gyűjtemény"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:72
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:76
 msgid "Refund and cancel order"
 msgstr "Megrendelés visszatérítése és törlése"
 
@@ -5406,8 +5436,8 @@ msgstr "{entityIdsLength} {entityType} sikeresen hozzárendelve a csatornához"
 msgid "Global Languages"
 msgstr "Globális nyelvek"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:97
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:39
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:101
 msgid "New administrator"
 msgstr "Új rendszergazda"
 
@@ -5675,6 +5705,10 @@ msgstr "Beállítja azt a készletszintet, amelynél ez a termékváltozat kész
 #~ msgid "Create product options"
 #~ msgstr "Termékopciók létrehozása"
 
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:119
+msgid "Used by"
+msgstr ""
+
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx:206
 #: src/lib/components/layout/manage-languages-dialog.tsx:382
 msgid "Saving..."
@@ -5868,7 +5902,7 @@ msgstr "Nem található cím"
 msgid "Fulfillment ID"
 msgstr "Teljesítés ID"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:290
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:295
 msgid "Select payments to refund"
 msgstr "Válassza ki a visszatérítendő fizetéseket"
 
@@ -5940,6 +5974,10 @@ msgstr "Opció"
 #: src/app/routes/_authenticated/_orders/components/order-process-dialog.tsx:82
 msgid "Order process"
 msgstr "Rendelési folyamat"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:172
+msgid "No roles assigned"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:194
 msgid "Phone number"
