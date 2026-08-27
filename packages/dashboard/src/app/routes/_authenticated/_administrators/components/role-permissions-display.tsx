@@ -41,8 +41,8 @@ export function RolePermissionsDisplay({ value = [] }: Readonly<RolePermissionsD
     const roles = data?.roles.items ?? [];
 
     // A Role is a channel-agnostic permission template: the Channels its permissions apply
-    // to are determined per-user by RoleAssignments, so the display is the union of the
-    // selected Roles' permissions.
+    // to are determined per-user by RoleAssignments, so the caller passes the Roles granted
+    // on one Channel and this is their union on that Channel.
     const isPermissionEnabled = (permissionName: string) =>
         roles.some(role => role.permissions.includes(permissionName as any));
 

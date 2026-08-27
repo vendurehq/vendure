@@ -1,17 +1,17 @@
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
-import { RoleSelector } from '@/vdb/components/shared/role-selector.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
-import {    CustomFieldsPageBlock,
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
+import {
+    CustomFieldsPageBlock,
     Page,
     PageActionBar,
     PageBlock,
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
-import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { Trans, useLingui } from '@lingui/react/macro';
@@ -22,9 +22,16 @@ import {
     createAdministratorDocument,
     updateAdministratorDocument,
 } from './administrators.graphql.js';
-import { RolePermissionsDisplay } from './components/role-permissions-display.js';
+import { EffectivePermissionsPanel } from './components/effective-permissions-panel.js';
+import { RoleAssignmentsEditor } from './components/role-assignments-editor.js';
 
 const pageId = 'administrator-detail';
+
+function completeRoleAssignments(
+    assignments: Array<{ roleId: string; channelId: string }> | null | undefined,
+) {
+    return (assignments ?? []).filter(assignment => !!assignment?.roleId && !!assignment?.channelId);
+}
 
 export const Route = createFileRoute('/_authenticated/_administrators/administrators_/$id')({
     component: AdministratorDetailPage,
@@ -61,14 +68,31 @@ function AdministratorDetailPage() {
                 emailAddress: entity.emailAddress,
                 password: '',
                 customFields: entity.customFields,
-                roleIds: entity.user.roles.map(role => role.id),
+                roleAssignments: entity.user.roleAssignments.map(({ roleId, channelId }) => ({
+                    roleId,
+                    channelId,
+                })),
             };
         },
+        // The generated form seeds the roleAssignments list with one blank item and the
+        // deprecated roleIds with []; incomplete pairs must not reach the replace-set input,
+        // and roleIds is mutually exclusive with roleAssignments so it must not be sent.
+        transformCreateInput: input => {
+            const transformed = {
+                ...input,
+                roleAssignments: completeRoleAssignments(input.roleAssignments),
+            };
+            delete transformed.roleIds;
+            return transformed;
+        },
         transformUpdateInput: input => {
-            return {
+            const transformed = {
                 ...input,
                 password: input.password || undefined,
+                roleAssignments: completeRoleAssignments(input.roleAssignments),
             };
+            delete transformed.roleIds;
+            return transformed;
         },
         params: { id: params.id },
         onSuccess: async data => {
@@ -90,7 +114,7 @@ function AdministratorDetailPage() {
     });
 
     const name = `${entity?.firstName} ${entity?.lastName}`;
-    const roleIds = form.watch('roleIds');
+    const roleAssignments = form.watch('roleAssignments');
 
     return (
         <Page pageId={pageId} form={form} submitHandler={submitHandler} entity={entity}>
@@ -139,16 +163,12 @@ function AdministratorDetailPage() {
                 <PageBlock column="main" blockId="roles" title={<Trans>Roles</Trans>}>
                     <FormFieldWrapper
                         control={form.control}
-                        name="roleIds"
+                        name="roleAssignments"
                         render={({ field }) => (
-                            <RoleSelector
-                                value={field.value ?? []}
-                                onChange={field.onChange}
-                                multiple={true}
-                            />
+                            <RoleAssignmentsEditor value={field.value ?? []} onChange={field.onChange} />
                         )}
                     />
-                    <RolePermissionsDisplay value={roleIds ?? []} />
+                    <EffectivePermissionsPanel assignments={roleAssignments ?? []} />
                 </PageBlock>
             </PageLayout>
         </Page>
