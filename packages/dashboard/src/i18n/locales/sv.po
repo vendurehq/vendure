@@ -279,8 +279,8 @@ msgid "Orders"
 msgstr "Beställningar"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:187
-msgid "Select roles"
-msgstr "Välj roller"
+#~ msgid "Select roles"
+#~ msgstr "Välj roller"
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:62
 msgid "Successfully created role"
@@ -294,7 +294,7 @@ msgstr "Är du säker på att du vill ta bort denna variant?"
 #~ msgid "All resources are up and running"
 #~ msgstr "Alla resurser är igång"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:90
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:107
 msgid "Failed to create administrator"
 msgstr "Misslyckades med att skapa administratör"
 
@@ -322,7 +322,7 @@ msgstr "Misslyckades att uppdatera land"
 msgid "Type at least 2 characters to search..."
 msgstr "Skriv minst 2 tecken för att söka..."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:125
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:142
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:182
 #: src/app/routes/_authenticated/_profile/profile.tsx:108
 msgid "Last name"
@@ -498,7 +498,7 @@ msgstr "Överordnad produkt"
 msgid "City"
 msgstr "Stad"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:41
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:15
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:22
 msgid "Administrators"
@@ -512,7 +512,7 @@ msgstr "Bruttopris: <0/>"
 msgid "Go to next page"
 msgstr "Gå till nästa sida"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:178
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:210
 msgid "Add role"
 msgstr ""
 
@@ -601,9 +601,9 @@ msgstr "Lägger till..."
 msgid "Move Collections"
 msgstr "Flytta kollektioner"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:143
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:160
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:55
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:170
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:168
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
 #: src/app/routes/_authenticated/_roles/roles.tsx:16
 #: src/app/routes/_authenticated/_roles/roles.tsx:25
@@ -686,7 +686,7 @@ msgstr "Standardskattzon"
 msgid "Order draft is ready to be completed"
 msgstr "Beställningsutkastet är redo att slutföras"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:201
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:189
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:245
 msgid "Metadata"
 msgstr "Metadata"
@@ -752,7 +752,7 @@ msgid "Complete draft"
 msgstr "Slutför utkast"
 
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:45
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:165
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:163
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:169
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
@@ -954,7 +954,7 @@ msgstr "Faktureringsadress inställd för beställning"
 msgid "Failed to update zone"
 msgstr "Misslyckades att uppdatera zon"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:137
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:154
 #: src/app/routes/_authenticated/_profile/profile.tsx:120
 #: src/app/routes/_authenticated/_profile/profile.tsx:137
 #: src/lib/components/login/login-form.tsx:93
@@ -1279,8 +1279,8 @@ msgid "Address deleted"
 msgstr "Adress borttagen"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:195
-msgid "Only roles assigned to your account are available."
-msgstr "Endast roller som är tilldelade ditt konto är tillgängliga."
+#~ msgid "Only roles assigned to your account are available."
+#~ msgstr "Endast roller som är tilldelade ditt konto är tillgängliga."
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:65
 msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Cancel {cancellableCount} jobs}}"
@@ -1404,7 +1404,7 @@ msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to
 msgstr "{rejected, plural, one {Det gick inte att avbryta {rejected} jobb} other {Det gick inte att avbryta {rejected} jobb}}"
 
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:111
-#: src/lib/components/shared/channel-selector.tsx:47
+#: src/lib/components/shared/channel-selector.tsx:54
 msgid "Select a channel"
 msgstr "Välj en kanal"
 
@@ -1548,7 +1548,7 @@ msgstr "Laddar globala inställningar..."
 msgid "Address updated successfully"
 msgstr "Adress uppdaterad"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:214
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:124
 #: src/lib/components/shared/asset/asset-gallery.tsx:747
 #: src/lib/framework/layout-engine/page-layout.tsx:733
@@ -1777,8 +1777,8 @@ msgstr "Misslyckades att uppdatera skattekategori"
 msgid "Refund settled successfully"
 msgstr "Återbetalning genomförd"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:109
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:126
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:153
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
@@ -1999,7 +1999,7 @@ msgstr "Tema"
 msgid "{0} customers"
 msgstr "{0} kunder"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:48
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:42
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:14
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:25
 msgid "API Keys"
@@ -2013,7 +2013,7 @@ msgstr "Välj ett språk"
 msgid "Log out"
 msgstr "Logga ut"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:163
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:195
 msgid "Remove role"
 msgstr ""
 
@@ -2491,8 +2491,8 @@ msgstr "Leveransadress"
 msgid "New zone"
 msgstr "Ny zon"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:49
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:136
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:43
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:134
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:79
 msgid "New API Key"
 msgstr "Ny API-nyckel"
@@ -2505,7 +2505,7 @@ msgstr "Ta bort kolumn"
 msgid "Assign existing"
 msgstr "Tilldela befintlig"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:132
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:158
 msgid "Role"
 msgstr ""
 
@@ -2659,7 +2659,7 @@ msgstr "Välj en målkollektion"
 msgid "Review the changes before applying them to the order."
 msgstr "Granska ändringarna innan de tillämpas på beställningen."
 
-#: src/lib/components/shared/role-selector.tsx:58
+#: src/lib/components/shared/role-selector.tsx:35
 msgid "Select a role"
 msgstr "Välj en roll"
 
@@ -2728,7 +2728,7 @@ msgstr "Ny kund"
 msgid "Image"
 msgstr "Bild"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:81
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:98
 msgid "Successfully created administrator"
 msgstr "Administratör har skapats"
 
@@ -2800,8 +2800,8 @@ msgstr "Total återbetalning överstiger maximalt återbetalningsbart belopp på
 msgid "Delete Global View"
 msgstr "Ta bort global vy"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:109
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:126
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:153
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
@@ -3082,7 +3082,7 @@ msgstr "Ny kampanj"
 msgid "Option value name"
 msgstr "Alternativvärdesnamn"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:214
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:202
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:46
 msgid "Last used"
 msgstr "Senast använd"
@@ -3158,6 +3158,10 @@ msgstr "Inkluderar moms på {taxRate}%"
 msgid "Order metrics"
 msgstr "Beställningsmått"
 
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:181
+msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
+msgstr ""
+
 #: src/lib/components/layout/language-dialog.tsx:49
 msgid "Select display language"
 msgstr "Välj visningsspråk"
@@ -3178,8 +3182,7 @@ msgstr "Misslyckades med att rotera API-nyckel"
 msgid "in"
 msgstr "i"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:188
-#: src/lib/components/shared/role-selector.tsx:59
+#: src/lib/components/shared/role-selector.tsx:36
 msgid "Search roles..."
 msgstr "Sök roller..."
 
@@ -3418,7 +3421,7 @@ msgstr "är inte lika med"
 msgid "Settle payment"
 msgstr "Genomför betalning"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:135
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:161
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:38
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
@@ -3710,7 +3713,7 @@ msgstr "Betalning avbruten"
 msgid "Global view duplicated successfully"
 msgstr "Global vy duplicerad"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:210
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:198
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:66
 msgid "Created by"
 msgstr "Skapad av"
@@ -3723,7 +3726,7 @@ msgstr "Filtrera varianter..."
 msgid "Add a price in another currency"
 msgstr "Lägg till ett pris i en annan valuta"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:131
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:148
 #: src/app/routes/_authenticated/_profile/profile.tsx:114
 msgid "Email Address or identifier"
 msgstr "E-postadress eller identifierare"
@@ -3818,7 +3821,7 @@ msgstr "Lagernivå"
 msgid "Add item"
 msgstr "Lägg till artikel"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:108
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:106
 msgid "Successfully created API key"
 msgstr "API-nyckel skapad"
 
@@ -3889,7 +3892,7 @@ msgstr "Denna vecka"
 #~ msgid "Successfully created product option group"
 #~ msgstr "Produktalternativgrupp har skapats"
 
-#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:48
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:54
 msgid "Permissions on"
 msgstr ""
 
@@ -3906,7 +3909,7 @@ msgstr "är i"
 msgid "Email"
 msgstr "E-post"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:90
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:107
 msgid "Failed to update administrator"
 msgstr "Misslyckades med att uppdatera administratör"
 
@@ -3996,7 +3999,7 @@ msgstr "Produkt med alternativ"
 msgid "Showing all {0} results"
 msgstr "Visar alla {0} resultat"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:204
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:192
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:60
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx:95
 msgid "Lookup ID"
@@ -4222,7 +4225,7 @@ msgstr "Misslyckades att skapa zon"
 msgid "Stock levels"
 msgstr "Lagernivåer"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:121
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:119
 msgid "Failed to update API key"
 msgstr "Misslyckades med att uppdatera API-nyckel"
 
@@ -4274,7 +4277,7 @@ msgstr "Lägg till kanal"
 #~ msgid "Failed to update product option group"
 #~ msgstr "Kunde inte uppdatera produktalternativgrupp"
 
-#: src/lib/components/shared/channel-selector.tsx:48
+#: src/lib/components/shared/channel-selector.tsx:55
 msgid "Search channels..."
 msgstr "Sök kanaler..."
 
@@ -4455,7 +4458,7 @@ msgstr "Hantera taggar"
 msgid "Coupon code removed from order"
 msgstr "Kupongkod borttagen från beställning"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:221
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:209
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:50
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:142
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:152
@@ -5124,7 +5127,7 @@ msgstr "Spara alternativgrupp"
 msgid "Click \"Run Test\" to test this shipping method."
 msgstr "Klicka \"Kör test\" för att testa denna fraktmetod."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:82
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:99
 msgid "Successfully updated administrator"
 msgstr "Administratör har uppdaterats"
 
@@ -5254,7 +5257,7 @@ msgstr "Nya facettvärden att lägga till:"
 msgid "Failed to process refund"
 msgstr "Misslyckades med att behandla återbetalning"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:119
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:136
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:176
 #: src/app/routes/_authenticated/_profile/profile.tsx:102
 msgid "First name"
@@ -5449,8 +5452,8 @@ msgstr "{entityIdsLength} {entityType} tilldelad till kanal"
 msgid "Global Languages"
 msgstr "Globala språk"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:39
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:101
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:42
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:118
 msgid "New administrator"
 msgstr "Ny administratör"
 
@@ -5939,7 +5942,7 @@ msgstr "Utlagd tröskel"
 msgid "Failed to update value"
 msgstr "Misslyckades med att uppdatera värde"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:121
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:119
 msgid "Failed to create API key"
 msgstr "Misslyckades med att skapa API-nyckel"
 
@@ -5992,7 +5995,7 @@ msgstr "Alternativ"
 msgid "Order process"
 msgstr "Orderprocess"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:172
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:204
 msgid "No roles assigned"
 msgstr ""
 
@@ -6013,7 +6016,7 @@ msgstr "Variant"
 msgid "Successfully updated global settings"
 msgstr "Globala inställningar uppdaterade"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:115
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:113
 msgid "Successfully updated API key"
 msgstr "API-nyckel uppdaterad"
 

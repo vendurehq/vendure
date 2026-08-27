@@ -279,8 +279,8 @@ msgid "Orders"
 msgstr "سفارش‌ها"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:187
-msgid "Select roles"
-msgstr "انتخاب نقش‌ها"
+#~ msgid "Select roles"
+#~ msgstr "انتخاب نقش‌ها"
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:62
 msgid "Successfully created role"
@@ -294,7 +294,7 @@ msgstr "آیا مطمئن هستید که می‌خواهید این نوع را
 #~ msgid "All resources are up and running"
 #~ msgstr "تمام منابع در حال اجرا هستند"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:90
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:107
 msgid "Failed to create administrator"
 msgstr "ایجاد مدیر ناموفق بود"
 
@@ -322,7 +322,7 @@ msgstr "به‌روزرسانی کشور ناموفق بود"
 msgid "Type at least 2 characters to search..."
 msgstr "حداقل ۲ حرف برای جستجو تایپ کنید..."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:125
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:142
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:182
 #: src/app/routes/_authenticated/_profile/profile.tsx:108
 msgid "Last name"
@@ -498,7 +498,7 @@ msgstr "محصول والد"
 msgid "City"
 msgstr "شهر"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:41
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:15
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:22
 msgid "Administrators"
@@ -512,7 +512,7 @@ msgstr "قیمت ناخالص: <0/>"
 msgid "Go to next page"
 msgstr "رفتن به صفحه بعدی"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:178
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:210
 msgid "Add role"
 msgstr ""
 
@@ -601,9 +601,9 @@ msgstr "در حال افزودن..."
 msgid "Move Collections"
 msgstr "جابجایی مجموعه‌ها"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:143
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:160
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:55
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:170
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:168
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
 #: src/app/routes/_authenticated/_roles/roles.tsx:16
 #: src/app/routes/_authenticated/_roles/roles.tsx:25
@@ -686,7 +686,7 @@ msgstr "منطقه مالیاتی پیش‌فرض"
 msgid "Order draft is ready to be completed"
 msgstr "پیش‌نویس سفارش آماده تکمیل است"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:201
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:189
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:245
 msgid "Metadata"
 msgstr "فراداده"
@@ -752,7 +752,7 @@ msgid "Complete draft"
 msgstr "تکمیل پیش‌نویس"
 
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:45
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:165
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:163
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:169
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
@@ -954,7 +954,7 @@ msgstr "آدرس صورتحساب برای سفارش تنظیم شد"
 msgid "Failed to update zone"
 msgstr "به‌روزرسانی منطقه ناموفق بود"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:137
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:154
 #: src/app/routes/_authenticated/_profile/profile.tsx:120
 #: src/app/routes/_authenticated/_profile/profile.tsx:137
 #: src/lib/components/login/login-form.tsx:93
@@ -1279,8 +1279,8 @@ msgid "Address deleted"
 msgstr "آدرس حذف شد"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:195
-msgid "Only roles assigned to your account are available."
-msgstr "فقط نقش‌های تخصیص داده شده به حساب شما در دسترس هستند."
+#~ msgid "Only roles assigned to your account are available."
+#~ msgstr "فقط نقش‌های تخصیص داده شده به حساب شما در دسترس هستند."
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:65
 msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Cancel {cancellableCount} jobs}}"
@@ -1404,7 +1404,7 @@ msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to
 msgstr "{rejected, plural, one {لغو {rejected} کار ناموفق بود} other {لغو {rejected} کار ناموفق بود}}"
 
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:111
-#: src/lib/components/shared/channel-selector.tsx:47
+#: src/lib/components/shared/channel-selector.tsx:54
 msgid "Select a channel"
 msgstr "یک کانال انتخاب کنید"
 
@@ -1548,7 +1548,7 @@ msgstr "در حال بارگذاری تنظیمات عمومی..."
 msgid "Address updated successfully"
 msgstr "آدرس با موفقیت به‌روزرسانی شد"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:214
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:124
 #: src/lib/components/shared/asset/asset-gallery.tsx:747
 #: src/lib/framework/layout-engine/page-layout.tsx:733
@@ -1777,8 +1777,8 @@ msgstr "به‌روزرسانی دسته‌بندی مالیاتی ناموفق 
 msgid "Refund settled successfully"
 msgstr "بازپرداخت با موفقیت تسویه شد"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:109
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:126
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:153
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
@@ -1999,7 +1999,7 @@ msgstr "تم"
 msgid "{0} customers"
 msgstr "{0} مشتری"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:48
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:42
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:14
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:25
 msgid "API Keys"
@@ -2013,7 +2013,7 @@ msgstr "یک زبان انتخاب کنید"
 msgid "Log out"
 msgstr "خروج"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:163
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:195
 msgid "Remove role"
 msgstr ""
 
@@ -2491,8 +2491,8 @@ msgstr "آدرس ارسال"
 msgid "New zone"
 msgstr "منطقه جدید"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:49
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:136
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:43
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:134
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:79
 msgid "New API Key"
 msgstr "کلید API جدید"
@@ -2505,7 +2505,7 @@ msgstr "حذف ستون"
 msgid "Assign existing"
 msgstr "تخصیص موجود"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:132
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:158
 msgid "Role"
 msgstr ""
 
@@ -2659,7 +2659,7 @@ msgstr "لطفا یک مجموعه هدف انتخاب کنید"
 msgid "Review the changes before applying them to the order."
 msgstr "قبل از اعمال تغییرات به سفارش، آنها را بررسی کنید."
 
-#: src/lib/components/shared/role-selector.tsx:58
+#: src/lib/components/shared/role-selector.tsx:35
 msgid "Select a role"
 msgstr "یک نقش انتخاب کنید"
 
@@ -2728,7 +2728,7 @@ msgstr "مشتری جدید"
 msgid "Image"
 msgstr "تصویر"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:81
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:98
 msgid "Successfully created administrator"
 msgstr "مدیر با موفقیت ایجاد شد"
 
@@ -2800,8 +2800,8 @@ msgstr "کل بازپرداخت از حداکثر مبلغ قابل بازپرد
 msgid "Delete Global View"
 msgstr "حذف نمای عمومی"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:109
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:126
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:153
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
@@ -3082,7 +3082,7 @@ msgstr "تبلیغات جدید"
 msgid "Option value name"
 msgstr "نام مقدار گزینه"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:214
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:202
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:46
 msgid "Last used"
 msgstr "آخرین استفاده"
@@ -3158,6 +3158,10 @@ msgstr "شامل مالیات {taxRate}%"
 msgid "Order metrics"
 msgstr "معیارهای سفارش"
 
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:181
+msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
+msgstr ""
+
 #: src/lib/components/layout/language-dialog.tsx:49
 msgid "Select display language"
 msgstr "زبان نمایش را انتخاب کنید"
@@ -3178,8 +3182,7 @@ msgstr "چرخش کلید API ناموفق بود"
 msgid "in"
 msgstr "در"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:188
-#: src/lib/components/shared/role-selector.tsx:59
+#: src/lib/components/shared/role-selector.tsx:36
 msgid "Search roles..."
 msgstr "جستجوی نقش‌ها..."
 
@@ -3418,7 +3421,7 @@ msgstr "مساوی نیست با"
 msgid "Settle payment"
 msgstr "تسویه پرداخت"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:135
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:161
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:38
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
@@ -3710,7 +3713,7 @@ msgstr "پرداخت با موفقیت لغو شد"
 msgid "Global view duplicated successfully"
 msgstr "نمای عمومی با موفقیت تکثیر شد"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:210
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:198
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:66
 msgid "Created by"
 msgstr "ایجاد شده توسط"
@@ -3723,7 +3726,7 @@ msgstr "فیلتر کردن گونه‌ها..."
 msgid "Add a price in another currency"
 msgstr "افزودن قیمت با ارز دیگر"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:131
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:148
 #: src/app/routes/_authenticated/_profile/profile.tsx:114
 msgid "Email Address or identifier"
 msgstr "آدرس ایمیل یا شناسه"
@@ -3818,7 +3821,7 @@ msgstr "سطح موجودی"
 msgid "Add item"
 msgstr "افزودن مورد"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:108
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:106
 msgid "Successfully created API key"
 msgstr "کلید API با موفقیت ایجاد شد"
 
@@ -3889,7 +3892,7 @@ msgstr "این هفته"
 #~ msgid "Successfully created product option group"
 #~ msgstr "گروه گزینه‌های محصول با موفقیت ایجاد شد"
 
-#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:48
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:54
 msgid "Permissions on"
 msgstr ""
 
@@ -3906,7 +3909,7 @@ msgstr "در است"
 msgid "Email"
 msgstr "ایمیل"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:90
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:107
 msgid "Failed to update administrator"
 msgstr "به‌روزرسانی مدیر ناموفق بود"
 
@@ -3996,7 +3999,7 @@ msgstr "محصول با گزینه‌ها"
 msgid "Showing all {0} results"
 msgstr "نمایش همه {0} نتیجه"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:204
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:192
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:60
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx:95
 msgid "Lookup ID"
@@ -4222,7 +4225,7 @@ msgstr "ایجاد منطقه ناموفق بود"
 msgid "Stock levels"
 msgstr "سطوح موجودی"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:121
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:119
 msgid "Failed to update API key"
 msgstr "به‌روزرسانی کلید API ناموفق بود"
 
@@ -4274,7 +4277,7 @@ msgstr "افزودن کانال"
 #~ msgid "Failed to update product option group"
 #~ msgstr "به‌روزرسانی گروه گزینه‌های محصول ناموفق بود"
 
-#: src/lib/components/shared/channel-selector.tsx:48
+#: src/lib/components/shared/channel-selector.tsx:55
 msgid "Search channels..."
 msgstr "جستجوی کانال‌ها..."
 
@@ -4455,7 +4458,7 @@ msgstr "مدیریت برچسب‌ها"
 msgid "Coupon code removed from order"
 msgstr "کد کوپن از سفارش حذف شد"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:221
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:209
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:50
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:142
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:152
@@ -5124,7 +5127,7 @@ msgstr "ذخیره گروه گزینه"
 msgid "Click \"Run Test\" to test this shipping method."
 msgstr "برای آزمایش این روش ارسال روی \"اجرای آزمون\" کلیک کنید."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:82
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:99
 msgid "Successfully updated administrator"
 msgstr "مدیر با موفقیت به‌روزرسانی شد"
 
@@ -5254,7 +5257,7 @@ msgstr "مقادیر ویژگی جدید برای افزودن:"
 msgid "Failed to process refund"
 msgstr "پردازش بازپرداخت ناموفق بود"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:119
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:136
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:176
 #: src/app/routes/_authenticated/_profile/profile.tsx:102
 msgid "First name"
@@ -5449,8 +5452,8 @@ msgstr "{entityIdsLength} {entityType} با موفقیت به کانال اخت�
 msgid "Global Languages"
 msgstr "زبان‌های عمومی"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:39
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:101
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:42
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:118
 msgid "New administrator"
 msgstr "مدیر جدید"
 
@@ -5939,7 +5942,7 @@ msgstr "آستانه اتمام موجودی"
 msgid "Failed to update value"
 msgstr "به‌روزرسانی مقدار ناموفق بود"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:121
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:119
 msgid "Failed to create API key"
 msgstr "ایجاد کلید API ناموفق بود"
 
@@ -5992,7 +5995,7 @@ msgstr "گزینه"
 msgid "Order process"
 msgstr "فرآیند سفارش"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:172
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:204
 msgid "No roles assigned"
 msgstr ""
 
@@ -6013,7 +6016,7 @@ msgstr "نوع"
 msgid "Successfully updated global settings"
 msgstr "تنظیمات عمومی با موفقیت به‌روزرسانی شد"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:115
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:113
 msgid "Successfully updated API key"
 msgstr "کلید API با موفقیت به‌روزرسانی شد"
 

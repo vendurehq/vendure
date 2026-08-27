@@ -259,8 +259,8 @@ msgid "Orders"
 msgstr "Comenzi"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:187
-msgid "Select roles"
-msgstr "Selectează roluri"
+#~ msgid "Select roles"
+#~ msgstr "Selectează roluri"
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:62
 msgid "Successfully created role"
@@ -270,7 +270,7 @@ msgstr "Rolul a fost creat cu succes"
 msgid "Are you sure you want to delete this variant?"
 msgstr "Ești sigur că vrei să ștergi această variantă?"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:90
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:107
 msgid "Failed to create administrator"
 msgstr "Nu s-a putut crea administratorul"
 
@@ -298,7 +298,7 @@ msgstr "Nu s-a putut actualiza țara"
 msgid "Type at least 2 characters to search..."
 msgstr "Introduceți cel puțin 2 caractere pentru căutare..."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:125
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:142
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:182
 #: src/app/routes/_authenticated/_profile/profile.tsx:108
 msgid "Last name"
@@ -470,7 +470,7 @@ msgstr "Produs părinte"
 msgid "City"
 msgstr "Oraș"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:41
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:15
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:22
 msgid "Administrators"
@@ -484,7 +484,7 @@ msgstr "Preț brut: <0/>"
 msgid "Go to next page"
 msgstr "Mergi la pagina următoare"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:178
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:210
 msgid "Add role"
 msgstr ""
 
@@ -573,9 +573,9 @@ msgstr "Se adaugă..."
 msgid "Move Collections"
 msgstr "Mută Colecții"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:143
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:160
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:55
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:170
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:168
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
 #: src/app/routes/_authenticated/_roles/roles.tsx:16
 #: src/app/routes/_authenticated/_roles/roles.tsx:25
@@ -658,7 +658,7 @@ msgstr "Zonă de taxare implicită"
 msgid "Order draft is ready to be completed"
 msgstr "Ciorna comenzii este gata pentru finalizare"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:201
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:189
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:245
 msgid "Metadata"
 msgstr "Metadate"
@@ -724,7 +724,7 @@ msgid "Complete draft"
 msgstr "Finalizează ciorna"
 
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:45
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:165
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:163
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:169
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
@@ -926,7 +926,7 @@ msgstr "Adresă de facturare setată pentru comandă"
 msgid "Failed to update zone"
 msgstr "Nu s-a putut actualiza zona"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:137
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:154
 #: src/app/routes/_authenticated/_profile/profile.tsx:120
 #: src/app/routes/_authenticated/_profile/profile.tsx:137
 #: src/lib/components/login/login-form.tsx:93
@@ -1239,8 +1239,8 @@ msgid "Address deleted"
 msgstr "Adresă ștearsă"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:195
-msgid "Only roles assigned to your account are available."
-msgstr "Sunt disponibile doar rolurile atribuite contului tău."
+#~ msgid "Only roles assigned to your account are available."
+#~ msgstr "Sunt disponibile doar rolurile atribuite contului tău."
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:65
 msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Cancel {cancellableCount} jobs}}"
@@ -1356,7 +1356,7 @@ msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to
 msgstr "{rejected, plural, one {Nu s-a putut anula {rejected} job} few {Nu s-au putut anula {rejected} joburi} other {Nu s-au putut anula {rejected} de joburi}}"
 
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:111
-#: src/lib/components/shared/channel-selector.tsx:47
+#: src/lib/components/shared/channel-selector.tsx:54
 msgid "Select a channel"
 msgstr "Selectează un canal"
 
@@ -1495,7 +1495,7 @@ msgstr "Se încarcă setările globale..."
 msgid "Address updated successfully"
 msgstr "Adresă actualizată cu succes"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:214
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:124
 #: src/lib/components/shared/asset/asset-gallery.tsx:747
 #: src/lib/framework/layout-engine/page-layout.tsx:733
@@ -1716,8 +1716,8 @@ msgstr "Nu s-a putut actualiza categoria de taxă"
 msgid "Refund settled successfully"
 msgstr "Rambursare soluționată cu succes"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:109
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:126
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:153
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
@@ -1932,7 +1932,7 @@ msgstr "Temă"
 msgid "{0} customers"
 msgstr "{0} clienți"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:48
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:42
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:14
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:25
 msgid "API Keys"
@@ -1946,7 +1946,7 @@ msgstr "Selectează o limbă"
 msgid "Log out"
 msgstr "Deconectare"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:163
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:195
 msgid "Remove role"
 msgstr ""
 
@@ -2424,8 +2424,8 @@ msgstr "Adresă de livrare"
 msgid "New zone"
 msgstr "Zonă nouă"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:49
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:136
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:43
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:134
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:79
 msgid "New API Key"
 msgstr "Cheie API nouă"
@@ -2438,7 +2438,7 @@ msgstr "Șterge coloana"
 msgid "Assign existing"
 msgstr "Atribuie existent"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:132
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:158
 msgid "Role"
 msgstr ""
 
@@ -2580,7 +2580,7 @@ msgstr "Te rugăm să selectezi o colecție țintă"
 msgid "Review the changes before applying them to the order."
 msgstr "Revizuiește modificările înainte de a le aplica comenzii."
 
-#: src/lib/components/shared/role-selector.tsx:58
+#: src/lib/components/shared/role-selector.tsx:35
 msgid "Select a role"
 msgstr "Selectează un rol"
 
@@ -2644,7 +2644,7 @@ msgstr "Client nou"
 msgid "Image"
 msgstr "Imagine"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:81
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:98
 msgid "Successfully created administrator"
 msgstr "Administratorul a fost creat cu succes"
 
@@ -2716,8 +2716,8 @@ msgstr "Totalul rambursării depășește suma maximă rambursabilă de {0}"
 msgid "Delete Global View"
 msgstr "Șterge vizualizarea globală"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:109
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:126
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:153
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
@@ -2990,7 +2990,7 @@ msgstr "Promoție Nouă"
 msgid "Option value name"
 msgstr "Nume valoare opțiune"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:214
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:202
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:46
 msgid "Last used"
 msgstr "Ultima utilizare"
@@ -3066,6 +3066,10 @@ msgstr "Include taxa de {taxRate}%"
 msgid "Order metrics"
 msgstr "Metrici comenzi"
 
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:181
+msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
+msgstr ""
+
 #: src/lib/components/layout/language-dialog.tsx:49
 msgid "Select display language"
 msgstr "Selectează limba de afișare"
@@ -3086,8 +3090,7 @@ msgstr "Nu s-a putut roti cheia API"
 msgid "in"
 msgstr "în"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:188
-#: src/lib/components/shared/role-selector.tsx:59
+#: src/lib/components/shared/role-selector.tsx:36
 msgid "Search roles..."
 msgstr "Caută roluri..."
 
@@ -3318,7 +3321,7 @@ msgstr "nu este egal cu"
 msgid "Settle payment"
 msgstr "Finalizează plata"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:135
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:161
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:38
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
@@ -3595,7 +3598,7 @@ msgstr "Plată anulată cu succes"
 msgid "Global view duplicated successfully"
 msgstr "Vizualizare globală duplicată cu succes"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:210
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:198
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:66
 msgid "Created by"
 msgstr "Creat de"
@@ -3608,7 +3611,7 @@ msgstr "Filtrează variantele..."
 msgid "Add a price in another currency"
 msgstr "Adaugă un preț în altă monedă"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:131
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:148
 #: src/app/routes/_authenticated/_profile/profile.tsx:114
 msgid "Email Address or identifier"
 msgstr "Adresă de email sau identificator"
@@ -3703,7 +3706,7 @@ msgstr "Nivel stoc"
 msgid "Add item"
 msgstr "Adaugă element"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:108
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:106
 msgid "Successfully created API key"
 msgstr "Cheia API a fost creată cu succes"
 
@@ -3770,7 +3773,7 @@ msgctxt "date-range"
 msgid "This week"
 msgstr "Săptămâna aceasta"
 
-#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:48
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:54
 msgid "Permissions on"
 msgstr ""
 
@@ -3787,7 +3790,7 @@ msgstr "este în"
 msgid "Email"
 msgstr "Email"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:90
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:107
 msgid "Failed to update administrator"
 msgstr "Nu s-a putut actualiza administratorul"
 
@@ -3868,7 +3871,7 @@ msgstr "Produs cu opțiuni"
 msgid "Showing all {0} results"
 msgstr "Se afișează toate cele {0} rezultate"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:204
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:192
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:60
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx:95
 msgid "Lookup ID"
@@ -4086,7 +4089,7 @@ msgstr "Nu s-a putut crea zona"
 msgid "Stock levels"
 msgstr "Niveluri stoc"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:121
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:119
 msgid "Failed to update API key"
 msgstr "Nu s-a putut actualiza cheia API"
 
@@ -4134,7 +4137,7 @@ msgstr "Plată eșuată"
 msgid "Add channel"
 msgstr "Adaugă canal"
 
-#: src/lib/components/shared/channel-selector.tsx:48
+#: src/lib/components/shared/channel-selector.tsx:55
 msgid "Search channels..."
 msgstr "Caută canale..."
 
@@ -4303,7 +4306,7 @@ msgstr "Gestionează etichete"
 msgid "Coupon code removed from order"
 msgstr "Cod cupon eliminat din comandă"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:221
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:209
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:50
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:142
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:152
@@ -4940,7 +4943,7 @@ msgstr "Salvează grup opțiuni"
 msgid "Click \"Run Test\" to test this shipping method."
 msgstr "Apasă \"Rulează test\" pentru a testa această metodă de livrare."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:82
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:99
 msgid "Successfully updated administrator"
 msgstr "Administratorul a fost actualizat cu succes"
 
@@ -5066,7 +5069,7 @@ msgstr "Valori atribut noi de adăugat:"
 msgid "Failed to process refund"
 msgstr "Nu s-a putut procesa rambursarea"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:119
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:136
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:176
 #: src/app/routes/_authenticated/_profile/profile.tsx:102
 msgid "First name"
@@ -5257,8 +5260,8 @@ msgstr "Au fost atribuite cu succes {entityIdsLength} {entityType} canalului"
 msgid "Global Languages"
 msgstr "Limbi globale"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:39
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:101
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:42
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:118
 msgid "New administrator"
 msgstr "Administrator nou"
 
@@ -5727,7 +5730,7 @@ msgstr "Prag stoc epuizat"
 msgid "Failed to update value"
 msgstr "Nu s-a putut actualiza valoarea"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:121
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:119
 msgid "Failed to create API key"
 msgstr "Nu s-a putut crea cheia API"
 
@@ -5780,7 +5783,7 @@ msgstr "Opțiune"
 msgid "Order process"
 msgstr "Procesul comenzii"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:172
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:204
 msgid "No roles assigned"
 msgstr ""
 
@@ -5801,7 +5804,7 @@ msgstr "Variantă"
 msgid "Successfully updated global settings"
 msgstr "Setările globale au fost actualizate cu succes"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:115
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:113
 msgid "Successfully updated API key"
 msgstr "Cheia API a fost actualizată cu succes"
 

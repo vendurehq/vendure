@@ -279,8 +279,8 @@ msgid "Orders"
 msgstr "Narudžbe"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:187
-msgid "Select roles"
-msgstr "Odaberi uloge"
+#~ msgid "Select roles"
+#~ msgstr "Odaberi uloge"
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:62
 msgid "Successfully created role"
@@ -294,7 +294,7 @@ msgstr "Jeste li sigurni da želite obrisati ovu varijantu?"
 #~ msgid "All resources are up and running"
 #~ msgstr "Svi resursi su aktivni"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:90
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:107
 msgid "Failed to create administrator"
 msgstr "Neuspješno kreiranje administratora"
 
@@ -322,7 +322,7 @@ msgstr "Ažuriranje zemlje nije uspjelo"
 msgid "Type at least 2 characters to search..."
 msgstr "Unesite najmanje 2 znaka za pretraživanje..."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:125
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:142
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:182
 #: src/app/routes/_authenticated/_profile/profile.tsx:108
 msgid "Last name"
@@ -498,7 +498,7 @@ msgstr "Nadređeni proizvod"
 msgid "City"
 msgstr "Grad"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:41
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:15
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:22
 msgid "Administrators"
@@ -512,7 +512,7 @@ msgstr "Bruto cijena: <0/>"
 msgid "Go to next page"
 msgstr "Idi na sljedeću stranicu"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:178
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:210
 msgid "Add role"
 msgstr ""
 
@@ -601,9 +601,9 @@ msgstr "Dodavanje..."
 msgid "Move Collections"
 msgstr "Premjesti kolekcije"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:143
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:160
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:55
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:170
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:168
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
 #: src/app/routes/_authenticated/_roles/roles.tsx:16
 #: src/app/routes/_authenticated/_roles/roles.tsx:25
@@ -686,7 +686,7 @@ msgstr "Zadana porezna zona"
 msgid "Order draft is ready to be completed"
 msgstr "Nacrt narudžbe je spreman za dovršenje"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:201
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:189
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:245
 msgid "Metadata"
 msgstr "Metapodaci"
@@ -752,7 +752,7 @@ msgid "Complete draft"
 msgstr "Dovrši skicu"
 
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:45
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:165
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:163
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:169
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
@@ -954,7 +954,7 @@ msgstr "Adresa za naplatu postavljena za narudžbu"
 msgid "Failed to update zone"
 msgstr "Ažuriranje zone nije uspjelo"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:137
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:154
 #: src/app/routes/_authenticated/_profile/profile.tsx:120
 #: src/app/routes/_authenticated/_profile/profile.tsx:137
 #: src/lib/components/login/login-form.tsx:93
@@ -1279,8 +1279,8 @@ msgid "Address deleted"
 msgstr "Adresa obrisana"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:195
-msgid "Only roles assigned to your account are available."
-msgstr "Dostupne su samo uloge dodijeljene vašem računu."
+#~ msgid "Only roles assigned to your account are available."
+#~ msgstr "Dostupne su samo uloge dodijeljene vašem računu."
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:65
 msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Cancel {cancellableCount} jobs}}"
@@ -1404,7 +1404,7 @@ msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to
 msgstr "{rejected, plural, one {Nije moguće otkazati {rejected} zadatak} few {Nije moguće otkazati {rejected} zadatka} other {Nije moguće otkazati {rejected} zadataka}}"
 
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:111
-#: src/lib/components/shared/channel-selector.tsx:47
+#: src/lib/components/shared/channel-selector.tsx:54
 msgid "Select a channel"
 msgstr "Odaberite kanal"
 
@@ -1548,7 +1548,7 @@ msgstr "Učitavanje globalnih postavki..."
 msgid "Address updated successfully"
 msgstr "Adresa uspješno ažurirana"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:214
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:124
 #: src/lib/components/shared/asset/asset-gallery.tsx:747
 #: src/lib/framework/layout-engine/page-layout.tsx:733
@@ -1777,8 +1777,8 @@ msgstr "Ažuriranje porezne kategorije nije uspjelo"
 msgid "Refund settled successfully"
 msgstr "Povrat uspješno izvršen"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:109
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:126
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:153
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
@@ -1999,7 +1999,7 @@ msgstr "Tema"
 msgid "{0} customers"
 msgstr "{0} kupaca"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:48
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:42
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:14
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:25
 msgid "API Keys"
@@ -2013,7 +2013,7 @@ msgstr "Odaberite jezik"
 msgid "Log out"
 msgstr "Odjava"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:163
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:195
 msgid "Remove role"
 msgstr ""
 
@@ -2491,8 +2491,8 @@ msgstr "Adresa za dostavu"
 msgid "New zone"
 msgstr "Nova zona"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:49
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:136
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:43
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:134
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:79
 msgid "New API Key"
 msgstr "Novi API ključ"
@@ -2505,7 +2505,7 @@ msgstr "Obriši stupac"
 msgid "Assign existing"
 msgstr "Dodijeli postojeće"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:132
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:158
 msgid "Role"
 msgstr ""
 
@@ -2659,7 +2659,7 @@ msgstr "Molimo odaberite ciljnu kolekciju"
 msgid "Review the changes before applying them to the order."
 msgstr "Pregledajte izmjene prije njihove primjene na narudžbu."
 
-#: src/lib/components/shared/role-selector.tsx:58
+#: src/lib/components/shared/role-selector.tsx:35
 msgid "Select a role"
 msgstr "Odaberite uloga"
 
@@ -2728,7 +2728,7 @@ msgstr "Novi kupac"
 msgid "Image"
 msgstr "Slika"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:81
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:98
 msgid "Successfully created administrator"
 msgstr "Administrator uspješno kreiran"
 
@@ -2800,8 +2800,8 @@ msgstr "Ukupni povrat premašuje maksimalni iznos za povrat od {0}"
 msgid "Delete Global View"
 msgstr "Obriši globalni prikaz"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:109
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:126
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:153
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
@@ -3082,7 +3082,7 @@ msgstr "Nova promocija"
 msgid "Option value name"
 msgstr "Naziv vrijednosti opcije"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:214
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:202
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:46
 msgid "Last used"
 msgstr "Zadnji put korišteno"
@@ -3158,6 +3158,10 @@ msgstr "Uključuje porez od {taxRate}%"
 msgid "Order metrics"
 msgstr "Metrike narudžbi"
 
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:181
+msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
+msgstr ""
+
 #: src/lib/components/layout/language-dialog.tsx:49
 msgid "Select display language"
 msgstr "Odaberite jezik prikaza"
@@ -3178,8 +3182,7 @@ msgstr "Rotiranje API ključa nije uspjelo"
 msgid "in"
 msgstr "u"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:188
-#: src/lib/components/shared/role-selector.tsx:59
+#: src/lib/components/shared/role-selector.tsx:36
 msgid "Search roles..."
 msgstr "Pretraži uloge..."
 
@@ -3418,7 +3421,7 @@ msgstr "nije jednako"
 msgid "Settle payment"
 msgstr "Izvrši plaćanje"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:135
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:161
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:38
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
@@ -3710,7 +3713,7 @@ msgstr "Plaćanje uspješno otkazano"
 msgid "Global view duplicated successfully"
 msgstr "Globalni prikaz uspješno dupliciran"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:210
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:198
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:66
 msgid "Created by"
 msgstr "Kreirao"
@@ -3723,7 +3726,7 @@ msgstr "Filtriraj varijante..."
 msgid "Add a price in another currency"
 msgstr "Dodaj cijenu u drugoj valuti"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:131
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:148
 #: src/app/routes/_authenticated/_profile/profile.tsx:114
 msgid "Email Address or identifier"
 msgstr "Adresa e-pošte ili identifikator"
@@ -3818,7 +3821,7 @@ msgstr "Razina zaliha"
 msgid "Add item"
 msgstr "Dodaj stavku"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:108
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:106
 msgid "Successfully created API key"
 msgstr "API ključ uspješno stvoren"
 
@@ -3889,7 +3892,7 @@ msgstr "Ovaj tjedan"
 #~ msgid "Successfully created product option group"
 #~ msgstr "Grupa opcija proizvoda uspješno stvorena"
 
-#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:48
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:54
 msgid "Permissions on"
 msgstr ""
 
@@ -3906,7 +3909,7 @@ msgstr "je u"
 msgid "Email"
 msgstr "E-pošta"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:90
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:107
 msgid "Failed to update administrator"
 msgstr "Neuspješno ažuriranje administratora"
 
@@ -3996,7 +3999,7 @@ msgstr "Proizvod s opcijama"
 msgid "Showing all {0} results"
 msgstr "Prikazivanje svih {0} rezultata"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:204
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:192
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:60
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx:95
 msgid "Lookup ID"
@@ -4222,7 +4225,7 @@ msgstr "Stvaranje zone nije uspjelo"
 msgid "Stock levels"
 msgstr "Razine zaliha"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:121
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:119
 msgid "Failed to update API key"
 msgstr "Ažuriranje API ključa nije uspjelo"
 
@@ -4274,7 +4277,7 @@ msgstr "Dodaj kanal"
 #~ msgid "Failed to update product option group"
 #~ msgstr "Neuspješno ažuriranje grupe opcija proizvoda"
 
-#: src/lib/components/shared/channel-selector.tsx:48
+#: src/lib/components/shared/channel-selector.tsx:55
 msgid "Search channels..."
 msgstr "Pretraži kanale..."
 
@@ -4455,7 +4458,7 @@ msgstr "Upravljaj oznakama"
 msgid "Coupon code removed from order"
 msgstr "Kod kupona uklonjen s narudžbe"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:221
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:209
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:50
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:142
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:152
@@ -5124,7 +5127,7 @@ msgstr "Spremi grupu opcija"
 msgid "Click \"Run Test\" to test this shipping method."
 msgstr "Kliknite \"Pokreni test\" za testiranje ovog načina dostave."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:82
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:99
 msgid "Successfully updated administrator"
 msgstr "Administrator uspješno ažuriran"
 
@@ -5254,7 +5257,7 @@ msgstr "Nove vrijednosti svojstava za dodavanje:"
 msgid "Failed to process refund"
 msgstr "Nije uspjelo obraditi povrat"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:119
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:136
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:176
 #: src/app/routes/_authenticated/_profile/profile.tsx:102
 msgid "First name"
@@ -5449,8 +5452,8 @@ msgstr "Uspješno dodijeljeno {entityIdsLength} {entityType} kanalu"
 msgid "Global Languages"
 msgstr "Globalni jezici"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:39
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:101
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:42
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:118
 msgid "New administrator"
 msgstr "Novi administrator"
 
@@ -5939,7 +5942,7 @@ msgstr "Prag zaliha"
 msgid "Failed to update value"
 msgstr "Ažuriranje vrijednosti nije uspjelo"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:121
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:119
 msgid "Failed to create API key"
 msgstr "Stvaranje API ključa nije uspjelo"
 
@@ -5992,7 +5995,7 @@ msgstr "Opcija"
 msgid "Order process"
 msgstr "Proces narudžbe"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:172
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:204
 msgid "No roles assigned"
 msgstr ""
 
@@ -6013,7 +6016,7 @@ msgstr "Varijanta"
 msgid "Successfully updated global settings"
 msgstr "Globalne postavke uspješno ažurirane"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:115
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:113
 msgid "Successfully updated API key"
 msgstr "API ključ uspješno ažuriran"
 

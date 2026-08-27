@@ -279,8 +279,8 @@ msgid "Orders"
 msgstr "注文"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:187
-msgid "Select roles"
-msgstr "ロールを選択"
+#~ msgid "Select roles"
+#~ msgstr "ロールを選択"
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:62
 msgid "Successfully created role"
@@ -294,7 +294,7 @@ msgstr "このバリエーションを削除してもよろしいですか？"
 #~ msgid "All resources are up and running"
 #~ msgstr "すべてのリソースが稼働中です"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:90
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:107
 msgid "Failed to create administrator"
 msgstr "管理者の作成に失敗しました"
 
@@ -322,7 +322,7 @@ msgstr "国の更新に失敗しました"
 msgid "Type at least 2 characters to search..."
 msgstr "検索するには少なくとも2文字を入力してください..."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:125
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:142
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:182
 #: src/app/routes/_authenticated/_profile/profile.tsx:108
 msgid "Last name"
@@ -498,7 +498,7 @@ msgstr "親商品"
 msgid "City"
 msgstr "市区町村"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:41
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:15
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:22
 msgid "Administrators"
@@ -512,7 +512,7 @@ msgstr "総額：<0/>"
 msgid "Go to next page"
 msgstr "次のページへ"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:178
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:210
 msgid "Add role"
 msgstr ""
 
@@ -601,9 +601,9 @@ msgstr "追加中..."
 msgid "Move Collections"
 msgstr "コレクションを移動"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:143
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:160
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:55
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:170
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:168
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
 #: src/app/routes/_authenticated/_roles/roles.tsx:16
 #: src/app/routes/_authenticated/_roles/roles.tsx:25
@@ -686,7 +686,7 @@ msgstr "デフォルト税ゾーン"
 msgid "Order draft is ready to be completed"
 msgstr "注文の下書きは完了準備ができています"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:201
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:189
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:245
 msgid "Metadata"
 msgstr "メタデータ"
@@ -752,7 +752,7 @@ msgid "Complete draft"
 msgstr "下書きを完了"
 
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:45
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:165
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:163
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:169
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
@@ -954,7 +954,7 @@ msgstr "注文の請求先住所が設定されました"
 msgid "Failed to update zone"
 msgstr "ゾーンの更新に失敗しました"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:137
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:154
 #: src/app/routes/_authenticated/_profile/profile.tsx:120
 #: src/app/routes/_authenticated/_profile/profile.tsx:137
 #: src/lib/components/login/login-form.tsx:93
@@ -1279,8 +1279,8 @@ msgid "Address deleted"
 msgstr "住所を削除しました"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:195
-msgid "Only roles assigned to your account are available."
-msgstr "アカウントに割り当てられたロールのみ使用可能です。"
+#~ msgid "Only roles assigned to your account are available."
+#~ msgstr "アカウントに割り当てられたロールのみ使用可能です。"
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:65
 msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Cancel {cancellableCount} jobs}}"
@@ -1404,7 +1404,7 @@ msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to
 msgstr "{rejected, plural, other {{rejected} 件のジョブのキャンセルに失敗しました}}"
 
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:111
-#: src/lib/components/shared/channel-selector.tsx:47
+#: src/lib/components/shared/channel-selector.tsx:54
 msgid "Select a channel"
 msgstr "チャネルを選択"
 
@@ -1548,7 +1548,7 @@ msgstr "グローバル設定を読み込み中..."
 msgid "Address updated successfully"
 msgstr "住所を更新しました"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:214
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:124
 #: src/lib/components/shared/asset/asset-gallery.tsx:747
 #: src/lib/framework/layout-engine/page-layout.tsx:733
@@ -1777,8 +1777,8 @@ msgstr "税カテゴリの更新に失敗しました"
 msgid "Refund settled successfully"
 msgstr "返金を決済しました"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:109
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:126
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:153
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
@@ -1999,7 +1999,7 @@ msgstr "テーマ"
 msgid "{0} customers"
 msgstr "{0} 人の顧客"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:48
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:42
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:14
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:25
 msgid "API Keys"
@@ -2013,7 +2013,7 @@ msgstr "言語を選択"
 msgid "Log out"
 msgstr "ログアウト"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:163
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:195
 msgid "Remove role"
 msgstr ""
 
@@ -2491,8 +2491,8 @@ msgstr "配送先住所"
 msgid "New zone"
 msgstr "新しいゾーン"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:49
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:136
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:43
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:134
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:79
 msgid "New API Key"
 msgstr "新しい API Key"
@@ -2505,7 +2505,7 @@ msgstr "列を削除"
 msgid "Assign existing"
 msgstr "既存を割り当て"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:132
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:158
 msgid "Role"
 msgstr ""
 
@@ -2659,7 +2659,7 @@ msgstr "ターゲットコレクションを選択してください"
 msgid "Review the changes before applying them to the order."
 msgstr "注文に適用する前に変更を確認してください。"
 
-#: src/lib/components/shared/role-selector.tsx:58
+#: src/lib/components/shared/role-selector.tsx:35
 msgid "Select a role"
 msgstr "ロールを選択"
 
@@ -2728,7 +2728,7 @@ msgstr "新しい顧客"
 msgid "Image"
 msgstr "画像"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:81
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:98
 msgid "Successfully created administrator"
 msgstr "管理者を正常に作成しました"
 
@@ -2800,8 +2800,8 @@ msgstr "返金合計が最大返金可能額{0}を超えています"
 msgid "Delete Global View"
 msgstr "グローバルビューを削除"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:109
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:126
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:153
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
@@ -3082,7 +3082,7 @@ msgstr "新しいプロモーション"
 msgid "Option value name"
 msgstr "オプション値名"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:214
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:202
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:46
 msgid "Last used"
 msgstr "最終使用日"
@@ -3158,6 +3158,10 @@ msgstr "{taxRate}%の税込み"
 msgid "Order metrics"
 msgstr "注文指標"
 
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:181
+msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
+msgstr ""
+
 #: src/lib/components/layout/language-dialog.tsx:49
 msgid "Select display language"
 msgstr "表示言語を選択"
@@ -3178,8 +3182,7 @@ msgstr "API Key のローテーションに失敗しました"
 msgid "in"
 msgstr "内"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:188
-#: src/lib/components/shared/role-selector.tsx:59
+#: src/lib/components/shared/role-selector.tsx:36
 msgid "Search roles..."
 msgstr "ロールを検索..."
 
@@ -3418,7 +3421,7 @@ msgstr "と等しくない"
 msgid "Settle payment"
 msgstr "支払いを決済"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:135
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:161
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:38
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
@@ -3710,7 +3713,7 @@ msgstr "支払いをキャンセルしました"
 msgid "Global view duplicated successfully"
 msgstr "グローバルビューを複製しました"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:210
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:198
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:66
 msgid "Created by"
 msgstr "作成者"
@@ -3723,7 +3726,7 @@ msgstr "バリアントを絞り込む..."
 msgid "Add a price in another currency"
 msgstr "別の通貨で価格を追加"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:131
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:148
 #: src/app/routes/_authenticated/_profile/profile.tsx:114
 msgid "Email Address or identifier"
 msgstr "メールアドレスまたは識別子"
@@ -3818,7 +3821,7 @@ msgstr "在庫レベル"
 msgid "Add item"
 msgstr "アイテムを追加"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:108
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:106
 msgid "Successfully created API key"
 msgstr "API Key の作成に成功しました"
 
@@ -3889,7 +3892,7 @@ msgstr "今週"
 #~ msgid "Successfully created product option group"
 #~ msgstr "商品オプショングループを正常に作成しました"
 
-#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:48
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:54
 msgid "Permissions on"
 msgstr ""
 
@@ -3906,7 +3909,7 @@ msgstr "に含まれる"
 msgid "Email"
 msgstr "メールアドレス"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:90
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:107
 msgid "Failed to update administrator"
 msgstr "管理者の更新に失敗しました"
 
@@ -3996,7 +3999,7 @@ msgstr "オプション付き商品"
 msgid "Showing all {0} results"
 msgstr "{0}件の結果をすべて表示"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:204
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:192
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:60
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx:95
 msgid "Lookup ID"
@@ -4222,7 +4225,7 @@ msgstr "ゾーンの作成に失敗しました"
 msgid "Stock levels"
 msgstr "在庫レベル"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:121
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:119
 msgid "Failed to update API key"
 msgstr "API Key の更新に失敗しました"
 
@@ -4274,7 +4277,7 @@ msgstr "チャネルを追加"
 #~ msgid "Failed to update product option group"
 #~ msgstr "商品オプショングループの更新に失敗しました"
 
-#: src/lib/components/shared/channel-selector.tsx:48
+#: src/lib/components/shared/channel-selector.tsx:55
 msgid "Search channels..."
 msgstr "チャネルを検索..."
 
@@ -4455,7 +4458,7 @@ msgstr "タグを管理"
 msgid "Coupon code removed from order"
 msgstr "クーポンコードが注文から削除されました"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:221
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:209
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:50
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:142
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:152
@@ -5124,7 +5127,7 @@ msgstr "オプショングループを保存"
 msgid "Click \"Run Test\" to test this shipping method."
 msgstr "「テストを実行」をクリックして、この配送方法をテストしてください。"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:82
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:99
 msgid "Successfully updated administrator"
 msgstr "管理者を正常に更新しました"
 
@@ -5254,7 +5257,7 @@ msgstr "追加する新しいファセット値："
 msgid "Failed to process refund"
 msgstr "返金の処理に失敗しました"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:119
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:136
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:176
 #: src/app/routes/_authenticated/_profile/profile.tsx:102
 msgid "First name"
@@ -5449,8 +5452,8 @@ msgstr "{entityIdsLength}個の{entityType}をチャネルに割り当てまし�
 msgid "Global Languages"
 msgstr "グローバル言語"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:39
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:101
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:42
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:118
 msgid "New administrator"
 msgstr "新しい管理者"
 
@@ -5939,7 +5942,7 @@ msgstr "在庫切れしきい値"
 msgid "Failed to update value"
 msgstr "値の更新に失敗しました"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:121
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:119
 msgid "Failed to create API key"
 msgstr "API Key の作成に失敗しました"
 
@@ -5992,7 +5995,7 @@ msgstr "オプション"
 msgid "Order process"
 msgstr "注文プロセス"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:172
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:204
 msgid "No roles assigned"
 msgstr ""
 
@@ -6013,7 +6016,7 @@ msgstr "バリエーション"
 msgid "Successfully updated global settings"
 msgstr "グローバル設定を更新しました"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:115
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:113
 msgid "Successfully updated API key"
 msgstr "API Key の更新に成功しました"
 

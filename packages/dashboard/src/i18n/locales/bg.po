@@ -279,8 +279,8 @@ msgid "Orders"
 msgstr "Поръчки"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:187
-msgid "Select roles"
-msgstr "Избор на роли"
+#~ msgid "Select roles"
+#~ msgstr "Избор на роли"
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:62
 msgid "Successfully created role"
@@ -297,7 +297,7 @@ msgstr "Сигурни ли сте, че искате да изтриете то
 #~ msgid "All resources are up and running"
 #~ msgstr "Всички ресурси работят"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:90
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:107
 msgid "Failed to create administrator"
 msgstr "Неуспешно създаване на администратор"
 
@@ -325,7 +325,7 @@ msgstr "Неуспешно актуализиране на държавата"
 msgid "Type at least 2 characters to search..."
 msgstr "Въведете поне 2 знака за търсене..."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:125
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:142
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:182
 #: src/app/routes/_authenticated/_profile/profile.tsx:108
 msgid "Last name"
@@ -504,7 +504,7 @@ msgstr "Основен продукт"
 msgid "City"
 msgstr "Град"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:41
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:15
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:22
 msgid "Administrators"
@@ -518,7 +518,7 @@ msgstr "Цена бруто: <0/>"
 msgid "Go to next page"
 msgstr "Към следващата страница"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:178
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:210
 msgid "Add role"
 msgstr ""
 
@@ -607,9 +607,9 @@ msgstr "Добавяне..."
 msgid "Move Collections"
 msgstr "Преместване на колекции"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:143
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:160
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:55
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:170
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:168
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
 #: src/app/routes/_authenticated/_roles/roles.tsx:16
 #: src/app/routes/_authenticated/_roles/roles.tsx:25
@@ -692,7 +692,7 @@ msgstr "Данъчна зона по подразбиране"
 msgid "Order draft is ready to be completed"
 msgstr "Черновата на поръчката е готова за завършване"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:201
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:189
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:245
 msgid "Metadata"
 msgstr "Метаданни"
@@ -758,7 +758,7 @@ msgid "Complete draft"
 msgstr "Приключи черновата"
 
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:45
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:165
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:163
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:169
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
@@ -960,7 +960,7 @@ msgstr "Адресът за фактуриране е зададен за пор
 msgid "Failed to update zone"
 msgstr "Неуспешно актуализиране на зоната"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:137
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:154
 #: src/app/routes/_authenticated/_profile/profile.tsx:120
 #: src/app/routes/_authenticated/_profile/profile.tsx:137
 #: src/lib/components/login/login-form.tsx:93
@@ -1285,8 +1285,8 @@ msgid "Address deleted"
 msgstr "Адресът е изтрит"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:195
-msgid "Only roles assigned to your account are available."
-msgstr "Налични са само ролите, присвоени на вашия акаунт."
+#~ msgid "Only roles assigned to your account are available."
+#~ msgstr "Налични са само ролите, присвоени на вашия акаунт."
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:65
 msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Cancel {cancellableCount} jobs}}"
@@ -1410,7 +1410,7 @@ msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to
 msgstr "{rejected, plural, one {Неуспешно отменяне на {rejected} задача} other {Неуспешно отменяне на {rejected} задачи}}"
 
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:111
-#: src/lib/components/shared/channel-selector.tsx:47
+#: src/lib/components/shared/channel-selector.tsx:54
 msgid "Select a channel"
 msgstr "Изберете канал"
 
@@ -1557,7 +1557,7 @@ msgstr "Глобалните настройки се зареждат..."
 msgid "Address updated successfully"
 msgstr "Адресът е актуализиран успешно"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:214
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:124
 #: src/lib/components/shared/asset/asset-gallery.tsx:747
 #: src/lib/framework/layout-engine/page-layout.tsx:733
@@ -1792,8 +1792,8 @@ msgstr "Неуспешно актуализиране на данъчната к
 msgid "Refund settled successfully"
 msgstr "Възстановяването е приключено успешно"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:109
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:126
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:153
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
@@ -2017,7 +2017,7 @@ msgstr "Тема"
 msgid "{0} customers"
 msgstr "{0} клиенти"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:48
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:42
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:14
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:25
 msgid "API Keys"
@@ -2031,7 +2031,7 @@ msgstr "Изберете език"
 msgid "Log out"
 msgstr "Изход"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:163
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:195
 msgid "Remove role"
 msgstr ""
 
@@ -2509,8 +2509,8 @@ msgstr "Адрес за доставка"
 msgid "New zone"
 msgstr "Нова зона"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:49
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:136
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:43
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:134
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:79
 msgid "New API Key"
 msgstr "Нов API Key"
@@ -2523,7 +2523,7 @@ msgstr "Изтриване на колона"
 msgid "Assign existing"
 msgstr "Присвояване на съществуващ"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:132
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:158
 msgid "Role"
 msgstr ""
 
@@ -2676,7 +2676,7 @@ msgstr "Моля, изберете целева колекция"
 msgid "Review the changes before applying them to the order."
 msgstr "Прегледайте промените, преди да ги приложите към поръчката."
 
-#: src/lib/components/shared/role-selector.tsx:58
+#: src/lib/components/shared/role-selector.tsx:35
 msgid "Select a role"
 msgstr "Изберете роля"
 
@@ -2745,7 +2745,7 @@ msgstr "Нов клиент"
 msgid "Image"
 msgstr "Изображение"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:81
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:98
 msgid "Successfully created administrator"
 msgstr "Успешно създаден администратор"
 
@@ -2820,8 +2820,8 @@ msgstr "Общата сума за възстановяване надвишав
 msgid "Delete Global View"
 msgstr "Изтриване на глобалния изглед"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:109
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:126
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:153
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
@@ -3102,7 +3102,7 @@ msgstr "Нова промоция"
 msgid "Option value name"
 msgstr "Име на стойността на опцията"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:214
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:202
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:46
 msgid "Last used"
 msgstr "Последно използван"
@@ -3178,6 +3178,10 @@ msgstr "Включва данък от {taxRate}%"
 msgid "Order metrics"
 msgstr "Метрики за поръчка"
 
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:181
+msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
+msgstr ""
+
 #: src/lib/components/layout/language-dialog.tsx:49
 msgid "Select display language"
 msgstr "Изберете език на дисплея"
@@ -3198,8 +3202,7 @@ msgstr "Неуспешна ротация на API key"
 msgid "in"
 msgstr "в"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:188
-#: src/lib/components/shared/role-selector.tsx:59
+#: src/lib/components/shared/role-selector.tsx:36
 msgid "Search roles..."
 msgstr "Търсене на роли..."
 
@@ -3438,7 +3441,7 @@ msgstr "не е равно на"
 msgid "Settle payment"
 msgstr "Приклюи плащане"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:135
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:161
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:38
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
@@ -3730,7 +3733,7 @@ msgstr "Плащането е отменено успешно"
 msgid "Global view duplicated successfully"
 msgstr "Глобалният изглед е дублиран успешно"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:210
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:198
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:66
 msgid "Created by"
 msgstr "Създаден от"
@@ -3743,7 +3746,7 @@ msgstr "Филтриране на варианти..."
 msgid "Add a price in another currency"
 msgstr "Добавете цена в друга валута"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:131
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:148
 #: src/app/routes/_authenticated/_profile/profile.tsx:114
 msgid "Email Address or identifier"
 msgstr "Имейл адрес или идентификатор"
@@ -3838,7 +3841,7 @@ msgstr "Ниво на склад"
 msgid "Add item"
 msgstr "Добавете елемент"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:108
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:106
 msgid "Successfully created API key"
 msgstr "API key е създаден успешно"
 
@@ -3909,7 +3912,7 @@ msgstr "Тази седмица"
 #~ msgid "Successfully created product option group"
 #~ msgstr "Успешно създадена група продуктови опции"
 
-#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:48
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:54
 msgid "Permissions on"
 msgstr ""
 
@@ -3926,7 +3929,7 @@ msgstr "е в"
 msgid "Email"
 msgstr "Имейл"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:90
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:107
 msgid "Failed to update administrator"
 msgstr "Неуспешно актуализиране на администратора"
 
@@ -4016,7 +4019,7 @@ msgstr "Продукт с опции"
 msgid "Showing all {0} results"
 msgstr "Показани са всички {0} резултати"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:204
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:192
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:60
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx:95
 msgid "Lookup ID"
@@ -4245,7 +4248,7 @@ msgstr "Неуспешно създаване на зона"
 msgid "Stock levels"
 msgstr "Нива на склад"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:121
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:119
 msgid "Failed to update API key"
 msgstr "Неуспешно актуализиране на API key"
 
@@ -4297,7 +4300,7 @@ msgstr "Добави канал"
 #~ msgid "Failed to update product option group"
 #~ msgstr "Неуспешно актуализиране на групата опции за продукти"
 
-#: src/lib/components/shared/channel-selector.tsx:48
+#: src/lib/components/shared/channel-selector.tsx:55
 msgid "Search channels..."
 msgstr "Търсене на канали..."
 
@@ -4481,7 +4484,7 @@ msgstr "Управление на етикети"
 msgid "Coupon code removed from order"
 msgstr "Кодът на купона е премахнат от поръчката"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:221
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:209
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:50
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:142
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:152
@@ -5153,7 +5156,7 @@ msgstr "Запазете група опции"
 msgid "Click \"Run Test\" to test this shipping method."
 msgstr "Щракнете върху „Изпълни тест“, за да тествате този метод на доставка."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:82
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:99
 msgid "Successfully updated administrator"
 msgstr "Успешно актуализиран администратор"
 
@@ -5286,7 +5289,7 @@ msgstr "Нови стойности на аспекти за добавяне:"
 msgid "Failed to process refund"
 msgstr "Неуспешна обработка на възстановяване"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:119
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:136
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:176
 #: src/app/routes/_authenticated/_profile/profile.tsx:102
 msgid "First name"
@@ -5481,8 +5484,8 @@ msgstr "{entityIdsLength} {entityType} успешно присвоен на ка
 msgid "Global Languages"
 msgstr "Глобални езици"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:39
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:101
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:42
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:118
 msgid "New administrator"
 msgstr "Нов администратор"
 
@@ -5976,7 +5979,7 @@ msgstr "Праг за изчерпани количества"
 msgid "Failed to update value"
 msgstr "Неуспешно актуализиране на стойност"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:121
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:119
 msgid "Failed to create API key"
 msgstr "Неуспешно създаване на API key"
 
@@ -6029,7 +6032,7 @@ msgstr "Опция"
 msgid "Order process"
 msgstr "Процес на поръчката"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:172
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:204
 msgid "No roles assigned"
 msgstr ""
 
@@ -6050,7 +6053,7 @@ msgstr "Вариант"
 msgid "Successfully updated global settings"
 msgstr "Успешно актуализирани глобални настройки"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:115
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:113
 msgid "Successfully updated API key"
 msgstr "API key е актуализиран успешно"
 
