@@ -603,7 +603,7 @@ msgstr "Переместить коллекции"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:160
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:55
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:168
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:171
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
 #: src/app/routes/_authenticated/_roles/roles.tsx:16
 #: src/app/routes/_authenticated/_roles/roles.tsx:25
@@ -686,7 +686,7 @@ msgstr "Налоговая зона по умолчанию"
 msgid "Order draft is ready to be completed"
 msgstr "Черновик заказа готов к завершению"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:189
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:201
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:245
 msgid "Metadata"
 msgstr "Метаданные"
@@ -752,7 +752,7 @@ msgid "Complete draft"
 msgstr "Завершить черновик"
 
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:45
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:163
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:166
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:169
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
@@ -1464,6 +1464,7 @@ msgid "Use as the default billing address"
 msgstr "Использовать как адрес выставления счёта по умолчанию"
 
 #: src/app/common/delete-bulk-action.tsx:139
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:71
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:41
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:362
 #: src/lib/components/data-table/use-generated-columns.tsx:407
@@ -1494,6 +1495,10 @@ msgstr "Не удалось создать страну"
 #: src/lib/framework/defaults.ts:237
 msgid "Countries"
 msgstr "Страны"
+
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:69
+msgid "Read"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:124
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:209
@@ -1548,7 +1553,7 @@ msgstr "Загрузка глобальных настроек..."
 msgid "Address updated successfully"
 msgstr "Адрес успешно обновлен"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:214
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:124
 #: src/lib/components/shared/asset/asset-gallery.tsx:747
 #: src/lib/framework/layout-engine/page-layout.tsx:733
@@ -1671,6 +1676,10 @@ msgstr "Удалить вариант"
 msgid "No modifications made"
 msgstr "Изменения не внесены"
 
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:171
+msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
+msgstr ""
+
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:222
 msgid "Default shipping zone"
 msgstr "Зона доставки по умолчанию"
@@ -1778,7 +1787,8 @@ msgid "Refund settled successfully"
 msgstr "Возврат успешно проведён"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:126
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:153
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:70
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:156
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
@@ -1999,7 +2009,7 @@ msgstr "Тема"
 msgid "{0} customers"
 msgstr "{0} клиентов"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:42
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:43
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:14
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:25
 msgid "API Keys"
@@ -2474,6 +2484,11 @@ msgstr "Клиент установлен для заказа"
 msgid "Facets"
 msgstr "Аспекты"
 
+#. placeholder {0}: grantingRoles(permission.name) .map(role => role.description || role.code) .join(', ')
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:98
+msgid "Granted by {0}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:293
 msgid "Stock on Hand"
 msgstr "Запас в наличии"
@@ -2491,8 +2506,8 @@ msgstr "Адрес доставки"
 msgid "New zone"
 msgstr "Новая зона"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:43
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:134
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:44
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:137
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:79
 msgid "New API Key"
 msgstr "Новый API Key"
@@ -2610,6 +2625,10 @@ msgstr "Применен вид „{viewName}\""
 #: src/app/routes/_authenticated/_facets/components/facet-bulk-actions.tsx:80
 msgid "Successfully removed {successCount} facets from channel"
 msgstr "{successCount} фасетов успешно удалено из канала"
+
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:192
+msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products.tsx:117
 msgid "New Product"
@@ -2801,7 +2820,8 @@ msgid "Delete Global View"
 msgstr "Удалить глобальное представление"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:126
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:153
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:68
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:156
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
@@ -3030,6 +3050,10 @@ msgstr "Возврат"
 msgid "Modify"
 msgstr "Изменить"
 
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:62
+msgid "Effective permissions on"
+msgstr ""
+
 #: src/lib/components/layout/manage-languages-dialog.tsx:337
 msgid "No global languages configured"
 msgstr "Глобальные языки не настроены"
@@ -3082,7 +3106,7 @@ msgstr "Новая акция"
 msgid "Option value name"
 msgstr "Название значения опции"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:202
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:214
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:46
 msgid "Last used"
 msgstr "Последнее использование"
@@ -3158,7 +3182,7 @@ msgstr "Включая налог {taxRate}%"
 msgid "Order metrics"
 msgstr "Метрики заказов"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:181
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:184
 msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
 msgstr ""
 
@@ -3638,6 +3662,10 @@ msgstr "Новый канал"
 msgid "Option Group Name"
 msgstr "Название группы опций"
 
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:166
+msgid "The assigned roles grant no permissions on this channel."
+msgstr ""
+
 #: src/lib/components/data-input/combination-mode-input.tsx:46
 msgid "AND"
 msgstr "И"
@@ -3713,7 +3741,7 @@ msgstr "Платёж успешно отменён"
 msgid "Global view duplicated successfully"
 msgstr "Глобальное представление успешно дублировано"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:198
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:210
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:66
 msgid "Created by"
 msgstr "Создано"
@@ -3821,7 +3849,7 @@ msgstr "Уровень запаса"
 msgid "Add item"
 msgstr "Добавить элемент"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:106
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:107
 msgid "Successfully created API key"
 msgstr "API key успешно создан"
 
@@ -3893,8 +3921,8 @@ msgstr "Эта неделя"
 #~ msgstr "Группа опций товара успешно создана"
 
 #: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:54
-msgid "Permissions on"
-msgstr ""
+#~ msgid "Permissions on"
+#~ msgstr ""
 
 #. placeholder {0}: formatCurrency(outstandingAmount, currencyCode)
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:130
@@ -3999,7 +4027,7 @@ msgstr "Товар с опциями"
 msgid "Showing all {0} results"
 msgstr "Показаны все {0} результатов"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:192
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:204
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:60
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx:95
 msgid "Lookup ID"
@@ -4225,7 +4253,7 @@ msgstr "Не удалось создать зону"
 msgid "Stock levels"
 msgstr "Уровни запасов"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:119
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:120
 msgid "Failed to update API key"
 msgstr "Не удалось обновить API key"
 
@@ -4264,6 +4292,10 @@ msgstr "Цена за единицу"
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:129
 msgid "Schedule Pattern"
 msgstr "Шаблон расписания"
+
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:224
+msgid "Show granted only"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx:67
 msgid "Payment failed"
@@ -4458,7 +4490,7 @@ msgstr "Управление тегами"
 msgid "Coupon code removed from order"
 msgstr "Код купона удален из заказа"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:209
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:221
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:50
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:142
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:152
@@ -5680,6 +5712,10 @@ msgstr "Не удалось обновить фасет"
 msgid "useWidgetFilters must be used within a WidgetFiltersProvider"
 msgstr "useWidgetFilters должен использоваться внутри WidgetFiltersProvider"
 
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:224
+msgid "Show all permissions"
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx:129
 msgid "Edit Address"
 msgstr "Редактировать адрес"
@@ -5942,7 +5978,7 @@ msgstr "Порог отсутствия на складе"
 msgid "Failed to update value"
 msgstr "Не удалось обновить значение"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:119
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:120
 msgid "Failed to create API key"
 msgstr "Не удалось создать API key"
 
@@ -6016,7 +6052,7 @@ msgstr "Вариант"
 msgid "Successfully updated global settings"
 msgstr "Глобальные настройки успешно обновлены"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:113
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:114
 msgid "Successfully updated API key"
 msgstr "API key успешно обновлён"
 

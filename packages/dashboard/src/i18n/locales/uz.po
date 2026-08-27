@@ -575,7 +575,7 @@ msgstr "To'plamlarni ko'chirish"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:160
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:55
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:168
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:171
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
 #: src/app/routes/_authenticated/_roles/roles.tsx:16
 #: src/app/routes/_authenticated/_roles/roles.tsx:25
@@ -658,7 +658,7 @@ msgstr "Standart soliq hududi"
 msgid "Order draft is ready to be completed"
 msgstr "Buyurtma qoralamasi yakunlashga tayyor"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:189
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:201
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:245
 msgid "Metadata"
 msgstr "Metama'lumotlar"
@@ -724,7 +724,7 @@ msgid "Complete draft"
 msgstr "Qoralamani yakunlash"
 
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:45
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:163
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:166
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:169
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
@@ -1416,6 +1416,7 @@ msgid "Use as the default billing address"
 msgstr "Standart hisob-kitob manzili sifatida ishlatish"
 
 #: src/app/common/delete-bulk-action.tsx:139
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:71
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:41
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:362
 #: src/lib/components/data-table/use-generated-columns.tsx:407
@@ -1446,6 +1447,10 @@ msgstr "Mamlakatni yaratib bo'lmadi"
 #: src/lib/framework/defaults.ts:237
 msgid "Countries"
 msgstr "Mamlakatlar"
+
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:69
+msgid "Read"
+msgstr ""
 
 #: src/lib/components/data-table/views-sheet.tsx:68
 msgid "Failed to rename view"
@@ -1495,7 +1500,7 @@ msgstr "Global sozlamalar yuklanmoqda..."
 msgid "Address updated successfully"
 msgstr "Manzil yangilandi"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:214
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:124
 #: src/lib/components/shared/asset/asset-gallery.tsx:747
 #: src/lib/framework/layout-engine/page-layout.tsx:733
@@ -1610,6 +1615,10 @@ msgstr "Variantni o'chirish"
 msgid "No modifications made"
 msgstr "Hech qanday o'zgartirish kiritilmadi"
 
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:171
+msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
+msgstr ""
+
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:222
 msgid "Default shipping zone"
 msgstr "Standart yetkazib berish hududi"
@@ -1717,7 +1726,8 @@ msgid "Refund settled successfully"
 msgstr "Pul qaytarish muvaffaqiyatli hisoblashildi"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:126
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:153
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:70
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:156
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
@@ -1932,7 +1942,7 @@ msgstr "Mavzu"
 msgid "{0} customers"
 msgstr "{0} mijoz"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:42
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:43
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:14
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:25
 msgid "API Keys"
@@ -2407,6 +2417,11 @@ msgstr "Buyurtma uchun mijoz o'rnatildi"
 msgid "Facets"
 msgstr "Fasetlar"
 
+#. placeholder {0}: grantingRoles(permission.name) .map(role => role.description || role.code) .join(', ')
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:98
+msgid "Granted by {0}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:293
 msgid "Stock on Hand"
 msgstr "Mavjud zaxira"
@@ -2424,8 +2439,8 @@ msgstr "Yetkazib berish manzili"
 msgid "New zone"
 msgstr "Yangi hudud"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:43
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:134
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:44
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:137
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:79
 msgid "New API Key"
 msgstr "Yangi API kaliti"
@@ -2535,6 +2550,10 @@ msgstr "\"{viewName}\" ko'rinishi qo'llanildi"
 #: src/app/routes/_authenticated/_facets/components/facet-bulk-actions.tsx:80
 msgid "Successfully removed {successCount} facets from channel"
 msgstr "Kanaldan {successCount} faset olib tashlandi"
+
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:192
+msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products.tsx:117
 msgid "New Product"
@@ -2717,7 +2736,8 @@ msgid "Delete Global View"
 msgstr "Global koʻrinishni oʻchirish"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:126
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:153
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:68
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:156
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
@@ -2938,6 +2958,10 @@ msgstr "Pul qaytarish"
 msgid "Modify"
 msgstr "Oʻzgartirish"
 
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:62
+msgid "Effective permissions on"
+msgstr ""
+
 #: src/lib/components/layout/manage-languages-dialog.tsx:337
 msgid "No global languages configured"
 msgstr "Hech qanday global til sozlanmagan"
@@ -2990,7 +3014,7 @@ msgstr "Yangi aksiya"
 msgid "Option value name"
 msgstr "Optsiya qiymati nomi"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:202
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:214
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:46
 msgid "Last used"
 msgstr "Oxirgi ishlatilgan"
@@ -3066,7 +3090,7 @@ msgstr "{taxRate}% soliqni o'z ichiga oladi"
 msgid "Order metrics"
 msgstr "Buyurtma ko'rsatkichlari"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:181
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:184
 msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
 msgstr ""
 
@@ -3527,6 +3551,10 @@ msgstr "Yangi kanal"
 msgid "Option Group Name"
 msgstr "Optsiya guruhi nomi"
 
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:166
+msgid "The assigned roles grant no permissions on this channel."
+msgstr ""
+
 #: src/lib/components/data-input/combination-mode-input.tsx:46
 msgid "AND"
 msgstr "VA"
@@ -3598,7 +3626,7 @@ msgstr "To'lov bekor qilindi"
 msgid "Global view duplicated successfully"
 msgstr "Global ko'rinish nusxalandi"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:198
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:210
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:66
 msgid "Created by"
 msgstr "Yaratgan"
@@ -3706,7 +3734,7 @@ msgstr "Zaxira darajasi"
 msgid "Add item"
 msgstr "Element qo'shish"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:106
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:107
 msgid "Successfully created API key"
 msgstr "API kaliti yaratildi"
 
@@ -3774,8 +3802,8 @@ msgid "This week"
 msgstr "Bu hafta"
 
 #: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:54
-msgid "Permissions on"
-msgstr ""
+#~ msgid "Permissions on"
+#~ msgstr ""
 
 #. placeholder {0}: formatCurrency(outstandingAmount, currencyCode)
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:130
@@ -3871,7 +3899,7 @@ msgstr "Variantli mahsulot"
 msgid "Showing all {0} results"
 msgstr "Barcha {0} ta natija ko'rsatilmoqda"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:192
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:204
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:60
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx:95
 msgid "Lookup ID"
@@ -4089,7 +4117,7 @@ msgstr "Hududni yaratib bo'lmadi"
 msgid "Stock levels"
 msgstr "Zaxira darajalari"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:119
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:120
 msgid "Failed to update API key"
 msgstr "API kalitini yangilab bo'lmadi"
 
@@ -4128,6 +4156,10 @@ msgstr "Birlik narxi"
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:129
 msgid "Schedule Pattern"
 msgstr "Reja andozasi"
+
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:224
+msgid "Show granted only"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx:67
 msgid "Payment failed"
@@ -4306,7 +4338,7 @@ msgstr "Teglarni boshqarish"
 msgid "Coupon code removed from order"
 msgstr "Buyurtmadan kupon kodi olib tashlandi"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:209
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:221
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:50
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:142
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:152
@@ -5480,6 +5512,10 @@ msgstr "Fasetni yangilash amalga oshmadi"
 msgid "useWidgetFilters must be used within a WidgetFiltersProvider"
 msgstr "useWidgetFilters WidgetFiltersProvider ichida ishlatilishi kerak"
 
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:224
+msgid "Show all permissions"
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx:129
 msgid "Edit Address"
 msgstr "Manzilni tahrirlash"
@@ -5730,7 +5766,7 @@ msgstr "Zaxira tugash chegarasi"
 msgid "Failed to update value"
 msgstr "Qiymatni yangilash amalga oshmadi"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:119
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:120
 msgid "Failed to create API key"
 msgstr "API kalitini yaratish amalga oshmadi"
 
@@ -5804,7 +5840,7 @@ msgstr "Variant"
 msgid "Successfully updated global settings"
 msgstr "Global sozlamalar muvaffaqiyatli yangilandi"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:113
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:114
 msgid "Successfully updated API key"
 msgstr "API kaliti muvaffaqiyatli yangilandi"
 

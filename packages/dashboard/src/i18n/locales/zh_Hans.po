@@ -603,7 +603,7 @@ msgstr "移动集合"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:160
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:55
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:168
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:171
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
 #: src/app/routes/_authenticated/_roles/roles.tsx:16
 #: src/app/routes/_authenticated/_roles/roles.tsx:25
@@ -686,7 +686,7 @@ msgstr "默认税务区域"
 msgid "Order draft is ready to be completed"
 msgstr "订单草稿已准备就绪可以完成"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:189
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:201
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:245
 msgid "Metadata"
 msgstr "元数据"
@@ -752,7 +752,7 @@ msgid "Complete draft"
 msgstr "完成草稿"
 
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:45
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:163
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:166
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:169
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
@@ -1464,6 +1464,7 @@ msgid "Use as the default billing address"
 msgstr "用作默认账单地址"
 
 #: src/app/common/delete-bulk-action.tsx:139
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:71
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:41
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:362
 #: src/lib/components/data-table/use-generated-columns.tsx:407
@@ -1494,6 +1495,10 @@ msgstr "创建国家失败"
 #: src/lib/framework/defaults.ts:237
 msgid "Countries"
 msgstr "国家"
+
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:69
+msgid "Read"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:124
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:209
@@ -1548,7 +1553,7 @@ msgstr "正在加载全局设置..."
 msgid "Address updated successfully"
 msgstr "地址已成功更新"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:214
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:124
 #: src/lib/components/shared/asset/asset-gallery.tsx:747
 #: src/lib/framework/layout-engine/page-layout.tsx:733
@@ -1671,6 +1676,10 @@ msgstr "删除变体"
 msgid "No modifications made"
 msgstr "未进行修改"
 
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:171
+msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
+msgstr ""
+
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:222
 msgid "Default shipping zone"
 msgstr "默认配送区域"
@@ -1778,7 +1787,8 @@ msgid "Refund settled successfully"
 msgstr "退款已成功完成"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:126
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:153
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:70
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:156
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
@@ -1999,7 +2009,7 @@ msgstr "主题"
 msgid "{0} customers"
 msgstr "{0} 位客户"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:42
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:43
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:14
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:25
 msgid "API Keys"
@@ -2474,6 +2484,11 @@ msgstr "订单已设置客户"
 msgid "Facets"
 msgstr "属性"
 
+#. placeholder {0}: grantingRoles(permission.name) .map(role => role.description || role.code) .join(', ')
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:98
+msgid "Granted by {0}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:293
 msgid "Stock on Hand"
 msgstr "现有库存"
@@ -2491,8 +2506,8 @@ msgstr "配送地址"
 msgid "New zone"
 msgstr "新区域"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:43
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:134
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:44
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:137
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:79
 msgid "New API Key"
 msgstr "新建 API Key"
@@ -2610,6 +2625,10 @@ msgstr "已应用视图\"{viewName}\""
 #: src/app/routes/_authenticated/_facets/components/facet-bulk-actions.tsx:80
 msgid "Successfully removed {successCount} facets from channel"
 msgstr "已成功从渠道中删除 {successCount} 个属性"
+
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:192
+msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products.tsx:117
 msgid "New Product"
@@ -2801,7 +2820,8 @@ msgid "Delete Global View"
 msgstr "删除全局视图"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:126
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:153
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:68
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:156
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
@@ -3030,6 +3050,10 @@ msgstr "退款"
 msgid "Modify"
 msgstr "修改"
 
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:62
+msgid "Effective permissions on"
+msgstr ""
+
 #: src/lib/components/layout/manage-languages-dialog.tsx:337
 msgid "No global languages configured"
 msgstr "未配置全局语言"
@@ -3082,7 +3106,7 @@ msgstr "新促销"
 msgid "Option value name"
 msgstr "选项值名称"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:202
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:214
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:46
 msgid "Last used"
 msgstr "最后使用时间"
@@ -3158,7 +3182,7 @@ msgstr "含 {taxRate}% 税"
 msgid "Order metrics"
 msgstr "订单指标"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:181
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:184
 msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
 msgstr ""
 
@@ -3638,6 +3662,10 @@ msgstr "新渠道"
 msgid "Option Group Name"
 msgstr "选项组名称"
 
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:166
+msgid "The assigned roles grant no permissions on this channel."
+msgstr ""
+
 #: src/lib/components/data-input/combination-mode-input.tsx:46
 msgid "AND"
 msgstr "与"
@@ -3713,7 +3741,7 @@ msgstr "支付已成功取消"
 msgid "Global view duplicated successfully"
 msgstr "全局视图已成功复制"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:198
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:210
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:66
 msgid "Created by"
 msgstr "创建者"
@@ -3821,7 +3849,7 @@ msgstr "库存水平"
 msgid "Add item"
 msgstr "添加项目"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:106
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:107
 msgid "Successfully created API key"
 msgstr "API Key 创建成功"
 
@@ -3893,8 +3921,8 @@ msgstr "本周"
 #~ msgstr "成功创建商品选项组"
 
 #: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:54
-msgid "Permissions on"
-msgstr ""
+#~ msgid "Permissions on"
+#~ msgstr ""
 
 #. placeholder {0}: formatCurrency(outstandingAmount, currencyCode)
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:130
@@ -3999,7 +4027,7 @@ msgstr "带选项的产品"
 msgid "Showing all {0} results"
 msgstr "显示所有 {0} 个结果"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:192
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:204
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:60
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx:95
 msgid "Lookup ID"
@@ -4225,7 +4253,7 @@ msgstr "创建区域失败"
 msgid "Stock levels"
 msgstr "库存水平"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:119
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:120
 msgid "Failed to update API key"
 msgstr "更新 API Key 失败"
 
@@ -4264,6 +4292,10 @@ msgstr "单价"
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:129
 msgid "Schedule Pattern"
 msgstr "时间表模式"
+
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:224
+msgid "Show granted only"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx:67
 msgid "Payment failed"
@@ -4458,7 +4490,7 @@ msgstr "管理标签"
 msgid "Coupon code removed from order"
 msgstr "优惠券代码已从订单中移除"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:209
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:221
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:50
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:142
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:152
@@ -5680,6 +5712,10 @@ msgstr "更新属性失败"
 msgid "useWidgetFilters must be used within a WidgetFiltersProvider"
 msgstr "useWidgetFilters 必须在 WidgetFiltersProvider 中使用"
 
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:224
+msgid "Show all permissions"
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx:129
 msgid "Edit Address"
 msgstr "编辑地址"
@@ -5942,7 +5978,7 @@ msgstr "缺货阈值"
 msgid "Failed to update value"
 msgstr "更新值失败"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:119
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:120
 msgid "Failed to create API key"
 msgstr "创建 API Key 失败"
 
@@ -6016,7 +6052,7 @@ msgstr "变体"
 msgid "Successfully updated global settings"
 msgstr "已成功更新全局设置"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:113
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:114
 msgid "Successfully updated API key"
 msgstr "API Key 更新成功"
 

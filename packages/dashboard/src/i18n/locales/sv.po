@@ -603,7 +603,7 @@ msgstr "Flytta kollektioner"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:160
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:55
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:168
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:171
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
 #: src/app/routes/_authenticated/_roles/roles.tsx:16
 #: src/app/routes/_authenticated/_roles/roles.tsx:25
@@ -686,7 +686,7 @@ msgstr "Standardskattzon"
 msgid "Order draft is ready to be completed"
 msgstr "Beställningsutkastet är redo att slutföras"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:189
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:201
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:245
 msgid "Metadata"
 msgstr "Metadata"
@@ -752,7 +752,7 @@ msgid "Complete draft"
 msgstr "Slutför utkast"
 
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:45
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:163
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:166
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:169
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
@@ -1464,6 +1464,7 @@ msgid "Use as the default billing address"
 msgstr "Använd som standardfakturaadress"
 
 #: src/app/common/delete-bulk-action.tsx:139
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:71
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:41
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:362
 #: src/lib/components/data-table/use-generated-columns.tsx:407
@@ -1494,6 +1495,10 @@ msgstr "Misslyckades att skapa land"
 #: src/lib/framework/defaults.ts:237
 msgid "Countries"
 msgstr "Länder"
+
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:69
+msgid "Read"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:124
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:209
@@ -1548,7 +1553,7 @@ msgstr "Laddar globala inställningar..."
 msgid "Address updated successfully"
 msgstr "Adress uppdaterad"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:214
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:124
 #: src/lib/components/shared/asset/asset-gallery.tsx:747
 #: src/lib/framework/layout-engine/page-layout.tsx:733
@@ -1671,6 +1676,10 @@ msgstr "Radera variant"
 msgid "No modifications made"
 msgstr "Inga ändringar gjorda"
 
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:171
+msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
+msgstr ""
+
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:222
 msgid "Default shipping zone"
 msgstr "Standardfraktzon"
@@ -1778,7 +1787,8 @@ msgid "Refund settled successfully"
 msgstr "Återbetalning genomförd"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:126
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:153
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:70
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:156
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
@@ -1999,7 +2009,7 @@ msgstr "Tema"
 msgid "{0} customers"
 msgstr "{0} kunder"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:42
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:43
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:14
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:25
 msgid "API Keys"
@@ -2474,6 +2484,11 @@ msgstr "Kund angiven för beställning"
 msgid "Facets"
 msgstr "Facetter"
 
+#. placeholder {0}: grantingRoles(permission.name) .map(role => role.description || role.code) .join(', ')
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:98
+msgid "Granted by {0}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:293
 msgid "Stock on Hand"
 msgstr "Lager tillgängligt"
@@ -2491,8 +2506,8 @@ msgstr "Leveransadress"
 msgid "New zone"
 msgstr "Ny zon"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:43
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:134
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:44
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:137
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:79
 msgid "New API Key"
 msgstr "Ny API-nyckel"
@@ -2610,6 +2625,10 @@ msgstr "Tillämpade vy \"{viewName}\""
 #: src/app/routes/_authenticated/_facets/components/facet-bulk-actions.tsx:80
 msgid "Successfully removed {successCount} facets from channel"
 msgstr "{successCount} facetter borttagna från kanal"
+
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:192
+msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products.tsx:117
 msgid "New Product"
@@ -2801,7 +2820,8 @@ msgid "Delete Global View"
 msgstr "Ta bort global vy"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:126
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:153
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:68
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:156
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
@@ -3030,6 +3050,10 @@ msgstr "Återbetalning"
 msgid "Modify"
 msgstr "Ändra"
 
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:62
+msgid "Effective permissions on"
+msgstr ""
+
 #: src/lib/components/layout/manage-languages-dialog.tsx:337
 msgid "No global languages configured"
 msgstr "Inga globala språk konfigurerade"
@@ -3082,7 +3106,7 @@ msgstr "Ny kampanj"
 msgid "Option value name"
 msgstr "Alternativvärdesnamn"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:202
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:214
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:46
 msgid "Last used"
 msgstr "Senast använd"
@@ -3158,7 +3182,7 @@ msgstr "Inkluderar moms på {taxRate}%"
 msgid "Order metrics"
 msgstr "Beställningsmått"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:181
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:184
 msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
 msgstr ""
 
@@ -3638,6 +3662,10 @@ msgstr "Ny kanal"
 msgid "Option Group Name"
 msgstr "Alternativgruppsnamn"
 
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:166
+msgid "The assigned roles grant no permissions on this channel."
+msgstr ""
+
 #: src/lib/components/data-input/combination-mode-input.tsx:46
 msgid "AND"
 msgstr "OCH"
@@ -3713,7 +3741,7 @@ msgstr "Betalning avbruten"
 msgid "Global view duplicated successfully"
 msgstr "Global vy duplicerad"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:198
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:210
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:66
 msgid "Created by"
 msgstr "Skapad av"
@@ -3821,7 +3849,7 @@ msgstr "Lagernivå"
 msgid "Add item"
 msgstr "Lägg till artikel"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:106
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:107
 msgid "Successfully created API key"
 msgstr "API-nyckel skapad"
 
@@ -3893,8 +3921,8 @@ msgstr "Denna vecka"
 #~ msgstr "Produktalternativgrupp har skapats"
 
 #: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:54
-msgid "Permissions on"
-msgstr ""
+#~ msgid "Permissions on"
+#~ msgstr ""
 
 #. placeholder {0}: formatCurrency(outstandingAmount, currencyCode)
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:130
@@ -3999,7 +4027,7 @@ msgstr "Produkt med alternativ"
 msgid "Showing all {0} results"
 msgstr "Visar alla {0} resultat"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:192
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:204
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:60
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx:95
 msgid "Lookup ID"
@@ -4225,7 +4253,7 @@ msgstr "Misslyckades att skapa zon"
 msgid "Stock levels"
 msgstr "Lagernivåer"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:119
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:120
 msgid "Failed to update API key"
 msgstr "Misslyckades med att uppdatera API-nyckel"
 
@@ -4264,6 +4292,10 @@ msgstr "Enhetspris"
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:129
 msgid "Schedule Pattern"
 msgstr "Schemamönster"
+
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:224
+msgid "Show granted only"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx:67
 msgid "Payment failed"
@@ -4458,7 +4490,7 @@ msgstr "Hantera taggar"
 msgid "Coupon code removed from order"
 msgstr "Kupongkod borttagen från beställning"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:209
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:221
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:50
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:142
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:152
@@ -5680,6 +5712,10 @@ msgstr "Misslyckades att uppdatera facett"
 msgid "useWidgetFilters must be used within a WidgetFiltersProvider"
 msgstr "useWidgetFilters måste användas inom en WidgetFiltersProvider"
 
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:224
+msgid "Show all permissions"
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx:129
 msgid "Edit Address"
 msgstr "Redigera adress"
@@ -5942,7 +5978,7 @@ msgstr "Utlagd tröskel"
 msgid "Failed to update value"
 msgstr "Misslyckades med att uppdatera värde"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:119
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:120
 msgid "Failed to create API key"
 msgstr "Misslyckades med att skapa API-nyckel"
 
@@ -6016,7 +6052,7 @@ msgstr "Variant"
 msgid "Successfully updated global settings"
 msgstr "Globala inställningar uppdaterade"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:113
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:114
 msgid "Successfully updated API key"
 msgstr "API-nyckel uppdaterad"
 
