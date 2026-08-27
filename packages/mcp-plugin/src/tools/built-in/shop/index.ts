@@ -13,7 +13,7 @@ import { PlaceOrderTool } from './place-order.tool';
 import { RemoveCouponCodeTool } from './remove-coupon-code.tool';
 import { RemoveFromCartTool } from './remove-from-cart.tool';
 import { SearchProductsTool } from './search-products.tool';
-import { SetCheckoutAddressesTool } from './set-checkout-addresses.tool';
+import { SetCheckoutDetailsTool } from './set-checkout-details.tool';
 import { SetShippingMethodTool } from './set-shipping-method.tool';
 import { UpdateCartLineTool } from './update-cart-line.tool';
 
@@ -30,7 +30,7 @@ export const shopToolProviders = [
     RemoveFromCartTool,
     ApplyCouponCodeTool,
     RemoveCouponCodeTool,
-    SetCheckoutAddressesTool,
+    SetCheckoutDetailsTool,
     SetShippingMethodTool,
     PlaceOrderTool,
     ShopGetOrderTool,

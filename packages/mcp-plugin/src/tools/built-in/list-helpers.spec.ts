@@ -5,6 +5,8 @@ import * as listHelpers from './list-helpers';
 
 const expectedExports = [
     'MAX_LIST_PAGE_SIZE',
+    'ORDER_DETAIL_RELATIONS',
+    'ORDER_LIST_RELATIONS',
     'ORDER_SORT_FIELDS',
     'booleanFilter',
     'dateFilter',
@@ -18,16 +20,20 @@ const expectedExports = [
     'publicProductListOptions',
     'slicePage',
     'stringFilter',
+    'translateLineVariants',
 ];
 
 describe('built-in list helpers', () => {
     it('exports only the helpers consumed by the shipped tools', () => {
         expect(Object.keys(listHelpers).sort()).toEqual(expectedExports);
         // The exports that are not functions: the sortable Order fields the list_orders tool turns
-        // into its sortBy enum, the page-size cap, and the four filter operator schemas the
-        // filterable list tools build their filter objects from.
+        // into its sortBy enum, the relations the order list and single-order tools load, the
+        // page-size cap, and the four filter operator schemas the filterable list tools build their
+        // filter objects from.
         const {
             ORDER_SORT_FIELDS,
+            ORDER_LIST_RELATIONS,
+            ORDER_DETAIL_RELATIONS,
             MAX_LIST_PAGE_SIZE,
             stringFilter,
             dateFilter,

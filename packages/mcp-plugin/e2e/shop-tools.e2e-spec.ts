@@ -1,4 +1,3 @@
-import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { CurrencyCode, LanguageCode } from '@vendure/common/lib/generated-types';
 import {
     ActiveOrderService,
@@ -27,13 +26,13 @@ import gql from 'graphql-tag';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
+import { awaitRunningJobs } from '../../core/e2e/utils/await-running-jobs';
 import { McpOauthGrant } from '../src/entities/mcp-oauth-grant.entity';
 import { McpToolCallLog } from '../src/entities/mcp-tool-call-log.entity';
 import { McpOauthService } from '../src/oauth/oauth.service';
 import { deriveHashKey, hashLookupToken } from '../src/oauth/token-hash';
 import { McpPlugin } from '../src/plugin';
 import { McpToolExecutionService } from '../src/registry/mcp-tool-execution.service';
-import { McpToolRegistryService } from '../src/registry/mcp-tool-registry.service';
 import { shopToolProviders } from '../src/tools/built-in/shop';
 
 import { callTool, postMcp, rpc } from './utils/mcp-http-client';
@@ -44,6 +43,14 @@ const TOKEN_SECRET = 'shop-tools-secret-000000000000000000000';
 const ISSUER = `http://localhost:${testConfig().apiOptions.port}`;
 const AUTH_TOKEN_HEADER = 'vendure-auth-token';
 const CHANNEL_TOKEN_HEADER = 'vendure-token';
+
+/**
+ * The fixture prices the shirt's Small, Medium and Large sizes at 500.00, 600.00 and 700.00 net,
+ * and the channel's tax zone adds 20%, so these are the shirt's `priceRange` values with all
+ * three sizes counted, and with the Large size left out.
+ */
+const SHIRT_SMALL_TO_LARGE = { min: 60000, minDecimal: '600.00', max: 84000, maxDecimal: '840.00' };
+const SHIRT_SMALL_TO_MEDIUM = { min: 60000, minDecimal: '600.00', max: 72000, maxDecimal: '720.00' };
 
 const shopToolNames = shopToolProviders
     .map(provider => (Reflect.getMetadata(McpTool.KEY, provider) as McpToolMetadata).name)
@@ -95,6 +102,9 @@ const PENDING_PAYMENT_CUSTOMER_EMAIL = 'mcp-pending-payment@e2e.example.com';
 const PENDING_PAYMENT_CUSTOMER_PASSWORD = 'test';
 const NO_SHIPPING_CUSTOMER_EMAIL = 'mcp-no-shipping@e2e.example.com';
 const NO_SHIPPING_CUSTOMER_PASSWORD = 'test';
+// The buyer of the guest checkout below. No customer with this address exists until that test
+// names it, which is what makes the order a guest order.
+const GUEST_CHECKOUT_EMAIL = 'mcp-guest-checkout@e2e.example.com';
 
 class TestOrderByCodeAccessStrategy implements OrderByCodeAccessStrategy {
     allow = true;
@@ -104,7 +114,7 @@ class TestOrderByCodeAccessStrategy implements OrderByCodeAccessStrategy {
     }
 }
 
-// Eligible only for a US shipping address. The set_checkout_addresses tests use it to show what
+// Eligible only for a US shipping address. The set_checkout_details tests use it to show what
 // core does when a new address makes the chosen shipping method ineligible.
 const US_ONLY_SHIPPING_METHOD_CODE = 'mcp-e2e-us-only';
 const UK_ADDRESS = {
@@ -136,9 +146,15 @@ describe('MCP built-in shop tools', () => {
                 },
                 // This suite makes more than 60 anonymous calls in well under a minute. Both
                 // default limits an anonymous caller charges (per session and per IP, 60 a minute
-                // each) would start refusing part way through. mcp-transport.e2e-spec.ts is where
-                // those limits are tested; an rpm of 0 turns a bucket off.
-                rateLimits: { perSession: { rpm: 0 }, anonymousIp: false },
+                // each) would start refusing part way through, and so would place_order's own
+                // limit of 5 a minute once several checkout tests run together.
+                // mcp-transport.e2e-spec.ts is where those limits are tested; an rpm of 0 turns a
+                // bucket off.
+                rateLimits: {
+                    perSession: { rpm: 0 },
+                    anonymousIp: false,
+                    perTool: { place_order: { rpm: 0 } },
+                },
             }),
         ],
     });
@@ -155,6 +171,8 @@ describe('MCP built-in shop tools', () => {
     let productAdminId: string;
     let productSlug: string;
     let variantId: ID;
+    let variantName: string;
+    let variantSku: string;
     let variantAdminId: string;
     let defaultChannelAdminId: string;
     let defaultCurrencyCode: CurrencyCode;
@@ -162,6 +180,9 @@ describe('MCP built-in shop tools', () => {
     let secondVariantAdminId: string;
     let shirtId: ID;
     let shirtVariantCount: number;
+    let shirtVariants: Array<{ id: string; sku: string }>;
+    let shirtCollectionId: ID;
+    let shirtCollectionSlug: string;
     let publicCollectionId: ID;
     let publicCollectionSlug: string;
     let privateCollectionId: ID;
@@ -199,6 +220,8 @@ describe('MCP built-in shop tools', () => {
                         slug
                         variants {
                             id
+                            name
+                            sku
                         }
                     }
                 }
@@ -231,12 +254,14 @@ describe('MCP built-in shop tools', () => {
         productSlug = product.slug;
         variantId = idStrategy.decodeId(product.variants[0].id);
         variantAdminId = product.variants[0].id;
+        variantName = product.variants[0].name;
+        variantSku = product.variants[0].sku;
         defaultChannelAdminId = fixture.activeChannel.id;
         defaultCurrencyCode = fixture.activeChannel.defaultCurrencyCode;
         publicCollectionId = idStrategy.decodeId(collection.id);
         publicCollectionSlug = collection.slug;
 
-        // A shipping method only a US address can use, for the set_checkout_addresses tests.
+        // A shipping method only a US address can use, for the set_checkout_details tests.
         const usOnly = await adminClient.query(
             gql`
                 mutation CreateUsOnlyShippingMethod($input: CreateShippingMethodInput!) {
@@ -291,6 +316,7 @@ describe('MCP built-in shop tools', () => {
         }
         shirtId = idStrategy.decodeId(shirt.id);
         shirtVariantCount = shirt.variants.length;
+        shirtVariants = shirt.variants;
         // The parallel add_to_cart test needs a variant other than the first product's, so that
         // the two calls produce two lines rather than merging into one.
         secondVariantId = idStrategy.decodeId(shirt.variants[0].id);
@@ -373,6 +399,41 @@ describe('MCP built-in shop tools', () => {
         privateCollectionId = idStrategy.decodeId(privateCollection.createCollection.id);
         privateCollectionSlug = privateCollection.createCollection.slug;
 
+        // A public collection holding only the shirt, for the search_products collection filter.
+        // Core works out which variants belong to a collection in a background job after the
+        // collection is created, so this waits for that job.
+        const shirtCollection = await adminClient.query(
+            gql`
+                mutation CreateShirtCollection($input: CreateCollectionInput!) {
+                    createCollection(input: $input) {
+                        id
+                        slug
+                    }
+                }
+            `,
+            {
+                input: {
+                    translations: [
+                        {
+                            languageCode: fixture.activeChannel.defaultLanguageCode,
+                            name: 'MCP shirts',
+                            slug: 'mcp-shirts',
+                            description: '',
+                        },
+                    ],
+                    filters: [
+                        {
+                            code: 'product-id-filter',
+                            arguments: [{ name: 'productIds', value: JSON.stringify([shirt.id]) }],
+                        },
+                    ],
+                },
+            },
+        );
+        shirtCollectionId = idStrategy.decodeId(shirtCollection.createCollection.id);
+        shirtCollectionSlug = shirtCollection.createCollection.slug;
+        await awaitRunningJobs(adminClient);
+
         shopClient.setChannelToken(secondChannelToken);
         const login = await shopClient.asUserWithCredentials(customerEmail, 'test');
         if (!login || login.errorCode) {
@@ -430,6 +491,28 @@ describe('MCP built-in shop tools', () => {
         });
     }
 
+    /**
+     * Signs a customer in on the default channel, authorizes an MCP grant for them and answers the
+     * access token to call the shop tools with. The shared `shopClient` session is pinned to the
+     * second channel, so tests that need the default channel get a client of their own from here.
+     */
+    async function shopAccessTokenFor(emailAddress: string, password: string): Promise<string> {
+        const client = new SimpleGraphQLClient(
+            config,
+            `http://localhost:${config.apiOptions.port}/${config.apiOptions.shopApiPath as string}`,
+        );
+        const login = await client.asUserWithCredentials(emailAddress, password);
+        if (!login || login.errorCode) {
+            throw new Error(`Customer login failed for ${emailAddress}: ${JSON.stringify(login)}`);
+        }
+        const flow = await runShopAuthorizationCodeFlow({
+            baseUrl: baseUrl(),
+            issuer: ISSUER,
+            vendureAuthToken: client.getAuthToken(),
+        });
+        return flow.access_token;
+    }
+
     it('lists exactly the built-in shop tools for an authenticated customer', async () => {
         const flow = await shopFlow();
         const response = await postMcp(baseUrl(), 'shop', rpc('tools/list', {}, 1), {
@@ -450,38 +533,6 @@ describe('MCP built-in shop tools', () => {
         });
         expect(response.status).toBe(401);
         expect(response.headers.get('www-authenticate') ?? '').toMatch(/^Bearer .*resource_metadata=/);
-    });
-
-    it('creates no session or order for token-less reads; add_to_cart lazily creates and binds both', async () => {
-        const beforeOrders = await connection.getRepository(adminCtx, Order).count();
-        const beforeSessions = await connection.getRepository(adminCtx, Session).count();
-
-        // Token-less reads answer, set no session-token header, append no sessionToken, and
-        // write no session row.
-        const getCart = await postMcp(baseUrl(), 'shop', callTool('get_cart', {}, 1));
-        expect(getCart.headers.get(AUTH_TOKEN_HEADER)).toBeNull();
-        expect(getCart.body.result.structuredContent).toEqual({ order: null });
-
-        for (const [id, name] of [
-            [2, 'get_eligible_payment_methods'],
-            [3, 'get_eligible_shipping_methods'],
-        ] as const) {
-            const response = await postMcp(baseUrl(), 'shop', callTool(name, {}, id));
-            expect(response.body.result.structuredContent).toEqual({ methods: [] });
-        }
-
-        expect(await connection.getRepository(adminCtx, Session).count()).toBe(beforeSessions);
-        expect(await connection.getRepository(adminCtx, Order).count()).toBe(beforeOrders);
-
-        // The first write creates the session and hands its token back in the payload — the only
-        // channel a real MCP client reliably echoes.
-        const { sessionToken, order } = await anonymousCart(1);
-        expect(order.totalQuantity).toBe(1);
-
-        const session = await anonymousSession(sessionToken);
-        expect(session.activeOrderId).toBeTruthy();
-        expect(await connection.getRepository(adminCtx, Order).count()).toBe(beforeOrders + 1);
-        expect(String(session.activeOrderId)).toBe(String((await orderByCode(order.code)).id));
     });
 
     // `McpActiveOrderService.findOrCreate` now locks the session row inside a transaction, so the
@@ -628,136 +679,6 @@ describe('MCP built-in shop tools', () => {
         // The price the line was charged at. Re-pricing into another currency would replace it
         // with that currency's price for the same variant.
         expect(stored.lines[0].listPrice).toBe(2000);
-    });
-
-    // The zero-config real-host flow: separate POSTs, no headers threaded, cart identity carried
-    // only by the sessionToken field that shop tools return and accept.
-    it('carries the anonymous cart across separate calls via the sessionToken payload field alone', async () => {
-        const { sessionToken, order: added } = await anonymousCart(1);
-        const orderCode = added.code;
-
-        const cart = await postMcp(baseUrl(), 'shop', callTool('get_cart', { sessionToken }, 2));
-        expect(cart.body.result.isError).toBeUndefined();
-        const order = cart.body.result.structuredContent.order;
-        expect(order.code).toBe(orderCode);
-        expect(order.totalQuantity).toBe(1);
-        expect(order.lines).toHaveLength(1);
-        // The result echoes the token back so the agent can keep threading it.
-        expect(cart.body.result.structuredContent.sessionToken).toBe(sessionToken);
-    });
-
-    it('refuses an unknown sessionToken argument with a message telling the agent to start over', async () => {
-        const result = await postMcp(
-            baseUrl(),
-            'shop',
-            callTool('get_cart', { sessionToken: 'not-a-real-session-token' }, 1),
-        );
-        expect(result.body.result.isError).toBe(true);
-        expect(result.body.result.content[0].text).toMatch(/not valid or has expired/);
-    });
-
-    it("refuses a signed-in customer's session token passed as the sessionToken argument", async () => {
-        const result = await postMcp(
-            baseUrl(),
-            'shop',
-            callTool('get_cart', { sessionToken: customerAuthToken }, 1),
-        );
-        expect(result.body.result.isError).toBe(true);
-        expect(result.body.result.content[0].text).toMatch(/belongs to a signed-in user/);
-    });
-
-    it('returns the sessionToken on a failed write so the caller keeps the session it created', async () => {
-        const failed = await postMcp(
-            baseUrl(),
-            'shop',
-            callTool('add_to_cart', { productId: '999999', quantity: 1 }, 1),
-        );
-        expect(failed.body.result.isError).toBe(true);
-        const sessionToken = failed.body.result.structuredContent?.sessionToken as string;
-        expect(sessionToken).toBeTruthy();
-        // The session the failed call created is real and reusable.
-        const session = await anonymousSession(sessionToken);
-        expect(session).toBeTruthy();
-    });
-
-    it('carries the sessionToken on a place_order confirmation preview, and starts no cart without one', async () => {
-        const { sessionToken, order: added } = await anonymousCart(1);
-
-        const preview = await postMcp(
-            baseUrl(),
-            'shop',
-            callTool('place_order', { paymentMethodCode: 'not-configured', sessionToken }, 2),
-        );
-        expect(preview.body.result.isError).toBeUndefined();
-        expect(preview.body.result.structuredContent).toEqual({
-            status: 'confirmation_required',
-            confirmed: false,
-            sessionToken,
-        });
-        // The preview ran no handler, so the cart is exactly as it was.
-        const cart = await postMcp(baseUrl(), 'shop', callTool('get_cart', { sessionToken }, 3));
-        expect(cart.body.result.structuredContent.order.code).toBe(added.code);
-
-        // A preview with no token has no cart to preserve, so it must not start one.
-        const sessionsBefore = await connection.getRepository(adminCtx, Session).count();
-        const tokenless = await postMcp(
-            baseUrl(),
-            'shop',
-            callTool('place_order', { paymentMethodCode: 'not-configured' }, 4),
-        );
-        expect(tokenless.body.result.structuredContent).toEqual({
-            status: 'confirmation_required',
-            confirmed: false,
-        });
-        expect(await connection.getRepository(adminCtx, Session).count()).toBe(sessionsBefore);
-    });
-
-    it('treats a blank sessionToken argument as no token rather than refusing the call', async () => {
-        const read = await postMcp(baseUrl(), 'shop', callTool('get_cart', { sessionToken: '' }, 1));
-        expect(read.body.result.isError).toBeUndefined();
-        expect(read.body.result.structuredContent.order).toBeNull();
-
-        const sessionsBefore = await connection.getRepository(adminCtx, Session).count();
-        const write = await postMcp(
-            baseUrl(),
-            'shop',
-            callTool('add_to_cart', { variantId, quantity: 1, sessionToken: '   ' }, 2),
-        );
-        expect(write.body.result.isError).toBeUndefined();
-        const sessionToken = write.body.result.structuredContent.sessionToken as string;
-        expect(sessionToken).toBeTruthy();
-        expect(write.body.result.structuredContent.order.totalQuantity).toBe(1);
-        expect(await connection.getRepository(adminCtx, Session).count()).toBe(sessionsBefore + 1);
-    });
-
-    it('search_products with no token creates no session row and returns no sessionToken', async () => {
-        const before = await connection.getRepository(adminCtx, Session).count();
-        const response = await postMcp(baseUrl(), 'shop', callTool('search_products', { query: 'test' }, 1));
-        expect(response.body.result.isError).toBeUndefined();
-        expect(response.body.result.structuredContent.sessionToken).toBeUndefined();
-        expect(await connection.getRepository(adminCtx, Session).count()).toBe(before);
-    });
-
-    // A legacy-era batch gives no cart continuity: the SDK dispatches every batch member at once
-    // (JSON-RPC 2.0 allows a server to process a batch in any order), so get_cart races
-    // add_to_cart and may or may not see its cart. This pins the deterministic parts: both calls
-    // answer, and add_to_cart's result carries the sessionToken that later separate POSTs thread.
-    it('a legacy-era batch [add_to_cart, get_cart] answers both calls, with the token on the write', async () => {
-        const batch = [callTool('add_to_cart', { variantId, quantity: 1 }, 1), callTool('get_cart', {}, 2)];
-        const response = await postMcp(baseUrl(), 'shop', batch);
-        const messages: any[] = Array.isArray(response.body) ? response.body : [response.body];
-        const added = messages.find(message => message.id === 1).result;
-        const cart = messages.find(message => message.id === 2).result;
-
-        expect(added.isError).toBeUndefined();
-        expect(added.structuredContent.order.totalQuantity).toBe(1);
-        const sessionToken = added.structuredContent.sessionToken as string;
-        expect(sessionToken).toBeTruthy();
-        expect(cart.isError).toBeUndefined();
-
-        // Continuity works from the NEXT request on, using the returned token.
-        const followUp = await postMcp(baseUrl(), 'shop', callTool('get_cart', { sessionToken }, 3));
-        expect(followUp.body.result.structuredContent.order.code).toBe(added.structuredContent.order.code);
     });
 
     it('creates an anonymous cart in the channel selected by vendure-token', async () => {
@@ -1127,18 +1048,28 @@ describe('MCP built-in shop tools', () => {
         orderByCodeAccessStrategy.allow = true;
         const allowed = await postMcp(baseUrl(), 'shop', callTool('get_order', { code }, 2));
         expect(allowed.body.result.structuredContent.order).toMatchObject({ code });
-        // Every order result carries the same keys, whichever tool produced it.
-        expect(Array.isArray(allowed.body.result.structuredContent.order.shippingLines)).toBe(true);
-        expect(allowed.body.result.structuredContent.order).toHaveProperty('couponCodes');
-        expect(allowed.body.result.structuredContent.order).toHaveProperty('discounts');
+        const line = allowed.body.result.structuredContent.order.lines[0];
+        expect(String(line.productVariant.id)).toBe(String(variantId));
+        expect(line.productVariant).toMatchObject({ name: variantName, sku: variantSku });
 
+        // A miss and a refusal look the same to the caller on purpose: saying which it was would tell an
+        // anonymous caller that the code exists. The message says what to do about either.
+        const notVisible = (orderCode: string) =>
+            `No order with code ${orderCode} is visible to this caller. Sign in as the customer who placed it to see it.`;
         orderByCodeAccessStrategy.allow = false;
         try {
             const denied = await postMcp(baseUrl(), 'shop', callTool('get_order', { code }, 3));
-            expect(denied.body.result.structuredContent).toEqual({ order: null });
+            expect(denied.body.result.isError).toBeUndefined();
+            expect(denied.body.result.structuredContent).toEqual({ order: null, message: notVisible(code) });
         } finally {
             orderByCodeAccessStrategy.allow = true;
         }
+        const unknown = await postMcp(baseUrl(), 'shop', callTool('get_order', { code: 'NO-SUCH-CODE' }, 4));
+        expect(unknown.body.result.isError).toBeUndefined();
+        expect(unknown.body.result.structuredContent).toEqual({
+            order: null,
+            message: notVisible('NO-SUCH-CODE'),
+        });
     });
 
     it('resolves products and collections by ID or slug while enforcing visibility guards', async () => {
@@ -1157,9 +1088,25 @@ describe('MCP built-in shop tools', () => {
                 slug: publicCollectionSlug,
             });
         }
-        for (const arguments_ of [{ id: privateCollectionId }, { slug: privateCollectionSlug }]) {
+        // A private collection is as good as unknown to a shopper, and the miss is answered the same
+        // way search_products answers an unknown collection.
+        const privateMisses = [
+            {
+                arguments_: { id: privateCollectionId },
+                message: `No collection with id ${privateCollectionId}.`,
+            },
+            {
+                arguments_: { slug: privateCollectionSlug },
+                message: `No collection with slug ${privateCollectionSlug}.`,
+            },
+            {
+                arguments_: { slug: 'no-such-collection' },
+                message: 'No collection with slug no-such-collection.',
+            },
+        ];
+        for (const { arguments_, message } of privateMisses) {
             const response = await postMcp(baseUrl(), 'shop', callTool('get_collection', arguments_));
-            expect(response.body.result.structuredContent).toEqual({ collection: null });
+            expect(response.body.result.structuredContent).toEqual({ collection: null, message });
         }
 
         await adminClient.query(
@@ -1209,6 +1156,221 @@ describe('MCP built-in shop tools', () => {
         // survive the translated-column join that Product.name goes through.
         expect(await search('shirts')).toEqual({ names: ['Test Shirt'], total: 1 });
         expect(await search('shirt product')).toEqual({ names: [], total: 0 });
+    });
+
+    it('limits search_products to one collection when asked', async () => {
+        const collectionSlug = shirtCollectionSlug;
+        const collectionId = shirtCollectionId;
+        // The fixture shirt's three sizes are the whole collection.
+        const membership = await adminClient.query(
+            gql`
+                query ShirtCollectionMembers($slug: String!) {
+                    collection(slug: $slug) {
+                        productVariants {
+                            totalItems
+                        }
+                    }
+                }
+            `,
+            { slug: collectionSlug },
+        );
+        expect(membership.collection.productVariants.totalItems).toBe(3);
+
+        const search = async (args: Record<string, unknown>) => {
+            const response = await postMcp(baseUrl(), 'shop', callTool('search_products', args));
+            expect(response.body.result.isError).toBeUndefined();
+            const result = response.body.result.structuredContent as {
+                items: Array<{ name: string }>;
+                total: number;
+                message?: string;
+            };
+            return {
+                names: result.items.map(item => item.name).sort(),
+                total: result.total,
+                message: result.message,
+            };
+        };
+
+        expect(await search({ collectionSlug })).toEqual({
+            names: ['Test Shirt'],
+            total: 1,
+            message: undefined,
+        });
+        expect(await search({ collectionId })).toEqual({
+            names: ['Test Shirt'],
+            total: 1,
+            message: undefined,
+        });
+        // The word filter and the collection filter apply together: "product" matches "Test Product",
+        // which is not in the collection.
+        expect(await search({ query: 'product', collectionSlug })).toEqual({
+            names: [],
+            total: 0,
+            message: undefined,
+        });
+        expect(await search({ collectionSlug: 'no-such-collection' })).toEqual({
+            names: [],
+            total: 0,
+            message: 'No collection with slug no-such-collection.',
+        });
+        // A private collection is as good as unknown to a shopper, the same as in get_collection.
+        expect(await search({ collectionId: privateCollectionId })).toEqual({
+            names: [],
+            total: 0,
+            message: `No collection with id ${privateCollectionId}.`,
+        });
+
+        const both = await postMcp(
+            baseUrl(),
+            'shop',
+            callTool('search_products', { collectionId, collectionSlug }),
+        );
+        expect(both.body.result.isError).toBe(true);
+        expect(both.body.result.content[0].text).toContain('collectionId or collectionSlug');
+    });
+
+    /** Searches for the shirt and returns its list item's price range, in the channel the request names. */
+    async function shirtRange(headers: Record<string, string> = {}) {
+        const response = await postMcp(baseUrl(), 'shop', callTool('search_products', { query: 'shirt' }), {
+            headers,
+        });
+        expect(response.body.result.isError).toBeUndefined();
+        const [item] = response.body.result.structuredContent.items as Array<{
+            name: string;
+            priceRange: unknown;
+        }>;
+        expect(item.name).toBe('Test Shirt');
+        return item.priceRange;
+    }
+
+    function setShirtVariantsEnabled(variantIds: string[], enabled: boolean) {
+        return adminClient.query(
+            gql`
+                mutation SetShirtVariantsEnabled($input: [UpdateProductVariantInput!]!) {
+                    updateProductVariants(input: $input) {
+                        id
+                    }
+                }
+            `,
+            { input: variantIds.map(id => ({ id, enabled })) },
+        );
+    }
+
+    it('search_products leaves a disabled variant out of the price range and the collection filter', async () => {
+        const largeId = shirtVariants.filter(variant => variant.sku === 'SHIRT-L').map(variant => variant.id);
+        const allIds = shirtVariants.map(variant => variant.id);
+        try {
+            // Only the Large size costs 840.00, so without it the range stops at the Medium size.
+            await setShirtVariantsEnabled(largeId, false);
+            expect(await shirtRange()).toEqual({
+                ...SHIRT_SMALL_TO_MEDIUM,
+                currencyCode: defaultCurrencyCode,
+            });
+
+            // With no enabled variant left the shirt is still an enabled product, so a name search
+            // finds it, but it has no price and the collection has nothing a shopper can buy.
+            await setShirtVariantsEnabled(allIds, false);
+            expect(await shirtRange()).toBeNull();
+            const inCollection = await postMcp(
+                baseUrl(),
+                'shop',
+                callTool('search_products', { collectionSlug: shirtCollectionSlug }),
+            );
+            expect(inCollection.body.result.structuredContent).toMatchObject({ items: [], total: 0 });
+        } finally {
+            await setShirtVariantsEnabled(allIds, true);
+        }
+    });
+
+    it('search_products leaves a variant with no price in the channel out of the price range', async () => {
+        const [large] = shirtVariants.filter(variant => variant.sku === 'SHIRT-L');
+        const setLargePrice = (prices: Array<Record<string, unknown>>) =>
+            adminClient.query(
+                gql`
+                    mutation SetLargeShirtPrice($input: [UpdateProductVariantInput!]!) {
+                        updateProductVariants(input: $input) {
+                            id
+                        }
+                    }
+                `,
+                { input: [{ id: large.id, prices }] },
+            );
+        // Core still lists a variant whose price row for the channel is gone, at a price of 0. It
+        // must not drag the range down to 0.
+        await setLargePrice([{ currencyCode: defaultCurrencyCode, price: 0, delete: true }]);
+        try {
+            expect(await shirtRange()).toEqual({
+                ...SHIRT_SMALL_TO_MEDIUM,
+                currencyCode: defaultCurrencyCode,
+            });
+        } finally {
+            await setLargePrice([{ currencyCode: defaultCurrencyCode, price: 70000 }]);
+        }
+    });
+
+    it('search_products prices a product from the variants in the active channel only', async () => {
+        // A channel holding the Small and Medium shirt only; the Large one stays in the default
+        // channel alone. Created here rather than shared: the second channel is deleted by an
+        // earlier test.
+        const created = await adminClient.query(
+            gql`
+                mutation CreateRangeChannel($input: CreateChannelInput!) {
+                    createChannel(input: $input) {
+                        ... on Channel {
+                            id
+                            token
+                        }
+                        ... on ErrorResult {
+                            errorCode
+                            message
+                        }
+                    }
+                }
+            `,
+            {
+                input: {
+                    code: 'shop-tools-range-channel',
+                    token: 'shop-tools-range-channel-token',
+                    ...channelInputDefaults,
+                },
+            },
+        );
+        expect(created.createChannel.id).toBeDefined();
+        try {
+            await adminClient.query(
+                gql`
+                    mutation AssignSmallAndMediumShirt($input: AssignProductVariantsToChannelInput!) {
+                        assignProductVariantsToChannel(input: $input) {
+                            id
+                        }
+                    }
+                `,
+                {
+                    input: {
+                        channelId: created.createChannel.id,
+                        productVariantIds: shirtVariants
+                            .filter(variant => variant.sku !== 'SHIRT-L')
+                            .map(variant => variant.id),
+                        priceFactor: 1,
+                    },
+                },
+            );
+            expect(await shirtRange({ [CHANNEL_TOKEN_HEADER]: created.createChannel.token })).toEqual({
+                ...SHIRT_SMALL_TO_MEDIUM,
+                currencyCode: defaultCurrencyCode,
+            });
+        } finally {
+            await adminClient.query(
+                gql`
+                    mutation DeleteRangeChannel($id: ID!) {
+                        deleteChannel(id: $id) {
+                            result
+                        }
+                    }
+                `,
+                { id: created.createChannel.id },
+            );
+        }
     });
 
     it('returns the product variants a shopper needs to add anything to a cart', async () => {
@@ -1325,77 +1487,23 @@ describe('MCP built-in shop tools', () => {
         expect(await connection.getRepository(adminCtx, Order).count()).toBe(ordersBefore);
     });
 
-    it('refuses an anonymous caller with no cart for the missing cart, not for the missing login', async () => {
-        const ordersBefore = await connection.getRepository(adminCtx, Order).count();
-
-        const placed = await postMcp(
+    it('place_order reports the missing customer on an anonymous cart', async () => {
+        const { sessionToken } = await anonymousCart();
+        const refused = await postMcp(
             baseUrl(),
             'shop',
-            callTool('place_order', { paymentMethodCode: 'not-configured', confirm: true }, 1),
+            callTool('place_order', { paymentMethodCode: 'not-configured', confirm: true, sessionToken }, 1),
         );
 
-        // The same refusal the other cart tools give this caller. Asking for a login first would send
-        // a shopper with nothing to pay for through the OAuth flow, only to be refused afterwards.
-        expect(placed.body.result.isError).toBe(true);
-        expect(placed.body.result.content[0].text).toMatch(/There is no active cart/);
-        expect(placed.body.result.structuredContent.requiresAuthorization).toBeUndefined();
-        expect(await connection.getRepository(adminCtx, Order).count()).toBe(ordersBefore);
+        expect(refused.body.result.isError).toBe(true);
+        expect(refused.body.result.content[0].text).toBe(
+            'This cart has no customer yet. For a guest checkout call set_checkout_details ' +
+                'with customer { emailAddress, firstName, lastName } first, or sign in as a customer.',
+        );
+        expect(refused.body.result.structuredContent).toEqual({ sessionToken });
     });
 
-    // A stock MCP SDK client threads no headers, so the sessionToken payload field is the only
-    // thing keeping these calls on one cart. place_order is destructive AND anonymous-callable,
-    // so `confirm` and `sessionToken` must compose in a single call.
-    it('uses the SDK for cart then gates place_order before executing confirm:true with the same sessionToken', async () => {
-        const client = new Client({ name: 'shop-tools-sdk-e2e', version: '1.0.0' });
-        const transport = new StreamableHTTPClientTransport(new URL(`${baseUrl()}/mcp/shop`));
-        await client.connect(transport);
-        try {
-            const added = await client.callTool({
-                name: 'add_to_cart',
-                arguments: { variantId, quantity: 1 },
-            });
-            expect(added.isError).toBeUndefined();
-            expect((added.structuredContent as any).order.totalQuantity).toBe(1);
-            const sessionToken = (added.structuredContent as any).sessionToken as string;
-            expect(sessionToken).toBeTruthy();
-
-            const preview = await client.callTool({
-                name: 'place_order',
-                arguments: { paymentMethodCode: 'not-configured', sessionToken },
-            });
-            expect(preview.isError).toBeUndefined();
-            expect(preview.structuredContent).toMatchObject({
-                status: 'confirmation_required',
-                confirmed: false,
-            });
-
-            const confirmed = await client.callTool({
-                name: 'place_order',
-                arguments: { paymentMethodCode: 'not-configured', confirm: true, sessionToken },
-            });
-            expect(confirmed.isError).toBeUndefined();
-            expect(confirmed.structuredContent).toEqual({
-                requiresAuthorization: true,
-                message:
-                    'Placing an order requires an authorized customer. Complete the OAuth flow ' +
-                    'for this store and retry with the resulting access token.',
-                sessionToken,
-            });
-
-            const session = await anonymousSession(sessionToken);
-            expect(session.activeOrderId).toBeTruthy();
-            expect(String(session.activeOrderId)).toBe(
-                String((await orderByCode((added.structuredContent as any).order.code)).id),
-            );
-        } finally {
-            await client.close();
-        }
-    });
-
-    // The in-process path: a merchant's own plugin listing and running the same tools through
-    // McpToolExecutionService, with the shopper's RequestContext as identity.
     describe('in-process execution via McpToolExecutionService', () => {
-        /** A Shop API context for the seeded customer, as a shop resolver would receive. */
         async function customerShopContext(): Promise<RequestContext> {
             const customer = await connection.getRepository(adminCtx, Customer).findOneOrFail({
                 where: { emailAddress: customerEmail },
@@ -1404,7 +1512,7 @@ describe('MCP built-in shop tools', () => {
             return server.app.get(RequestContextService).create({ apiType: 'shop', user: customer.user });
         }
 
-        it('executes a tool as the signed-in customer and attributes the log to them', async () => {
+        it('executes a tool with DI and attributes the call to the signed-in customer', async () => {
             const executionService = server.app.get(McpToolExecutionService);
             const ctx = await customerShopContext();
 
@@ -1414,32 +1522,16 @@ describe('MCP built-in shop tools', () => {
 
             expect(result.isError).toBeUndefined();
             expect(result.structuredContent).toBeDefined();
-
-            // Other tests in this file call search_products too, so take the newest log row,
-            // which is the call this test just made.
             const log = await connection.getRepository(adminCtx, McpToolCallLog).findOneOrFail({
                 where: { toolName: 'search_products' },
                 order: { id: 'DESC' },
             });
-            // No grant exists on this path, so the attribution has to come off the context.
             expect(log.grantId).toBeNull();
             expect(log.actor).toBe(String(ctx.activeUserId));
             expect(log.actorType).toBe('customer');
         });
 
-        it('returns an isError result for arguments that do not match the schema', async () => {
-            const executionService = server.app.get(McpToolExecutionService);
-            const ctx = await customerShopContext();
-
-            const result = await executionService.executeTool(ctx, 'shop', 'search_products', {
-                query: 123,
-            });
-
-            expect(result.isError).toBe(true);
-            expect((result.content as Array<{ text: string }>)[0].text).toContain('query');
-        });
-
-        it('throws when the context apiType does not match the toolset', async () => {
+        it('refuses in-process execution with a mismatched RequestContext apiType', async () => {
             const executionService = server.app.get(McpToolExecutionService);
 
             await expect(
@@ -1449,57 +1541,6 @@ describe('MCP built-in shop tools', () => {
                     'context is for the "admin" API.',
             );
         });
-
-        // The discovery meta-tools are deliberately unreachable here: an in-process caller names
-        // the tool it wants, so the search/execute indirection buys it nothing.
-        it('returns an isError result for an unknown tool, including the discovery meta-tools', async () => {
-            const executionService = server.app.get(McpToolExecutionService);
-            const ctx = await customerShopContext();
-
-            for (const name of ['no_such_tool', 'execute_tool']) {
-                const result = await executionService.executeTool(ctx, 'shop', name, {});
-                expect(result.isError).toBe(true);
-                expect((result.content as Array<{ text: string }>)[0].text).toBe(`Unknown MCP tool: ${name}`);
-            }
-        });
-
-        it('lists callable tools with their input schemas, and drops a disabled one', async () => {
-            const executionService = server.app.get(McpToolExecutionService);
-            const registry = server.app.get(McpToolRegistryService);
-            const ctx = await customerShopContext();
-
-            const tools = await executionService.listTools(ctx, 'shop');
-            expect(tools.map(tool => tool.name).sort()).toEqual(shopToolNames);
-            const searchProducts = tools.find(tool => tool.name === 'search_products');
-            expect(searchProducts?.behavior).toBe('readonly');
-            expect(searchProducts?.inputSchema.properties?.query).toEqual({
-                type: 'string',
-                description: 'Text to look up in product names and slugs.',
-            });
-
-            await registry.setToolEnabled(adminCtx, 'shop', 'get_cart', false);
-            try {
-                const afterDisabling = await executionService.listTools(ctx, 'shop');
-                expect(afterDisabling.map(tool => tool.name)).not.toContain('get_cart');
-            } finally {
-                await registry.setToolEnabled(adminCtx, 'shop', 'get_cart', true);
-            }
-        });
-
-        it('gates a destructive tool behind confirm', async () => {
-            const executionService = server.app.get(McpToolExecutionService);
-            const ctx = await customerShopContext();
-
-            const result = await executionService.executeTool(ctx, 'shop', 'place_order', {
-                paymentMethodCode: 'not-configured',
-            });
-
-            expect(result.isError).toBeUndefined();
-            expect(result.structuredContent).toMatchObject({
-                status: 'confirmation_required',
-                confirmed: false,
-            });
-        });
     });
 
     // A signed-in customer paying for their cart, over the same HTTP transport a real client uses.
@@ -1507,10 +1548,6 @@ describe('MCP built-in shop tools', () => {
     // database transaction, which nothing outside the tool opens for it. Every other checkout tool
     // works without one, so nothing short of a test that actually pays shows that gap.
     describe('checkout', () => {
-        let checkoutAuthToken: string;
-        let pendingPaymentAuthToken: string;
-        let noShippingAuthToken: string;
-
         beforeAll(async () => {
             // A handler registered in the config is not usable on its own: an enabled PaymentMethod
             // record has to point at it before an order can be paid with it.
@@ -1577,46 +1614,18 @@ describe('MCP built-in shop tools', () => {
                 PENDING_PAYMENT_CUSTOMER_PASSWORD,
             );
             await createCustomer(NO_SHIPPING_CUSTOMER_EMAIL, 'NoShipping', NO_SHIPPING_CUSTOMER_PASSWORD);
-
-            // These customers need a session on the default channel. The shared `shopClient`
-            // session is pinned to the second channel, which has no shipping methods to check out
-            // with.
-            const loginOnDefaultChannel = async (emailAddress: string, password: string) => {
-                const client = new SimpleGraphQLClient(
-                    config,
-                    `http://localhost:${config.apiOptions.port}/${config.apiOptions.shopApiPath as string}`,
-                );
-                const login = await client.asUserWithCredentials(emailAddress, password);
-                if (!login || login.errorCode) {
-                    throw new Error(`Checkout customer login failed: ${JSON.stringify(login)}`);
-                }
-                return client.getAuthToken();
-            };
-            checkoutAuthToken = await loginOnDefaultChannel(customerEmail, 'test');
-            pendingPaymentAuthToken = await loginOnDefaultChannel(
-                PENDING_PAYMENT_CUSTOMER_EMAIL,
-                PENDING_PAYMENT_CUSTOMER_PASSWORD,
-            );
-            noShippingAuthToken = await loginOnDefaultChannel(
-                NO_SHIPPING_CUSTOMER_EMAIL,
-                NO_SHIPPING_CUSTOMER_PASSWORD,
-            );
         }, TEST_SETUP_TIMEOUT_MS);
 
         it('walks a cart through checkout and places the order', async () => {
-            const flow = await runShopAuthorizationCodeFlow({
-                baseUrl: baseUrl(),
-                issuer: ISSUER,
-                vendureAuthToken: checkoutAuthToken,
-            });
+            const accessToken = await shopAccessTokenFor(customerEmail, 'test');
             const call = (name: string, args: Record<string, unknown>, id: number) =>
-                postMcp(baseUrl(), 'shop', callTool(name, args, id), { token: flow.access_token });
+                postMcp(baseUrl(), 'shop', callTool(name, args, id), { token: accessToken });
 
             const added = await call('add_to_cart', { variantId, quantity: 1 }, 1);
             expect(added.body.result.isError).toBeUndefined();
 
             const address = await call(
-                'set_checkout_addresses',
+                'set_checkout_details',
                 {
                     shippingAddress: {
                         streetLine1: '451 Sansome Street',
@@ -1668,7 +1677,7 @@ describe('MCP built-in shop tools', () => {
             expect(orphanCoupon.body.result.content[0].text).toMatch(/There is no active cart/);
 
             const orphanAddress = await call(
-                'set_checkout_addresses',
+                'set_checkout_details',
                 {
                     shippingAddress: {
                         streetLine1: '451 Sansome Street',
@@ -1693,24 +1702,110 @@ describe('MCP built-in shop tools', () => {
             expect(await connection.getRepository(adminCtx, Order).count()).toBe(ordersAfterCheckout);
         });
 
+        // A guest checkout: no login anywhere in the sequence, the buyer is named in the same call
+        // that sets the address. This test lives here rather than with the other anonymous tests
+        // because the payment method it pays with is created in this block's `beforeAll`.
+        it('places an order for a guest who names themselves in set_checkout_details', async () => {
+            const { sessionToken } = await anonymousCart();
+            const call = (name: string, args: Record<string, unknown>, id: number) =>
+                postMcp(baseUrl(), 'shop', callTool(name, { ...args, sessionToken }, id));
+
+            const emptyCart = await call('get_cart', {}, 2);
+            expect(emptyCart.body.result.structuredContent.order.customer).toBeNull();
+            const addresses = await call(
+                'set_checkout_details',
+                {
+                    shippingAddress: {
+                        streetLine1: '451 Sansome Street',
+                        city: 'San Francisco',
+                        postalCode: '94111',
+                        countryCode: 'US',
+                    },
+                    customer: {
+                        emailAddress: GUEST_CHECKOUT_EMAIL,
+                        firstName: 'Jane',
+                        lastName: 'Doe',
+                    },
+                },
+                3,
+            );
+            expect(addresses.body.result.isError).toBeUndefined();
+            expect(addresses.body.result.structuredContent.order.customer).toMatchObject({
+                emailAddress: GUEST_CHECKOUT_EMAIL,
+                firstName: 'Jane',
+                lastName: 'Doe',
+            });
+            const cart = await call('get_cart', {}, 4);
+            expect(cart.body.result.structuredContent.order.customer).toMatchObject({
+                emailAddress: GUEST_CHECKOUT_EMAIL,
+            });
+
+            const quotes = await call('get_eligible_shipping_methods', {}, 5);
+            const methodId = quotes.body.result.structuredContent.methods[0]?.id;
+            expect(methodId).toBeDefined();
+            const chosen = await call('set_shipping_method', { methodId }, 6);
+            expect(chosen.body.result.isError).toBeUndefined();
+
+            const placed = await call(
+                'place_order',
+                { paymentMethodCode: PAYMENT_METHOD_CODE, confirm: true },
+                7,
+            );
+
+            expect(placed.body.result.isError).toBeUndefined();
+            expect(placed.body.result.structuredContent.status).toBe('placed');
+            const placedOrder = placed.body.result.structuredContent.order;
+            expect(placedOrder.customer.emailAddress).toBe(GUEST_CHECKOUT_EMAIL);
+
+            const stored = await connection.getRepository(adminCtx, Order).findOneOrFail({
+                where: { code: placedOrder.code as string },
+                relations: ['customer', 'customer.user'],
+            });
+            expect(stored.orderPlacedAt).toBeTruthy();
+            expect(stored.customer?.emailAddress).toBe(GUEST_CHECKOUT_EMAIL);
+            // A guest gets a Customer record but no User, so there is nothing to log in with.
+            expect(stored.customer?.user).toBeNull();
+
+            // The storefront's own checkout saves a new customer's checkout address to their
+            // address book, so this one does too.
+            const buyer = await connection.getRepository(adminCtx, Customer).findOneOrFail({
+                where: { id: stored.customer?.id },
+                relations: ['addresses'],
+            });
+            expect(buyer.addresses).toHaveLength(1);
+            expect(buyer.addresses[0]).toMatchObject({
+                streetLine1: '451 Sansome Street',
+                city: 'San Francisco',
+                postalCode: '94111',
+                defaultShippingAddress: true,
+                defaultBillingAddress: true,
+            });
+
+            // The session let go of the order it just paid for, so the next add_to_cart starts a
+            // fresh cart rather than reopening the placed one.
+            const restarted = await call('add_to_cart', { variantId, quantity: 1 }, 8);
+            expect(restarted.body.result.isError).toBeUndefined();
+            expect(restarted.body.result.structuredContent.order.code).not.toBe(placedOrder.code);
+            expect(restarted.body.result.structuredContent.order.totalQuantity).toBe(1);
+        });
+
         // This test uses the customer created for it on purpose. It leaves an order sitting in
         // `ArrangingPayment`, and `OrderService.findByCustomerId` only leaves out `Draft` orders, so
         // an unplaced order on the shared customer would show up in the `list_my_orders` test below
         // and break its expectation that the first listed order has an `orderPlacedAt`.
         it('answers awaiting_payment when the payment leaves the order unplaced', async () => {
-            const flow = await runShopAuthorizationCodeFlow({
-                baseUrl: baseUrl(),
-                issuer: ISSUER,
-                vendureAuthToken: pendingPaymentAuthToken,
-            });
+            const accessToken = await shopAccessTokenFor(
+                PENDING_PAYMENT_CUSTOMER_EMAIL,
+                PENDING_PAYMENT_CUSTOMER_PASSWORD,
+            );
             const call = (name: string, args: Record<string, unknown>, id: number) =>
-                postMcp(baseUrl(), 'shop', callTool(name, args, id), { token: flow.access_token });
+                postMcp(baseUrl(), 'shop', callTool(name, args, id), { token: accessToken });
 
             const added = await call('add_to_cart', { variantId, quantity: 1 }, 1);
             expect(added.body.result.isError).toBeUndefined();
 
             const address = await call(
-                'set_checkout_addresses',
+                'set_checkout_details',
                 {
                     shippingAddress: {
                         streetLine1: '451 Sansome Street',
@@ -1762,6 +1857,8 @@ describe('MCP built-in shop tools', () => {
             expect(cartOrder.payments[0]).toMatchObject({
                 state: 'Settled',
                 publicMetadata: { redirectUrl: 'https://pay.example.com/e2e-pending-1' },
+                // The cart's payments carry the same keys as every other order's, refunds included.
+                refunds: [],
             });
 
             const stored = await orderByCode(answer.order.code);
@@ -1773,13 +1870,12 @@ describe('MCP built-in shop tools', () => {
         // starts a session with no cart of its own, and core then falls back to the customer's
         // active order, which is that one.
         it('refuses coupon and address changes once the order is waiting for payment', async () => {
-            const flow = await runShopAuthorizationCodeFlow({
-                baseUrl: baseUrl(),
-                issuer: ISSUER,
-                vendureAuthToken: pendingPaymentAuthToken,
-            });
+            const accessToken = await shopAccessTokenFor(
+                PENDING_PAYMENT_CUSTOMER_EMAIL,
+                PENDING_PAYMENT_CUSTOMER_PASSWORD,
+            );
             const call = (name: string, args: Record<string, unknown>, id: number) =>
-                postMcp(baseUrl(), 'shop', callTool(name, args, id), { token: flow.access_token });
+                postMcp(baseUrl(), 'shop', callTool(name, args, id), { token: accessToken });
 
             const cart = await call('get_cart', {}, 1);
             expect(cart.body.result.isError).toBeUndefined();
@@ -1788,7 +1884,7 @@ describe('MCP built-in shop tools', () => {
 
             const applied = await call('apply_coupon_code', { code: 'ANY-CODE' }, 2);
             const removed = await call('remove_coupon_code', { code: 'ANY-CODE' }, 3);
-            const address = await call('set_checkout_addresses', { shippingAddress: UK_ADDRESS }, 4);
+            const address = await call('set_checkout_details', { shippingAddress: UK_ADDRESS }, 4);
 
             const cartClosedMessage = 'Order contents may only be modified when in the "AddingItems" state';
             for (const refusal of [applied, removed, address]) {
@@ -1812,18 +1908,17 @@ describe('MCP built-in shop tools', () => {
         // unplaced order on the shared customer would show up in the `list_my_orders` test further
         // down and break its expectation that the first listed order has an `orderPlacedAt`.
         it('place_order without a shipping method answers a translated refusal', async () => {
-            const flow = await runShopAuthorizationCodeFlow({
-                baseUrl: baseUrl(),
-                issuer: ISSUER,
-                vendureAuthToken: noShippingAuthToken,
-            });
+            const accessToken = await shopAccessTokenFor(
+                NO_SHIPPING_CUSTOMER_EMAIL,
+                NO_SHIPPING_CUSTOMER_PASSWORD,
+            );
             const call = (name: string, args: Record<string, unknown>, id: number) =>
-                postMcp(baseUrl(), 'shop', callTool(name, args, id), { token: flow.access_token });
+                postMcp(baseUrl(), 'shop', callTool(name, args, id), { token: accessToken });
 
             const added = await call('add_to_cart', { variantId, quantity: 1 }, 1);
             expect(added.body.result.isError).toBeUndefined();
 
-            const address = await call('set_checkout_addresses', { shippingAddress: UK_ADDRESS }, 2);
+            const address = await call('set_checkout_details', { shippingAddress: UK_ADDRESS }, 2);
             expect(address.body.result.isError).toBeUndefined();
 
             const placed = await call(
@@ -1891,22 +1986,9 @@ describe('MCP built-in shop tools', () => {
             );
             expect(promotion.createPromotion.couponCode).toBe(COUPON_CODE);
 
-            // A session on the default channel. The shared `shopClient` session is pinned to the
-            // second channel, which the channel-deletion test above has already removed.
-            const readsClient = new SimpleGraphQLClient(
-                config,
-                `http://localhost:${config.apiOptions.port}/${config.apiOptions.shopApiPath as string}`,
-            );
-            const login = await readsClient.asUserWithCredentials(customerEmail, 'test');
-            if (!login || login.errorCode) {
-                throw new Error(`Customer login failed: ${JSON.stringify(login)}`);
-            }
-            const flow = await runShopAuthorizationCodeFlow({
-                baseUrl: baseUrl(),
-                issuer: ISSUER,
-                vendureAuthToken: readsClient.getAuthToken(),
-            });
-            readsAccessToken = flow.access_token;
+            // A session on the default channel, because the second channel the shared `shopClient`
+            // is pinned to has already been removed by the channel-deletion test above.
+            readsAccessToken = await shopAccessTokenFor(customerEmail, 'test');
 
             // What this customer's orders are, read from the admin side. Taking the expected set
             // from here rather than from the checkout test above means this does not depend on
@@ -2014,7 +2096,7 @@ describe('MCP built-in shop tools', () => {
             expect(reread.body.result.structuredContent.order.lines).toEqual([]);
         });
 
-        it('set_checkout_addresses with only billingAddress writes it, leaving the shipping address alone', async () => {
+        it('set_checkout_details with only billingAddress writes it, leaving the shipping address alone', async () => {
             const { sessionToken } = await anonymousCart();
             const call = (name: string, args: Record<string, unknown>, id: number) =>
                 postMcp(baseUrl(), 'shop', callTool(name, args, id), {
@@ -2022,7 +2104,7 @@ describe('MCP built-in shop tools', () => {
                 });
 
             const shipping = await call(
-                'set_checkout_addresses',
+                'set_checkout_details',
                 {
                     shippingAddress: {
                         streetLine1: '1 Shipping Way',
@@ -2036,7 +2118,7 @@ describe('MCP built-in shop tools', () => {
             expect(shipping.body.result.isError).toBeUndefined();
 
             const billing = await call(
-                'set_checkout_addresses',
+                'set_checkout_details',
                 {
                     billingAddress: {
                         fullName: 'Billing Person',
@@ -2064,29 +2146,7 @@ describe('MCP built-in shop tools', () => {
             expect(order.shippingAddress.streetLine1).toBe('1 Shipping Way');
         });
 
-        it('set_checkout_addresses writes both addresses in one call', async () => {
-            const { sessionToken, order: cart } = await anonymousCart();
-            const call = (name: string, args: Record<string, unknown>, id: number) =>
-                postMcp(baseUrl(), 'shop', callTool(name, args, id), {
-                    headers: { [AUTH_TOKEN_HEADER]: sessionToken },
-                });
-
-            const both = await call(
-                'set_checkout_addresses',
-                {
-                    shippingAddress: { streetLine1: '1 Shipping Way', city: 'Portland', countryCode: 'US' },
-                    billingAddress: { streetLine1: '2 Billing Road', city: 'Seattle', countryCode: 'US' },
-                },
-                2,
-            );
-
-            expect(both.body.result.isError).toBeUndefined();
-            const stored = await orderByCode(cart.code);
-            expect(stored.shippingAddress.streetLine1).toBe('1 Shipping Way');
-            expect(stored.billingAddress.streetLine1).toBe('2 Billing Road');
-        });
-
-        it('set_checkout_addresses copies the shipping address into billing on billingSameAsShipping', async () => {
+        it('set_checkout_details copies the shipping address into billing on billingSameAsShipping', async () => {
             const { sessionToken, order: cart } = await anonymousCart();
             const call = (name: string, args: Record<string, unknown>, id: number) =>
                 postMcp(baseUrl(), 'shop', callTool(name, args, id), {
@@ -2095,12 +2155,12 @@ describe('MCP built-in shop tools', () => {
 
             // A fresh cart has no shipping address to copy, so the flag alone is refused and nothing
             // is written.
-            const nothingToCopy = await call('set_checkout_addresses', { billingSameAsShipping: true }, 2);
+            const nothingToCopy = await call('set_checkout_details', { billingSameAsShipping: true }, 2);
             expect(nothingToCopy.body.result.isError).toBe(true);
             expect(nothingToCopy.body.result.content[0].text).toMatch(/needs a shipping address/);
 
             const together = await call(
-                'set_checkout_addresses',
+                'set_checkout_details',
                 {
                     shippingAddress: {
                         fullName: 'Same Person',
@@ -2127,28 +2187,28 @@ describe('MCP built-in shop tools', () => {
 
             // With a shipping address already on the cart, the flag alone copies that one.
             const later = await call(
-                'set_checkout_addresses',
+                'set_checkout_details',
                 { shippingAddress: { streetLine1: '4 Later Lane', city: 'Boise', countryCode: 'US' } },
                 4,
             );
             expect(later.body.result.isError).toBeUndefined();
-            const copied = await call('set_checkout_addresses', { billingSameAsShipping: true }, 5);
+            const copied = await call('set_checkout_details', { billingSameAsShipping: true }, 5);
             expect(copied.body.result.isError).toBeUndefined();
             stored = await orderByCode(cart.code);
             expect(stored.billingAddress.streetLine1).toBe('4 Later Lane');
         });
 
-        it('set_checkout_addresses refuses an empty call and a billing address paired with the copy flag', async () => {
+        it('set_checkout_details refuses an empty call and a billing address paired with the copy flag', async () => {
             const { sessionToken } = await anonymousCart();
             const call = (args: Record<string, unknown>, id: number) =>
-                postMcp(baseUrl(), 'shop', callTool('set_checkout_addresses', args, id), {
+                postMcp(baseUrl(), 'shop', callTool('set_checkout_details', args, id), {
                     headers: { [AUTH_TOKEN_HEADER]: sessionToken },
                 });
 
             const empty = await call({}, 2);
             expect(empty.body.result.isError).toBe(true);
             expect(empty.body.result.content[0].text).toMatch(
-                /Pass shippingAddress, billingAddress, or billingSameAsShipping/,
+                /Pass shippingAddress, billingAddress, billingSameAsShipping: true, or customer/,
             );
 
             const conflicting = await call(
@@ -2162,36 +2222,71 @@ describe('MCP built-in shop tools', () => {
             expect(conflicting.body.result.content[0].text).toMatch(/cannot both be given/);
         });
 
-        it('set_checkout_addresses writes neither address when the billing address is rejected', async () => {
-            const { sessionToken, order: cart } = await anonymousCart();
-
-            // 'ZZ' is not a country, so core throws while setting the billing address. That throw
-            // has to roll back the shipping address written a moment earlier in the same call.
-            const rejected = await postMcp(
+        it('set_checkout_details refuses a customer from a caller who is already signed in', async () => {
+            const refused = await postMcp(
                 baseUrl(),
                 'shop',
                 callTool(
-                    'set_checkout_addresses',
+                    'set_checkout_details',
+                    {
+                        shippingAddress: { streetLine1: '1 Shipping Way', countryCode: 'US' },
+                        customer: {
+                            emailAddress: 'someone.else@e2e.example.com',
+                            firstName: 'Someone',
+                            lastName: 'Else',
+                        },
+                    },
+                    2,
+                ),
+                { token: readsAccessToken },
+            );
+
+            // The order already belongs to the customer behind the grant. Taking a second identity
+            // here would either overwrite that customer's details or move the order to someone else.
+            expect(refused.body.result.isError).toBe(true);
+            expect(refused.body.result.content[0].text).toBe(
+                'This call is signed in as a customer; omit customer.',
+            );
+        });
+
+        it('set_checkout_details refuses a guest whose email already has an account, and writes no address', async () => {
+            const { sessionToken, order: cart } = await anonymousCart();
+
+            const refused = await postMcp(
+                baseUrl(),
+                'shop',
+                callTool(
+                    'set_checkout_details',
                     {
                         shippingAddress: {
                             streetLine1: '1 Shipping Way',
                             city: 'Portland',
                             countryCode: 'US',
                         },
-                        billingAddress: { streetLine1: '2 Billing Road', countryCode: 'ZZ' },
+                        customer: {
+                            emailAddress: customerEmail,
+                            firstName: 'Someone',
+                            lastName: 'Else',
+                        },
                     },
                     2,
                 ),
                 { headers: { [AUTH_TOKEN_HEADER]: sessionToken } },
             );
 
-            expect(rejected.body.result.isError).toBe(true);
-            const stored = await orderByCode(cart.code);
+            expect(refused.body.result.isError).toBe(true);
+            expect(refused.body.result.structuredContent.errorCode).toBe('EMAIL_ADDRESS_CONFLICT_ERROR');
+            // A returned error result leaves the transaction committed as it stands, so the buyer
+            // has to be named before any address is written. Nothing was.
+            const stored = await connection.getRepository(adminCtx, Order).findOneOrFail({
+                where: { code: cart.code as string },
+                relations: ['customer'],
+            });
             expect(stored.shippingAddress?.streetLine1).toBeUndefined();
-            expect(stored.billingAddress?.streetLine1).toBeUndefined();
+            expect(stored.customer).toBeNull();
         });
 
-        it('set_checkout_addresses reports shippingMethodChanged when the new address makes the store swap the method', async () => {
+        it('set_checkout_details reports shippingMethodChanged when the new address makes the store swap the method', async () => {
             const { sessionToken } = await anonymousCart();
             const call = (name: string, args: Record<string, unknown>, id: number) =>
                 postMcp(baseUrl(), 'shop', callTool(name, args, id), {
@@ -2204,7 +2299,7 @@ describe('MCP built-in shop tools', () => {
                 countryCode: 'US',
             };
 
-            const first = await call('set_checkout_addresses', { shippingAddress: usAddress }, 2);
+            const first = await call('set_checkout_details', { shippingAddress: usAddress }, 2);
             expect(first.body.result.isError).toBeUndefined();
             expect(first.body.result.structuredContent.shippingMethodChanged).toBeUndefined();
 
@@ -2218,7 +2313,7 @@ describe('MCP built-in shop tools', () => {
 
             // Another US address keeps the method, and the response says nothing about a removal.
             const moved = await call(
-                'set_checkout_addresses',
+                'set_checkout_details',
                 { shippingAddress: { ...usAddress, streetLine1: '1 Market Street' } },
                 5,
             );
@@ -2231,7 +2326,7 @@ describe('MCP built-in shop tools', () => {
             // A UK address makes the US-only method ineligible. The default channel has other
             // methods that ship anywhere, so core swaps the shipping line to the cheapest of them
             // while it reprices the cart. The tool has to say so rather than answer with a bare order.
-            const abroad = await call('set_checkout_addresses', { shippingAddress: UK_ADDRESS }, 6);
+            const abroad = await call('set_checkout_details', { shippingAddress: UK_ADDRESS }, 6);
             expect(abroad.body.result.isError).toBeUndefined();
             expect(abroad.body.result.structuredContent.shippingMethodChanged).toBe(true);
             expect(abroad.body.result.structuredContent.message).toMatch(/replaced it with the cheapest/);
@@ -2240,7 +2335,7 @@ describe('MCP built-in shop tools', () => {
             expect(String(swappedLines[0].shippingMethodId)).not.toBe(String(usOnly.id));
         });
 
-        it('set_checkout_addresses reports shippingMethodChanged when no method is left for the new address', async () => {
+        it('set_checkout_details reports shippingMethodChanged when no method is left for the new address', async () => {
             // A channel whose only shipping method is the US-only one, so there is nothing to swap
             // to and core drops the shipping line instead. It is created here rather than shared:
             // the second channel is deleted by an earlier test.
@@ -2314,7 +2409,7 @@ describe('MCP built-in shop tools', () => {
                 });
 
             const first = await call(
-                'set_checkout_addresses',
+                'set_checkout_details',
                 {
                     shippingAddress: {
                         streetLine1: '451 Sansome Street',
@@ -2331,7 +2426,7 @@ describe('MCP built-in shop tools', () => {
             const chosen = await call('set_shipping_method', { methodId: methods[0].id }, 4);
             expect(chosen.body.result.isError).toBeUndefined();
 
-            const abroad = await call('set_checkout_addresses', { shippingAddress: UK_ADDRESS }, 5);
+            const abroad = await call('set_checkout_details', { shippingAddress: UK_ADDRESS }, 5);
             expect(abroad.body.result.isError).toBeUndefined();
             expect(abroad.body.result.structuredContent.shippingMethodChanged).toBe(true);
             expect(abroad.body.result.structuredContent.message).toMatch(/no shipping method/);
@@ -2546,6 +2641,21 @@ describe('MCP built-in shop tools', () => {
             expect(customer.emailAddress).toBe(customerEmail);
         });
 
+        it("get_my_account lists the customer's saved addresses", async () => {
+            const response = await postMcp(baseUrl(), 'shop', callTool('get_my_account', {}, 1), {
+                token: readsAccessToken,
+            });
+
+            expect(response.body.result.isError).toBeUndefined();
+            const addresses = response.body.result.structuredContent.customer.addresses;
+            expect(addresses).toHaveLength(1);
+            expect(addresses[0]).toMatchObject({
+                id: expect.anything(),
+                streetLine1: expect.any(String),
+                countryCode: expect.any(String),
+            });
+        });
+
         it('get_my_account is not callable without a grant', async () => {
             // Permission.Authenticated, so an anonymous session must not see it at all: it is
             // filtered out of the exposed set, and the SDK then rejects the unknown name.
@@ -2567,7 +2677,12 @@ describe('MCP built-in shop tools', () => {
 
             expect(response.body.result.isError).toBeUndefined();
             const listed = response.body.result.structuredContent as {
-                items: Array<{ code: string; orderPlacedAt: string | null; shippingLines?: unknown }>;
+                items: Array<{
+                    code: string;
+                    orderPlacedAt: string | null;
+                    shippingLines?: unknown;
+                    lines: Array<{ productVariant: { id: ID; name: string } | null }>;
+                }>;
                 total: number;
                 hasMore: boolean;
             };
@@ -2580,10 +2695,9 @@ describe('MCP built-in shop tools', () => {
             expect(listed.total).toBe(customerOrderCodes.length);
             expect(listed.hasMore).toBe(false);
             expect(listed.items[0].orderPlacedAt).toBeTruthy();
-            // Every order result carries the same keys, whichever tool produced it.
-            expect(Array.isArray(listed.items[0].shippingLines)).toBe(true);
-            expect(listed.items[0]).toHaveProperty('couponCodes');
-            expect(listed.items[0]).toHaveProperty('discounts');
+            // Each line names its product variant, so "what did I order?" can be answered from the list.
+            expect(String(listed.items[0].lines[0].productVariant?.id)).toBe(String(variantId));
+            expect(listed.items[0].lines[0].productVariant?.name).toBe(variantName);
         });
 
         it('list_collections returns the public collections and hides the private one', async () => {

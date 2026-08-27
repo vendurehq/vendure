@@ -29,6 +29,7 @@ const TOOL_OPERATION_MAP: Record<string, ResolverOperation> = {
     cancel_order: { resolver: OrderResolver, method: 'cancelOrder' },
     refund_order: { resolver: OrderResolver, method: 'refundOrder' },
     add_note_to_order: { resolver: OrderResolver, method: 'addNoteToOrder' },
+    create_fulfillment: { resolver: OrderResolver, method: 'addFulfillmentToOrder' },
     list_customers: { resolver: CustomerResolver, method: 'customers' },
     get_customer: { resolver: CustomerResolver, method: 'customer' },
     create_customer: { resolver: CustomerResolver, method: 'createCustomer' },

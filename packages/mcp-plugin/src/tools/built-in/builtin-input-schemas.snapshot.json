@@ -174,6 +174,74 @@
     ],
     "additionalProperties": false
   },
+  "admin:create_fulfillment": {
+    "type": "object",
+    "properties": {
+      "orderId": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "description": "Order ID."
+      },
+      "method": {
+        "type": "string",
+        "description": "Shipping method or carrier name to record on the fulfillment."
+      },
+      "trackingCode": {
+        "type": "string",
+        "description": "The carrier's tracking code for this shipment."
+      },
+      "lines": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "orderLineId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "description": "Order line ID, as returned by get_order."
+            },
+            "quantity": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2147483647,
+              "description": "How many of that line to fulfill, a whole number of at least 1."
+            }
+          },
+          "required": [
+            "orderLineId",
+            "quantity"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Lines to fulfill. Omit to fulfill every line in the quantity still unfulfilled."
+      },
+      "state": {
+        "type": "string",
+        "enum": [
+          "Shipped",
+          "Delivered"
+        ],
+        "description": "Move the new fulfillment straight to this state. Shipped makes the order Shipped or PartiallyShipped; Delivered makes it Delivered or PartiallyDelivered."
+      }
+    },
+    "required": [
+      "orderId",
+      "method"
+    ],
+    "additionalProperties": false
+  },
   "admin:create_product": {
     "type": "object",
     "properties": {
@@ -436,12 +504,13 @@
             "type": "number"
           }
         ],
-        "description": "Order ID."
+        "description": "Order ID. Pass this or code, not both."
+      },
+      "code": {
+        "type": "string",
+        "description": "Order code, used when ID is omitted."
       }
     },
-    "required": [
-      "id"
-    ],
     "additionalProperties": false
   },
   "admin:get_product": {
@@ -1076,7 +1145,7 @@
       },
       "state": {
         "type": "string",
-        "description": "Target order state, e.g. \"Shipped\" or \"Cancelled\"."
+        "description": "Target order state, e.g. \"PaymentSettled\" or \"AddingItems\"."
       }
     },
     "required": [
@@ -1564,6 +1633,21 @@
         "type": "string",
         "description": "Text to look up in product names and slugs."
       },
+      "collectionId": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "description": "Only products in this collection. Take the id from list_collections or get_collection."
+      },
+      "collectionSlug": {
+        "type": "string",
+        "description": "Only products in this collection. Take the slug from list_collections or get_collection."
+      },
       "limit": {
         "type": "integer",
         "minimum": 1,
@@ -1579,7 +1663,7 @@
     },
     "additionalProperties": false
   },
-  "shop:set_checkout_addresses": {
+  "shop:set_checkout_details": {
     "type": "object",
     "properties": {
       "shippingAddress": {
@@ -1685,6 +1769,31 @@
       "billingSameAsShipping": {
         "type": "boolean",
         "description": "Use the shipping address as the billing address too. Copies shippingAddress from this call, or the shipping address already on the cart. Cannot be combined with billingAddress."
+      },
+      "customer": {
+        "type": "object",
+        "properties": {
+          "emailAddress": {
+            "type": "string",
+            "description": "Buyer email address.",
+            "format": "email"
+          },
+          "firstName": {
+            "type": "string",
+            "description": "Buyer first name."
+          },
+          "lastName": {
+            "type": "string",
+            "description": "Buyer last name."
+          }
+        },
+        "required": [
+          "emailAddress",
+          "firstName",
+          "lastName"
+        ],
+        "additionalProperties": false,
+        "description": "Who is buying, for a guest checkout. Not needed when the caller is a signed-in customer."
       }
     },
     "additionalProperties": false

@@ -1,9 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { OrderService, Permission, RequestContext } from '@vendure/core';
+import { HistoryEntryType } from '@vendure/common/lib/generated-types';
+import { EntityNotFoundError, HistoryService, OrderService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { idSchema } from '../id-schema';
+import { ORDER_DETAIL_RELATIONS } from '../list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 
 const addNoteToOrderInput = z.strictObject({
@@ -37,18 +39,20 @@ type AddNoteToOrderToolInput = z.infer<typeof addNoteToOrderInput>;
 export class AddNoteToOrderTool implements McpToolHandler<AddNoteToOrderToolInput> {
     constructor(
         private orderService: OrderService,
+        private historyService: HistoryService,
         private serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: AddNoteToOrderToolInput) {
-        return {
-            order: this.serializer.order(
-                await this.orderService.addNoteToOrder(ctx, {
-                    id: input.id,
-                    note: input.note,
-                    isPublic: input.isPublic ?? false,
-                }),
-            ),
-        };
+        const order = await this.orderService.findOne(ctx, input.id, ORDER_DETAIL_RELATIONS);
+        if (!order) {
+            throw new EntityNotFoundError('Order', input.id);
+        }
+
+        const note = await this.historyService.createHistoryEntryForOrder(
+            { ctx, orderId: order.id, type: HistoryEntryType.ORDER_NOTE, data: { note: input.note } },
+            input.isPublic ?? false,
+        );
+        return { order: this.serializer.order(order), note: this.serializer.orderNote(note) };
     }
 }

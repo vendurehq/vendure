@@ -4,11 +4,17 @@ import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { idSchema } from '../id-schema';
+import { ORDER_DETAIL_RELATIONS } from '../list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 
-const getOrderInput = z.strictObject({
-    id: idSchema.describe('Order ID.'),
-});
+const getOrderInput = z
+    .strictObject({
+        id: idSchema.describe('Order ID. Pass this or code, not both.').optional(),
+        code: z.string().describe('Order code, used when ID is omitted.').optional(),
+    })
+    .refine(input => (input.id != null) !== (input.code != null), {
+        message: 'Pass exactly one of id or code.',
+    });
 
 type GetOrderInput = z.infer<typeof getOrderInput>;
 
@@ -17,12 +23,12 @@ type GetOrderInput = z.infer<typeof getOrderInput>;
 @McpTool({
     name: 'get_order',
     toolset: 'admin',
-    description: 'Get an order by id.',
+    description: 'Get an order by ID or code, with its lines, customer and payments.',
     keywords: [
         'look up an order in the back office',
         'pull up order details for support',
         'inspect a single order',
-        'open an order record by id',
+        'open an order record by id or code',
         'view an order as staff',
         'fetch order info for operations',
     ],
@@ -38,15 +44,14 @@ export class AdminGetOrderTool implements McpToolHandler<GetOrderInput> {
     ) {}
 
     async execute(ctx: RequestContext, input: GetOrderInput) {
-        return {
-            order: this.serializer.order(
-                await this.orderService.findOne(ctx, input.id, [
-                    'lines',
-                    'shippingLines',
-                    'customer',
-                    'payments',
-                ]),
-            ),
-        };
+        const lookup = input.id != null ? `id ${String(input.id)}` : `code ${String(input.code)}`;
+        const order =
+            input.id != null
+                ? await this.orderService.findOne(ctx, input.id, ORDER_DETAIL_RELATIONS)
+                : await this.orderService.findOneByCode(ctx, input.code as string, ORDER_DETAIL_RELATIONS);
+        if (order) {
+            return { order: this.serializer.order(order) };
+        }
+        return { order: null, message: `No order with ${lookup}` };
     }
 }

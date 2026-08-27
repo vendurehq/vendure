@@ -8,11 +8,13 @@ import {
     ID,
     mergeConfig,
     Order,
+    OrderService,
     Payment,
     Product,
     ProductVariant,
     RequestContext,
     RequestContextService,
+    Sale,
     StockAdjustment,
     StockLevel,
     TransactionalConnection,
@@ -57,6 +59,14 @@ const PIXEL_PNG = Buffer.from(
 /** Bytes that no image format claims, used by the two file-type rejection fixtures. */
 const NOT_AN_IMAGE = Buffer.from('this is not an image');
 
+/** A path that answers with a 302 to the pixel, so a test can show the redirect is not followed. */
+const REDIRECT_PATH = '/redirect-to-pixel';
+
+/** The fixed text `upload_asset` answers with when the URL does not hand back the file itself. */
+const UNFETCHABLE_URL_MESSAGE =
+    'The URL could not be fetched as a file. It must answer HTTP 200 with the file itself; ' +
+    'redirects are not followed.';
+
 /**
  * A loopback HTTP server standing in for the public web address `upload_asset` fetches from, so the
  * test needs no network access. Counts requests, so a test can prove the bytes were really fetched.
@@ -70,6 +80,11 @@ async function startAssetFileServer(): Promise<{
     const server = http.createServer((req, res) => {
         const path = (req.url ?? '').split('?')[0];
         counts.set(path, (counts.get(path) ?? 0) + 1);
+        if (path === REDIRECT_PATH) {
+            res.statusCode = 302;
+            res.setHeader('location', '/pixel.png');
+            return res.end();
+        }
         // Plain text under a .txt name, so the store's permittedFileTypes refuses it.
         if (path === '/notes.txt') {
             res.setHeader('content-type', 'text/plain');
@@ -209,6 +224,10 @@ describe('MCP built-in admin tools (direct mode)', () => {
     let productId: ID;
     let variantId: ID;
     let variantGraphqlId: string;
+    let variantName: string;
+    let variantSku: string;
+    let secondVariantGraphqlId: string;
+    let defaultCurrencyCode: string;
     let stockLocationId: ID;
     let stockLocationGraphqlId: string;
     let secondChannelToken: string;
@@ -242,9 +261,11 @@ describe('MCP built-in admin tools (direct mode)', () => {
                         id
                     }
                 }
-                productVariants(options: { take: 1 }) {
+                productVariants(options: { take: 2 }) {
                     items {
                         id
+                        name
+                        sku
                     }
                 }
                 stockLocations {
@@ -263,6 +284,10 @@ describe('MCP built-in admin tools (direct mode)', () => {
         const zoneId = fixture.zones.items[0]?.id;
         productGraphqlId = fixture.products.items[0]?.id;
         variantGraphqlId = fixture.productVariants.items[0]?.id;
+        variantName = fixture.productVariants.items[0]?.name;
+        variantSku = fixture.productVariants.items[0]?.sku;
+        secondVariantGraphqlId = fixture.productVariants.items[1]?.id;
+        defaultCurrencyCode = fixture.activeChannel.defaultCurrencyCode;
         stockLocationGraphqlId = fixture.stockLocations.items[0]?.id;
         seededCustomerEmail = fixture.customers.items[0]?.emailAddress;
         if (
@@ -270,6 +295,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
             !zoneId ||
             !seededCustomerEmail ||
             !variantGraphqlId ||
+            !secondVariantGraphqlId ||
             !stockLocationGraphqlId
         ) {
             throw new Error(`Missing seeded fixtures: ${JSON.stringify(fixture)}`);
@@ -368,19 +394,66 @@ describe('MCP built-in admin tools (direct mode)', () => {
         return result.order.state;
     }
 
+    /** An order's lines with database IDs, which is what the fulfillment tool takes and answers with. */
+    async function orderLines(graphqlId: string): Promise<Array<{ id: ID; quantity: number }>> {
+        const idStrategy = server.app.get(ConfigService).entityOptions.entityIdStrategy;
+        const result = await adminClient.query(
+            gql`
+                query OrderLinesForFulfillment($id: ID!) {
+                    order(id: $id) {
+                        id
+                        lines {
+                            id
+                            quantity
+                        }
+                    }
+                }
+            `,
+            { id: graphqlId },
+        );
+        return result.order.lines.map((line: { id: string; quantity: number }) => ({
+            id: idStrategy.decodeId(line.id),
+            quantity: line.quantity,
+        }));
+    }
+
+    /** An order's fulfillments and their states, read straight from the Admin API. */
+    async function orderFulfillments(graphqlId: string): Promise<Array<{ id: string; state: string }>> {
+        const result = await adminClient.query(
+            gql`
+                query OrderFulfillmentsForTest($id: ID!) {
+                    order(id: $id) {
+                        id
+                        fulfillments {
+                            id
+                            state
+                        }
+                    }
+                }
+            `,
+            { id: graphqlId },
+        );
+        return result.order.fulfillments ?? [];
+    }
+
     /**
      * Runs a real shop checkout up to `ArrangingPayment`, then records a fully-settled manual
      * payment against it via the admin `addManualPaymentToOrder` mutation. That mutation drives
      * the real payment state machine straight to `Settled` without needing a configured
      * `PaymentMethodHandler`, so the resulting order and payment are genuine, not hand-inserted rows.
      */
-    async function createSettledOrder(): Promise<{ orderId: ID; graphqlId: string; paymentId: ID }> {
+    async function createSettledOrder(
+        quantity = 1,
+        extraVariantGraphqlId?: string,
+    ): Promise<{ orderId: ID; graphqlId: string; paymentId: ID }> {
         const idStrategy = server.app.get(ConfigService).entityOptions.entityIdStrategy;
+        // A cart left active by an earlier test would otherwise be added to instead of a new one.
+        await shopClient.asAnonymousUser();
 
         const added = await shopClient.query(
             gql`
-                mutation AddItemForRefundTest($productVariantId: ID!) {
-                    addItemToOrder(productVariantId: $productVariantId, quantity: 1) {
+                mutation AddItemToTestOrder($productVariantId: ID!, $quantity: Int!) {
+                    addItemToOrder(productVariantId: $productVariantId, quantity: $quantity) {
                         ... on Order {
                             id
                         }
@@ -391,16 +464,38 @@ describe('MCP built-in admin tools (direct mode)', () => {
                     }
                 }
             `,
-            { productVariantId: variantGraphqlId },
+            { productVariantId: variantGraphqlId, quantity },
         );
         const orderGraphqlId = added.addItemToOrder.id;
         if (!orderGraphqlId) {
             throw new Error(`Could not add item to order: ${JSON.stringify(added.addItemToOrder)}`);
         }
 
+        if (extraVariantGraphqlId) {
+            const second = await shopClient.query(
+                gql`
+                    mutation AddSecondItemToTestOrder($productVariantId: ID!, $quantity: Int!) {
+                        addItemToOrder(productVariantId: $productVariantId, quantity: $quantity) {
+                            ... on Order {
+                                id
+                            }
+                            ... on ErrorResult {
+                                errorCode
+                                message
+                            }
+                        }
+                    }
+                `,
+                { productVariantId: extraVariantGraphqlId, quantity },
+            );
+            if (!second.addItemToOrder.id) {
+                throw new Error(`Could not add second item: ${JSON.stringify(second.addItemToOrder)}`);
+            }
+        }
+
         await shopClient.query(
             gql`
-                mutation SetCustomerForRefundTestOrder($input: CreateCustomerInput!) {
+                mutation SetCustomerForTestOrder($input: CreateCustomerInput!) {
                     setCustomerForOrder(input: $input) {
                         ... on Order {
                             id
@@ -414,16 +509,16 @@ describe('MCP built-in admin tools (direct mode)', () => {
             `,
             {
                 input: {
-                    firstName: 'Refund',
+                    firstName: 'Settled',
                     lastName: 'Tester',
-                    emailAddress: `refund-test-${String(orderGraphqlId)}@example.test`,
+                    emailAddress: `settled-order-${String(orderGraphqlId)}@example.test`,
                 },
             },
         );
 
         await shopClient.query(
             gql`
-                mutation SetShippingAddressForRefundTest($input: CreateAddressInput!) {
+                mutation SetShippingAddressForTestOrder($input: CreateAddressInput!) {
                     setOrderShippingAddress(input: $input) {
                         ... on Order {
                             id
@@ -437,7 +532,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
             `,
             {
                 input: {
-                    fullName: 'Refund Tester',
+                    fullName: 'Settled Tester',
                     streetLine1: '12 Test Street',
                     city: 'Testville',
                     postalCode: '12345',
@@ -455,7 +550,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
         `);
         await shopClient.query(
             gql`
-                mutation SetShippingMethodForRefundTest($id: [ID!]!) {
+                mutation SetShippingMethodForTestOrder($id: [ID!]!) {
                     setOrderShippingMethod(shippingMethodId: $id) {
                         ... on Order {
                             id
@@ -472,7 +567,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
 
         const transitioned = await shopClient.query(
             gql`
-                mutation TransitionRefundTestOrder($state: String!) {
+                mutation TransitionTestOrder($state: String!) {
                     transitionOrderToState(state: $state) {
                         ... on Order {
                             id
@@ -495,7 +590,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
 
         const manualPayment = await adminClient.query(
             gql`
-                mutation AddManualPaymentForRefundTest($input: ManualPaymentInput!) {
+                mutation AddManualPaymentForTestOrder($input: ManualPaymentInput!) {
                     addManualPaymentToOrder(input: $input) {
                         ... on Order {
                             id
@@ -516,8 +611,8 @@ describe('MCP built-in admin tools (direct mode)', () => {
             {
                 input: {
                     orderId: orderGraphqlId,
-                    method: 'refund-test-manual-payment',
-                    transactionId: 'refund-test-tx',
+                    method: 'test-manual-payment',
+                    transactionId: 'test-tx',
                     metadata: {},
                 },
             },
@@ -549,7 +644,10 @@ describe('MCP built-in admin tools (direct mode)', () => {
         const response = await postMcp(baseUrl(), 'admin', rpc('tools/list', {}, 1), { token });
         const tools = response.body.result.tools as Array<{
             name: string;
-            inputSchema: { properties?: Record<string, { type?: string }>; required?: string[] };
+            inputSchema: {
+                properties?: Record<string, { type?: string; description?: string }>;
+                required?: string[];
+            };
         }>;
 
         const withConfirm = tools
@@ -561,72 +659,120 @@ describe('MCP built-in admin tools (direct mode)', () => {
         for (const tool of tools.filter(candidate => destructiveToolNames.includes(candidate.name))) {
             expect(tool.inputSchema.properties?.confirm?.type).toBe('boolean');
             expect(tool.inputSchema.required ?? []).not.toContain('confirm');
+            // The registry injects this field, so the input schema snapshot does not cover it.
+            expect(tool.inputSchema.properties?.confirm?.description).toBe(
+                'Omit on the first call to get a preview. Set to true only after the user has ' +
+                    'approved the action.',
+            );
         }
 
         const listOrders = tools.find(tool => tool.name === 'list_orders');
         expect(listOrders?.inputSchema.properties?.confirm).toBeUndefined();
     });
 
-    it('gates cancel_order until confirm:true, without mutating on the preview call', async () => {
-        const token = await adminAccessToken();
-        const order = await createDraftOrder();
-        const stateBefore = await orderState(order.graphqlId);
-
-        const preview = await postMcp(baseUrl(), 'admin', callTool('cancel_order', { id: order.id }, 1), {
-            token,
-        });
-        expect(preview.body.result.isError).toBeUndefined();
-        expect(preview.body.result.structuredContent).toMatchObject({ status: 'confirmation_required' });
-        expect(await orderState(order.graphqlId)).toBe(stateBefore);
-
-        const confirmed = await postMcp(
-            baseUrl(),
-            'admin',
-            callTool('cancel_order', { id: order.id, confirm: true }, 2),
-            { token },
-        );
-        expect(confirmed.body.result.isError).toBe(true);
-        // The gate passed and the handler ran the real cancelOrder. An empty draft has no lines to
-        // cancel, so the tool surfaces the concrete EmptyOrderLineSelectionError union — proof the
-        // handler executed and shaped its business result, not merely that the confirm gate opened.
-        expect(confirmed.body.result.structuredContent).toMatchObject({
-            __typename: 'EmptyOrderLineSelectionError',
-            errorCode: 'EMPTY_ORDER_LINE_SELECTION_ERROR',
-        });
-    });
-
-    it('does not require confirmation for a readonly tool', async () => {
-        const token = await adminAccessToken();
-        const response = await postMcp(baseUrl(), 'admin', callTool('list_orders', {}, 1), { token });
-        expect(response.body.result.isError).toBeUndefined();
-        expect(response.body.result.structuredContent).toHaveProperty('items');
-        expect((response.body.result.structuredContent as { status?: string }).status).not.toBe(
-            'confirmation_required',
-        );
-
-        // Every order result carries the same keys, whichever tool produced it.
-        const items = (response.body.result.structuredContent as { items: Array<Record<string, unknown>> })
-            .items;
-        expect(items.length).toBeGreaterThan(0);
-        expect(Array.isArray(items[0].shippingLines)).toBe(true);
-        expect(items[0]).toHaveProperty('couponCodes');
-        expect(items[0]).toHaveProperty('discounts');
-    });
-
     it('get_order returns the same order shape as the order list', async () => {
         const token = await adminAccessToken();
-        const draft = await createDraftOrder();
+        const { orderId } = await createSettledOrder();
 
-        const response = await postMcp(baseUrl(), 'admin', callTool('get_order', { id: draft.id }, 1), {
+        const response = await postMcp(baseUrl(), 'admin', callTool('get_order', { id: orderId }, 1), {
             token,
         });
 
         expect(response.body.result.isError).toBeUndefined();
         const order = (response.body.result.structuredContent as { order: Record<string, unknown> }).order;
-        expect(String(order.id)).toBe(String(draft.id));
+        expect(String(order.id)).toBe(String(orderId));
         expect(Array.isArray(order.shippingLines)).toBe(true);
         expect(order).toHaveProperty('couponCodes');
         expect(order).toHaveProperty('discounts');
+        const singleLine = (order.lines as Array<{ productVariant: Record<string, unknown> }>)[0];
+        // A line names its variant and nothing more: the variant's current price is not what the
+        // line was sold at, which is on the line itself as linePriceWithTax.
+        expect(singleLine.productVariant).toEqual({
+            id: expect.anything(),
+            name: variantName,
+            sku: variantSku,
+        });
+
+        const stored = await connection
+            .getRepository(adminCtx, Order)
+            .findOneOrFail({ where: { id: orderId } });
+
+        const listed = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool('list_orders', { filter: { code: { eq: stored.code } } }, 2),
+            { token },
+        );
+        expect(listed.body.result.isError).toBeUndefined();
+        const listedLine = listed.body.result.structuredContent.items[0].lines[0];
+        expect(String(listedLine.productVariant.id)).toBe(String(variantId));
+        expect(listedLine.productVariant).toEqual(singleLine.productVariant);
+    });
+
+    it('get_order finds by id or code, validates its input, and explains misses', async () => {
+        const token = await adminAccessToken();
+        const { orderId } = await createSettledOrder();
+        const stored = await connection
+            .getRepository(adminCtx, Order)
+            .findOneOrFail({ where: { id: orderId } });
+
+        const byCode = await postMcp(baseUrl(), 'admin', callTool('get_order', { code: stored.code }, 1), {
+            token,
+        });
+        expect(byCode.body.result.isError).toBeUndefined();
+        expect(String(byCode.body.result.structuredContent.order.id)).toBe(String(orderId));
+
+        const both = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool('get_order', { id: orderId, code: stored.code }, 2),
+            { token },
+        );
+        expect(both.body.result.isError).toBe(true);
+        expect(both.body.result.content[0].text).toContain('exactly one of id or code');
+
+        const neither = await postMcp(baseUrl(), 'admin', callTool('get_order', {}, 3), { token });
+        expect(neither.body.result.isError).toBe(true);
+        expect(neither.body.result.content[0].text).toContain('exactly one of id or code');
+
+        const byId = await postMcp(baseUrl(), 'admin', callTool('get_order', { id: 999999 }, 4), { token });
+        expect(byId.body.result.isError).toBeUndefined();
+        expect(byId.body.result.structuredContent).toEqual({
+            order: null,
+            message: 'No order with id 999999',
+        });
+
+        const missingCode = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool('get_order', { code: 'NO-SUCH-CODE' }, 5),
+            { token },
+        );
+        expect(missingCode.body.result.isError).toBeUndefined();
+        expect(missingCode.body.result.structuredContent).toEqual({
+            order: null,
+            message: 'No order with code NO-SUCH-CODE',
+        });
+    });
+
+    it("get_order carries the order's shipping and billing addresses", async () => {
+        const token = await adminAccessToken();
+        const { orderId } = await createSettledOrder();
+
+        const response = await postMcp(baseUrl(), 'admin', callTool('get_order', { id: orderId }, 1), {
+            token,
+        });
+
+        expect(response.body.result.isError).toBeUndefined();
+        const order = response.body.result.structuredContent.order;
+        expect(order.shippingAddress).toMatchObject({
+            fullName: 'Settled Tester',
+            streetLine1: '12 Test Street',
+            city: 'Testville',
+            postalCode: '12345',
+            countryCode: 'US',
+        });
+        expect(order.billingAddress).toBeNull();
     });
 
     it("sorts the order list on request and returns each order's dates", async () => {
@@ -762,6 +908,57 @@ describe('MCP built-in admin tools (direct mode)', () => {
         // must not come back once per matching variant either.
         expect(bySku.items).toHaveLength(1);
         expect(bySku.items[0].slug).toBe('test-shirt');
+    });
+
+    /** The fixture shirt's `priceRange` as `list_products` answers it. */
+    async function shirtPriceRange() {
+        const listed = await listFiltered<{ priceRange: unknown }>('list_products', {
+            filter: { slug: { eq: 'test-shirt' } },
+        });
+        expect(listed.items).toHaveLength(1);
+        return listed.items[0].priceRange;
+    }
+
+    it('list_products items carry a price range over the variants, with tax', async () => {
+        // The fixture prices the shirt's sizes at 500.00, 600.00 and 700.00 net and the channel's
+        // tax zone adds 20%, so the range runs from the Small to the Large size with tax.
+        expect(await shirtPriceRange()).toEqual({
+            min: 60000,
+            minDecimal: '600.00',
+            max: 84000,
+            maxDecimal: '840.00',
+            currencyCode: defaultCurrencyCode,
+        });
+    });
+
+    it('list_products counts disabled variants in the price range, so staff see the whole catalog', async () => {
+        const large = await adminClient.query(gql`
+            query LargeShirtVariant {
+                productVariants(options: { filter: { sku: { eq: "SHIRT-L" } } }) {
+                    items {
+                        id
+                    }
+                }
+            }
+        `);
+        const setLargeEnabled = (enabled: boolean) =>
+            adminClient.query(
+                gql`
+                    mutation SetLargeShirtEnabled($input: [UpdateProductVariantInput!]!) {
+                        updateProductVariants(input: $input) {
+                            id
+                        }
+                    }
+                `,
+                { input: [{ id: large.productVariants.items[0].id, enabled }] },
+            );
+        await setLargeEnabled(false);
+        try {
+            // The Large size is the one at 840.00; the shop range stops at 720.00 without it.
+            expect(await shirtPriceRange()).toMatchObject({ min: 60000, max: 84000 });
+        } finally {
+            await setLargeEnabled(true);
+        }
     });
 
     it('list_products returns only disabled products when asked for them', async () => {
@@ -933,15 +1130,23 @@ describe('MCP built-in admin tools (direct mode)', () => {
 
         expect(response.body.result.isError).toBeUndefined();
         const product = response.body.result.structuredContent.product as {
-            variants: Array<{ id: ID; sku: string; enabled: boolean; priceDecimal: string }>;
+            variants: Array<{
+                id: ID;
+                sku: string;
+                enabled: boolean;
+                priceDecimal: string;
+                stockOnHand: number;
+            }>;
             optionGroups: unknown[];
         };
         expect(product.variants.length).toBeGreaterThan(0);
+        // The fixture gives every variant 100 on hand.
         expect(product.variants[0]).toMatchObject({
             id: expect.anything(),
             sku: expect.any(String),
             enabled: expect.any(Boolean),
             priceDecimal: expect.any(String),
+            stockOnHand: 100,
         });
         // This seeded product has a single variant with no options, so it has no option groups. The
         // test below reads the seeded shirt, which does have them.
@@ -1298,8 +1503,13 @@ describe('MCP built-in admin tools (direct mode)', () => {
         );
 
         expect(response.body.result.isError).toBeUndefined();
+        // The answer is the refund in the same style as every other money-bearing result. A manual
+        // payment has no handler to settle the refund, so core leaves it Pending.
         expect(response.body.result.structuredContent.refund).toMatchObject({
+            state: 'Pending',
             total: paymentBefore.amount,
+            currencyCode: defaultCurrencyCode,
+            paymentId,
         });
         // A DB-level check that the payment was actually refunded, not just that the response echoed it.
         const paymentAfter = await connection
@@ -1345,78 +1555,345 @@ describe('MCP built-in admin tools (direct mode)', () => {
         expect(paymentAfter.refunds.reduce((sum, r) => sum + r.total, 0)).toBe(paymentBefore.amount);
     });
 
-    it('refund_order returns RefundPaymentIdMissingError with errorCode when no payment is refundable', async () => {
+    it('refund_order shows an earlier refund under the payment and names it when nothing is left to refund', async () => {
         const token = await adminAccessToken();
-        const { orderId } = await createSettledOrder();
+        const { orderId, paymentId } = await createSettledOrder();
 
-        await postMcp(baseUrl(), 'admin', callTool('refund_order', { id: orderId, confirm: true }, 1), {
-            token,
-        });
+        const first = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool('refund_order', { id: orderId, reason: 'Damaged in transit', confirm: true }, 1),
+            { token },
+        );
+        expect(first.body.result.isError).toBeUndefined();
+        const refund = first.body.result.structuredContent.refund;
+
+        // Reading the order back shows the refund, so an agent can see the payment is spent before
+        // trying to refund it again.
+        const read = await postMcp(baseUrl(), 'admin', callTool('get_order', { id: orderId }, 2), { token });
+        const payment = read.body.result.structuredContent.order.payments[0];
+        expect(String(payment.id)).toBe(String(paymentId));
+        expect(payment.refunds).toEqual([
+            {
+                id: refund.id,
+                state: refund.state,
+                total: refund.total,
+                totalDecimal: refund.totalDecimal,
+                reason: 'Damaged in transit',
+            },
+        ]);
 
         const response = await postMcp(
             baseUrl(),
             'admin',
-            callTool('refund_order', { id: orderId, confirm: true }, 2),
+            callTool('refund_order', { id: orderId, confirm: true }, 3),
             { token },
         );
         expect(response.body.result.isError).toBe(true);
         expect(response.body.result.structuredContent).toMatchObject({
             __typename: 'RefundPaymentIdMissingError',
             errorCode: 'REFUND_PAYMENT_ID_MISSING_ERROR',
+            message:
+                `Payment ${String(paymentId)} has no refundable amount left: ${String(refund.totalDecimal)} of ` +
+                `${String(payment.amountDecimal)} already refunded (${String(refund.state)}).`,
         });
     });
 
-    it('refund_order rejects a paymentId that belongs to a different order and leaves that order untouched', async () => {
+    it('create_fulfillment fulfills every line by default, including multi-line orders', async () => {
+        const token = await adminAccessToken();
+        const { orderId, graphqlId } = await createSettledOrder(1, secondVariantGraphqlId);
+        const lines = await orderLines(graphqlId);
+
+        const response = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool('create_fulfillment', { orderId, method: 'Test Carrier', confirm: true }, 1),
+            { token },
+        );
+
+        expect(response.body.result.isError).toBeUndefined();
+        expect(response.body.result.structuredContent.fulfillment).toEqual({
+            id: expect.anything(),
+            state: 'Pending',
+            method: 'Test Carrier',
+            trackingCode: '',
+            lines: lines.map(line => ({ orderLineId: line.id, quantity: line.quantity })),
+        });
+        // Core creates the fulfillment in Pending, and the order only follows once the fulfillment
+        // itself reaches Shipped. So the order is still exactly where it was.
+        expect(response.body.result.structuredContent.order.state).toBe('PaymentSettled');
+        expect(await orderState(graphqlId)).toBe('PaymentSettled');
+    });
+
+    // Core's createFulfillment takes no order id: it works out which orders to fulfill from the line
+    // ids alone. Without this check, naming order A and passing a line of order B would fulfill B
+    // while the answer showed A.
+    it('create_fulfillment refuses a line that belongs to another order, and fulfills neither', async () => {
         const token = await adminAccessToken();
         const orderA = await createSettledOrder();
         const orderB = await createSettledOrder();
-        const orderBPaymentBefore = await connection
-            .getRepository(adminCtx, Payment)
-            .findOneOrFail({ where: { id: orderB.paymentId }, relations: ['refunds'] });
-        expect(orderBPaymentBefore.refunds).toHaveLength(0);
+        const [lineOfB] = await orderLines(orderB.graphqlId);
 
         const response = await postMcp(
             baseUrl(),
             'admin',
             callTool(
-                'refund_order',
-                { id: orderA.orderId, paymentId: orderB.paymentId, amount: 100, confirm: true },
+                'create_fulfillment',
+                {
+                    orderId: orderA.orderId,
+                    method: 'Test Carrier',
+                    lines: [{ orderLineId: lineOfB.id, quantity: 1 }],
+                    confirm: true,
+                },
                 1,
             ),
             { token },
         );
 
         expect(response.body.result.isError).toBe(true);
-        expect(response.body.result.structuredContent).toMatchObject({
-            __typename: 'RefundPaymentIdMissingError',
-            errorCode: 'REFUND_PAYMENT_ID_MISSING_ERROR',
-            message: 'The requested payment was not found on this order.',
-        });
-
-        // Order B's payment must be exactly as it was: the wrong order was never touched.
-        const orderBPaymentAfter = await connection
-            .getRepository(adminCtx, Payment)
-            .findOneOrFail({ where: { id: orderB.paymentId }, relations: ['refunds'] });
-        expect(orderBPaymentAfter.refunds).toHaveLength(0);
+        expect(response.body.result.content[0].text).toContain(String(lineOfB.id));
+        expect(response.body.result.content[0].text).toContain(String(orderA.orderId));
+        expect(await orderFulfillments(orderA.graphqlId)).toEqual([]);
+        expect(await orderFulfillments(orderB.graphqlId)).toEqual([]);
     });
 
-    it('refund_order returns RefundPaymentIdMissingError when the paymentId exists on no order', async () => {
+    it('create_fulfillment refuses a zero or negative quantity before core sees it', async () => {
         const token = await adminAccessToken();
-        const { orderId } = await createSettledOrder();
+        const { orderId, graphqlId } = await createSettledOrder();
+        const [line] = await orderLines(graphqlId);
+        const salesBefore = await connection.getRepository(adminCtx, Sale).count();
+
+        for (const quantity of [-1, 0]) {
+            const response = await postMcp(
+                baseUrl(),
+                'admin',
+                callTool(
+                    'create_fulfillment',
+                    {
+                        orderId,
+                        method: 'Test Carrier',
+                        lines: [{ orderLineId: line.id, quantity }],
+                        confirm: true,
+                    },
+                    1,
+                ),
+                { token },
+            );
+
+            expect(response.body.result.isError).toBe(true);
+            expect(response.body.result.content[0].text).toContain('quantity');
+        }
+        // A negative quantity used to reach core, which wrote a Sale stock movement for it.
+        expect(await orderFulfillments(graphqlId)).toEqual([]);
+        expect(await connection.getRepository(adminCtx, Sale).count()).toBe(salesBefore);
+    });
+
+    it('create_fulfillment without lines takes only what an earlier fulfillment left', async () => {
+        const token = await adminAccessToken();
+        const { orderId, graphqlId } = await createSettledOrder(2);
+        const [line] = await orderLines(graphqlId);
+        expect(line.quantity).toBe(2);
+
+        const half = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool(
+                'create_fulfillment',
+                {
+                    orderId,
+                    method: 'Test Carrier',
+                    lines: [{ orderLineId: line.id, quantity: 1 }],
+                    confirm: true,
+                },
+                1,
+            ),
+            { token },
+        );
+        expect(half.body.result.isError).toBeUndefined();
+        expect(half.body.result.structuredContent.fulfillment.lines).toEqual([
+            { orderLineId: line.id, quantity: 1 },
+        ]);
+
+        const rest = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool('create_fulfillment', { orderId, method: 'Test Carrier', confirm: true }, 2),
+            { token },
+        );
+        expect(rest.body.result.isError).toBeUndefined();
+        expect(rest.body.result.structuredContent.fulfillment.lines).toEqual([
+            { orderLineId: line.id, quantity: 1 },
+        ]);
+        // Nothing is left, so the default line selection is empty and core says so.
+        const nothingLeft = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool('create_fulfillment', { orderId, method: 'Test Carrier', confirm: true }, 3),
+            { token },
+        );
+        expect(nothingLeft.body.result.isError).toBe(true);
+        expect(nothingLeft.body.result.structuredContent).toMatchObject({
+            __typename: 'EmptyOrderLineSelectionError',
+            errorCode: 'EMPTY_ORDER_LINE_SELECTION_ERROR',
+        });
+    });
+
+    // Pins that create_fulfillment allows an order still in AddingItems and leaves it there.
+    it('create_fulfillment allows an order still in AddingItems and leaves it there', async () => {
+        const token = await adminAccessToken();
+        const added = await shopClient.query(
+            gql`
+                mutation AddItemForFulfillmentTest($productVariantId: ID!) {
+                    addItemToOrder(productVariantId: $productVariantId, quantity: 1) {
+                        ... on Order {
+                            id
+                            state
+                        }
+                        ... on ErrorResult {
+                            errorCode
+                            message
+                        }
+                    }
+                }
+            `,
+            { productVariantId: variantGraphqlId },
+        );
+        expect(added.addItemToOrder.state).toBe('AddingItems');
+        const idStrategy = server.app.get(ConfigService).entityOptions.entityIdStrategy;
+        const cartId = idStrategy.decodeId(added.addItemToOrder.id);
 
         const response = await postMcp(
             baseUrl(),
             'admin',
-            callTool('refund_order', { id: orderId, paymentId: 999999, amount: 100, confirm: true }, 1),
+            callTool('create_fulfillment', { orderId: cartId, method: 'Test Carrier', confirm: true }, 1),
             { token },
         );
 
-        expect(response.body.result.isError).toBe(true);
-        expect(response.body.result.structuredContent).toMatchObject({
-            __typename: 'RefundPaymentIdMissingError',
-            errorCode: 'REFUND_PAYMENT_ID_MISSING_ERROR',
-            message: 'The requested payment was not found on this order.',
+        expect(response.body.result.isError).toBeUndefined();
+        expect(response.body.result.structuredContent.fulfillment).toMatchObject({ state: 'Pending' });
+        expect(response.body.result.structuredContent.order.state).toBe('AddingItems');
+        expect(await orderState(added.addItemToOrder.id)).toBe('AddingItems');
+    });
+
+    it('create_fulfillment gives a cancelled fulfillment quantity back to the default line selection', async () => {
+        const token = await adminAccessToken();
+        const { orderId, graphqlId } = await createSettledOrder();
+        const [line] = await orderLines(graphqlId);
+
+        const first = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool('create_fulfillment', { orderId, method: 'Test Carrier', confirm: true }, 1),
+            { token },
+        );
+        expect(first.body.result.isError).toBeUndefined();
+        const fulfillmentId = first.body.result.structuredContent.fulfillment.id;
+
+        // Cancelling goes through core directly: no built-in tool transitions a fulfillment.
+        const cancelled = await server.app
+            .get(OrderService)
+            .transitionFulfillmentToState(adminCtx, fulfillmentId, 'Cancelled');
+        expect((cancelled as { state?: string }).state).toBe('Cancelled');
+
+        const second = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool('create_fulfillment', { orderId, method: 'Test Carrier', confirm: true }, 2),
+            { token },
+        );
+        expect(second.body.result.isError).toBeUndefined();
+        expect(second.body.result.structuredContent.fulfillment.lines).toEqual([
+            { orderLineId: line.id, quantity: line.quantity },
+        ]);
+    });
+
+    it('create_fulfillment with state Shipped ships a fully fulfilled order', async () => {
+        const token = await adminAccessToken();
+        const { orderId, graphqlId } = await createSettledOrder();
+
+        const response = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool(
+                'create_fulfillment',
+                { orderId, method: 'Test Carrier', state: 'Shipped', confirm: true },
+                1,
+            ),
+            { token },
+        );
+
+        expect(response.body.result.isError).toBeUndefined();
+        expect(response.body.result.structuredContent.fulfillment.state).toBe('Shipped');
+        // Core's own follow-on transition, read back from the order the tool answers with.
+        expect(response.body.result.structuredContent.order.state).toBe('Shipped');
+        expect(await orderState(graphqlId)).toBe('Shipped');
+    });
+
+    // Pending -> Delivered is a direct move on core's default fulfillment process, so the tool needs
+    // no intermediate Shipped step for it.
+    it('create_fulfillment with state Delivered delivers a fully fulfilled order in one step', async () => {
+        const token = await adminAccessToken();
+        const { orderId, graphqlId } = await createSettledOrder();
+
+        const response = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool(
+                'create_fulfillment',
+                { orderId, method: 'Test Carrier', state: 'Delivered', confirm: true },
+                1,
+            ),
+            { token },
+        );
+
+        expect(response.body.result.isError).toBeUndefined();
+        expect(response.body.result.structuredContent.fulfillment.state).toBe('Delivered');
+        expect(response.body.result.structuredContent.order.state).toBe('Delivered');
+        expect(await orderState(graphqlId)).toBe('Delivered');
+    });
+
+    it('get_order and list_orders both carry the fulfillments of an order', async () => {
+        const token = await adminAccessToken();
+        const { orderId, graphqlId } = await createSettledOrder();
+        const [line] = await orderLines(graphqlId);
+
+        const created = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool(
+                'create_fulfillment',
+                { orderId, method: 'Test Carrier', trackingCode: 'TRACK-002', confirm: true },
+                1,
+            ),
+            { token },
+        );
+        expect(created.body.result.isError).toBeUndefined();
+        const expected = {
+            id: created.body.result.structuredContent.fulfillment.id,
+            state: 'Pending',
+            method: 'Test Carrier',
+            trackingCode: 'TRACK-002',
+            lines: [{ orderLineId: line.id, quantity: line.quantity }],
+        };
+
+        const single = await postMcp(baseUrl(), 'admin', callTool('get_order', { id: orderId }, 2), {
+            token,
         });
+        expect(single.body.result.isError).toBeUndefined();
+        expect(single.body.result.structuredContent.order.fulfillments).toEqual([expected]);
+
+        const listed = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool(
+                'list_orders',
+                { filter: { code: { eq: created.body.result.structuredContent.order.code } } },
+                3,
+            ),
+            { token },
+        );
+        expect(listed.body.result.isError).toBeUndefined();
+        expect(listed.body.result.structuredContent.items[0].fulfillments).toEqual([expected]);
     });
 
     describe('catalog, customer and order writes', () => {
@@ -1679,15 +2156,10 @@ describe('MCP built-in admin tools (direct mode)', () => {
             );
 
             expect(updated.body.result.isError).toBeUndefined();
-            const variants = updated.body.result.structuredContent.variants as Array<{
-                id: ID;
-                sku: string;
-                price: number;
-            }>;
-            // The tool takes one id and calls the plural service method, so the result is a
-            // one-element array rather than a single variant.
-            expect(variants).toHaveLength(1);
-            expect(variants[0]).toMatchObject({ sku: 'MCP-SKU-1', price: 4242 });
+            expect(updated.body.result.structuredContent.variant).toMatchObject({
+                sku: 'MCP-SKU-1',
+                price: 4242,
+            });
 
             const stored = await connection
                 .getRepository(adminCtx, ProductVariant)
@@ -1723,7 +2195,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
                         input: {
                             sku,
                             price: 1999,
-                            stockOnHand: 7,
+                            stockOnHand: 40,
                             translations: [{ languageCode: 'en', name: 'MCP Extra Variant' }],
                         },
                     },
@@ -1733,12 +2205,12 @@ describe('MCP built-in admin tools (direct mode)', () => {
             );
 
             expect(created.body.result.isError).toBeUndefined();
-            const variants = created.body.result.structuredContent.variants as Array<{
-                id: ID;
-                sku: string;
-                name: string;
-            }>;
-            expect(variants[0]).toMatchObject({ sku, name: 'MCP Extra Variant' });
+            // `stockOnHand` in the answer is what lets an agent confirm the stock it asked for was written.
+            expect(created.body.result.structuredContent.variant).toMatchObject({
+                sku,
+                name: 'MCP Extra Variant',
+                stockOnHand: 40,
+            });
 
             const stored = await connection
                 .getRepository(adminCtx, ProductVariant)
@@ -1828,6 +2300,13 @@ describe('MCP built-in admin tools (direct mode)', () => {
             );
 
             expect(added.body.result.isError).toBeUndefined();
+            // The tool holds UpdateCustomerGroup, not ReadCustomer, so the answer names the customer
+            // by id and lists its groups. It carries no email address, names or phone number.
+            expect(added.body.result.structuredContent).toEqual({
+                customerId: seededCustomerId,
+                groups: [{ id: customerGroupId, name: 'MCP tool group' }],
+            });
+
             const members = await adminClient.query(
                 gql`
                     query McpGroupMembers($id: ID!) {
@@ -1847,6 +2326,48 @@ describe('MCP built-in admin tools (direct mode)', () => {
                 String(idStrategy.decodeId(customer.id)),
             );
             expect(memberIds).toContain(String(seededCustomerId));
+        });
+
+        it('add_customer_to_group refuses an unknown customer', async () => {
+            const token = await adminAccessToken();
+
+            const response = await postMcp(
+                baseUrl(),
+                'admin',
+                callTool('add_customer_to_group', { customerId: 999999, groupId: customerGroupId }, 1),
+                { token },
+            );
+
+            // Core's addCustomersToGroup drops an id it cannot resolve without saying so, which
+            // would make this look like it worked.
+            expect(response.body.result.isError).toBe(true);
+            expect(response.body.result.content[0].text).toContain('No Customer with the id');
+        });
+
+        it('add_customer_to_group refuses a customer outside the active channel', async () => {
+            const token = await adminAccessToken();
+            const switched = await postMcp(
+                baseUrl(),
+                'admin',
+                callTool('set_active_channel', { channelToken: secondChannelToken }, 1),
+                { token },
+            );
+            expect(switched.body.result.isError).toBeUndefined();
+
+            const response = await postMcp(
+                baseUrl(),
+                'admin',
+                callTool(
+                    'add_customer_to_group',
+                    { customerId: seededCustomerId, groupId: customerGroupId },
+                    2,
+                ),
+                { token },
+            );
+
+            // The seeded customer belongs to the default channel only.
+            expect(response.body.result.isError).toBe(true);
+            expect(response.body.result.content[0].text).toContain('No Customer with the id');
         });
 
         it('list_customer_groups returns the group id add_customer_to_group needs', async () => {
@@ -2014,18 +2535,31 @@ describe('MCP built-in admin tools (direct mode)', () => {
                 });
             });
 
-            it('answers a source URL that 404s with the generic failure, and stores nothing', async () => {
-                // OPEN QUESTION, pinned rather than fixed. Core's asset import strategy does not
-                // look at the HTTP status, so the 404 body flows on and something downstream
-                // throws "no elements in sequence". That error is not caller-safe, so the caller
-                // gets the generic text and no idea the URL was wrong. Whether this tool should
-                // answer a broken URL with a readable reason is a separate decision.
+            it('answers a source URL that 404s with the fixed message, and stores nothing', async () => {
+                const fetchesBefore = fileServer.requestCount('/gone.png');
                 const countBefore = await assetRepo().count();
 
                 const response = await callUploadAsset({ url: `${fileServer.baseUrl}/gone.png` });
 
                 expect(response.body.result.isError).toBe(true);
-                expect(response.body.result.content[0].text).toBe('The tool failed unexpectedly');
+                expect(response.body.result.content[0].text).toBe(UNFETCHABLE_URL_MESSAGE);
+                // Exactly one request: the plugin makes none of its own, and the strategy's retries
+                // re-await the promise it already settled rather than asking again. A further request
+                // would skip the address check the strategy makes before it fetches.
+                expect(fileServer.requestCount('/gone.png')).toBe(fetchesBefore + 1);
+                expect(await assetRepo().count()).toBe(countBefore);
+            });
+
+            it('does not follow a redirect, and stores nothing', async () => {
+                // The import strategy refuses anything that is not a 200, redirects included: a
+                // redirect target would otherwise be fetched without the address check that keeps
+                // this tool off private networks.
+                const countBefore = await assetRepo().count();
+
+                const response = await callUploadAsset({ url: `${fileServer.baseUrl}${REDIRECT_PATH}` });
+
+                expect(response.body.result.isError).toBe(true);
+                expect(response.body.result.content[0].text).toBe(UNFETCHABLE_URL_MESSAGE);
                 expect(await assetRepo().count()).toBe(countBefore);
             });
 

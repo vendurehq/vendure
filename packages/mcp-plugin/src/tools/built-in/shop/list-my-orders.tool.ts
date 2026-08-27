@@ -1,9 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { CustomerService, OrderService, Permission, RequestContext } from '@vendure/core';
+import { CustomerService, OrderService, Permission, RequestContext, TranslatorService } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { orderListOptions, page, paginationFields } from '../list-helpers';
+import {
+    ORDER_LIST_RELATIONS,
+    orderListOptions,
+    page,
+    paginationFields,
+    translateLineVariants,
+} from '../list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 
 const listMyOrdersInput = z.strictObject({
@@ -33,6 +39,7 @@ export class ListMyOrdersTool implements McpToolHandler<ListMyOrdersInput> {
     constructor(
         private customerService: CustomerService,
         private orderService: OrderService,
+        private translator: TranslatorService,
         private serializer: McpToolSerializerService,
     ) {}
 
@@ -40,11 +47,13 @@ export class ListMyOrdersTool implements McpToolHandler<ListMyOrdersInput> {
         if (!ctx.activeUserId) return page([], 0, input);
         const customer = await this.customerService.findOneByUserId(ctx, ctx.activeUserId);
         if (!customer) return page([], 0, input);
-        const result = await this.orderService.findByCustomerId(ctx, customer.id, orderListOptions(input), [
-            'lines',
-            'shippingLines',
-            'payments',
-        ]);
+        const result = await this.orderService.findByCustomerId(
+            ctx,
+            customer.id,
+            orderListOptions(input),
+            ORDER_LIST_RELATIONS,
+        );
+        translateLineVariants(result.items, this.translator, ctx);
         return page(
             result.items.map(order => this.serializer.order(order)),
             result.totalItems,

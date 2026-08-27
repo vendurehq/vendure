@@ -1,5 +1,5 @@
-import { UserInputError } from '@vendure/core';
-import { describe, expect, it, vi } from 'vitest';
+import { EntityNotFoundError, UserInputError } from '@vendure/core';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { PlaceOrderTool } from './place-order.tool';
 
@@ -22,7 +22,9 @@ const serializer = {
  */
 function connectionStub() {
     return {
-        withTransaction: vi.fn((ctx: any, work: any) => work({ ...ctx, inTransaction: true })),
+        withTransaction: vi.fn((ctx: any, work: any) =>
+            work({ ...ctx, inTransaction: true, translate: (key: string) => key }),
+        ),
     } as any;
 }
 
@@ -34,21 +36,82 @@ function activeOrderReturning(id: number) {
     } as any;
 }
 
+/** The order the tool re-reads inside its transaction. Most cases only vary the state. */
+function orderStub(overrides: { state?: string; customer?: unknown } = {}) {
+    return { id: 1, state: 'ArrangingPayment', customer: { id: 5 }, ...overrides };
+}
+
+// Both only do anything once an order has been placed, so most cases never reach them.
+const customerService = { createAddressesForNewCustomer: vi.fn() } as any;
+const sessionService = { unsetActiveOrder: vi.fn() } as any;
+
+function placeOrderTool(activeOrder: any, orderService: any, connection: any = connectionStub()) {
+    return new PlaceOrderTool(
+        activeOrder,
+        orderService,
+        serializer,
+        connection,
+        customerService,
+        sessionService,
+    );
+}
+
 describe('PlaceOrderTool', () => {
-    it('refuses without an authorized customer, and touches no order', async () => {
-        const orderService = new Proxy(
-            {},
-            {
-                get() {
-                    throw new Error('place_order reached the order instead of refusing');
-                },
-            },
-        ) as any;
-        const tool = new PlaceOrderTool(activeOrderReturning(1), orderService, serializer, connectionStub());
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
 
-        const result = await tool.execute({} as any, { paymentMethodCode: 'standard-payment' });
+    it('answers a refused move on a cart that nobody has claimed with the call that fixes it', async () => {
+        // Core's default order process refuses the move for an order with no customer, but only
+        // with "Cannot transition". The tool replaces that with the sentence naming the call.
+        const refusal = {
+            __typename: 'OrderStateTransitionError',
+            errorCode: 'ORDER_STATE_TRANSITION_ERROR',
+            message: 'Cannot transition Order to the "ArrangingPayment" state',
+            transitionError: 'message.cannot-transition-to-payment-without-customer',
+        };
+        const addPaymentToOrder = vi.fn();
+        const orderService = {
+            findOne: () => Promise.resolve(orderStub({ state: 'AddingItems', customer: null })),
+            transitionToState: () => Promise.resolve(refusal),
+            addPaymentToOrder,
+        } as any;
+        const tool = placeOrderTool(activeOrderReturning(1), orderService);
 
-        expect(result).toMatchObject({ requiresAuthorization: true });
+        await expect(tool.execute({} as any, { paymentMethodCode: 'standard-payment' })).rejects.toThrow(
+            /This cart has no customer yet/,
+        );
+        expect(addPaymentToOrder).not.toHaveBeenCalled();
+    });
+
+    it('takes payment on a customerless cart when the order process allows the move', async () => {
+        // `arrangingPaymentRequiresCustomer` defaults to true but a store can switch it off, or
+        // replace the order process altogether, so the tool must not refuse on its own account.
+        const addPaymentToOrder = vi.fn().mockResolvedValue({ id: 1, state: 'PaymentAuthorized' });
+        const orderService = {
+            findOne: () => Promise.resolve(orderStub({ state: 'AddingItems', customer: null })),
+            transitionToState: vi.fn().mockResolvedValue({ id: 1, state: 'ArrangingPayment' }),
+            addPaymentToOrder,
+            getOrderPayments: () => Promise.resolve([]),
+        } as any;
+        const tool = placeOrderTool(activeOrderReturning(1), orderService);
+
+        await tool.execute({} as any, { paymentMethodCode: 'standard-payment' });
+
+        expect(addPaymentToOrder).toHaveBeenCalled();
+    });
+
+    it('refuses when the cart vanished between the lookup and the transaction', async () => {
+        const orderService = {
+            findOne: () => Promise.resolve(undefined),
+            transitionToState: vi.fn(),
+            addPaymentToOrder: vi.fn(),
+        } as any;
+        const tool = placeOrderTool(activeOrderReturning(1), orderService);
+
+        await expect(
+            tool.execute({} as any, { paymentMethodCode: 'standard-payment' }),
+        ).rejects.toBeInstanceOf(EntityNotFoundError);
     });
 
     it('refuses without a cart and opens no transaction', async () => {
@@ -58,7 +121,7 @@ describe('PlaceOrderTool', () => {
         } as any;
         const withTransaction = vi.fn();
         const orderService = {} as any;
-        const tool = new PlaceOrderTool(activeOrder, orderService, serializer, { withTransaction } as any);
+        const tool = placeOrderTool(activeOrder, orderService, { withTransaction } as any);
 
         await expect(
             tool.execute({ activeUserId: 42 } as any, { paymentMethodCode: 'standard-payment' }),
@@ -76,7 +139,7 @@ describe('PlaceOrderTool', () => {
                     new UserInputError('There is no active cart. Add an item with add_to_cart first.'),
                 ),
         } as any;
-        const tool = new PlaceOrderTool(activeOrder, {} as any, serializer, connectionStub());
+        const tool = placeOrderTool(activeOrder, {} as any);
 
         await expect(tool.execute({} as any, { paymentMethodCode: 'standard-payment' })).rejects.toThrow(
             /There is no active cart/,
@@ -87,13 +150,13 @@ describe('PlaceOrderTool', () => {
         const transitionToState = vi.fn().mockResolvedValue({ id: 1, state: 'ArrangingPayment' });
         const addPaymentToOrder = vi.fn().mockResolvedValue({ id: 1, state: 'PaymentAuthorized' });
         const orderService = {
-            findOne: () => Promise.resolve({ id: 1, state: 'AddingItems' }),
+            findOne: () => Promise.resolve(orderStub({ state: 'AddingItems' })),
             transitionToState,
             addPaymentToOrder,
             getOrderPayments: () => Promise.resolve([]),
         } as any;
         const connection = connectionStub();
-        const tool = new PlaceOrderTool(activeOrderReturning(1), orderService, serializer, connection);
+        const tool = placeOrderTool(activeOrderReturning(1), orderService, connection);
         const ctx = { activeUserId: 42 } as any;
 
         await tool.execute(ctx, { paymentMethodCode: 'standard-payment' });
@@ -111,12 +174,12 @@ describe('PlaceOrderTool', () => {
         const transitionToState = vi.fn();
         const addPaymentToOrder = vi.fn().mockResolvedValue({ id: 1, state: 'PaymentAuthorized' });
         const orderService = {
-            findOne: () => Promise.resolve({ id: 1, state: 'ArrangingPayment' }),
+            findOne: () => Promise.resolve(orderStub()),
             transitionToState,
             addPaymentToOrder,
             getOrderPayments: () => Promise.resolve([]),
         } as any;
-        const tool = new PlaceOrderTool(activeOrderReturning(1), orderService, serializer, connectionStub());
+        const tool = placeOrderTool(activeOrderReturning(1), orderService);
 
         await tool.execute({ activeUserId: 42 } as any, { paymentMethodCode: 'standard-payment' });
 
@@ -132,14 +195,14 @@ describe('PlaceOrderTool', () => {
         };
         const transitions: string[] = [];
         const orderService = {
-            findOne: () => Promise.resolve({ id: 1, state: 'AddingItems' }),
+            findOne: () => Promise.resolve(orderStub({ state: 'AddingItems' })),
             transitionToState: (_ctx: unknown, _id: unknown, state: string) => {
                 transitions.push(state);
                 return Promise.resolve({ id: 1, state });
             },
             addPaymentToOrder: () => Promise.resolve(paymentError),
         } as any;
-        const tool = new PlaceOrderTool(activeOrderReturning(1), orderService, serializer, connectionStub());
+        const tool = placeOrderTool(activeOrderReturning(1), orderService);
 
         const result = await tool.execute({ activeUserId: 42 } as any, {
             paymentMethodCode: 'nonsense',
@@ -154,7 +217,7 @@ describe('PlaceOrderTool', () => {
     it('does not touch the state when the payment fails on an order it did not move', async () => {
         const transitions: string[] = [];
         const orderService = {
-            findOne: () => Promise.resolve({ id: 1, state: 'ArrangingPayment' }),
+            findOne: () => Promise.resolve(orderStub()),
             transitionToState: (_ctx: unknown, _id: unknown, state: string) => {
                 transitions.push(state);
                 return Promise.resolve({ id: 1, state });
@@ -168,7 +231,7 @@ describe('PlaceOrderTool', () => {
                     message: 'no',
                 }),
         } as any;
-        const tool = new PlaceOrderTool(activeOrderReturning(1), orderService, serializer, connectionStub());
+        const tool = placeOrderTool(activeOrderReturning(1), orderService);
 
         await tool.execute({ activeUserId: 42 } as any, { paymentMethodCode: 'nonsense' });
 
@@ -184,11 +247,11 @@ describe('PlaceOrderTool', () => {
         };
         const addPaymentToOrder = vi.fn();
         const orderService = {
-            findOne: () => Promise.resolve({ id: 1, state: 'AddingItems' }),
+            findOne: () => Promise.resolve(orderStub({ state: 'AddingItems', customer: null })),
             transitionToState: () => Promise.resolve(refusal),
             addPaymentToOrder,
         } as any;
-        const tool = new PlaceOrderTool(activeOrderReturning(1), orderService, serializer, connectionStub());
+        const tool = placeOrderTool(activeOrderReturning(1), orderService);
 
         const result = await tool.execute({ activeUserId: 42 } as any, {
             paymentMethodCode: 'standard-payment',
@@ -198,23 +261,33 @@ describe('PlaceOrderTool', () => {
         expect(addPaymentToOrder).not.toHaveBeenCalled();
     });
 
-    it('answers status placed when the order was placed', async () => {
+    it('answers status placed, saves the buyer an address and lets go of the cart', async () => {
         const getOrderPayments = vi.fn().mockResolvedValue([{ id: 9, state: 'Settled' }]);
+        const placed = { id: 1, state: 'PaymentSettled', orderPlacedAt: new Date() };
         const orderService = {
-            findOne: () => Promise.resolve({ id: 1, state: 'ArrangingPayment' }),
+            findOne: () => Promise.resolve(orderStub()),
             transitionToState: vi.fn(),
-            addPaymentToOrder: () =>
-                Promise.resolve({ id: 1, state: 'PaymentSettled', orderPlacedAt: new Date() }),
+            addPaymentToOrder: () => Promise.resolve(placed),
             getOrderPayments,
         } as any;
-        const tool = new PlaceOrderTool(activeOrderReturning(1), orderService, serializer, connectionStub());
+        const tool = placeOrderTool(activeOrderReturning(1), orderService);
+        const session = { id: 'session-1', activeOrderId: 1 };
 
-        const result = await tool.execute({ activeUserId: 42 } as any, {
+        const result = await tool.execute({ activeUserId: 42, session } as any, {
             paymentMethodCode: 'standard-payment',
         });
 
         expect(result).toMatchObject({ status: 'placed' });
         expect(getOrderPayments).toHaveBeenCalledWith(expect.objectContaining({ inTransaction: true }), 1);
+        // The two steps the Shop API's own checkout takes once the order is no longer active.
+        expect(customerService.createAddressesForNewCustomer).toHaveBeenCalledWith(
+            expect.objectContaining({ inTransaction: true }),
+            placed,
+        );
+        expect(sessionService.unsetActiveOrder).toHaveBeenCalledWith(
+            expect.objectContaining({ inTransaction: true }),
+            session,
+        );
     });
 
     it('answers status awaiting_payment, keeps the order at the payment stage, and shows the payment', async () => {
@@ -225,17 +298,20 @@ describe('PlaceOrderTool', () => {
             metadata: { public: { redirectUrl: 'https://pay.example.com/x' } },
         };
         const orderService = {
-            findOne: () => Promise.resolve({ id: 1, state: 'ArrangingPayment' }),
+            findOne: () => Promise.resolve(orderStub()),
             transitionToState,
             addPaymentToOrder: () =>
                 Promise.resolve({ id: 1, state: 'ArrangingPayment', orderPlacedAt: null }),
             getOrderPayments: () => Promise.resolve([payment]),
         } as any;
-        const tool = new PlaceOrderTool(activeOrderReturning(1), orderService, serializer, connectionStub());
+        const tool = placeOrderTool(activeOrderReturning(1), orderService);
 
-        const result = (await tool.execute({ activeUserId: 42 } as any, {
-            paymentMethodCode: 'redirect-payment',
-        })) as any;
+        const result = (await tool.execute(
+            { activeUserId: 42, session: { id: 's', activeOrderId: 1 } } as any,
+            {
+                paymentMethodCode: 'redirect-payment',
+            },
+        )) as any;
 
         expect(result.status).toBe('awaiting_payment');
         expect(result.message).toContain('the order is not placed yet');
@@ -248,16 +324,18 @@ describe('PlaceOrderTool', () => {
             expect.anything(),
             'AddingItems',
         );
+        expect(customerService.createAddressesForNewCustomer).not.toHaveBeenCalled();
+        expect(sessionService.unsetActiveOrder).not.toHaveBeenCalled();
     });
 
     it('drops the cart-editing sentence when the unplaced order is not in ArrangingPayment', async () => {
         const orderService = {
-            findOne: () => Promise.resolve({ id: 1, state: 'ArrangingPayment' }),
+            findOne: () => Promise.resolve(orderStub()),
             transitionToState: vi.fn(),
             addPaymentToOrder: () => Promise.resolve({ id: 1, state: 'PaymentSettled', orderPlacedAt: null }),
             getOrderPayments: () => Promise.resolve([]),
         } as any;
-        const tool = new PlaceOrderTool(activeOrderReturning(1), orderService, serializer, connectionStub());
+        const tool = placeOrderTool(activeOrderReturning(1), orderService);
 
         const result = (await tool.execute({ activeUserId: 42 } as any, {
             paymentMethodCode: 'standard-payment',
@@ -272,12 +350,12 @@ describe('PlaceOrderTool', () => {
         // transaction, and a tool call does not go through a resolver, so nothing else opens one.
         const addPaymentToOrder = vi.fn().mockResolvedValue({ id: 1, state: 'PaymentAuthorized' });
         const orderService = {
-            findOne: () => Promise.resolve({ id: 1, state: 'ArrangingPayment' }),
+            findOne: () => Promise.resolve(orderStub()),
             transitionToState: vi.fn(),
             addPaymentToOrder,
             getOrderPayments: () => Promise.resolve([]),
         } as any;
-        const tool = new PlaceOrderTool(activeOrderReturning(1), orderService, serializer, connectionStub());
+        const tool = placeOrderTool(activeOrderReturning(1), orderService);
 
         await tool.execute({ activeUserId: 42 } as any, { paymentMethodCode: 'standard-payment' });
 

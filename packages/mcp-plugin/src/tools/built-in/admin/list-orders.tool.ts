@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { OrderService, Permission, RequestContext } from '@vendure/core';
+import { OrderService, Permission, RequestContext, TranslatorService } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
@@ -7,11 +7,13 @@ import {
     booleanFilter,
     dateFilter,
     numberFilter,
+    ORDER_LIST_RELATIONS,
     ORDER_SORT_FIELDS,
     orderListOptions,
     page,
     paginationFields,
     stringFilter,
+    translateLineVariants,
 } from '../list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 
@@ -75,15 +77,13 @@ type ListOrdersInput = z.infer<typeof listOrdersInput>;
 export class ListOrdersTool implements McpToolHandler<ListOrdersInput> {
     constructor(
         private orderService: OrderService,
+        private translator: TranslatorService,
         private serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: ListOrdersInput) {
-        const result = await this.orderService.findAll(ctx, orderListOptions(input), [
-            'lines',
-            'shippingLines',
-            'payments',
-        ]);
+        const result = await this.orderService.findAll(ctx, orderListOptions(input), ORDER_LIST_RELATIONS);
+        translateLineVariants(result.items, this.translator, ctx);
         return page(
             result.items.map(order => this.serializer.order(order)),
             result.totalItems,

@@ -44,6 +44,7 @@ import { McpShopSessionService } from './shop-session/mcp-shop-session.service';
 import { mcpOauthRetentionTask } from './tasks/mcp-oauth-retention.task';
 import { mcpToolCallLogRetentionTask } from './tasks/mcp-tool-call-log-retention.task';
 import { McpActiveOrderService } from './tools/built-in/active-order.service';
+import { McpCatalogQueryService } from './tools/built-in/catalog-query.service';
 import { mcpBuiltInToolProviders } from './tools/built-in/providers';
 import { McpToolSerializerService } from './tools/built-in/serializer.service';
 import { McpTransportController } from './transport/mcp-transport.controller';
@@ -87,6 +88,7 @@ import { McpPluginOptions } from './types';
         McpToolCallLogService,
         McpActiveOrderService,
         McpToolSerializerService,
+        McpCatalogQueryService,
         ...mcpBuiltInToolProviders,
     ],
     entities: [McpOauthClient, McpAuthorizationCode, McpAuthorizationRequest, McpOauthGrant, McpToolCallLog],

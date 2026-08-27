@@ -11,7 +11,13 @@ describe('ListMyOrdersTool', () => {
     it('lists the newest placed orders first', async () => {
         const findByCustomerId = vi.fn().mockResolvedValue({ items: [], totalItems: 0 });
         const customerService = { findOneByUserId: () => Promise.resolve({ id: 7 }) } as any;
-        const tool = new ListMyOrdersTool(customerService, { findByCustomerId } as any, serializer);
+        const translator = { translate: (entity: unknown) => entity } as any;
+        const tool = new ListMyOrdersTool(
+            customerService,
+            { findByCustomerId } as any,
+            translator,
+            serializer,
+        );
 
         await tool.execute({ activeUserId: 42 } as any, { limit: 5 });
 

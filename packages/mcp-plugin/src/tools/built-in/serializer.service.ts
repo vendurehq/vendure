@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { ShippingMethodQuote } from '@vendure/common/lib/generated-types';
+import { OrderAddress, ShippingMethodQuote } from '@vendure/common/lib/generated-types';
 import {
+    Address,
     Asset,
     Channel,
     Collection,
@@ -8,15 +9,22 @@ import {
     CurrencyCode,
     Customer,
     CustomerGroup,
+    Fulfillment,
+    FulfillmentLine,
     GraphQLErrorResult,
+    ID,
     isGraphQlErrorResult,
     Order,
     Payment,
     Product,
     ProductOptionGroup,
     ProductVariant,
+    Refund,
     StockLevel,
 } from '@vendure/core';
+
+/** How much of a product's description a list item keeps; `get_product` has the whole text. */
+const LIST_ITEM_DESCRIPTION_LENGTH = 200;
 
 /**
  * Turns Vendure entities into the JSON that the built-in tools return.
@@ -39,7 +47,7 @@ export class McpToolSerializerService {
      * The digits are shifted as text rather than divided, because dividing by 100 introduces
      * floating-point error on values a shop will really see.
      */
-    private decimal(value: number | undefined | null): string {
+    decimal(value: number | undefined | null): string {
         const precision = this.configService.entityOptions.moneyStrategy.precision ?? 2;
         // Every money value Vendure hands to this method is already a whole number under the
         // default configuration, so this rounding normally changes nothing. It only matters if a
@@ -79,6 +87,10 @@ export class McpToolSerializerService {
         };
     }
 
+    adminVariant(variant: ProductVariant, stockOnHand: number) {
+        return { ...this.variant(variant), stockOnHand };
+    }
+
     product(product: Product | undefined | null) {
         if (!product) return null;
         return {
@@ -88,6 +100,38 @@ export class McpToolSerializerService {
             description: product.description,
             enabled: product.enabled,
             featuredAsset: product.featuredAsset ? this.asset(product.featuredAsset) : null,
+        };
+    }
+
+    productListItem(product: Product, variants: ProductVariant[]) {
+        const description = product.description ?? '';
+        return {
+            id: product.id,
+            name: product.name,
+            slug: product.slug,
+            description:
+                description.length > LIST_ITEM_DESCRIPTION_LENGTH
+                    ? `${description.slice(0, LIST_ITEM_DESCRIPTION_LENGTH)}...`
+                    : description,
+            enabled: product.enabled,
+            featuredAsset: product.featuredAsset
+                ? { id: product.featuredAsset.id, preview: product.featuredAsset.preview }
+                : null,
+            priceRange: this.priceRange(variants),
+        };
+    }
+
+    private priceRange(variants: ProductVariant[]) {
+        if (variants.length === 0) return null;
+        const prices = variants.map(variant => variant.priceWithTax);
+        const min = Math.min(...prices);
+        const max = Math.max(...prices);
+        return {
+            min,
+            minDecimal: this.decimal(min),
+            max,
+            maxDecimal: this.decimal(max),
+            currencyCode: variants[0].currencyCode,
         };
     }
 
@@ -141,7 +185,7 @@ export class McpToolSerializerService {
         };
     }
 
-    customer(customer: Customer | undefined | null) {
+    customer(customer: Customer | undefined | null, addresses?: Address[]) {
         if (!customer) return null;
         return {
             id: customer.id,
@@ -149,6 +193,27 @@ export class McpToolSerializerService {
             lastName: customer.lastName,
             emailAddress: customer.emailAddress,
             phoneNumber: customer.phoneNumber,
+            addresses: addresses ? addresses.map(address => this.customerAddress(address)) : undefined,
+        };
+    }
+
+    private customerAddress(address: Address) {
+        return {
+            id: address.id,
+            ...this.address({
+                fullName: address.fullName,
+                company: address.company,
+                streetLine1: address.streetLine1,
+                streetLine2: address.streetLine2,
+                city: address.city,
+                province: address.province,
+                postalCode: address.postalCode,
+                // A saved address points at a Country entity, while an order stores the code directly.
+                countryCode: address.country?.code,
+                phoneNumber: address.phoneNumber,
+            }),
+            defaultShippingAddress: address.defaultShippingAddress,
+            defaultBillingAddress: address.defaultBillingAddress,
         };
     }
 
@@ -184,6 +249,73 @@ export class McpToolSerializerService {
             transactionId: payment.transactionId,
             errorMessage: payment.errorMessage,
             publicMetadata: payment.metadata?.public ?? null,
+            refunds: payment.refunds?.map(refund => ({
+                id: refund.id,
+                state: refund.state,
+                total: refund.total,
+                totalDecimal: this.decimal(refund.total),
+                reason: refund.reason ?? null,
+            })),
+        };
+    }
+
+    fulfillment(fulfillment: Fulfillment, lines: FulfillmentLine[]) {
+        return {
+            id: fulfillment.id,
+            state: fulfillment.state,
+            method: fulfillment.method,
+            trackingCode: fulfillment.trackingCode,
+            lines: lines.map(line => ({ orderLineId: line.orderLineId, quantity: line.quantity })),
+        };
+    }
+
+    refund(refund: Refund, currencyCode: CurrencyCode) {
+        return {
+            id: refund.id,
+            state: refund.state,
+            total: refund.total,
+            totalDecimal: this.decimal(refund.total),
+            currencyCode,
+            reason: refund.reason ?? null,
+            paymentId: refund.paymentId,
+        };
+    }
+
+    private orderAddress(address: OrderAddress | undefined | null) {
+        if (!address || Object.keys(address).length === 0) return null;
+        return this.address(address);
+    }
+
+    private address(address: {
+        fullName?: string | null;
+        company?: string | null;
+        streetLine1?: string | null;
+        streetLine2?: string | null;
+        city?: string | null;
+        province?: string | null;
+        postalCode?: string | null;
+        countryCode?: string | null;
+        phoneNumber?: string | null;
+    }) {
+        return {
+            fullName: address.fullName ?? null,
+            company: address.company ?? null,
+            streetLine1: address.streetLine1 ?? null,
+            streetLine2: address.streetLine2 ?? null,
+            city: address.city ?? null,
+            province: address.province ?? null,
+            postalCode: address.postalCode ?? null,
+            countryCode: address.countryCode ?? null,
+            phoneNumber: address.phoneNumber ?? null,
+        };
+    }
+
+    orderNote(entry: { id: ID; data: { note: string }; isPublic: boolean; createdAt: Date }) {
+        return {
+            id: entry.id,
+            text: entry.data.note,
+            isPublic: entry.isPublic,
+            createdAt: this.isoDate(entry.createdAt),
         };
     }
 
@@ -220,9 +352,25 @@ export class McpToolSerializerService {
                     quantity: line.quantity,
                     linePriceWithTax: line.linePriceWithTax,
                     linePriceWithTaxDecimal: this.decimal(line.linePriceWithTax),
-                    productVariant: line.productVariant ? this.variant(line.productVariant) : null,
+                    productVariant: line.productVariant
+                        ? {
+                              id: line.productVariant.id,
+                              name: line.productVariant.name,
+                              sku: line.productVariant.sku,
+                          }
+                        : null,
                 })) ?? [],
             payments: order.payments ? order.payments.map(payment => this.payment(payment)) : undefined,
+            // Undefined unless the tool loaded `fulfillments`, the same convention as `payments`.
+            // The cart tools leave it out: an open cart has no shipments to report.
+            fulfillments: order.fulfillments
+                ? order.fulfillments.map(fulfillment =>
+                      this.fulfillment(fulfillment, fulfillment.lines ?? []),
+                  )
+                : undefined,
+            customer: this.orderCustomer(order.customer),
+            shippingAddress: this.orderAddress(order.shippingAddress),
+            billingAddress: this.orderAddress(order.billingAddress),
             shippingWithTax: order.shippingWithTax,
             shippingWithTaxDecimal: this.decimal(order.shippingWithTax),
             shippingLines: order.shippingLines
@@ -233,6 +381,17 @@ export class McpToolSerializerService {
                       priceWithTaxDecimal: this.decimal(line.priceWithTax),
                   }))
                 : undefined,
+        };
+    }
+
+    private orderCustomer(customer: Order['customer']) {
+        if (customer === undefined) return undefined;
+        if (customer === null) return null;
+        return {
+            id: customer.id,
+            emailAddress: customer.emailAddress,
+            firstName: customer.firstName,
+            lastName: customer.lastName,
         };
     }
 

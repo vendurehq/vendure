@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { GlobalFlag } from '@vendure/common/lib/generated-types';
-import { Permission, ProductVariantService, RequestContext } from '@vendure/core';
+import { Permission, ProductVariantService, RequestContext, StockLevelService } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
@@ -60,11 +60,13 @@ type UpdateVariantToolInput = z.infer<typeof updateVariantInput>;
 export class UpdateVariantTool implements McpToolHandler<UpdateVariantToolInput> {
     constructor(
         private productVariantService: ProductVariantService,
+        private stockLevelService: StockLevelService,
         private serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: UpdateVariantToolInput) {
-        const variants = await this.productVariantService.update(ctx, [{ ...input.input, id: input.id }]);
-        return { variants: variants.map(variant => this.serializer.variant(variant)) };
+        const [variant] = await this.productVariantService.update(ctx, [{ ...input.input, id: input.id }]);
+        const { stockOnHand } = await this.stockLevelService.getAvailableStock(ctx, variant.id);
+        return { variant: this.serializer.adminVariant(variant, stockOnHand) };
     }
 }

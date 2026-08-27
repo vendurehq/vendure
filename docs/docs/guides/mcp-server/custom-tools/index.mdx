@@ -204,8 +204,8 @@ Use `behavior: 'destructive'` for tools that delete, cancel, refund, or otherwis
 difficult-to-reverse change. The registry then does the confirmation handshake for you:
 
 - It advertises an optional `confirm: boolean` parameter on the tool's schema.
-- On a call without `confirm: true`, it returns a non-error response that describes the action and asks for a
-  confirmed re-call. Your `execute` is not run.
+- Without `confirm: true`, it returns a non-error approval request with the tool's name and description, never
+  its arguments; your `execute` is not run.
 - On `confirm: true`, it strips `confirm` and runs your `execute`.
 
 :::warning

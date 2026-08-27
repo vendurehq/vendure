@@ -11,7 +11,9 @@ const updateOrderStateInput = z.strictObject({
     id: idSchema.describe('Order ID.'),
     // The state machine decides whether the target state is legal, so any string is accepted
     // here and checked by the transition call in execute().
-    state: enumString<OrderState>(z.string().describe('Target order state, e.g. "Shipped" or "Cancelled".')),
+    state: enumString<OrderState>(
+        z.string().describe('Target order state, e.g. "PaymentSettled" or "AddingItems".'),
+    ),
 });
 
 type UpdateOrderStateInput = z.infer<typeof updateOrderStateInput>;
@@ -19,14 +21,16 @@ type UpdateOrderStateInput = z.infer<typeof updateOrderStateInput>;
 @McpTool({
     name: 'update_order_state',
     toolset: 'admin',
-    description: 'Transition an order to a new state.',
+    description:
+        'Transition an order to another state, such as PaymentAuthorized to PaymentSettled, or a ' +
+        'checkout between AddingItems and ArrangingPayment. Shipped and Delivered come from ' +
+        'create_fulfillment; cancelling is cancel_order.',
     keywords: [
         'change the order status',
-        'mark an order as shipped',
-        'move the order to the next stage',
-        "advance an order's fulfillment",
-        'set the order to complete',
         'transition order status',
+        'move the order to the next stage',
+        'settle the payment on an authorized order',
+        'send a stuck checkout back to the cart',
     ],
     permissions: [Permission.UpdateOrder],
     behavior: 'destructive',

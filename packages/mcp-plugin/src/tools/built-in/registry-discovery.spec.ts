@@ -8,14 +8,18 @@ import {
     ConfigService,
     CustomerGroupService,
     CustomerService,
+    FulfillmentService,
+    HistoryService,
     OrderService,
     ProductOptionGroupService,
     ProductService,
     ProductVariantService,
+    SessionService,
     SettingsStoreService,
     StockLevelService,
     StockLocationService,
     TransactionalConnection,
+    TranslatorService,
 } from '@vendure/core';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -29,6 +33,7 @@ import { McpShopSessionService } from '../../shop-session/mcp-shop-session.servi
 
 import { McpActiveOrderService } from './active-order.service';
 import { adminToolProviders } from './admin';
+import { McpCatalogQueryService } from './catalog-query.service';
 import { mcpBuiltInToolProviders } from './providers';
 import { McpToolSerializerService } from './serializer.service';
 import { shopToolProviders } from './shop';
@@ -48,6 +53,7 @@ describe('built-in registry discovery', () => {
                 McpToolSchemaService,
                 McpActiveOrderService,
                 McpToolSerializerService,
+                McpCatalogQueryService,
                 { provide: ActiveOrderService, useValue: {} },
                 { provide: AssetService, useValue: {} },
                 { provide: ChannelService, useValue: {} },
@@ -55,15 +61,19 @@ describe('built-in registry discovery', () => {
                 { provide: ConfigService, useValue: { authOptions: { customPermissions: [] } } },
                 { provide: CustomerGroupService, useValue: {} },
                 { provide: CustomerService, useValue: {} },
+                { provide: FulfillmentService, useValue: {} },
+                { provide: HistoryService, useValue: {} },
                 { provide: OrderService, useValue: {} },
                 { provide: ProductOptionGroupService, useValue: {} },
                 { provide: ProductService, useValue: {} },
                 { provide: ProductVariantService, useValue: {} },
+                { provide: SessionService, useValue: {} },
                 { provide: McpShopSessionService, useValue: {} },
                 { provide: SettingsStoreService, useValue: { get: vi.fn(), set: vi.fn() } },
                 { provide: StockLevelService, useValue: {} },
                 { provide: StockLocationService, useValue: {} },
                 { provide: TransactionalConnection, useValue: {} },
+                { provide: TranslatorService, useValue: {} },
                 { provide: McpRateLimiterService, useValue: {} },
                 { provide: McpToolCallLogService, useValue: {} },
                 { provide: MCP_PLUGIN_OPTIONS, useValue: resolveMcpPluginOptions({}) },

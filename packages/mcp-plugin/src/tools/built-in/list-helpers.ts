@@ -1,5 +1,14 @@
 import { OrderListOptions, SortOrder } from '@vendure/common/lib/generated-types';
-import { Collection, ListQueryOptions, Order, Product, VendureEntity } from '@vendure/core';
+import {
+    Collection,
+    ListQueryOptions,
+    Order,
+    Product,
+    RelationPaths,
+    RequestContext,
+    TranslatorService,
+    VendureEntity,
+} from '@vendure/core';
 import { z } from 'zod';
 
 /** Common pagination fields shared by the list tool inputs (already validated by the tool schema). */
@@ -107,9 +116,14 @@ export function productSearchWords(query: string | undefined, trimPlurals = fals
 
 /**
  * Builds the query for a public product search: only enabled products, and every word has to turn
- * up in the product's name or slug, in any order. Descriptions are not searched.
+ * up in the product's name or slug, in any order. Descriptions are not searched. When `productIds`
+ * is given, only those products can match; an empty list matches nothing.
  */
-export function publicProductListOptions(input: ListInput, words: string[] = []): ListQueryOptions<Product> {
+export function publicProductListOptions(
+    input: ListInput,
+    words: string[] = [],
+    productIds?: string[],
+): ListQueryOptions<Product> {
     const options = listOptions<Product>({ limit: input.limit, offset: input.offset });
     const wordFilters = words.map(word => ({
         _or: [{ name: { contains: word } }, { slug: { contains: word } }],
@@ -119,6 +133,7 @@ export function publicProductListOptions(input: ListInput, words: string[] = [])
         filter: {
             enabled: { eq: true },
             ...(wordFilters.length ? { _and: wordFilters } : {}),
+            ...(productIds ? { id: { in: productIds } } : {}),
         },
     };
 }
@@ -155,4 +170,26 @@ export function orderListOptions(input: OrderListInput): OrderListOptions {
         // orders" would get an arbitrary page. Newest placed first is what an operations user means.
         sort: { [field]: direction },
     };
+}
+
+export const ORDER_LIST_RELATIONS: RelationPaths<Order> = [
+    'lines',
+    'lines.productVariant',
+    'lines.productVariant.translations',
+    'shippingLines',
+    'payments',
+    'payments.refunds',
+    'fulfillments',
+    'fulfillments.lines',
+    'customer',
+];
+
+export const ORDER_DETAIL_RELATIONS: RelationPaths<Order> = [...ORDER_LIST_RELATIONS, 'customer.user'];
+
+export function translateLineVariants(orders: Order[], translator: TranslatorService, ctx: RequestContext) {
+    for (const order of orders) {
+        for (const line of order.lines) {
+            line.productVariant = translator.translate(line.productVariant, ctx);
+        }
+    }
 }

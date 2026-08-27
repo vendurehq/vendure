@@ -720,7 +720,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                     type: 'text',
                     text:
                         `This is a destructive action: ${tool.description} ` +
-                        `Re-call "${tool.name}" with "confirm": true to proceed.`,
+                        `Ask the user to approve it, then re-call "${tool.name}" with "confirm": true.`,
                 },
             ],
             structuredContent: {

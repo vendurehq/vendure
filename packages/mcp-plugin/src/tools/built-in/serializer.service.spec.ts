@@ -34,6 +34,49 @@ describe('McpToolSerializerService', () => {
         });
     });
 
+    it('adds stock on hand to the admin variant shape', () => {
+        expect(
+            service.adminVariant({ id: 27, sku: 'IC-27', price: 100, priceWithTax: 120 } as any, 40),
+        ).toMatchObject({
+            id: 27,
+            sku: 'IC-27',
+            priceDecimal: '1.00',
+            priceWithTaxDecimal: '1.20',
+            stockOnHand: 40,
+        });
+    });
+
+    it('serializes a product list item with a reduced asset, description, and price range', () => {
+        const longDescription = 'x'.repeat(250);
+        const asset = { id: 3, preview: 'preview.jpg', source: 'source.jpg', width: 800 };
+        const item = service.productListItem(
+            {
+                id: 1,
+                name: 'Shirt',
+                slug: 'shirt',
+                description: longDescription,
+                enabled: true,
+                featuredAsset: asset,
+            } as any,
+            [
+                { priceWithTax: 720, currencyCode: 'USD' },
+                { priceWithTax: 600, currencyCode: 'USD' },
+                { priceWithTax: 840, currencyCode: 'USD' },
+            ] as any,
+        );
+        expect(item).toMatchObject({
+            description: `${'x'.repeat(200)}...`,
+            featuredAsset: { id: 3, preview: 'preview.jpg' },
+            priceRange: {
+                min: 600,
+                minDecimal: '6.00',
+                max: 840,
+                maxDecimal: '8.40',
+                currencyCode: 'USD',
+            },
+        });
+    });
+
     it('returns null for a missing variant or order', () => {
         expect(service.variant(null)).toBeNull();
         expect(service.order(undefined)).toBeNull();
@@ -106,33 +149,75 @@ describe('McpToolSerializerService', () => {
         });
     });
 
-    it('adds decimal prices and the order currency to a shipping quote', () => {
-        expect(
-            service.shippingQuote(
-                {
-                    id: 1,
-                    code: 'standard-shipping',
-                    name: 'Standard Shipping',
-                    description: '',
-                    price: 500,
-                    priceWithTax: 600,
-                } as any,
-                'USD' as any,
-            ),
-        ).toEqual({
-            id: 1,
-            code: 'standard-shipping',
-            name: 'Standard Shipping',
-            description: '',
-            price: 500,
-            priceDecimal: '5.00',
-            priceWithTax: 600,
-            priceWithTaxDecimal: '6.00',
-            currencyCode: 'USD',
+    it('omits the address book unless the caller passes it', () => {
+        const serialized = service.customer({
+            id: 4,
+            firstName: 'Ada',
+            lastName: 'Lovelace',
+            emailAddress: 'ada@example.test',
+            phoneNumber: '555-0100',
+            // Core loads this relation for reasons of its own - a customer list filtered by
+            // postalCode does it - and those rows carry no country, so they are not used here.
+            addresses: [{ id: 9, streetLine1: '12 Test Street' }],
+        } as any);
+
+        expect(serialized).toEqual({
+            id: 4,
+            firstName: 'Ada',
+            lastName: 'Lovelace',
+            emailAddress: 'ada@example.test',
+            phoneNumber: '555-0100',
+            addresses: undefined,
         });
+        expect('addresses' in JSON.parse(JSON.stringify(serialized))).toBe(false);
     });
 
-    it('keeps whatever a shipping calculator attached to a quote', () => {
+    it("serializes the addresses it is given, with each address's default flags", () => {
+        const serialized = service.customer(
+            {
+                id: 4,
+                firstName: 'Ada',
+                lastName: 'Lovelace',
+                emailAddress: 'ada@example.test',
+                phoneNumber: '555-0100',
+            } as any,
+            [
+                {
+                    id: 9,
+                    fullName: 'Ada Lovelace',
+                    company: '',
+                    streetLine1: '12 Test Street',
+                    streetLine2: '',
+                    city: 'London',
+                    province: '',
+                    postalCode: 'N1 1AA',
+                    phoneNumber: '',
+                    country: { code: 'GB' },
+                    defaultShippingAddress: true,
+                    defaultBillingAddress: true,
+                },
+            ] as any,
+        );
+
+        expect(serialized?.addresses).toEqual([
+            {
+                id: 9,
+                fullName: 'Ada Lovelace',
+                company: '',
+                streetLine1: '12 Test Street',
+                streetLine2: '',
+                city: 'London',
+                province: '',
+                postalCode: 'N1 1AA',
+                countryCode: 'GB',
+                phoneNumber: '',
+                defaultShippingAddress: true,
+                defaultBillingAddress: true,
+            },
+        ]);
+    });
+
+    it('serializes a shipping quote without dropping calculator data', () => {
         expect(
             service.shippingQuote(
                 {
@@ -147,7 +232,16 @@ describe('McpToolSerializerService', () => {
                 } as any,
                 'GBP' as any,
             ),
-        ).toMatchObject({
+        ).toEqual({
+            id: 1,
+            code: 'standard-shipping',
+            name: 'Standard Shipping',
+            description: '',
+            price: 500,
+            priceDecimal: '5.00',
+            priceWithTax: 600,
+            priceWithTaxDecimal: '6.00',
+            currencyCode: 'GBP',
             metadata: { carrier: 'Royal Mail' },
             customFields: { warehouse: 'north' },
         });
@@ -189,35 +283,23 @@ describe('McpToolSerializerService', () => {
                     errorMessage: undefined,
                     metadata: { public: { redirectUrl: 'https://pay.example.com/x' }, secret: 'hidden' },
                 },
+                { id: 5, method: 'cash', amount: 100, state: 'Settled', metadata: {} },
             ],
         } as any);
 
-        expect(serialized?.payments).toEqual([
-            {
-                id: 4,
-                method: 'redirect-payment',
-                amount: 25199,
-                amountDecimal: '251.99',
-                state: 'Created',
-                transactionId: 'tx-1',
-                errorMessage: undefined,
-                publicMetadata: { redirectUrl: 'https://pay.example.com/x' },
-            },
-        ]);
+        expect(serialized?.payments?.[0]).toEqual({
+            id: 4,
+            method: 'redirect-payment',
+            amount: 25199,
+            amountDecimal: '251.99',
+            state: 'Created',
+            transactionId: 'tx-1',
+            errorMessage: undefined,
+            publicMetadata: { redirectUrl: 'https://pay.example.com/x' },
+            refunds: undefined,
+        });
         expect(JSON.stringify(serialized)).not.toContain('hidden');
-    });
-
-    it('gives publicMetadata null when the handler stored no public metadata', () => {
-        const serialized = service.order({
-            id: 1,
-            code: 'T_1',
-            state: 'ArrangingPayment',
-            lines: [],
-            discounts: [],
-            payments: [{ id: 4, method: 'cash', amount: 100, state: 'Settled', metadata: {} }],
-        } as any);
-
-        expect(serialized?.payments?.[0].publicMetadata).toBeNull();
+        expect(serialized?.payments?.[1].publicMetadata).toBeNull();
     });
 
     it("serializes an order's shipping lines, and omits them when the relation was not loaded", () => {
@@ -244,6 +326,150 @@ describe('McpToolSerializerService', () => {
             discounts: [],
         } as any);
         expect(withoutRelation?.shippingLines).toBeUndefined();
+    });
+
+    it("names an order's customer, answers null for a cart with nobody on it, and omits the key when the relation was not loaded", () => {
+        const withCustomer = service.order({
+            id: 1,
+            code: 'T_1',
+            state: 'AddingItems',
+            lines: [],
+            discounts: [],
+            customer: {
+                id: 7,
+                emailAddress: 'jane@example.com',
+                firstName: 'Jane',
+                lastName: 'Doe',
+                phoneNumber: '555',
+            },
+        } as any);
+        // The order shape names the buyer and nothing more; `get_my_account` is where the rest of
+        // a customer's details live.
+        expect(withCustomer?.customer).toEqual({
+            id: 7,
+            emailAddress: 'jane@example.com',
+            firstName: 'Jane',
+            lastName: 'Doe',
+        });
+
+        // TypeORM sets the property to null when the relation was asked for and the order has
+        // nobody on it, and leaves it undefined when the relation was never loaded.
+        const anonymousCart = service.order({
+            id: 1,
+            code: 'T_1',
+            state: 'AddingItems',
+            lines: [],
+            discounts: [],
+            customer: null,
+        } as any);
+        expect(anonymousCart?.customer).toBeNull();
+
+        const withoutRelation = service.order({
+            id: 1,
+            code: 'T_1',
+            state: 'AddingItems',
+            lines: [],
+            discounts: [],
+        } as any);
+        expect(withoutRelation?.customer).toBeUndefined();
+    });
+
+    it("lists a payment's refunds when the relation was loaded, and omits the key when it was not", () => {
+        const withRefunds = service.payment({
+            id: 4,
+            method: 'cash',
+            amount: 25199,
+            state: 'Settled',
+            metadata: {},
+            refunds: [
+                { id: 9, state: 'Settled', total: 5000, reason: 'Damaged' },
+                { id: 10, state: 'Failed', total: 100 },
+            ],
+        } as any);
+        expect(withRefunds.refunds).toEqual([
+            { id: 9, state: 'Settled', total: 5000, totalDecimal: '50.00', reason: 'Damaged' },
+            { id: 10, state: 'Failed', total: 100, totalDecimal: '1.00', reason: null },
+        ]);
+
+        const withoutRelation = service.payment({
+            id: 4,
+            method: 'cash',
+            amount: 100,
+            state: 'Settled',
+        } as any);
+        expect(withoutRelation.refunds).toBeUndefined();
+        expect('refunds' in JSON.parse(JSON.stringify(withoutRelation))).toBe(false);
+    });
+
+    it('serializes a refund with the order currency and the payment it comes from', () => {
+        expect(
+            service.refund(
+                { id: 9, state: 'Pending', total: 5000, reason: undefined, paymentId: 4 } as any,
+                'USD' as any,
+            ),
+        ).toEqual({
+            id: 9,
+            state: 'Pending',
+            total: 5000,
+            totalDecimal: '50.00',
+            currencyCode: 'USD',
+            reason: null,
+            paymentId: 4,
+        });
+    });
+
+    it('serializes an order note from its history entry', () => {
+        expect(
+            service.orderNote({
+                id: 12,
+                data: { note: 'Customer asked for gift wrap' },
+                isPublic: true,
+                createdAt: new Date('2026-08-27T08:00:00.000Z'),
+            } as any),
+        ).toEqual({
+            id: 12,
+            text: 'Customer asked for gift wrap',
+            isPublic: true,
+            createdAt: '2026-08-27T08:00:00.000Z',
+        });
+    });
+
+    it("gives an order's addresses as null when unset, whether missing or core's empty object", () => {
+        const base = { id: 1, code: 'T_1', state: 'AddingItems', lines: [], discounts: [] };
+        expect(
+            service.order({ ...base, shippingAddress: {}, billingAddress: undefined } as any),
+        ).toMatchObject({
+            shippingAddress: null,
+            billingAddress: null,
+        });
+    });
+
+    it("serializes an order's address with all nine fields, null where a field was not given", () => {
+        const serialized = service.order({
+            id: 1,
+            code: 'T_1',
+            state: 'ArrangingPayment',
+            lines: [],
+            discounts: [],
+            shippingAddress: {
+                fullName: 'Ada Lovelace',
+                streetLine1: '12 Test Street',
+                city: 'London',
+                postalCode: 'N1 1AA',
+                countryCode: 'GB',
+            },
+        } as any);
+        expect(serialized?.shippingAddress).toEqual({
+            fullName: 'Ada Lovelace',
+            company: null,
+            streetLine1: '12 Test Street',
+            streetLine2: null,
+            city: 'London',
+            province: null,
+            postalCode: 'N1 1AA',
+            countryCode: 'GB',
+            phoneNumber: null,
+        });
     });
 
     it('omits payments when the relation was not loaded', () => {
@@ -310,19 +536,11 @@ describe('McpToolSerializerService', () => {
                     quantity: 1,
                     linePriceWithTax: 25199,
                     linePriceWithTaxDecimal: '251.99',
-                    productVariant: {
-                        id: 27,
-                        name: 'Instant Camera',
-                        sku: 'IC-27',
-                        enabled: true,
-                        price: 20999,
-                        priceDecimal: '209.99',
-                        priceWithTax: 25199,
-                        priceWithTaxDecimal: '251.99',
-                        currencyCode: undefined,
-                    },
+                    productVariant: { id: 27, name: 'Instant Camera', sku: 'IC-27' },
                 },
             ],
+            shippingAddress: null,
+            billingAddress: null,
             shippingWithTax: undefined,
             shippingWithTaxDecimal: '0.00',
             shippingLines: undefined,

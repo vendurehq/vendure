@@ -3,6 +3,7 @@ import { ConfigService, OrderService, Permission, RequestContext } from '@vendur
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
+import { ORDER_DETAIL_RELATIONS } from '../list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 
 const getOrderInput = z.strictObject({
@@ -36,18 +37,18 @@ export class ShopGetOrderTool implements McpToolHandler<GetOrderInput> {
     ) {}
 
     async execute(ctx: RequestContext, input: GetOrderInput) {
-        const order = await this.orderService.findOneByCode(ctx, input.code, [
-            'lines',
-            'shippingLines',
-            'customer',
-            'customer.user',
-            'payments',
-        ]);
-        if (!order) return { order: null };
-        const canAccess = await this.configService.orderOptions.orderByCodeAccessStrategy.canAccessOrder(
-            ctx,
-            order,
-        );
-        return { order: canAccess ? this.serializer.order(order) : null };
+        const order = await this.orderService.findOneByCode(ctx, input.code, ORDER_DETAIL_RELATIONS);
+        const access = this.configService.orderOptions.orderByCodeAccessStrategy;
+        if (order && (await access.canAccessOrder(ctx, order))) {
+            return { order: this.serializer.order(order) };
+        }
+        // One message for "no such code" and "someone else's order": telling them apart would let an
+        // anonymous caller find out which codes exist.
+        return {
+            order: null,
+            message:
+                `No order with code ${input.code} is visible to this caller. ` +
+                'Sign in as the customer who placed it to see it.',
+        };
     }
 }

@@ -3,6 +3,7 @@ import { Permission, Product, ProductService, RequestContext } from '@vendure/co
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
+import { McpCatalogQueryService } from '../catalog-query.service';
 import {
     booleanFilter,
     dateFilter,
@@ -58,13 +59,22 @@ type ListProductsInput = z.infer<typeof listProductsInput>;
 export class ListProductsTool implements McpToolHandler<ListProductsInput> {
     constructor(
         private productService: ProductService,
+        private catalog: McpCatalogQueryService,
         private serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: ListProductsInput) {
         const result = await this.productService.findAll(ctx, listOptions<Product>(input), ['featuredAsset']);
+        // Staff see the whole catalog, so the price range counts disabled variants too.
+        const variantsByProduct = await this.catalog.variantsByProductId(
+            ctx,
+            result.items.map(product => product.id),
+            { includeDisabled: true },
+        );
         return page(
-            result.items.map(product => this.serializer.product(product)),
+            result.items.map(product =>
+                this.serializer.productListItem(product, variantsByProduct.get(String(product.id)) ?? []),
+            ),
             result.totalItems,
             input,
         );

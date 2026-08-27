@@ -131,7 +131,9 @@ export class McpActiveOrderService {
                 'lines',
                 'lines.productVariant',
                 'payments',
+                'payments.refunds',
                 'shippingLines',
+                'customer',
             ])) ?? order
         );
     }

@@ -367,7 +367,9 @@ describe('McpActiveOrderService', () => {
                 'lines',
                 'lines.productVariant',
                 'payments',
+                'payments.refunds',
                 'shippingLines',
+                'customer',
             ]);
             expect(result).toBe(orderWithRelations);
         });

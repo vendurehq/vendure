@@ -1,12 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import {
+    ConfigService,
+    idsAreEqual,
     Permission,
     ProductOptionGroupService,
     ProductService,
     ProductVariantService,
     RequestContext,
+    StockLevel,
+    TransactionalConnection,
 } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { In } from 'typeorm';
 import { z } from 'zod';
 
 import { idSchema } from '../id-schema';
@@ -44,6 +49,8 @@ export class AdminGetProductTool implements McpToolHandler<GetProductInput> {
         private productService: ProductService,
         private productVariantService: ProductVariantService,
         private productOptionGroupService: ProductOptionGroupService,
+        private connection: TransactionalConnection,
+        private configService: ConfigService,
         private serializer: McpToolSerializerService,
     ) {}
 
@@ -54,11 +61,25 @@ export class AdminGetProductTool implements McpToolHandler<GetProductInput> {
         }
 
         const variants = await this.productVariantService.getVariantsByProductId(ctx, product.id, {}, []);
+        const stockLevels = await this.connection.getRepository(ctx, StockLevel).find({
+            where: { productVariantId: In(variants.items.map(variant => variant.id)) },
+        });
+        const { stockLocationStrategy } = this.configService.catalogOptions;
+        const variantsWithStock = await Promise.all(
+            variants.items.map(async variant => {
+                const { stockOnHand } = await stockLocationStrategy.getAvailableStock(
+                    ctx,
+                    variant.id,
+                    stockLevels.filter(level => idsAreEqual(level.productVariantId, variant.id)),
+                );
+                return this.serializer.adminVariant(variant, stockOnHand);
+            }),
+        );
         const optionGroups = await this.productOptionGroupService.getOptionGroupsByProductId(ctx, product.id);
         return {
             product: {
                 ...this.serializer.product(product),
-                variants: variants.items.map(variant => this.serializer.variant(variant)),
+                variants: variantsWithStock,
                 optionGroups: optionGroups.map(group => this.serializer.optionGroup(group)),
             },
         };

@@ -6,8 +6,8 @@ import { mcpBuiltInToolProviders } from './providers';
 import { metadataFor, toJsonInputSchema } from './spec-helpers';
 
 const allowedOpenObjectPaths = new Set([
-    'set_checkout_addresses.shippingAddress.customFields',
-    'set_checkout_addresses.billingAddress.customFields',
+    'set_checkout_details.shippingAddress.customFields',
+    'set_checkout_details.billingAddress.customFields',
     'place_order.paymentMetadata',
     // The admin create/update inputs deliberately accept any keys under customFields, because each
     // project defines its own custom fields.
@@ -111,7 +111,7 @@ describe('built-in shop tool providers', () => {
                 'place_order',
                 'remove_coupon_code',
                 'remove_from_cart',
-                'set_checkout_addresses',
+                'set_checkout_details',
                 'set_shipping_method',
                 'update_cart_line',
             ].sort(),

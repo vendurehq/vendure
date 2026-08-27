@@ -3,6 +3,7 @@ import { AddNoteToOrderTool } from './add-note-to-order.tool';
 import { AdjustStockTool } from './adjust-stock.tool';
 import { CancelOrderTool } from './cancel-order.tool';
 import { CreateCustomerTool } from './create-customer.tool';
+import { CreateFulfillmentTool } from './create-fulfillment.tool';
 import { CreateProductTool } from './create-product.tool';
 import { CreateVariantTool } from './create-variant.tool';
 import { GetCustomerTool } from './get-customer.tool';
@@ -29,6 +30,7 @@ export const adminToolProviders = [
     CancelOrderTool,
     RefundOrderTool,
     AddNoteToOrderTool,
+    CreateFulfillmentTool,
     ListCustomersTool,
     GetCustomerTool,
     CreateCustomerTool,

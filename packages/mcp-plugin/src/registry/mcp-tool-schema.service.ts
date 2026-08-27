@@ -121,7 +121,9 @@ export class McpToolSchemaService {
         if (injectedFields.confirm) {
             wire.properties.confirm = {
                 type: 'boolean',
-                description: 'Set to true to confirm and run this destructive action. Omit to preview it.',
+                description:
+                    'Omit on the first call to get a preview. Set to true only after the user has ' +
+                    'approved the action.',
             };
         }
         if (injectedFields.sessionToken) {

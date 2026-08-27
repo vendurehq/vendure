@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { CreateAddressInput } from '@vendure/common/lib/generated-shop-types';
+import { CreateAddressInput, CreateCustomerInput } from '@vendure/common/lib/generated-shop-types';
 import {
+    ConfigService,
+    EntityNotFoundError,
+    GraphQLErrorResult,
+    isGraphQlErrorResult,
     Order,
     OrderModificationError,
     OrderService,
@@ -13,11 +17,12 @@ import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { cartIsEditable, McpActiveOrderService } from '../active-order.service';
+import { emailAddressSchema } from '../email-schema';
 import { McpToolSerializerService } from '../serializer.service';
 
 import { addressInputSchema } from './address-schema';
 
-const setCheckoutAddressesInput = z
+const setCheckoutDetailsInput = z
     .strictObject({
         shippingAddress: addressInputSchema.describe('Where the order is delivered.').optional(),
         billingAddress: addressInputSchema.describe('Where the invoice goes.').optional(),
@@ -28,15 +33,29 @@ const setCheckoutAddressesInput = z
                     'call, or the shipping address already on the cart. Cannot be combined with billingAddress.',
             )
             .optional(),
+        customer: z
+            .strictObject({
+                emailAddress: emailAddressSchema.describe('Buyer email address.'),
+                firstName: z.string().describe('Buyer first name.'),
+                lastName: z.string().describe('Buyer last name.'),
+            })
+            .describe(
+                'Who is buying, for a guest checkout. Not needed when the caller is a signed-in customer.',
+            )
+            .optional(),
     })
-    .refine(input => input.shippingAddress || input.billingAddress || input.billingSameAsShipping, {
-        message: 'Pass shippingAddress, billingAddress, or billingSameAsShipping: true.',
-    })
+    .refine(
+        input =>
+            input.shippingAddress || input.billingAddress || input.billingSameAsShipping || input.customer,
+        {
+            message: 'Pass shippingAddress, billingAddress, billingSameAsShipping: true, or customer.',
+        },
+    )
     .refine(input => !(input.billingAddress && input.billingSameAsShipping), {
         message: 'billingAddress and billingSameAsShipping cannot both be given.',
     });
 
-type SetCheckoutAddressesInput = z.infer<typeof setCheckoutAddressesInput>;
+type SetCheckoutDetailsInput = z.infer<typeof setCheckoutDetailsInput>;
 
 const shippingMethodReplacedMessage =
     'The new shipping address made the chosen shipping method ineligible, so the store replaced it ' +
@@ -48,13 +67,14 @@ const shippingMethodRemovedMessage =
     'set_shipping_method again before place_order.';
 
 @McpTool({
-    name: 'set_checkout_addresses',
+    name: 'set_checkout_details',
     toolset: 'shop',
     description:
-        'Set the active cart shipping address, billing address, or both in one call. Changing the ' +
-        'shipping address can make the chosen shipping method ineligible; the response then carries ' +
-        'shippingMethodChanged: true and a message saying whether the store swapped the method or ' +
-        'dropped it.',
+        "Set the cart's shipping address, billing address, or both, and for a guest checkout the " +
+        "buyer's email and name, in one call. A guest checkout needs the buyer named here, through " +
+        'customer, before place_order will take a payment. Changing the shipping address can make ' +
+        'the chosen shipping method ineligible; the response then carries shippingMethodChanged: ' +
+        'true and a message saying whether the store swapped the method or dropped it.',
     keywords: [
         'enter my delivery address',
         'where to ship my order',
@@ -66,31 +86,56 @@ const shippingMethodRemovedMessage =
         'set the address on my card',
         'billing details for checkout',
         'same address for billing and shipping',
+        'check out as a guest',
+        'buy without an account',
     ],
     permissions: [Permission.Public],
     behavior: 'mutating',
     usesActiveOrder: true,
-    inputSchema: setCheckoutAddressesInput,
+    inputSchema: setCheckoutDetailsInput,
 })
 @Injectable()
-export class SetCheckoutAddressesTool implements McpToolHandler<SetCheckoutAddressesInput> {
+export class SetCheckoutDetailsTool implements McpToolHandler<SetCheckoutDetailsInput> {
     constructor(
         private activeOrder: McpActiveOrderService,
         private orderService: OrderService,
         private connection: TransactionalConnection,
         private serializer: McpToolSerializerService,
+        private configService: ConfigService,
     ) {}
 
-    async execute(ctx: RequestContext, input: SetCheckoutAddressesInput) {
+    async execute(ctx: RequestContext, input: SetCheckoutDetailsInput) {
+        // Core's DefaultGuestCheckoutStrategy refuses a signed-in caller too, with
+        // AlreadyLoggedInError. This guard is only here for the clearer sentence, and to stop
+        // before the cart is touched.
+        if (input.customer && ctx.activeUserId) {
+            throw new UserInputError('This call is signed in as a customer; omit customer.');
+        }
         const cart = await this.activeOrder.findOrThrow(ctx);
         if (!cartIsEditable(cart)) {
             return this.serializer.orderOrError(new OrderModificationError());
         }
         return this.connection.withTransaction(cart.ctx, async txCtx => {
-            const before = await this.orderService.findOne(txCtx, cart.id, ['shippingLines']);
+            // The customer relation is loaded so that the answer can show who the cart belongs to.
+            const before = await this.orderService.findOne(txCtx, cart.id, ['shippingLines', 'customer']);
+            if (!before) {
+                // The cart was there a moment ago, so only a concurrent deletion gets here.
+                throw new EntityNotFoundError('Order', cart.id);
+            }
             const methodsBefore = shippingMethodIds(before);
 
             let order: Order | undefined = before;
+            // A rejected guest — an email that already has an account, say — comes back as a
+            // returned error result, which leaves the transaction to commit whatever was written
+            // before it, while a thrown error rolls the whole call back. So the buyer is named
+            // first: a refusal there then leaves the cart with no addresses written either.
+            if (input.customer) {
+                const withCustomer = await this.setGuestCustomer(txCtx, before, input.customer);
+                if (isGraphQlErrorResult(withCustomer)) {
+                    return this.serializer.orderOrError(withCustomer);
+                }
+                order = withCustomer;
+            }
             if (input.shippingAddress) {
                 order = await this.orderService.setShippingAddress(txCtx, cart.id, input.shippingAddress);
             }
@@ -110,6 +155,26 @@ export class SetCheckoutAddressesTool implements McpToolHandler<SetCheckoutAddre
                 ...(changed ? { shippingMethodChanged: true, message } : {}),
             };
         });
+    }
+
+    /**
+     * Names a guest buyer on the cart, the same way the Shop API's `setCustomerForOrder` mutation
+     * does. The store's guest checkout strategy turns the details into a Customer, and refuses
+     * when guest checkout is switched off or when the email address already has an account; the
+     * cart is then attached to that Customer. The other half of what the Shop API does for a guest,
+     * saving the checkout address to the new Customer's address book, happens in `place_order`.
+     */
+    private async setGuestCustomer(
+        ctx: RequestContext,
+        order: Order,
+        input: CreateCustomerInput,
+    ): Promise<Order | GraphQLErrorResult> {
+        const { guestCheckoutStrategy } = this.configService.orderOptions;
+        const customer = await guestCheckoutStrategy.setCustomerForOrder(ctx, order, input);
+        if (isGraphQlErrorResult(customer)) {
+            return customer;
+        }
+        return this.orderService.addCustomerToOrder(ctx, order.id, customer);
     }
 }
 

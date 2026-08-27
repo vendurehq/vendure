@@ -6,6 +6,8 @@ import { z } from 'zod';
 import { idSchema } from '../id-schema';
 import { McpToolSerializerService } from '../serializer.service';
 
+import { collectionLookup, findPublicCollection, noCollectionMessage } from './collection-lookup';
+
 const getCollectionInput = z.strictObject({
     id: idSchema.describe('Collection ID.').optional(),
     slug: z.string().describe('Collection slug, used when ID is omitted.').optional(),
@@ -37,19 +39,14 @@ export class ShopGetCollectionTool implements McpToolHandler<GetCollectionInput>
     ) {}
 
     async execute(ctx: RequestContext, input: GetCollectionInput) {
-        const collection = await this.findCollection(ctx, input);
-        return {
-            collection: collection && !collection.isPrivate ? this.serializer.collection(collection) : null,
-        };
-    }
-
-    private async findCollection(ctx: RequestContext, input: GetCollectionInput) {
-        if (input.id != null) {
-            return this.collectionService.findOne(ctx, input.id, ['featuredAsset']);
+        const lookup = collectionLookup(input.id, input.slug);
+        if (!lookup) {
+            return { collection: null, message: 'Pass id or slug.' };
         }
-        if (input.slug != null) {
-            return this.collectionService.findOneBySlug(ctx, input.slug, ['featuredAsset']);
+        const collection = await findPublicCollection(this.collectionService, ctx, lookup, ['featuredAsset']);
+        if (!collection) {
+            return { collection: null, message: noCollectionMessage(lookup) };
         }
-        return undefined;
+        return { collection: this.serializer.collection(collection) };
     }
 }

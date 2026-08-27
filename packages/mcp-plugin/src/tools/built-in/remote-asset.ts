@@ -1,6 +1,7 @@
 import {
     AssetImportStrategy,
     AssetService,
+    InternalServerError,
     isGraphQlErrorResult,
     RequestContext,
     UserInputError,
@@ -25,6 +26,20 @@ function capStreamBytes(source: Readable, maxBytes: number): Readable {
     return limiter;
 }
 
+async function fetchAsset(url: string, assetImportStrategy: AssetImportStrategy): Promise<Readable> {
+    try {
+        return await assetImportStrategy.getStreamFromPath(url);
+    } catch (e) {
+        if (e instanceof UserInputError || e instanceof InternalServerError) {
+            throw e;
+        }
+        throw new UserInputError(
+            'The URL could not be fetched as a file. It must answer HTTP 200 with the file itself; ' +
+                'redirects are not followed.',
+        );
+    }
+}
+
 export async function uploadAssetFromUrl(
     ctx: RequestContext,
     url: string,
@@ -37,7 +52,7 @@ export async function uploadAssetFromUrl(
             `Unsupported asset URL scheme (only http and https URLs are allowed): ${url}`,
         );
     }
-    const source = await assetImportStrategy.getStreamFromPath(url);
+    const source = await fetchAsset(url, assetImportStrategy);
     const capped = capStreamBytes(source, options.maxBytes ?? DEFAULT_MAX_ASSET_BYTES);
     const created = await assetService.createFromFileStream(capped, url, ctx);
     if (isGraphQlErrorResult(created)) {
