@@ -36,10 +36,6 @@ function formatLatency(ms: number | null): string {
     return ms == null ? '—' : `${ms} ms`;
 }
 
-/**
- * Shows MCP usage stats for a selectable time window. The time range must be one
- * of the exact values the `mcpStats` query accepts (1h, 24h, 7d, 30d).
- */
 export function StatsBlock() {
     const { t } = useLingui();
     const [timeRange, setTimeRange] = useState<TimeRange>('24h');

@@ -17,11 +17,6 @@ export interface LogToolCallInput {
     status: McpToolCallStatus;
 }
 
-/**
- * @description
- * Records MCP tool calls and publishes `McpToolCallEvent`s. Prunes expired logs per the
- * configured `logging.ttlDays` retention window.
- */
 @Injectable()
 export class McpToolCallLogService {
     constructor(
@@ -36,9 +31,6 @@ export class McpToolCallLogService {
         try {
             const log = new McpToolCallLog({
                 grantId: grant?.id ?? null,
-                // A grant carries the actor when the call arrived over OAuth. Without one the
-                // context is the only identity there is: an in-process caller passes a signed-in
-                // shopper's context, while the anonymous shop endpoint has nobody signed in.
                 actor:
                     grant?.actorId != null
                         ? String(grant.actorId)
@@ -48,9 +40,6 @@ export class McpToolCallLogService {
                 actorType:
                     grant?.actorType ??
                     (ctx.apiType === 'admin' ? 'admin' : ctx.activeUserId != null ? 'customer' : 'anonymous'),
-                // Calls under a grant are logged with the grant's channel. Null means the grant
-                // is global (admin approvals store no channel), so its rows stay visible on
-                // every channel's dashboard, the same way the grant itself is listed.
                 channelId: grant ? (grant.channelId ?? null) : (ctx.channelId ?? null),
                 clientIp: this.options.logging.captureClientIp ? (clientIp ?? null) : null,
                 toolName: input.tool.name,
@@ -96,8 +85,6 @@ export class McpToolCallLogService {
                     output: input.output,
                 });
             } catch (redactError) {
-                // A broken redact function must not prevent the log row from being saved, and raw
-                // (unredacted) bodies must never be stored.
                 const reason = redactError instanceof Error ? redactError.message : String(redactError);
                 Logger.warn(
                     `The configured logging.redact function threw while redacting tool call ` +

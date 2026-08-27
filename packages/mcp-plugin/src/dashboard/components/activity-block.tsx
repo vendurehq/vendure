@@ -17,11 +17,6 @@ function CallStatusBadge({ status }: { status: string }) {
     return <Badge variant={variant}>{status}</Badge>;
 }
 
-/**
- * Shows the most recent MCP tool calls. The framework's paginated table works out the
- * columns from the query document, fetches only the columns currently on screen, and
- * sends sorting and filtering to the server.
- */
 export function ActivityBlock() {
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);

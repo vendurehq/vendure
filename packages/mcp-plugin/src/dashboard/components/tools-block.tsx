@@ -45,12 +45,6 @@ function SafetyBadge({ behavior }: { behavior: McpTool['behavior'] }) {
     );
 }
 
-/**
- * Lists every registered MCP tool with its toolset, safety classification and a
- * toggle to enable/disable it. Toggling calls the server-enforced mutation
- * (gated by the UpdateMcpServer permission). All tools are loaded in one request,
- * so search, the toolset filter, sorting and pagination all run in the browser.
- */
 export function ToolsBlock() {
     const { t } = useLingui();
     const qc = useQueryClient();

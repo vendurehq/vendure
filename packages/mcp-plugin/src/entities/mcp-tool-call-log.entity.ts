@@ -1,7 +1,7 @@
 import { DeepPartial, EntityId, ID, VendureEntity } from '@vendure/core';
 import { Column, Entity, Index, ManyToOne } from 'typeorm';
 
-import { McpActorType, McpToolCallStatus } from '../types';
+import { McpToolCallStatus } from '../types';
 
 import { McpOauthClient } from './mcp-oauth-client.entity';
 import { McpOauthGrant } from './mcp-oauth-grant.entity';
@@ -43,11 +43,6 @@ export class McpToolCallLog extends VendureEntity {
     @Column({ type: 'varchar', nullable: true })
     actor: string | null;
 
-    /**
-     * @description
-     * A call made with an OAuth token copies the type from its grant. Otherwise an Admin API
-     * call is `admin`, a signed-in shopper is `customer`, and a guest is `anonymous`.
-     */
     @Column({ type: 'varchar' })
     actorType: McpActorType;
 
@@ -59,11 +54,6 @@ export class McpToolCallLog extends VendureEntity {
     @Column({ type: 'varchar', nullable: true })
     clientIp: string | null;
 
-    /**
-     * @description
-     * Null means the row shows up on every channel. A call made with an OAuth token uses that
-     * grant's channel, which is itself null for an admin grant.
-     */
     @Index()
     @EntityId({ nullable: true })
     channelId: ID | null;
@@ -79,21 +69,9 @@ export class McpToolCallLog extends VendureEntity {
     @Column({ type: 'varchar', nullable: true })
     pluginSource: string | null;
 
-    /**
-     * @description
-     * The arguments the tool ran with, after your `logging.redact` function has seen them.
-     * Stored only when `logging.capture` is `full`, and left null if `redact` throws or the
-     * body is larger than `logging.maxBodyBytes`. The Admin API also hides it from anyone
-     * without the `ReadCustomer` permission.
-     */
     @Column({ type: 'simple-json', nullable: true })
     input: unknown;
 
-    /**
-     * @description
-     * What the tool returned, stored under the same rules as `input`. On a failed call it holds
-     * the error message instead.
-     */
     @Column({ type: 'simple-json', nullable: true })
     output: unknown;
 
@@ -105,11 +83,6 @@ export class McpToolCallLog extends VendureEntity {
     @Column({ type: 'varchar' })
     status: McpToolCallStatus;
 
-    /**
-     * @description
-     * Null when the call did not arrive over OAuth, and set back to null if the client is
-     * deleted.
-     */
     @Index()
     @ManyToOne(() => McpOauthClient, { nullable: true, onDelete: 'SET NULL' })
     oauthClient: McpOauthClient | null;

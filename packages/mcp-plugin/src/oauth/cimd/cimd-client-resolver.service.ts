@@ -16,19 +16,15 @@ import { fetchCimdDocument } from './cimd-fetch';
 import { validateCimdClientIdUrl } from './cimd-url';
 
 /**
- * Resolves a URL-shaped client_id into an {@link McpOauthClient} row by fetching and
- * validating its client metadata document (CIMD). The row doubles as the document cache:
- * it is reused untouched until `cimdDocumentExpiresAt` passes and refreshed after.
- * Failed fetches and invalid documents are never cached (draft §5.2) — they store nothing,
- * and a stale row left behind is ignored by the freshness check, so the authorization
- * request simply aborts (§5.1).
+ * Resolves a URL-based client_id into a cached {@link McpOauthClient} using a CIMD document.
+ * The client row acts as the cache and is refreshed when expired.
+ * Invalid or failed documents are never cached.
  */
 @Injectable()
 export class McpCimdClientResolverService {
     /**
-     * Merges concurrent fetches of the same client_id into one outbound request. It holds the
-     * fetched document rather than the stored row, so each caller writes its own row using its
-     * own request context.
+     * Deduplicates concurrent fetches of the same client_id.
+     * Each caller still persists its own result.
      */
     private inFlight = new Map<string, Promise<CimdDocument>>();
 
@@ -111,22 +107,11 @@ export class McpCimdClientResolverService {
         }
     }
 
-    /**
-     * Loads the row for exactly this client_id. The database comparison can be case-insensitive —
-     * that is MySQL's default — while a CIMD client_id is identified by its exact characters, so a
-     * row that merely differs in case belongs to a different client and must not be read or
-     * overwritten.
-     */
     private async findClientRow(ctx: RequestContext, clientId: string): Promise<McpOauthClient | undefined> {
         const row = await this.connection.getRepository(ctx, McpOauthClient).findOne({ where: { clientId } });
         return row?.clientId === clientId ? row : undefined;
     }
 
-    /**
-     * Only a row this service wrote has an expiry, so the expiry alone identifies a usable cached
-     * document; a registered (DCR) row never reaches here, because the OAuth service routes URL
-     * client_ids to this service and everything else to its own lookup.
-     */
     private isFresh(client: McpOauthClient): boolean {
         return client.cimdDocumentExpiresAt != null && client.cimdDocumentExpiresAt > new Date();
     }

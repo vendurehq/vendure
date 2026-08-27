@@ -7,13 +7,11 @@ import { BlockList } from 'net';
 
 import { loggerCtx, MAX_CONCURRENT_CIMD_FETCHES } from '../../constants';
 
-// SSRF-guarded fetch for CIMD client metadata documents.
+// SSRF-protected fetch for CIMD client metadata.
 //
-// The address check runs inside the DNS lookup the socket actually uses, so the address
-// that is checked is the address that is dialed — there is no window for a DNS-rebinding
-// swap between a pre-check and the request. Redirects are never followed (node's http
-// clients do not follow them, and any non-200 status is an error per draft §5), and the
-// body is read through a byte counter with a hard cap (§8.7).
+// DNS is validated at socket lookup time (no DNS-rebinding window).
+// Redirects are not followed, and only 200 responses are accepted.
+// Response bodies are strictly size-limited.
 
 export interface CimdFetchOptions {
     /** Whole-request deadline — connection plus body — in milliseconds. */
@@ -25,12 +23,11 @@ export interface CimdFetchOptions {
     /** DNS lookup used by the socket; injectable for tests. */
     lookup?: typeof dns.lookup;
 }
-
-// RFC 6890 special-use ranges (draft §8.6 forbids fetching anything that resolves here):
-// "this host", private, CGNAT, loopback, link-local, protocol-assignment, documentation,
-// benchmarking, multicast, reserved — and their IPv6 equivalents. IPv4-mapped IPv6
-// addresses (::ffff:a.b.c.d, the classic bypass for v4-only blocklists) need no rule of
-// their own: node's BlockList unwraps them and checks the IPv4 rules.
+// Every range the IANA special-purpose registries mark as not globally reachable, so a
+// client_id URL cannot make this server probe its own network (SSRF protection). Node's
+// BlockList maps IPv4-mapped IPv6 back to IPv4, so those need no rule of their own.
+// https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
+// https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
 const blockedRanges = new BlockList();
 blockedRanges.addSubnet('0.0.0.0', 8, 'ipv4');
 blockedRanges.addSubnet('10.0.0.0', 8, 'ipv4');
@@ -40,6 +37,7 @@ blockedRanges.addSubnet('169.254.0.0', 16, 'ipv4');
 blockedRanges.addSubnet('172.16.0.0', 12, 'ipv4');
 blockedRanges.addSubnet('192.0.0.0', 24, 'ipv4');
 blockedRanges.addSubnet('192.0.2.0', 24, 'ipv4');
+blockedRanges.addSubnet('192.88.99.0', 24, 'ipv4');
 blockedRanges.addSubnet('192.168.0.0', 16, 'ipv4');
 blockedRanges.addSubnet('198.18.0.0', 15, 'ipv4');
 blockedRanges.addSubnet('198.51.100.0', 24, 'ipv4');
@@ -49,10 +47,14 @@ blockedRanges.addSubnet('240.0.0.0', 4, 'ipv4');
 blockedRanges.addSubnet('::', 128, 'ipv6');
 blockedRanges.addSubnet('::1', 128, 'ipv6');
 blockedRanges.addSubnet('64:ff9b::', 96, 'ipv6');
+blockedRanges.addSubnet('64:ff9b:1::', 48, 'ipv6');
 blockedRanges.addSubnet('100::', 64, 'ipv6');
-blockedRanges.addSubnet('2001::', 32, 'ipv6');
+blockedRanges.addSubnet('100:0:0:1::', 64, 'ipv6');
+blockedRanges.addSubnet('2001::', 23, 'ipv6');
 blockedRanges.addSubnet('2001:db8::', 32, 'ipv6');
 blockedRanges.addSubnet('2002::', 16, 'ipv6');
+blockedRanges.addSubnet('3fff::', 20, 'ipv6');
+blockedRanges.addSubnet('5f00::', 16, 'ipv6');
 blockedRanges.addSubnet('fc00::', 7, 'ipv6');
 blockedRanges.addSubnet('fe80::', 10, 'ipv6');
 blockedRanges.addSubnet('ff00::', 8, 'ipv6');
@@ -120,9 +122,6 @@ let activeFetchCount = 0;
 /**
  * Fetches a client metadata document. Exactly one GET; a 200 JSON response within the
  * size and time budgets resolves, anything else rejects with a BadRequestException.
- *
- * At the concurrency cap it fails immediately, with the same generic error as a network
- * failure — refusing the burst rather than queueing it into a backlog.
  */
 export async function fetchCimdDocument(url: URL, options: CimdFetchOptions): Promise<string> {
     if (activeFetchCount >= MAX_CONCURRENT_CIMD_FETCHES) {
@@ -210,10 +209,6 @@ function runFetch(url: URL, options: CimdFetchOptions): Promise<string> {
             if (deadline.aborted) {
                 return fail(timedOut());
             }
-            // Connection-level detail (refused, reset, TLS failure, a blocked address) goes to
-            // the server log only. It must not reach the caller: the authorize endpoint needs no
-            // credentials, so an error body that distinguishes these outcomes would report to
-            // anyone what is listening on each address the server can reach.
             Logger.warn(
                 `Failed to fetch the client_id metadata document at ${url.hostname}: ${error.message}`,
                 loggerCtx,

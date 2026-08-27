@@ -25,9 +25,6 @@ export class McpShopResolver {
         return this.oauthService.approveCustomerRequest(ctx, args.requestToken, args.approved);
     }
 
-    // Owner, mirroring the core `activeCustomer` query: the guard lets any shop caller through,
-    // and the service enforces the real requirement (a signed-in customer) so anonymous callers
-    // get an authorization error rather than an empty list.
     @Query()
     @Allow(Permission.Owner)
     async activeMcpClientGrants(@Ctx() ctx: RequestContext): Promise<McpCustomerOauthGrantInfo[]> {

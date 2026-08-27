@@ -6,27 +6,23 @@ import { createHash } from 'node:crypto';
 import { MCP_PLUGIN_OPTIONS, RATE_LIMIT_CACHE_PREFIX, RATE_LIMIT_WINDOW_MS } from '../constants';
 import { McpExecutionContext, ResolvedMcpPluginOptions } from '../internal-types';
 
-/** A single rate-limit bucket to check/consume. */
 interface RateLimitCheck {
     key: string;
     rpm: number;
     scope: string;
 }
 
-/** In-cache state of one fixed-window bucket. */
 interface BucketState {
     count: number;
     resetAt: number;
 }
 
-/** Details carried by {@link McpRateLimitExceededError}. */
 export interface McpRateLimitExceeded {
     message: string;
     retryAfterSeconds: number;
     scope: string;
 }
 
-/** Input to the rate-limit enforcement/check methods. */
 export interface RateLimitInput {
     executionContext: McpExecutionContext;
     endpoint: McpToolset;
@@ -34,10 +30,6 @@ export interface RateLimitInput {
     subject: string;
 }
 
-/**
- * Thrown when a rate limit is exceeded. The error details include the affected scope and
- * how long the caller should wait before retrying.
- */
 export class McpRateLimitExceededError extends Error {
     constructor(public readonly details: McpRateLimitExceeded) {
         super(details.message);
@@ -45,10 +37,6 @@ export class McpRateLimitExceededError extends Error {
     }
 }
 
-/**
- * Enforces rate limits for MCP requests, authentication attempts, sessions, users, OAuth clients,
- * and individual tools. Limits are tracked using the configured cache service.
- */
 @Injectable()
 export class McpRateLimiterService {
     /** Tail of the increment queue per bucket key; an entry is removed once its tail settles. */
@@ -76,11 +64,8 @@ export class McpRateLimiterService {
     }
 
     /**
-     * Charges the anonymous-IP bucket alone, without a resolved context. The transport calls this
-     * before it builds one for an anonymous shop request, so a rate-limited caller costs no database
-     * work — not the session-header lookup, and not the session row a shop tool creates lazily.
-     * This is the only place that bucket is charged; {@link buildSharedBucketChecks} deliberately
-     * leaves it out.
+     * Early anonymous-IP gate (before session or DB access exists).
+     * This bucket is intentionally NOT part of standard request checks to avoid double charging.
      */
     async checkAnonymousIpRateLimit(
         endpoint: McpToolset,
@@ -93,11 +78,6 @@ export class McpRateLimiterService {
         return this.runChecks([check], 'MCP request');
     }
 
-    /**
-     * Charges the OAuth-IP bucket alone, for a call into the OAuth HTTP surface. One shared bucket
-     * covers every route on `McpOauthController` — see {@link McpOauthRateLimitGuard}, which is
-     * the only caller of this method.
-     */
     async enforceOauthIpRateLimit(clientIp?: string): Promise<void> {
         const check = this.buildOauthIpCheck(this.ipKey(clientIp));
         if (!check) {
@@ -110,11 +90,9 @@ export class McpRateLimiterService {
     }
 
     /**
-     * Blocks a request when its address has failed authentication too many times in the
-     * current minute. Runs before the token is checked against the database, so a blocked
-     * address stops costing database work. Only failures count toward the limit (see
-     * {@link recordBearerAuthFailure}), but once blocked, every request from that address
-     * is refused until the minute is over.
+     * Rate limits repeated authentication failures per IP.
+     * - only failed attempts contribute to the counter
+     * - once exceeded, all requests are blocked until window resets
      */
     async checkBearerAuthFailureRateLimit(clientIp?: string): Promise<McpRateLimitExceeded | undefined> {
         const check = this.buildBearerAuthFailureCheck(this.ipKey(clientIp));
@@ -148,11 +126,6 @@ export class McpRateLimiterService {
             return undefined;
         }
         const now = Date.now();
-        // Increment every bucket first, then look for one over its limit. Each increment is atomic
-        // per bucket key (see incrementBucket), so overlapping requests each advance the counter
-        // instead of counting as one. Refused requests are counted too, which also rewrites the
-        // bucket and keeps an actively-refusing bucket recent in a cache that evicts the least
-        // recently used entries.
         const results = await Promise.all(
             checks.map(async check => ({ check, state: await this.incrementBucket(check.key, now) })),
         );
@@ -163,7 +136,6 @@ export class McpRateLimiterService {
         return undefined;
     }
 
-    /** The refusal both rate-limit paths return: the retry delay, and the message that states it. */
     private exceededDetails(
         subject: string,
         scope: string,
@@ -178,7 +150,6 @@ export class McpRateLimiterService {
         };
     }
 
-    /** Builds the list of buckets to check for a request: the shared buckets, then one per tool. */
     private buildRateLimitChecks(input: RateLimitInput): RateLimitCheck[] {
         const checks: RateLimitCheck[] = [
             ...this.buildSharedBucketChecks(input),
@@ -189,10 +160,8 @@ export class McpRateLimiterService {
     }
 
     /**
-     * Session, user and OAuth-client buckets, shared across every tool call in a request. The
-     * anonymous-IP bucket is absent by design: it applies to exactly the requests the transport
-     * charges at the edge (see {@link checkAnonymousIpRateLimit}), and charging it here too would
-     * count the same request twice.
+     * Shared identity buckets: session, user, OAuth client
+     * These represent persistent actor identity across tool calls.
      */
     private buildSharedBucketChecks(input: RateLimitInput): RateLimitCheck[] {
         const checks: RateLimitCheck[] = [];
@@ -326,12 +295,6 @@ export class McpRateLimiterService {
         return 'none';
     }
 
-    /**
-     * The identity behind session-scoped buckets. An anonymous HTTP caller (no OAuth grant, but a
-     * client IP) often has no session at all when limits run — a shop tool creates one lazily —
-     * and any token it does carry is caller-supplied, so the token cannot key a limit. Those
-     * callers are keyed by IP instead.
-     */
     private actorSessionKey(executionContext: McpExecutionContext): string {
         if (executionContext.grant == null && executionContext.clientIp != null) {
             return `anonymous-ip:${this.ipKey(executionContext.clientIp)}`;
@@ -339,12 +302,6 @@ export class McpRateLimiterService {
         return this.sessionKey(executionContext);
     }
 
-    /**
-     * The signed-in user behind the request, or `undefined` for an anonymous caller. Authorizing
-     * again gives someone a new grant, a new session and possibly a new client record, so those
-     * keys all change; their user id does not. Same key whether the call arrives over OAuth, over
-     * the anonymous shop endpoint while signed in, or from in-process code.
-     */
     private userKey(executionContext: McpExecutionContext): string | undefined {
         const userId = executionContext.ctx.activeUserId;
         return userId != null ? String(userId) : undefined;
@@ -356,10 +313,13 @@ export class McpRateLimiterService {
             : undefined;
     }
 
-    // The caller identity for per-tool buckets. OAuth callers keep the grant's session in the key.
-    // Do NOT collapse it to the client alone, or one first-party client serving every shopper would
-    // share a single per-tool bucket store-wide. Anonymous and in-process callers use the same
-    // identity as the session bucket (IP for anonymous HTTP, own session for in-process).
+    /**
+     * Actor identity for tool-level rate limits.
+     *
+     * Important distinction:
+     * - client alone would collapse all users under one bucket
+     * - session preserves per-session fairness under shared clients
+     */
     private toolActorKey(executionContext: McpExecutionContext): string {
         const clientKey = this.clientKey(executionContext);
         return clientKey

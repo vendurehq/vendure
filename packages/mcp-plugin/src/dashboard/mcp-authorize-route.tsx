@@ -40,11 +40,6 @@ interface AuthRequestInfo {
     toolset: string;
 }
 
-/**
- * Extracts the hostname from a URI, for the two addresses the consent screen shows as the
- * things worth recognising: where the authorization code is sent, and where the client's
- * metadata document was fetched from.
- */
 function hostnameOf(uri: string): string | null {
     try {
         return new URL(uri).hostname || null;
@@ -72,13 +67,9 @@ function ConsentCard({ requestToken }: { requestToken: string }) {
             }
             return res.json() as Promise<AuthRequestInfo>;
         },
-        // An expired or already-used authorization request never becomes valid, so report the
-        // failure straight away rather than retrying, which is what the shared query client
-        // would otherwise do three times over.
+        // Don't retry: expired/used requests will always fail
         retry: false,
-        // The request token says which authorization this screen is approving, so a previous
-        // request's application name and destination must never stay on screen while a
-        // different one loads.
+        // Clear previous data to avoid showing the wrong app while loading
         placeholderData: undefined,
     });
 
@@ -133,12 +124,8 @@ function ConsentCard({ requestToken }: { requestToken: string }) {
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                {/*
-                 * Primary trust anchor: the redirect destination is the one field that is
-                 * enforced server-side (bound into the auth request and re-checked at token
-                 * exchange), so it leads the card. Everything the client reports about itself
-                 * is untrusted and shown lower down.
-                 */}
+                {/* Show redirect first: it's server-validated and the most trustworthy value.
+                Client-provided details are less reliable and shown below. */}
                 <div className="space-y-1 rounded-md border border-warning/40 bg-warning/5 p-3">
                     <div className="flex items-center gap-2 text-xs font-medium">
                         <AlertTriangleIcon className="h-4 w-4 text-warning" />
@@ -155,7 +142,6 @@ function ConsentCard({ requestToken }: { requestToken: string }) {
                     <p className="text-xs text-muted-foreground">
                         <Trans>Approve only if you recognise and trust this exact destination.</Trans>
                     </p>
-                    {/* A loopback host means "this computer": any local app could receive the code. */}
                     {redirectHost != null && isLoopbackHostname(redirectHost) ? (
                         <p className="text-xs font-medium text-warning">
                             <Trans>
@@ -188,7 +174,6 @@ function ConsentCard({ requestToken }: { requestToken: string }) {
                         </p>
                     </div>
                 ) : null}
-                {/* Client-supplied metadata — self-asserted and unverified, so de-emphasised. */}
                 <div className="space-y-1 border-t pt-3">
                     <div className="text-xs font-medium text-muted-foreground">
                         <Trans>Reported by the application (unverified)</Trans>

@@ -124,14 +124,6 @@ export const adminApiExtensions = gql`
     input McpOauthGrantListOptions
 `;
 
-/**
- * Shop API for the MCP server: the single mutation a storefront consent page calls to
- * record a customer's decision. The customer and the channel come from the ordinary
- * request context, so the page never handles a session token itself.
- *
- * Reading the pending request needs no session and is served by the unauthenticated
- * `GET /mcp/oauth/authorization-request` endpoint, which the dashboard consent page uses too.
- */
 export const shopApiExtensions = gql`
     "Where to send the browser once a customer has approved or denied an MCP client."
     type McpAuthorizationResult {

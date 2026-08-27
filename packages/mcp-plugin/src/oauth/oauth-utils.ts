@@ -6,40 +6,22 @@ import { loggerCtx, MAX_CLIENT_METADATA_FIELD_LENGTH } from '../constants';
 
 import { isLoopbackHostname } from './loopback';
 
-/**
- * Generates a cryptographically random, URL-safe token encoded as base64url
- * (no padding characters). Use this to create authorization codes, state
- * parameters, and other short-lived OAuth values that are transmitted over
- * the wire.
- */
 export function randomToken(): string {
     return randomBytes(32).toString('base64url');
 }
 
-/**
- * Returns a new `Date` that is `seconds` seconds after `date`. Used to
- * compute expiry timestamps for tokens and authorization codes.
- */
 export function addSeconds(date: Date, seconds: number): Date {
     return new Date(date.getTime() + seconds * 1000);
 }
 
 /**
- * Verifies a PKCE code verifier against a previously stored code challenge:
- * the verifier is SHA-256 hashed and base64url-encoded, then compared to the
- * challenge. Only the `S256` method exists in this flow — the authorize
- * endpoint rejects any other method before a challenge is ever stored.
+ * Verifies a PKCE S256 code verifier against its stored challenge.
  */
 export function verifyPkceChallenge(verifier: string, challenge: string): boolean {
     const digest = createHash('sha256').update(verifier).digest('base64url');
     return digest === challenge;
 }
 
-/**
- * Appends OAuth query parameters to a redirect URI. Parameters with an
- * `undefined` value are omitted. Any query parameters already present in
- * `redirectUri` are preserved.
- */
 export function appendOAuthParams(redirectUri: string, params: Record<string, string | undefined>): string {
     const url = new URL(redirectUri);
     for (const [key, value] of Object.entries(params)) {
@@ -50,12 +32,6 @@ export function appendOAuthParams(redirectUri: string, params: Record<string, st
     return url.toString();
 }
 
-/**
- * A redirect_uri must be HTTPS, or plain HTTP only on a loopback host (native and CLI
- * clients listen there), and must fit the column it is stored in on both registration
- * paths. Applied to DCR registrations and to the redirect_uris inside CIMD client
- * metadata documents.
- */
 export function assertSafeRedirectUri(redirectUri: string): void {
     let url: URL;
     try {
@@ -73,10 +49,6 @@ export function assertSafeRedirectUri(redirectUri: string): void {
     }
 }
 
-/**
- * Keeps a display-URL field only if it's a well-formed https URL that fits its column.
- * Otherwise returns null — bad display data is dropped, not an error.
- */
 export function httpsUrlOrNull(value: unknown): string | null {
     if (typeof value !== 'string' || value.length > MAX_CLIENT_METADATA_FIELD_LENGTH) {
         return null;
@@ -88,17 +60,12 @@ export function httpsUrlOrNull(value: unknown): string | null {
     }
 }
 
-/**
- * Evicts a deleted MCP session from the session cache. Failures are logged, not thrown:
- * a cache miss must never fail the operation that deleted the session row.
- */
 export async function deleteCachedVendureSession(
     configService: ConfigService,
     token: string | undefined,
 ): Promise<void> {
-    if (!token) {
-        return;
-    }
+    if (!token) return;
+
     try {
         await configService.authOptions.sessionCacheStrategy.delete(token);
     } catch (error) {

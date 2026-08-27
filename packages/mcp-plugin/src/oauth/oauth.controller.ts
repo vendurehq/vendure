@@ -21,8 +21,6 @@ import { OAUTH_ENDPOINT_PATHS } from './endpoint-paths';
 import { AuthorizeInput, RegisterClientInput, TokenInput } from './oauth-types';
 import { McpOauthService } from './oauth.service';
 
-// One shared per-IP rate limit for every route here, current and future. The filter answers
-// over-budget requests before Vendure's app-wide exception filter can rewrite the 429 body.
 @UseGuards(McpOauthRateLimitGuard)
 @UseFilters(new McpOauthRateLimitExceptionFilter())
 @Controller()

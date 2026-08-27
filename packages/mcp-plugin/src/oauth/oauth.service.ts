@@ -73,19 +73,12 @@ import { deriveHashKey, hashLookupToken } from './token-hash';
 const MCP_SESSION_STRATEGY = 'mcp-dedicated-session';
 
 /**
- * Implements the MCP OAuth 2.1 authorization server.
+ * MCP OAuth 2.1 authorization server.
  *
- * Core Features:
- * - Handles CIMD (URL client_id) resolution and Dynamic Client Registration, authorize/consent
- *   flows, revocation, and `.well-known` metadata.
- * - Supports authorization-code and refresh-token grants.
- *
- * Session & Security Mechanics:
- * - Each grant owns one isolated Vendure session with a random generated token.
- * - OAuth access and refresh tokens rotate independently of that session.
- * - Bearer authentication validates the grant first, then resolves its session by
- *   {@link McpOauthGrant.vendureSessionId}; the session token is never returned to authenticated MCP clients.
- * - Revocation and expired-grant retention delete the session row and evict its cache entry.
+ * Handles client resolution (CIMD / DCR), authorization flows, token issuance,
+ * revocation, and OAuth metadata endpoints.
+ * Each grant is backed by an isolated Vendure session. Tokens are independent
+ * and the session token is never exposed to MCP clients.
  */
 @Injectable()
 export class McpOauthService {
@@ -202,10 +195,6 @@ export class McpOauthService {
         if (input.code_challenge_method !== 'S256') {
             throw new BadRequestException('Only PKCE S256 is supported');
         }
-        // Everything that can be validated from the request alone is checked first, because
-        // resolving the client may fetch a metadata document from a URL the caller supplied,
-        // and this endpoint takes no credentials. `resolvedOauth` rejects a server with no
-        // OAuth configured, and `resolveResource` rejects a resource we do not serve.
         this.resolvedOauth();
         const { resource, toolset } = this.resolveResource(input.resource);
         const ctx = await this.createAdminCtx();

@@ -75,14 +75,6 @@ const STATS_TIME_RANGE_HOURS: Record<string, number> = {
 
 const STATS_CACHE_TTL_MS = 60_000;
 
-/**
- * Admin API resolver for the MCP server. It reads tools, grants, the tool-call log and
- * stats, and hands the maintenance mutations off to the registry, OAuth, and tool-call-log
- * services.
- *
- * Tool-call input/output are returned exactly as stored — no redaction here. They are
- * null unless the server is configured to capture full call bodies.
- */
 @Resolver()
 export class McpAdminResolver {
     constructor(
@@ -205,9 +197,6 @@ export class McpAdminResolver {
         return this.toolCallLog.deleteExpiredToolCallLogs(ctx, ctx.channelId);
     }
 
-    // Gated loosely on Authenticated: the service enforces the real requirements
-    // (an authenticated admin with UpdateMcpServer, submitted from the consent page's origin),
-    // mirroring how the Shop API's authorizeMcpClient leaves enforcement to the service.
     @Mutation()
     @Allow(Permission.Authenticated)
     async authorizeMcpClient(
@@ -229,10 +218,6 @@ export class McpAdminResolver {
         };
     }
 
-    /**
-     * Builds the stats for the last `hours`, for the active channel. The database does
-     * the counting and percentile work, so we never load every row.
-     */
     private async computeStats(ctx: RequestContext, hours: number): Promise<McpStats> {
         const since = DateUtils.mixedDateToUtcDatetimeString(new Date(Date.now() - hours * 3_600_000));
 

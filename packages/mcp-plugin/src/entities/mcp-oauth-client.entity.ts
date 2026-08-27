@@ -17,8 +17,7 @@ export class McpOauthClient extends VendureEntity {
 
     /**
      * @description
-     * A random token if the client registered itself, or the URL of its metadata document if it
-     * identified itself with one.
+     * Unique client identifier (generated or metadata URL).
      */
     @Index({ unique: true })
     @Column({ length: 512 })
@@ -42,8 +41,7 @@ export class McpOauthClient extends VendureEntity {
 
     /**
      * @description
-     * Logo shown on the consent page. Null if the client sent none, or sent something that was
-     * not a valid `https` URL.
+     * Client logo URL (HTTPS only).
      */
     @Column({ type: 'varchar', nullable: true })
     logoUri: string | null;
@@ -77,11 +75,6 @@ export class McpOauthClient extends VendureEntity {
     @Column({ type: Date, nullable: true })
     cimdDocumentExpiresAt: Date | null;
 
-    /**
-     * @description
-     * When this client last got a token. Staying null is what marks the row as never used, and
-     * lets the cleanup job remove it.
-     */
     @Column({ type: Date, nullable: true })
     lastUsedAt: Date | null;
 }

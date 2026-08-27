@@ -15,10 +15,8 @@ export interface CimdDocument {
 }
 
 /**
- * Parses and validates a fetched client metadata document (draft §4/§4.1 plus the MCP
- * client-registration page's required fields). `clientId` is the exact client_id string
- * from the authorization request; the document's own client_id must equal it byte for
- * byte — no normalization (draft: simple string comparison).
+ * Parses and validates a CIMD document.
+ * Ensures required fields match the expected client_id and constraints.
  */
 export function parseCimdDocument(clientId: string, rawBody: string): CimdDocument {
     let parsed: unknown;
@@ -55,9 +53,7 @@ export function parseCimdDocument(clientId: string, rawBody: string): CimdDocume
     for (const uri of redirectUris) {
         assertSafeRedirectUri(uri);
     }
-    // Draft §4.1: the document is public by definition, so it cannot carry a shared secret
-    // and no shared-secret token auth method is usable. This server additionally rejects
-    // private_key_jwt because it only supports "none" (see metadata()).
+    // CIMD documents must not include client secrets
     if ('client_secret' in document || 'client_secret_expires_at' in document) {
         throw new BadRequestException('client_id metadata document must not contain a client secret');
     }

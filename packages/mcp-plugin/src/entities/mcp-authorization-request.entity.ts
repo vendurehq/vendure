@@ -6,9 +6,8 @@ import { McpOauthClient } from './mcp-oauth-client.entity';
 
 /**
  * @description
- * A pending OAuth authorization request, saved before the user consents. Holds the
- * PKCE challenge and redirect parameters, plus a short-lived `requestToken` (stored
- * as a hash) that links the consent page back to this request.
+ * Pending OAuth authorization request before user consent.
+ * Stores redirect info, PKCE challenge, and a hashed request token.
  *
  * @docsCategory core plugins/McpPlugin
  * @since 3.8.0
@@ -21,8 +20,7 @@ export class McpAuthorizationRequest extends VendureEntity {
 
     /**
      * @description
-     * A hash of the token that the consent page carries in its URL. The token itself is never
-     * stored.
+     * Hash of the request token used by the consent page.
      */
     @Index({ unique: true })
     @Column()
@@ -46,33 +44,23 @@ export class McpAuthorizationRequest extends VendureEntity {
 
     /**
      * @description
-     * Always `S256`. The authorize endpoint refuses any other method.
+     * PKCE method. Always `S256`.
      *
      * @default 'S256'
      */
     @Column({ default: 'S256' })
     codeChallengeMethod: string;
 
-    /**
-     * @description
-     * Decides which consent page the browser is sent to, and which of the two approval
-     * mutations is allowed to answer this request.
-     */
     @Column({ type: 'varchar' })
     toolset: McpToolset;
 
     /**
      * @description
-     * The endpoint being asked for: the issuer URL plus `/mcp/admin` or `/mcp/shop`.
+     * Target endpoint (issuer + `/mcp/admin` or `/mcp/shop`).
      */
     @Column()
     resource: string;
 
-    /**
-     * @description
-     * How long the user has to decide, ten minutes by default. A request nobody answers is left
-     * for the cleanup job.
-     */
     @Index()
     @Column({ type: Date })
     expiresAt: Date;

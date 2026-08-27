@@ -7,9 +7,8 @@ import { McpOauthClient } from './mcp-oauth-client.entity';
 
 /**
  * @description
- * A short-lived authorization code from the OAuth flow, exchanged for tokens. The
- * `code` is stored as a hash. `actorId` and `actorType` record who
- * approved, so a Vendure session can be created for them when the code is exchanged.
+ * Short-lived OAuth authorization code exchanged for tokens.
+ * The code is stored as a hash. Actor info is kept to recreate the session on exchange.
  *
  * @docsCategory core plugins/McpPlugin
  * @since 3.8.0
@@ -22,8 +21,7 @@ export class McpAuthorizationCode extends VendureEntity {
 
     /**
      * @description
-     * A hash of the code handed to the client. The code itself is never stored, and the row
-     * disappears the moment it is exchanged for tokens.
+     * Hash of the authorization code. The raw code is never stored and is deleted after use.
      */
     @Index({ unique: true })
     @Column()
@@ -47,17 +45,12 @@ export class McpAuthorizationCode extends VendureEntity {
 
     /**
      * @description
-     * The endpoint this approval was for: the issuer URL plus `/mcp/admin` or `/mcp/shop`. The
-     * token request has to ask for the same one.
+     * Target endpoint (issuer + `/mcp/admin` or `/mcp/shop`).
+     * Must match during token exchange.
      */
     @Column()
     resource: string;
 
-    /**
-     * @description
-     * The channel the customer approved on, which the grant inherits. Null for an admin
-     * approval, which is not tied to a channel.
-     */
     @EntityId({ nullable: true })
     channelId: ID | null;
 
@@ -66,18 +59,13 @@ export class McpAuthorizationCode extends VendureEntity {
 
     /**
      * @description
-     * Always `S256`. The authorize endpoint refuses any other method.
+     * PKCE method. Always `S256`
      *
      * @default 'S256'
      */
     @Column({ default: 'S256' })
     codeChallengeMethod: string;
 
-    /**
-     * @description
-     * A minute after approval by default. A code nobody exchanges in time is left for the
-     * cleanup job.
-     */
     @Index()
     @Column({ type: Date })
     expiresAt: Date;

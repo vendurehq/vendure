@@ -46,12 +46,6 @@ function GrantStatusBadge({ status }: { status: string }) {
     );
 }
 
-/**
- * Lists every OAuth grant, including the revoked and expired ones the plugin keeps for
- * auditing; the Status column says which a row is. An operator can revoke a grant that
- * is still active: a dialog confirms it, then the panel calls the `revokeMcpOauthGrant`
- * mutation.
- */
 export function GrantsBlock() {
     const { t } = useLingui();
     const [page, setPage] = useState(1);

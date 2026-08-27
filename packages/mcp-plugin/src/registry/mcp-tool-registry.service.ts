@@ -74,8 +74,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     private knownPermissions?: Set<string>;
     private discoveryMetaTools: McpExposedTool[] = [];
     private bm25 = new Map<McpToolset, Bm25Index>();
-    // Not readonly: a toggle write must be visible to every live RequestContext, not just the one
-    // that made the write, so `setToolEnabled` replaces this whole map rather than patching one entry.
     private toggleCache = new WeakMap<RequestContext, Record<string, boolean>>();
 
     constructor(
@@ -100,11 +98,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         return [...this.tools.values()];
     }
 
-    /**
-     * The tools to register with the per-request MCP server. In `direct` mode: the caller's permitted,
-     * enabled tools for the toolset. In `discovery` mode: the two meta-tools (`search_tools` +
-     * `execute_tool`).
-     */
     async getExposedTools(
         executionContext: McpExecutionContext,
         toolset: McpToolset,
@@ -117,16 +110,12 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     }
 
     /**
-     * The only public execution entry, called by the per-request transport for every tool
-     * invocation. Which names can arrive is decided by the exposure mode, not here:
+     * Primary execution entrypoint for MCP tool calls.
      *
-     * - `direct` (default): only real tool names. The two meta-tool names are refused as real
-     *   tool names at startup and never registered, so the SDK rejects them before this runs.
-     * - `discovery`: only `search_tools` and `execute_tool`. Real tool names are never
-     *   registered, so the SDK rejects them before this runs.
-     *
-     * For a direct call the SDK has already validated `input` against the registered schema;
-     * for an `execute_tool` call the funnel validates the inner arguments itself.
+     * Execution model:
+     * 1. resolve exposure mode (direct vs discovery)
+     * 2. validate tool name routing (meta-tools or real tools)
+     * 3. delegate to shared execution funnel
      */
     async callTool(
         executionContext: McpExecutionContext,
@@ -145,12 +134,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         return this.callRegisteredTool(executionContext, toolset, name, input, false);
     }
 
-    /**
-     * The tools an in-process caller may run: the toolset's tools, minus disabled ones, minus those
-     * the context has no permission for. Unlike {@link getExposedTools} this ignores `toolExposure`,
-     * because the discovery meta-tools exist to keep a remote agent's tool list small and give an
-     * in-process caller nothing.
-     */
     async getCallableTools(ctx: RequestContext, toolset: McpToolset): Promise<McpToolSummary[]> {
         const toggles = await this.getToolToggles(ctx);
         return this.visibleTools(ctx, toolset, toggles).map(tool => this.toolSummary(tool));
@@ -170,11 +153,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         return this.callRegisteredTool(executionContext, toolset, name, input, true);
     }
 
-    /**
-     * Reads the tool-enablement map from the settings store (empty when unset). Cached per
-     * RequestContext, so one request reads the settings store once; `setToolEnabled` refreshes
-     * the cache.
-     */
     async getToolToggles(ctx: RequestContext): Promise<Record<string, boolean>> {
         const cached = this.toggleCache.get(ctx);
         if (cached) {
@@ -187,7 +165,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         return toggles;
     }
 
-    /** A tool is enabled unless explicitly disabled. One canonical key: `${toolset}:${name}`. */
     isToolEnabled(
         tool: Pick<McpRegisteredTool, 'toolset' | 'name'>,
         toggles: Record<string, boolean>,
@@ -195,7 +172,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         return toggles[this.toolKey(tool.toolset, tool.name)] !== false;
     }
 
-    /** Enables or disables a tool. Writes the one canonical key. */
     async setToolEnabled(
         ctx: RequestContext,
         toolset: McpToolset,
@@ -332,12 +308,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         validateInput: boolean,
     ): Promise<CallToolResult> {
         const ctx = executionContext.ctx;
-        // Rate-limit first: the controller's pre-check skips tools/call requests, so this is the
-        // only place a tool call is counted. A direct call naming a tool outside the caller's
-        // visible set never reaches here (the SDK rejects it first) and so is never counted.
-        // That is acceptable because such a caller holds a token, and anonymous traffic is
-        // IP-limited in the controller. A limit hit here becomes a plain isError result; only the
-        // controller pre-check returns the -31029 code with retry data.
         const rateLimited = await this.enforceRateLimitOrError(executionContext, toolset, name);
         if (rateLimited) {
             return rateLimited;
@@ -475,11 +445,10 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     }
 
     /**
-     * Unwraps an `execute_tool` envelope and routes through the shared funnel with inner-argument
-     * validation enabled: the funnel rate-limits FIRST (so an unknown name or invalid arguments still
-     * consumes the shared buckets — the discovery path must not be a rate-limit-free hammer) and then
-     * re-validates the inner arguments against the target tool's wire schema (the SDK validated only
-     * the `execute_tool` envelope). No early returns here would bypass that gate.
+     * Handles `execute_tool` calls by unwrapping the envelope and routing to a tool.
+     *
+     * Rate limiting is applied before tool lookup so even invalid calls are counted.
+     * Inner arguments are then validated against the tool schema.
      */
     private async callToolFromEnvelope(
         executionContext: McpExecutionContext,
@@ -532,11 +501,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         return this.successResult({ tools: matches });
     }
 
-    /**
-     * A concise tool summary used in search results and tool listings. Includes the final input
-     * schema that callers must satisfy, including any registry-added fields such as `confirm`
-     * or `sessionToken`.
-     */
     private toolSummary(tool: McpRegisteredTool): McpToolSummary {
         return {
             name: tool.name,
@@ -636,11 +600,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         };
     }
 
-    /**
-     * OR-semantics permission check. `Public`/`Authenticated` short-circuit ONLY when they are the
-     * sole declared permission; any other list goes to `ctx.userHasPermissions`, which is false for
-     * a caller with no user.
-     */
     private hasPermissions(ctx: RequestContext, permissions: Permission[]): boolean {
         if (this.isPubliclyCallable(permissions)) {
             return true;
@@ -659,7 +618,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         return permissions.length === 0 || (permissions.length === 1 && permissions[0] === Permission.Public);
     }
 
-    /** Public shop tools that use the active order exchange the optional `sessionToken`. */
     private acceptsSessionToken(
         tool: Pick<McpRegisteredTool, 'toolset' | 'permissions' | 'usesActiveOrder'>,
     ): boolean {
@@ -670,11 +628,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         );
     }
 
-    /**
-     * Maps the server-internal call state to the plain-data `McpCallerInfo` a tool actually
-     * receives. This is the one place the `McpOauthGrant` entity crosses into a tool's `execute` —
-     * every other consumer of this call state keeps using the entity directly.
-     */
     private toCallerInfo(state: McpExecutionContext): McpCallerInfo {
         return {
             grant: state.grant ? { id: state.grant.id, oauthClientId: state.grant.oauthClientId } : undefined,
@@ -682,11 +635,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         };
     }
 
-    /**
-     * Enforces the rate limit for `subject` against its per-subject bucket plus the shared
-     * session/client/anon-IP buckets. Returns an `isError` result if a bucket is exceeded, or
-     * `undefined` to proceed.
-     */
     private async enforceRateLimitOrError(
         executionContext: McpExecutionContext,
         toolset: McpToolset,
@@ -714,15 +662,10 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         return wrapper.host?.metatype?.name ?? String(wrapper.name ?? 'unknown');
     }
 
-    /** Whether a thrown error is one a tool raises on purpose with a message meant for the caller. */
     private isCallerSafeError(e: unknown): boolean {
         return CALLER_SAFE_ERROR_TYPES.some(ErrorType => e instanceof ErrorType);
     }
 
-    /**
-     * Translates an i18n key using the request's language. Returns the original text when translation
-     * is unavailable or fails.
-     */
     private translateForCaller(
         ctx: RequestContext,
         key: string,

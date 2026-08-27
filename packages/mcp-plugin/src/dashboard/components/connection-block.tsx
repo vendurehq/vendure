@@ -52,10 +52,6 @@ function EndpointCard({
     );
 }
 
-/**
- * Shows the shop and admin MCP endpoint URLs with copy-to-clipboard support,
- * ready-to-paste client config snippets, and a pointer to the MCP Inspector.
- */
 export function ConnectionBlock() {
     const origin = window.location.origin;
     const adminUrl = `${origin}/mcp/admin`;

@@ -1,7 +1,4 @@
 /**
- * The URL paths of this plugin's OAuth routes, defined once so the routes and the code that
- * calls them cannot disagree.
- *
  * Keep this file free of imports. The dashboard consent page reads it in the browser, and
  * `constants.ts` will not load there because it builds a `CrudPermissionDefinition` from
  * `@vendure/core`.

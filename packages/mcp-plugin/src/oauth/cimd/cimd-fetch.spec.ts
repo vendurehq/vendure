@@ -184,6 +184,7 @@ describe('isAllowedCimdAddress', () => {
             '169.254.169.254',
             '100.64.0.9',
             '224.0.0.1',
+            '192.88.99.2',
         ];
         for (const address of blocked) {
             expect(isAllowedCimdAddress(address, 4, true)).toBe(false);
@@ -191,7 +192,19 @@ describe('isAllowedCimdAddress', () => {
     });
 
     it('blocks special-use IPv6 ranges including IPv4-mapped addresses', () => {
-        const blocked = ['fe80::1', 'fc00::1', '::ffff:127.0.0.1', '::ffff:7f00:1', '2001:db8::1'];
+        const blocked = [
+            'fe80::1',
+            'fc00::1',
+            '::ffff:127.0.0.1',
+            '::ffff:7f00:1',
+            '2001:db8::1',
+            '64:ff9b:1::1',
+            '100:0:0:1::1',
+            '2001:1::1',
+            '2001:2::1',
+            '3fff::1',
+            '5f00::1',
+        ];
         for (const address of blocked) {
             expect(isAllowedCimdAddress(address, 6, false)).toBe(false);
         }

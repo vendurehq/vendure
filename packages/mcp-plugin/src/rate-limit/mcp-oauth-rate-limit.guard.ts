@@ -14,11 +14,6 @@ import { getClientIp } from '../get-client-ip';
 
 import { McpRateLimiterService, McpRateLimitExceededError } from './mcp-rate-limiter.service';
 
-/**
- * Thrown by the guard when an IP is over budget. It needs its own class because Vendure's
- * app-wide ExceptionLoggerFilter replaces the body of every plain HttpException — the
- * controller-scoped filter below catches this class first and keeps the intended 429 body.
- */
 export class McpOauthRateLimitExceededHttpException extends HttpException {
     constructor(public readonly retryAfterSeconds: number) {
         super({ error: 'rate_limit_exceeded', retryAfterSeconds }, HttpStatus.TOO_MANY_REQUESTS);
@@ -27,11 +22,12 @@ export class McpOauthRateLimitExceededHttpException extends HttpException {
 
 /**
  * @description
- * Rate-limits the whole OAuth HTTP surface by client IP. Attached at class level on
- * `McpOauthController`, so every route on it — including ones added later — shares one
- * bucket per IP. These routes take no credentials, so the IP is the only thing to meter by.
+ * Rate-limits OAuth endpoints by client IP.
  *
- * A no-op when `rateLimits.oauthIp` is disabled (`false` or `rpm <= 0`).
+ * All routes in the OAuth controller share a single IP-based quota.
+ * No authentication is available on these endpoints.
+ *
+ * Disabled when OAuth IP rate limiting is turned off.
  */
 @Injectable()
 export class McpOauthRateLimitGuard implements CanActivate {

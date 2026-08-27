@@ -89,30 +89,14 @@ export class McpOauthGrant extends VendureEntity {
     @Column()
     resource: string;
 
-    /**
-     * @description
-     * When the current access token stops working. Every refresh pushes it out again by the
-     * configured access-token lifetime.
-     */
     @Index()
     @Column({ type: Date })
     accessTokenExpiresAt: Date;
 
-    /**
-     * @description
-     * When the grant itself dies, set from the refresh-token lifetime. Every refresh pushes it
-     * out again, so a client that keeps refreshing keeps the grant alive.
-     */
     @Index()
     @Column({ type: Date })
     expiresAt: Date;
 
-    /**
-     * @description
-     * Null while the grant still works. An administrator, the customer, or the client itself
-     * can revoke it, and the server does so on its own if an already-replaced refresh token
-     * comes back.
-     */
     @Index()
     @Column({ type: Date, nullable: true })
     revokedAt: Date | null;
@@ -126,20 +110,10 @@ export class McpOauthGrant extends VendureEntity {
     @EntityId()
     vendureSessionId: ID;
 
-    /**
-     * @description
-     * The channel the customer approved on. Null for an admin grant, whose calls run on the
-     * default channel.
-     */
     @Index()
     @EntityId({ nullable: true })
     channelId: ID | null;
 
-    /**
-     * @description
-     * Updated on every refresh, and by tool calls at most once a minute, so it lags real
-     * activity by up to that long.
-     */
     @Index()
     @Column({ type: Date })
     lastActivityAt: Date;
