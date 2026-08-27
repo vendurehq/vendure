@@ -65,6 +65,19 @@ export type BaseTypedCustomFieldConfig<T extends CustomFieldType, C extends Cust
     unique?: boolean;
     /**
      * @description
+     * Creates a database index for this custom field. Use this for custom fields
+     * which are frequently used to filter or sort large data sets.
+     *
+     * Indexes are only supported for non-list, non-struct, non-secret fields. MySQL and
+     * MariaDB also do not support indexes on `text` or `localeText` custom fields
+     * because those values are stored as `longtext` without an index prefix length.
+     * Invalid combinations are rejected during bootstrap.
+     *
+     * @since 3.8.0
+     */
+    index?: boolean;
+    /**
+     * @description
      * If set to `true`, the value of this field is encrypted at rest using the configured
      * {@link EncryptionStrategy}, and is only returned in decrypted form via the API to users
      * permitted by the {@link SecretAccessStrategy} (by default, those with the `ReadSecret`
@@ -387,8 +400,6 @@ export interface HasCustomFields {
  * Returns true for non-list relation custom fields, i.e. those which also expose a
  * `<name>Id` property on the entity and in the GraphQL APIs.
  */
-export function isNonListRelationCustomField(
-    config: CustomFieldConfig,
-): config is RelationCustomFieldConfig {
+export function isNonListRelationCustomField(config: CustomFieldConfig): config is RelationCustomFieldConfig {
     return config.type === 'relation' && config.list !== true;
 }

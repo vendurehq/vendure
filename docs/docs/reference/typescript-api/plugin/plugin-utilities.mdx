@@ -2,6 +2,22 @@
 title: "Plugin Utilities"
 generated: true
 ---
+## flattenPlugins
+
+<GenerationInfo sourceFile="packages/core/src/plugin/plugin-metadata.ts" sourceLine="27" packageName="@vendure/core" since="3.8.0" />
+
+Expands composed Vendure plugins into a depth-first list. Child plugins appear before their parent,
+declared order is preserved, and each plugin class appears once.
+
+```ts title="Signature"
+function flattenPlugins(plugins: Array<Type<any> | DynamicModule>): Array<Type<any> | DynamicModule>
+```
+Parameters
+
+### plugins
+
+<MemberInfo kind="parameter" type={`Array<Type<any> | DynamicModule>`} />
+
 ## createProxyHandler
 
 <GenerationInfo sourceFile="packages/core/src/plugin/plugin-utils.ts" sourceLine="37" packageName="@vendure/core" />

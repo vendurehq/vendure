@@ -136,6 +136,9 @@ function ProductDetailPage() {
 
     const { form, submitHandler, entity, isPending, refreshEntity, resetForm } = useDetailPage({
         pageId,
+        // OSS-567: the Product update mutation is patch-style, so send only the fields the user
+        // changed and never clobber a concurrent edit to an untouched field.
+        sendOnlyChangedFields: true,
         entityName: 'Product',
         queryDocument: productDetailDocument,
         createDocument: createProductDocument,

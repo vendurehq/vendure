@@ -563,3 +563,140 @@ test.describe('Manage variants inline editing', () => {
         }
     });
 });
+
+// OSS-567 — the changed-fields-only update behaviour is framework-wide, not just
+// the variant page. Editing only the (translated) product name must send just
+// `id` + `translations`, leaving replace-semantics fields (facetValueIds, assetIds,
+// enabled) untouched so they can't clobber a concurrent edit.
+test.describe('product update sends only changed fields (OSS-567)', () => {
+    test.describe.configure({ mode: 'serial' });
+
+    let productId: string;
+    let facetValueIdA: string;
+    let facetValueIdB: string;
+
+    // Create a dedicated product instead of editing a seed product: these tests rename and save,
+    // and mutating shared seed data (e.g. the "Laptop" product) pollutes other specs that assert on
+    // it — notably translation-placeholders, which expects the Laptop name to stay "Laptop". Seed it
+    // with a non-empty `facetValueIds` so the assertions prove the unchanged non-empty replace-array
+    // is *omitted* (not merely that an empty one is).
+    test.beforeAll(async ({ browser }) => {
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const { facetValues } = await client.gql(
+            `query { facetValues(options: { take: 2 }) { items { id } } }`,
+        );
+        facetValueIdA = facetValues.items[0].id as string;
+        facetValueIdB = facetValues.items[1].id as string;
+        const { createProduct } = await client.gql(
+            `mutation ($input: CreateProductInput!) { createProduct(input: $input) { id } }`,
+            {
+                input: {
+                    facetValueIds: [facetValueIdA],
+                    translations: [
+                        {
+                            languageCode: 'en',
+                            name: 'OSS567 Product',
+                            slug: `oss567-product-${Date.now()}`,
+                            description: '',
+                        },
+                    ],
+                },
+            },
+        );
+        productId = createProduct.id;
+        await page.close();
+    });
+
+    test('editing only the name submits just id + translations', async ({ page }) => {
+        await page.goto(`/products/${productId}`);
+
+        const nameField = page
+            .getByRole('main')
+            .locator('[data-slot="field"]')
+            .filter({
+                has: page.locator('[data-slot="field-label"]').getByText('Product name', { exact: true }),
+            })
+            .getByRole('textbox');
+        await expect(nameField).toBeVisible({ timeout: 10_000 });
+        const newName = `OSS567 Product ${Date.now()}`;
+        await nameField.fill(newName);
+
+        const updateRequest = page.waitForRequest(
+            req => req.method() === 'POST' && (req.postData() ?? '').includes('mutation UpdateProduct('),
+            { timeout: 15_000 },
+        );
+        await page.getByRole('button', { name: 'Update' }).click();
+        const input = (await updateRequest).postDataJSON()?.variables?.input;
+
+        // The exhaustive key assertion already proves facetValueIds/assetIds/enabled are omitted.
+        expect(input).toBeTruthy();
+        expect(Object.keys(input).sort()).toEqual(['id', 'translations']);
+        expect(input.translations?.[0]?.name).toBe(newName);
+
+        await expect(
+            page
+                .locator('[data-sonner-toast]')
+                .filter({ hasText: /updated/i })
+                .first(),
+        ).toBeVisible({ timeout: 10_000 });
+    });
+
+    // The actual guarantee: a concurrent change to a field the user did NOT touch must survive the
+    // save. Load the page (facetValueIds = [A]), change them to [B] out of band via the API, then
+    // edit only the name in the UI and save. Because facetValueIds is omitted from the payload, the
+    // out-of-band [B] is preserved rather than clobbered back to the page's stale [A].
+    test('does not clobber a concurrent change to an untouched field', async ({ page }) => {
+        await page.goto(`/products/${productId}`);
+        const nameField = page
+            .getByRole('main')
+            .locator('[data-slot="field"]')
+            .filter({
+                has: page.locator('[data-slot="field-label"]').getByText('Product name', { exact: true }),
+            })
+            .getByRole('textbox');
+        await expect(nameField).toBeVisible({ timeout: 10_000 });
+
+        // Concurrent out-of-band edit to an untouched field. `page.request` is a bare HTTP call, so
+        // it does not navigate away from the detail page the form was loaded from.
+        const client = new VendureAdminClient(page);
+        await client.login();
+        await client.gql(`mutation ($input: UpdateProductInput!) { updateProduct(input: $input) { id } }`, {
+            input: { id: productId, facetValueIds: [facetValueIdB] },
+        });
+
+        // Edit only the name and save.
+        await nameField.fill(`OSS567 Concurrent ${Date.now()}`);
+        const updateRequest = page.waitForRequest(
+            req => req.method() === 'POST' && (req.postData() ?? '').includes('mutation UpdateProduct('),
+            { timeout: 15_000 },
+        );
+        await page.getByRole('button', { name: 'Update' }).click();
+        await updateRequest;
+        await expect(
+            page
+                .locator('[data-sonner-toast]')
+                .filter({ hasText: /updated/i })
+                .first(),
+        ).toBeVisible({ timeout: 10_000 });
+
+        // The out-of-band facet value survived — it was not overwritten by the page's stale value.
+        const { product } = await client.gql(`query ($id: ID!) { product(id: $id) { facetValues { id } } }`, {
+            id: productId,
+        });
+        const facetValueIds = (product.facetValues as Array<{ id: string }>).map(fv => fv.id);
+        expect(facetValueIds).toEqual([facetValueIdB]);
+    });
+
+    test.afterAll(async ({ browser }) => {
+        if (!productId) return;
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        await client.gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, {
+            id: productId,
+        });
+        await page.close();
+    });
+});

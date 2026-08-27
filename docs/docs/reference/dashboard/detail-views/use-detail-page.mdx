@@ -4,7 +4,7 @@ generated: true
 ---
 ## useDetailPage
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/use-detail-page.ts" sourceLine="271" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/use-detail-page.ts" sourceLine="292" packageName="@vendure/dashboard" since="3.3.0" />
 
 **Status: Developer Preview**
 
@@ -80,7 +80,7 @@ Parameters
 
 ## DetailPageOptions
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/use-detail-page.ts" sourceLine="49" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/use-detail-page.ts" sourceLine="54" packageName="@vendure/dashboard" since="3.3.0" />
 
 Options used to configure the result of the `useDetailPage` hook.
 
@@ -101,6 +101,7 @@ interface DetailPageOptions<T extends TypedDocumentNode<any, any>, C extends Typ
     transformCreateInput?: (input: VariablesOf<C>[VarNameCreate]) => VariablesOf<C>[VarNameCreate];
     transformUpdateInput?: (input: VariablesOf<U>[VarNameUpdate]) => VariablesOf<U>[VarNameUpdate];
     extendSchema?: (schema: ZodObject<any>) => ZodTypeAny;
+    sendOnlyChangedFields?: boolean;
     onSuccess?: (entity: ResultOf<C>[keyof ResultOf<C>] | ResultOf<U>[keyof ResultOf<U>]) => void;
     onError?: (error: unknown) => void;
 }
@@ -188,6 +189,19 @@ extendSchema: schema =>
         code: z.string().min(1, { message: t`This field is required` }),
     }),
 ```
+### sendOnlyChangedFields
+
+<MemberInfo kind="property" type={`boolean`} default={`false`}  since="3.8.0"  />
+
+By default an update mutation sends the full form payload. Set this to `true` to instead send
+only the fields the user actually changed, so that an untouched field's stale page-load value
+cannot silently overwrite a concurrent change made by another admin or via the API.
+
+Only enable this for a detail page whose update mutation is patch-style: an absent field must
+be left unchanged, and no persisted value may be *derived* from the (now partial) input.
+Vendure's built-in Product, Collection and ProductVariant update paths satisfy this; a
+resolver that recomputes a field from the input — as `updatePromotion` does for
+`priorityScore` — does not, and would corrupt that field when it is omitted.
 ### onSuccess
 
 <MemberInfo kind="property" type={`(entity: ResultOf<C>[keyof ResultOf<C>] | ResultOf<U>[keyof ResultOf<U>]) => void`}   />
@@ -203,7 +217,7 @@ The function to call when the update is successful.
 </div>
 ## UseDetailPageResult
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/use-detail-page.ts" sourceLine="189" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/use-detail-page.ts" sourceLine="210" packageName="@vendure/dashboard" since="3.3.0" />
 
 
 

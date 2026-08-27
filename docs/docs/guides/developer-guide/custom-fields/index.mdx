@@ -334,6 +334,7 @@ All custom fields share some common properties:
 - [`defaultValue`](#defaultvalue)
 - [`nullable`](#nullable)
 - [`unique`](#unique)
+- [`index`](#index)
 - [`validate`](#validate)
 - [`requiresPermission`](#requirespermission)
 - [`deprecated`](#deprecated)
@@ -571,6 +572,34 @@ const config = {
                 name: 'externalId',
                 type: 'string',
                 unique: true, // [!code highlight]
+            },
+        ]
+    }
+};
+```
+
+#### index
+
+<CustomFieldProperty required={false} type="boolean" />
+
+Whether a database index should be created for the custom field. Use this option for fields which
+are frequently filtered or sorted in large data sets. It is supported for scalar and single relation
+fields, but not for list, struct, or secret fields. MySQL and MariaDB do not support this option for
+`text` or `localeText` fields because those values are stored as `longtext` without an index prefix
+length.
+
+Adding `index: true` to an existing custom field changes the database schema. Generate and run a
+[database migration](/guides/developer-guide/migrations/) after updating the configuration.
+
+```ts title="src/vendure-config.ts"
+const config = {
+    // ...
+    customFields: {
+        Product: [
+            {
+                name: 'externalReference',
+                type: 'string',
+                index: true, // [!code highlight]
             },
         ]
     }
@@ -1523,4 +1552,3 @@ When you define custom fields on the `Customer` entity, the following API change
 
 - Shop API: [registerCustomerAccount](/reference/graphql-api/shop/mutations#registercustomeraccount) will have have a `customFields` field on the input
   object.
-

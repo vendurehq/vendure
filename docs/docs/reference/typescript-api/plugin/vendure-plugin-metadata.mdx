@@ -13,6 +13,7 @@ extra properties specific to Vendure.
 
 ```ts title="Signature"
 interface VendurePluginMetadata extends ModuleMetadata {
+    plugins?: Array<Type<any> | DynamicModule>;
     configuration?: PluginConfigurationFn;
     shopApiExtensions?: APIExtensionDefinition;
     adminApiExtensions?: APIExtensionDefinition;
@@ -27,6 +28,12 @@ interface VendurePluginMetadata extends ModuleMetadata {
 
 <div className="members-wrapper">
 
+### plugins
+
+<MemberInfo kind="property" type={`Array<Type<any> | DynamicModule>`}  since="3.8.0"  />
+
+Other Vendure plugins that this plugin composes. Vendure registers these plugins before this plugin
+and adds them to its NestJS module imports.
 ### configuration
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/plugin/vendure-plugin-metadata#pluginconfigurationfn'>PluginConfigurationFn</a>`}   />
@@ -82,7 +89,7 @@ compatibility: '^3.0.0'
 </div>
 ## APIExtensionDefinition
 
-<GenerationInfo sourceFile="packages/core/src/plugin/vendure-plugin.ts" sourceLine="80" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/plugin/vendure-plugin.ts" sourceLine="88" packageName="@vendure/core" />
 
 An object which allows a plugin to extend the Vendure GraphQL API.
 
@@ -129,7 +136,7 @@ Read more about defining custom scalars in the
 </div>
 ## PluginConfigurationFn
 
-<GenerationInfo sourceFile="packages/core/src/plugin/vendure-plugin.ts" sourceLine="119" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/plugin/vendure-plugin.ts" sourceLine="127" packageName="@vendure/core" />
 
 This method is called before the app bootstraps and should be used to perform any needed modifications to the [VendureConfig](/reference/typescript-api/configuration/vendure-config#vendureconfig).
 

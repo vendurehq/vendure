@@ -1,7 +1,7 @@
 import { ExecutionContext } from '@nestjs/common';
 import { CurrencyCode, LanguageCode, Permission } from '@vendure/common/lib/generated-types';
+import { omit } from '@vendure/common/lib/omit';
 import { ID, JsonCompatible } from '@vendure/common/lib/shared-types';
-import { isObject } from '@vendure/common/lib/shared-utils';
 import { Request } from 'express';
 import { TFunction } from 'i18next';
 import { EntityManager, ReplicationMode } from 'typeorm';
@@ -18,8 +18,7 @@ import { Channel } from '../../entity/channel/channel.entity';
 import { ApiType } from './get-api-type';
 
 export type SerializedRequestContext = {
-    _req?: any;
-    _session: JsonCompatible<Required<CachedSession>>;
+    _session: JsonCompatible<Required<Omit<CachedSession, 'token'>>>;
     _apiType: ApiType;
     _channel: JsonCompatible<Channel>;
     _languageCode: LanguageCode;
@@ -27,6 +26,18 @@ export type SerializedRequestContext = {
     _isAuthorized: boolean;
     _authorizedAsOwnerOnly: boolean;
 };
+
+/**
+ * @description
+ * The session of a {@link RequestContext} which was rebuilt from a {@link SerializedRequestContext},
+ * for example in a job queue worker. It is a {@link CachedSession} without the session token, because
+ * the token is never serialized. A worker has no session credential by design. Code which runs on a
+ * worker and calls another system should use a service-level credential, not a user's session token.
+ *
+ * @docsCategory request
+ * @since 3.8.0
+ */
+export type DeserializedCachedSession = Omit<CachedSession, 'token'> & { token?: undefined };
 
 /**
  * This object is used to store the RequestContext on the Express Request object.
@@ -182,7 +193,7 @@ export class RequestContext {
     private readonly _acceptedLanguageCodes: LanguageCode[];
     private readonly _currencyCode: CurrencyCode;
     private readonly _channel: Channel;
-    private readonly _session?: CachedSession;
+    private readonly _session?: CachedSession | DeserializedCachedSession;
     private readonly _isAuthorized: boolean;
     private readonly _authorizedAsOwnerOnly: boolean;
     private readonly _translationFn: TFunction;
@@ -197,7 +208,7 @@ export class RequestContext {
         req?: Request;
         apiType: ApiType;
         channel: Channel;
-        session?: CachedSession;
+        session?: CachedSession | DeserializedCachedSession;
         languageCode?: LanguageCode;
         acceptedLanguageCodes?: LanguageCode[];
         currencyCode?: CurrencyCode;
@@ -241,19 +252,32 @@ export class RequestContext {
      * `serialize()` method.
      */
     static deserialize(ctxObject: SerializedRequestContext): RequestContext {
-        return new RequestContext({
-            req: ctxObject._req,
+        return new RequestContext(RequestContext.deserializedOptions(ctxObject));
+    }
+
+    /**
+     * Shared with `MutableRequestContext.deserialize()`. The session token is dropped here as
+     * well as in `serialize()`, because job data written by versions before the fix for
+     * GHSA-32jm-mf7r-7qw5 still contains one.
+     *
+     * @internal
+     */
+    protected static deserializedOptions(
+        ctxObject: SerializedRequestContext,
+    ): ConstructorParameters<typeof RequestContext>[0] {
+        const session = (ctxObject._session ?? {}) as Partial<CachedSession>;
+        return {
             apiType: ctxObject._apiType,
             channel: new Channel(ctxObject._channel),
             session: {
-                ...ctxObject._session,
-                expires: ctxObject._session?.expires && new Date(ctxObject._session.expires),
-            },
+                ...omit(session, ['token']),
+                expires: session.expires && new Date(session.expires),
+            } as DeserializedCachedSession,
             languageCode: ctxObject._languageCode,
             acceptedLanguageCodes: ctxObject._acceptedLanguageCodes,
             isAuthorized: ctxObject._isAuthorized,
             authorizedAsOwnerOnly: ctxObject._authorizedAsOwnerOnly,
-        });
+        };
     }
 
     /**
@@ -315,13 +339,61 @@ export class RequestContext {
      * Serializes the RequestContext object into a JSON-compatible simple object.
      * This is useful when you need to send a RequestContext object to another
      * process, e.g. to pass it to the Job Queue via the {@link JobQueueService}.
+     *
+     * The raw Express request (and with it every HTTP header) and the session token are
+     * **not** included, because serialized contexts are persisted and are readable over the
+     * Admin API. A context rebuilt with `deserialize()` therefore has `req` and
+     * `session.token` set to `undefined`.
      */
     serialize(): SerializedRequestContext {
-        const serializableThis: any = Object.assign({}, this);
-        if (this._req) {
-            serializableThis._req = this.shallowCloneRequestObject(this._req);
-        }
+        // Every field listed here lands in job data, which is readable over the Admin API. List the
+        // fields a worker reads; never copy the instance (GHSA-32jm-mf7r-7qw5).
+        const serializableThis = {
+            _apiType: this._apiType,
+            _channel: this._channel,
+            _languageCode: this._languageCode,
+            _acceptedLanguageCodes: this._acceptedLanguageCodes,
+            _isAuthorized: this._isAuthorized,
+            _authorizedAsOwnerOnly: this._authorizedAsOwnerOnly,
+            _session: this._session && RequestContext.serializableSession(this._session),
+        };
         return JSON.parse(JSON.stringify(serializableThis));
+    }
+
+    /**
+     * The same rule as `serialize()`, applied to the session: list the fields a worker reads.
+     * `CachedSession` is where the session token lived, and a secret added to it later (a refresh
+     * token, an MFA secret) must not reach job data until someone adds it here on purpose.
+     */
+    private static serializableSession(
+        session: CachedSession | DeserializedCachedSession,
+    ): Omit<CachedSession, 'token'> {
+        const { id, expires, activeOrderId, authenticationStrategy, activeChannelId, cacheExpiry, user } =
+            session;
+        return {
+            id,
+            expires,
+            activeOrderId,
+            authenticationStrategy,
+            activeChannelId,
+            cacheExpiry,
+            user: user && {
+                id: user.id,
+                identifier: user.identifier,
+                verified: user.verified,
+                channelPermissions: user.channelPermissions,
+            },
+        };
+    }
+
+    /**
+     * @description
+     * Used by `JSON.stringify()` and by {@link Job}, which prefers `toJSON()` when it makes
+     * job data serializable. A RequestContext instance passed straight into job data therefore
+     * takes the same path as `serialize()`.
+     */
+    toJSON(): SerializedRequestContext {
+        return this.serialize();
     }
 
     /**
@@ -350,6 +422,9 @@ export class RequestContext {
     /**
      * @description
      * The raw Express request object.
+     *
+     * This is `undefined` on a context which was rebuilt from a serialized object, e.g. in a
+     * job queue worker, because the request is deliberately not serialized.
      */
     get req(): Request | undefined {
         return this._req;
@@ -404,7 +479,16 @@ export class RequestContext {
         return this._currencyCode;
     }
 
-    get session(): CachedSession | undefined {
+    /**
+     * @description
+     * The cached session of this request.
+     *
+     * On a context which was rebuilt from a serialized object, e.g. in a job queue worker, this is
+     * a {@link DeserializedCachedSession}: `session.token` is `undefined`, because the token is
+     * deliberately not serialized. The class cannot tell the two apart statically, so the type of
+     * `session.token` is `string | undefined` everywhere. Narrow it before using it as a credential.
+     */
+    get session(): CachedSession | DeserializedCachedSession | undefined {
         return this._session;
     }
 
@@ -450,51 +534,6 @@ export class RequestContext {
         return arr1.reduce((intersects, role) => {
             return intersects || arr2.includes(role);
         }, false as boolean);
-    }
-
-    /**
-     * The Express "Request" object is huge and contains many circular
-     * references. We will preserve just a subset of the whole, by preserving
-     * only the serializable properties up to 2 levels deep.
-     * @private
-     */
-    private shallowCloneRequestObject(req: Request) {
-        function copySimpleFieldsToDepth(target: any, maxDepth: number, depth: number = 0) {
-            const result: any = {};
-            // eslint-disable-next-line guard-for-in
-            for (const key in target) {
-                if (key === 'host' && depth === 0) {
-                    // avoid Express "deprecated: req.host" warning
-                    continue;
-                }
-                let val: any;
-                try {
-                    val = target[key];
-                } catch (e: any) {
-                    val = String(e);
-                }
-
-                if (Array.isArray(val)) {
-                    depth++;
-                    result[key] = val.map(v => {
-                        if (!isObject(v) && typeof val !== 'function') {
-                            return v;
-                        } else {
-                            return copySimpleFieldsToDepth(v, maxDepth, depth);
-                        }
-                    });
-                    depth--;
-                } else if (!isObject(val) && typeof val !== 'function') {
-                    result[key] = val;
-                } else if (depth < maxDepth) {
-                    depth++;
-                    result[key] = copySimpleFieldsToDepth(val, maxDepth, depth);
-                    depth--;
-                }
-            }
-            return result;
-        }
-        return copySimpleFieldsToDepth(req, 1);
     }
 
     /**

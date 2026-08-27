@@ -3,7 +3,7 @@ import { omit } from '@vendure/common/lib/omit';
 import { pick } from '@vendure/common/lib/pick';
 
 import { Job } from '../../../job-queue/job';
-import { RequestContext, SerializedRequestContext } from '../../common/request-context';
+import { SerializedRequestContext } from '../../common/request-context';
 
 @Resolver('Job')
 export class JobEntityResolver {
@@ -16,29 +16,35 @@ export class JobEntityResolver {
 
     @ResolveField()
     async data(@Parent() job: Job) {
-        const ctx = job.data.ctx;
-        if (this.isSerializedRequestContext(ctx)) {
-            // The job data includes a serialized RequestContext object
-            // This can be very large, so we will manually prune it before
-            // returning
-            const prunedCtx = {
-                ...pick(ctx, [
-                    '_apiType',
-                    '_languageCode',
-                    '_authorizedAsOwnerOnly',
-                    '_isAuthorized',
-                    '_channel',
-                ]),
-                _session: ctx._session
-                    ? {
-                          ...ctx._session,
-                          user: ctx._session.user ? omit(ctx._session.user, ['channelPermissions']) : {},
-                      }
-                    : {},
-            };
-            job.data.ctx = prunedCtx;
+        const ctx = job.data?.ctx;
+        if (!this.isSerializedRequestContext(ctx)) {
+            return job.data;
         }
-        return job.data;
+        // The job data includes a serialized RequestContext object
+        // This can be very large, so we will manually prune it before
+        // returning.
+        // The session token is stripped here as well as in RequestContext.serialize(),
+        // because job records written before GHSA-32jm-mf7r-7qw5 was fixed still hold one.
+        const session = ctx._session as Record<string, any> | undefined;
+        const prunedCtx = {
+            ...pick(ctx, [
+                '_apiType',
+                '_languageCode',
+                '_authorizedAsOwnerOnly',
+                '_isAuthorized',
+                '_channel',
+            ]),
+            _session: session
+                ? {
+                      ...omit(session, ['token']),
+                      user: session.user ? omit(session.user, ['channelPermissions']) : {},
+                  }
+                : {},
+        };
+        // A copy is returned rather than mutating job.data, because the
+        // InMemoryJobQueueStrategy hands out the live Job objects, so mutating here would
+        // strip the context from a job which has not been processed yet.
+        return { ...job.data, ctx: prunedCtx };
     }
 
     private isSerializedRequestContext(input: unknown): input is SerializedRequestContext {

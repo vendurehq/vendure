@@ -331,6 +331,7 @@ service methods that you may be using inside your `process` function. However, t
 so it cannot be passed directly to the `JobQueue.add()` method. Instead, you can serialize the `RequestContext` using the [`ctx.serialize()` method](/reference/typescript-api/request/request-context/#serialize),
  and then deserialize it in the `process` function using the static `deserialize` method.
 
+A deserialized `RequestContext` has no `req`, and its `session` has no `token`: the raw request and the session token are never serialized, so neither is available on the worker. A worker has no session credential by design. Code which calls another system from a job should use a service-level credential.
 
 ```ts
 import { Injectable, OnModuleInit } from '@nestjs/common';
@@ -360,6 +361,17 @@ class ProductExportService implements OnModuleInit {
     exportAllProducts(ctx: RequestContext) {
         return this.jobQueue.add({ ctx: ctx.serialize() }); // [!code highlight]
     }
+}
+```
+
+A job which needs values from the request, such as the hostname or a custom header, must copy them into its own job data at the point where the job is added, while the request is available:
+
+```ts
+exportAllProducts(ctx: RequestContext) {
+    return this.jobQueue.add({
+        ctx: ctx.serialize(),
+        hostname: ctx.req?.get('host'), // [!code highlight]
+    });
 }
 ```
 

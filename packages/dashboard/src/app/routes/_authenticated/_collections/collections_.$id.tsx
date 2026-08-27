@@ -84,6 +84,9 @@ function CollectionDetailPage() {
 
     const { form, submitHandler, entity, isPending, resetForm } = useDetailPage({
         pageId,
+        // OSS-567: the Collection update mutation is patch-style, so send only the fields the user
+        // changed and never clobber a concurrent edit to an untouched field.
+        sendOnlyChangedFields: true,
         queryDocument: collectionDetailDocument,
         createDocument: createCollectionDocument,
         transformCreateInput: values => {

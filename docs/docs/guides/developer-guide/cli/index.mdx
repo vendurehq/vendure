@@ -1,7 +1,7 @@
 ---
 title: 'CLI'
 metaTitle: "Vendure CLI - Automate Plugin, Entity, and API Scaffolding"
-metaDescription: "Use the Vendure CLI to scaffold plugins, entities, and API extensions. Supports interactive and non-interactive modes for streamlined development."
+metaDescription: "Use the Vendure CLI to scaffold features, diagnose projects, and link a local project to Vendure Console."
 ---
 
 The Vendure CLI is a command-line tool for boosting your productivity as a developer by automating common tasks
@@ -310,6 +310,126 @@ npx vendure doctor --strict --format json
 | `--format <type>`   | Output format: `text` (default) or `json`                                              | `vendure doctor --format json`                |
 | `--strict`          | Treat warnings as failures (useful for CI)                                             | `vendure doctor --strict`                     |
 
+## The Console Command
+
+The `console` command links a local Vendure application to a Project in Vendure Console. Run the command from a
+Vendure project directory:
+
+```bash
+npx vendure console link
+```
+
+The CLI creates a short-lived request and opens Vendure Console in your browser. Sign in, select an active Project,
+and approve the request. The CLI then writes `.vendure/project.json` in the resolved Vendure project.
+
+The browser owns authentication and authorization. The CLI does not store your Console access token. The one-time
+polling secret stays in memory and is not included in the browser URL, output, or manifest. If the browser cannot open,
+the CLI prints the verification URL so that you can open it manually.
+
+### Link status
+
+Use `status` to validate and display the local link:
+
+```bash
+npx vendure console status
+```
+
+The output includes the Account, Project, schema version, protocol version, and local authentication state. This
+command reads local state only. It does not contact Vendure Console.
+
+### Unlink a project
+
+Use `unlink` to remove the local manifest:
+
+```bash
+npx vendure console unlink
+```
+
+This command removes only `.vendure/project.json`. It does not delete the Console Project, revoke server-side
+credentials, or change the completed link request.
+
+### Project selection and confirmation
+
+The CLI uses the nearest project that has a direct `@vendure/core` dependency. From a monorepo root, it uses the only
+Vendure project under `packages`, `apps`, `libs`, `services`, or `modules`. If more than one project exists, select one:
+
+```bash
+npx vendure console status --project ./apps/server
+```
+
+Replacing or removing a manifest requires confirmation. In non-interactive environments, use `--force` to confirm the
+specific action:
+
+```bash
+npx vendure console link --force
+npx vendure console unlink --force
+```
+
+`--force` does not bypass ambiguous project selection or a manifest that belongs to another project root.
+
+### Manifest and source control
+
+The v1 manifest contains identity metadata only:
+
+```json
+{
+    "schemaVersion": 1,
+    "project": { "id": "<uuid>", "name": "<display name>" },
+    "account": { "id": "<uuid>", "name": "<display name>" },
+    "link": { "id": "<uuid>", "protocolVersion": 1 }
+}
+```
+
+Commit `.vendure/project.json` so that the repository keeps its Project identity. Ignore all other `.vendure` files.
+They are reserved for machine-local state and may contain secrets.
+
+`vendure console link` updates the resolved project's `.gitignore` with these rules when they are missing:
+
+```text
+.vendure/*
+!.vendure/project.json
+```
+
+The command normally changes no `.gitignore` file outside the project directory. One exception applies in a
+monorepo: an ancestor rule such as `.vendure/` prevents Git from reading the project's `.gitignore`. The command
+then adds rules for only the selected project to that ancestor file:
+
+```text
+!apps/vendure/.vendure/
+apps/vendure/.vendure/*
+!apps/vendure/.vendure/project.json
+```
+
+The original ancestor rule stays unchanged, and other projects remain ignored. The command reports the exact
+`.gitignore` file that it changed.
+
+### Console environments
+
+The command uses `https://console.vendure.io` and `https://api.vendure.io` by default. To use a local Console
+environment, set both link-specific variables:
+
+```bash
+VENDURE_CONSOLE_LINK_URL=http://localhost:3000 \
+VENDURE_CONSOLE_LINK_API_URL=http://localhost:3001 \
+npx vendure console link
+```
+
+The variables apply only to the unauthenticated Project Link exchange. They do not configure Console authentication,
+Environment Credentials, Registry access, package downloads, or Vendure Cloud operations.
+
+The CLI rejects partial endpoint configuration and URLs that contain credentials, paths, queries, or fragments. It
+requires HTTPS except for `localhost`, `127.0.0.1`, and `::1`. The production Console and API origins must be used
+together.
+
+Before it contacts a custom remote environment, the CLI displays both origins and asks for confirmation. In a
+non-interactive environment, pass `--allow-custom-console` to confirm them explicitly:
+
+```bash
+VENDURE_CONSOLE_LINK_URL=https://console.staging.example.com \
+VENDURE_CONSOLE_LINK_API_URL=https://api.staging.example.com \
+npx vendure console link --allow-custom-console
+```
+
 ## Working in Monorepos
 
 The Vendure CLI automatically supports monorepo structures where packages have their own `tsconfig.json` files that extend a shared base configuration.
@@ -464,5 +584,6 @@ npx vendure add --help
 npx vendure migrate --help
 npx vendure schema --help
 npx vendure doctor --help
+npx vendure console --help
 npx vendure plugins --help
 ```
