@@ -1,11 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { CurrencyCode, DeletionResult, LanguageCode, Permission } from '@vendure/common/lib/generated-types';
-import { omit } from '@vendure/common/lib/omit';
-import {
-    CUSTOMER_ROLE_CODE,
-    DEFAULT_CHANNEL_CODE,
-    SUPER_ADMIN_ROLE_CODE,
-} from '@vendure/common/lib/shared-constants';
+import { CUSTOMER_ROLE_CODE, SUPER_ADMIN_ROLE_CODE } from '@vendure/common/lib/shared-constants';
 import {
     createErrorResultGuard,
     createTestEnvironment,
@@ -24,12 +19,10 @@ import {
     createAdministratorDocument,
     createChannelDocument,
     createRoleDocument,
-    getChannelsDocument,
     updateAdministratorDocument,
     updateRoleDocument,
 } from './graphql/shared-definitions';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
-import { sortById } from './utils/test-order-utils';
 
 describe('Role resolver', () => {
     const { server, adminClient } = createTestEnvironment(testConfig());
@@ -318,11 +311,18 @@ describe('Role resolver', () => {
         expect(role).toBeNull();
     });
 
-    describe('multi-channel', () => {
+    // https://github.com/vendurehq/vendure/issues/1874
+    describe('role escalation', () => {
         let secondChannel: ChannelFragment;
-        let multiChannelRole: ResultOf<typeof createRoleDocument>['createRole'];
+        let limitedAdmin: FragmentOf<typeof administratorFragment>;
+        let orderReaderRole: ResultOf<typeof createRoleDocument>['createRole'];
+        let adminCreatorRole: ResultOf<typeof createRoleDocument>['createRole'];
+        let adminCreatorAdministrator: FragmentOf<typeof administratorFragment>;
 
         beforeAll(async () => {
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            await adminClient.asSuperAdmin();
+
             const { createChannel } = await adminClient.query(createChannelDocument, {
                 input: {
                     code: 'second-channel',
@@ -335,80 +335,12 @@ describe('Role resolver', () => {
                 },
             });
             channelGuard.assertSuccess(createChannel);
-
             secondChannel = createChannel;
-        });
 
-        it('createRole with specified channel', async () => {
-            const { createRole } = await adminClient.query(createRoleDocument, {
-                input: {
-                    code: 'multi-test',
-                    description: 'multi channel test role',
-                    permissions: [Permission.ReadCustomer],
-                    channelIds: [secondChannel.id],
-                },
-            });
-
-            multiChannelRole = createRole;
-            expect(createRole).toEqual({
-                code: 'multi-test',
-                description: 'multi channel test role',
-                id: 'T_6',
-                permissions: [Permission.Authenticated, Permission.ReadCustomer],
-                channels: [
-                    {
-                        code: 'second-channel',
-                        id: 'T_2',
-                        token: 'second-channel-token',
-                    },
-                ],
-            });
-        });
-
-        it('updateRole with specified channel', async () => {
-            const { updateRole } = await adminClient.query(updateRoleDocument, {
-                input: {
-                    id: multiChannelRole.id,
-                    channelIds: ['T_1', 'T_2'],
-                },
-            });
-
-            expect(updateRole.channels.sort(sortById)).toEqual([
-                {
-                    code: DEFAULT_CHANNEL_CODE,
-                    id: 'T_1',
-                    token: 'e2e-default-channel',
-                },
-                {
-                    code: 'second-channel',
-                    id: 'T_2',
-                    token: 'second-channel-token',
-                },
-            ]);
-        });
-    });
-
-    // https://github.com/vendurehq/vendure/issues/1874
-    describe('role escalation', () => {
-        type SimpleChannel = ResultOf<typeof getChannelsDocument>['channels']['items'][number];
-        let defaultChannel: SimpleChannel;
-        let secondChannel: SimpleChannel;
-        let limitedAdmin: FragmentOf<typeof administratorFragment>;
-        let orderReaderRole: ResultOf<typeof createRoleDocument>['createRole'];
-        let adminCreatorRole: ResultOf<typeof createRoleDocument>['createRole'];
-        let adminCreatorAdministrator: FragmentOf<typeof administratorFragment>;
-
-        beforeAll(async () => {
-            const { channels } = await adminClient.query(getChannelsDocument);
-            defaultChannel = channels.items.find(c => c.token === E2E_DEFAULT_CHANNEL_TOKEN)!;
-            secondChannel = channels.items.find(c => c.token !== E2E_DEFAULT_CHANNEL_TOKEN)!;
-            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
-            await adminClient.asSuperAdmin();
             const { createRole } = await adminClient.query(createRoleDocument, {
                 input: {
                     code: 'second-channel-admin-manager',
                     description: '',
-                    channelIds: [secondChannel.id],
                     permissions: [
                         Permission.CreateAdministrator,
                         Permission.ReadAdministrator,
@@ -423,7 +355,7 @@ describe('Role resolver', () => {
                     firstName: 'channel2',
                     lastName: 'admin manager',
                     emailAddress: 'channel2@test.com',
-                    roleIds: [createRole.id],
+                    roleAssignments: [{ roleId: createRole.id, channelId: secondChannel.id }],
                     password: 'test',
                 },
             });
@@ -433,7 +365,6 @@ describe('Role resolver', () => {
                 input: {
                     code: 'second-channel-order-manager',
                     description: '',
-                    channelIds: [secondChannel.id],
                     permissions: [Permission.ReadOrder],
                 },
             });
@@ -464,7 +395,6 @@ describe('Role resolver', () => {
                     input: {
                         code: 'evil-superadmin',
                         description: '',
-                        channelIds: [secondChannel.id],
                         permissions: [Permission.SuperAdmin],
                     },
                 });
@@ -494,25 +424,10 @@ describe('Role resolver', () => {
                     input: {
                         code: 'evil-order-manager',
                         description: '',
-                        channelIds: [secondChannel.id],
                         permissions: [Permission.ReadOrder],
                     },
                 });
             }, 'Active user does not have sufficient permissions'),
-        );
-
-        it(
-            'limited admin cannot create Role on channel it does not have permissions on',
-            assertThrowsWithMessage(async () => {
-                await adminClient.query(createRoleDocument, {
-                    input: {
-                        code: 'evil-order-manager',
-                        description: '',
-                        channelIds: [defaultChannel.id],
-                        permissions: [Permission.CreateAdministrator],
-                    },
-                });
-            }, 'You are not currently authorized to perform this action'),
         );
 
         it(
@@ -535,7 +450,6 @@ describe('Role resolver', () => {
                 input: {
                     code: 'good-admin-creator',
                     description: '',
-                    channelIds: [secondChannel.id],
                     permissions: [Permission.CreateAdministrator],
                 },
             });
