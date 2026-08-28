@@ -1,7 +1,7 @@
 ---
 title: 'Scheduled Tasks'
-metaTitle: "Scheduled Tasks in Vendure - Cron-Style Job Scheduling"
-metaDescription: "Define recurring background tasks in Vendure v3.3+ using the DefaultSchedulerPlugin for sitemaps, data sync, abandoned cart emails, and cleanup routines."
+metaTitle: 'Scheduled Tasks in Vendure - Cron-Style Job Scheduling'
+metaDescription: 'Define recurring background tasks in Vendure v3.3+ using the DefaultSchedulerPlugin for sitemaps, data sync, abandoned cart emails, and cleanup routines.'
 ---
 
 Scheduled tasks are a way of executing some code at pre-defined intervals. There are many examples of work that can be done using scheduled tasks,
@@ -99,7 +99,7 @@ export const generateSitemapTask = new ScheduledTask({
     // `.configure()` method on the instance later.
     schedule: cron => cron.everyDayAt(0, 0),
     // This is the function that will be executed per the schedule.
-    async execute({injector, params}) {
+    async execute({ injector, params }) {
         // Using `injector.get()` we can grab an instance of _any_ provider defined in the
         // Vendure core as well as by our plugins.
         const sitemapService = injector.get(SitemapService);
@@ -142,16 +142,18 @@ export const config: VendureConfig = {
             cleanSessionsTask,
             // Here's an example of overriding the // [!code highlight]
             // default params using the `configure()` method. // [!code highlight]
-            generateSitemapTask.configure({ // [!code highlight]
-                params: { // [!code highlight]
-                    shopBaseUrl: 'https://www.shoes.com' // [!code highlight]
-                } // [!code highlight]
+            generateSitemapTask.configure({
+                // [!code highlight]
+                params: {
+                    // [!code highlight]
+                    shopBaseUrl: 'https://www.shoes.com', // [!code highlight]
+                }, // [!code highlight]
             }), // [!code highlight]
         ],
     },
     plugins: [
         SitemapPlugin, // [!code highlight]
-        DefaultSchedulerPlugin.init()
+        DefaultSchedulerPlugin.init(),
     ],
 };
 ```
@@ -177,12 +179,15 @@ import { generateSitemapTask } from './config/generate-sitemap-task';
     providers: [SitemapService],
     configuration: (config: VendureConfig) => {
         // Add the task to the schedulerOptions.tasks array // [!code highlight]
-        config.schedulerOptions.tasks.push( // [!code highlight]
-            generateSitemapTask.configure({ // [!code highlight]
-                params: { // [!code highlight]
+        config.schedulerOptions.tasks.push(
+            // [!code highlight]
+            generateSitemapTask.configure({
+                // [!code highlight]
+                params: {
+                    // [!code highlight]
                     shopBaseUrl: SitemapPlugin.options.shopBaseUrl, // [!code highlight]
-                } // [!code highlight]
-            }) // [!code highlight]
+                }, // [!code highlight]
+            }), // [!code highlight]
         ); // [!code highlight]
         return config;
     },
@@ -194,7 +199,7 @@ export class SitemapPlugin {
         this.options = {
             shopBaseUrl: '',
             ...(options ?? {}),
-        }
+        };
     }
 }
 ```
@@ -209,13 +214,60 @@ import { SitemapPlugin } from './plugins/sitemap'; // [!code highlight]
 export const config: VendureConfig = {
     // ...
     plugins: [
-        SitemapPlugin.init({ // [!code highlight]
-            shopBaseUrl: 'https://www.shoes.com' // [!code highlight]
+        SitemapPlugin.init({
+            // [!code highlight]
+            shopBaseUrl: 'https://www.shoes.com', // [!code highlight]
         }), // [!code highlight]
-        DefaultSchedulerPlugin.init()
+        DefaultSchedulerPlugin.init(),
     ],
 };
 ```
+
+## Timezones
+
+By default, cron expressions are evaluated in the timezone of the Node.js process, as determined by the `TZ`
+environment variable. A schedule of `0 3 * * *` therefore means "03:00 in whatever timezone the process happens
+to run in" - which for a process running in UTC is 03:00 UTC, not 03:00 local time.
+
+Since v3.8 you can specify an [IANA timezone identifier](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)
+in which schedules should be evaluated, either globally or per task:
+
+```ts title="vendure-config.ts"
+import { ScheduledTask, VendureConfig } from '@vendure/core';
+
+export const config: VendureConfig = {
+    // ...
+    schedulerOptions: {
+        // All schedules are evaluated in this timezone...
+        timezone: 'Europe/Stockholm',
+        tasks: [
+            new ScheduledTask({
+                id: 'nightly-sync',
+                schedule: cron => cron.everyDayAt(2, 0),
+                // ...except for tasks that specify their own
+                timezone: 'America/New_York',
+                execute: async () => {
+                    /* ... */
+                },
+            }),
+        ],
+    },
+};
+```
+
+For tasks you do not construct yourself, such as the built-in `cleanSessionsTask`, the timezone can be set
+via the `configure()` method:
+
+```ts
+cleanSessionsTask.configure({ timezone: 'Europe/Stockholm' });
+```
+
+With a timezone configured, schedules follow local wall-clock time including daylight saving time transitions,
+independently of the process timezone. This is particularly useful when the process runs in UTC (which is
+generally recommended so that database timestamps are stored consistently), but tasks should still run at a
+fixed local time.
+
+When no timezone is configured, the behaviour is unchanged from prior versions.
 
 ## How scheduled tasks work
 
@@ -246,7 +298,6 @@ consider if the scheduled task may take a significant amount of time or resource
 It also has the advantage of giving you a record of results for that work that has been put on the job queue, whereas scheduled tasks
 only record that result of the last execution.
 
-
 ## A note on @nestjs/schedule
 
 NestJS provides a [dedicated package for scheduling tasks](https://docs.nestjs.com/techniques/task-scheduling), called `@nestjs/schedule`.
@@ -275,7 +326,8 @@ export class SitemapService {
 
     @Cron('0 0 * * *')
     async generateSitemap() {
-        if (this.processContext.isWorker) { // [!code highlight]
+        if (this.processContext.isWorker) {
+            // [!code highlight]
             // Only run on the worker // [!code highlight]
             await this.triggerGenerate(); // [!code highlight]
         } // [!code highlight]
