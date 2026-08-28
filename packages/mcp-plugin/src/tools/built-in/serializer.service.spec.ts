@@ -444,7 +444,7 @@ describe('McpToolSerializerService', () => {
         });
     });
 
-    it("serializes an order's address with all nine fields, null where a field was not given", () => {
+    it('leaves out the address fields that were not given', () => {
         const serialized = service.order({
             id: 1,
             code: 'T_1',
@@ -461,14 +461,10 @@ describe('McpToolSerializerService', () => {
         } as any);
         expect(serialized?.shippingAddress).toEqual({
             fullName: 'Ada Lovelace',
-            company: null,
             streetLine1: '12 Test Street',
-            streetLine2: null,
             city: 'London',
-            province: null,
             postalCode: 'N1 1AA',
             countryCode: 'GB',
-            phoneNumber: null,
         });
     });
 

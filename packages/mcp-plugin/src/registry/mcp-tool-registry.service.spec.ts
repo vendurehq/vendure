@@ -578,6 +578,18 @@ describe('McpToolRegistryService', () => {
             expect(result.structuredContent).toEqual({ items: [] });
         });
 
+        it('writes the result text as compact JSON', async () => {
+            // Indented JSON costs the caller tokens for whitespace no model needs, so the text
+            // block is the same document with nothing between the keys.
+            const output = { a: 1, b: [1, 2], c: { d: 'e' } };
+            const { service } = build([wrapper(shopTool(), () => output)]);
+            service.onApplicationBootstrap();
+            const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'get_thing', {});
+            const text = (result.content as any)[0].text;
+            expect(text).toBe(JSON.stringify(output));
+            expect(text).not.toContain('\n');
+        });
+
         it('reports a Vendure error result returned by a tool as a failed call', async () => {
             // Vendure services answer a refused operation with an error result object instead of
             // throwing. A caller that only reads `isError` must not take that for success, and
@@ -605,6 +617,74 @@ describe('McpToolRegistryService', () => {
             expect(toolCallLog.logToolCall).toHaveBeenCalledWith(
                 expect.objectContaining({ status: 'error', output: fields }),
             );
+        });
+
+        it('writes a Vendure error result as compact JSON too', async () => {
+            class OrderModificationError {
+                readonly __typename = 'OrderModificationError';
+                readonly errorCode = 'ORDER_MODIFICATION_ERROR';
+                readonly message = 'The order cannot be modified';
+            }
+            const { service } = build([wrapper(shopTool(), () => new OrderModificationError())]);
+            service.onApplicationBootstrap();
+            const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'get_thing', {});
+            const text = (result.content as any)[0].text;
+            expect(text).toBe(JSON.stringify(result.structuredContent));
+            expect(text).not.toContain('\n');
+        });
+    });
+
+    describe('result size limit', () => {
+        const listTool = (over: Partial<McpToolMetadata> = {}) =>
+            shopTool({
+                name: 'list_things',
+                inputSchema: {
+                    type: 'object',
+                    properties: { limit: { type: 'number' }, filter: { type: 'object' } },
+                },
+                ...over,
+            });
+
+        it('refuses a result over the limit and names the arguments that make it smaller', async () => {
+            const { service } = build([wrapper(listTool(), () => ({ big: 'x'.repeat(100_001) }))]);
+            service.onApplicationBootstrap();
+            const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'list_things', {});
+            const text = (result.content as any)[0].text;
+            expect(result.isError).toBe(true);
+            expect(text).toContain('list_things');
+            expect(text).toContain('over the 100,000-byte limit');
+            expect(text).toContain('"limit"');
+            expect(text).toContain('"filter"');
+            // The tool has no offset argument, so telling the caller to page by one would be
+            // advice it cannot follow.
+            expect(text).not.toContain('"offset"');
+        });
+
+        it('returns a result just under the limit unchanged', async () => {
+            const output = { big: 'x'.repeat(99_000) };
+            const { service } = build([wrapper(listTool(), () => output)]);
+            service.onApplicationBootstrap();
+            const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'list_things', {});
+            expect(result.isError).toBeUndefined();
+            expect(result.structuredContent).toEqual(output);
+        });
+
+        it('hands the sessionToken back with an oversized cart result', async () => {
+            const session = { id: 's1', token: 'existing-token', expires: new Date(Date.now() + 60_000) };
+            const { service, sessionService } = build([
+                wrapper(
+                    listTool({ name: 'touch_cart', behavior: 'mutating', usesActiveOrder: true }),
+                    () => ({ big: 'x'.repeat(100_001) }),
+                ),
+            ]);
+            sessionService.getSessionFromToken.mockResolvedValue(session);
+            service.onApplicationBootstrap();
+
+            const result = await service.callToolDirect({ ctx: makeCtx() }, 'shop', 'touch_cart', {
+                sessionToken: 'existing-token',
+            });
+            expect(result.isError).toBe(true);
+            expect(result.structuredContent).toEqual({ sessionToken: 'existing-token' });
         });
     });
 

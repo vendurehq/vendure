@@ -66,6 +66,10 @@ tool comes back the same way. So does a Vendure error result that a tool returns
 `CouponCodeInvalidError` from `apply_coupon_code`. In that case `structuredContent` is the error object itself,
 with its `errorCode` and `message`, so the caller can act on the code.
 
+A result is also refused when its JSON is larger than 100,000 bytes. That is about 25,000 tokens, the amount
+Claude Code accepts from one tool call before it truncates the text. The message asks for less at a time and names
+only the arguments that tool has, such as a lower `limit`, the next page through `offset`, or a `filter`.
+
 Passing the wrong kind of context throws instead. The `'shop'` toolset requires a Shop API context, and `'admin'`
 requires an Admin API context.
 

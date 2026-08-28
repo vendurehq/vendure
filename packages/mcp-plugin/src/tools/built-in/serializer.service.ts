@@ -297,17 +297,28 @@ export class McpToolSerializerService {
         countryCode?: string | null;
         phoneNumber?: string | null;
     }) {
-        return {
-            fullName: address.fullName ?? null,
-            company: address.company ?? null,
-            streetLine1: address.streetLine1 ?? null,
-            streetLine2: address.streetLine2 ?? null,
-            city: address.city ?? null,
-            province: address.province ?? null,
-            postalCode: address.postalCode ?? null,
-            countryCode: address.countryCode ?? null,
-            phoneNumber: address.phoneNumber ?? null,
-        };
+        // Only the fields that hold something are emitted: a key set to null tells the caller
+        // nothing it cannot see from the key being absent, and costs it tokens. An empty string
+        // stays, because that is a value someone typed into the field.
+        const present: Record<string, string> = {};
+        const fields = [
+            'fullName',
+            'company',
+            'streetLine1',
+            'streetLine2',
+            'city',
+            'province',
+            'postalCode',
+            'countryCode',
+            'phoneNumber',
+        ] as const;
+        for (const field of fields) {
+            const value = address[field];
+            if (value != null) {
+                present[field] = value;
+            }
+        }
+        return present;
     }
 
     orderNote(entry: { id: ID; data: { note: string }; isPublic: boolean; createdAt: Date }) {

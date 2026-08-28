@@ -58,6 +58,17 @@ const CALLER_SAFE_ERROR_TYPES = [
     UnauthorizedError,
 ] as const;
 const GENERIC_TOOL_ERROR_MESSAGE = 'The tool failed unexpectedly';
+// Largest serialized result text a tool may return, in bytes. 100 KB is roughly 25,000 tokens,
+// which is the cap Claude Code applies to a tool response before it truncates the text.
+const MAX_RESULT_BYTES = 100_000;
+// The arguments a caller can use to ask for less, and how the size error tells them to. Only the
+// ones a tool actually declares are mentioned, so the advice is always something they can do.
+const NARROWING_ARGUMENT_ADVICE: Record<string, string> = {
+    limit: 'lower "limit"',
+    offset: 'page with "offset"',
+    filter: 'add a "filter"',
+    query: 'narrow the "query"',
+};
 // Enforce SEP-986 because some MCP clients reject non-conforming tool names.
 const TOOL_NAME_PATTERN = /^[A-Za-z0-9._-]{1,128}$/;
 
@@ -410,9 +421,13 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                 durationMs: Date.now() - startedAt,
                 status: 'success',
             });
-            return this.successResult(
-                this.shopSession.addSessionTokenToResult(output, sessionTokenForResult),
-            );
+            const result = this.shopSession.addSessionTokenToResult(output, sessionTokenForResult);
+            const text = JSON.stringify(result ?? null);
+            const bytes = Buffer.byteLength(text, 'utf8');
+            if (bytes > MAX_RESULT_BYTES) {
+                return this.errorResult(this.tooLargeMessage(tool, bytes), sessionTokenForResult);
+            }
+            return this.successResult(result, text);
         } catch (e) {
             const message = e instanceof Error ? e.message : 'MCP tool failed';
             const callerSafe = this.isCallerSafeError(e);
@@ -683,11 +698,41 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         }
     }
 
-    private successResult(output: unknown): CallToolResult {
+    /**
+     * A successful call. The tool path passes the `text` it already built to measure the result,
+     * so the same object is not serialized twice.
+     */
+    private successResult(output: unknown, text = JSON.stringify(output ?? null)): CallToolResult {
         return {
-            content: [{ type: 'text', text: JSON.stringify(output ?? null, null, 2) }],
+            content: [{ type: 'text', text }],
             structuredContent: output,
         };
+    }
+
+    /**
+     * Explains that a result was too big to return, and which of this tool's own arguments would
+     * make the next attempt smaller.
+     */
+    private tooLargeMessage(tool: McpRegisteredTool, bytes: number): string {
+        const declared = tool.wireJsonSchema.properties ?? {};
+        const advice = Object.keys(NARROWING_ARGUMENT_ADVICE)
+            .filter(argument => argument in declared)
+            .map(argument => NARROWING_ARGUMENT_ADVICE[argument]);
+        const size =
+            `The result of "${tool.name}" is ${bytes.toLocaleString('en-US')} bytes, over the ` +
+            `${MAX_RESULT_BYTES.toLocaleString('en-US')}-byte limit for one tool result.`;
+        if (advice.length === 0) {
+            return `${size} Ask for less at a time.`;
+        }
+        return `${size} Ask for less at a time: ${this.joinWithOr(advice)}.`;
+    }
+
+    /** Reads a list of choices as a sentence does: "a", "a or b", "a, b, or c". */
+    private joinWithOr(options: string[]): string {
+        if (options.length < 3) {
+            return options.join(' or ');
+        }
+        return `${options.slice(0, -1).join(', ')}, or ${options[options.length - 1]}`;
     }
 
     private errorResult(message: string, sessionToken?: string): CallToolResult {
@@ -708,7 +753,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     private vendureErrorResult(output: unknown): CallToolResult {
         return {
             isError: true,
-            content: [{ type: 'text', text: JSON.stringify(output, null, 2) }],
+            content: [{ type: 'text', text: JSON.stringify(output) }],
             structuredContent: output as Record<string, unknown>,
         };
     }
