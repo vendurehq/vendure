@@ -1114,6 +1114,22 @@ export interface SchedulerOptions {
      * @default true
      */
     runTasksInWorkerOnly?: boolean;
+
+    /**
+     * @description
+     * The IANA timezone identifier (e.g. `'Europe/Stockholm'`, `'America/New_York'`) in which
+     * the cron schedules of all scheduled tasks are evaluated. Individual tasks can override
+     * this via the `timezone` property of {@link ScheduledTaskConfig}.
+     *
+     * When not set, cron expressions are evaluated in the timezone of the Node.js process
+     * (as determined by the `TZ` environment variable), which preserves the behaviour of
+     * prior versions. Setting this option allows the process to run in UTC while schedules
+     * still follow local wall-clock time, including daylight saving time transitions.
+     *
+     * @since 3.8.0
+     * @default undefined
+     */
+    timezone?: string;
 }
 
 /**
@@ -1438,7 +1454,7 @@ export interface RuntimeVendureConfig extends Required<VendureConfig> {
     entityOptions: Required<Omit<EntityOptions, 'entityIdStrategy'>> & EntityOptions;
     importExportOptions: Required<ImportExportOptions>;
     jobQueueOptions: Required<JobQueueOptions>;
-    schedulerOptions: Required<SchedulerOptions>;
+    schedulerOptions: Required<Omit<SchedulerOptions, 'timezone'>> & SchedulerOptions;
     orderOptions: Required<OrderOptions>;
     promotionOptions: Required<PromotionOptions>;
     shippingOptions: Required<ShippingOptions>;

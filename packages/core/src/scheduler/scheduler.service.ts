@@ -9,6 +9,7 @@ import { Logger } from '../config/logger/vendure-logger';
 import { ProcessContext } from '../process-context';
 
 import { NoopSchedulerStrategy } from './noop-scheduler-strategy';
+import { assertValidTimezone, getScheduleTimezone } from './schedule-timezone';
 import { ScheduledTask } from './scheduled-task';
 import { TaskReport } from './scheduler-strategy';
 
@@ -63,7 +64,10 @@ export class SchedulerService implements OnApplicationBootstrap, OnApplicationSh
             } else {
                 if (this.shouldRunTasks) {
                     const schedule = cronstrue.toString(pattern);
-                    Logger.info(`Registered scheduled task: ${task.id} - ${schedule}`);
+                    const timezone = getScheduleTimezone(task, this.configService.schedulerOptions);
+                    Logger.info(
+                        `Registered scheduled task: ${task.id} - ${schedule}${timezone ? ` (${timezone})` : ''}`,
+                    );
                 }
                 this.jobs.set(task.id, { task, job });
             }
@@ -136,11 +140,13 @@ export class SchedulerService implements OnApplicationBootstrap, OnApplicationSh
         }
 
         const pattern = job.getPattern();
+        const timezone = getScheduleTimezone(task, this.configService.schedulerOptions);
+        const timezoneSuffix = timezone ? ` (${timezone})` : '';
         return {
             id: taskReport.id,
             description: task.options.description ?? '',
             schedule: pattern ?? 'unknown',
-            scheduleDescription: pattern ? cronstrue.toString(pattern) : 'unknown',
+            scheduleDescription: pattern ? `${cronstrue.toString(pattern)}${timezoneSuffix}` : 'unknown',
             lastExecutedAt: taskReport.lastExecutedAt,
             nextExecutionAt: job.nextRun(),
             isRunning: taskReport.isRunning,
@@ -165,11 +171,17 @@ export class SchedulerService implements OnApplicationBootstrap, OnApplicationSh
                 ? task.options.schedule(CronTime)
                 : task.options.schedule;
 
+        const timezone = getScheduleTimezone(task, this.configService.schedulerOptions);
+        if (timezone != null) {
+            assertValidTimezone(timezone, task.id);
+        }
+
         const job = new Cron(
             schedule,
             {
                 name: task.id,
                 protect: task.options.preventOverlap ? protectCallback : undefined,
+                timezone,
             },
             () => {
                 if (this.shouldRunTasks) {

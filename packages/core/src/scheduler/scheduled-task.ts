@@ -75,6 +75,19 @@ export interface ScheduledTaskConfig<C extends Record<string, any> = Record<stri
     schedule: string | ((cronTime: typeof CronTime) => string);
     /**
      * @description
+     * The IANA timezone identifier (e.g. `'Europe/Stockholm'`, `'America/New_York'`) in which
+     * the cron schedule of this task is evaluated. Takes precedence over the global
+     * `schedulerOptions.timezone` setting.
+     *
+     * When neither is set, the cron expression is evaluated in the timezone of the
+     * Node.js process.
+     *
+     * @since 3.8.0
+     * @default undefined
+     */
+    timezone?: string;
+    /**
+     * @description
      * The timeout for the scheduled task. If the task takes longer than the timeout, the task
      * will be considered to have failed with a timeout error.
      *
@@ -166,9 +179,16 @@ export class ScheduledTask<C extends Record<string, any> = Record<string, any>> 
      * task.configure({ schedule: cron => cron.every(5).minutes() });
      * ```
      */
-    configure(additionalConfig: Partial<Pick<ScheduledTaskConfig<C>, 'schedule' | 'timeout' | 'params'>>) {
+    configure(
+        additionalConfig: Partial<
+            Pick<ScheduledTaskConfig<C>, 'schedule' | 'timezone' | 'timeout' | 'params'>
+        >,
+    ) {
         if (additionalConfig.schedule) {
             this.config.schedule = additionalConfig.schedule;
+        }
+        if (additionalConfig.timezone) {
+            this.config.timezone = additionalConfig.timezone;
         }
         if (additionalConfig.timeout) {
             this.config.timeout = additionalConfig.timeout;
