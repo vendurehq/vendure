@@ -603,7 +603,8 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         return [...this.tools.values()]
             .filter(tool => tool.toolset === toolset)
             .filter(tool => this.isToolEnabled(tool, toggles))
-            .filter(tool => this.hasPermissions(ctx, tool.permissions ?? [Permission.Public]));
+            .filter(tool => this.hasPermissions(ctx, tool.permissions ?? [Permission.Public]))
+            .sort((a, b) => a.name.localeCompare(b.name));
     }
 
     private deriveAnnotations(tool: McpToolMetadata, behavior: McpToolBehavior): ToolAnnotations {
