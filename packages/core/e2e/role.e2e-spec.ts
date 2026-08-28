@@ -87,7 +87,7 @@ describe('Role resolver', () => {
             },
         });
 
-        expect(omit(createRole, ['channels'])).toEqual({
+        expect(createRole).toEqual({
             code: 'test',
             description: 'test role',
             id: 'T_3',
@@ -104,7 +104,7 @@ describe('Role resolver', () => {
             },
         });
 
-        expect(omit(createRole, ['channels'])).toEqual({
+        expect(createRole).toEqual({
             code: 'test2',
             description: 'test role2',
             id: 'T_4',
@@ -127,13 +127,6 @@ describe('Role resolver', () => {
             description: 'test role',
             id: 'T_5',
             permissions: [Permission.Authenticated, Permission.ReadCustomer, Permission.UpdateCustomer],
-            channels: [
-                {
-                    code: DEFAULT_CHANNEL_CODE,
-                    id: 'T_1',
-                    token: 'e2e-default-channel',
-                },
-            ],
         });
     });
 
@@ -159,7 +152,7 @@ describe('Role resolver', () => {
                 },
             });
 
-            expect(omit(result.updateRole, ['channels'])).toEqual({
+            expect(result.updateRole).toEqual({
                 code: 'test-modified',
                 description: 'test role modified',
                 id: 'T_5',

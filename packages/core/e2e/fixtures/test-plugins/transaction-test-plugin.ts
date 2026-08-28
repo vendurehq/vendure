@@ -48,7 +48,6 @@ class TestUserService {
             new User({
                 authenticationMethods: [authMethod],
                 identifier,
-                roles: [],
                 verified: true,
             }),
         );
