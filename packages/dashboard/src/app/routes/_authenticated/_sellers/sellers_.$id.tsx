@@ -48,6 +48,11 @@ function SellerDetailPage() {
             return {
                 id: entity.id,
                 name: entity.name,
+                translations: entity.translations.map(translation => ({
+                    id: translation.id,
+                    languageCode: translation.languageCode,
+                    customFields: (translation as any).customFields,
+                })),
                 customFields: entity.customFields,
             };
         },

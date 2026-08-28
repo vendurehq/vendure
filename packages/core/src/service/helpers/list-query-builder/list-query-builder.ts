@@ -918,6 +918,10 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
                             }),
                         );
                     }
+                    // A base row with no translation rows at all (for example a Seller whose
+                    // localized custom fields were never set) matches neither branch above and
+                    // would be dropped.
+                    qb1.orWhere(`${translationsAlias}.id IS NULL`);
                     qb.setParameters({
                         nonDefaultLanguageCode: languageCode,
                         defaultLanguageCode,

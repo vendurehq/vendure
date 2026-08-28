@@ -1085,6 +1085,7 @@ export type CreateRoleInput = {
 export type CreateSellerInput = {
   customFields?: InputMaybe<Scalars['JSON']['input']>;
   name: Scalars['String']['input'];
+  translations?: InputMaybe<Array<SellerTranslationInput>>;
 };
 
 export type CreateShippingMethodInput = {
@@ -6361,6 +6362,7 @@ export type Seller = Node & {
   customFields?: Maybe<Scalars['JSON']['output']>;
   id: Scalars['ID']['output'];
   name: Scalars['String']['output'];
+  translations: Array<SellerTranslation>;
   updatedAt: Scalars['DateTime']['output'];
 };
 
@@ -6397,6 +6399,24 @@ export type SellerSortParameter = {
   id?: InputMaybe<SortOrder>;
   name?: InputMaybe<SortOrder>;
   updatedAt?: InputMaybe<SortOrder>;
+};
+
+/**
+ * Holds a Seller's localized custom field values for one language.
+ * The Seller's own fields, such as `name`, are not translated.
+ */
+export type SellerTranslation = {
+  __typename?: 'SellerTranslation';
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  languageCode: LanguageCode;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type SellerTranslationInput = {
+  customFields?: InputMaybe<Scalars['JSON']['input']>;
+  id?: InputMaybe<Scalars['ID']['input']>;
+  languageCode: LanguageCode;
 };
 
 export type ServerConfig = {
@@ -7329,6 +7349,7 @@ export type UpdateSellerInput = {
   customFields?: InputMaybe<Scalars['JSON']['input']>;
   id: Scalars['ID']['input'];
   name?: InputMaybe<Scalars['String']['input']>;
+  translations?: InputMaybe<Array<SellerTranslationInput>>;
 };
 
 export type UpdateShippingMethodInput = {

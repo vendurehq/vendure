@@ -8,9 +8,10 @@ import {
     Permission,
     QuerySellerArgs,
     QuerySellersArgs,
-    SellerList,
 } from '@vendure/common/lib/generated-types';
+import { PaginatedList } from '@vendure/common/lib/shared-types';
 
+import { Translated } from '../../../common/types/locale-types';
 import { Seller } from '../../../entity/seller/seller.entity';
 import { SellerService } from '../../../service/services/seller.service';
 import { RequestContext } from '../../common/request-context';
@@ -24,27 +25,39 @@ export class SellerResolver {
 
     @Query()
     @Allow(Permission.ReadSeller)
-    async sellers(@Ctx() ctx: RequestContext, @Args() args: QuerySellersArgs): Promise<SellerList> {
+    async sellers(
+        @Ctx() ctx: RequestContext,
+        @Args() args: QuerySellersArgs,
+    ): Promise<PaginatedList<Translated<Seller>>> {
         return this.sellerService.findAll(ctx, args.options);
     }
 
     @Query()
     @Allow(Permission.ReadSeller)
-    async seller(@Ctx() ctx: RequestContext, @Args() args: QuerySellerArgs): Promise<Seller | undefined> {
+    async seller(
+        @Ctx() ctx: RequestContext,
+        @Args() args: QuerySellerArgs,
+    ): Promise<Translated<Seller> | undefined> {
         return this.sellerService.findOne(ctx, args.id);
     }
 
     @Transaction()
     @Mutation()
     @Allow(Permission.CreateSeller)
-    async createSeller(@Ctx() ctx: RequestContext, @Args() args: MutationCreateSellerArgs): Promise<Seller> {
+    async createSeller(
+        @Ctx() ctx: RequestContext,
+        @Args() args: MutationCreateSellerArgs,
+    ): Promise<Translated<Seller>> {
         return this.sellerService.create(ctx, args.input);
     }
 
     @Transaction()
     @Mutation()
     @Allow(Permission.UpdateSeller)
-    async updateSeller(@Ctx() ctx: RequestContext, @Args() args: MutationUpdateSellerArgs): Promise<Seller> {
+    async updateSeller(
+        @Ctx() ctx: RequestContext,
+        @Args() args: MutationUpdateSellerArgs,
+    ): Promise<Translated<Seller>> {
         return this.sellerService.update(ctx, args.input);
     }
 
