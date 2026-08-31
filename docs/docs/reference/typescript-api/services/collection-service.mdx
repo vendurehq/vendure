@@ -167,7 +167,9 @@ If no `collectionIds` option is passed, then all collections will be re-evaluate
 
 If called from within a transaction, the job is not enqueued until that transaction has
 committed. The returned promise therefore resolves before the job exists, and the job is
-never enqueued at all if the transaction rolls back.
+never enqueued at all if the transaction rolls back. Since the enqueue then happens after
+the caller has returned, a failure to enqueue cannot be reported back to the caller. It is
+logged with the ids of the affected collections instead.
 ### getCollectionProductVariantIds
 
 <MemberInfo kind="method" type={`(collection: <a href='/reference/typescript-api/entities/collection#collection'>Collection</a>, ctx?: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => Promise<<a href='/reference/typescript-api/common/id#id'>ID</a>[]>`}   />
