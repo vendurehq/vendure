@@ -95,13 +95,21 @@ updates:
               update-types:
                   - minor
                   - patch
-          dev-tooling:
+          # Kept separate from dev-tooling because these are the packages the
+          # auto-merge workflow allowlists. Grouping them on their own means a
+          # group pull request contains only allowlisted names.
+          linting:
               patterns:
                   - eslint
                   - eslint-*
                   - '@typescript-eslint/*'
                   - prettier
                   - prettier-*
+              update-types:
+                  - minor
+                  - patch
+          dev-tooling:
+              patterns:
                   - vitest
                   - '@vitest/*'
                   - rimraf

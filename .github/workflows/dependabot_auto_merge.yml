@@ -36,40 +36,83 @@ jobs:
               with:
                   github-token: ${{ secrets.GITHUB_TOKEN }}
 
-            # Auto-merge is deliberately narrow: patch-level updates to
-            # development dependencies of the bun workspace. Those changes run
-            # the full build_and_test suite — build, unit tests and e2e against
-            # all four databases — so a green all-passed is real verification.
+            # Eligibility is an explicit allowlist of dependency names, not a
+            # dependency-type check.
             #
-            # Everything else is left for review:
+            # dependency-type looks like the natural gate, but it does not work
+            # here. fetch-metadata reports the highest-priority type across the
+            # whole pull request, ordered production, development, indirect. In
+            # this workspace every dependency family contains at least one
+            # production dependency of some published package — typescript is a
+            # production dependency of packages/cli, @types/express of
+            # asset-server-plugin, eslint of the root — so every grouped update
+            # reports direct:production and nothing would ever qualify.
+            #
+            # An allowlist says plainly what can merge without a human. These
+            # packages affect type checking and linting, both of which
+            # build_and_test verifies on every pull request, and a patch-level
+            # change to any of them cannot alter runtime behaviour.
+            #
+            # Excluded on purpose:
             #   - github-actions updates touch .github/workflows/, which
             #     CODEOWNERS requires a listed maintainer to approve.
-            #   - docs updates produce a green all-passed without running
-            #     anything, because detect-changes skips every job for a
-            #     docs-only diff. Docs CI is not a required check, so
-            #     auto-merge would not wait for it.
-            #   - production dependencies and minor or major updates are a
-            #     compatibility judgement, not a bump.
+            #   - docs updates make detect-changes report no package changes,
+            #     which skips every job in build_and_test. all-passed then goes
+            #     green having verified nothing, and Docs CI is not a required
+            #     check, so auto-merge would not wait for it.
             - name: Check auto-merge eligibility
               id: check
               env:
                   ECOSYSTEM: ${{ steps.meta.outputs.package-ecosystem }}
-                  DEP_TYPE: ${{ steps.meta.outputs.dependency-type }}
                   UPDATE_TYPE: ${{ steps.meta.outputs.update-type }}
+                  DEP_NAMES: ${{ steps.meta.outputs.dependency-names }}
               run: |
-                  echo "ecosystem=$ECOSYSTEM dependency-type=$DEP_TYPE update-type=$UPDATE_TYPE"
-                  if [ "$ECOSYSTEM" = "bun" ] \
-                     && [ "$DEP_TYPE" = "direct:development" ] \
-                     && [ "$UPDATE_TYPE" = "version-update:semver-patch" ]; then
-                    echo "eligible=true" >> "$GITHUB_OUTPUT"
+                  set -euo pipefail
+                  echo "ecosystem=$ECOSYSTEM update-type=$UPDATE_TYPE names=$DEP_NAMES"
+
+                  eligible=true
+                  reason=""
+
+                  if [ "$ECOSYSTEM" != "bun" ]; then
+                    eligible=false
+                    reason="ecosystem is not bun"
+                  elif [ "$UPDATE_TYPE" != "version-update:semver-patch" ]; then
+                    eligible=false
+                    reason="not a patch update"
+                  elif [ -z "$DEP_NAMES" ]; then
+                    # Fail closed: an empty list means the metadata could not be
+                    # read, not that there is nothing to check.
+                    eligible=false
+                    reason="no dependency names reported"
                   else
-                    echo "eligible=false" >> "$GITHUB_OUTPUT"
+                    IFS=',' read -ra names <<< "$DEP_NAMES"
+                    for raw in "${names[@]}"; do
+                      name="$(echo "$raw" | xargs)"
+                      [ -z "$name" ] && continue
+                      case "$name" in
+                        @types/* | @typescript-eslint/* | eslint | eslint-* | prettier | prettier-*) ;;
+                        *)
+                          eligible=false
+                          reason="$name is not on the allowlist"
+                          ;;
+                      esac
+                    done
                   fi
+
+                  if [ "$eligible" = "true" ]; then
+                    echo "eligible for auto-merge"
+                  else
+                    echo "not eligible: $reason"
+                  fi
+                  echo "eligible=$eligible" >> "$GITHUB_OUTPUT"
 
     auto-merge:
         name: approve and enable auto-merge
         needs: metadata
-        if: needs.metadata.outputs.eligible == 'true'
+        # DEPENDABOT_AUTO_MERGE_DISABLED is a manual pause. Auto-merge is on
+        # by default; set the repository variable to 'true' to stop it without
+        # reverting this workflow.
+        if: needs.metadata.outputs.eligible == 'true' && vars.DEPENDABOT_AUTO_MERGE_DISABLED != 'true'
         runs-on: ubuntu-latest
         permissions: {}
         steps:
