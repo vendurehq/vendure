@@ -1198,7 +1198,7 @@
                   "title": "Bootstrap",
                   "slug": "bootstrap",
                   "file": "docs/reference/typescript-api/common/bootstrap.mdx",
-                  "lastModified": "2026-08-21T07:56:41+02:00"
+                  "lastModified": "2026-08-26T15:26:00Z"
                 },
                 {
                   "title": "CurrencyCode",
@@ -2389,10 +2389,16 @@
               "file": "docs/reference/typescript-api/migration/index.mdx",
               "children": [
                 {
+                  "title": "DeduplicateTranslations",
+                  "slug": "deduplicate-translations",
+                  "file": "docs/reference/typescript-api/migration/deduplicate-translations.mdx",
+                  "lastModified": "2026-08-26T15:26:00Z"
+                },
+                {
                   "title": "GenerateMigration",
                   "slug": "generate-migration",
                   "file": "docs/reference/typescript-api/migration/generate-migration.mdx",
-                  "lastModified": "2026-08-13T14:40:56+02:00"
+                  "lastModified": "2026-08-26T15:26:00Z"
                 },
                 {
                   "title": "MigrateAssetTranslationData",
@@ -2865,6 +2871,12 @@
                   "lastModified": "2026-01-28T14:49:21+01:00"
                 },
                 {
+                  "title": "DeserializedCachedSession",
+                  "slug": "deserialized-cached-session",
+                  "file": "docs/reference/typescript-api/request/deserialized-cached-session.mdx",
+                  "lastModified": "2026-08-26T15:26:00Z"
+                },
+                {
                   "title": "Relations Decorator",
                   "slug": "relations-decorator",
                   "file": "docs/reference/typescript-api/request/relations-decorator.mdx",
@@ -2874,7 +2886,7 @@
                   "title": "RequestContext",
                   "slug": "request-context",
                   "file": "docs/reference/typescript-api/request/request-context.mdx",
-                  "lastModified": "2026-08-13T14:40:56+02:00"
+                  "lastModified": "2026-08-26T15:26:00Z"
                 },
                 {
                   "title": "RequestContextService",
@@ -3174,7 +3186,7 @@
                   "title": "SessionService",
                   "slug": "session-service",
                   "file": "docs/reference/typescript-api/services/session-service.mdx",
-                  "lastModified": "2026-08-13T14:40:56+02:00"
+                  "lastModified": "2026-08-26T15:26:00Z"
                 },
                 {
                   "title": "SettingsStoreService",
@@ -3566,7 +3578,7 @@
                   "title": "BootstrapWorker",
                   "slug": "bootstrap-worker",
                   "file": "docs/reference/typescript-api/worker/bootstrap-worker.mdx",
-                  "lastModified": "2026-08-21T07:56:41+02:00"
+                  "lastModified": "2026-08-26T15:26:00Z"
                 },
                 {
                   "title": "VendureWorker",
@@ -3951,13 +3963,13 @@
                   "title": "AssetGallery",
                   "slug": "asset-gallery",
                   "file": "docs/reference/dashboard/components/asset-gallery.mdx",
-                  "lastModified": "2026-07-17T16:56:14+02:00"
+                  "lastModified": "2026-08-26T15:26:00Z"
                 },
                 {
                   "title": "AssetPickerDialog",
                   "slug": "asset-picker-dialog",
                   "file": "docs/reference/dashboard/components/asset-picker-dialog.mdx",
-                  "lastModified": "2026-06-26T15:49:47+02:00"
+                  "lastModified": "2026-08-26T15:26:00Z"
                 },
                 {
                   "title": "ChannelChip",
