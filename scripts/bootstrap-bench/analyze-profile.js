@@ -3,15 +3,9 @@
  * workspace code). Usage: node analyze-profile.js <file.cpuprofile> [--top=30] [--files]
  */
 const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
+const { resolveInRepo } = require('./resolve-in-repo');
 
-const file = path.resolve(process.argv[2] || '');
-const repoRoot = path.resolve(__dirname, '..', '..');
-if (!(file.startsWith(repoRoot + path.sep) || file.startsWith(os.tmpdir() + path.sep))) {
-    console.error('The profile path must be inside the repository or the OS temp dir.');
-    process.exit(1);
-}
+const file = resolveInRepo(process.argv[2], 'profile path');
 const top = Number((process.argv.find(a => a.startsWith('--top=')) || '').split('=')[1] || 30);
 const byFile = process.argv.includes('--files');
 const profile = JSON.parse(fs.readFileSync(file, 'utf-8'));

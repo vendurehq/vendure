@@ -4,23 +4,14 @@
  * Usage: node scripts/bootstrap-bench/dump-sdl.js <outDir>
  */
 const fs = require('node:fs');
-const os = require('node:os');
 const path = require('node:path');
 const core = require('@vendure/core');
 const { GraphQLTypesLoader } = require('@nestjs/graphql');
 const { getBenchConfig } = require('./bench-config');
 const constants = require('@vendure/core/dist/api/constants.js');
+const { resolveInRepo } = require('./resolve-in-repo');
 
-if (!process.argv[2]) {
-    console.error('Usage: node dump-sdl.js <outDir>');
-    process.exit(1);
-}
-const outDir = path.resolve(process.argv[2]);
-const repoRoot = path.resolve(__dirname, '..', '..');
-if (!(outDir.startsWith(repoRoot + path.sep) || outDir.startsWith(os.tmpdir() + path.sep) || outDir.startsWith('/tmp/'))) {
-    console.error('The output dir must be inside the repository or the OS temp dir.');
-    process.exit(1);
-}
+const outDir = resolveInRepo(process.argv[2], 'output dir');
 fs.mkdirSync(outDir, { recursive: true });
 
 async function main() {

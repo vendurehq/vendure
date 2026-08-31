@@ -85,6 +85,22 @@ export async function getFinalVendureSchema(
 }
 
 /**
+ * Plain code-unit ordering, deliberately not `localeCompare`: the goal is to
+ * reproduce the file ordering of the default `Array.sort()` that
+ * `GraphQLTypesLoader` applies to the globbed file paths, and `localeCompare`
+ * is locale-dependent and would diverge from it.
+ */
+function compareByCodeUnit(a: string, b: string): number {
+    if (a < b) {
+        return -1;
+    }
+    if (a > b) {
+        return 1;
+    }
+    return 0;
+}
+
+/**
  * Loads and merges type definitions with a per-glob-pattern cache, so that
  * patterns shared between the shop and admin APIs (the `common` schema files)
  * are only globbed, read and parsed once per process. Patterns are merged in
@@ -95,10 +111,7 @@ const typeDefsCache = new Map<string, Promise<string | null>>();
 async function mergeTypesByPathsCached(typesLoader: GraphQLTypesLoader, paths: string[]): Promise<string> {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { mergeTypeDefs } = require('@graphql-tools/merge');
-    // The comparator must use plain code-unit ordering (not localeCompare), since
-    // the goal is to reproduce the file ordering of the default Array.sort() that
-    // GraphQLTypesLoader applies to the globbed file paths.
-    const sortedPaths = [...paths].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+    const sortedPaths = [...paths].sort(compareByCodeUnit);
     const parts = await Promise.all(
         sortedPaths.map(async p => {
             let cached = typeDefsCache.get(p);
