@@ -85,8 +85,13 @@ async function applyFormat(
     }
 }
 
-function isImageTransformFormat(input: keyof FormatEnum | undefined): input is ImageTransformFormat {
-    return !!input && ['jpg', 'jpeg', 'webp', 'avif'].includes(input);
+// Narrowed to the formats sharp can actually report. 'jpg' and 'avif' are not
+// members of FormatEnum: sharp reports jpeg for both JPEG spellings, and reports
+// AVIF files as 'heif'. Listing them here had no effect.
+function isImageTransformFormat(
+    input: keyof FormatEnum | undefined,
+): input is Extract<ImageTransformFormat, keyof FormatEnum> {
+    return !!input && ['jpeg', 'webp'].includes(input);
 }
 
 /**
