@@ -99,14 +99,8 @@ msgstr "Ad"
 msgid "No calls recorded in this period."
 msgstr "Bu dönemde kaydedilen çağrı yok."
 
-msgid "OAuth grants"
-msgstr "OAuth yetkileri"
-
 msgid "Read-only"
 msgstr "Salt okunur"
-
-msgid "Recent activity"
-msgstr "Son etkinlikler"
 
 msgid "Revoke"
 msgstr "İptal et"
@@ -284,4 +278,13 @@ msgid "Test with MCP Inspector"
 msgstr ""
 
 msgid "Close"
+msgstr ""
+
+msgid "Overview"
+msgstr ""
+
+msgid "Activity"
+msgstr ""
+
+msgid "Grants"
 msgstr ""

@@ -8,6 +8,7 @@ import {
     EmptyHeader,
     EmptyMedia,
     EmptyTitle,
+    Link,
     Progress,
     Select,
     SelectContent,
@@ -31,7 +32,6 @@ import { useState } from 'react';
 
 import { mcpStatsQuery } from '../mcp.graphql';
 
-import { ACTIVITY_ANCHOR_ID } from './activity-block';
 import { TooltipButton } from './tooltip-button';
 
 type TimeRange = '1h' | '24h' | '7d' | '30d';
@@ -275,12 +275,12 @@ export function StatsBlock() {
                         {stats && stats.topTools.length > 0 ? (
                             <>
                                 <TopToolsList tools={stats.topTools} />
-                                <a
-                                    href={`#${ACTIVITY_ANCHOR_ID}`}
+                                <Link
+                                    to="/mcp-server/activity"
                                     className="inline-block text-sm text-primary hover:underline"
                                 >
                                     <Trans>See all activity</Trans>
-                                </a>
+                                </Link>
                             </>
                         ) : (
                             <NoCallsRecorded />

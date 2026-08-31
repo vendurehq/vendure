@@ -99,14 +99,8 @@ msgstr "名稱"
 msgid "No calls recorded in this period."
 msgstr "此期間沒有記錄到呼叫。"
 
-msgid "OAuth grants"
-msgstr "OAuth 授權"
-
 msgid "Read-only"
 msgstr "唯讀"
-
-msgid "Recent activity"
-msgstr "近期活動"
 
 msgid "Revoke"
 msgstr "撤銷"
@@ -284,4 +278,13 @@ msgid "Test with MCP Inspector"
 msgstr ""
 
 msgid "Close"
+msgstr ""
+
+msgid "Overview"
+msgstr ""
+
+msgid "Activity"
+msgstr ""
+
+msgid "Grants"
 msgstr ""

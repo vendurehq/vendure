@@ -99,14 +99,8 @@ msgstr "Naam"
 msgid "No calls recorded in this period."
 msgstr "Geen aanroepen geregistreerd in deze periode."
 
-msgid "OAuth grants"
-msgstr "OAuth-toekenningen"
-
 msgid "Read-only"
 msgstr "Alleen-lezen"
-
-msgid "Recent activity"
-msgstr "Recente activiteit"
 
 msgid "Revoke"
 msgstr "Intrekken"
@@ -284,4 +278,13 @@ msgid "Test with MCP Inspector"
 msgstr ""
 
 msgid "Close"
+msgstr ""
+
+msgid "Overview"
+msgstr ""
+
+msgid "Activity"
+msgstr ""
+
+msgid "Grants"
 msgstr ""

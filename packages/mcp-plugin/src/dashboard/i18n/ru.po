@@ -99,14 +99,8 @@ msgstr "Название"
 msgid "No calls recorded in this period."
 msgstr "За этот период вызовов не зафиксировано."
 
-msgid "OAuth grants"
-msgstr "Разрешения OAuth"
-
 msgid "Read-only"
 msgstr "Только чтение"
-
-msgid "Recent activity"
-msgstr "Недавняя активность"
 
 msgid "Revoke"
 msgstr "Отозвать"
@@ -284,4 +278,13 @@ msgid "Test with MCP Inspector"
 msgstr ""
 
 msgid "Close"
+msgstr ""
+
+msgid "Overview"
+msgstr ""
+
+msgid "Activity"
+msgstr ""
+
+msgid "Grants"
 msgstr ""

@@ -48,7 +48,6 @@ function GrantStatusBadge({ status }: { status: string }) {
 export function GrantsBlock() {
     const { t } = useLingui();
     const tableState = useMcpTableState({
-        settingsKey: 'mcp-grants-table',
         defaultSorting: [{ id: 'lastActivityAt', desc: true }],
         defaultVisibility: {
             id: false,
@@ -131,20 +130,11 @@ export function GrantsBlock() {
                     cell: ({ row }) => <GrantStatusBadge status={row.original.status} />,
                 },
             }}
-            facetedFilters={{
-                status: {
-                    title: t`Status`,
-                    options: [
-                        { label: t`Active`, value: 'active' },
-                        { label: t`Expired`, value: 'expired' },
-                        { label: t`Revoked`, value: 'revoked' },
-                    ],
-                },
-            }}
             additionalColumns={{
                 actions: {
                     header: () => <Trans>Actions</Trans>,
                     meta: { dependencies: ['id', 'revokedAt'] },
+                    enableHiding: false,
                     // A revoked grant has nothing left to act on, but the column still
                     // shows a disabled control so the row doesn't look broken.
                     cell: ({ row }) =>

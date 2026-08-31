@@ -99,14 +99,8 @@ msgstr "Nomi"
 msgid "No calls recorded in this period."
 msgstr "Bu davrda hech qanday chaqiruv qayd etilmagan."
 
-msgid "OAuth grants"
-msgstr "OAuth ruxsatlari"
-
 msgid "Read-only"
 msgstr "Faqat o'qish"
-
-msgid "Recent activity"
-msgstr "So'nggi faoliyat"
 
 msgid "Revoke"
 msgstr "Bekor qilish"
@@ -284,4 +278,13 @@ msgid "Test with MCP Inspector"
 msgstr ""
 
 msgid "Close"
+msgstr ""
+
+msgid "Overview"
+msgstr ""
+
+msgid "Activity"
+msgstr ""
+
+msgid "Grants"
 msgstr ""

@@ -99,14 +99,8 @@ msgstr "Název"
 msgid "No calls recorded in this period."
 msgstr "V tomto období nebyla zaznamenána žádná volání."
 
-msgid "OAuth grants"
-msgstr "Oprávnění OAuth"
-
 msgid "Read-only"
 msgstr "Pouze pro čtení"
-
-msgid "Recent activity"
-msgstr "Nedávná aktivita"
 
 msgid "Revoke"
 msgstr "Odvolat"
@@ -284,4 +278,13 @@ msgid "Test with MCP Inspector"
 msgstr ""
 
 msgid "Close"
+msgstr ""
+
+msgid "Overview"
+msgstr ""
+
+msgid "Activity"
+msgstr ""
+
+msgid "Grants"
 msgstr ""

@@ -99,14 +99,8 @@ msgstr "Namn"
 msgid "No calls recorded in this period."
 msgstr "Inga anrop registrerade under den här perioden."
 
-msgid "OAuth grants"
-msgstr "OAuth-behörigheter"
-
 msgid "Read-only"
 msgstr "Skrivskyddad"
-
-msgid "Recent activity"
-msgstr "Senaste aktiviteten"
 
 msgid "Revoke"
 msgstr "Återkalla"
@@ -284,4 +278,13 @@ msgid "Test with MCP Inspector"
 msgstr ""
 
 msgid "Close"
+msgstr ""
+
+msgid "Overview"
+msgstr ""
+
+msgid "Activity"
+msgstr ""
+
+msgid "Grants"
 msgstr ""

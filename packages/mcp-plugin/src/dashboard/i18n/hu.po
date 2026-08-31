@@ -99,14 +99,8 @@ msgstr "Név"
 msgid "No calls recorded in this period."
 msgstr "Ebben az időszakban nem történt hívás."
 
-msgid "OAuth grants"
-msgstr "OAuth-hozzáférések"
-
 msgid "Read-only"
 msgstr "Csak olvasható"
-
-msgid "Recent activity"
-msgstr "Legutóbbi tevékenység"
 
 msgid "Revoke"
 msgstr "Visszavonás"
@@ -284,4 +278,13 @@ msgid "Test with MCP Inspector"
 msgstr ""
 
 msgid "Close"
+msgstr ""
+
+msgid "Overview"
+msgstr ""
+
+msgid "Activity"
+msgstr ""
+
+msgid "Grants"
 msgstr ""

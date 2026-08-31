@@ -99,14 +99,8 @@ msgstr "Navn"
 msgid "No calls recorded in this period."
 msgstr "Ingen kall registrert i denne perioden."
 
-msgid "OAuth grants"
-msgstr "OAuth-tilganger"
-
 msgid "Read-only"
 msgstr "Skrivebeskyttet"
-
-msgid "Recent activity"
-msgstr "Nylig aktivitet"
 
 msgid "Revoke"
 msgstr "Tilbakekall"
@@ -284,4 +278,13 @@ msgid "Test with MCP Inspector"
 msgstr ""
 
 msgid "Close"
+msgstr ""
+
+msgid "Overview"
+msgstr ""
+
+msgid "Activity"
+msgstr ""
+
+msgid "Grants"
 msgstr ""

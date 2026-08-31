@@ -99,14 +99,8 @@ msgstr "이름"
 msgid "No calls recorded in this period."
 msgstr "이 기간에 기록된 호출이 없습니다."
 
-msgid "OAuth grants"
-msgstr "OAuth 권한 부여"
-
 msgid "Read-only"
 msgstr "읽기 전용"
-
-msgid "Recent activity"
-msgstr "최근 활동"
 
 msgid "Revoke"
 msgstr "취소"
@@ -284,4 +278,13 @@ msgid "Test with MCP Inspector"
 msgstr ""
 
 msgid "Close"
+msgstr ""
+
+msgid "Overview"
+msgstr ""
+
+msgid "Activity"
+msgstr ""
+
+msgid "Grants"
 msgstr ""

@@ -99,14 +99,8 @@ msgstr "Nome"
 msgid "No calls recorded in this period."
 msgstr "Nenhuma chamada registada neste período."
 
-msgid "OAuth grants"
-msgstr "Concessões OAuth"
-
 msgid "Read-only"
 msgstr "Apenas leitura"
-
-msgid "Recent activity"
-msgstr "Atividade recente"
 
 msgid "Revoke"
 msgstr "Revogar"
@@ -284,4 +278,13 @@ msgid "Test with MCP Inspector"
 msgstr ""
 
 msgid "Close"
+msgstr ""
+
+msgid "Overview"
+msgstr ""
+
+msgid "Activity"
+msgstr ""
+
+msgid "Grants"
 msgstr ""

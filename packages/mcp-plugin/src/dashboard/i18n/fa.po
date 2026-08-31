@@ -99,14 +99,8 @@ msgstr "نام"
 msgid "No calls recorded in this period."
 msgstr "در این بازه هیچ فراخوانی ثبت نشده است."
 
-msgid "OAuth grants"
-msgstr "مجوزهای OAuth"
-
 msgid "Read-only"
 msgstr "فقط‌خواندنی"
-
-msgid "Recent activity"
-msgstr "فعالیت اخیر"
 
 msgid "Revoke"
 msgstr "لغو"
@@ -284,4 +278,13 @@ msgid "Test with MCP Inspector"
 msgstr ""
 
 msgid "Close"
+msgstr ""
+
+msgid "Overview"
+msgstr ""
+
+msgid "Activity"
+msgstr ""
+
+msgid "Grants"
 msgstr ""

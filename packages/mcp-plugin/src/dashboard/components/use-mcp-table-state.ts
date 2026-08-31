@@ -1,14 +1,27 @@
-import { type ColumnFiltersState, type SortingState, useUserSettings } from '@vendure/dashboard';
+import { type ColumnFiltersState, type SortingState, usePage, useUserSettings } from '@vendure/dashboard';
 import { useState } from 'react';
 
 type ColumnVisibility = Record<string, boolean>;
 
+export function useMcpColumnVisibility<V extends ColumnVisibility>(defaultVisibility: V) {
+    const { pageId } = usePage();
+    const { settings, setTableSettings } = useUserSettings();
+    const savedVisibility = pageId ? settings.tableSettings?.[pageId]?.columnVisibility : undefined;
+
+    return {
+        onColumnVisibilityChange: (_table: unknown, newVisibility: ColumnVisibility) => {
+            if (pageId) {
+                setTableSettings(pageId, 'columnVisibility', newVisibility);
+            }
+        },
+        defaultVisibility: { ...defaultVisibility, ...savedVisibility } as V,
+    };
+}
+
 export function useMcpTableState<V extends ColumnVisibility>({
-    settingsKey,
     defaultSorting,
     defaultVisibility,
 }: {
-    settingsKey: string;
     defaultSorting: SortingState;
     defaultVisibility: V;
 }) {
@@ -16,7 +29,7 @@ export function useMcpTableState<V extends ColumnVisibility>({
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [sorting, setSorting] = useState<SortingState>(defaultSorting);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-    const { settings, setTableSettings } = useUserSettings();
+    const columnVisibility = useMcpColumnVisibility(defaultVisibility);
 
     return {
         page,
@@ -29,9 +42,6 @@ export function useMcpTableState<V extends ColumnVisibility>({
         },
         onSortChange: (_table: unknown, newSorting: SortingState) => setSorting(newSorting),
         onFilterChange: (_table: unknown, newFilters: ColumnFiltersState) => setColumnFilters(newFilters),
-        onColumnVisibilityChange: (_table: unknown, newVisibility: ColumnVisibility) =>
-            setTableSettings(settingsKey, 'columnVisibility', newVisibility),
-        defaultVisibility: (settings.tableSettings?.[settingsKey]?.columnVisibility ??
-            defaultVisibility) as V,
+        ...columnVisibility,
     };
 }

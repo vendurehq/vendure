@@ -22,6 +22,7 @@ import { useMemo, useState } from 'react';
 import { mcpToolsQuery, setMcpToolEnabledDocument } from '../mcp.graphql';
 
 import { TooltipButton } from './tooltip-button';
+import { useMcpColumnVisibility } from './use-mcp-table-state';
 
 type McpTool = ResultOf<typeof mcpToolsQuery>['mcpTools'][number];
 
@@ -65,6 +66,7 @@ export function ToolsBlock() {
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
+    const { defaultVisibility, onColumnVisibilityChange } = useMcpColumnVisibility({});
 
     const { data, isLoading, error } = useQuery({
         queryKey: toolsQueryKey,
@@ -215,6 +217,8 @@ export function ToolsBlock() {
             data={filtered}
             totalItems={filtered.length}
             isLoading={isLoading}
+            defaultColumnVisibility={defaultVisibility}
+            onColumnVisibilityChange={onColumnVisibilityChange}
             onSearchTermChange={term => setSearch(term)}
             facetedFilters={{
                 toolset: {

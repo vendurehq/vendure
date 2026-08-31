@@ -99,14 +99,8 @@ msgstr "नाम"
 msgid "No calls recorded in this period."
 msgstr "यस अवधिमा कुनै कल रेकर्ड गरिएको छैन।"
 
-msgid "OAuth grants"
-msgstr "OAuth अनुदानहरू"
-
 msgid "Read-only"
 msgstr "पढ्ने-मात्र"
-
-msgid "Recent activity"
-msgstr "भर्खरको गतिविधि"
 
 msgid "Revoke"
 msgstr "रद्द गर्नुहोस्"
@@ -284,4 +278,13 @@ msgid "Test with MCP Inspector"
 msgstr ""
 
 msgid "Close"
+msgstr ""
+
+msgid "Overview"
+msgstr ""
+
+msgid "Activity"
+msgstr ""
+
+msgid "Grants"
 msgstr ""

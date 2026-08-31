@@ -99,14 +99,8 @@ msgstr "Назва"
 msgid "No calls recorded in this period."
 msgstr "За цей період викликів не зафіксовано."
 
-msgid "OAuth grants"
-msgstr "Дозволи OAuth"
-
 msgid "Read-only"
 msgstr "Лише читання"
-
-msgid "Recent activity"
-msgstr "Нещодавня активність"
 
 msgid "Revoke"
 msgstr "Відкликати"
@@ -284,4 +278,13 @@ msgid "Test with MCP Inspector"
 msgstr ""
 
 msgid "Close"
+msgstr ""
+
+msgid "Overview"
+msgstr ""
+
+msgid "Activity"
+msgstr ""
+
+msgid "Grants"
 msgstr ""

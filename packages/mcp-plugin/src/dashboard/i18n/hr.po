@@ -99,14 +99,8 @@ msgstr "Naziv"
 msgid "No calls recorded in this period."
 msgstr "U ovom razdoblju nema zabilježenih poziva."
 
-msgid "OAuth grants"
-msgstr "OAuth odobrenja"
-
 msgid "Read-only"
 msgstr "Samo za čitanje"
-
-msgid "Recent activity"
-msgstr "Nedavna aktivnost"
 
 msgid "Revoke"
 msgstr "Opozovi"
@@ -284,4 +278,13 @@ msgid "Test with MCP Inspector"
 msgstr ""
 
 msgid "Close"
+msgstr ""
+
+msgid "Overview"
+msgstr ""
+
+msgid "Activity"
+msgstr ""
+
+msgid "Grants"
 msgstr ""

@@ -99,14 +99,8 @@ msgstr "שם"
 msgid "No calls recorded in this period."
 msgstr "לא נרשמו קריאות בתקופה זו."
 
-msgid "OAuth grants"
-msgstr "הרשאות OAuth"
-
 msgid "Read-only"
 msgstr "לקריאה בלבד"
-
-msgid "Recent activity"
-msgstr "פעילות אחרונה"
 
 msgid "Revoke"
 msgstr "בטל"
@@ -284,4 +278,13 @@ msgid "Test with MCP Inspector"
 msgstr ""
 
 msgid "Close"
+msgstr ""
+
+msgid "Overview"
+msgstr ""
+
+msgid "Activity"
+msgstr ""
+
+msgid "Grants"
 msgstr ""
