@@ -21,39 +21,53 @@ import { useMemo, useState } from 'react';
 
 import { mcpToolsQuery, setMcpToolEnabledDocument } from '../mcp.graphql';
 
+import { TooltipButton } from './tooltip-button';
+
 type McpTool = ResultOf<typeof mcpToolsQuery>['mcpTools'][number];
 
-function SafetyBadge({ behavior }: { behavior: McpTool['behavior'] }) {
+const toolsQueryKey = ['mcp-tools'];
+
+/** How each safety level looks, and what it means for the data in the store. */
+function safetyPresentation(behavior: McpTool['behavior']) {
     if (behavior === 'destructive') {
-        return (
-            <Badge variant="destructive">
-                <Trans>Destructive</Trans>
-            </Badge>
-        );
+        return {
+            variant: 'destructive' as const,
+            label: <Trans>Destructive</Trans>,
+            explanation: <Trans>This tool can delete data or make changes that cannot be undone.</Trans>,
+        };
     }
     if (behavior === 'readonly') {
-        return (
-            <Badge variant="secondary">
-                <Trans>Read-only</Trans>
-            </Badge>
-        );
+        return {
+            variant: 'secondary' as const,
+            label: <Trans>Read-only</Trans>,
+            explanation: <Trans>This tool only reads data. It never changes anything.</Trans>,
+        };
     }
+    return {
+        variant: 'warning' as const,
+        label: <Trans>Mutating</Trans>,
+        explanation: <Trans>This tool creates or updates data, but does not delete anything.</Trans>,
+    };
+}
+
+function SafetyBadge({ behavior }: { behavior: McpTool['behavior'] }) {
+    const { variant, label, explanation } = safetyPresentation(behavior);
     return (
-        <Badge variant="warning">
-            <Trans>Mutating</Trans>
-        </Badge>
+        <TooltipButton tooltip={explanation} className="inline-flex h-auto p-0">
+            <Badge variant={variant}>{label}</Badge>
+        </TooltipButton>
     );
 }
 
 export function ToolsBlock() {
     const { t } = useLingui();
-    const qc = useQueryClient();
+    const queryClient = useQueryClient();
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
 
     const { data, isLoading, error } = useQuery({
-        queryKey: ['mcp-tools'],
+        queryKey: toolsQueryKey,
         queryFn: () => api.query(mcpToolsQuery),
     });
 
@@ -63,9 +77,9 @@ export function ToolsBlock() {
         // Flip the switch in the cached list immediately so it doesn't sit in its
         // old position until the refetch lands. Rolled back if the server rejects.
         onMutate: async vars => {
-            await qc.cancelQueries({ queryKey: ['mcp-tools'] });
-            const previous = qc.getQueryData<ResultOf<typeof mcpToolsQuery>>(['mcp-tools']);
-            qc.setQueryData<ResultOf<typeof mcpToolsQuery>>(['mcp-tools'], old =>
+            await queryClient.cancelQueries({ queryKey: toolsQueryKey });
+            const previous = queryClient.getQueryData<ResultOf<typeof mcpToolsQuery>>(toolsQueryKey);
+            queryClient.setQueryData<ResultOf<typeof mcpToolsQuery>>(toolsQueryKey, old =>
                 old
                     ? {
                           ...old,
@@ -84,13 +98,13 @@ export function ToolsBlock() {
         },
         onError: (_error, _vars, context) => {
             if (context?.previous) {
-                qc.setQueryData(['mcp-tools'], context.previous);
+                queryClient.setQueryData(toolsQueryKey, context.previous);
             }
             toast.error(t`Could not update tool`);
         },
         // Refetch either way so the cache ends up matching the server.
         onSettled: () => {
-            void qc.invalidateQueries({ queryKey: ['mcp-tools'] });
+            void queryClient.invalidateQueries({ queryKey: toolsQueryKey });
         },
     });
 
@@ -167,13 +181,14 @@ export function ToolsBlock() {
         {
             accessorKey: 'description',
             header: () => <Trans>Description</Trans>,
+            // Clamped to two lines in the row; the tooltip carries the full text.
             cell: ({ row }) => (
-                <span
-                    className="text-sm text-muted-foreground line-clamp-2 max-w-md whitespace-normal"
-                    title={row.original.description}
+                <TooltipButton
+                    tooltip={row.original.description}
+                    className="block h-auto p-0 text-left text-sm font-normal text-muted-foreground line-clamp-2 max-w-md whitespace-normal"
                 >
                     {row.original.description}
-                </span>
+                </TooltipButton>
             ),
         },
         {
@@ -211,7 +226,7 @@ export function ToolsBlock() {
                 },
             }}
             onRefresh={() => {
-                void qc.invalidateQueries({ queryKey: ['mcp-tools'] });
+                void queryClient.invalidateQueries({ queryKey: toolsQueryKey });
             }}
             setTableOptions={options => ({
                 ...options,

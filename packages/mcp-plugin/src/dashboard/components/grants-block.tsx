@@ -3,7 +3,6 @@ import {
     api,
     Badge,
     Button,
-    type ColumnFiltersState,
     ConfirmationDialog,
     DropdownMenu,
     DropdownMenuContent,
@@ -11,17 +10,17 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
     PaginatedListDataTable,
-    type SortingState,
     toast,
     useMutation,
-    useUserSettings,
 } from '@vendure/dashboard';
 import { BanIcon, EllipsisIcon } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 
 import { mcpOauthGrantsQuery, revokeMcpOauthGrantDocument } from '../mcp.graphql';
 
-const tableSettingsKey = 'mcp-grants-table';
+import { ActorCell } from './actor-cell';
+import { EmptyCell } from './empty-cell';
+import { useMcpTableState } from './use-mcp-table-state';
 
 /** Shows the status value the server sent: "active", "expired" or "revoked". */
 function GrantStatusBadge({ status }: { status: string }) {
@@ -48,19 +47,18 @@ function GrantStatusBadge({ status }: { status: string }) {
 
 export function GrantsBlock() {
     const { t } = useLingui();
-    const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
-    const [sorting, setSorting] = useState<SortingState>([{ id: 'lastActivityAt', desc: true }]);
-    const [filters, setFilters] = useState<ColumnFiltersState>([]);
-    const { settings, setTableSettings } = useUserSettings();
-    const columnVisibility = settings.tableSettings?.[tableSettingsKey]?.columnVisibility ?? {
-        id: false,
-        createdAt: false,
-        updatedAt: false,
-        actorId: false,
-        channelId: false,
-        revokedAt: false,
-    };
+    const tableState = useMcpTableState({
+        settingsKey: 'mcp-grants-table',
+        defaultSorting: [{ id: 'lastActivityAt', desc: true }],
+        defaultVisibility: {
+            id: false,
+            createdAt: false,
+            updatedAt: false,
+            actorId: false,
+            channelId: false,
+            revokedAt: false,
+        },
+    });
     const refreshTable = useRef<() => void>(() => {
         /* the table replaces this when it mounts */
     });
@@ -86,25 +84,31 @@ export function GrantsBlock() {
             registerRefresher={refresher => {
                 refreshTable.current = refresher;
             }}
-            page={page}
-            itemsPerPage={pageSize}
-            sorting={sorting}
-            columnFilters={filters}
-            onPageChange={(_table, newPage, newPageSize) => {
-                setPage(newPage);
-                setPageSize(newPageSize);
-            }}
-            onSortChange={(_table, newSorting) => setSorting(newSorting)}
-            onFilterChange={(_table, newFilters) => setFilters(newFilters)}
-            onColumnVisibilityChange={(_table, newVisibility) =>
-                setTableSettings(tableSettingsKey, 'columnVisibility', newVisibility)
-            }
+            {...tableState}
             includeSelectionColumn={false}
             customizeColumns={{
                 oauthClientName: {
                     header: () => <Trans>Client</Trans>,
+                    cell: ({ row }) =>
+                        row.original.oauthClientName ? (
+                            <span className="font-medium">{row.original.oauthClientName}</span>
+                        ) : (
+                            <EmptyCell />
+                        ),
+                },
+                actorName: {
+                    header: () => <Trans>Granted to</Trans>,
+                    meta: { dependencies: ['actorType', 'customerId'] },
+                    // The name is looked up per row and has no database column, so the server
+                    // rejects any attempt to sort or filter by it.
+                    enableSorting: false,
+                    enableColumnFilter: false,
                     cell: ({ row }) => (
-                        <span className="font-medium">{row.original.oauthClientName ?? '—'}</span>
+                        <ActorCell
+                            actorType={row.original.actorType ?? null}
+                            actorName={row.original.actorName ?? null}
+                            customerId={row.original.customerId ?? null}
+                        />
                     ),
                 },
                 actorType: {
@@ -113,9 +117,13 @@ export function GrantsBlock() {
                         row.original.actorType ? (
                             <Badge variant="outline">{row.original.actorType}</Badge>
                         ) : (
-                            '—'
+                            <EmptyCell />
                         ),
                 },
+                // Only feeds the "Granted to" cell, which lists it as a dependency so it is still
+                // fetched. It gets no column of its own, since it has no database column to sort
+                // or filter by.
+                customerId: { meta: { disabled: true } },
                 lastActivityAt: { header: () => <Trans>Last activity</Trans> },
                 expiresAt: { header: () => <Trans>Expires</Trans> },
                 status: {
@@ -137,8 +145,19 @@ export function GrantsBlock() {
                 actions: {
                     header: () => <Trans>Actions</Trans>,
                     meta: { dependencies: ['id', 'revokedAt'] },
+                    // A revoked grant has nothing left to act on, but the column still
+                    // shows a disabled control so the row doesn't look broken.
                     cell: ({ row }) =>
-                        row.original.revokedAt != null ? null : (
+                        row.original.revokedAt != null ? (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                disabled
+                                aria-label={t`No actions available for a revoked grant`}
+                            >
+                                <EllipsisIcon />
+                            </Button>
+                        ) : (
                             <DropdownMenu>
                                 <DropdownMenuTrigger render={<Button variant="ghost" size="icon" />}>
                                     <EllipsisIcon />
@@ -164,15 +183,23 @@ export function GrantsBlock() {
                         ),
                 },
             }}
+            // Every column has to be named here, including the ones hidden by default. The
+            // dashboard appends any column left out of this list after the listed ones, which
+            // for this table means after "actions" - so an omitted column would show up to the
+            // right of the revoke menu once the user enables it. "actions" stays last, and
+            // id / createdAt / updatedAt are moved to the front by the dashboard itself.
             defaultColumnOrder={[
                 'oauthClientName',
+                'actorName',
                 'actorType',
                 'status',
                 'lastActivityAt',
                 'expiresAt',
+                'actorId',
+                'channelId',
+                'revokedAt',
                 'actions',
             ]}
-            defaultVisibility={columnVisibility}
         />
     );
 }

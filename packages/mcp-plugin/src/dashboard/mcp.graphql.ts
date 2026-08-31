@@ -46,6 +46,8 @@ export const mcpToolCallLogsQuery = graphql(`
                 toolName
                 actor
                 actorType
+                actorName
+                customerId
                 status
                 durationMs
                 pluginSource
@@ -64,6 +66,8 @@ export const mcpOauthGrantsQuery = graphql(`
                 updatedAt
                 actorId
                 actorType
+                actorName
+                customerId
                 channelId
                 oauthClientName
                 lastActivityAt

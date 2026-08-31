@@ -23,9 +23,6 @@ msgstr "Izvršitelj"
 msgid "Actor type"
 msgstr "Vrsta izvršitelja"
 
-msgid "Admin endpoint"
-msgstr "Administratorska krajnja točka"
-
 msgid "Approve"
 msgstr "Odobri"
 
@@ -38,17 +35,8 @@ msgstr "Poziva na sat"
 msgid "Client"
 msgstr "Klijent"
 
-msgid "Client configuration"
-msgstr "Konfiguracija klijenta"
-
-msgid "Client identity (hostname verified)"
-msgstr "Identitet klijenta (naziv poslužitelja provjeren)"
-
 msgid "Connect an MCP client to your Vendure server using the endpoints below."
 msgstr "Povežite MCP klijenta sa svojim Vendure poslužiteljem pomoću krajnjih točaka u nastavku."
-
-msgid "Connection"
-msgstr "Veza"
 
 msgid "Could not revoke grant"
 msgstr "Odobrenje nije bilo moguće opozvati"
@@ -71,8 +59,6 @@ msgstr "Trajanje"
 msgid "Enabled"
 msgstr "Omogućeno"
 
-msgid "Error rate"
-msgstr "Stopa pogrešaka"
 
 msgid "Expires"
 msgstr "Istječe"
@@ -101,9 +87,6 @@ msgstr "Zadnjih 30 dana"
 msgid "Loading authorization request…"
 msgstr "Učitavanje zahtjeva za autorizaciju…"
 
-msgid "MCP Inspector"
-msgstr "MCP Inspector"
-
 msgid "MCP Server"
 msgstr "MCP Server"
 
@@ -125,12 +108,6 @@ msgstr "Samo za čitanje"
 msgid "Recent activity"
 msgstr "Nedavna aktivnost"
 
-msgid "Recommended"
-msgstr "Preporučeno"
-
-msgid "Requested access"
-msgstr "Zatraženi pristup"
-
 msgid "Revoke"
 msgstr "Opozovi"
 
@@ -140,23 +117,12 @@ msgstr "Opozovi odobrenje"
 msgid "Safety"
 msgstr "Sigurnost"
 
-msgid "Shop endpoint"
-msgstr "Krajnja točka trgovine"
-
 msgid "Status"
 msgstr "Status"
 
 msgid "Success rate"
 msgstr "Stopa uspješnosti"
 
-msgid "Test and debug your MCP server interactively with the MCP Inspector:"
-msgstr "Testirajte i otklanjajte pogreške na svom MCP poslužitelju interaktivno pomoću MCP Inspectora:"
-
-msgid "The authorization session is invalid or expired."
-msgstr "Sesija autorizacije nije važeća ili je istekla."
-
-msgid "The client's details were fetched from this address, so the hostname is verified. The name below is still chosen by the client itself."
-msgstr "Podaci klijenta dohvaćeni su s ove adrese, pa je naziv poslužitelja provjeren. Naziv u nastavku i dalje bira sam klijent."
 
 msgid "This destination is on the local machine. Any application running on that machine could receive the authorization code."
 msgstr "Ovo odredište nalazi se na lokalnom računalu. Svaka aplikacija koja se izvodi na tom računalu mogla bi primiti autorizacijski kod."
@@ -203,23 +169,11 @@ msgstr "Odobrenje nije bilo moguće opozvati; možda je već uklonjeno"
 msgid "Request failed ({0})"
 msgstr "Zahtjev nije uspio ({0})"
 
-msgid "An application is requesting admin-scoped access to your Vendure MCP server. Vendure cannot verify the application's identity, so decide based on the destination below — not the name it reports."
-msgstr "Aplikacija zahtijeva pristup s administratorskim ovlastima vašem Vendure MCP poslužitelju. Vendure ne može provjeriti identitet aplikacije, zato odlučite na temelju odredišta prikazanog u nastavku, a ne na temelju imena koje aplikacija navodi."
-
-msgid "Approve only if you recognise and trust this exact destination."
-msgstr "Odobrite samo ako prepoznajete i vjerujete točno ovom odredištu."
-
 msgid "Authorize MCP access"
 msgstr "Autoriziraj MCP pristup"
 
 msgid "Plugin"
 msgstr "Plugin"
-
-msgid "Reported by the application (unverified)"
-msgstr "Navela aplikacija (neprovjereno)"
-
-msgid "The authorization code will be sent to"
-msgstr "Autorizacijski kod bit će poslan na"
 
 msgid "Error loading MCP statistics: {0}"
 msgstr "Pogreška prilikom učitavanja MCP statistike: {0}"
@@ -238,3 +192,96 @@ msgstr "Opozvano"
 
 msgid "Expired"
 msgstr "Isteklo"
+
+msgid "No tool calls yet"
+msgstr ""
+
+msgid "Half of the calls in this period finished faster than this."
+msgstr ""
+
+msgid "95 out of 100 calls in this period finished faster than this. It shows how slow the worst calls are."
+msgstr ""
+
+msgid "This tool can delete data or make changes that cannot be undone."
+msgstr ""
+
+msgid "This tool only reads data. It never changes anything."
+msgstr ""
+
+msgid "This tool creates or updates data, but does not delete anything."
+msgstr ""
+
+msgid "No actions available for a revoked grant"
+msgstr ""
+
+msgid "Unnamed application"
+msgstr ""
+
+msgid "Hostname verified"
+msgstr ""
+
+msgid "Unverified"
+msgstr ""
+
+msgid "The client's details were fetched from this address, so the hostname is verified. The name above is still chosen by the client itself."
+msgstr ""
+
+msgid "This name and address are reported by the application itself and are not verified."
+msgstr ""
+
+msgid "wants to access the Admin API of your Vendure server"
+msgstr ""
+
+msgid "Full access to the Admin API as your administrator account."
+msgstr ""
+
+msgid "wants to access the Shop API of your Vendure server"
+msgstr ""
+
+msgid "Access to the Shop API as a customer."
+msgstr ""
+
+msgid "After approval, the authorization code is sent here. Only approve if you recognise this destination."
+msgstr ""
+
+msgid "Setup guide for connecting MCP clients"
+msgstr ""
+
+msgid "Anonymous"
+msgstr ""
+
+msgid "Failed calls"
+msgstr ""
+
+msgid "Average number of tool calls per hour over the selected period."
+msgstr ""
+
+msgid "What this number means"
+msgstr ""
+
+msgid "See all activity"
+msgstr ""
+
+msgid "Granted to"
+msgstr ""
+
+msgid "The link may have expired or already been used. Start the connection again from your MCP client."
+msgstr ""
+
+msgid "Full access to the Admin API as {name} ({emailAddress})."
+msgstr ""
+
+msgid "Connect a client"
+msgstr ""
+
+msgid "Admin API"
+msgstr ""
+
+msgid "Shop API"
+msgstr ""
+
+msgid "Test with MCP Inspector"
+msgstr ""
+
+msgid "Close"
+msgstr ""

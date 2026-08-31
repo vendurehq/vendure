@@ -3,7 +3,12 @@ import {
     Alert,
     AlertDescription,
     api,
-    Badge,
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+    Progress,
     Select,
     SelectContent,
     SelectItem,
@@ -12,19 +17,138 @@ import {
     Skeleton,
     useQuery,
 } from '@vendure/dashboard';
-import { TriangleAlert } from 'lucide-react';
+import {
+    ActivityIcon,
+    CircleCheckIcon,
+    CircleXIcon,
+    ClockIcon,
+    GaugeIcon,
+    InfoIcon,
+    TrendingUpIcon,
+    TriangleAlert,
+} from 'lucide-react';
 import { useState } from 'react';
 
 import { mcpStatsQuery } from '../mcp.graphql';
 
+import { ACTIVITY_ANCHOR_ID } from './activity-block';
+import { TooltipButton } from './tooltip-button';
+
 type TimeRange = '1h' | '24h' | '7d' | '30d';
 
-function StatTile({ label, value }: { label: React.ReactNode; value: React.ReactNode }) {
+/** A small "i" affordance that explains how a number was worked out. */
+function StatHint({ children }: { children: React.ReactNode }) {
+    const { t } = useLingui();
     return (
-        <div className="rounded-md border border-border p-3">
-            <div className="text-xs text-muted-foreground">{label}</div>
+        <TooltipButton
+            tooltip={children}
+            label={t`What this number means`}
+            className="ml-1 inline-flex h-4 w-4 min-w-0 p-0 align-text-bottom text-muted-foreground"
+        >
+            <InfoIcon className="h-3 w-3" />
+        </TooltipButton>
+    );
+}
+
+function StatTile({
+    icon,
+    label,
+    value,
+    hint,
+    children,
+}: {
+    icon: React.ReactNode;
+    label: React.ReactNode;
+    value: React.ReactNode;
+    hint?: React.ReactNode;
+    children?: React.ReactNode;
+}) {
+    return (
+        <div className="rounded-md border border-border p-3 space-y-1">
+            <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                <span className="mt-px shrink-0">{icon}</span>
+                <span>
+                    {label}
+                    {hint ? <StatHint>{hint}</StatHint> : null}
+                </span>
+            </div>
             <div className="text-2xl font-semibold tabular-nums">{value}</div>
+            {children}
         </div>
+    );
+}
+
+/**
+ * The tiles and the top-tools list sit side by side once the block is wide, with the tiles
+ * taking two thirds of the width. Below that width the two regions stack.
+ */
+const regionsClasses = 'grid gap-4 @4xl:grid-cols-3';
+
+/**
+ * The tiles region: two rows of three tiles once there is room, a plain two-column grid on
+ * narrow blocks.
+ */
+const tilesClasses = '@4xl:col-span-2 grid grid-cols-2 @2xl:grid-cols-3 gap-3';
+
+/** Stands in for the tiles and the top-tools list while the first result is in flight. */
+function StatsSkeleton() {
+    return (
+        <div className={regionsClasses}>
+            <div className={tilesClasses}>
+                {Array.from({ length: 6 }).map((_, index) => (
+                    <Skeleton key={index} className="h-19 w-full" />
+                ))}
+            </div>
+            <div className="space-y-2">
+                <Skeleton className="h-5 w-24" />
+                <Skeleton className="h-6 w-full" />
+            </div>
+        </div>
+    );
+}
+
+/**
+ * The five most-used tools, each with a bar showing how its count compares with the busiest
+ * tool. The stats query already returns the counts, so this only trims and ranks them.
+ */
+function TopToolsList({ tools }: { tools: Array<{ toolName: string; count: number }> }) {
+    const topFive = tools.slice(0, 5);
+    const maxCount = Math.max(...topFive.map(tool => tool.count));
+    return (
+        <div className="space-y-2">
+            {topFive.map(tool => (
+                <div key={tool.toolName} className="space-y-1">
+                    <div className="flex items-baseline justify-between gap-3">
+                        <span className="font-mono text-sm truncate">{tool.toolName}</span>
+                        <span className="text-sm tabular-nums text-muted-foreground">{tool.count}</span>
+                    </div>
+                    <div className="h-1 rounded-full bg-primary/20">
+                        <div
+                            className="h-1 rounded-full bg-primary"
+                            style={{ width: `${(tool.count / maxCount) * 100}%` }}
+                        />
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+function NoCallsRecorded() {
+    return (
+        <Empty className="border border-dashed p-6">
+            <EmptyHeader>
+                <EmptyMedia variant="icon">
+                    <ActivityIcon />
+                </EmptyMedia>
+                <EmptyTitle>
+                    <Trans>No tool calls yet</Trans>
+                </EmptyTitle>
+                <EmptyDescription>
+                    <Trans>No calls recorded in this period.</Trans>
+                </EmptyDescription>
+            </EmptyHeader>
+        </Empty>
     );
 }
 
@@ -65,6 +189,10 @@ export function StatsBlock() {
         );
     }
 
+    const successRate = stats?.successRate ?? 0;
+    // The API reports the error rate, not a count, so the tile works the count back out.
+    const failedCalls = Math.round((stats?.totalCalls ?? 0) * (stats?.errorRate ?? 0));
+
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between gap-2">
@@ -92,52 +220,74 @@ export function StatsBlock() {
             </div>
 
             {isLoading && !stats ? (
-                <Skeleton className="h-24 w-full" />
+                <StatsSkeleton />
             ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    <StatTile label={<Trans>Total calls</Trans>} value={stats?.totalCalls ?? 0} />
-                    <StatTile
-                        label={<Trans>Success rate</Trans>}
-                        value={formatPercent(stats?.successRate ?? 0)}
-                    />
-                    <StatTile
-                        label={<Trans>Error rate</Trans>}
-                        value={formatPercent(stats?.errorRate ?? 0)}
-                    />
-                    <StatTile
-                        label={<Trans>p50 latency</Trans>}
-                        value={formatLatency(stats?.p50LatencyMs ?? null)}
-                    />
-                    <StatTile
-                        label={<Trans>p95 latency</Trans>}
-                        value={formatLatency(stats?.p95LatencyMs ?? null)}
-                    />
-                    <StatTile
-                        label={<Trans>Calls per hour</Trans>}
-                        value={(stats?.callsPerHour ?? 0).toFixed(1)}
-                    />
+                <div className={regionsClasses}>
+                    <div className={tilesClasses}>
+                        <StatTile
+                            icon={<ActivityIcon className="h-3.5 w-3.5" />}
+                            label={<Trans>Total calls</Trans>}
+                            value={stats?.totalCalls ?? 0}
+                        />
+                        <StatTile
+                            icon={<CircleCheckIcon className="h-3.5 w-3.5" />}
+                            label={<Trans>Success rate</Trans>}
+                            value={formatPercent(successRate)}
+                        >
+                            <Progress className="pt-1" value={successRate * 100} />
+                        </StatTile>
+                        <StatTile
+                            icon={<CircleXIcon className="h-3.5 w-3.5" />}
+                            label={<Trans>Failed calls</Trans>}
+                            value={failedCalls}
+                        />
+                        <StatTile
+                            icon={<GaugeIcon className="h-3.5 w-3.5" />}
+                            label={<Trans>p50 latency</Trans>}
+                            value={formatLatency(stats?.p50LatencyMs ?? null)}
+                            hint={<Trans>Half of the calls in this period finished faster than this.</Trans>}
+                        />
+                        <StatTile
+                            icon={<ClockIcon className="h-3.5 w-3.5" />}
+                            label={<Trans>p95 latency</Trans>}
+                            value={formatLatency(stats?.p95LatencyMs ?? null)}
+                            hint={
+                                <Trans>
+                                    95 out of 100 calls in this period finished faster than this. It shows how
+                                    slow the worst calls are.
+                                </Trans>
+                            }
+                        />
+                        <StatTile
+                            icon={<TrendingUpIcon className="h-3.5 w-3.5" />}
+                            label={<Trans>Calls per hour</Trans>}
+                            value={(stats?.callsPerHour ?? 0).toFixed(1)}
+                            hint={
+                                <Trans>Average number of tool calls per hour over the selected period.</Trans>
+                            }
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <div className="text-sm font-medium">
+                            <Trans>Top tools</Trans>
+                        </div>
+                        {stats && stats.topTools.length > 0 ? (
+                            <>
+                                <TopToolsList tools={stats.topTools} />
+                                <a
+                                    href={`#${ACTIVITY_ANCHOR_ID}`}
+                                    className="inline-block text-sm text-primary hover:underline"
+                                >
+                                    <Trans>See all activity</Trans>
+                                </a>
+                            </>
+                        ) : (
+                            <NoCallsRecorded />
+                        )}
+                    </div>
                 </div>
             )}
-
-            <div className="space-y-2">
-                <div className="text-sm font-medium">
-                    <Trans>Top tools</Trans>
-                </div>
-                {stats && stats.topTools.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                        {stats.topTools.map(tool => (
-                            <Badge key={tool.toolName} variant="secondary">
-                                {tool.toolName}
-                                <span className="ml-1 text-muted-foreground tabular-nums">{tool.count}</span>
-                            </Badge>
-                        ))}
-                    </div>
-                ) : (
-                    <p className="text-sm text-muted-foreground">
-                        <Trans>No calls recorded in this period.</Trans>
-                    </p>
-                )}
-            </div>
         </div>
     );
 }

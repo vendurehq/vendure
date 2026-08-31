@@ -23,9 +23,6 @@ msgstr "Субъект"
 msgid "Actor type"
 msgstr "Тип субъекта"
 
-msgid "Admin endpoint"
-msgstr "Конечная точка администратора"
-
 msgid "Approve"
 msgstr "Одобрить"
 
@@ -38,17 +35,8 @@ msgstr "Вызовов в час"
 msgid "Client"
 msgstr "Клиент"
 
-msgid "Client configuration"
-msgstr "Конфигурация клиента"
-
-msgid "Client identity (hostname verified)"
-msgstr "Идентичность клиента (имя хоста проверено)"
-
 msgid "Connect an MCP client to your Vendure server using the endpoints below."
 msgstr "Подключите MCP-клиент к вашему серверу Vendure, используя конечные точки ниже."
-
-msgid "Connection"
-msgstr "Подключение"
 
 msgid "Could not revoke grant"
 msgstr "Не удалось отозвать разрешение"
@@ -71,8 +59,6 @@ msgstr "Длительность"
 msgid "Enabled"
 msgstr "Включено"
 
-msgid "Error rate"
-msgstr "Частота ошибок"
 
 msgid "Expires"
 msgstr "Истекает"
@@ -101,9 +87,6 @@ msgstr "Последние 30 дней"
 msgid "Loading authorization request…"
 msgstr "Загрузка запроса авторизации…"
 
-msgid "MCP Inspector"
-msgstr "MCP Inspector"
-
 msgid "MCP Server"
 msgstr "MCP Server"
 
@@ -125,12 +108,6 @@ msgstr "Только чтение"
 msgid "Recent activity"
 msgstr "Недавняя активность"
 
-msgid "Recommended"
-msgstr "Рекомендуется"
-
-msgid "Requested access"
-msgstr "Запрошенный доступ"
-
 msgid "Revoke"
 msgstr "Отозвать"
 
@@ -140,23 +117,12 @@ msgstr "Отозвать разрешение"
 msgid "Safety"
 msgstr "Безопасность"
 
-msgid "Shop endpoint"
-msgstr "Конечная точка магазина"
-
 msgid "Status"
 msgstr "Статус"
 
 msgid "Success rate"
 msgstr "Частота успеха"
 
-msgid "Test and debug your MCP server interactively with the MCP Inspector:"
-msgstr "Тестируйте и отлаживайте ваш MCP-сервер в интерактивном режиме с помощью MCP Inspector:"
-
-msgid "The authorization session is invalid or expired."
-msgstr "Сессия авторизации недействительна или истекла."
-
-msgid "The client's details were fetched from this address, so the hostname is verified. The name below is still chosen by the client itself."
-msgstr "Данные клиента получены с этого адреса, поэтому имя хоста проверено. Имя ниже по-прежнему выбирает сам клиент."
 
 msgid "This destination is on the local machine. Any application running on that machine could receive the authorization code."
 msgstr "Это назначение находится на локальном компьютере. Любое приложение, работающее на этом компьютере, может получить код авторизации."
@@ -203,23 +169,11 @@ msgstr "Не удалось отозвать разрешение; возмож�
 msgid "Request failed ({0})"
 msgstr "Не удалось выполнить запрос ({0})"
 
-msgid "An application is requesting admin-scoped access to your Vendure MCP server. Vendure cannot verify the application's identity, so decide based on the destination below — not the name it reports."
-msgstr "Приложение запрашивает доступ с правами администратора к вашему MCP-серверу Vendure. Vendure не может проверить подлинность приложения, поэтому принимайте решение по указанному ниже адресу назначения, а не по имени, которое сообщает приложение."
-
-msgid "Approve only if you recognise and trust this exact destination."
-msgstr "Одобряйте только в том случае, если вы узнаёте именно этот адрес назначения и доверяете ему."
-
 msgid "Authorize MCP access"
 msgstr "Авторизовать доступ MCP"
 
 msgid "Plugin"
 msgstr "Плагин"
-
-msgid "Reported by the application (unverified)"
-msgstr "Сообщено приложением (не проверено)"
-
-msgid "The authorization code will be sent to"
-msgstr "Код авторизации будет отправлен на"
 
 msgid "Error loading MCP statistics: {0}"
 msgstr "Ошибка при загрузке статистики MCP: {0}"
@@ -238,3 +192,96 @@ msgstr "Отозван"
 
 msgid "Expired"
 msgstr "Истёк"
+
+msgid "No tool calls yet"
+msgstr ""
+
+msgid "Half of the calls in this period finished faster than this."
+msgstr ""
+
+msgid "95 out of 100 calls in this period finished faster than this. It shows how slow the worst calls are."
+msgstr ""
+
+msgid "This tool can delete data or make changes that cannot be undone."
+msgstr ""
+
+msgid "This tool only reads data. It never changes anything."
+msgstr ""
+
+msgid "This tool creates or updates data, but does not delete anything."
+msgstr ""
+
+msgid "No actions available for a revoked grant"
+msgstr ""
+
+msgid "Unnamed application"
+msgstr ""
+
+msgid "Hostname verified"
+msgstr ""
+
+msgid "Unverified"
+msgstr ""
+
+msgid "The client's details were fetched from this address, so the hostname is verified. The name above is still chosen by the client itself."
+msgstr ""
+
+msgid "This name and address are reported by the application itself and are not verified."
+msgstr ""
+
+msgid "wants to access the Admin API of your Vendure server"
+msgstr ""
+
+msgid "Full access to the Admin API as your administrator account."
+msgstr ""
+
+msgid "wants to access the Shop API of your Vendure server"
+msgstr ""
+
+msgid "Access to the Shop API as a customer."
+msgstr ""
+
+msgid "After approval, the authorization code is sent here. Only approve if you recognise this destination."
+msgstr ""
+
+msgid "Setup guide for connecting MCP clients"
+msgstr ""
+
+msgid "Anonymous"
+msgstr ""
+
+msgid "Failed calls"
+msgstr ""
+
+msgid "Average number of tool calls per hour over the selected period."
+msgstr ""
+
+msgid "What this number means"
+msgstr ""
+
+msgid "See all activity"
+msgstr ""
+
+msgid "Granted to"
+msgstr ""
+
+msgid "The link may have expired or already been used. Start the connection again from your MCP client."
+msgstr ""
+
+msgid "Full access to the Admin API as {name} ({emailAddress})."
+msgstr ""
+
+msgid "Connect a client"
+msgstr ""
+
+msgid "Admin API"
+msgstr ""
+
+msgid "Shop API"
+msgstr ""
+
+msgid "Test with MCP Inspector"
+msgstr ""
+
+msgid "Close"
+msgstr ""

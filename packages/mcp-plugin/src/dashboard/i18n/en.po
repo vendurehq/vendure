@@ -23,9 +23,6 @@ msgstr "Actor"
 msgid "Actor type"
 msgstr "Actor type"
 
-msgid "Admin endpoint"
-msgstr "Admin endpoint"
-
 msgid "Approve"
 msgstr "Approve"
 
@@ -38,17 +35,8 @@ msgstr "Calls per hour"
 msgid "Client"
 msgstr "Client"
 
-msgid "Client configuration"
-msgstr "Client configuration"
-
-msgid "Client identity (hostname verified)"
-msgstr "Client identity (hostname verified)"
-
 msgid "Connect an MCP client to your Vendure server using the endpoints below."
 msgstr "Connect an MCP client to your Vendure server using the endpoints below."
-
-msgid "Connection"
-msgstr "Connection"
 
 msgid "Could not revoke grant"
 msgstr "Could not revoke grant"
@@ -71,8 +59,6 @@ msgstr "Duration"
 msgid "Enabled"
 msgstr "Enabled"
 
-msgid "Error rate"
-msgstr "Error rate"
 
 msgid "Expires"
 msgstr "Expires"
@@ -101,9 +87,6 @@ msgstr "Last 30 days"
 msgid "Loading authorization request…"
 msgstr "Loading authorization request…"
 
-msgid "MCP Inspector"
-msgstr "MCP Inspector"
-
 msgid "MCP Server"
 msgstr "MCP Server"
 
@@ -125,12 +108,6 @@ msgstr "Read-only"
 msgid "Recent activity"
 msgstr "Recent activity"
 
-msgid "Recommended"
-msgstr "Recommended"
-
-msgid "Requested access"
-msgstr "Requested access"
-
 msgid "Revoke"
 msgstr "Revoke"
 
@@ -140,23 +117,12 @@ msgstr "Revoke grant"
 msgid "Safety"
 msgstr "Safety"
 
-msgid "Shop endpoint"
-msgstr "Shop endpoint"
-
 msgid "Status"
 msgstr "Status"
 
 msgid "Success rate"
 msgstr "Success rate"
 
-msgid "Test and debug your MCP server interactively with the MCP Inspector:"
-msgstr "Test and debug your MCP server interactively with the MCP Inspector:"
-
-msgid "The authorization session is invalid or expired."
-msgstr "The authorization session is invalid or expired."
-
-msgid "The client's details were fetched from this address, so the hostname is verified. The name below is still chosen by the client itself."
-msgstr "The client's details were fetched from this address, so the hostname is verified. The name below is still chosen by the client itself."
 
 msgid "This destination is on the local machine. Any application running on that machine could receive the authorization code."
 msgstr "This destination is on the local machine. Any application running on that machine could receive the authorization code."
@@ -203,23 +169,11 @@ msgstr "The grant could not be revoked; it may have already been removed"
 msgid "Request failed ({0})"
 msgstr "Request failed ({0})"
 
-msgid "An application is requesting admin-scoped access to your Vendure MCP server. Vendure cannot verify the application's identity, so decide based on the destination below — not the name it reports."
-msgstr "An application is requesting admin-scoped access to your Vendure MCP server. Vendure cannot verify the application's identity, so decide based on the destination below — not the name it reports."
-
-msgid "Approve only if you recognise and trust this exact destination."
-msgstr "Approve only if you recognise and trust this exact destination."
-
 msgid "Authorize MCP access"
 msgstr "Authorize MCP access"
 
 msgid "Plugin"
 msgstr "Plugin"
-
-msgid "Reported by the application (unverified)"
-msgstr "Reported by the application (unverified)"
-
-msgid "The authorization code will be sent to"
-msgstr "The authorization code will be sent to"
 
 msgid "Error loading MCP statistics: {0}"
 msgstr "Error loading MCP statistics: {0}"
@@ -238,3 +192,96 @@ msgstr "Revoked"
 
 msgid "Expired"
 msgstr "Expired"
+
+msgid "No tool calls yet"
+msgstr "No tool calls yet"
+
+msgid "Half of the calls in this period finished faster than this."
+msgstr "Half of the calls in this period finished faster than this."
+
+msgid "95 out of 100 calls in this period finished faster than this. It shows how slow the worst calls are."
+msgstr "95 out of 100 calls in this period finished faster than this. It shows how slow the worst calls are."
+
+msgid "This tool can delete data or make changes that cannot be undone."
+msgstr "This tool can delete data or make changes that cannot be undone."
+
+msgid "This tool only reads data. It never changes anything."
+msgstr "This tool only reads data. It never changes anything."
+
+msgid "This tool creates or updates data, but does not delete anything."
+msgstr "This tool creates or updates data, but does not delete anything."
+
+msgid "No actions available for a revoked grant"
+msgstr "No actions available for a revoked grant"
+
+msgid "Unnamed application"
+msgstr "Unnamed application"
+
+msgid "Hostname verified"
+msgstr "Hostname verified"
+
+msgid "Unverified"
+msgstr "Unverified"
+
+msgid "The client's details were fetched from this address, so the hostname is verified. The name above is still chosen by the client itself."
+msgstr "The client's details were fetched from this address, so the hostname is verified. The name above is still chosen by the client itself."
+
+msgid "This name and address are reported by the application itself and are not verified."
+msgstr "This name and address are reported by the application itself and are not verified."
+
+msgid "wants to access the Admin API of your Vendure server"
+msgstr "wants to access the Admin API of your Vendure server"
+
+msgid "Full access to the Admin API as your administrator account."
+msgstr "Full access to the Admin API as your administrator account."
+
+msgid "wants to access the Shop API of your Vendure server"
+msgstr "wants to access the Shop API of your Vendure server"
+
+msgid "Access to the Shop API as a customer."
+msgstr "Access to the Shop API as a customer."
+
+msgid "After approval, the authorization code is sent here. Only approve if you recognise this destination."
+msgstr "After approval, the authorization code is sent here. Only approve if you recognise this destination."
+
+msgid "Setup guide for connecting MCP clients"
+msgstr "Setup guide for connecting MCP clients"
+
+msgid "Anonymous"
+msgstr "Anonymous"
+
+msgid "Failed calls"
+msgstr "Failed calls"
+
+msgid "Average number of tool calls per hour over the selected period."
+msgstr "Average number of tool calls per hour over the selected period."
+
+msgid "What this number means"
+msgstr "What this number means"
+
+msgid "See all activity"
+msgstr "See all activity"
+
+msgid "Granted to"
+msgstr "Granted to"
+
+msgid "The link may have expired or already been used. Start the connection again from your MCP client."
+msgstr "The link may have expired or already been used. Start the connection again from your MCP client."
+
+msgid "Full access to the Admin API as {name} ({emailAddress})."
+msgstr "Full access to the Admin API as {name} ({emailAddress})."
+
+msgid "Connect a client"
+msgstr "Connect a client"
+
+msgid "Admin API"
+msgstr "Admin API"
+
+msgid "Shop API"
+msgstr "Shop API"
+
+msgid "Test with MCP Inspector"
+msgstr "Test with MCP Inspector"
+
+msgid "Close"
+msgstr "Close"
