@@ -105,6 +105,35 @@ Each tool call emits a `McpToolRegistryService.callTool` span nested under the `
 [`@vendure/telemetry-plugin`](/reference/core-plugins/telemetry-plugin/) is active. Follow that plugin's
 [Telemetry guide](/guides/developer-guide/telemetry/) for the collector, Jaeger/Loki/Grafana setup.
 
+To put tool metadata on that span, register a method hook on `McpToolRegistryService.callTool`. Set safe
+attributes only. Never copy the tool input or the result payload onto a span, because either may contain
+customer personal data.
+
+```ts
+import { McpToolRegistryService } from '@vendure/mcp-plugin';
+import { registerMethodHooks, TelemetryPlugin } from '@vendure/telemetry-plugin';
+
+TelemetryPlugin.init({
+    methodHooks: [
+        registerMethodHooks(McpToolRegistryService, {
+            callTool: {
+                pre: ({ args: [, toolset, name], span }) => {
+                    span.setAttribute('mcp.tool.name', name);
+                    span.setAttribute('mcp.tool.toolset', toolset);
+                },
+                post: ({ result, span }) => {
+                    span.setAttribute('mcp.tool.status', result.isError ? 'error' : 'success');
+                },
+            },
+        }),
+    ],
+});
+```
+
+The hook's `args` are the arguments `callTool` received, so `args[3]` is the tool input. Leave it alone.
+
+`methodHooks` is a developer preview option of the telemetry plugin and may change in a future release.
+
 Vendure exports OpenTelemetry spans, but does not provide a metrics read-back API equivalent to `mcpStats`. If
 you want MCP metrics in Grafana or another monitoring system, use the OpenTelemetry Collector's `spanmetrics`
 connector to derive metrics from the exported spans.

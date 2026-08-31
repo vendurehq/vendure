@@ -98,17 +98,23 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         @Inject(MCP_PLUGIN_OPTIONS) private options: ResolvedMcpPluginOptions,
     ) {}
 
+    /** @internal */
     onApplicationBootstrap(): void {
         this.discoverTools();
         this.discoveryMetaTools = this.buildDiscoveryMetaTools();
         this.bm25 = this.buildSearchIndexes();
     }
 
-    /** Every registered tool. Consumed by the admin API. */
+    /**
+     * Every registered tool. Consumed by the admin API.
+     *
+     * @internal
+     */
     getRegistrySnapshot(): McpRegisteredTool[] {
         return [...this.tools.values()];
     }
 
+    /** @internal */
     async getExposedTools(
         executionContext: McpExecutionContext,
         toolset: McpToolset,
@@ -154,6 +160,8 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
      * Runs one named tool through the shared funnel, validating its input. Skips the meta-tool
      * routing in {@link callTool}, so `search_tools` and `execute_tool` are unknown names here —
      * a caller using this already knows which tool it wants.
+     *
+     * @internal
      */
     callToolDirect(
         executionContext: McpExecutionContext,
@@ -176,6 +184,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         return toggles;
     }
 
+    /** @internal */
     isToolEnabled(
         tool: Pick<McpRegisteredTool, 'toolset' | 'name'>,
         toggles: Record<string, boolean>,
