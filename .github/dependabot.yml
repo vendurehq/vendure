@@ -1,0 +1,50 @@
+version: 2
+
+# Scoping note: Dependabot security updates only raise pull requests for the
+# directories declared here. Test fixture manifests — packages/cli/e2e/fixtures
+# and packages/dashboard/vite/tests/**/fake_node_modules — are deliberately not
+# covered. They declare @vendure/core to exercise the CLI and Vite plugin, are
+# never installed, and are never published.
+updates:
+    # GitHub Actions are pinned by commit SHA. Dependabot updates the pin and
+    # the trailing version comment together.
+    #
+    # These pull requests modify .github/workflows/, which CODEOWNERS requires
+    # a listed maintainer to approve, so they are never auto-merged. They are
+    # grouped into a single weekly pull request to keep that review to one item.
+    - package-ecosystem: github-actions
+      directory: /
+      schedule:
+          interval: weekly
+          day: monday
+      groups:
+          github-actions:
+              patterns:
+                  - '*'
+      commit-message:
+          prefix: chore
+          include: scope
+      labels:
+          - dependencies
+
+    # The docs site is a separate npm project with its own lockfile. It is not
+    # published to npm and is not part of the bun workspace.
+    - package-ecosystem: npm
+      directory: /docs
+      schedule:
+          interval: weekly
+          day: monday
+      open-pull-requests-limit: 3
+      groups:
+          docs:
+              patterns:
+                  - '*'
+              update-types:
+                  - minor
+                  - patch
+      commit-message:
+          prefix: chore
+          include: scope
+      labels:
+          - dependencies
+          - docs
