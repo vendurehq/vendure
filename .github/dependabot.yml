@@ -74,6 +74,14 @@ updates:
           default-days: 7
       # These packages are published, so the declared range is part of the
       # public contract. Only widen it when the new version falls outside.
+      #
+      # bun is not on the documented list of ecosystems supporting this option
+      # (bundler, cargo, composer, helm, mix, npm, pip, pub, uv). It is kept
+      # anyway: it is either honoured, or ignored, and being ignored leaves the
+      # same default behaviour as omitting it. The auto-merge lane does not rely
+      # on it either way — every allowlisted dependency is declared as a caret
+      # range, so a patch update always falls inside the existing range and no
+      # strategy rewrites the manifest.
       versioning-strategy: increase-if-necessary
       ignore:
           # Workspace-internal packages are versioned by the release process.
