@@ -1,0 +1,101 @@
+name: Dependabot auto-merge
+
+# Uses pull_request_target rather than pull_request. Workflows that Dependabot
+# triggers via pull_request get a read-only GITHUB_TOKEN and read secrets from
+# the Dependabot secrets store, so the CI bot credentials would resolve empty.
+# pull_request_target is exempt from both restrictions.
+#
+# SECURITY: pull_request_target runs the workflow definition from the base
+# branch with access to Actions secrets. This workflow must never check out,
+# build, or execute anything from the pull request head. It only reads
+# Dependabot metadata and calls the GitHub API.
+on:
+    pull_request_target:
+        types: [opened, reopened, synchronize]
+
+permissions: {}
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+    cancel-in-progress: true
+
+jobs:
+    metadata:
+        name: classify update
+        if: github.event.pull_request.user.login == 'dependabot[bot]'
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            pull-requests: read
+        outputs:
+            eligible: ${{ steps.check.outputs.eligible }}
+        steps:
+            - name: Fetch Dependabot metadata
+              id: meta
+              uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+              with:
+                  github-token: ${{ secrets.GITHUB_TOKEN }}
+
+            # Auto-merge is deliberately narrow: patch-level updates to
+            # development dependencies of the bun workspace. Those changes run
+            # the full build_and_test suite — build, unit tests and e2e against
+            # all four databases — so a green all-passed is real verification.
+            #
+            # Everything else is left for review:
+            #   - github-actions updates touch .github/workflows/, which
+            #     CODEOWNERS requires a listed maintainer to approve.
+            #   - docs updates produce a green all-passed without running
+            #     anything, because detect-changes skips every job for a
+            #     docs-only diff. Docs CI is not a required check, so
+            #     auto-merge would not wait for it.
+            #   - production dependencies and minor or major updates are a
+            #     compatibility judgement, not a bump.
+            - name: Check auto-merge eligibility
+              id: check
+              env:
+                  ECOSYSTEM: ${{ steps.meta.outputs.package-ecosystem }}
+                  DEP_TYPE: ${{ steps.meta.outputs.dependency-type }}
+                  UPDATE_TYPE: ${{ steps.meta.outputs.update-type }}
+              run: |
+                  echo "ecosystem=$ECOSYSTEM dependency-type=$DEP_TYPE update-type=$UPDATE_TYPE"
+                  if [ "$ECOSYSTEM" = "bun" ] \
+                     && [ "$DEP_TYPE" = "direct:development" ] \
+                     && [ "$UPDATE_TYPE" = "version-update:semver-patch" ]; then
+                    echo "eligible=true" >> "$GITHUB_OUTPUT"
+                  else
+                    echo "eligible=false" >> "$GITHUB_OUTPUT"
+                  fi
+
+    auto-merge:
+        name: approve and enable auto-merge
+        needs: metadata
+        if: needs.metadata.outputs.eligible == 'true'
+        runs-on: ubuntu-latest
+        permissions: {}
+        steps:
+            # The default GITHUB_TOKEN cannot approve a pull request, so the
+            # approval comes from the CI bot app. The app needs contents:write
+            # and pull-requests:write on this repository.
+            - name: Mint CI bot token
+              id: app-token
+              uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+              with:
+                  app-id: ${{ secrets.CI_BOT_APP_ID }}
+                  private-key: ${{ secrets.CI_BOT_APP_PRIVATE_KEY }}
+
+            # Re-approving on every push is required, not redundant: the master
+            # ruleset sets require_last_push_approval, so an approval that
+            # predates Dependabot's latest rebase does not count.
+            - name: Approve
+              env:
+                  GH_TOKEN: ${{ steps.app-token.outputs.token }}
+                  PR_URL: ${{ github.event.pull_request.html_url }}
+              run: gh pr review --approve "$PR_URL" --body "Patch-level development dependency update. Approved automatically; merging once all-passed is green."
+
+            # --auto merges only after the required status checks pass, so
+            # all-passed remains the gate.
+            - name: Enable auto-merge
+              env:
+                  GH_TOKEN: ${{ steps.app-token.outputs.token }}
+                  PR_URL: ${{ github.event.pull_request.html_url }}
+              run: gh pr merge --auto --squash "$PR_URL"
