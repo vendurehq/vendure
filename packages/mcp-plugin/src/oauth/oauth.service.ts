@@ -47,6 +47,7 @@ import { McpGrantUserType } from '../types';
 import { McpCimdClientResolverService } from './cimd/cimd-client-resolver.service';
 import { isUrlClientId } from './cimd/cimd-url';
 import { OAUTH_ENDPOINT_PATHS } from './endpoint-paths';
+import { McpOauthError } from './oauth-error';
 import {
     AuthorizationRequestInfo,
     AuthorizeInput,
@@ -98,26 +99,29 @@ export class McpOauthService {
     async registerClient(input: RegisterClientInput): Promise<RegisteredClientResponse> {
         this.resolvedOauth();
         if (!input.client_name) {
-            throw new BadRequestException('client_name is required');
+            throw new McpOauthError('invalid_client_metadata', 'client_name is required');
         }
         if (input.client_name.length > MAX_CLIENT_METADATA_FIELD_LENGTH) {
-            throw new BadRequestException(
+            throw new McpOauthError(
+                'invalid_client_metadata',
                 `client_name must be at most ${MAX_CLIENT_METADATA_FIELD_LENGTH} characters`,
             );
         }
         if (!input.redirect_uris || input.redirect_uris.length === 0) {
-            throw new BadRequestException('redirect_uris is required');
+            throw new McpOauthError('invalid_redirect_uri', 'redirect_uris is required');
         }
         for (const redirectUri of input.redirect_uris) {
             assertSafeRedirectUri(redirectUri);
         }
         if (input.token_endpoint_auth_method && input.token_endpoint_auth_method !== 'none') {
-            throw new BadRequestException(
+            throw new McpOauthError(
+                'invalid_client_metadata',
                 'token_endpoint_auth_method must be "none" — this server does not support client authentication',
             );
         }
         if (input.grant_types?.some(grantType => !SUPPORTED_OAUTH_GRANT_TYPES.includes(grantType))) {
-            throw new BadRequestException(
+            throw new McpOauthError(
+                'invalid_client_metadata',
                 'grant_types may only contain "authorization_code" and "refresh_token" — the only grants this server supports',
             );
         }
@@ -343,7 +347,7 @@ export class McpOauthService {
         if (input.grant_type === 'refresh_token') {
             return this.exchangeRefreshToken(input);
         }
-        throw new BadRequestException('Unsupported grant_type');
+        throw new McpOauthError('unsupported_grant_type', 'Unsupported grant_type');
     }
 
     async revoke(token: string | undefined): Promise<Record<string, never>> {
@@ -627,7 +631,8 @@ export class McpOauthService {
             !input.code_verifier ||
             !input.resource
         ) {
-            throw new BadRequestException(
+            throw new McpOauthError(
+                'invalid_request',
                 'code, client_id, redirect_uri, code_verifier and resource are required',
             );
         }
@@ -640,16 +645,22 @@ export class McpOauthService {
             relations: ['oauthClient'],
         });
         if (!code || code.expiresAt <= new Date()) {
-            throw new BadRequestException('Authorization code invalid or expired');
+            throw new McpOauthError('invalid_grant', 'Authorization code invalid or expired');
         }
         if (code.oauthClient.clientId !== input.client_id || code.redirectUri !== input.redirect_uri) {
-            throw new BadRequestException('Authorization code does not match client or redirect_uri');
+            throw new McpOauthError(
+                'invalid_grant',
+                'Authorization code does not match client or redirect_uri',
+            );
         }
         if (code.resource !== resource) {
-            throw new BadRequestException('Authorization code does not match token request resource');
+            throw new McpOauthError(
+                'invalid_grant',
+                'Authorization code does not match token request resource',
+            );
         }
         if (!verifyPkceChallenge(input.code_verifier, code.codeChallenge)) {
-            throw new BadRequestException('Invalid PKCE verifier');
+            throw new McpOauthError('invalid_grant', 'Invalid PKCE verifier');
         }
         const claim = await codeRepo
             .createQueryBuilder()
@@ -657,7 +668,7 @@ export class McpOauthService {
             .where('code = :code', { code: codeHash })
             .execute();
         if (!claim.affected) {
-            throw new BadRequestException('Authorization code invalid or expired');
+            throw new McpOauthError('invalid_grant', 'Authorization code invalid or expired');
         }
         return this.issueTokenPair(
             ctx,
@@ -671,7 +682,7 @@ export class McpOauthService {
 
     private async exchangeRefreshToken(input: TokenInput) {
         if (!input.refresh_token || !input.client_id || !input.resource) {
-            throw new BadRequestException('refresh_token, client_id and resource are required');
+            throw new McpOauthError('invalid_request', 'refresh_token, client_id and resource are required');
         }
         const { resource } = this.resolveResource(input.resource);
         const ctx = await this.createAdminCtx();
@@ -688,16 +699,16 @@ export class McpOauthService {
             if (reused && !reused.revokedAt) {
                 await this.revokeGrant(ctx, reused);
             }
-            throw new BadRequestException('Refresh token invalid or expired');
+            throw new McpOauthError('invalid_grant', 'Refresh token invalid or expired');
         }
         if (grant.revokedAt || grant.expiresAt <= new Date()) {
-            throw new BadRequestException('Refresh token invalid or expired');
+            throw new McpOauthError('invalid_grant', 'Refresh token invalid or expired');
         }
         if (grant.oauthClient.clientId !== input.client_id) {
-            throw new BadRequestException('Refresh token does not match client');
+            throw new McpOauthError('invalid_grant', 'Refresh token does not match client');
         }
         if (grant.resource !== resource) {
-            throw new BadRequestException('Refresh token does not match token request resource');
+            throw new McpOauthError('invalid_grant', 'Refresh token does not match token request resource');
         }
 
         const now = new Date();
@@ -725,7 +736,7 @@ export class McpOauthService {
                 .andWhere('revokedAt IS NULL')
                 .execute();
             if (!claim.affected) {
-                throw new BadRequestException('Refresh token invalid or expired');
+                throw new McpOauthError('invalid_grant', 'Refresh token invalid or expired');
             }
             await this.connection
                 .getRepository(txCtx, McpOauthClient)
@@ -744,7 +755,7 @@ export class McpOauthService {
     ): Promise<OAuthTokenResponse> {
         const user = await this.userService.getUserById(ctx, actorId);
         if (!user) {
-            throw new BadRequestException('Vendure user no longer exists');
+            throw new McpOauthError('invalid_grant', 'Vendure user no longer exists');
         }
         const now = new Date();
         const accessPlaintext = randomToken();
@@ -842,16 +853,19 @@ export class McpOauthService {
 
     private resolveResource(resource?: string): { resource: string; toolset: McpToolset } {
         if (!resource) {
-            throw new BadRequestException('resource is required');
+            throw new McpOauthError('invalid_target', 'resource is required');
         }
         let url: URL;
         try {
             url = new URL(resource);
         } catch {
-            throw new BadRequestException('Unsupported OAuth resource');
+            throw new McpOauthError('invalid_target', 'Unsupported OAuth resource');
         }
         if (url.search || url.hash) {
-            throw new BadRequestException('OAuth resource must not include query parameters or fragments');
+            throw new McpOauthError(
+                'invalid_target',
+                'OAuth resource must not include query parameters or fragments',
+            );
         }
         const toolsets: readonly McpToolset[] =
             this.options.shopAccess === 'disabled' ? (['admin'] as const) : (['shop', 'admin'] as const);
@@ -860,7 +874,7 @@ export class McpOauthService {
                 return { resource: this.resourceForToolset(toolset), toolset };
             }
         }
-        throw new BadRequestException('Unsupported OAuth resource');
+        throw new McpOauthError('invalid_target', 'Unsupported OAuth resource');
     }
 
     private sameResourceUrl(left: URL, right: URL): boolean {
@@ -944,7 +958,10 @@ export class McpOauthService {
      */
     private resolvedOauth(): ResolvedMcpOauthOptions {
         if (!this.options.oauth?.tokenSecret) {
-            throw new BadRequestException('MCP OAuth is not configured (oauth.tokenSecret is required)');
+            throw new McpOauthError(
+                'server_error',
+                'MCP OAuth is not configured (oauth.tokenSecret is required)',
+            );
         }
         return this.options.oauth as ResolvedMcpOauthOptions;
     }

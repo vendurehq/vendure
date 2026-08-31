@@ -1,10 +1,10 @@
-import { BadRequestException } from '@nestjs/common';
 import { ConfigService, Logger } from '@vendure/core';
 import { createHash, randomBytes } from 'node:crypto';
 
 import { loggerCtx, MAX_CLIENT_METADATA_FIELD_LENGTH } from '../constants';
 
 import { isLoopbackHostname } from './loopback';
+import { McpOauthError } from './oauth-error';
 
 export function randomToken(): string {
     return randomBytes(32).toString('base64url');
@@ -37,13 +37,14 @@ export function assertSafeRedirectUri(redirectUri: string): void {
     try {
         url = new URL(redirectUri);
     } catch {
-        throw new BadRequestException('redirect_uri must be an absolute URL');
+        throw new McpOauthError('invalid_redirect_uri', 'redirect_uri must be an absolute URL');
     }
     if (url.protocol !== 'https:' && !(url.protocol === 'http:' && isLoopbackHostname(url.hostname))) {
-        throw new BadRequestException('redirect_uri must use HTTPS or localhost HTTP');
+        throw new McpOauthError('invalid_redirect_uri', 'redirect_uri must use HTTPS or localhost HTTP');
     }
     if (redirectUri.length > MAX_CLIENT_METADATA_FIELD_LENGTH) {
-        throw new BadRequestException(
+        throw new McpOauthError(
+            'invalid_redirect_uri',
             `redirect_uri must be at most ${MAX_CLIENT_METADATA_FIELD_LENGTH} characters`,
         );
     }

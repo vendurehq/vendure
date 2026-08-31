@@ -76,6 +76,10 @@ describe('McpOauthRateLimitExceptionFilter', () => {
 
         expect(res.setHeader).toHaveBeenCalledWith('Retry-After', '7');
         expect(res.status).toHaveBeenCalledWith(HttpStatus.TOO_MANY_REQUESTS);
-        expect(res.json).toHaveBeenCalledWith({ error: 'rate_limit_exceeded', retryAfterSeconds: 7 });
+        expect(res.json).toHaveBeenCalledWith({
+            error: 'rate_limit_exceeded',
+            error_description: 'Too many requests. Retry after 7 seconds.',
+            retry_after_seconds: 7,
+        });
     });
 });

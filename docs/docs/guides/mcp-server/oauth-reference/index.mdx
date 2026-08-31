@@ -218,6 +218,26 @@ from the old access tokens.
 | The request token is unknown, has timed out, or has already been decided | The lookup call returns no success response |
 | The per-IP limit on `/mcp/oauth/*` is exceeded (default 60 requests per minute, `rateLimits.oauthIp`) | `429` with a `Retry-After` header |
 
+Failed token requests return `400` with a standard OAuth error body:
+
+```json
+{ "error": "invalid_grant", "error_description": "Refresh token invalid or expired" }
+```
+
+Use the `error` field for handling, not the description.
+
+* `invalid_grant`: code or refresh token is invalid → start a new auth flow
+* `invalid_request`: missing or malformed parameter
+* `unsupported_grant_type`: grant type not supported
+* `invalid_target`: missing or invalid `resource` (must be a toolset URL)
+
+Client registration failures follow the same format, using:
+
+* `invalid_client_metadata`
+* `invalid_redirect_uri`
+
+Rate limits return `429` with `error: "rate_limit_exceeded"` and `retry_after_seconds` in the body. Prefer the `Retry-After` header.
+
 Refusals of the consent decision itself are covered in the
 [oauth-consent troubleshooting table](/guides/mcp-server/oauth-consent/#troubleshooting).
 That covers a mismatched `Origin` header, an unset consent URL, and a user holding an

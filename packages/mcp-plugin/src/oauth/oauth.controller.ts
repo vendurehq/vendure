@@ -18,11 +18,12 @@ import {
 } from '../rate-limit/mcp-oauth-rate-limit.guard';
 
 import { OAUTH_ENDPOINT_PATHS } from './endpoint-paths';
+import { McpOauthExceptionFilter } from './oauth-error';
 import { AuthorizeInput, RegisterClientInput, TokenInput } from './oauth-types';
 import { McpOauthService } from './oauth.service';
 
 @UseGuards(McpOauthRateLimitGuard)
-@UseFilters(new McpOauthRateLimitExceptionFilter())
+@UseFilters(new McpOauthRateLimitExceptionFilter(), new McpOauthExceptionFilter())
 @Controller()
 export class McpOauthController {
     constructor(private oauthService: McpOauthService) {}

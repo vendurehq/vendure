@@ -72,6 +72,71 @@ describe('McpPlugin OAuth routes', () => {
         expect(res.status).toBe(200);
     });
 
+    // RFC 6749 §5.2: a failed token request answers with an `error` code and an
+    // `error_description`, and nothing else. A client keys on `error` to tell "these
+    // credentials are dead, start a new authorization" from "I sent the wrong thing".
+    it('POST /mcp/oauth/token answers a failure with the RFC 6749 error body', async () => {
+        const port = config.apiOptions.port;
+        const postToken = (form: URLSearchParams) =>
+            fetch(`http://localhost:${port}/mcp/oauth/token`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: form.toString(),
+            });
+
+        const badCode = new URLSearchParams({
+            grant_type: 'authorization_code',
+            code: 'not-a-real-code',
+            client_id: 'not-a-real-client',
+            redirect_uri: 'https://example.com/cb',
+            code_verifier: 'x'.repeat(43),
+            resource: `http://localhost:${port}/mcp/admin`,
+        });
+        const badCodeRes = await postToken(badCode);
+        expect(badCodeRes.status).toBe(400);
+        expect(await badCodeRes.json()).toEqual({
+            error: 'invalid_grant',
+            error_description: 'Authorization code invalid or expired',
+        });
+
+        const badGrantType = new URLSearchParams({ grant_type: 'client_credentials' });
+        const badGrantTypeRes = await postToken(badGrantType);
+        expect(badGrantTypeRes.status).toBe(400);
+        expect(await badGrantTypeRes.json()).toEqual({
+            error: 'unsupported_grant_type',
+            error_description: 'Unsupported grant_type',
+        });
+    });
+
+    // RFC 7591 §3.2.2: a refused registration answers with `invalid_client_metadata` or
+    // `invalid_redirect_uri` plus an `error_description`.
+    it('POST /mcp/oauth/register answers a failure with the RFC 7591 error body', async () => {
+        const port = config.apiOptions.port;
+        const postRegister = (body: Record<string, unknown>) =>
+            fetch(`http://localhost:${port}/mcp/oauth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+
+        const noName = await postRegister({ redirect_uris: ['https://example.com/cb'] });
+        expect(noName.status).toBe(400);
+        expect(await noName.json()).toEqual({
+            error: 'invalid_client_metadata',
+            error_description: 'client_name is required',
+        });
+
+        const badRedirect = await postRegister({
+            client_name: 'Bad Redirect Client',
+            redirect_uris: ['ftp://example.com/cb'],
+        });
+        expect(badRedirect.status).toBe(400);
+        expect(await badRedirect.json()).toEqual({
+            error: 'invalid_redirect_uri',
+            error_description: 'redirect_uri must use HTTPS or localhost HTTP',
+        });
+    });
+
     // Metadata must 404 for a resource this server doesn't host, not fabricate a document for it.
     it('GET /.well-known/oauth-protected-resource/mcp/bogus returns 404', async () => {
         const port = config.apiOptions.port;

@@ -16,7 +16,14 @@ import { McpRateLimiterService, McpRateLimitExceededError } from './mcp-rate-lim
 
 export class McpOauthRateLimitExceededHttpException extends HttpException {
     constructor(public readonly retryAfterSeconds: number) {
-        super({ error: 'rate_limit_exceeded', retryAfterSeconds }, HttpStatus.TOO_MANY_REQUESTS);
+        super(
+            {
+                error: 'rate_limit_exceeded',
+                error_description: `Too many requests. Retry after ${retryAfterSeconds} seconds.`,
+                retry_after_seconds: retryAfterSeconds,
+            },
+            HttpStatus.TOO_MANY_REQUESTS,
+        );
     }
 }
 

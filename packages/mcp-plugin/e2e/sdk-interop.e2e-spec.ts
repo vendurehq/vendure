@@ -327,22 +327,14 @@ describe('MCP SDK interop (official @modelcontextprotocol/client 2.x)', () => {
         expect(replayResponse.status).toBe(400);
 
         // This is the only place in the suite that reads the body of a failed token request, so it
-        // records the shape a real MCP client receives. Today that shape is Vendure's REST error
-        // body, produced by core's ExceptionLoggerFilter from the NestJS BadRequestException the
-        // OAuth service throws.
-        //
-        // OPEN QUESTION: RFC 6749 §5.2 requires a token-endpoint failure to answer
-        // `{"error": "invalid_grant", ...}`. The plugin never sends an `error` field here, so a
-        // client that keys on it cannot tell "these tokens are dead, start a new authorization"
-        // from a transient failure. The absence is asserted deliberately: if the body is changed
-        // to the OAuth shape, this test must fail and be updated, because the token endpoint's
-        // wire format is a public contract.
+        // records the shape a real MCP client receives: the RFC 6749 §5.2 error body, and nothing
+        // else. `invalid_grant` is what tells a client "these tokens are dead, start a new
+        // authorization" rather than "retry in a moment". The token endpoint's wire format is a
+        // public contract, so the body is asserted exactly.
         const replayBody = (await replayResponse.json()) as Record<string, unknown>;
-        expect(replayBody).toMatchObject({
-            statusCode: 400,
-            message: 'Refresh token invalid or expired',
-            path: '/mcp/oauth/token',
+        expect(replayBody).toEqual({
+            error: 'invalid_grant',
+            error_description: 'Refresh token invalid or expired',
         });
-        expect(replayBody.error).toBeUndefined();
     });
 });
