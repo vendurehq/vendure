@@ -1,0 +1,14 @@
+---
+title: "DeserializedCachedSession"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/api/common/request-context.ts" sourceLine="40" packageName="@vendure/core" since="3.8.0" />
+
+The session of a [RequestContext](/reference/typescript-api/request/request-context#requestcontext) which was rebuilt from a `SerializedRequestContext`,
+for example in a job queue worker. It is a [CachedSession](/reference/typescript-api/auth/session-cache-strategy#cachedsession) without the session token, because
+the token is never serialized. A worker has no session credential by design. Code which runs on a
+worker and calls another system should use a service-level credential, not a user's session token.
+
+```ts title="Signature"
+type DeserializedCachedSession = Omit<CachedSession, 'token'> & { token?: undefined }
+```
