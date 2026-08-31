@@ -23,6 +23,11 @@ const awesomeClient = new AwesomeGraphQLClient({
         const sessionToken = localStorage.getItem(LS_KEY_SESSION_TOKEN);
         const headers = new Headers(options.headers);
 
+        // Apollo Server rejects requests that carry only a CORS-safelisted content type when
+        // csrfPrevention is enabled. Multipart asset uploads fall into that group, so send the
+        // header the same way @vendure/admin-ui does.
+        headers.set('Apollo-Require-Preflight', 'true');
+
         if (sessionToken) {
             headers.set('Authorization', `Bearer ${sessionToken}`);
         }

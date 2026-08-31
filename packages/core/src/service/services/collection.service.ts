@@ -969,9 +969,17 @@ export class CollectionService implements OnModuleInit {
         if (!hasPermission) {
             throw new ForbiddenError();
         }
-        const collectionsToAssign = await this.connection
-            .getRepository(ctx, Collection)
-            .find({ where: { id: In(input.collectionIds) }, relations: { assets: true } });
+        // Source entities must be visible in the active Channel (GHSA-422x-jq57-j238).
+        const collectionsToAssign = await this.connection.findByIdsInChannel(
+            ctx,
+            Collection,
+            input.collectionIds,
+            ctx.channelId,
+            { relations: ['assets'] },
+        );
+        if (collectionsToAssign.length === 0) {
+            return [];
+        }
 
         await Promise.all(
             collectionsToAssign.map(collection =>
@@ -1017,9 +1025,14 @@ export class CollectionService implements OnModuleInit {
         if (idsAreEqual(input.channelId, defaultChannel.id)) {
             throw new UserInputError('error.items-cannot-be-removed-from-default-channel');
         }
-        const collectionsToRemove = await this.connection
-            .getRepository(ctx, Collection)
-            .find({ where: { id: In(input.collectionIds) } });
+        // Source entities must be visible in the active Channel (GHSA-422x-jq57-j238).
+        const collectionsToRemove = await this.connection.findByIdsInChannel(
+            ctx,
+            Collection,
+            input.collectionIds,
+            ctx.channelId,
+            {},
+        );
 
         await Promise.all(
             collectionsToRemove.map(async collection => {

@@ -137,7 +137,7 @@ describe('CLI Doctor Command E2E', () => {
             testProject = createTestProject('doctor-no-modules');
 
             // The default test project doesn't run npm install,
-            // so node_modules won't exist
+            // so node_modules won't exist and no packages are resolvable
             const result = await testProject.runCliCommand(
                 ['doctor', '--check', 'dependencies', '--format', 'json'],
                 { expectError: true },

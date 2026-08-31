@@ -29,9 +29,10 @@ export class JobEntityResolver {
                     '_isAuthorized',
                     '_channel',
                 ]),
+                // The session token is never returned over the API (GHSA-32jm-mf7r-7qw5).
                 _session: ctx._session
                     ? {
-                          ...ctx._session,
+                          ...omit(ctx._session, ['token']),
                           user: ctx._session.user ? omit(ctx._session.user, ['channelPermissions']) : {},
                       }
                     : {},

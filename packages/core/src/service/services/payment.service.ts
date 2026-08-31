@@ -31,6 +31,7 @@ import { RefundStateTransitionEvent } from '../../event-bus/events/refund-state-
 import { PaymentState } from '../helpers/payment-state-machine/payment-state';
 import { PaymentStateMachine } from '../helpers/payment-state-machine/payment-state-machine';
 import { RefundStateMachine } from '../helpers/refund-state-machine/refund-state-machine';
+import { assertOrderIsInChannel } from '../helpers/utils/order-utils';
 
 import { PaymentMethodService } from './payment-method.service';
 
@@ -59,6 +60,14 @@ export class PaymentService {
         return this.connection.getRepository(ctx, Payment).save(newPayment);
     }
 
+    /**
+     * @description
+     * Loads a Payment by id with no Channel check. Payment is not ChannelAware, so callers must first
+     * load the parent Order in the current Channel (or use a path which does, such as the private
+     * `getPaymentInChannelOrThrow` used by the payment mutations). The only core caller is the
+     * `Refund.lines` field resolver, which is reached from an Order already loaded in the current
+     * Channel.
+     */
     async findOneOrThrow(ctx: RequestContext, id: ID, relations: string[] = ['order']): Promise<Payment> {
         return await this.connection.getEntityOrThrow(ctx, Payment, id, {
             relations,
@@ -84,7 +93,7 @@ export class PaymentService {
         if (state === 'Cancelled') {
             return this.cancelPayment(ctx, paymentId);
         }
-        const payment = await this.findOneOrThrow(ctx, paymentId);
+        const payment = await this.getPaymentInChannelOrThrow(ctx, paymentId);
         const fromState = payment.state;
         return this.transitionStateAndSave(ctx, payment, fromState, state);
     }
@@ -171,9 +180,7 @@ export class PaymentService {
      * updating the Order state too.
      */
     async settlePayment(ctx: RequestContext, paymentId: ID): Promise<PaymentStateTransitionError | Payment> {
-        const payment = await this.connection.getEntityOrThrow(ctx, Payment, paymentId, {
-            relations: ['order'],
-        });
+        const payment = await this.getPaymentInChannelOrThrow(ctx, paymentId);
         const { paymentMethod, handler } = await this.paymentMethodService.getMethodAndOperations(
             ctx,
             payment.method,
@@ -198,9 +205,7 @@ export class PaymentService {
     }
 
     async cancelPayment(ctx: RequestContext, paymentId: ID): Promise<PaymentStateTransitionError | Payment> {
-        const payment = await this.connection.getEntityOrThrow(ctx, Payment, paymentId, {
-            relations: ['order'],
-        });
+        const payment = await this.getPaymentInChannelOrThrow(ctx, paymentId);
         const { paymentMethod, handler } = await this.paymentMethodService.getMethodAndOperations(
             ctx,
             payment.method,
@@ -222,6 +227,20 @@ export class PaymentService {
             payment.errorMessage = cancelPaymentResult.errorMessage;
         }
         return this.transitionStateAndSave(ctx, payment, fromState, toState);
+    }
+
+    /**
+     * Loads a Payment by id and checks that its Order is visible in the active Channel. Payment is
+     * not ChannelAware, so without this check a Channel-scoped administrator can settle, cancel or
+     * refund the payments of any other Channel's Orders. The check must happen before the
+     * PaymentMethodHandler is invoked, because a gateway side-effect cannot be rolled back.
+     */
+    private async getPaymentInChannelOrThrow(ctx: RequestContext, paymentId: ID): Promise<Payment> {
+        const payment = await this.connection.getEntityOrThrow(ctx, Payment, paymentId, {
+            relations: ['order'],
+        });
+        await assertOrderIsInChannel(ctx, this.connection, payment.order.id, 'Payment', paymentId);
+        return payment;
     }
 
     private async transitionStateAndSave(

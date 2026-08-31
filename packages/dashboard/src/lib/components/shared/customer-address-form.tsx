@@ -1,8 +1,6 @@
-import { api } from '@/vdb/graphql/api.js';
-import { graphql } from '@/vdb/graphql/graphql.js';
 import { z, zodResolver } from '@/vdb/lib/zod.js';
+import { useAvailableCountries } from '@/vdb/hooks/use-available-countries.js';
 import { Trans, useLingui } from '@lingui/react/macro';
-import { useQuery } from '@tanstack/react-query';
 import { Controller, useForm } from 'react-hook-form';
 import { Button } from '../ui/button.js';
 import { Checkbox } from '../ui/checkbox.js';
@@ -12,19 +10,6 @@ import { Input } from '../ui/input.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select.js';
 import { FormFieldWrapper } from './form-field-wrapper.js';
 import { CustomFieldsForm } from './custom-fields-form.js';
-
-// Query document to fetch available countries
-const getAvailableCountriesDocument = graphql(`
-    query GetAvailableCountries {
-        countries(options: { filter: { enabled: { eq: true } } }) {
-            items {
-                id
-                code
-                name
-            }
-        }
-    }
-`);
 
 const addressFormSchema = z.object({
     id: z.string(),
@@ -73,11 +58,7 @@ export function CustomerAddressForm<T>({
     const { t } = useLingui();
 
     // Fetch available countries
-    const { data: countriesData, isLoading: isLoadingCountries } = useQuery({
-        queryKey: ['availableCountries'],
-        queryFn: () => api.query(getAvailableCountriesDocument),
-        staleTime: 1000 * 60 * 60 * 24, // 24 hours
-    });
+    const { data: countriesData, isLoading: isLoadingCountries } = useAvailableCountries();
 
     const form = useForm<AddressFormValues>({
         resolver: zodResolver(addressFormSchema),

@@ -54,7 +54,9 @@ export async function doctorCommand(options?: DoctorOptions) {
         }
     }
 
-    // Check 2: Dependency version alignment, singleton duplication, DB driver
+    // Check 2: Dependency version alignment, singleton duplication, DB driver.
+    // Uses require.resolve for version alignment and DB driver (handles hoisting),
+    // and a tree scan for duplicate detection.
     if (checksToRun.includes('dependencies')) {
         results.push(await runDependencyCheck());
     }

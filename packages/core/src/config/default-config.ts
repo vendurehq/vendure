@@ -93,6 +93,7 @@ export const defaultConfig: RuntimeVendureConfig = {
             origin: true,
             credentials: true,
         },
+        csrfPrevention: false,
         trustProxy: false,
         middleware: [],
         introspection: true,

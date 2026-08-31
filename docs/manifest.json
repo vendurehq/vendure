@@ -266,7 +266,7 @@
           "title": "Security",
           "slug": "security",
           "file": "docs/guides/developer-guide/security/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-08-26T14:25:41+02:00"
         },
         {
           "title": "API Keys",
@@ -747,7 +747,7 @@
           "title": "Production Configuration",
           "slug": "production-configuration",
           "file": "docs/guides/deployment/production-configuration/index.mdx",
-          "lastModified": "2026-05-26T10:57:06+02:00"
+          "lastModified": "2026-08-26T14:25:41+02:00"
         },
         {
           "title": "Using Docker",
@@ -1068,7 +1068,7 @@
                   "title": "NativeAuthenticationStrategy",
                   "slug": "native-authentication-strategy",
                   "file": "docs/reference/typescript-api/auth/native-authentication-strategy.mdx",
-                  "lastModified": "2026-02-09T11:17:54+01:00"
+                  "lastModified": "2026-08-25T13:57:08Z"
                 },
                 {
                   "title": "NoopSessionCacheStrategy",
@@ -1366,7 +1366,7 @@
                   "title": "ApiOptions",
                   "slug": "api-options",
                   "file": "docs/reference/typescript-api/configuration/api-options.mdx",
-                  "lastModified": "2026-06-30T07:18:09+02:00"
+                  "lastModified": "2026-08-26T14:25:41+02:00"
                 },
                 {
                   "title": "CollectionFilter",
@@ -1390,7 +1390,7 @@
                   "title": "EntityDuplicator",
                   "slug": "entity-duplicator",
                   "file": "docs/reference/typescript-api/configuration/entity-duplicator.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-26T10:42:52+02:00"
                 },
                 {
                   "title": "EntityId Decorator",
@@ -2766,7 +2766,7 @@
                   "title": "RequestContext",
                   "slug": "request-context",
                   "file": "docs/reference/typescript-api/request/request-context.mdx",
-                  "lastModified": "2026-08-17T12:00:11+02:00"
+                  "lastModified": "2026-08-25T13:57:08Z"
                 },
                 {
                   "title": "RequestContextService",
@@ -2892,7 +2892,7 @@
                   "title": "AdministratorService",
                   "slug": "administrator-service",
                   "file": "docs/reference/typescript-api/services/administrator-service.mdx",
-                  "lastModified": "2026-07-24T11:20:03+02:00"
+                  "lastModified": "2026-08-25T13:57:08Z"
                 },
                 {
                   "title": "AssetService",
@@ -2910,7 +2910,7 @@
                   "title": "ChannelService",
                   "slug": "channel-service",
                   "file": "docs/reference/typescript-api/services/channel-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-25T13:57:08Z"
                 },
                 {
                   "title": "CollectionService",
@@ -2940,7 +2940,7 @@
                   "title": "CustomerService",
                   "slug": "customer-service",
                   "file": "docs/reference/typescript-api/services/customer-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-25T13:57:08Z"
                 },
                 {
                   "title": "EntitySlugService",
@@ -2964,7 +2964,7 @@
                   "title": "FulfillmentService",
                   "slug": "fulfillment-service",
                   "file": "docs/reference/typescript-api/services/fulfillment-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-25T13:57:08Z"
                 },
                 {
                   "title": "GlobalSettingsService",
@@ -2976,7 +2976,7 @@
                   "title": "HistoryService",
                   "slug": "history-service",
                   "file": "docs/reference/typescript-api/services/history-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-25T13:57:08Z"
                 },
                 {
                   "title": "InitializerService",
@@ -2988,7 +2988,7 @@
                   "title": "OrderService",
                   "slug": "order-service",
                   "file": "docs/reference/typescript-api/services/order-service.mdx",
-                  "lastModified": "2026-08-17T12:00:11+02:00"
+                  "lastModified": "2026-08-25T13:57:08Z"
                 },
                 {
                   "title": "OrderTestingService",
@@ -3006,7 +3006,7 @@
                   "title": "PaymentService",
                   "slug": "payment-service",
                   "file": "docs/reference/typescript-api/services/payment-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-25T13:57:08Z"
                 },
                 {
                   "title": "ProductOptionGroupService",
@@ -3030,7 +3030,7 @@
                   "title": "ProductVariantService",
                   "slug": "product-variant-service",
                   "file": "docs/reference/typescript-api/services/product-variant-service.mdx",
-                  "lastModified": "2026-06-24T18:05:35+02:00"
+                  "lastModified": "2026-08-25T13:57:08Z"
                 },
                 {
                   "title": "PromotionService",
@@ -3048,7 +3048,7 @@
                   "title": "RoleService",
                   "slug": "role-service",
                   "file": "docs/reference/typescript-api/services/role-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-25T13:57:08Z"
                 },
                 {
                   "title": "SearchService",
@@ -3126,7 +3126,7 @@
                   "title": "UserService",
                   "slug": "user-service",
                   "file": "docs/reference/typescript-api/services/user-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-25T13:57:08Z"
                 },
                 {
                   "title": "ZoneService",
@@ -3798,7 +3798,7 @@
                   "title": "Mutations",
                   "slug": "mutations",
                   "file": "docs/reference/graphql-api/shop/mutations.mdx",
-                  "lastModified": "2026-03-05T15:08:55+01:00"
+                  "lastModified": "2026-08-25T13:57:08Z"
                 },
                 {
                   "title": "Queries",
@@ -4271,7 +4271,7 @@
                   "title": "VendureDashboardPlugin",
                   "slug": "vendure-dashboard-plugin",
                   "file": "docs/reference/dashboard/vite-plugin/vendure-dashboard-plugin.mdx",
-                  "lastModified": "2026-07-30T10:08:40+02:00"
+                  "lastModified": "2026-08-24T18:09:14+02:00"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"

@@ -11,7 +11,6 @@ import {
     UpdateFacetInput,
 } from '@vendure/common/lib/generated-types';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
-import { In } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
@@ -293,9 +292,14 @@ export class FacetService {
         if (!hasPermission) {
             throw new ForbiddenError();
         }
-        const facetsToAssign = await this.connection
-            .getRepository(ctx, Facet)
-            .find({ where: { id: In(input.facetIds) }, relations: ['values'] });
+        // Source entities must be visible in the active Channel (GHSA-422x-jq57-j238).
+        const facetsToAssign = await this.connection.findByIdsInChannel(
+            ctx,
+            Facet,
+            input.facetIds,
+            ctx.channelId,
+            { relations: ['values'] },
+        );
         const valuesToAssign = facetsToAssign.reduce(
             (values, facet) => [...values, ...facet.values],
             [] as FacetValue[],
@@ -339,9 +343,14 @@ export class FacetService {
         if (idsAreEqual(input.channelId, defaultChannel.id)) {
             throw new UserInputError('error.items-cannot-be-removed-from-default-channel');
         }
-        const facetsToRemove = await this.connection
-            .getRepository(ctx, Facet)
-            .find({ where: { id: In(input.facetIds) }, relations: ['values'] });
+        // Source entities must be visible in the active Channel (GHSA-422x-jq57-j238).
+        const facetsToRemove = await this.connection.findByIdsInChannel(
+            ctx,
+            Facet,
+            input.facetIds,
+            ctx.channelId,
+            { relations: ['values'] },
+        );
 
         const results: Array<ErrorResultUnion<RemoveFacetFromChannelResult, Facet>> = [];
 

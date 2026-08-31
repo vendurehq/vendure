@@ -875,6 +875,24 @@ export const updateChannelDocument = graphql(
     [channelFragment],
 );
 
+export const deleteChannelDocument = graphql(`
+    mutation DeleteChannel($id: ID!) {
+        deleteChannel(id: $id) {
+            message
+            result
+        }
+    }
+`);
+
+export const deleteChannelsDocument = graphql(`
+    mutation DeleteChannels($ids: [ID!]!) {
+        deleteChannels(ids: $ids) {
+            message
+            result
+        }
+    }
+`);
+
 export const getCustomerHistoryDocument = graphql(`
     query GetCustomerHistory($id: ID!, $options: HistoryEntryListOptions) {
         customer(id: $id) {

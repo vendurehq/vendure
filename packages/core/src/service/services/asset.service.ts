@@ -49,6 +49,7 @@ import { AssetChannelEvent } from '../../event-bus/events/asset-channel-event';
 import { AssetEvent } from '../../event-bus/events/asset-event';
 import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
+import { RequestContextService } from '../helpers/request-context/request-context.service';
 import { TranslatableSaver } from '../helpers/translatable-saver/translatable-saver';
 import { TranslatorService } from '../helpers/translator/translator.service';
 import { patchEntity } from '../helpers/utils/patch-entity';
@@ -173,6 +174,7 @@ export class AssetService {
         private customFieldRelationService: CustomFieldRelationService,
         private readonly translatableSaver: TranslatableSaver,
         private readonly translator: TranslatorService,
+        private readonly requestContextService: RequestContextService,
     ) {
         this.permittedMimeTypes = this.configService.assetOptions.permittedFileTypes
             .map(val => (/\.[\w]+/.test(val) ? mime.lookup(val) || undefined : val))
@@ -575,7 +577,7 @@ export class AssetService {
                     ? maybeFilePathOrCtx
                     : maybeCtx instanceof RequestContext
                       ? maybeCtx
-                      : RequestContext.empty();
+                      : await this.requestContextService.create({ apiType: 'admin' });
             const result = await this.createAssetInternal(ctx, stream, filename, mimetype);
             if (isGraphQlErrorResult(result)) {
                 return result;
@@ -752,7 +754,7 @@ export class AssetService {
             // Create default translation using context language
             assetTranslations = [
                 new AssetTranslation({
-                    languageCode: ctx.languageCode,
+                    languageCode: ctx.languageCode ?? this.configService.defaultLanguageCode,
                     name: defaultName,
                     base: savedAsset,
                 }),

@@ -35,7 +35,6 @@ export function CustomerGroupSelector(props: CustomerGroupSelectorProps) {
                     sort: { name: 'ASC' },
                 },
             }),
-        staleTime: 1000 * 60 * 5,
     });
 
     return (

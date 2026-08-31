@@ -90,7 +90,6 @@ function CustomerSearch({ onSelect }: Readonly<{ onSelect: (value: Customer) => 
                     filterOperator: debouncedSearchTerm ? 'OR' : undefined,
                 },
             }),
-        staleTime: 1000 * 60, // 1 minute
     });
 
     return (

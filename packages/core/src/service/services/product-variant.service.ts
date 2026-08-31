@@ -502,13 +502,11 @@ export class ProductVariantService {
                 const optionIds = input.optionIds || [];
                 let optionGroupIds: ID[] = [];
                 if (optionIds.length) {
-                    const variantOptions = await this.connection
-                        .getRepository(ctx, ProductOption)
-                        .find({
-                            where: { id: In(optionIds) },
-                            relations: ['group'],
-                            loadEagerRelations: false,
-                        });
+                    const variantOptions = await this.connection.getRepository(ctx, ProductOption).find({
+                        where: { id: In(optionIds) },
+                        relations: ['group'],
+                        loadEagerRelations: false,
+                    });
                     optionGroupIds = unique(variantOptions.map(o => o.group.id));
                 }
 
@@ -523,20 +521,14 @@ export class ProductVariantService {
                     if (optionIds.length) {
                         await Promise.all([
                             ...optionGroupIds.map(id =>
-                                this.channelService.assignToChannels(
-                                    ctx,
-                                    ProductOptionGroup,
-                                    id,
-                                    [additionalChannelId],
-                                ),
+                                this.channelService.assignToChannels(ctx, ProductOptionGroup, id, [
+                                    additionalChannelId,
+                                ]),
                             ),
                             ...optionIds.map(id =>
-                                this.channelService.assignToChannels(
-                                    ctx,
-                                    ProductOption,
-                                    id,
-                                    [additionalChannelId],
-                                ),
+                                this.channelService.assignToChannels(ctx, ProductOption, id, [
+                                    additionalChannelId,
+                                ]),
                             ),
                         ]);
                     }
@@ -914,12 +906,16 @@ export class ProductVariantService {
         if (!hasPermission) {
             throw new ForbiddenError();
         }
-        const variants = await this.connection.getRepository(ctx, ProductVariant).find({
-            where: {
-                id: In(input.productVariantIds),
+        // Source entities must be visible in the active Channel (GHSA-422x-jq57-j238).
+        const variants = await this.connection.findByIdsInChannel(
+            ctx,
+            ProductVariant,
+            input.productVariantIds,
+            ctx.channelId,
+            {
+                relations: ['taxCategory', 'assets'],
             },
-            relations: ['taxCategory', 'assets'],
-        });
+        );
         const priceFactor = input.priceFactor != null ? input.priceFactor : 1;
         const targetChannel = await this.connection.getEntityOrThrow(ctx, Channel, input.channelId);
         const assignedVariantIds: ID[] = [];
@@ -1014,17 +1010,42 @@ export class ProductVariantService {
         if (!hasPermission) {
             throw new ForbiddenError();
         }
+        // Source entities must be visible in the active Channel (GHSA-422x-jq57-j238).
+        const variants = await this.connection.findByIdsInChannel(
+            ctx,
+            ProductVariant,
+            input.productVariantIds,
+            ctx.channelId,
+            {},
+        );
+        return this.removeVariantsFromChannel(ctx, variants, input.channelId);
+    }
+
+    /**
+     * Removes the given ProductVariants from the Channel. The caller must have established that it may
+     * act on these variants: this method does not check permissions and does not scope the variants to
+     * the active Channel. `ProductService.removeProductsFromChannel()` calls it with the variants of a
+     * Product it has already loaded in the active Channel, so that the cascade removes every variant of
+     * that Product, including one which is no longer in the active Channel itself.
+     *
+     * The default-Channel guard lives here rather than in the public method, so that both callers keep
+     * it.
+     *
+     * @internal
+     */
+    async removeVariantsFromChannel(
+        ctx: RequestContext,
+        variants: ProductVariant[],
+        channelId: ID,
+    ): Promise<Array<Translated<ProductVariant>>> {
         const defaultChannel = await this.channelService.getDefaultChannel(ctx);
-        if (idsAreEqual(input.channelId, defaultChannel.id)) {
+        if (idsAreEqual(channelId, defaultChannel.id)) {
             throw new UserInputError('error.items-cannot-be-removed-from-default-channel');
         }
-        const variants = await this.connection
-            .getRepository(ctx, ProductVariant)
-            .find({ where: { id: In(input.productVariantIds) } });
         for (const variant of variants) {
-            await this.channelService.removeFromChannels(ctx, ProductVariant, variant.id, [input.channelId]);
+            await this.channelService.removeFromChannels(ctx, ProductVariant, variant.id, [channelId]);
             await this.connection.getRepository(ctx, ProductVariantPrice).delete({
-                channelId: input.channelId,
+                channelId,
                 variant: { id: variant.id },
             });
             // If none of the ProductVariants is assigned to the Channel, remove the Channel from Product
@@ -1037,10 +1058,8 @@ export class ProductVariantService {
             const productChannelsFromVariants = ([] as Channel[]).concat(
                 ...productVariants.map(pv => pv.channels),
             );
-            if (!productChannelsFromVariants.find(c => c.id === input.channelId)) {
-                await this.channelService.removeFromChannels(ctx, Product, variant.productId, [
-                    input.channelId,
-                ]);
+            if (!productChannelsFromVariants.find(c => c.id === channelId)) {
+                await this.channelService.removeFromChannels(ctx, Product, variant.productId, [channelId]);
             }
         }
         const result = await this.findByIds(
@@ -1051,9 +1070,7 @@ export class ProductVariantService {
         // whereby an event listener triggers a query which does not yet have access to the changes
         // within the current transaction.
         for (const variant of variants) {
-            await this.eventBus.publish(
-                new ProductVariantChannelEvent(ctx, variant, input.channelId, 'removed'),
-            );
+            await this.eventBus.publish(new ProductVariantChannelEvent(ctx, variant, channelId, 'removed'));
         }
         return result;
     }

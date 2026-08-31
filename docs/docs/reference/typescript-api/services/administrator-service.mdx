@@ -32,6 +32,9 @@ Get a paginated list of Administrators.
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, administratorId: <a href='/reference/typescript-api/common/id#id'>ID</a>, relations?: RelationPaths<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a>>) => Promise<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a> | undefined>`}   />
 
 Get an Administrator by id.
+
+Resolves to `undefined` if the Administrator is not visible to the active user, so that a
+caller cannot confirm the existence of an Administrator they are not allowed to see.
 ### findOneByUserId
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>, relations?: RelationPaths<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a>>) => Promise<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a> | undefined>`}   />

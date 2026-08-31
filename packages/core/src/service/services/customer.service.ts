@@ -951,7 +951,9 @@ export class CustomerService {
 
     async deleteCustomerNote(ctx: RequestContext, id: ID): Promise<DeletionResponse> {
         try {
-            await this.historyService.deleteCustomerHistoryEntry(ctx, id);
+            await this.historyService.deleteCustomerHistoryEntry(ctx, id, {
+                type: HistoryEntryType.CUSTOMER_NOTE,
+            });
             return {
                 result: DeletionResult.DELETED,
             };

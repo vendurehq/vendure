@@ -10,7 +10,7 @@ import {
     UpdateProductOptionGroupInput,
 } from '@vendure/common/lib/generated-types';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
-import { In, IsNull } from 'typeorm';
+import { IsNull } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
@@ -324,9 +324,14 @@ export class ProductOptionGroupService {
         if (!hasPermission) {
             throw new ForbiddenError();
         }
-        const groupsToAssign = await this.connection
-            .getRepository(ctx, ProductOptionGroup)
-            .find({ where: { id: In(input.productOptionGroupIds) }, relations: ['options'] });
+        // Source entities must be visible in the active Channel (GHSA-422x-jq57-j238).
+        const groupsToAssign = await this.connection.findByIdsInChannel(
+            ctx,
+            ProductOptionGroup,
+            input.productOptionGroupIds,
+            ctx.channelId,
+            { relations: ['options'] },
+        );
         const optionsToAssign = groupsToAssign.reduce(
             (options, group) => [...options, ...group.options],
             [] as ProductOption[],
@@ -372,9 +377,14 @@ export class ProductOptionGroupService {
         if (idsAreEqual(input.channelId, defaultChannel.id)) {
             throw new UserInputError('error.items-cannot-be-removed-from-default-channel');
         }
-        const groupsToRemove = await this.connection
-            .getRepository(ctx, ProductOptionGroup)
-            .find({ where: { id: In(input.productOptionGroupIds) }, relations: ['options'] });
+        // Source entities must be visible in the active Channel (GHSA-422x-jq57-j238).
+        const groupsToRemove = await this.connection.findByIdsInChannel(
+            ctx,
+            ProductOptionGroup,
+            input.productOptionGroupIds,
+            ctx.channelId,
+            { relations: ['options'] },
+        );
 
         const results: Array<
             ErrorResultUnion<RemoveProductOptionGroupFromChannelResult, Translated<ProductOptionGroup>>

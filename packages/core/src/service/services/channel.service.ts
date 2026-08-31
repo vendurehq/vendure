@@ -5,10 +5,15 @@ import {
     CurrencyCode,
     DeletionResponse,
     DeletionResult,
+    Permission,
     UpdateChannelInput,
     UpdateChannelResult,
 } from '@vendure/common/lib/generated-types';
-import { DEFAULT_CHANNEL_CODE } from '@vendure/common/lib/shared-constants';
+import {
+    CUSTOMER_ROLE_CODE,
+    DEFAULT_CHANNEL_CODE,
+    SUPER_ADMIN_ROLE_CODE,
+} from '@vendure/common/lib/shared-constants';
 import { ID, PaginatedList, Type } from '@vendure/common/lib/shared-types';
 import { unique } from '@vendure/common/lib/unique';
 import { FindOptionsWhere } from 'typeorm';
@@ -19,6 +24,7 @@ import { ErrorResultUnion, isGraphQlErrorResult } from '../../common/error/error
 import {
     ChannelNotFoundError,
     EntityNotFoundError,
+    ForbiddenError,
     InternalServerError,
     UserInputError,
 } from '../../common/error/errors';
@@ -34,6 +40,7 @@ import { Channel } from '../../entity/channel/channel.entity';
 import { Order } from '../../entity/order/order.entity';
 import { ProductVariantPrice } from '../../entity/product-variant/product-variant-price.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
+import { Role } from '../../entity/role/role.entity';
 import { Seller } from '../../entity/seller/seller.entity';
 import { Session } from '../../entity/session/session.entity';
 import { Zone } from '../../entity/zone/zone.entity';
@@ -42,6 +49,7 @@ import { ChangeChannelEvent } from '../../event-bus/events/change-channel-event'
 import { ChannelEvent } from '../../event-bus/events/channel-event';
 import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
+import { isChannelAwareMetadata } from '../helpers/utils/is-channel-aware-metadata';
 import { patchEntity } from '../helpers/utils/patch-entity';
 
 import { GlobalSettingsService } from './global-settings.service';
@@ -365,14 +373,22 @@ export class ChannelService {
         }
         await this.customFieldRelationService.updateRelations(ctx, Channel, input, newChannel);
         await this.allChannels.refresh(ctx);
+        await this.assignDefaultRolesToChannel(ctx, newChannel.id);
         await this.eventBus.publish(new ChannelEvent(ctx, newChannel, 'created', input));
         return newChannel;
     }
 
+    /**
+     * @description
+     * Updates a Channel. Throws a ForbiddenError if the active user does not hold the
+     * `UpdateChannel` permission on the target Channel. A SuperAdmin is exempt. A RequestContext
+     * with no session skips the check.
+     */
     async update(
         ctx: RequestContext,
         input: UpdateChannelInput,
     ): Promise<ErrorResultUnion<UpdateChannelResult, Channel>> {
+        this.assertHasPermissionOnChannel(ctx, input.id, Permission.UpdateChannel);
         const channel = await this.findOne(ctx, input.id);
         if (!channel) {
             throw new EntityNotFoundError('Channel', input.id);
@@ -465,7 +481,14 @@ export class ChannelService {
         return assertFound(this.findOne(ctx, channel.id));
     }
 
+    /**
+     * @description
+     * Deletes a Channel. Throws a ForbiddenError if the active user does not hold the
+     * `DeleteChannel` permission on the target Channel. A SuperAdmin is exempt. A RequestContext
+     * with no session skips the check.
+     */
     async delete(ctx: RequestContext, id: ID): Promise<DeletionResponse> {
+        this.assertHasPermissionOnChannel(ctx, id, Permission.DeleteChannel);
         const channel = await this.connection.getEntityOrThrow(ctx, Channel, id);
         if (channel.code === DEFAULT_CHANNEL_CODE)
             return {
@@ -487,15 +510,39 @@ export class ChannelService {
     }
 
     /**
+     * A Channel may only be modified by a user who holds the required permission on that particular
+     * Channel, see GHSA-22x4-937q-5fr5.
+     *
+     * A SuperAdmin is exempt, because the SuperAdmin permission is global. We check it against the
+     * active Channel rather than the target Channel, since a Channel created programmatically via
+     * ChannelService.create() does not necessarily have the SuperAdmin Role assigned to it.
+     *
+     * A RequestContext with no session is skipped, because it belongs to an internal server-side
+     * call such as Populator.setChannelDefaults(), which calls update() with RequestContext.empty().
+     * With the default AuthGuard an unauthenticated API request cannot reach this point. Note that
+     * the skip fails open: a custom EntityAccessControlStrategy which admits sessionless requests
+     * would bypass this check.
+     */
+    private assertHasPermissionOnChannel(ctx: RequestContext, channelId: ID, permission: Permission) {
+        if (!ctx.session?.user) {
+            return;
+        }
+        if (ctx.userHasPermissions([Permission.SuperAdmin])) {
+            return;
+        }
+        if (!ctx.userHasPermissions([permission], channelId)) {
+            throw new ForbiddenError();
+        }
+    }
+
+    /**
      * @description
      * Type guard method which returns true if the given entity is an
      * instance of a class which implements the {@link ChannelAware} interface.
      */
     public isChannelAware(entity: VendureEntity): entity is VendureEntity & ChannelAware {
         const entityType = Object.getPrototypeOf(entity).constructor;
-        return !!this.connection.rawConnection
-            .getMetadata(entityType)
-            .relations.find(r => r.type === Channel && r.propertyName === 'channels');
+        return isChannelAwareMetadata(this.connection.rawConnection.getMetadata(entityType));
     }
 
     /**
@@ -562,5 +609,27 @@ export class ChannelService {
                 return new LanguageNotAvailableError({ languageCode: input.defaultLanguageCode });
             }
         }
+    }
+
+    /**
+     * Assigns the SuperAdmin and Customer roles to the given channel. Called
+     * during channel creation to ensure that the SuperAdmin always has access
+     * to all channels, and that customers can authenticate against them.
+     */
+    private async assignDefaultRolesToChannel(ctx: RequestContext, channelId: ID): Promise<void> {
+        const superAdminRole = await this.connection.getRepository(ctx, Role).findOne({
+            where: { code: SUPER_ADMIN_ROLE_CODE },
+        });
+        if (!superAdminRole) {
+            throw new InternalServerError('error.super-admin-role-not-found');
+        }
+        const customerRole = await this.connection.getRepository(ctx, Role).findOne({
+            where: { code: CUSTOMER_ROLE_CODE },
+        });
+        if (!customerRole) {
+            throw new InternalServerError('error.customer-role-not-found');
+        }
+        await this.assignToChannels(ctx, Role, superAdminRole.id, [channelId]);
+        await this.assignToChannels(ctx, Role, customerRole.id, [channelId]);
     }
 }
