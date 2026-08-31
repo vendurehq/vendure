@@ -48,10 +48,9 @@ class DelayCommitPlugin implements OnApplicationBootstrap {
 
 /**
  * The job which applies collection filters runs on its own connection, so it cannot see rows
- * written by a transaction which has not committed. Before this was fixed it was enqueued while
- * the `createCollection` transaction was still open: it would look the collection up, exhaust its
- * retries, log "Could not find Collection with id N, skipping", and settle as a success. The
- * collection was then left permanently empty, because nothing re-triggered the filters.
+ * written by a transaction which has not committed. These tests hold the `createCollection`
+ * transaction open past the point at which the job handler gives up looking for the collection,
+ * and check that the filters are applied to it regardless.
  */
 describe('Collection filters and transactions', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(
