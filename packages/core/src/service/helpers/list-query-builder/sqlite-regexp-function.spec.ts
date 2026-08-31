@@ -6,19 +6,13 @@ import {
     assertRegexFilterEngineCompatible,
     buildRegexpTester,
     createSqliteRegexpFunction,
+    loadRe2Engine,
 } from './sqlite-regexp-function';
 
-// The RE2-specific behaviour can only be exercised when the optional `re2` dependency is
-// installed. When it is absent these assertions are skipped rather than failing the suite.
-type RegExpEngine = new (pattern: string, flags: string) => { test(value: string): boolean };
-const RE2: RegExpEngine | undefined = (() => {
-    try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        return require('re2') as RegExpEngine;
-    } catch {
-        return undefined;
-    }
-})();
+// `re2js` is a devDependency of this package, so the engine resolves here and the RE2-specific
+// assertions below always run. A consumer who has not installed it falls back to the built-in
+// engine, which the fallback assertions cover.
+const RE2 = loadRe2Engine();
 
 // A pattern that is catastrophically slow under the backtracking RegExp engine but harmless
 // under RE2. See GHSA-jgm3-qmp2-c4p7. The trailing `Z` after `$` makes every match attempt
@@ -52,11 +46,9 @@ describe('buildRegexpTester()', () => {
         expect(compilations).toBe(1);
     });
 
-    it.skipIf(!RE2)('evaluates a ReDoS pattern in linear time under RE2', () => {
-        if (!RE2) {
-            return;
-        }
-        const test = buildRegexpTester(RE2);
+    it('evaluates a ReDoS pattern in linear time under RE2', () => {
+        expect(RE2).not.toBeNull();
+        const test = buildRegexpTester(RE2 as NonNullable<typeof RE2>);
         const input = 'x'.repeat(60);
         const start = process.hrtime.bigint();
         const result = test(REDOS_PATTERN, input);
@@ -88,7 +80,7 @@ describe('assertRegexFilterEngineCompatible()', () => {
         expect(() => assertRegexFilterEngineCompatible('foo.*bar', 'sqljs')).not.toThrow();
     });
 
-    it.skipIf(!RE2)('rejects RE2-incompatible syntax on SQLite backends', () => {
+    it('rejects RE2-incompatible syntax on SQLite backends', () => {
         expect(() => assertRegexFilterEngineCompatible('(?=.*foo)bar', 'better-sqlite3')).toThrowError(
             UserInputError,
         );
