@@ -664,6 +664,8 @@ export async function createVendureApp(
         }
     } catch (e: any) {
         log(e.toString());
+        // DIAGNOSTIC
+        log(`[diag] stack: ${e?.stack as string}`);
         outro(pc.red(`Failed to initialize server. Please try again.`));
         process.exit(1);
     }

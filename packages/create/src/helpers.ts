@@ -986,9 +986,13 @@ export function cleanUpDockerResources(name: string) {
 
 export function resolvePackageRootDir(packageName: string, rootDir: string) {
     let packageEntryPath: string;
+    // DIAGNOSTIC
+    log(`[diag] resolvePackageRootDir(${packageName}) rootDir=${rootDir} cwd=${process.cwd()} self=${__filename}`);
     try {
         packageEntryPath = require.resolve(packageName, { paths: [rootDir] });
-    } catch {
+    } catch (resolveErr: any) {
+        // DIAGNOSTIC
+        log(`[diag] require.resolve failed for ${packageName}: ${resolveErr?.code} ${resolveErr?.message}`);
         log(`Falling back to direct node_modules lookup for ${packageName}`);
         const fallbackPath = path.join(process.cwd(), 'node_modules', packageName);
         if (fs.existsSync(fallbackPath)) {

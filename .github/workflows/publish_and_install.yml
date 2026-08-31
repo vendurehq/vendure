@@ -230,16 +230,9 @@ jobs:
         strategy:
             matrix:
                 include:
-                    # $CREATE_VERSION is resolved from the ci dist-tag at run time. The tag
-                    # itself is not passed to dlx because Verdaccio serves pnpm's abbreviated
-                    # metadata requests a stale/merged tag map, resolving @ci to an upstream
-                    # nightly instead of the locally published version.
-                    - pm: bun
-                      scaffold: bunx @vendure/create@$CREATE_VERSION test-app --ci --log-level info
-                    - pm: pnpm
-                      scaffold: pnpm dlx @vendure/create@$CREATE_VERSION test-app --ci --log-level info
+                    # DIAGNOSTIC BRANCH: yarn only, verbose logging
                     - pm: yarn
-                      scaffold: yarn dlx @vendure/create@$CREATE_VERSION test-app --ci --log-level info
+                      scaffold: yarn dlx @vendure/create@$CREATE_VERSION test-app --ci --log-level verbose
             fail-fast: false
         steps:
             - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
@@ -286,6 +279,7 @@ jobs:
                   npm set registry=http://localhost:4873
                   npm set //localhost:4873/:_authToken $TOKEN
             - name: Install via @vendure/create using ${{ matrix.pm }}
+              continue-on-error: true
               # bun ignores the home-directory ~/.npmrc (oven-sh/bun#22971) and does not walk
               # up to a parent .npmrc/bunfig, but it DOES honour the npm_config_registry env
               # var — and so does the scaffolded project's nested install (it inherits the
@@ -309,6 +303,21 @@ jobs:
                   echo "Resolved @vendure/create@ci -> $CREATE_VERSION"
                   # No --use-npm: the manager is detected from the invoking bunx / pnpm dlx.
                   ${{ matrix.scaffold }}
+            # DIAGNOSTIC BRANCH: dump the state of the scaffolded project
+            - name: Diagnostics
+              if: always()
+              run: |
+                  echo "== versions"
+                  node --version; yarn --version; corepack --version || true
+                  APP=$HOME/install/test-app
+                  echo "== app dir"; ls -la "$APP" 2>/dev/null | head -30 || echo "NO APP DIR"
+                  echo "== .yarnrc.yml"; cat "$APP/.yarnrc.yml" 2>/dev/null || echo "NO .yarnrc.yml"
+                  echo "== pnp"; ls "$APP/.pnp.cjs" 2>/dev/null && echo PNP_PRESENT || echo NO_PNP
+                  echo "== node_modules (top 20)"; ls "$APP/node_modules" 2>/dev/null | head -20 || echo NO_NODE_MODULES
+                  echo "== ts-node"; ls -d "$APP/node_modules/ts-node" 2>/dev/null || echo NO_TS_NODE
+                  echo "== typescript"; ls -d "$APP/node_modules/typescript" 2>/dev/null || echo NO_TYPESCRIPT
+                  echo "== @vendure/core"; ls -d "$APP/node_modules/@vendure/core" 2>/dev/null || echo NO_CORE
+                  echo "== ts-node deps"; ls "$APP/node_modules/ts-node/node_modules" 2>/dev/null | head || echo "no nested ts-node deps"
             - name: Assert the generated project used ${{ matrix.pm }}
               run: |
                   cd $HOME/install/test-app
