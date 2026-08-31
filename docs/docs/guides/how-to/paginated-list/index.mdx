@@ -267,6 +267,39 @@ query {
 In the example above, we are filtering for reviews of products with the word "phone" and a rating of 4 or more,
 or a rating of 0. The `_and` and `_or` operators can be nested to any depth, allowing for arbitrarily complex filters.
 
+## Cost of the `regex` operator
+
+`StringOperators` offers a `regex` operator as well as `contains`. The `regex` operator costs more,
+and the difference depends on the database.
+
+| Database | Where the pattern runs | Cost of one query |
+|---|---|---|
+| PostgreSQL | In the database | Bounded, whatever the table size |
+| MySQL 8 | In the database | Bounded, whatever the table size |
+| MariaDB | In the database | Rises with the number of rows read |
+| SQLite, SQL.js | In the Node.js process | Rises with the number of rows read |
+
+PostgreSQL and MySQL 8 abandon a pattern which takes too long. One query therefore costs about the
+same on a table of any size.
+
+MariaDB matches with PCRE2, which backtracks. A pattern can take hundreds of milliseconds against a
+single long string, and MariaDB pays that cost for every row it reads. A filter over a large table
+holds a database connection for seconds. Enough concurrent regex queries take every connection in
+the pool, and other requests wait for one to free up.
+
+SQLite and SQL.js match the pattern in the Node.js process. A slow pattern blocks the event loop, so
+the server answers nothing else until the match finishes. Install the `re2js` package on those two
+databases. Vendure then matches with the RE2 engine, which limits what any one pattern can cost.
+
+:::warning
+Do not let untrusted input reach a `regex` filter on MariaDB, SQLite or SQL.js. A pattern from a
+storefront visitor or a URL parameter can take every database connection, or block the event loop.
+:::
+
+Use `contains` for a search box. It becomes a `LIKE` query, or `ILIKE` on PostgreSQL, and its cost is
+predictable. Where you need `regex`, expose it on the Admin API behind a permission. Set a statement
+timeout on the database as well.
+
 ## Filtering by custom properties
 
 By default, the `ListQueryBuilder` will only allow filtering by properties which are defined on the entity itself.
