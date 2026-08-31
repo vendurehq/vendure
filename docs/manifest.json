@@ -2898,7 +2898,7 @@
                   "title": "AssetService",
                   "slug": "asset-service",
                   "file": "docs/reference/typescript-api/services/asset-service.mdx",
-                  "lastModified": "2026-07-10T17:49:38+02:00"
+                  "lastModified": "2026-08-31T11:46:39Z"
                 },
                 {
                   "title": "AuthService",
@@ -2988,7 +2988,7 @@
                   "title": "OrderService",
                   "slug": "order-service",
                   "file": "docs/reference/typescript-api/services/order-service.mdx",
-                  "lastModified": "2026-08-25T13:57:08Z"
+                  "lastModified": "2026-08-31T11:46:39Z"
                 },
                 {
                   "title": "OrderTestingService",
