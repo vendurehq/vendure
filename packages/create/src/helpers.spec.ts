@@ -746,7 +746,7 @@ describe('getDependencies', () => {
 
     // A scaffolded SQLite project installs re2js directly, so its range must satisfy the optional
     // peer dependency @vendure/core declares, or package managers warn on every install.
-    it('declares re2js within the range @vendure/core accepts', () => {
+    it('declares the same re2js range as @vendure/core', () => {
         const corePkg = fs.readJsonSync(path.resolve(__dirname, '../../core/package.json'));
         expect(RE2JS_VERSION).toBe(corePkg.peerDependencies.re2js);
     });
