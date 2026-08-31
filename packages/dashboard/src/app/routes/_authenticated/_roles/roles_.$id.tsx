@@ -75,7 +75,10 @@ function RoleDetailPage() {
         <Page pageId={pageId} form={form} submitHandler={submitHandler} entity={entity}>
             <PageTitle>{creatingNewEntity ? <Trans>New role</Trans> : (entity?.description ?? '')}</PageTitle>
             <PageActionBar>
-                <ActionBarItem itemId="save-button" requiresPermission={['UpdateAdministrator']}>
+                <ActionBarItem
+                    itemId="save-button"
+                    requiresPermission={creatingNewEntity ? ['CreateRole'] : ['UpdateRole']}
+                >
                     <Button
                         type="submit"
                         disabled={!form.formState.isDirty || !form.formState.isValid || isPending}

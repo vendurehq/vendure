@@ -6,6 +6,7 @@ export const AUTHENTICATED_ROUTE_PREFIX = '/_authenticated';
 export const DEFAULT_CHANNEL_CODE = '__default_channel__';
 export const SUPER_ADMIN_ROLE_CODE = '__super_admin_role__';
 export const CUSTOMER_ROLE_CODE = '__customer_role__';
+export const ROLE_EDITOR_ROLE_CODE = '__role_editor_role__';
 
 /**
  * Local storage keys

@@ -17,8 +17,10 @@ export const rolesDocument = graphql(`
 
 /**
  * Returns the Roles which the active user is permitted to read. The server only returns a
- * Role if the active user holds its full set of permissions on at least one Channel, so this
- * is already narrowed to the Roles they could grant somewhere.
+ * Role if the active user holds the `ReadRole` permission on every Channel on which that
+ * Role is currently assigned (Roles without assignments are visible to any `ReadRole`
+ * holder, and system roles are always visible since they cannot be edited anyway). For
+ * actors without `ReadRole` the query is denied and this resolves to an empty list.
  */
 export function useRoles() {
     const { data } = useQuery({

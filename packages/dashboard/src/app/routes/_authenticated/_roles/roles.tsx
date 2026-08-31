@@ -1,7 +1,7 @@
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
 import { RoleCodeLabel } from '@/vdb/components/shared/role-code-label.js';
 import { Button } from '@/vdb/components/ui/button.js';
-import { CUSTOMER_ROLE_CODE, SUPER_ADMIN_ROLE_CODE } from '@/vdb/constants.js';
+import { CUSTOMER_ROLE_CODE, ROLE_EDITOR_ROLE_CODE, SUPER_ADMIN_ROLE_CODE } from '@/vdb/constants.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
 import { Trans } from '@lingui/react/macro';
@@ -16,7 +16,7 @@ export const Route = createFileRoute('/_authenticated/_roles/roles')({
     loader: () => ({ breadcrumb: () => <Trans>Roles</Trans> }),
 });
 
-const SYSTEM_ROLES = [SUPER_ADMIN_ROLE_CODE, CUSTOMER_ROLE_CODE];
+const SYSTEM_ROLES = [SUPER_ADMIN_ROLE_CODE, CUSTOMER_ROLE_CODE, ROLE_EDITOR_ROLE_CODE];
 
 function RoleListPage() {
     return (
@@ -62,7 +62,7 @@ function RoleListPage() {
                 },
             ]}
         >
-            <ActionBarItem itemId="create-button" requiresPermission={['CreateAdministrator']}>
+            <ActionBarItem itemId="create-button" requiresPermission={['CreateRole']}>
                 <Button render={<Link to="./new" />}>
                     <PlusIcon className="mr-2 h-4 w-4" />
                     <Trans>New Role</Trans>
