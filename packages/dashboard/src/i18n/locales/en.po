@@ -27,8 +27,8 @@ msgid "Select items"
 msgstr "Select items"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
-msgid "Uploading assets..."
-msgstr "Uploading assets..."
+#~ msgid "Uploading assets..."
+#~ msgstr "Uploading assets..."
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx
@@ -81,6 +81,13 @@ msgstr "Apartment, suite, etc."
 #: src/lib/components/shared/facet-value-selector.tsx
 msgid "No more items"
 msgstr "No more items"
+
+#. placeholder {0}: fileUploads.length
+#. placeholder {1}: fileUploads.length
+#. placeholder {2}: fileUploads.length
+#: src/lib/components/shared/asset/asset-upload-modal.tsx
+msgid "{0, plural, one {Upload progress for {1} file} other {Upload progress for {2} files}}"
+msgstr "{0, plural, one {Upload progress for {1} file} other {Upload progress for {2} files}}"
 
 #: src/lib/components/shared/rich-text-editor/link-bubble-menu.tsx
 msgid "Edit link"
@@ -443,7 +450,7 @@ msgstr "No widgets to add"
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 #: src/app/routes/_authenticated/_profile/profile.tsx
-#: src/lib/components/shared/asset/asset-gallery.tsx
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
 #: src/lib/components/shared/asset/asset-preview.tsx
 msgid "Unknown error"
 msgstr "Unknown error"
@@ -577,7 +584,7 @@ msgstr "New collection"
 msgid "Insights"
 msgstr "Insights"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
 msgid "Failed to upload assets"
 msgstr "Failed to upload assets"
 
@@ -1926,6 +1933,7 @@ msgstr "Insert {row} by {col} table"
 #: src/lib/components/data-table/views-sheet.tsx
 #: src/lib/components/layout/manage-languages-dialog.tsx
 #: src/lib/components/shared/asset/asset-focal-point-editor.tsx
+#: src/lib/components/shared/asset/asset-upload-modal.tsx
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 #: src/lib/components/shared/confirmation-dialog.tsx
 #: src/lib/components/shared/customer-address-form.tsx
@@ -2257,6 +2265,10 @@ msgstr "Remove from zone"
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "Select from globally available languages for this channel"
 msgstr "Select from globally available languages for this channel"
+
+#: src/lib/components/shared/asset/asset-upload-modal.tsx
+msgid "Upload timed out"
+msgstr "Upload timed out"
 
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 msgid "Are you sure you want to delete this address?"
@@ -3048,6 +3060,10 @@ msgstr "Recalculate shipping"
 msgid "Assets"
 msgstr "Assets"
 
+#: src/lib/components/shared/asset/asset-upload-modal.tsx
+msgid "Uploading..."
+msgstr "Uploading..."
+
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "This will remove all option groups from this product and return to the variant setup choice."
 msgstr "This will remove all option groups from this product and return to the variant setup choice."
@@ -3216,6 +3232,10 @@ msgstr "Failed to remove customer from group"
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
 msgid "1 property"
 msgstr "1 property"
+
+#: src/lib/components/shared/asset/asset-upload-modal.tsx
+msgid "Upload failed (HTTP {detail})"
+msgstr "Upload failed (HTTP {detail})"
 
 #: src/lib/components/layout/nav-user.tsx
 msgctxt "theme"
@@ -4643,6 +4663,10 @@ msgstr "is equal to"
 msgid "Source File"
 msgstr "Source File"
 
+#: src/lib/components/shared/asset/asset-upload-modal.tsx
+msgid "Upload failed — check your connection"
+msgstr "Upload failed — check your connection"
+
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #~ msgid "Create options"
@@ -5005,6 +5029,10 @@ msgstr "Assign {entityType} to channels"
 msgid "A refund of {formattedDiff} is required. Select payment amounts and enter a note to proceed."
 msgstr "A refund of {formattedDiff} is required. Select payment amounts and enter a note to proceed."
 
+#: src/lib/components/shared/asset/asset-upload-modal.tsx
+msgid "File exceeds the server upload size limit"
+msgstr "File exceeds the server upload size limit"
+
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
@@ -5129,6 +5157,10 @@ msgstr "Search tags..."
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
 msgid "Failed to create variants"
 msgstr "Failed to create variants"
+
+#: src/lib/components/shared/asset/asset-upload-modal.tsx
+#~ msgid "Upload progress for {0} files"
+#~ msgstr "Upload progress for {0} files"
 
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
 msgid "Sets the stock level at which this a variant is considered to be out of stock. Using a negative value enables backorder support. Can be overridden by product variants."
@@ -5692,6 +5724,10 @@ msgstr "({maxRefundable} refundable)"
 msgid "Identifier"
 msgstr "Identifier"
 
+#: src/lib/components/shared/asset/asset-upload-modal.tsx
+msgid "Uploading assets"
+msgstr "Uploading assets"
+
 #: src/app/routes/_authenticated/_shipping-methods/components/fulfillment-handler-selector.tsx
 msgid "Select a fulfillment handler"
 msgstr "Select a fulfillment handler"
@@ -5863,7 +5899,7 @@ msgid "Failed to remove customers from group"
 msgstr "Failed to remove customers from group"
 
 #. placeholder {0}: failedAssets.length
-#: src/lib/components/shared/asset/asset-gallery.tsx
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
 msgid "Failed to upload {0} assets"
 msgstr "Failed to upload {0} assets"
 
@@ -6173,6 +6209,11 @@ msgstr "Successfully created shipping method"
 #: src/app/routes/_authenticated/_customer-groups/customer-groups.tsx
 msgid "New Customer Group"
 msgstr "New Customer Group"
+
+#. placeholder {0}: fileUploads.length
+#: src/lib/components/shared/asset/asset-upload-modal.tsx
+msgid "{doneCount} of {0} done"
+msgstr "{doneCount} of {0} done"
 
 #: src/lib/components/shared/history-timeline/history-note-checkbox.tsx
 msgid "Visible to customer"
@@ -6508,7 +6549,7 @@ msgid "Strikethrough"
 msgstr "Strikethrough"
 
 #. placeholder {0}: createdAssets.length
-#: src/lib/components/shared/asset/asset-gallery.tsx
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
 msgid "Uploaded {0} assets"
 msgstr "Uploaded {0} assets"
 
@@ -6772,6 +6813,10 @@ msgstr "New Seller"
 msgid "Search tax categories..."
 msgstr "Search tax categories..."
 
+#: src/lib/components/shared/asset/asset-upload-modal.tsx
+msgid "Upload failed — invalid server response"
+msgstr "Upload failed — invalid server response"
+
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx
 msgid "Edit image"
 msgstr "Edit image"
@@ -6799,6 +6844,10 @@ msgstr "Sets the stock level at which this variant is considered to be out of st
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #~ msgid "Create product options"
 #~ msgstr "Create product options"
+
+#: src/lib/components/shared/asset/asset-upload-modal.tsx
+msgid "Upload cancelled"
+msgstr "Upload cancelled"
 
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx
 #: src/lib/components/layout/manage-languages-dialog.tsx
@@ -7007,6 +7056,7 @@ msgid "Underline"
 msgstr "Underline"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+#: src/lib/components/shared/asset/asset-upload-modal.tsx
 msgid "Close"
 msgstr "Close"
 

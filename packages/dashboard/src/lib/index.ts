@@ -85,6 +85,7 @@ export * from './components/shared/alerts.js';
 export * from './components/shared/animated-number.js';
 export * from './components/shared/apply-control-props.js';
 export * from './components/shared/asset/asset-bulk-actions.js';
+export * from './components/shared/asset/asset-documents.js';
 export * from './components/shared/asset/asset-focal-point-editor.js';
 export * from './components/shared/asset/asset-gallery.js';
 export * from './components/shared/asset/asset-picker-dialog.js';

@@ -21,6 +21,7 @@ import {
     getEntityNamesWithCustomFields,
     registerCustomEntityFields,
 } from './entity/register-custom-entity-fields';
+import { registerTranslationEntityUniqueConstraints } from './entity/register-translation-unique-constraints';
 import { runEntityMetadataModifiers } from './entity/run-entity-metadata-modifiers';
 import { setEntityIdStrategy } from './entity/set-entity-id-strategy';
 import { setMoneyStrategy } from './entity/set-money-strategy';
@@ -336,15 +337,20 @@ export async function preBootstrapConfig(
     patchTypeOrmDuplicateEagerLoad();
     patchTypeOrmEmbeddedRelationColumns();
     patchTypeOrmRelationIdLoader();
-    registerCustomEntityFields(config);
-    setEntityIdStrategy(entityIdStrategy, entities);
-    const moneyStrategy = config.entityOptions.moneyStrategy;
-    setMoneyStrategy(moneyStrategy, entities);
-    const customFieldValidationResult = validateCustomFieldsConfig(config.customFields, entities);
+    const customFieldValidationResult = validateCustomFieldsConfig(
+        config.customFields,
+        entities,
+        config.dbConnectionOptions.type,
+    );
     if (!customFieldValidationResult.valid) {
         process.exitCode = 1;
         throw new Error('CustomFields config error:\n- ' + customFieldValidationResult.errors.join('\n- '));
     }
+    registerCustomEntityFields(config);
+    registerTranslationEntityUniqueConstraints(entities);
+    setEntityIdStrategy(entityIdStrategy, entities);
+    const moneyStrategy = config.entityOptions.moneyStrategy;
+    setMoneyStrategy(moneyStrategy, entities);
     await runEntityMetadataModifiers(config);
     setExposedHeaders(config);
     return config;

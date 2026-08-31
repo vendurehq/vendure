@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import ms, { type StringValue } from 'ms';
 import { Brackets, EntitySubscriberInterface, InsertEvent, RemoveEvent, UpdateEvent } from 'typeorm';
 
-import { RequestContext } from '../../api/common/request-context';
+import { DeserializedCachedSession, RequestContext } from '../../api/common/request-context';
 import { Instrument } from '../../common/instrument-decorator';
 import { API_KEY_AUTH_STRATEGY_DEFAULT_DURATION_MS, API_KEY_AUTH_STRATEGY_NAME, Logger } from '../../config';
 import { ConfigService } from '../../config/config.service';
@@ -256,12 +256,16 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
     /**
      * @description
      * Sets the `activeOrder` on the given cached session object and updates the cache.
+     *
+     * Accepts the session of a deserialized {@link RequestContext} too, which has no token. The
+     * returned session is re-read from the database, so it does have one, unless the session row
+     * no longer exists, in which case the input is returned as is.
      */
-    async setActiveOrder(
+    async setActiveOrder<T extends CachedSession | DeserializedCachedSession>(
         ctx: RequestContext,
-        serializedSession: CachedSession,
+        serializedSession: T,
         order: Order,
-    ): Promise<CachedSession> {
+    ): Promise<CachedSession | T> {
         const session = await this.connection.getRepository(ctx, Session).findOne({
             where: { id: serializedSession.id },
             relations: this.userRelations,
@@ -279,8 +283,13 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
     /**
      * @description
      * Clears the `activeOrder` on the given cached session object and updates the cache.
+     *
+     * Accepts the session of a deserialized {@link RequestContext} too, see {@link setActiveOrder}.
      */
-    async unsetActiveOrder(ctx: RequestContext, serializedSession: CachedSession): Promise<CachedSession> {
+    async unsetActiveOrder<T extends CachedSession | DeserializedCachedSession>(
+        ctx: RequestContext,
+        serializedSession: T,
+    ): Promise<CachedSession | T> {
         if (serializedSession.activeOrderId) {
             const session = await this.connection.getRepository(ctx, Session).findOne({
                 where: { id: serializedSession.id },
