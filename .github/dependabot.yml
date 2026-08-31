@@ -30,7 +30,7 @@ updates:
           prefix: chore
           include: scope
       labels:
-          - dependencies
+          - 'type: chore 🧤'
 
     # The docs site is a separate npm project with its own lockfile. It is not
     # published to npm and is not part of the bun workspace.
@@ -55,8 +55,8 @@ updates:
           prefix: chore
           include: scope
       labels:
-          - dependencies
-          - docs
+          - 'type: chore 🧤'
+          - 'docs 📖'
 
     # The root bun workspace covers the published packages under packages/*.
     #
@@ -168,4 +168,4 @@ updates:
           prefix: chore
           include: scope
       labels:
-          - dependencies
+          - 'type: chore 🧤'
