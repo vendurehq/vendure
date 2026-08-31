@@ -1016,25 +1016,22 @@ describe('MCP built-in shop tools', () => {
         expect(grantAfter.revokedAt).toBeTruthy();
     });
 
-    // Pins today's answer to an unknown channel token, and is now the suite's only test of it: a
-    // looser duplicate in mcp-transport.e2e-spec.ts accepted any status at or above 400.
-    //
-    // OPEN QUESTION: refusing the request is right, but this is an HTTP 500 whose body is Vendure's
-    // REST error rather than a JSON-RPC error envelope, and whose message is the untranslated key
-    // 'CHANNEL_NOT_FOUND: error.channel-not-found'. An MCP client therefore receives a raw internal
-    // error for what is a bad request. The status and the body shape are an open decision; this test
-    // records what happens today so a change to either cannot pass unnoticed.
+    // The suite's only test of the answer to an unknown channel token: a looser duplicate in
+    // mcp-transport.e2e-spec.ts accepted any status at or above 400.
     it('rejects an invalid vendure-token instead of falling back to the default channel', async () => {
         const response = await postMcp(baseUrl(), 'shop', callTool('get_product', { id: productId }), {
             headers: { [CHANNEL_TOKEN_HEADER]: 'not-a-real-channel-token' },
         });
 
-        expect(response.status).toBe(500);
+        expect(response.status).toBe(400);
         expect(response.body).toMatchObject({
-            statusCode: 500,
-            message: 'CHANNEL_NOT_FOUND: error.channel-not-found',
+            statusCode: 400,
+            message: expect.stringContaining(CHANNEL_TOKEN_HEADER),
             path: '/mcp/shop',
         });
+        // An unusable channel token is a bad request, not a failed authentication, so the caller
+        // must not be challenged for credentials.
+        expect(response.headers.get('www-authenticate')).toBeNull();
     });
 
     it('lets an anonymous caller get an order only while orderByCodeAccessStrategy allows it', async () => {

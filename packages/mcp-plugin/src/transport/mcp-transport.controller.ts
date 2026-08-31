@@ -6,7 +6,10 @@ import {
 } from '@modelcontextprotocol/node';
 import { AuthInfo, createMcpHandler, isJsonContentType } from '@modelcontextprotocol/server';
 import {
+    ArgumentsHost,
+    BadRequestException,
     Body,
+    Catch,
     Controller,
     Get,
     Inject,
@@ -15,10 +18,13 @@ import {
     Req,
     Res,
     UnauthorizedException,
+    UseFilters,
 } from '@nestjs/common';
 import {
+    ChannelNotFoundError,
     ChannelService,
     ConfigService,
+    ExceptionLoggerFilter,
     I18nRequest,
     Logger,
     RequestContext,
@@ -45,12 +51,36 @@ interface JsonRpcError {
 }
 
 /**
+ * Converts an invalid channel token to a 400 instead of a 500.
+ * Keeps Vendure's default response format and logging.
+ */
+@Catch(ChannelNotFoundError)
+export class McpChannelTokenExceptionFilter extends ExceptionLoggerFilter {
+    private readonly channelTokenHeader: string;
+
+    constructor(configService: ConfigService) {
+        super(configService);
+        this.channelTokenHeader = configService.apiOptions.channelTokenKey;
+    }
+
+    catch(exception: ChannelNotFoundError, host: ArgumentsHost) {
+        return super.catch(
+            new BadRequestException(
+                `The ${this.channelTokenHeader} header does not name a sales channel of this server.`,
+            ),
+            host,
+        );
+    }
+}
+
+/**
  * @description
  * HTTP transport for the MCP server. Owns authentication, anonymous shop context, the anonymous-IP
  * gate and the handshake rate-limit pre-check (both kept at controller altitude so the `-31029`
  * `error.data` survives), and the DNS-rebinding front guard. It then delegates JSON-RPC handling to the v2 SDK handler via
  * `toNodeHandler`, passing the resolved Vendure context through the SDK's pass-through `authInfo`.
  */
+@UseFilters(McpChannelTokenExceptionFilter)
 @Controller('mcp')
 export class McpTransportController {
     private readonly nodeHandler: NodeMcpRequestHandler;
