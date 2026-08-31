@@ -10,8 +10,8 @@ import {
 } from './sqlite-regexp-function';
 
 // `re2js` is a devDependency of this package, so the engine resolves here and the RE2-specific
-// assertions below always run. A consumer who has not installed it falls back to the built-in
-// engine, which the fallback assertions cover.
+// assertions below always run. The assertions which pass `RegExp` directly to `buildRegexpTester()`
+// cover the behaviour a consumer gets when they have not installed it.
 const RE2 = loadRe2Engine();
 
 // A pattern that is catastrophically slow under the backtracking RegExp engine but harmless
@@ -25,6 +25,27 @@ describe('buildRegexpTester()', () => {
         expect(test('foo', 'a FOO b')).toBe(1);
         expect(test('^bar$', 'bar')).toBe(1);
         expect(test('^bar$', 'bard')).toBe(0);
+    });
+
+    // SQLite hands the raw column value to the user-defined function, so a nullable column yields
+    // null and a numeric one yields a number. RE2 accepts strings only and throws on anything else,
+    // where the built-in RegExp coerced silently, so both engines are asserted here.
+    it.each([
+        ['the RE2 engine', () => RE2 as NonNullable<typeof RE2>],
+        ['the built-in engine', () => RegExp as unknown as NonNullable<typeof RE2>],
+    ])('treats a null value as no match under %s', (_name, engine) => {
+        const test = buildRegexpTester(engine());
+        expect(test('a', null as unknown as string)).toBe(0);
+        expect(test('a', undefined as unknown as string)).toBe(0);
+    });
+
+    it.each([
+        ['the RE2 engine', () => RE2 as NonNullable<typeof RE2>],
+        ['the built-in engine', () => RegExp as unknown as NonNullable<typeof RE2>],
+    ])('matches a numeric value by its string form under %s', (_name, engine) => {
+        const test = buildRegexpTester(engine());
+        expect(test('^12', 123 as unknown as string)).toBe(1);
+        expect(test('^9', 123 as unknown as string)).toBe(0);
     });
 
     it('reuses a compiled pattern across calls', () => {

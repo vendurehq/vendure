@@ -12,7 +12,14 @@ interface CompiledRegExp {
     test(value: string): boolean;
 }
 
-type RegExpEngine = new (pattern: string, flags: string) => CompiledRegExp;
+/**
+ * The flags this file requests. `RegExp` accepts any flag string, so the built-in engine is still
+ * assignable, but narrowing here keeps a later caller from passing a flag the RE2 adapter would
+ * silently drop.
+ */
+type SupportedFlags = 'i';
+
+type RegExpEngine = new (pattern: string, flags: SupportedFlags) => CompiledRegExp;
 
 /**
  * The subset of the `re2js` module this file uses. `re2js` is a JavaScript port of RE2, so it
@@ -51,12 +58,12 @@ export function loadRe2Engine(): RegExpEngine | null {
         try {
             // eslint-disable-next-line @typescript-eslint/no-var-requires
             const { RE2JS } = require('re2js') as Re2jsModule;
-            re2Engine = class Re2jsRegExp implements CompiledRegExp {
+            const Adapter = class Re2jsRegExp implements CompiledRegExp {
                 private readonly compiled: { matcher(input: string): { find(): boolean } };
-                constructor(pattern: string, flags: string) {
+                constructor(pattern: string, flags: SupportedFlags) {
                     this.compiled = RE2JS.compile(
                         pattern,
-                        flags.includes('i') ? RE2JS.CASE_INSENSITIVE : 0,
+                        flags === 'i' ? RE2JS.CASE_INSENSITIVE : 0,
                     );
                 }
                 /** `find()` searches anywhere in the value, which is what `RegExp.test()` does. */
@@ -64,6 +71,10 @@ export function loadRe2Engine(): RegExpEngine | null {
                     return this.compiled.matcher(value).find();
                 }
             };
+            // Compile once here: a module which resolves but whose API has moved would otherwise
+            // pass as an engine and then throw on every pattern a user submits.
+            new Adapter('a', 'i').test('a');
+            re2Engine = Adapter;
         } catch {
             re2Engine = null;
         }
@@ -101,9 +112,18 @@ export function assertRegexFilterEngineCompatible(pattern: string, dbType: Vendu
  * compiled once per distinct value and cached, since a given query applies a single constant
  * pattern across every row.
  */
-export function buildRegexpTester(Engine: RegExpEngine): (pattern: string, value: string) => number {
+export function buildRegexpTester(
+    Engine: RegExpEngine,
+): (pattern: string, value: string | number | null | undefined) => number {
     const cache = new Map<string, CompiledRegExp>();
-    return (pattern: string, value: string): number => {
+    return (pattern: string, value: string | number | null | undefined): number => {
+        // SQLite passes the raw column value, so a nullable column yields null and a numeric one
+        // yields a number. `NULL REGEXP x` is false in SQL, and RE2 only accepts strings: it throws
+        // on anything else, where the built-in RegExp coerced silently.
+        if (value == null) {
+            return 0;
+        }
+        const subject = typeof value === 'string' ? value : String(value);
         let compiled = cache.get(pattern);
         if (!compiled) {
             compiled = new Engine(pattern, 'i');
@@ -113,7 +133,7 @@ export function buildRegexpTester(Engine: RegExpEngine): (pattern: string, value
             }
             cache.set(pattern, compiled);
         }
-        return compiled.test(value) ? 1 : 0;
+        return compiled.test(subject) ? 1 : 0;
     };
 }
 
@@ -123,7 +143,10 @@ export function buildRegexpTester(Engine: RegExpEngine): (pattern: string, value
  * cannot be exploited for ReDoS. Otherwise it falls back to the built-in `RegExp` engine — which
  * is vulnerable to catastrophic backtracking on adversarial patterns — and warns once at startup.
  */
-export function createSqliteRegexpFunction(): (pattern: string, value: string) => number {
+export function createSqliteRegexpFunction(): (
+    pattern: string,
+    value: string | number | null | undefined,
+) => number {
     const Engine = loadRe2Engine();
     if (!Engine) {
         Logger.warn(
