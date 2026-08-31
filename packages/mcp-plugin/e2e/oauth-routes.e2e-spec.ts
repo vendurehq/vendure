@@ -25,7 +25,10 @@ describe('McpPlugin OAuth routes', () => {
         const port = config.apiOptions.port;
         const res = await fetch(`http://localhost:${port}/.well-known/oauth-authorization-server`);
         expect(res.status).toBe(200);
-        const body = await res.json();
+        const body = (await res.json()) as {
+            code_challenge_methods_supported: string[];
+            client_id_metadata_document_supported: boolean;
+        };
         expect(body).toHaveProperty('issuer');
         expect(body).toHaveProperty('token_endpoint');
         expect(body.code_challenge_methods_supported).toEqual(['S256']);
@@ -50,7 +53,7 @@ describe('McpPlugin OAuth routes', () => {
         });
 
         expect(res.status).toBe(201);
-        const body = await res.json();
+        const body = (await res.json()) as { client_name: string; redirect_uris: string[] };
         expect(body).toHaveProperty('client_id');
         expect(body.client_name).toBe('Form Client');
         expect(body.redirect_uris).toEqual(['https://example.com/cb', 'https://example.com/cb2']);

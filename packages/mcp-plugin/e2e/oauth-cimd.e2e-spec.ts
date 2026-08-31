@@ -117,7 +117,11 @@ describe('McpPlugin OAuth CIMD client registration', () => {
                 requestToken as string,
             )}`,
         );
-        const info = await infoResponse.json();
+        const info = (await infoResponse.json()) as {
+            client_id: string;
+            client_id_source: string;
+            client_name: string;
+        };
         expect(info.client_id).toBe(clientId);
         expect(info.client_id_source).toBe('cimd');
         expect(info.client_name).toBe('CIMD Test Client');

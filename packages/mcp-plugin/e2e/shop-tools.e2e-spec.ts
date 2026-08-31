@@ -37,7 +37,7 @@ import { shopToolProviders } from '../src/tools/built-in/shop';
 
 import { callTool, postMcp, rpc } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow, runShopAuthorizationCodeFlow } from './utils/oauth-test-client';
-import { testServerInit } from './utils/test-server';
+import { getIdStrategy, testServerInit } from './utils/test-server';
 
 const TOKEN_SECRET = 'shop-tools-secret-000000000000000000000';
 const ISSUER = `http://localhost:${testConfig().apiOptions.port}`;
@@ -200,7 +200,7 @@ describe('MCP built-in shop tools', () => {
 
         connection = server.app.get(TransactionalConnection);
         adminCtx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
-        const idStrategy = server.app.get(ConfigService).entityOptions.entityIdStrategy;
+        const idStrategy = getIdStrategy(server.app.get(ConfigService));
 
         const fixture = await adminClient.query(gql`
             query ShopToolFixture {

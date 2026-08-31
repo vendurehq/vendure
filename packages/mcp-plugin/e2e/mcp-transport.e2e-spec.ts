@@ -450,7 +450,8 @@ describe('MCP transport shopAccess: disabled', () => {
 
         const adminMeta = await fetch(`${baseUrl()}/.well-known/oauth-protected-resource/mcp/admin`);
         expect(adminMeta.status).toBe(200);
-        expect((await adminMeta.json()).resource).toBe(`${ISSUER}/mcp/admin`);
+        const adminMetaBody = (await adminMeta.json()) as { resource: string };
+        expect(adminMetaBody.resource).toBe(`${ISSUER}/mcp/admin`);
     });
 
     // resolveResource no longer recognises the shop resource at all when shopAccess is disabled,

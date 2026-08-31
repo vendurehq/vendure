@@ -36,7 +36,7 @@ import { McpPluginOptions } from '../src/types';
 
 import { callTool, postMcp, rpc } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow } from './utils/oauth-test-client';
-import { testServerInit } from './utils/test-server';
+import { getIdStrategy, testServerInit } from './utils/test-server';
 
 const TOKEN_SECRET = 'admin-tools-secret-0000000000000000000000';
 const ISSUER = `http://localhost:${testConfig().apiOptions.port}`;
@@ -241,7 +241,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
         superAdminToken = adminClient.getAuthToken();
 
         connection = server.app.get(TransactionalConnection);
-        const idStrategy = server.app.get(ConfigService).entityOptions.entityIdStrategy;
+        const idStrategy = getIdStrategy(server.app.get(ConfigService));
         adminCtx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
 
         const fixture = await adminClient.query(gql`
@@ -375,7 +375,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
                 }
             }
         `);
-        const idStrategy = server.app.get(ConfigService).entityOptions.entityIdStrategy;
+        const idStrategy = getIdStrategy(server.app.get(ConfigService));
         return { graphqlId: result.createDraftOrder.id, id: idStrategy.decodeId(result.createDraftOrder.id) };
     }
 
@@ -396,7 +396,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
 
     /** An order's lines with database IDs, which is what the fulfillment tool takes and answers with. */
     async function orderLines(graphqlId: string): Promise<Array<{ id: ID; quantity: number }>> {
-        const idStrategy = server.app.get(ConfigService).entityOptions.entityIdStrategy;
+        const idStrategy = getIdStrategy(server.app.get(ConfigService));
         const result = await adminClient.query(
             gql`
                 query OrderLinesForFulfillment($id: ID!) {
@@ -446,7 +446,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
         quantity = 1,
         extraVariantGraphqlId?: string,
     ): Promise<{ orderId: ID; graphqlId: string; paymentId: ID }> {
-        const idStrategy = server.app.get(ConfigService).entityOptions.entityIdStrategy;
+        const idStrategy = getIdStrategy(server.app.get(ConfigService));
         // A cart left active by an earlier test would otherwise be added to instead of a new one.
         await shopClient.asAnonymousUser();
 
@@ -1759,7 +1759,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
             { productVariantId: variantGraphqlId },
         );
         expect(added.addItemToOrder.state).toBe('AddingItems');
-        const idStrategy = server.app.get(ConfigService).entityOptions.entityIdStrategy;
+        const idStrategy = getIdStrategy(server.app.get(ConfigService));
         const cartId = idStrategy.decodeId(added.addItemToOrder.id);
 
         const response = await postMcp(
@@ -1904,7 +1904,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
         let seededCustomerId: ID;
 
         beforeAll(async () => {
-            const idStrategy = server.app.get(ConfigService).entityOptions.entityIdStrategy;
+            const idStrategy = getIdStrategy(server.app.get(ConfigService));
 
             // The shared test data ships no assets, so `update_product` has nothing to
             // attach until two exist. They are created through AssetService rather than through
@@ -2321,7 +2321,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
                 `,
                 { id: customerGroupId },
             );
-            const idStrategy = server.app.get(ConfigService).entityOptions.entityIdStrategy;
+            const idStrategy = getIdStrategy(server.app.get(ConfigService));
             const memberIds = (members.customerGroup.customers.items as Array<{ id: string }>).map(customer =>
                 String(idStrategy.decodeId(customer.id)),
             );
@@ -2670,7 +2670,7 @@ describe('MCP built-in admin tools (discovery mode)', () => {
                 }
             }
         `);
-        const idStrategy = server.app.get(ConfigService).entityOptions.entityIdStrategy;
+        const idStrategy = getIdStrategy(server.app.get(ConfigService));
         return idStrategy.decodeId(result.createDraftOrder.id);
     }
 
