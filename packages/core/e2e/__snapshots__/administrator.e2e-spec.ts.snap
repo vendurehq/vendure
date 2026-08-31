@@ -20,6 +20,18 @@ exports[`Administrator resolver > createAdministrator 1`] = `
           "SuperAdmin",
         ],
       },
+      {
+        "code": "__role_editor_role__",
+        "description": "RoleEditor",
+        "id": "T_3",
+        "permissions": [
+          "Authenticated",
+          "CreateRole",
+          "ReadRole",
+          "UpdateRole",
+          "DeleteRole",
+        ],
+      },
     ],
   },
 }

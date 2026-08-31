@@ -222,7 +222,11 @@ describe('Channels', () => {
             },
         });
 
-        expect(createAdministrator.user.roles.map(r => r.description)).toEqual(['second channel admin']);
+        // The RoleEditor role is auto-granted to every administrator on creation (OSS-749)
+        expect(createAdministrator.user.roles.map(r => r.description).sort()).toEqual([
+            'RoleEditor',
+            'second channel admin',
+        ]);
     });
 
     describe('setting defaultLanguage', () => {
