@@ -1,5 +1,6 @@
 {
   "error": {
+    "active-user-cannot-manage-role": "Active user does not have permission to manage the role \"{ roleCode }\" on every channel where it is assigned",
     "active-user-does-not-have-sufficient-permissions": "Active user does not have sufficient permissions",
     "available-currency-codes-must-include-default": "availableCurrencyCodes must include the defaultCurrencyCode ({ defaultCurrencyCode })",
     "cannot-delete-role": "The role \"{ roleCode }\" cannot be deleted",

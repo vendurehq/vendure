@@ -153,6 +153,16 @@ export class AdministratorService {
                 ctx.channelId,
             );
         }
+        // Every Administrator is granted the RoleEditor role on the Channels of their
+        // initial Role grants (the active Channel when created without Roles), giving them
+        // the Role CRUD permissions there.
+        await this.grantRoleEditor(
+            ctx,
+            savedAdministrator.user.id,
+            input.roleAssignments?.length
+                ? input.roleAssignments.map(assignment => assignment.channelId)
+                : [ctx.channelId],
+        );
         const createdAdministrator = await assertFound(this.findOne(ctx, savedAdministrator.id));
         await this.customFieldRelationService.updateRelations(
             ctx,
@@ -389,6 +399,19 @@ export class AdministratorService {
         return {
             result: DeletionResult.DELETED,
         };
+    }
+
+    /**
+     * Grants the RoleEditor role to the given User on the given Channels. The grant is
+     * system-mandated rather than actor-made, so it deliberately bypasses
+     * assertActiveUserCanGrantRoles: the acting user may hold CreateAdministrator
+     * without the Role CRUD permissions.
+     */
+    private async grantRoleEditor(ctx: RequestContext, userId: ID, channelIds: ID[]): Promise<void> {
+        const roleEditorRole = await this.roleService.getRoleEditorRole(ctx);
+        for (const channelId of unique(channelIds)) {
+            await this.roleAssignmentService.assignRoleOnChannel(ctx, userId, roleEditorRole.id, channelId);
+        }
     }
 
     private assertRoleInputsAreExclusive(input: {

@@ -12,8 +12,8 @@ import { idsAreEqual } from '../../common/utils';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Channel } from '../../entity/channel/channel.entity';
 import { Customer } from '../../entity/customer/customer.entity';
-import { RoleAssignment } from '../../entity/role-assignment/role-assignment.entity';
 import { Role } from '../../entity/role/role.entity';
+import { RoleAssignment } from '../../entity/role-assignment/role-assignment.entity';
 import { User } from '../../entity/user/user.entity';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
 import {
@@ -151,6 +151,50 @@ export class RoleAssignmentService {
             userIds.push(...customerRows.map(row => row.userId));
         }
         return unique(userIds);
+    }
+
+    /**
+     * @description
+     * Returns the ids of the Channels on which the given Role currently has assignment rows.
+     *
+     * @since 4.0.0
+     */
+    async getChannelIdsWithAssignments(ctx: RequestContext, roleId: ID): Promise<ID[]> {
+        const channelIdsByRole = await this.getChannelIdsWithAssignmentsForRoles(ctx, [roleId]);
+        return channelIdsByRole.get(roleId.toString()) ?? [];
+    }
+
+    /**
+     * @description
+     * Returns, for each of the given Roles, the ids of the Channels on which it currently
+     * has assignment rows, keyed by the stringified role id. Roles without assignments are
+     * absent from the Map.
+     *
+     * @since 4.0.0
+     */
+    async getChannelIdsWithAssignmentsForRoles(
+        ctx: RequestContext,
+        roleIds: ID[],
+    ): Promise<Map<string, ID[]>> {
+        const channelIdsByRole = new Map<string, ID[]>();
+        if (roleIds.length === 0) {
+            return channelIdsByRole;
+        }
+        const rows = await this.connection
+            .getRepository(ctx, RoleAssignment)
+            .createQueryBuilder('assignment')
+            .select('assignment.roleId', 'roleId')
+            .addSelect('assignment.channelId', 'channelId')
+            .distinct(true)
+            .where('assignment.roleId IN (:...roleIds)', { roleIds })
+            .getRawMany<{ roleId: ID; channelId: ID }>();
+        for (const row of rows) {
+            const key = row.roleId.toString();
+            const channelIds = channelIdsByRole.get(key) ?? [];
+            channelIds.push(row.channelId);
+            channelIdsByRole.set(key, channelIds);
+        }
+        return channelIdsByRole;
     }
 
     /**

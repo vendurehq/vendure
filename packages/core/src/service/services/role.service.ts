@@ -9,6 +9,8 @@ import {
 import {
     CUSTOMER_ROLE_CODE,
     CUSTOMER_ROLE_DESCRIPTION,
+    ROLE_EDITOR_ROLE_CODE,
+    ROLE_EDITOR_ROLE_DESCRIPTION,
     SUPER_ADMIN_ROLE_CODE,
     SUPER_ADMIN_ROLE_DESCRIPTION,
 } from '@vendure/common/lib/shared-constants';
@@ -37,6 +39,8 @@ import {
 } from '../helpers/role-permission-resolver/role-permission-resolver';
 import { patchEntity } from '../helpers/utils/patch-entity';
 
+import { RoleAssignmentService } from './role-assignment.service';
+
 /**
  * @description
  * Contains methods relating to {@link Role} entities.
@@ -62,6 +66,7 @@ export class RoleService {
         private requestContextCache: RequestContextCacheService,
         private cacheService: CacheService,
         private rolePermissionResolver: RolePermissionResolver,
+        private roleAssignmentService: RoleAssignmentService,
     ) {
         // When a Role is created, updated or deleted, we need to invalidate the roles cache
         this.eventBus.ofType(RoleEvent).subscribe(event => {
@@ -72,6 +77,7 @@ export class RoleService {
     async initRoles() {
         await this.ensureSuperAdminRoleExists();
         await this.ensureCustomerRoleExists();
+        await this.ensureRoleEditorRoleExists();
         await this.ensureRolesHaveValidPermissions();
     }
 
@@ -81,12 +87,26 @@ export class RoleService {
         relations?: RelationPaths<Role>,
     ): Promise<PaginatedList<Role>> {
         // Compute the set of Role IDs the active user can read up front to ensure
-        // sort/skip/take operate only over visible Roles.
+        // sort/skip/take operate only over visible Roles. System roles bypass the gate
+        // (see activeUserCanReadRole).
+        // TODO (OSS-755): this materializes the full role list per request and builds
+        // IN clauses proportional to the role count; rework the gate into a SQL
+        // predicate on the list query for instances with thousands of Roles.
         const allRoles = await this.getAllRoles(ctx);
+        const gatedRoles = allRoles.filter(role => !this.isSystemRole(role));
+        const assignedChannelIdsByRole = await this.roleAssignmentService.getChannelIdsWithAssignmentsForRoles(
+            ctx,
+            gatedRoles.map(role => role.id),
+        );
 
-        const visibleRoleIds: ID[] = [];
-        for (const role of allRoles) {
-            if (await this.activeUserCanReadRole(ctx, role)) {
+        const visibleRoleIds: ID[] = allRoles
+            .filter(role => this.isSystemRole(role))
+            .map(role => role.id);
+        for (const role of gatedRoles) {
+            const assignedChannelIds = assignedChannelIdsByRole.get(role.id.toString()) ?? [];
+            if (
+                await this.activeUserHoldsPermissionOnChannels(ctx, Permission.ReadRole, assignedChannelIds)
+            ) {
                 visibleRoleIds.push(role.id);
             }
         }
@@ -147,6 +167,24 @@ export class RoleService {
 
     /**
      * @description
+     * Returns the special RoleEditor Role, which always exists in Vendure. It bundles the
+     * Role CRUD permissions (`CreateRole`, `ReadRole`, `UpdateRole`, `DeleteRole`) and is
+     * granted to every Administrator on creation. Unlike the SuperAdmin and Customer roles
+     * it is assigned and revoked like any ordinary Role.
+     *
+     * @since 4.0.0
+     */
+    getRoleEditorRole(ctx?: RequestContext): Promise<Role> {
+        return this.getRoleByCode(ctx, ROLE_EDITOR_ROLE_CODE).then(role => {
+            if (!role) {
+                throw new InternalServerError('error.role-editor-role-not-found');
+            }
+            return role;
+        });
+    }
+
+    /**
+     * @description
      * Returns all the valid Permission values
      */
     getAllPermissions(): string[] {
@@ -184,11 +222,47 @@ export class RoleService {
     }
 
     private async activeUserCanReadRole(ctx: RequestContext, role: Role): Promise<boolean> {
-        // A Role is visible to the active user if they hold its full permission envelope on
-        // at least one Channel. Since the SuperAdmin permission cannot be granted to
-        // user-created Roles (see checkPermissionsAreValid), this keeps the SuperAdmin role
-        // visible only to SuperAdmins by set arithmetic alone.
-        return this.activeUserHoldsPermissionsOnAnyChannel(ctx, role.permissions);
+        // System roles cannot be modified or deleted through the API, so the gate protects
+        // nothing when reading them: they are visible to any actor holding ReadRole.
+        if (this.isSystemRole(role)) {
+            return true;
+        }
+        return this.activeUserCanManageRole(ctx, role, Permission.ReadRole);
+    }
+
+    /**
+     * The role CRUD gate: the active user may read / update / delete a Role iff they hold
+     * the corresponding Role permission on every Channel on which that Role currently has
+     * assignment rows. A Role with no assignments passes vacuously. System roles never
+     * reach this gate: reads bypass it (activeUserCanReadRole) and writes are refused
+     * earlier by the isSystemRole check.
+     */
+    private async activeUserCanManageRole(
+        ctx: RequestContext,
+        role: Role,
+        permission: Permission,
+    ): Promise<boolean> {
+        const assignedChannelIds = await this.roleAssignmentService.getChannelIdsWithAssignments(
+            ctx,
+            role.id,
+        );
+        return this.activeUserHoldsPermissionOnChannels(ctx, permission, assignedChannelIds);
+    }
+
+    private async activeUserHoldsPermissionOnChannels(
+        ctx: RequestContext,
+        permission: Permission,
+        channelIds: ID[],
+    ): Promise<boolean> {
+        const { channels, globalPermissions } = await this.getActiveUserResolvedPermissions(ctx);
+        if (globalPermissions.includes(permission)) {
+            return true;
+        }
+        return channelIds.every(channelId =>
+            channels.some(
+                channel => idsAreEqual(channel.id, channelId) && channel.permissions.includes(permission),
+            ),
+        );
     }
 
     private async getAllRoles(ctx: RequestContext): Promise<Role[]> {
@@ -317,7 +391,6 @@ export class RoleService {
 
     async create(ctx: RequestContext, input: CreateRoleInput): Promise<Role> {
         this.checkPermissionsAreValid(input.permissions);
-        await this.checkActiveUserHasSufficientPermissions(ctx, input.permissions);
         const role = await this.createRoleEntity(ctx, input);
         await this.eventBus.publish(new RoleEvent(ctx, role, 'created', input));
         return role;
@@ -329,11 +402,11 @@ export class RoleService {
         if (!role) {
             throw new EntityNotFoundError('Role', input.id);
         }
-        if (role.code === SUPER_ADMIN_ROLE_CODE || role.code === CUSTOMER_ROLE_CODE) {
+        if (this.isSystemRole(role)) {
             throw new InternalServerError('error.cannot-modify-role', { roleCode: role.code });
         }
-        if (input.permissions) {
-            await this.checkActiveUserHasSufficientPermissions(ctx, input.permissions);
+        if (!(await this.activeUserCanManageRole(ctx, role, Permission.UpdateRole))) {
+            throw new UserInputError('error.active-user-cannot-manage-role', { roleCode: role.code });
         }
         patchEntity(role, {
             code: input.code,
@@ -353,8 +426,11 @@ export class RoleService {
         if (!role) {
             throw new EntityNotFoundError('Role', id);
         }
-        if (role.code === SUPER_ADMIN_ROLE_CODE || role.code === CUSTOMER_ROLE_CODE) {
+        if (this.isSystemRole(role)) {
             throw new InternalServerError('error.cannot-delete-role', { roleCode: role.code });
+        }
+        if (!(await this.activeUserCanManageRole(ctx, role, Permission.DeleteRole))) {
+            throw new UserInputError('error.active-user-cannot-manage-role', { roleCode: role.code });
         }
         const deletedRole = new Role(role);
         await this.connection.getRepository(ctx, Role).remove(role);
@@ -377,21 +453,15 @@ export class RoleService {
     }
 
     /**
-     * @description
-     * Checks that the active User may create or update a Role carrying the given Permissions.
-     * The rule is that an Administrator may only grant Permissions that they themselves
-     * already possess — on at least one Channel, since a channel-agnostic Role has no channel
-     * scope of its own. Without this floor, any administrator with `CreateRole` could mint a
-     * Role with arbitrary permissions.
+     * The system roles are managed by Vendure itself and cannot be modified or deleted
+     * through the API.
      */
-    private async checkActiveUserHasSufficientPermissions(
-        ctx: RequestContext,
-        permissions?: Permission[] | null,
-    ) {
-        const permissionsToGrant = unique([Permission.Authenticated, ...(permissions ?? [])]);
-        if (!(await this.activeUserHoldsPermissionsOnAnyChannel(ctx, permissionsToGrant))) {
-            throw new UserInputError('error.active-user-does-not-have-sufficient-permissions');
-        }
+    private isSystemRole(role: Role): boolean {
+        return (
+            role.code === SUPER_ADMIN_ROLE_CODE ||
+            role.code === CUSTOMER_ROLE_CODE ||
+            role.code === ROLE_EDITOR_ROLE_CODE
+        );
     }
 
     private getRoleByCode(ctx: RequestContext | undefined, code: string) {
@@ -432,6 +502,27 @@ export class RoleService {
                 code: CUSTOMER_ROLE_CODE,
                 description: CUSTOMER_ROLE_DESCRIPTION,
                 permissions: [Permission.Authenticated],
+            });
+        }
+    }
+
+    /**
+     * The RoleEditor Role bundles the Role CRUD permissions and is granted to every
+     * Administrator on creation. It must always exist.
+     */
+    private async ensureRoleEditorRoleExists() {
+        try {
+            await this.getRoleEditorRole();
+        } catch (err: any) {
+            await this.createRoleEntity(RequestContext.empty(), {
+                code: ROLE_EDITOR_ROLE_CODE,
+                description: ROLE_EDITOR_ROLE_DESCRIPTION,
+                permissions: [
+                    Permission.CreateRole,
+                    Permission.ReadRole,
+                    Permission.UpdateRole,
+                    Permission.DeleteRole,
+                ],
             });
         }
     }

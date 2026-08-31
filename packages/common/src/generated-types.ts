@@ -4748,6 +4748,8 @@ export enum Permission {
   CreateProduct = 'CreateProduct',
   /** Grants permission to create Promotion */
   CreatePromotion = 'CreatePromotion',
+  /** Grants permission to create Role */
+  CreateRole = 'CreateRole',
   /** Grants permission to create Seller */
   CreateSeller = 'CreateSeller',
   /** Grants permission to create PaymentMethods, ShippingMethods, TaxCategories, TaxRates, Zones, Countries, System & GlobalSettings */
@@ -4794,6 +4796,8 @@ export enum Permission {
   DeleteProduct = 'DeleteProduct',
   /** Grants permission to delete Promotion */
   DeletePromotion = 'DeletePromotion',
+  /** Grants permission to delete Role */
+  DeleteRole = 'DeleteRole',
   /** Grants permission to delete Seller */
   DeleteSeller = 'DeleteSeller',
   /** Grants permission to delete PaymentMethods, ShippingMethods, TaxCategories, TaxRates, Zones, Countries, System & GlobalSettings */
@@ -4844,6 +4848,8 @@ export enum Permission {
   ReadProduct = 'ReadProduct',
   /** Grants permission to read Promotion */
   ReadPromotion = 'ReadPromotion',
+  /** Grants permission to read Role */
+  ReadRole = 'ReadRole',
   /** Grants permission to read Seller */
   ReadSeller = 'ReadSeller',
   /** Grants permission to read PaymentMethods, ShippingMethods, TaxCategories, TaxRates, Zones, Countries, System & GlobalSettings */
@@ -4894,6 +4900,8 @@ export enum Permission {
   UpdateProduct = 'UpdateProduct',
   /** Grants permission to update Promotion */
   UpdatePromotion = 'UpdatePromotion',
+  /** Grants permission to update Role */
+  UpdateRole = 'UpdateRole',
   /** Grants permission to update Seller */
   UpdateSeller = 'UpdateSeller',
   /** Grants permission to update PaymentMethods, ShippingMethods, TaxCategories, TaxRates, Zones, Countries, System & GlobalSettings */

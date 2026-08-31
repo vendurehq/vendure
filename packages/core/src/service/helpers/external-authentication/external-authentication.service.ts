@@ -14,6 +14,7 @@ import { ChannelService } from '../../services/channel.service';
 import { CustomerService } from '../../services/customer.service';
 import { HistoryService } from '../../services/history.service';
 import { RoleAssignmentService } from '../../services/role-assignment.service';
+import { RoleService } from '../../services/role.service';
 
 /**
  * @description
@@ -27,6 +28,7 @@ export class ExternalAuthenticationService {
     constructor(
         private connection: TransactionalConnection,
         private roleAssignmentService: RoleAssignmentService,
+        private roleService: RoleService,
         private historyService: HistoryService,
         private customerService: CustomerService,
         private administratorService: AdministratorService,
@@ -215,6 +217,16 @@ export class ExternalAuthenticationService {
             ctx,
             savedUser.id,
             config.roles.map(role => role.id),
+            ctx.channelId,
+        );
+        // Like AdministratorService.create, every Administrator is granted the RoleEditor
+        // role on creation — here on the active Channel, the channel scope of the grants
+        // above.
+        const roleEditorRole = await this.roleService.getRoleEditorRole(ctx);
+        await this.roleAssignmentService.assignRoleOnChannel(
+            ctx,
+            savedUser.id,
+            roleEditorRole.id,
             ctx.channelId,
         );
 
