@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import ms, { type StringValue } from 'ms';
 import { Brackets, EntitySubscriberInterface, InsertEvent, RemoveEvent, UpdateEvent } from 'typeorm';
 
+import { ApiType } from '../../api/common/get-api-type';
 import { DeserializedCachedSession, RequestContext } from '../../api/common/request-context';
 import { Instrument } from '../../common/instrument-decorator';
 import { API_KEY_AUTH_STRATEGY_DEFAULT_DURATION_MS, API_KEY_AUTH_STRATEGY_NAME, Logger } from '../../config';
@@ -114,14 +115,38 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
     /**
      * @description
      * Creates a new {@link AuthenticatedSession}. To be used after successful authentication.
+     *
+     * The `apiType` argument records the API the session belongs to. The AuthGuard refuses a session
+     * on the Admin API unless it records the Admin API, so this argument is a security control: pass
+     * it whenever the request context is not the API the caller authenticated against, for example a
+     * REST controller which completes an SSO callback for the Shop API.
+     *
+     * When it is omitted, the API is taken from `ctx.apiType` if the context carries a request, which
+     * covers every resolver and every REST route. A context with no request states nothing about the
+     * caller: `RequestContext.empty()` hardcodes `apiType: 'admin'`, `RequestContextService.create()`
+     * takes whatever the caller passed, and `RequestContext.deserialize()` drops the request, so a job
+     * queue worker has none either. A session created from such a context records `shop`, the
+     * lower-privilege API, so that omitting the argument fails closed rather than granting Admin API
+     * access.
      */
     async createNewAuthenticatedSession(
         ctx: RequestContext,
         user: User,
         authenticationStrategyName: string,
         sessionToken?: string,
+        apiType?: ApiType,
     ): Promise<AuthenticatedSession> {
         const token = sessionToken ?? (await this.generateSessionToken());
+        // See the API rule in this method's docs: a context which carries no request states nothing
+        // about the API the caller reached, so such a session belongs to the lower-privilege API.
+        const sessionApiType = ctx.req ? ctx.apiType : 'shop';
+        if (apiType == null && sessionApiType !== ctx.apiType) {
+            Logger.warn(
+                `Creating a session from a RequestContext with no request. Recording apiType ` +
+                    `'${sessionApiType}' rather than '${ctx.apiType}'. Pass the apiType argument of ` +
+                    `createNewAuthenticatedSession() to state which API the caller authenticated against.`,
+            );
+        }
         const guestOrder =
             ctx.session && ctx.session.activeOrderId
                 ? await this.orderService.findOne(ctx, ctx.session.activeOrderId)
@@ -143,6 +168,7 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
                 authenticationStrategy: authenticationStrategyName,
                 expires,
                 invalidated: false,
+                apiType: apiType ?? sessionApiType,
             }),
         );
         await this.withTimeout(this.sessionCacheStrategy.set(this.serializeSession(authenticatedSession)));
@@ -209,6 +235,7 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
         };
         if (this.isAuthenticatedSession(session)) {
             serializedSession.authenticationStrategy = session.authenticationStrategy;
+            serializedSession.apiType = session.apiType ?? undefined;
             const { user } = session;
             serializedSession.user = {
                 id: user.id,

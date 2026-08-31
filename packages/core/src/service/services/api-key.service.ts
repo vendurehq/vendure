@@ -68,6 +68,16 @@ export class ApiKeyService {
     }
 
     /**
+     * The API a new key belongs to. Only a request which arrived on the Admin API creates an Admin API
+     * key: a context built outside the request-response cycle carries a placeholder apiType, and a REST
+     * route is served by the shop api-key strategy. The value is stored on the key, so rotation and
+     * session recovery use it instead of the context they happen to run in.
+     */
+    private getApiTypeForNewApiKey(ctx: RequestContext): ApiType {
+        return ctx.req && ctx.apiType === 'admin' ? 'admin' : 'shop';
+    }
+
+    /**
      * @description
      * Checks that the active user is allowed to grant the specified Roles for an API-Key
      *
@@ -138,7 +148,8 @@ export class ApiKeyService {
         const roles = await this.assertActiveUserCanGrantRoles(ctx, input.roleIds);
 
         const ownerUser = await this.connection.getEntityOrThrow(ctx, User, userIdOwner);
-        const strategy = this.getApiKeyStrategyByApiType(ctx.apiType);
+        const apiType = this.getApiTypeForNewApiKey(ctx);
+        const strategy = this.getApiKeyStrategyByApiType(apiType);
         const lookupId = await strategy.generateLookupId(ctx);
         const apiKeyUser = userIdApiKeyUser
             ? await this.connection.getEntityOrThrow(ctx, User, userIdApiKeyUser, {
@@ -165,6 +176,7 @@ export class ApiKeyService {
                 e.userId = apiKeyUser.id;
                 e.apiKeyHash = hash;
                 e.lookupId = lookupId;
+                e.apiType = apiType;
                 await this.channelService.assignToCurrentChannel(e, ctx);
             },
         });
@@ -173,11 +185,14 @@ export class ApiKeyService {
 
         // Important: The hash becomes the session token, this is what allows us to authorize on a per-request basis
         // Important: The User of the session may be new User to allow configuring separate permissions
+        // The session records the API whose strategy hashed the key, so a key created from a Shop API
+        // context, for example by a plugin resolver, cannot be used on the Admin API.
         await this.sessionService.createNewAuthenticatedSession(
             ctx,
             apiKeyUser,
             API_KEY_AUTH_STRATEGY_NAME,
             hash,
+            apiType,
         );
 
         Logger.verbose(
@@ -282,7 +297,11 @@ export class ApiKeyService {
             relations: { user: { roles: { channels: true } } },
         });
 
-        const strategy = this.getApiKeyStrategyByApiType(ctx.apiType);
+        // The API comes from the key, not from the caller who rotates it. Core exposes rotateApiKey on
+        // the Admin API only, so taking it from the context would turn every rotated Shop API key into
+        // an Admin API key. Keys created before this column existed were created on the Admin API.
+        const apiType = entity.apiType ?? 'admin';
+        const strategy = this.getApiKeyStrategyByApiType(apiType);
         const secret = await strategy.generateSecret(ctx);
         const apiKey = strategy.constructApiKey(entity.lookupId, secret);
         const hash = await strategy.hashingStrategy.hash(apiKey);
@@ -293,8 +312,10 @@ export class ApiKeyService {
             entity.user,
             API_KEY_AUTH_STRATEGY_NAME,
             hash,
+            apiType,
         );
 
+        entity.apiType = apiType;
         entity.apiKeyHash = hash;
         await this.connection.getRepository(ctx, ApiKey).save(entity, { reload: false });
 

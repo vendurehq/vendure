@@ -169,7 +169,7 @@
           "title": "Auth",
           "slug": "auth",
           "file": "docs/guides/core-concepts/auth/index.mdx",
-          "lastModified": "2026-06-26T15:49:47+02:00"
+          "lastModified": "2026-08-31T14:33:32+02:00"
         },
         {
           "title": "Channels",
@@ -1104,7 +1104,7 @@
                   "title": "SessionCacheStrategy",
                   "slug": "session-cache-strategy",
                   "file": "docs/reference/typescript-api/auth/session-cache-strategy.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-31T14:33:32+02:00"
                 },
                 {
                   "title": "SuperadminCredentials",
@@ -1722,7 +1722,7 @@
                   "title": "ApiKey",
                   "slug": "api-key",
                   "file": "docs/reference/typescript-api/entities/api-key.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-31T14:33:32+02:00"
                 },
                 {
                   "title": "Asset",
@@ -1734,7 +1734,7 @@
                   "title": "AuthenticatedSession",
                   "slug": "authenticated-session",
                   "file": "docs/reference/typescript-api/entities/authenticated-session.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-31T14:33:32+02:00"
                 },
                 {
                   "title": "AuthenticationMethod",
@@ -2886,7 +2886,7 @@
                   "title": "RequestContext",
                   "slug": "request-context",
                   "file": "docs/reference/typescript-api/request/request-context.mdx",
-                  "lastModified": "2026-08-31T11:54:40Z"
+                  "lastModified": "2026-08-31T14:33:32+02:00"
                 },
                 {
                   "title": "RequestContextService",
@@ -3024,7 +3024,7 @@
                   "title": "AuthService",
                   "slug": "auth-service",
                   "file": "docs/reference/typescript-api/services/auth-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-31T14:33:32+02:00"
                 },
                 {
                   "title": "ChannelService",
@@ -3186,7 +3186,7 @@
                   "title": "SessionService",
                   "slug": "session-service",
                   "file": "docs/reference/typescript-api/services/session-service.mdx",
-                  "lastModified": "2026-08-31T11:54:40Z"
+                  "lastModified": "2026-08-31T14:33:32+02:00"
                 },
                 {
                   "title": "SettingsStoreService",

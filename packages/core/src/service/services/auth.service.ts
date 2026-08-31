@@ -71,13 +71,26 @@ export class AuthService {
         if (!authenticateResult) {
             return new InvalidCredentialsError({ authenticationError: '' });
         }
-        return this.createAuthenticatedSessionForUser(ctx, authenticateResult, authenticationStrategy.name);
+        return this.createAuthenticatedSessionForUser(
+            ctx,
+            authenticateResult,
+            authenticationStrategy.name,
+            apiType,
+        );
     }
 
+    /**
+     * @description
+     * Creates a new {@link AuthenticatedSession} for the given User.
+     *
+     * The `apiType` argument is passed through to `SessionService.createNewAuthenticatedSession()`,
+     * whose docs describe when to pass it.
+     */
     async createAuthenticatedSessionForUser(
         ctx: RequestContext,
         user: User,
         authenticationStrategyName: string,
+        apiType?: ApiType,
     ): Promise<AuthenticatedSession | NotVerifiedError> {
         if (!user.roles || !user.roles[0]?.channels) {
             const userWithRoles = await this.connection
@@ -105,6 +118,8 @@ export class AuthService {
             ctx,
             user,
             authenticationStrategyName,
+            undefined,
+            apiType,
         );
         await this.eventBus.publish(new LoginEvent(ctx, user));
         return session;

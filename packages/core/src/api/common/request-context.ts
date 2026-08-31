@@ -236,6 +236,9 @@ export class RequestContext {
      * cycle, e.g. when programmatically populating data. Usually a better alternative
      * is to use the {@link RequestContextService} `create()` method, which allows more control
      * over the resulting RequestContext object.
+     *
+     * The `apiType` of `admin` is a placeholder, not a statement about a caller. A session created
+     * from such a context records the Shop API, see `SessionService.createNewAuthenticatedSession()`.
      */
     static empty(): RequestContext {
         return new RequestContext({
@@ -424,7 +427,10 @@ export class RequestContext {
      * The raw Express request object.
      *
      * This is `undefined` on a context which was rebuilt from a serialized object, e.g. in a
-     * job queue worker, because the request is deliberately not serialized.
+     * job queue worker, because the request is deliberately not serialized. It is also undefined on
+     * a context built outside the request-response cycle, which is how
+     * `SessionService.createNewAuthenticatedSession()` tells a stated `apiType` from a placeholder
+     * one. Do not populate it on a synthetic context.
      */
     get req(): Request | undefined {
         return this._req;

@@ -4,6 +4,7 @@ import {
     Injector,
     RequestContext,
     RoleService,
+    TransactionalConnection,
     User,
 } from '@vendure/core';
 import { DocumentNode } from 'graphql';
@@ -111,6 +112,88 @@ export class TestSSOStrategyAdmin implements AuthenticationStrategy<{ email: str
                 createReadStream: () => Readable.from([TEST_ADMIN_AVATAR]),
             },
         });
+    }
+}
+
+/**
+ * The same as TestSSOStrategyAdmin under a different name, so that a test can register it on the
+ * Shop API only. The Admin API then has no input field for it, and a Shop-minted session is the only
+ * route to the administrator's permissions on the Admin API.
+ */
+export class TestSSOStrategyShopOnlyAdmin implements AuthenticationStrategy<{ email: string }> {
+    readonly name = 'test_sso_strategy_shop_only_admin';
+    private externalAuthenticationService: ExternalAuthenticationService;
+    private roleService: RoleService;
+
+    init(injector: Injector) {
+        this.externalAuthenticationService = injector.get(ExternalAuthenticationService);
+        this.roleService = injector.get(RoleService);
+    }
+
+    defineInputType(): DocumentNode {
+        return gql`
+            input TestSSOInputShopOnlyAdmin {
+                email: String!
+            }
+        `;
+    }
+
+    async authenticate(ctx: RequestContext, data: { email: string }): Promise<User | false | string> {
+        const { email } = data;
+        const user = await this.externalAuthenticationService.findUser(ctx, this.name, email);
+        if (user) {
+            return user;
+        }
+        const superAdminRole = await this.roleService.getSuperAdminRole();
+        return this.externalAuthenticationService.createAdministratorAndUser(ctx, {
+            strategy: this.name,
+            externalIdentifier: email,
+            emailAddress: email,
+            firstName: 'Shop Only SSO Admin First Name',
+            lastName: 'Shop Only SSO Admin Last Name',
+            identifier: email,
+            roles: [superAdminRole],
+        });
+    }
+}
+
+/**
+ * Resolves a User which carries the SuperAdmin role but has no Administrator row, which
+ * ExternalAuthenticationService.createUser permits. The Admin API refuses to issue a session for such
+ * a User, so a Shop-minted session is the only way its permissions can reach the Admin API.
+ */
+export class TestSSOStrategyRoleOnly implements AuthenticationStrategy<{ email: string }> {
+    readonly name = 'test_sso_strategy_role_only';
+    private externalAuthenticationService: ExternalAuthenticationService;
+    private roleService: RoleService;
+    private connection: TransactionalConnection;
+
+    init(injector: Injector) {
+        this.externalAuthenticationService = injector.get(ExternalAuthenticationService);
+        this.roleService = injector.get(RoleService);
+        this.connection = injector.get(TransactionalConnection);
+    }
+
+    defineInputType(): DocumentNode {
+        return gql`
+            input TestSSOInputRoleOnly {
+                email: String!
+            }
+        `;
+    }
+
+    async authenticate(ctx: RequestContext, data: { email: string }): Promise<User | false | string> {
+        const { email } = data;
+        const existing = await this.externalAuthenticationService.findUser(ctx, this.name, email);
+        if (existing) {
+            return existing;
+        }
+        const user = await this.externalAuthenticationService.createUser(ctx, {
+            strategy: this.name,
+            externalIdentifier: email,
+        });
+        user.roles = [await this.roleService.getSuperAdminRole()];
+        return this.connection.getRepository(ctx, User).save(user);
     }
 }
 
