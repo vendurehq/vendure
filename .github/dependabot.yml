@@ -48,3 +48,113 @@ updates:
       labels:
           - dependencies
           - docs
+
+    # The root bun workspace covers the published packages under packages/*.
+    #
+    # Note: Dependabot supports version updates for the bun ecosystem but NOT
+    # security updates. Vulnerabilities in these packages will not raise a pull
+    # request on their own — they are picked up by the weekly version update if
+    # the fix is within range, and otherwise need to be bumped deliberately.
+    - package-ecosystem: bun
+      directory: /
+      schedule:
+          interval: weekly
+          day: monday
+      open-pull-requests-limit: 10
+      # These packages are published, so the declared range is part of the
+      # public contract. Only widen it when the new version falls outside.
+      versioning-strategy: increase-if-necessary
+      ignore:
+          # Workspace-internal packages are versioned by the release process.
+          - dependency-name: '@vendure/*'
+      # Families that must move in lockstep are grouped so they land in one
+      # pull request. Groups cover minor and patch only; a major update arrives
+      # as its own pull request, because a major is a migration rather than a
+      # bump and should not hold a mergeable group hostage.
+      groups:
+          typescript:
+              patterns:
+                  - typescript
+              update-types:
+                  - minor
+                  - patch
+          types:
+              patterns:
+                  - '@types/*'
+              update-types:
+                  - minor
+                  - patch
+          dev-tooling:
+              patterns:
+                  - eslint
+                  - eslint-*
+                  - '@typescript-eslint/*'
+                  - prettier
+                  - prettier-*
+                  - vitest
+                  - '@vitest/*'
+                  - rimraf
+                  - concurrently
+                  - cross-env
+                  - ts-node
+              update-types:
+                  - minor
+                  - patch
+          nestjs:
+              patterns:
+                  - '@nestjs/*'
+              update-types:
+                  - minor
+                  - patch
+          graphql:
+              patterns:
+                  - graphql
+                  - graphql-*
+                  - '@graphql-tools/*'
+                  - '@apollo/*'
+                  - gql.tada
+              update-types:
+                  - minor
+                  - patch
+          typeorm:
+              patterns:
+                  - typeorm
+                  - mysql2
+                  - pg
+                  - better-sqlite3
+                  - sql.js
+              update-types:
+                  - minor
+                  - patch
+          opentelemetry:
+              patterns:
+                  - '@opentelemetry/*'
+              update-types:
+                  - minor
+                  - patch
+          angular:
+              patterns:
+                  - '@angular/*'
+                  - '@angular-devkit/*'
+                  - '@angular-eslint/*'
+              update-types:
+                  - minor
+                  - patch
+          dashboard:
+              patterns:
+                  - react
+                  - react-*
+                  - '@tanstack/*'
+                  - vite
+                  - '@vitejs/*'
+                  - tailwindcss
+                  - '@tailwindcss/*'
+                  - tailwind-merge
+              update-types:
+                  - minor
+                  - patch
+      commit-message:
+          prefix: chore
+          include: scope
+      labels:
+          - dependencies
