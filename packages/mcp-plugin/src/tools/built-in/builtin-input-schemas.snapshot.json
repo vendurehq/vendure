@@ -177,7 +177,7 @@
   "admin:create_fulfillment": {
     "type": "object",
     "properties": {
-      "orderId": {
+      "id": {
         "anyOf": [
           {
             "type": "string"
@@ -237,7 +237,7 @@
       }
     },
     "required": [
-      "orderId",
+      "id",
       "method"
     ],
     "additionalProperties": false

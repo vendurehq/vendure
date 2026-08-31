@@ -25,7 +25,7 @@ import { ORDER_DETAIL_RELATIONS } from '../list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 
 const createFulfillmentInput = z.strictObject({
-    orderId: idSchema.describe('Order ID.'),
+    id: idSchema.describe('Order ID.'),
     method: z.string().describe('Shipping method or carrier name to record on the fulfillment.'),
     trackingCode: z.string().describe("The carrier's tracking code for this shipment.").optional(),
     lines: z
@@ -85,9 +85,9 @@ export class CreateFulfillmentTool implements McpToolHandler<CreateFulfillmentIn
     ) {}
 
     async execute(ctx: RequestContext, input: CreateFulfillmentInput) {
-        const order = await this.orderService.findOne(ctx, input.orderId, ORDER_DETAIL_RELATIONS);
+        const order = await this.orderService.findOne(ctx, input.id, ORDER_DETAIL_RELATIONS);
         if (!order) {
-            throw new EntityNotFoundError('Order', input.orderId);
+            throw new EntityNotFoundError('Order', input.id);
         }
         const lines = input.lines ? this.linesOfOrder(order, input.lines) : unfulfilledLines(order);
         try {
@@ -110,7 +110,7 @@ export class CreateFulfillmentTool implements McpToolHandler<CreateFulfillmentIn
                 const fulfillment = input.state
                     ? await this.transitionOrThrow(txCtx, created.id, input.state)
                     : created;
-                const updated = await this.orderService.findOne(txCtx, input.orderId, ORDER_DETAIL_RELATIONS);
+                const updated = await this.orderService.findOne(txCtx, input.id, ORDER_DETAIL_RELATIONS);
                 return {
                     fulfillment: this.serializer.fulfillment(
                         fulfillment,

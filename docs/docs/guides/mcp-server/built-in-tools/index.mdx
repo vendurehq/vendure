@@ -204,7 +204,7 @@ refundable balance. If `amount` is omitted, it refunds that payment's remaining 
 
 `create_fulfillment` uses core's `manual-fulfillment` handler. Omit `lines` to fulfill every unfulfilled quantity,
 or pass `[{ orderLineId, quantity }]` for part of an order. `trackingCode` defaults to an empty string, and every
-line must belong to `orderId`.
+line must belong to the order named by `id`.
 
 Without `state`, the new fulfillment is `Pending` and the order stays put. `Shipped` or `Delivered` moves it from
 `Pending` and core moves the order to its corresponding full or partial state; use `Shipped` to mark it shipped.

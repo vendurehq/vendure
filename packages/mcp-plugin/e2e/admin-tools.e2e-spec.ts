@@ -1607,7 +1607,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
         const response = await postMcp(
             baseUrl(),
             'admin',
-            callTool('create_fulfillment', { orderId, method: 'Test Carrier', confirm: true }, 1),
+            callTool('create_fulfillment', { id: orderId, method: 'Test Carrier', confirm: true }, 1),
             { token },
         );
 
@@ -1640,7 +1640,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
             callTool(
                 'create_fulfillment',
                 {
-                    orderId: orderA.orderId,
+                    id: orderA.orderId,
                     method: 'Test Carrier',
                     lines: [{ orderLineId: lineOfB.id, quantity: 1 }],
                     confirm: true,
@@ -1670,7 +1670,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
                 callTool(
                     'create_fulfillment',
                     {
-                        orderId,
+                        id: orderId,
                         method: 'Test Carrier',
                         lines: [{ orderLineId: line.id, quantity }],
                         confirm: true,
@@ -1700,7 +1700,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
             callTool(
                 'create_fulfillment',
                 {
-                    orderId,
+                    id: orderId,
                     method: 'Test Carrier',
                     lines: [{ orderLineId: line.id, quantity: 1 }],
                     confirm: true,
@@ -1717,7 +1717,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
         const rest = await postMcp(
             baseUrl(),
             'admin',
-            callTool('create_fulfillment', { orderId, method: 'Test Carrier', confirm: true }, 2),
+            callTool('create_fulfillment', { id: orderId, method: 'Test Carrier', confirm: true }, 2),
             { token },
         );
         expect(rest.body.result.isError).toBeUndefined();
@@ -1728,7 +1728,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
         const nothingLeft = await postMcp(
             baseUrl(),
             'admin',
-            callTool('create_fulfillment', { orderId, method: 'Test Carrier', confirm: true }, 3),
+            callTool('create_fulfillment', { id: orderId, method: 'Test Carrier', confirm: true }, 3),
             { token },
         );
         expect(nothingLeft.body.result.isError).toBe(true);
@@ -1765,7 +1765,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
         const response = await postMcp(
             baseUrl(),
             'admin',
-            callTool('create_fulfillment', { orderId: cartId, method: 'Test Carrier', confirm: true }, 1),
+            callTool('create_fulfillment', { id: cartId, method: 'Test Carrier', confirm: true }, 1),
             { token },
         );
 
@@ -1783,7 +1783,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
         const first = await postMcp(
             baseUrl(),
             'admin',
-            callTool('create_fulfillment', { orderId, method: 'Test Carrier', confirm: true }, 1),
+            callTool('create_fulfillment', { id: orderId, method: 'Test Carrier', confirm: true }, 1),
             { token },
         );
         expect(first.body.result.isError).toBeUndefined();
@@ -1798,7 +1798,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
         const second = await postMcp(
             baseUrl(),
             'admin',
-            callTool('create_fulfillment', { orderId, method: 'Test Carrier', confirm: true }, 2),
+            callTool('create_fulfillment', { id: orderId, method: 'Test Carrier', confirm: true }, 2),
             { token },
         );
         expect(second.body.result.isError).toBeUndefined();
@@ -1816,7 +1816,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
             'admin',
             callTool(
                 'create_fulfillment',
-                { orderId, method: 'Test Carrier', state: 'Shipped', confirm: true },
+                { id: orderId, method: 'Test Carrier', state: 'Shipped', confirm: true },
                 1,
             ),
             { token },
@@ -1840,7 +1840,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
             'admin',
             callTool(
                 'create_fulfillment',
-                { orderId, method: 'Test Carrier', state: 'Delivered', confirm: true },
+                { id: orderId, method: 'Test Carrier', state: 'Delivered', confirm: true },
                 1,
             ),
             { token },
@@ -1862,7 +1862,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
             'admin',
             callTool(
                 'create_fulfillment',
-                { orderId, method: 'Test Carrier', trackingCode: 'TRACK-002', confirm: true },
+                { id: orderId, method: 'Test Carrier', trackingCode: 'TRACK-002', confirm: true },
                 1,
             ),
             { token },
