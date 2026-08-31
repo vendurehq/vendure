@@ -21,6 +21,12 @@ export const TYPESCRIPT_VERSION = '5.8.2';
  */
 export const TYPEORM_VERSION = '^0.3.21';
 /**
+ * `re2js` is the RE2 engine used to evaluate `regex` list filters in bounded time. Only the SQLite
+ * drivers evaluate those patterns inside the Node process, so only SQLite scaffolds declare it.
+ * Must stay within the range `@vendure/core` declares as an optional peer dependency.
+ */
+export const RE2JS_VERSION = '^2.8.6';
+/**
  * Vite must be a direct dependency of the scaffolded project because the
  * generated vite.config.mts imports `vite` directly, and strict
  * (non-hoisting) package managers like pnpm don't expose transitive deps.

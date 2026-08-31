@@ -7,7 +7,7 @@ import path from 'node:path';
 import semver from 'semver';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { REQUIRED_NODE_VERSION, TYPEORM_VERSION } from './constants';
+import { RE2JS_VERSION, REQUIRED_NODE_VERSION, TYPEORM_VERSION } from './constants';
 import { registerEscapeSingleHelper } from './gather-user-responses';
 import {
     checkNodeVersion,
@@ -412,7 +412,6 @@ describe('getMonorepoRootPackageJson', () => {
             bcrypt: { built: true },
             'better-sqlite3': { built: true },
             esbuild: { built: true },
-            re2: { built: true },
             sharp: { built: true },
         });
         expect(
@@ -427,7 +426,7 @@ describe('getMonorepoRootPackageJson', () => {
     it('adds trustedDependencies only for bun, driver-aware', () => {
         expect(
             getMonorepoRootPackageJson('x', getPackageManagerInfo('bun'), 'sqlite').trustedDependencies,
-        ).toEqual(['bcrypt', 'better-sqlite3', 'esbuild', 're2', 'sharp']);
+        ).toEqual(['bcrypt', 'better-sqlite3', 'esbuild', 'sharp']);
         expect(
             getMonorepoRootPackageJson('x', getPackageManagerInfo('bun'), 'postgres').trustedDependencies,
         ).toEqual(['bcrypt', 'esbuild', 'sharp']);
@@ -472,12 +471,11 @@ describe('getNativeBuildDependencies', () => {
         }
     });
 
-    it('adds better-sqlite3 and re2 for the SQLite driver', () => {
+    it('adds better-sqlite3 for the SQLite driver', () => {
         expect(getNativeBuildDependencies('sqlite')).toEqual([
             'bcrypt',
             'better-sqlite3',
             'esbuild',
-            're2',
             'sharp',
         ]);
     });
@@ -491,10 +489,8 @@ describe('getPnpmWorkspaceYaml', () => {
         const yaml = getPnpmWorkspaceYaml('sqlite');
         expect(yaml).toContain('onlyBuiltDependencies:');
         expect(yaml).toContain('    - better-sqlite3');
-        expect(yaml).toContain('    - re2');
         expect(yaml).toContain('allowBuilds:');
         expect(yaml).toContain('    better-sqlite3: true');
-        expect(yaml).toContain('    re2: true');
         expect(yaml).not.toContain('packages:');
     });
 
@@ -518,7 +514,6 @@ describe('getYarnDependenciesMeta', () => {
             bcrypt: { built: true },
             'better-sqlite3': { built: true },
             esbuild: { built: true },
-            re2: { built: true },
             sharp: { built: true },
         });
     });
@@ -737,5 +732,22 @@ describe('getDependencies', () => {
     it('pins typeorm to the same range as @vendure/core', () => {
         const corePkg = fs.readJsonSync(path.resolve(__dirname, '../../core/package.json'));
         expect(TYPEORM_VERSION).toBe(corePkg.dependencies.typeorm);
+    });
+
+    // GHSA-jgm3-qmp2-c4p7 — only the SQLite drivers evaluate `regex` list filters in the Node
+    // process, so only they need the RE2 engine which bounds that work.
+    it('adds re2js only for the SQLite driver', () => {
+        expect(getDependencies('sqlite', '@3.7.0').dependencies).toContain(`re2js@${RE2JS_VERSION}`);
+        for (const dbType of ['postgres', 'mysql', 'mariadb'] as const) {
+            const deps = getDependencies(dbType, '@3.7.0').dependencies;
+            expect(deps.some(d => d.startsWith('re2js'))).toBe(false);
+        }
+    });
+
+    // A scaffolded SQLite project installs re2js directly, so its range must satisfy the optional
+    // peer dependency @vendure/core declares, or package managers warn on every install.
+    it('declares re2js within the range @vendure/core accepts', () => {
+        const corePkg = fs.readJsonSync(path.resolve(__dirname, '../../core/package.json'));
+        expect(RE2JS_VERSION).toBe(corePkg.peerDependencies.re2js);
     });
 });

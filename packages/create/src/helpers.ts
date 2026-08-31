@@ -21,6 +21,7 @@ import {
     OLDEST_NON_EOL_NODE_MAJOR,
     PG_READY_MAX_ATTEMPTS,
     PG_READY_POLL_INTERVAL_MS,
+    RE2JS_VERSION,
     SOCKET_TIMEOUT_MS,
     TYPEORM_VERSION,
     TYPESCRIPT_VERSION,
@@ -425,9 +426,7 @@ export function getSingleProjectPackageJson(
  * unless allowlisted, so this list feeds their respective allowlist mechanisms
  * (`onlyBuiltDependencies`, `dependenciesMeta.built`, `trustedDependencies`).
  * `bcrypt` (core), `sharp` (asset-server-plugin) and `esbuild` (vite) are always present;
- * SQLite adds `better-sqlite3` and `re2`. `re2` lets core evaluate `regex` list filters in
- * guaranteed linear time; without its native binding those filters fall back to the built-in
- * RegExp engine, which is vulnerable to ReDoS on SQLite backends (GHSA-jgm3-qmp2-c4p7).
+ * SQLite adds `better-sqlite3`.
  *
  * This list is derived from the scaffold's transitive native deps; re-check it against
  * `getDependencies()` whenever Vendure's direct native-dep surface changes.
@@ -435,7 +434,7 @@ export function getSingleProjectPackageJson(
 export function getNativeBuildDependencies(dbType: DbType): string[] {
     const deps = ['bcrypt', 'esbuild', 'sharp'];
     if (dbType === 'sqlite') {
-        deps.push('better-sqlite3', 're2');
+        deps.push('better-sqlite3');
     }
     return deps.sort((a, b) => a.localeCompare(b));
 }
@@ -581,6 +580,11 @@ export function getDependencies(
         // resolve it as a transitive dep (npm/yarn/bun hoist, and the scaffold forces yarn's
         // node-modules linker), so declare it directly for pnpm only. See #4960.
         ...(packageManager === 'pnpm' ? [`typeorm@${TYPEORM_VERSION}`] : []),
+        // Only the SQLite drivers evaluate `regex` list filters in this process, so only they need
+        // the RE2 engine which bounds that work. Every other database evaluates the pattern itself.
+        // Without it those filters fall back to the built-in RegExp engine, which is vulnerable to
+        // ReDoS (GHSA-jgm3-qmp2-c4p7).
+        ...(dbType === 'sqlite' ? [`re2js@${RE2JS_VERSION}`] : []),
         dbDriverPackage(dbType),
     ];
     const devDependencies = [
