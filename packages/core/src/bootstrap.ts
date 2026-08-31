@@ -339,16 +339,20 @@ export async function preBootstrapConfig(
     patchTypeOrmEagerRelationJoins();
     patchTypeOrmEmbeddedRelationColumns();
     patchTypeOrmRelationIdLoader();
+    const customFieldValidationResult = validateCustomFieldsConfig(
+        config.customFields,
+        entities,
+        config.dbConnectionOptions.type,
+    );
+    if (!customFieldValidationResult.valid) {
+        process.exitCode = 1;
+        throw new Error('CustomFields config error:\n- ' + customFieldValidationResult.errors.join('\n- '));
+    }
     registerCustomEntityFields(config);
     registerTranslationEntityUniqueConstraints(entities);
     setEntityIdStrategy(entityIdStrategy, entities);
     const moneyStrategy = config.entityOptions.moneyStrategy;
     setMoneyStrategy(moneyStrategy, entities);
-    const customFieldValidationResult = validateCustomFieldsConfig(config.customFields, entities);
-    if (!customFieldValidationResult.valid) {
-        process.exitCode = 1;
-        throw new Error('CustomFields config error:\n- ' + customFieldValidationResult.errors.join('\n- '));
-    }
     await runEntityMetadataModifiers(config);
     setExposedHeaders(config);
     return config;

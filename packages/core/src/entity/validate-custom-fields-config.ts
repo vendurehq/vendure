@@ -1,6 +1,6 @@
 import { Type } from '@vendure/common/lib/shared-types';
 import { getGraphQlInputName } from '@vendure/common/lib/shared-utils';
-import { getMetadataArgsStorage } from 'typeorm';
+import { DataSourceOptions, getMetadataArgsStorage } from 'typeorm';
 
 import { CustomFieldConfig, CustomFields } from '../config/custom-field/custom-field-types';
 
@@ -9,6 +9,7 @@ import { VendureEntity } from './base/base.entity';
 function validateCustomFieldsForEntity(
     entity: Type<VendureEntity>,
     customFields: CustomFieldConfig[],
+    dbEngine: DataSourceOptions['type'],
 ): string[] {
     return [
         ...assertValidFieldNames(entity.name, customFields),
@@ -16,8 +17,52 @@ function validateCustomFieldsForEntity(
         ...assertNoDuplicatedCustomFieldNames(entity.name, customFields),
         ...assertNoRelationIdNameConflicts(entity.name, customFields),
         ...assetNonNullablesHaveDefaults(entity.name, customFields),
+        ...assertValidIndexConfiguration(entity.name, customFields, dbEngine),
         ...(isTranslatable(entity) ? [] : assertNoLocaleStringFields(entity.name, customFields)),
     ];
+}
+
+/**
+ * Assert that database indexes are only configured for column types supported by the
+ * selected database engine. This runtime check also covers dynamically assembled or
+ * widened custom-field configs which cannot be protected by TypeScript alone.
+ */
+function assertValidIndexConfiguration(
+    entityName: string,
+    customFields: CustomFieldConfig[],
+    dbEngine: DataSourceOptions['type'],
+): string[] {
+    const errors: string[] = [];
+    for (const field of customFields) {
+        if (field.index === true) {
+            if (field.secret === true) {
+                errors.push(
+                    `${entityName} entity custom field "${field.name}" cannot be indexed because secret fields are stored as encrypted unbounded text`,
+                );
+            }
+            if (field.list === true) {
+                errors.push(
+                    `${entityName} entity custom field "${field.name}" cannot be indexed because list fields are stored as JSON`,
+                );
+            }
+            if (field.type === 'struct') {
+                errors.push(
+                    `${entityName} entity custom field "${field.name}" cannot be indexed because struct fields are stored as JSON`,
+                );
+            }
+        }
+        if (
+            (field.index === true || field.unique === true) &&
+            field.secret !== true &&
+            (field.type === 'text' || field.type === 'localeText') &&
+            (dbEngine === 'mysql' || dbEngine === 'mariadb')
+        ) {
+            errors.push(
+                `${entityName} entity custom field "${field.name}" cannot be indexed or unique on ${dbEngine} because ${field.type} fields are stored as longtext`,
+            );
+        }
+    }
+    return errors;
 }
 
 /**
@@ -149,6 +194,7 @@ function getAllColumnNames(entity: Type<any>): string[] {
 export function validateCustomFieldsConfig(
     customFieldConfig: CustomFields,
     entities: Array<Type<any>>,
+    dbEngine: DataSourceOptions['type'] = 'sqlite',
 ): { valid: boolean; errors: string[] } {
     let errors: string[] = [];
     getMetadataArgsStorage();
@@ -157,7 +203,7 @@ export function validateCustomFieldsConfig(
         const customEntityFields = customFieldConfig[entityName] || [];
         const entity = entities.find(e => e.name === entityName);
         if (entity && customEntityFields.length) {
-            errors = errors.concat(validateCustomFieldsForEntity(entity, customEntityFields));
+            errors = errors.concat(validateCustomFieldsForEntity(entity, customEntityFields, dbEngine));
         }
     }
     return {
