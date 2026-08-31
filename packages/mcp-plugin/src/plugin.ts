@@ -221,6 +221,13 @@ export class McpPlugin implements NestModule, OnApplicationBootstrap {
                 );
             }
             if (oauth.storefrontConsentUrl != null) {
+                if (oauth.storefrontConsentUrl === '') {
+                    throw new Error(
+                        `McpPlugin: oauth.storefrontConsentUrl is empty. Set it to your public ` +
+                            `storefront consent page URL, or leave the option out altogether if this ` +
+                            `deployment only serves staff.`,
+                    );
+                }
                 if (this.isLoopbackUrl(oauth.storefrontConsentUrl)) {
                     throw new Error(
                         `McpPlugin: oauth.storefrontConsentUrl cannot be a loopback URL ` +

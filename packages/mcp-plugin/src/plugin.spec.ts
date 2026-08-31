@@ -96,6 +96,19 @@ describe('McpPlugin production config guard', () => {
         expect(() => plugin.onApplicationBootstrap()).not.toThrow();
     });
 
+    // An empty value is almost always an environment variable that did not resolve, so the message
+    // must name that rather than read the empty string as a loopback URL.
+    it('throws in production when the storefrontConsentUrl is an empty string', () => {
+        process.env.NODE_ENV = 'production';
+        setOauth({
+            tokenSecret: 'x',
+            issuer: 'https://shop.example.com',
+            storefrontConsentUrl: '',
+        });
+        const plugin = createPlugin(true);
+        expect(() => plugin.onApplicationBootstrap()).toThrow(/storefrontConsentUrl is empty/);
+    });
+
     it('throws in production when the storefrontConsentUrl is a public but plain-HTTP URL', () => {
         process.env.NODE_ENV = 'production';
         setOauth({
