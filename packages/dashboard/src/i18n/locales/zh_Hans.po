@@ -47,8 +47,8 @@ msgstr "新税率"
 msgid "Assign an existing option group or create a new one"
 msgstr "分配现有选项组或创建新的选项组"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:34
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:77
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:76
 msgid "New role"
 msgstr "新角色"
 
@@ -282,7 +282,7 @@ msgstr "订单"
 #~ msgid "Select roles"
 #~ msgstr "选择角色"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:62
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:61
 msgid "Successfully created role"
 msgstr "已成功创建角色"
 
@@ -604,7 +604,7 @@ msgstr "移动集合"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:160
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:55
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:171
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:32
 #: src/app/routes/_authenticated/_roles/roles.tsx:16
 #: src/app/routes/_authenticated/_roles/roles.tsx:25
 msgid "Roles"
@@ -854,8 +854,8 @@ msgid "Order line removed"
 msgstr "订单行已删除"
 
 #: src/app/routes/_authenticated/_roles/components/role-usage.tsx:81
-msgid "User"
-msgstr "用户"
+#~ msgid "User"
+#~ msgstr "用户"
 
 #: src/lib/components/layout/channel-switcher.tsx:158
 msgid "Content:"
@@ -975,7 +975,7 @@ msgstr "将执行计划任务"
 msgid "New stock location"
 msgstr "新库存位置"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:109
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:108
 msgid "Permissions"
 msgstr "权限"
 
@@ -1807,7 +1807,7 @@ msgstr "退款已成功完成"
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:219
 #: src/app/routes/_authenticated/_profile/profile.tsx:92
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:83
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:96
@@ -1894,7 +1894,7 @@ msgstr "列设置"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:208
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:176
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:164
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:100
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:99
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:154
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:61
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:98
@@ -2835,7 +2835,7 @@ msgstr "删除全局视图"
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:219
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:83
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:96
@@ -3337,8 +3337,8 @@ msgid "This option group is in use by existing variants. Force removing it may a
 msgstr "此选项组正被现有变体使用。强制移除可能会影响这些变体。您确定吗？"
 
 #: src/app/routes/_authenticated/_roles/components/role-usage.tsx:58
-msgid "This role is not assigned to any user"
-msgstr "此角色未分配给任何用户"
+#~ msgid "This role is not assigned to any user"
+#~ msgstr "此角色未分配给任何用户"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:63
 msgid "Email update requested"
@@ -3360,7 +3360,7 @@ msgstr "新窗口"
 msgid "Payment authorized"
 msgstr "支付已授权"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:62
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:61
 msgid "Successfully updated role"
 msgstr "已成功更新角色"
 
@@ -3451,7 +3451,6 @@ msgstr "完成支付"
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:216
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:343
-#: src/app/routes/_authenticated/_roles/components/role-usage.tsx:84
 #: src/lib/components/layout/channel-switcher.tsx:146
 msgid "Channels"
 msgstr "渠道"
@@ -3674,7 +3673,7 @@ msgstr "与"
 msgid "Failed to create customer group"
 msgstr "创建客户组失败"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:69
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:68
 msgid "Failed to create role"
 msgstr "创建角色失败"
 
@@ -3875,7 +3874,7 @@ msgstr "移除选项组"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:262
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:174
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:94
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:93
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:162
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:114
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:112
@@ -4445,16 +4444,15 @@ msgstr "新建选项组"
 #~ msgid "Last updated {0}"
 #~ msgstr "上次更新 {0}"
 
-#. placeholder {0}: items.length
 #: src/app/routes/_authenticated/_roles/components/role-usage.tsx:107
-msgid "Showing the first {0} of {totalItems} assignments"
-msgstr "正在显示 {totalItems} 个分配中的前 {0} 个"
+#~ msgid "Showing the first {0} of {totalItems} assignments"
+#~ msgstr "正在显示 {totalItems} 个分配中的前 {0} 个"
 
 #: src/lib/components/data-table/views-sheet.tsx:141
 msgid "No global views have been created yet."
 msgstr "尚未创建全局视图。"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:69
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:68
 msgid "Failed to update role"
 msgstr "更新角色失败"
 
@@ -5758,8 +5756,8 @@ msgstr "设置将此变体视为缺货的库存水平。使用负值可启用延
 #~ msgstr "创建商品选项"
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:119
-msgid "Used by"
-msgstr "使用者"
+#~ msgid "Used by"
+#~ msgstr "使用者"
 
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx:206
 #: src/lib/components/layout/manage-languages-dialog.tsx:382

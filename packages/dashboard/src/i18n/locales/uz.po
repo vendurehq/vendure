@@ -47,8 +47,8 @@ msgstr "Yangi soliq stavkasi"
 msgid "Assign an existing option group or create a new one"
 msgstr "Mavjud optsiya guruhini biriktiring yoki yangisini yarating"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:34
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:77
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:76
 msgid "New role"
 msgstr "Yangi rol"
 
@@ -262,7 +262,7 @@ msgstr "Buyurtmalar"
 #~ msgid "Select roles"
 #~ msgstr "Rollarni tanlang"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:62
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:61
 msgid "Successfully created role"
 msgstr "Rol yaratildi"
 
@@ -576,7 +576,7 @@ msgstr "To'plamlarni ko'chirish"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:160
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:55
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:171
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:32
 #: src/app/routes/_authenticated/_roles/roles.tsx:16
 #: src/app/routes/_authenticated/_roles/roles.tsx:25
 msgid "Roles"
@@ -826,8 +826,8 @@ msgid "Order line removed"
 msgstr "Buyurtma qatori olib tashlandi"
 
 #: src/app/routes/_authenticated/_roles/components/role-usage.tsx:81
-msgid "User"
-msgstr "Foydalanuvchi"
+#~ msgid "User"
+#~ msgstr "Foydalanuvchi"
 
 #: src/lib/components/layout/channel-switcher.tsx:158
 msgid "Content:"
@@ -947,7 +947,7 @@ msgstr "Rejalashtirilgan vazifa bajariladi"
 msgid "New stock location"
 msgstr "Yangi zaxira joylashuvi"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:109
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:108
 msgid "Permissions"
 msgstr "Ruxsatlar"
 
@@ -1746,7 +1746,7 @@ msgstr "Pul qaytarish muvaffaqiyatli hisoblashildi"
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:219
 #: src/app/routes/_authenticated/_profile/profile.tsx:92
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:83
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:96
@@ -1827,7 +1827,7 @@ msgstr "Ustun sozlamalari"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:208
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:176
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:164
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:100
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:99
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:154
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:61
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:98
@@ -2751,7 +2751,7 @@ msgstr "Global koʻrinishni oʻchirish"
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:219
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:83
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:96
@@ -3245,8 +3245,8 @@ msgid "This option group is in use by existing variants. Force removing it may a
 msgstr "Bu optsiya guruhi mavjud variantlarda ishlatilmoqda. Majburiy olib tashlash ularga ta'sir qilishi mumkin. Ishonchingiz komilmi?"
 
 #: src/app/routes/_authenticated/_roles/components/role-usage.tsx:58
-msgid "This role is not assigned to any user"
-msgstr "Bu rol hech bir foydalanuvchiga tayinlanmagan"
+#~ msgid "This role is not assigned to any user"
+#~ msgstr "Bu rol hech bir foydalanuvchiga tayinlanmagan"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:63
 msgid "Email update requested"
@@ -3268,7 +3268,7 @@ msgstr "Yangi oyna"
 msgid "Payment authorized"
 msgstr "To'lov tasdiqlandi"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:62
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:61
 msgid "Successfully updated role"
 msgstr "Rol yangilandi"
 
@@ -3351,7 +3351,6 @@ msgstr "To'lovni yakunlash"
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:216
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:343
-#: src/app/routes/_authenticated/_roles/components/role-usage.tsx:84
 #: src/lib/components/layout/channel-switcher.tsx:146
 msgid "Channels"
 msgstr "Kanallar"
@@ -3563,7 +3562,7 @@ msgstr "VA"
 msgid "Failed to create customer group"
 msgstr "Mijozlar guruhini yaratib bo'lmadi"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:69
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:68
 msgid "Failed to create role"
 msgstr "Rolni yaratib bo'lmadi"
 
@@ -3760,7 +3759,7 @@ msgstr "Optsiya guruhini olib tashlash"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:262
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:174
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:94
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:93
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:162
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:114
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:112
@@ -4297,16 +4296,15 @@ msgstr "Tasdiqlangan"
 msgid "New option group"
 msgstr "Yangi optsiya guruhi"
 
-#. placeholder {0}: items.length
 #: src/app/routes/_authenticated/_roles/components/role-usage.tsx:107
-msgid "Showing the first {0} of {totalItems} assignments"
-msgstr "{totalItems} tayinlovdan dastlabki {0} tasi ko'rsatilmoqda"
+#~ msgid "Showing the first {0} of {totalItems} assignments"
+#~ msgstr "{totalItems} tayinlovdan dastlabki {0} tasi ko'rsatilmoqda"
 
 #: src/lib/components/data-table/views-sheet.tsx:141
 msgid "No global views have been created yet."
 msgstr "Hali birorta global ko'rinish yaratilmagan."
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:69
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:68
 msgid "Failed to update role"
 msgstr "Rolni yangilab bo'lmadi"
 
@@ -5554,8 +5552,8 @@ msgid "Sets the stock level at which this variant is considered to be out of sto
 msgstr "Ushbu variant zaxirada tugagan deb hisoblanadigan zaxira darajasini belgilaydi. Manfiy qiymat oldindan buyurtmani yoqadi."
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:119
-msgid "Used by"
-msgstr "Ishlatuvchilar"
+#~ msgid "Used by"
+#~ msgstr "Ishlatuvchilar"
 
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx:206
 #: src/lib/components/layout/manage-languages-dialog.tsx:382

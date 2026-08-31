@@ -47,8 +47,8 @@ msgstr "Нова данъчна ставка"
 msgid "Assign an existing option group or create a new one"
 msgstr "Присвоете съществуваща група опции или създайте нова"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:34
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:77
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:76
 msgid "New role"
 msgstr "Нова роля"
 
@@ -282,7 +282,7 @@ msgstr "Поръчки"
 #~ msgid "Select roles"
 #~ msgstr "Избор на роли"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:62
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:61
 msgid "Successfully created role"
 msgstr "Успешно създадена роля"
 
@@ -610,7 +610,7 @@ msgstr "Преместване на колекции"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:160
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:55
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:171
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:32
 #: src/app/routes/_authenticated/_roles/roles.tsx:16
 #: src/app/routes/_authenticated/_roles/roles.tsx:25
 msgid "Roles"
@@ -860,8 +860,8 @@ msgid "Order line removed"
 msgstr "Редът за поръчка е премахнат"
 
 #: src/app/routes/_authenticated/_roles/components/role-usage.tsx:81
-msgid "User"
-msgstr "Потребител"
+#~ msgid "User"
+#~ msgstr "Потребител"
 
 #: src/lib/components/layout/channel-switcher.tsx:158
 msgid "Content:"
@@ -981,7 +981,7 @@ msgstr "Планираната задача ще бъде изпълнена"
 msgid "New stock location"
 msgstr "Ново складово местоположение"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:109
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:108
 msgid "Permissions"
 msgstr "Разрешения"
 
@@ -1822,7 +1822,7 @@ msgstr "Възстановяването е приключено успешно"
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:219
 #: src/app/routes/_authenticated/_profile/profile.tsx:92
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:83
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:96
@@ -1909,7 +1909,7 @@ msgstr "Настройки на колони"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:208
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:176
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:164
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:100
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:99
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:154
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:61
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:98
@@ -2855,7 +2855,7 @@ msgstr "Изтриване на глобалния изглед"
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:219
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:83
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:96
@@ -3357,8 +3357,8 @@ msgid "This option group is in use by existing variants. Force removing it may a
 msgstr "Тази група опции се използва от съществуващи варианти. Принудителното й премахване може да ги засегне. Сигурни ли сте?"
 
 #: src/app/routes/_authenticated/_roles/components/role-usage.tsx:58
-msgid "This role is not assigned to any user"
-msgstr "Тази роля не е зададена на нито един потребител"
+#~ msgid "This role is not assigned to any user"
+#~ msgstr "Тази роля не е зададена на нито един потребител"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:63
 msgid "Email update requested"
@@ -3380,7 +3380,7 @@ msgstr "Нов прозорец"
 msgid "Payment authorized"
 msgstr "Разрешено плащане"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:62
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:61
 msgid "Successfully updated role"
 msgstr "Успешно актуализирана роля"
 
@@ -3471,7 +3471,6 @@ msgstr "Приклюи плащане"
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:216
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:343
-#: src/app/routes/_authenticated/_roles/components/role-usage.tsx:84
 #: src/lib/components/layout/channel-switcher.tsx:146
 msgid "Channels"
 msgstr "Канали"
@@ -3694,7 +3693,7 @@ msgstr "И"
 msgid "Failed to create customer group"
 msgstr "Неуспешно създаване на клиентска група"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:69
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:68
 msgid "Failed to create role"
 msgstr "Неуспешно създаване на роля"
 
@@ -3895,7 +3894,7 @@ msgstr "Премахване на група опции"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:262
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:174
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:94
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:93
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:162
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:114
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:112
@@ -4471,16 +4470,15 @@ msgstr "Нова група опции"
 #~ msgid "Last updated {0}"
 #~ msgstr "Последна актуализация {0}"
 
-#. placeholder {0}: items.length
 #: src/app/routes/_authenticated/_roles/components/role-usage.tsx:107
-msgid "Showing the first {0} of {totalItems} assignments"
-msgstr "Показват се първите {0} от {totalItems} назначения"
+#~ msgid "Showing the first {0} of {totalItems} assignments"
+#~ msgstr "Показват се първите {0} от {totalItems} назначения"
 
 #: src/lib/components/data-table/views-sheet.tsx:141
 msgid "No global views have been created yet."
 msgstr "Все още не са създадени глобални изгледи."
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:69
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:68
 msgid "Failed to update role"
 msgstr "Неуспешно актуализиране на ролята"
 
@@ -5790,8 +5788,8 @@ msgstr "Задава нивото на наличност, при което т�
 #~ msgstr "Създай опции за продукти"
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:119
-msgid "Used by"
-msgstr "Използва се от"
+#~ msgid "Used by"
+#~ msgstr "Използва се от"
 
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx:206
 #: src/lib/components/layout/manage-languages-dialog.tsx:382

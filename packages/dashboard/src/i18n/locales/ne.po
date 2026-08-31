@@ -47,8 +47,8 @@ msgstr "नयाँ कर दर"
 msgid "Assign an existing option group or create a new one"
 msgstr "अवस्थित विकल्प समूह तोक्नुहोस् वा नयाँ सिर्जना गर्नुहोस्"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:34
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:77
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:76
 msgid "New role"
 msgstr "नयाँ भूमिका"
 
@@ -282,7 +282,7 @@ msgstr "अर्डरहरू"
 #~ msgid "Select roles"
 #~ msgstr "भूमिकाहरू चयन गर्नुहोस्"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:62
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:61
 msgid "Successfully created role"
 msgstr "भूमिका सफलतापूर्वक सिर्जना गरियो"
 
@@ -604,7 +604,7 @@ msgstr "संग्रहहरू सार्नुहोस्"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:160
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:55
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:171
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:32
 #: src/app/routes/_authenticated/_roles/roles.tsx:16
 #: src/app/routes/_authenticated/_roles/roles.tsx:25
 msgid "Roles"
@@ -854,8 +854,8 @@ msgid "Order line removed"
 msgstr "अर्डर लाइन हटाइयो"
 
 #: src/app/routes/_authenticated/_roles/components/role-usage.tsx:81
-msgid "User"
-msgstr "प्रयोगकर्ता"
+#~ msgid "User"
+#~ msgstr "प्रयोगकर्ता"
 
 #: src/lib/components/layout/channel-switcher.tsx:158
 msgid "Content:"
@@ -975,7 +975,7 @@ msgstr "अनुसूचित कार्य कार्यान्वय�
 msgid "New stock location"
 msgstr "नयाँ स्टक स्थान"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:109
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:108
 msgid "Permissions"
 msgstr "अनुमतिहरू"
 
@@ -1807,7 +1807,7 @@ msgstr "रिफन्ड सफलतापूर्वक सम्पन्�
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:219
 #: src/app/routes/_authenticated/_profile/profile.tsx:92
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:83
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:96
@@ -1894,7 +1894,7 @@ msgstr "स्तम्भ सेटिङहरू"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:208
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:176
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:164
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:100
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:99
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:154
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:61
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:98
@@ -2835,7 +2835,7 @@ msgstr "ग्लोबल दृश्य मेट्नुहोस्"
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:219
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:83
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:96
@@ -3337,8 +3337,8 @@ msgid "This option group is in use by existing variants. Force removing it may a
 msgstr "यो विकल्प समूह अवस्थित भेरियन्टहरूमा प्रयोगमा छ। बलपूर्वक हटाउँदा ती भेरियन्टहरूमा असर पर्न सक्छ। के तपाईं निश्चित हुनुहुन्छ?"
 
 #: src/app/routes/_authenticated/_roles/components/role-usage.tsx:58
-msgid "This role is not assigned to any user"
-msgstr "यो भूमिका कुनै पनि प्रयोगकर्तालाई तोकिएको छैन"
+#~ msgid "This role is not assigned to any user"
+#~ msgstr "यो भूमिका कुनै पनि प्रयोगकर्तालाई तोकिएको छैन"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:63
 msgid "Email update requested"
@@ -3360,7 +3360,7 @@ msgstr "नयाँ विन्डो"
 msgid "Payment authorized"
 msgstr "भुक्तानी अधिकृत गरियो"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:62
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:61
 msgid "Successfully updated role"
 msgstr "भूमिका सफलतापूर्वक अपडेट गरियो"
 
@@ -3451,7 +3451,6 @@ msgstr "भुक्तानी सम्पन्न गर्नुहोस�
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:216
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:343
-#: src/app/routes/_authenticated/_roles/components/role-usage.tsx:84
 #: src/lib/components/layout/channel-switcher.tsx:146
 msgid "Channels"
 msgstr "च्यानलहरू"
@@ -3674,7 +3673,7 @@ msgstr "र"
 msgid "Failed to create customer group"
 msgstr "ग्राहक समूह सिर्जना गर्न असफल"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:69
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:68
 msgid "Failed to create role"
 msgstr "भूमिका सिर्जना गर्न असफल"
 
@@ -3875,7 +3874,7 @@ msgstr "विकल्प समूह हटाउनुहोस्"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:262
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:174
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:94
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:93
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:162
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:114
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:112
@@ -4445,16 +4444,15 @@ msgstr "नयाँ विकल्प समूह"
 #~ msgid "Last updated {0}"
 #~ msgstr "अन्तिम अपडेट {0}"
 
-#. placeholder {0}: items.length
 #: src/app/routes/_authenticated/_roles/components/role-usage.tsx:107
-msgid "Showing the first {0} of {totalItems} assignments"
-msgstr "{totalItems} मध्ये पहिलो {0} असाइनमेन्टहरू देखाइँदै"
+#~ msgid "Showing the first {0} of {totalItems} assignments"
+#~ msgstr "{totalItems} मध्ये पहिलो {0} असाइनमेन्टहरू देखाइँदै"
 
 #: src/lib/components/data-table/views-sheet.tsx:141
 msgid "No global views have been created yet."
 msgstr "अझै कुनै ग्लोबल दृश्यहरू सिर्जना गरिएको छैन।"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:69
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:68
 msgid "Failed to update role"
 msgstr "भूमिका अपडेट गर्न असफल"
 
@@ -5758,8 +5756,8 @@ msgstr "यो भेरियन्ट स्टक बाहिर मान�
 #~ msgstr "उत्पादन विकल्पहरू सिर्जना गर्नुहोस्"
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:119
-msgid "Used by"
-msgstr "द्वारा प्रयोग गरिएको"
+#~ msgid "Used by"
+#~ msgstr "द्वारा प्रयोग गरिएको"
 
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx:206
 #: src/lib/components/layout/manage-languages-dialog.tsx:382

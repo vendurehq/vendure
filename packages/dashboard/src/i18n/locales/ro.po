@@ -47,8 +47,8 @@ msgstr "Cotă de Taxă Nouă"
 msgid "Assign an existing option group or create a new one"
 msgstr "Atribuie un grup de opțiuni existent sau creează unul nou"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:34
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:77
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:76
 msgid "New role"
 msgstr "Rol nou"
 
@@ -262,7 +262,7 @@ msgstr "Comenzi"
 #~ msgid "Select roles"
 #~ msgstr "Selectează roluri"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:62
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:61
 msgid "Successfully created role"
 msgstr "Rolul a fost creat cu succes"
 
@@ -576,7 +576,7 @@ msgstr "Mută Colecții"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:160
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:55
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:171
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:32
 #: src/app/routes/_authenticated/_roles/roles.tsx:16
 #: src/app/routes/_authenticated/_roles/roles.tsx:25
 msgid "Roles"
@@ -826,8 +826,8 @@ msgid "Order line removed"
 msgstr "Linie comandă eliminată"
 
 #: src/app/routes/_authenticated/_roles/components/role-usage.tsx:81
-msgid "User"
-msgstr "Utilizator"
+#~ msgid "User"
+#~ msgstr "Utilizator"
 
 #: src/lib/components/layout/channel-switcher.tsx:158
 msgid "Content:"
@@ -947,7 +947,7 @@ msgstr "Sarcina planificată va fi executată"
 msgid "New stock location"
 msgstr "Locație stoc nouă"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:109
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:108
 msgid "Permissions"
 msgstr "Permisiuni"
 
@@ -1746,7 +1746,7 @@ msgstr "Rambursare soluționată cu succes"
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:219
 #: src/app/routes/_authenticated/_profile/profile.tsx:92
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:83
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:96
@@ -1827,7 +1827,7 @@ msgstr "Setări coloane"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:208
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:176
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:164
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:100
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:99
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:154
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:61
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:98
@@ -2751,7 +2751,7 @@ msgstr "Șterge vizualizarea globală"
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:219
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:83
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:96
@@ -3245,8 +3245,8 @@ msgid "This option group is in use by existing variants. Force removing it may a
 msgstr "Acest grup de opțiuni este folosit de variante existente. Eliminarea forțată îl poate afecta. Ești sigur?"
 
 #: src/app/routes/_authenticated/_roles/components/role-usage.tsx:58
-msgid "This role is not assigned to any user"
-msgstr "Acest rol nu este atribuit niciunui utilizator"
+#~ msgid "This role is not assigned to any user"
+#~ msgstr "Acest rol nu este atribuit niciunui utilizator"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:63
 msgid "Email update requested"
@@ -3268,7 +3268,7 @@ msgstr "Fereastră nouă"
 msgid "Payment authorized"
 msgstr "Plată autorizată"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:62
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:61
 msgid "Successfully updated role"
 msgstr "Rolul a fost actualizat cu succes"
 
@@ -3351,7 +3351,6 @@ msgstr "Finalizează plata"
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:216
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:343
-#: src/app/routes/_authenticated/_roles/components/role-usage.tsx:84
 #: src/lib/components/layout/channel-switcher.tsx:146
 msgid "Channels"
 msgstr "Canale"
@@ -3563,7 +3562,7 @@ msgstr "ȘI"
 msgid "Failed to create customer group"
 msgstr "Nu s-a putut crea grupul de clienți"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:69
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:68
 msgid "Failed to create role"
 msgstr "Nu s-a putut crea rolul"
 
@@ -3760,7 +3759,7 @@ msgstr "Elimină grupul de opțiuni"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:262
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:174
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:94
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:93
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:162
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:114
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:112
@@ -4297,16 +4296,15 @@ msgstr "Verificat"
 msgid "New option group"
 msgstr "Grup de opțiuni nou"
 
-#. placeholder {0}: items.length
 #: src/app/routes/_authenticated/_roles/components/role-usage.tsx:107
-msgid "Showing the first {0} of {totalItems} assignments"
-msgstr "Se afișează primele {0} din {totalItems} atribuiri"
+#~ msgid "Showing the first {0} of {totalItems} assignments"
+#~ msgstr "Se afișează primele {0} din {totalItems} atribuiri"
 
 #: src/lib/components/data-table/views-sheet.tsx:141
 msgid "No global views have been created yet."
 msgstr "Nu au fost create încă vizualizări globale."
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:69
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:68
 msgid "Failed to update role"
 msgstr "Nu s-a putut actualiza rolul"
 
@@ -5554,8 +5552,8 @@ msgid "Sets the stock level at which this variant is considered to be out of sto
 msgstr "Setează nivelul stocului la care această variantă este considerată a fi în afara stocului. Folosirea unei valori negative activează suportul pentru comenzi în așteptare."
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:119
-msgid "Used by"
-msgstr "Utilizat de"
+#~ msgid "Used by"
+#~ msgstr "Utilizat de"
 
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx:206
 #: src/lib/components/layout/manage-languages-dialog.tsx:382
