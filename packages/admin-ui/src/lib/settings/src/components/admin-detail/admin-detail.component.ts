@@ -20,7 +20,13 @@ import { CUSTOMER_ROLE_CODE } from '@vendure/common/lib/shared-constants';
 import { notNullOrUndefined } from '@vendure/common/lib/shared-utils';
 import { gql } from 'apollo-angular';
 import { Observable } from 'rxjs';
-import { mergeMap, take, takeUntil } from 'rxjs/operators';
+import { mergeMap, take } from 'rxjs/operators';
+
+export interface PermissionsByChannel {
+    channelId: string;
+    channelCode: string;
+    permissions: { [K in Permission]: boolean };
+}
 
 export const GET_ADMINISTRATOR_DETAIL = gql`
     query GetAdministratorDetail($id: ID!) {
@@ -36,7 +42,7 @@ export const GET_ADMINISTRATOR_DETAIL = gql`
     templateUrl: './admin-detail.component.html',
     styleUrls: ['./admin-detail.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false,
+    standalone: false
 })
 export class AdminDetailComponent
     extends TypedBaseDetailComponent<typeof GetAdministratorDetailDocument, 'administrator'>
@@ -58,8 +64,12 @@ export class AdminDetailComponent
     permissionDefinitions: PermissionDefinition[];
     allRoles$: Observable<RoleFragment[]>;
     selectedRoles: RoleFragment[] = [];
-    selectedRolePermissions: Permission[] = [];
-    private activeChannelId: string;
+    selectedRolePermissions: { [channelId: string]: PermissionsByChannel } = {} as any;
+    selectedChannelId: string | null = null;
+
+    getAvailableChannels(): PermissionsByChannel[] {
+        return Object.values(this.selectedRolePermissions);
+    }
 
     constructor(
         private changeDetector: ChangeDetectorRef,
@@ -86,17 +96,6 @@ export class AdminDetailComponent
                 }
             }
         });
-        // The role select edits the User's Roles on the active Channel: on save, its value
-        // is written as RoleAssignments pinned to the active Channel.
-        this.dataService.client
-            .userStatus()
-            .mapStream(({ userStatus }) => userStatus.activeChannelId)
-            .pipe(takeUntil(this.destroy$))
-            .subscribe(activeChannelId => {
-                if (activeChannelId) {
-                    this.activeChannelId = activeChannelId;
-                }
-            });
         this.permissionDefinitions = this.serverConfigService.getPermissionDefinitions();
     }
 
@@ -106,6 +105,27 @@ export class AdminDetailComponent
 
     rolesChanged(roles: RoleFragment[]) {
         this.buildPermissionsMap();
+    }
+
+    getPermissionsForSelectedChannel(): string[] {
+        function getActivePermissions(input: PermissionsByChannel['permissions']): string[] {
+            return Object.entries(input)
+                .filter(([permission, active]) => active)
+                .map(([permission, active]) => permission);
+        }
+        if (this.selectedChannelId) {
+            const selectedChannel = this.selectedRolePermissions[this.selectedChannelId];
+            if (selectedChannel) {
+                const permissionMap = this.selectedRolePermissions[this.selectedChannelId].permissions;
+                return getActivePermissions(permissionMap);
+            }
+        }
+        const channels = Object.values(this.selectedRolePermissions);
+        if (0 < channels.length) {
+            this.selectedChannelId = channels[0].channelId;
+            return getActivePermissions(channels[0].permissions);
+        }
+        return [];
     }
 
     create() {
@@ -119,12 +139,7 @@ export class AdminDetailComponent
             lastName,
             password,
             customFields,
-            // The selected Roles are granted on the active Channel.
-            roleAssignments:
-                roles
-                    ?.map(role => role.id)
-                    .filter(notNullOrUndefined)
-                    .map(roleId => ({ roleId, channelId: this.activeChannelId })) ?? [],
+            roleIds: roles?.map(role => role.id).filter(notNullOrUndefined) ?? [],
         };
         this.dataService.administrator.createAdministrator(administrator).subscribe(
             data => {
@@ -147,21 +162,8 @@ export class AdminDetailComponent
         this.entity$
             .pipe(
                 take(1),
-                mergeMap(({ id, user }) => {
+                mergeMap(({ id }) => {
                     const formValue = this.detailForm.value;
-                    // roleAssignments is a full replace-set across all Channels, but this
-                    // editor only manages the Roles on the active Channel: keep the User's
-                    // assignments on other Channels and replace the active Channel's set
-                    // with the form selection.
-                    const roleAssignments = [
-                        ...user.roleAssignments
-                            .filter(assignment => assignment.channelId !== this.activeChannelId)
-                            .map(({ roleId, channelId }) => ({ roleId, channelId })),
-                        ...(formValue.roles ?? [])
-                            .map(role => role.id)
-                            .filter(notNullOrUndefined)
-                            .map(roleId => ({ roleId, channelId: this.activeChannelId })),
-                    ];
                     const administrator: UpdateAdministratorInput = {
                         id,
                         emailAddress: formValue.emailAddress,
@@ -169,7 +171,7 @@ export class AdminDetailComponent
                         lastName: formValue.lastName,
                         password: formValue.password,
                         customFields: formValue.customFields,
-                        roleAssignments,
+                        roleIds: formValue.roles?.map(role => role.id),
                     };
                     return this.dataService.administrator.updateAdministrator(administrator);
                 }),
@@ -215,17 +217,39 @@ export class AdminDetailComponent
     }
 
     private buildPermissionsMap() {
-        // A Role is a channel-agnostic template: the Channels its permissions apply to are
-        // determined per-user by RoleAssignments, so the display is a single union of the
-        // selected Roles' permissions.
-        const rolesControl = this.detailForm.get('roles');
-        if (rolesControl) {
-            const roles = rolesControl.value ?? [];
-            const permissionSet = new Set<Permission>();
-            for (const role of roles) {
-                role.permissions.forEach(p => permissionSet.add(p as Permission));
+        const permissionsControl = this.detailForm.get('roles');
+        if (permissionsControl) {
+            const roles = permissionsControl.value;
+            const channelIdPermissionsMap = new Map<string, Set<Permission>>();
+            const channelIdCodeMap = new Map<string, string>();
+
+            for (const role of roles ?? []) {
+                for (const channel of role.channels) {
+                    const channelPermissions = channelIdPermissionsMap.get(channel.id);
+                    const permissionSet = channelPermissions || new Set<Permission>();
+
+                    role.permissions.forEach(p => permissionSet.add(p));
+                    channelIdPermissionsMap.set(channel.id, permissionSet);
+                    channelIdCodeMap.set(channel.id, channel.code);
+                }
             }
-            this.selectedRolePermissions = Array.from(permissionSet);
+
+            this.selectedRolePermissions = {} as any;
+            for (const channelId of Array.from(channelIdPermissionsMap.keys())) {
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                const permissionSet = channelIdPermissionsMap.get(channelId)!;
+                const permissionsHash: { [K in Permission]: boolean } = {} as any;
+                for (const def of this.serverConfigService.getPermissionDefinitions()) {
+                    permissionsHash[def.name] = permissionSet.has(def.name as Permission);
+                }
+                this.selectedRolePermissions[channelId] = {
+                    /* eslint-disable @typescript-eslint/no-non-null-assertion */
+                    channelId,
+                    channelCode: channelIdCodeMap.get(channelId)!,
+                    permissions: permissionsHash,
+                    /* eslint-enable @typescript-eslint/no-non-null-assertion */
+                };
+            }
         }
     }
 }
