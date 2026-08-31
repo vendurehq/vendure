@@ -151,6 +151,18 @@ test.describe('Channels CRUD', () => {
         await lp.expectSuccessToast();
 
         await expect(lp.getRows().filter({ hasText: 'e2e-test-channel' })).toHaveCount(0);
+
+        // #5179 — the deleted channel must also disappear from the channel
+        // switcher in the sidebar, not just the list. The switcher renders from
+        // the channel provider (me.channels), which the delete bulk action
+        // refreshes via refreshChannels(). Crucially there is no page.reload()
+        // here: a reload would repopulate the switcher from scratch and mask the
+        // bug this asserts.
+        const sidebar = page.locator('[data-slot="sidebar"]');
+        await sidebar.getByRole('button').first().click();
+        const switcherMenu = page.locator('[data-slot="dropdown-menu-content"]');
+        await expect(switcherMenu).toBeVisible();
+        await expect(switcherMenu.getByText('e2e-test-channel')).toHaveCount(0);
     });
 });
 
