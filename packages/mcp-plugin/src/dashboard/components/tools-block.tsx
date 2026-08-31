@@ -58,7 +58,7 @@ export function ToolsBlock() {
     });
 
     const toggle = useMutation({
-        mutationFn: (vars: { toolName: string; toolset: string; enabled: boolean }) =>
+        mutationFn: (vars: { toolName: string; toolset: McpTool['toolset']; enabled: boolean }) =>
             api.mutate(setMcpToolEnabledDocument, vars),
         // Flip the switch in the cached list immediately so it doesn't sit in its
         // old position until the refetch lands. Rolled back if the server rejects.

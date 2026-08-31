@@ -138,6 +138,188 @@ describe('MCP admin API', () => {
         await server.destroy();
     });
 
+    // Decision 7 of the API freeze pass: fields whose TypeScript type is a closed set of
+    // strings are enums in the schema, so a client can discover the allowed values.
+    describe('enum-typed fields', () => {
+        const TYPE_FIELDS = `
+            query TypeFields($name: String!) {
+                __type(name: $name) {
+                    fields {
+                        name
+                        type {
+                            kind
+                            name
+                            ofType {
+                                kind
+                                name
+                            }
+                        }
+                    }
+                }
+            }
+        `;
+
+        const ENUM_VALUES = `
+            query EnumValues($name: String!) {
+                __type(name: $name) {
+                    kind
+                    enumValues {
+                        name
+                    }
+                }
+            }
+        `;
+
+        const INPUT_FIELDS = `
+            query InputFields($name: String!) {
+                __type(name: $name) {
+                    inputFields {
+                        name
+                        type {
+                            kind
+                            name
+                        }
+                    }
+                }
+            }
+        `;
+
+        const MUTATION_ARGS = `
+            query MutationArgs {
+                __type(name: "Mutation") {
+                    fields {
+                        name
+                        args {
+                            name
+                            type {
+                                kind
+                                name
+                                ofType {
+                                    kind
+                                    name
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        `;
+
+        interface IntrospectedType {
+            kind: string;
+            name: string | null;
+            ofType?: { kind: string; name: string | null } | null;
+        }
+
+        /** The type behind a field, looking through the wrapper that marks it non-null. */
+        function namedType(type: IntrospectedType): { kind: string; name: string | null } {
+            const inner = type.kind === 'NON_NULL' && type.ofType ? type.ofType : type;
+            return { kind: inner.kind, name: inner.name };
+        }
+
+        async function fieldType(typeName: string, fieldName: string) {
+            const result = await adminGraphQL(superAdminToken, TYPE_FIELDS, { name: typeName });
+            expect(result.errors).toBeUndefined();
+            const field = (result.data.__type.fields as Array<{ name: string; type: IntrospectedType }>).find(
+                f => f.name === fieldName,
+            );
+            if (!field) {
+                throw new Error(`${typeName}.${fieldName} is not in the schema`);
+            }
+            return namedType(field.type);
+        }
+
+        async function inputFieldType(inputName: string, fieldName: string) {
+            const result = await adminGraphQL(superAdminToken, INPUT_FIELDS, { name: inputName });
+            expect(result.errors).toBeUndefined();
+            const field = (
+                result.data.__type?.inputFields as
+                    | Array<{ name: string; type: { kind: string; name: string | null } }>
+                    | undefined
+            )?.find(f => f.name === fieldName);
+            if (!field) {
+                throw new Error(`${inputName}.${fieldName} is not in the schema`);
+            }
+            return field.type;
+        }
+
+        it.each([
+            ['McpToolInfo', 'toolset', 'McpToolset'],
+            ['McpToolInfo', 'behavior', 'McpToolBehavior'],
+            ['McpOauthGrant', 'actorType', 'McpGrantUserType'],
+            ['McpOauthGrant', 'status', 'McpOauthGrantStatus'],
+            ['McpToolCallLog', 'actorType', 'McpActorType'],
+            ['McpToolCallLog', 'status', 'McpToolCallStatus'],
+        ])('%s.%s is the %s enum', async (typeName, fieldName, enumName) => {
+            expect(await fieldType(typeName, fieldName)).toEqual({ kind: 'ENUM', name: enumName });
+        });
+
+        // The values are the strings the server already stores and returns, so no value has to
+        // be translated on the way in or out.
+        it.each([
+            ['McpToolset', ['shop', 'admin']],
+            ['McpToolBehavior', ['readonly', 'mutating', 'destructive']],
+            ['McpGrantUserType', ['customer', 'admin']],
+            ['McpActorType', ['customer', 'admin', 'anonymous']],
+            ['McpOauthGrantStatus', ['active', 'expired', 'revoked']],
+            ['McpToolCallStatus', ['success', 'error']],
+        ])('%s lists the stored strings as its values', async (enumName, expectedValues) => {
+            const result = await adminGraphQL(superAdminToken, ENUM_VALUES, { name: enumName });
+            expect(result.errors).toBeUndefined();
+            expect(result.data.__type?.kind).toBe('ENUM');
+            const values = (result.data.__type.enumValues as Array<{ name: string }>).map(v => v.name);
+            expect(new Set(values)).toEqual(new Set(expectedValues));
+        });
+
+        // Vendure builds the sort and filter inputs from the entity's fields at run time. It
+        // offers an enum field for filtering but not for sorting, so the two paginated types
+        // declare their own sort inputs to keep these columns sortable.
+        it.each([
+            ['McpOauthGrantSortParameter', 'actorType'],
+            ['McpOauthGrantSortParameter', 'status'],
+            ['McpToolCallLogSortParameter', 'actorType'],
+            ['McpToolCallLogSortParameter', 'status'],
+        ])('%s still accepts %s', async (inputName, fieldName) => {
+            expect(await inputFieldType(inputName, fieldName)).toEqual({
+                kind: 'ENUM',
+                name: 'SortOrder',
+            });
+        });
+
+        it.each([
+            ['McpOauthGrantFilterParameter', 'actorType'],
+            ['McpOauthGrantFilterParameter', 'status'],
+            ['McpToolCallLogFilterParameter', 'actorType'],
+            ['McpToolCallLogFilterParameter', 'status'],
+        ])('%s filters %s with StringOperators', async (inputName, fieldName) => {
+            expect(await inputFieldType(inputName, fieldName)).toEqual({
+                kind: 'INPUT_OBJECT',
+                name: 'StringOperators',
+            });
+        });
+
+        // The one place a caller sends a toolset in rather than reading one out. The dashboard's
+        // generated types carry no argument types, so only this test guards it.
+        it('setMcpToolEnabled takes the toolset as the McpToolset enum', async () => {
+            const result = await adminGraphQL(superAdminToken, MUTATION_ARGS);
+            expect(result.errors).toBeUndefined();
+            const mutation = (
+                result.data.__type.fields as Array<{
+                    name: string;
+                    args: Array<{ name: string; type: IntrospectedType }>;
+                }>
+            ).find(f => f.name === 'setMcpToolEnabled');
+            if (!mutation) {
+                throw new Error('setMcpToolEnabled is not in the schema');
+            }
+            const arg = mutation.args.find(a => a.name === 'toolset');
+            if (!arg) {
+                throw new Error('setMcpToolEnabled has no toolset argument');
+            }
+            expect(namedType(arg.type)).toEqual({ kind: 'ENUM', name: 'McpToolset' });
+        });
+    });
+
     describe('tool-call logs & stats', () => {
         beforeAll(async () => {
             // Fixed fixture: 5 recent rows + 1 expired, all on the default channel.

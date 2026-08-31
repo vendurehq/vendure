@@ -88,7 +88,7 @@ export const MCP_OAUTH_GRANTS_QUERY = `
 `;
 
 export const SET_MCP_TOOL_ENABLED = `
-    mutation SetMcpToolEnabled($toolName: String!, $toolset: String!, $enabled: Boolean!) {
+    mutation SetMcpToolEnabled($toolName: String!, $toolset: McpToolset!, $enabled: Boolean!) {
         setMcpToolEnabled(toolName: $toolName, toolset: $toolset, enabled: $enabled) {
             name
             toolset

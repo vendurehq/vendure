@@ -77,7 +77,7 @@ export const mcpOauthGrantsQuery = graphql(`
 `);
 
 export const setMcpToolEnabledDocument = graphql(`
-    mutation SetMcpToolEnabled($toolName: String!, $toolset: String!, $enabled: Boolean!) {
+    mutation SetMcpToolEnabled($toolName: String!, $toolset: McpToolset!, $enabled: Boolean!) {
         setMcpToolEnabled(toolName: $toolName, toolset: $toolset, enabled: $enabled) {
             name
             toolset

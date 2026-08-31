@@ -11,7 +11,7 @@ import {
     TransactionalConnection,
     UserInputError,
 } from '@vendure/core';
-import { McpToolset } from '@vendure/mcp-sdk';
+import { McpToolBehavior, McpToolset } from '@vendure/mcp-sdk';
 import { ObjectLiteral, SelectQueryBuilder } from 'typeorm';
 import { DateUtils } from 'typeorm/util/DateUtils';
 
@@ -21,16 +21,16 @@ import { McpToolCallLogService } from '../logging/mcp-tool-call-log.service';
 import { McpOauthService } from '../oauth/oauth.service';
 import { McpToolRegistryService } from '../registry/mcp-tool-registry.service';
 import { McpRegisteredTool } from '../registry/registry-types';
-import { McpToolCallStatus } from '../types';
+import { McpGrantUserType, McpToolCallStatus } from '../types';
 
 /** A registered tool and whether it is currently enabled. */
 interface McpToolInfo {
     id: string;
     name: string;
-    toolset: string;
+    toolset: McpToolset;
     description: string;
     pluginSource: string;
-    behavior: string;
+    behavior: McpToolBehavior;
     enabled: boolean;
 }
 
@@ -40,7 +40,7 @@ interface McpOauthGrantInfo {
     createdAt: Date;
     updatedAt: Date;
     actorId: string;
-    actorType: string;
+    actorType: McpGrantUserType;
     channelId: ID | null;
     oauthClientName: string | null;
     lastActivityAt: Date;

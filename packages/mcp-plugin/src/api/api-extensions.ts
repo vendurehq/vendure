@@ -6,14 +6,53 @@ import { gql } from 'graphql-tag';
  * the maintenance mutations (toggle a tool, revoke a grant, delete old logs).
  */
 export const adminApiExtensions = gql`
+    "Which endpoint a tool is served from."
+    enum McpToolset {
+        shop
+        admin
+    }
+
+    "What a tool does to data: readonly tools only read it, mutating tools change it, and destructive tools ask for confirmation first."
+    enum McpToolBehavior {
+        readonly
+        mutating
+        destructive
+    }
+
+    "Whether an administrator or a customer approved an OAuth grant."
+    enum McpGrantUserType {
+        customer
+        admin
+    }
+
+    "Who a tool call ran as. anonymous means nobody was signed in."
+    enum McpActorType {
+        customer
+        admin
+        anonymous
+    }
+
+    "The three states an OAuth grant can be in."
+    enum McpOauthGrantStatus {
+        active
+        expired
+        revoked
+    }
+
+    "Whether a logged tool call succeeded or failed."
+    enum McpToolCallStatus {
+        success
+        error
+    }
+
     "A registered tool and whether it is currently enabled."
     type McpToolInfo {
         id: ID!
         name: String!
-        toolset: String!
+        toolset: McpToolset!
         description: String!
         pluginSource: String!
-        behavior: String!
+        behavior: McpToolBehavior!
         enabled: Boolean!
     }
 
@@ -23,16 +62,14 @@ export const adminApiExtensions = gql`
         createdAt: DateTime!
         updatedAt: DateTime!
         actorId: String
-        actorType: String
+        actorType: McpGrantUserType
         channelId: ID
         oauthClientName: String
         lastActivityAt: DateTime!
         expiresAt: DateTime!
         revokedAt: DateTime
-        """
-        One of "active", "expired" or "revoked", worked out from revokedAt and expiresAt.
-        """
-        status: String!
+        "Worked out from revokedAt and expiresAt rather than stored, so it is always current."
+        status: McpOauthGrantStatus!
     }
 
     type McpOauthGrantList implements PaginatedList {
@@ -51,7 +88,7 @@ export const adminApiExtensions = gql`
         grantId: ID
         "The id of the Vendure user the call ran as. Null when nobody was signed in."
         actor: String
-        actorType: String!
+        actorType: McpActorType!
         "Stored only when logging.captureClientIp is enabled. Requires the ReadCustomer permission to read."
         clientIp: String
         channelId: ID
@@ -60,7 +97,7 @@ export const adminApiExtensions = gql`
         input: JSON
         output: JSON
         durationMs: Int
-        status: String!
+        status: McpToolCallStatus!
         oauthClientId: ID
     }
 
@@ -105,7 +142,7 @@ export const adminApiExtensions = gql`
 
     extend type Mutation {
         "Enable or disable a tool. Returns the tool with its new state."
-        setMcpToolEnabled(toolName: String!, toolset: String!, enabled: Boolean!): McpToolInfo!
+        setMcpToolEnabled(toolName: String!, toolset: McpToolset!, enabled: Boolean!): McpToolInfo!
         "Revoke an OAuth grant. Returns false if no grant has that id."
         revokeMcpOauthGrant(id: ID!): Boolean!
         "Delete tool-call logs past the retention window. Returns how many were deleted."
@@ -122,6 +159,19 @@ export const adminApiExtensions = gql`
 
     # Auto-generated at runtime
     input McpOauthGrantListOptions
+
+    # Vendure builds the sort and filter inputs from these types at run time, but it only offers
+    # scalar fields for sorting. Declaring the enum-typed columns here keeps them sortable; the
+    # generator merges these fields into the input it builds.
+    input McpToolCallLogSortParameter {
+        actorType: SortOrder
+        status: SortOrder
+    }
+
+    input McpOauthGrantSortParameter {
+        actorType: SortOrder
+        status: SortOrder
+    }
 `;
 
 export const shopApiExtensions = gql`
