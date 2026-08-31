@@ -11,7 +11,12 @@ import {
 } from '@vendure/core';
 
 import { adminApiExtensions, shopApiExtensions } from './api/api-extensions';
-import { McpAdminResolver, McpToolCallLogEntityResolver } from './api/mcp-admin.resolver';
+import { McpActorService } from './api/mcp-actor.service';
+import {
+    McpAdminResolver,
+    McpOauthGrantActorResolver,
+    McpToolCallLogEntityResolver,
+} from './api/mcp-admin.resolver';
 import { McpShopResolver } from './api/mcp-shop.resolver';
 import {
     MCP_PLUGIN_OPTIONS,
@@ -89,12 +94,13 @@ import { McpPluginOptions } from './types';
         McpActiveOrderService,
         McpToolSerializerService,
         McpCatalogQueryService,
+        McpActorService,
         ...mcpBuiltInToolProviders,
     ],
     entities: [McpOauthClient, McpAuthorizationCode, McpAuthorizationRequest, McpOauthGrant, McpToolCallLog],
     adminApiExtensions: {
         schema: adminApiExtensions,
-        resolvers: [McpAdminResolver, McpToolCallLogEntityResolver],
+        resolvers: [McpAdminResolver, McpToolCallLogEntityResolver, McpOauthGrantActorResolver],
     },
     shopApiExtensions: {
         schema: shopApiExtensions,

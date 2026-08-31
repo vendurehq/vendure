@@ -53,6 +53,8 @@ export const MCP_TOOL_CALL_LOGS_WITH_BODIES_QUERY = `
                 toolName
                 actor
                 actorType
+                actorName
+                customerId
                 status
                 durationMs
                 pluginSource
@@ -75,6 +77,8 @@ export const MCP_OAUTH_GRANTS_QUERY = `
                 updatedAt
                 actorId
                 actorType
+                actorName
+                customerId
                 channelId
                 oauthClientName
                 lastActivityAt

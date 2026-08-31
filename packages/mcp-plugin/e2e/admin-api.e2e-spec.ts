@@ -1,5 +1,7 @@
 import {
+    Administrator,
     ConfigService,
+    Customer,
     ID,
     mergeConfig,
     RequestContext,
@@ -29,7 +31,7 @@ import { provisionAdmin } from './utils/admin-fixtures';
 import { backdateLogCreatedAt } from './utils/log-fixtures';
 import { postMcp, rpc } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow } from './utils/oauth-test-client';
-import { testServerInit } from './utils/test-server';
+import { getIdStrategy, testServerInit } from './utils/test-server';
 
 const TOKEN_SECRET = 'admin-api-secret-00000000000000000000000';
 const ISSUER = `http://localhost:${testConfig().apiOptions.port}`;
@@ -803,7 +805,7 @@ describe('MCP admin API', () => {
                 // The id from the API is encoded (the test config prefixes ids with "T_"),
                 // so it must be decoded before it can match the database column.
                 const toExpire = await createGrant('status-expired');
-                const idStrategy = server.app.get(ConfigService).entityOptions.entityIdStrategy;
+                const idStrategy = getIdStrategy(server.app.get(ConfigService));
                 const aged = await connection
                     .getRepository(adminCtx, McpOauthGrant)
                     .createQueryBuilder()
@@ -1067,6 +1069,131 @@ describe('MCP admin API', () => {
             const revoke = await adminGraphQL(superAdminToken, REVOKE_MCP_OAUTH_GRANT, { id: grantId });
             expect(revoke.errors).toBeUndefined();
             expect(revoke.data.revokeMcpOauthGrant).toBe(false);
+        });
+    });
+
+    // A log row stores only the id of the Vendure user it ran as. actorName and customerId turn
+    // that id back into the person, so the overview can show a name instead of a number.
+    describe('actor names on tool-call logs', () => {
+        const ACTOR_TOOL_NAMES = ['actor_customer', 'actor_admin', 'actor_anonymous'];
+
+        let customerGqlId: string;
+        let customerName: string;
+        let adminName: string;
+
+        interface PersonFields {
+            id: string;
+            firstName: string;
+            lastName: string;
+            emailAddress: string;
+        }
+
+        /** Reads a person's GraphQL id and name, plus the raw id of the User row behind them. */
+        async function firstCustomer() {
+            const result = await adminGraphQL<{ customers: { items: PersonFields[] } }>(
+                superAdminToken,
+                `query { customers(options: { take: 1 }) { items { id firstName lastName emailAddress } } }`,
+            );
+            const customer = (result.data?.customers.items ?? [])[0];
+            expect(customer).toBeDefined();
+            const row = await connection.getRepository(adminCtx, Customer).findOne({
+                where: { emailAddress: customer.emailAddress },
+                relations: ['user'],
+            });
+            return {
+                gqlId: customer.id,
+                name: `${customer.firstName} ${customer.lastName}`,
+                userId: row?.user?.id as ID,
+            };
+        }
+
+        async function firstAdministrator() {
+            const result = await adminGraphQL<{ administrators: { items: PersonFields[] } }>(
+                superAdminToken,
+                `query { administrators(options: { take: 1 }) { items { id firstName lastName emailAddress } } }`,
+            );
+            const administrator = (result.data?.administrators.items ?? [])[0];
+            expect(administrator).toBeDefined();
+            const row = await connection.getRepository(adminCtx, Administrator).findOne({
+                where: { emailAddress: administrator.emailAddress },
+                relations: ['user'],
+            });
+            return {
+                name: `${administrator.firstName} ${administrator.lastName}`,
+                userId: row?.user.id as ID,
+            };
+        }
+
+        beforeAll(async () => {
+            const customer = await firstCustomer();
+            const administrator = await firstAdministrator();
+            customerGqlId = customer.gqlId;
+            customerName = customer.name;
+            adminName = administrator.name;
+
+            const repo = connection.getRepository(adminCtx, McpToolCallLog);
+            await repo.save(
+                repo.create({
+                    toolName: 'actor_customer',
+                    actor: String(customer.userId),
+                    actorType: 'customer',
+                    status: 'success',
+                    durationMs: 5,
+                    channelId: adminCtx.channelId,
+                }),
+            );
+            await repo.save(
+                repo.create({
+                    toolName: 'actor_admin',
+                    actor: String(administrator.userId),
+                    actorType: 'admin',
+                    status: 'success',
+                    durationMs: 5,
+                    channelId: adminCtx.channelId,
+                }),
+            );
+            await repo.save(
+                repo.create({
+                    toolName: 'actor_anonymous',
+                    actor: null,
+                    actorType: 'anonymous',
+                    status: 'success',
+                    durationMs: 5,
+                    channelId: adminCtx.channelId,
+                }),
+            );
+        });
+
+        /** The three planted rows, keyed by tool name. */
+        async function actorRows() {
+            const result = await adminGraphQL(superAdminToken, MCP_TOOL_CALL_LOGS_WITH_BODIES_QUERY, {
+                options: { take: 100, filter: { toolName: { in: ACTOR_TOOL_NAMES } } },
+            });
+            expect(result.errors).toBeUndefined();
+            const items = result.data.mcpToolCallLogs.items as Array<{
+                toolName: string;
+                actorName: string | null;
+                customerId: string | null;
+            }>;
+            return Object.fromEntries(items.map(item => [item.toolName, item]));
+        }
+
+        it('names a customer actor and returns the Customer id to link to', async () => {
+            const rows = await actorRows();
+            expect(rows.actor_customer.actorName).toBe(customerName);
+            expect(rows.actor_customer.customerId).toBe(customerGqlId);
+        });
+
+        it('names an administrator actor and leaves customerId null', async () => {
+            const rows = await actorRows();
+            expect(rows.actor_admin.actorName).toBe(adminName);
+            expect(rows.actor_admin.customerId).toBeNull();
+        });
+
+        it('returns both fields as null for an anonymous call', async () => {
+            const rows = await actorRows();
+            expect(rows.actor_anonymous.actorName).toBeNull();
+            expect(rows.actor_anonymous.customerId).toBeNull();
         });
     });
 });

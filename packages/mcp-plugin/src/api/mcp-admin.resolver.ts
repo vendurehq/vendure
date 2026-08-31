@@ -23,6 +23,8 @@ import { McpToolRegistryService } from '../registry/mcp-tool-registry.service';
 import { McpRegisteredTool } from '../registry/registry-types';
 import { McpGrantUserType, McpToolCallStatus } from '../types';
 
+import { McpActorService } from './mcp-actor.service';
+
 /** A registered tool and whether it is currently enabled. */
 interface McpToolInfo {
     id: string;
@@ -317,9 +319,14 @@ export class McpAdminResolver {
  * contain names, emails or addresses), and the caller's IP address. Listing log entries only
  * needs the MCP read permission, but these three fields also need the ReadCustomer permission.
  * Without it they are returned as null, not as an error.
+ *
+ * This resolver also turns the stored user id into a name, which needs a lookup rather than a
+ * permission check.
  */
 @Resolver('McpToolCallLog')
 export class McpToolCallLogEntityResolver {
+    constructor(private actorService: McpActorService) {}
+
     // Not `@Allow`: that would error on every row, and the log should stay readable for admins without customer access.
     @ResolveField()
     input(@Parent() log: McpToolCallLog, @Ctx() ctx: RequestContext): unknown {
@@ -334,5 +341,37 @@ export class McpToolCallLogEntityResolver {
     @ResolveField()
     clientIp(@Parent() log: McpToolCallLog, @Ctx() ctx: RequestContext): string | null {
         return ctx.userHasPermissions([Permission.ReadCustomer]) ? log.clientIp : null;
+    }
+
+    // Resolved per row rather than joined, because the stored id points at either a Customer
+    // or an Administrator depending on the row's actorType.
+    @ResolveField()
+    async actorName(@Parent() log: McpToolCallLog, @Ctx() ctx: RequestContext): Promise<string | null> {
+        const identity = await this.actorService.resolveIdentity(ctx, log.actor, log.actorType);
+        return identity.name;
+    }
+
+    @ResolveField()
+    async customerId(@Parent() log: McpToolCallLog, @Ctx() ctx: RequestContext): Promise<ID | null> {
+        const identity = await this.actorService.resolveIdentity(ctx, log.actor, log.actorType);
+        return identity.customerId;
+    }
+}
+
+/** The same name lookup for OAuth grants, which store the user id as `actorId`. */
+@Resolver('McpOauthGrant')
+export class McpOauthGrantActorResolver {
+    constructor(private actorService: McpActorService) {}
+
+    @ResolveField()
+    async actorName(@Parent() grant: McpOauthGrantInfo, @Ctx() ctx: RequestContext): Promise<string | null> {
+        const identity = await this.actorService.resolveIdentity(ctx, grant.actorId, grant.actorType);
+        return identity.name;
+    }
+
+    @ResolveField()
+    async customerId(@Parent() grant: McpOauthGrantInfo, @Ctx() ctx: RequestContext): Promise<ID | null> {
+        const identity = await this.actorService.resolveIdentity(ctx, grant.actorId, grant.actorType);
+        return identity.customerId;
     }
 }

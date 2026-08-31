@@ -63,6 +63,10 @@ export const adminApiExtensions = gql`
         updatedAt: DateTime!
         actorId: String
         actorType: McpGrantUserType
+        "The name of the person who approved the grant. Null when the account no longer exists."
+        actorName: String
+        "The Customer id when the grant was approved by a customer, so the dashboard can link to them. Null otherwise."
+        customerId: ID
         channelId: ID
         oauthClientName: String
         lastActivityAt: DateTime!
@@ -89,6 +93,10 @@ export const adminApiExtensions = gql`
         "The id of the Vendure user the call ran as. Null when nobody was signed in."
         actor: String
         actorType: McpActorType!
+        "The name of the person the call ran as. Null when nobody was signed in or the account no longer exists."
+        actorName: String
+        "The Customer id when the call ran as a customer, so the dashboard can link to them. Null otherwise."
+        customerId: ID
         "Stored only when logging.captureClientIp is enabled. Requires the ReadCustomer permission to read."
         clientIp: String
         channelId: ID
