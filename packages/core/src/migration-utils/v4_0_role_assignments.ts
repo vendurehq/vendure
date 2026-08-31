@@ -1,7 +1,12 @@
 /* eslint-disable no-console */
 // TODO: Remove this file once v4.0 has been stable for a while. It is a one-time
 // migration helper and will not be needed after all users have upgraded past v4.0.
-import { CUSTOMER_ROLE_CODE, SUPER_ADMIN_ROLE_CODE } from '@vendure/common/lib/shared-constants';
+import {
+    CUSTOMER_ROLE_CODE,
+    ROLE_EDITOR_ROLE_CODE,
+    ROLE_EDITOR_ROLE_DESCRIPTION,
+    SUPER_ADMIN_ROLE_CODE,
+} from '@vendure/common/lib/shared-constants';
 import { QueryRunner } from 'typeorm';
 
 /**
@@ -22,6 +27,19 @@ import { QueryRunner } from 'typeorm';
  *   recorded in `role_channels_channel`. Channels created programmatically via
  *   `ChannelService.create()` never had the SuperAdmin role auto-assigned (only the
  *   `createChannel` mutation did that), so the join-table data can be incomplete.
+ *
+ * Additionally, the RoleEditor role (which bundles the Role CRUD permissions introduced
+ * in v4.0 and is granted to every Administrator on creation going forward) is backfilled:
+ * the role row is created if absent, and every User with a non-deleted Administrator row
+ * receives it on each distinct Channel of their migrated assignment rows. Holders of the
+ * SuperAdmin role are skipped, since the SuperAdmin check-time bypass already grants them
+ * the Role CRUD permissions everywhere.
+ *
+ * The SuperAdmin role's stored permissions array also gains the new Role CRUD
+ * permissions. Pre-v4 versions re-synced that array with all assignable permissions on
+ * boot; v4 derives SuperAdmin permissions at check time and no longer re-syncs, so
+ * without this step a migrated instance would present a stale permission list on the
+ * SuperAdmin role.
  *
  * Call this from your migration's `up()` method **after** the `role_assignment` table
  * has been created and **before** `user_roles_role` and `role_channels_channel` are
@@ -121,23 +139,99 @@ export async function migrateRoleAssignmentData(queryRunner: QueryRunner): Promi
          )`,
     );
 
+    // 3. Create the RoleEditor role if it does not yet exist. Normally RoleService.initRoles()
+    // seeds it on first boot of v4.0, but the backfill in step 4 needs the row now.
+    const roleIdInsert = await getExplicitIdClauses(queryRunner, 'role');
+    const roleCrudPermissions = ['CreateRole', 'ReadRole', 'UpdateRole', 'DeleteRole'];
+    const roleEditorPermissions = ['Authenticated', ...roleCrudPermissions];
+    const roleColumns =
+        `${roleIdInsert.columns}${esc('createdAt')}, ${esc('updatedAt')}, ` +
+        `${esc('code')}, ${esc('description')}, ${esc('permissions')}`;
+    const roleValues =
+        `${roleIdInsert.select}CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, '${ROLE_EDITOR_ROLE_CODE}', ` +
+        `'${ROLE_EDITOR_ROLE_DESCRIPTION}', '${roleEditorPermissions.join(',')}'`;
+    await queryRunner.query(
+        `INSERT INTO ${esc('role')} (${roleColumns})
+         SELECT ${roleValues}
+         FROM (SELECT 1 AS ${esc('one')}) AS tmp
+         WHERE NOT EXISTS (
+             SELECT 1 FROM ${esc('role')} r WHERE r.${esc('code')} = '${ROLE_EDITOR_ROLE_CODE}'
+         )`,
+    );
+
+    // 4. Grant the RoleEditor role to every User with a non-deleted Administrator row, on
+    // each distinct Channel of their post-backfill assignment rows. SuperAdmin role holders
+    // are skipped: their Role CRUD permissions come from the check-time bypass, so the rows
+    // would be pure noise.
+    await queryRunner.query(
+        `INSERT INTO ${esc('role_assignment')} (${idInsert.columns}${esc('userId')}, ${esc('roleId')}, ${esc('channelId')})
+         SELECT ${idInsert.select}t.${esc('userId')}, t.${esc('roleId')}, t.${esc('channelId')}
+         FROM (
+             SELECT DISTINCT ra.${esc('userId')} AS ${esc('userId')}, rer.${esc('id')} AS ${esc('roleId')}, ra.${esc('channelId')} AS ${esc('channelId')}
+             FROM ${esc('role_assignment')} ra
+             CROSS JOIN ${esc('role')} rer
+             INNER JOIN ${esc('administrator')} a ON a.${esc('userId')} = ra.${esc('userId')} AND a.${esc('deletedAt')} IS NULL
+             WHERE rer.${esc('code')} = '${ROLE_EDITOR_ROLE_CODE}'
+             AND NOT EXISTS (
+                 SELECT 1 FROM ${esc('role_assignment')} sa
+                 INNER JOIN ${esc('role')} sr ON sr.${esc('id')} = sa.${esc('roleId')}
+                 WHERE sa.${esc('userId')} = ra.${esc('userId')}
+                 AND sr.${esc('code')} = '${SUPER_ADMIN_ROLE_CODE}'
+             )
+             AND NOT EXISTS (
+                 SELECT 1 FROM ${esc('role_assignment')} ex
+                 WHERE ex.${esc('userId')} = ra.${esc('userId')}
+                 AND ex.${esc('roleId')} = rer.${esc('id')}
+                 AND ex.${esc('channelId')} = ra.${esc('channelId')}
+             )
+         ) AS t`,
+    );
+
+    // 5. Append the new Role CRUD permissions to the SuperAdmin role's stored permissions
+    // array. SuperAdmin access is derived at check time from the SuperAdmin permission, so
+    // this changes nothing about what SuperAdmins can do — but pre-v4 versions re-synced
+    // the stored array with all assignable permissions on boot and v4 no longer does, so
+    // without this a migrated instance would present a stale permission list on the role.
+    const superAdminRoleRows: Array<{ id: string | number; permissions: string }> =
+        await queryRunner.query(
+            `SELECT ${esc('id')}, ${esc('permissions')} FROM ${esc('role')}
+             WHERE ${esc('code')} = '${SUPER_ADMIN_ROLE_CODE}'`,
+        );
+    for (const row of superAdminRoleRows) {
+        const currentPermissions = row.permissions.split(',');
+        const missingPermissions = roleCrudPermissions.filter(
+            permission => !currentPermissions.includes(permission),
+        );
+        if (missingPermissions.length) {
+            const idLiteral = typeof row.id === 'number' ? row.id : `'${row.id}'`;
+            await queryRunner.query(
+                `UPDATE ${esc('role')}
+                 SET ${esc('permissions')} = '${[...currentPermissions, ...missingPermissions].join(',')}'
+                 WHERE ${esc('id')} = ${idLiteral}`,
+            );
+        }
+    }
+
     const insertedCount = (await countRows()) - countBefore;
     console.log(`Successfully migrated ${insertedCount} role assignments to the role_assignment table.`);
     return insertedCount;
 }
 
 /**
- * When the `role_assignment` id column is neither auto-incremented nor covered by a
- * database-side default (the case for the uuid EntityIdStrategy on MySQL and SQLite,
- * where TypeORM generates uuids in the application layer), the INSERT ... SELECT must
- * supply the id itself.
+ * When the table's id column is neither auto-incremented nor covered by a database-side
+ * default (the case for the uuid EntityIdStrategy on MySQL and SQLite, where TypeORM
+ * generates uuids in the application layer), the INSERT ... SELECT must supply the id
+ * itself.
  */
-async function getExplicitIdClauses(queryRunner: QueryRunner): Promise<{ columns: string; select: string }> {
+async function getExplicitIdClauses(
+    queryRunner: QueryRunner,
+    tableName = 'role_assignment',
+): Promise<{ columns: string; select: string }> {
     const esc = (name: string) => queryRunner.connection.driver.escape(name);
-    const table = await queryRunner.getTable('role_assignment');
+    const table = await queryRunner.getTable(tableName);
     const idColumn = table?.findColumnByName('id');
     if (!idColumn) {
-        throw new Error('Could not inspect the id column of the role_assignment table.');
+        throw new Error(`Could not inspect the id column of the ${tableName} table.`);
     }
     const isAutoIncrement = idColumn.isGenerated && idColumn.generationStrategy === 'increment';
     const hasDatabaseDefault = idColumn.default !== undefined && idColumn.default !== null;
