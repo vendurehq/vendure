@@ -17,6 +17,11 @@ updates:
       schedule:
           interval: weekly
           day: monday
+      # Wait a week before proposing a release. A compromised release is
+      # usually found and yanked within days, and this only delays version
+      # updates — security updates are never held back.
+      cooldown:
+          default-days: 7
       groups:
           github-actions:
               patterns:
@@ -35,6 +40,10 @@ updates:
           interval: weekly
           day: monday
       open-pull-requests-limit: 3
+      cooldown:
+          semver-patch-days: 7
+          semver-minor-days: 7
+          semver-major-days: 14
       groups:
           docs:
               patterns:
@@ -61,6 +70,8 @@ updates:
           interval: weekly
           day: monday
       open-pull-requests-limit: 10
+      cooldown:
+          default-days: 7
       # These packages are published, so the declared range is part of the
       # public contract. Only widen it when the new version falls outside.
       versioning-strategy: increase-if-necessary
