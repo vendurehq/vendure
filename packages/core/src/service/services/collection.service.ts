@@ -689,7 +689,9 @@ export class CollectionService implements OnModuleInit {
      *
      * If called from within a transaction, the job is not enqueued until that transaction has
      * committed. The returned promise therefore resolves before the job exists, and the job is
-     * never enqueued at all if the transaction rolls back.
+     * never enqueued at all if the transaction rolls back. Since the enqueue then happens after
+     * the caller has returned, a failure to enqueue cannot be reported back to the caller. It is
+     * logged with the ids of the affected collections instead.
      *
      * @since 3.1.3
      */
@@ -715,12 +717,21 @@ export class CollectionService implements OnModuleInit {
                 delete (committedCtx as any)[TRANSACTION_MANAGER_KEY];
                 return this.addApplyFiltersJob(committedCtx, options);
             })
-            .catch((err: any) => {
+            .catch((err: unknown) => {
                 if (err instanceof TransactionSubscriberError) {
                     // The transaction rolled back, so there are no changes to apply filters to.
                     return;
                 }
-                Logger.error(`Could not enqueue the apply-collection-filters job: ${err.message as string}`);
+                // The caller has already returned by this point, so the failure cannot be reported
+                // to it. The filters for these collections will not be applied until something
+                // triggers the job again, so the ids are logged to make that recoverable by hand.
+                const target = options?.collectionIds?.length
+                    ? `collections ${options.collectionIds.join(', ')}`
+                    : 'all collections';
+                const message = err instanceof Error ? err.message : String(err);
+                Logger.error(
+                    `Could not enqueue the apply-collection-filters job for ${target}: ${message}`,
+                );
             });
     }
 
