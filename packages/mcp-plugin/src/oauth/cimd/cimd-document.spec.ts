@@ -83,6 +83,28 @@ describe('parseCimdDocument', () => {
         expect(() => parseCimdDocument(CLIENT_ID, doc({ token_endpoint_auth_method: 'none' }))).not.toThrow();
     });
 
+    // ChatGPT's CIMD document declares private_key_jwt as its preferred method but lists
+    // "none" as a supported fallback; such a client can run as a public client here.
+    it('accepts a non-none auth method when the document lists none as supported', () => {
+        const parsed = parseCimdDocument(
+            CLIENT_ID,
+            doc({
+                token_endpoint_auth_method: 'private_key_jwt',
+                token_endpoint_auth_methods_supported: ['none', 'private_key_jwt'],
+            }),
+        );
+        expect(parsed.tokenEndpointAuthMethod).toBe('none');
+        expect(() =>
+            parseCimdDocument(
+                CLIENT_ID,
+                doc({
+                    token_endpoint_auth_method: 'private_key_jwt',
+                    token_endpoint_auth_methods_supported: ['private_key_jwt'],
+                }),
+            ),
+        ).toThrow('token_endpoint_auth_method');
+    });
+
     it('keeps only the grant types this server supports and requires authorization_code', () => {
         const parsed = parseCimdDocument(
             CLIENT_ID,

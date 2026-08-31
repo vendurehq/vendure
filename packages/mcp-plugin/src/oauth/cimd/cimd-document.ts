@@ -57,10 +57,13 @@ export function parseCimdDocument(clientId: string, rawBody: string): CimdDocume
     if ('client_secret' in document || 'client_secret_expires_at' in document) {
         throw new BadRequestException('client_id metadata document must not contain a client secret');
     }
-    const authMethod = document.token_endpoint_auth_method ?? 'none';
-    if (authMethod !== 'none') {
+    const declaredMethod = document.token_endpoint_auth_method ?? 'none';
+    const supportedMethods = Array.isArray(document.token_endpoint_auth_methods_supported)
+        ? document.token_endpoint_auth_methods_supported
+        : [];
+    if (declaredMethod !== 'none' && !supportedMethods.includes('none')) {
         throw new BadRequestException(
-            'client_id metadata document must use token_endpoint_auth_method "none"',
+            'client_id metadata document must support token_endpoint_auth_method "none"',
         );
     }
     // A CIMD document is portable across authorization servers, so it may list grant types
