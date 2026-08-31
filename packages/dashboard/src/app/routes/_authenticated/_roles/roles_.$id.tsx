@@ -18,7 +18,6 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import { PermissionsTableGrid } from './components/permissions-table-grid.js';
-import { RoleUsage } from './components/role-usage.js';
 import { createRoleDocument, roleDetailDocument, updateRoleDocument } from './roles.graphql.js';
 
 const pageId = 'role-detail';
@@ -115,11 +114,6 @@ function RoleDetailPage() {
                         )}
                     />
                 </PageBlock>
-                {!creatingNewEntity && entity && (
-                    <PageBlock column="main" blockId="role-usage" title={<Trans>Used by</Trans>}>
-                        <RoleUsage roleId={entity.id} />
-                    </PageBlock>
-                )}
             </PageLayout>
         </Page>
     );

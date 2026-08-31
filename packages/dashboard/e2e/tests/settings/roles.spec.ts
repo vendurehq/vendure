@@ -72,18 +72,6 @@ test.describe('Roles', () => {
         await expect(page).toHaveURL(/\/roles\/[^/]+$/);
     });
 
-    // OSS-300 — role detail shows where the role is used via the roleAssignments query
-    test('should show that an unassigned role is not used', async ({ page }) => {
-        const lp = listPage(page);
-        await lp.goto();
-        await lp.expectLoaded();
-        await lp.clickEntity('e2e-test-role');
-        await expect(page).toHaveURL(/\/roles\/[^/]+$/);
-
-        await expect(page.getByText('Used by')).toBeVisible();
-        await expect(page.getByText('This role is not assigned to any user')).toBeVisible();
-    });
-
     test('should update the role', async ({ page }) => {
         const lp = listPage(page);
         await lp.goto();
