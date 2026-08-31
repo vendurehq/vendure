@@ -8,7 +8,6 @@ import { randomBytes } from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
-import open from 'open';
 import pc from 'picocolors';
 
 import {
@@ -632,6 +631,12 @@ export async function createVendureApp(
                 // before opening the window.
                 await sleep(AUTO_RUN_DELAY_MS);
                 try {
+                    // Imported here rather than at the top of the file because `open` is
+                    // ESM-only. Under Yarn PnP on Node 22 the require of an ESM package
+                    // throws ERR_VM_MODULE_LINK_FAILURE, which at module scope would take
+                    // down the whole CLI. Inside this try/catch it just means the browser
+                    // does not open by itself.
+                    const { default: open } = await import('open');
                     await open(dashboardUrl, {
                         newInstance: true,
                     });
