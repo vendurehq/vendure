@@ -48,6 +48,7 @@ import {
     installPackages,
     isSafeToCreateProjectIn,
     registerTemplateHelpers,
+    createProjectRequire,
     resolvePackageRootDir,
     scaffoldAlreadyExists,
     startPostgresDatabase,
@@ -510,8 +511,10 @@ export async function createVendureApp(
     // complex module resolution with npm workspaces and ESM packages can
     // cause false TypeScript errors. Type checking happens when users run
     // their own build/dev commands.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    require(resolvePackageRootDir('ts-node', serverRoot)).register({
+    // Loaded through the project's own require so that ts-node resolves its `typescript`
+    // peer from the generated project. Requiring it through this CLI's require would make
+    // the CLI the issuer, which fails under the strict Plug'n'Play graph of `yarn dlx`.
+    createProjectRequire(serverRoot)('ts-node').register({
         project: path.join(serverRoot, 'tsconfig.json'),
         transpileOnly: true,
     });
