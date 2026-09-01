@@ -19,8 +19,9 @@ interface RunMigrationsOptions {
 <MemberInfo kind="property" type={`(diagnostic: <a href='/reference/typescript-api/migration/migration-diagnostic#migrationdiagnostic'>MigrationDiagnostic</a>) => void`}   />
 
 Invoked for each [MigrationDiagnostic](/reference/typescript-api/migration/migration-diagnostic#migrationdiagnostic) detected during the run. These conditions are
-printed to the console by default, but that output is suppressed when running from the
-Vendure CLI so that the CLI can render them itself.
+also printed to the console, unless the `VENDURE_RUNNING_IN_CLI` environment variable is
+set, which the Vendure CLI does so that it can render them itself. Passing this callback
+does not suppress that output.
 
 
 </div>
