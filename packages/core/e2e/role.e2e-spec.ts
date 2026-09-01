@@ -1,10 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { CurrencyCode, DeletionResult, LanguageCode, Permission } from '@vendure/common/lib/generated-types';
-import {
-    CUSTOMER_ROLE_CODE,
-    ROLE_EDITOR_ROLE_CODE,
-    SUPER_ADMIN_ROLE_CODE,
-} from '@vendure/common/lib/shared-constants';
+import { ROLE_EDITOR_ROLE_CODE, SUPER_ADMIN_ROLE_CODE } from '@vendure/common/lib/shared-constants';
 import {
     createErrorResultGuard,
     createTestEnvironment,
@@ -59,11 +55,12 @@ describe('Role resolver', () => {
         const result = await adminClient.query(getRolesDocument);
 
         defaultRoles = result.roles.items;
-        // The three system roles: SuperAdmin, Customer, RoleEditor
-        expect(result.roles.items.length).toBe(3);
-        expect(result.roles.totalItems).toBe(3);
+        // The two system roles: SuperAdmin, RoleEditor. There is no Customer role: customer
+        // permissions are membership-derived (Authenticated on every member channel).
+        expect(result.roles.items.length).toBe(2);
+        expect(result.roles.totalItems).toBe(2);
         expect(result.roles.items.map(r => r.code).sort()).toEqual(
-            [SUPER_ADMIN_ROLE_CODE, CUSTOMER_ROLE_CODE, ROLE_EDITOR_ROLE_CODE].sort(),
+            [SUPER_ADMIN_ROLE_CODE, ROLE_EDITOR_ROLE_CODE].sort(),
         );
     });
 
@@ -94,7 +91,7 @@ describe('Role resolver', () => {
         expect(createRole).toEqual({
             code: 'test',
             description: 'test role',
-            id: 'T_4',
+            id: 'T_3',
             permissions: [Permission.Authenticated],
         });
     });
@@ -111,7 +108,7 @@ describe('Role resolver', () => {
         expect(createRole).toEqual({
             code: 'test2',
             description: 'test role2',
-            id: 'T_5',
+            id: 'T_4',
             permissions: [Permission.Authenticated, Permission.ReadSettings],
         });
     });
@@ -129,7 +126,7 @@ describe('Role resolver', () => {
         expect(createdRole).toEqual({
             code: 'test',
             description: 'test role',
-            id: 'T_6',
+            id: 'T_5',
             permissions: [Permission.Authenticated, Permission.ReadCustomer, Permission.UpdateCustomer],
         });
     });
@@ -159,7 +156,7 @@ describe('Role resolver', () => {
             expect(result.updateRole).toEqual({
                 code: 'test-modified',
                 description: 'test role modified',
-                id: 'T_6',
+                id: 'T_5',
                 permissions: [
                     Permission.Authenticated,
                     Permission.ReadCustomer,
@@ -262,25 +259,6 @@ describe('Role resolver', () => {
         );
 
         it(
-            'is not allowed for Customer role',
-            assertThrowsWithMessage(async () => {
-                const customerRole = defaultRoles.find(r => r.code === CUSTOMER_ROLE_CODE);
-                if (!customerRole) {
-                    fail('Could not find Customer role');
-                    return;
-                }
-                return adminClient.query(updateRoleDocument, {
-                    input: {
-                        id: customerRole.id,
-                        code: 'customer-modified',
-                        description: 'customer modified',
-                        permissions: [Permission.Authenticated, Permission.DeleteAdministrator],
-                    },
-                });
-            }, `The role "${CUSTOMER_ROLE_CODE}" cannot be modified`),
-        );
-
-        it(
             'is not allowed for RoleEditor role',
             assertThrowsWithMessage(async () => {
                 const roleEditorRole = defaultRoles.find(r => r.code === ROLE_EDITOR_ROLE_CODE);
@@ -299,20 +277,6 @@ describe('Role resolver', () => {
             }, `The role "${ROLE_EDITOR_ROLE_CODE}" cannot be modified`),
         );
     });
-
-    it(
-        'deleteRole is not allowed for Customer role',
-        assertThrowsWithMessage(async () => {
-            const customerRole = defaultRoles.find(r => r.code === CUSTOMER_ROLE_CODE);
-            if (!customerRole) {
-                fail('Could not find Customer role');
-                return;
-            }
-            return adminClient.query(deleteRoleDocument, {
-                id: customerRole.id,
-            });
-        }, `The role "${CUSTOMER_ROLE_CODE}" cannot be deleted`),
-    );
 
     it(
         'deleteRole is not allowed for SuperAdmin role',
@@ -430,12 +394,11 @@ describe('Role resolver', () => {
             // - second-channel-order-manager: zero assignments -> vacuously visible
             //   (accepted known issue, TODOs §7)
             // - test & test2: zero assignments -> visible
-            // - system roles (SuperAdmin, Customer, RoleEditor): bypass the gate since they
+            // - system roles (SuperAdmin, RoleEditor): bypass the gate since they
             //   cannot be modified or deleted anyway -> always visible
             const roleCodes = result.roles.items.map(r => r.code).sort();
             expect(roleCodes).toEqual(
                 [
-                    CUSTOMER_ROLE_CODE,
                     ROLE_EDITOR_ROLE_CODE,
                     SUPER_ADMIN_ROLE_CODE,
                     'second-channel-admin-manager',
@@ -711,15 +674,11 @@ describe('Role resolver', () => {
             const { role } = await adminClient.query(getRoleDocument, { id: crossChannelRole.id });
             expect(role?.code).toBe('cross-channel-role');
             // ...but UpdateRole is missing on the default channel
-            await assertThrowsWithMessage(
-                async () => {
-                    await adminClient.query(updateRoleDocument, {
-                        input: { id: crossChannelRole.id, description: 'hijacked' },
-                    });
-                },
-                'Active user does not have permission to manage the role "cross-channel-role" ' +
-                    'on every channel where it is assigned',
-            )();
+            await assertThrowsWithMessage(async () => {
+                await adminClient.query(updateRoleDocument, {
+                    input: { id: crossChannelRole.id, description: 'hijacked' },
+                });
+            }, 'Active user does not have permission to manage the role "cross-channel-role" ' + 'on every channel where it is assigned')();
         });
 
         it('can update and delete the Role once granted RoleEditor on the other channel', async () => {
@@ -746,7 +705,7 @@ describe('Role resolver', () => {
     });
 
     describe('roles query', () => {
-        let limitedChannelAdmin: FragmentOf<typeof administratorFragment>
+        let limitedChannelAdmin: FragmentOf<typeof administratorFragment>;
 
         beforeAll(async () => {
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
@@ -804,13 +763,12 @@ describe('Role resolver', () => {
             // - role-reader: assigned to reader@test.com on the default channel (gate suite)
             // - zero-assignment roles: test, test2, second-channel-order-manager,
             //   escalated-order-manager
-            // - system roles (SuperAdmin, Customer, RoleEditor): bypass the gate
+            // - system roles (SuperAdmin, RoleEditor): bypass the gate
             // Invisible: second-channel-admin-manager, good-admin-creator and hidden-role
             // (all assigned on second-channel only).
             const allVisible = await adminClient.query(getRolesDocument);
             expect(allVisible.roles.items.map(r => r.code).sort()).toEqual(
                 [
-                    CUSTOMER_ROLE_CODE,
                     ROLE_EDITOR_ROLE_CODE,
                     SUPER_ADMIN_ROLE_CODE,
                     'escalated-order-manager',
@@ -829,7 +787,7 @@ describe('Role resolver', () => {
                 },
             });
             expect(result.roles.items).toHaveLength(2);
-            expect(result.roles.totalItems).toBe(9);
+            expect(result.roles.totalItems).toBe(8);
             const roleCodes = result.roles.items.map(r => r.code);
             expect(roleCodes).not.toContain('hidden-role');
         });

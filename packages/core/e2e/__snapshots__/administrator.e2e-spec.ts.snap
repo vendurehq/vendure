@@ -23,7 +23,7 @@ exports[`Administrator resolver > createAdministrator 1`] = `
       {
         "code": "__role_editor_role__",
         "description": "RoleEditor",
-        "id": "T_3",
+        "id": "T_2",
         "permissions": [
           "Authenticated",
           "CreateRole",
@@ -49,11 +49,15 @@ exports[`Administrator resolver > updateAdministrator 1`] = `
     "lastLogin": null,
     "roles": [
       {
-        "code": "__customer_role__",
-        "description": "Customer",
+        "code": "__role_editor_role__",
+        "description": "RoleEditor",
         "id": "T_2",
         "permissions": [
           "Authenticated",
+          "CreateRole",
+          "ReadRole",
+          "UpdateRole",
+          "DeleteRole",
         ],
       },
     ],
