@@ -116,6 +116,63 @@ export class TestSSOStrategyAdmin implements AuthenticationStrategy<{ email: str
 }
 
 /**
+ * Synchronizes the provider profile image on every login through
+ * ExternalAuthenticationService.setAdministratorAvatar(), which is the flow that method's
+ * documentation describes. The Administrator is deliberately created without an avatar, so an avatar
+ * which is present afterwards can only have been set by the synchronization.
+ */
+export class TestSSOStrategyAdminAvatarSync implements AuthenticationStrategy<{
+    email: string;
+    avatarFilename: string;
+}> {
+    readonly name = 'test_sso_strategy_admin_avatar_sync';
+    private externalAuthenticationService: ExternalAuthenticationService;
+    private roleService: RoleService;
+
+    init(injector: Injector) {
+        this.externalAuthenticationService = injector.get(ExternalAuthenticationService);
+        this.roleService = injector.get(RoleService);
+    }
+
+    defineInputType(): DocumentNode {
+        return gql`
+            input TestSSOInputAdminAvatarSync {
+                email: String!
+                avatarFilename: String!
+            }
+        `;
+    }
+
+    async authenticate(
+        ctx: RequestContext,
+        data: { email: string; avatarFilename: string },
+    ): Promise<User | false | string> {
+        const { email, avatarFilename } = data;
+        let user = await this.externalAuthenticationService.findUser(ctx, this.name, email);
+        if (!user) {
+            const superAdminRole = await this.roleService.getSuperAdminRole();
+            user = await this.externalAuthenticationService.createAdministratorAndUser(ctx, {
+                strategy: this.name,
+                externalIdentifier: email,
+                emailAddress: email,
+                firstName: 'Avatar Sync SSO Admin First Name',
+                lastName: 'Avatar Sync SSO Admin Last Name',
+                identifier: email,
+                roles: [superAdminRole],
+            });
+        }
+        // The request is still anonymous here, because the session is only minted once this method
+        // has returned the User.
+        await this.externalAuthenticationService.setAdministratorAvatar(ctx, user.id, {
+            filename: avatarFilename,
+            mimetype: 'image/png',
+            createReadStream: () => Readable.from([TEST_ADMIN_AVATAR]),
+        });
+        return user;
+    }
+}
+
+/**
  * The same as TestSSOStrategyAdmin under a different name, so that a test can register it on the
  * Shop API only. The Admin API then has no input field for it, and a Shop-minted session is the only
  * route to the administrator's permissions on the Admin API.
