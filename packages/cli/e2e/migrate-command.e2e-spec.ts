@@ -203,6 +203,9 @@ describe(
 
                 expect(result.success).toBe(true);
                 expect(result.message).toContain('No pending migrations found');
+                // A database with no migration history is not "out of sync": every table is
+                // pending because nothing has been applied yet.
+                expect(result.hasWarnings).toBe(false);
                 expect(result.migrationsRan).toBeDefined();
                 expect(result.migrationsRan).toHaveLength(0);
             });

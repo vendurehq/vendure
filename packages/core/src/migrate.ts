@@ -91,8 +91,9 @@ export interface RunMigrationsOptions {
     /**
      * @description
      * Invoked for each {@link MigrationDiagnostic} detected during the run. These conditions are
-     * printed to the console by default, but that output is suppressed when running from the
-     * Vendure CLI so that the CLI can render them itself.
+     * also printed to the console, unless the `VENDURE_RUNNING_IN_CLI` environment variable is
+     * set, which the Vendure CLI does so that it can render them itself. Passing this callback
+     * does not suppress that output.
      */
     onDiagnostic?: (diagnostic: MigrationDiagnostic) => void;
 }
@@ -144,11 +145,24 @@ export async function runMigrations(
 }
 
 async function checkMigrationStatus(connection: Connection, report: (d: MigrationDiagnostic) => void) {
+    // Against a database with no migration history the schema builder reports the entire schema
+    // as pending, which is what a project looks like before its first migration is applied. That
+    // is not drift, so there is nothing useful to say about it.
+    const executed = await new MigrationExecutor(connection).getExecutedMigrations();
+    if (!executed.length) {
+        return;
+    }
     const builderLog = await connection.driver.createSchemaBuilder().log();
     if (builderLog.upQueries.length) {
         report({ type: 'schema-out-of-sync', queries: builderLog.upQueries.map(q => q.query) });
     }
 }
+
+/**
+ * The full drift list can be the entire schema, which is more than a terminal should be asked
+ * to render. The queries themselves remain on the diagnostic for programmatic consumers.
+ */
+const maxDescribedQueries = 10;
 
 /**
  * @description
@@ -159,17 +173,28 @@ async function checkMigrationStatus(connection: Connection, report: (d: Migratio
  */
 export function describeDiagnostic(diagnostic: MigrationDiagnostic): string[] {
     switch (diagnostic.type) {
-        case 'no-migrations-matched':
+        case 'no-migrations-matched': {
+            // The cwd only explains the failure for a relative pattern. The scaffolded config uses
+            // `path.join(__dirname, ...)`, where pointing at the working directory sends the user
+            // looking for a problem that is not there.
+            const relative = diagnostic.patterns.some(pattern => !path.isAbsolute(pattern));
             return [
                 'No migration files matched the configured `migrations` patterns, but this database has migrations recorded as applied.',
-                `Patterns are resolved relative to the current directory (${diagnostic.cwd}):`,
+                relative
+                    ? `Patterns are resolved relative to the current directory (${diagnostic.cwd}):`
+                    : 'Nothing on disk matches these patterns. If they point at compiled output, check that it has been built:',
                 ...diagnostic.patterns.map(pattern => ' - ' + pattern),
             ];
-        case 'schema-out-of-sync':
+        }
+        case 'schema-out-of-sync': {
+            const shown = diagnostic.queries.slice(0, maxDescribedQueries);
+            const remaining = diagnostic.queries.length - shown.length;
             return [
                 'Your database schema does not match your current configuration. Generate a new migration for the following changes:',
-                ...diagnostic.queries.map(query => ' - ' + query),
+                ...shown.map(query => ' - ' + query),
+                ...(remaining ? [` ...and ${remaining} more change${remaining === 1 ? '' : 's'}`] : []),
             ];
+        }
     }
 }
 

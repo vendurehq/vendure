@@ -43,11 +43,29 @@ describe('buildMigrationReport()', () => {
     it('appends the schema drift warning to the summary', () => {
         const report = buildMigrationReport(['1700000000000-first'], [outOfSync]);
 
-        expect(report.summary).toBe('Successfully ran 1 migrations');
-        expect(report.message).toContain('Successfully ran 1 migrations');
+        expect(report.summary).toBe('Successfully ran 1 migration');
+        expect(report.message).toContain('Successfully ran 1 migration');
         expect(report.details).toContain('does not match your current configuration');
         expect(report.details).toContain('ALTER TABLE `product` ADD `foo` varchar(255)');
         expect(report.hasWarnings).toBe(true);
+    });
+
+    it('does not blame the working directory when the patterns are absolute', () => {
+        const report = buildMigrationReport([], [
+            { type: 'no-migrations-matched', patterns: ['/project/dist/migrations/*.js'], cwd: '/elsewhere' },
+        ]);
+
+        expect(report.details).toContain('/project/dist/migrations/*.js');
+        expect(report.details).not.toContain('/elsewhere');
+    });
+
+    it('caps the rendered drift queries', () => {
+        const queries = Array.from({ length: 25 }, (_, i) => `CREATE TABLE \`t${i}\` (id int)`);
+        const report = buildMigrationReport([], [{ type: 'schema-out-of-sync', queries }]);
+
+        expect(report.details).toContain('CREATE TABLE `t9` (id int)');
+        expect(report.details).not.toContain('CREATE TABLE `t10` (id int)');
+        expect(report.details).toContain('...and 15 more changes');
     });
 
     it('renders every diagnostic', () => {

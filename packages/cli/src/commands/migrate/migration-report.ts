@@ -23,7 +23,7 @@ export function buildMigrationReport(
     // pending, they just could not be loaded.
     const patternsUnmatched = diagnostics.some(d => d.type === 'no-migrations-matched');
     const summary = migrationsRan.length
-        ? `Successfully ran ${migrationsRan.length} migrations`
+        ? `Successfully ran ${migrationsRan.length} migration${migrationsRan.length === 1 ? '' : 's'}`
         : patternsUnmatched
           ? 'No migration files could be loaded'
           : 'No pending migrations found';
