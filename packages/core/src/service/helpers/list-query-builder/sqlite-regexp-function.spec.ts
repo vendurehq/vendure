@@ -15,12 +15,29 @@ import {
 const REDOS_PATTERN = '^(.|..)+$Z';
 const REDOS_INPUT = 'x'.repeat(60);
 
-/** Milliseconds taken by one call. RE2 needs well under one; the backtracking engine needs seconds. */
+/**
+ * Milliseconds taken by one call. RE2 needs a fraction of one at this input length. The backtracking
+ * engine needs minutes, so a regression here fails by vitest timeout rather than by the assertion.
+ */
 function timeMs(run: () => void): number {
     const start = process.hrtime.bigint();
     run();
     return Number(process.hrtime.bigint() - start) / 1e6;
 }
+
+describe('Re2jsRegExp', () => {
+    // The one line of adapter logic, asserted directly: `re2js` is a caret range, so a minor
+    // release can move `compile`, `matcher` or `find` and this is where that should fail.
+    it('matches case-insensitively anywhere in the value', () => {
+        expect(new Re2jsRegExp('foo', 'i').test('a FOO b')).toBe(true);
+        expect(new Re2jsRegExp('^bar$', 'i').test('BAR')).toBe(true);
+        expect(new Re2jsRegExp('^bar$', 'i').test('bard')).toBe(false);
+    });
+
+    it('rejects a pattern RE2 cannot compile', () => {
+        expect(() => new Re2jsRegExp('(?=.*foo)bar', 'i')).toThrow();
+    });
+});
 
 describe('buildRegexpTester()', () => {
     it('matches case-insensitively and returns 1/0', () => {

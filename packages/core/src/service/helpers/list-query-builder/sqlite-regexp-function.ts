@@ -1,4 +1,4 @@
-import { RE2JS } from 're2js';
+import type { RE2JS } from 're2js';
 
 import { UserInputError } from '../../../common/error/errors';
 import { VendureDatabaseType } from '../../../connection/database-type';
@@ -12,9 +12,9 @@ interface CompiledRegExp {
 }
 
 /**
- * The flags this file requests. `RegExp` accepts any flag string, so the built-in engine is still
- * assignable, but narrowing here keeps a later caller from passing a flag the RE2 adapter would
- * silently drop.
+ * The flags this file requests. Narrowing to the one flag in use keeps a later caller from passing
+ * one the RE2 adapter would silently drop, and `RegExp` accepts any flag string, so the built-in
+ * engine stays assignable.
  */
 type SupportedFlags = 'i';
 
@@ -26,13 +26,28 @@ type RegExpEngine = new (pattern: string, flags: SupportedFlags) => CompiledRegE
  */
 const SQLITE_REGEXP_DB_TYPES: VendureDatabaseType[] = ['better-sqlite3', 'sqljs'];
 
+let re2js: typeof import('re2js') | undefined;
+
+/**
+ * Resolves `re2js` on first use rather than at import time. `parse-filter-params.ts` imports this
+ * module, and that file is on the path of every list query on every backend, so a top-level import
+ * would make a Postgres or MySQL deployment parse 246 kB of engine it can never reach.
+ */
+function getRE2JS(): typeof RE2JS {
+    if (!re2js) {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        re2js = require('re2js') as typeof import('re2js');
+    }
+    return re2js.RE2JS;
+}
+
 /**
  * Adapts `re2js` to the `RegExp` shape used by the rest of this file. `re2js` is a JavaScript port
  * of RE2, so it needs no native build step, but its API is not the `RegExp` one: a pattern is
  * compiled once and then matched through a matcher object.
  *
  * RE2 matches in guaranteed linear time, so no pattern can be driven into the catastrophic
- * backtracking the built-in engine allows. It pays for that by not supporting lookaround or
+ * backtracking the built-in engine allows. It pays for that by supporting neither lookaround nor
  * backreferences, which {@link assertRegexFilterEngineCompatible} rejects up-front.
  *
  * @internal
@@ -40,8 +55,13 @@ const SQLITE_REGEXP_DB_TYPES: VendureDatabaseType[] = ['better-sqlite3', 'sqljs'
 export class Re2jsRegExp implements CompiledRegExp {
     private readonly compiled: RE2JS;
 
-    constructor(pattern: string, flags: SupportedFlags) {
-        this.compiled = RE2JS.compile(pattern, flags === 'i' ? RE2JS.CASE_INSENSITIVE : 0);
+    /**
+     * `SupportedFlags` admits 'i' alone, so the compile is unconditionally case-insensitive. The
+     * parameter exists to keep the built-in `RegExp` assignable to {@link RegExpEngine}.
+     */
+    constructor(pattern: string, _flags: SupportedFlags) {
+        const RE2 = getRE2JS();
+        this.compiled = RE2.compile(pattern, RE2.CASE_INSENSITIVE);
     }
 
     /** `find()` searches anywhere in the value, which is what `RegExp.test()` does. */
@@ -76,9 +96,8 @@ export function assertRegexFilterEngineCompatible(pattern: string, dbType: Vendu
  * compiled once per distinct value and cached, since a given query applies a single constant
  * pattern across every row.
  *
- * The engine is a parameter so that the caching and value-coercion behaviour here can be asserted
- * against the built-in `RegExp` as well as against RE2. Production always passes
- * {@link Re2jsRegExp}.
+ * The engine is a parameter so the null and numeric coercion below can be asserted against both
+ * engines, which disagree on it.
  *
  * @internal
  */
