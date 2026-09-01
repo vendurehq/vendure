@@ -143,11 +143,11 @@ plugin. Pin them to the versions the plugin is built against, otherwise npm reso
 line and you end up with two copies of the SDK in your tree:
 
 ```bash
-npm install @opentelemetry/exporter-logs-otlp-proto@0.219.0 \
-            @opentelemetry/exporter-trace-otlp-http@0.219.0 \
-            @opentelemetry/sdk-logs@0.219.0 \
-            @opentelemetry/sdk-node@0.219.0 \
-            @opentelemetry/sdk-trace-base@2.8.0
+npm install @opentelemetry/exporter-logs-otlp-proto@0.221.0 \
+            @opentelemetry/exporter-trace-otlp-http@0.221.0 \
+            @opentelemetry/sdk-logs@0.221.0 \
+            @opentelemetry/sdk-node@0.221.0 \
+            @opentelemetry/sdk-trace-base@2.10.0
 ```
 
 Create a file called `preload.ts` in the src dir of your project with the following contents:
@@ -167,7 +167,7 @@ const logExporter = new OTLPLogExporter();
 const config = getSdkConfiguration({
     config: {
         spanProcessors: [new BatchSpanProcessor(traceExporter)],
-        logRecordProcessors: [new BatchLogRecordProcessor(logExporter)],
+        logRecordProcessors: [new BatchLogRecordProcessor({ exporter: logExporter })],
     },
 });
 
@@ -225,7 +225,7 @@ import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentation
 const config = getSdkConfiguration({
     config: {
         spanProcessors: [new BatchSpanProcessor(traceExporter)],
-        logRecordProcessors: [new BatchLogRecordProcessor(logExporter)],
+        logRecordProcessors: [new BatchLogRecordProcessor({ exporter: logExporter })],
         instrumentations: [getNodeAutoInstrumentations()], // [!code highlight]
     },
 });
@@ -236,7 +236,7 @@ const config = getSdkConfiguration({
 Install just the ones you want and pass them alongside the Vendure-default set:
 
 ```bash
-npm install @opentelemetry/instrumentation-http@0.219.0 \
+npm install @opentelemetry/instrumentation-http@0.221.0 \
             @opentelemetry/instrumentation-express@0.67.0 \
             @opentelemetry/instrumentation-nestjs-core@0.65.0 \
             @opentelemetry/instrumentation-graphql@0.67.0 \
@@ -260,7 +260,7 @@ import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
 const config = getSdkConfiguration({
     config: {
         spanProcessors: [new BatchSpanProcessor(traceExporter)],
-        logRecordProcessors: [new BatchLogRecordProcessor(logExporter)],
+        logRecordProcessors: [new BatchLogRecordProcessor({ exporter: logExporter })],
         instrumentations: [ // [!code highlight]
             new HttpInstrumentation(), // [!code highlight]
             new ExpressInstrumentation(), // [!code highlight]
