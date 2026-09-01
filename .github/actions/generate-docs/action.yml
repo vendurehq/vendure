@@ -16,7 +16,9 @@ runs:
         - name: Install docs dependencies
           shell: bash
           working-directory: docs
-          run: npm install
+          # npm ci pins to docs/package-lock.json, and --ignore-scripts keeps a
+          # dependency's lifecycle script away from the CI bot token this job holds.
+          run: npm ci --ignore-scripts
 
         - name: Validate generated docs
           shell: bash
