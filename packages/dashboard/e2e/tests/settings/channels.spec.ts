@@ -217,9 +217,9 @@ test.describe('Channels CRUD', () => {
 
             // Switch into the newly created channel.
             await switcherTrigger.click();
-            const switcherMenu2 = page.locator('[data-slot="dropdown-menu-content"]');
-            await expect(switcherMenu2).toBeVisible();
-            await switcherMenu2.getByRole('menuitem').filter({ hasText: channelCode }).click();
+            const switcherMenu = page.locator('[data-slot="dropdown-menu-content"]');
+            await expect(switcherMenu).toBeVisible();
+            await switcherMenu.getByRole('menuitem').filter({ hasText: channelCode }).click();
             await expect(switcherTrigger).toContainText(channelCode, { timeout: 10_000 });
 
             // Delete the currently-active channel via the list (client-side nav).
@@ -239,15 +239,16 @@ test.describe('Channels CRUD', () => {
             await lp.expectSuccessToast();
             await expect(lp.getRows().filter({ hasText: channelCode })).toHaveCount(0);
 
-            // The active channel must recover to a valid channel on its own — the
-            // switcher trigger no longer shows the deleted channel and shows a
-            // real channel code instead. Without the fix this stays stuck on the
-            // deleted channel until a hard refresh.
+            // The active channel must recover to a valid channel on its own. This
+            // suite runs in serial mode and the default channel is the only one
+            // left at this point, so the switcher must land on it. Without the fix
+            // this stays stuck on the deleted channel until a hard refresh.
             await expect(switcherTrigger).not.toContainText(channelCode, { timeout: 10_000 });
-            await expect(switcherTrigger).toContainText(/[a-z]/i, { timeout: 10_000 });
+            await expect(switcherTrigger).toContainText('Default channel', { timeout: 10_000 });
         } finally {
-            // Ensure the channel is gone even if an assertion above failed.
-            // The happy path already deletes it via the UI, so ignore "not found".
+            // Ensure the channel is gone even if an assertion above failed. On the
+            // happy path the UI already deleted it, so this call is expected to
+            // fail with "not found" and the rejection is discarded.
             await client
                 .gql(`mutation ($id: ID!) { deleteChannel(id: $id) { result } }`, {
                     id: createdChannelId,
