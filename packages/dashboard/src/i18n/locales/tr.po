@@ -294,7 +294,7 @@ msgstr "Bu varyantı silmek istediğinizden emin misiniz?"
 #~ msgid "All resources are up and running"
 #~ msgstr "Tüm kaynaklar çalışıyor"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:107
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:108
 msgid "Failed to create administrator"
 msgstr "Yönetici oluşturulamadı"
 
@@ -322,7 +322,7 @@ msgstr "Ülke güncellenemedi"
 msgid "Type at least 2 characters to search..."
 msgstr "Aramak için en az 2 karakter yazın..."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:142
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:143
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:182
 #: src/app/routes/_authenticated/_profile/profile.tsx:108
 msgid "Last name"
@@ -498,7 +498,7 @@ msgstr "Üst ürün"
 msgid "City"
 msgstr "Şehir"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:41
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:15
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:22
 msgid "Administrators"
@@ -512,7 +512,7 @@ msgstr "Brüt fiyat: <0/>"
 msgid "Go to next page"
 msgstr "Sonraki sayfaya git"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:210
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:349
 msgid "Add role"
 msgstr "Rol ekle"
 
@@ -601,9 +601,9 @@ msgstr "Ekleniyor..."
 msgid "Move Collections"
 msgstr "Koleksiyonları Taşı"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:160
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:161
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:55
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:171
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:169
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:32
 #: src/app/routes/_authenticated/_roles/roles.tsx:16
 #: src/app/routes/_authenticated/_roles/roles.tsx:25
@@ -686,7 +686,7 @@ msgstr "Varsayılan vergi bölgesi"
 msgid "Order draft is ready to be completed"
 msgstr "Sipariş taslağı tamamlanmaya hazır"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:201
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:200
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:245
 msgid "Metadata"
 msgstr "Metadata"
@@ -752,7 +752,7 @@ msgid "Complete draft"
 msgstr "Taslağı tamamla"
 
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:45
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:166
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:164
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:169
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
@@ -942,6 +942,11 @@ msgstr "{0} {entityType} için özellik değerlerini ekle veya kaldır"
 msgid "These are the facet values for the <0>{facetName}</0> facet."
 msgstr "Bunlar <0>{facetName}</0> özelliği için özellik değerleridir."
 
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:174
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:182
+msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself. Assignments you cannot grant are shown locked and are preserved on save."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:49
 msgid "Successfully added payment to order"
 msgstr "Ödeme siparişe başarıyla eklendi"
@@ -954,7 +959,7 @@ msgstr "Sipariş için fatura adresi ayarlandı"
 msgid "Failed to update zone"
 msgstr "Bölge güncellenemedi"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:154
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:155
 #: src/app/routes/_authenticated/_profile/profile.tsx:120
 #: src/app/routes/_authenticated/_profile/profile.tsx:137
 #: src/lib/components/login/login-form.tsx:93
@@ -975,7 +980,7 @@ msgstr "Zamanlanmış görev çalıştırılacak"
 msgid "New stock location"
 msgstr "Yeni stok konumu"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:108
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:111
 msgid "Permissions"
 msgstr "İzinler"
 
@@ -1169,6 +1174,10 @@ msgstr "Teslimat adresi belirleyin ve kargo yöntemi seçin"
 #: src/app/routes/_authenticated/_system/job-queue.tsx:114
 msgid "Off"
 msgstr "Kapalı"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:292
+msgid "You cannot change this assignment: you do not hold all of this role's permissions on this channel."
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:37
 #: src/app/routes/_authenticated/_system/settings-store.tsx:304
@@ -1404,7 +1413,7 @@ msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to
 msgstr "{rejected, plural, one {{rejected} görev iptal edilemedi} other {{rejected} görev iptal edilemedi}}"
 
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:111
-#: src/lib/components/shared/channel-selector.tsx:54
+#: src/lib/components/shared/channel-selector.tsx:66
 msgid "Select a channel"
 msgstr "Bir kanal seçin"
 
@@ -1553,7 +1562,7 @@ msgstr "Genel ayarlar yükleniyor..."
 msgid "Address updated successfully"
 msgstr "Adres başarıyla güncellendi"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:234
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:124
 #: src/lib/components/shared/asset/asset-gallery.tsx:747
 #: src/lib/framework/layout-engine/page-layout.tsx:733
@@ -1676,7 +1685,7 @@ msgstr "Varyantı sil"
 msgid "No modifications made"
 msgstr "Değişiklik yapılmadı"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:171
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:183
 msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
 msgstr "Bu yöneticinin seçili kanalda yapabildikleri, yukarıda atanan rollerden türetilir. Değiştirmek için rolleri düzenleyin."
 
@@ -1786,9 +1795,9 @@ msgstr "Vergi kategorisi güncellenemedi"
 msgid "Refund settled successfully"
 msgstr "İade başarıyla tamamlandı"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:126
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:127
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:70
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:156
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:154
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
@@ -1807,7 +1816,7 @@ msgstr "İade başarıyla tamamlandı"
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:219
 #: src/app/routes/_authenticated/_profile/profile.tsx:92
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:83
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:86
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:96
@@ -1894,7 +1903,7 @@ msgstr "Sütun ayarları"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:208
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:176
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:164
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:99
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:102
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:154
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:61
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:98
@@ -2023,7 +2032,7 @@ msgstr "Bir dil seçin"
 msgid "Log out"
 msgstr "Çıkış yap"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:195
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:332
 msgid "Remove role"
 msgstr "Rolü kaldır"
 
@@ -2507,7 +2516,7 @@ msgid "New zone"
 msgstr "Yeni bölge"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:44
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:137
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:139
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:79
 msgid "New API Key"
 msgstr "Yeni API Anahtarı"
@@ -2520,7 +2529,7 @@ msgstr "Sütunu sil"
 msgid "Assign existing"
 msgstr "Mevcut olanı ata"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:158
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:229
 msgid "Role"
 msgstr "Rol"
 
@@ -2626,7 +2635,7 @@ msgstr "Görünüm \"{viewName}\" uygulandı"
 msgid "Successfully removed {successCount} facets from channel"
 msgstr "{successCount} özellik kanaldan başarıyla kaldırıldı"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:192
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:191
 msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
 msgstr "Bu API anahtarının seçili kanalda yapabildikleri, yukarıda atanan rollerden türetilir. Değiştirmek için rolleri düzenleyin."
 
@@ -2747,7 +2756,7 @@ msgstr "Yeni müşteri"
 msgid "Image"
 msgstr "Görsel"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:98
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:99
 msgid "Successfully created administrator"
 msgstr "Yönetici başarıyla oluşturuldu"
 
@@ -2819,9 +2828,9 @@ msgstr "İade toplamı maksimum iade edilebilir tutar olan {0} tutarını aşıy
 msgid "Delete Global View"
 msgstr "Genel Görünümü Sil"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:126
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:127
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:68
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:156
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:154
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
@@ -2835,7 +2844,7 @@ msgstr "Genel Görünümü Sil"
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:219
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:83
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:86
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:96
@@ -3050,7 +3059,7 @@ msgstr "İade"
 msgid "Modify"
 msgstr "Değiştir"
 
-#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:62
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:77
 msgid "Effective permissions on"
 msgstr "Geçerli izinler:"
 
@@ -3106,7 +3115,7 @@ msgstr "Yeni Promosyon"
 msgid "Option value name"
 msgstr "Seçenek değeri adı"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:214
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:218
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:46
 msgid "Last used"
 msgstr "Son kullanım"
@@ -3183,8 +3192,8 @@ msgid "Order metrics"
 msgstr "Sipariş metrikleri"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:184
-msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
-msgstr "Bir rolü yalnızca o rolün tüm izinlerine kendinizin de sahip olduğu bir kanalda verebilirsiniz."
+#~ msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
+#~ msgstr "Bir rolü yalnızca o rolün tüm izinlerine kendinizin de sahip olduğu bir kanalda verebilirsiniz."
 
 #: src/lib/components/layout/language-dialog.tsx:49
 msgid "Select display language"
@@ -3445,7 +3454,7 @@ msgstr "eşit değildir"
 msgid "Settle payment"
 msgstr "Ödemeyi tamamla"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:161
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:232
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:38
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
@@ -3740,7 +3749,7 @@ msgstr "Ödeme başarıyla iptal edildi"
 msgid "Global view duplicated successfully"
 msgstr "Genel görünüm başarıyla çoğaltıldı"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:210
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:212
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:66
 msgid "Created by"
 msgstr "Oluşturan"
@@ -3753,7 +3762,7 @@ msgstr "Varyantları filtrele..."
 msgid "Add a price in another currency"
 msgstr "Başka bir para biriminde fiyat ekle"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:148
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:149
 #: src/app/routes/_authenticated/_profile/profile.tsx:114
 msgid "Email Address or identifier"
 msgstr "E-posta Adresi veya tanımlayıcı"
@@ -3848,7 +3857,7 @@ msgstr "Stok seviyesi"
 msgid "Add item"
 msgstr "Öğe ekle"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:107
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:111
 msgid "Successfully created API key"
 msgstr "API anahtarı başarıyla oluşturuldu"
 
@@ -3874,7 +3883,7 @@ msgstr "Seçenek grubunu kaldır"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:262
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:174
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:93
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:96
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:162
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:114
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:112
@@ -3936,7 +3945,7 @@ msgstr "içinde"
 msgid "Email"
 msgstr "E-posta"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:107
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:108
 msgid "Failed to update administrator"
 msgstr "Yönetici güncellenemedi"
 
@@ -4252,7 +4261,7 @@ msgstr "Bölge oluşturulamadı"
 msgid "Stock levels"
 msgstr "Stok seviyeleri"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:120
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:123
 msgid "Failed to update API key"
 msgstr "API anahtarı güncellenemedi"
 
@@ -4308,7 +4317,7 @@ msgstr "Kanal ekle"
 #~ msgid "Failed to update product option group"
 #~ msgstr "Ürün seçenek grubu güncellenemedi"
 
-#: src/lib/components/shared/channel-selector.tsx:55
+#: src/lib/components/shared/channel-selector.tsx:67
 msgid "Search channels..."
 msgstr "Kanalları ara..."
 
@@ -4488,7 +4497,7 @@ msgstr "Etiketleri yönet"
 msgid "Coupon code removed from order"
 msgstr "Kupon kodu siparişten kaldırıldı"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:221
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:227
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:50
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:142
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:152
@@ -4778,6 +4787,10 @@ msgstr "Eldeki stok"
 #: src/lib/components/data-table/data-table-filter-dialog.tsx:55
 msgid "Filter by {columnId}"
 msgstr "{columnId} ile filtrele"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:260
+msgid "Locked role"
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:108
 msgid "ID"
@@ -5157,7 +5170,7 @@ msgstr "Seçenek grubunu kaydet"
 msgid "Click \"Run Test\" to test this shipping method."
 msgstr "Bu kargo yöntemini test etmek için \"Testi Çalıştır\"a tıklayın."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:99
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:100
 msgid "Successfully updated administrator"
 msgstr "Yönetici başarıyla güncellendi"
 
@@ -5287,7 +5300,7 @@ msgstr "Eklenecek yeni özellik değerleri:"
 msgid "Failed to process refund"
 msgstr "İade işlenemedi"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:136
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:137
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:176
 #: src/app/routes/_authenticated/_profile/profile.tsx:102
 msgid "First name"
@@ -5425,6 +5438,10 @@ msgstr "Video"
 msgid "less than"
 msgstr "küçüktür"
 
+#: src/lib/components/shared/role-code-label.tsx:10
+msgid "Role Editor"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:123
 msgid "The variant could not be added. Ensure the parent product is enabled."
 msgstr "Varyant eklenemedi. Ana ürünün etkin olduğundan emin olun."
@@ -5482,8 +5499,8 @@ msgstr "{entityIdsLength} {entityType} kanala başarıyla atandı"
 msgid "Global Languages"
 msgstr "Genel Diller"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:42
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:118
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:39
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:119
 msgid "New administrator"
 msgstr "Yeni yönetici"
 
@@ -5976,7 +5993,7 @@ msgstr "Stok tükenmesi eşiği"
 msgid "Failed to update value"
 msgstr "Değer güncellenemedi"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:120
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:123
 msgid "Failed to create API key"
 msgstr "API anahtarı oluşturulamadı"
 
@@ -6029,7 +6046,7 @@ msgstr "Seçenek"
 msgid "Order process"
 msgstr "Sipariş süreci"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:204
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:343
 msgid "No roles assigned"
 msgstr "Atanmış rol yok"
 
@@ -6050,7 +6067,7 @@ msgstr "Varyant"
 msgid "Successfully updated global settings"
 msgstr "Genel ayarlar başarıyla güncellendi"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:114
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:118
 msgid "Successfully updated API key"
 msgstr "API anahtarı başarıyla güncellendi"
 
