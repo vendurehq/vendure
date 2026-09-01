@@ -890,7 +890,6 @@ msgstr "建立商品失敗"
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:276
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:233
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:497
-#: src/lib/components/shared/role-code-label.tsx:8
 msgid "Customer"
 msgstr "客戶"
 
@@ -5438,7 +5437,7 @@ msgstr "影片"
 msgid "less than"
 msgstr "小於"
 
-#: src/lib/components/shared/role-code-label.tsx:10
+#: src/lib/components/shared/role-code-label.tsx:8
 msgid "Role Editor"
 msgstr "角色編輯者"
 

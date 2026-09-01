@@ -896,7 +896,6 @@ msgstr "Неуспешно създаване на продукт"
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:276
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:233
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:497
-#: src/lib/components/shared/role-code-label.tsx:8
 msgid "Customer"
 msgstr "Клиент"
 
@@ -5470,7 +5469,7 @@ msgstr "Видео"
 msgid "less than"
 msgstr "по-малко от"
 
-#: src/lib/components/shared/role-code-label.tsx:10
+#: src/lib/components/shared/role-code-label.tsx:8
 msgid "Role Editor"
 msgstr "Редактор на роли"
 
