@@ -1,0 +1,38 @@
+---
+title: "NoMigrationsMatchedDiagnostic"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/migrate.ts" sourceLine="42" packageName="@vendure/core" since="3.7.2" />
+
+The configured `migrations` patterns matched no files, but the database has migrations
+recorded as applied. The patterns must therefore have stopped matching, for example because
+they point at compiled output which has not been built.
+
+```ts title="Signature"
+interface NoMigrationsMatchedDiagnostic {
+    type: 'no-migrations-matched';
+    patterns: string[];
+    cwd: string;
+}
+```
+
+<div className="members-wrapper">
+
+### type
+
+<MemberInfo kind="property" type={`'no-migrations-matched'`}   />
+
+
+### patterns
+
+<MemberInfo kind="property" type={`string[]`}   />
+
+The glob patterns configured in `dbConnectionOptions.migrations`.
+### cwd
+
+<MemberInfo kind="property" type={`string`}   />
+
+The directory the patterns were resolved against.
+
+
+</div>

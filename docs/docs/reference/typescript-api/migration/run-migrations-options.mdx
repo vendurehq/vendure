@@ -1,0 +1,27 @@
+---
+title: "RunMigrationsOptions"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/migrate.ts" sourceLine="90" packageName="@vendure/core" since="3.7.2" />
+
+Options for [runMigrations](/reference/typescript-api/migration/run-migrations#runmigrations).
+
+```ts title="Signature"
+interface RunMigrationsOptions {
+    onDiagnostic?: (diagnostic: MigrationDiagnostic) => void;
+}
+```
+
+<div className="members-wrapper">
+
+### onDiagnostic
+
+<MemberInfo kind="property" type={`(diagnostic: <a href='/reference/typescript-api/migration/migration-diagnostic#migrationdiagnostic'>MigrationDiagnostic</a>) => void`}   />
+
+Invoked for each [MigrationDiagnostic](/reference/typescript-api/migration/migration-diagnostic#migrationdiagnostic) detected during the run. These conditions are
+also printed to the console, unless the `VENDURE_RUNNING_IN_CLI` environment variable is
+set, which the Vendure CLI does so that it can render them itself. Passing this callback
+does not suppress that output.
+
+
+</div>

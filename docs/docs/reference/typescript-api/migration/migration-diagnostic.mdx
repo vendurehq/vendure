@@ -1,0 +1,12 @@
+---
+title: "MigrationDiagnostic"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/migrate.ts" sourceLine="81" packageName="@vendure/core" since="3.7.2" />
+
+A condition detected while running migrations which cannot be inferred from the return value
+of [runMigrations](/reference/typescript-api/migration/run-migrations#runmigrations).
+
+```ts title="Signature"
+type MigrationDiagnostic = NoMigrationsMatchedDiagnostic | SchemaOutOfSyncDiagnostic
+```

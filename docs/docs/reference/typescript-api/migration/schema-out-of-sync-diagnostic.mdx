@@ -1,0 +1,31 @@
+---
+title: "SchemaOutOfSyncDiagnostic"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/migrate.ts" sourceLine="64" packageName="@vendure/core" since="3.7.2" />
+
+The database schema does not match the current entity configuration, so a new migration
+needs to be generated.
+
+```ts title="Signature"
+interface SchemaOutOfSyncDiagnostic {
+    type: 'schema-out-of-sync';
+    queries: string[];
+}
+```
+
+<div className="members-wrapper">
+
+### type
+
+<MemberInfo kind="property" type={`'schema-out-of-sync'`}   />
+
+
+### queries
+
+<MemberInfo kind="property" type={`string[]`}   />
+
+The SQL statements which would bring the schema back into line with the configuration.
+
+
+</div>
