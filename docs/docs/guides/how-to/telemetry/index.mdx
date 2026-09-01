@@ -138,6 +138,18 @@ NestJS, GraphQL, the PostgreSQL & MySQL2 database drivers, and ioredis to collec
 In order to do this, they need to be preloaded before any of the Vendure application code. This
 is done by means of a preload script.
 
+The script imports the OpenTelemetry SDK and exporters directly, so install them alongside the
+plugin. Pin them to the versions the plugin is built against, otherwise npm resolves the latest
+line and you end up with two copies of the SDK in your tree:
+
+```bash
+npm install @opentelemetry/exporter-logs-otlp-proto@0.221.0 \
+            @opentelemetry/exporter-trace-otlp-http@0.221.0 \
+            @opentelemetry/sdk-logs@0.221.0 \
+            @opentelemetry/sdk-node@0.221.0 \
+            @opentelemetry/sdk-trace-base@2.10.0
+```
+
 Create a file called `preload.ts` in the src dir of your project with the following contents:
 
 ```ts title="src/preload.ts"
@@ -155,7 +167,7 @@ const logExporter = new OTLPLogExporter();
 const config = getSdkConfiguration({
     config: {
         spanProcessors: [new BatchSpanProcessor(traceExporter)],
-        logRecordProcessors: [new BatchLogRecordProcessor(logExporter)],
+        logRecordProcessors: [new BatchLogRecordProcessor({ exporter: logExporter })],
     },
 });
 
@@ -203,7 +215,7 @@ This restores the behaviour of `@vendure/telemetry-plugin` prior to v3.7, attach
 to any supported library it detects at runtime:
 
 ```bash
-npm install @opentelemetry/auto-instrumentations-node
+npm install @opentelemetry/auto-instrumentations-node@0.77.0
 ```
 
 ```ts title="src/preload.ts"
@@ -213,7 +225,7 @@ import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentation
 const config = getSdkConfiguration({
     config: {
         spanProcessors: [new BatchSpanProcessor(traceExporter)],
-        logRecordProcessors: [new BatchLogRecordProcessor(logExporter)],
+        logRecordProcessors: [new BatchLogRecordProcessor({ exporter: logExporter })],
         instrumentations: [getNodeAutoInstrumentations()], // [!code highlight]
     },
 });
@@ -224,14 +236,14 @@ const config = getSdkConfiguration({
 Install just the ones you want and pass them alongside the Vendure-default set:
 
 ```bash
-npm install @opentelemetry/instrumentation-http \
-            @opentelemetry/instrumentation-express \
-            @opentelemetry/instrumentation-nestjs-core \
-            @opentelemetry/instrumentation-graphql \
-            @opentelemetry/instrumentation-pg \
-            @opentelemetry/instrumentation-mysql2 \
-            @opentelemetry/instrumentation-ioredis \
-            @opentelemetry/instrumentation-kafkajs
+npm install @opentelemetry/instrumentation-http@0.221.0 \
+            @opentelemetry/instrumentation-express@0.67.0 \
+            @opentelemetry/instrumentation-nestjs-core@0.65.0 \
+            @opentelemetry/instrumentation-graphql@0.67.0 \
+            @opentelemetry/instrumentation-pg@0.71.0 \
+            @opentelemetry/instrumentation-mysql2@0.65.0 \
+            @opentelemetry/instrumentation-ioredis@0.67.0 \
+            @opentelemetry/instrumentation-kafkajs@0.28.0
 ```
 
 ```ts title="src/preload.ts"
@@ -248,7 +260,7 @@ import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
 const config = getSdkConfiguration({
     config: {
         spanProcessors: [new BatchSpanProcessor(traceExporter)],
-        logRecordProcessors: [new BatchLogRecordProcessor(logExporter)],
+        logRecordProcessors: [new BatchLogRecordProcessor({ exporter: logExporter })],
         instrumentations: [ // [!code highlight]
             new HttpInstrumentation(), // [!code highlight]
             new ExpressInstrumentation(), // [!code highlight]
@@ -262,6 +274,15 @@ const config = getSdkConfiguration({
     },
 });
 ```
+
+:::warning
+Install these instrumentations at the versions shown, not at `latest`. From
+`@opentelemetry/instrumentation-http@0.221.0` onwards the HTTP instrumentation emits only the
+stable semantic conventions, with no opt-out: `http.method` becomes `http.request.method` and
+`net.peer.name` becomes `server.address`. Since your `instrumentations` array replaces the
+curated default rather than adding to it, a newer package silently renames the attributes on
+every HTTP span and breaks any dashboard or alert keyed on the old names.
+:::
 
 :::info
 Passing `instrumentations` in your config **replaces** the curated default — it does not merge

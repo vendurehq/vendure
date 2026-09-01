@@ -488,7 +488,7 @@
           "title": "Telemetry",
           "slug": "telemetry",
           "file": "docs/guides/how-to/telemetry/index.mdx",
-          "lastModified": "2026-07-30T11:06:58Z"
+          "lastModified": "2026-09-01T09:42:45+02:00"
         }
       ]
     },
@@ -3709,7 +3709,7 @@
                   "title": "GetSdkConfiguration",
                   "slug": "get-sdk-configuration",
                   "file": "docs/reference/core-plugins/telemetry-plugin/get-sdk-configuration.mdx",
-                  "lastModified": "2026-05-22T15:38:26+02:00"
+                  "lastModified": "2026-09-01T09:42:45+02:00"
                 },
                 {
                   "title": "OtelLogger",
@@ -3730,7 +3730,7 @@
                   "lastModified": "2026-01-28T14:49:21+01:00"
                 }
               ],
-              "lastModified": "2026-04-20T16:08:16+02:00"
+              "lastModified": "2026-09-01T09:42:45+02:00"
             }
           ],
           "lastModified": "2026-03-30T21:48:02+02:00"

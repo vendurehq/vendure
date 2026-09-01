@@ -80,7 +80,7 @@ import { TelemetryPluginOptions } from './types';
  *     config: {
  *         // Pass in any custom configuration options for the Node SDK here
  *         spanProcessors: [new BatchSpanProcessor(traceExporter)],
- *         logRecordProcessors: [new BatchLogRecordProcessor(logExporter)],
+ *         logRecordProcessors: [new BatchLogRecordProcessor({ exporter: logExporter })],
  *     },
  * });
  *
