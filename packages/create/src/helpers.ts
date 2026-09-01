@@ -21,7 +21,6 @@ import {
     OLDEST_NON_EOL_NODE_MAJOR,
     PG_READY_MAX_ATTEMPTS,
     PG_READY_POLL_INTERVAL_MS,
-    RE2JS_VERSION,
     SOCKET_TIMEOUT_MS,
     TYPEORM_VERSION,
     TYPESCRIPT_VERSION,
@@ -580,11 +579,6 @@ export function getDependencies(
         // resolve it as a transitive dep (npm/yarn/bun hoist, and the scaffold forces yarn's
         // node-modules linker), so declare it directly for pnpm only. See #4960.
         ...(packageManager === 'pnpm' ? [`typeorm@${TYPEORM_VERSION}`] : []),
-        // Only the SQLite drivers evaluate `regex` list filters in this process, so only they need
-        // the RE2 engine which bounds that work. Every other database evaluates the pattern itself.
-        // Without it those filters fall back to the built-in RegExp engine, which is vulnerable to
-        // ReDoS (GHSA-jgm3-qmp2-c4p7).
-        ...(dbType === 'sqlite' ? [`re2js@${RE2JS_VERSION}`] : []),
         dbDriverPackage(dbType),
     ];
     const devDependencies = [

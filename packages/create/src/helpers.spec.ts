@@ -7,7 +7,7 @@ import path from 'node:path';
 import semver from 'semver';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { RE2JS_VERSION, REQUIRED_NODE_VERSION, TYPEORM_VERSION } from './constants';
+import { REQUIRED_NODE_VERSION, TYPEORM_VERSION } from './constants';
 import { registerEscapeSingleHelper } from './gather-user-responses';
 import {
     checkNodeVersion,
@@ -732,22 +732,5 @@ describe('getDependencies', () => {
     it('pins typeorm to the same range as @vendure/core', () => {
         const corePkg = fs.readJsonSync(path.resolve(__dirname, '../../core/package.json'));
         expect(TYPEORM_VERSION).toBe(corePkg.dependencies.typeorm);
-    });
-
-    // GHSA-jgm3-qmp2-c4p7 — only the SQLite drivers evaluate `regex` list filters in the Node
-    // process, so only they need the RE2 engine which bounds that work.
-    it('adds re2js only for the SQLite driver', () => {
-        expect(getDependencies('sqlite', '@3.7.0').dependencies).toContain(`re2js@${RE2JS_VERSION}`);
-        for (const dbType of ['postgres', 'mysql', 'mariadb'] as const) {
-            const deps = getDependencies(dbType, '@3.7.0').dependencies;
-            expect(deps.some(d => d.startsWith('re2js'))).toBe(false);
-        }
-    });
-
-    // A scaffolded SQLite project installs re2js directly, so its range must satisfy the optional
-    // peer dependency @vendure/core declares, or package managers warn on every install.
-    it('declares the same re2js range as @vendure/core', () => {
-        const corePkg = fs.readJsonSync(path.resolve(__dirname, '../../core/package.json'));
-        expect(RE2JS_VERSION).toBe(corePkg.peerDependencies.re2js);
     });
 });
