@@ -8,7 +8,6 @@ import { randomBytes } from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
-import open from 'open';
 import pc from 'picocolors';
 
 import {
@@ -49,6 +48,7 @@ import {
     installPackages,
     isSafeToCreateProjectIn,
     registerTemplateHelpers,
+    createProjectRequire,
     resolvePackageRootDir,
     scaffoldAlreadyExists,
     startPostgresDatabase,
@@ -511,21 +511,25 @@ export async function createVendureApp(
     // complex module resolution with npm workspaces and ESM packages can
     // cause false TypeScript errors. Type checking happens when users run
     // their own build/dev commands.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    require(resolvePackageRootDir('ts-node', serverRoot)).register({
+    // ts-node resolves its `typescript` peer from whichever package required it, so the
+    // generated project has to be the one that requires it.
+    createProjectRequire(serverRoot)('ts-node').register({
         project: path.join(serverRoot, 'tsconfig.json'),
         transpileOnly: true,
     });
 
     let superAdminCredentials: { identifier: string; password: string } | undefined;
     try {
-        const { populate } = await import(
-            path.join(resolvePackageRootDir('@vendure/core', serverRoot), 'cli', 'populate')
+        // Required rather than imported, to keep this CommonJS graph off the ESM loader.
+        // See createProjectRequire.
+        const projectRequire = createProjectRequire(serverRoot);
+        const { populate } = projectRequire(
+            path.join(resolvePackageRootDir('@vendure/core', serverRoot), 'cli', 'populate'),
         );
-        const { bootstrap, DefaultLogger, LogLevel, JobQueueService } = await import(
-            path.join(resolvePackageRootDir('@vendure/core', serverRoot), 'dist', 'index')
+        const { bootstrap, DefaultLogger, LogLevel, JobQueueService } = projectRequire(
+            path.join(resolvePackageRootDir('@vendure/core', serverRoot), 'dist', 'index'),
         );
-        const { config } = await import(configFile);
+        const { config } = projectRequire(configFile);
         const assetsDir = path.join(__dirname, '../assets');
         superAdminCredentials = config.authOptions.superadminCredentials;
         const initialDataPath = path.join(assetsDir, 'initial-data.json');
@@ -632,6 +636,10 @@ export async function createVendureApp(
                 // before opening the window.
                 await sleep(AUTO_RUN_DELAY_MS);
                 try {
+                    // `open` is ESM-only. Requiring an ESM package at module scope throws
+                    // ERR_VM_MODULE_LINK_FAILURE under Plug'n'Play on Node 22 and kills the
+                    // CLI before it prints anything, so it is imported at the point of use.
+                    const { default: open } = await import('open');
                     await open(dashboardUrl, {
                         newInstance: true,
                     });
