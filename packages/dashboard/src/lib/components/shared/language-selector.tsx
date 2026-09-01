@@ -25,7 +25,6 @@ export function LanguageSelector<T extends boolean>(props: LanguageSelectorProps
     const { data } = useQuery({
         queryKey: ['availableGlobalLanguages'],
         queryFn: () => api.query(availableGlobalLanguages),
-        staleTime: 1000 * 60 * 5, // 5 minutes
     });
     const { value, onChange, multiple, availableLanguageCodes } = props;
     const { t } = useLingui();

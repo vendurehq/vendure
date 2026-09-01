@@ -45,6 +45,12 @@ function buildRequestUrl(baseUrl: string): string {
 // locale, which would otherwise decide it.
 function buildRequestHeaders(existing?: HeadersInit): Headers {
     const headers = new Headers(existing);
+
+    // Apollo Server rejects requests that carry only a CORS-safelisted content type when
+    // csrfPrevention is enabled. Multipart asset uploads fall into that group, so send the
+    // header the same way @vendure/admin-ui does.
+    headers.set('Apollo-Require-Preflight', 'true');
+
     const sessionToken = localStorage.getItem(LS_KEY_SESSION_TOKEN);
     const channelToken = localStorage.getItem(LS_KEY_SELECTED_CHANNEL_TOKEN);
     if (sessionToken) {

@@ -124,7 +124,6 @@ function AssetTagFilterOptions({
             return totalFetched < lastPage.totalItems ? allPages.length : undefined;
         },
         initialPageParam: 0,
-        staleTime: 1000 * 60 * 5,
     });
 
     const availableTags = data?.pages.flatMap(page => page?.items ?? []) ?? [];

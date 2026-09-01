@@ -3386,8 +3386,8 @@ msgid "Override"
 msgstr "Overschrijven"
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
-msgid "Transaction ID is required"
-msgstr "Transactie-ID is vereist"
+#~ msgid "Transaction ID is required"
+#~ msgstr "Transactie-ID is vereist"
 
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "matches regex"

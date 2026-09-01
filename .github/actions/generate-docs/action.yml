@@ -1,0 +1,26 @@
+name: 'Generate docs'
+description: 'Regenerate the TypeScript and GraphQL reference docs from source, then check the result is valid MDX'
+runs:
+    using: 'composite'
+    steps:
+        - uses: ./.github/actions/setup
+
+        - name: Generate TypeScript docs
+          shell: bash
+          run: bun run docs:generate-typescript-docs
+
+        - name: Generate GraphQL docs
+          shell: bash
+          run: bun run docs:generate-graphql-docs
+
+        - name: Install docs dependencies
+          shell: bash
+          working-directory: docs
+          # npm ci pins to docs/package-lock.json, and --ignore-scripts keeps a
+          # dependency's lifecycle script away from the CI bot token this job holds.
+          run: npm ci --ignore-scripts
+
+        - name: Validate generated docs
+          shell: bash
+          working-directory: docs
+          run: npm run test:mdx

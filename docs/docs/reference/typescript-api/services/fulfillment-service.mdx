@@ -2,7 +2,7 @@
 title: "FulfillmentService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/fulfillment.service.ts" sourceLine="35" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/fulfillment.service.ts" sourceLine="37" packageName="@vendure/core" />
 
 Contains methods relating to [Fulfillment](/reference/typescript-api/entities/fulfillment#fulfillment) entities.
 
@@ -37,7 +37,16 @@ Creates a new Fulfillment for the given Orders and OrderItems, using the specifi
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, id: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/order-line-reference#fulfillmentline'>FulfillmentLine</a>[]>`}   />
 
+Loads the FulfillmentLines of a Fulfillment by id with no Channel check. Fulfillment is not
+ChannelAware, so its only Channel boundary is the parent Order, and a caller must load that
+Order in the current Channel first.
 
+This is safe for the core callers, the `Fulfillment.lines` and `Fulfillment.summary` field
+resolvers, because neither takes an id from the client: a Fulfillment is reachable only
+through `Order.fulfillments` or `FulfillmentLine.fulfillment`, and neither API has a root
+Fulfillment query. Scoping the read was considered and rejected, because it adds a joined
+Order query per Fulfillment per request on both APIs to guard a path no client can reach.
+Add the check here if a root Fulfillment query is introduced.
 ### getFulfillmentsLinesForOrderLine
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, orderLineId: <a href='/reference/typescript-api/common/id#id'>ID</a>, relations: RelationPaths<<a href='/reference/typescript-api/entities/order-line-reference#fulfillmentline'>FulfillmentLine</a>> = []) => Promise<<a href='/reference/typescript-api/entities/order-line-reference#fulfillmentline'>FulfillmentLine</a>[]>`}   />

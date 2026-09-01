@@ -172,7 +172,14 @@ jobs:
     sonarqube:
         name: SonarQube
         needs: detect-changes
-        if: needs.detect-changes.outputs.packages == 'true' && (github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork)
+        # Dependabot pull requests read from the Dependabot secrets store, not
+        # from Actions secrets, so SONAR_TOKEN resolves empty and the scan
+        # fails. Skipping is safe: all-passed counts a skipped job as a pass,
+        # and the scan still runs on the push to master after the merge.
+        if: >-
+            needs.detect-changes.outputs.packages == 'true'
+            && github.actor != 'dependabot[bot]'
+            && (github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork)
         runs-on: ubuntu-latest
         permissions:
             contents: read

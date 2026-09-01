@@ -3412,8 +3412,8 @@ msgid "Override"
 msgstr "Презапиши"
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
-msgid "Transaction ID is required"
-msgstr "Изисква се ID на транзакцията"
+#~ msgid "Transaction ID is required"
+#~ msgstr "Изисква се ID на транзакцията"
 
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "matches regex"

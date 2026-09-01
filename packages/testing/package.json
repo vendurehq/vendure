@@ -43,7 +43,7 @@
         "graphql": "^16.11.0",
         "graphql-tag": "^2.12.6",
         "mime-types": "^3.0.2",
-        "sql.js": "1.14.1"
+        "sql.js": "1.14.2"
     },
     "devDependencies": {
         "@types/faker": "^5.5.9",

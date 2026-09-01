@@ -10,6 +10,7 @@ import { satisfies } from 'semver';
 import { DataSource, DataSourceOptions, EntitySubscriberInterface } from 'typeorm';
 import cookieSession = require('cookie-session');
 
+import { tokenMethodIncludes } from './api/common/token-method-includes';
 import { InternalServerError } from './common/error/errors';
 import { getConfig, setConfig } from './config/config-helpers';
 import { DefaultLogger } from './config/logger/default-logger';
@@ -33,6 +34,7 @@ import { patchTypeOrmRelationIdLoader } from './entity/typeorm-relation-id-loade
 import { validateCustomFieldsConfig } from './entity/validate-custom-fields-config';
 import { EventBus } from './event-bus';
 import { BootstrappedEvent } from './event-bus/events/bootstrapped-event';
+import { warnAboutInsecureApiConfig } from './get-api-security-warnings';
 import {
     flattenPlugins,
     getCompatibility,
@@ -209,6 +211,7 @@ export async function bootstrap(
     const config = await preBootstrapConfig(userConfig);
     Logger.useLogger(config.logger);
     Logger.info(`Bootstrapping Vendure Server (pid: ${process.pid})...`);
+    warnAboutInsecureApiConfig(config);
     checkPluginCompatibility(config, options?.ignoreCompatibilityErrorsForPlugins);
 
     // The AppModule *must* be loaded only after the entities have been set in the
@@ -226,10 +229,7 @@ export async function bootstrap(
     DefaultLogger.restoreOriginalLogLevel();
     app.useLogger(new Logger());
     app.set('trust proxy', trustProxy);
-    const { tokenMethod } = config.authOptions;
-    const usingCookie =
-        tokenMethod === 'cookie' || (Array.isArray(tokenMethod) && tokenMethod.includes('cookie'));
-    if (usingCookie) {
+    if (tokenMethodIncludes(config.authOptions.tokenMethod, 'cookie')) {
         configureSessionCookies(app, config);
     }
     const earlyMiddlewares = middleware.filter(mid => mid.beforeListen);
