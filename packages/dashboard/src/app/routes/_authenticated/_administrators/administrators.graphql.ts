@@ -48,6 +48,15 @@ export const administratorDetailDocument = graphql(
                         id
                         roleId
                         channelId
+                        role {
+                            id
+                            code
+                            description
+                        }
+                        channel {
+                            id
+                            code
+                        }
                     }
                 }
                 customFields

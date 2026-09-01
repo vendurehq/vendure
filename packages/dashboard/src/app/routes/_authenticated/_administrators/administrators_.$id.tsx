@@ -23,10 +23,7 @@ import {
     updateAdministratorDocument,
 } from './administrators.graphql.js';
 import { EffectivePermissionsPanel } from './components/effective-permissions-panel.js';
-import {
-    completeRoleAssignmentPairs,
-    RoleAssignmentsEditor,
-} from './components/role-assignments-editor.js';
+import { completeRoleAssignmentPairs, RoleAssignmentsEditor } from './components/role-assignments-editor.js';
 
 const pageId = 'administrator-detail';
 
@@ -65,9 +62,13 @@ function AdministratorDetailPage() {
                 emailAddress: entity.emailAddress,
                 password: '',
                 customFields: entity.customFields,
-                roleAssignments: entity.user.roleAssignments.map(({ roleId, channelId }) => ({
+                // role/channel ride along to label assignments the active user cannot
+                // resolve otherwise; completeRoleAssignmentPairs strips them on save.
+                roleAssignments: entity.user.roleAssignments.map(({ roleId, channelId, role, channel }) => ({
                     roleId,
                     channelId,
+                    role,
+                    channel,
                 })),
             };
         },
@@ -162,15 +163,26 @@ function AdministratorDetailPage() {
                         control={form.control}
                         name="roleAssignments"
                         render={({ field }) => (
-                            <RoleAssignmentsEditor value={field.value ?? []} onChange={field.onChange} />
+                            <RoleAssignmentsEditor
+                                value={field.value ?? []}
+                                onChange={field.onChange}
+                                restrictToGrantable
+                            />
                         )}
                     />
+                    <p className="text-xs text-muted-foreground mt-2">
+                        <Trans>
+                            You can only grant a role on a channel where you hold all of that role's
+                            permissions yourself. Assignments you cannot grant are shown locked and are
+                            preserved on save.
+                        </Trans>
+                    </p>
                     <EffectivePermissionsPanel
                         assignments={roleAssignments ?? []}
                         description={
                             <Trans>
-                                What this administrator can do on the selected channel, derived
-                                from the roles assigned above. Edit the roles to change it.
+                                What this administrator can do on the selected channel, derived from the roles
+                                assigned above. Edit the roles to change it.
                             </Trans>
                         }
                     />

@@ -1,10 +1,11 @@
 import { ChannelCodeLabel } from '@/vdb/components/shared/channel-code-label.js';
 import { MultiSelect } from '@/vdb/components/shared/multi-select.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
+import { useRoles } from '@/vdb/hooks/use-roles.js';
 import { Trans } from '@lingui/react/macro';
 import { ReactNode, useState } from 'react';
 
-import { RoleAssignmentPair } from './role-assignments-editor.js';
+import { RoleAssignmentPair, useRoleAssignmentLabels } from './role-assignments-editor.js';
 import { RolePermissionsDisplay } from './role-permissions-display.js';
 
 export interface EffectivePermissionsPanelProps {
@@ -26,14 +27,24 @@ export function EffectivePermissionsPanel({
     description,
 }: Readonly<EffectivePermissionsPanelProps>) {
     const { channels, activeChannel } = useChannel();
+    const { roles } = useRoles();
+    const assignmentLabels = useRoleAssignmentLabels(assignments);
     const [pickedChannelId, setPickedChannelId] = useState<string | undefined>();
 
     // The generated form can hold incomplete pairs (blank seed item, a row mid-edit).
     const completeAssignments = assignments.filter(
         assignment => !!assignment?.roleId && !!assignment?.channelId,
     );
+    // A Channel where some assigned Role is gate-hidden from the active user would show an
+    // incomplete permission list, understating what the user can do there, so it is not
+    // offered at all.
+    const resolvableRoleIds = new Set(roles.map(role => role.id));
     const channelIdsInUse = Array.from(
         new Set(completeAssignments.map(assignment => assignment.channelId)),
+    ).filter(channelId =>
+        completeAssignments
+            .filter(assignment => assignment.channelId === channelId)
+            .every(assignment => resolvableRoleIds.has(assignment.roleId)),
     );
     const selectedChannelId =
         pickedChannelId && channelIdsInUse.includes(pickedChannelId)
@@ -51,7 +62,11 @@ export function EffectivePermissionsPanel({
         .map(assignment => assignment.roleId);
 
     const items = channelIdsInUse.map(channelId => {
-        const code = channels.find(channel => channel.id === channelId)?.code ?? channelId;
+        // Fallback for a Channel the active user cannot read through the channels query.
+        const code =
+            channels.find(channel => channel.id === channelId)?.code ??
+            assignmentLabels.channels.get(channelId) ??
+            channelId;
         return { value: channelId, label: code, display: <ChannelCodeLabel code={code} /> };
     });
 

@@ -48,6 +48,15 @@ export const apiKeyDetailDocument = graphql(`
                     id
                     roleId
                     channelId
+                    role {
+                        id
+                        code
+                        description
+                    }
+                    channel {
+                        id
+                        code
+                    }
                 }
             }
             translations {

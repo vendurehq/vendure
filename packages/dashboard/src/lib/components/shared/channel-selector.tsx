@@ -1,5 +1,6 @@
 import { api } from '@/vdb/graphql/api.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
+import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
 import { ChannelCodeLabel } from './channel-code-label.js';
@@ -25,19 +26,30 @@ export interface ChannelSelectorProps<T extends boolean> {
      * that a Channel the caller knows nothing about is never offered.
      */
     includeIds?: string[];
+    /**
+     * Build the options from the active user's own Channels (`me.channels`) instead of the
+     * `channels` query, which is FORBIDDEN for administrators without `ReadChannel` or
+     * `ReadSettings`. Flows restricted to grantable Channels never need to offer a Channel
+     * outside the user's own set.
+     */
+    ownChannelsOnly?: boolean;
 }
 
 export function ChannelSelector<T extends boolean>(props: ChannelSelectorProps<T>) {
-    const { value, onChange, multiple, includeIds } = props;
+    const { value, onChange, multiple, includeIds, ownChannelsOnly } = props;
     const { t } = useLingui();
+    const { channels: userChannels } = useChannel();
 
     const { data: channelsData } = useQuery({
         queryKey: ['channels'],
         queryFn: () => api.query(channelsDocument, {}),
         staleTime: 1000 * 60 * 5,
+        enabled: !ownChannelsOnly,
     });
 
-    const items = (channelsData?.channels.items ?? [])
+    const channels = ownChannelsOnly ? userChannels : (channelsData?.channels.items ?? []);
+
+    const items = channels
         .filter(channel => !includeIds || includeIds.includes(channel.id))
         .map(channel => ({
             value: channel.id,
