@@ -251,14 +251,26 @@ jobs:
         runs-on: ubuntu-latest
         permissions:
             contents: read
-        # MySQL is started by hand rather than as a service container because it needs server
-        # flags, and a service container has no way to pass them. MySQL 8 enables the binary
-        # log by default where MariaDB does not, so each commit costs two fsyncs instead of
-        # one. The e2e run drops and recreates the whole schema once per spec file, so it does
-        # enough commits for that to set the runtime: this job has averaged 22 minutes against
-        # 12 for the other databases, and passed 80 minutes when the runner disk was busy.
-        # A database that is thrown away at the end of the job has no use for a binary log.
         services:
+            mysql:
+                image: vendure/mysql-8-native-auth:latest
+                # Each spec file gets its own database, so the e2e run builds the full schema
+                # 122 times. MySQL 8 made DDL atomic, which made CREATE TABLE several times
+                # slower than it is on MariaDB, and Oracle closed that as working as intended
+                # (MySQL bug #106390). This job has therefore averaged 22 minutes against 12
+                # for the other databases, and reached 80 when the runner disk was busy.
+                # Holding the data directory in memory takes the disk out of that path. The
+                # binary log is switched off because a database that is deleted at the end of
+                # the job has no use for one, and it would otherwise grow in that same memory.
+                command: --skip-log-bin --performance-schema=OFF
+                env:
+                    MYSQL_ROOT_PASSWORD: password
+                ports:
+                    - 3306
+                options: >-
+                    --tmpfs /var/lib/mysql:rw,size=4g
+                    --health-cmd="mysqladmin ping --silent"
+                    --health-interval=10s --health-timeout=20s --health-retries=10
             redis:
                 image: redis:7.4.1
                 ports:
@@ -268,37 +280,15 @@ jobs:
             matrix:
                 node: ${{ github.event_name == 'pull_request' && fromJSON('["22.x"]') || fromJSON('["20.x", "22.x", "24.x"]') }}
         steps:
-            - name: Start MySQL
-              run: |
-                  docker run --detach --name mysql \
-                      --publish 3306:3306 \
-                      --env MYSQL_ROOT_PASSWORD=password \
-                      vendure/mysql-8-native-auth:latest \
-                      --skip-log-bin \
-                      --performance-schema=OFF
             - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
             - uses: ./.github/actions/setup
               with:
                   node-version: ${{ matrix.node }}
             - name: Build
               run: bunx lerna run ci
-            # `mysqladmin ping` reports success while the entrypoint is still running its
-            # temporary server, so the readiness check runs a real query instead.
-            - name: Wait for MySQL
-              run: |
-                  for i in $(seq 1 60); do
-                      if docker exec mysql mysql --user=root --password=password --execute="SELECT 1" >/dev/null 2>&1; then
-                          echo "MySQL is ready"
-                          exit 0
-                      fi
-                      sleep 2
-                  done
-                  echo "MySQL did not become ready in time"
-                  docker logs mysql
-                  exit 1
             - name: e2e tests
               env:
-                  E2E_MYSQL_PORT: 3306
+                  E2E_MYSQL_PORT: ${{ job.services.mysql.ports['3306'] }}
                   E2E_REDIS_PORT: ${{ job.services.redis.ports['6379'] }}
                   DB: mysql
               run: bun run e2e
