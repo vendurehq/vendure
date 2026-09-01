@@ -64,10 +64,20 @@ describe('parseCimdDocument', () => {
         expect(() => parseCimdDocument(CLIENT_ID, doc({ redirect_uris: [] }))).toThrow('redirect_uris');
     });
 
-    it('rejects redirect_uris that are neither https nor loopback http', () => {
+    it('rejects non-loopback http and executable-scheme redirect_uris, accepts app schemes', () => {
         expect(() =>
             parseCimdDocument(CLIENT_ID, doc({ redirect_uris: ['http://evil.example.com/cb'] })),
-        ).toThrow('redirect_uri must use HTTPS or localhost HTTP');
+        ).toThrow('redirect_uri may only use HTTP on localhost');
+        expect(() =>
+            parseCimdDocument(CLIENT_ID, doc({ redirect_uris: ['javascript:alert(1)'] })),
+        ).toThrow('redirect_uri must not use the javascript: scheme');
+        // A native app's private-use scheme (RFC 8252), as registered by Cursor.
+        expect(() =>
+            parseCimdDocument(
+                CLIENT_ID,
+                doc({ redirect_uris: ['cursor://anysphere.cursor-mcp/oauth/callback'] }),
+            ),
+        ).not.toThrow();
     });
 
     it('rejects documents carrying a client secret', () => {

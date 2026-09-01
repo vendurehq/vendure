@@ -32,6 +32,13 @@ export function appendOAuthParams(redirectUri: string, params: Record<string, st
     return url.toString();
 }
 
+/**
+ * Schemes a browser could execute or that reach the local filesystem. Everything else that is
+ * not http(s) is treated as a native app's private-use scheme (RFC 8252), e.g.
+ * `cursor://anysphere.cursor-mcp/oauth/callback` — the OS hands those to the installed app.
+ */
+const FORBIDDEN_REDIRECT_SCHEMES = ['javascript:', 'data:', 'vbscript:', 'file:', 'blob:', 'about:'];
+
 export function assertSafeRedirectUri(redirectUri: string): void {
     let url: URL;
     try {
@@ -39,8 +46,14 @@ export function assertSafeRedirectUri(redirectUri: string): void {
     } catch {
         throw new McpOauthError('invalid_redirect_uri', 'redirect_uri must be an absolute URL');
     }
-    if (url.protocol !== 'https:' && !(url.protocol === 'http:' && isLoopbackHostname(url.hostname))) {
-        throw new McpOauthError('invalid_redirect_uri', 'redirect_uri must use HTTPS or localhost HTTP');
+    if (url.protocol === 'http:' && !isLoopbackHostname(url.hostname)) {
+        throw new McpOauthError('invalid_redirect_uri', 'redirect_uri may only use HTTP on localhost');
+    }
+    if (FORBIDDEN_REDIRECT_SCHEMES.includes(url.protocol.toLowerCase())) {
+        throw new McpOauthError(
+            'invalid_redirect_uri',
+            `redirect_uri must not use the ${url.protocol} scheme`,
+        );
     }
     if (redirectUri.length > MAX_CLIENT_METADATA_FIELD_LENGTH) {
         throw new McpOauthError(
