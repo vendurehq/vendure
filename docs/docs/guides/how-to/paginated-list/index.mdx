@@ -269,31 +269,18 @@ or a rating of 0. The `_and` and `_or` operators can be nested to any depth, all
 
 ## Cost of the `regex` operator
 
-`StringOperators` offers a `regex` operator as well as `contains`. Vendure checks every pattern
-before it reaches the database: it rejects one longer than 100 characters, and one whose nested
-quantifiers give it a star height of 2 or more, which is the shape behind exponential backtracking.
-That check is a heuristic and not a proof. What a pattern which passes it costs depends on the
-database.
+`StringOperators` offers a `regex` operator as well as `contains`. Prefer `contains` where it will
+do. It becomes a `LIKE` query, or `ILIKE` on PostgreSQL, and costs about the same whatever the
+pattern.
 
-| Database | Where the pattern runs | Cost of a slow pattern |
-|---|---|---|
-| SQLite, SQL.js | In the Node.js process | Bounded. Vendure matches with RE2, which does not backtrack |
-| MySQL 8 | In the database | Bounded by `regexp_time_limit`, which abandons a pattern that exceeds it |
-| MariaDB | In the database | No limit. PCRE2 backtracks, and MariaDB pays that cost for every row it reads |
-| PostgreSQL | In the database | No limit. The engine backtracks less than PCRE2 does, but nothing stops a slow pattern |
+Where you need `regex`, the database decides what one pattern can cost. PostgreSQL evaluates any
+pattern quickly. SQLite and SQL.js match with the [RE2](https://github.com/google/re2) engine, which
+runs in linear time. Prefer one of those if your project exposes `regex` filters. MariaDB and MySQL
+match with a backtracking engine and repeat that work for every row they read, so a slow pattern
+there is slow once per row.
 
-SQLite and SQL.js evaluate the pattern in the Node.js process rather than in the database, so a slow
-one would block the event loop and the server would answer nothing else until it finished. Vendure
-matches those with the [RE2](https://github.com/google/re2) engine, which runs in linear time. RE2
-supports neither lookaround nor backreferences, and a filter which uses either is rejected with an
-error rather than failing part-way through the query.
-
-On MariaDB and PostgreSQL a slow pattern holds a database connection for as long as it runs. Set a
-statement timeout, `max_statement_time` on MariaDB or `statement_timeout` on PostgreSQL, so that one
-query cannot hold a connection open indefinitely.
-
-Use `contains` for a search box. It becomes a `LIKE` query, or `ILIKE` on PostgreSQL, and its cost
-is predictable on every database.
+RE2 supports neither lookaround nor backreferences. On SQLite and SQL.js a filter which uses either
+is rejected with an error rather than failing part-way through the query.
 
 ## Filtering by custom properties
 
