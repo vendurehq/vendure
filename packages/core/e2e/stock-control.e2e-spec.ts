@@ -1352,7 +1352,40 @@ describe('Stock control', () => {
             );
         });
     });
+
+    // StockLevels are loaded through a DataLoader whose lifetime is one RequestContext and
+    // which batches without memoizing, so a stock read is never served from a value loaded
+    // before the write it follows. Mutation fields execute serially and each is completed
+    // before the next begins, so `before` resolves its stockOnHand, then `after` writes a new
+    // value and reads it back, both within one request. Widening the loader beyond a single
+    // RequestContext, or memoizing across one, makes this report 11 twice and oversell stock.
+    describe('reading stock back after writing it in the same request', () => {
+        const variantId = 'T_4';
+
+        it('reports the stockOnHand written earlier in the same request', async () => {
+            const { before, after } = await adminClient.query(adjustStockTwiceDocument, {
+                first: [{ id: variantId, stockOnHand: 11, trackInventory: GlobalFlag.TRUE }],
+                second: [{ id: variantId, stockOnHand: 13 }],
+            });
+
+            expect(before[0]!.stockOnHand).toBe(11);
+            expect(after[0]!.stockOnHand).toBe(13);
+        });
+    });
 });
+
+const adjustStockTwiceDocument = graphql(`
+    mutation AdjustStockTwice($first: [UpdateProductVariantInput!]!, $second: [UpdateProductVariantInput!]!) {
+        before: updateProductVariants(input: $first) {
+            id
+            stockOnHand
+        }
+        after: updateProductVariants(input: $second) {
+            id
+            stockOnHand
+        }
+    }
+`);
 
 const updateStockOnHandDocument = graphql(
     `
