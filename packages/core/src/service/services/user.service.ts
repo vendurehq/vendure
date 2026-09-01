@@ -161,6 +161,110 @@ export class UserService {
 
     /**
      * @description
+     * Adds an unactivated {@link NativeAuthenticationMethod} (empty password, pending
+     * `verificationToken`) to an existing User, without altering the User's `verified` state.
+     *
+     * If the User already carries a native credential with a pending `verificationToken`, a fresh one
+     * is issued for it instead. This lets the mailbox owner restart the flow when the first message
+     * was lost or its token has expired.
+     *
+     * The guarantee this method makes is that it never stores a password. A password already on the
+     * credential is left as it is, and the `password` argument is discarded.
+     *
+     * This is used when a native credential is being registered against an account that already
+     * exists via another authentication method (e.g. an external/SSO strategy). The credential is
+     * left without a password so that it can only be activated by whoever controls the email
+     * address, via the verification flow. Storing a caller-supplied password here would allow an
+     * unauthenticated account takeover (GHSA-wr5h-x3x6-4h23).
+     *
+     * If a `password` is supplied it is validated and hashed, but the hash is deliberately NOT
+     * stored. Doing the same work as a brand-new registration keeps this path indistinguishable from
+     * one, both in its error result and in how long it takes, so it does not become an
+     * account-existence oracle.
+     */
+    async addUnactivatedNativeAuthenticationMethod(
+        ctx: RequestContext,
+        user: User,
+        identifier: string,
+        password?: string,
+    ): Promise<User | PasswordValidationError> {
+        if (password) {
+            const passwordValidationResult = await this.validatePassword(ctx, password);
+            if (passwordValidationResult !== true) {
+                return passwordValidationResult;
+            }
+            // The hash is thrown away, but it is still computed so that this branch costs the same as
+            // a brand-new registration. Skipping it would make the response time of
+            // `registerCustomerAccount` a reliable oracle for whether an account already exists,
+            // since hashing dominates the cost of the request.
+            await this.passwordCipher.hash(password);
+        }
+        if (!user.authenticationMethods && user.id != null) {
+            // Work on the caller's User from here on, so the object we mutate is the one that is
+            // returned and carried by the AccountRegistrationEvent. Load the relation first if the
+            // caller did not.
+            const reloaded = await this.getUserById(ctx, user.id);
+            user.authenticationMethods = reloaded?.authenticationMethods ?? [];
+        }
+        const existingNativeMethod = user.authenticationMethods?.find(
+            (m): m is NativeAuthenticationMethod => m instanceof NativeAuthenticationMethod,
+        );
+        if (existingNativeMethod) {
+            if (existingNativeMethod.verificationToken != null) {
+                // The credential exists but was never activated, so re-issue its token rather than
+                // leaving the mailbox owner with no way to restart the flow.
+                existingNativeMethod.verificationToken =
+                    await this.verificationTokenGenerator.generateVerificationToken(ctx);
+                // The stored password, if any, is left alone. Such a hash is the customer's own, so
+                // wiping it here would lock them out (GHSA-wr5h-x3x6-4h23).
+                await this.connection
+                    .getRepository(ctx, NativeAuthenticationMethod)
+                    .save(existingNativeMethod);
+            }
+            return user;
+        }
+        const authenticationMethod = new NativeAuthenticationMethod();
+        authenticationMethod.verificationToken =
+            await this.verificationTokenGenerator.generateVerificationToken(ctx);
+        authenticationMethod.passwordHash = '';
+        authenticationMethod.identifier = normalizeEmailAddress(identifier);
+        authenticationMethod.user = user;
+        await this.connection.getRepository(ctx, NativeAuthenticationMethod).save(authenticationMethod);
+        user.authenticationMethods = [...(user.authenticationMethods ?? []), authenticationMethod];
+        return user;
+    }
+
+    /**
+     * @description
+     * Returns `true` if the User's native credential is waiting to be activated: it carries a
+     * `verificationToken` and holds no password, so nobody can log in with it. This is the state left
+     * by {@link UserService.addUnactivatedNativeAuthenticationMethod}.
+     *
+     * A verified account can also carry a `verificationToken` beside a real password, because
+     * `resetPasswordByToken` in earlier releases set `verified` without clearing the token. That
+     * credential works, so this returns `false` for it (GHSA-wr5h-x3x6-4h23).
+     *
+     * The `passwordHash` column is `select: false`, so it takes a query of its own to answer this.
+     *
+     * @internal
+     */
+    async nativeCredentialAwaitsActivation(ctx: RequestContext, userId: ID): Promise<boolean> {
+        const user = await this.connection
+            .getRepository(ctx, User)
+            .createQueryBuilder('user')
+            .leftJoinAndSelect('user.authenticationMethods', 'aums')
+            .addSelect('aums.passwordHash')
+            .where('user.id = :userId', { userId })
+            .getOne();
+        const nativeAuthMethod = user?.getNativeAuthenticationMethod(false);
+        if (!nativeAuthMethod) {
+            return false;
+        }
+        return nativeAuthMethod.verificationToken != null && !nativeAuthMethod.passwordHash;
+    }
+
+    /**
+     * @description
      * Creates a new verified User using the {@link NativeAuthenticationStrategy}.
      */
     async createAdminUser(ctx: RequestContext, identifier: string, password: string): Promise<User> {
@@ -350,6 +454,10 @@ export class UserService {
             const nativeAuthMethod = user.getNativeAuthenticationMethod();
             nativeAuthMethod.passwordHash = await this.passwordCipher.hash(password);
             nativeAuthMethod.passwordResetToken = null;
+            // Completing a password reset proves ownership of the identifier (the token was delivered
+            // to it), so clear any pending per-credential verification token too, otherwise the login
+            // gate would keep the now-owned credential non-authenticatable.
+            nativeAuthMethod.verificationToken = null;
             await this.connection.getRepository(ctx, NativeAuthenticationMethod).save(nativeAuthMethod);
             if (user.verified === false && this.configService.authOptions.requireVerification) {
                 // This code path represents an edge-case in which the Customer creates an account,

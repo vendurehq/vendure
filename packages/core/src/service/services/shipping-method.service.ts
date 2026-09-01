@@ -224,19 +224,27 @@ export class ShippingMethodService {
         if (!hasPermission) {
             throw new ForbiddenError();
         }
-        for (const shippingMethodId of input.shippingMethodIds) {
-            const shippingMethod = await this.connection.findOneInChannel(
-                ctx,
-                ShippingMethod,
-                shippingMethodId,
-                ctx.channelId,
-            );
-            await this.channelService.assignToChannels(ctx, ShippingMethod, shippingMethodId, [
+        // Source entities must be visible in the active Channel (GHSA-422x-jq57-j238).
+        const shippingMethods = await this.connection.findByIdsInChannel(
+            ctx,
+            ShippingMethod,
+            input.shippingMethodIds,
+            ctx.channelId,
+            {},
+        );
+        for (const shippingMethod of shippingMethods) {
+            await this.channelService.assignToChannels(ctx, ShippingMethod, shippingMethod.id, [
                 input.channelId,
             ]);
         }
         return this.connection
-            .findByIdsInChannel(ctx, ShippingMethod, input.shippingMethodIds, ctx.channelId, {})
+            .findByIdsInChannel(
+                ctx,
+                ShippingMethod,
+                shippingMethods.map(method => method.id),
+                ctx.channelId,
+                {},
+            )
             .then(methods => methods.map(method => this.translator.translate(method, ctx)));
     }
 
@@ -255,18 +263,27 @@ export class ShippingMethodService {
         if (idsAreEqual(input.channelId, defaultChannel.id)) {
             throw new UserInputError('error.items-cannot-be-removed-from-default-channel');
         }
-        for (const shippingMethodId of input.shippingMethodIds) {
-            const shippingMethod = await this.connection.getEntityOrThrow(
-                ctx,
-                ShippingMethod,
-                shippingMethodId,
-            );
-            await this.channelService.removeFromChannels(ctx, ShippingMethod, shippingMethodId, [
+        // Source entities must be visible in the active Channel (GHSA-422x-jq57-j238).
+        const shippingMethods = await this.connection.findByIdsInChannel(
+            ctx,
+            ShippingMethod,
+            input.shippingMethodIds,
+            ctx.channelId,
+            {},
+        );
+        for (const shippingMethod of shippingMethods) {
+            await this.channelService.removeFromChannels(ctx, ShippingMethod, shippingMethod.id, [
                 input.channelId,
             ]);
         }
         return this.connection
-            .findByIdsInChannel(ctx, ShippingMethod, input.shippingMethodIds, ctx.channelId, {})
+            .findByIdsInChannel(
+                ctx,
+                ShippingMethod,
+                shippingMethods.map(method => method.id),
+                ctx.channelId,
+                {},
+            )
             .then(methods => methods.map(method => this.translator.translate(method, ctx)));
     }
 

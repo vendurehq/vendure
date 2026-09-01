@@ -1,9 +1,12 @@
-import { stitchSchemas, ValidationLevel } from '@graphql-tools/stitch';
-import { GraphQLEnumType, GraphQLSchema } from 'graphql';
+// Importing this from graphql/index.js is a workaround for the dual-package
+// hazard issue when testing this file in vitest. See https://github.com/vitejs/vite/issues/7879
+import { GraphQLEnumType, GraphQLSchema } from 'graphql/index.js';
 import { GraphQLEnumValueConfigMap } from 'graphql/type/definition';
 
 import { getAllPermissionsMetadata } from '../../common/constants';
 import { PermissionDefinition } from '../../common/permission-definition';
+
+import { mergeTypesIntoSchema } from './merge-types-into-schema';
 
 const PERMISSION_DESCRIPTION = `@description
 Permissions for administrators and customers. Used to control access to
@@ -60,9 +63,5 @@ export function generatePermissionEnum(
         values,
     });
 
-    return stitchSchemas({
-        subschemas: [schema],
-        types: [permissionsEnum],
-        typeMergingOptions: { validationSettings: { validationLevel: ValidationLevel.Off } },
-    });
+    return mergeTypesIntoSchema(schema, [permissionsEnum]);
 }

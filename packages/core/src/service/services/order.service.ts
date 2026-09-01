@@ -39,7 +39,7 @@ import {
 } from '@vendure/common/lib/generated-types';
 import { omit } from '@vendure/common/lib/omit';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
-import { summate } from '@vendure/common/lib/shared-utils';
+import { getGraphQlInputName, summate } from '@vendure/common/lib/shared-utils';
 import { EntityManager, In, IsNull, LockNotSupportedOnGivenDriverError } from 'typeorm';
 import { FindOptionsUtils } from 'typeorm/find-options/FindOptionsUtils';
 
@@ -123,9 +123,14 @@ import { ShippingCalculator } from '../helpers/shipping-calculator/shipping-calc
 import { TranslatorService } from '../helpers/translator/translator.service';
 import { couponCodesMatch } from '../helpers/utils/coupon-codes-match';
 import { isForeignKeyViolationError } from '../helpers/utils/db-errors';
-import { getOrdersFromLines, totalCoveredByPayments } from '../helpers/utils/order-utils';
+import {
+    assertOrderIsInChannel,
+    getOrdersFromLines,
+    totalCoveredByPayments,
+} from '../helpers/utils/order-utils';
 import { patchEntity } from '../helpers/utils/patch-entity';
 
+import { RelationCustomFieldConfig } from '../../config';
 import { ChannelService } from './channel.service';
 import { CountryService } from './country.service';
 import { CustomerService } from './customer.service';
@@ -1378,6 +1383,7 @@ export class OrderService implements OnApplicationBootstrap {
             const refund = await this.connection.getEntityOrThrow(txCtx, Refund, refundId, {
                 relations: ['payment', 'payment.order'],
             });
+            await assertOrderIsInChannel(txCtx, this.connection, refund.payment.order.id, 'Refund', refundId);
             if (transactionId && refund.transactionId !== transactionId) {
                 refund.transactionId = transactionId;
             }
@@ -1976,6 +1982,12 @@ export class OrderService implements OnApplicationBootstrap {
         const payment = await this.connection.getEntityOrThrow(ctx, Payment, input.paymentId, {
             relations: ['order'],
         });
+        // An empty `lines` array is a legitimate way to refund shipping or an arbitrary amount, but
+        // it also means the PaymentOrderMismatchError check below has nothing to compare against.
+        // The Channel check is therefore the only thing which keeps the Payment (which is not
+        // ChannelAware) inside the caller's Channel, and it must run before the PaymentMethodHandler
+        // is asked to move any money.
+        await assertOrderIsInChannel(ctx, this.connection, payment.order.id, 'Payment', input.paymentId);
         if (orders && orders.length && !idsAreEqual(payment.order.id, orders[0].id)) {
             return new PaymentOrderMismatchError();
         }
@@ -2007,6 +2019,7 @@ export class OrderService implements OnApplicationBootstrap {
             const refund = await this.connection.getEntityOrThrow(txCtx, Refund, input.id, {
                 relations: ['payment', 'payment.order'],
             });
+            await assertOrderIsInChannel(txCtx, this.connection, refund.payment.order.id, 'Refund', input.id);
             refund.transactionId = input.transactionId;
             const fromState = refund.state;
             const toState = 'Settled';
@@ -2090,7 +2103,9 @@ export class OrderService implements OnApplicationBootstrap {
 
     async deleteOrderNote(ctx: RequestContext, id: ID): Promise<DeletionResponse> {
         try {
-            await this.historyService.deleteOrderHistoryEntry(ctx, id);
+            await this.historyService.deleteOrderHistoryEntry(ctx, id, {
+                type: HistoryEntryType.ORDER_NOTE,
+            });
             return {
                 result: DeletionResult.DELETED,
             };
@@ -2173,6 +2188,21 @@ export class OrderService implements OnApplicationBootstrap {
                 const freshGuestOrder = guestOrder ? await this.findOne(txCtx, guestOrder.id) : undefined;
                 if (!freshGuestOrder && guestOrder) {
                     return existingOrder;
+                }
+                const relationFields = this.configService.customFields.OrderLine.filter(
+                    (config): config is RelationCustomFieldConfig => config.type === 'relation',
+                );
+
+                if (relationFields.length > 0) {
+                    // Hydrate relation custom fields before merging because OrderLine relations are
+                    // not loaded by default. The merge strategy needs their IDs to correctly compare
+                    // custom fields and avoid merging lines with different relation values.
+                    if (freshGuestOrder) {
+                        await this.hydrateRelationCustomFields(freshGuestOrder, txCtx, relationFields);
+                    }
+                    if (existingOrder) {
+                        await this.hydrateRelationCustomFields(existingOrder, txCtx, relationFields);
+                    }
                 }
 
                 const mergeResult = await this.orderMerger.merge(txCtx, freshGuestOrder, existingOrder);
@@ -2630,6 +2660,39 @@ export class OrderService implements OnApplicationBootstrap {
                     sl => !idsAreEqual(sl.shippingMethodId, shippingMethodId),
                 );
                 await this.applyPriceAdjustments(orderCtx, order);
+            }
+        }
+    }
+    private async hydrateRelationCustomFields(
+        order: Order,
+        txCtx: RequestContext,
+        relationFields: RelationCustomFieldConfig[],
+    ) {
+        const linesWithRelations = await this.connection.getRepository(txCtx, OrderLine).find({
+            where: { id: In(order.lines.map(l => l.id)) },
+            relations: relationFields.map(config => `customFields.${config.name}`),
+        });
+        const relationCustomFields = new Map<ID, Record<string, ID | ID[]>>();
+        for (const line of linesWithRelations) {
+            const customFields: Record<string, ID | ID[]> = {};
+            for (const config of relationFields) {
+                const relation = (line.customFields as Record<string, any>)?.[config.name];
+                if (config.list) {
+                    if (Array.isArray(relation) && relation.length) {
+                        customFields[getGraphQlInputName(config)] = relation.map(r => r.id);
+                    }
+                } else if (relation) {
+                    customFields[getGraphQlInputName(config)] = relation.id;
+                }
+            }
+            if (Object.keys(customFields).length) {
+                relationCustomFields.set(line.id, customFields);
+            }
+        }
+        for (const line of order.lines) {
+            const relationIds = relationCustomFields.get(line.id);
+            if (relationIds) {
+                Object.assign(line.customFields, relationIds);
             }
         }
     }

@@ -71,13 +71,26 @@ export class AuthService {
         if (!authenticateResult) {
             return new InvalidCredentialsError({ authenticationError: '' });
         }
-        return this.createAuthenticatedSessionForUser(ctx, authenticateResult, authenticationStrategy.name);
+        return this.createAuthenticatedSessionForUser(
+            ctx,
+            authenticateResult,
+            authenticationStrategy.name,
+            apiType,
+        );
     }
 
+    /**
+     * @description
+     * Creates a new {@link AuthenticatedSession} for the given User.
+     *
+     * The `apiType` argument is passed through to `SessionService.createNewAuthenticatedSession()`,
+     * whose docs describe when to pass it.
+     */
     async createAuthenticatedSessionForUser(
         ctx: RequestContext,
         user: User,
         authenticationStrategyName: string,
+        apiType?: ApiType,
     ): Promise<AuthenticatedSession | NotVerifiedError> {
         if (!user.roles || !user.roles[0]?.channels) {
             const userWithRoles = await this.connection
@@ -89,22 +102,69 @@ export class AuthService {
                 .getOne();
             user.roles = userWithRoles?.roles || [];
         }
+        if (!user.authenticationMethods) {
+            // The verification backstop below depends on the auth methods being loaded. If a caller
+            // (e.g. a plugin) passes a User without them, load them here rather than let the security
+            // check silently no-op, mirroring the roles reload above.
+            const userWithAuth = await this.connection
+                .getRepository(ctx, User)
+                .createQueryBuilder('user')
+                .leftJoinAndSelect('user.authenticationMethods', 'authMethod')
+                .where('user.id = :userId', { userId: user.id })
+                .getOne();
+            user.authenticationMethods = userWithAuth?.authenticationMethods || [];
+        }
 
+        // Per-credential native verification, as defense in depth. An unverified account whose native
+        // credential still carries a verificationToken has no proof that whoever set the password owns
+        // the identifier. Refuse it whatever the account's other authentication methods are, and
+        // whatever `requireVerification` is set to. This closes the cross-auth bypass that the
+        // `!extAuths.length` condition below does not detect. It also covers an install that switches
+        // `requireVerification` off while such a credential is still pending. The primary fix is in
+        // `CustomerService.registerCustomerAccount`, which never stores a caller-supplied password on
+        // such a credential.
+        //
+        // The `verified` condition matters. A verified account can carry a token beside a real
+        // password, because `resetPasswordByToken` in earlier releases set `verified` without clearing
+        // the token. Those customers chose that password themselves, so refusing them would be a
+        // lockout with no security gain (GHSA-wr5h-x3x6-4h23).
+        const isNativeLogin = authenticationStrategyName === NATIVE_AUTH_STRATEGY_NAME;
+        if (isNativeLogin && !user.verified) {
+            const nativeAuthMethod = user.getNativeAuthenticationMethod(false);
+            if (nativeAuthMethod && nativeAuthMethod.verificationToken != null) {
+                return new NotVerifiedError();
+            }
+        }
         const extAuths = (user.authenticationMethods ?? []).filter(
             am => am instanceof ExternalAuthenticationMethod,
         );
-        if (!extAuths.length && this.configService.authOptions.requireVerification && !user.verified) {
+        // The external carve-out exists so that a User who signs in through an external provider is not
+        // blocked by the native `verified` flag, which that provider never sets. It must never apply to
+        // a native login: otherwise an unverified native credential authenticates simply because the
+        // account also has an external method (GHSA-wr5h-x3x6-4h23).
+        if (
+            (isNativeLogin || !extAuths.length) &&
+            this.configService.authOptions.requireVerification &&
+            !user.verified
+        ) {
             return new NotVerifiedError();
         }
         if (ctx.session && ctx.session.activeOrderId) {
             await this.sessionService.deleteSessionsByActiveOrderId(ctx, ctx.session.activeOrderId);
         }
-        user.lastLogin = new Date();
+        if (!this.configService.authOptions.disableLastLoginUpdate) {
+            user.lastLogin = new Date();
+        }
+        // The save is unconditional: an AuthenticationStrategy may have set fields on the
+        // User (e.g. `verified`, custom fields) which this is the only place to persist.
+        // With no changed columns, TypeORM issues no UPDATE, so the `user` row is not written.
         await this.connection.getRepository(ctx, User).save(user);
         const session = await this.sessionService.createNewAuthenticatedSession(
             ctx,
             user,
             authenticationStrategyName,
+            undefined,
+            apiType,
         );
         await this.eventBus.publish(new LoginEvent(ctx, user));
         return session;

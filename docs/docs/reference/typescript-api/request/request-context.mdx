@@ -2,7 +2,7 @@
 title: "RequestContext"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/api/common/request-context.ts" sourceLine="180" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/api/common/request-context.ts" sourceLine="191" packageName="@vendure/core" />
 
 The RequestContext holds information relevant to the current request, which may be
 required at various points of the stack.
@@ -42,9 +42,10 @@ myMutation(@Ctx() ctx: RequestContext) {
 class RequestContext {
     empty() => RequestContext;
     deserialize(ctxObject: SerializedRequestContext) => RequestContext;
-    userHasPermissions(permissions: Permission[]) => boolean;
-    userHasAllPermissions(permissions: Permission[]) => boolean;
+    userHasPermissions(permissions: Permission[], channelId: ID = this.channelId) => boolean;
+    userHasAllPermissions(permissions: Permission[], channelId: ID = this.channelId) => boolean;
     serialize() => SerializedRequestContext;
+    toJSON() => SerializedRequestContext;
     copy(channel?: Channel) => RequestContext;
     req: Request | undefined
     apiType: ApiType
@@ -53,7 +54,7 @@ class RequestContext {
     languageCode: LanguageCode
     acceptedLanguageCodes: LanguageCode[]
     currencyCode: CurrencyCode
-    session: CachedSession | undefined
+    session: CachedSession | DeserializedCachedSession | undefined
     activeUserId: ID | undefined
     isAuthorized: boolean
     authorizedAsOwnerOnly: boolean
@@ -74,6 +75,9 @@ when a service method must be called outside the normal request-response
 cycle, e.g. when programmatically populating data. Usually a better alternative
 is to use the [RequestContextService](/reference/typescript-api/request/request-context-service#requestcontextservice) `create()` method, which allows more control
 over the resulting RequestContext object.
+
+The `apiType` of `admin` is a placeholder, not a statement about a caller. A session created
+from such a context records the Shop API, see `SessionService.createNewAuthenticatedSession()`.
 ### deserialize
 
 <MemberInfo kind="method" type={`(ctxObject: SerializedRequestContext) => <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>`}   />
@@ -82,10 +86,11 @@ Creates a new RequestContext object from a serialized object created by the
 `serialize()` method.
 ### userHasPermissions
 
-<MemberInfo kind="method" type={`(permissions: <a href='/reference/typescript-api/common/permission#permission'>Permission</a>[]) => boolean`}   />
+<MemberInfo kind="method" type={`(permissions: <a href='/reference/typescript-api/common/permission#permission'>Permission</a>[], channelId: <a href='/reference/typescript-api/common/id#id'>ID</a> = this.channelId) => boolean`}   />
 
 Returns `true` if there is an active Session & User associated with this request,
-and that User has **at least one** of the specified permissions on the active Channel.
+and that User has **at least one** of the specified permissions on the given Channel.
+The Channel defaults to the active Channel of this request.
 
 This method uses OR logic - it checks if the user has ANY of the given permissions,
 not ALL of them. For AND logic, use `userHasAllPermissions`.
@@ -93,15 +98,19 @@ not ALL of them. For AND logic, use `userHasAllPermissions`.
 *Example*
 
 ```ts
-// Returns true if user has ReadProduct OR ReadCatalog
+// Returns true if user has ReadProduct OR ReadCatalog on the active Channel
 ctx.userHasPermissions([Permission.ReadProduct, Permission.ReadCatalog]);
+
+// Returns true if user has UpdateChannel on the Channel with the given id
+ctx.userHasPermissions([Permission.UpdateChannel], channelId);
 ```
 ### userHasAllPermissions
 
-<MemberInfo kind="method" type={`(permissions: <a href='/reference/typescript-api/common/permission#permission'>Permission</a>[]) => boolean`}  since="3.6.0"  />
+<MemberInfo kind="method" type={`(permissions: <a href='/reference/typescript-api/common/permission#permission'>Permission</a>[], channelId: <a href='/reference/typescript-api/common/id#id'>ID</a> = this.channelId) => boolean`}  since="3.6.0"  />
 
 Returns `true` if there is an active Session & User associated with this request,
-and that User has **all** of the specified permissions on the active Channel.
+and that User has **all** of the specified permissions on the given Channel.
+The Channel defaults to the active Channel of this request.
 
 This method uses AND logic - it checks if the user has EVERY one of the given permissions.
 For OR logic (any permission), use `userHasPermissions`.
@@ -109,8 +118,11 @@ For OR logic (any permission), use `userHasPermissions`.
 *Example*
 
 ```ts
-// Returns true only if user has BOTH ReadProduct AND UpdateProduct
+// Returns true only if user has BOTH ReadProduct AND UpdateProduct on the active Channel
 ctx.userHasAllPermissions([Permission.ReadProduct, Permission.UpdateProduct]);
+
+// Returns true only if user has BOTH permissions on the Channel with the given id
+ctx.userHasAllPermissions([Permission.ReadProduct, Permission.UpdateProduct], channelId);
 ```
 ### serialize
 
@@ -119,6 +131,18 @@ ctx.userHasAllPermissions([Permission.ReadProduct, Permission.UpdateProduct]);
 Serializes the RequestContext object into a JSON-compatible simple object.
 This is useful when you need to send a RequestContext object to another
 process, e.g. to pass it to the Job Queue via the [JobQueueService](/reference/typescript-api/job-queue/job-queue-service#jobqueueservice).
+
+The raw Express request (and with it every HTTP header) and the session token are
+**not** included, because serialized contexts are persisted and are readable over the
+Admin API. A context rebuilt with `deserialize()` therefore has `req` and
+`session.token` set to `undefined`.
+### toJSON
+
+<MemberInfo kind="method" type={`() => SerializedRequestContext`}   />
+
+Used by `JSON.stringify()` and by [Job](/reference/typescript-api/job-queue/job#job), which prefers `toJSON()` when it makes
+job data serializable. A RequestContext instance passed straight into job data therefore
+takes the same path as `serialize()`.
 ### copy
 
 <MemberInfo kind="method" type={`(channel?: <a href='/reference/typescript-api/entities/channel#channel'>Channel</a>) => <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>`}   />
@@ -134,6 +158,12 @@ to the channel's defaults so downstream logic runs in the target channel.
 <MemberInfo kind="property" type={`Request | undefined`}   />
 
 The raw Express request object.
+
+This is `undefined` on a context which was rebuilt from a serialized object, e.g. in a
+job queue worker, because the request is deliberately not serialized. It is also undefined on
+a context built outside the request-response cycle, which is how
+`SessionService.createNewAuthenticatedSession()` tells a stated `apiType` from a placeholder
+one. Do not populate it on a synthetic context.
 ### apiType
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/request/api-type#apitype'>ApiType</a>`}   />
@@ -177,9 +207,14 @@ it matches nothing and is skipped.
 
 ### session
 
-<MemberInfo kind="property" type={`<a href='/reference/typescript-api/auth/session-cache-strategy#cachedsession'>CachedSession</a> | undefined`}   />
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/auth/session-cache-strategy#cachedsession'>CachedSession</a> | <a href='/reference/typescript-api/request/deserialized-cached-session#deserializedcachedsession'>DeserializedCachedSession</a> | undefined`}   />
 
+The cached session of this request.
 
+On a context which was rebuilt from a serialized object, e.g. in a job queue worker, this is
+a [DeserializedCachedSession](/reference/typescript-api/request/deserialized-cached-session#deserializedcachedsession): `session.token` is `undefined`, because the token is
+deliberately not serialized. The class cannot tell the two apart statically, so the type of
+`session.token` is `string | undefined` everywhere. Narrow it before using it as a credential.
 ### activeUserId
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a> | undefined`}   />

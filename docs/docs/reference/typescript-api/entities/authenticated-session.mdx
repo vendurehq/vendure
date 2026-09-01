@@ -2,7 +2,7 @@
 title: "AuthenticatedSession"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/session/authenticated-session.entity.ts" sourceLine="14" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/entity/session/authenticated-session.entity.ts" sourceLine="15" packageName="@vendure/core" />
 
 An AuthenticatedSession is created upon successful authentication.
 
@@ -14,6 +14,8 @@ class AuthenticatedSession extends Session {
     user: User;
     @Column()
     authenticationStrategy: string;
+    @Column({ type: 'varchar', nullable: true })
+    apiType: ApiType | null;
 }
 ```
 * Extends: [`Session`](/reference/typescript-api/entities/session#session)
@@ -33,6 +35,16 @@ The [User](/reference/typescript-api/entities/user#user) who has authenticated t
 
 The name of the [AuthenticationStrategy](/reference/typescript-api/auth/authentication-strategy#authenticationstrategy) used when authenticating
 to create this session.
+### apiType
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/request/api-type#apitype'>ApiType</a> | null`}  since="3.8.0"  />
+
+The API on which this session was created. The AuthGuard only accepts a session on the Admin API
+if it was created there, so an AuthenticationStrategy which is shared between the Shop and Admin
+APIs cannot be used to mint an administrator session from the storefront.
+
+Null for sessions created before this column existed. Those are not accepted on the Admin API,
+so administrators must log in again after upgrading.
 
 
 </div>

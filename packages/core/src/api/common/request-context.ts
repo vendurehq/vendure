@@ -236,6 +236,9 @@ export class RequestContext {
      * cycle, e.g. when programmatically populating data. Usually a better alternative
      * is to use the {@link RequestContextService} `create()` method, which allows more control
      * over the resulting RequestContext object.
+     *
+     * The `apiType` of `admin` is a placeholder, not a statement about a caller. A session created
+     * from such a context records the Shop API, see `SessionService.createNewAuthenticatedSession()`.
      */
     static empty(): RequestContext {
         return new RequestContext({
@@ -283,25 +286,29 @@ export class RequestContext {
     /**
      * @description
      * Returns `true` if there is an active Session & User associated with this request,
-     * and that User has **at least one** of the specified permissions on the active Channel.
+     * and that User has **at least one** of the specified permissions on the given Channel.
+     * The Channel defaults to the active Channel of this request.
      *
      * This method uses OR logic - it checks if the user has ANY of the given permissions,
      * not ALL of them. For AND logic, use {@link userHasAllPermissions}.
      *
      * @example
      * ```ts
-     * // Returns true if user has ReadProduct OR ReadCatalog
+     * // Returns true if user has ReadProduct OR ReadCatalog on the active Channel
      * ctx.userHasPermissions([Permission.ReadProduct, Permission.ReadCatalog]);
+     *
+     * // Returns true if user has UpdateChannel on the Channel with the given id
+     * ctx.userHasPermissions([Permission.UpdateChannel], channelId);
      * ```
+     *
+     * @param permissions The permissions to check for.
+     * @param channelId The id of the Channel to check the permissions on. Defaults to the
+     * active Channel of this request. Since 3.7.3.
      */
-    userHasPermissions(permissions: Permission[]): boolean {
-        const user = this.session?.user;
-        if (!user || !this.channelId) {
-            return false;
-        }
-        const permissionsOnChannel = user.channelPermissions.find(c => idsAreEqual(c.id, this.channelId));
+    userHasPermissions(permissions: Permission[], channelId: ID = this.channelId): boolean {
+        const permissionsOnChannel = this.getUserPermissionsOnChannel(channelId);
         if (permissionsOnChannel) {
-            return this.arraysIntersect(permissionsOnChannel.permissions, permissions);
+            return this.arraysIntersect(permissionsOnChannel, permissions);
         }
         return false;
     }
@@ -309,29 +316,45 @@ export class RequestContext {
     /**
      * @description
      * Returns `true` if there is an active Session & User associated with this request,
-     * and that User has **all** of the specified permissions on the active Channel.
+     * and that User has **all** of the specified permissions on the given Channel.
+     * The Channel defaults to the active Channel of this request.
      *
      * This method uses AND logic - it checks if the user has EVERY one of the given permissions.
      * For OR logic (any permission), use {@link userHasPermissions}.
      *
      * @example
      * ```ts
-     * // Returns true only if user has BOTH ReadProduct AND UpdateProduct
+     * // Returns true only if user has BOTH ReadProduct AND UpdateProduct on the active Channel
      * ctx.userHasAllPermissions([Permission.ReadProduct, Permission.UpdateProduct]);
+     *
+     * // Returns true only if user has BOTH permissions on the Channel with the given id
+     * ctx.userHasAllPermissions([Permission.ReadProduct, Permission.UpdateProduct], channelId);
      * ```
+     *
+     * @param permissions The permissions to check for.
+     * @param channelId The id of the Channel to check the permissions on. Defaults to the
+     * active Channel of this request. Since 3.7.3.
      *
      * @since 3.6.0
      */
-    userHasAllPermissions(permissions: Permission[]): boolean {
-        const user = this.session?.user;
-        if (!user || !this.channelId) {
-            return false;
-        }
-        const permissionsOnChannel = user.channelPermissions.find(c => idsAreEqual(c.id, this.channelId));
+    userHasAllPermissions(permissions: Permission[], channelId: ID = this.channelId): boolean {
+        const permissionsOnChannel = this.getUserPermissionsOnChannel(channelId);
         if (permissionsOnChannel) {
-            return permissions.every(permission => permissionsOnChannel.permissions.includes(permission));
+            return permissions.every(permission => permissionsOnChannel.includes(permission));
         }
         return false;
+    }
+
+    /**
+     * Returns the permissions the session User holds on the given Channel, or `undefined` if there
+     * is no session User, no Channel id, or the User holds no Role on that Channel.
+     */
+    private getUserPermissionsOnChannel(channelId: ID): Permission[] | undefined {
+        const user = this.session?.user;
+        if (!user || !channelId) {
+            return undefined;
+        }
+        return user.channelPermissions.find(c => idsAreEqual(c.id, channelId))?.permissions;
     }
 
     /**
@@ -424,7 +447,10 @@ export class RequestContext {
      * The raw Express request object.
      *
      * This is `undefined` on a context which was rebuilt from a serialized object, e.g. in a
-     * job queue worker, because the request is deliberately not serialized.
+     * job queue worker, because the request is deliberately not serialized. It is also undefined on
+     * a context built outside the request-response cycle, which is how
+     * `SessionService.createNewAuthenticatedSession()` tells a stated `apiType` from a placeholder
+     * one. Do not populate it on a synthetic context.
      */
     get req(): Request | undefined {
         return this._req;

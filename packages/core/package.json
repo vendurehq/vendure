@@ -43,7 +43,8 @@
     ],
     "dependencies": {
         "@apollo/server": "^4.12.2",
-        "@graphql-tools/stitch": "^10.1.16",
+        "@graphql-tools/merge": "^9.1.7",
+        "@graphql-tools/utils": "^10.11.0",
         "@nestjs/apollo": "~13.1.0",
         "@nestjs/common": "^11.0.12",
         "@nestjs/core": "^11.0.12",
@@ -101,7 +102,7 @@
         "mysql2": "^3.15.0",
         "pg": "^8.13.1",
         "rimraf": "^5.0.5",
-        "sql.js": "1.13.0",
+        "sql.js": "1.14.2",
         "typescript": "5.8.2"
     },
     "peerDependencies": {

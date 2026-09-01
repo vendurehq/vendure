@@ -23,6 +23,15 @@ export const config: VendureConfig = {
         adminApiPath: 'admin-api',
         shopApiPath: 'shop-api',
         trustProxy: IS_DEV ? false : 1,
+        // Which browser origins may make credentialed requests to the Shop and Admin APIs.
+        // In dev any origin is reflected, so a storefront on any port works. In production set
+        // CORS_ORIGINS to a comma-separated list of the origins you serve, for example
+        // "https://example.com,https://admin.example.com". An unset value blocks all
+        // cross-origin browser requests, which is the safe default.
+        cors: {
+            origin: IS_DEV ? true : (process.env.CORS_ORIGINS?.split(',').map(o => o.trim()).filter(Boolean) ?? []),
+            credentials: true,
+        },
         // The following options are useful in development mode,
         // but are best turned off for production for security
         // reasons.

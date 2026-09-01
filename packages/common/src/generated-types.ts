@@ -202,8 +202,14 @@ export type ApiKeyFilterParameter = {
   _or?: InputMaybe<Array<ApiKeyFilterParameter>>;
   createdAt?: InputMaybe<DateOperators>;
   id?: InputMaybe<IdOperators>;
+  /** Helps you identify unused keys */
   lastUsedAt?: InputMaybe<DateOperators>;
+  /**
+   * ID by which we can look up the API-Key.
+   * Also helps you identify keys without leaking the underlying secret API-Key.
+   */
   lookupId?: InputMaybe<StringOperators>;
+  /** A descriptive name so you can remind yourself where the API-Key gets used */
   name?: InputMaybe<StringOperators>;
   updatedAt?: InputMaybe<DateOperators>;
 };
@@ -230,8 +236,14 @@ export type ApiKeyListOptions = {
 export type ApiKeySortParameter = {
   createdAt?: InputMaybe<SortOrder>;
   id?: InputMaybe<SortOrder>;
+  /** Helps you identify unused keys */
   lastUsedAt?: InputMaybe<SortOrder>;
+  /**
+   * ID by which we can look up the API-Key.
+   * Also helps you identify keys without leaking the underlying secret API-Key.
+   */
   lookupId?: InputMaybe<SortOrder>;
+  /** A descriptive name so you can remind yourself where the API-Key gets used */
   name?: InputMaybe<SortOrder>;
   updatedAt?: InputMaybe<SortOrder>;
 };
@@ -532,9 +544,11 @@ export type ChannelFilterParameter = {
   defaultCurrencyCode?: InputMaybe<StringOperators>;
   defaultLanguageCode?: InputMaybe<StringOperators>;
   id?: InputMaybe<IdOperators>;
+  /** Not yet used - will be implemented in a future release. */
   outOfStockThreshold?: InputMaybe<NumberOperators>;
   pricesIncludeTax?: InputMaybe<BooleanOperators>;
   token?: InputMaybe<StringOperators>;
+  /** Not yet used - will be implemented in a future release. */
   trackInventory?: InputMaybe<BooleanOperators>;
   updatedAt?: InputMaybe<DateOperators>;
 };
@@ -562,6 +576,7 @@ export type ChannelSortParameter = {
   code?: InputMaybe<SortOrder>;
   createdAt?: InputMaybe<SortOrder>;
   id?: InputMaybe<SortOrder>;
+  /** Not yet used - will be implemented in a future release. */
   outOfStockThreshold?: InputMaybe<SortOrder>;
   token?: InputMaybe<SortOrder>;
   updatedAt?: InputMaybe<SortOrder>;
@@ -4348,21 +4363,36 @@ export type OrderAddress = {
 export type OrderFilterParameter = {
   _and?: InputMaybe<Array<OrderFilterParameter>>;
   _or?: InputMaybe<Array<OrderFilterParameter>>;
+  /** An order is active as long as the payment process has not been completed */
   active?: InputMaybe<BooleanOperators>;
   aggregateOrderId?: InputMaybe<IdOperators>;
+  /** A unique code for the Order */
   code?: InputMaybe<StringOperators>;
   createdAt?: InputMaybe<DateOperators>;
   currencyCode?: InputMaybe<StringOperators>;
   customerLastName?: InputMaybe<StringOperators>;
   id?: InputMaybe<IdOperators>;
+  /**
+   * The date & time that the Order was placed, i.e. the Customer
+   * completed the checkout and the Order is no longer "active"
+   */
   orderPlacedAt?: InputMaybe<DateOperators>;
   shipping?: InputMaybe<NumberOperators>;
   shippingWithTax?: InputMaybe<NumberOperators>;
   state?: InputMaybe<StringOperators>;
+  /**
+   * The subTotal is the total of all OrderLines in the Order. This figure also includes any Order-level
+   * discounts which have been prorated (proportionally distributed) amongst the items of each OrderLine.
+   * To get a total of all OrderLines which does not account for prorated discounts, use the
+   * sum of `OrderLine.discountedLinePrice` values.
+   */
   subTotal?: InputMaybe<NumberOperators>;
+  /** Same as subTotal, but inclusive of tax */
   subTotalWithTax?: InputMaybe<NumberOperators>;
+  /** Equal to subTotal plus shipping */
   total?: InputMaybe<NumberOperators>;
   totalQuantity?: InputMaybe<NumberOperators>;
+  /** The final payable amount. Equal to subTotalWithTax plus shippingWithTax */
   totalWithTax?: InputMaybe<NumberOperators>;
   transactionId?: InputMaybe<StringOperators>;
   type?: InputMaybe<StringOperators>;
@@ -4518,18 +4548,32 @@ export type OrderProcessState = {
 
 export type OrderSortParameter = {
   aggregateOrderId?: InputMaybe<SortOrder>;
+  /** A unique code for the Order */
   code?: InputMaybe<SortOrder>;
   createdAt?: InputMaybe<SortOrder>;
   customerLastName?: InputMaybe<SortOrder>;
   id?: InputMaybe<SortOrder>;
+  /**
+   * The date & time that the Order was placed, i.e. the Customer
+   * completed the checkout and the Order is no longer "active"
+   */
   orderPlacedAt?: InputMaybe<SortOrder>;
   shipping?: InputMaybe<SortOrder>;
   shippingWithTax?: InputMaybe<SortOrder>;
   state?: InputMaybe<SortOrder>;
+  /**
+   * The subTotal is the total of all OrderLines in the Order. This figure also includes any Order-level
+   * discounts which have been prorated (proportionally distributed) amongst the items of each OrderLine.
+   * To get a total of all OrderLines which does not account for prorated discounts, use the
+   * sum of `OrderLine.discountedLinePrice` values.
+   */
   subTotal?: InputMaybe<SortOrder>;
+  /** Same as subTotal, but inclusive of tax */
   subTotalWithTax?: InputMaybe<SortOrder>;
+  /** Equal to subTotal plus shipping */
   total?: InputMaybe<SortOrder>;
   totalQuantity?: InputMaybe<SortOrder>;
+  /** The final payable amount. Equal to subTotalWithTax plus shippingWithTax */
   totalWithTax?: InputMaybe<SortOrder>;
   transactionId?: InputMaybe<SortOrder>;
   updatedAt?: InputMaybe<SortOrder>;
@@ -5092,6 +5136,7 @@ export type ProductOptionGroupFilterParameter = {
   id?: InputMaybe<IdOperators>;
   languageCode?: InputMaybe<StringOperators>;
   name?: InputMaybe<StringOperators>;
+  /** The number of products that use this option group */
   productCount?: InputMaybe<NumberOperators>;
   updatedAt?: InputMaybe<DateOperators>;
 };
@@ -5129,6 +5174,7 @@ export type ProductOptionGroupSortParameter = {
   createdAt?: InputMaybe<SortOrder>;
   id?: InputMaybe<SortOrder>;
   name?: InputMaybe<SortOrder>;
+  /** The number of products that use this option group */
   productCount?: InputMaybe<SortOrder>;
   updatedAt?: InputMaybe<SortOrder>;
 };
