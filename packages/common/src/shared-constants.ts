@@ -10,7 +10,17 @@ export const SUPER_ADMIN_ROLE_CODE = '__super_admin_role__';
 export const SUPER_ADMIN_ROLE_DESCRIPTION = 'SuperAdmin';
 export const SUPER_ADMIN_USER_IDENTIFIER = 'superadmin';
 export const SUPER_ADMIN_USER_PASSWORD = 'superadmin';
+/**
+ * @deprecated The Customer role was removed in v4.0.0 — customer permissions are derived
+ * from channel membership (`Authenticated` on every member Channel). This constant will
+ * be removed in the next major version.
+ */
 export const CUSTOMER_ROLE_CODE = '__customer_role__';
+/**
+ * @deprecated The Customer role was removed in v4.0.0 — customer permissions are derived
+ * from channel membership (`Authenticated` on every member Channel). This constant will
+ * be removed in the next major version.
+ */
 export const CUSTOMER_ROLE_DESCRIPTION = 'Customer';
 export const ROLE_EDITOR_ROLE_CODE = '__role_editor_role__';
 export const ROLE_EDITOR_ROLE_DESCRIPTION = 'RoleEditor';

@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { CUSTOMER_ROLE_CODE, SUPER_ADMIN_ROLE_CODE } from '@vendure/common/lib/shared-constants';
+import { SUPER_ADMIN_ROLE_CODE } from '@vendure/common/lib/shared-constants';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { unique } from '@vendure/common/lib/unique';
-import { IsNull } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
@@ -11,9 +10,8 @@ import { ListQueryOptions } from '../../common/types/common-types';
 import { idsAreEqual } from '../../common/utils';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Channel } from '../../entity/channel/channel.entity';
-import { Customer } from '../../entity/customer/customer.entity';
-import { Role } from '../../entity/role/role.entity';
 import { RoleAssignment } from '../../entity/role-assignment/role-assignment.entity';
+import { Role } from '../../entity/role/role.entity';
 import { User } from '../../entity/user/user.entity';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
 import {
@@ -106,19 +104,8 @@ export class RoleAssignmentService {
             relations: { role: true },
         });
         const roles = assignments.map(({ role }) => role);
-        // The Customer role is derived from channel membership rather than stored as
-        // assignment rows (see RolePermissionResolver), so it is added back here.
-        const customer = await this.connection.getRepository(ctx, Customer).findOne({
-            where: { user: { id: userId }, deletedAt: IsNull() },
-        });
-        if (customer) {
-            const customerRole = await this.connection
-                .getRepository(ctx, Role)
-                .findOne({ where: { code: CUSTOMER_ROLE_CODE } });
-            if (customerRole) {
-                roles.push(customerRole);
-            }
-        }
+        // Customer permissions are membership-derived (see RolePermissionResolver), so a
+        // customer User holds no Roles here.
         // The same Role assigned on several Channels yields one row per Channel.
         return unique(roles, 'id');
     }
@@ -136,20 +123,6 @@ export class RoleAssignmentService {
             .where('assignment.roleId = :roleId', { roleId })
             .getRawMany<{ userId: ID }>();
         const userIds = assignmentRows.map(row => row.userId);
-
-        // Mirror resolveUserRoles: the membership-derived Customer role has no assignment
-        // rows, so asking who holds it must return the customer Users.
-        const role = await this.connection.getRepository(ctx, Role).findOne({ where: { id: roleId } });
-        if (role?.code === CUSTOMER_ROLE_CODE) {
-            const customerRows = await this.connection
-                .getRepository(ctx, Customer)
-                .createQueryBuilder('customer')
-                .select('user.id', 'userId')
-                .innerJoin('customer.user', 'user', 'user.deletedAt IS NULL')
-                .where('customer.deletedAt IS NULL')
-                .getRawMany<{ userId: ID }>();
-            userIds.push(...customerRows.map(row => row.userId));
-        }
         return unique(userIds);
     }
 

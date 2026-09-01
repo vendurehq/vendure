@@ -7,8 +7,6 @@ import {
     UpdateRoleInput,
 } from '@vendure/common/lib/generated-types';
 import {
-    CUSTOMER_ROLE_CODE,
-    CUSTOMER_ROLE_DESCRIPTION,
     ROLE_EDITOR_ROLE_CODE,
     ROLE_EDITOR_ROLE_DESCRIPTION,
     SUPER_ADMIN_ROLE_CODE,
@@ -76,7 +74,6 @@ export class RoleService {
 
     async initRoles() {
         await this.ensureSuperAdminRoleExists();
-        await this.ensureCustomerRoleExists();
         await this.ensureRoleEditorRoleExists();
         await this.ensureRolesHaveValidPermissions();
     }
@@ -94,14 +91,13 @@ export class RoleService {
         // predicate on the list query for instances with thousands of Roles.
         const allRoles = await this.getAllRoles(ctx);
         const gatedRoles = allRoles.filter(role => !this.isSystemRole(role));
-        const assignedChannelIdsByRole = await this.roleAssignmentService.getChannelIdsWithAssignmentsForRoles(
-            ctx,
-            gatedRoles.map(role => role.id),
-        );
+        const assignedChannelIdsByRole =
+            await this.roleAssignmentService.getChannelIdsWithAssignmentsForRoles(
+                ctx,
+                gatedRoles.map(role => role.id),
+            );
 
-        const visibleRoleIds: ID[] = allRoles
-            .filter(role => this.isSystemRole(role))
-            .map(role => role.id);
+        const visibleRoleIds: ID[] = allRoles.filter(role => this.isSystemRole(role)).map(role => role.id);
         for (const role of gatedRoles) {
             const assignedChannelIds = assignedChannelIdsByRole.get(role.id.toString()) ?? [];
             if (
@@ -147,19 +143,6 @@ export class RoleService {
         return this.getRoleByCode(ctx, SUPER_ADMIN_ROLE_CODE).then(role => {
             if (!role) {
                 throw new InternalServerError('error.super-admin-role-not-found');
-            }
-            return role;
-        });
-    }
-
-    /**
-     * @description
-     * Returns the special Customer Role, which always exists in Vendure.
-     */
-    getCustomerRole(ctx?: RequestContext): Promise<Role> {
-        return this.getRoleByCode(ctx, CUSTOMER_ROLE_CODE).then(role => {
-            if (!role) {
-                throw new InternalServerError('error.customer-role-not-found');
             }
             return role;
         });
@@ -457,11 +440,7 @@ export class RoleService {
      * through the API.
      */
     private isSystemRole(role: Role): boolean {
-        return (
-            role.code === SUPER_ADMIN_ROLE_CODE ||
-            role.code === CUSTOMER_ROLE_CODE ||
-            role.code === ROLE_EDITOR_ROLE_CODE
-        );
+        return role.code === SUPER_ADMIN_ROLE_CODE || role.code === ROLE_EDITOR_ROLE_CODE;
     }
 
     private getRoleByCode(ctx: RequestContext | undefined, code: string) {
@@ -487,21 +466,6 @@ export class RoleService {
                 code: SUPER_ADMIN_ROLE_CODE,
                 description: SUPER_ADMIN_ROLE_DESCRIPTION,
                 permissions: [Permission.SuperAdmin],
-            });
-        }
-    }
-
-    /**
-     * The Customer Role is a special case which must always exist.
-     */
-    private async ensureCustomerRoleExists() {
-        try {
-            await this.getCustomerRole();
-        } catch (err: any) {
-            await this.createRoleEntity(RequestContext.empty(), {
-                code: CUSTOMER_ROLE_CODE,
-                description: CUSTOMER_ROLE_DESCRIPTION,
-                permissions: [Permission.Authenticated],
             });
         }
     }

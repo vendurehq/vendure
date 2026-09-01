@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { Permission } from '@vendure/common/lib/generated-types';
-import { CUSTOMER_ROLE_CODE } from '@vendure/common/lib/shared-constants';
 import { ID } from '@vendure/common/lib/shared-types';
 import { unique } from '@vendure/common/lib/unique';
 import { IsNull } from 'typeorm';
@@ -12,7 +11,18 @@ import { TransactionalConnection } from '../../../connection/transactional-conne
 import { Channel } from '../../../entity/channel/channel.entity';
 import { Customer } from '../../../entity/customer/customer.entity';
 import { RoleAssignment } from '../../../entity/role-assignment/role-assignment.entity';
-import { Role } from '../../../entity/role/role.entity';
+
+/**
+ * @description
+ * The fixed permissions a Customer's User holds on every Channel the Customer is a member
+ * of. Customer permissions are membership-derived: there is no Customer role and customers
+ * have no {@link RoleAssignment} rows, so this constant is the definition of what a
+ * membership grants.
+ *
+ * @docsCategory auth
+ * @since 4.0.0
+ */
+export const CUSTOMER_PERMISSIONS: Permission[] = [Permission.Authenticated];
 
 /**
  * @description
@@ -43,7 +53,7 @@ export interface ResolvedUserPermissions {
  * This is the single source of truth for permission resolution, used by the session cache,
  * `login`/`me`, {@link RequestContextService} and the permission guards.
  *
- * The two system roles are special-cased rather than materialized per channel:
+ * Two cases are special-cased rather than materialized per channel:
  *
  * - **SuperAdmin**: a User holding a Role which carries the `SuperAdmin` permission (only
  *   the system SuperAdmin role can) receives all assignable permissions on every Channel,
@@ -53,10 +63,10 @@ export interface ResolvedUserPermissions {
  *   creation nevertheless materializes SuperAdmin assignment rows (see
  *   {@link RoleAssignmentService.assignSuperAdminRoleHoldersToChannel}) so that assignment
  *   reads stay consistent with that access.
- * - **Customer role**: a User with a Customer record receives the Customer role's
- *   permissions on the Customer's member Channels, derived from the channel membership
- *   itself. Customer-role assignments are never written — they would only duplicate the
- *   membership relation, at one row per customer per channel.
+ * - **Customers**: a User with a Customer record receives the fixed customer permissions
+ *   (`Authenticated`) on the Customer's member Channels, derived from the channel
+ *   membership itself. There is no Customer role and customers have no assignment rows —
+ *   rows would only duplicate the membership relation, at one row per customer per channel.
  *
  * @docsCategory auth
  * @since 4.0.0
@@ -105,13 +115,8 @@ export class RolePermissionResolver {
             relations: { channels: true },
         });
         if (customer) {
-            const customerRole = await this.connection.rawConnection
-                .getRepository(Role)
-                .findOne({ where: { code: CUSTOMER_ROLE_CODE } });
-            if (customerRole) {
-                for (const channel of customer.channels) {
-                    addPermissions(channel, customerRole.permissions);
-                }
+            for (const channel of customer.channels) {
+                addPermissions(channel, CUSTOMER_PERMISSIONS);
             }
         }
         return {
