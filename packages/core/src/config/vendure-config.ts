@@ -568,6 +568,16 @@ export interface AuthOptions {
      * @since 3.7.0
      */
     customerChannelAssignmentStrategy?: CustomerChannelAssignmentStrategy;
+    /**
+     * @description
+     * When set to `true`, the `User.lastLogin` field is not updated when a user logs in.
+     * Each login otherwise writes to the `user` table, which can become a bottleneck for
+     * storefronts that authenticate on a large proportion of requests.
+     *
+     * @default false
+     * @since 3.8.0
+     */
+    disableLastLoginUpdate?: boolean;
 }
 
 /**

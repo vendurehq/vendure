@@ -116,6 +116,7 @@ export const defaultConfig: RuntimeVendureConfig = {
         sessionCacheStrategy: new DefaultSessionCacheStrategy(),
         sessionCacheTTL: 300,
         requireVerification: true,
+        disableLastLoginUpdate: false,
         verificationTokenDuration: '7d',
         superadminCredentials: {
             identifier: SUPER_ADMIN_USER_IDENTIFIER,

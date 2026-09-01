@@ -71,13 +71,26 @@ export class AuthService {
         if (!authenticateResult) {
             return new InvalidCredentialsError({ authenticationError: '' });
         }
-        return this.createAuthenticatedSessionForUser(ctx, authenticateResult, authenticationStrategy.name);
+        return this.createAuthenticatedSessionForUser(
+            ctx,
+            authenticateResult,
+            authenticationStrategy.name,
+            apiType,
+        );
     }
 
+    /**
+     * @description
+     * Creates a new {@link AuthenticatedSession} for the given User.
+     *
+     * The `apiType` argument is passed through to `SessionService.createNewAuthenticatedSession()`,
+     * whose docs describe when to pass it.
+     */
     async createAuthenticatedSessionForUser(
         ctx: RequestContext,
         user: User,
         authenticationStrategyName: string,
+        apiType?: ApiType,
     ): Promise<AuthenticatedSession | NotVerifiedError> {
         if (!user.roles || !user.roles[0]?.channels) {
             const userWithRoles = await this.connection
@@ -99,12 +112,19 @@ export class AuthService {
         if (ctx.session && ctx.session.activeOrderId) {
             await this.sessionService.deleteSessionsByActiveOrderId(ctx, ctx.session.activeOrderId);
         }
-        user.lastLogin = new Date();
+        if (!this.configService.authOptions.disableLastLoginUpdate) {
+            user.lastLogin = new Date();
+        }
+        // The save is unconditional: an AuthenticationStrategy may have set fields on the
+        // User (e.g. `verified`, custom fields) which this is the only place to persist.
+        // With no changed columns, TypeORM issues no UPDATE, so the `user` row is not written.
         await this.connection.getRepository(ctx, User).save(user);
         const session = await this.sessionService.createNewAuthenticatedSession(
             ctx,
             user,
             authenticationStrategyName,
+            undefined,
+            apiType,
         );
         await this.eventBus.publish(new LoginEvent(ctx, user));
         return session;
