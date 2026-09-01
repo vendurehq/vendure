@@ -94,10 +94,6 @@ async function applyFormat(
  * a caller may request. `jpg` and `avif` are valid requests that
  * `metadata.format` never returns: sharp reports `jpeg` for both JPEG spellings,
  * and reports AVIF as `heif`.
- *
- * The `satisfies` clause makes a typo in this array a compile error. Array
- * membership tests are not type checked on their own, so `['jpeg', 'webb']`
- * would otherwise compile and stop WebP images being re-encoded.
  */
 const REENCODABLE_INPUT_FORMATS = ['jpeg', 'webp'] as const satisfies ReadonlyArray<keyof FormatEnum>;
 
