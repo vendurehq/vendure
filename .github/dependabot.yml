@@ -86,6 +86,34 @@ updates:
       ignore:
           # Workspace-internal packages are versioned by the release process.
           - dependency-name: '@vendure/*'
+          # The Angular Admin UI is deprecated in favour of the React dashboard
+          # in packages/dashboard, so its toolchain is not worth the review
+          # cost. Updates to it are noise in the queue.
+          #
+          # This entry has to be written as dependency names rather than a
+          # path, because this bun entry uses `directory: /` and covers the
+          # whole workspace, and Dependabot matches `ignore` on dependency
+          # name only. Every family below was checked against every
+          # packages/*/package.json and the root manifest: all of them appear
+          # only in packages/admin-ui, except @angular/* and @angular-devkit/*,
+          # which also appear in packages/ui-devkit. Nothing outside those two
+          # packages depends on any of them, so ignoring them workspace-wide
+          # does not stop updates for anything that still matters.
+          #
+          # ui-devkit is covered deliberately. It exists to compile Angular
+          # Admin UI extensions, so it shares the Admin UI's deprecation, and
+          # scripts/check-angular-versions.ts requires @angular/cli,
+          # @angular/compiler and @angular/compiler-cli to match exactly
+          # between the two packages. A name-based ignore cannot cover one and
+          # not the other in any case.
+          - dependency-name: '@angular/*'
+          - dependency-name: '@angular-devkit/*'
+          - dependency-name: '@angular-eslint/*'
+          - dependency-name: '@ngx-translate/*'
+          - dependency-name: '@types/jasmine*'
+          - dependency-name: 'jasmine*'
+          - dependency-name: 'karma*'
+          - dependency-name: 'zone.js'
       # Families that must move in lockstep are grouped so they land in one
       # pull request. Groups cover minor and patch only; a major update arrives
       # as its own pull request, because a major is a migration rather than a
@@ -156,14 +184,6 @@ updates:
           opentelemetry:
               patterns:
                   - '@opentelemetry/*'
-              update-types:
-                  - minor
-                  - patch
-          angular:
-              patterns:
-                  - '@angular/*'
-                  - '@angular-devkit/*'
-                  - '@angular-eslint/*'
               update-types:
                   - minor
                   - patch

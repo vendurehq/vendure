@@ -2,6 +2,7 @@ import { type Page, expect, test } from '@playwright/test';
 
 import { BaseDetailPage } from '../../page-objects/detail-page.base.js';
 import { BaseListPage } from '../../page-objects/list-page.base.js';
+import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
 
 // Channels have dependent selectors: available languages/currencies must be set
 // before their respective defaults. Zone selectors are standard Base UI Selects.
@@ -163,6 +164,97 @@ test.describe('Channels CRUD', () => {
         const switcherMenu = page.locator('[data-slot="dropdown-menu-content"]');
         await expect(switcherMenu).toBeVisible();
         await expect(switcherMenu.getByText('e2e-test-channel')).toHaveCount(0);
+    });
+
+    // #5179 — Follow-up: deleting the channel you are currently switched into
+    // must recover the active channel without a full page reload. refreshChannels()
+    // refetches ['activeChannel'] while localStorage still holds the deleted
+    // channel's token (retry: false, so it is not retried); the provider then
+    // picks the first available channel and must re-invalidate ['activeChannel']
+    // so it refetches under the corrected token. No page.reload() below the
+    // initial load: a reload recreates the QueryClient and masks the bug.
+    test('should recover the active channel after deleting the current one', async ({ page }) => {
+        test.setTimeout(30_000);
+        const channelCode = `e2e-active-del-${Date.now()}`;
+
+        // Create the channel via the Admin API so the test can focus on the
+        // switch/delete/recover flow rather than the long create form.
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const zones = await client.gql(
+            `query { zones(options: { filter: { name: { eq: "Europe" } } }) { items { id } } }`,
+        );
+        const zoneId = zones.zones.items[0]?.id as string;
+        expect(zoneId).toBeTruthy();
+        const created = await client.gql(
+            `mutation ($input: CreateChannelInput!) {
+                createChannel(input: $input) {
+                    ... on Channel { id }
+                    ... on ErrorResult { errorCode message }
+                }
+            }`,
+            {
+                input: {
+                    code: channelCode,
+                    token: channelCode,
+                    defaultLanguageCode: 'en',
+                    pricesIncludeTax: false,
+                    defaultCurrencyCode: 'USD',
+                    availableCurrencyCodes: ['USD'],
+                    defaultTaxZoneId: zoneId,
+                    defaultShippingZoneId: zoneId,
+                },
+            },
+        );
+        const createdChannelId = created.createChannel.id as string;
+
+        try {
+            // Initial (and only) full load.
+            await page.goto('/');
+            const sidebar = page.locator('[data-slot="sidebar"]');
+            const switcherTrigger = sidebar.getByRole('button').first();
+            await expect(switcherTrigger).toBeVisible({ timeout: 15_000 });
+
+            // Switch into the newly created channel.
+            await switcherTrigger.click();
+            const switcherMenu = page.locator('[data-slot="dropdown-menu-content"]');
+            await expect(switcherMenu).toBeVisible();
+            await switcherMenu.getByRole('menuitem').filter({ hasText: channelCode }).click();
+            await expect(switcherTrigger).toContainText(channelCode, { timeout: 10_000 });
+
+            // Delete the currently-active channel via the list (client-side nav).
+            // Channels lives under the Settings section, which may need expanding.
+            const channelsLink = sidebar.getByRole('link', { name: 'Channels', exact: true });
+            if (!(await channelsLink.isVisible().catch(() => false))) {
+                await sidebar.getByRole('button', { name: 'Settings' }).click();
+            }
+            await channelsLink.click();
+            const lp = listPage(page);
+            await lp.expectLoaded();
+            const row = lp.getRows().filter({ hasText: channelCode });
+            await row.getByRole('checkbox').click();
+            await page.getByRole('button', { name: /Actions/i }).click();
+            await page.locator('[role="menu"]').getByText('Delete', { exact: true }).click();
+            await page.locator('[role="alertdialog"]').getByRole('button', { name: 'Continue' }).click();
+            await lp.expectSuccessToast();
+            await expect(lp.getRows().filter({ hasText: channelCode })).toHaveCount(0);
+
+            // The active channel must recover to a valid channel on its own. This
+            // suite runs in serial mode and the default channel is the only one
+            // left at this point, so the switcher must land on it. Without the fix
+            // this stays stuck on the deleted channel until a hard refresh.
+            await expect(switcherTrigger).not.toContainText(channelCode, { timeout: 10_000 });
+            await expect(switcherTrigger).toContainText('Default channel', { timeout: 10_000 });
+        } finally {
+            // Ensure the channel is gone even if an assertion above failed. On the
+            // happy path the UI already deleted it, so this call is expected to
+            // fail with "not found" and the rejection is discarded.
+            await client
+                .gql(`mutation ($id: ID!) { deleteChannel(id: $id) { result } }`, {
+                    id: createdChannelId,
+                })
+                .catch(() => {});
+        }
     });
 });
 
