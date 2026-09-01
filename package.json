@@ -35,7 +35,7 @@
   },
   "devDependencies": {
     "@commitlint/cli": "^19.1.0",
-    "@commitlint/config-conventional": "^19.1.0",
+    "@commitlint/config-conventional": "^21.2.2",
     "@gql.tada/cli-utils": "^1.6.5",
     "@graphql-codegen/add": "6.0.0",
     "@graphql-codegen/cli": "6.0.0",
