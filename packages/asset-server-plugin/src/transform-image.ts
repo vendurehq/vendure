@@ -86,17 +86,18 @@ async function applyFormat(
 }
 
 /**
- * Formats we can re-encode an image into when a quality is given but no explicit
- * format, keyed by what sharp reports as the *detected input* container.
+ * The formats `applyFormat` can re-encode into when a request sets a quality but
+ * no format. Values are what `metadata.format` reports for the detected input
+ * container.
  *
- * This is a narrower set than {@link ImageTransformFormat}, which describes the
- * formats a caller may *request*. `jpg` and `avif` are valid requests but are
- * never reported by `metadata.format`: sharp reports `jpeg` for both JPEG
- * spellings, and reports AVIF as `heif`.
+ * This set is narrower than {@link ImageTransformFormat}, which lists the formats
+ * a caller may request. `jpg` and `avif` are valid requests that
+ * `metadata.format` never returns: sharp reports `jpeg` for both JPEG spellings,
+ * and reports AVIF as `heif`.
  *
- * The `satisfies` clause is load-bearing. Array membership tests are not type
- * checked on their own — a bare `['jpeg', 'webb'].includes(x)` compiles clean —
- * so without it a typo here would silently disable re-encoding for that format.
+ * The `satisfies` clause makes a typo in this array a compile error. Array
+ * membership tests are not type checked on their own, so `['jpeg', 'webb']`
+ * would otherwise compile and stop WebP images being re-encoded.
  */
 const REENCODABLE_INPUT_FORMATS = ['jpeg', 'webp'] as const satisfies ReadonlyArray<keyof FormatEnum>;
 

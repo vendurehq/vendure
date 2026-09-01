@@ -129,9 +129,11 @@ export class SharpAssetPreviewStrategy implements AssetPreviewStrategy {
                     // Convert the SVG to a raster for the preview
                     return image.toBuffer();
                 } else {
-                    // sharp reports the container it detected, so 'jpg' never
-                    // appears (jpeg does) and AVIF files are reported as 'heif'.
-                    // Both cases used to be listed here and neither could match.
+                    // sharp reports the container it detected, so `metadata.format`
+                    // returns `jpeg` for both JPEG spellings and `heif` for AVIF.
+                    // There is no `jpg` or `avif` case because neither value can
+                    // occur. AVIF input falls through to the default branch, so
+                    // `avifOptions` is not applied to it.
                     switch (metadata.format) {
                         case 'jpeg':
                             return image.jpeg(this.config.jpegOptions).toBuffer();
