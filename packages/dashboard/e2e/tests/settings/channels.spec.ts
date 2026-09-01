@@ -166,7 +166,7 @@ test.describe('Channels CRUD', () => {
         await expect(switcherMenu.getByText('e2e-test-channel')).toHaveCount(0);
     });
 
-    // #5179 follow-up — deleting the channel you are currently switched into
+    // #5179 — Follow-up: deleting the channel you are currently switched into
     // must recover the active channel without a full page reload. refreshChannels()
     // refetches ['activeChannel'] while localStorage still holds the deleted
     // channel's token (retry: false, so it is not retried); the provider then
