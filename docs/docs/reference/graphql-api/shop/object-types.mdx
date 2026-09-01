@@ -3277,6 +3277,7 @@ union SearchResultPrice = PriceRange | SinglePrice`}
     ID: '/reference/graphql-api/shop/object-types#id',
     DateTime: '/reference/graphql-api/shop/object-types#datetime',
     String: '/reference/graphql-api/shop/object-types#string',
+    SellerTranslation: '/reference/graphql-api/shop/object-types#sellertranslation',
     JSON: '/reference/graphql-api/shop/object-types#json',
   }}
 >
@@ -3285,7 +3286,33 @@ union SearchResultPrice = PriceRange | SinglePrice`}
   createdAt: DateTime!
   updatedAt: DateTime!
   name: String!
+  translations: [SellerTranslation!]!
   customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="sellertranslation"></a>
+
+## SellerTranslation
+
+<GraphQLDoc
+  type="type"
+  typeName="SellerTranslation"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    LanguageCode: '/reference/graphql-api/shop/enums#languagecode',
+  }}
+>
+{`"""
+Holds a Seller's localized custom field values for one language.
+The Seller's own fields, such as \`name\`, are not translated.
+"""
+type SellerTranslation {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  languageCode: LanguageCode!
 }`}
 </GraphQLDoc>
 
