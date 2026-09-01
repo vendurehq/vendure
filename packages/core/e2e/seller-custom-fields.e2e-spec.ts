@@ -1,5 +1,5 @@
 import { DeletionResult, LanguageCode, SortOrder } from '@vendure/common/lib/generated-types';
-import { mergeConfig } from '@vendure/core';
+import { mergeConfig, SellerTranslation, TransactionalConnection } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -45,7 +45,6 @@ describe('Seller with localized custom fields', () => {
         await server.destroy();
     });
 
-    // T1
     it('creates a seller with localized and plain custom fields', async () => {
         const { createSeller } = await adminClient.query(createSellerDocument, {
             input: {
@@ -74,7 +73,6 @@ describe('Seller with localized custom fields', () => {
         ]);
     });
 
-    // T2
     it('creates a seller without translations', async () => {
         const { createSeller } = await adminClient.query(createSellerDocument, {
             input: { name: 'Plain Seller' },
@@ -86,7 +84,6 @@ describe('Seller with localized custom fields', () => {
         expect(createSeller.customFields.description).toBeNull();
     });
 
-    // T3
     it('adds a translation for another language', async () => {
         const { updateSeller } = await adminClient.query(
             updateSellerDocument,
@@ -116,7 +113,6 @@ describe('Seller with localized custom fields', () => {
         ]);
     });
 
-    // T4
     it('returns the custom fields in the requested language, falling back to the default', async () => {
         const en = await adminClient.query(
             getSellerDocument,
@@ -142,7 +138,6 @@ describe('Seller with localized custom fields', () => {
         expect(zh.seller?.name).toBe('Fresh Foods');
     });
 
-    // T5
     it('updates a plain field and a localized field in one call', async () => {
         const { updateSeller } = await adminClient.query(updateSellerDocument, {
             input: {
@@ -159,7 +154,6 @@ describe('Seller with localized custom fields', () => {
         expect(updateSeller.customFields.description).toBe('English description');
     });
 
-    // T6
     it('reads a seller that has no translation rows', async () => {
         const { seller } = await adminClient.query(getSellerDocument, { id: DEFAULT_SELLER_ID });
         expect(seller?.name).toBe('Default Seller');
@@ -167,7 +161,6 @@ describe('Seller with localized custom fields', () => {
         expect(seller?.customFields.tagline).toBeNull();
     });
 
-    // T7
     it('filters and sorts the seller list by a localized custom field', async () => {
         const filtered = await adminClient.query(
             getSellerListDocument,
@@ -190,9 +183,22 @@ describe('Seller with localized custom fields', () => {
             'Fresh Foods',
             'Plain Seller',
         ]);
+
+        // Filtering and sorting on the same localized field in one query.
+        const filteredAndSorted = await adminClient.query(
+            getSellerListDocument,
+            {
+                options: {
+                    filter: { tagline: { contains: 'frisch' } },
+                    sort: { tagline: SortOrder.ASC },
+                },
+            },
+            { languageCode: LanguageCode.de },
+        );
+        expect(filteredAndSorted.sellers.totalItems).toBe(1);
+        expect(filteredAndSorted.sellers.items.map(s => s.name)).toEqual(['Fresh Foods']);
     });
 
-    // T8
     it('translates the seller in the createChannel response', async () => {
         const { createChannel } = await adminClient.query(
             createChannelWithSellerDocument,
@@ -219,7 +225,6 @@ describe('Seller with localized custom fields', () => {
         expect(createChannel.seller?.customFields.tagline).toBe('Jeden Tag frisch');
     });
 
-    // T9
     it('translates the newly assigned seller in the updateChannel response', async () => {
         await adminClient.query(updateSellerDocument, {
             input: {
@@ -239,7 +244,6 @@ describe('Seller with localized custom fields', () => {
         expect(updateChannel.seller?.customFields.tagline).toBe('Plain but proud');
     });
 
-    // T10
     it('exposes the translated custom fields through the shop API activeChannel', async () => {
         await adminClient.query(updateSellerDocument, {
             input: {
@@ -257,7 +261,6 @@ describe('Seller with localized custom fields', () => {
         expect(de.activeChannel.seller?.customFields.tagline).toBe('Standard auf Deutsch');
     });
 
-    // T11
     it('orders the seller list by a localized custom field once every seller has a value', async () => {
         const { sellers } = await adminClient.query(
             getSellerListDocument,
@@ -271,7 +274,6 @@ describe('Seller with localized custom fields', () => {
         ]);
     });
 
-    // T12
     it('updates the name without touching translations', async () => {
         const { updateSeller } = await adminClient.query(updateSellerDocument, {
             input: { id: secondSellerId, name: 'Plain Seller Renamed' },
@@ -281,7 +283,6 @@ describe('Seller with localized custom fields', () => {
         expect(updateSeller.customFields.tagline).toBe('Plain but proud');
     });
 
-    // T13
     it('deletes a seller that has translation rows', async () => {
         const { createSeller } = await adminClient.query(createSellerDocument, {
             input: {
@@ -293,9 +294,13 @@ describe('Seller with localized custom fields', () => {
         expect(deleteSeller.result).toBe(DeletionResult.DELETED);
         const { seller } = await adminClient.query(getSellerDocument, { id: createSeller.id });
         expect(seller).toBeNull();
+
+        // The foreign key removes the translation rows along with the seller.
+        const connection = server.app.get(TransactionalConnection);
+        const translations = await connection.rawConnection.getRepository(SellerTranslation).find();
+        expect(translations.some(t => t.customFields.tagline === 'Here briefly')).toBe(false);
     });
 
-    // T14
     it(
         'updating an unknown id throws',
         assertThrowsWithMessage(

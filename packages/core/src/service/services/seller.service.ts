@@ -70,14 +70,10 @@ export class SellerService {
             entityType: Seller,
             translationType: SellerTranslation,
         });
-        const sellerWithRelations = await this.customFieldRelationService.updateRelations(
-            ctx,
-            Seller,
-            input,
-            seller,
-        );
-        await this.eventBus.publish(new SellerEvent(ctx, sellerWithRelations, 'created', input));
-        return assertFound(this.findOne(ctx, seller.id));
+        const createdSeller = await assertFound(this.findOne(ctx, seller.id));
+        await this.customFieldRelationService.updateRelations(ctx, Seller, input, createdSeller);
+        await this.eventBus.publish(new SellerEvent(ctx, createdSeller, 'created', input));
+        return createdSeller;
     }
 
     async update(ctx: RequestContext, input: UpdateSellerInput): Promise<Translated<Seller>> {
@@ -88,10 +84,8 @@ export class SellerService {
             entityType: Seller,
             translationType: SellerTranslation,
         });
-        await this.customFieldRelationService.updateRelations(ctx, Seller, input, seller);
-        // The saver returns only the columns that were present in the input, so the event and the
-        // response get the re-read entity.
         const updatedSeller = await assertFound(this.findOne(ctx, seller.id));
+        await this.customFieldRelationService.updateRelations(ctx, Seller, input, updatedSeller);
         await this.eventBus.publish(new SellerEvent(ctx, updatedSeller, 'updated', input));
         return updatedSeller;
     }
