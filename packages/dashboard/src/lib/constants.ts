@@ -5,6 +5,11 @@ export const NEW_ENTITY_PATH = 'new';
 export const AUTHENTICATED_ROUTE_PREFIX = '/_authenticated';
 export const DEFAULT_CHANNEL_CODE = '__default_channel__';
 export const SUPER_ADMIN_ROLE_CODE = '__super_admin_role__';
+/**
+ * @deprecated The Customer role was removed in v4.0.0 — customer permissions are derived
+ * from channel membership (`Authenticated` on every member Channel). This constant will
+ * be removed in the next major version.
+ */
 export const CUSTOMER_ROLE_CODE = '__customer_role__';
 export const ROLE_EDITOR_ROLE_CODE = '__role_editor_role__';
 

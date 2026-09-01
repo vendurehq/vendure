@@ -4,7 +4,7 @@ import { BaseDetailPage } from '../../page-objects/detail-page.base.js';
 import { BaseListPage } from '../../page-objects/list-page.base.js';
 
 // Roles have a permissions grid that doesn't fit the standard CRUD factory.
-// System roles (SuperAdmin, Customer) have disabled detail links and cannot
+// System roles (SuperAdmin, RoleEditor) have disabled detail links and cannot
 // be edited.
 
 test.describe('Roles', () => {
