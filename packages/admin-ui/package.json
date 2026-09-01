@@ -92,7 +92,7 @@
         "@angular/cli": "^19.2.5",
         "@angular/compiler": "^19.2.4",
         "@angular/compiler-cli": "^19.2.4",
-        "@types/jasmine": "~4.3.5",
+        "@types/jasmine": "~6.0.0",
         "@types/jasminewd2": "~2.0.10",
         "@types/node": "^18.17.9",
         "@types/react": "^19.0.12",
