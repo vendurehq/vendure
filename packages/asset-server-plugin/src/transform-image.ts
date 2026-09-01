@@ -85,13 +85,25 @@ async function applyFormat(
     }
 }
 
-// Narrowed to the formats sharp can actually report. 'jpg' and 'avif' are not
-// members of FormatEnum: sharp reports jpeg for both JPEG spellings, and reports
-// AVIF files as 'heif'. Listing them here had no effect.
+/**
+ * Formats we can re-encode an image into when a quality is given but no explicit
+ * format, keyed by what sharp reports as the *detected input* container.
+ *
+ * This is a narrower set than {@link ImageTransformFormat}, which describes the
+ * formats a caller may *request*. `jpg` and `avif` are valid requests but are
+ * never reported by `metadata.format`: sharp reports `jpeg` for both JPEG
+ * spellings, and reports AVIF as `heif`.
+ *
+ * The `satisfies` clause is load-bearing. Array membership tests are not type
+ * checked on their own — a bare `['jpeg', 'webb'].includes(x)` compiles clean —
+ * so without it a typo here would silently disable re-encoding for that format.
+ */
+const REENCODABLE_INPUT_FORMATS = ['jpeg', 'webp'] as const satisfies ReadonlyArray<keyof FormatEnum>;
+
 function isImageTransformFormat(
     input: keyof FormatEnum | undefined,
-): input is Extract<ImageTransformFormat, keyof FormatEnum> {
-    return !!input && ['jpeg', 'webp'].includes(input);
+): input is (typeof REENCODABLE_INPUT_FORMATS)[number] {
+    return !!input && (REENCODABLE_INPUT_FORMATS as readonly string[]).includes(input);
 }
 
 /**
