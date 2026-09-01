@@ -201,9 +201,7 @@ describe('migrateRoleAssignmentData()', () => {
         expect(roleEditorRoles[0].permissions).toBe(
             'Authenticated,CreateRole,ReadRole,UpdateRole,DeleteRole',
         );
-        const roleEditorAssignments = (await getAssignments()).filter(
-            a => a.roleId === ROLE_EDITOR_ROLE_ID,
-        );
+        const roleEditorAssignments = (await getAssignments()).filter(a => a.roleId === ROLE_EDITOR_ROLE_ID);
         // Only the sales administrator (user 2): the superadmin (user 1) is covered by the
         // check-time bypass, users 3 & 4 are not administrators, and user 5 is deleted.
         expect(roleEditorAssignments).toEqual([{ userId: 2, roleId: ROLE_EDITOR_ROLE_ID, channelId: 2 }]);
@@ -226,6 +224,24 @@ describe('migrateRoleAssignmentData()', () => {
         expect((await getAssignments()).filter(a => a.roleId === 10)).toEqual([
             { userId: 2, roleId: 10, channelId: 2 },
         ]);
+    });
+
+    it('deletes the Customer role row and its legacy join rows', async () => {
+        await createSchema();
+        await seedData();
+
+        await migrateRoleAssignmentData(queryRunner);
+
+        const customerRoles = await queryRunner.query(
+            `SELECT "id" FROM "role" WHERE "code" = '__customer_role__'`,
+        );
+        expect(customerRoles).toEqual([]);
+        // The legacy join rows referencing the role go first (FK order); both tables are
+        // dropped by the surrounding migration right after the helper returns.
+        expect(await queryRunner.query(`SELECT * FROM "user_roles_role" WHERE "roleId" = 2`)).toEqual([]);
+        expect(await queryRunner.query(`SELECT * FROM "role_channels_channel" WHERE "roleId" = 2`)).toEqual(
+            [],
+        );
     });
 
     it('skips migration when the old join tables no longer exist', async () => {

@@ -19,10 +19,15 @@ import { QueryRunner } from 'typeorm';
  *
  * Two Roles are treated specially:
  *
- * - **Customer role**: no rows are written. Customer permissions are derived at check
- *   time from the Customer's channel memberships, so migrating the old rows (which
- *   granted every customer permissions on every Channel) would both reintroduce that
- *   permission leak and write one row per customer per channel.
+ * - **Customer role**: no rows are written, and the role row itself is **deleted** — v4
+ *   removes the Customer role entirely. Customer permissions are derived at check time
+ *   from the Customer's channel memberships (`Authenticated` on every member Channel), so
+ *   migrating the old rows (which granted every customer permissions on every Channel)
+ *   would both reintroduce that permission leak and write one row per customer per
+ *   channel. If your instance broadened the Customer role's permissions via a direct
+ *   repository write, be aware that this customization has no v4 equivalent: the row and
+ *   its permissions array are gone after migrating, and customers hold exactly
+ *   `Authenticated` on their member Channels.
  * - **SuperAdmin role**: holders receive a row on *every* Channel, not just the Channels
  *   recorded in `role_channels_channel`. Channels created programmatically via
  *   `ChannelService.create()` never had the SuperAdmin role auto-assigned (only the
@@ -192,11 +197,10 @@ export async function migrateRoleAssignmentData(queryRunner: QueryRunner): Promi
     // this changes nothing about what SuperAdmins can do — but pre-v4 versions re-synced
     // the stored array with all assignable permissions on boot and v4 no longer does, so
     // without this a migrated instance would present a stale permission list on the role.
-    const superAdminRoleRows: Array<{ id: string | number; permissions: string }> =
-        await queryRunner.query(
-            `SELECT ${esc('id')}, ${esc('permissions')} FROM ${esc('role')}
+    const superAdminRoleRows: Array<{ id: string | number; permissions: string }> = await queryRunner.query(
+        `SELECT ${esc('id')}, ${esc('permissions')} FROM ${esc('role')}
              WHERE ${esc('code')} = '${SUPER_ADMIN_ROLE_CODE}'`,
-        );
+    );
     for (const row of superAdminRoleRows) {
         const currentPermissions = row.permissions.split(',');
         const missingPermissions = roleCrudPermissions.filter(
@@ -210,6 +214,25 @@ export async function migrateRoleAssignmentData(queryRunner: QueryRunner): Promi
                  WHERE ${esc('id')} = ${idLiteral}`,
             );
         }
+    }
+
+    // 6. Delete the Customer role row — v4 removes the Customer role entirely (permissions
+    // are membership-derived: Authenticated on every member Channel). The legacy join tables
+    // still reference the role at this point, so their rows go first; both tables are
+    // dropped by the surrounding migration right after this helper returns.
+    const customerRoleRows: Array<{ id: string | number }> = await queryRunner.query(
+        `SELECT ${esc('id')} FROM ${esc('role')} WHERE ${esc('code')} = '${CUSTOMER_ROLE_CODE}'`,
+    );
+    for (const row of customerRoleRows) {
+        const idLiteral = typeof row.id === 'number' ? row.id : `'${row.id}'`;
+        await queryRunner.query(
+            `DELETE FROM ${esc('user_roles_role')} WHERE ${esc('roleId')} = ${idLiteral}`,
+        );
+        await queryRunner.query(
+            `DELETE FROM ${esc('role_channels_channel')} WHERE ${esc('roleId')} = ${idLiteral}`,
+        );
+        await queryRunner.query(`DELETE FROM ${esc('role')} WHERE ${esc('id')} = ${idLiteral}`);
+        console.log('Deleted the Customer role (customer permissions are membership-derived in v4).');
     }
 
     const insertedCount = (await countRows()) - countBefore;
