@@ -74,7 +74,7 @@
     "@nx/nx-win32-x64-msvc": "17.2.8",
     "@rollup/rollup-linux-x64-gnu": "^4.13.0",
     "@swc/core-darwin-arm64": "1.7.19",
-    "@swc/core-linux-x64-gnu": "1.4.7"
+    "@swc/core-linux-x64-gnu": "1.16.1"
   },
   "//overrides": "Force a single graphql version across the monorepo install. Without this, transitive deps (e.g. @types/graphql-upload) keep a nested graphql@16.11.0 alongside the hoisted copy, which breaks TS type portability (TS2742) when building @vendure/core. Mirrors the ^16.11.0 dependency ranges. Relates to #4701.",
   "overrides": {
