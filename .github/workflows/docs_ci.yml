@@ -1,6 +1,14 @@
 name: Docs CI
 
+# docs/manifest.json is compiled from docs/src/manifest.ts, so like the generated
+# reference docs it is a build output that happens to be committed. It is compiled
+# and committed after merge, on the base branch, so that a PR touching the docs does
+# not carry a bot commit in its diff. A PR only checks that the compiler runs.
+
 on:
+    # Lets a maintainer regenerate the base branch by hand, for example after a
+    # run was skipped or failed.
+    workflow_dispatch:
     push:
         branches:
             - master
@@ -23,13 +31,16 @@ on:
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-    cancel-in-progress: true
+    # A superseded PR run tells us nothing, so cancel it. A push run commits to the
+    # base branch, so let it finish: cancelling it would leave the manifest stale
+    # until the next docs change happened to come along.
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
     validate:
         name: Validate MDX
         # Skip draft PRs
-        if: ${{ github.event_name == 'push' || !github.event.pull_request.draft }}
+        if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
         permissions:
             contents: read
         runs-on: ubuntu-latest
@@ -49,10 +60,17 @@ jobs:
             - name: Validate MDX files
               run: bun run test:mdx
 
+            # The manifest is committed after merge. Compiling it here without
+            # committing catches a docs change that breaks the compiler, which would
+            # otherwise only surface once it had landed on the base branch.
+            - name: Compile manifest
+              if: ${{ github.event_name == 'pull_request' }}
+              working-directory: .
+              run: bun run docs:compile-manifest
+
     generate-manifest:
         name: Generate & commit manifest
-        # Skip fork PRs (can't push back to fork branches) and draft PRs
-        if: ${{ github.event_name == 'push' || (!github.event.pull_request.head.repo.fork && !github.event.pull_request.draft) }}
+        if: ${{ github.event_name != 'pull_request' }}
         runs-on: ubuntu-latest
         permissions:
             contents: write
@@ -70,7 +88,9 @@ jobs:
               uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
               with:
                   token: ${{ steps.app-token.outputs.token }}
-                  ref: ${{ github.head_ref || github.ref }}
+                  # Check out the branch by name rather than the pushed SHA so the
+                  # commit below has an upstream to rebase onto and push to.
+                  ref: ${{ github.ref_name }}
                   fetch-depth: 0
 
             - name: Setup Bun
@@ -81,7 +101,7 @@ jobs:
               run: bun install
 
             - name: Generate manifest
-              run: bun run docs/scripts/compile-manifest.ts
+              run: bun run docs:compile-manifest
 
             - name: Check for changes
               id: diff
@@ -93,19 +113,10 @@ jobs:
                     echo "changed=true" >> "$GITHUB_OUTPUT"
                   fi
 
-            - name: Get CI Bot user info
-              if: steps.diff.outputs.changed == 'true'
-              id: get-user
-              env:
-                  GH_TOKEN: ${{ steps.app-token.outputs.token }}
-              run: |
-                  user_id=$(gh api "/users/${{ steps.app-token.outputs.app-slug }}%5Bbot%5D" --jq .id)
-                  echo "user-id=$user_id" >> "$GITHUB_OUTPUT"
-
             - name: Commit and push manifest
               if: steps.diff.outputs.changed == 'true'
-              run: |
-                  git config user.name "${{ steps.app-token.outputs.app-slug }}[bot]"
-                  git config user.email "${{ steps.get-user.outputs.user-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
-                  git commit -m "docs: Regenerate manifest.json"
-                  git push
+              uses: ./.github/actions/commit-and-push
+              with:
+                  token: ${{ steps.app-token.outputs.token }}
+                  app-slug: ${{ steps.app-token.outputs.app-slug }}
+                  message: 'docs: Regenerate manifest.json'
