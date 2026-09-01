@@ -67,9 +67,10 @@ export class AdministratorService {
     ) {}
 
     /**
-     * Replaces or removes profile-owned media for an Administrator. The new files are
-     * persisted before the old files are deleted so a failed upload never destroys the
-     * currently-visible avatar.
+     * Replaces or removes profile-owned media for an Administrator.
+     *
+     * The Administrator is read through {@link AdministratorService.findOne}, so an Administrator
+     * which is not visible to the active user cannot have their avatar changed.
      */
     async setAvatar(
         ctx: RequestContext,
@@ -80,6 +81,51 @@ export class AdministratorService {
         if (!administrator) {
             throw new EntityNotFoundError('Administrator', administratorId);
         }
+        return this.writeAvatar(ctx, administrator, upload);
+    }
+
+    /**
+     * Replaces or removes profile-owned media for an Administrator without applying the visibility
+     * rule that {@link AdministratorService.setAvatar} applies.
+     *
+     * External authentication runs while the request is still anonymous: the session is minted only
+     * once the strategy has returned a User. An anonymous active user holds no permissions, so the
+     * visibility rule hides every Administrator from it, including the one the strategy has just
+     * created. A strategy which synchronizes a provider profile image therefore cannot go through
+     * the visibility-scoped read.
+     *
+     * The caller is responsible for establishing that it may write to this Administrator. Do not
+     * use this method to serve a request whose Administrator id comes from the client.
+     *
+     * @internal
+     */
+    async setAvatarWithoutVisibilityCheck(
+        ctx: RequestContext,
+        administratorId: ID,
+        upload: Promise<StoredMediaUpload> | StoredMediaUpload | null,
+    ): Promise<Administrator> {
+        const administrator = await this.connection.getRepository(ctx, Administrator).findOne({
+            relations: { avatar: true },
+            where: {
+                id: administratorId,
+                deletedAt: IsNull(),
+            },
+        });
+        if (!administrator) {
+            throw new EntityNotFoundError('Administrator', administratorId);
+        }
+        return this.writeAvatar(ctx, administrator, upload);
+    }
+
+    /**
+     * Writes the avatar of an already-loaded Administrator. The new files are persisted before the
+     * old files are deleted so a failed upload never destroys the currently-visible avatar.
+     */
+    private async writeAvatar(
+        ctx: RequestContext,
+        administrator: Administrator,
+        upload: Promise<StoredMediaUpload> | StoredMediaUpload | null,
+    ): Promise<Administrator> {
         const previousAvatar = administrator.avatar;
 
         if (upload == null) {
