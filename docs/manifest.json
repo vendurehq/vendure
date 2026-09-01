@@ -2290,13 +2290,13 @@
                   "title": "DescribeDiagnostic",
                   "slug": "describe-diagnostic",
                   "file": "docs/reference/typescript-api/migration/describe-diagnostic.mdx",
-                  "lastModified": "2026-08-25T09:10:29Z"
+                  "lastModified": "2026-09-01T08:40:40Z"
                 },
                 {
                   "title": "GenerateMigration",
                   "slug": "generate-migration",
                   "file": "docs/reference/typescript-api/migration/generate-migration.mdx",
-                  "lastModified": "2026-08-25T09:10:29Z"
+                  "lastModified": "2026-09-01T08:40:40Z"
                 },
                 {
                   "title": "MigrateAssetTranslationData",
@@ -2332,19 +2332,19 @@
                   "title": "RevertLastMigration",
                   "slug": "revert-last-migration",
                   "file": "docs/reference/typescript-api/migration/revert-last-migration.mdx",
-                  "lastModified": "2026-08-25T09:10:29Z"
+                  "lastModified": "2026-09-01T08:40:40Z"
                 },
                 {
                   "title": "RunMigrations",
                   "slug": "run-migrations",
                   "file": "docs/reference/typescript-api/migration/run-migrations.mdx",
-                  "lastModified": "2026-08-25T09:10:29Z"
+                  "lastModified": "2026-09-01T08:40:40Z"
                 },
                 {
                   "title": "RunMigrationsOptions",
                   "slug": "run-migrations-options",
                   "file": "docs/reference/typescript-api/migration/run-migrations-options.mdx",
-                  "lastModified": "2026-08-25T09:10:29Z"
+                  "lastModified": "2026-09-01T08:40:40Z"
                 },
                 {
                   "title": "SchemaOutOfSyncDiagnostic",
