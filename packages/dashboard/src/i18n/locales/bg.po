@@ -951,7 +951,7 @@ msgstr "Това са стойностите на атрибута за атри
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:174
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:182
 msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself. Assignments you cannot grant are shown locked and are preserved on save."
-msgstr ""
+msgstr "Можете да предоставите роля за даден канал само ако самите вие притежавате всички разрешения на тази роля за него. Назначенията, които не можете да предоставите, се показват заключени и се запазват при съхраняване."
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:49
 msgid "Successfully added payment to order"
@@ -1183,7 +1183,7 @@ msgstr "Изкл"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:292
 msgid "You cannot change this assignment: you do not hold all of this role's permissions on this channel."
-msgstr ""
+msgstr "Не можете да промените това назначение: не притежавате всички разрешения на тази роля за този канал."
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:37
 #: src/app/routes/_authenticated/_system/settings-store.tsx:304
@@ -4819,7 +4819,7 @@ msgstr "Филтриране по {columnId}"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:260
 msgid "Locked role"
-msgstr ""
+msgstr "Заключена роля"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:108
 msgid "ID"
@@ -5472,7 +5472,7 @@ msgstr "по-малко от"
 
 #: src/lib/components/shared/role-code-label.tsx:10
 msgid "Role Editor"
-msgstr ""
+msgstr "Редактор на роли"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:123
 msgid "The variant could not be added. Ensure the parent product is enabled."

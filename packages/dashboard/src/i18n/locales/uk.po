@@ -945,7 +945,7 @@ msgstr "Це значення фасетів для фасету <0>{facetName}<
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:174
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:182
 msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself. Assignments you cannot grant are shown locked and are preserved on save."
-msgstr ""
+msgstr "Ви можете надати роль на каналі, лише якщо самі маєте всі дозволи цієї ролі на ньому. Призначення, які ви не можете надати, відображаються заблокованими та зберігаються під час збереження."
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:49
 msgid "Successfully added payment to order"
@@ -1177,7 +1177,7 @@ msgstr "Вимк."
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:292
 msgid "You cannot change this assignment: you do not hold all of this role's permissions on this channel."
-msgstr ""
+msgstr "Ви не можете змінити це призначення: ви не маєте всіх дозволів цієї ролі на цьому каналі."
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:37
 #: src/app/routes/_authenticated/_system/settings-store.tsx:304
@@ -4790,7 +4790,7 @@ msgstr "Фільтрувати за {columnId}"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:260
 msgid "Locked role"
-msgstr ""
+msgstr "Заблокована роль"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:108
 msgid "ID"
@@ -5440,7 +5440,7 @@ msgstr "менше ніж"
 
 #: src/lib/components/shared/role-code-label.tsx:10
 msgid "Role Editor"
-msgstr ""
+msgstr "Редактор ролей"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:123
 msgid "The variant could not be added. Ensure the parent product is enabled."

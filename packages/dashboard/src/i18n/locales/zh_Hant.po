@@ -945,7 +945,7 @@ msgstr "這些是 <0>{facetName}</0> 屬性的屬性值。"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:174
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:182
 msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself. Assignments you cannot grant are shown locked and are preserved on save."
-msgstr ""
+msgstr "只有當您自己在某個通路上持有該角色的所有權限時，才能在該通路上授予該角色。您無法授予的指派將顯示為已鎖定，並在儲存時保留。"
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:49
 msgid "Successfully added payment to order"
@@ -1177,7 +1177,7 @@ msgstr "關閉"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:292
 msgid "You cannot change this assignment: you do not hold all of this role's permissions on this channel."
-msgstr ""
+msgstr "您無法變更此指派：您在此通路上未持有該角色的所有權限。"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:37
 #: src/app/routes/_authenticated/_system/settings-store.tsx:304
@@ -4790,7 +4790,7 @@ msgstr "按 {columnId} 篩選"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:260
 msgid "Locked role"
-msgstr ""
+msgstr "已鎖定的角色"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:108
 msgid "ID"
@@ -5440,7 +5440,7 @@ msgstr "小於"
 
 #: src/lib/components/shared/role-code-label.tsx:10
 msgid "Role Editor"
-msgstr ""
+msgstr "角色編輯者"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:123
 msgid "The variant could not be added. Ensure the parent product is enabled."

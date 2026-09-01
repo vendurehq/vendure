@@ -945,7 +945,7 @@ msgstr "Dette er fasettverdiene for fasetten <0>{facetName}</0>."
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:174
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:182
 msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself. Assignments you cannot grant are shown locked and are preserved on save."
-msgstr ""
+msgstr "Du kan bare tildele en rolle på en kanal der du selv har alle tillatelsene til den rollen. Tildelinger du ikke kan gi, vises som låst og beholdes ved lagring."
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:49
 msgid "Successfully added payment to order"
@@ -1177,7 +1177,7 @@ msgstr "Av"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:292
 msgid "You cannot change this assignment: you do not hold all of this role's permissions on this channel."
-msgstr ""
+msgstr "Du kan ikke endre denne tildelingen: du har ikke alle tillatelsene til denne rollen på denne kanalen."
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:37
 #: src/app/routes/_authenticated/_system/settings-store.tsx:304
@@ -4790,7 +4790,7 @@ msgstr "Filtrer etter {columnId}"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:260
 msgid "Locked role"
-msgstr ""
+msgstr "Låst rolle"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:108
 msgid "ID"
@@ -5440,7 +5440,7 @@ msgstr "mindre enn"
 
 #: src/lib/components/shared/role-code-label.tsx:10
 msgid "Role Editor"
-msgstr ""
+msgstr "Rolleredigerer"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:123
 msgid "The variant could not be added. Ensure the parent product is enabled."

@@ -917,7 +917,7 @@ msgstr "Bular <0>{facetName}</0> faseti qiymatlari."
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:174
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:182
 msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself. Assignments you cannot grant are shown locked and are preserved on save."
-msgstr ""
+msgstr "Rolni faqat o'zingiz ushbu rolning barcha ruxsatlariga ega bo'lgan kanalda berishingiz mumkin. Siz bera olmaydigan tayinlashlar qulflangan holda ko'rsatiladi va saqlashda saqlanib qoladi."
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:49
 msgid "Successfully added payment to order"
@@ -1141,7 +1141,7 @@ msgstr "O'chirilgan"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:292
 msgid "You cannot change this assignment: you do not hold all of this role's permissions on this channel."
-msgstr ""
+msgstr "Bu tayinlashni o'zgartira olmaysiz: bu kanalda ushbu rolning barcha ruxsatlariga ega emassiz."
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:37
 #: src/app/routes/_authenticated/_system/settings-store.tsx:304
@@ -4634,7 +4634,7 @@ msgstr "{columnId} bo'yicha filtrlash"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:260
 msgid "Locked role"
-msgstr ""
+msgstr "Qulflangan rol"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:108
 msgid "ID"
@@ -5252,7 +5252,7 @@ msgstr "dan kichik"
 
 #: src/lib/components/shared/role-code-label.tsx:10
 msgid "Role Editor"
-msgstr ""
+msgstr "Rollar muharriri"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:123
 msgid "The variant could not be added. Ensure the parent product is enabled."
