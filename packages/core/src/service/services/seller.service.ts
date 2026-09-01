@@ -3,6 +3,7 @@ import {
     CreateSellerInput,
     DeletionResponse,
     DeletionResult,
+    SellerTranslationInput,
     UpdateSellerInput,
 } from '@vendure/common/lib/generated-types';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
@@ -66,7 +67,7 @@ export class SellerService {
     async create(ctx: RequestContext, input: CreateSellerInput): Promise<Translated<Seller>> {
         const seller = await this.translatableSaver.create({
             ctx,
-            input,
+            input: { ...input, translations: this.withoutBlankTranslations(input.translations) },
             entityType: Seller,
             translationType: SellerTranslation,
         });
@@ -80,7 +81,7 @@ export class SellerService {
         await this.connection.getEntityOrThrow(ctx, Seller, input.id);
         const seller = await this.translatableSaver.update({
             ctx,
-            input,
+            input: { ...input, translations: this.withoutBlankTranslations(input.translations) },
             entityType: Seller,
             translationType: SellerTranslation,
         });
@@ -98,6 +99,14 @@ export class SellerService {
         return {
             result: DeletionResult.DELETED,
         };
+    }
+
+    // Needed only because a SellerTranslation holds nothing but custom field values for now. A row with
+    // none of them set says nothing, and both admin UIs submit such rows anyway.
+    private withoutBlankTranslations(translations: SellerTranslationInput[] | null | undefined) {
+        const isSet = (value: unknown) =>
+            value != null && value !== '' && !(Array.isArray(value) && !value.length);
+        return translations?.filter(t => t.id != null || Object.values(t.customFields ?? {}).some(isSet));
     }
 
     private async ensureDefaultSellerExists() {

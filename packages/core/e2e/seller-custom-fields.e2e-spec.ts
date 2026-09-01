@@ -311,6 +311,38 @@ describe('Seller with localized custom fields', () => {
             'No Seller with the id "999" could be found',
         ),
     );
+
+    it('creates no translation row when every localized value in the input is empty', async () => {
+        const { createSeller } = await adminClient.query(createSellerDocument, {
+            input: {
+                name: 'Blank Row Seller',
+                translations: [
+                    { languageCode: LanguageCode.en, customFields: { tagline: '', description: '' } },
+                ],
+            },
+        });
+
+        expect(createSeller.translations).toEqual([]);
+    });
+
+    it('adds no translation row when every localized value in an update is empty', async () => {
+        const { createSeller } = await adminClient.query(createSellerDocument, {
+            input: { name: 'Rename Only Seller' },
+        });
+
+        const { updateSeller } = await adminClient.query(updateSellerDocument, {
+            input: {
+                id: createSeller.id,
+                name: 'Renamed Seller',
+                translations: [
+                    { languageCode: LanguageCode.en, customFields: { tagline: null, description: null } },
+                ],
+            },
+        });
+
+        expect(updateSeller.name).toBe('Renamed Seller');
+        expect(updateSeller.translations).toEqual([]);
+    });
 });
 
 const sellerFieldsFragment = graphql(`
