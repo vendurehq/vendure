@@ -1,7 +1,14 @@
 import { DeletionResult, LanguageCode, SortOrder } from '@vendure/common/lib/generated-types';
-import { mergeConfig, SellerTranslation, TransactionalConnection } from '@vendure/core';
+import {
+    EventBus,
+    mergeConfig,
+    SellerEvent,
+    SellerTranslation,
+    TransactionalConnection,
+} from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import path from 'path';
+import { firstValueFrom } from 'rxjs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
@@ -343,7 +350,84 @@ describe('Seller with localized custom fields', () => {
         expect(updateSeller.name).toBe('Renamed Seller');
         expect(updateSeller.translations).toEqual([]);
     });
+
+    it('publishes a created event whose seller carries the localized custom fields', async () => {
+        const eventBus = server.app.get(EventBus);
+        const eventPromise = firstValueFrom(eventBus.ofType(SellerEvent));
+
+        await adminClient.query(createSellerDocument, {
+            input: {
+                name: 'Event Seller',
+                customFields: { vatNumber: 'DE900' },
+                translations: [
+                    {
+                        languageCode: LanguageCode.en,
+                        customFields: { tagline: 'Created tagline', description: 'Created description' },
+                    },
+                ],
+            },
+        });
+
+        const event = await eventPromise;
+        expect(event.type).toBe('created');
+        expect(event.entity.name).toBe('Event Seller');
+        // The published entity must be the translated one, so a plugin reading a localized custom
+        // field straight off the event gets the value for the request language.
+        expect(sellerCustomFields(event.entity)).toEqual({
+            tagline: 'Created tagline',
+            description: 'Created description',
+            vatNumber: 'DE900',
+        });
+        const enTranslation = event.entity.translations.find(t => t.languageCode === LanguageCode.en);
+        expect(enTranslation?.customFields).toEqual({
+            tagline: 'Created tagline',
+            description: 'Created description',
+        });
+    });
+
+    it('publishes an updated event with the same complete seller as the created event', async () => {
+        const { createSeller } = await adminClient.query(createSellerDocument, {
+            input: {
+                name: 'Second Event Seller',
+                translations: [
+                    { languageCode: LanguageCode.en, customFields: { tagline: 'English tagline' } },
+                ],
+            },
+        });
+
+        const eventBus = server.app.get(EventBus);
+        const eventPromise = firstValueFrom(eventBus.ofType(SellerEvent));
+
+        await adminClient.query(updateSellerDocument, {
+            input: {
+                id: createSeller.id,
+                name: 'Second Event Seller Renamed',
+                translations: [
+                    { languageCode: LanguageCode.de, customFields: { tagline: 'Deutscher Slogan' } },
+                ],
+            },
+        });
+
+        const event = await eventPromise;
+        expect(event.type).toBe('updated');
+        expect(event.entity.name).toBe('Second Event Seller Renamed');
+        // The request was made in English, so the merged value is the English one even though the
+        // input only named the German row.
+        expect(sellerCustomFields(event.entity).tagline).toBe('English tagline');
+        expect(event.entity.translations.map(t => t.languageCode).sort()).toEqual([
+            LanguageCode.de,
+            LanguageCode.en,
+        ]);
+        const deTranslation = event.entity.translations.find(t => t.languageCode === LanguageCode.de);
+        expect(deTranslation?.customFields.tagline).toBe('Deutscher Slogan');
+    });
 });
+
+// The custom fields this suite declares are added to the Seller entity when the server reads the
+// config, so they are not on its compile-time type.
+function sellerCustomFields(seller: { customFields: unknown }) {
+    return seller.customFields as { tagline?: string; description?: string; vatNumber?: string };
+}
 
 const sellerFieldsFragment = graphql(`
     fragment SellerWithCustomFields on Seller {
