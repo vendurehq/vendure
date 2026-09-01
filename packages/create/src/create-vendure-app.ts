@@ -511,9 +511,8 @@ export async function createVendureApp(
     // complex module resolution with npm workspaces and ESM packages can
     // cause false TypeScript errors. Type checking happens when users run
     // their own build/dev commands.
-    // Loaded through the project's own require so that ts-node resolves its `typescript`
-    // peer from the generated project. Requiring it through this CLI's require would make
-    // the CLI the issuer, which fails under the strict Plug'n'Play graph of `yarn dlx`.
+    // ts-node resolves its `typescript` peer from whichever package required it, so the
+    // generated project has to be the one that requires it.
     createProjectRequire(serverRoot)('ts-node').register({
         project: path.join(serverRoot, 'tsconfig.json'),
         transpileOnly: true,
@@ -521,12 +520,8 @@ export async function createVendureApp(
 
     let superAdminCredentials: { identifier: string; password: string } | undefined;
     try {
-        // Loaded with the project's own require rather than a dynamic import. A dynamic
-        // import enters the project's CommonJS graph through the ESM loader, so every
-        // nested require inside it is linked synchronously by the ESM translator. On
-        // Node 22 that linking fails (ERR_VM_MODULE_LINK_FAILURE) once the graph is more
-        // than a couple of modules deep. A plain require keeps the whole graph on the
-        // CommonJS loader.
+        // Required rather than imported, to keep this CommonJS graph off the ESM loader.
+        // See createProjectRequire.
         const projectRequire = createProjectRequire(serverRoot);
         const { populate } = projectRequire(
             path.join(resolvePackageRootDir('@vendure/core', serverRoot), 'cli', 'populate'),
@@ -641,11 +636,9 @@ export async function createVendureApp(
                 // before opening the window.
                 await sleep(AUTO_RUN_DELAY_MS);
                 try {
-                    // Imported here rather than at the top of the file because `open` is
-                    // ESM-only. Under Yarn PnP on Node 22 the require of an ESM package
-                    // throws ERR_VM_MODULE_LINK_FAILURE, which at module scope would take
-                    // down the whole CLI. Inside this try/catch it just means the browser
-                    // does not open by itself.
+                    // `open` is ESM-only. Requiring an ESM package at module scope throws
+                    // ERR_VM_MODULE_LINK_FAILURE under Plug'n'Play on Node 22 and kills the
+                    // CLI before it prints anything, so it is imported at the point of use.
                     const { default: open } = await import('open');
                     await open(dashboardUrl, {
                         newInstance: true,

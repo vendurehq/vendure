@@ -988,10 +988,15 @@ export function cleanUpDockerResources(name: string) {
 /**
  * Returns a `require` anchored in the generated project rather than in this CLI.
  *
- * The CLI may itself be running inside a strict dependency graph: `yarn dlx` executes it
- * under Plug'n'Play, where `require.resolve(pkg, { paths })` ignores `paths` and rejects
- * any package the CLI does not declare in its own dependencies. Anchoring at the project's
- * package.json makes the generated project the issuer, so its node_modules tree is used.
+ * `yarn dlx` runs the CLI under Plug'n'Play, which resolves each request against the
+ * package that made it. A request from this CLI for a package that only the generated
+ * project declares is rejected. Passing `require.resolve(pkg, { paths })` does not help,
+ * because Plug'n'Play ignores `paths`. Anchoring at the generated project's package.json
+ * makes that project the requesting package, so its node_modules tree is used.
+ *
+ * Loading through this require also keeps the generated project's CommonJS graph on the
+ * CommonJS loader. A dynamic import enters that graph through the ESM loader instead, and
+ * on Node 22 its nested requires fail to link with ERR_VM_MODULE_LINK_FAILURE.
  */
 export function createProjectRequire(rootDir: string) {
     return createRequire(path.join(rootDir, 'package.json'));
