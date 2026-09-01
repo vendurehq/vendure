@@ -48,6 +48,7 @@ import {
     installPackages,
     isSafeToCreateProjectIn,
     registerTemplateHelpers,
+    createProjectRequire,
     resolvePackageRootDir,
     scaffoldAlreadyExists,
     startPostgresDatabase,
@@ -510,21 +511,30 @@ export async function createVendureApp(
     // complex module resolution with npm workspaces and ESM packages can
     // cause false TypeScript errors. Type checking happens when users run
     // their own build/dev commands.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    require(resolvePackageRootDir('ts-node', serverRoot)).register({
+    // Loaded through the project's own require so that ts-node resolves its `typescript`
+    // peer from the generated project. Requiring it through this CLI's require would make
+    // the CLI the issuer, which fails under the strict Plug'n'Play graph of `yarn dlx`.
+    createProjectRequire(serverRoot)('ts-node').register({
         project: path.join(serverRoot, 'tsconfig.json'),
         transpileOnly: true,
     });
 
     let superAdminCredentials: { identifier: string; password: string } | undefined;
     try {
-        const { populate } = await import(
-            path.join(resolvePackageRootDir('@vendure/core', serverRoot), 'cli', 'populate')
+        // Loaded with the project's own require rather than a dynamic import. A dynamic
+        // import enters the project's CommonJS graph through the ESM loader, so every
+        // nested require inside it is linked synchronously by the ESM translator. On
+        // Node 22 that linking fails (ERR_VM_MODULE_LINK_FAILURE) once the graph is more
+        // than a couple of modules deep. A plain require keeps the whole graph on the
+        // CommonJS loader.
+        const projectRequire = createProjectRequire(serverRoot);
+        const { populate } = projectRequire(
+            path.join(resolvePackageRootDir('@vendure/core', serverRoot), 'cli', 'populate'),
         );
-        const { bootstrap, DefaultLogger, LogLevel, JobQueueService } = await import(
-            path.join(resolvePackageRootDir('@vendure/core', serverRoot), 'dist', 'index')
+        const { bootstrap, DefaultLogger, LogLevel, JobQueueService } = projectRequire(
+            path.join(resolvePackageRootDir('@vendure/core', serverRoot), 'dist', 'index'),
         );
-        const { config } = await import(configFile);
+        const { config } = projectRequire(configFile);
         const assetsDir = path.join(__dirname, '../assets');
         superAdminCredentials = config.authOptions.superadminCredentials;
         const initialDataPath = path.join(assetsDir, 'initial-data.json');

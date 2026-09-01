@@ -5,6 +5,7 @@ import Handlebars from 'handlebars';
 import { execFile, execFileSync, execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { createWriteStream } from 'node:fs';
+import { createRequire } from 'node:module';
 import { Socket } from 'node:net';
 import { platform } from 'node:os';
 import path from 'node:path';
@@ -984,10 +985,22 @@ export function cleanUpDockerResources(name: string) {
     }
 }
 
+/**
+ * Returns a `require` anchored in the generated project rather than in this CLI.
+ *
+ * The CLI may itself be running inside a strict dependency graph: `yarn dlx` executes it
+ * under Plug'n'Play, where `require.resolve(pkg, { paths })` ignores `paths` and rejects
+ * any package the CLI does not declare in its own dependencies. Anchoring at the project's
+ * package.json makes the generated project the issuer, so its node_modules tree is used.
+ */
+export function createProjectRequire(rootDir: string) {
+    return createRequire(path.join(rootDir, 'package.json'));
+}
+
 export function resolvePackageRootDir(packageName: string, rootDir: string) {
     let packageEntryPath: string;
     try {
-        packageEntryPath = require.resolve(packageName, { paths: [rootDir] });
+        packageEntryPath = createProjectRequire(rootDir).resolve(packageName);
     } catch {
         log(`Falling back to direct node_modules lookup for ${packageName}`);
         const fallbackPath = path.join(process.cwd(), 'node_modules', packageName);
