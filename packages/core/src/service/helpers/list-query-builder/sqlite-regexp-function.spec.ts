@@ -6,18 +6,21 @@ import {
     assertRegexFilterEngineCompatible,
     buildRegexpTester,
     createSqliteRegexpFunction,
-    loadRe2Engine,
+    Re2jsRegExp,
 } from './sqlite-regexp-function';
-
-// `re2js` is a devDependency of this package, so the engine resolves here and the RE2-specific
-// assertions below always run. The assertions which pass `RegExp` directly to `buildRegexpTester()`
-// cover the behaviour a consumer gets when they have not installed it.
-const RE2 = loadRe2Engine();
 
 // A pattern that is catastrophically slow under the backtracking RegExp engine but harmless
 // under RE2. See GHSA-jgm3-qmp2-c4p7. The trailing `Z` after `$` makes every match attempt
 // fail, forcing exhaustive backtracking over all 1-/2-char partitions of the input.
 const REDOS_PATTERN = '^(.|..)+$Z';
+const REDOS_INPUT = 'x'.repeat(60);
+
+/** Milliseconds taken by one call. RE2 needs well under one; the backtracking engine needs seconds. */
+function timeMs(run: () => void): number {
+    const start = process.hrtime.bigint();
+    run();
+    return Number(process.hrtime.bigint() - start) / 1e6;
+}
 
 describe('buildRegexpTester()', () => {
     it('matches case-insensitively and returns 1/0', () => {
@@ -31,19 +34,19 @@ describe('buildRegexpTester()', () => {
     // null and a numeric one yields a number. RE2 accepts strings only and throws on anything else,
     // where the built-in RegExp coerced silently, so both engines are asserted here.
     it.each([
-        ['the RE2 engine', () => RE2 as NonNullable<typeof RE2>],
-        ['the built-in engine', () => RegExp as unknown as NonNullable<typeof RE2>],
-    ])('treats a null value as no match under %s', (_name, engine) => {
-        const test = buildRegexpTester(engine());
+        ['the RE2 engine', Re2jsRegExp],
+        ['the built-in engine', RegExp as unknown as typeof Re2jsRegExp],
+    ])('treats a null value as no match under %s', (_name, Engine) => {
+        const test = buildRegexpTester(Engine);
         expect(test('a', null as unknown as string)).toBe(0);
         expect(test('a', undefined as unknown as string)).toBe(0);
     });
 
     it.each([
-        ['the RE2 engine', () => RE2 as NonNullable<typeof RE2>],
-        ['the built-in engine', () => RegExp as unknown as NonNullable<typeof RE2>],
-    ])('matches a numeric value by its string form under %s', (_name, engine) => {
-        const test = buildRegexpTester(engine());
+        ['the RE2 engine', Re2jsRegExp],
+        ['the built-in engine', RegExp as unknown as typeof Re2jsRegExp],
+    ])('matches a numeric value by its string form under %s', (_name, Engine) => {
+        const test = buildRegexpTester(Engine);
         expect(test('^12', 123 as unknown as string)).toBe(1);
         expect(test('^9', 123 as unknown as string)).toBe(0);
     });
@@ -66,18 +69,6 @@ describe('buildRegexpTester()', () => {
         test('foo', 'nope');
         expect(compilations).toBe(1);
     });
-
-    it('evaluates a ReDoS pattern in linear time under RE2', () => {
-        expect(RE2).not.toBeNull();
-        const test = buildRegexpTester(RE2 as NonNullable<typeof RE2>);
-        const input = 'x'.repeat(60);
-        const start = process.hrtime.bigint();
-        const result = test(REDOS_PATTERN, input);
-        const elapsedMs = Number(process.hrtime.bigint() - start) / 1e6;
-        expect(result).toBe(0);
-        // RE2 completes in well under a millisecond; the backtracking engine takes many seconds.
-        expect(elapsedMs).toBeLessThan(1000);
-    });
 });
 
 describe('createSqliteRegexpFunction()', () => {
@@ -86,6 +77,16 @@ describe('createSqliteRegexpFunction()', () => {
         expect(regexpFn('widget', 'Blue Widget')).toBe(1);
         expect(regexpFn('^exact$', 'exact')).toBe(1);
         expect(regexpFn('^exact$', 'not exact')).toBe(0);
+    });
+
+    // The reason this file exists: the function registered with SQLite must be the RE2 one, not the
+    // built-in engine, or a single crafted pattern blocks the event loop (GHSA-jgm3-qmp2-c4p7).
+    it('evaluates a ReDoS pattern in linear time', () => {
+        const regexpFn = createSqliteRegexpFunction();
+        let result: number | undefined;
+        const elapsedMs = timeMs(() => (result = regexpFn(REDOS_PATTERN, REDOS_INPUT)));
+        expect(result).toBe(0);
+        expect(elapsedMs).toBeLessThan(1000);
     });
 });
 
