@@ -521,13 +521,20 @@ export async function createVendureApp(
 
     let superAdminCredentials: { identifier: string; password: string } | undefined;
     try {
-        const { populate } = await import(
-            path.join(resolvePackageRootDir('@vendure/core', serverRoot), 'cli', 'populate')
+        // Loaded with the project's own require rather than a dynamic import. A dynamic
+        // import enters the project's CommonJS graph through the ESM loader, so every
+        // nested require inside it is linked synchronously by the ESM translator. On
+        // Node 22 that linking fails (ERR_VM_MODULE_LINK_FAILURE) once the graph is more
+        // than a couple of modules deep. A plain require keeps the whole graph on the
+        // CommonJS loader.
+        const projectRequire = createProjectRequire(serverRoot);
+        const { populate } = projectRequire(
+            path.join(resolvePackageRootDir('@vendure/core', serverRoot), 'cli', 'populate'),
         );
-        const { bootstrap, DefaultLogger, LogLevel, JobQueueService } = await import(
-            path.join(resolvePackageRootDir('@vendure/core', serverRoot), 'dist', 'index')
+        const { bootstrap, DefaultLogger, LogLevel, JobQueueService } = projectRequire(
+            path.join(resolvePackageRootDir('@vendure/core', serverRoot), 'dist', 'index'),
         );
-        const { config } = await import(configFile);
+        const { config } = projectRequire(configFile);
         const assetsDir = path.join(__dirname, '../assets');
         superAdminCredentials = config.authOptions.superadminCredentials;
         const initialDataPath = path.join(assetsDir, 'initial-data.json');
