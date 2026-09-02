@@ -1610,11 +1610,13 @@ input CreateApiKeyInput {
   typeName="CreateSellerInput"
   typeLinks={{
     String: '/reference/graphql-api/admin/object-types#string',
+    SellerTranslationInput: '/reference/graphql-api/admin/input-types#sellertranslationinput',
     JSON: '/reference/graphql-api/admin/object-types#json',
   }}
 >
 {`input CreateSellerInput {
   name: String!
+  translations: [SellerTranslationInput!]
   customFields: JSON
 }`}
 </GraphQLDoc>
@@ -3934,6 +3936,26 @@ input NumberOperators {
 }`}
 </GraphQLDoc>
 
+<a name="sellertranslationinput"></a>
+
+## SellerTranslationInput
+
+<GraphQLDoc
+  type="input"
+  typeName="SellerTranslationInput"
+  typeLinks={{
+    ID: '/reference/graphql-api/admin/object-types#id',
+    LanguageCode: '/reference/graphql-api/admin/enums#languagecode',
+    JSON: '/reference/graphql-api/admin/object-types#json',
+  }}
+>
+{`input SellerTranslationInput {
+  id: ID
+  languageCode: LanguageCode!
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
 <a name="setordercustomerinput"></a>
 
 ## SetOrderCustomerInput
@@ -5298,12 +5320,14 @@ input UpdateProductVariantPriceInput {
   typeLinks={{
     ID: '/reference/graphql-api/admin/object-types#id',
     String: '/reference/graphql-api/admin/object-types#string',
+    SellerTranslationInput: '/reference/graphql-api/admin/input-types#sellertranslationinput',
     JSON: '/reference/graphql-api/admin/object-types#json',
   }}
 >
 {`input UpdateSellerInput {
   id: ID!
   name: String
+  translations: [SellerTranslationInput!]
   customFields: JSON
 }`}
 </GraphQLDoc>

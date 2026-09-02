@@ -3332,6 +3332,19 @@ export type Seller = Node & {
     customFields?: Maybe<Scalars['JSON']['output']>;
     id: Scalars['ID']['output'];
     name: Scalars['String']['output'];
+    translations: Array<SellerTranslation>;
+    updatedAt: Scalars['DateTime']['output'];
+};
+
+/**
+ * Holds a Seller's localized custom field values for one language.
+ * The Seller's own fields, such as `name`, are not translated.
+ */
+export type SellerTranslation = {
+    __typename?: 'SellerTranslation';
+    createdAt: Scalars['DateTime']['output'];
+    id: Scalars['ID']['output'];
+    languageCode: LanguageCode;
     updatedAt: Scalars['DateTime']['output'];
 };
 

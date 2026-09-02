@@ -1,5 +1,6 @@
 import { Parent, ResolveField, Resolver } from '@nestjs/graphql';
 
+import { Translated } from '../../../common/types/locale-types';
 import { Channel } from '../../../entity/channel/channel.entity';
 import { Seller } from '../../../entity/seller/seller.entity';
 import { SellerService } from '../../../service/services/seller.service';
@@ -11,10 +12,12 @@ export class ChannelEntityResolver {
     constructor(private sellerService: SellerService) {}
 
     @ResolveField()
-    async seller(@Ctx() ctx: RequestContext, @Parent() channel: Channel): Promise<Seller | undefined> {
-        return channel.sellerId
-            ? channel.seller ?? (await this.sellerService.findOne(ctx, channel.sellerId))
-            : undefined;
+    async seller(
+        @Ctx() ctx: RequestContext,
+        @Parent() channel: Channel,
+    ): Promise<Translated<Seller> | undefined> {
+        const sellerId = channel.sellerId ?? channel.seller?.id;
+        return sellerId ? this.sellerService.findOne(ctx, sellerId) : undefined;
     }
 
     @ResolveField()
