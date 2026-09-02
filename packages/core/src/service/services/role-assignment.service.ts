@@ -10,9 +10,11 @@ import { ListQueryOptions } from '../../common/types/common-types';
 import { idsAreEqual } from '../../common/utils';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Channel } from '../../entity/channel/channel.entity';
-import { RoleAssignment } from '../../entity/role-assignment/role-assignment.entity';
 import { Role } from '../../entity/role/role.entity';
+import { RoleAssignment } from '../../entity/role-assignment/role-assignment.entity';
 import { User } from '../../entity/user/user.entity';
+import { EventBus } from '../../event-bus/event-bus';
+import { RoleAssignmentEvent } from '../../event-bus/events/role-assignment-event';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
 import {
     ResolvedUserPermissions,
@@ -55,6 +57,7 @@ export class RoleAssignmentService {
         private connection: TransactionalConnection,
         private rolePermissionResolver: RolePermissionResolver,
         private listQueryBuilder: ListQueryBuilder,
+        private eventBus: EventBus,
     ) {}
 
     /**
@@ -189,8 +192,13 @@ export class RoleAssignmentService {
      * This implements the `roleIds` inputs of the administrator and API-key mutations, which
      * are read as "replace this User's Roles on the active Channel" — a `roleIds` grant
      * always carried a channel in the request (the `vendure-token` header), it was just
-     * never part of the write. The `roleIds` inputs are deprecated in favor of the
-     * `roleAssignments` vocabulary and will be removed in a future major version.
+     * never part of the write. The `roleIds` inputs are deprecated since 4.0.0 in favor of
+     * the `roleAssignments` vocabulary and will be removed in v5.0.0. Once they are gone, the
+     * only remaining caller is the external-authentication administrator grant
+     * ({@link ExternalAuthenticationService.createAdministratorAndUser}); re-evaluate whether
+     * this method stays at that point.
+     *
+     * Publishes a {@link RoleAssignmentEvent} for the added and for the removed pairs.
      */
     async replaceUserAssignmentsOnChannel(
         ctx: RequestContext,
@@ -209,6 +217,12 @@ export class RoleAssignmentService {
         if (toAdd.length) {
             await repository.save(toAdd.map(roleId => new RoleAssignment({ userId, roleId, channelId })));
         }
+        await this.publishAssignmentEvents(
+            ctx,
+            userId,
+            toAdd.map(roleId => ({ roleId, channelId })),
+            toRemove.map(assignment => ({ roleId: assignment.roleId, channelId: assignment.channelId })),
+        );
     }
 
     /**
@@ -216,6 +230,8 @@ export class RoleAssignmentService {
      * Atomically replaces the full set of the User's RoleAssignments across all Channels
      * with the given `(roleId, channelId)` pairs: pairs not in the new set are removed,
      * new pairs are added, unchanged pairs are left as-is.
+     *
+     * Publishes a {@link RoleAssignmentEvent} for the added and for the removed pairs.
      *
      * @since 4.0.0
      */
@@ -251,7 +267,38 @@ export class RoleAssignmentService {
                 toAdd.map(({ roleId, channelId }) => new RoleAssignment({ userId, roleId, channelId })),
             );
         }
+        await this.publishAssignmentEvents(
+            ctx,
+            userId,
+            toAdd,
+            toRemove.map(assignment => ({ roleId: assignment.roleId, channelId: assignment.channelId })),
+        );
         return repository.find({ where: { userId } });
+    }
+
+    /**
+     * Publishes one `assigned` and/or one `removed` {@link RoleAssignmentEvent} for the
+     * pairs a write actually changed. Nothing is published for a no-op write. Deliberately
+     * not called by the system-mandated writes ({@link assignRoleOnChannel},
+     * {@link assignSuperAdminRoleHoldersToChannel}, {@link assignRoleOnAllChannels}), which
+     * stay silent as their legacy counterparts did.
+     */
+    private async publishAssignmentEvents(
+        ctx: RequestContext,
+        userId: ID,
+        added: RoleChannelPair[],
+        removed: RoleChannelPair[],
+    ): Promise<void> {
+        if (!added.length && !removed.length) {
+            return;
+        }
+        const user = await this.connection.getEntityOrThrow(ctx, User, userId);
+        if (added.length) {
+            await this.eventBus.publish(new RoleAssignmentEvent(ctx, user, added, 'assigned'));
+        }
+        if (removed.length) {
+            await this.eventBus.publish(new RoleAssignmentEvent(ctx, user, removed, 'removed'));
+        }
     }
 
     private dedupePairs(pairs: RoleChannelPair[]): RoleChannelPair[] {

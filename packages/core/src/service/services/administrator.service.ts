@@ -22,7 +22,6 @@ import { Channel } from '../../entity/channel/channel.entity';
 import { User } from '../../entity/user/user.entity';
 import { EventBus } from '../../event-bus';
 import { AdministratorEvent } from '../../event-bus/events/administrator-event';
-import { RoleChangeEvent } from '../../event-bus/events/role-change-event';
 import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
 import { PasswordCipher } from '../helpers/password-cipher/password-cipher';
@@ -131,6 +130,7 @@ export class AdministratorService {
      */
     async create(ctx: RequestContext, input: CreateAdministratorInput): Promise<Administrator> {
         this.assertRoleInputsAreExclusive(input);
+        // Deprecated `roleIds` input (since 4.0.0): remove this branch in v5.0.0.
         if (input.roleIds) {
             await this.roleService.assertActiveUserCanGrantRoles(ctx, input.roleIds, [ctx.channelId]);
         }
@@ -145,7 +145,8 @@ export class AdministratorService {
         if (input.roleAssignments) {
             await this.setRoleAssignmentsForUser(ctx, savedAdministrator.user.id, input.roleAssignments);
         } else if (input.roleIds) {
-            // The deprecated `roleIds` input grants the Roles on the active Channel.
+            // Deprecated `roleIds` input (since 4.0.0): grants the Roles on the active Channel.
+            // Remove this branch in v5.0.0.
             await this.roleAssignmentService.replaceUserAssignmentsOnChannel(
                 ctx,
                 savedAdministrator.user.id,
@@ -184,6 +185,7 @@ export class AdministratorService {
             throw new EntityNotFoundError('Administrator', input.id);
         }
         this.assertRoleInputsAreExclusive(input);
+        // Deprecated `roleIds` input (since 4.0.0): remove this branch in v5.0.0.
         if (input.roleIds) {
             await this.roleService.assertActiveUserCanGrantRoles(ctx, input.roleIds, [ctx.channelId]);
         }
@@ -207,6 +209,8 @@ export class AdministratorService {
                 await this.connection.getRepository(ctx, NativeAuthenticationMethod).save(nativeAuthMethod);
             }
         }
+        // Deprecated `roleIds` input (since 4.0.0): remove this whole branch in v5.0.0, leaving
+        // `roleAssignments` as the only role input.
         if (input.roleIds) {
             const isSoleSuperAdmin = await this.isSoleSuperadmin(ctx, input.id);
             if (isSoleSuperAdmin) {
@@ -216,28 +220,19 @@ export class AdministratorService {
                 }
             }
             // The deprecated `roleIds` input replaces the user's Role assignments on the
-            // active Channel; assignments on other Channels are untouched.
+            // active Channel; assignments on other Channels are untouched. The write is
+            // expressed as a full replace-set so that both role inputs share one write path
+            // and one event contract.
             const userId = administrator.user.id;
-            const previousRoleIds = await this.roleAssignmentService.getAssignedRoleIdsOnChannel(
-                ctx,
-                userId,
-                ctx.channelId,
-            );
-            const removeIds = previousRoleIds.filter(
-                roleId => !(input.roleIds as ID[]).some(id => idsAreEqual(id, roleId)),
-            );
-            const addIds = (input.roleIds as ID[]).filter(
-                roleId => !previousRoleIds.some(id => idsAreEqual(id, roleId)),
-            );
-            await this.roleAssignmentService.replaceUserAssignmentsOnChannel(
-                ctx,
-                userId,
-                input.roleIds,
-                ctx.channelId,
-            );
+            const existing = await this.roleAssignmentService.getAssignmentsForUser(ctx, userId);
+            const target: RoleChannelPair[] = [
+                ...existing
+                    .filter(assignment => !idsAreEqual(assignment.channelId, ctx.channelId))
+                    .map(assignment => ({ roleId: assignment.roleId, channelId: assignment.channelId })),
+                ...input.roleIds.map(roleId => ({ roleId, channelId: ctx.channelId })),
+            ];
+            await this.setRoleAssignmentsForUser(ctx, userId, target);
             updatedAdministrator = await assertFound(this.findOne(ctx, administrator.id));
-            await this.eventBus.publish(new RoleChangeEvent(ctx, updatedAdministrator, addIds, 'assigned'));
-            await this.eventBus.publish(new RoleChangeEvent(ctx, updatedAdministrator, removeIds, 'removed'));
         }
         if (input.roleAssignments) {
             await this.setRoleAssignmentsForUser(ctx, administrator.user.id, input.roleAssignments);
@@ -284,6 +279,11 @@ export class AdministratorService {
      * and removed pairs alike — on the Channel of that pair (see
      * {@link RoleService.assertActiveUserCanGrantRoles}). The sole SuperAdmin cannot have
      * the SuperAdmin Role taken away.
+     *
+     * This is the single write path behind the `roleAssignments` and the deprecated `roleIds`
+     * inputs of the administrator mutations. The changed pairs are reported by the
+     * {@link RoleAssignmentEvent} published from {@link RoleAssignmentService}; there is no
+     * separate administrator-level role event.
      *
      * @since 4.0.0
      */
@@ -354,29 +354,6 @@ export class AdministratorService {
             }
         }
         await this.roleAssignmentService.setAssignmentsForUser(ctx, userId, target);
-        if (administrator) {
-            const roleIdsBefore = unique(existing.map(assignment => assignment.roleId));
-            const roleIdsAfter = unique(target.map(pair => pair.roleId));
-            const assignedRoleIds = roleIdsAfter.filter(
-                id => !roleIdsBefore.some(before => idsAreEqual(before, id)),
-            );
-            const removedRoleIds = roleIdsBefore.filter(
-                id => !roleIdsAfter.some(after => idsAreEqual(after, id)),
-            );
-            if (assignedRoleIds.length || removedRoleIds.length) {
-                const updatedAdministrator = await assertFound(this.findOne(ctx, administrator.id));
-                if (assignedRoleIds.length) {
-                    await this.eventBus.publish(
-                        new RoleChangeEvent(ctx, updatedAdministrator, assignedRoleIds, 'assigned'),
-                    );
-                }
-                if (removedRoleIds.length) {
-                    await this.eventBus.publish(
-                        new RoleChangeEvent(ctx, updatedAdministrator, removedRoleIds, 'removed'),
-                    );
-                }
-            }
-        }
         return assertFound(this.userService.getUserById(ctx, userId));
     }
 
@@ -414,6 +391,10 @@ export class AdministratorService {
         }
     }
 
+    /**
+     * Guards the overlap of the deprecated `roleIds` input (since 4.0.0) with `roleAssignments`.
+     * Remove in v5.0.0 together with the `roleIds` inputs.
+     */
     private assertRoleInputsAreExclusive(input: {
         roleIds?: ID[] | null;
         roleAssignments?: RoleChannelPair[] | null;
