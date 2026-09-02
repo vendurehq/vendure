@@ -23,11 +23,12 @@ import { idSchema } from '../id-schema';
 import { int32Schema } from '../int32-schema';
 import { ORDER_DETAIL_RELATIONS } from '../list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
+import { shortText } from '../string-schemas';
 
 const createFulfillmentInput = z.strictObject({
     id: idSchema.describe('Order ID.'),
-    method: z.string().describe('Shipping method or carrier name to record on the fulfillment.'),
-    trackingCode: z.string().describe("The carrier's tracking code for this shipment.").optional(),
+    method: shortText.describe('Shipping method or carrier name to record on the fulfillment.'),
+    trackingCode: shortText.describe("The carrier's tracking code for this shipment.").optional(),
     lines: z
         .array(
             z.strictObject({

@@ -4,6 +4,7 @@ import { z } from 'zod';
 // holds; the refine is what rejects a bad value on the server.
 export const emailAddressSchema = z
     .string()
+    .max(255)
     .describe('Customer email address.')
     .meta({ format: 'email' })
     .refine(value => z.regexes.email.test(value), 'Invalid email address');

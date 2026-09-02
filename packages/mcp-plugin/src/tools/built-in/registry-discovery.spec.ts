@@ -10,6 +10,7 @@ import {
     CustomerService,
     FulfillmentService,
     HistoryService,
+    ListQueryBuilder,
     OrderService,
     ProductOptionGroupService,
     ProductService,
@@ -34,6 +35,7 @@ import { McpShopSessionService } from '../../shop-session/mcp-shop-session.servi
 import { McpActiveOrderService } from './active-order.service';
 import { adminToolProviders } from './admin';
 import { McpCatalogQueryService } from './catalog-query.service';
+import { McpCustomFieldInputService } from './custom-field-input.service';
 import { mcpBuiltInToolProviders } from './providers';
 import { McpToolSerializerService } from './serializer.service';
 import { shopToolProviders } from './shop';
@@ -54,6 +56,7 @@ describe('built-in registry discovery', () => {
                 McpActiveOrderService,
                 McpToolSerializerService,
                 McpCatalogQueryService,
+                McpCustomFieldInputService,
                 { provide: ActiveOrderService, useValue: {} },
                 { provide: AssetService, useValue: {} },
                 { provide: ChannelService, useValue: {} },
@@ -63,6 +66,7 @@ describe('built-in registry discovery', () => {
                 { provide: CustomerService, useValue: {} },
                 { provide: FulfillmentService, useValue: {} },
                 { provide: HistoryService, useValue: {} },
+                { provide: ListQueryBuilder, useValue: {} },
                 { provide: OrderService, useValue: {} },
                 { provide: ProductOptionGroupService, useValue: {} },
                 { provide: ProductService, useValue: {} },

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CollectionService, Permission, ProductService, RequestContext } from '@vendure/core';
+import { CollectionService, ID, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
@@ -7,19 +7,30 @@ import { McpCatalogQueryService } from '../catalog-query.service';
 import { idSchema } from '../id-schema';
 import { page, paginationFields, productSearchWords, publicProductListOptions } from '../list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
+import { shortText } from '../string-schemas';
 
 import { collectionLookup, findPublicCollection, noCollectionMessage } from './collection-lookup';
 
+// Each word adds two LIKE conditions to the query, and a long query matches nothing anyway.
+const MAX_QUERY_LENGTH = 200;
+const MAX_QUERY_WORDS = 10;
+
 const searchProductsInput = z
     .strictObject({
-        query: z.string().describe('Text to look up in product names and slugs.').optional(),
+        query: shortText
+            .max(MAX_QUERY_LENGTH)
+            .refine(
+                value => productSearchWords(value).length <= MAX_QUERY_WORDS,
+                `Use at most ${MAX_QUERY_WORDS} words.`,
+            )
+            .describe('Text to look up in product names and slugs.')
+            .optional(),
         collectionId: idSchema
             .describe(
                 'Only products in this collection. Take the id from list_collections or get_collection.',
             )
             .optional(),
-        collectionSlug: z
-            .string()
+        collectionSlug: shortText
             .describe(
                 'Only products in this collection. Take the slug from list_collections or get_collection.',
             )
@@ -54,31 +65,30 @@ type SearchProductsInput = z.infer<typeof searchProductsInput>;
 @Injectable()
 export class SearchProductsTool implements McpToolHandler<SearchProductsInput> {
     constructor(
-        private productService: ProductService,
         private collectionService: CollectionService,
         private catalog: McpCatalogQueryService,
         private serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: SearchProductsInput) {
-        let productIds: string[] | undefined;
+        let collectionId: ID | undefined;
         const lookup = collectionLookup(input.collectionId, input.collectionSlug);
         if (lookup) {
             const collection = await findPublicCollection(this.collectionService, ctx, lookup);
             if (!collection) {
                 return { ...page([], 0, input), message: noCollectionMessage(lookup) };
             }
-            productIds = await this.catalog.productIdsInCollection(ctx, collection.id);
+            collectionId = collection.id;
         }
 
         const words = productSearchWords(input.query);
         const singularWords = productSearchWords(input.query, true);
-        let result = await this.findProducts(ctx, input, words, productIds);
+        let result = await this.findProducts(ctx, input, words, collectionId);
         // A shopper's plural never appears inside a singular product name, so "cameras" misses
         // "Instant Camera". Retrying with the plural endings trimmed off only ever widens the
         // match, and it runs only once the words as typed have already come back empty.
         if (result.totalItems === 0 && singularWords.join(' ') !== words.join(' ')) {
-            result = await this.findProducts(ctx, input, singularWords, productIds);
+            result = await this.findProducts(ctx, input, singularWords, collectionId);
         }
         const variantsByProduct = await this.catalog.variantsByProductId(
             ctx,
@@ -98,10 +108,8 @@ export class SearchProductsTool implements McpToolHandler<SearchProductsInput> {
         ctx: RequestContext,
         input: SearchProductsInput,
         words: string[],
-        productIds?: string[],
+        collectionId?: ID,
     ) {
-        return this.productService.findAll(ctx, publicProductListOptions(input, words, productIds), [
-            'featuredAsset',
-        ]);
+        return this.catalog.findPublicProducts(ctx, publicProductListOptions(input, words), collectionId);
     }
 }

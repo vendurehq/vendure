@@ -11,6 +11,9 @@ import {
 } from '@vendure/core';
 import { z } from 'zod';
 
+import { int32Schema } from './int32-schema';
+import { shortText } from './string-schemas';
+
 /** Common pagination fields shared by the list tool inputs (already validated by the tool schema). */
 interface ListInput {
     limit?: number;
@@ -40,21 +43,23 @@ export function paginationFields(noun: string) {
                     `Defaults to ${DEFAULT_LIST_PAGE_SIZE}.`,
             )
             .optional(),
-        offset: z.number().int().min(0).describe(`Number of ${noun} to skip.`).optional(),
+        offset: int32Schema.min(0).describe(`Number of ${noun} to skip.`).optional(),
     };
 }
 
 const isoDate = z.iso.datetime({ offset: true }).transform(value => new Date(value));
 
+// Upper bound on the values one `in` filter may list, so a runaway list cannot become a huge query.
+const MAX_FILTER_VALUES = 100;
+
 export const stringFilter = z.strictObject({
-    eq: z.string().describe('Exact match.').optional(),
-    contains: z
-        .string()
+    eq: shortText.describe('Exact match.').optional(),
+    contains: shortText
         .describe(
             "Substring match. Case-insensitive on Postgres, otherwise follows the database's collation.",
         )
         .optional(),
-    in: z.array(z.string()).describe('Any of these exact values.').optional(),
+    in: z.array(shortText).max(MAX_FILTER_VALUES).describe('Any of these exact values.').optional(),
 });
 
 export const dateFilter = z.strictObject({
@@ -116,14 +121,9 @@ export function productSearchWords(query: string | undefined, trimPlurals = fals
 
 /**
  * Builds the query for a public product search: only enabled products, and every word has to turn
- * up in the product's name or slug, in any order. Descriptions are not searched. When `productIds`
- * is given, only those products can match; an empty list matches nothing.
+ * up in the product's name or slug, in any order. Descriptions are not searched.
  */
-export function publicProductListOptions(
-    input: ListInput,
-    words: string[] = [],
-    productIds?: string[],
-): ListQueryOptions<Product> {
+export function publicProductListOptions(input: ListInput, words: string[] = []): ListQueryOptions<Product> {
     const options = listOptions<Product>({ limit: input.limit, offset: input.offset });
     const wordFilters = words.map(word => ({
         _or: [{ name: { contains: word } }, { slug: { contains: word } }],
@@ -133,7 +133,6 @@ export function publicProductListOptions(
         filter: {
             enabled: { eq: true },
             ...(wordFilters.length ? { _and: wordFilters } : {}),
-            ...(productIds ? { id: { in: productIds } } : {}),
         },
     };
 }

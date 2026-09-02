@@ -47,6 +47,7 @@
       },
       "note": {
         "type": "string",
+        "maxLength": 10000,
         "description": "Note text."
       },
       "isPublic": {
@@ -115,6 +116,7 @@
       },
       "reason": {
         "type": "string",
+        "maxLength": 10000,
         "description": "Reason for the cancellation."
       },
       "cancelShipping": {
@@ -135,23 +137,28 @@
         "properties": {
           "firstName": {
             "type": "string",
+            "maxLength": 255,
             "description": "Customer first name."
           },
           "lastName": {
             "type": "string",
+            "maxLength": 255,
             "description": "Customer last name."
           },
           "emailAddress": {
             "type": "string",
+            "maxLength": 255,
             "description": "Customer email address.",
             "format": "email"
           },
           "phoneNumber": {
             "type": "string",
+            "maxLength": 255,
             "description": "Customer phone number."
           },
           "title": {
             "type": "string",
+            "maxLength": 255,
             "description": "Customer title, e.g. \"Mr\" or \"Ms\"."
           },
           "customFields": {
@@ -190,10 +197,12 @@
       },
       "method": {
         "type": "string",
+        "maxLength": 255,
         "description": "Shipping method or carrier name to record on the fulfillment."
       },
       "trackingCode": {
         "type": "string",
+        "maxLength": 255,
         "description": "The carrier's tracking code for this shipment."
       },
       "lines": {
@@ -255,18 +264,180 @@
               "properties": {
                 "languageCode": {
                   "type": "string",
+                  "enum": [
+                    "af",
+                    "ak",
+                    "am",
+                    "ar",
+                    "as",
+                    "az",
+                    "be",
+                    "bg",
+                    "bm",
+                    "bn",
+                    "bo",
+                    "br",
+                    "bs",
+                    "ca",
+                    "ce",
+                    "co",
+                    "cs",
+                    "cu",
+                    "cy",
+                    "da",
+                    "de",
+                    "de_AT",
+                    "de_CH",
+                    "dz",
+                    "ee",
+                    "el",
+                    "en",
+                    "en_AU",
+                    "en_CA",
+                    "en_GB",
+                    "en_US",
+                    "eo",
+                    "es",
+                    "es_ES",
+                    "es_MX",
+                    "et",
+                    "eu",
+                    "fa",
+                    "fa_AF",
+                    "ff",
+                    "fi",
+                    "fo",
+                    "fr",
+                    "fr_CA",
+                    "fr_CH",
+                    "fy",
+                    "ga",
+                    "gd",
+                    "gl",
+                    "gu",
+                    "gv",
+                    "ha",
+                    "he",
+                    "hi",
+                    "hr",
+                    "ht",
+                    "hu",
+                    "hy",
+                    "ia",
+                    "id",
+                    "ig",
+                    "ii",
+                    "is",
+                    "it",
+                    "ja",
+                    "jv",
+                    "ka",
+                    "ki",
+                    "kk",
+                    "kl",
+                    "km",
+                    "kn",
+                    "ko",
+                    "ks",
+                    "ku",
+                    "kw",
+                    "ky",
+                    "la",
+                    "lb",
+                    "lg",
+                    "ln",
+                    "lo",
+                    "lt",
+                    "lu",
+                    "lv",
+                    "mg",
+                    "mi",
+                    "mk",
+                    "ml",
+                    "mn",
+                    "mr",
+                    "ms",
+                    "mt",
+                    "my",
+                    "nb",
+                    "nd",
+                    "ne",
+                    "nl",
+                    "nl_BE",
+                    "nn",
+                    "ny",
+                    "om",
+                    "or",
+                    "os",
+                    "pa",
+                    "pl",
+                    "ps",
+                    "pt",
+                    "pt_BR",
+                    "pt_PT",
+                    "qu",
+                    "rm",
+                    "rn",
+                    "ro",
+                    "ro_MD",
+                    "ru",
+                    "rw",
+                    "sa",
+                    "sd",
+                    "se",
+                    "sg",
+                    "si",
+                    "sk",
+                    "sl",
+                    "sm",
+                    "sn",
+                    "so",
+                    "sq",
+                    "sr",
+                    "st",
+                    "su",
+                    "sv",
+                    "sw",
+                    "sw_CD",
+                    "ta",
+                    "te",
+                    "tg",
+                    "th",
+                    "ti",
+                    "tk",
+                    "to",
+                    "tr",
+                    "tt",
+                    "ug",
+                    "uk",
+                    "ur",
+                    "uz",
+                    "vi",
+                    "vo",
+                    "wo",
+                    "xh",
+                    "yi",
+                    "yo",
+                    "zh",
+                    "zh_Hans",
+                    "zh_Hant",
+                    "zu"
+                  ],
                   "description": "Language code, e.g. \"en\"."
                 },
                 "name": {
                   "type": "string",
+                  "maxLength": 255,
                   "description": "Product name."
                 },
                 "slug": {
                   "type": "string",
+                  "maxLength": 255,
                   "description": "URL slug."
                 },
                 "description": {
                   "type": "string",
+                  "maxLength": 10000,
                   "description": "Product description."
                 }
               },
@@ -282,6 +453,7 @@
             "description": "Whether the product is enabled."
           },
           "facetValueIds": {
+            "maxItems": 100,
             "type": "array",
             "items": {
               "anyOf": [
@@ -297,6 +469,7 @@
             "description": "Facet value IDs to assign."
           },
           "assetIds": {
+            "maxItems": 100,
             "type": "array",
             "items": {
               "anyOf": [
@@ -359,6 +532,7 @@
         "properties": {
           "sku": {
             "type": "string",
+            "maxLength": 255,
             "description": "Stock keeping unit."
           },
           "translations": {
@@ -368,10 +542,170 @@
               "properties": {
                 "languageCode": {
                   "type": "string",
+                  "enum": [
+                    "af",
+                    "ak",
+                    "am",
+                    "ar",
+                    "as",
+                    "az",
+                    "be",
+                    "bg",
+                    "bm",
+                    "bn",
+                    "bo",
+                    "br",
+                    "bs",
+                    "ca",
+                    "ce",
+                    "co",
+                    "cs",
+                    "cu",
+                    "cy",
+                    "da",
+                    "de",
+                    "de_AT",
+                    "de_CH",
+                    "dz",
+                    "ee",
+                    "el",
+                    "en",
+                    "en_AU",
+                    "en_CA",
+                    "en_GB",
+                    "en_US",
+                    "eo",
+                    "es",
+                    "es_ES",
+                    "es_MX",
+                    "et",
+                    "eu",
+                    "fa",
+                    "fa_AF",
+                    "ff",
+                    "fi",
+                    "fo",
+                    "fr",
+                    "fr_CA",
+                    "fr_CH",
+                    "fy",
+                    "ga",
+                    "gd",
+                    "gl",
+                    "gu",
+                    "gv",
+                    "ha",
+                    "he",
+                    "hi",
+                    "hr",
+                    "ht",
+                    "hu",
+                    "hy",
+                    "ia",
+                    "id",
+                    "ig",
+                    "ii",
+                    "is",
+                    "it",
+                    "ja",
+                    "jv",
+                    "ka",
+                    "ki",
+                    "kk",
+                    "kl",
+                    "km",
+                    "kn",
+                    "ko",
+                    "ks",
+                    "ku",
+                    "kw",
+                    "ky",
+                    "la",
+                    "lb",
+                    "lg",
+                    "ln",
+                    "lo",
+                    "lt",
+                    "lu",
+                    "lv",
+                    "mg",
+                    "mi",
+                    "mk",
+                    "ml",
+                    "mn",
+                    "mr",
+                    "ms",
+                    "mt",
+                    "my",
+                    "nb",
+                    "nd",
+                    "ne",
+                    "nl",
+                    "nl_BE",
+                    "nn",
+                    "ny",
+                    "om",
+                    "or",
+                    "os",
+                    "pa",
+                    "pl",
+                    "ps",
+                    "pt",
+                    "pt_BR",
+                    "pt_PT",
+                    "qu",
+                    "rm",
+                    "rn",
+                    "ro",
+                    "ro_MD",
+                    "ru",
+                    "rw",
+                    "sa",
+                    "sd",
+                    "se",
+                    "sg",
+                    "si",
+                    "sk",
+                    "sl",
+                    "sm",
+                    "sn",
+                    "so",
+                    "sq",
+                    "sr",
+                    "st",
+                    "su",
+                    "sv",
+                    "sw",
+                    "sw_CD",
+                    "ta",
+                    "te",
+                    "tg",
+                    "th",
+                    "ti",
+                    "tk",
+                    "to",
+                    "tr",
+                    "tt",
+                    "ug",
+                    "uk",
+                    "ur",
+                    "uz",
+                    "vi",
+                    "vo",
+                    "wo",
+                    "xh",
+                    "yi",
+                    "yo",
+                    "zh",
+                    "zh_Hans",
+                    "zh_Hant",
+                    "zu"
+                  ],
                   "description": "Language code, e.g. \"en\"."
                 },
                 "name": {
                   "type": "string",
+                  "maxLength": 255,
                   "description": "Variant name."
                 }
               },
@@ -383,10 +717,13 @@
             "description": "Localized variant content."
           },
           "price": {
-            "type": "number",
-            "description": "Price in minor units (e.g. cents)."
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647,
+            "description": "Price as a whole number of minor units, e.g. cents."
           },
           "optionIds": {
+            "maxItems": 100,
             "type": "array",
             "items": {
               "anyOf": [
@@ -424,6 +761,7 @@
             "description": "Featured asset ID."
           },
           "assetIds": {
+            "maxItems": 100,
             "type": "array",
             "items": {
               "anyOf": [
@@ -446,6 +784,11 @@
           },
           "trackInventory": {
             "type": "string",
+            "enum": [
+              "FALSE",
+              "INHERIT",
+              "TRUE"
+            ],
             "description": "Inventory tracking: \"TRUE\", \"FALSE\", or \"INHERIT\"."
           },
           "enabled": {
@@ -508,6 +851,7 @@
       },
       "code": {
         "type": "string",
+        "maxLength": 255,
         "description": "Order code, used when ID is omitted."
       }
     },
@@ -565,7 +909,7 @@
       "offset": {
         "type": "integer",
         "minimum": 0,
-        "maximum": 9007199254740991,
+        "maximum": 2147483647,
         "description": "Number of channels to skip."
       }
     },
@@ -583,7 +927,7 @@
       "offset": {
         "type": "integer",
         "minimum": 0,
-        "maximum": 9007199254740991,
+        "maximum": 2147483647,
         "description": "Number of customer groups to skip."
       }
     },
@@ -601,7 +945,7 @@
       "offset": {
         "type": "integer",
         "minimum": 0,
-        "maximum": 9007199254740991,
+        "maximum": 2147483647,
         "description": "Number of customers to skip."
       },
       "filter": {
@@ -612,16 +956,20 @@
             "properties": {
               "eq": {
                 "type": "string",
+                "maxLength": 255,
                 "description": "Exact match."
               },
               "contains": {
                 "type": "string",
+                "maxLength": 255,
                 "description": "Substring match. Case-insensitive on Postgres, otherwise follows the database's collation."
               },
               "in": {
+                "maxItems": 100,
                 "type": "array",
                 "items": {
-                  "type": "string"
+                  "type": "string",
+                  "maxLength": 255
                 },
                 "description": "Any of these exact values."
               }
@@ -633,16 +981,20 @@
             "properties": {
               "eq": {
                 "type": "string",
+                "maxLength": 255,
                 "description": "Exact match."
               },
               "contains": {
                 "type": "string",
+                "maxLength": 255,
                 "description": "Substring match. Case-insensitive on Postgres, otherwise follows the database's collation."
               },
               "in": {
+                "maxItems": 100,
                 "type": "array",
                 "items": {
-                  "type": "string"
+                  "type": "string",
+                  "maxLength": 255
                 },
                 "description": "Any of these exact values."
               }
@@ -654,16 +1006,20 @@
             "properties": {
               "eq": {
                 "type": "string",
+                "maxLength": 255,
                 "description": "Exact match."
               },
               "contains": {
                 "type": "string",
+                "maxLength": 255,
                 "description": "Substring match. Case-insensitive on Postgres, otherwise follows the database's collation."
               },
               "in": {
+                "maxItems": 100,
                 "type": "array",
                 "items": {
-                  "type": "string"
+                  "type": "string",
+                  "maxLength": 255
                 },
                 "description": "Any of these exact values."
               }
@@ -675,16 +1031,20 @@
             "properties": {
               "eq": {
                 "type": "string",
+                "maxLength": 255,
                 "description": "Exact match."
               },
               "contains": {
                 "type": "string",
+                "maxLength": 255,
                 "description": "Substring match. Case-insensitive on Postgres, otherwise follows the database's collation."
               },
               "in": {
+                "maxItems": 100,
                 "type": "array",
                 "items": {
-                  "type": "string"
+                  "type": "string",
+                  "maxLength": 255
                 },
                 "description": "Any of these exact values."
               }
@@ -696,16 +1056,20 @@
             "properties": {
               "eq": {
                 "type": "string",
+                "maxLength": 255,
                 "description": "Exact match."
               },
               "contains": {
                 "type": "string",
+                "maxLength": 255,
                 "description": "Substring match. Case-insensitive on Postgres, otherwise follows the database's collation."
               },
               "in": {
+                "maxItems": 100,
                 "type": "array",
                 "items": {
-                  "type": "string"
+                  "type": "string",
+                  "maxLength": 255
                 },
                 "description": "Any of these exact values."
               }
@@ -750,7 +1114,7 @@
       "offset": {
         "type": "integer",
         "minimum": 0,
-        "maximum": 9007199254740991,
+        "maximum": 2147483647,
         "description": "Number of orders to skip."
       },
       "filter": {
@@ -761,16 +1125,20 @@
             "properties": {
               "eq": {
                 "type": "string",
+                "maxLength": 255,
                 "description": "Exact match."
               },
               "contains": {
                 "type": "string",
+                "maxLength": 255,
                 "description": "Substring match. Case-insensitive on Postgres, otherwise follows the database's collation."
               },
               "in": {
+                "maxItems": 100,
                 "type": "array",
                 "items": {
-                  "type": "string"
+                  "type": "string",
+                  "maxLength": 255
                 },
                 "description": "Any of these exact values."
               }
@@ -782,16 +1150,20 @@
             "properties": {
               "eq": {
                 "type": "string",
+                "maxLength": 255,
                 "description": "Exact match."
               },
               "contains": {
                 "type": "string",
+                "maxLength": 255,
                 "description": "Substring match. Case-insensitive on Postgres, otherwise follows the database's collation."
               },
               "in": {
+                "maxItems": 100,
                 "type": "array",
                 "items": {
-                  "type": "string"
+                  "type": "string",
+                  "maxLength": 255
                 },
                 "description": "Any of these exact values."
               }
@@ -814,16 +1186,20 @@
             "properties": {
               "eq": {
                 "type": "string",
+                "maxLength": 255,
                 "description": "Exact match."
               },
               "contains": {
                 "type": "string",
+                "maxLength": 255,
                 "description": "Substring match. Case-insensitive on Postgres, otherwise follows the database's collation."
               },
               "in": {
+                "maxItems": 100,
                 "type": "array",
                 "items": {
-                  "type": "string"
+                  "type": "string",
+                  "maxLength": 255
                 },
                 "description": "Any of these exact values."
               }
@@ -919,7 +1295,7 @@
       "offset": {
         "type": "integer",
         "minimum": 0,
-        "maximum": 9007199254740991,
+        "maximum": 2147483647,
         "description": "Number of products to skip."
       },
       "filter": {
@@ -930,16 +1306,20 @@
             "properties": {
               "eq": {
                 "type": "string",
+                "maxLength": 255,
                 "description": "Exact match."
               },
               "contains": {
                 "type": "string",
+                "maxLength": 255,
                 "description": "Substring match. Case-insensitive on Postgres, otherwise follows the database's collation."
               },
               "in": {
+                "maxItems": 100,
                 "type": "array",
                 "items": {
-                  "type": "string"
+                  "type": "string",
+                  "maxLength": 255
                 },
                 "description": "Any of these exact values."
               }
@@ -951,16 +1331,20 @@
             "properties": {
               "eq": {
                 "type": "string",
+                "maxLength": 255,
                 "description": "Exact match."
               },
               "contains": {
                 "type": "string",
+                "maxLength": 255,
                 "description": "Substring match. Case-insensitive on Postgres, otherwise follows the database's collation."
               },
               "in": {
+                "maxItems": 100,
                 "type": "array",
                 "items": {
-                  "type": "string"
+                  "type": "string",
+                  "maxLength": 255
                 },
                 "description": "Any of these exact values."
               }
@@ -972,16 +1356,20 @@
             "properties": {
               "eq": {
                 "type": "string",
+                "maxLength": 255,
                 "description": "Exact match."
               },
               "contains": {
                 "type": "string",
+                "maxLength": 255,
                 "description": "Substring match. Case-insensitive on Postgres, otherwise follows the database's collation."
               },
               "in": {
+                "maxItems": 100,
                 "type": "array",
                 "items": {
-                  "type": "string"
+                  "type": "string",
+                  "maxLength": 255
                 },
                 "description": "Any of these exact values."
               }
@@ -1038,11 +1426,14 @@
         "description": "Order ID."
       },
       "amount": {
-        "type": "number",
-        "description": "Amount to refund in minor units. Defaults to the selected payment's remaining refundable amount."
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 2147483647,
+        "description": "Amount to refund as a whole number of minor units. Defaults to the selected payment's remaining refundable amount."
       },
       "reason": {
         "type": "string",
+        "maxLength": 255,
         "description": "Reason for the refund."
       },
       "paymentId": {
@@ -1067,6 +1458,7 @@
     "properties": {
       "channelToken": {
         "type": "string",
+        "maxLength": 255,
         "description": "Channel token of the channel to activate."
       }
     },
@@ -1094,23 +1486,28 @@
         "properties": {
           "firstName": {
             "type": "string",
+            "maxLength": 255,
             "description": "Customer first name."
           },
           "lastName": {
             "type": "string",
+            "maxLength": 255,
             "description": "Customer last name."
           },
           "emailAddress": {
             "type": "string",
+            "maxLength": 255,
             "description": "Customer email address.",
             "format": "email"
           },
           "phoneNumber": {
             "type": "string",
+            "maxLength": 255,
             "description": "Customer phone number."
           },
           "title": {
             "type": "string",
+            "maxLength": 255,
             "description": "Customer title, e.g. \"Mr\" or \"Ms\"."
           },
           "customFields": {
@@ -1145,6 +1542,7 @@
       },
       "state": {
         "type": "string",
+        "maxLength": 255,
         "description": "Target order state, e.g. \"PaymentSettled\" or \"AddingItems\"."
       }
     },
@@ -1178,18 +1576,180 @@
               "properties": {
                 "languageCode": {
                   "type": "string",
+                  "enum": [
+                    "af",
+                    "ak",
+                    "am",
+                    "ar",
+                    "as",
+                    "az",
+                    "be",
+                    "bg",
+                    "bm",
+                    "bn",
+                    "bo",
+                    "br",
+                    "bs",
+                    "ca",
+                    "ce",
+                    "co",
+                    "cs",
+                    "cu",
+                    "cy",
+                    "da",
+                    "de",
+                    "de_AT",
+                    "de_CH",
+                    "dz",
+                    "ee",
+                    "el",
+                    "en",
+                    "en_AU",
+                    "en_CA",
+                    "en_GB",
+                    "en_US",
+                    "eo",
+                    "es",
+                    "es_ES",
+                    "es_MX",
+                    "et",
+                    "eu",
+                    "fa",
+                    "fa_AF",
+                    "ff",
+                    "fi",
+                    "fo",
+                    "fr",
+                    "fr_CA",
+                    "fr_CH",
+                    "fy",
+                    "ga",
+                    "gd",
+                    "gl",
+                    "gu",
+                    "gv",
+                    "ha",
+                    "he",
+                    "hi",
+                    "hr",
+                    "ht",
+                    "hu",
+                    "hy",
+                    "ia",
+                    "id",
+                    "ig",
+                    "ii",
+                    "is",
+                    "it",
+                    "ja",
+                    "jv",
+                    "ka",
+                    "ki",
+                    "kk",
+                    "kl",
+                    "km",
+                    "kn",
+                    "ko",
+                    "ks",
+                    "ku",
+                    "kw",
+                    "ky",
+                    "la",
+                    "lb",
+                    "lg",
+                    "ln",
+                    "lo",
+                    "lt",
+                    "lu",
+                    "lv",
+                    "mg",
+                    "mi",
+                    "mk",
+                    "ml",
+                    "mn",
+                    "mr",
+                    "ms",
+                    "mt",
+                    "my",
+                    "nb",
+                    "nd",
+                    "ne",
+                    "nl",
+                    "nl_BE",
+                    "nn",
+                    "ny",
+                    "om",
+                    "or",
+                    "os",
+                    "pa",
+                    "pl",
+                    "ps",
+                    "pt",
+                    "pt_BR",
+                    "pt_PT",
+                    "qu",
+                    "rm",
+                    "rn",
+                    "ro",
+                    "ro_MD",
+                    "ru",
+                    "rw",
+                    "sa",
+                    "sd",
+                    "se",
+                    "sg",
+                    "si",
+                    "sk",
+                    "sl",
+                    "sm",
+                    "sn",
+                    "so",
+                    "sq",
+                    "sr",
+                    "st",
+                    "su",
+                    "sv",
+                    "sw",
+                    "sw_CD",
+                    "ta",
+                    "te",
+                    "tg",
+                    "th",
+                    "ti",
+                    "tk",
+                    "to",
+                    "tr",
+                    "tt",
+                    "ug",
+                    "uk",
+                    "ur",
+                    "uz",
+                    "vi",
+                    "vo",
+                    "wo",
+                    "xh",
+                    "yi",
+                    "yo",
+                    "zh",
+                    "zh_Hans",
+                    "zh_Hant",
+                    "zu"
+                  ],
                   "description": "Language code, e.g. \"en\"."
                 },
                 "name": {
                   "type": "string",
+                  "maxLength": 255,
                   "description": "Product name."
                 },
                 "slug": {
                   "type": "string",
+                  "maxLength": 255,
                   "description": "URL slug."
                 },
                 "description": {
                   "type": "string",
+                  "maxLength": 10000,
                   "description": "Product description."
                 }
               },
@@ -1205,6 +1765,7 @@
             "description": "Whether the product is enabled."
           },
           "facetValueIds": {
+            "maxItems": 100,
             "type": "array",
             "items": {
               "anyOf": [
@@ -1220,6 +1781,7 @@
             "description": "Facet value IDs to assign."
           },
           "assetIds": {
+            "maxItems": 100,
             "type": "array",
             "items": {
               "anyOf": [
@@ -1280,6 +1842,7 @@
         "properties": {
           "sku": {
             "type": "string",
+            "maxLength": 255,
             "description": "Stock keeping unit."
           },
           "translations": {
@@ -1289,10 +1852,170 @@
               "properties": {
                 "languageCode": {
                   "type": "string",
+                  "enum": [
+                    "af",
+                    "ak",
+                    "am",
+                    "ar",
+                    "as",
+                    "az",
+                    "be",
+                    "bg",
+                    "bm",
+                    "bn",
+                    "bo",
+                    "br",
+                    "bs",
+                    "ca",
+                    "ce",
+                    "co",
+                    "cs",
+                    "cu",
+                    "cy",
+                    "da",
+                    "de",
+                    "de_AT",
+                    "de_CH",
+                    "dz",
+                    "ee",
+                    "el",
+                    "en",
+                    "en_AU",
+                    "en_CA",
+                    "en_GB",
+                    "en_US",
+                    "eo",
+                    "es",
+                    "es_ES",
+                    "es_MX",
+                    "et",
+                    "eu",
+                    "fa",
+                    "fa_AF",
+                    "ff",
+                    "fi",
+                    "fo",
+                    "fr",
+                    "fr_CA",
+                    "fr_CH",
+                    "fy",
+                    "ga",
+                    "gd",
+                    "gl",
+                    "gu",
+                    "gv",
+                    "ha",
+                    "he",
+                    "hi",
+                    "hr",
+                    "ht",
+                    "hu",
+                    "hy",
+                    "ia",
+                    "id",
+                    "ig",
+                    "ii",
+                    "is",
+                    "it",
+                    "ja",
+                    "jv",
+                    "ka",
+                    "ki",
+                    "kk",
+                    "kl",
+                    "km",
+                    "kn",
+                    "ko",
+                    "ks",
+                    "ku",
+                    "kw",
+                    "ky",
+                    "la",
+                    "lb",
+                    "lg",
+                    "ln",
+                    "lo",
+                    "lt",
+                    "lu",
+                    "lv",
+                    "mg",
+                    "mi",
+                    "mk",
+                    "ml",
+                    "mn",
+                    "mr",
+                    "ms",
+                    "mt",
+                    "my",
+                    "nb",
+                    "nd",
+                    "ne",
+                    "nl",
+                    "nl_BE",
+                    "nn",
+                    "ny",
+                    "om",
+                    "or",
+                    "os",
+                    "pa",
+                    "pl",
+                    "ps",
+                    "pt",
+                    "pt_BR",
+                    "pt_PT",
+                    "qu",
+                    "rm",
+                    "rn",
+                    "ro",
+                    "ro_MD",
+                    "ru",
+                    "rw",
+                    "sa",
+                    "sd",
+                    "se",
+                    "sg",
+                    "si",
+                    "sk",
+                    "sl",
+                    "sm",
+                    "sn",
+                    "so",
+                    "sq",
+                    "sr",
+                    "st",
+                    "su",
+                    "sv",
+                    "sw",
+                    "sw_CD",
+                    "ta",
+                    "te",
+                    "tg",
+                    "th",
+                    "ti",
+                    "tk",
+                    "to",
+                    "tr",
+                    "tt",
+                    "ug",
+                    "uk",
+                    "ur",
+                    "uz",
+                    "vi",
+                    "vo",
+                    "wo",
+                    "xh",
+                    "yi",
+                    "yo",
+                    "zh",
+                    "zh_Hans",
+                    "zh_Hant",
+                    "zu"
+                  ],
                   "description": "Language code, e.g. \"en\"."
                 },
                 "name": {
                   "type": "string",
+                  "maxLength": 255,
                   "description": "Variant name."
                 }
               },
@@ -1304,10 +2027,13 @@
             "description": "Localized variant content to update."
           },
           "price": {
-            "type": "number",
-            "description": "Price in minor units (e.g. cents)."
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647,
+            "description": "Price as a whole number of minor units, e.g. cents."
           },
           "optionIds": {
+            "maxItems": 100,
             "type": "array",
             "items": {
               "anyOf": [
@@ -1345,6 +2071,7 @@
             "description": "Featured asset ID."
           },
           "assetIds": {
+            "maxItems": 100,
             "type": "array",
             "items": {
               "anyOf": [
@@ -1367,6 +2094,11 @@
           },
           "trackInventory": {
             "type": "string",
+            "enum": [
+              "FALSE",
+              "INHERIT",
+              "TRUE"
+            ],
             "description": "Inventory tracking: \"TRUE\", \"FALSE\", or \"INHERIT\"."
           },
           "enabled": {
@@ -1394,6 +2126,7 @@
     "properties": {
       "url": {
         "type": "string",
+        "maxLength": 2048,
         "description": "Public HTTP(S) URL of the asset to fetch and store."
       }
     },
@@ -1444,6 +2177,7 @@
     "properties": {
       "code": {
         "type": "string",
+        "maxLength": 255,
         "description": "Coupon code."
       }
     },
@@ -1473,6 +2207,7 @@
       },
       "slug": {
         "type": "string",
+        "maxLength": 255,
         "description": "Collection slug, used when ID is omitted."
       }
     },
@@ -1498,6 +2233,7 @@
     "properties": {
       "code": {
         "type": "string",
+        "maxLength": 255,
         "description": "Order code."
       }
     },
@@ -1522,6 +2258,7 @@
       },
       "slug": {
         "type": "string",
+        "maxLength": 255,
         "description": "Product slug, used when ID is omitted."
       }
     },
@@ -1539,7 +2276,7 @@
       "offset": {
         "type": "integer",
         "minimum": 0,
-        "maximum": 9007199254740991,
+        "maximum": 2147483647,
         "description": "Number of collections to skip."
       },
       "parentId": {
@@ -1568,7 +2305,7 @@
       "offset": {
         "type": "integer",
         "minimum": 0,
-        "maximum": 9007199254740991,
+        "maximum": 2147483647,
         "description": "Number of orders to skip."
       }
     },
@@ -1579,6 +2316,7 @@
     "properties": {
       "paymentMethodCode": {
         "type": "string",
+        "maxLength": 255,
         "description": "Payment method code."
       },
       "paymentMetadata": {
@@ -1598,6 +2336,7 @@
     "properties": {
       "code": {
         "type": "string",
+        "maxLength": 255,
         "description": "Coupon code."
       }
     },
@@ -1631,6 +2370,7 @@
     "properties": {
       "query": {
         "type": "string",
+        "maxLength": 200,
         "description": "Text to look up in product names and slugs."
       },
       "collectionId": {
@@ -1646,6 +2386,7 @@
       },
       "collectionSlug": {
         "type": "string",
+        "maxLength": 255,
         "description": "Only products in this collection. Take the slug from list_collections or get_collection."
       },
       "limit": {
@@ -1657,7 +2398,7 @@
       "offset": {
         "type": "integer",
         "minimum": 0,
-        "maximum": 9007199254740991,
+        "maximum": 2147483647,
         "description": "Number of products to skip."
       }
     },
@@ -1670,31 +2411,40 @@
         "type": "object",
         "properties": {
           "fullName": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 255
           },
           "company": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 255
           },
           "streetLine1": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 255
           },
           "streetLine2": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 255
           },
           "city": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 255
           },
           "province": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 255
           },
           "postalCode": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 255
           },
           "countryCode": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 255
           },
           "phoneNumber": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 255
           },
           "defaultShippingAddress": {
             "type": "boolean"
@@ -1720,31 +2470,40 @@
         "type": "object",
         "properties": {
           "fullName": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 255
           },
           "company": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 255
           },
           "streetLine1": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 255
           },
           "streetLine2": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 255
           },
           "city": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 255
           },
           "province": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 255
           },
           "postalCode": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 255
           },
           "countryCode": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 255
           },
           "phoneNumber": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 255
           },
           "defaultShippingAddress": {
             "type": "boolean"
@@ -1775,15 +2534,18 @@
         "properties": {
           "emailAddress": {
             "type": "string",
+            "maxLength": 255,
             "description": "Buyer email address.",
             "format": "email"
           },
           "firstName": {
             "type": "string",
+            "maxLength": 255,
             "description": "Buyer first name."
           },
           "lastName": {
             "type": "string",
+            "maxLength": 255,
             "description": "Buyer last name."
           }
         },

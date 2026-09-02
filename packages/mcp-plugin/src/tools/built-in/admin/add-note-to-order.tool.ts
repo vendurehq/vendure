@@ -7,10 +7,11 @@ import { z } from 'zod';
 import { idSchema } from '../id-schema';
 import { ORDER_DETAIL_RELATIONS } from '../list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
+import { longText } from '../string-schemas';
 
 const addNoteToOrderInput = z.strictObject({
     id: idSchema.describe('Order ID.'),
-    note: z.string().describe('Note text.'),
+    note: longText.describe('Note text.'),
     isPublic: z
         .boolean()
         .describe('Whether the note is visible to the customer. Defaults to false.')

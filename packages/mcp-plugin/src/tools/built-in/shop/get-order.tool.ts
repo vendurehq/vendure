@@ -5,9 +5,10 @@ import { z } from 'zod';
 
 import { ORDER_DETAIL_RELATIONS } from '../list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
+import { shortText } from '../string-schemas';
 
 const getOrderInput = z.strictObject({
-    code: z.string().describe('Order code.'),
+    code: shortText.describe('Order code.'),
 });
 
 type GetOrderInput = z.infer<typeof getOrderInput>;

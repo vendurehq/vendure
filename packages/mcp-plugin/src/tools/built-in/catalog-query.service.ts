@@ -1,12 +1,19 @@
 import { Injectable } from '@nestjs/common';
+import { PaginatedList } from '@vendure/common/lib/shared-types';
 import {
     ConfigService,
     ID,
+    ListQueryBuilder,
+    ListQueryOptions,
+    Product,
     ProductVariant,
     ProductVariantService,
     RequestContext,
     TransactionalConnection,
+    Translated,
+    TranslatorService,
 } from '@vendure/core';
+import { FindOptionsWhere, IsNull, Raw } from 'typeorm';
 
 @Injectable()
 export class McpCatalogQueryService {
@@ -14,6 +21,8 @@ export class McpCatalogQueryService {
         private connection: TransactionalConnection,
         private configService: ConfigService,
         private productVariantService: ProductVariantService,
+        private listQueryBuilder: ListQueryBuilder,
+        private translator: TranslatorService,
     ) {}
 
     async variantsByProductId(
@@ -46,13 +55,52 @@ export class McpCatalogQueryService {
         return grouped;
     }
 
-    async productIdsInCollection(ctx: RequestContext, collectionId: ID): Promise<string[]> {
-        const rows = await this.variantsInChannel(ctx)
-            .select('DISTINCT variant.productId', 'productId')
-            .innerJoin('variant.collections', 'collection', 'collection.id = :collectionId', { collectionId })
-            .andWhere('variant.enabled = :enabled', { enabled: true })
-            .getRawMany<{ productId: ID }>();
-        return rows.map(row => String(row.productId));
+    /**
+     * Lists products for the Shop API, optionally only those in one collection. Mirrors
+     * `ProductService.findAll`, whose `where` clause is fixed and cannot take the collection filter.
+     */
+    async findPublicProducts(
+        ctx: RequestContext,
+        options: ListQueryOptions<Product>,
+        collectionId?: ID,
+    ): Promise<PaginatedList<Translated<Product>>> {
+        const where: FindOptionsWhere<Product> = { deletedAt: IsNull() };
+        if (collectionId != null) {
+            where.id = this.productIdInCollection(ctx, collectionId);
+        }
+        const [products, totalItems] = await this.listQueryBuilder
+            .build(Product, options, {
+                relations: ['featuredAsset'],
+                channelId: ctx.channelId,
+                where,
+                ctx,
+            })
+            .getManyAndCount();
+        return {
+            items: products.map(product => this.translator.translate(product, ctx)),
+            totalItems,
+        };
+    }
+
+    /**
+     * `product.id IN (subquery)` for products with at least one enabled variant in the collection.
+     * A subquery keeps paging and counting in the list builder's single statement. Parameter names
+     * are prefixed so they cannot clash with the ones the list builder binds.
+     */
+    private productIdInCollection(ctx: RequestContext, collectionId: ID) {
+        const subQuery = this.connection
+            .getRepository(ctx, ProductVariant)
+            .createQueryBuilder('mcpVariant')
+            .select('mcpVariant.productId')
+            .innerJoin('mcpVariant.collections', 'mcpCollection', 'mcpCollection.id = :mcpCollectionId', {
+                mcpCollectionId: collectionId,
+            })
+            .innerJoin('mcpVariant.channels', 'mcpChannel', 'mcpChannel.id = :mcpChannelId', {
+                mcpChannelId: ctx.channelId,
+            })
+            .where('mcpVariant.deletedAt IS NULL')
+            .andWhere('mcpVariant.enabled = :mcpEnabled', { mcpEnabled: true });
+        return Raw(alias => `${alias} IN (${subQuery.getQuery()})`, subQuery.getParameters());
     }
 
     private variantsInChannel(ctx: RequestContext) {

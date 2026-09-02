@@ -7,7 +7,7 @@ import { uploadAssetFromUrl } from '../remote-asset';
 import { McpToolSerializerService } from '../serializer.service';
 
 const uploadAssetInput = z.strictObject({
-    url: z.string().describe('Public HTTP(S) URL of the asset to fetch and store.'),
+    url: z.string().max(2048).describe('Public HTTP(S) URL of the asset to fetch and store.'),
 });
 
 type UploadAssetInput = z.infer<typeof uploadAssetInput>;

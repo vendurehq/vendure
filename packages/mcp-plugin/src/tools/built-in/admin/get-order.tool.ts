@@ -6,11 +6,12 @@ import { z } from 'zod';
 import { idSchema } from '../id-schema';
 import { ORDER_DETAIL_RELATIONS } from '../list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
+import { shortText } from '../string-schemas';
 
 const getOrderInput = z
     .strictObject({
         id: idSchema.describe('Order ID. Pass this or code, not both.').optional(),
-        code: z.string().describe('Order code, used when ID is omitted.').optional(),
+        code: shortText.describe('Order code, used when ID is omitted.').optional(),
     })
     .refine(input => (input.id != null) !== (input.code != null), {
         message: 'Pass exactly one of id or code.',

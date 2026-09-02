@@ -17,8 +17,10 @@ import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { cartIsEditable, McpActiveOrderService } from '../active-order.service';
+import { McpCustomFieldInputService } from '../custom-field-input.service';
 import { emailAddressSchema } from '../email-schema';
 import { McpToolSerializerService } from '../serializer.service';
+import { shortText } from '../string-schemas';
 
 import { addressInputSchema } from './address-schema';
 
@@ -36,8 +38,8 @@ const setCheckoutDetailsInput = z
         customer: z
             .strictObject({
                 emailAddress: emailAddressSchema.describe('Buyer email address.'),
-                firstName: z.string().describe('Buyer first name.'),
-                lastName: z.string().describe('Buyer last name.'),
+                firstName: shortText.describe('Buyer first name.'),
+                lastName: shortText.describe('Buyer last name.'),
             })
             .describe(
                 'Who is buying, for a guest checkout. Not needed when the caller is a signed-in customer.',
@@ -100,6 +102,7 @@ export class SetCheckoutDetailsTool implements McpToolHandler<SetCheckoutDetails
         private activeOrder: McpActiveOrderService,
         private orderService: OrderService,
         private connection: TransactionalConnection,
+        private customFieldInput: McpCustomFieldInputService,
         private serializer: McpToolSerializerService,
         private configService: ConfigService,
     ) {}
@@ -111,6 +114,8 @@ export class SetCheckoutDetailsTool implements McpToolHandler<SetCheckoutDetails
         if (input.customer && ctx.activeUserId) {
             throw new UserInputError('This call is signed in as a customer; omit customer.');
         }
+        await this.customFieldInput.assertWritable(ctx, 'Address', input.shippingAddress?.customFields);
+        await this.customFieldInput.assertWritable(ctx, 'Address', input.billingAddress?.customFields);
         const cart = await this.activeOrder.findOrThrow(ctx);
         if (!cartIsEditable(cart)) {
             return this.serializer.orderOrError(new OrderModificationError());

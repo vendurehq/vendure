@@ -1,15 +1,17 @@
 import { z } from 'zod';
 
+import { shortText } from '../string-schemas';
+
 export const addressInputSchema = z.strictObject({
-    fullName: z.string().optional(),
-    company: z.string().optional(),
-    streetLine1: z.string(),
-    streetLine2: z.string().optional(),
-    city: z.string().optional(),
-    province: z.string().optional(),
-    postalCode: z.string().optional(),
-    countryCode: z.string(),
-    phoneNumber: z.string().optional(),
+    fullName: shortText.optional(),
+    company: shortText.optional(),
+    streetLine1: shortText,
+    streetLine2: shortText.optional(),
+    city: shortText.optional(),
+    province: shortText.optional(),
+    postalCode: shortText.optional(),
+    countryCode: shortText,
+    phoneNumber: shortText.optional(),
     defaultShippingAddress: z.boolean().optional(),
     defaultBillingAddress: z.boolean().optional(),
     customFields: z.looseObject({}).describe('Address custom fields.').optional(),

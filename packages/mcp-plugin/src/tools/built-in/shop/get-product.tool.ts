@@ -5,10 +5,11 @@ import { z } from 'zod';
 
 import { idSchema } from '../id-schema';
 import { McpToolSerializerService } from '../serializer.service';
+import { shortText } from '../string-schemas';
 
 const getProductInput = z.strictObject({
     id: idSchema.describe('Product ID.').optional(),
-    slug: z.string().describe('Product slug, used when ID is omitted.').optional(),
+    slug: shortText.describe('Product slug, used when ID is omitted.').optional(),
 });
 
 type GetProductInput = z.infer<typeof getProductInput>;

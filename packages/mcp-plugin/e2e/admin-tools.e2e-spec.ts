@@ -201,6 +201,13 @@ describe('MCP built-in admin tools (direct mode)', () => {
         rateLimits: { oauthIp: false },
     };
     const config = mergeConfig(testConfig(), {
+        // Two Product custom fields no tool may write: one internal, one read-only.
+        customFields: {
+            Product: [
+                { name: 'internalCode', type: 'string', internal: true },
+                { name: 'lockedCode', type: 'string', readonly: true },
+            ],
+        },
         // `upload_asset` fetches over HTTP, and core's default import strategy refuses hostnames
         // that resolve to private or loopback addresses (its server-side request forgery guard).
         // The fixture server this suite starts is on 127.0.0.1, so the strategy is configured to
@@ -1599,6 +1606,21 @@ describe('MCP built-in admin tools (direct mode)', () => {
         });
     });
 
+    it('refund_order refuses a negative amount', async () => {
+        const token = await adminAccessToken();
+        const { orderId } = await createSettledOrder();
+
+        const response = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool('refund_order', { id: orderId, amount: -5000, confirm: true }, 1),
+            { token },
+        );
+
+        expect(response.body.result.isError).toBe(true);
+        expect(response.body.result.content[0].text).toContain('amount');
+    });
+
     it('create_fulfillment fulfills every line by default, including multi-line orders', async () => {
         const token = await adminAccessToken();
         const { orderId, graphqlId } = await createSettledOrder(1, secondVariantGraphqlId);
@@ -2145,6 +2167,27 @@ describe('MCP built-in admin tools (direct mode)', () => {
             );
         });
 
+        it('update_product refuses a custom field it may not write', async () => {
+            const token = await adminAccessToken();
+            const update = (customFields: Record<string, unknown>, id: number) =>
+                postMcp(
+                    baseUrl(),
+                    'admin',
+                    callTool('update_product', { id: productId, input: { customFields } }, id),
+                    { token },
+                );
+
+            // The plugin refuses internal fields.
+            const internal = await update({ internalCode: 'ops-1' }, 1);
+            expect(internal.body.result.isError).toBe(true);
+            expect(internal.body.result.content[0].text).toContain('internalCode');
+
+            // Core's validator, which the plugin calls, refuses readonly fields.
+            const readonly = await update({ lockedCode: 'locked' }, 2);
+            expect(readonly.body.result.isError).toBe(true);
+            expect(readonly.body.result.content[0].text).toContain('lockedCode');
+        });
+
         it('update_variant writes the new price and SKU', async () => {
             const token = await adminAccessToken();
 
@@ -2216,6 +2259,38 @@ describe('MCP built-in admin tools (direct mode)', () => {
                 .getRepository(adminCtx, ProductVariant)
                 .findOneOrFail({ where: { sku }, relations: ['product'] });
             expect(String(stored.product.id)).toBe(String(emptyProductId));
+        });
+
+        it('create_variant refuses a fractional price and an unknown trackInventory value', async () => {
+            const token = await adminAccessToken();
+            const create = (input: Record<string, unknown>, id: number) =>
+                postMcp(
+                    baseUrl(),
+                    'admin',
+                    callTool(
+                        'create_variant',
+                        {
+                            productId: emptyProductId,
+                            input: {
+                                sku: `MCP-REFUSED-${id}`,
+                                translations: [{ languageCode: 'en', name: 'MCP Refused Variant' }],
+                                ...input,
+                            },
+                        },
+                        id,
+                    ),
+                    { token },
+                );
+
+            // A price is a whole number of minor units, so 19.99 would have been stored as 19.
+            const fractionalPrice = await create({ price: 19.99 }, 1);
+            expect(fractionalPrice.body.result.isError).toBe(true);
+            expect(fractionalPrice.body.result.content[0].text).toContain('price');
+
+            // trackInventory is an enum, so lower case is refused here rather than stored as an unknown value.
+            const wrongCase = await create({ trackInventory: 'true' }, 2);
+            expect(wrongCase.body.result.isError).toBe(true);
+            expect(wrongCase.body.result.content[0].text).toContain('trackInventory');
         });
 
         it('update_product sets the asset list and the featured asset', async () => {

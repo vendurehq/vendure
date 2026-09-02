@@ -1,16 +1,16 @@
 import { LanguageCode } from '@vendure/common/lib/generated-types';
 import { z } from 'zod';
 
-import { enumString } from '../enum-string-schema';
+import { longText, shortText } from '../string-schemas';
 
 export const productTranslationSchema = z.strictObject({
-    languageCode: enumString<LanguageCode>(z.string().describe('Language code, e.g. "en".')),
-    name: z.string().describe('Product name.').optional(),
-    slug: z.string().describe('URL slug.').optional(),
-    description: z.string().describe('Product description.').optional(),
+    languageCode: z.enum(LanguageCode).describe('Language code, e.g. "en".'),
+    name: shortText.describe('Product name.').optional(),
+    slug: shortText.describe('URL slug.').optional(),
+    description: longText.describe('Product description.').optional(),
 });
 
 export const variantTranslationSchema = z.strictObject({
-    languageCode: enumString<LanguageCode>(z.string().describe('Language code, e.g. "en".')),
-    name: z.string().describe('Variant name.').optional(),
+    languageCode: z.enum(LanguageCode).describe('Language code, e.g. "en".'),
+    name: shortText.describe('Variant name.').optional(),
 });

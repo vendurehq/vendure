@@ -15,17 +15,20 @@ import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { idSchema } from '../id-schema';
+import { int32Schema } from '../int32-schema';
 import { McpToolSerializerService } from '../serializer.service';
+import { shortText } from '../string-schemas';
 
 const refundOrderInput = z.strictObject({
     id: idSchema.describe('Order ID.'),
-    amount: z
-        .number()
+    amount: int32Schema
+        .min(1)
         .describe(
-            "Amount to refund in minor units. Defaults to the selected payment's remaining refundable amount.",
+            'Amount to refund as a whole number of minor units. Defaults to the selected ' +
+                "payment's remaining refundable amount.",
         )
         .optional(),
-    reason: z.string().describe('Reason for the refund.').optional(),
+    reason: shortText.describe('Reason for the refund.').optional(),
     paymentId: idSchema
         .describe(
             "Payment to refund; must belong to this order. Defaults to the order's first Settled payment that still has a refundable amount.",

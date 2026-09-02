@@ -14,11 +14,12 @@ import { z } from 'zod';
 
 import { McpOauthGrant } from '../../../entities/mcp-oauth-grant.entity';
 import { McpToolSerializerService } from '../serializer.service';
+import { shortText } from '../string-schemas';
 
 import { userChannelIds } from './channel-access';
 
 const setActiveChannelInput = z.strictObject({
-    channelToken: z.string().describe('Channel token of the channel to activate.'),
+    channelToken: shortText.describe('Channel token of the channel to activate.'),
 });
 
 type SetActiveChannelInput = z.infer<typeof setActiveChannelInput>;

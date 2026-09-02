@@ -3,15 +3,17 @@ import { CustomerService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
+import { McpCustomFieldInputService } from '../custom-field-input.service';
 import { emailAddressSchema } from '../email-schema';
 import { McpToolSerializerService } from '../serializer.service';
+import { shortText } from '../string-schemas';
 
 const customerInputSchema = z.strictObject({
-    firstName: z.string().describe('Customer first name.'),
-    lastName: z.string().describe('Customer last name.'),
+    firstName: shortText.describe('Customer first name.'),
+    lastName: shortText.describe('Customer last name.'),
     emailAddress: emailAddressSchema,
-    phoneNumber: z.string().describe('Customer phone number.').optional(),
-    title: z.string().describe('Customer title, e.g. "Mr" or "Ms".').optional(),
+    phoneNumber: shortText.describe('Customer phone number.').optional(),
+    title: shortText.describe('Customer title, e.g. "Mr" or "Ms".').optional(),
     customFields: z.looseObject({}).describe('Customer custom fields.').optional(),
 });
 
@@ -41,10 +43,12 @@ type CreateCustomerToolInput = z.infer<typeof createCustomerInput>;
 export class CreateCustomerTool implements McpToolHandler<CreateCustomerToolInput> {
     constructor(
         private customerService: CustomerService,
+        private customFieldInput: McpCustomFieldInputService,
         private serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: CreateCustomerToolInput) {
+        await this.customFieldInput.assertWritable(ctx, 'Customer', input.input.customFields);
         return {
             customer: this.serializer.customerFromResult(await this.customerService.create(ctx, input.input)),
         };

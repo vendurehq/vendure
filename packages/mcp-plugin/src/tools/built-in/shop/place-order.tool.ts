@@ -17,9 +17,10 @@ import { z } from 'zod';
 
 import { McpActiveOrderService } from '../active-order.service';
 import { McpToolSerializerService } from '../serializer.service';
+import { shortText } from '../string-schemas';
 
 const placeOrderInput = z.strictObject({
-    paymentMethodCode: z.string().describe('Payment method code.'),
+    paymentMethodCode: shortText.describe('Payment method code.'),
     paymentMetadata: z.looseObject({}).describe('Metadata passed to the payment handler.').optional(),
 });
 

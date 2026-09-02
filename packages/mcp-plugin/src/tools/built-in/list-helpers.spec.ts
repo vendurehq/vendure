@@ -119,6 +119,18 @@ describe('built-in list helpers', () => {
         // A negative offset was clamped to 0 by core while hasMore was still computed from the
         // raw value, so the list claimed there was always another page.
         expect(accepts({ offset: -1 })).toBe(false);
+        // An offset above the GraphQL Int range reached the database as a number it cannot store.
+        expect(accepts({ offset: 2147483647 })).toBe(true);
+        expect(accepts({ offset: 2147483648 })).toBe(false);
+    });
+
+    it('caps the length and the count of the values a string filter carries', () => {
+        const accepts = (input: Record<string, unknown>) => listHelpers.stringFilter.safeParse(input).success;
+        expect(accepts({ contains: 'a'.repeat(255) })).toBe(true);
+        expect(accepts({ contains: 'a'.repeat(256) })).toBe(false);
+        expect(accepts({ eq: 'a'.repeat(256) })).toBe(false);
+        expect(accepts({ in: Array.from({ length: 100 }, () => 'code') })).toBe(true);
+        expect(accepts({ in: Array.from({ length: 101 }, () => 'code') })).toBe(false);
     });
 
     it('requires every search word to match the product name or slug', () => {

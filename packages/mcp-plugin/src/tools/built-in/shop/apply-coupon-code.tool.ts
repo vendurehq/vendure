@@ -5,9 +5,10 @@ import { z } from 'zod';
 
 import { cartIsEditable, McpActiveOrderService } from '../active-order.service';
 import { McpToolSerializerService } from '../serializer.service';
+import { shortText } from '../string-schemas';
 
 const applyCouponCodeInput = z.strictObject({
-    code: z.string().describe('Coupon code.'),
+    code: shortText.describe('Coupon code.'),
 });
 
 type ApplyCouponCodeInput = z.infer<typeof applyCouponCodeInput>;

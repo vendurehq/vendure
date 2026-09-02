@@ -3,7 +3,8 @@ import { Permission, ProductService, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { idSchema } from '../id-schema';
+import { McpCustomFieldInputService } from '../custom-field-input.service';
+import { idSchema, MAX_ID_LIST_LENGTH } from '../id-schema';
 import { McpToolSerializerService } from '../serializer.service';
 
 import { productTranslationSchema } from './translation-schemas';
@@ -16,9 +17,14 @@ const updateProductInputSchema = z.strictObject({
     enabled: z.boolean().describe('Whether the product is enabled.').optional(),
     facetValueIds: z
         .array(idSchema.describe('Vendure ID.'))
+        .max(MAX_ID_LIST_LENGTH)
         .describe('Facet value IDs to assign.')
         .optional(),
-    assetIds: z.array(idSchema.describe('Vendure ID.')).describe('Asset IDs to attach.').optional(),
+    assetIds: z
+        .array(idSchema.describe('Vendure ID.'))
+        .max(MAX_ID_LIST_LENGTH)
+        .describe('Asset IDs to attach.')
+        .optional(),
     featuredAssetId: idSchema.describe('Featured asset ID.').optional(),
     customFields: z.looseObject({}).describe('Product custom fields.').optional(),
 });
@@ -51,10 +57,12 @@ type UpdateProductToolInput = z.infer<typeof updateProductInput>;
 export class UpdateProductTool implements McpToolHandler<UpdateProductToolInput> {
     constructor(
         private productService: ProductService,
+        private customFieldInput: McpCustomFieldInputService,
         private serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: UpdateProductToolInput) {
+        await this.customFieldInput.assertWritable(ctx, 'Product', input.input.customFields);
         return {
             product: this.serializer.product(
                 await this.productService.update(ctx, { ...input.input, id: input.id }),

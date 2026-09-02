@@ -117,6 +117,14 @@ class TestOrderByCodeAccessStrategy implements OrderByCodeAccessStrategy {
 // Eligible only for a US shipping address. The set_checkout_details tests use it to show what
 // core does when a new address makes the chosen shipping method ineligible.
 const US_ONLY_SHIPPING_METHOD_CODE = 'mcp-e2e-us-only';
+/** The address the two Address custom field tests send, so only the custom fields differ. */
+const CUSTOM_FIELD_ADDRESS = {
+    streetLine1: '1 Custom Field Way',
+    city: 'Portland',
+    postalCode: '97201',
+    countryCode: 'US',
+};
+
 const UK_ADDRESS = {
     streetLine1: '10 Downing Street',
     city: 'London',
@@ -133,6 +141,14 @@ const usOnlyShippingChecker = new ShippingEligibilityChecker({
 describe('MCP built-in shop tools', () => {
     const orderByCodeAccessStrategy = new TestOrderByCodeAccessStrategy();
     const config = mergeConfig(testConfig(), {
+        // Three Address custom fields: one a shopper may write, one internal, one admin-only.
+        customFields: {
+            Address: [
+                { name: 'deliveryNote', type: 'string' },
+                { name: 'internalRef', type: 'string', internal: true },
+                { name: 'riskScore', type: 'int', public: false },
+            ],
+        },
         orderOptions: { orderByCodeAccessStrategy },
         shippingOptions: {
             shippingEligibilityCheckers: [defaultShippingEligibilityChecker, usOnlyShippingChecker],
@@ -1224,6 +1240,23 @@ describe('MCP built-in shop tools', () => {
         );
         expect(both.body.result.isError).toBe(true);
         expect(both.body.result.content[0].text).toContain('collectionId or collectionSlug');
+    });
+
+    it('search_products refuses a query with too many words or too many characters', async () => {
+        const search = (query: string, id: number) =>
+            postMcp(baseUrl(), 'shop', callTool('search_products', { query }, id));
+
+        // Every word becomes another set of conditions on the query, so the word count is capped.
+        const tenWords = await search('one two three four five six seven eight nine ten', 1);
+        expect(tenWords.body.result.isError).toBeUndefined();
+        const elevenWords = await search('one two three four five six seven eight nine ten eleven', 2);
+        expect(elevenWords.body.result.isError).toBe(true);
+        expect(elevenWords.body.result.content[0].text).toContain('Use at most 10 words.');
+
+        const atCap = await search('a'.repeat(200), 3);
+        expect(atCap.body.result.isError).toBeUndefined();
+        const overCap = await search('a'.repeat(201), 4);
+        expect(overCap.body.result.isError).toBe(true);
     });
 
     /** Searches for the shirt and returns its list item's price range, in the channel the request names. */
@@ -2429,6 +2462,68 @@ describe('MCP built-in shop tools', () => {
             expect(abroad.body.result.structuredContent.message).toMatch(/no shipping method/);
             expect(abroad.body.result.structuredContent.order.shippingLines).toEqual([]);
             expect(abroad.body.result.structuredContent.order.shippingWithTax).toBe(0);
+        });
+
+        it('set_checkout_details refuses an address custom field a shopper may not write', async () => {
+            const { sessionToken } = await anonymousCart();
+            const call = (customFields: Record<string, unknown>, id: number) =>
+                postMcp(
+                    baseUrl(),
+                    'shop',
+                    callTool(
+                        'set_checkout_details',
+                        { shippingAddress: { ...CUSTOM_FIELD_ADDRESS, customFields } },
+                        id,
+                    ),
+                    { headers: { [AUTH_TOKEN_HEADER]: sessionToken } },
+                );
+
+            const internal = await call({ internalRef: 'ops-1' }, 2);
+            expect(internal.body.result.isError).toBe(true);
+            expect(internal.body.result.content[0].text).toContain('internalRef');
+
+            const adminOnly = await call({ riskScore: 7 }, 3);
+            expect(adminOnly.body.result.isError).toBe(true);
+            expect(adminOnly.body.result.content[0].text).toContain('riskScore');
+        });
+
+        it('set_checkout_details writes a public address custom field the shopper can read back', async () => {
+            const { sessionToken } = await anonymousCart();
+            const written = await postMcp(
+                baseUrl(),
+                'shop',
+                callTool(
+                    'set_checkout_details',
+                    {
+                        shippingAddress: {
+                            ...CUSTOM_FIELD_ADDRESS,
+                            customFields: { deliveryNote: 'Leave with the neighbour' },
+                        },
+                    },
+                    2,
+                ),
+                { headers: { [AUTH_TOKEN_HEADER]: sessionToken } },
+            );
+            expect(written.body.result.isError).toBeUndefined();
+
+            // Read back over the Shop API to prove the value reached the shopper's order, not just the tool's reply.
+            const shopApi = new SimpleGraphQLClient(
+                config,
+                `http://localhost:${config.apiOptions.port}/${config.apiOptions.shopApiPath as string}`,
+            );
+            shopApi.setAuthToken(sessionToken);
+            const { activeOrder } = await shopApi.query(gql`
+                query ActiveOrderShippingCustomFields {
+                    activeOrder {
+                        shippingAddress {
+                            customFields {
+                                deliveryNote
+                            }
+                        }
+                    }
+                }
+            `);
+            expect(activeOrder.shippingAddress.customFields.deliveryNote).toBe('Leave with the neighbour');
         });
 
         it('apply_coupon_code discounts the cart and remove_coupon_code puts the price back', async () => {

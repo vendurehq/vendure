@@ -6,13 +6,14 @@ import { z } from 'zod';
 import { enumString } from '../enum-string-schema';
 import { idSchema } from '../id-schema';
 import { McpToolSerializerService } from '../serializer.service';
+import { shortText } from '../string-schemas';
 
 const updateOrderStateInput = z.strictObject({
     id: idSchema.describe('Order ID.'),
     // The state machine decides whether the target state is legal, so any string is accepted
     // here and checked by the transition call in execute().
     state: enumString<OrderState>(
-        z.string().describe('Target order state, e.g. "PaymentSettled" or "AddingItems".'),
+        shortText.describe('Target order state, e.g. "PaymentSettled" or "AddingItems".'),
     ),
 });
 

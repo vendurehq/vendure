@@ -5,12 +5,13 @@ import { z } from 'zod';
 
 import { idSchema } from '../id-schema';
 import { McpToolSerializerService } from '../serializer.service';
+import { shortText } from '../string-schemas';
 
 import { collectionLookup, findPublicCollection, noCollectionMessage } from './collection-lookup';
 
 const getCollectionInput = z.strictObject({
     id: idSchema.describe('Collection ID.').optional(),
-    slug: z.string().describe('Collection slug, used when ID is omitted.').optional(),
+    slug: shortText.describe('Collection slug, used when ID is omitted.').optional(),
 });
 
 type GetCollectionInput = z.infer<typeof getCollectionInput>;

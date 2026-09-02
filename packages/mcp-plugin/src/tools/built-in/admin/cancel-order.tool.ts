@@ -5,10 +5,11 @@ import { z } from 'zod';
 
 import { idSchema } from '../id-schema';
 import { McpToolSerializerService } from '../serializer.service';
+import { longText } from '../string-schemas';
 
 const cancelOrderInput = z.strictObject({
     id: idSchema.describe('Order ID.'),
-    reason: z.string().describe('Reason for the cancellation.').optional(),
+    reason: longText.describe('Reason for the cancellation.').optional(),
     cancelShipping: z.boolean().describe('Also cancel shipping charges. Defaults to true.').optional(),
 });
 
