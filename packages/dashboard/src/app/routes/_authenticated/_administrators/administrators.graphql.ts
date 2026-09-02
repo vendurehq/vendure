@@ -18,10 +18,6 @@ export const administratorItemFragment = graphql(`
                 updatedAt
                 code
                 description
-                channels {
-                    id
-                    code
-                }
             }
         }
     }
@@ -46,6 +42,23 @@ export const administratorDetailDocument = graphql(
         query AdministratorDetail($id: ID!) {
             administrator(id: $id) {
                 ...AdministratorItem
+                user {
+                    id
+                    roleAssignments {
+                        id
+                        roleId
+                        channelId
+                        role {
+                            id
+                            code
+                            description
+                        }
+                        channel {
+                            id
+                            code
+                        }
+                    }
+                }
                 customFields
             }
         }

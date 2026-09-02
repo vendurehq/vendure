@@ -32,8 +32,8 @@ msgid "Tracking code"
 msgstr "Kod praćenja"
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:113
-msgid "The selected permissions will be applied to the these channels."
-msgstr "Odabrane dozvole će se primijeniti na ove kanale."
+#~ msgid "The selected permissions will be applied to the these channels."
+#~ msgstr "Odabrane dozvole će se primijeniti na ove kanale."
 
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:248
 msgid "Product options"
@@ -48,7 +48,7 @@ msgid "Assign an existing option group or create a new one"
 msgstr "Dodijelite postojeću grupu opcija ili stvorite novu"
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:77
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:76
 msgid "New role"
 msgstr "Nova uloga"
 
@@ -90,7 +90,7 @@ msgstr "Uredi JSON vrijednost"
 msgid "Using external authentication strategy: {strategy}"
 msgstr "Korištenje vanjske strategije autentifikacije: {strategy}"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:225
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:230
 msgid "Select a reason..."
 msgstr "Odaberite razlog..."
 
@@ -153,7 +153,7 @@ msgstr "Obrisano {selectionLength} datoteka"
 msgid "Successfully updated tax rate"
 msgstr "Porezna stopa uspješno ažurirana"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:237
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:242
 msgid "Enter custom reason..."
 msgstr "Unesite prilagođeni razlog..."
 
@@ -241,7 +241,7 @@ msgstr "{fulfilled, plural, one {Uspješno otkazan {fulfilled} zadatak} few {Usp
 msgid "Seller"
 msgstr "Prodavač"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:131
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:136
 msgid "SKU:"
 msgstr "Šifra:"
 
@@ -279,10 +279,10 @@ msgid "Orders"
 msgstr "Narudžbe"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:187
-msgid "Select roles"
-msgstr "Odaberi uloge"
+#~ msgid "Select roles"
+#~ msgstr "Odaberi uloge"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:62
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:61
 msgid "Successfully created role"
 msgstr "Uloga uspješno stvorena"
 
@@ -294,7 +294,7 @@ msgstr "Jeste li sigurni da želite obrisati ovu varijantu?"
 #~ msgid "All resources are up and running"
 #~ msgstr "Svi resursi su aktivni"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:108
 msgid "Failed to create administrator"
 msgstr "Neuspješno kreiranje administratora"
 
@@ -322,7 +322,7 @@ msgstr "Ažuriranje zemlje nije uspjelo"
 msgid "Type at least 2 characters to search..."
 msgstr "Unesite najmanje 2 znaka za pretraživanje..."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:121
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:143
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:182
 #: src/app/routes/_authenticated/_profile/profile.tsx:108
 msgid "Last name"
@@ -388,7 +388,7 @@ msgstr "Stvaranje kanala nije uspjelo"
 msgid "Dev Mode"
 msgstr "Razvojni način"
 
-#: src/app/routes/_authenticated/_roles/roles.tsx:88
+#: src/app/routes/_authenticated/_roles/roles.tsx:68
 msgid "New Role"
 msgstr "Nova uloga"
 
@@ -396,7 +396,7 @@ msgstr "Nova uloga"
 msgid "Failed to delete assets: {message}"
 msgstr "Brisanje datoteka nije uspjelo: {message}"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:105
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:109
 msgid "Return to stock"
 msgstr "Vrati na zalihu"
 
@@ -498,7 +498,7 @@ msgstr "Nadređeni proizvod"
 msgid "City"
 msgstr "Grad"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:37
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:15
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:22
 msgid "Administrators"
@@ -511,6 +511,10 @@ msgstr "Bruto cijena: <0/>"
 #: src/lib/components/data-table/data-table-pagination.tsx:82
 msgid "Go to next page"
 msgstr "Idi na sljedeću stranicu"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:349
+msgid "Add role"
+msgstr "Dodaj ulogu"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:142
 msgid "Remove link"
@@ -597,12 +601,12 @@ msgstr "Dodavanje..."
 msgid "Move Collections"
 msgstr "Premjesti kolekcije"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:139
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:161
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:55
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:170
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:169
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:32
-#: src/app/routes/_authenticated/_roles/roles.tsx:18
-#: src/app/routes/_authenticated/_roles/roles.tsx:27
+#: src/app/routes/_authenticated/_roles/roles.tsx:16
+#: src/app/routes/_authenticated/_roles/roles.tsx:25
 msgid "Roles"
 msgstr "Uloge"
 
@@ -682,7 +686,7 @@ msgstr "Zadana porezna zona"
 msgid "Order draft is ready to be completed"
 msgstr "Nacrt narudžbe je spreman za dovršenje"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:201
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:200
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:245
 msgid "Metadata"
 msgstr "Metapodaci"
@@ -748,7 +752,7 @@ msgid "Complete draft"
 msgstr "Dovrši skicu"
 
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:45
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:165
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:164
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:169
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
@@ -817,7 +821,7 @@ msgid "Show password"
 msgstr "Prikaži lozinku"
 
 #. placeholder {0}: formatCurrency(refund.totalRefundableAmount, order.currencyCode)
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:282
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:287
 msgid "(max: {0})"
 msgstr "(maks: {0})"
 
@@ -848,6 +852,10 @@ msgstr "Unesite napomenu povrata"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:153
 msgid "Order line removed"
 msgstr "Redak narudžbe uklonjen"
+
+#: src/app/routes/_authenticated/_roles/components/role-usage.tsx:81
+#~ msgid "User"
+#~ msgstr "Korisnik"
 
 #: src/lib/components/layout/channel-switcher.tsx:158
 msgid "Content:"
@@ -882,7 +890,6 @@ msgstr "Stvaranje proizvoda nije uspjelo"
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:276
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:233
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:497
-#: src/lib/components/shared/role-code-label.tsx:8
 msgid "Customer"
 msgstr "Kupac"
 
@@ -934,6 +941,11 @@ msgstr "Dodaj ili ukloni vrijednosti svojstava za {0} {entityType}"
 msgid "These are the facet values for the <0>{facetName}</0> facet."
 msgstr "Ovo su vrijednosti svojstava za svojstvo <0>{facetName}</0>."
 
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:174
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:182
+msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself. Assignments you cannot grant are shown locked and are preserved on save."
+msgstr "Ulogu možete dodijeliti na kanalu samo ako i sami imate sva dopuštenja te uloge na njemu. Dodjele koje ne možete dodijeliti prikazuju se zaključane i zadržavaju se pri spremanju."
+
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:49
 msgid "Successfully added payment to order"
 msgstr "Plaćanje uspješno dodano narudžbi"
@@ -946,7 +958,7 @@ msgstr "Adresa za naplatu postavljena za narudžbu"
 msgid "Failed to update zone"
 msgstr "Ažuriranje zone nije uspjelo"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:133
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:155
 #: src/app/routes/_authenticated/_profile/profile.tsx:120
 #: src/app/routes/_authenticated/_profile/profile.tsx:137
 #: src/lib/components/login/login-form.tsx:93
@@ -967,7 +979,7 @@ msgstr "Planirani zadatak će biti izvršen"
 msgid "New stock location"
 msgstr "Nova lokacija zaliha"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:129
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:111
 msgid "Permissions"
 msgstr "Dozvole"
 
@@ -1162,6 +1174,10 @@ msgstr "Postavite adresu dostave i odaberite način dostave"
 msgid "Off"
 msgstr "Isključeno"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:292
+msgid "You cannot change this assignment: you do not hold all of this role's permissions on this channel."
+msgstr "Ne možete promijeniti ovu dodjelu: nemate sva dopuštenja ove uloge na ovom kanalu."
+
 #: src/app/routes/_authenticated/_system/settings-store.tsx:37
 #: src/app/routes/_authenticated/_system/settings-store.tsx:304
 msgid "Settings Store"
@@ -1261,7 +1277,7 @@ msgstr "Stanje plaćanja uspješno ažurirano"
 msgid "Create new"
 msgstr "Stvori novo"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:249
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:254
 msgid "Refund total"
 msgstr "Ukupni povrat"
 
@@ -1271,8 +1287,8 @@ msgid "Address deleted"
 msgstr "Adresa obrisana"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:195
-msgid "Only roles assigned to your account are available."
-msgstr "Dostupne su samo uloge dodijeljene vašem računu."
+#~ msgid "Only roles assigned to your account are available."
+#~ msgstr "Dostupne su samo uloge dodijeljene vašem računu."
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:65
 msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Cancel {cancellableCount} jobs}}"
@@ -1396,7 +1412,7 @@ msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to
 msgstr "{rejected, plural, one {Nije moguće otkazati {rejected} zadatak} few {Nije moguće otkazati {rejected} zadatka} other {Nije moguće otkazati {rejected} zadataka}}"
 
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:111
-#: src/lib/components/shared/channel-selector.tsx:47
+#: src/lib/components/shared/channel-selector.tsx:66
 msgid "Select a channel"
 msgstr "Odaberite kanal"
 
@@ -1456,6 +1472,7 @@ msgid "Use as the default billing address"
 msgstr "Koristi kao zadanu adresu za naplatu"
 
 #: src/app/common/delete-bulk-action.tsx:139
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:71
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:41
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:362
 #: src/lib/components/data-table/use-generated-columns.tsx:407
@@ -1487,6 +1504,10 @@ msgstr "Stvaranje zemlje nije uspjelo"
 msgid "Countries"
 msgstr "Zemlje"
 
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:69
+msgid "Read"
+msgstr "Čitanje"
+
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:124
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:209
 #~ msgid "Failed to create product options"
@@ -1496,7 +1517,7 @@ msgstr "Zemlje"
 msgid "Failed to rename view"
 msgstr "Preimenovanje prikaza nije uspjelo"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:306
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:311
 msgid "Available"
 msgstr "Dostupno"
 
@@ -1540,7 +1561,7 @@ msgstr "Učitavanje globalnih postavki..."
 msgid "Address updated successfully"
 msgstr "Adresa uspješno ažurirana"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:234
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:124
 #: src/lib/components/shared/asset/asset-gallery.tsx:747
 #: src/lib/framework/layout-engine/page-layout.tsx:733
@@ -1588,7 +1609,7 @@ msgstr "Idi na posljednju stranicu"
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:168
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:311
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx:352
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:358
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:363
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:71
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:273
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:498
@@ -1662,6 +1683,10 @@ msgstr "Obriši varijantu"
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx:249
 msgid "No modifications made"
 msgstr "Nisu napravljene izmjene"
+
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:183
+msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
+msgstr "Što ovaj administrator može raditi na odabranom kanalu, izvedeno iz gore dodijeljenih uloga. Uredite uloge da biste to promijenili."
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:222
 msgid "Default shipping zone"
@@ -1769,8 +1794,9 @@ msgstr "Ažuriranje porezne kategorije nije uspjelo"
 msgid "Refund settled successfully"
 msgstr "Povrat uspješno izvršen"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:127
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:70
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:154
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
@@ -1789,7 +1815,7 @@ msgstr "Povrat uspješno izvršen"
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:219
 #: src/app/routes/_authenticated/_profile/profile.tsx:92
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:86
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:96
@@ -1865,7 +1891,7 @@ msgstr "Dupliciraj"
 msgid "No results"
 msgstr "Nema rezultata"
 
-#: src/lib/components/data-table/data-table-view-options.tsx:89
+#: src/lib/components/data-table/data-table-view-options.tsx:95
 msgid "Column settings"
 msgstr "Postavke stupaca"
 
@@ -1876,7 +1902,7 @@ msgstr "Postavke stupaca"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:208
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:176
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:164
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:100
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:102
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:154
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:61
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:98
@@ -1951,7 +1977,7 @@ msgstr "Proširenje dokumenta upita nije uspjelo"
 msgid "Failed to update note"
 msgstr "Ažuriranje bilješke nije uspjelo"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:201
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:206
 msgid "Refund shipping"
 msgstr "Povrat dostave"
 
@@ -1991,7 +2017,7 @@ msgstr "Tema"
 msgid "{0} customers"
 msgstr "{0} kupaca"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:48
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:43
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:14
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:25
 msgid "API Keys"
@@ -2004,6 +2030,10 @@ msgstr "Odaberite jezik"
 #: src/lib/components/layout/nav-user.tsx:164
 msgid "Log out"
 msgstr "Odjava"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:332
+msgid "Remove role"
+msgstr "Ukloni ulogu"
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts:50
@@ -2462,6 +2492,11 @@ msgstr "Kupac postavljen za narudžbu"
 msgid "Facets"
 msgstr "Svojstva"
 
+#. placeholder {0}: grantingRoles(permission.name) .map(role => role.description || role.code) .join(', ')
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:98
+msgid "Granted by {0}"
+msgstr "Dodijeljeno: {0}"
+
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:293
 msgid "Stock on Hand"
 msgstr "Zaliha na skladištu"
@@ -2479,8 +2514,8 @@ msgstr "Adresa za dostavu"
 msgid "New zone"
 msgstr "Nova zona"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:49
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:136
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:44
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:139
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:79
 msgid "New API Key"
 msgstr "Novi API ključ"
@@ -2492,6 +2527,10 @@ msgstr "Obriši stupac"
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:157
 msgid "Assign existing"
 msgstr "Dodijeli postojeće"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:229
+msgid "Role"
+msgstr "Uloga"
 
 #: src/lib/components/data-table/filters/data-table-enum-filter.tsx:19
 #: src/lib/components/data-table/human-readable-operator.tsx:36
@@ -2595,6 +2634,10 @@ msgstr "Primijenjen prikaz \"{viewName}\""
 msgid "Successfully removed {successCount} facets from channel"
 msgstr "Uspješno uklonjeno {successCount} svojstava iz kanala"
 
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:191
+msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
+msgstr "Što ovaj API ključ može raditi na odabranom kanalu, izvedeno iz gore dodijeljenih uloga. Uredite uloge da biste to promijenili."
+
 #: src/app/routes/_authenticated/_products/products.tsx:117
 msgid "New Product"
 msgstr "Novi proizvod"
@@ -2643,7 +2686,7 @@ msgstr "Molimo odaberite ciljnu kolekciju"
 msgid "Review the changes before applying them to the order."
 msgstr "Pregledajte izmjene prije njihove primjene na narudžbu."
 
-#: src/lib/components/shared/role-selector.tsx:52
+#: src/lib/components/shared/role-selector.tsx:35
 msgid "Select a role"
 msgstr "Odaberite uloga"
 
@@ -2693,7 +2736,7 @@ msgstr "Kanal"
 #~ msgstr "Provjere zdravlja"
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:170
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:317
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:322
 msgid "Amount"
 msgstr "Iznos"
 
@@ -2708,11 +2751,11 @@ msgid "New customer"
 msgstr "Novi kupac"
 
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:33
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:90
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:94
 msgid "Image"
 msgstr "Slika"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:77
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:99
 msgid "Successfully created administrator"
 msgstr "Administrator uspješno kreiran"
 
@@ -2784,8 +2827,9 @@ msgstr "Ukupni povrat premašuje maksimalni iznos za povrat od {0}"
 msgid "Delete Global View"
 msgstr "Obriši globalni prikaz"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:127
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:68
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:154
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
@@ -2799,7 +2843,7 @@ msgstr "Obriši globalni prikaz"
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:219
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:86
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:96
@@ -2893,7 +2937,7 @@ msgstr "Zamjenska vrijednost: {value}"
 msgid "Order history"
 msgstr "Povijest narudžbe"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:263
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:268
 msgid "Override"
 msgstr "Premosti"
 
@@ -3005,7 +3049,7 @@ msgstr "Nova zona"
 msgid "Failed to update collection position"
 msgstr "Nije uspjelo ažurirati poziciju kolekcije"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:102
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:106
 msgid "Refund"
 msgstr "Povrat"
 
@@ -3013,6 +3057,10 @@ msgstr "Povrat"
 #: src/app/routes/_authenticated/_orders/utils/order-detail-loaders.tsx:78
 msgid "Modify"
 msgstr "Izmijeni"
+
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:77
+msgid "Effective permissions on"
+msgstr "Efektivne dozvole na"
 
 #: src/lib/components/layout/manage-languages-dialog.tsx:337
 msgid "No global languages configured"
@@ -3066,7 +3114,7 @@ msgstr "Nova promocija"
 msgid "Option value name"
 msgstr "Naziv vrijednosti opcije"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:214
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:218
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:46
 msgid "Last used"
 msgstr "Zadnji put korišteno"
@@ -3142,6 +3190,10 @@ msgstr "Uključuje porez od {taxRate}%"
 msgid "Order metrics"
 msgstr "Metrike narudžbi"
 
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:184
+#~ msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
+#~ msgstr "Ulogu na kanalu možete dodijeliti samo ako sami imate sve dozvole te uloge."
+
 #: src/lib/components/layout/language-dialog.tsx:49
 msgid "Select display language"
 msgstr "Odaberite jezik prikaza"
@@ -3162,8 +3214,7 @@ msgstr "Rotiranje API ključa nije uspjelo"
 msgid "in"
 msgstr "u"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:188
-#: src/lib/components/shared/role-selector.tsx:53
+#: src/lib/components/shared/role-selector.tsx:36
 msgid "Search roles..."
 msgstr "Pretraži uloge..."
 
@@ -3181,7 +3232,7 @@ msgstr "Varijante proizvoda"
 msgid "Manage Global Views"
 msgstr "Upravljaj globalnim prikazima"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:365
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:370
 msgid "Processing..."
 msgstr "Obrada..."
 
@@ -3196,7 +3247,7 @@ msgstr "Odaberite razdoblje"
 
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:87
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:44
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:93
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:97
 msgid "Product"
 msgstr "Proizvod"
 
@@ -3275,12 +3326,12 @@ msgstr "Ukupno narudžbi"
 msgid "No eligible shipping methods found for this order."
 msgstr "Nisu pronađeni prihvatljivi načini dostave za ovu narudžbu."
 
-#: src/app/routes/_authenticated/_products/components/product-options-table.tsx:118
+#: src/app/routes/_authenticated/_products/components/product-options-table.tsx:126
 msgid "Add product option"
 msgstr "Dodaj opciju proizvoda"
 
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:66
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:189
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:194
 #: src/app/routes/_authenticated/_orders/orders.tsx:85
 msgid "Shipping"
 msgstr "Dostava"
@@ -3292,6 +3343,10 @@ msgstr "useWidgetDimensions mora se koristiti unutar DashboardBaseWidget"
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:493
 msgid "This option group is in use by existing variants. Force removing it may affect those variants. Are you sure?"
 msgstr "Ova grupa opcija koristi se u postojećim varijantama. Prisilno uklanjanje može utjecati na te varijante. Jeste li sigurni?"
+
+#: src/app/routes/_authenticated/_roles/components/role-usage.tsx:58
+#~ msgid "This role is not assigned to any user"
+#~ msgstr "Ova uloga nije dodijeljena nijednom korisniku"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:63
 msgid "Email update requested"
@@ -3313,7 +3368,7 @@ msgstr "Novi prozor"
 msgid "Payment authorized"
 msgstr "Plaćanje autorizirano"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:62
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:61
 msgid "Successfully updated role"
 msgstr "Uloga uspješno ažurirana"
 
@@ -3398,12 +3453,12 @@ msgstr "nije jednako"
 msgid "Settle payment"
 msgstr "Izvrši plaćanje"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:232
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:38
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:216
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:343
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:111
 #: src/lib/components/layout/channel-switcher.tsx:146
 msgid "Channels"
 msgstr "Kanali"
@@ -3614,6 +3669,10 @@ msgstr "Novi kanal"
 msgid "Option Group Name"
 msgstr "Naziv grupe opcija"
 
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:166
+msgid "The assigned roles grant no permissions on this channel."
+msgstr "Dodijeljene uloge ne daju nikakve dozvole na ovom kanalu."
+
 #: src/lib/components/data-input/combination-mode-input.tsx:46
 msgid "AND"
 msgstr "I"
@@ -3622,7 +3681,7 @@ msgstr "I"
 msgid "Failed to create customer group"
 msgstr "Stvaranje grupe kupaca nije uspjelo"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:69
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:68
 msgid "Failed to create role"
 msgstr "Stvaranje uloge nije uspjelo"
 
@@ -3664,7 +3723,7 @@ msgid "Add option group"
 msgstr "Dodaj grupu opcija"
 
 #. placeholder {0}: formatCurrency(refund.amountToRefundTotal, order.currencyCode)
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:367
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:372
 msgid "Refund {0}"
 msgstr "Povrat {0}"
 
@@ -3689,7 +3748,7 @@ msgstr "Plaćanje uspješno otkazano"
 msgid "Global view duplicated successfully"
 msgstr "Globalni prikaz uspješno dupliciran"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:210
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:212
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:66
 msgid "Created by"
 msgstr "Kreirao"
@@ -3702,7 +3761,7 @@ msgstr "Filtriraj varijante..."
 msgid "Add a price in another currency"
 msgstr "Dodaj cijenu u drugoj valuti"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:127
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:149
 #: src/app/routes/_authenticated/_profile/profile.tsx:114
 msgid "Email Address or identifier"
 msgstr "Adresa e-pošte ili identifikator"
@@ -3797,7 +3856,7 @@ msgstr "Razina zaliha"
 msgid "Add item"
 msgstr "Dodaj stavku"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:108
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:111
 msgid "Successfully created API key"
 msgstr "API ključ uspješno stvoren"
 
@@ -3823,7 +3882,7 @@ msgstr "Ukloni grupu opcija"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:262
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:174
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:94
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:96
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:162
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:114
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:112
@@ -3868,6 +3927,10 @@ msgstr "Ovaj tjedan"
 #~ msgid "Successfully created product option group"
 #~ msgstr "Grupa opcija proizvoda uspješno stvorena"
 
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:54
+#~ msgid "Permissions on"
+#~ msgstr ""
+
 #. placeholder {0}: formatCurrency(outstandingAmount, currencyCode)
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:130
 msgid "Add a manual payment of {0}"
@@ -3881,7 +3944,7 @@ msgstr "je u"
 msgid "Email"
 msgstr "E-pošta"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:108
 msgid "Failed to update administrator"
 msgstr "Neuspješno ažuriranje administratora"
 
@@ -3910,7 +3973,7 @@ msgctxt "theme"
 msgid "Light"
 msgstr "Svijetla"
 
-#: src/lib/components/data-table/data-table-view-options.tsx:120
+#: src/lib/components/data-table/data-table-view-options.tsx:130
 msgid "Reset"
 msgstr "Resetiraj"
 
@@ -4087,7 +4150,7 @@ msgstr "Ukupno narudžba"
 msgid "Visible to admins only"
 msgstr "Vidljivo samo administratorima"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:99
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:103
 msgid "Qty"
 msgstr "Kol."
 
@@ -4197,7 +4260,7 @@ msgstr "Stvaranje zone nije uspjelo"
 msgid "Stock levels"
 msgstr "Razine zaliha"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:121
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:123
 msgid "Failed to update API key"
 msgstr "Ažuriranje API ključa nije uspjelo"
 
@@ -4206,7 +4269,7 @@ msgid "{title}"
 msgstr "{title}"
 
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:244
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:83
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:87
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:178
 msgid "Order lines"
 msgstr "Redci narudžbe"
@@ -4229,13 +4292,17 @@ msgstr "Potreban je povrat novca u iznosu {formattedDiff}. Odaberite iznose pla�
 
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:100
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:57
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:96
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:100
 msgid "Unit price"
 msgstr "Jedinična cijena"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:129
 msgid "Schedule Pattern"
 msgstr "Uzorak rasporeda"
+
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:224
+msgid "Show granted only"
+msgstr "Prikaži samo dodijeljene"
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx:67
 msgid "Payment failed"
@@ -4249,7 +4316,7 @@ msgstr "Dodaj kanal"
 #~ msgid "Failed to update product option group"
 #~ msgstr "Neuspješno ažuriranje grupe opcija proizvoda"
 
-#: src/lib/components/shared/channel-selector.tsx:48
+#: src/lib/components/shared/channel-selector.tsx:67
 msgid "Search channels..."
 msgstr "Pretraži kanale..."
 
@@ -4385,11 +4452,15 @@ msgstr "Nova grupa opcija"
 #~ msgid "Last updated {0}"
 #~ msgstr "Posljednje ažurirano {0}"
 
+#: src/app/routes/_authenticated/_roles/components/role-usage.tsx:107
+#~ msgid "Showing the first {0} of {totalItems} assignments"
+#~ msgstr "Prikazano prvih {0} od {totalItems} dodjela"
+
 #: src/lib/components/data-table/views-sheet.tsx:141
 msgid "No global views have been created yet."
 msgstr "Još nisu stvoreni globalni prikazi."
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:69
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:68
 msgid "Failed to update role"
 msgstr "Ažuriranje uloge nije uspjelo"
 
@@ -4425,7 +4496,7 @@ msgstr "Upravljaj oznakama"
 msgid "Coupon code removed from order"
 msgstr "Kod kupona uklonjen s narudžbe"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:221
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:227
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:50
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:142
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:152
@@ -4672,7 +4743,7 @@ msgstr "Izvršenje #{0} stvoreno"
 msgid "Running pending search index updates"
 msgstr "Pokretanje preostalih ažuriranja indeksa pretrage"
 
-#: src/app/routes/_authenticated/_roles/roles.tsx:53
+#: src/app/routes/_authenticated/_roles/roles.tsx:50
 msgid "This is a default Role and cannot be modified"
 msgstr "Ovo je zadana uloga i ne može se mijenjati"
 
@@ -4715,6 +4786,10 @@ msgstr "Zaliha na skladištu"
 #: src/lib/components/data-table/data-table-filter-dialog.tsx:55
 msgid "Filter by {columnId}"
 msgstr "Filtriraj po {columnId}"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:260
+msgid "Locked role"
+msgstr "Zaključana uloga"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:108
 msgid "ID"
@@ -4798,7 +4873,7 @@ msgstr "Dobrodošli u Vendure"
 msgid "Shipping Methods"
 msgstr "Načini dostave"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:144
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:149
 msgid "({maxRefundable} refundable)"
 msgstr "({maxRefundable} povratno)"
 
@@ -4941,7 +5016,7 @@ msgstr "Porezne stope"
 msgid "Failed to load global settings"
 msgstr "Učitavanje globalnih postavki nije uspjelo"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:75
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:79
 msgid "Select items to refund and optionally return to stock"
 msgstr "Odaberite stavke za povrat i po želji vratite na zalihu"
 
@@ -5094,7 +5169,7 @@ msgstr "Spremi grupu opcija"
 msgid "Click \"Run Test\" to test this shipping method."
 msgstr "Kliknite \"Pokreni test\" za testiranje ovog načina dostave."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:78
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:100
 msgid "Successfully updated administrator"
 msgstr "Administrator uspješno ažuriran"
 
@@ -5224,7 +5299,7 @@ msgstr "Nove vrijednosti svojstava za dodavanje:"
 msgid "Failed to process refund"
 msgstr "Nije uspjelo obraditi povrat"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:115
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:137
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:176
 #: src/app/routes/_authenticated/_profile/profile.tsx:102
 msgid "First name"
@@ -5301,7 +5376,7 @@ msgid "Duplicate value \"{trimmed}\" already exists"
 msgstr "Duplicirana vrijednost \"{trimmed}\" već postoji"
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:233
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:217
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:222
 msgid "Reason"
 msgstr "Razlog"
 
@@ -5362,6 +5437,10 @@ msgstr "Video"
 msgid "less than"
 msgstr "manje od"
 
+#: src/lib/components/shared/role-code-label.tsx:8
+msgid "Role Editor"
+msgstr "Uređivač uloga"
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:123
 msgid "The variant could not be added. Ensure the parent product is enabled."
 msgstr "Varijanta se ne može dodati. Provjerite je li nadređeni proizvod omogućen."
@@ -5382,7 +5461,7 @@ msgstr "Jezik"
 msgid "New Collection"
 msgstr "Nova kolekcija"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:72
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:76
 msgid "Refund and cancel order"
 msgstr "Povrat i otkazivanje narudžbe"
 
@@ -5419,8 +5498,8 @@ msgstr "Uspješno dodijeljeno {entityIdsLength} {entityType} kanalu"
 msgid "Global Languages"
 msgstr "Globalni jezici"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:97
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:39
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:119
 msgid "New administrator"
 msgstr "Novi administrator"
 
@@ -5647,6 +5726,10 @@ msgstr "Ažuriranje svojstva nije uspjelo"
 msgid "useWidgetFilters must be used within a WidgetFiltersProvider"
 msgstr "useWidgetFilters mora se koristiti unutar WidgetFiltersProvider"
 
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:224
+msgid "Show all permissions"
+msgstr "Prikaži sve dozvole"
+
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx:129
 msgid "Edit Address"
 msgstr "Uredi adresu"
@@ -5687,6 +5770,10 @@ msgstr "Postavlja razinu zaliha pri kojoj se ova varijanta smatra rasprodanom. K
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:255
 #~ msgid "Create product options"
 #~ msgstr "Stvori opcije proizvoda"
+
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:119
+#~ msgid "Used by"
+#~ msgstr "Koriste je"
 
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx:206
 #: src/lib/components/layout/manage-languages-dialog.tsx:382
@@ -5885,7 +5972,7 @@ msgstr "Nisu pronađene adrese"
 msgid "Fulfillment ID"
 msgstr "ID izvršenja"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:290
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:295
 msgid "Select payments to refund"
 msgstr "Odaberite plaćanja za povrat"
 
@@ -5905,7 +5992,7 @@ msgstr "Prag zaliha"
 msgid "Failed to update value"
 msgstr "Ažuriranje vrijednosti nije uspjelo"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:121
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:123
 msgid "Failed to create API key"
 msgstr "Stvaranje API ključa nije uspjelo"
 
@@ -5958,6 +6045,10 @@ msgstr "Opcija"
 msgid "Order process"
 msgstr "Proces narudžbe"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:343
+msgid "No roles assigned"
+msgstr "Nema dodijeljenih uloga"
+
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:194
 msgid "Phone number"
 msgstr "Telefonski broj"
@@ -5975,7 +6066,7 @@ msgstr "Varijanta"
 msgid "Successfully updated global settings"
 msgstr "Globalne postavke uspješno ažurirane"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:115
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:118
 msgid "Successfully updated API key"
 msgstr "API ključ uspješno ažuriran"
 

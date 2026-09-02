@@ -32,8 +32,8 @@ msgid "Tracking code"
 msgstr "Trackingcode"
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:113
-msgid "The selected permissions will be applied to the these channels."
-msgstr "De geselecteerde rechten worden toegepast op deze kanalen."
+#~ msgid "The selected permissions will be applied to the these channels."
+#~ msgstr "De geselecteerde rechten worden toegepast op deze kanalen."
 
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:248
 msgid "Product options"
@@ -48,7 +48,7 @@ msgid "Assign an existing option group or create a new one"
 msgstr "Een bestaande optiegroep toewijzen of een nieuwe aanmaken"
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:77
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:76
 msgid "New role"
 msgstr "Nieuwe rol"
 
@@ -90,7 +90,7 @@ msgstr "JSON-waarde bewerken"
 msgid "Using external authentication strategy: {strategy}"
 msgstr "Externe authenticatiestrategie gebruiken: {strategy}"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:225
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:230
 msgid "Select a reason..."
 msgstr "Selecteer een reden..."
 
@@ -153,7 +153,7 @@ msgstr "{selectionLength} bestanden verwijderd"
 msgid "Successfully updated tax rate"
 msgstr "Belastingtarief succesvol bijgewerkt"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:237
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:242
 msgid "Enter custom reason..."
 msgstr "Voer een aangepaste reden in..."
 
@@ -241,7 +241,7 @@ msgstr "{fulfilled, plural, one {{fulfilled} taak succesvol geannuleerd} other {
 msgid "Seller"
 msgstr "Verkoper"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:131
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:136
 msgid "SKU:"
 msgstr "SKU:"
 
@@ -279,10 +279,10 @@ msgid "Orders"
 msgstr "Bestellingen"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:187
-msgid "Select roles"
-msgstr "Rollen selecteren"
+#~ msgid "Select roles"
+#~ msgstr "Rollen selecteren"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:62
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:61
 msgid "Successfully created role"
 msgstr "Rol succesvol aangemaakt"
 
@@ -294,7 +294,7 @@ msgstr "Weet u zeker dat u deze variant wilt verwijderen?"
 #~ msgid "All resources are up and running"
 #~ msgstr "Alle resources zijn operationeel"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:108
 msgid "Failed to create administrator"
 msgstr "Aanmaken van beheerder mislukt"
 
@@ -322,7 +322,7 @@ msgstr "Land bijwerken mislukt"
 msgid "Type at least 2 characters to search..."
 msgstr "Typ minstens 2 tekens om te zoeken..."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:121
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:143
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:182
 #: src/app/routes/_authenticated/_profile/profile.tsx:108
 msgid "Last name"
@@ -388,7 +388,7 @@ msgstr "Kanaal aanmaken mislukt"
 msgid "Dev Mode"
 msgstr "Ontwikkelaarsmodus"
 
-#: src/app/routes/_authenticated/_roles/roles.tsx:88
+#: src/app/routes/_authenticated/_roles/roles.tsx:68
 msgid "New Role"
 msgstr "Nieuwe rol"
 
@@ -396,7 +396,7 @@ msgstr "Nieuwe rol"
 msgid "Failed to delete assets: {message}"
 msgstr "Bestanden verwijderen mislukt: {message}"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:105
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:109
 msgid "Return to stock"
 msgstr "Terugbrengen naar voorraad"
 
@@ -498,7 +498,7 @@ msgstr "Hoofdproduct"
 msgid "City"
 msgstr "Plaats"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:37
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:15
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:22
 msgid "Administrators"
@@ -511,6 +511,10 @@ msgstr "Brutoprijs: <0/>"
 #: src/lib/components/data-table/data-table-pagination.tsx:82
 msgid "Go to next page"
 msgstr "Ga naar volgende pagina"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:349
+msgid "Add role"
+msgstr "Rol toevoegen"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:142
 msgid "Remove link"
@@ -597,12 +601,12 @@ msgstr "Toevoegen..."
 msgid "Move Collections"
 msgstr "Collecties verplaatsen"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:139
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:161
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:55
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:170
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:169
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:32
-#: src/app/routes/_authenticated/_roles/roles.tsx:18
-#: src/app/routes/_authenticated/_roles/roles.tsx:27
+#: src/app/routes/_authenticated/_roles/roles.tsx:16
+#: src/app/routes/_authenticated/_roles/roles.tsx:25
 msgid "Roles"
 msgstr "Rollen"
 
@@ -682,7 +686,7 @@ msgstr "Standaard belastingzone"
 msgid "Order draft is ready to be completed"
 msgstr "Conceptbestelling is klaar om te worden voltooid"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:201
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:200
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:245
 msgid "Metadata"
 msgstr "Metadata"
@@ -748,7 +752,7 @@ msgid "Complete draft"
 msgstr "Concept voltooien"
 
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:45
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:165
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:164
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:169
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
@@ -817,7 +821,7 @@ msgid "Show password"
 msgstr "Wachtwoord tonen"
 
 #. placeholder {0}: formatCurrency(refund.totalRefundableAmount, order.currencyCode)
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:282
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:287
 msgid "(max: {0})"
 msgstr "(max: {0})"
 
@@ -848,6 +852,10 @@ msgstr "Voer terugbetalingsnotitie in"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:153
 msgid "Order line removed"
 msgstr "Bestelregel verwijderd"
+
+#: src/app/routes/_authenticated/_roles/components/role-usage.tsx:81
+#~ msgid "User"
+#~ msgstr "Gebruiker"
 
 #: src/lib/components/layout/channel-switcher.tsx:158
 msgid "Content:"
@@ -886,7 +894,6 @@ msgstr "Product aanmaken mislukt"
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:276
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:233
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:497
-#: src/lib/components/shared/role-code-label.tsx:8
 msgid "Customer"
 msgstr "Klant"
 
@@ -938,6 +945,11 @@ msgstr "Facetwaarden toevoegen of verwijderen voor {0} {entityType}"
 msgid "These are the facet values for the <0>{facetName}</0> facet."
 msgstr "Dit zijn de facetwaarden voor het facet <0>{facetName}</0>."
 
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:174
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:182
+msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself. Assignments you cannot grant are shown locked and are preserved on save."
+msgstr "Je kunt een rol alleen toekennen op een kanaal waar je zelf alle rechten van die rol hebt. Toewijzingen die je niet kunt toekennen worden vergrendeld weergegeven en blijven behouden bij het opslaan."
+
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:49
 msgid "Successfully added payment to order"
 msgstr "Betaling succesvol toegevoegd aan bestelling"
@@ -950,7 +962,7 @@ msgstr "Factuuradres ingesteld voor bestelling"
 msgid "Failed to update zone"
 msgstr "Zone bijwerken mislukt"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:133
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:155
 #: src/app/routes/_authenticated/_profile/profile.tsx:120
 #: src/app/routes/_authenticated/_profile/profile.tsx:137
 #: src/lib/components/login/login-form.tsx:93
@@ -971,7 +983,7 @@ msgstr "Geplande taak wordt uitgevoerd"
 msgid "New stock location"
 msgstr "Nieuwe voorraadlocatie"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:129
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:111
 msgid "Permissions"
 msgstr "Rechten"
 
@@ -1166,6 +1178,10 @@ msgstr "Stel een verzendadres in en selecteer een verzendmethode"
 msgid "Off"
 msgstr "Uit"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:292
+msgid "You cannot change this assignment: you do not hold all of this role's permissions on this channel."
+msgstr "Je kunt deze toewijzing niet wijzigen: je beschikt niet over alle rechten van deze rol op dit kanaal."
+
 #: src/app/routes/_authenticated/_system/settings-store.tsx:37
 #: src/app/routes/_authenticated/_system/settings-store.tsx:304
 msgid "Settings Store"
@@ -1265,7 +1281,7 @@ msgstr "Betalingsstatus succesvol bijgewerkt"
 msgid "Create new"
 msgstr "Nieuw aanmaken"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:249
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:254
 msgid "Refund total"
 msgstr "Totaal restitutie"
 
@@ -1275,8 +1291,8 @@ msgid "Address deleted"
 msgstr "Adres verwijderd"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:195
-msgid "Only roles assigned to your account are available."
-msgstr "Alleen rollen die aan uw account zijn toegewezen zijn beschikbaar."
+#~ msgid "Only roles assigned to your account are available."
+#~ msgstr "Alleen rollen die aan uw account zijn toegewezen zijn beschikbaar."
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:65
 msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Cancel {cancellableCount} jobs}}"
@@ -1400,7 +1416,7 @@ msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to
 msgstr "{rejected, plural, one {{rejected} taak kon niet worden geannuleerd} other {{rejected} taken konden niet worden geannuleerd}}"
 
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:111
-#: src/lib/components/shared/channel-selector.tsx:47
+#: src/lib/components/shared/channel-selector.tsx:66
 msgid "Select a channel"
 msgstr "Selecteer een kanaal"
 
@@ -1460,6 +1476,7 @@ msgid "Use as the default billing address"
 msgstr "Gebruiken als standaard factuuradres"
 
 #: src/app/common/delete-bulk-action.tsx:139
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:71
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:41
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:362
 #: src/lib/components/data-table/use-generated-columns.tsx:407
@@ -1491,6 +1508,10 @@ msgstr "Land aanmaken mislukt"
 msgid "Countries"
 msgstr "Landen"
 
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:69
+msgid "Read"
+msgstr "Lezen"
+
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:124
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:209
 #~ msgid "Failed to create product options"
@@ -1500,7 +1521,7 @@ msgstr "Landen"
 msgid "Failed to rename view"
 msgstr "Weergave hernoemen mislukt"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:306
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:311
 msgid "Available"
 msgstr "Beschikbaar"
 
@@ -1544,7 +1565,7 @@ msgstr "Globale instellingen laden..."
 msgid "Address updated successfully"
 msgstr "Adres succesvol bijgewerkt"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:234
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:124
 #: src/lib/components/shared/asset/asset-gallery.tsx:747
 #: src/lib/framework/layout-engine/page-layout.tsx:733
@@ -1592,7 +1613,7 @@ msgstr "Ga naar laatste pagina"
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:168
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:311
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx:352
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:358
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:363
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:71
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:273
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:498
@@ -1666,6 +1687,10 @@ msgstr "Variant verwijderen"
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx:249
 msgid "No modifications made"
 msgstr "Geen wijzigingen aangebracht"
+
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:183
+msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
+msgstr "Wat deze beheerder kan doen op het geselecteerde kanaal, afgeleid van de hierboven toegewezen rollen. Bewerk de rollen om dit te wijzigen."
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:222
 msgid "Default shipping zone"
@@ -1773,8 +1798,9 @@ msgstr "Belastingcategorie bijwerken mislukt"
 msgid "Refund settled successfully"
 msgstr "Terugbetaling succesvol afgehandeld"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:127
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:70
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:154
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
@@ -1793,7 +1819,7 @@ msgstr "Terugbetaling succesvol afgehandeld"
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:219
 #: src/app/routes/_authenticated/_profile/profile.tsx:92
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:86
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:96
@@ -1863,7 +1889,7 @@ msgstr "Dupliceren"
 msgid "No results"
 msgstr "Geen resultaten"
 
-#: src/lib/components/data-table/data-table-view-options.tsx:89
+#: src/lib/components/data-table/data-table-view-options.tsx:95
 msgid "Column settings"
 msgstr "Kolominstellingen"
 
@@ -1874,7 +1900,7 @@ msgstr "Kolominstellingen"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:208
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:176
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:164
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:100
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:102
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:154
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:61
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:98
@@ -1949,7 +1975,7 @@ msgstr "Kon query document niet uitbreiden"
 msgid "Failed to update note"
 msgstr "Notitie bijwerken mislukt"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:201
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:206
 msgid "Refund shipping"
 msgstr "Verzendkosten restitueren"
 
@@ -1989,7 +2015,7 @@ msgstr "Thema"
 msgid "{0} customers"
 msgstr "{0} klanten"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:48
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:43
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:14
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:25
 msgid "API Keys"
@@ -2002,6 +2028,10 @@ msgstr "Selecteer een taal"
 #: src/lib/components/layout/nav-user.tsx:164
 msgid "Log out"
 msgstr "Uitloggen"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:332
+msgid "Remove role"
+msgstr "Rol verwijderen"
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts:50
@@ -2460,6 +2490,11 @@ msgstr "Klant ingesteld voor bestelling"
 msgid "Facets"
 msgstr "Facetten"
 
+#. placeholder {0}: grantingRoles(permission.name) .map(role => role.description || role.code) .join(', ')
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:98
+msgid "Granted by {0}"
+msgstr "Verleend door {0}"
+
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:293
 msgid "Stock on Hand"
 msgstr "Voorraad op voorraad"
@@ -2477,8 +2512,8 @@ msgstr "Verzendadres"
 msgid "New zone"
 msgstr "Nieuwe zone"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:49
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:136
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:44
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:139
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:79
 msgid "New API Key"
 msgstr "Nieuwe API Key"
@@ -2490,6 +2525,10 @@ msgstr "Kolom verwijderen"
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:157
 msgid "Assign existing"
 msgstr "Bestaande toewijzen"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:229
+msgid "Role"
+msgstr "Rol"
 
 #: src/lib/components/data-table/filters/data-table-enum-filter.tsx:19
 #: src/lib/components/data-table/human-readable-operator.tsx:36
@@ -2589,6 +2628,10 @@ msgstr "Weergave „{viewName}\" toegepast"
 msgid "Successfully removed {successCount} facets from channel"
 msgstr "{successCount} facetten succesvol verwijderd uit kanaal"
 
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:191
+msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
+msgstr "Wat deze API-sleutel kan doen op het geselecteerde kanaal, afgeleid van de hierboven toegewezen rollen. Bewerk de rollen om dit te wijzigen."
+
 #: src/app/routes/_authenticated/_products/products.tsx:117
 msgid "New Product"
 msgstr "Nieuw product"
@@ -2637,7 +2680,7 @@ msgstr "Selecteer een doelcollectie"
 msgid "Review the changes before applying them to the order."
 msgstr "Bekijk de wijzigingen voordat u ze toepast op de bestelling."
 
-#: src/lib/components/shared/role-selector.tsx:52
+#: src/lib/components/shared/role-selector.tsx:35
 msgid "Select a role"
 msgstr "Selecteer een rol"
 
@@ -2687,7 +2730,7 @@ msgstr "Kanaal"
 #~ msgstr "Statuscontroles"
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:170
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:317
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:322
 msgid "Amount"
 msgstr "Bedrag"
 
@@ -2702,11 +2745,11 @@ msgid "New customer"
 msgstr "Nieuwe klant"
 
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:33
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:90
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:94
 msgid "Image"
 msgstr "Afbeelding"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:77
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:99
 msgid "Successfully created administrator"
 msgstr "Beheerder succesvol aangemaakt"
 
@@ -2778,8 +2821,9 @@ msgstr "Restitutietotaal overschrijdt het maximaal restitueerbare bedrag van {0}
 msgid "Delete Global View"
 msgstr "Globale weergave verwijderen"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:127
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:68
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:154
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
@@ -2793,7 +2837,7 @@ msgstr "Globale weergave verwijderen"
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:219
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:86
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:96
@@ -2887,7 +2931,7 @@ msgstr "Fallback: {value}"
 msgid "Order history"
 msgstr "Bestelgeschiedenis"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:263
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:268
 msgid "Override"
 msgstr "Overschrijven"
 
@@ -2999,7 +3043,7 @@ msgstr "Nieuwe zone"
 msgid "Failed to update collection position"
 msgstr "Bijwerken van collectiepositie mislukt"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:102
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:106
 msgid "Refund"
 msgstr "Restitutie"
 
@@ -3007,6 +3051,10 @@ msgstr "Restitutie"
 #: src/app/routes/_authenticated/_orders/utils/order-detail-loaders.tsx:78
 msgid "Modify"
 msgstr "Wijzigen"
+
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:77
+msgid "Effective permissions on"
+msgstr "Effectieve rechten op"
 
 #: src/lib/components/layout/manage-languages-dialog.tsx:337
 msgid "No global languages configured"
@@ -3060,7 +3108,7 @@ msgstr "Nieuwe promotie"
 msgid "Option value name"
 msgstr "Naam optiewaarde"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:214
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:218
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:46
 msgid "Last used"
 msgstr "Laatst gebruikt"
@@ -3136,6 +3184,10 @@ msgstr "Inclusief {taxRate}% belasting"
 msgid "Order metrics"
 msgstr "Bestelstatistieken"
 
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:184
+#~ msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
+#~ msgstr "U kunt een rol alleen verlenen op een kanaal waar u zelf alle rechten van die rol bezit."
+
 #: src/lib/components/layout/language-dialog.tsx:49
 msgid "Select display language"
 msgstr "Selecteer weergavetaal"
@@ -3156,8 +3208,7 @@ msgstr "Roteren van API Key mislukt"
 msgid "in"
 msgstr "in"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:188
-#: src/lib/components/shared/role-selector.tsx:53
+#: src/lib/components/shared/role-selector.tsx:36
 msgid "Search roles..."
 msgstr "Rollen zoeken..."
 
@@ -3175,7 +3226,7 @@ msgstr "Productvarianten"
 msgid "Manage Global Views"
 msgstr "Globale weergaven beheren"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:365
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:370
 msgid "Processing..."
 msgstr "Bezig met verwerken..."
 
@@ -3190,7 +3241,7 @@ msgstr "Datumbereik selecteren"
 
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:87
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:44
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:93
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:97
 msgid "Product"
 msgstr "Product"
 
@@ -3269,12 +3320,12 @@ msgstr "Totaal bestellingen"
 msgid "No eligible shipping methods found for this order."
 msgstr "Geen geschikte verzendmethoden gevonden voor deze bestelling."
 
-#: src/app/routes/_authenticated/_products/components/product-options-table.tsx:118
+#: src/app/routes/_authenticated/_products/components/product-options-table.tsx:126
 msgid "Add product option"
 msgstr "Productoptie toevoegen"
 
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:66
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:189
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:194
 #: src/app/routes/_authenticated/_orders/orders.tsx:85
 msgid "Shipping"
 msgstr "Verzending"
@@ -3286,6 +3337,10 @@ msgstr "useWidgetDimensions moet binnen een DashboardBaseWidget worden gebruikt"
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:493
 msgid "This option group is in use by existing variants. Force removing it may affect those variants. Are you sure?"
 msgstr "Deze optiegroep wordt gebruikt door bestaande varianten. Geforceerd verwijderen kan deze varianten beïnvloeden. Weet u het zeker?"
+
+#: src/app/routes/_authenticated/_roles/components/role-usage.tsx:58
+#~ msgid "This role is not assigned to any user"
+#~ msgstr "Deze rol is aan geen enkele gebruiker toegewezen"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:63
 msgid "Email update requested"
@@ -3307,7 +3362,7 @@ msgstr "Nieuw venster"
 msgid "Payment authorized"
 msgstr "Betaling geautoriseerd"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:62
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:61
 msgid "Successfully updated role"
 msgstr "Rol succesvol bijgewerkt"
 
@@ -3392,12 +3447,12 @@ msgstr "is niet gelijk aan"
 msgid "Settle payment"
 msgstr "Betaling afhandelen"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:232
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:38
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:216
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:343
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:111
 #: src/lib/components/layout/channel-switcher.tsx:146
 msgid "Channels"
 msgstr "Kanalen"
@@ -3605,6 +3660,10 @@ msgstr "Nieuw kanaal"
 msgid "Option Group Name"
 msgstr "Naam optiegroep"
 
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:166
+msgid "The assigned roles grant no permissions on this channel."
+msgstr "De toegewezen rollen verlenen geen rechten op dit kanaal."
+
 #: src/lib/components/data-input/combination-mode-input.tsx:46
 msgid "AND"
 msgstr "EN"
@@ -3613,7 +3672,7 @@ msgstr "EN"
 msgid "Failed to create customer group"
 msgstr "Klantengroep aanmaken mislukt"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:69
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:68
 msgid "Failed to create role"
 msgstr "Rol aanmaken mislukt"
 
@@ -3655,7 +3714,7 @@ msgid "Add option group"
 msgstr "Optiegroep toevoegen"
 
 #. placeholder {0}: formatCurrency(refund.amountToRefundTotal, order.currencyCode)
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:367
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:372
 msgid "Refund {0}"
 msgstr "Restitutie {0}"
 
@@ -3680,7 +3739,7 @@ msgstr "Betaling succesvol geannuleerd"
 msgid "Global view duplicated successfully"
 msgstr "Globale weergave succesvol gedupliceerd"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:210
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:212
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:66
 msgid "Created by"
 msgstr "Aangemaakt door"
@@ -3693,7 +3752,7 @@ msgstr "Varianten filteren..."
 msgid "Add a price in another currency"
 msgstr "Prijs in een andere valuta toevoegen"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:127
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:149
 #: src/app/routes/_authenticated/_profile/profile.tsx:114
 msgid "Email Address or identifier"
 msgstr "E-mailadres of identificatie"
@@ -3788,7 +3847,7 @@ msgstr "Voorraadniveau"
 msgid "Add item"
 msgstr "Item toevoegen"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:108
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:111
 msgid "Successfully created API key"
 msgstr "API Key succesvol aangemaakt"
 
@@ -3814,7 +3873,7 @@ msgstr "Optiegroep verwijderen"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:262
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:174
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:94
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:96
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:162
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:114
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:112
@@ -3859,6 +3918,10 @@ msgstr "Deze week"
 #~ msgid "Successfully created product option group"
 #~ msgstr "Productoptiegroep succesvol aangemaakt"
 
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:54
+#~ msgid "Permissions on"
+#~ msgstr ""
+
 #. placeholder {0}: formatCurrency(outstandingAmount, currencyCode)
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:130
 msgid "Add a manual payment of {0}"
@@ -3872,7 +3935,7 @@ msgstr "is in"
 msgid "Email"
 msgstr "E-mail"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:108
 msgid "Failed to update administrator"
 msgstr "Bijwerken van beheerder mislukt"
 
@@ -3901,7 +3964,7 @@ msgctxt "theme"
 msgid "Light"
 msgstr "Licht"
 
-#: src/lib/components/data-table/data-table-view-options.tsx:120
+#: src/lib/components/data-table/data-table-view-options.tsx:130
 msgid "Reset"
 msgstr "Resetten"
 
@@ -4078,7 +4141,7 @@ msgstr "Besteltotaal"
 msgid "Visible to admins only"
 msgstr "Alleen zichtbaar voor beheerders"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:99
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:103
 msgid "Qty"
 msgstr "Aantal"
 
@@ -4188,7 +4251,7 @@ msgstr "Zone aanmaken mislukt"
 msgid "Stock levels"
 msgstr "Voorraadniveaus"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:121
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:123
 msgid "Failed to update API key"
 msgstr "Bijwerken van API Key mislukt"
 
@@ -4197,7 +4260,7 @@ msgid "{title}"
 msgstr "{title}"
 
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:244
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:83
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:87
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:178
 msgid "Order lines"
 msgstr "Bestelregels"
@@ -4220,13 +4283,17 @@ msgstr "Een terugbetaling van {formattedDiff} is vereist. Selecteer betalingsbed
 
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:100
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:57
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:96
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:100
 msgid "Unit price"
 msgstr "Stukprijs"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:129
 msgid "Schedule Pattern"
 msgstr "Planningspatroon"
+
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:224
+msgid "Show granted only"
+msgstr "Alleen verleende tonen"
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx:67
 msgid "Payment failed"
@@ -4240,7 +4307,7 @@ msgstr "Kanaal toevoegen"
 #~ msgid "Failed to update product option group"
 #~ msgstr "Bijwerken van productoptiegroep mislukt"
 
-#: src/lib/components/shared/channel-selector.tsx:48
+#: src/lib/components/shared/channel-selector.tsx:67
 msgid "Search channels..."
 msgstr "Kanalen zoeken..."
 
@@ -4376,11 +4443,15 @@ msgstr "Nieuwe optiegroep"
 #~ msgid "Last updated {0}"
 #~ msgstr "Laatst bijgewerkt {0}"
 
+#: src/app/routes/_authenticated/_roles/components/role-usage.tsx:107
+#~ msgid "Showing the first {0} of {totalItems} assignments"
+#~ msgstr "De eerste {0} van {totalItems} toewijzingen worden getoond"
+
 #: src/lib/components/data-table/views-sheet.tsx:141
 msgid "No global views have been created yet."
 msgstr "Er zijn nog geen globale weergaven aangemaakt."
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:69
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:68
 msgid "Failed to update role"
 msgstr "Rol bijwerken mislukt"
 
@@ -4416,7 +4487,7 @@ msgstr "Tags beheren"
 msgid "Coupon code removed from order"
 msgstr "Couponcode verwijderd van bestelling"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:221
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:227
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:50
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:142
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:152
@@ -4663,7 +4734,7 @@ msgstr "Afhandeling #{0} aangemaakt"
 msgid "Running pending search index updates"
 msgstr "Wachtende zoekindex-updates worden uitgevoerd"
 
-#: src/app/routes/_authenticated/_roles/roles.tsx:53
+#: src/app/routes/_authenticated/_roles/roles.tsx:50
 msgid "This is a default Role and cannot be modified"
 msgstr "Dit is een standaardrol en kan niet worden gewijzigd"
 
@@ -4710,6 +4781,10 @@ msgstr "Voorraad op voorraad"
 #: src/lib/components/data-table/data-table-filter-dialog.tsx:55
 msgid "Filter by {columnId}"
 msgstr "Filteren op {columnId}"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:260
+msgid "Locked role"
+msgstr "Vergrendelde rol"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:108
 msgid "ID"
@@ -4793,7 +4868,7 @@ msgstr "Welkom bij Vendure"
 msgid "Shipping Methods"
 msgstr "Verzendmethoden"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:144
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:149
 msgid "({maxRefundable} refundable)"
 msgstr "({maxRefundable} restitueerbaar)"
 
@@ -4936,7 +5011,7 @@ msgstr "Belastingtarieven"
 msgid "Failed to load global settings"
 msgstr "Globale instellingen laden mislukt"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:75
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:79
 msgid "Select items to refund and optionally return to stock"
 msgstr "Selecteer artikelen om te restitueren en optioneel terug te brengen naar voorraad"
 
@@ -5089,7 +5164,7 @@ msgstr "Optiegroep opslaan"
 msgid "Click \"Run Test\" to test this shipping method."
 msgstr "Klik op \"Test uitvoeren\" om deze verzendmethode te testen."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:78
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:100
 msgid "Successfully updated administrator"
 msgstr "Beheerder succesvol bijgewerkt"
 
@@ -5219,7 +5294,7 @@ msgstr "Nieuwe facetwaarden om toe te voegen:"
 msgid "Failed to process refund"
 msgstr "Verwerking van restitutie mislukt"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:115
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:137
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:176
 #: src/app/routes/_authenticated/_profile/profile.tsx:102
 msgid "First name"
@@ -5296,7 +5371,7 @@ msgid "Duplicate value \"{trimmed}\" already exists"
 msgstr "Dubbele waarde \"{trimmed}\" bestaat al"
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:233
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:217
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:222
 msgid "Reason"
 msgstr "Reden"
 
@@ -5357,6 +5432,10 @@ msgstr "Video"
 msgid "less than"
 msgstr "kleiner dan"
 
+#: src/lib/components/shared/role-code-label.tsx:8
+msgid "Role Editor"
+msgstr "Rollen-editor"
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:123
 msgid "The variant could not be added. Ensure the parent product is enabled."
 msgstr "De variant kon niet worden toegevoegd. Controleer of het hoofdproduct is ingeschakeld."
@@ -5377,7 +5456,7 @@ msgstr "Taal"
 msgid "New Collection"
 msgstr "Nieuwe collectie"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:72
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:76
 msgid "Refund and cancel order"
 msgstr "Bestelling restitueren en annuleren"
 
@@ -5414,8 +5493,8 @@ msgstr "{entityIdsLength} {entityType} succesvol toegewezen aan kanaal"
 msgid "Global Languages"
 msgstr "Globale talen"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:97
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:39
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:119
 msgid "New administrator"
 msgstr "Nieuwe beheerder"
 
@@ -5642,6 +5721,10 @@ msgstr "Facet bijwerken mislukt"
 msgid "useWidgetFilters must be used within a WidgetFiltersProvider"
 msgstr "useWidgetFilters moet binnen een WidgetFiltersProvider worden gebruikt"
 
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:224
+msgid "Show all permissions"
+msgstr "Alle rechten tonen"
+
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx:129
 msgid "Edit Address"
 msgstr "Adres bewerken"
@@ -5682,6 +5765,10 @@ msgstr "Stelt het voorraadniveau in waarbij deze variant als uitverkocht wordt b
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:255
 #~ msgid "Create product options"
 #~ msgstr "Productopties aanmaken"
+
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:119
+#~ msgid "Used by"
+#~ msgstr "Gebruikt door"
 
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx:206
 #: src/lib/components/layout/manage-languages-dialog.tsx:382
@@ -5880,7 +5967,7 @@ msgstr "Geen adressen gevonden"
 msgid "Fulfillment ID"
 msgstr "Afhandelings-ID"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:290
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:295
 msgid "Select payments to refund"
 msgstr "Selecteer betalingen om te restitueren"
 
@@ -5900,7 +5987,7 @@ msgstr "Uitverkocht-drempelwaarde"
 msgid "Failed to update value"
 msgstr "Bijwerken van waarde mislukt"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:121
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:123
 msgid "Failed to create API key"
 msgstr "Aanmaken van API Key mislukt"
 
@@ -5953,6 +6040,10 @@ msgstr "Optie"
 msgid "Order process"
 msgstr "Bestelproces"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:343
+msgid "No roles assigned"
+msgstr "Geen rollen toegewezen"
+
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:194
 msgid "Phone number"
 msgstr "Telefoonnummer"
@@ -5970,7 +6061,7 @@ msgstr "Variant"
 msgid "Successfully updated global settings"
 msgstr "Globale instellingen succesvol bijgewerkt"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:115
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:118
 msgid "Successfully updated API key"
 msgstr "API Key succesvol bijgewerkt"
 

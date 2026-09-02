@@ -13,6 +13,7 @@ import { AdministratorService } from '../../services/administrator.service';
 import { ChannelService } from '../../services/channel.service';
 import { CustomerService } from '../../services/customer.service';
 import { HistoryService } from '../../services/history.service';
+import { RoleAssignmentService } from '../../services/role-assignment.service';
 import { RoleService } from '../../services/role.service';
 
 /**
@@ -26,6 +27,7 @@ import { RoleService } from '../../services/role.service';
 export class ExternalAuthenticationService {
     constructor(
         private connection: TransactionalConnection,
+        private roleAssignmentService: RoleAssignmentService,
         private roleService: RoleService,
         private historyService: HistoryService,
         private customerService: CustomerService,
@@ -121,10 +123,10 @@ export class ExternalAuthenticationService {
             }
             user = existingUser;
         } else {
-            const customerRole = await this.roleService.getCustomerRole(ctx);
+            // The Customer role's permissions derive from the Customer's channel
+            // memberships at permission-resolution time — no role bookkeeping needed.
             user = new User({
                 identifier: config.emailAddress,
-                roles: [customerRole],
                 verified: config.verified || false,
                 authenticationMethods: [],
             });
@@ -197,7 +199,6 @@ export class ExternalAuthenticationService {
     ) {
         const newUser = new User({
             identifier: config.identifier,
-            roles: config.roles,
             verified: true,
         });
 
@@ -210,6 +211,24 @@ export class ExternalAuthenticationService {
 
         newUser.authenticationMethods = [authMethod];
         const savedUser = await this.connection.getRepository(ctx, User).save(newUser);
+        // The given Roles are granted on the active Channel.
+        // TODO(OSS-300): align with the final grant vocabulary once the `roleIds` decision lands.
+        await this.roleAssignmentService.replaceUserAssignmentsOnChannel(
+            ctx,
+            savedUser.id,
+            config.roles.map(role => role.id),
+            ctx.channelId,
+        );
+        // Like AdministratorService.create, every Administrator is granted the RoleEditor
+        // role on creation — here on the active Channel, the channel scope of the grants
+        // above.
+        const roleEditorRole = await this.roleService.getRoleEditorRole(ctx);
+        await this.roleAssignmentService.assignRoleOnChannel(
+            ctx,
+            savedUser.id,
+            roleEditorRole.id,
+            ctx.channelId,
+        );
 
         const administrator = await this.connection.getRepository(ctx, Administrator).save(
             new Administrator({

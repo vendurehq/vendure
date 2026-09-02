@@ -32,8 +32,8 @@ msgid "Tracking code"
 msgstr "追跡コード"
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:113
-msgid "The selected permissions will be applied to the these channels."
-msgstr "選択された権限がこれらのチャネルに適用されます。"
+#~ msgid "The selected permissions will be applied to the these channels."
+#~ msgstr "選択された権限がこれらのチャネルに適用されます。"
 
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:248
 msgid "Product options"
@@ -48,7 +48,7 @@ msgid "Assign an existing option group or create a new one"
 msgstr "既存のオプショングループを割り当てるか、新しいグループを作成します"
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:77
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:76
 msgid "New role"
 msgstr "新しいロール"
 
@@ -90,7 +90,7 @@ msgstr "JSON 値を編集"
 msgid "Using external authentication strategy: {strategy}"
 msgstr "外部認証戦略を使用：{strategy}"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:225
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:230
 msgid "Select a reason..."
 msgstr "理由を選択..."
 
@@ -153,7 +153,7 @@ msgstr "{selectionLength}個のアセットを削除しました"
 msgid "Successfully updated tax rate"
 msgstr "税率を更新しました"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:237
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:242
 msgid "Enter custom reason..."
 msgstr "カスタム理由を入力..."
 
@@ -241,7 +241,7 @@ msgstr "{fulfilled, plural, other {{fulfilled} 件のジョブをキャンセル
 msgid "Seller"
 msgstr "販売者"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:131
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:136
 msgid "SKU:"
 msgstr "SKU:"
 
@@ -279,10 +279,10 @@ msgid "Orders"
 msgstr "注文"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:187
-msgid "Select roles"
-msgstr "ロールを選択"
+#~ msgid "Select roles"
+#~ msgstr "ロールを選択"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:62
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:61
 msgid "Successfully created role"
 msgstr "ロールを作成しました"
 
@@ -294,7 +294,7 @@ msgstr "このバリエーションを削除してもよろしいですか？"
 #~ msgid "All resources are up and running"
 #~ msgstr "すべてのリソースが稼働中です"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:108
 msgid "Failed to create administrator"
 msgstr "管理者の作成に失敗しました"
 
@@ -322,7 +322,7 @@ msgstr "国の更新に失敗しました"
 msgid "Type at least 2 characters to search..."
 msgstr "検索するには少なくとも2文字を入力してください..."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:121
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:143
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:182
 #: src/app/routes/_authenticated/_profile/profile.tsx:108
 msgid "Last name"
@@ -388,7 +388,7 @@ msgstr "チャネルの作成に失敗しました"
 msgid "Dev Mode"
 msgstr "開発モード"
 
-#: src/app/routes/_authenticated/_roles/roles.tsx:88
+#: src/app/routes/_authenticated/_roles/roles.tsx:68
 msgid "New Role"
 msgstr "新しいロール"
 
@@ -396,7 +396,7 @@ msgstr "新しいロール"
 msgid "Failed to delete assets: {message}"
 msgstr "アセットの削除に失敗しました：{message}"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:105
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:109
 msgid "Return to stock"
 msgstr "在庫に戻す"
 
@@ -498,7 +498,7 @@ msgstr "親商品"
 msgid "City"
 msgstr "市区町村"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:37
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:15
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:22
 msgid "Administrators"
@@ -511,6 +511,10 @@ msgstr "総額：<0/>"
 #: src/lib/components/data-table/data-table-pagination.tsx:82
 msgid "Go to next page"
 msgstr "次のページへ"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:349
+msgid "Add role"
+msgstr "ロールを追加"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:142
 msgid "Remove link"
@@ -597,12 +601,12 @@ msgstr "追加中..."
 msgid "Move Collections"
 msgstr "コレクションを移動"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:139
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:161
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:55
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:170
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:169
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:32
-#: src/app/routes/_authenticated/_roles/roles.tsx:18
-#: src/app/routes/_authenticated/_roles/roles.tsx:27
+#: src/app/routes/_authenticated/_roles/roles.tsx:16
+#: src/app/routes/_authenticated/_roles/roles.tsx:25
 msgid "Roles"
 msgstr "ロール"
 
@@ -682,7 +686,7 @@ msgstr "デフォルト税ゾーン"
 msgid "Order draft is ready to be completed"
 msgstr "注文の下書きは完了準備ができています"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:201
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:200
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:245
 msgid "Metadata"
 msgstr "メタデータ"
@@ -748,7 +752,7 @@ msgid "Complete draft"
 msgstr "下書きを完了"
 
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:45
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:165
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:164
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:169
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
@@ -817,7 +821,7 @@ msgid "Show password"
 msgstr "パスワードを表示"
 
 #. placeholder {0}: formatCurrency(refund.totalRefundableAmount, order.currencyCode)
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:282
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:287
 msgid "(max: {0})"
 msgstr "(最大: {0})"
 
@@ -848,6 +852,10 @@ msgstr "返金メモを入力"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:153
 msgid "Order line removed"
 msgstr "注文ラインを削除しました"
+
+#: src/app/routes/_authenticated/_roles/components/role-usage.tsx:81
+#~ msgid "User"
+#~ msgstr "ユーザー"
 
 #: src/lib/components/layout/channel-switcher.tsx:158
 msgid "Content:"
@@ -882,7 +890,6 @@ msgstr "商品の作成に失敗しました"
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:276
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:233
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:497
-#: src/lib/components/shared/role-code-label.tsx:8
 msgid "Customer"
 msgstr "顧客"
 
@@ -934,6 +941,11 @@ msgstr "{0}{entityType}のファセット値を追加または削除"
 msgid "These are the facet values for the <0>{facetName}</0> facet."
 msgstr "<0>{facetName}</0>ファセットのファセット値です。"
 
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:174
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:182
+msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself. Assignments you cannot grant are shown locked and are preserved on save."
+msgstr "ロールを付与できるのは、そのロールのすべての権限を自分自身が保持しているチャネルのみです。付与できない割り当てはロックされて表示され、保存時に保持されます。"
+
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:49
 msgid "Successfully added payment to order"
 msgstr "注文に支払いを追加しました"
@@ -946,7 +958,7 @@ msgstr "注文の請求先住所が設定されました"
 msgid "Failed to update zone"
 msgstr "ゾーンの更新に失敗しました"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:133
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:155
 #: src/app/routes/_authenticated/_profile/profile.tsx:120
 #: src/app/routes/_authenticated/_profile/profile.tsx:137
 #: src/lib/components/login/login-form.tsx:93
@@ -967,7 +979,7 @@ msgstr "スケジュールされたタスクが実行されます"
 msgid "New stock location"
 msgstr "新しい在庫ロケーション"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:129
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:111
 msgid "Permissions"
 msgstr "権限"
 
@@ -1162,6 +1174,10 @@ msgstr "配送先住所を設定し、配送方法を選択してください"
 msgid "Off"
 msgstr "オフ"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:292
+msgid "You cannot change this assignment: you do not hold all of this role's permissions on this channel."
+msgstr "この割り当ては変更できません。このチャネルでこのロールのすべての権限を保持していません。"
+
 #: src/app/routes/_authenticated/_system/settings-store.tsx:37
 #: src/app/routes/_authenticated/_system/settings-store.tsx:304
 msgid "Settings Store"
@@ -1261,7 +1277,7 @@ msgstr "支払い状態を更新しました"
 msgid "Create new"
 msgstr "新規作成"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:249
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:254
 msgid "Refund total"
 msgstr "返金合計"
 
@@ -1271,8 +1287,8 @@ msgid "Address deleted"
 msgstr "住所を削除しました"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:195
-msgid "Only roles assigned to your account are available."
-msgstr "アカウントに割り当てられたロールのみ使用可能です。"
+#~ msgid "Only roles assigned to your account are available."
+#~ msgstr "アカウントに割り当てられたロールのみ使用可能です。"
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:65
 msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Cancel {cancellableCount} jobs}}"
@@ -1396,7 +1412,7 @@ msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to
 msgstr "{rejected, plural, other {{rejected} 件のジョブのキャンセルに失敗しました}}"
 
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:111
-#: src/lib/components/shared/channel-selector.tsx:47
+#: src/lib/components/shared/channel-selector.tsx:66
 msgid "Select a channel"
 msgstr "チャネルを選択"
 
@@ -1456,6 +1472,7 @@ msgid "Use as the default billing address"
 msgstr "デフォルトの請求先住所として使用"
 
 #: src/app/common/delete-bulk-action.tsx:139
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:71
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:41
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:362
 #: src/lib/components/data-table/use-generated-columns.tsx:407
@@ -1487,6 +1504,10 @@ msgstr "国の作成に失敗しました"
 msgid "Countries"
 msgstr "国"
 
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:69
+msgid "Read"
+msgstr "読み取り"
+
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:124
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:209
 #~ msgid "Failed to create product options"
@@ -1496,7 +1517,7 @@ msgstr "国"
 msgid "Failed to rename view"
 msgstr "ビューの名前変更に失敗しました"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:306
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:311
 msgid "Available"
 msgstr "利用可能"
 
@@ -1540,7 +1561,7 @@ msgstr "グローバル設定を読み込み中..."
 msgid "Address updated successfully"
 msgstr "住所を更新しました"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:234
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:124
 #: src/lib/components/shared/asset/asset-gallery.tsx:747
 #: src/lib/framework/layout-engine/page-layout.tsx:733
@@ -1588,7 +1609,7 @@ msgstr "最後のページへ"
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:168
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:311
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx:352
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:358
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:363
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:71
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:273
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:498
@@ -1662,6 +1683,10 @@ msgstr "バリエーションを削除"
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx:249
 msgid "No modifications made"
 msgstr "変更は行われませんでした"
+
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:183
+msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
+msgstr "選択したチャネルでこの管理者ができること。上で割り当てられたロールから導出されます。変更するにはロールを編集してください。"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:222
 msgid "Default shipping zone"
@@ -1769,8 +1794,9 @@ msgstr "税カテゴリの更新に失敗しました"
 msgid "Refund settled successfully"
 msgstr "返金を決済しました"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:127
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:70
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:154
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
@@ -1789,7 +1815,7 @@ msgstr "返金を決済しました"
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:219
 #: src/app/routes/_authenticated/_profile/profile.tsx:92
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:86
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:96
@@ -1865,7 +1891,7 @@ msgstr "複製"
 msgid "No results"
 msgstr "結果なし"
 
-#: src/lib/components/data-table/data-table-view-options.tsx:89
+#: src/lib/components/data-table/data-table-view-options.tsx:95
 msgid "Column settings"
 msgstr "列の設定"
 
@@ -1876,7 +1902,7 @@ msgstr "列の設定"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:208
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:176
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:164
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:100
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:102
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:154
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:61
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:98
@@ -1951,7 +1977,7 @@ msgstr "クエリドキュメントの拡張に失敗しました"
 msgid "Failed to update note"
 msgstr "メモの更新に失敗しました"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:201
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:206
 msgid "Refund shipping"
 msgstr "送料を返金"
 
@@ -1991,7 +2017,7 @@ msgstr "テーマ"
 msgid "{0} customers"
 msgstr "{0} 人の顧客"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:48
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:43
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:14
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:25
 msgid "API Keys"
@@ -2004,6 +2030,10 @@ msgstr "言語を選択"
 #: src/lib/components/layout/nav-user.tsx:164
 msgid "Log out"
 msgstr "ログアウト"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:332
+msgid "Remove role"
+msgstr "ロールを削除"
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts:50
@@ -2462,6 +2492,11 @@ msgstr "注文に顧客を設定しました"
 msgid "Facets"
 msgstr "ファセット"
 
+#. placeholder {0}: grantingRoles(permission.name) .map(role => role.description || role.code) .join(', ')
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:98
+msgid "Granted by {0}"
+msgstr "付与元: {0}"
+
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:293
 msgid "Stock on Hand"
 msgstr "手持ち在庫"
@@ -2479,8 +2514,8 @@ msgstr "配送先住所"
 msgid "New zone"
 msgstr "新しいゾーン"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:49
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:136
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:44
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:139
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:79
 msgid "New API Key"
 msgstr "新しい API Key"
@@ -2492,6 +2527,10 @@ msgstr "列を削除"
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:157
 msgid "Assign existing"
 msgstr "既存を割り当て"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:229
+msgid "Role"
+msgstr "ロール"
 
 #: src/lib/components/data-table/filters/data-table-enum-filter.tsx:19
 #: src/lib/components/data-table/human-readable-operator.tsx:36
@@ -2595,6 +2634,10 @@ msgstr "ビュー「{viewName}」を適用しました"
 msgid "Successfully removed {successCount} facets from channel"
 msgstr "チャネルから{successCount}個のファセットを削除しました"
 
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:191
+msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
+msgstr "選択したチャネルでこの API キーができること。上で割り当てられたロールから導出されます。変更するにはロールを編集してください。"
+
 #: src/app/routes/_authenticated/_products/products.tsx:117
 msgid "New Product"
 msgstr "新しい商品"
@@ -2643,7 +2686,7 @@ msgstr "ターゲットコレクションを選択してください"
 msgid "Review the changes before applying them to the order."
 msgstr "注文に適用する前に変更を確認してください。"
 
-#: src/lib/components/shared/role-selector.tsx:52
+#: src/lib/components/shared/role-selector.tsx:35
 msgid "Select a role"
 msgstr "ロールを選択"
 
@@ -2693,7 +2736,7 @@ msgstr "チャネル"
 #~ msgstr "ヘルスチェック"
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:170
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:317
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:322
 msgid "Amount"
 msgstr "金額"
 
@@ -2708,11 +2751,11 @@ msgid "New customer"
 msgstr "新しい顧客"
 
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:33
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:90
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:94
 msgid "Image"
 msgstr "画像"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:77
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:99
 msgid "Successfully created administrator"
 msgstr "管理者を正常に作成しました"
 
@@ -2784,8 +2827,9 @@ msgstr "返金合計が最大返金可能額{0}を超えています"
 msgid "Delete Global View"
 msgstr "グローバルビューを削除"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:127
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:68
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:154
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
@@ -2799,7 +2843,7 @@ msgstr "グローバルビューを削除"
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:219
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:86
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:96
@@ -2893,7 +2937,7 @@ msgstr "フォールバック: {value}"
 msgid "Order history"
 msgstr "注文履歴"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:263
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:268
 msgid "Override"
 msgstr "上書き"
 
@@ -3005,7 +3049,7 @@ msgstr "新しいゾーン"
 msgid "Failed to update collection position"
 msgstr "コレクションの位置の更新に失敗しました"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:102
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:106
 msgid "Refund"
 msgstr "返金"
 
@@ -3013,6 +3057,10 @@ msgstr "返金"
 #: src/app/routes/_authenticated/_orders/utils/order-detail-loaders.tsx:78
 msgid "Modify"
 msgstr "変更"
+
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:77
+msgid "Effective permissions on"
+msgstr "有効な権限:"
 
 #: src/lib/components/layout/manage-languages-dialog.tsx:337
 msgid "No global languages configured"
@@ -3066,7 +3114,7 @@ msgstr "新しいプロモーション"
 msgid "Option value name"
 msgstr "オプション値名"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:214
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:218
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:46
 msgid "Last used"
 msgstr "最終使用日"
@@ -3142,6 +3190,10 @@ msgstr "{taxRate}%の税込み"
 msgid "Order metrics"
 msgstr "注文指標"
 
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:184
+#~ msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
+#~ msgstr "ロールは、そのロールのすべての権限を自分自身が持っているチャネルでのみ付与できます。"
+
 #: src/lib/components/layout/language-dialog.tsx:49
 msgid "Select display language"
 msgstr "表示言語を選択"
@@ -3162,8 +3214,7 @@ msgstr "API Key のローテーションに失敗しました"
 msgid "in"
 msgstr "内"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:188
-#: src/lib/components/shared/role-selector.tsx:53
+#: src/lib/components/shared/role-selector.tsx:36
 msgid "Search roles..."
 msgstr "ロールを検索..."
 
@@ -3181,7 +3232,7 @@ msgstr "商品バリエーション"
 msgid "Manage Global Views"
 msgstr "グローバルビューを管理"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:365
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:370
 msgid "Processing..."
 msgstr "処理中..."
 
@@ -3196,7 +3247,7 @@ msgstr "期間を選択"
 
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:87
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:44
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:93
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:97
 msgid "Product"
 msgstr "商品"
 
@@ -3275,12 +3326,12 @@ msgstr "総注文数"
 msgid "No eligible shipping methods found for this order."
 msgstr "この注文に適格な配送方法が見つかりません。"
 
-#: src/app/routes/_authenticated/_products/components/product-options-table.tsx:118
+#: src/app/routes/_authenticated/_products/components/product-options-table.tsx:126
 msgid "Add product option"
 msgstr "商品オプションを追加"
 
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:66
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:189
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:194
 #: src/app/routes/_authenticated/_orders/orders.tsx:85
 msgid "Shipping"
 msgstr "配送"
@@ -3292,6 +3343,10 @@ msgstr "useWidgetDimensionsはDashboardBaseWidget内で使用する必要があ�
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:493
 msgid "This option group is in use by existing variants. Force removing it may affect those variants. Are you sure?"
 msgstr "このオプショングループは既存のバリエーションで使用されています。強制削除するとそれらのバリエーションに影響する可能性があります。よろしいですか？"
+
+#: src/app/routes/_authenticated/_roles/components/role-usage.tsx:58
+#~ msgid "This role is not assigned to any user"
+#~ msgstr "このロールはどのユーザーにも割り当てられていません"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:63
 msgid "Email update requested"
@@ -3313,7 +3368,7 @@ msgstr "新しいウィンドウ"
 msgid "Payment authorized"
 msgstr "支払いを承認しました"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:62
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:61
 msgid "Successfully updated role"
 msgstr "ロールを更新しました"
 
@@ -3398,12 +3453,12 @@ msgstr "と等しくない"
 msgid "Settle payment"
 msgstr "支払いを決済"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:232
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:38
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:216
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:343
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:111
 #: src/lib/components/layout/channel-switcher.tsx:146
 msgid "Channels"
 msgstr "チャネル"
@@ -3614,6 +3669,10 @@ msgstr "新しいチャネル"
 msgid "Option Group Name"
 msgstr "オプショングループ名"
 
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:166
+msgid "The assigned roles grant no permissions on this channel."
+msgstr "割り当てられたロールは、このチャネルでは権限を付与していません。"
+
 #: src/lib/components/data-input/combination-mode-input.tsx:46
 msgid "AND"
 msgstr "AND"
@@ -3622,7 +3681,7 @@ msgstr "AND"
 msgid "Failed to create customer group"
 msgstr "顧客グループの作成に失敗しました"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:69
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:68
 msgid "Failed to create role"
 msgstr "ロールの作成に失敗しました"
 
@@ -3664,7 +3723,7 @@ msgid "Add option group"
 msgstr "オプショングループを追加"
 
 #. placeholder {0}: formatCurrency(refund.amountToRefundTotal, order.currencyCode)
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:367
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:372
 msgid "Refund {0}"
 msgstr "{0}を返金"
 
@@ -3689,7 +3748,7 @@ msgstr "支払いをキャンセルしました"
 msgid "Global view duplicated successfully"
 msgstr "グローバルビューを複製しました"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:210
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:212
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:66
 msgid "Created by"
 msgstr "作成者"
@@ -3702,7 +3761,7 @@ msgstr "バリアントを絞り込む..."
 msgid "Add a price in another currency"
 msgstr "別の通貨で価格を追加"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:127
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:149
 #: src/app/routes/_authenticated/_profile/profile.tsx:114
 msgid "Email Address or identifier"
 msgstr "メールアドレスまたは識別子"
@@ -3797,7 +3856,7 @@ msgstr "在庫レベル"
 msgid "Add item"
 msgstr "アイテムを追加"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:108
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:111
 msgid "Successfully created API key"
 msgstr "API Key の作成に成功しました"
 
@@ -3823,7 +3882,7 @@ msgstr "オプショングループを削除"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:262
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:174
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:94
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:96
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:162
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:114
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:112
@@ -3868,6 +3927,10 @@ msgstr "今週"
 #~ msgid "Successfully created product option group"
 #~ msgstr "商品オプショングループを正常に作成しました"
 
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:54
+#~ msgid "Permissions on"
+#~ msgstr ""
+
 #. placeholder {0}: formatCurrency(outstandingAmount, currencyCode)
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:130
 msgid "Add a manual payment of {0}"
@@ -3881,7 +3944,7 @@ msgstr "に含まれる"
 msgid "Email"
 msgstr "メールアドレス"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:108
 msgid "Failed to update administrator"
 msgstr "管理者の更新に失敗しました"
 
@@ -3910,7 +3973,7 @@ msgctxt "theme"
 msgid "Light"
 msgstr "ライト"
 
-#: src/lib/components/data-table/data-table-view-options.tsx:120
+#: src/lib/components/data-table/data-table-view-options.tsx:130
 msgid "Reset"
 msgstr "リセット"
 
@@ -4087,7 +4150,7 @@ msgstr "注文合計"
 msgid "Visible to admins only"
 msgstr "管理者にのみ表示"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:99
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:103
 msgid "Qty"
 msgstr "数量"
 
@@ -4197,7 +4260,7 @@ msgstr "ゾーンの作成に失敗しました"
 msgid "Stock levels"
 msgstr "在庫レベル"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:121
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:123
 msgid "Failed to update API key"
 msgstr "API Key の更新に失敗しました"
 
@@ -4206,7 +4269,7 @@ msgid "{title}"
 msgstr "{title}"
 
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:244
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:83
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:87
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:178
 msgid "Order lines"
 msgstr "注文ライン"
@@ -4229,13 +4292,17 @@ msgstr "{formattedDiff} の返金が必要です。支払い金額を選択し�
 
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:100
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:57
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:96
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:100
 msgid "Unit price"
 msgstr "単価"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:129
 msgid "Schedule Pattern"
 msgstr "スケジュールパターン"
+
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:224
+msgid "Show granted only"
+msgstr "付与済みのみ表示"
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx:67
 msgid "Payment failed"
@@ -4249,7 +4316,7 @@ msgstr "チャネルを追加"
 #~ msgid "Failed to update product option group"
 #~ msgstr "商品オプショングループの更新に失敗しました"
 
-#: src/lib/components/shared/channel-selector.tsx:48
+#: src/lib/components/shared/channel-selector.tsx:67
 msgid "Search channels..."
 msgstr "チャネルを検索..."
 
@@ -4385,11 +4452,15 @@ msgstr "新しいオプショングループ"
 #~ msgid "Last updated {0}"
 #~ msgstr "最終更新{0}"
 
+#: src/app/routes/_authenticated/_roles/components/role-usage.tsx:107
+#~ msgid "Showing the first {0} of {totalItems} assignments"
+#~ msgstr "{totalItems} 件の割り当てのうち最初の {0} 件を表示しています"
+
 #: src/lib/components/data-table/views-sheet.tsx:141
 msgid "No global views have been created yet."
 msgstr "グローバルビューはまだ作成されていません。"
 
-#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:69
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:68
 msgid "Failed to update role"
 msgstr "ロールの更新に失敗しました"
 
@@ -4425,7 +4496,7 @@ msgstr "タグを管理"
 msgid "Coupon code removed from order"
 msgstr "クーポンコードが注文から削除されました"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:221
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:227
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:50
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:142
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:152
@@ -4672,7 +4743,7 @@ msgstr "フルフィルメント#{0}を作成しました"
 msgid "Running pending search index updates"
 msgstr "保留中の検索インデックス更新を実行中"
 
-#: src/app/routes/_authenticated/_roles/roles.tsx:53
+#: src/app/routes/_authenticated/_roles/roles.tsx:50
 msgid "This is a default Role and cannot be modified"
 msgstr "これはデフォルトのロールであり、変更できません"
 
@@ -4715,6 +4786,10 @@ msgstr "手持ち在庫"
 #: src/lib/components/data-table/data-table-filter-dialog.tsx:55
 msgid "Filter by {columnId}"
 msgstr "{columnId}でフィルター"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:260
+msgid "Locked role"
+msgstr "ロックされたロール"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:108
 msgid "ID"
@@ -4798,7 +4873,7 @@ msgstr "Vendureへようこそ"
 msgid "Shipping Methods"
 msgstr "配送方法"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:144
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:149
 msgid "({maxRefundable} refundable)"
 msgstr "({maxRefundable} 返金可能)"
 
@@ -4941,7 +5016,7 @@ msgstr "税率"
 msgid "Failed to load global settings"
 msgstr "グローバル設定の読み込みに失敗しました"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:75
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:79
 msgid "Select items to refund and optionally return to stock"
 msgstr "返金するアイテムを選択し、必要に応じて在庫に戻す"
 
@@ -5094,7 +5169,7 @@ msgstr "オプショングループを保存"
 msgid "Click \"Run Test\" to test this shipping method."
 msgstr "「テストを実行」をクリックして、この配送方法をテストしてください。"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:78
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:100
 msgid "Successfully updated administrator"
 msgstr "管理者を正常に更新しました"
 
@@ -5224,7 +5299,7 @@ msgstr "追加する新しいファセット値："
 msgid "Failed to process refund"
 msgstr "返金の処理に失敗しました"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:115
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:137
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:176
 #: src/app/routes/_authenticated/_profile/profile.tsx:102
 msgid "First name"
@@ -5301,7 +5376,7 @@ msgid "Duplicate value \"{trimmed}\" already exists"
 msgstr "重複する値「{trimmed}」はすでに存在します"
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:233
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:217
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:222
 msgid "Reason"
 msgstr "理由"
 
@@ -5362,6 +5437,10 @@ msgstr "動画"
 msgid "less than"
 msgstr "より小さい"
 
+#: src/lib/components/shared/role-code-label.tsx:8
+msgid "Role Editor"
+msgstr "ロールエディター"
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:123
 msgid "The variant could not be added. Ensure the parent product is enabled."
 msgstr "バリアントを追加できませんでした。親製品が有効になっていることを確認してください。"
@@ -5382,7 +5461,7 @@ msgstr "言語"
 msgid "New Collection"
 msgstr "新しいコレクション"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:72
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:76
 msgid "Refund and cancel order"
 msgstr "返金して注文をキャンセル"
 
@@ -5419,8 +5498,8 @@ msgstr "{entityIdsLength}個の{entityType}をチャネルに割り当てまし�
 msgid "Global Languages"
 msgstr "グローバル言語"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:97
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:39
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:119
 msgid "New administrator"
 msgstr "新しい管理者"
 
@@ -5647,6 +5726,10 @@ msgstr "ファセットの更新に失敗しました"
 msgid "useWidgetFilters must be used within a WidgetFiltersProvider"
 msgstr "useWidgetFiltersはWidgetFiltersProvider内で使用する必要があります"
 
+#: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:224
+msgid "Show all permissions"
+msgstr "すべての権限を表示"
+
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx:129
 msgid "Edit Address"
 msgstr "住所を編集"
@@ -5687,6 +5770,10 @@ msgstr "このバリエーションが在庫切れと見なされる在庫レベ
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:255
 #~ msgid "Create product options"
 #~ msgstr "商品オプションを作成"
+
+#: src/app/routes/_authenticated/_roles/roles_.$id.tsx:119
+#~ msgid "Used by"
+#~ msgstr "使用者"
 
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx:206
 #: src/lib/components/layout/manage-languages-dialog.tsx:382
@@ -5885,7 +5972,7 @@ msgstr "住所が見つかりません"
 msgid "Fulfillment ID"
 msgstr "フルフィルメントID"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:290
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:295
 msgid "Select payments to refund"
 msgstr "返金する支払いを選択"
 
@@ -5905,7 +5992,7 @@ msgstr "在庫切れしきい値"
 msgid "Failed to update value"
 msgstr "値の更新に失敗しました"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:121
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:123
 msgid "Failed to create API key"
 msgstr "API Key の作成に失敗しました"
 
@@ -5958,6 +6045,10 @@ msgstr "オプション"
 msgid "Order process"
 msgstr "注文プロセス"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:343
+msgid "No roles assigned"
+msgstr "ロールが割り当てられていません"
+
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:194
 msgid "Phone number"
 msgstr "電話番号"
@@ -5975,7 +6066,7 @@ msgstr "バリエーション"
 msgid "Successfully updated global settings"
 msgstr "グローバル設定を更新しました"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:115
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:118
 msgid "Successfully updated API key"
 msgstr "API Key の更新に成功しました"
 

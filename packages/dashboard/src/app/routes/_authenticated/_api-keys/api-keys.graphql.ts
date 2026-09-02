@@ -44,10 +44,19 @@ export const apiKeyDetailDocument = graphql(`
             }
             user {
                 id
-                roles {
+                roleAssignments {
                     id
-                    code
-                    description
+                    roleId
+                    channelId
+                    role {
+                        id
+                        code
+                        description
+                    }
+                    channel {
+                        id
+                        code
+                    }
                 }
             }
             translations {
@@ -90,22 +99,6 @@ export const deleteApiKeysDocument = graphql(`
         deleteApiKeys(ids: $ids) {
             result
             message
-        }
-    }
-`);
-
-export const activeAdministratorRolesDocument = graphql(`
-    query ActiveAdministratorRoles {
-        activeAdministrator {
-            id
-            user {
-                id
-                roles {
-                    id
-                    code
-                    description
-                }
-            }
         }
     }
 `);

@@ -24,7 +24,7 @@ export class RoleResolver {
     constructor(private roleService: RoleService) {}
 
     @Query()
-    @Allow(Permission.ReadAdministrator)
+    @Allow(Permission.ReadRole)
     roles(
         @Ctx() ctx: RequestContext,
         @Args() args: QueryRolesArgs,
@@ -34,7 +34,7 @@ export class RoleResolver {
     }
 
     @Query()
-    @Allow(Permission.ReadAdministrator)
+    @Allow(Permission.ReadRole)
     role(
         @Ctx() ctx: RequestContext,
         @Args() args: QueryRoleArgs,
@@ -45,7 +45,7 @@ export class RoleResolver {
 
     @Transaction()
     @Mutation()
-    @Allow(Permission.CreateAdministrator)
+    @Allow(Permission.CreateRole)
     createRole(@Ctx() ctx: RequestContext, @Args() args: MutationCreateRoleArgs): Promise<Role> {
         const { input } = args;
         return this.roleService.create(ctx, input);
@@ -53,7 +53,7 @@ export class RoleResolver {
 
     @Transaction()
     @Mutation()
-    @Allow(Permission.UpdateAdministrator)
+    @Allow(Permission.UpdateRole)
     updateRole(@Ctx() ctx: RequestContext, @Args() args: MutationUpdateRoleArgs): Promise<Role> {
         const { input } = args;
         return this.roleService.update(ctx, input);
@@ -61,7 +61,7 @@ export class RoleResolver {
 
     @Transaction()
     @Mutation()
-    @Allow(Permission.DeleteAdministrator)
+    @Allow(Permission.DeleteRole)
     deleteRole(@Ctx() ctx: RequestContext, @Args() args: MutationDeleteRoleArgs): Promise<DeletionResponse> {
         const { id } = args;
         return this.roleService.delete(ctx, id);
@@ -69,7 +69,7 @@ export class RoleResolver {
 
     @Transaction()
     @Mutation()
-    @Allow(Permission.DeleteAdministrator)
+    @Allow(Permission.DeleteRole)
     deleteRoles(
         @Ctx() ctx: RequestContext,
         @Args() args: MutationDeleteRolesArgs,

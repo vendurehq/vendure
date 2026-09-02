@@ -850,7 +850,13 @@ export type CreateAdministratorInput = {
   firstName: Scalars['String']['input'];
   lastName: Scalars['String']['input'];
   password: Scalars['String']['input'];
-  roleIds: Array<Scalars['ID']['input']>;
+  /** The RoleAssignments to create for the new Administrator's User. Cannot be combined with roleIds. */
+  roleAssignments?: InputMaybe<Array<RoleAssignmentInput>>;
+  /**
+   * Grants the Roles on the active Channel. Cannot be combined with roleAssignments.
+   * @deprecated Use roleAssignments instead. roleIds grants the Roles on the active Channel only.
+   */
+  roleIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 };
 
 /**
@@ -860,10 +866,18 @@ export type CreateAdministratorInput = {
 export type CreateApiKeyInput = {
   customFields?: InputMaybe<Scalars['JSON']['input']>;
   /**
-   * Which roles to attach to this ApiKey.
-   * You may only grant roles which you, yourself have.
+   * Which roles to attach to this ApiKey on which Channels.
+   * You may only grant roles which you, yourself have on those Channels.
+   * Cannot be combined with roleIds.
    */
-  roleIds: Array<Scalars['ID']['input']>;
+  roleAssignments?: InputMaybe<Array<RoleAssignmentInput>>;
+  /**
+   * Which roles to attach to this ApiKey, granted on the active Channel.
+   * You may only grant roles which you, yourself have.
+   * Cannot be combined with roleAssignments.
+   * @deprecated Use roleAssignments instead. roleIds grants the Roles on the active Channel only.
+   */
+  roleIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   translations: Array<CreateApiKeyTranslationInput>;
 };
 
@@ -1074,7 +1088,6 @@ export type CreateProvinceInput = {
 };
 
 export type CreateRoleInput = {
-  channelIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   code: Scalars['String']['input'];
   description: Scalars['String']['input'];
   permissions: Array<Permission>;
@@ -2921,7 +2934,10 @@ export type Mutation = {
   assignProductsToChannel: Array<Product>;
   /** Assigns Promotions to the specified Channel */
   assignPromotionsToChannel: Array<Promotion>;
-  /** Assign a Role to an Administrator */
+  /**
+   * Assign a Role to an Administrator
+   * @deprecated Use setRoleAssignmentsForUser instead. assignRoleToAdministrator assigns the Role on the active Channel only.
+   */
   assignRoleToAdministrator: Administrator;
   /** Assigns ShippingMethods to the specified Channel */
   assignShippingMethodsToChannel: Array<ShippingMethod>;
@@ -3161,6 +3177,13 @@ export type Mutation = {
   setOrderCustomFields?: Maybe<Order>;
   /** Allows a different Customer to be assigned to an Order. Added in v2.2.0. */
   setOrderCustomer?: Maybe<Order>;
+  /**
+   * Atomically replaces the full set of RoleAssignments of the given User with the given
+   * `(roleId, channelId)` pairs, across all Channels: assignments not present in the new
+   * set are removed. The active user must be permitted to grant every Role involved in
+   * the change — added and removed pairs alike — on the Channel of that pair.
+   */
+  setRoleAssignmentsForUser: User;
   /** Set a single key-value pair (automatically scoped based on field configuration) */
   setSettingsStoreValue: SetSettingsStoreValueResult;
   /** Set multiple key-value pairs in a transaction (each automatically scoped) */
@@ -3928,6 +3951,12 @@ export type MutationSetOrderCustomFieldsArgs = {
 
 export type MutationSetOrderCustomerArgs = {
   input: SetOrderCustomerInput;
+};
+
+
+export type MutationSetRoleAssignmentsForUserArgs = {
+  assignments: Array<RoleAssignmentInput>;
+  userId: Scalars['ID']['input'];
 };
 
 
@@ -4719,6 +4748,8 @@ export enum Permission {
   CreateProduct = 'CreateProduct',
   /** Grants permission to create Promotion */
   CreatePromotion = 'CreatePromotion',
+  /** Grants permission to create Role */
+  CreateRole = 'CreateRole',
   /** Grants permission to create Seller */
   CreateSeller = 'CreateSeller',
   /** Grants permission to create PaymentMethods, ShippingMethods, TaxCategories, TaxRates, Zones, Countries, System & GlobalSettings */
@@ -4765,6 +4796,8 @@ export enum Permission {
   DeleteProduct = 'DeleteProduct',
   /** Grants permission to delete Promotion */
   DeletePromotion = 'DeletePromotion',
+  /** Grants permission to delete Role */
+  DeleteRole = 'DeleteRole',
   /** Grants permission to delete Seller */
   DeleteSeller = 'DeleteSeller',
   /** Grants permission to delete PaymentMethods, ShippingMethods, TaxCategories, TaxRates, Zones, Countries, System & GlobalSettings */
@@ -4815,6 +4848,8 @@ export enum Permission {
   ReadProduct = 'ReadProduct',
   /** Grants permission to read Promotion */
   ReadPromotion = 'ReadPromotion',
+  /** Grants permission to read Role */
+  ReadRole = 'ReadRole',
   /** Grants permission to read Seller */
   ReadSeller = 'ReadSeller',
   /** Grants permission to read PaymentMethods, ShippingMethods, TaxCategories, TaxRates, Zones, Countries, System & GlobalSettings */
@@ -4865,6 +4900,8 @@ export enum Permission {
   UpdateProduct = 'UpdateProduct',
   /** Grants permission to update Promotion */
   UpdatePromotion = 'UpdatePromotion',
+  /** Grants permission to update Role */
+  UpdateRole = 'UpdateRole',
   /** Grants permission to update Seller */
   UpdateSeller = 'UpdateSeller',
   /** Grants permission to update PaymentMethods, ShippingMethods, TaxCategories, TaxRates, Zones, Countries, System & GlobalSettings */
@@ -5510,6 +5547,8 @@ export type Query = {
   province?: Maybe<Province>;
   provinces: ProvinceList;
   role?: Maybe<Role>;
+  /** Get a paginated list of RoleAssignments */
+  roleAssignments: RoleAssignmentList;
   roles: RoleList;
   scheduledTasks: Array<ScheduledTask>;
   search: SearchResponse;
@@ -5770,6 +5809,11 @@ export type QueryProvincesArgs = {
 
 export type QueryRoleArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type QueryRoleAssignmentsArgs = {
+  options?: InputMaybe<RoleAssignmentListOptions>;
 };
 
 
@@ -6069,13 +6113,74 @@ export type Return = Node & StockMovement & {
 
 export type Role = Node & {
   __typename?: 'Role';
-  channels: Array<Channel>;
   code: Scalars['String']['output'];
   createdAt: Scalars['DateTime']['output'];
   description: Scalars['String']['output'];
   id: Scalars['ID']['output'];
   permissions: Array<Permission>;
   updatedAt: Scalars['DateTime']['output'];
+};
+
+/**
+ * A RoleAssignment grants a User the permissions of a Role on a specific Channel.
+ * A Role is a channel-agnostic template; the RoleAssignment supplies the channel scope.
+ */
+export type RoleAssignment = Node & {
+  __typename?: 'RoleAssignment';
+  channel: Channel;
+  channelId: Scalars['ID']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  role: Role;
+  roleId: Scalars['ID']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+  user: User;
+  userId: Scalars['ID']['output'];
+};
+
+export type RoleAssignmentFilterParameter = {
+  _and?: InputMaybe<Array<RoleAssignmentFilterParameter>>;
+  _or?: InputMaybe<Array<RoleAssignmentFilterParameter>>;
+  channelId?: InputMaybe<IdOperators>;
+  createdAt?: InputMaybe<DateOperators>;
+  id?: InputMaybe<IdOperators>;
+  roleId?: InputMaybe<IdOperators>;
+  updatedAt?: InputMaybe<DateOperators>;
+  userId?: InputMaybe<IdOperators>;
+};
+
+/** The grant of a Role on a Channel */
+export type RoleAssignmentInput = {
+  channelId: Scalars['ID']['input'];
+  roleId: Scalars['ID']['input'];
+};
+
+export type RoleAssignmentList = PaginatedList & {
+  __typename?: 'RoleAssignmentList';
+  items: Array<RoleAssignment>;
+  totalItems: Scalars['Int']['output'];
+};
+
+export type RoleAssignmentListOptions = {
+  /** Allows the results to be filtered */
+  filter?: InputMaybe<RoleAssignmentFilterParameter>;
+  /** Specifies whether multiple top-level "filter" fields should be combined with a logical AND or OR operation. Defaults to AND. */
+  filterOperator?: InputMaybe<LogicalOperator>;
+  /** Skips the first n results, for use in pagination */
+  skip?: InputMaybe<Scalars['Int']['input']>;
+  /** Specifies which properties to sort the results by */
+  sort?: InputMaybe<RoleAssignmentSortParameter>;
+  /** Takes n results, for use in pagination */
+  take?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type RoleAssignmentSortParameter = {
+  channelId?: InputMaybe<SortOrder>;
+  createdAt?: InputMaybe<SortOrder>;
+  id?: InputMaybe<SortOrder>;
+  roleId?: InputMaybe<SortOrder>;
+  updatedAt?: InputMaybe<SortOrder>;
+  userId?: InputMaybe<SortOrder>;
 };
 
 export type RoleFilterParameter = {
@@ -6914,6 +7019,12 @@ export type UpdateAdministratorInput = {
   id: Scalars['ID']['input'];
   lastName?: InputMaybe<Scalars['String']['input']>;
   password?: InputMaybe<Scalars['String']['input']>;
+  /** Replaces the full set of the User's RoleAssignments across all Channels. Cannot be combined with roleIds. */
+  roleAssignments?: InputMaybe<Array<RoleAssignmentInput>>;
+  /**
+   * Replaces the User's Roles on the active Channel. Cannot be combined with roleAssignments.
+   * @deprecated Use roleAssignments instead. roleIds replaces the Roles on the active Channel only.
+   */
   roleIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 };
 
@@ -6922,8 +7033,16 @@ export type UpdateApiKeyInput = {
   /** ID of the ApiKey */
   id: Scalars['ID']['input'];
   /**
-   * Which roles to attach to this ApiKey.
+   * Replaces the full set of the ApiKey's RoleAssignments across all Channels.
+   * You may only grant roles which you, yourself have on those Channels.
+   * Cannot be combined with roleIds.
+   */
+  roleAssignments?: InputMaybe<Array<RoleAssignmentInput>>;
+  /**
+   * Which roles to attach to this ApiKey, replacing its Roles on the active Channel.
    * You may only grant roles which you, yourself have.
+   * Cannot be combined with roleAssignments.
+   * @deprecated Use roleAssignments instead. roleIds replaces the Roles on the active Channel only.
    */
   roleIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   translations?: InputMaybe<Array<UpdateApiKeyTranslationInput>>;
@@ -7163,7 +7282,6 @@ export type UpdateProvinceInput = {
 };
 
 export type UpdateRoleInput = {
-  channelIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   code?: InputMaybe<Scalars['String']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   id: Scalars['ID']['input'];
@@ -7235,6 +7353,8 @@ export type User = Node & {
   id: Scalars['ID']['output'];
   identifier: Scalars['String']['output'];
   lastLogin?: Maybe<Scalars['DateTime']['output']>;
+  /** The RoleAssignments granting this User Roles on specific Channels */
+  roleAssignments: Array<RoleAssignment>;
   roles: Array<Role>;
   updatedAt: Scalars['DateTime']['output'];
   verified: Scalars['Boolean']['output'];

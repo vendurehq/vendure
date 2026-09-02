@@ -108,8 +108,14 @@ describe('Authorization & permissions', () => {
             it('me returns correct permissions', async () => {
                 const result = await adminClient.query(MeDocument);
 
+                // Every administrator is granted the RoleEditor role on creation, which
+                // carries the Role CRUD permissions (OSS-749)
                 expect(result.me!.channels[0].permissions).toEqual([
                     Permission.Authenticated,
+                    Permission.CreateRole,
+                    Permission.ReadRole,
+                    Permission.UpdateRole,
+                    Permission.DeleteRole,
                     Permission.ReadCatalog,
                 ]);
             });
@@ -151,8 +157,14 @@ describe('Authorization & permissions', () => {
             it('me returns correct permissions', async () => {
                 const result = await adminClient.query(MeDocument);
 
+                // Every administrator is granted the RoleEditor role on creation, which
+                // carries the Role CRUD permissions (OSS-749)
                 expect(result.me!.channels[0].permissions).toEqual([
                     Permission.Authenticated,
+                    Permission.CreateRole,
+                    Permission.ReadRole,
+                    Permission.UpdateRole,
+                    Permission.DeleteRole,
                     Permission.CreateCustomer,
                     Permission.ReadCustomer,
                     Permission.UpdateCustomer,

@@ -19,16 +19,13 @@ import {
     VerificationTokenInvalidError,
 } from '../../common/error/generated-graphql-shop-errors';
 import { Instrument } from '../../common/instrument-decorator';
-import { assertFound, isEmailAddressLike, normalizeEmailAddress } from '../../common/utils';
+import { isEmailAddressLike, normalizeEmailAddress } from '../../common/utils';
 import { ConfigService } from '../../config/config.service';
 import { TransactionalConnection } from '../../connection/transactional-connection';
-import { Role } from '../../entity';
 import { NativeAuthenticationMethod } from '../../entity/authentication-method/native-authentication-method.entity';
 import { User } from '../../entity/user/user.entity';
 import { PasswordCipher } from '../helpers/password-cipher/password-cipher';
 import { VerificationTokenGenerator } from '../helpers/verification-token-generator/verification-token-generator';
-
-import { RoleService } from './role.service';
 
 /**
  * @description
@@ -42,7 +39,6 @@ export class UserService {
     constructor(
         private connection: TransactionalConnection,
         private configService: ConfigService,
-        private roleService: RoleService,
         private passwordCipher: PasswordCipher,
         private verificationTokenGenerator: VerificationTokenGenerator,
         private moduleRef: ModuleRef,
@@ -54,9 +50,6 @@ export class UserService {
             .findOne({
                 where: { id: userId },
                 relations: {
-                    roles: {
-                        channels: true,
-                    },
                     authenticationMethods: true,
                 },
             })
@@ -75,8 +68,6 @@ export class UserService {
             .getRepository(ctx, User)
             .createQueryBuilder('user')
             .innerJoin(table, table, `${table}.userId = user.id`)
-            .leftJoinAndSelect('user.roles', 'roles')
-            .leftJoinAndSelect('roles.channels', 'channels')
             .leftJoinAndSelect('user.authenticationMethods', 'authenticationMethods')
             .where('user.deletedAt IS NULL');
 
@@ -94,7 +85,9 @@ export class UserService {
 
     /**
      * @description
-     * Creates a new User with the special `customer` Role and using the {@link NativeAuthenticationStrategy}.
+     * Creates a new customer User using the {@link NativeAuthenticationStrategy}. The
+     * Customer role's permissions are derived from the Customer's channel memberships at
+     * permission-resolution time, so no role bookkeeping happens here.
      */
     async createCustomerUser(
         ctx: RequestContext,
@@ -103,8 +96,6 @@ export class UserService {
     ): Promise<User | PasswordValidationError> {
         const user = new User();
         user.identifier = normalizeEmailAddress(identifier);
-        const customerRole = await this.roleService.getCustomerRole(ctx);
-        user.roles = [customerRole];
         const addNativeAuthResult = await this.addNativeAuthenticationMethod(ctx, user, identifier, password);
         if (isGraphQlErrorResult(addNativeAuthResult)) {
             return addNativeAuthResult;
@@ -184,20 +175,11 @@ export class UserService {
      * @description
      * Creates a new User which will be responsible for the permissions of an API-Key.
      *
-     * IMPORTANT: The caller is responsible for avoiding privilege escalations!
+     * IMPORTANT: The caller is responsible for granting the User its Roles via
+     * {@link RoleAssignmentService} before a session is created for it.
      */
-    async createApiKeyUser(ctx: RequestContext, roles: Role[], identifier: string): Promise<User> {
-        const newUser = await this.connection.getRepository(ctx, User).save(new User({ identifier, roles }));
-
-        const userWithRelations = await assertFound(
-            this.connection.getRepository(ctx, User).findOne({
-                where: { id: newUser.id },
-                // ApiKeyUsers generally require roles and their channels, its important for sessions!
-                relations: { roles: { channels: true } },
-            }),
-        );
-
-        return userWithRelations;
+    async createApiKeyUser(ctx: RequestContext, identifier: string): Promise<User> {
+        return this.connection.getRepository(ctx, User).save(new User({ identifier }));
     }
 
     async softDelete(ctx: RequestContext, userId: ID) {
