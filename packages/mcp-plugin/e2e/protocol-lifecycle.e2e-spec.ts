@@ -257,6 +257,31 @@ describe('MCP protocol conformance (direct mode)', () => {
         expect(res.body.result.resultType).toBe('complete');
     });
 
+    it('tools/list is served under the modern 2026-07-28 envelope', async () => {
+        const res = await postModernMcp(baseUrl(), 'shop', 'tools/list', {}, 24);
+        expect(res.status).toBe(200);
+        expect(res.body.error).toBeUndefined();
+        expect(res.body.result.tools.map((t: any) => t.name)).toContain('shop_echo');
+        // `resultType` exists only in the 2026 era, so it also proves this was not served as legacy.
+        expect(res.body.result.resultType).toBe('complete');
+    });
+
+    it('an admin bearer token works under the modern 2026-07-28 envelope', async () => {
+        const res = await postModernMcp(
+            baseUrl(),
+            'admin',
+            'tools/call',
+            { name: 'admin_list', arguments: {} },
+            25,
+            { token: adminToken },
+        );
+        expect(res.status).toBe(200);
+        expect(res.body.error).toBeUndefined();
+        expect(res.body.result.isError).toBeUndefined();
+        expect(res.body.result.structuredContent).toEqual({ items: [] });
+        expect(res.body.result.resultType).toBe('complete');
+    });
+
     it('server/discover is answered, with serverInfo in the result _meta and not in its body', async () => {
         const res = await postModernMcp(baseUrl(), 'shop', 'server/discover', {}, 21);
         expect(res.status).toBe(200);

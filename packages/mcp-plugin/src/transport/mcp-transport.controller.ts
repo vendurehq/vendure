@@ -109,13 +109,14 @@ export class McpTransportController {
             },
             {
                 onerror: error => {
-                    Logger.error(`MCP request handling failed: ${error.message}`, loggerCtx, error.stack);
+                    // JSON.stringify escapes caller text to prevent log forgery
+                    Logger.error(`MCP request handling failed: ${JSON.stringify(error.message)}`, loggerCtx);
                 },
             },
         );
         this.nodeHandler = toNodeHandler(handler, {
             onerror: error => {
-                Logger.error(`MCP transport adapter error: ${error.message}`, loggerCtx, error.stack);
+                Logger.error(`MCP transport adapter error: ${JSON.stringify(error.message)}`, loggerCtx);
             },
         });
         const dns = this.options.dnsRebinding;
