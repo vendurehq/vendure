@@ -124,12 +124,12 @@ describe('MCP tool-call logging', () => {
         expect(row.grantId).not.toBeNull();
         expect(row.oauthClientId).not.toBeNull();
         expect(row.actor).not.toBeNull(); // stringified user id
-        // An admin approval stores no channel on the grant, so its calls are logged
-        // channel-less — the row is global, like the grant itself.
-        expect(row.channelId).toBeNull();
+        // An admin approval records the channel the approver was on, so its calls are logged
+        // against that channel, here the default channel the flow was approved from.
+        expect(String(row.channelId)).toBe(String(adminCtx.channelId));
     });
 
-    it('shows channel-less admin-grant activity in the log and stats of every channel', async () => {
+    it("hides an admin grant's activity from the log and stats of another channel", async () => {
         const token = await adminAccessToken();
         const response = await postMcp(baseUrl(), 'admin', callTool('admin_list', {}, 4), { token });
         expect(response.body.result.isError).toBeUndefined();
@@ -203,11 +203,11 @@ describe('MCP tool-call logging', () => {
             throw new Error(`Query returned no data: ${JSON.stringify(body.errors)}`);
         }
         const toolNames = body.data.mcpToolCallLogs.items.map(item => item.toolName);
-        // The channel-less admin-grant call is visible from the second channel...
-        expect(toolNames).toContain('admin_list');
-        expect(body.data.mcpStats.totalCalls).toBeGreaterThanOrEqual(1);
-        // ...while rows logged under the default channel stay scoped to it.
+        // The grant was approved on the default channel, so neither its own calls nor any
+        // other default-channel row reaches the second channel.
+        expect(toolNames).not.toContain('admin_list');
         expect(toolNames).not.toContain('shop_ping');
+        expect(body.data.mcpStats.totalCalls).toBe(0);
     });
 });
 

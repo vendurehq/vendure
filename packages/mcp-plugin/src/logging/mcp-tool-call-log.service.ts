@@ -126,9 +126,9 @@ export class McpToolCallLogService {
                 .where('log.createdAt < :cutoff', { cutoff })
                 .limit(RETENTION_DELETE_BATCH_SIZE);
             if (channelId != null) {
-                // Channel-less rows come from global (admin) grants; they are visible on
-                // every channel, so any channel may also sweep them.
-                query.andWhere('(log.channelId = :channelId OR log.channelId IS NULL)', { channelId });
+                // A channel only ever prunes its own rows, matching what it can see in the
+                // dashboard log list.
+                query.andWhere('log.channelId = :channelId', { channelId });
             }
             const expired = await query.getRawMany<{ id: ID }>();
             if (expired.length === 0) {

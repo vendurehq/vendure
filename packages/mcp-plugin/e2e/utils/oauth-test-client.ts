@@ -30,6 +30,12 @@ interface SubmitAdminConsentOptions {
     approved: boolean;
     /** Superadmin bearer token; omit to submit unauthenticated. */
     superAdminToken?: string;
+    /**
+     * Channel token to submit the consent under, sent as the `vendure-token` header. The
+     * dashboard always sends the channel its selector is on, and the grant is bound to that
+     * channel. Omit only when the default channel is what you want.
+     */
+    channelToken?: string;
 }
 
 export interface ConsentResponseBody {
@@ -49,6 +55,7 @@ export async function submitAdminConsent(options: SubmitAdminConsentOptions): Pr
         headers: {
             'content-type': 'application/json',
             ...(options.superAdminToken ? { Authorization: `Bearer ${options.superAdminToken}` } : {}),
+            ...(options.channelToken ? { 'vendure-token': options.channelToken } : {}),
         },
         body: JSON.stringify({
             query: AUTHORIZE_MCP_CLIENT,
@@ -227,6 +234,8 @@ export interface RunAuthorizationCodeFlowOptions {
     redirectUri?: string;
     /** Use this client_id as-is and skip Dynamic Client Registration (CIMD flows). */
     clientId?: string;
+    /** Channel token to approve under; the grant is bound to that channel. Defaults to the default channel. */
+    channelToken?: string;
 }
 
 /**
@@ -244,6 +253,7 @@ export function runAuthorizationCodeFlow(
         clientName = `oauth-test-client-${Math.random().toString(36).slice(2)}`,
         redirectUri = 'https://example.com/cb',
         clientId,
+        channelToken,
     } = options;
 
     return driveAuthorizationCodeFlow({
@@ -256,6 +266,7 @@ export function runAuthorizationCodeFlow(
             const consentBody = await submitAdminConsent({
                 baseUrl,
                 superAdminToken,
+                channelToken,
                 requestToken,
                 approved: true,
             });

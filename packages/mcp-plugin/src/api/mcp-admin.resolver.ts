@@ -143,8 +143,6 @@ export class McpAdminResolver {
             ctx,
             entityAlias: 'log',
         });
-        // Channel-less rows come from global (admin) grants and show on every
-        // channel, matching the grants query above.
         this.scopeToChannel(qb, 'log', ctx.channelId);
         const [items, totalItems] = await qb.getManyAndCount();
         return { items, totalItems };
@@ -291,10 +289,7 @@ export class McpAdminResolver {
         return row ? Number(row.durationMs) : null;
     }
 
-    /**
-     * A query over the tool-call log, limited to the window and the active channel.
-     * Channel-less rows come from global (admin) grants and count on every channel.
-     */
+    /** A query over the tool-call log, limited to the window and the active channel. */
     private windowedQuery(ctx: RequestContext, since: string) {
         const qb = this.connection
             .getRepository(ctx, McpToolCallLog)
@@ -305,12 +300,13 @@ export class McpAdminResolver {
     }
 
     /**
-     * Limits a query to the active channel's rows plus rows that belong to no channel. Written
-     * once because the grants list, the tool-call log list and the statistics window all need
-     * the same condition.
+     * Limits a query to the active channel's rows. Every grant records the channel it was
+     * approved on, so a row belonging to no channel is not something this channel should see.
+     * Written once because the grants list, the tool-call log list and the statistics window
+     * all need the same condition.
      */
     private scopeToChannel<T extends ObjectLiteral>(qb: SelectQueryBuilder<T>, alias: string, channelId: ID) {
-        qb.andWhere(`(${alias}.channelId = :channelId OR ${alias}.channelId IS NULL)`, { channelId });
+        qb.andWhere(`${alias}.channelId = :channelId`, { channelId });
     }
 }
 

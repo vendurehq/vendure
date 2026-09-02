@@ -11,12 +11,14 @@ import {
     CardFooter,
     CardHeader,
     CardTitle,
+    ChannelCodeLabel,
     CopyableText,
     DashboardRouteDefinition,
     PermissionGuard,
     Separator,
     Skeleton,
     useAuth,
+    useChannel,
     useMutation,
     useQuery,
     z,
@@ -157,6 +159,9 @@ function scopePresentation(toolset: string, account?: { name: string; emailAddre
 function ConsentCard({ requestToken }: { requestToken: string }) {
     const { t } = useLingui();
     const { user } = useAuth();
+    // The grant is bound to whichever channel the dashboard's channel selector is on, so the
+    // card has to say which one that is before the administrator approves.
+    const { activeChannel } = useChannel();
     // Only used to name the account in the scope sentence; the wording falls back to the
     // generic one if the dashboard has not loaded the administrator yet.
     const signedInAccount = user
@@ -325,6 +330,14 @@ function ConsentCard({ requestToken }: { requestToken: string }) {
                 <Badge variant="secondary">{info.toolset}</Badge>
                 <span className="text-sm text-muted-foreground">{scope.grant}</span>
             </div>
+            {info.toolset === 'admin' && activeChannel ? (
+                <p className="text-sm text-muted-foreground">
+                    <Trans>The client will act on this channel:</Trans>{' '}
+                    <span className="font-medium text-foreground">
+                        <ChannelCodeLabel code={activeChannel.code} />
+                    </span>
+                </p>
+            ) : null}
         </ConsentShell>
     );
 }

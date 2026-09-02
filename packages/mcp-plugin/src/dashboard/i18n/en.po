@@ -288,3 +288,6 @@ msgstr "Activity"
 
 msgid "Grants"
 msgstr "Grants"
+
+msgid "The client will act on this channel:"
+msgstr "The client will act on this channel:"

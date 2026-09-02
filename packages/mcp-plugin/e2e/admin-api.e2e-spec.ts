@@ -68,15 +68,24 @@ describe('MCP admin API', () => {
     let settingsOnlyToken: string;
     let defaultChannelGqlId: string;
 
-    /** Runs a GraphQL request against the admin API as the given token. */
+    /**
+     * Runs a GraphQL request against the admin API as the given token. Pass `channelToken` to
+     * run it on a channel other than the default one, the way the dashboard does when its
+     * channel selector is on another channel.
+     */
     async function adminGraphQL<T = any>(
         token: string,
         query: string,
         variables: Record<string, unknown> = {},
+        channelToken?: string,
     ): Promise<GraphQLResponse<T>> {
         const response = await fetch(adminApiUrl(), {
             method: 'POST',
-            headers: { 'content-type': 'application/json', Authorization: `Bearer ${token}` },
+            headers: {
+                'content-type': 'application/json',
+                Authorization: `Bearer ${token}`,
+                ...(channelToken ? { 'vendure-token': channelToken } : {}),
+            },
             body: JSON.stringify({ query, variables }),
         });
         return (await response.json()) as GraphQLResponse<T>;
@@ -1037,7 +1046,7 @@ describe('MCP admin API', () => {
                 clientName,
             });
 
-            // A fresh admin grant is channel-less (global), so it starts out visible.
+            // The flow above approved on the default channel, so the grant starts out visible here.
             const listed = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
                 includeInactive: false,
             });
@@ -1069,6 +1078,148 @@ describe('MCP admin API', () => {
             const revoke = await adminGraphQL(superAdminToken, REVOKE_MCP_OAUTH_GRANT, { id: grantId });
             expect(revoke.errors).toBeUndefined();
             expect(revoke.data.revokeMcpOauthGrant).toBe(false);
+        });
+    });
+
+    // An admin grant records the channel the approving dashboard tab was on, so everything the
+    // grant produces belongs to that channel: another channel cannot list it, cannot prune its
+    // log rows, and cannot revoke it.
+    describe('admin grant bound to the approving channel', () => {
+        let secondChannelToken: string;
+        let clientName: string;
+
+        beforeAll(async () => {
+            const { zones } = await adminClient.query(gql`
+                query {
+                    zones {
+                        items {
+                            id
+                        }
+                    }
+                }
+            `);
+            const active = await adminClient.query(gql`
+                query {
+                    activeChannel {
+                        defaultLanguageCode
+                        defaultCurrencyCode
+                    }
+                }
+            `);
+            const created = await adminClient.query(
+                gql`
+                    mutation CreateApprovalChannel($input: CreateChannelInput!) {
+                        createChannel(input: $input) {
+                            __typename
+                            ... on Channel {
+                                token
+                            }
+                        }
+                    }
+                `,
+                {
+                    input: {
+                        code: 'grant-approval-channel',
+                        token: 'grant-approval-channel-token',
+                        defaultLanguageCode: active.activeChannel.defaultLanguageCode,
+                        defaultCurrencyCode: active.activeChannel.defaultCurrencyCode,
+                        pricesIncludeTax: false,
+                        defaultShippingZoneId: zones.items[0].id,
+                        defaultTaxZoneId: zones.items[0].id,
+                    },
+                },
+            );
+            secondChannelToken = created.createChannel.token;
+            expect(secondChannelToken).toBeDefined();
+
+            // Approve while sending the second channel's token, exactly as the dashboard does.
+            clientName = `approving-channel-client-${Math.random().toString(36).slice(2)}`;
+            const flow = await runAuthorizationCodeFlow({
+                baseUrl: baseUrl(),
+                issuer: ISSUER,
+                superAdminToken,
+                clientName,
+                channelToken: secondChannelToken,
+            });
+
+            // One real tool call, so there is a log row whose channel came from the grant.
+            const call = await postMcp(
+                baseUrl(),
+                'admin',
+                rpc('tools/call', { name: 'admin_list', arguments: {} }, 1),
+                { token: flow.access_token },
+            );
+            expect(call.body.result.isError).toBeUndefined();
+
+            // Age the row past the 30-day retention window so a sweep would delete it if it could.
+            const logRow = await connection
+                .getRepository(adminCtx, McpToolCallLog)
+                .findOneOrFail({ where: { toolName: 'admin_list' }, order: { id: 'DESC' } });
+            await backdateLogCreatedAt(connection, adminCtx, logRow.id, new Date(Date.now() - 40 * DAY_MS));
+        }, TEST_SETUP_TIMEOUT_MS);
+
+        /** Reads this suite's grant back from the second channel's own listing. */
+        async function grantOnSecondChannel() {
+            const listed = await adminGraphQL(
+                superAdminToken,
+                MCP_OAUTH_GRANTS_QUERY,
+                { includeInactive: true },
+                secondChannelToken,
+            );
+            expect(listed.errors).toBeUndefined();
+            return (
+                listed.data.mcpOauthGrants.items as Array<{
+                    id: string;
+                    oauthClientName: string | null;
+                    status: string;
+                }>
+            ).find(g => g.oauthClientName === clientName);
+        }
+
+        it('lists the grant on the approving channel and not on the default channel', async () => {
+            expect(await grantOnSecondChannel()).toBeDefined();
+
+            const onDefaultChannel = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
+                includeInactive: true,
+            });
+            expect(onDefaultChannel.errors).toBeUndefined();
+            expect(
+                (
+                    onDefaultChannel.data.mcpOauthGrants.items as Array<{
+                        oauthClientName: string | null;
+                    }>
+                ).some(g => g.oauthClientName === clientName),
+            ).toBe(false);
+        });
+
+        it("the default channel's log sweep leaves the grant's expired rows alone", async () => {
+            const before = await connection
+                .getRepository(adminCtx, McpToolCallLog)
+                .findOneOrFail({ where: { toolName: 'admin_list' }, order: { id: 'DESC' } });
+
+            const swept = await adminGraphQL<{ removeExpiredMcpToolCallLogs: number }>(
+                superAdminToken,
+                REMOVE_EXPIRED_LOGS,
+            );
+            expect(swept.errors).toBeUndefined();
+
+            const after = await connection
+                .getRepository(adminCtx, McpToolCallLog)
+                .findOne({ where: { id: before.id } });
+            expect(after).not.toBeNull();
+        });
+
+        it('refuses to revoke the grant from the default channel', async () => {
+            const grant = await grantOnSecondChannel();
+            expect(grant?.status).toBe('active');
+
+            const revoke = await adminGraphQL(superAdminToken, REVOKE_MCP_OAUTH_GRANT, {
+                id: grant?.id,
+            });
+            expect(revoke.errors).toBeUndefined();
+            expect(revoke.data.revokeMcpOauthGrant).toBe(false);
+
+            expect((await grantOnSecondChannel())?.status).toBe('active');
         });
     });
 

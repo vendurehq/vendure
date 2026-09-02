@@ -28,6 +28,15 @@ who manage the AI integration.
 `clientIp` also requires `ReadCustomer`.
 :::
 
+## Which channel the agent works on
+
+Approving an admin consent request binds the client to the channel the dashboard was on at the time. The
+agent then works on that channel only, and its grant and call logs show up on that channel. An operator
+looking at a different channel cannot see the grant, revoke it, or prune its log rows.
+
+So switch to the channel you want the agent to work on before you approve. A superadmin who wants the agent
+to cover the whole store approves while on the default channel.
+
 ## Registry visibility
 
 The tool-registry query returns the full registry. It is not filtered per caller, so any holder of

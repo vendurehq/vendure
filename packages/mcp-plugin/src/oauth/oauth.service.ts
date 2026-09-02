@@ -304,6 +304,7 @@ export class McpOauthService {
         return this.approveAuthorizationRequest(requestToken, 'admin', {
             actorId: ctx.activeUserId,
             actorType: 'admin',
+            channelId: ctx.channelId ?? null,
         });
     }
 

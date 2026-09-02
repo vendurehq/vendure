@@ -288,3 +288,6 @@ msgstr ""
 
 msgid "Grants"
 msgstr ""
+
+msgid "The client will act on this channel:"
+msgstr ""
