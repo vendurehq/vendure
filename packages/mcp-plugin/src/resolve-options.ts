@@ -17,9 +17,9 @@ import { McpPluginOptions, McpRateLimitOptions } from './types';
 export function resolveMcpPluginOptions(options: McpPluginOptions = {}): ResolvedMcpPluginOptions {
     const oauth = options.oauth && { ...DEFAULT_OAUTH_OPTIONS, ...options.oauth };
     const ttlDays = options.logging?.ttlDays ?? DEFAULT_LOG_TTL_DAYS;
-    assertRetentionDays('logging.ttlDays', ttlDays);
+    assertNonNegativeNumber('logging.ttlDays', ttlDays);
     if (oauth) {
-        assertRetentionDays('oauth.grantRetentionDays', oauth.grantRetentionDays);
+        assertNonNegativeNumber('oauth.grantRetentionDays', oauth.grantRetentionDays);
     }
     return {
         toolExposure: options.toolExposure ?? DEFAULT_TOOL_EXPOSURE,
@@ -38,7 +38,7 @@ export function resolveMcpPluginOptions(options: McpPluginOptions = {}): Resolve
     };
 }
 
-function assertRetentionDays(name: string, value: number): void {
+function assertNonNegativeNumber(name: string, value: number): void {
     if (!Number.isFinite(value) || value < 0) {
         throw new Error(`McpPlugin: ${name} must be a non-negative finite number, got ${String(value)}.`);
     }
@@ -49,7 +49,7 @@ function assertRetentionDays(name: string, value: number): void {
  * the user explicitly passes `anonymousIp: false`.
  */
 function resolveRateLimits(rateLimits?: McpRateLimitOptions): Required<McpRateLimitOptions> {
-    return {
+    const resolved: Required<McpRateLimitOptions> = {
         perSession: rateLimits?.perSession ?? DEFAULT_RATE_LIMIT_OPTIONS.perSession,
         perUser: rateLimits?.perUser ?? DEFAULT_RATE_LIMIT_OPTIONS.perUser,
         perClient: rateLimits?.perClient ?? DEFAULT_RATE_LIMIT_OPTIONS.perClient,
@@ -57,4 +57,21 @@ function resolveRateLimits(rateLimits?: McpRateLimitOptions): Required<McpRateLi
         anonymousIp: rateLimits?.anonymousIp ?? DEFAULT_RATE_LIMIT_OPTIONS.anonymousIp,
         oauthIp: rateLimits?.oauthIp ?? DEFAULT_RATE_LIMIT_OPTIONS.oauthIp,
     };
+    assertRpm('rateLimits.perSession', resolved.perSession);
+    assertRpm('rateLimits.perUser', resolved.perUser);
+    assertRpm('rateLimits.perClient', resolved.perClient);
+    assertRpm('rateLimits.anonymousIp', resolved.anonymousIp);
+    assertRpm('rateLimits.oauthIp', resolved.oauthIp);
+    for (const [toolName, perTool] of Object.entries(resolved.perTool)) {
+        assertRpm(`rateLimits.perTool.${toolName}`, perTool);
+    }
+    return resolved;
+}
+
+/** `false` means the bucket is switched off; anything else must carry a usable rpm. */
+function assertRpm(name: string, option: { rpm: number } | false | undefined): void {
+    if (option === false || option === undefined) {
+        return;
+    }
+    assertNonNegativeNumber(`${name}.rpm`, option.rpm);
 }

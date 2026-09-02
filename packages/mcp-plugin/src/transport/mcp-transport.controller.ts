@@ -43,6 +43,12 @@ import { McpShopSessionService } from '../shop-session/mcp-shop-session.service'
 
 import { createMcpServerForRequest } from './mcp-server.factory';
 
+/**
+ * The rate-limit subject used for a request body the SDK will refuse (no JSON-RPC method, or a
+ * non-JSON content type). Deliberately not a valid tool or method name.
+ */
+const MALFORMED_SUBJECT = 'malformed';
+
 /** Minimal JSON-RPC error envelope returned by the handshake pre-check. */
 interface JsonRpcError {
     jsonrpc: '2.0';
@@ -223,12 +229,12 @@ export class McpTransportController {
         const contentType = this.getHeader(req.headers, 'content-type') ?? '';
         const isJson = isJsonContentType(contentType);
         const parsedBody = isJson ? body : undefined;
-        if (isJson) {
-            const exceeded = await this.preCheckHandshakeRateLimit(body, toolset, executionContext);
-            if (exceeded) {
-                this.sendRateLimitError(res, body, exceeded);
-                return;
-            }
+        // Charged for every content type, including the ones the SDK will refuse: resolving the
+        // caller above already cost a database round trip, so an unusable body must still be metered.
+        const preCheckExceeded = await this.preCheckHandshakeRateLimit(body, toolset, executionContext);
+        if (preCheckExceeded) {
+            this.sendRateLimitError(res, body, preCheckExceeded);
+            return;
         }
 
         if (isJson && this.callsSubscriptionsListen(body)) {
@@ -267,9 +273,11 @@ export class McpTransportController {
     }
 
     /**
-     * Enforces the per-subject rate limit for every method except `tools/call`, which the registry
-     * funnel owns. Notifications are charged too: they carry no id and get no reply, but they still
-     * reach the transport, so leaving them free left the endpoint hammerable for nothing.
+     * Enforces the per-subject rate limit for every message except a `tools/call` the registry
+     * funnel will charge itself. Notifications are charged too: they carry no id and get no reply,
+     * but they still reach the transport, so leaving them free left the endpoint hammerable for
+     * nothing. A message the SDK cannot parse at all is charged under {@link MALFORMED_SUBJECT},
+     * which is not a tool name, so no `perTool` limit can match it.
      */
     private async preCheckHandshakeRateLimit(
         body: unknown,
@@ -278,20 +286,30 @@ export class McpTransportController {
     ): Promise<McpRateLimitExceeded | undefined> {
         const messages = Array.isArray(body) ? body : [body];
         for (const message of messages) {
-            const method = (message as { method?: unknown } | null)?.method;
-            if (typeof method !== 'string' || method === 'tools/call') {
+            if (this.isRegistryChargedToolCall(message)) {
                 continue;
             }
+            const method = (message as { method?: unknown } | null)?.method;
             const exceeded = await this.rateLimiter.checkRateLimit({
                 executionContext,
                 endpoint: toolset,
-                subject: method,
+                subject: typeof method === 'string' ? method : MALFORMED_SUBJECT,
             });
             if (exceeded) {
                 return exceeded;
             }
         }
         return undefined;
+    }
+
+    /**
+     * True for a `tools/call` the tool registry will reach and charge itself. A call whose `params`
+     * is missing, or carries no tool name, is rejected by the SDK before the registry runs, so it
+     * has to be charged here instead.
+     */
+    private isRegistryChargedToolCall(message: unknown): boolean {
+        const parsed = message as { method?: unknown; params?: { name?: unknown } } | null;
+        return parsed?.method === 'tools/call' && typeof parsed.params?.name === 'string';
     }
 
     /**

@@ -5,20 +5,31 @@ import { McpPluginOptions } from '../types';
 
 import { McpRateLimiterService, McpRateLimitExceededError } from './mcp-rate-limiter.service';
 
-/** In-memory CacheService stand-in (TTL not enforced — reset is exercised via fake timers). */
-function makeCache() {
-    const store = new Map<string, unknown>();
+/**
+ * In-memory CacheService stand-in that honours the TTL passed on write, which is what a shared
+ * cache such as Redis does. `cacheClock` is the clock the cache itself judges expiry by: it
+ * defaults to the test's (fake) system clock, and the clock-skew tests below pass a separate one
+ * so the cache's idea of time can differ from the server's.
+ */
+function makeCache(cacheClock: () => number = () => Date.now()) {
+    const store = new Map<string, { value: unknown; expiresAt: number }>();
     return {
-        get: (key: string) => Promise.resolve(store.get(key)),
-        set: (key: string, value: unknown) => {
-            store.set(key, value);
+        get: (key: string) => {
+            const entry = store.get(key);
+            if (!entry || entry.expiresAt <= cacheClock()) {
+                return Promise.resolve(undefined);
+            }
+            return Promise.resolve(entry.value);
+        },
+        set: (key: string, value: unknown, options?: { ttl?: number }) => {
+            store.set(key, { value, expiresAt: cacheClock() + (options?.ttl ?? 0) });
             return Promise.resolve();
         },
     };
 }
 
-function build(options: McpPluginOptions) {
-    const cache = makeCache();
+function build(options: McpPluginOptions, cacheClock?: () => number) {
+    const cache = makeCache(cacheClock);
     const service = new McpRateLimiterService(cache as any, resolveMcpPluginOptions(options));
     return { service };
 }
@@ -465,5 +476,53 @@ describe('McpRateLimiterService rate limiting', () => {
                 subject: 'ping',
             }),
         ).resolves.toBeUndefined();
+    });
+});
+
+describe('McpRateLimiterService shared buckets across instances with skewed clocks', () => {
+    const START = new Date('2026-01-01T00:00:00Z').getTime();
+
+    beforeEach(() => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date(START));
+    });
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
+    const soloSession: McpPluginOptions = {
+        rateLimits: { perSession: { rpm: 1 }, perClient: { rpm: 0 }, anonymousIp: false },
+    };
+
+    it('keeps counting a bucket that a fast-running instance would think had already reset', async () => {
+        // The cache keeps its own clock (as Redis does), and the server's clock runs 90s ahead of it.
+        const { service } = build(soloSession, () => START);
+        const ctx = sessionCtx('skew-a');
+        await service.enforceRateLimit({ executionContext: ctx, endpoint: 'admin', subject: 'ping' });
+
+        vi.setSystemTime(new Date(START + 90_000));
+        // The cache entry is still alive, so the limit must still apply even though the stored
+        // resetAt is in this instance's past.
+        expect(
+            await service.checkRateLimit({ executionContext: ctx, endpoint: 'admin', subject: 'ping' }),
+        ).toBeDefined();
+    });
+
+    it('never advertises a Retry-After longer than the window, even from a slow-running instance', async () => {
+        // The bucket was written by an instance whose clock was 90s ahead, so the stored resetAt is
+        // 150s in the future as far as this instance is concerned.
+        const { service } = build(soloSession);
+        const ctx = sessionCtx('skew-b');
+        vi.setSystemTime(new Date(START + 90_000));
+        await service.enforceRateLimit({ executionContext: ctx, endpoint: 'admin', subject: 'ping' });
+
+        vi.setSystemTime(new Date(START));
+        const exceeded = await service.checkRateLimit({
+            executionContext: ctx,
+            endpoint: 'admin',
+            subject: 'ping',
+        });
+        expect(exceeded?.retryAfterSeconds).toBe(60);
+        expect(exceeded?.message).toContain('Retry after 60 seconds');
     });
 });

@@ -6,6 +6,8 @@ import { createHash } from 'node:crypto';
 import { MCP_PLUGIN_OPTIONS, RATE_LIMIT_CACHE_PREFIX, RATE_LIMIT_WINDOW_MS } from '../constants';
 import { McpExecutionContext, ResolvedMcpPluginOptions } from '../internal-types';
 
+import { ipBucketKey } from './ip-bucket-key';
+
 interface RateLimitCheck {
     key: string;
     rpm: number;
@@ -100,7 +102,7 @@ export class McpRateLimiterService {
             return undefined;
         }
         const now = Date.now();
-        const state = await this.getBucketState(check.key, now);
+        const state = await this.getBucketState(check.key);
         if (state && state.count > check.rpm) {
             // Keep counting refused attempts, so the cache entry stays alive while the flood lasts.
             await this.incrementBucket(check.key, now);
@@ -142,7 +144,10 @@ export class McpRateLimiterService {
         resetAt: number,
         now: number,
     ): McpRateLimitExceeded {
-        const retryAfterSeconds = Math.max(1, Math.ceil((resetAt - now) / 1000));
+        // `resetAt` was written by whichever instance created the bucket, so a clock difference
+        // between instances could otherwise advertise a wait longer than a window can ever be.
+        const windowSeconds = RATE_LIMIT_WINDOW_MS / 1000;
+        const retryAfterSeconds = Math.min(windowSeconds, Math.max(1, Math.ceil((resetAt - now) / 1000)));
         return {
             message: `Rate limit exceeded for ${subject} (${scope}). Retry after ${retryAfterSeconds} seconds.`,
             retryAfterSeconds,
@@ -246,18 +251,13 @@ export class McpRateLimiterService {
         ];
     }
 
-    /** Reads a bucket's current state, treating an expired window as if the bucket didn't exist. */
-    private async getBucketState(key: string, now: number): Promise<BucketState | undefined> {
-        const state = await this.cacheService.get<BucketState>(this.cacheKey(key));
-        if (!state || state.resetAt <= now) {
-            return undefined;
-        }
-        return state;
+    private async getBucketState(key: string): Promise<BucketState | undefined> {
+        return this.cacheService.get<BucketState>(this.cacheKey(key));
     }
 
     private incrementBucket(key: string, now: number): Promise<BucketState> {
         const run = async (): Promise<BucketState> => {
-            const state = await this.getBucketState(key, now);
+            const state = await this.getBucketState(key);
             const next: BucketState = state
                 ? { count: state.count + 1, resetAt: state.resetAt }
                 : { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS };
@@ -328,7 +328,7 @@ export class McpRateLimiterService {
     }
 
     private ipKey(clientIp?: string): string {
-        return clientIp ?? 'unknown';
+        return ipBucketKey(clientIp);
     }
 
     private cacheKey(key: string): string {

@@ -69,4 +69,30 @@ describe('resolveMcpPluginOptions', () => {
         expect(resolved.logging.ttlDays).toBe(0);
         expect(resolved.oauth?.grantRetentionDays).toBe(0);
     });
+
+    it.each([-1, NaN, Infinity])('rejects rateLimits.perSession rpm of %s', value => {
+        expect(() => resolveMcpPluginOptions({ rateLimits: { perSession: { rpm: value } } })).toThrow(
+            /rateLimits\.perSession\.rpm must be a non-negative finite number/,
+        );
+    });
+
+    it.each(['perUser', 'perClient', 'anonymousIp', 'oauthIp'] as const)(
+        'rejects a negative rpm on rateLimits.%s',
+        option => {
+            expect(() => resolveMcpPluginOptions({ rateLimits: { [option]: { rpm: -1 } } })).toThrow(
+                new RegExp(`rateLimits\\.${option}\\.rpm must be a non-negative finite number`),
+            );
+        },
+    );
+
+    it('rejects a NaN rpm on a perTool entry, naming the tool', () => {
+        expect(() =>
+            resolveMcpPluginOptions({ rateLimits: { perTool: { place_order: { rpm: NaN } } } }),
+        ).toThrow(/rateLimits\.perTool\.place_order\.rpm must be a non-negative finite number/);
+    });
+
+    it('accepts an rpm of 0, which means the bucket is off', () => {
+        const resolved = resolveMcpPluginOptions({ rateLimits: { perSession: { rpm: 0 } } });
+        expect(resolved.rateLimits.perSession).toEqual({ rpm: 0 });
+    });
 });

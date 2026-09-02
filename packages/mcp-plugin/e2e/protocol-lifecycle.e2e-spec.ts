@@ -481,6 +481,70 @@ describe('MCP modern protocol era rate limiting', () => {
     });
 });
 
+describe('MCP rate limiting of bodies the SDK will refuse', () => {
+    const options: McpPluginOptions = {
+        oauth: { tokenSecret: TOKEN_SECRET },
+        // Only the per-session bucket is live, so any refusal below can only have come from the
+        // controller's pre-check. Three requests fit in the budget, so the fourth is what reveals
+        // whether the three unusable bodies before it were charged at all.
+        //
+        // The requests below carry a bearer token on purpose. Every describe in this file shares one
+        // in-memory cache instance (they all merge the same defaultTestConfig), and an anonymous
+        // caller's per-session bucket is keyed by client IP, so an anonymous budget here would be
+        // partly spent by earlier describes. A grant's bucket is keyed by its own session token.
+        rateLimits: {
+            perSession: { rpm: 3 },
+            perUser: { rpm: 0 },
+            perClient: { rpm: 0 },
+            anonymousIp: false,
+        },
+    };
+    const config = mergeConfig(testConfig(), { plugins: [McpTestToolsPlugin, McpPlugin.init(options)] });
+    const { server, adminClient } = createTestEnvironment(config);
+    const baseUrl = () => `http://localhost:${config.apiOptions.port}`;
+    let adminToken: string;
+
+    beforeAll(async () => {
+        McpPlugin.init(options);
+        await server.init(testServerInit);
+        await adminClient.asSuperAdmin();
+        const flow = await runAuthorizationCodeFlow({
+            baseUrl: baseUrl(),
+            issuer: ISSUER,
+            superAdminToken: adminClient.getAuthToken(),
+        });
+        adminToken = flow.access_token;
+    }, TEST_SETUP_TIMEOUT_MS);
+
+    afterAll(async () => {
+        await server.destroy();
+    });
+
+    it('charges a bucket for a body with no method, a non-JSON body and a params-less tools/call', async () => {
+        // Each of these three costs the server a full token authentication, so each has to be
+        // metered even though the SDK then refuses the message.
+        const noMethod = await postMcp(baseUrl(), 'admin', {}, { token: adminToken });
+        expect(noMethod.status).toBe(400);
+
+        const notJson = await postMcp(baseUrl(), 'admin', rpc('ping', {}, 1), {
+            token: adminToken,
+            contentType: 'text/plain',
+        });
+        expect(notJson.status).toBe(415);
+
+        // `tools/call` is normally left to the tool registry to charge, but the SDK rejects a call
+        // with no `params` before the registry ever runs, so the pre-check has to charge this one.
+        const noParams = await postMcp(baseUrl(), 'admin', rpc('tools/call', undefined, 2), {
+            token: adminToken,
+        });
+        expect(noParams.status).not.toBe(429);
+
+        // Budget spent: a well-formed request is now refused.
+        const refused = await postMcp(baseUrl(), 'admin', rpc('ping', {}, 3), { token: adminToken });
+        expectRateLimitRefusal(refused, { scope: 'session', id: 3 });
+    });
+});
+
 describe('MCP DNS-rebinding guard', () => {
     // Both halves of the guard are configured on one server. `allowedOrigins` can share it because
     // a request with no Origin header passes the origin check by design — only browsers send the
