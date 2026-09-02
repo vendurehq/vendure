@@ -131,12 +131,123 @@ describe('McpPlugin OAuth routes', () => {
 
         const badRedirect = await postRegister({
             client_name: 'Bad Redirect Client',
-            redirect_uris: ['ftp://example.com/cb'],
+            redirect_uris: ['javascript:alert(1)'],
         });
         expect(badRedirect.status).toBe(400);
         expect(await badRedirect.json()).toEqual({
             error: 'invalid_redirect_uri',
-            error_description: 'redirect_uri must use HTTPS or localhost HTTP',
+            error_description: 'redirect_uri must not use the javascript: scheme',
+        });
+    });
+
+    // Route inputs are whatever the client put on the wire, and there is no REST validation
+    // pipe in the framework to check them. A field of the wrong runtime type (a string where an
+    // array belongs, or a repeated query key that parses into an array) must be refused at the
+    // route boundary with the RFC error body, not crash deeper in the service as a 500.
+    describe('rejects route inputs of the wrong runtime type', () => {
+        const postJson = (path: string, body: unknown) =>
+            fetch(`http://localhost:${config.apiOptions.port}/${path}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+
+        const errorCodeOf = async (res: Response) => ((await res.json()) as { error: string }).error;
+
+        it('POST /mcp/oauth/register refuses a string grant_types', async () => {
+            const res = await postJson('mcp/oauth/register', {
+                client_name: 'String Grant Types Client',
+                redirect_uris: ['https://example.com/cb'],
+                grant_types: 'authorization_code',
+            });
+            expect(res.status).toBe(400);
+            expect(await errorCodeOf(res)).toBe('invalid_client_metadata');
+        });
+
+        it('POST /mcp/oauth/register refuses a numeric redirect_uris', async () => {
+            const res = await postJson('mcp/oauth/register', {
+                client_name: 'Numeric Redirect Uris Client',
+                redirect_uris: 5,
+            });
+            expect(res.status).toBe(400);
+            expect(await errorCodeOf(res)).toBe('invalid_client_metadata');
+        });
+
+        it('POST /mcp/oauth/token refuses a numeric code', async () => {
+            const res = await postJson('mcp/oauth/token', {
+                grant_type: 'authorization_code',
+                code: 5,
+                client_id: 'not-a-real-client',
+                redirect_uri: 'https://example.com/cb',
+                code_verifier: 'x'.repeat(43),
+            });
+            expect(res.status).toBe(400);
+            expect(await errorCodeOf(res)).toBe('invalid_request');
+        });
+
+        it('GET /mcp/oauth/authorize refuses a repeated state, without redirecting', async () => {
+            const port = config.apiOptions.port;
+            // Everything but `state` is valid, so without the check the request would get as far
+            // as writing the array into the authorization request row.
+            const register = await postJson('mcp/oauth/register', {
+                client_name: 'Repeated State Client',
+                redirect_uris: ['https://example.com/cb'],
+            });
+            expect(register.status).toBe(201);
+            const { client_id: clientId } = (await register.json()) as { client_id: string };
+
+            const params = new URLSearchParams({
+                response_type: 'code',
+                client_id: clientId,
+                redirect_uri: 'https://example.com/cb',
+                code_challenge: 'x'.repeat(43),
+                code_challenge_method: 'S256',
+                resource: `http://localhost:${port}/mcp/admin`,
+            });
+            params.append('state', 'a');
+            params.append('state', 'b');
+
+            const res = await fetch(`http://localhost:${port}/mcp/oauth/authorize?${params.toString()}`, {
+                redirect: 'manual',
+            });
+            expect(res.status).toBe(400);
+            expect(await errorCodeOf(res)).toBe('invalid_request');
+        });
+
+        it('GET /mcp/oauth/authorize refuses a repeated client_id', async () => {
+            const port = config.apiOptions.port;
+            const params = new URLSearchParams({
+                response_type: 'code',
+                redirect_uri: 'https://example.com/cb',
+                code_challenge: 'x'.repeat(43),
+                code_challenge_method: 'S256',
+                resource: `http://localhost:${port}/mcp/admin`,
+            });
+            params.append('client_id', 'a');
+            params.append('client_id', 'b');
+
+            const res = await fetch(`http://localhost:${port}/mcp/oauth/authorize?${params.toString()}`, {
+                redirect: 'manual',
+            });
+            expect(res.status).toBe(400);
+            expect(await errorCodeOf(res)).toBe('invalid_request');
+        });
+
+        it('GET /mcp/oauth/authorization-request refuses a repeated request_token', async () => {
+            const port = config.apiOptions.port;
+            const res = await fetch(
+                `http://localhost:${port}/mcp/oauth/authorization-request?request_token=a&request_token=b`,
+            );
+            expect(res.status).toBe(400);
+            expect(await errorCodeOf(res)).toBe('invalid_request');
+        });
+
+        // RFC 7009 §2.2 gives revocation no way to report a bad token, so a token of the wrong
+        // type counts as no token at all and the route still answers 200.
+        it('POST /mcp/oauth/revoke answers 200 for a non-string token', async () => {
+            const res = await postJson('mcp/oauth/revoke', { token: {} });
+            expect(res.status).toBe(200);
+            expect(await res.json()).toEqual({});
         });
     });
 

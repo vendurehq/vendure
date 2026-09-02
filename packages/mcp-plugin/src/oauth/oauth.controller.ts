@@ -11,6 +11,7 @@ import {
     UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
+import { z } from 'zod';
 
 import {
     McpOauthRateLimitExceptionFilter,
@@ -18,8 +19,8 @@ import {
 } from '../rate-limit/mcp-oauth-rate-limit.guard';
 
 import { OAUTH_ENDPOINT_PATHS } from './endpoint-paths';
-import { McpOauthExceptionFilter } from './oauth-error';
-import { AuthorizeInput, RegisterClientInput, TokenInput } from './oauth-types';
+import { McpOauthExceptionFilter, parseOAuthInput } from './oauth-error';
+import { authorizeInputSchema, registerClientInputSchema, tokenInputSchema } from './oauth-types';
 import { McpOauthService } from './oauth.service';
 
 @UseGuards(McpOauthRateLimitGuard)
@@ -39,32 +40,39 @@ export class McpOauthController {
     }
 
     @Post(OAUTH_ENDPOINT_PATHS.register)
-    register(@Body() input: RegisterClientInput) {
+    register(@Body() body: unknown) {
+        const input = parseOAuthInput(registerClientInputSchema, body, 'invalid_client_metadata');
         return this.oauthService.registerClient(input);
     }
 
     @Get(OAUTH_ENDPOINT_PATHS.authorize)
-    async authorize(@Query() input: AuthorizeInput, @Res() res: Response): Promise<void> {
+    async authorize(@Query() query: unknown, @Res() res: Response): Promise<void> {
+        const input = parseOAuthInput(authorizeInputSchema, query, 'invalid_request');
         const redirectUrl = await this.oauthService.createAuthorizationRedirect(input);
         res.redirect(redirectUrl);
     }
 
     @Get(OAUTH_ENDPOINT_PATHS.authorizationRequest)
-    authorizationRequest(@Query('request_token') requestToken: string) {
-        return this.oauthService.getAuthorizationRequestInfo(requestToken);
+    authorizationRequest(@Query('request_token') requestToken: unknown) {
+        const token = parseOAuthInput(z.string().optional(), requestToken, 'invalid_request');
+        return this.oauthService.getAuthorizationRequestInfo(token);
     }
 
     // RFC 6749 §5.1 requires the token endpoint to respond with 200; override the NestJS
     // @Post default of 201.
     @Post(OAUTH_ENDPOINT_PATHS.token)
     @HttpCode(200)
-    token(@Body() input: TokenInput) {
+    token(@Body() body: unknown) {
+        const input = parseOAuthInput(tokenInputSchema, body, 'invalid_request');
         return this.oauthService.exchangeToken(input);
     }
 
     @Post(OAUTH_ENDPOINT_PATHS.revoke)
     @HttpCode(200)
-    revoke(@Body('token') token?: string) {
-        return this.oauthService.revoke(token);
+    revoke(@Body() body: unknown) {
+        // RFC 7009 §2.2 leaves revocation no way to report a bad token, so a token that is not
+        // a string is treated as no token at all and the route still answers 200.
+        const token = (body as { token?: unknown } | null | undefined)?.token;
+        return this.oauthService.revoke(typeof token === 'string' ? token : undefined);
     }
 }

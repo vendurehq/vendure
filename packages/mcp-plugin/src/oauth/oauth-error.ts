@@ -1,5 +1,6 @@
 import { ArgumentsHost, BadRequestException, Catch, ExceptionFilter } from '@nestjs/common';
 import type { Response } from 'express';
+import type { ZodType } from 'zod';
 
 /**
  * OAuth error codes returned by this server.
@@ -27,6 +28,22 @@ export class McpOauthError extends BadRequestException {
         super({ error: code, error_description: description });
         this.message = description;
     }
+}
+
+/**
+ * Validates REST payloads against a Zod schema before hitting the service.
+ *
+ * Prevents unvalidated client input from causing deep 500 errors, converting
+ * invalid runtime types into OAuth-compliant 400 responses.
+ */
+export function parseOAuthInput<T>(schema: ZodType<T>, value: unknown, code: McpOauthErrorCode): T {
+    const result = schema.safeParse(value);
+    if (result.success) {
+        return result.data;
+    }
+    const issue = result.error.issues[0];
+    const fieldPath = issue.path.join('.');
+    throw new McpOauthError(code, fieldPath ? `${fieldPath}: ${issue.message}` : issue.message);
 }
 
 /**

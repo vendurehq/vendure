@@ -1,37 +1,40 @@
 import { McpToolset } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
 import { McpOauthOptions } from '../types';
 
 // Field names are snake_case to match the OAuth 2.1 wire contract.
+export const registerClientInputSchema = z.object({
+    client_name: z.string().optional(),
+    client_uri: z.string().optional(),
+    logo_uri: z.string().optional(),
+    redirect_uris: z.array(z.string()).optional(),
+    grant_types: z.array(z.string()).optional(),
+    token_endpoint_auth_method: z.string().optional(),
+});
+export type RegisterClientInput = z.infer<typeof registerClientInputSchema>;
 
-export interface RegisterClientInput {
-    client_name?: string;
-    client_uri?: string;
-    logo_uri?: string;
-    redirect_uris?: string[];
-    grant_types?: string[];
-    token_endpoint_auth_method?: string;
-}
+export const authorizeInputSchema = z.object({
+    response_type: z.string().optional(),
+    client_id: z.string().optional(),
+    redirect_uri: z.string().optional(),
+    state: z.string().optional(),
+    code_challenge: z.string().optional(),
+    code_challenge_method: z.string().optional(),
+    resource: z.string().optional(),
+});
+export type AuthorizeInput = z.infer<typeof authorizeInputSchema>;
 
-export interface AuthorizeInput {
-    response_type?: string;
-    client_id?: string;
-    redirect_uri?: string;
-    state?: string;
-    code_challenge?: string;
-    code_challenge_method?: string;
-    resource?: string;
-}
-
-export interface TokenInput {
-    grant_type?: string;
-    code?: string;
-    refresh_token?: string;
-    client_id?: string;
-    redirect_uri?: string;
-    code_verifier?: string;
-    resource?: string;
-}
+export const tokenInputSchema = z.object({
+    grant_type: z.string().optional(),
+    code: z.string().optional(),
+    refresh_token: z.string().optional(),
+    client_id: z.string().optional(),
+    redirect_uri: z.string().optional(),
+    code_verifier: z.string().optional(),
+    resource: z.string().optional(),
+});
+export type TokenInput = z.infer<typeof tokenInputSchema>;
 
 export interface AuthorizationRequestInfo {
     client_id: string;
