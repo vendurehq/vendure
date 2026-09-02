@@ -2,7 +2,8 @@ import crypto from 'crypto';
 
 import { AUTHORIZE_MCP_CLIENT } from '../graphql/mcp-documents';
 
-export interface AuthorizationCodeFlowResult {
+/** Everything an authorization-code flow has produced by the time it has a code in hand. */
+export interface PendingAuthorizationCode {
     /** The plaintext OAuth client_id returned by Dynamic Client Registration. */
     client_id: string;
     /** The registered redirect URI used throughout the flow. */
@@ -15,6 +16,9 @@ export interface AuthorizationCodeFlowResult {
     request_token: string;
     /** The plaintext authorization code extracted from the consent redirect. */
     code: string;
+}
+
+export interface AuthorizationCodeFlowResult extends PendingAuthorizationCode {
     /** The created access token (plaintext). */
     access_token: string;
     /** The created refresh token (plaintext). */
@@ -140,14 +144,16 @@ interface DriveAuthorizationCodeFlowOptions {
 }
 
 /**
- * Runs the four steps every authorization-code flow shares — obtain a client_id, authorize,
- * consent (delegated to `approve`, which differs per surface), exchange the code — and
- * returns every value a test might need to assert on or replay. Throws if any step returns
- * an unexpected status, so a broken flow surfaces immediately.
+ * Runs the three steps that lead up to a usable authorization code (obtain a client_id,
+ * authorize, consent, the last delegated to `approve` because it differs per surface) and
+ * stops there.
+ * Kept separate from the exchange so a test can do something to the store in between, such as
+ * deleting the user who approved. Throws if any step returns an unexpected status, so a broken
+ * flow surfaces immediately.
  */
-async function driveAuthorizationCodeFlow(
+async function driveToAuthorizationCode(
     options: DriveAuthorizationCodeFlowOptions,
-): Promise<AuthorizationCodeFlowResult> {
+): Promise<PendingAuthorizationCode> {
     const { baseUrl, resource, clientName, redirectUri, approve } = options;
 
     const { code_verifier, code_challenge } = pkcePair();
@@ -189,16 +195,30 @@ async function driveAuthorizationCodeFlow(
         throw new Error(`Consent redirect missing code param: ${redirectUrl}`);
     }
 
-    // 4. Token exchange: authorization code -> access + refresh tokens.
+    return {
+        client_id,
+        redirect_uri: redirectUri,
+        resource,
+        code_verifier,
+        request_token,
+        code,
+    };
+}
+
+/** Redeems the code a flow has just produced, and adds the resulting token pair to it. */
+async function exchangePendingCode(
+    baseUrl: string,
+    pending: PendingAuthorizationCode,
+): Promise<AuthorizationCodeFlowResult> {
     const tokenResponse = await exchangeCode({
         baseUrl,
         body: {
             grant_type: 'authorization_code',
-            code,
-            client_id,
-            redirect_uri: redirectUri,
-            code_verifier,
-            resource,
+            code: pending.code,
+            client_id: pending.client_id,
+            redirect_uri: pending.redirect_uri,
+            code_verifier: pending.code_verifier,
+            resource: pending.resource,
         },
     });
     if (!tokenResponse.ok) {
@@ -208,17 +228,7 @@ async function driveAuthorizationCodeFlow(
         access_token: string;
         refresh_token: string;
     };
-
-    return {
-        client_id,
-        redirect_uri: redirectUri,
-        resource,
-        code_verifier,
-        request_token,
-        code,
-        access_token,
-        refresh_token,
-    };
+    return { ...pending, access_token, refresh_token };
 }
 
 export interface RunAuthorizationCodeFlowOptions {
@@ -239,13 +249,30 @@ export interface RunAuthorizationCodeFlowOptions {
 }
 
 /**
+ * Drives the admin OAuth flow as far as an unredeemed authorization code. Use this when the
+ * test needs to act between consent and the token exchange; call `exchangeCode` yourself
+ * afterwards, or use {@link runAuthorizationCodeFlow} when nothing has to happen in between.
+ */
+export function runAuthorizationCodeFlowToCode(
+    options: RunAuthorizationCodeFlowOptions,
+): Promise<PendingAuthorizationCode> {
+    return driveToAuthorizationCode(adminFlowOptions(options));
+}
+
+/**
  * Drives the full admin OAuth authorization-code flow and returns every value a
  * test might need to assert on or replay. Throws if any step returns an unexpected
  * status, so a broken flow surfaces immediately.
  */
-export function runAuthorizationCodeFlow(
+export async function runAuthorizationCodeFlow(
     options: RunAuthorizationCodeFlowOptions,
 ): Promise<AuthorizationCodeFlowResult> {
+    const pending = await driveToAuthorizationCode(adminFlowOptions(options));
+    return exchangePendingCode(options.baseUrl, pending);
+}
+
+/** Turns the admin-flow options into the surface-agnostic ones the driver takes. */
+function adminFlowOptions(options: RunAuthorizationCodeFlowOptions): DriveAuthorizationCodeFlowOptions {
     const {
         baseUrl,
         issuer,
@@ -256,7 +283,7 @@ export function runAuthorizationCodeFlow(
         channelToken,
     } = options;
 
-    return driveAuthorizationCodeFlow({
+    return {
         baseUrl,
         resource: `${issuer}/mcp/admin`,
         clientName,
@@ -277,7 +304,7 @@ export function runAuthorizationCodeFlow(
             }
             return consentBody.data.authorizeMcpClient.redirectUrl;
         },
-    });
+    };
 }
 
 export interface RunShopAuthorizationCodeFlowOptions {
@@ -331,14 +358,14 @@ export async function submitShopConsent(options: SubmitShopConsentOptions): Prom
  * `authorizeMcpClient` mutation approves the request, with the customer's session
  * (`vendureAuthToken`) travelling as a bearer header.
  */
-export function runShopAuthorizationCodeFlow(
+export async function runShopAuthorizationCodeFlow(
     options: RunShopAuthorizationCodeFlowOptions,
 ): Promise<AuthorizationCodeFlowResult> {
     const { baseUrl, issuer, vendureAuthToken, channelToken } = options;
     const clientName = `oauth-shop-test-client-${Math.random().toString(36).slice(2)}`;
     const redirectUri = 'https://example.com/cb';
 
-    return driveAuthorizationCodeFlow({
+    const pending = await driveToAuthorizationCode({
         baseUrl,
         resource: `${issuer}/mcp/shop`,
         clientName,
@@ -358,4 +385,5 @@ export function runShopAuthorizationCodeFlow(
             return consentBody.data.authorizeMcpClient.redirectUrl;
         },
     });
+    return exchangePendingCode(baseUrl, pending);
 }

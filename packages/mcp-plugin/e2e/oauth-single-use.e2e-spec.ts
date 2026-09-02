@@ -63,7 +63,12 @@ describe('McpPlugin OAuth single-use code', () => {
         const rejected = [a, b].filter((r): r is PromiseRejectedResult => r.status === 'rejected');
         expect(fulfilled).toHaveLength(1);
         expect(rejected).toHaveLength(1);
-        expect(rejected[0].reason.message).toBe('Authorization code invalid or expired');
+        // Why the loser's message is not pinned: claiming the code and issuing against it are
+        // now one transaction. On a server database the second exchange waits for the first,
+        // then finds the code gone and is refused as a used code. The e2e database is sql.js,
+        // which runs everything on a single connection and refuses the second transaction
+        // outright. Either way exactly one exchange succeeds, which is what single-use means.
+        expect(rejected[0].reason).toBeInstanceOf(Error);
     });
 
     // T12 — refresh-token rotation must be atomic and in place: the same grant row swaps

@@ -1,7 +1,9 @@
 import { ModuleRef } from '@nestjs/core';
 import {
     AdministratorService,
+    AuthenticatedSession,
     ConfigService,
+    ID,
     Injector,
     mergeConfig,
     RequestContext,
@@ -11,6 +13,7 @@ import {
     SessionService,
     TransactionalConnection,
     User,
+    UserService,
 } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -33,7 +36,11 @@ import { mcpOauthRetentionTask } from '../src/tasks/mcp-oauth-retention.task';
 import { McpPluginOptions } from '../src/types';
 
 import { expectRateLimitRefusal, postMcp, rpc } from './utils/mcp-http-client';
-import { runAuthorizationCodeFlow } from './utils/oauth-test-client';
+import {
+    exchangeCode,
+    runAuthorizationCodeFlow,
+    runAuthorizationCodeFlowToCode,
+} from './utils/oauth-test-client';
 import { withFailingUpdate } from './utils/oauth-test-fixtures';
 import { testServerInit } from './utils/test-server';
 
@@ -47,6 +54,9 @@ describe('McpPlugin OAuth end-to-end flow', () => {
     const pluginOptions: McpPluginOptions = {
         oauth: { tokenSecret: TOKEN_SECRET },
         logging: { ttlDays: 1 },
+        // This suite drives dozens of real OAuth flows well inside the 60s fixed window and is
+        // not testing rate limiting (the per-IP budget has its own suite), so switch it off.
+        rateLimits: { oauthIp: false },
     };
     const config = mergeConfig(testConfig(), { plugins: [McpPlugin.init(pluginOptions)] });
     const { server, adminClient } = createTestEnvironment(config);
@@ -131,6 +141,28 @@ describe('McpPlugin OAuth end-to-end flow', () => {
             superAdminToken,
         });
 
+    /** Posts a token to the revocation endpoint, the way a disconnecting client does. */
+    const revokeOverHttp = (token: string): Promise<Response> =>
+        fetch(`${baseUrl()}/mcp/oauth/revoke`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ token }),
+        });
+
+    /**
+     * How many dedicated MCP sessions exist for a user. Every grant creates exactly one, so a
+     * count that grows by more than one across a re-creation means a session row was stranded.
+     */
+    const mcpSessionCount = async (ctx: RequestContext, userId: ID): Promise<number> =>
+        server.app
+            .get(TransactionalConnection)
+            .getRepository(ctx, AuthenticatedSession)
+            .createQueryBuilder('session')
+            // The strategy name the plugin creates its sessions under.
+            .where('session.authenticationStrategy = :strategy', { strategy: 'mcp-dedicated-session' })
+            .andWhere('session.userId = :userId', { userId })
+            .getCount();
+
     // T7 — the full DCR -> authorize -> consent -> token-exchange flow yields a usable token pair.
     it('issues a non-empty access + refresh token pair through the full flow', async () => {
         const result = await runFlow();
@@ -213,6 +245,69 @@ describe('McpPlugin OAuth end-to-end flow', () => {
         ).rejects.toThrow(/invalid or expired/i);
     });
 
+    // A1-2: a client whose rotation response was lost still holds the pre-rotation refresh
+    // token. The server knows that token, so "disconnect" has to revoke rather than answer 200
+    // and leave the grant and its session live for the rest of the refresh window.
+    it('revokes the grant when the client presents the refresh token it rotated away from', async () => {
+        const oauth = server.app.get(McpOauthService);
+        const connection = server.app.get(TransactionalConnection);
+        const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+
+        const first = await runFlow();
+        const rotated = await oauth.exchangeToken({
+            grant_type: 'refresh_token',
+            refresh_token: first.refresh_token,
+            client_id: first.client_id,
+            resource: first.resource,
+        });
+
+        const response = await revokeOverHttp(first.refresh_token);
+        expect(response.status).toBe(200);
+
+        const grant = await connection
+            .getRepository(ctx, McpOauthGrant)
+            .findOneByOrFail({ previousRefreshTokenHash: lookupHash(first.refresh_token) });
+        expect(grant.revokedAt).toBeTruthy();
+        await expect(oauth.authenticateBearerToken(rotated.access_token, 'admin')).rejects.toThrow(
+            'Invalid or expired access token',
+        );
+    });
+
+    // W3-2: a client refreshing on a timer and a user clicking disconnect can arrive at the
+    // same instant. Whichever lands first, the grant must end up revoked and both access
+    // tokens dead: the user must never be told "disconnected" over a live connection.
+    it('ends with the grant revoked when a refresh and a revocation race', async () => {
+        const oauth = server.app.get(McpOauthService);
+        const connection = server.app.get(TransactionalConnection);
+        const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+        const grantRepo = connection.getRepository(ctx, McpOauthGrant);
+
+        // Repeated because the interleaving is the database's to choose; every ordering has to
+        // end in the same state.
+        for (let attempt = 0; attempt < 3; attempt++) {
+            const flow = await runFlow();
+            const grant = await grantFor(ctx, flow.access_token);
+
+            const [refresh] = await Promise.allSettled([
+                oauth.exchangeToken({
+                    grant_type: 'refresh_token',
+                    refresh_token: flow.refresh_token,
+                    client_id: flow.client_id,
+                    resource: flow.resource,
+                }),
+                revokeOverHttp(flow.refresh_token),
+            ]);
+
+            expect((await grantRepo.findOneByOrFail({ id: grant.id })).revokedAt).toBeTruthy();
+            await expect(oauth.authenticateBearerToken(flow.access_token, 'admin')).rejects.toThrow();
+            if (refresh.status === 'fulfilled') {
+                await expect(
+                    oauth.authenticateBearerToken(refresh.value.access_token, 'admin'),
+                ).rejects.toThrow();
+            }
+        }
+    });
+
     it('rejects re-exchange of an already-used authorization code', async () => {
         const oauth = server.app.get(McpOauthService);
         // The flow has already exchanged this code once; a sequential replay must fail.
@@ -272,6 +367,45 @@ describe('McpPlugin OAuth end-to-end flow', () => {
             throw new Error('Expected the McpOauthGrant to persist after re-creation');
         }
         expect(mcpSessionAfter.vendureSessionId).not.toBe(sessionIdBefore);
+    });
+
+    // W3-1 / W5-7: two requests can both find a grant's session gone and both build a
+    // replacement, and every extra is a full-privilege session row that no grant names, which
+    // neither revocation nor the retention sweep can ever reach. The e2e database is sql.js,
+    // which runs everything on one connection, so the two cannot genuinely overlap here; this
+    // drives the same code path in order instead. The second caller still holds the grant as it
+    // looked before, exactly as a request that lost the race would, so its conditional re-point
+    // must match nothing, leave no session row behind, and fall back to the winner's session.
+    it('strands no session row when a caller loses the race to replace a lapsed session', async () => {
+        const oauth = server.app.get(McpOauthService);
+        const connection = server.app.get(TransactionalConnection);
+        const configService = server.app.get(ConfigService);
+        const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+
+        const { access_token } = await runFlow();
+        const grant = await grantFor(ctx, access_token);
+        // A second view of the same row, taken before anything replaces the session.
+        const staleGrantView = await grantFor(ctx, access_token);
+
+        // Remove the session row and its cache entry outright, which is the state core's
+        // clean-sessions job leaves behind once the session has expired.
+        const sessionRepo = connection.getRepository(ctx, Session);
+        const lapsed = await sessionRepo.findOneByOrFail({ id: grant.vendureSessionId });
+        await sessionRepo.remove(lapsed);
+        await configService.authOptions.sessionCacheStrategy.delete(lapsed.token);
+
+        const winner = await oauth.authenticateBearerToken(access_token, 'admin');
+        const countAfterWinner = await mcpSessionCount(ctx, grant.actorId);
+
+        const user = await server.app.get(UserService).getUserById(ctx, grant.actorId);
+        const loserSession = await (oauth as any).recreateGrantSession(ctx, staleGrantView, user);
+
+        expect(await mcpSessionCount(ctx, grant.actorId)).toBe(countAfterWinner);
+        expect(loserSession.token).toBe(sessionTokenOf(winner.ctx));
+        const grantAfter = await connection
+            .getRepository(ctx, McpOauthGrant)
+            .findOneByOrFail({ id: grant.id });
+        expect(grantAfter.vendureSessionId).toBe(winner.grant.vendureSessionId);
     });
 
     // lastActivityAt is throttled: it's only rewritten in the background once the stored
@@ -410,6 +544,65 @@ describe('McpPlugin OAuth end-to-end flow', () => {
         ).rejects.toThrow(/invalid or expired/i);
     });
 
+    // W1-1: an authorization code outlives the account for up to its 60-second TTL. Core
+    // soft-deletes the user and drops their sessions, but there is no grant yet to revoke, so
+    // the token exchange is the only place left to notice the account has gone.
+    it('refuses the token exchange when the approving administrator was deleted first', async () => {
+        const administratorService = server.app.get(AdministratorService);
+        const roleService = server.app.get(RoleService);
+        const connection = server.app.get(TransactionalConnection);
+        const bareCtx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+        // Creating an administrator checks the acting user may grant the roles,
+        // so the context must act as the superadmin, not anonymously.
+        const superadminUser = await connection
+            .getRepository(bareCtx, User)
+            .findOneByOrFail({ identifier: 'superadmin' });
+        const ctx = await server.app
+            .get(RequestContextService)
+            .create({ apiType: 'admin', user: superadminUser });
+
+        const superAdminRole = await roleService.getSuperAdminRole(ctx);
+        const doomedAdmin = await administratorService.create(ctx, {
+            firstName: 'Deleted',
+            lastName: 'BeforeExchange',
+            emailAddress: 'deleted-before-exchange@test.com',
+            password: 'test',
+            roleIds: [superAdminRole.id],
+        });
+        await adminClient.asUserWithCredentials('deleted-before-exchange@test.com', 'test');
+        const pending = await runAuthorizationCodeFlowToCode({
+            baseUrl: baseUrl(),
+            issuer: ISSUER,
+            superAdminToken: adminClient.getAuthToken(),
+        });
+        // Switching the shared client's user invalidated the session behind the suite-wide
+        // superadmin token, so capture the replacement for the tests that follow.
+        await adminClient.asSuperAdmin();
+        superAdminToken = adminClient.getAuthToken();
+
+        await administratorService.softDelete(ctx, doomedAdmin.id);
+
+        const response = await exchangeCode({
+            baseUrl: baseUrl(),
+            body: {
+                grant_type: 'authorization_code',
+                code: pending.code,
+                client_id: pending.client_id,
+                redirect_uri: pending.redirect_uri,
+                code_verifier: pending.code_verifier,
+                resource: pending.resource,
+            },
+        });
+
+        expect(response.status).toBe(400);
+        expect(await response.json()).toMatchObject({ error: 'invalid_grant' });
+        expect(
+            await connection
+                .getRepository(ctx, McpOauthGrant)
+                .findOne({ where: { actorId: doomedAdmin.user.id } }),
+        ).toBeNull();
+    });
+
     // Revoking must take the session with it — row and cache entry both. Leaving the cache
     // entry behind would keep the revoked credential working against the ordinary GraphQL
     // APIs until the entry aged out.
@@ -487,6 +680,34 @@ describe('McpPlugin OAuth end-to-end flow', () => {
         // Only sessions an expired grant points at are in scope — the administrator's own
         // session is not referenced by any grant and must survive.
         expect(await sessionRepo.findOne({ where: { token: superAdminToken } })).toBeTruthy();
+    });
+
+    // A9-5: the sweep keys on the grant lifetime, so a revoked but not yet expired grant used
+    // to fall through it entirely. Revocation normally takes the session with it; when a session
+    // row does outlive revocation, the grant row is deleted once the retention window passes and
+    // then nothing points at the session any more.
+    it('deletes the Vendure session behind a revoked grant that has not yet expired', async () => {
+        const oauth = server.app.get(McpOauthService);
+        const retention = server.app.get(McpOauthRetentionService);
+        const connection = server.app.get(TransactionalConnection);
+        const sessionService = server.app.get(SessionService);
+        const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+        const sessionRepo = connection.getRepository(ctx, Session);
+
+        const { access_token } = await runFlow();
+        const authenticated = await oauth.authenticateBearerToken(access_token, 'admin');
+        const sessionToken = sessionTokenOf(authenticated.ctx);
+
+        // Marking the row revoked directly, rather than going through revoke(), is what leaves
+        // the session behind for the sweep to find. The grant's own expiry stays in the future.
+        await connection
+            .getRepository(ctx, McpOauthGrant)
+            .update({ id: authenticated.grant.id }, { revokedAt: new Date() });
+
+        await retention.deleteExpiredOauthRecords(ctx);
+
+        expect(await sessionRepo.findOneBy({ id: authenticated.grant.vendureSessionId })).toBeNull();
+        expect(await sessionService.getSessionFromToken(sessionToken)).toBeUndefined();
     });
 
     // Using a request or code deletes the row outright (the atomic claim is a DELETE, not a

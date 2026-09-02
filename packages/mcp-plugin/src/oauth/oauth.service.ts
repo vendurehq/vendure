@@ -10,6 +10,7 @@ import {
 import {
     Administrator,
     AuthenticatedSession,
+    CachedSession,
     ChannelService,
     ConfigService,
     EntityNotFoundError,
@@ -72,6 +73,12 @@ import { deriveHashKey, hashLookupToken } from './token-hash';
  * Name recorded against the dedicated Vendure session created for an MCP grant.
  */
 const MCP_SESSION_STRATEGY = 'mcp-dedicated-session';
+
+/**
+ * Thrown inside the session re-creation transaction purely to roll it back, when another
+ * request has already given the grant a new session or revoked it. Never leaves this file.
+ */
+class GrantSessionAlreadyReplaced extends Error {}
 
 /**
  * MCP OAuth 2.1 authorization server.
@@ -359,8 +366,15 @@ export class McpOauthService {
         const hash = this.hashLookup(token);
         // Either token of the pair identifies the grant, and revoking one kills the
         // whole grant (RFC 7009: revoking a refresh token invalidates its access token).
+        // The refresh token the grant last rotated away from counts too: a client whose
+        // rotation response was lost still holds it, and the server knows it, so RFC 7009's
+        // "answer 200 for an unknown token" does not apply.
         const grant = await this.connection.getRepository(ctx, McpOauthGrant).findOne({
-            where: [{ accessTokenHash: hash }, { refreshTokenHash: hash }],
+            where: [
+                { accessTokenHash: hash },
+                { refreshTokenHash: hash },
+                { previousRefreshTokenHash: hash },
+            ],
         });
         if (grant && !grant.revokedAt) {
             await this.revokeGrant(ctx, grant);
@@ -432,9 +446,20 @@ export class McpOauthService {
 
     private async revokeGrant(ctx: RequestContext, grant: McpOauthGrant): Promise<void> {
         const sessionToken = await this.connection.withTransaction(ctx, async txCtx => {
-            await this.connection
+            // Conditional on the grant still being live, so that when two callers revoke the
+            // same grant at once only one of them matches. The loser must not go on to delete
+            // a session row, because by then the winner may already have replaced it.
+            const claim = await this.connection
                 .getRepository(txCtx, McpOauthGrant)
-                .update({ id: grant.id }, { revokedAt: new Date() });
+                .createQueryBuilder()
+                .update(McpOauthGrant)
+                .set({ revokedAt: new Date() })
+                .where('id = :id', { id: grant.id })
+                .andWhere('revokedAt IS NULL')
+                .execute();
+            if (!claim.affected) {
+                return undefined;
+            }
             return this.deleteVendureSessionRow(txCtx, grant.vendureSessionId);
         });
         await deleteCachedVendureSession(this.configService, sessionToken);
@@ -473,20 +498,7 @@ export class McpOauthService {
                 await this.revokeGrant(adminCtx, grant);
                 throw new UnauthorizedException('Vendure user no longer exists');
             }
-            // The lapsed session row may still be in the table, because Vendure clears expired
-            // sessions with a background job rather than on read. Remove the row and its cache
-            // entry before creating the replacement session the grant will point at.
-            const staleSessionToken = await this.deleteVendureSessionRow(adminCtx, grant.vendureSessionId);
-            await deleteCachedVendureSession(this.configService, staleSessionToken);
-            const createdSession = await this.createVendureSession(adminCtx, user);
-            grant.vendureSessionId = createdSession.id;
-            await this.connection
-                .getRepository(adminCtx, McpOauthGrant)
-                .update({ id: grant.id }, { vendureSessionId: createdSession.id });
-            vendureSession = await this.sessionService.getSessionFromToken(createdSession.token);
-            if (!vendureSession) {
-                throw new UnauthorizedException('Failed to establish Vendure session');
-            }
+            vendureSession = await this.recreateGrantSession(adminCtx, grant, user);
         }
 
         const channel = grant.channelId
@@ -549,19 +561,102 @@ export class McpOauthService {
     }
 
     /**
-     * Loads a pending authorization request and consumes it, atomically and single-use.
+     * Atomically replaces a lapsed Vendure session for an active grant.
      *
-     * The toolset comparison is the entitlement check: the authorize endpoint needs no
-     * credential, so anyone can start a request for either toolset and read the request token
-     * out of the redirect. Each caller therefore states which toolset it is entitled to decide
-     * (admin consent → admin requests, customer consent → shop requests), rather than trusting
-     * the token alone.
+     * Runs in a single transaction to prevent orphaned active sessions, using
+     * conditional updates to safely handle race conditions and concurrent revocations.
+     */
+    private async recreateGrantSession(
+        ctx: RequestContext,
+        grant: McpOauthGrant,
+        user: User,
+    ): Promise<CachedSession> {
+        const staleSessionId = grant.vendureSessionId;
+        let staleSessionToken: string | undefined;
+        let createdSessionToken: string | undefined;
+        try {
+            await this.connection.withTransaction(ctx, async txCtx => {
+                // The lapsed session row may still be in the table, because Vendure clears
+                // expired sessions with a background job rather than on read.
+                staleSessionToken = await this.deleteVendureSessionRow(txCtx, staleSessionId);
+                const created = await this.createVendureSession(txCtx, user);
+                createdSessionToken = created.token;
+                const claim = await this.connection
+                    .getRepository(txCtx, McpOauthGrant)
+                    .createQueryBuilder()
+                    .update(McpOauthGrant)
+                    .set({ vendureSessionId: created.id })
+                    .where('id = :id', { id: grant.id })
+                    .andWhere('vendureSessionId = :staleSessionId', { staleSessionId })
+                    .andWhere('revokedAt IS NULL')
+                    .execute();
+                if (!claim.affected) {
+                    throw new GrantSessionAlreadyReplaced();
+                }
+            });
+        } catch (e) {
+            if (!(e instanceof GrantSessionAlreadyReplaced)) {
+                throw e;
+            }
+            // The session row we created was rolled back with the rest of the transaction, but
+            // Core had already written it to the session cache, so that entry has to go by hand.
+            await deleteCachedVendureSession(this.configService, createdSessionToken);
+            return this.loadSessionOfReplacedGrant(ctx, grant);
+        }
+
+        // Deleting the stale row is only half the job: a cached session is served without
+        // touching the database until its entry ages out.
+        await deleteCachedVendureSession(this.configService, staleSessionToken);
+        const session = createdSessionToken
+            ? await this.sessionService.getSessionFromToken(createdSessionToken)
+            : undefined;
+        if (!session) {
+            throw new UnauthorizedException('Failed to establish Vendure session');
+        }
+        grant.vendureSessionId = session.id;
+        return session;
+    }
+
+    /**
+     * Reads back a grant whose session another request replaced while this one was building its
+     * own, and returns that session. If the grant turns out to have been revoked instead, or its
+     * new session is unusable, this request has nothing to run on.
+     */
+    private async loadSessionOfReplacedGrant(
+        ctx: RequestContext,
+        grant: McpOauthGrant,
+    ): Promise<CachedSession> {
+        const current = await this.connection
+            .getRepository(ctx, McpOauthGrant)
+            .findOne({ where: { id: grant.id } });
+        if (!current || current.revokedAt) {
+            throw new UnauthorizedException('Invalid or expired access token');
+        }
+        const sessionRow = await this.connection
+            .getRepository(ctx, Session)
+            .findOne({ where: { id: current.vendureSessionId } });
+        const session = sessionRow
+            ? await this.sessionService.getSessionFromToken(sessionRow.token)
+            : undefined;
+        if (!session) {
+            throw new UnauthorizedException('Failed to establish Vendure session');
+        }
+        grant.vendureSessionId = current.vendureSessionId;
+        return session;
+    }
+
+    /**
+     * Atomically consumes a single-use authorization request.
+     *
+     * Validates toolset entitlements (admin vs. shop) to prevent token spoofing
+     * and optionally joins an external transaction via `existingCtx`.
      */
     private async consumeAuthorizationRequest(
         requestToken: string,
         expectedToolset: McpToolset,
+        existingCtx?: RequestContext,
     ): Promise<{ ctx: RequestContext; request: McpAuthorizationRequest }> {
-        const ctx = await this.createAdminCtx();
+        const ctx = existingCtx ?? (await this.createAdminCtx());
         const request = await this.findActiveAuthorizationRequest(requestToken, ctx);
         if (request.toolset !== expectedToolset) {
             throw new BadRequestException('Authorization request invalid or expired');
@@ -592,34 +687,41 @@ export class McpOauthService {
         };
     }
 
-    /** Consumes the request, issues an authorization code for `approver`, and sends the browser back with it. */
+    /**
+     * Consumes the request and issues an authorization code for `approver`.
+     * Runs both writes in a single transaction to prevent silent failures and broken client redirects.
+     */
     private async approveAuthorizationRequest(
         requestToken: string,
         expectedToolset: McpToolset,
         approver: { actorId: ID; actorType: McpGrantUserType; channelId?: ID | null },
     ): Promise<{ redirectUrl: string }> {
-        const { ctx, request } = await this.consumeAuthorizationRequest(requestToken, expectedToolset);
+        const ctx = await this.createAdminCtx();
         const { actorId, actorType, channelId = null } = approver;
         const codePlaintext = randomToken();
-        await this.connection.getRepository(ctx, McpAuthorizationCode).save(
-            new McpAuthorizationCode({
-                code: this.hashLookup(codePlaintext),
-                oauthClient: request.oauthClient,
-                oauthClientId: request.oauthClientId,
-                actorId,
-                actorType,
-                redirectUri: request.redirectUri,
-                resource: request.resource,
-                codeChallenge: request.codeChallenge,
-                codeChallengeMethod: request.codeChallengeMethod,
-                channelId,
-                expiresAt: addSeconds(new Date(), this.resolvedOauth().authorizationCodeTtlSeconds),
-            }),
-        );
+        const consented = await this.connection.withTransaction(ctx, async txCtx => {
+            const { request } = await this.consumeAuthorizationRequest(requestToken, expectedToolset, txCtx);
+            await this.connection.getRepository(txCtx, McpAuthorizationCode).save(
+                new McpAuthorizationCode({
+                    code: this.hashLookup(codePlaintext),
+                    oauthClient: request.oauthClient,
+                    oauthClientId: request.oauthClientId,
+                    actorId,
+                    actorType,
+                    redirectUri: request.redirectUri,
+                    resource: request.resource,
+                    codeChallenge: request.codeChallenge,
+                    codeChallengeMethod: request.codeChallengeMethod,
+                    channelId,
+                    expiresAt: addSeconds(new Date(), this.resolvedOauth().authorizationCodeTtlSeconds),
+                }),
+            );
+            return { redirectUri: request.redirectUri, state: request.state };
+        });
         return {
-            redirectUrl: appendOAuthParams(request.redirectUri, {
+            redirectUrl: appendOAuthParams(consented.redirectUri, {
                 code: codePlaintext,
-                state: request.state ?? undefined,
+                state: consented.state ?? undefined,
             }),
         };
     }
@@ -663,22 +765,28 @@ export class McpOauthService {
         if (!verifyPkceChallenge(input.code_verifier, code.codeChallenge)) {
             throw new McpOauthError('invalid_grant', 'Invalid PKCE verifier');
         }
-        const claim = await codeRepo
-            .createQueryBuilder()
-            .delete()
-            .where('code = :code', { code: codeHash })
-            .execute();
-        if (!claim.affected) {
-            throw new McpOauthError('invalid_grant', 'Authorization code invalid or expired');
-        }
-        return this.issueTokenPair(
-            ctx,
-            code.oauthClient,
-            code.actorId,
-            code.actorType,
-            code.resource,
-            code.channelId,
-        );
+        // Claiming the code and issuing against it are one transaction: a failure in between
+        // would otherwise burn the client's single exchange attempt and leave the session
+        // `issueTokenPair` created with no grant naming it.
+        return this.connection.withTransaction(ctx, async txCtx => {
+            const claim = await this.connection
+                .getRepository(txCtx, McpAuthorizationCode)
+                .createQueryBuilder()
+                .delete()
+                .where('code = :code', { code: codeHash })
+                .execute();
+            if (!claim.affected) {
+                throw new McpOauthError('invalid_grant', 'Authorization code invalid or expired');
+            }
+            return this.issueTokenPair(
+                txCtx,
+                code.oauthClient,
+                code.actorId,
+                code.actorType,
+                code.resource,
+                code.channelId,
+            );
+        });
     }
 
     private async exchangeRefreshToken(input: TokenInput) {
@@ -754,8 +862,11 @@ export class McpOauthService {
         resource: string,
         channelId: ID | null,
     ): Promise<OAuthTokenResponse> {
+        // `getUserById` returns soft-deleted users, and an authorization code can outlive the
+        // account that approved it, so `deletedAt` has to be checked here as well as on the
+        // session re-creation path.
         const user = await this.userService.getUserById(ctx, actorId);
-        if (!user) {
+        if (!user || user.deletedAt) {
             throw new McpOauthError('invalid_grant', 'Vendure user no longer exists');
         }
         const now = new Date();

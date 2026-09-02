@@ -33,7 +33,7 @@ export class McpOauthRetentionService {
     ) {}
 
     async deleteExpiredOauthRecords(ctx: RequestContext): Promise<McpOauthRetentionResult> {
-        const deletedSessions = await this.deleteSessionsOfExpiredGrants(ctx);
+        const deletedSessions = await this.deleteSessionsOfDeadGrants(ctx);
         const deletedRequests = await this.deleteExpiredShortLivedRecords(ctx, McpAuthorizationRequest);
         const deletedCodes = await this.deleteExpiredShortLivedRecords(ctx, McpAuthorizationCode);
         const deletedGrants = await this.deleteDeadGrants(ctx);
@@ -42,11 +42,11 @@ export class McpOauthRetentionService {
     }
 
     /**
-     * Deletes the Vendure session created for every grant that has passed `expiresAt`. Expiry
-     * is only ever checked at lookup, so without this the grant stops working for MCP while the
-     * session it created stays valid against the ordinary GraphQL APIs for `sessionDuration`.
+     * Cleans up Vendure sessions for expired or revoked grants.
+     * Prevents expired grants from retaining active GraphQL sessions and ensures
+     * orphaned sessions don't outlive their grant records.
      */
-    private deleteSessionsOfExpiredGrants(ctx: RequestContext): Promise<number> {
+    private deleteSessionsOfDeadGrants(ctx: RequestContext): Promise<number> {
         return this.deleteInBatches(
             ctx,
             Session,
@@ -58,6 +58,7 @@ export class McpOauthRetentionService {
                     .addSelect('session.token', 'token')
                     .innerJoin(Session, 'session', 'session.id = grant.vendureSessionId')
                     .where('grant.expiresAt <= :now', { now: new Date() })
+                    .orWhere('grant.revokedAt IS NOT NULL')
                     .limit(RETENTION_DELETE_BATCH_SIZE)
                     .getRawMany<{ id: ID; token: string }>(),
             async sessions => {
