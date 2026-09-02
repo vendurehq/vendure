@@ -29,6 +29,7 @@ import { ProductVariantPriceSelectionStrategy } from './catalog/product-variant-
 import { ProductVariantPriceUpdateStrategy } from './catalog/product-variant-price-update-strategy';
 import { StockDisplayStrategy } from './catalog/stock-display-strategy';
 import { StockLocationStrategy } from './catalog/stock-location-strategy';
+import { ChannelCacheStrategy } from './channel-cache/channel-cache-strategy';
 import { CustomFields } from './custom-field/custom-field-types';
 import { EntityMetadataModifier } from './entity-metadata/entity-metadata-modifier';
 import { EntityDuplicator } from './entity/entity-duplicator';
@@ -73,6 +74,7 @@ import { SecretAccessStrategy } from './system/secret-access-strategy';
 import { OrderTaxCalculationStrategy } from './tax/order-tax-calculation-strategy';
 import { TaxLineCalculationStrategy } from './tax/tax-line-calculation-strategy';
 import { TaxZoneStrategy } from './tax/tax-zone-strategy';
+import { ZoneCacheStrategy } from './zone-cache/zone-cache-strategy';
 
 /**
  * @description
@@ -1244,10 +1246,20 @@ export interface EntityOptions {
     moneyStrategy?: MoneyStrategy;
     /**
      * @description
-     * Channels get cached in-memory as they are accessed very frequently. This
-     * setting determines how long the cache lives (in ms) until it is considered stale and
-     * refreshed. For multi-instance deployments (e.g. serverless, load-balanced), a
-     * smaller value here will prevent data inconsistencies between instances.
+     * Defines how Channels are cached. The default strategy combines a process-local L1 with
+     * the global {@link CacheStrategy} as a shared L2, so selecting Redis, SQL or a custom cache
+     * backend also controls shared Channel cache storage.
+     *
+     * @default DefaultChannelCacheStrategy
+     * @since 3.8.0
+     */
+    channelCacheStrategy?: ChannelCacheStrategy;
+    /**
+     * @description
+     * Channels are accessed very frequently. This setting determines the time-to-live in
+     * milliseconds of the process-local L1 Channel cache. With the default
+     * {@link DefaultChannelCacheStrategy}, stale L1 entries are refreshed from the shared L2
+     * cache before falling back to the database.
      *
      * @since 1.3.0
      * @default 30000
@@ -1255,15 +1267,24 @@ export interface EntityOptions {
     channelCacheTtl?: number;
     /**
      * @description
-     * Zones get cached in-memory as they are accessed very frequently. This
-     * setting determines how long the cache lives (in ms) until it is considered stale and
-     * refreshed. For multi-instance deployments (e.g. serverless, load-balanced), a
-     * smaller value here will prevent data inconsistencies between instances.
+     * Zones are accessed very frequently. This setting determines the time-to-live in
+     * milliseconds of the process-local L1 Zone cache. With the default
+     * {@link DefaultZoneCacheStrategy}, stale L1 entries are refreshed from the shared L2
+     * cache before falling back to the database.
      *
      * @since 1.3.0
      * @default 30000
      */
     zoneCacheTtl?: number;
+    /**
+     * @description
+     * Defines how Zones are cached. The default strategy combines a process-local L1 with
+     * the global {@link CacheStrategy} as a shared L2.
+     *
+     * @default DefaultZoneCacheStrategy
+     * @since 3.8.0
+     */
+    zoneCacheStrategy?: ZoneCacheStrategy;
     /**
      * @description
      * TaxRates get cached in-memory as they are accessed very frequently. This

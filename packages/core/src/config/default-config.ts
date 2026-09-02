@@ -30,6 +30,7 @@ import { DefaultProductVariantPriceSelectionStrategy } from './catalog/default-p
 import { DefaultProductVariantPriceUpdateStrategy } from './catalog/default-product-variant-price-update-strategy';
 import { DefaultStockDisplayStrategy } from './catalog/default-stock-display-strategy';
 import { MultiChannelStockLocationStrategy } from './catalog/multi-channel-stock-location-strategy';
+import { DefaultChannelCacheStrategy } from './channel-cache/default-channel-cache-strategy';
 import { AutoIncrementIdStrategy } from './entity/auto-increment-id-strategy';
 import { DefaultMoneyStrategy } from './entity/default-money-strategy';
 import { DefaultSlugStrategy } from './entity/default-slug-strategy';
@@ -67,6 +68,7 @@ import { DefaultOrderTaxCalculationStrategy } from './tax/default-order-tax-calc
 import { DefaultTaxLineCalculationStrategy } from './tax/default-tax-line-calculation-strategy';
 import { DefaultTaxZoneStrategy } from './tax/default-tax-zone-strategy';
 import { RuntimeVendureConfig } from './vendure-config';
+import { DefaultZoneCacheStrategy } from './zone-cache/default-zone-cache-strategy';
 
 /**
  * @description
@@ -159,7 +161,9 @@ export const defaultConfig: RuntimeVendureConfig = {
         entityIdStrategy: new AutoIncrementIdStrategy(),
         moneyStrategy: new DefaultMoneyStrategy(),
         entityDuplicators: defaultEntityDuplicators,
+        channelCacheStrategy: new DefaultChannelCacheStrategy(),
         channelCacheTtl: 30000,
+        zoneCacheStrategy: new DefaultZoneCacheStrategy(),
         zoneCacheTtl: 30000,
         taxRateCacheTtl: 30000,
         metadataModifiers: [],
