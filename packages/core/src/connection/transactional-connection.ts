@@ -29,6 +29,12 @@ import { TransactionWrapper } from './transaction-wrapper';
 import { GetEntityOrThrowOptions } from './types';
 
 /**
+ * The databases whose drivers support `SELECT ... FOR UPDATE`. SQLite and sql.js do not, and do
+ * not need to: they serialize every write onto a single connection already.
+ */
+const ROW_LOCKING_DB_TYPES: string[] = ['postgres', 'mysql', 'mariadb'];
+
+/**
  * Repository methods intercepted by the access control Proxy.
  * Hoisted to module level to avoid re-creating the Set on every getRepository() call.
  */
@@ -268,6 +274,49 @@ export class TransactionalConnection {
         if (transactionManager?.queryRunner?.isTransactionActive) {
             await transactionManager.queryRunner.rollbackTransaction();
         }
+    }
+
+    /**
+     * @description
+     * Takes a write lock on a single row, so that concurrent requests which want to modify the
+     * same row are serialized rather than overwriting each other. The lock is held until the
+     * surrounding transaction commits or rolls back.
+     *
+     * The lock is a standalone `SELECT ... FOR UPDATE` by primary key. It deliberately does not
+     * load relations: locking a query which left-joins is rejected by Postgres, and making the
+     * join inner to satisfy it would silently change which rows the query returns.
+     *
+     * Two conditions have to hold, and the call is a no-op otherwise:
+     *
+     * * The database must support row locking. SQLite and sql.js do not, but they are also
+     *   single-connection, so the race a lock would prevent cannot occur on them.
+     * * The context must already be inside a transaction. A lock taken in autocommit is released
+     *   by the next statement and protects nothing, and this is what keeps read-only requests,
+     *   which are not wrapped by the {@link Transaction} decorator, from taking locks at all.
+     *
+     * When several rows are locked in one request, always lock them in the same order across the
+     * whole codebase, or two requests can deadlock by taking the same pair in opposite orders.
+     * The order used for order mutations is Session, then User, then Order.
+     *
+     * @since 3.7.3
+     */
+    async lockRow<T extends VendureEntity>(
+        ctx: RequestContext,
+        entityType: ObjectType<T>,
+        id: ID,
+    ): Promise<void> {
+        if (!ROW_LOCKING_DB_TYPES.includes(this.rawConnection.options.type)) {
+            return;
+        }
+        if (!this.getTransactionManager(ctx)) {
+            return;
+        }
+        await this.getRepository(ctx, entityType)
+            .createQueryBuilder('entity')
+            .select('entity.id')
+            .setLock('pessimistic_write')
+            .where('entity.id = :id', { id })
+            .getOne();
     }
 
     /**
