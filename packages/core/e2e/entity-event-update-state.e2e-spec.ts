@@ -9,12 +9,13 @@ import {
     PromotionCondition,
     PromotionEvent,
     PromotionOrderAction,
+    RoleAssignmentEvent,
     ShippingMethodEvent,
 } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import gql from 'graphql-tag';
 import path from 'path';
-import { firstValueFrom } from 'rxjs';
+import { filter, firstValueFrom } from 'rxjs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
@@ -288,6 +289,9 @@ describe('Entity event updated state', () => {
             expect(event.entity.lastName).toBe('UpdatedLastName');
         });
 
+        // OSS-751 — since the RoleAssignment model the User entity no longer carries a `roles`
+        // relation, so the role change cannot be read off the AdministratorEvent entity. The
+        // change itself is reported by the channel-scoped RoleAssignmentEvent.
         it('emits post-update entity when roles are changed', async () => {
             const { createRole } = await adminClient.query(createRoleDocument, {
                 input: {
@@ -299,6 +303,9 @@ describe('Entity event updated state', () => {
             const secondRoleId = createRole.id;
 
             const eventPromise = firstValueFrom(eventBus.ofType(AdministratorEvent));
+            const assignedPromise = firstValueFrom(
+                eventBus.ofType(RoleAssignmentEvent).pipe(filter(e => e.type === 'assigned')),
+            );
 
             await adminClient.query(updateAdministratorDocument, {
                 input: {
@@ -310,9 +317,13 @@ describe('Entity event updated state', () => {
             const event = await eventPromise;
 
             expect(event.type).toBe('updated');
-            const roleCodes = event.entity.user.roles.map(r => r.code);
-            expect(roleCodes).toContain('event-test-role');
-            expect(roleCodes).toContain('event-test-role-2');
+            expect(`T_${event.entity.id}`).toBe(administratorId);
+
+            const assigned = await assignedPromise;
+            expect(assigned.user.id).toEqual(event.entity.user.id);
+            expect(
+                assigned.assignments.map(a => ({ roleId: `T_${a.roleId}`, channelId: `T_${a.channelId}` })),
+            ).toEqual([{ roleId: secondRoleId, channelId: 'T_1' }]);
         });
     });
 
