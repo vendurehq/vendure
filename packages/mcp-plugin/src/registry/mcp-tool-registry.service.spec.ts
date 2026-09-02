@@ -68,7 +68,7 @@ function build(
         get: vi.fn((_ctx: unknown, key: string) => Promise.resolve(store[key])),
         set: vi.fn((_ctx: unknown, key: string, value: unknown) => {
             store[key] = value;
-            return Promise.resolve();
+            return Promise.resolve({ key, result: true });
         }),
     };
     const rateLimiter = {
@@ -210,6 +210,13 @@ describe('McpToolRegistryService', () => {
             );
         });
 
+        it('rejects Permission.Owner, which no MCP caller can satisfy', () => {
+            const { service } = build([wrapper(shopTool({ permissions: [Permission.Owner] }))]);
+            expect(() => service.onApplicationBootstrap()).toThrow(
+                /declares Permission.Owner, which no MCP caller can satisfy/,
+            );
+        });
+
         it('accepts a permission registered through authOptions.customPermissions', () => {
             const { service } = build(
                 [wrapper(shopTool({ permissions: ['ReadWishlist' as Permission] }))],
@@ -297,6 +304,16 @@ describe('McpToolRegistryService', () => {
             const schema = specStandardSchema({ type: 'string' }, value => ({ value }));
             const { service } = build([wrapper(shopTool({ inputSchema: schema }))]);
             expect(() => service.onApplicationBootstrap()).toThrow(/must describe an object/);
+        });
+
+        it('aborts boot when the converted JSON Schema is a top-level union', () => {
+            const schema = specStandardSchema({ anyOf: [{ type: 'object' }, { type: 'string' }] }, value => ({
+                value,
+            }));
+            const { service } = build([wrapper(shopTool({ inputSchema: schema }))]);
+            expect(() => service.onApplicationBootstrap()).toThrow(
+                /is a union \(anyOf\/oneOf\) at the top level/,
+            );
         });
 
         it('aborts boot when the JSON Schema conversion throws (names the tool)', () => {
@@ -476,9 +493,17 @@ describe('McpToolRegistryService', () => {
         it('sole Authenticated requires an active user', async () => {
             const service = setup([Permission.Authenticated]);
             expect(await service.getExposedTools({ ctx: makeCtx() }, 'shop')).toHaveLength(0);
-            expect(await service.getExposedTools({ ctx: makeCtx({ activeUserId: 1 }) }, 'shop')).toHaveLength(
-                1,
-            );
+            // Every role carries Authenticated, so a signed-in caller has it.
+            const signedIn = makeCtx({ activeUserId: 1, granted: [Permission.Authenticated] });
+            expect(await service.getExposedTools({ ctx: signedIn }, 'shop')).toHaveLength(1);
+        });
+
+        it('Public alongside another permission is still callable by anyone', async () => {
+            const service = setup([Permission.Public, Permission.ReadCustomer]);
+            const ctx = makeCtx();
+            expect(await service.getExposedTools({ ctx }, 'shop')).toHaveLength(1);
+            const result = await service.callTool({ ctx }, 'shop', 'get_thing', {});
+            expect(result.isError).toBeUndefined();
         });
 
         it('fine-grained permissions use OR semantics', async () => {
@@ -528,6 +553,22 @@ describe('McpToolRegistryService', () => {
             await service.getToolToggles(ctxB);
 
             expect(settingsStoreService.get).toHaveBeenCalledTimes(2);
+        });
+
+        it('throws and keeps the old toggles when the settings store refuses the write', async () => {
+            const { service, settingsStoreService } = build([wrapper(shopTool())]);
+            service.onApplicationBootstrap();
+            const ctx = makeCtx();
+            settingsStoreService.set.mockResolvedValueOnce({
+                key: 'mcp.toolToggles',
+                result: false,
+                error: 'read only',
+            });
+
+            await expect(service.setToolEnabled(ctx, 'shop', 'get_thing', false)).rejects.toThrow(
+                /Could not save the MCP tool toggle for "shop:get_thing": read only/,
+            );
+            expect(await service.getToolToggles(ctx)).toEqual({});
         });
 
         it('makes a write from one ctx visible to another ctx that already cached toggles', async () => {
@@ -645,8 +686,10 @@ describe('McpToolRegistryService', () => {
                 ...over,
             });
 
-        it('refuses a result over the limit and names the arguments that make it smaller', async () => {
-            const { service } = build([wrapper(listTool(), () => ({ big: 'x'.repeat(100_001) }))]);
+        it('refuses a readonly result over the limit and names the arguments that make it smaller', async () => {
+            const { service, toolCallLog } = build([
+                wrapper(listTool(), () => ({ big: 'x'.repeat(100_001) })),
+            ]);
             service.onApplicationBootstrap();
             const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'list_things', {});
             const text = (result.content as any)[0].text;
@@ -658,6 +701,40 @@ describe('McpToolRegistryService', () => {
             // The tool has no offset argument, so telling the caller to page by one would be
             // advice it cannot follow.
             expect(text).not.toContain('"offset"');
+            // Nothing was returned to the caller, so the call is logged as a failure.
+            expect(toolCallLog.logToolCall).toHaveBeenCalledOnce();
+            expect(toolCallLog.logToolCall.mock.calls[0][0]).toMatchObject({ status: 'error' });
+        });
+
+        it('reports a mutating result over the limit as completed, not as an error', async () => {
+            const { service, toolCallLog } = build([
+                wrapper(listTool({ name: 'bulk_update', behavior: 'mutating' }), () => ({
+                    big: 'x'.repeat(100_001),
+                })),
+            ]);
+            service.onApplicationBootstrap();
+            const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'bulk_update', {});
+            const text = (result.content as any)[0].text;
+            expect(result.isError).toBeUndefined();
+            expect(text).toContain('The call to "bulk_update" completed');
+            expect(text).toContain('Fetch the outcome with a read tool.');
+            expect(result.structuredContent).toEqual({ status: 'completed_result_too_large' });
+            // The write happened, so the log row is a success carrying the real output.
+            expect(toolCallLog.logToolCall).toHaveBeenCalledOnce();
+            expect(toolCallLog.logToolCall.mock.calls[0][0]).toMatchObject({ status: 'success' });
+        });
+
+        it('logs one error row when the result cannot be serialized', async () => {
+            const { service, toolCallLog } = build([wrapper(listTool(), () => ({ count: BigInt(1) }))]);
+            service.onApplicationBootstrap();
+            const error = vi.spyOn(Logger, 'error').mockImplementation(() => undefined);
+
+            const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'list_things', {});
+
+            expect(result.isError).toBe(true);
+            expect(toolCallLog.logToolCall).toHaveBeenCalledOnce();
+            expect(toolCallLog.logToolCall.mock.calls[0][0]).toMatchObject({ status: 'error' });
+            error.mockRestore();
         });
 
         it('returns a result just under the limit unchanged', async () => {
@@ -683,8 +760,11 @@ describe('McpToolRegistryService', () => {
             const result = await service.callToolDirect({ ctx: makeCtx() }, 'shop', 'touch_cart', {
                 sessionToken: 'existing-token',
             });
-            expect(result.isError).toBe(true);
-            expect(result.structuredContent).toEqual({ sessionToken: 'existing-token' });
+            expect(result.isError).toBeUndefined();
+            expect(result.structuredContent).toEqual({
+                status: 'completed_result_too_large',
+                sessionToken: 'existing-token',
+            });
         });
     });
 
@@ -770,6 +850,8 @@ describe('McpToolRegistryService', () => {
                 status: 'confirmation_required',
                 confirmed: false,
             });
+            // Direct mode exposes the tool itself, so the caller re-calls it by name.
+            expect((result.content as any)[0].text).toContain('re-call "delete_thing" with "confirm": true');
             expect(execute).not.toHaveBeenCalled();
         });
 
@@ -1133,6 +1215,11 @@ describe('McpToolRegistryService', () => {
                 status: 'confirmation_required',
                 confirmed: false,
             });
+            // In discovery mode the tool is not exposed by name, so the retry goes through
+            // execute_tool rather than a direct re-call.
+            const text = (result.content as any)[0].text;
+            expect(text).toContain('call "execute_tool" again for "del"');
+            expect(text).not.toContain('re-call "del"');
             expect(execute).not.toHaveBeenCalled();
         });
     });

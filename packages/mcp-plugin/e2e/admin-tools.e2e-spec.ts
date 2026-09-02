@@ -1051,7 +1051,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
         const response = await postMcp(
             baseUrl(),
             'admin',
-            callTool('set_active_channel', { channelToken: secondChannelToken }, 1),
+            callTool('set_active_channel', { channelToken: secondChannelToken, confirm: true }, 1),
             { token },
         );
 
@@ -1075,7 +1075,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
         const switched = await postMcp(
             baseUrl(),
             'admin',
-            callTool('set_active_channel', { channelToken: secondChannelToken }, 2),
+            callTool('set_active_channel', { channelToken: secondChannelToken, confirm: true }, 2),
             { token },
         );
         expect(switched.body.result.isError).toBeUndefined();
@@ -1093,7 +1093,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
         expect(after.body.result.structuredContent).toEqual({ product: null });
     });
 
-    it('runs a create-customer flow and shapes ErrorResult unions as success structuredContent', async () => {
+    it('runs a create-customer flow and returns an ErrorResult union as a failed call', async () => {
         const token = await adminAccessToken();
 
         const created = await postMcp(
@@ -1112,7 +1112,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
         });
 
         // Creating a registered account for an email that already has a user returns an ErrorResult,
-        // which the tool surfaces as a non-error result (customer: null), not an isError envelope.
+        // which the tool hands back intact so the caller sees the reason it failed.
         const conflict = await postMcp(
             baseUrl(),
             'admin',
@@ -1125,8 +1125,10 @@ describe('MCP built-in admin tools (direct mode)', () => {
             ),
             { token },
         );
-        expect(conflict.body.result.isError).toBeUndefined();
-        expect(conflict.body.result.structuredContent).toEqual({ customer: null });
+        expect(conflict.body.result.isError).toBe(true);
+        expect(conflict.body.result.structuredContent).toMatchObject({
+            errorCode: 'EMAIL_ADDRESS_CONFLICT_ERROR',
+        });
     });
 
     it('get_product returns the variants whose IDs the stock and variant tools take', async () => {
@@ -1365,7 +1367,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
         const switched = await postMcp(
             baseUrl(),
             'admin',
-            callTool('set_active_channel', { channelToken: secondChannelToken }, 1),
+            callTool('set_active_channel', { channelToken: secondChannelToken, confirm: true }, 1),
             { token },
         );
         expect(switched.body.result.isError).toBeUndefined();
@@ -1462,7 +1464,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
         const switched = await postMcp(
             baseUrl(),
             'admin',
-            callTool('set_active_channel', { channelToken: secondChannelToken }, 1),
+            callTool('set_active_channel', { channelToken: secondChannelToken, confirm: true }, 1),
             { token },
         );
         expect(switched.body.result.isError).toBeUndefined();
@@ -2071,7 +2073,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
             expect(lastPage.hasMore).toBe(false);
         });
 
-        it('update_customer changes the stored customer, and reports an email conflict as customer: null', async () => {
+        it('update_customer changes the stored customer, and reports an email conflict as an error', async () => {
             const token = await adminAccessToken();
 
             const updated = await postMcp(
@@ -2096,9 +2098,8 @@ describe('MCP built-in admin tools (direct mode)', () => {
             expect(stored.firstName).toBe('Renamed');
 
             // Moving this customer onto another customer's email address returns a typed Vendure
-            // error result. The customer tools map that to `customer: null` rather than passing the
-            // error object back, which is the opposite of what the order tools do with theirs — so
-            // this pins the shape a model actually receives on a conflict.
+            // error result. The customer tools hand that back the way the order tools do, so the
+            // call fails and the caller can read the errorCode.
             const conflict = await postMcp(
                 baseUrl(),
                 'admin',
@@ -2109,8 +2110,10 @@ describe('MCP built-in admin tools (direct mode)', () => {
                 ),
                 { token },
             );
-            expect(conflict.body.result.isError).toBeUndefined();
-            expect(conflict.body.result.structuredContent).toEqual({ customer: null });
+            expect(conflict.body.result.isError).toBe(true);
+            expect(conflict.body.result.structuredContent).toMatchObject({
+                errorCode: 'EMAIL_ADDRESS_CONFLICT_ERROR',
+            });
             const afterConflict = await connection
                 .getRepository(adminCtx, Customer)
                 .findOneByOrFail({ id: seededCustomerId });
@@ -2210,18 +2213,18 @@ describe('MCP built-in admin tools (direct mode)', () => {
             expect(stored.sku).toBe('MCP-SKU-1');
         });
 
-        it('update_variant refuses an oversized stockOnHand value', async () => {
+        it('update_variant refuses stockOnHand and leaves stock to adjust_stock', async () => {
             const token = await adminAccessToken();
 
-            const oversized = await postMcp(
+            const refused = await postMcp(
                 baseUrl(),
                 'admin',
-                callTool('update_variant', { id: variantId, input: { stockOnHand: 2147483648 } }, 1),
+                callTool('update_variant', { id: variantId, input: { stockOnHand: 5 } }, 1),
                 { token },
             );
 
-            expect(oversized.body.result.isError).toBe(true);
-            expect(oversized.body.result.content[0].text).toContain('stockOnHand');
+            expect(refused.body.result.isError).toBe(true);
+            expect(refused.body.result.content[0].text).toContain('stockOnHand');
         });
 
         it('create_variant adds a variant to an existing product', async () => {
@@ -2424,7 +2427,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
             const switched = await postMcp(
                 baseUrl(),
                 'admin',
-                callTool('set_active_channel', { channelToken: secondChannelToken }, 1),
+                callTool('set_active_channel', { channelToken: secondChannelToken, confirm: true }, 1),
                 { token },
             );
             expect(switched.body.result.isError).toBeUndefined();

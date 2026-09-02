@@ -31,7 +31,6 @@ const updateVariantInputSchema = z.strictObject({
         .max(MAX_ID_LIST_LENGTH)
         .describe('Asset IDs to attach.')
         .optional(),
-    stockOnHand: int32Schema.describe('Stock on hand.').optional(),
     trackInventory: z
         .enum(GlobalFlag)
         .describe('Inventory tracking: "TRUE", "FALSE", or "INHERIT".')
@@ -50,7 +49,9 @@ type UpdateVariantToolInput = z.infer<typeof updateVariantInput>;
 @McpTool({
     name: 'update_variant',
     toolset: 'admin',
-    description: "Update an existing product variant's details, such as its price, SKU or stock on hand.",
+    description:
+        "Update an existing product variant's details, such as its price or SKU. Stock changes go " +
+        'through adjust_stock.',
     keywords: [
         'edit a variant',
         'change a price or sku',

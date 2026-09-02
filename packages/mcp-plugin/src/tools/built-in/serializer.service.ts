@@ -224,15 +224,14 @@ export class McpToolSerializerService {
 
     /**
      * Vendure's customer mutations return either the Customer or one of its typed error results.
-     * This method tells the two apart.
-     *
-     * An error result becomes null, so a tool using this reports a failure only as a null
-     * customer, without the reason. That is the behaviour these tools already had. Note this is
-     * deliberately not named like `orderOrError` below, which does the opposite and hands the
-     * error result back to the caller intact.
+     * Errors are returned directly so the registry can report them as failed tool calls, following
+     * the same convention as `orderOrError` below.
      */
-    customerFromResult(result: Customer | GraphQLErrorResult) {
-        return isGraphQlErrorResult(result) ? null : this.customer(result);
+    customerOrError(result: Customer | GraphQLErrorResult) {
+        if (!isGraphQlErrorResult(result)) {
+            return { customer: this.customer(result) };
+        }
+        return { ...result };
     }
 
     /**

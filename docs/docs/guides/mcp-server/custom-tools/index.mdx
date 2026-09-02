@@ -171,6 +171,9 @@ is missing or empty.
 If any administrator may call it, say so with `[Permission.Authenticated]`. An explicit `[Permission.Public]`
 behaves the same on the admin endpoint but reads as "anonymous allowed".
 
+`Permission.Owner` is refused at startup. It is not a granted permission, so no MCP caller could ever pass it. Use
+`[Permission.Authenticated]` and check ownership inside the tool.
+
 ## Optional: Use the shopper's active order
 
 Set `usesActiveOrder: true` on a Shop tool that uses the shopper's active Order (cart). This lets anonymous callers continue the same cart across tool calls using a `sessionToken`.

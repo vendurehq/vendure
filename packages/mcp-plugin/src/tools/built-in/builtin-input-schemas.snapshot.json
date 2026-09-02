@@ -2086,12 +2086,6 @@
             },
             "description": "Asset IDs to attach."
           },
-          "stockOnHand": {
-            "type": "integer",
-            "minimum": -2147483648,
-            "maximum": 2147483647,
-            "description": "Stock on hand."
-          },
           "trackInventory": {
             "type": "string",
             "enum": [

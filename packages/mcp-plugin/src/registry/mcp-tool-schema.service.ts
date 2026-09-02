@@ -182,9 +182,19 @@ export class McpToolSchemaService {
         // Standard Schema converters often add this key, but the MCP compiler rejects it.
         delete json.$schema;
         if (!this.isMcpJsonSchema(json)) {
+            const type = (json as { type?: unknown }).type;
+            // A union converts to anyOf/oneOf with no root type. It is a common authoring mistake
+            // and the generic "must describe an object" message does not say how to fix it.
+            if (type === undefined && (json.anyOf !== undefined || json.oneOf !== undefined)) {
+                throw new Error(
+                    `MCP tool ${label} (${pluginSource}): the Standard Schema is a union (anyOf/oneOf) ` +
+                        `at the top level, and an MCP tool input must be a single object. Wrap it in an ` +
+                        `object, e.g. z.object({ input: z.discriminatedUnion(...) }).`,
+                );
+            }
             throw new Error(
                 `MCP tool ${label} (${pluginSource}): the Standard Schema must describe an object at the ` +
-                    `top level (the converted JSON Schema has type "${String((json as { type?: unknown }).type)}").`,
+                    `top level (the converted JSON Schema has type "${String(type)}").`,
             );
         }
         return json;

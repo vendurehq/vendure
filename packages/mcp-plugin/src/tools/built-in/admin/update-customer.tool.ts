@@ -51,10 +51,8 @@ export class UpdateCustomerTool implements McpToolHandler<UpdateCustomerToolInpu
 
     async execute(ctx: RequestContext, input: UpdateCustomerToolInput) {
         await this.customFieldInput.assertWritable(ctx, 'Customer', input.input.customFields);
-        return {
-            customer: this.serializer.customerFromResult(
-                await this.customerService.update(ctx, { ...input.input, id: input.id }),
-            ),
-        };
+        return this.serializer.customerOrError(
+            await this.customerService.update(ctx, { ...input.input, id: input.id }),
+        );
     }
 }

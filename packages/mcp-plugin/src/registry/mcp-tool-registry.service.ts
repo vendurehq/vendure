@@ -198,11 +198,19 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         name: string,
         enabled: boolean,
     ): Promise<void> {
-        const toggles = await this.getToolToggles(ctx);
-        toggles[this.toolKey(toolset, name)] = enabled;
-        await this.settingsStoreService.set(ctx, MCP_TOOL_TOGGLES_STORE_KEY, toggles);
+        const key = this.toolKey(toolset, name);
+        const current = await this.getToolToggles(ctx);
+        // Built as a copy so a refused write leaves the cached toggles as they were.
+        const updated = { ...current, [key]: enabled };
+        const saved = await this.settingsStoreService.set(ctx, MCP_TOOL_TOGGLES_STORE_KEY, updated);
+        if (!saved.result) {
+            throw new Error(
+                `Could not save the MCP tool toggle for "${key}": ` +
+                    `${saved.error ?? 'the settings store refused the write'}`,
+            );
+        }
         this.toggleCache = new WeakMap();
-        this.toggleCache.set(ctx, toggles);
+        this.toggleCache.set(ctx, updated);
     }
 
     /**
@@ -253,6 +261,12 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             );
         }
         for (const permission of metadata.permissions ?? []) {
+            if (permission === Permission.Owner) {
+                throw new Error(
+                    `MCP tool "${metadata.name}" declares Permission.Owner, which no MCP caller can ` +
+                        `satisfy. Use Permission.Authenticated and check ownership inside the tool.`,
+                );
+            }
             if (!this.getKnownPermissions().has(permission)) {
                 throw new Error(
                     `MCP tool "${metadata.name}" declares unknown permission "${permission}". ` +
@@ -422,19 +436,30 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                     );
                 }
             }
+            // Serializing before the log row is written means a value that cannot be serialized
+            // lands in the catch below as the call's single error row.
+            const result = this.shopSession.addSessionTokenToResult(output, sessionTokenForResult);
+            const text = JSON.stringify(result ?? null);
+            const bytes = Buffer.byteLength(text, 'utf8');
+            const overLimit = bytes > MAX_RESULT_BYTES;
+            // An oversized read returned nothing the caller can use, so it is a failure. An
+            // oversized write already changed the data, so it stays a success and only the
+            // result is withheld.
+            const refuseAsError = overLimit && tool.resolvedBehavior === 'readonly';
+            const refusalMessage = refuseAsError ? this.tooLargeMessage(tool, bytes) : undefined;
             await this.toolCallLog.logToolCall({
                 executionContext,
                 tool,
                 input: toolInput,
-                output,
+                output: refusalMessage !== undefined ? { message: refusalMessage } : output,
                 durationMs: Date.now() - startedAt,
-                status: 'success',
+                status: refuseAsError ? 'error' : 'success',
             });
-            const result = this.shopSession.addSessionTokenToResult(output, sessionTokenForResult);
-            const text = JSON.stringify(result ?? null);
-            const bytes = Buffer.byteLength(text, 'utf8');
-            if (bytes > MAX_RESULT_BYTES) {
-                return this.errorResult(this.tooLargeMessage(tool, bytes), sessionTokenForResult);
+            if (refusalMessage !== undefined) {
+                return this.errorResult(refusalMessage, sessionTokenForResult);
+            }
+            if (overLimit) {
+                return this.completedTooLargeResult(tool, bytes, sessionTokenForResult);
             }
             return this.successResult(result, text);
         } catch (e) {
@@ -629,18 +654,16 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         if (this.isPubliclyCallable(permissions)) {
             return true;
         }
-        if (permissions.length === 1 && permissions[0] === Permission.Authenticated) {
-            return !!ctx.activeUserId;
-        }
         return ctx.userHasPermissions(permissions);
     }
 
     /**
-     * Empty, or exactly `[Permission.Public]`: anyone may call the tool, signed in or not. The empty
-     * case is spelled out because `ctx.userHasPermissions([])` returns false.
+     * Empty, or listing `Permission.Public`: anyone may call the tool, signed in or not. The list is
+     * OR-ed, so Public alongside other permissions still lets anyone in. The empty case is spelled
+     * out because `ctx.userHasPermissions([])` returns false.
      */
     private isPubliclyCallable(permissions: Permission[]): boolean {
-        return permissions.length === 0 || (permissions.length === 1 && permissions[0] === Permission.Public);
+        return permissions.length === 0 || permissions.includes(Permission.Public);
     }
 
     private acceptsSessionToken(
@@ -737,6 +760,28 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         return `${size} Ask for less at a time: ${this.joinWithOr(advice)}.`;
     }
 
+    /**
+     * A write that finished but whose result is too big to return. This is not an error: the change
+     * is already saved, so the caller is told to read the outcome back rather than retry the write.
+     */
+    private completedTooLargeResult(
+        tool: McpRegisteredTool,
+        bytes: number,
+        sessionToken?: string,
+    ): CallToolResult {
+        const text =
+            `The call to "${tool.name}" completed, but its result was ${bytes.toLocaleString('en-US')} ` +
+            `bytes, over the ${MAX_RESULT_BYTES.toLocaleString('en-US')}-byte limit, so it was not ` +
+            `returned. Fetch the outcome with a read tool.`;
+        return {
+            content: [{ type: 'text', text }],
+            structuredContent: {
+                status: 'completed_result_too_large',
+                ...(sessionToken !== undefined ? { sessionToken } : {}),
+            },
+        };
+    }
+
     /** Reads a list of choices as a sentence does: "a", "a or b", "a, b, or c". */
     private joinWithOr(options: string[]): string {
         if (options.length < 3) {
@@ -769,13 +814,18 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     }
 
     private confirmationRequiredResult(tool: McpRegisteredTool, sessionToken?: string): CallToolResult {
+        // Discovery mode never exposes the tool by name, so the retry has to go back through
+        // the meta-tool the caller actually holds.
+        const howToConfirm =
+            this.options.toolExposure === 'discovery'
+                ? `Ask the user to approve it, then call "${EXECUTE_TOOL}" again for "${tool.name}" ` +
+                  `with "confirm": true added to its arguments.`
+                : `Ask the user to approve it, then re-call "${tool.name}" with "confirm": true.`;
         return {
             content: [
                 {
                     type: 'text',
-                    text:
-                        `This is a destructive action: ${tool.description} ` +
-                        `Ask the user to approve it, then re-call "${tool.name}" with "confirm": true.`,
+                    text: `This is a destructive action: ${tool.description} ${howToConfirm}`,
                 },
             ],
             structuredContent: {

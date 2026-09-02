@@ -34,7 +34,7 @@ The declared behavior drives the MCP annotations an agent sees: `readOnlyHint` a
 
 A destructive tool gets an optional `confirm` parameter. Without `confirm: true`, it runs nothing and returns a
 non-error `confirmation_required` response that names the tool and its action but none of its arguments. With
-confirmation it runs. Six built-in tools are destructive:
+confirmation it runs. Seven built-in tools are destructive:
 
 | Tool | Toolset |
 |---|---|
@@ -43,6 +43,7 @@ confirmation it runs. Six built-in tools are destructive:
 | `cancel_order` | admin |
 | `create_fulfillment` | admin |
 | `refund_order` | admin |
+| `set_active_channel` | admin |
 | `update_order_state` | admin |
 
 `place_order` sits on the shop toolset, so the shop tools are not confirmation-free. Placing an order is a
@@ -180,7 +181,7 @@ and `defaultBillingAddress` flags.
 | `create_product` | mutating | CreateProduct | Create a product |
 | `update_product` | mutating | UpdateProduct | Update a product's details, including its images and featured image |
 | `create_variant` | mutating | UpdateProduct | Create a product variant |
-| `update_variant` | mutating | UpdateProduct | Update a variant's price, SKU or stock |
+| `update_variant` | mutating | UpdateProduct | Update a variant's price or SKU |
 
 `get_product` is where variant IDs (for `get_stock_levels`, `adjust_stock` and `update_variant`) and option IDs
 (for `create_variant`) come from. `get_stock_levels` and `adjust_stock` both answer with one entry per stock
@@ -247,7 +248,7 @@ and `taxCategoryId` do not, so their values come from the dashboard or the Admin
 | Tool | Safety | Permission | Description |
 |---|---|---|---|
 | `list_channels` | readonly | ReadSettings or ReadChannel | List channels available to the administrator |
-| `set_active_channel` | mutating | Authenticated | Set the active channel for this MCP grant |
+| `set_active_channel` | **destructive** | Authenticated | Set the active channel for this MCP grant |
 
 ### Assets & media
 
