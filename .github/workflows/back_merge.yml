@@ -28,6 +28,8 @@ jobs:
     resolve-branches:
         name: Resolve merge target
         runs-on: ubuntu-latest
+        permissions:
+            contents: read
         outputs:
             source: ${{ github.ref_name }}
             target: ${{ steps.target.outputs.branch }}

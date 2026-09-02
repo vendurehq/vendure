@@ -71,6 +71,8 @@ jobs:
     codegen:
         needs: detect-changes
         if: needs.detect-changes.outputs.packages == 'true'
+        permissions:
+            contents: read
         uses: ./.github/workflows/codegen.yml
     build:
         name: build
