@@ -107,6 +107,7 @@ export class ApiKeyService {
         userIdApiKeyUser?: ID,
     ): Promise<CreateApiKeyResult> {
         this.assertRoleInputsAreExclusive(input);
+        // Deprecated `roleIds` input (since 4.0.0): remove this branch in v5.0.0.
         if (input.roleIds) {
             await this.roleService.assertActiveUserCanGrantRoles(ctx, input.roleIds, [ctx.channelId]);
         }
@@ -127,7 +128,8 @@ export class ApiKeyService {
                     input.roleAssignments,
                 );
             } else if (input.roleIds) {
-                // The deprecated `roleIds` input grants the Roles on the active Channel.
+                // Deprecated `roleIds` input (since 4.0.0): grants the Roles on the active
+                // Channel. Remove this branch in v5.0.0.
                 await this.roleAssignmentService.replaceUserAssignmentsOnChannel(
                     ctx,
                     apiKeyUser.id,
@@ -191,6 +193,7 @@ export class ApiKeyService {
         });
 
         this.assertRoleInputsAreExclusive(input);
+        // Deprecated `roleIds` input (since 4.0.0): remove this branch in v5.0.0.
         if (input.roleIds) {
             await this.roleService.assertActiveUserCanGrantRoles(ctx, input.roleIds, [ctx.channelId]);
         }
@@ -211,8 +214,8 @@ export class ApiKeyService {
                         input.roleAssignments,
                     );
                 } else if (input.roleIds) {
-                    // The deprecated `roleIds` input replaces the user's assignments on
-                    // the active Channel.
+                    // Deprecated `roleIds` input (since 4.0.0): replaces the user's
+                    // assignments on the active Channel. Remove this branch in v5.0.0.
                     await this.roleAssignmentService.replaceUserAssignmentsOnChannel(
                         ctx,
                         entity.user.id,
@@ -230,6 +233,10 @@ export class ApiKeyService {
         return assertFound(this.findOne(ctx, input.id, relations));
     }
 
+    /**
+     * Guards the overlap of the deprecated `roleIds` input (since 4.0.0) with `roleAssignments`.
+     * Remove in v5.0.0 together with the `roleIds` inputs.
+     */
     private assertRoleInputsAreExclusive(
         input: Pick<CreateApiKeyInput | UpdateApiKeyInput, 'roleAssignments'> & { roleIds?: ID[] | null },
     ) {
