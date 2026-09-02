@@ -165,10 +165,19 @@ jobs:
         # from Actions secrets, so SONAR_TOKEN resolves empty and the scan
         # fails. Skipping is safe: all-passed counts a skipped job as a pass,
         # and the scan still runs on the push to master after the merge.
+        #
+        # A manual `workflow_dispatch` run carries no pull request context, and
+        # the scan action supplies no branch name for that event either, so
+        # SonarCloud files the results against the project's main branch.
+        # Dispatching CI on a feature branch therefore uploads that branch's
+        # findings as if they were master's, which marks real master alerts as
+        # fixed and reopens stale ones. Only scan on dispatch when the ref is one
+        # of the long-lived branches.
         if: >-
             needs.detect-changes.outputs.packages == 'true'
             && github.actor != 'dependabot[bot]'
             && (github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork)
+            && (github.event_name != 'workflow_dispatch' || contains(fromJSON('["master","minor","major"]'), github.ref_name))
         runs-on: ubuntu-latest
         permissions:
             contents: read
