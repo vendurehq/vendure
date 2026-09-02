@@ -31,13 +31,15 @@ describe('ExternalAuthenticationService', () => {
         const administrator = new Administrator({ id: 42 });
         const administratorService = {
             findOneByUserId: vi.fn().mockResolvedValue(administrator),
-            setAvatar: vi.fn().mockResolvedValue(administrator),
+            setAvatarWithoutVisibilityCheck: vi.fn().mockResolvedValue(administrator),
         };
         const service = createService(administratorService);
 
         await expect(service.setAdministratorAvatar(ctx, 7, avatar)).resolves.toBe(administrator);
         expect(administratorService.findOneByUserId).toHaveBeenCalledWith(ctx, 7);
-        expect(administratorService.setAvatar).toHaveBeenCalledWith(ctx, 42, avatar);
+        // The visibility-scoped setAvatar() is not used, because a strategy calls this while the
+        // request is still anonymous.
+        expect(administratorService.setAvatarWithoutVisibilityCheck).toHaveBeenCalledWith(ctx, 42, avatar);
     });
 
     it('fails when the User is not associated with an Administrator', async () => {

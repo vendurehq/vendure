@@ -235,8 +235,14 @@ generated: true
   id: IDOperators
   createdAt: DateOperators
   updatedAt: DateOperators
+  """
+  ID by which we can look up the API-Key.
+  Also helps you identify keys without leaking the underlying secret API-Key.
+  """
   lookupId: StringOperators
+  """Helps you identify unused keys"""
   lastUsedAt: DateOperators
+  """A descriptive name so you can remind yourself where the API-Key gets used"""
   name: StringOperators
   _and: [ApiKeyFilterParameter!]
   _or: [ApiKeyFilterParameter!]
@@ -286,8 +292,14 @@ generated: true
   id: SortOrder
   createdAt: SortOrder
   updatedAt: SortOrder
+  """
+  ID by which we can look up the API-Key.
+  Also helps you identify keys without leaking the underlying secret API-Key.
+  """
   lookupId: SortOrder
+  """Helps you identify unused keys"""
   lastUsedAt: SortOrder
+  """A descriptive name so you can remind yourself where the API-Key gets used"""
   name: SortOrder
 }`}
 </GraphQLDoc>
@@ -678,7 +690,9 @@ input BooleanOperators {
   defaultLanguageCode: StringOperators
   currencyCode: StringOperators
   defaultCurrencyCode: StringOperators
+  """Not yet used - will be implemented in a future release."""
   trackInventory: BooleanOperators
+  """Not yet used - will be implemented in a future release."""
   outOfStockThreshold: NumberOperators
   pricesIncludeTax: BooleanOperators
   _and: [ChannelFilterParameter!]
@@ -731,6 +745,7 @@ input BooleanOperators {
   updatedAt: SortOrder
   code: SortOrder
   token: SortOrder
+  """Not yet used - will be implemented in a future release."""
   outOfStockThreshold: SortOrder
 }`}
 </GraphQLDoc>
@@ -2665,17 +2680,32 @@ input NumberOperators {
   createdAt: DateOperators
   updatedAt: DateOperators
   type: StringOperators
+  """
+  The date & time that the Order was placed, i.e. the Customer
+  completed the checkout and the Order is no longer "active"
+  """
   orderPlacedAt: DateOperators
+  """A unique code for the Order"""
   code: StringOperators
   state: StringOperators
+  """An order is active as long as the payment process has not been completed"""
   active: BooleanOperators
   totalQuantity: NumberOperators
+  """
+  The subTotal is the total of all OrderLines in the Order. This figure also includes any Order-level
+  discounts which have been prorated (proportionally distributed) amongst the items of each OrderLine.
+  To get a total of all OrderLines which does not account for prorated discounts, use the
+  sum of \`OrderLine.discountedLinePrice\` values.
+  """
   subTotal: NumberOperators
+  """Same as subTotal, but inclusive of tax"""
   subTotalWithTax: NumberOperators
   currencyCode: StringOperators
   shipping: NumberOperators
   shippingWithTax: NumberOperators
+  """Equal to subTotal plus shipping"""
   total: NumberOperators
+  """The final payable amount. Equal to subTotalWithTax plus shippingWithTax"""
   totalWithTax: NumberOperators
   _and: [OrderFilterParameter!]
   _or: [OrderFilterParameter!]
@@ -2746,15 +2776,29 @@ input NumberOperators {
   id: SortOrder
   createdAt: SortOrder
   updatedAt: SortOrder
+  """
+  The date & time that the Order was placed, i.e. the Customer
+  completed the checkout and the Order is no longer "active"
+  """
   orderPlacedAt: SortOrder
+  """A unique code for the Order"""
   code: SortOrder
   state: SortOrder
   totalQuantity: SortOrder
+  """
+  The subTotal is the total of all OrderLines in the Order. This figure also includes any Order-level
+  discounts which have been prorated (proportionally distributed) amongst the items of each OrderLine.
+  To get a total of all OrderLines which does not account for prorated discounts, use the
+  sum of \`OrderLine.discountedLinePrice\` values.
+  """
   subTotal: SortOrder
+  """Same as subTotal, but inclusive of tax"""
   subTotalWithTax: SortOrder
   shipping: SortOrder
   shippingWithTax: SortOrder
+  """Equal to subTotal plus shipping"""
   total: SortOrder
+  """The final payable amount. Equal to subTotalWithTax plus shippingWithTax"""
   totalWithTax: SortOrder
 }`}
 </GraphQLDoc>
@@ -2988,6 +3032,7 @@ input NumberOperators {
   languageCode: StringOperators
   code: StringOperators
   name: StringOperators
+  """The number of products that use this option group"""
   productCount: NumberOperators
   _and: [ProductOptionGroupFilterParameter!]
   _or: [ProductOptionGroupFilterParameter!]
@@ -3039,6 +3084,7 @@ input NumberOperators {
   updatedAt: SortOrder
   code: SortOrder
   name: SortOrder
+  """The number of products that use this option group"""
   productCount: SortOrder
 }`}
 </GraphQLDoc>

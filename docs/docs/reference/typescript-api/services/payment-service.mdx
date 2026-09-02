@@ -2,7 +2,7 @@
 title: "PaymentService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/payment.service.ts" sourceLine="43" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/payment.service.ts" sourceLine="44" packageName="@vendure/core" />
 
 Contains methods relating to [Payment](/reference/typescript-api/entities/payment#payment) entities.
 
@@ -32,7 +32,11 @@ class PaymentService {
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, id: <a href='/reference/typescript-api/common/id#id'>ID</a>, relations: string[] = ['order']) => Promise<<a href='/reference/typescript-api/entities/payment#payment'>Payment</a>>`}   />
 
-
+Loads a Payment by id with no Channel check. Payment is not ChannelAware, so callers must first
+load the parent Order in the current Channel (or use a path which does, such as the private
+`getPaymentInChannelOrThrow` used by the payment mutations). The only core caller is the
+`Refund.lines` field resolver, which is reached from an Order already loaded in the current
+Channel.
 ### transitionToState
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, paymentId: <a href='/reference/typescript-api/common/id#id'>ID</a>, state: <a href='/reference/typescript-api/payment/payment-state#paymentstate'>PaymentState</a>) => Promise<<a href='/reference/typescript-api/entities/payment#payment'>Payment</a> | PaymentStateTransitionError>`}   />

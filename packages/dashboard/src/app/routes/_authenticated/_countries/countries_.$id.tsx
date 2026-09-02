@@ -16,7 +16,9 @@ import {    CustomFieldsPageBlock,
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
+import { availableCountriesQueryKey } from '@/vdb/hooks/use-available-countries.js';
 import { Trans, useLingui } from '@lingui/react/macro';
+import { useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import { countryDetailDocument, createCountryDocument, updateCountryDocument } from './countries.graphql.js';
@@ -41,6 +43,7 @@ function CountryDetailPage() {
     const navigate = useNavigate();
     const creatingNewEntity = params.id === NEW_ENTITY_PATH;
     const { t } = useLingui();
+    const queryClient = useQueryClient();
 
     const { form, submitHandler, entity, isPending, resetForm } = useDetailPage({
         pageId,
@@ -60,6 +63,7 @@ function CountryDetailPage() {
         params: { id: params.id },
         onSuccess: async data => {
             toast(creatingNewEntity ? t`Successfully created country` : t`Successfully updated country`);
+            await queryClient.invalidateQueries({ queryKey: availableCountriesQueryKey });
             form.reset(form.getValues());
             if (creatingNewEntity) {
                 await navigate({ to: `../$id`, params: { id: data.id } });

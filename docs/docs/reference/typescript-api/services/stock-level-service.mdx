@@ -2,7 +2,7 @@
 title: "StockLevelService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/stock-level.service.ts" sourceLine="27" packageName="@vendure/core" since="2.0.0" />
+<GenerationInfo sourceFile="packages/core/src/service/services/stock-level.service.ts" sourceLine="29" packageName="@vendure/core" since="2.0.0" />
 
 The StockLevelService is responsible for managing the stock levels of ProductVariants.
 Whenever you need to adjust the `stockOnHand` or `stockAllocated` for a ProductVariant,
@@ -10,7 +10,7 @@ you should use this service.
 
 ```ts title="Signature"
 class StockLevelService {
-    constructor(connection: TransactionalConnection, stockLocationService: StockLocationService, configService: ConfigService)
+    constructor(connection: TransactionalConnection, stockLocationService: StockLocationService, configService: ConfigService, requestCache: RequestContextCacheService)
     getStockLevel(ctx: RequestContext, productVariantId: ID, stockLocationId: ID) => Promise<StockLevel>;
     getStockLevelsForVariant(ctx: RequestContext, productVariantId: ID) => Promise<StockLevel[]>;
     getAvailableStock(ctx: RequestContext, productVariantId: ID) => Promise<AvailableStock>;

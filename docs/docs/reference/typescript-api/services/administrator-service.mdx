@@ -2,7 +2,7 @@
 title: "AdministratorService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/administrator.service.ts" sourceLine="54" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/administrator.service.ts" sourceLine="53" packageName="@vendure/core" />
 
 Contains methods relating to [Administrator](/reference/typescript-api/entities/administrator#administrator) entities.
 
@@ -42,6 +42,9 @@ Get a paginated list of Administrators.
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, administratorId: <a href='/reference/typescript-api/common/id#id'>ID</a>, relations?: RelationPaths<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a>>) => Promise<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a> | undefined>`}   />
 
 Get an Administrator by id.
+
+Resolves to `undefined` if the Administrator is not visible to the active user, so that a
+caller cannot confirm the existence of an Administrator they are not allowed to see.
 ### findOneByUserId
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>, relations?: RelationPaths<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a>>) => Promise<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a> | undefined>`}   />

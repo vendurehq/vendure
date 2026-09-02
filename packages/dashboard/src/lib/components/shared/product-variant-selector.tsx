@@ -62,7 +62,6 @@ export function ProductVariantSelector({ onProductVariantSelect }: Readonly<Prod
 
     const { data } = useQuery({
         queryKey: ['productVariants', debouncedSearch],
-        staleTime: 1000 * 60 * 5,
         enabled: debouncedSearch.length > 0,
         queryFn: () =>
             api.query(productVariantListDocument, {

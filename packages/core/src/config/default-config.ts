@@ -96,6 +96,7 @@ export const defaultConfig: RuntimeVendureConfig = {
             origin: true,
             credentials: true,
         },
+        csrfPrevention: false,
         trustProxy: false,
         middleware: [],
         introspection: true,
@@ -116,6 +117,7 @@ export const defaultConfig: RuntimeVendureConfig = {
         sessionCacheStrategy: new DefaultSessionCacheStrategy(),
         sessionCacheTTL: 300,
         requireVerification: true,
+        disableLastLoginUpdate: false,
         verificationTokenDuration: '7d',
         superadminCredentials: {
             identifier: SUPER_ADMIN_USER_IDENTIFIER,

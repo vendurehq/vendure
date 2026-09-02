@@ -5,6 +5,7 @@ import Handlebars from 'handlebars';
 import { execFile, execFileSync, execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { createWriteStream } from 'node:fs';
+import { createRequire } from 'node:module';
 import { Socket } from 'node:net';
 import { platform } from 'node:os';
 import path from 'node:path';
@@ -997,10 +998,27 @@ export function cleanUpDockerResources(name: string) {
     }
 }
 
+/**
+ * Returns a `require` anchored in the generated project rather than in this CLI.
+ *
+ * `yarn dlx` runs the CLI under Plug'n'Play, which resolves each request against the
+ * package that made it. A request from this CLI for a package that only the generated
+ * project declares is rejected. Passing `require.resolve(pkg, { paths })` does not help,
+ * because Plug'n'Play ignores `paths`. Anchoring at the generated project's package.json
+ * makes that project the requesting package, so its node_modules tree is used.
+ *
+ * Loading through this require also keeps the generated project's CommonJS graph on the
+ * CommonJS loader. A dynamic import enters that graph through the ESM loader instead, and
+ * on Node 22 its nested requires fail to link with ERR_VM_MODULE_LINK_FAILURE.
+ */
+export function createProjectRequire(rootDir: string) {
+    return createRequire(path.join(rootDir, 'package.json'));
+}
+
 export function resolvePackageRootDir(packageName: string, rootDir: string) {
     let packageEntryPath: string;
     try {
-        packageEntryPath = require.resolve(packageName, { paths: [rootDir] });
+        packageEntryPath = createProjectRequire(rootDir).resolve(packageName);
     } catch {
         log(`Falling back to direct node_modules lookup for ${packageName}`);
         const fallbackPath = path.join(process.cwd(), 'node_modules', packageName);

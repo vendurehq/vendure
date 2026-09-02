@@ -1,6 +1,8 @@
 import fs from 'fs-extra';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 
+import { hasWorkspaceMarker } from '../../../utilities/monorepo-utils';
 import { CheckResult } from '../types';
 
 /**
@@ -57,17 +59,28 @@ const DB_DRIVER_MAP: Record<string, string> = {
 
 /**
  * Runs dependency checks:
- * 1. Detects mismatched @vendure/* package versions
- * 2. Detects duplicate singleton dependencies
- * 3. Verifies the configured DB driver is installed
+ * 1. Detects mismatched @vendure/* package versions (via require.resolve)
+ * 2. Detects duplicate singleton dependencies (via node_modules tree scan)
+ * 3. Verifies the configured DB driver is installed (via require.resolve)
+ *
+ * Version alignment and DB driver checks use Node's module resolution
+ * (require.resolve) so hoisted packages in monorepo workspaces are found
+ * correctly. Duplicate detection scans the node_modules tree from cwd.
  */
-export async function runDependencyCheck(nodeModulesPath?: string): Promise<CheckResult> {
+export async function runDependencyCheck(): Promise<CheckResult> {
     const cwd = process.cwd();
-    const modulesDir = nodeModulesPath ?? path.join(cwd, 'node_modules');
+    const modulesDir = path.join(cwd, 'node_modules');
     const details: string[] = [];
     let worstStatus: 'pass' | 'warn' | 'fail' = 'pass';
 
-    if (!fs.existsSync(modulesDir)) {
+    // 1. Check @vendure/* version alignment using require.resolve.
+    // This handles hoisted packages in monorepos and pnpm layouts correctly,
+    // since it follows Node's actual module resolution algorithm.
+    const vendureVersions = getInstalledVendureVersions(cwd);
+
+    // If no local node_modules AND no vendure packages resolved anywhere,
+    // dependencies are likely not installed at all.
+    if (!fs.existsSync(modulesDir) && vendureVersions.size === 0) {
         return {
             name: 'Dependencies',
             status: 'fail',
@@ -75,8 +88,6 @@ export async function runDependencyCheck(nodeModulesPath?: string): Promise<Chec
         };
     }
 
-    // 1. Check @vendure/* version alignment
-    const vendureVersions = getInstalledVendureVersions(modulesDir);
     if (vendureVersions.size > 0) {
         const versions = new Set(vendureVersions.values());
         if (versions.size > 1) {
@@ -103,23 +114,32 @@ export async function runDependencyCheck(nodeModulesPath?: string): Promise<Chec
         }
     }
 
-    // 2. Check for duplicate singleton dependencies
+    // 2. Check for duplicate singleton dependencies.
     // Duplicates are a warning rather than a failure because in monorepos,
     // nested copies (e.g. msw bundling its own graphql) may not actually
     // cause runtime issues for the Vendure application.
-    const duplicates = findDuplicatePackages(modulesDir, SINGLETON_PACKAGES);
-    for (const [pkg, versions] of duplicates) {
-        if (versions.length > 1) {
-            if (worstStatus === 'pass') worstStatus = 'warn';
-            details.push(`Multiple ${pkg} versions found: ${versions.join(', ')}`);
+    // This uses a tree scan since require.resolve only returns a single
+    // resolved path and cannot detect duplicates. When cwd/node_modules
+    // doesn't exist (hoisted monorepo), walk up to the nearest workspace
+    // root and scan from there.
+    const scanDir = fs.existsSync(modulesDir)
+        ? modulesDir
+        : findNearestNodeModules(cwd);
+    if (scanDir) {
+        const duplicates = findDuplicatePackages(scanDir, SINGLETON_PACKAGES);
+        for (const [pkg, versions] of duplicates) {
+            if (versions.length > 1) {
+                if (worstStatus === 'pass') worstStatus = 'warn';
+                details.push(`Multiple ${pkg} versions found: ${versions.join(', ')}`);
+            }
+        }
+        if (duplicates.size === 0 || [...duplicates.values()].every(v => v.length <= 1)) {
+            details.push('No duplicate singleton dependencies');
         }
     }
-    if (duplicates.size === 0 || [...duplicates.values()].every(v => v.length <= 1)) {
-        details.push('No duplicate singleton dependencies');
-    }
 
-    // 3. Check DB driver
-    const dbDriverResult = checkDbDriver(cwd, modulesDir);
+    // 3. Check DB driver using Node's module resolution (handles hoisted packages)
+    const dbDriverResult = checkDbDriver(cwd);
     if (dbDriverResult) {
         if (dbDriverResult.status === 'fail') {
             worstStatus = 'fail';
@@ -145,23 +165,65 @@ export async function runDependencyCheck(nodeModulesPath?: string): Promise<Chec
 }
 
 /**
- * Reads installed @vendure/* package versions from node_modules.
+ * Resolves installed @vendure/* package versions using Node's module resolution.
+ * This correctly finds packages hoisted to workspace roots, symlinked by pnpm, etc.
  */
-function getInstalledVendureVersions(modulesDir: string): Map<string, string> {
+function getInstalledVendureVersions(cwd: string): Map<string, string> {
     const versions = new Map<string, string>();
-    const vendureDir = path.join(modulesDir, '@vendure');
-    if (!fs.existsSync(vendureDir)) {
-        return versions;
-    }
+    const localRequire = createRequire(path.join(cwd, 'package.json'));
 
     for (const pkg of VENDURE_PACKAGES) {
-        const pkgJsonPath = path.join(modulesDir, pkg, 'package.json');
-        const version = readPackageVersion(pkgJsonPath);
+        const version = resolvePackageVersion(localRequire, pkg);
         if (version) {
             versions.set(pkg, version);
         }
     }
     return versions;
+}
+
+/**
+ * Resolves a package's version using require.resolve.
+ * Handles packages whose exports map omits ./package.json by falling back
+ * to resolving the main entry and walking up to find the package.json.
+ */
+function resolvePackageVersion(localRequire: NodeRequire, pkg: string): string | undefined {
+    // Try resolving package.json directly (works for most packages)
+    try {
+        const resolvedPath = localRequire.resolve(`${pkg}/package.json`);
+        return readPackageVersion(resolvedPath);
+    } catch {
+        // Some packages (e.g. mysql2 3.x) omit ./package.json from their
+        // exports map, causing ERR_PACKAGE_PATH_NOT_EXPORTED. Fall back to
+        // resolving the main entry point and walking up to find package.json.
+        try {
+            const entryPath = localRequire.resolve(pkg);
+            return findPackageVersionFromEntry(entryPath, pkg);
+        } catch {
+            return undefined;
+        }
+    }
+}
+
+/**
+ * Walks up from a resolved entry point to find the package's package.json.
+ * Used as a fallback when require.resolve('pkg/package.json') fails due to
+ * missing exports map entries.
+ */
+function findPackageVersionFromEntry(entryPath: string, pkgName: string): string | undefined {
+    let dir = path.dirname(entryPath);
+    const root = path.parse(dir).root;
+    while (dir !== root) {
+        const version = readPackageVersion(path.join(dir, 'package.json'));
+        if (version !== undefined) {
+            // Verify this is the right package (not a parent directory's package.json)
+            const name = readPackageName(path.join(dir, 'package.json'));
+            if (name === pkgName) {
+                return version;
+            }
+        }
+        dir = path.dirname(dir);
+    }
+    return undefined;
 }
 
 /**
@@ -253,6 +315,24 @@ function findNestedPackageVersions(modulesDir: string, targetPkg: string): strin
 }
 
 /**
+ * Walks up from cwd to find the nearest ancestor directory that has both a
+ * workspace marker and a node_modules directory. Used for duplicate detection
+ * when the local cwd/node_modules doesn't exist (packages hoisted to root).
+ */
+function findNearestNodeModules(cwd: string): string | undefined {
+    let dir = path.dirname(cwd);
+    const root = path.parse(dir).root;
+    while (dir !== root) {
+        const candidate = path.join(dir, 'node_modules');
+        if (fs.existsSync(candidate) && hasWorkspaceMarker(dir)) {
+            return candidate;
+        }
+        dir = path.dirname(dir);
+    }
+    return undefined;
+}
+
+/**
  * Reads the version field from a package.json file.
  * Returns undefined if the file doesn't exist or can't be parsed.
  */
@@ -261,6 +341,20 @@ function readPackageVersion(pkgJsonPath: string): string | undefined {
         if (!fs.existsSync(pkgJsonPath)) return undefined;
         const pkg = fs.readJsonSync(pkgJsonPath);
         return pkg.version;
+    } catch {
+        return undefined;
+    }
+}
+
+/**
+ * Reads the name field from a package.json file.
+ * Returns undefined if the file doesn't exist or can't be parsed.
+ */
+function readPackageName(pkgJsonPath: string): string | undefined {
+    try {
+        if (!fs.existsSync(pkgJsonPath)) return undefined;
+        const pkg = fs.readJsonSync(pkgJsonPath);
+        return pkg.name;
     } catch {
         return undefined;
     }
@@ -281,18 +375,15 @@ function groupByVersion(packages: Map<string, string>): Map<string, string[]> {
 
 /**
  * Checks if the correct database driver package is installed for the configured DB type.
- * Reads dbConnectionOptions.type from the project's vendure config or package.json.
+ * Uses Node's module resolution (require.resolve) so hoisted packages in monorepo
+ * workspaces are found correctly -- matching the way Node resolves them at runtime.
  */
 function checkDbDriver(
     cwd: string,
-    modulesDir: string,
 ): { status: 'pass' | 'warn' | 'fail'; message: string } | null {
-    // Try to detect the DB type from the project's vendure config
-    // We can't import the config here (that's Check 3's job), so we do a simple
-    // text-based scan of common config files for the dbConnectionOptions.type value.
     const dbType = detectDbTypeFromSource(cwd);
     if (!dbType) {
-        return null; // Can't determine DB type -- skip this sub-check
+        return null;
     }
 
     const driverPkg = DB_DRIVER_MAP[dbType];
@@ -303,19 +394,31 @@ function checkDbDriver(
         };
     }
 
-    const driverPath = path.join(modulesDir, driverPkg, 'package.json');
-    if (fs.existsSync(driverPath)) {
-        const version = readPackageVersion(driverPath);
+    const localRequire = createRequire(path.join(cwd, 'package.json'));
+    const version = resolvePackageVersion(localRequire, driverPkg);
+
+    if (version !== undefined) {
         return {
             status: 'pass',
-            message: `DB driver ${driverPkg}${version ? ` (${version})` : ''} installed for type "${dbType}"`,
+            message: `DB driver ${driverPkg} (${version}) installed for type "${dbType}"`,
         };
     }
 
-    return {
-        status: 'fail',
-        message: `DB driver "${driverPkg}" not installed (required for dbConnectionOptions.type: "${dbType}")`,
-    };
+    // resolvePackageVersion returns undefined if the package is not found at all.
+    // But if require.resolve(driverPkg) succeeds (package exists but we couldn't
+    // extract a version), we should still report it as installed.
+    try {
+        localRequire.resolve(driverPkg);
+        return {
+            status: 'pass',
+            message: `DB driver ${driverPkg} installed for type "${dbType}"`,
+        };
+    } catch {
+        return {
+            status: 'fail',
+            message: `DB driver "${driverPkg}" not installed (required for dbConnectionOptions.type: "${dbType}")`,
+        };
+    }
 }
 
 /**
