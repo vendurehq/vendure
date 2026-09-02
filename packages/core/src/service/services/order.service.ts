@@ -2031,7 +2031,13 @@ export class OrderService implements OnApplicationBootstrap {
 
     /**
      * @description
-     * Associates a Customer with the Order.
+     * Associates a Customer with the Order. If the customer is already assigned,
+     * the order is returned unchanged.
+     *
+     * Publishes an {@link OrderEvent} with type `'updated'` and the assigned Customer
+     * as the event input whenever a new customer association is made.
+     *
+     * @since 3.7.2
      */
     async addCustomerToOrder(
         ctx: RequestContext,
@@ -2042,6 +2048,9 @@ export class OrderService implements OnApplicationBootstrap {
             orderIdOrOrder instanceof Order
                 ? orderIdOrOrder
                 : await this.getOrderOrThrow(ctx, orderIdOrOrder);
+        if (idsAreEqual(order.customer?.id, customer.id)) {
+            return order;
+        }
         order.customer = customer;
         await this.connection.getRepository(ctx, Order).save(order, { reload: false });
         let updatedOrder = order;
