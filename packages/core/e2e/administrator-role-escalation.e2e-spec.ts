@@ -8,10 +8,10 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import {
-    CREATE_ADMINISTRATOR,
-    CREATE_CHANNEL,
-    CREATE_ROLE,
-    UPDATE_ADMINISTRATOR,
+    createAdministratorDocument,
+    createChannelDocument,
+    createRoleDocument,
+    updateAdministratorDocument,
 } from './graphql/shared-definitions';
 
 const SECOND_CHANNEL_TOKEN = 'second_channel_token';
@@ -22,7 +22,7 @@ const SECOND_CHANNEL_TOKEN = 'second_channel_token';
  *
  * Reported as GHSA-rcgx-8gc8-92v7 (privilege escalation via `assignRoleToAdministrator`)
  * and closed as not reproducible: `assignRole` has no explicit authorization check, but it
- * calls `roleService.findOne`, whose `activeUserCanReadRole` requires the caller to already
+ * calls `roleService.findOne`, whose `activeUserHasPermissionsOnChannelsOf` requires the caller to already
  * hold every permission in the role, so the SuperAdmin grant is refused. This suite pins
  * that guarantee from five attack angles with a maximally-privileged attacker (every
  * admin/role management permission short of SuperAdmin), verifying persisted roles in the
@@ -99,8 +99,6 @@ describe('Administrator role-escalation authorization (GHSA-rcgx-8gc8-92v7)', ()
     let superAdminRoleId: string;
     let subsetRoleId: string;
 
-    const log = (m: string) => console.log(`[role-escalation] ${m}`);
-
     async function loginAsAttacker() {
         await adminClient.asUserWithCredentials(attacker.emailAddress, attacker.password);
     }
@@ -125,7 +123,7 @@ describe('Administrator role-escalation authorization (GHSA-rcgx-8gc8-92v7)', ()
         const { roles } = await adminClient.query<any>(GET_ROLES);
         superAdminRoleId = roles.items.find((r: any) => r.code === SUPER_ADMIN_ROLE_CODE).id;
 
-        const { createRole } = await adminClient.query<any>(CREATE_ROLE, {
+        const { createRole } = await adminClient.query<any>(createRoleDocument, {
             input: {
                 code: 'attacker-role',
                 description: 'Everything short of SuperAdmin',
@@ -133,7 +131,7 @@ describe('Administrator role-escalation authorization (GHSA-rcgx-8gc8-92v7)', ()
                 channelIds: ['1'],
             },
         });
-        const { createRole: subset } = await adminClient.query<any>(CREATE_ROLE, {
+        const { createRole: subset } = await adminClient.query<any>(createRoleDocument, {
             input: {
                 code: 'catalog-reader',
                 description: 'A subset of what the attacker holds',
@@ -143,7 +141,7 @@ describe('Administrator role-escalation authorization (GHSA-rcgx-8gc8-92v7)', ()
         });
         subsetRoleId = subset.id;
 
-        const { createAdministrator } = await adminClient.query<any>(CREATE_ADMINISTRATOR, {
+        const { createAdministrator } = await adminClient.query<any>(createAdministratorDocument, {
             input: {
                 emailAddress: attacker.emailAddress,
                 firstName: 'Attacker',
@@ -154,7 +152,7 @@ describe('Administrator role-escalation authorization (GHSA-rcgx-8gc8-92v7)', ()
         });
         attackerAdminId = createAdministrator.id;
 
-        const { createAdministrator: victim } = await adminClient.query<any>(CREATE_ADMINISTRATOR, {
+        const { createAdministrator: victim } = await adminClient.query<any>(createAdministratorDocument, {
             input: {
                 emailAddress: 'victim-admin@test.com',
                 firstName: 'Victim',
@@ -167,7 +165,7 @@ describe('Administrator role-escalation authorization (GHSA-rcgx-8gc8-92v7)', ()
 
         // A second channel, and an attacker scoped ONLY to it, to test that a channel-scoped
         // admin cannot reach the global SuperAdmin role from a different channel context.
-        const { createChannel } = await adminClient.query<any>(CREATE_CHANNEL, {
+        const { createChannel } = await adminClient.query<any>(createChannelDocument, {
             input: {
                 code: 'second-channel',
                 token: SECOND_CHANNEL_TOKEN,
@@ -178,7 +176,7 @@ describe('Administrator role-escalation authorization (GHSA-rcgx-8gc8-92v7)', ()
                 defaultTaxZoneId: '1',
             },
         });
-        const { createRole: channelBRole } = await adminClient.query<any>(CREATE_ROLE, {
+        const { createRole: channelBRole } = await adminClient.query<any>(createRoleDocument, {
             input: {
                 code: 'channel-b-admin',
                 description: 'Admin management on channel B only',
@@ -186,19 +184,19 @@ describe('Administrator role-escalation authorization (GHSA-rcgx-8gc8-92v7)', ()
                 channelIds: [createChannel.id],
             },
         });
-        const { createAdministrator: attackerBAdmin } = await adminClient.query<any>(CREATE_ADMINISTRATOR, {
-            input: {
-                emailAddress: attackerB.emailAddress,
-                firstName: 'AttackerB',
-                lastName: 'Admin',
-                password: attackerB.password,
-                roleIds: [channelBRole.id],
+        const { createAdministrator: attackerBAdmin } = await adminClient.query<any>(
+            createAdministratorDocument,
+            {
+                input: {
+                    emailAddress: attackerB.emailAddress,
+                    firstName: 'AttackerB',
+                    lastName: 'Admin',
+                    password: attackerB.password,
+                    roleIds: [channelBRole.id],
+                },
             },
-        });
+        );
         attackerBAdminId = attackerBAdmin.id;
-
-        log(`SuperAdmin role id (enumerable): ${superAdminRoleId}`);
-        log(`Attacker perms: ${ATTACKER_PERMISSIONS.join(', ')}`);
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -208,18 +206,11 @@ describe('Administrator role-escalation authorization (GHSA-rcgx-8gc8-92v7)', ()
 
     it('control: attacker CAN assign a role whose permissions it already holds', async () => {
         await loginAsAttacker();
-        let ok = false;
-        try {
-            await adminClient.query<any>(ASSIGN_ROLE, {
-                administratorId: attackerAdminId,
-                roleId: subsetRoleId,
-            });
-            ok = true;
-        } catch (e: any) {
-            log(`control unexpectedly failed: ${e.message ?? e}`);
-        }
-        log(`Control (assign held role): ${ok ? 'SUCCEEDED (mutation is reachable)' : 'FAILED'}`);
-        expect(ok).toBe(true);
+        const { assignRoleToAdministrator } = await adminClient.query<any>(ASSIGN_ROLE, {
+            administratorId: attackerAdminId,
+            roleId: subsetRoleId,
+        });
+        expect(assignRoleToAdministrator.id).toBe(attackerAdminId);
     });
 
     it('vector 1: cannot self-escalate to SuperAdmin via assignRoleToAdministrator', async () => {
@@ -233,7 +224,6 @@ describe('Administrator role-escalation authorization (GHSA-rcgx-8gc8-92v7)', ()
         } catch (e: any) {
             err = e.message ?? String(e);
         }
-        log(`Vector 1 (assignRole self -> SuperAdmin): ${err ? `REJECTED (${err})` : 'RETURNED OK'}`);
         expect(err).toBeDefined();
         expect(await adminDbRoles(attackerAdminId)).not.toContain(SUPER_ADMIN_ROLE_CODE);
     });
@@ -242,13 +232,12 @@ describe('Administrator role-escalation authorization (GHSA-rcgx-8gc8-92v7)', ()
         await loginAsAttacker();
         let err: string | undefined;
         try {
-            await adminClient.query<any>(UPDATE_ADMINISTRATOR, {
+            await adminClient.query<any>(updateAdministratorDocument, {
                 input: { id: attackerAdminId, roleIds: [superAdminRoleId] },
             });
         } catch (e: any) {
             err = e.message ?? String(e);
         }
-        log(`Vector 2 (updateAdministrator self -> SuperAdmin): ${err ? `REJECTED (${err})` : 'RETURNED OK'}`);
         expect(err).toBeDefined();
         expect(await adminDbRoles(attackerAdminId)).not.toContain(SUPER_ADMIN_ROLE_CODE);
     });
@@ -257,7 +246,7 @@ describe('Administrator role-escalation authorization (GHSA-rcgx-8gc8-92v7)', ()
         await loginAsAttacker();
         let err: string | undefined;
         try {
-            await adminClient.query<any>(CREATE_ROLE, {
+            await adminClient.query<any>(createRoleDocument, {
                 input: {
                     code: 'sneaky-superadmin',
                     description: 'attempt to mint a superadmin-equivalent role',
@@ -268,7 +257,6 @@ describe('Administrator role-escalation authorization (GHSA-rcgx-8gc8-92v7)', ()
         } catch (e: any) {
             err = e.message ?? String(e);
         }
-        log(`Vector 3 (createRole with SuperAdmin perm): ${err ? `REJECTED (${err})` : 'RETURNED OK'}`);
         expect(err).toBeDefined();
     });
 
@@ -283,7 +271,6 @@ describe('Administrator role-escalation authorization (GHSA-rcgx-8gc8-92v7)', ()
         } catch (e: any) {
             err = e.message ?? String(e);
         }
-        log(`Vector 4 (assignRole victim -> SuperAdmin): ${err ? `REJECTED (${err})` : 'RETURNED OK'}`);
         expect(err).toBeDefined();
 
         await adminClient.asSuperAdmin();
@@ -303,7 +290,6 @@ describe('Administrator role-escalation authorization (GHSA-rcgx-8gc8-92v7)', ()
         } catch (e: any) {
             err = e.message ?? String(e);
         }
-        log(`Vector 5 (channel-B attacker -> SuperAdmin): ${err ? `REJECTED (${err})` : 'RETURNED OK'}`);
         expect(err).toBeDefined();
         expect(await adminDbRoles(attackerBAdminId)).not.toContain(SUPER_ADMIN_ROLE_CODE);
     });
@@ -314,15 +300,6 @@ describe('Administrator role-escalation authorization (GHSA-rcgx-8gc8-92v7)', ()
         const active = await adminClient.query<any>(ACTIVE_ADMIN);
         const sessionRoles = active.activeAdministrator.user.roles.map((r: any) => r.code);
         const dbRoles = await adminDbRoles(attackerAdminId);
-        log('======================================================================');
-        log(`Attacker session roles: [${sessionRoles.join(', ')}]`);
-        log(`Attacker DB roles:      [${dbRoles.join(', ')}]`);
-        log(
-            dbRoles.includes(SUPER_ADMIN_ROLE_CODE)
-                ? 'VULNERABLE: attacker holds SuperAdmin.'
-                : 'BLOCKED: attacker never obtained SuperAdmin. Advisory does not reproduce.',
-        );
-        log('======================================================================');
         expect(sessionRoles).not.toContain(SUPER_ADMIN_ROLE_CODE);
         expect(dbRoles).not.toContain(SUPER_ADMIN_ROLE_CODE);
     });
