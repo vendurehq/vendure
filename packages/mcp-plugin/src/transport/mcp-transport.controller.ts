@@ -28,7 +28,6 @@ import {
     I18nRequest,
     Logger,
     RequestContext,
-    RequestContextService,
 } from '@vendure/core';
 import { McpToolset } from '@vendure/mcp-sdk';
 import type { Request, Response } from 'express';
@@ -100,7 +99,6 @@ export class McpTransportController {
         private rateLimiter: McpRateLimiterService,
         private configService: ConfigService,
         @Inject(MCP_PLUGIN_OPTIONS) private options: ResolvedMcpPluginOptions,
-        private requestContextService: RequestContextService,
         private shopSession: McpShopSessionService,
         private channelService: ChannelService,
         private oauthMetadata: McpOauthMetadataService,
@@ -454,10 +452,7 @@ export class McpTransportController {
         if ('refusal' in resolution) {
             throw new UnauthorizedException(resolution.refusal);
         }
-        const adminCtx = await this.requestContextService.create({ apiType: 'admin' });
-        const channel = channelToken
-            ? await this.channelService.getChannelFromToken(adminCtx, channelToken)
-            : await this.channelService.getDefaultChannel(adminCtx);
+        const channel = await this.channelService.getChannelFromToken(channelToken ?? '');
         return new RequestContext({
             apiType: 'shop',
             channel,
