@@ -56,6 +56,13 @@ interface JsonRpcError {
     error: { code: number; message: string; data?: unknown };
 }
 
+/** The fields this controller reads off a caller's message before the SDK parses it. */
+interface JsonRpcMessage {
+    method?: unknown;
+    id?: unknown;
+    params?: { name?: unknown };
+}
+
 /**
  * Converts an invalid channel token to a 400 instead of a 500.
  * Keeps Vendure's default response format and logging.
@@ -130,11 +137,16 @@ export class McpTransportController {
         this.originGuard = dns?.allowedOrigins?.length ? originValidation(dns.allowedOrigins) : undefined;
     }
 
-    @Post('shop')
-    async postShop(@Req() req: I18nRequest, @Res() res: Response, @Body() body: unknown): Promise<void> {
+    /** The shop endpoint answers 404 on every verb while shop access is switched off. */
+    private assertShopEnabled(): void {
         if (this.options.shopAccess === 'disabled') {
             throw new NotFoundException();
         }
+    }
+
+    @Post('shop')
+    async postShop(@Req() req: I18nRequest, @Res() res: Response, @Body() body: unknown): Promise<void> {
+        this.assertShopEnabled();
         return this.handlePost('shop', req, res, body);
     }
 
@@ -145,9 +157,7 @@ export class McpTransportController {
 
     @Get('shop')
     getShop(@Res() res: Response): void {
-        if (this.options.shopAccess === 'disabled') {
-            throw new NotFoundException();
-        }
+        this.assertShopEnabled();
         this.methodNotAllowed(res);
     }
 
@@ -271,9 +281,7 @@ export class McpTransportController {
     /** True when any message in the body asks to open a subscription stream. */
     private callsSubscriptionsListen(body: unknown): boolean {
         const messages = Array.isArray(body) ? body : [body];
-        return messages.some(
-            message => (message as { method?: unknown } | null)?.method === 'subscriptions/listen',
-        );
+        return messages.some(message => this.isMessage(message) && message.method === 'subscriptions/listen');
     }
 
     /**
@@ -283,14 +291,8 @@ export class McpTransportController {
      * when the plugin starts publishing something worth streaming.
      */
     private sendSubscriptionsUnsupported(res: Response, body: unknown): void {
-        res.status(404);
-        res.setHeader('Content-Type', 'application/json');
         // -32601 with HTTP 404 is exactly how the SDK answers a method it does not implement.
-        const payload = this.refusalPayload(body, {
-            code: -32601,
-            message: 'Method not found: subscriptions/listen',
-        });
-        res.send(JSON.stringify(payload));
+        this.sendRefusal(res, 404, { code: -32601, message: 'Method not found: subscriptions/listen' }, body);
     }
 
     /**
@@ -310,7 +312,7 @@ export class McpTransportController {
             if (this.isRegistryChargedToolCall(message)) {
                 continue;
             }
-            const method = (message as { method?: unknown } | null)?.method;
+            const method = this.isMessage(message) ? message.method : undefined;
             const exceeded = await this.rateLimiter.checkRateLimit({
                 executionContext,
                 endpoint: toolset,
@@ -329,8 +331,11 @@ export class McpTransportController {
      * has to be charged here instead.
      */
     private isRegistryChargedToolCall(message: unknown): boolean {
-        const parsed = message as { method?: unknown; params?: { name?: unknown } } | null;
-        return parsed?.method === 'tools/call' && typeof parsed.params?.name === 'string';
+        return (
+            this.isMessage(message) &&
+            message.method === 'tools/call' &&
+            typeof message.params?.name === 'string'
+        );
     }
 
     /**
@@ -340,18 +345,27 @@ export class McpTransportController {
      * The JSON-RPC body includes retry details for MCP-aware clients.
      */
     private sendRateLimitError(res: Response, body: unknown, exceeded: McpRateLimitExceeded): void {
-        res.status(429);
         res.setHeader('Retry-After', String(exceeded.retryAfterSeconds));
-        res.setHeader('Content-Type', 'application/json');
-        const payload = this.refusalPayload(body, {
-            code: RATE_LIMIT_ERROR_CODE,
-            message: exceeded.message,
-            data: {
-                retryAfterSeconds: exceeded.retryAfterSeconds,
-                scope: exceeded.scope,
+        this.sendRefusal(
+            res,
+            429,
+            {
+                code: RATE_LIMIT_ERROR_CODE,
+                message: exceeded.message,
+                data: {
+                    retryAfterSeconds: exceeded.retryAfterSeconds,
+                    scope: exceeded.scope,
+                },
             },
-        });
-        res.send(JSON.stringify(payload));
+            body,
+        );
+    }
+
+    /** Answers a request the SDK never sees: a JSON-RPC error per addressable message, with the given HTTP status. */
+    private sendRefusal(res: Response, status: number, error: JsonRpcError['error'], body: unknown): void {
+        res.status(status);
+        res.setHeader('Content-Type', 'application/json');
+        res.send(JSON.stringify(this.refusalPayload(body, error)));
     }
 
     /**
@@ -364,7 +378,7 @@ export class McpTransportController {
                 .filter(message => this.hasRequestId(message))
                 .map(message => ({
                     jsonrpc: '2.0' as const,
-                    id: (message as { id: string | number | null }).id,
+                    id: this.requestId(message),
                     error,
                 }));
             if (errors.length > 0) {
@@ -376,13 +390,26 @@ export class McpTransportController {
 
     /** True when a message carries an id JSON-RPC allows, so a reply can be addressed to it. */
     private hasRequestId(message: unknown): boolean {
-        const id = (message as { id?: unknown } | null)?.id;
-        return typeof id === 'string' || typeof id === 'number' || id === null;
+        return this.usableId(message) !== undefined;
     }
 
     /** The message's own id, or `null` when it has none or one of an unusable type. */
     private requestId(message: unknown): string | number | null {
-        return this.hasRequestId(message) ? (message as { id: string | number | null }).id : null;
+        return this.usableId(message) ?? null;
+    }
+
+    /** Narrows an unparsed body entry to an object whose fields can be read; a primitive is not a message. */
+    private isMessage(value: unknown): value is JsonRpcMessage {
+        return typeof value === 'object' && value !== null;
+    }
+
+    /** The message's id when it is one JSON-RPC allows (string, number or null), else undefined. */
+    private usableId(message: unknown): string | number | null | undefined {
+        if (!this.isMessage(message)) {
+            return undefined;
+        }
+        const { id } = message;
+        return typeof id === 'string' || typeof id === 'number' || id === null ? id : undefined;
     }
 
     private buildAuthInfo(
