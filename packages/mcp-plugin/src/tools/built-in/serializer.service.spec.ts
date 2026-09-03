@@ -5,7 +5,24 @@ import { McpToolSerializerService } from './serializer.service';
 
 /** A stand-in for Vendure's ConfigService carrying only what the serializer reads. */
 function configWithPrecision(precision: number | undefined) {
-    return { entityOptions: { moneyStrategy: { precision } } } as any;
+    return { entityOptions: { moneyStrategy: { precision } }, customFields: {} } as any;
+}
+
+/**
+ * The same four custom field configs on both quote entities: one a shop caller may see, and three
+ * that must never reach one.
+ */
+function configWithQuoteCustomFields() {
+    const fields = [
+        { name: 'trackingUrl', type: 'string' },
+        { name: 'internalNote', type: 'string', internal: true },
+        { name: 'adminOnly', type: 'string', public: false },
+        { name: 'gated', type: 'string', requiresPermission: 'ReadSettings' },
+    ];
+    return {
+        entityOptions: { moneyStrategy: { precision: 2 } },
+        customFields: { ShippingMethod: fields, PaymentMethod: fields },
+    } as any;
 }
 
 describe('McpToolSerializerService', () => {
@@ -218,8 +235,12 @@ describe('McpToolSerializerService', () => {
     });
 
     it('serializes a shipping quote without dropping calculator data', () => {
+        const quoteService = new McpToolSerializerService({
+            entityOptions: { moneyStrategy: { precision: 2 } },
+            customFields: { ShippingMethod: [{ name: 'warehouse', type: 'string' }] },
+        } as any);
         expect(
-            service.shippingQuote(
+            quoteService.shippingQuote(
                 {
                     id: 1,
                     code: 'standard-shipping',
@@ -714,6 +735,38 @@ describe('money scaling', () => {
             totalWithTaxDecimal: '251.99',
             lines: [{ linePriceWithTaxDecimal: '251.99' }],
         });
+    });
+
+    it('shows a shop caller only the custom fields the Shop API would show', () => {
+        const quoteService = new McpToolSerializerService(configWithQuoteCustomFields());
+        const customFields = {
+            trackingUrl: 'https://track.example.test',
+            internalNote: 'secret',
+            adminOnly: 'staff only',
+            gated: 'permission only',
+            strayKey: 'not declared',
+        };
+
+        const shipping = quoteService.shippingQuote(
+            { id: 1, price: 500, priceWithTax: 600, metadata: { carrier: 'DHL' }, customFields } as any,
+            'USD' as any,
+        );
+        expect(shipping.customFields).toEqual({ trackingUrl: 'https://track.example.test' });
+        expect(shipping.metadata).toEqual({ carrier: 'DHL' });
+        expect(shipping.priceWithTaxDecimal).toBe('6.00');
+
+        const payment = quoteService.paymentQuote({ id: 2, code: 'card', customFields } as any);
+        expect(payment.customFields).toEqual({ trackingUrl: 'https://track.example.test' });
+        expect(payment.code).toBe('card');
+    });
+
+    it('passes a quote with no custom fields through untouched', () => {
+        const quoteService = new McpToolSerializerService(configWithQuoteCustomFields());
+        expect(
+            quoteService.shippingQuote({ id: 1, price: 0, priceWithTax: 0 } as any, 'USD' as any)
+                .customFields,
+        ).toBeUndefined();
+        expect(quoteService.paymentQuote({ id: 2, code: 'card' } as any).customFields).toBeUndefined();
     });
 
     it('scales a zero amount to a zero-padded decimal', () => {

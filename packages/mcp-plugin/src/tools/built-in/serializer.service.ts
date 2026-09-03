@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { OrderAddress, ShippingMethodQuote } from '@vendure/common/lib/generated-types';
+import { OrderAddress, PaymentMethodQuote, ShippingMethodQuote } from '@vendure/common/lib/generated-types';
 import {
     Address,
     Asset,
@@ -9,6 +9,7 @@ import {
     CurrencyCode,
     Customer,
     CustomerGroup,
+    CustomFields,
     Fulfillment,
     FulfillmentLine,
     GraphQLErrorResult,
@@ -430,21 +431,52 @@ export class McpToolSerializerService {
     }
 
     /**
-     * A shipping quote arrives with raw whole-number prices and no currency code, because the
-     * currency belongs to the order rather than to the quote. The caller passes it in.
-     *
-     * Unlike the methods above, this copies the quote and adds to it rather than listing the
-     * fields it keeps. A shipping calculator can attach anything it likes under `metadata` or
-     * `customFields`, and this tool has always returned those, so naming fields here would
-     * silently drop them.
+     * Copies the quote so calculator `metadata` passes through, then cuts `customFields` down to
+     * what the Shop API would show. The currency belongs to the order, so the caller passes it in.
      */
     shippingQuote(quote: ShippingMethodQuote, currencyCode: CurrencyCode) {
         return {
             ...quote,
+            customFields: this.shopVisibleCustomFields('ShippingMethod', quote.customFields),
             priceDecimal: this.decimal(quote.price),
             priceWithTaxDecimal: this.decimal(quote.priceWithTax),
             currencyCode,
         };
+    }
+
+    /** Same as `shippingQuote`: copies the quote and cuts `customFields` to what the Shop API shows. */
+    paymentQuote(quote: PaymentMethodQuote) {
+        return {
+            ...quote,
+            customFields: this.shopVisibleCustomFields('PaymentMethod', quote.customFields),
+        };
+    }
+
+    /**
+     * Drops custom fields a shop caller may not see: undeclared, internal, `public: false`, or behind
+     * a permission (a shop caller never holds admin permissions, so core would hide those too).
+     */
+    private shopVisibleCustomFields(
+        entityName: keyof CustomFields,
+        customFields: Record<string, unknown> | null | undefined,
+    ) {
+        if (customFields == null) {
+            return customFields;
+        }
+        const configs = this.configService.customFields[entityName] ?? [];
+        const visible: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(customFields)) {
+            const config = configs.find(candidate => candidate.name === key);
+            if (
+                config &&
+                config.internal !== true &&
+                config.public !== false &&
+                config.requiresPermission == null
+            ) {
+                visible[key] = value;
+            }
+        }
+        return visible;
     }
 
     /**

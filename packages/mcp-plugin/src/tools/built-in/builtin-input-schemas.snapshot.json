@@ -870,6 +870,12 @@
           }
         ],
         "description": "Product ID."
+      },
+      "variantOffset": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 2147483647,
+        "description": "Number of variants to skip. Use with hasMoreVariants when a product has more variants than one answer returns."
       }
     },
     "required": [
@@ -1270,7 +1276,7 @@
           "createdAt",
           "total"
         ],
-        "description": "Field to sort by. Defaults to orderPlacedAt, which lists the most recently placed orders first. Orders that are still open carts have no orderPlacedAt and sort last."
+        "description": "Field to sort by. Defaults to updatedAt, most recently changed first. Open carts have no orderPlacedAt, so when sorting by it filter active: false to see placed orders only."
       },
       "sortDirection": {
         "type": "string",
@@ -2254,6 +2260,12 @@
         "type": "string",
         "maxLength": 255,
         "description": "Product slug, used when ID is omitted."
+      },
+      "variantOffset": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 2147483647,
+        "description": "Number of variants to skip. Use with hasMoreVariants when a product has more variants than one answer returns."
       }
     },
     "additionalProperties": false

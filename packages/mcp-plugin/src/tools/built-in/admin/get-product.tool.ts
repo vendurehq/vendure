@@ -15,10 +15,18 @@ import { In } from 'typeorm';
 import { z } from 'zod';
 
 import { idSchema } from '../id-schema';
+import { int32Schema } from '../int32-schema';
 import { McpToolSerializerService } from '../serializer.service';
 
 const getProductInput = z.strictObject({
     id: idSchema.describe('Product ID.'),
+    variantOffset: int32Schema
+        .min(0)
+        .describe(
+            'Number of variants to skip. Use with hasMoreVariants when a product has more ' +
+                'variants than one answer returns.',
+        )
+        .optional(),
 });
 
 type GetProductInput = z.infer<typeof getProductInput>;
@@ -30,7 +38,8 @@ type GetProductInput = z.infer<typeof getProductInput>;
     toolset: 'admin',
     description:
         'Get a product by id, with its variants and option groups. Variant IDs are what ' +
-        'get_stock_levels, adjust_stock and update_variant take; option IDs are what create_variant takes.',
+        'get_stock_levels, adjust_stock and update_variant take; option IDs are what create_variant ' +
+        'takes. When hasMoreVariants is true, call again with variantOffset to get the next batch.',
     keywords: [
         'look up a product record',
         'view a product in the back office',
@@ -60,7 +69,13 @@ export class AdminGetProductTool implements McpToolHandler<GetProductInput> {
             return { product: null };
         }
 
-        const variants = await this.productVariantService.getVariantsByProductId(ctx, product.id, {}, []);
+        const offset = input.variantOffset ?? 0;
+        const variants = await this.productVariantService.getVariantsByProductId(
+            ctx,
+            product.id,
+            { skip: offset },
+            [],
+        );
         const stockLevels = await this.connection.getRepository(ctx, StockLevel).find({
             where: { productVariantId: In(variants.items.map(variant => variant.id)) },
         });
@@ -80,6 +95,8 @@ export class AdminGetProductTool implements McpToolHandler<GetProductInput> {
             product: {
                 ...this.serializer.product(product),
                 variants: variantsWithStock,
+                variantTotal: variants.totalItems,
+                hasMoreVariants: offset + variants.items.length < variants.totalItems,
                 optionGroups: optionGroups.map(group => this.serializer.optionGroup(group)),
             },
         };

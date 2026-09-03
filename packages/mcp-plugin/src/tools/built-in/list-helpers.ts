@@ -85,6 +85,7 @@ export function listOptions<T extends VendureEntity>(input: ListInput): ListQuer
         take: input.limit ?? DEFAULT_LIST_PAGE_SIZE,
         skip: input.offset ?? 0,
         ...(input.filter ? { filter: input.filter as ListQueryOptions<T>['filter'] } : {}),
+        sort: { createdAt: SortOrder.DESC, id: SortOrder.DESC } as ListQueryOptions<T>['sort'],
     };
 }
 
@@ -141,6 +142,7 @@ export function publicCollectionListOptions(input: ListInput): ListQueryOptions<
     const options = listOptions<Collection>({ limit: input.limit, offset: input.offset });
     return {
         ...options,
+        sort: { position: SortOrder.ASC, id: SortOrder.ASC },
         filter: {
             isPrivate: { eq: false },
         },
@@ -160,14 +162,12 @@ interface OrderListInput extends ListInput {
     sortDirection?: 'ASC' | 'DESC';
 }
 
-export function orderListOptions(input: OrderListInput): OrderListOptions {
-    const field = input.sortBy ?? 'orderPlacedAt';
+export function orderListOptions(input: OrderListInput, defaultSort: OrderSortField): OrderListOptions {
+    const field = input.sortBy ?? defaultSort;
     const direction = input.sortDirection === 'ASC' ? SortOrder.ASC : SortOrder.DESC;
     return {
         ...(listOptions<Order>(input) as OrderListOptions),
-        // Without a sort the database returns rows in no defined order, so asking for "the recent
-        // orders" would get an arbitrary page. Newest placed first is what an operations user means.
-        sort: { [field]: direction },
+        sort: { [field]: direction, id: direction },
     };
 }
 

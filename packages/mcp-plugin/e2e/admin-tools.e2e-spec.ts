@@ -1162,6 +1162,41 @@ describe('MCP built-in admin tools (direct mode)', () => {
         expect(product.optionGroups).toEqual([]);
     });
 
+    it('get_product pages through a product with more variants than one answer returns', async () => {
+        const token = await adminAccessToken();
+        const listed = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool('list_products', { filter: { slug: { eq: 'test-shirt' } } }, 1),
+            { token },
+        );
+        const shirt = (listed.body.result.structuredContent.items as Array<{ id: ID }>)[0];
+        expect(shirt).toBeDefined();
+        const get = async (args: Record<string, unknown>, requestId: number) => {
+            const response = await postMcp(baseUrl(), 'admin', callTool('get_product', args, requestId), {
+                token,
+            });
+            expect(response.body.result.isError).toBeUndefined();
+            return response.body.result.structuredContent.product;
+        };
+
+        const all = await get({ id: shirt.id }, 2);
+        const variantCount = all.variants.length as number;
+        expect(variantCount).toBeGreaterThan(1);
+        expect(all.variantTotal).toBe(variantCount);
+        expect(all.hasMoreVariants).toBe(false);
+
+        const skipped = await get({ id: shirt.id, variantOffset: 1 }, 3);
+        expect(skipped.variants).toHaveLength(variantCount - 1);
+        expect(skipped.variantTotal).toBe(variantCount);
+        expect(skipped.hasMoreVariants).toBe(false);
+
+        const past = await get({ id: shirt.id, variantOffset: variantCount }, 4);
+        expect(past.variants).toEqual([]);
+        expect(past.variantTotal).toBe(variantCount);
+        expect(past.hasMoreVariants).toBe(false);
+    });
+
     it('get_product returns option groups with the option IDs create_variant takes', async () => {
         const token = await adminAccessToken();
         const listed = await postMcp(
@@ -1407,6 +1442,28 @@ describe('MCP built-in admin tools (direct mode)', () => {
                     channelId: String(secondChannelDbId),
                 },
             },
+        );
+    });
+
+    it('get_stock_levels refuses a variant that is not in the active channel', async () => {
+        const token = await adminAccessToken();
+        // The seeded variant belongs to the default channel only, so once this grant is switched to the
+        // second channel the variant is out of scope for it.
+        const switched = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool('set_active_channel', { channelToken: secondChannelToken, confirm: true }, 1),
+            { token },
+        );
+        expect(switched.body.result.isError).toBeUndefined();
+
+        const response = await postMcp(baseUrl(), 'admin', callTool('get_stock_levels', { variantId }, 2), {
+            token,
+        });
+
+        expect(response.body.result.isError).toBe(true);
+        expect(response.body.result.content[0].text).toContain(
+            `Product variant ${String(variantId)} is not available in the active channel.`,
         );
     });
 

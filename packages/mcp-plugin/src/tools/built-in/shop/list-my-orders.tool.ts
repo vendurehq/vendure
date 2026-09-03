@@ -50,7 +50,7 @@ export class ListMyOrdersTool implements McpToolHandler<ListMyOrdersInput> {
         const result = await this.orderService.findByCustomerId(
             ctx,
             customer.id,
-            orderListOptions(input),
+            orderListOptions(input, 'createdAt'),
             ORDER_LIST_RELATIONS,
         );
         translateLineVariants(result.items, this.translator, ctx);

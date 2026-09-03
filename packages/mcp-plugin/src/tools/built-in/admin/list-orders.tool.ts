@@ -46,8 +46,8 @@ const listOrdersInput = z.strictObject({
     sortBy: z
         .enum(ORDER_SORT_FIELDS)
         .describe(
-            'Field to sort by. Defaults to orderPlacedAt, which lists the most recently placed ' +
-                'orders first. Orders that are still open carts have no orderPlacedAt and sort last.',
+            'Field to sort by. Defaults to updatedAt, most recently changed first. Open carts have ' +
+                'no orderPlacedAt, so when sorting by it filter active: false to see placed orders only.',
         )
         .optional(),
     sortDirection: z.enum(['ASC', 'DESC']).describe('Sort direction. Defaults to DESC.').optional(),
@@ -58,7 +58,7 @@ type ListOrdersInput = z.infer<typeof listOrdersInput>;
 @McpTool({
     name: 'list_orders',
     toolset: 'admin',
-    description: 'List and filter orders for operations users, most recently placed first by default.',
+    description: 'List and filter orders for operations users, most recently updated first by default.',
     keywords: [
         'show all orders',
         'recent orders in the store',
@@ -82,7 +82,11 @@ export class ListOrdersTool implements McpToolHandler<ListOrdersInput> {
     ) {}
 
     async execute(ctx: RequestContext, input: ListOrdersInput) {
-        const result = await this.orderService.findAll(ctx, orderListOptions(input), ORDER_LIST_RELATIONS);
+        const result = await this.orderService.findAll(
+            ctx,
+            orderListOptions(input, 'updatedAt'),
+            ORDER_LIST_RELATIONS,
+        );
         translateLineVariants(result.items, this.translator, ctx);
         return page(
             result.items.map(order => this.serializer.order(order)),

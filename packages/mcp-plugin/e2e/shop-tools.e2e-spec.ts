@@ -11,12 +11,14 @@ import {
     Order,
     OrderByCodeAccessStrategy,
     OrderService,
+    PaymentMethod,
     PaymentMethodHandler,
     RequestContext,
     RequestContextService,
     Session,
     SessionService,
     ShippingEligibilityChecker,
+    ShippingMethod,
     TransactionalConnection,
     User,
 } from '@vendure/core';
@@ -131,6 +133,13 @@ const UK_ADDRESS = {
     postalCode: 'SW1A 2AA',
     countryCode: 'GB',
 };
+/** One custom field a shopper may see and two that must never leave the Admin API. */
+const QUOTE_CUSTOM_FIELDS = [
+    { name: 'quoteNote', type: 'string' as const },
+    { name: 'internalCode', type: 'string' as const, internal: true },
+    { name: 'adminNote', type: 'string' as const, public: false },
+];
+
 const usOnlyShippingChecker = new ShippingEligibilityChecker({
     code: US_ONLY_SHIPPING_METHOD_CODE,
     description: [{ languageCode: LanguageCode.en, value: 'US addresses only' }],
@@ -142,12 +151,16 @@ describe('MCP built-in shop tools', () => {
     const orderByCodeAccessStrategy = new TestOrderByCodeAccessStrategy();
     const config = mergeConfig(testConfig(), {
         // Three Address custom fields: one a shopper may write, one internal, one admin-only.
+        // The same three shapes on ShippingMethod and PaymentMethod, so the quote tools can show
+        // that only the plain one reaches a shopper.
         customFields: {
             Address: [
                 { name: 'deliveryNote', type: 'string' },
                 { name: 'internalRef', type: 'string', internal: true },
                 { name: 'riskScore', type: 'int', public: false },
             ],
+            ShippingMethod: QUOTE_CUSTOM_FIELDS,
+            PaymentMethod: QUOTE_CUSTOM_FIELDS,
         },
         orderOptions: { orderByCodeAccessStrategy },
         shippingOptions: {
@@ -1403,6 +1416,29 @@ describe('MCP built-in shop tools', () => {
         }
     });
 
+    it('pages through a product with more variants than one answer returns', async () => {
+        const get = async (args: Record<string, unknown>) => {
+            const response = await postMcp(baseUrl(), 'shop', callTool('get_product', args, 1));
+            return response.body.result.structuredContent.product;
+        };
+        expect(shirtVariantCount).toBeGreaterThan(1);
+
+        const all = await get({ id: shirtId });
+        expect(all.variants).toHaveLength(shirtVariantCount);
+        expect(all.variantTotal).toBe(shirtVariantCount);
+        expect(all.hasMoreVariants).toBe(false);
+
+        const skipped = await get({ id: shirtId, variantOffset: 1 });
+        expect(skipped.variants).toHaveLength(shirtVariantCount - 1);
+        expect(skipped.variantTotal).toBe(shirtVariantCount);
+        expect(skipped.hasMoreVariants).toBe(false);
+
+        const past = await get({ id: shirtId, variantOffset: shirtVariantCount });
+        expect(past.variants).toEqual([]);
+        expect(past.variantTotal).toBe(shirtVariantCount);
+        expect(past.hasMoreVariants).toBe(false);
+    });
+
     it('returns the product variants a shopper needs to add anything to a cart', async () => {
         const response = await postMcp(baseUrl(), 'shop', callTool('get_product', { slug: productSlug }, 1));
 
@@ -1645,6 +1681,46 @@ describe('MCP built-in shop tools', () => {
             );
             await createCustomer(NO_SHIPPING_CUSTOMER_EMAIL, 'NoShipping', NO_SHIPPING_CUSTOMER_PASSWORD);
         }, TEST_SETUP_TIMEOUT_MS);
+
+        it('shows a shopper only the custom fields the Shop API would show on a quote', async () => {
+            // Written straight to the database because an internal custom field is in no API at all,
+            // so there is no mutation that could set all three.
+            const customFields = {
+                quoteNote: 'Arrives in two days',
+                internalCode: 'OPS-1',
+                adminNote: 'Staff only',
+            };
+            const shippingMethod = await connection
+                .getRepository(adminCtx, ShippingMethod)
+                .findOneOrFail({ where: { code: 'standard-shipping' } });
+            await connection
+                .getRepository(adminCtx, ShippingMethod)
+                .update(shippingMethod.id, { customFields } as any);
+            const paymentMethod = await connection
+                .getRepository(adminCtx, PaymentMethod)
+                .findOneOrFail({ where: { code: PAYMENT_METHOD_CODE } });
+            await connection
+                .getRepository(adminCtx, PaymentMethod)
+                .update(paymentMethod.id, { customFields } as any);
+
+            const { sessionToken } = await anonymousCart();
+            const call = (name: string, id: number) =>
+                postMcp(baseUrl(), 'shop', callTool(name, {}, id), {
+                    headers: { [AUTH_TOKEN_HEADER]: sessionToken },
+                });
+
+            const quotes = await call('get_eligible_shipping_methods', 2);
+            const standard = quotes.body.result.structuredContent.methods.find(
+                (method: any) => method.code === 'standard-shipping',
+            );
+            expect(standard.customFields).toEqual({ quoteNote: 'Arrives in two days' });
+
+            const payments = await call('get_eligible_payment_methods', 3);
+            const payment = payments.body.result.structuredContent.methods.find(
+                (method: any) => method.code === PAYMENT_METHOD_CODE,
+            );
+            expect(payment.customFields).toEqual({ quoteNote: 'Arrives in two days' });
+        });
 
         it('walks a cart through checkout and places the order', async () => {
             const accessToken = await shopAccessTokenFor(customerEmail, 'test');

@@ -1,5 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { Permission, RequestContext, StockLevelService } from '@vendure/core';
+import {
+    Permission,
+    ProductVariantService,
+    RequestContext,
+    StockLevelService,
+    UserInputError,
+} from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
@@ -31,11 +37,19 @@ type GetStockLevelsInput = z.infer<typeof getStockLevelsInput>;
 @Injectable()
 export class GetStockLevelsTool implements McpToolHandler<GetStockLevelsInput> {
     constructor(
+        private productVariantService: ProductVariantService,
         private stockLevelService: StockLevelService,
         private serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: GetStockLevelsInput) {
+        // Core's stock level query checks the location's channel, not the variant's.
+        const variant = await this.productVariantService.findOne(ctx, input.variantId, []);
+        if (!variant) {
+            throw new UserInputError(
+                `Product variant ${input.variantId} is not available in the active channel.`,
+            );
+        }
         const levels = await this.stockLevelService.getStockLevelsForVariant(ctx, input.variantId);
         return { stockLevels: levels.map(level => this.serializer.stockLevel(level)) };
     }

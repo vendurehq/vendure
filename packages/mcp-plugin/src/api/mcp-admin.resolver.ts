@@ -144,6 +144,10 @@ export class McpAdminResolver {
             entityAlias: 'log',
         });
         this.scopeToChannel(qb, 'log', ctx.channelId);
+        if (Object.keys(args.options?.sort ?? {}).length === 0) {
+            qb.orderBy('log.createdAt', 'DESC');
+        }
+        qb.addOrderBy('log.id', 'DESC');
         const [items, totalItems] = await qb.getManyAndCount();
         return { items, totalItems };
     }

@@ -4,6 +4,7 @@ import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { McpActiveOrderService } from '../active-order.service';
+import { McpToolSerializerService } from '../serializer.service';
 
 const getEligiblePaymentMethodsInput = z.strictObject({});
 
@@ -29,11 +30,13 @@ export class GetEligiblePaymentMethodsTool implements McpToolHandler<Record<stri
     constructor(
         private activeOrder: McpActiveOrderService,
         private orderService: OrderService,
+        private serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext) {
         const order = await this.activeOrder.find(ctx);
         if (!order) return { methods: [] };
-        return { methods: await this.orderService.getEligiblePaymentMethods(order.ctx, order.id) };
+        const quotes = await this.orderService.getEligiblePaymentMethods(order.ctx, order.id);
+        return { methods: quotes.map(quote => this.serializer.paymentQuote(quote)) };
     }
 }

@@ -4,12 +4,20 @@ import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { idSchema } from '../id-schema';
+import { int32Schema } from '../int32-schema';
 import { McpToolSerializerService } from '../serializer.service';
 import { shortText } from '../string-schemas';
 
 const getProductInput = z.strictObject({
     id: idSchema.describe('Product ID.').optional(),
     slug: shortText.describe('Product slug, used when ID is omitted.').optional(),
+    variantOffset: int32Schema
+        .min(0)
+        .describe(
+            'Number of variants to skip. Use with hasMoreVariants when a product has more ' +
+                'variants than one answer returns.',
+        )
+        .optional(),
 });
 
 type GetProductInput = z.infer<typeof getProductInput>;
@@ -19,7 +27,8 @@ type GetProductInput = z.infer<typeof getProductInput>;
     toolset: 'shop',
     description:
         'Get an enabled product by ID or slug, including its purchasable variants. Each variant ' +
-        'carries the ID that add_to_cart needs.',
+        'carries the ID that add_to_cart needs. When hasMoreVariants is true, call again with ' +
+        'variantOffset to get the next batch.',
     keywords: [
         'tell me about this item',
         'show me this product',
@@ -50,11 +59,19 @@ export class ShopGetProductTool implements McpToolHandler<GetProductInput> {
         // through ProductService above would return variants with no price and no error. The empty
         // relations list skips the assets, facets and options this summary never uses. Because this
         // is a shop tool, the service already limits the result to enabled variants in this channel.
-        const variants = await this.productVariantService.getVariantsByProductId(ctx, product.id, {}, []);
+        const offset = input.variantOffset ?? 0;
+        const variants = await this.productVariantService.getVariantsByProductId(
+            ctx,
+            product.id,
+            { skip: offset },
+            [],
+        );
         return {
             product: {
                 ...this.serializer.product(product),
                 variants: variants.items.map(variant => this.serializer.variant(variant)),
+                variantTotal: variants.totalItems,
+                hasMoreVariants: offset + variants.items.length < variants.totalItems,
             },
         };
     }

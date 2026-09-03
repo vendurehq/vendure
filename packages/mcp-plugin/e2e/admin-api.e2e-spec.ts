@@ -362,6 +362,28 @@ describe('MCP admin API', () => {
             expect(result.data.mcpToolCallLogs.items[0].output).toBeNull();
         });
 
+        it('mcpToolCallLogs returns the newest row first when no sort is asked for', async () => {
+            const result = await adminGraphQL(superAdminToken, MCP_TOOL_CALL_LOGS_WITH_BODIES_QUERY, {
+                options: { take: 50 },
+            });
+            expect(result.errors).toBeUndefined();
+            const idStrategy = getIdStrategy(server.app.get(ConfigService));
+            const rows = (result.data.mcpToolCallLogs.items as Array<{ id: string; createdAt: string }>).map(
+                item => ({ id: Number(idStrategy.decodeId(item.id)), createdAt: item.createdAt }),
+            );
+            expect(rows.length).toBeGreaterThan(1);
+            // Newest first, and rows seeded in the same test run can share a createdAt, so the id
+            // tiebreaker is what keeps one page from overlapping the next.
+            for (let index = 1; index < rows.length; index++) {
+                const previous = rows[index - 1];
+                const current = rows[index];
+                expect(previous.createdAt >= current.createdAt).toBe(true);
+                if (previous.createdAt === current.createdAt) {
+                    expect(previous.id).toBeGreaterThan(current.id);
+                }
+            }
+        });
+
         it('mcpToolCallLogs honours filter options', async () => {
             const result = await adminGraphQL(superAdminToken, MCP_TOOL_CALL_LOGS_WITH_BODIES_QUERY, {
                 options: { filter: { status: { eq: 'error' } } },

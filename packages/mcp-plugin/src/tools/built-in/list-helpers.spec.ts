@@ -46,29 +46,37 @@ describe('built-in list helpers', () => {
         expect(MAX_LIST_PAGE_SIZE).toBe(100);
     });
 
-    it('sorts orders by newest placed first unless asked otherwise', () => {
-        expect(listHelpers.orderListOptions({})).toEqual({
+    it('sorts orders by the caller default unless asked otherwise, with an id tiebreaker', () => {
+        expect(listHelpers.orderListOptions({}, 'updatedAt')).toEqual({
             take: 25,
             skip: 0,
-            sort: { orderPlacedAt: 'DESC' },
+            sort: { updatedAt: 'DESC', id: 'DESC' },
+        });
+        expect(listHelpers.orderListOptions({}, 'createdAt')).toEqual({
+            take: 25,
+            skip: 0,
+            sort: { createdAt: 'DESC', id: 'DESC' },
         });
         expect(
-            listHelpers.orderListOptions({
-                limit: 5,
-                offset: 10,
-                sortBy: 'total',
-                sortDirection: 'ASC',
-            }),
+            listHelpers.orderListOptions(
+                {
+                    limit: 5,
+                    offset: 10,
+                    sortBy: 'total',
+                    sortDirection: 'ASC',
+                },
+                'updatedAt',
+            ),
         ).toEqual({
             take: 5,
             skip: 10,
-            sort: { total: 'ASC' },
+            sort: { total: 'ASC', id: 'ASC' },
         });
     });
 
     it('forwards a filter to core and leaves the key out when there is none', () => {
         const paged = listHelpers.listOptions({ limit: 5 });
-        expect(paged).toEqual({ take: 5, skip: 0 });
+        expect(paged).toEqual({ take: 5, skip: 0, sort: { createdAt: 'DESC', id: 'DESC' } });
         expect(Object.keys(paged)).not.toContain('filter');
         expect(
             listHelpers.listOptions({ offset: 10, filter: { emailAddress: { eq: 'jane@example.test' } } }),
@@ -76,20 +84,33 @@ describe('built-in list helpers', () => {
             take: 25,
             skip: 10,
             filter: { emailAddress: { eq: 'jane@example.test' } },
+            sort: { createdAt: 'DESC', id: 'DESC' },
+        });
+    });
+
+    it('keeps collections in the order the operator arranged them', () => {
+        expect(listHelpers.publicCollectionListOptions({ limit: 5 })).toEqual({
+            take: 5,
+            skip: 0,
+            sort: { position: 'ASC', id: 'ASC' },
+            filter: { isPrivate: { eq: false } },
         });
     });
 
     it('carries an order filter and the sort together', () => {
         expect(
-            listHelpers.orderListOptions({
-                filter: { state: { eq: 'ArrangingPayment' } },
-                sortBy: 'updatedAt',
-            }),
+            listHelpers.orderListOptions(
+                {
+                    filter: { state: { eq: 'ArrangingPayment' } },
+                    sortBy: 'updatedAt',
+                },
+                'updatedAt',
+            ),
         ).toEqual({
             take: 25,
             skip: 0,
             filter: { state: { eq: 'ArrangingPayment' } },
-            sort: { updatedAt: 'DESC' },
+            sort: { updatedAt: 'DESC', id: 'DESC' },
         });
     });
 
@@ -137,6 +158,7 @@ describe('built-in list helpers', () => {
         expect(listHelpers.publicProductListOptions({ limit: 10, offset: 5 }, ['camera', 'bag'])).toEqual({
             take: 10,
             skip: 5,
+            sort: { createdAt: 'DESC', id: 'DESC' },
             filter: {
                 enabled: { eq: true },
                 _and: [
@@ -152,6 +174,7 @@ describe('built-in list helpers', () => {
         expect(listHelpers.publicProductListOptions({})).toEqual({
             take: 25,
             skip: 0,
+            sort: { createdAt: 'DESC', id: 'DESC' },
             filter: { enabled: { eq: true } },
         });
     });
