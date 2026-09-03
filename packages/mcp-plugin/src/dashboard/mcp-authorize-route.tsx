@@ -238,10 +238,16 @@ function ConsentCard({ requestToken }: { requestToken: string }) {
           : null;
     const scope = scopePresentation(info.toolset, signedInAccount);
     // Amber is reserved for a destination worth a second look: a client whose hostname Vendure
-    // could not check itself, a plain-http address, or one on the local machine.
+    // could not check itself, a plain-http address, one on the local machine, or one on a
+    // different host than the client itself.
     const isLoopbackRedirect = redirectHost != null && isLoopbackHostname(redirectHost);
+    const clientHost = isCimdClient ? hostnameOf(info.client_id) : null;
+    const redirectLeavesClientHost = clientHost != null && redirectHost !== clientHost;
     const redirectNeedsWarning =
-        !isCimdClient || isLoopbackRedirect || !info.redirect_uri.startsWith('https://');
+        !isCimdClient ||
+        isLoopbackRedirect ||
+        redirectLeavesClientHost ||
+        !info.redirect_uri.startsWith('https://');
 
     return (
         <ConsentShell
@@ -319,6 +325,14 @@ function ConsentCard({ requestToken }: { requestToken: string }) {
                         <Trans>
                             This destination is on the local machine. Any application running on that machine
                             could receive the authorization code.
+                        </Trans>
+                    </p>
+                ) : null}
+                {redirectLeavesClientHost ? (
+                    <p className="text-xs font-medium text-warning">
+                        <Trans>
+                            This destination is not on the application's own host ({clientHost}). Only approve
+                            if you expect the code to be sent there.
                         </Trans>
                     </p>
                 ) : null}

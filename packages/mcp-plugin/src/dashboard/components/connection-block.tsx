@@ -1,5 +1,6 @@
 import { Trans } from '@lingui/react/macro';
 import {
+    api,
     Button,
     CopyableText,
     Dialog,
@@ -11,8 +12,11 @@ import {
     DialogTitle,
     DialogTrigger,
     Separator,
+    useQuery,
 } from '@vendure/dashboard';
 import { ExternalLinkIcon, PlugIcon } from 'lucide-react';
+
+import { mcpServerConfigQuery } from '../mcp.graphql';
 
 /** Docs page that walks through connecting an MCP client to a Vendure server. */
 const SETUP_GUIDE_URL = 'https://docs.vendure.io/guides/mcp-server/quick-start/';
@@ -41,10 +45,20 @@ function CopyableField({ label, value }: { label: React.ReactNode; value: string
  * health and activity blocks.
  */
 export function ConnectionDialog() {
-    const origin = window.location.origin;
+    const { data, isLoading } = useQuery({
+        queryKey: ['mcp-server-config'],
+        queryFn: () => api.query(mcpServerConfigQuery),
+    });
+    const config = data?.mcpServerConfig;
+    // Clients have to reach the server on its OAuth issuer origin, which is not always the
+    // origin the dashboard itself is served from.
+    const origin = config?.issuer ?? window.location.origin;
     const adminUrl = `${origin}/mcp/admin`;
     const shopUrl = `${origin}/mcp/shop`;
     const inspectorCommand = 'npx @modelcontextprotocol/inspector';
+    // Until the config arrives both endpoints are shown, so the dialog does not flash empty.
+    const showAdminUrl = isLoading || config?.oauthConfigured !== false;
+    const showShopUrl = isLoading || config?.shopAccess !== 'disabled';
 
     return (
         <Dialog>
@@ -63,8 +77,23 @@ export function ConnectionDialog() {
                 </DialogHeader>
 
                 <div className="space-y-4">
-                    <CopyableField label={<Trans>Admin API</Trans>} value={adminUrl} />
-                    <CopyableField label={<Trans>Shop API</Trans>} value={shopUrl} />
+                    {showAdminUrl ? (
+                        <CopyableField label={<Trans>Admin API</Trans>} value={adminUrl} />
+                    ) : (
+                        <p className="text-sm text-muted-foreground">
+                            <Trans>
+                                The admin endpoint needs OAuth. Add an oauth block to McpPlugin.init to enable
+                                it.
+                            </Trans>
+                        </p>
+                    )}
+                    {showShopUrl ? (
+                        <CopyableField label={<Trans>Shop API</Trans>} value={shopUrl} />
+                    ) : (
+                        <p className="text-sm text-muted-foreground">
+                            <Trans>The shop endpoint is disabled (shopAccess: 'disabled').</Trans>
+                        </p>
+                    )}
                     <Separator />
                     <CopyableField label={<Trans>Test with MCP Inspector</Trans>} value={inspectorCommand} />
                 </div>

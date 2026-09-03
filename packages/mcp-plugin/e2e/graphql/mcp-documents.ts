@@ -21,6 +21,17 @@ export const MCP_TOOLS_QUERY = `
     }
 `;
 
+export const MCP_SERVER_CONFIG_QUERY = `
+    query McpServerConfig {
+        mcpServerConfig {
+            toolExposure
+            shopAccess
+            oauthConfigured
+            issuer
+        }
+    }
+`;
+
 export const MCP_STATS_QUERY = `
     query McpStats($timeRange: String) {
         mcpStats(timeRange: $timeRange) {

@@ -36,17 +36,11 @@ export interface McpOauthOptions {
     tokenSecret: string;
     /**
      * @description
-     * The public URL of your Vendure server, e.g. `https://shop.example.com`. OAuth
-     * clients use it to find this server's login and token endpoints.
-     *
-     * Give it the scheme and host only, plus a port if you need one. A path makes the
-     * server refuse to start. Clients fetch this server's OAuth information from fixed
-     * `/.well-known/...` addresses directly under the host, so a path here would send
-     * them to addresses that do not exist. If a proxy serves Vendure under a path, use a
-     * subdomain instead, or forward `/.well-known/*` to Vendure as well.
-     *
-     * When unset, it defaults to `http://localhost:<port>` using the port your server is
-     * configured with (`apiOptions.port`), so local development needs no configuration.
+     * The public origin of this Vendure server, such as `https://shop.example.com`.
+     * OAuth clients read this server's login and token endpoints from `/.well-known/...`
+     * directly under it, so it must be a scheme and host with no path. A path makes the
+     * server refuse to start. If a proxy serves Vendure under a path, use a subdomain or
+     * forward `/.well-known/*` to Vendure.
      *
      * @default 'http://localhost:<apiOptions.port>'
      */

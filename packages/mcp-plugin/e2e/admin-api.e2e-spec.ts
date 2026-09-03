@@ -21,6 +21,7 @@ import { McpPluginOptions } from '../src/types';
 import { McpTestToolsPlugin } from './fixtures/mcp-test-tools';
 import {
     MCP_OAUTH_GRANTS_QUERY,
+    MCP_SERVER_CONFIG_QUERY,
     MCP_STATS_QUERY,
     MCP_TOOL_CALL_LOGS_WITH_BODIES_QUERY,
     MCP_TOOLS_QUERY,
@@ -483,6 +484,25 @@ describe('MCP admin API', () => {
             const read = await adminGraphQL(updateOnlyToken, MCP_TOOLS_QUERY);
             expect(read.errors?.[0]?.extensions?.code).toBe('FORBIDDEN');
             expect(read.data?.mcpTools ?? null).toBeNull();
+        });
+
+        it('mcpServerConfig follows the same read permission as the other queries', async () => {
+            const read = await adminGraphQL(superAdminToken, MCP_SERVER_CONFIG_QUERY);
+            expect(read.errors).toBeUndefined();
+            expect(read.data.mcpServerConfig).toEqual({
+                toolExposure: 'direct',
+                shopAccess: 'anonymous',
+                oauthConfigured: true,
+                issuer: ISSUER,
+            });
+
+            const readOnly = await adminGraphQL(readOnlyToken, MCP_SERVER_CONFIG_QUERY);
+            expect(readOnly.errors).toBeUndefined();
+            expect(readOnly.data.mcpServerConfig.oauthConfigured).toBe(true);
+
+            const settingsOnly = await adminGraphQL(settingsOnlyToken, MCP_SERVER_CONFIG_QUERY);
+            expect(settingsOnly.errors?.[0]?.extensions?.code).toBe('FORBIDDEN');
+            expect(settingsOnly.data?.mcpServerConfig ?? null).toBeNull();
         });
 
         it('a settings-only admin is rejected from the MCP admin API', async () => {

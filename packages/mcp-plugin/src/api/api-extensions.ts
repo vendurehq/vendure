@@ -45,6 +45,19 @@ export const adminApiExtensions = gql`
         error
     }
 
+    "Whether clients see every tool directly, or only the two discovery tools."
+    enum McpToolExposureMode {
+        direct
+        discovery
+    }
+
+    "Who the shop endpoint accepts: anyone, signed-in customers only, or nobody."
+    enum McpShopAccess {
+        anonymous
+        authenticated
+        disabled
+    }
+
     "A registered tool and whether it is currently enabled."
     type McpToolInfo {
         id: ID!
@@ -129,6 +142,16 @@ export const adminApiExtensions = gql`
         topTools: [McpTopTool!]!
     }
 
+    "How this MCP server is configured, so the dashboard can show only what applies."
+    type McpServerConfig {
+        toolExposure: McpToolExposureMode!
+        shopAccess: McpShopAccess!
+        "Whether an oauth block is configured. Without it the admin endpoint and grants cannot be used."
+        oauthConfigured: Boolean!
+        "The OAuth issuer origin, or null when OAuth is not configured."
+        issuer: String
+    }
+
     extend type Query {
         "Every registered tool with its enabled state."
         mcpTools: [McpToolInfo!]!
@@ -141,6 +164,8 @@ export const adminApiExtensions = gql`
         mcpToolCallLogs(options: McpToolCallLogListOptions): McpToolCallLogList!
         "Usage stats for a time window. timeRange is one of 1h, 24h, 7d, 30d (default 24h); other values are rejected."
         mcpStats(timeRange: String): McpStats!
+        "The server-side configuration the dashboard needs to explain its own pages."
+        mcpServerConfig: McpServerConfig!
     }
 
     "Where to send the browser once an administrator has approved or denied an MCP client."

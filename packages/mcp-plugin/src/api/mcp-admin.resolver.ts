@@ -1,3 +1,4 @@
+import { Inject } from '@nestjs/common';
 import { Args, Mutation, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql';
 import {
     Allow,
@@ -15,13 +16,14 @@ import { McpToolBehavior, McpToolset } from '@vendure/mcp-sdk';
 import { ObjectLiteral, SelectQueryBuilder } from 'typeorm';
 import { DateUtils } from 'typeorm/util/DateUtils';
 
-import { mcpServerPermission } from '../constants';
+import { MCP_PLUGIN_OPTIONS, mcpServerPermission } from '../constants';
 import { McpOauthGrant, McpOauthGrantStatus, McpToolCallLog } from '../entities';
+import { ResolvedMcpPluginOptions } from '../internal-types';
 import { McpToolCallLogService } from '../logging/mcp-tool-call-log.service';
 import { McpOauthService } from '../oauth/oauth.service';
 import { McpToolRegistryService } from '../registry/mcp-tool-registry.service';
 import { McpRegisteredTool } from '../registry/registry-types';
-import { McpGrantUserType, McpToolCallStatus } from '../types';
+import { McpGrantUserType, McpToolCallStatus, McpToolExposureMode } from '../types';
 
 import { McpActorService } from './mcp-actor.service';
 
@@ -68,6 +70,14 @@ type McpStats = {
     topTools: McpTopTool[];
 };
 
+/** How this MCP server is configured, so the dashboard can show only what applies. */
+interface McpServerConfig {
+    toolExposure: McpToolExposureMode;
+    shopAccess: NonNullable<ResolvedMcpPluginOptions['shopAccess']>;
+    oauthConfigured: boolean;
+    issuer: string | null;
+}
+
 const STATS_TIME_RANGE_HOURS: Record<string, number> = {
     '1h': 1,
     '24h': 24,
@@ -86,6 +96,7 @@ export class McpAdminResolver {
         private oauthService: McpOauthService,
         private cacheService: CacheService,
         private listQueryBuilder: ListQueryBuilder,
+        @Inject(MCP_PLUGIN_OPTIONS) private options: ResolvedMcpPluginOptions,
     ) {}
 
     @Query()
@@ -170,6 +181,17 @@ export class McpAdminResolver {
         const stats = await this.computeStats(ctx, hours);
         await this.cacheService.set(cacheKey, stats, { ttl: STATS_CACHE_TTL_MS });
         return stats;
+    }
+
+    @Query()
+    @Allow(mcpServerPermission.Read)
+    mcpServerConfig(): McpServerConfig {
+        return {
+            toolExposure: this.options.toolExposure,
+            shopAccess: this.options.shopAccess,
+            oauthConfigured: this.options.oauth != null,
+            issuer: this.options.oauth?.issuer ?? null,
+        };
     }
 
     @Mutation()

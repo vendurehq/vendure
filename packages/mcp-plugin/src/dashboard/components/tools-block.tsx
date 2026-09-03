@@ -13,13 +13,14 @@ import {
     Switch,
     toast,
     useMutation,
+    usePermissions,
     useQuery,
     useQueryClient,
 } from '@vendure/dashboard';
-import { TriangleAlert } from 'lucide-react';
+import { InfoIcon, TriangleAlert } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import { mcpToolsQuery, setMcpToolEnabledDocument } from '../mcp.graphql';
+import { mcpServerConfigQuery, mcpToolsQuery, setMcpToolEnabledDocument } from '../mcp.graphql';
 
 import { TooltipButton } from './tooltip-button';
 import { useMcpColumnVisibility } from './use-mcp-table-state';
@@ -67,10 +68,17 @@ export function ToolsBlock() {
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const { defaultVisibility, onColumnVisibilityChange } = useMcpColumnVisibility({});
+    const { hasPermissions } = usePermissions();
+    const canUpdate = hasPermissions(['UpdateMcpServer']);
 
     const { data, isLoading, error } = useQuery({
         queryKey: toolsQueryKey,
         queryFn: () => api.query(mcpToolsQuery),
+    });
+
+    const { data: configData } = useQuery({
+        queryKey: ['mcp-server-config'],
+        queryFn: () => api.query(mcpServerConfigQuery),
     });
 
     const toggle = useMutation({
@@ -111,6 +119,7 @@ export function ToolsBlock() {
     });
 
     const tools = data?.mcpTools ?? [];
+    const isDiscoveryExposure = configData?.mcpServerConfig.toolExposure === 'discovery';
 
     const filtered = useMemo(() => {
         const term = search.trim().toLowerCase();
@@ -199,6 +208,7 @@ export function ToolsBlock() {
             cell: ({ row }) => (
                 <Switch
                     checked={row.original.enabled}
+                    disabled={!canUpdate}
                     onCheckedChange={checked =>
                         toggle.mutate({
                             toolName: row.original.name,
@@ -212,45 +222,58 @@ export function ToolsBlock() {
     ];
 
     return (
-        <DataTable
-            columns={columns}
-            data={filtered}
-            totalItems={filtered.length}
-            isLoading={isLoading}
-            defaultColumnVisibility={defaultVisibility}
-            onColumnVisibilityChange={onColumnVisibilityChange}
-            onSearchTermChange={term => setSearch(term)}
-            facetedFilters={{
-                toolset: {
-                    title: t`Toolset`,
-                    options: [
-                        { label: 'admin', value: 'admin' },
-                        { label: 'shop', value: 'shop' },
-                    ],
-                },
-            }}
-            onRefresh={() => {
-                void queryClient.invalidateQueries({ queryKey: toolsQueryKey });
-            }}
-            setTableOptions={options => ({
-                ...options,
-                manualPagination: false,
-                manualSorting: false,
-                manualFiltering: false,
-                rowCount: undefined,
-                getSortedRowModel: getSortedRowModel(),
-                getFilteredRowModel: getFilteredRowModel(),
-                // Without this, any data refresh (e.g. the refetch after toggling
-                // a tool) would jump the table back to page 1. Search and filter
-                // changes still reset the page via the DataTable itself.
-                autoResetPageIndex: false,
-            })}
-            page={page}
-            itemsPerPage={pageSize}
-            onPageChange={(_table, newPage, newPageSize) => {
-                setPage(newPage);
-                setPageSize(newPageSize);
-            }}
-        />
+        <div className="space-y-4">
+            {isDiscoveryExposure ? (
+                <Alert>
+                    <InfoIcon className="h-4 w-4" />
+                    <AlertDescription>
+                        <Trans>
+                            Tool exposure is set to discovery. Clients see only search_tools and execute_tool.
+                            The toggles below still decide which tools execute_tool may run.
+                        </Trans>
+                    </AlertDescription>
+                </Alert>
+            ) : null}
+            <DataTable
+                columns={columns}
+                data={filtered}
+                totalItems={filtered.length}
+                isLoading={isLoading}
+                defaultColumnVisibility={defaultVisibility}
+                onColumnVisibilityChange={onColumnVisibilityChange}
+                onSearchTermChange={term => setSearch(term)}
+                facetedFilters={{
+                    toolset: {
+                        title: t`Toolset`,
+                        options: [
+                            { label: 'admin', value: 'admin' },
+                            { label: 'shop', value: 'shop' },
+                        ],
+                    },
+                }}
+                onRefresh={() => {
+                    void queryClient.invalidateQueries({ queryKey: toolsQueryKey });
+                }}
+                setTableOptions={options => ({
+                    ...options,
+                    manualPagination: false,
+                    manualSorting: false,
+                    manualFiltering: false,
+                    rowCount: undefined,
+                    getSortedRowModel: getSortedRowModel(),
+                    getFilteredRowModel: getFilteredRowModel(),
+                    // Without this, any data refresh (e.g. the refetch after toggling
+                    // a tool) would jump the table back to page 1. Search and filter
+                    // changes still reset the page via the DataTable itself.
+                    autoResetPageIndex: false,
+                })}
+                page={page}
+                itemsPerPage={pageSize}
+                onPageChange={(_table, newPage, newPageSize) => {
+                    setPage(newPage);
+                    setPageSize(newPageSize);
+                }}
+            />
+        </div>
     );
 }

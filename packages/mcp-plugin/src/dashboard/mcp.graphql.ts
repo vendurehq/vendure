@@ -20,6 +20,17 @@ export const mcpToolsQuery = graphql(`
     }
 `);
 
+export const mcpServerConfigQuery = graphql(`
+    query McpServerConfig {
+        mcpServerConfig {
+            toolExposure
+            shopAccess
+            oauthConfigured
+            issuer
+        }
+    }
+`);
+
 export const mcpStatsQuery = graphql(`
     query McpStats($timeRange: String) {
         mcpStats(timeRange: $timeRange) {
