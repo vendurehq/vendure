@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CollectionService, idsAreEqual, Permission, RequestContext } from '@vendure/core';
+import { CollectionService, ID, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
@@ -41,27 +41,7 @@ export class ShopListCollectionsTool implements McpToolHandler<ListCollectionsIn
 
     async execute(ctx: RequestContext, input: ListCollectionsInput) {
         if (input.parentId != null) {
-            const parent = await this.collectionService.findOne(ctx, input.parentId);
-            if (!parent || parent.isPrivate) {
-                return page([], 0, input);
-            }
-            const children = await this.collectionService.getChildren(ctx, input.parentId);
-            const publicChildren = children.filter(collection => !collection.isPrivate);
-            const channelChildren = await this.collectionService.findByIds(
-                ctx,
-                publicChildren.map(collection => collection.id),
-            );
-            const visibleChildren = publicChildren
-                .map(collection =>
-                    channelChildren.find(channelCollection =>
-                        idsAreEqual(channelCollection.id, collection.id),
-                    ),
-                )
-                .filter((collection): collection is (typeof channelChildren)[number] => collection != null);
-            const items = slicePage(visibleChildren, input).map(collection =>
-                this.serializer.collection(collection),
-            );
-            return page(items, visibleChildren.length, input);
+            return this.childCollections(ctx, input.parentId, input);
         }
         const result = await this.collectionService.findAll(ctx, publicCollectionListOptions(input), [
             'featuredAsset',
@@ -71,5 +51,31 @@ export class ShopListCollectionsTool implements McpToolHandler<ListCollectionsIn
             result.totalItems,
             input,
         );
+    }
+
+    /**
+     * Lists the public children of one collection. The children come from getChildren, which is not
+     * channel-scoped, so they are loaded again through findByIds to get the channel's translations,
+     * and then put back in their original order.
+     */
+    private async childCollections(ctx: RequestContext, parentId: ID, input: ListCollectionsInput) {
+        const parent = await this.collectionService.findOne(ctx, parentId);
+        if (!parent || parent.isPrivate) {
+            return page([], 0, input);
+        }
+        const children = await this.collectionService.getChildren(ctx, parentId);
+        const publicChildren = children.filter(collection => !collection.isPrivate);
+        const channelChildren = await this.collectionService.findByIds(
+            ctx,
+            publicChildren.map(collection => collection.id),
+        );
+        const byId = new Map(channelChildren.map(collection => [String(collection.id), collection]));
+        const visibleChildren = publicChildren
+            .map(collection => byId.get(String(collection.id)))
+            .filter(collection => collection != null);
+        const items = slicePage(visibleChildren, input).map(collection =>
+            this.serializer.collection(collection),
+        );
+        return page(items, visibleChildren.length, input);
     }
 }
