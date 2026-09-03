@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { summate } from '@vendure/common/lib/shared-utils';
 import {
-    EntityNotFoundError,
     idsAreEqual,
     isGraphQlErrorResult,
     Order,
@@ -16,6 +15,7 @@ import { z } from 'zod';
 
 import { idSchema } from '../id-schema';
 import { int32Schema } from '../int32-schema';
+import { findOrderOrThrow } from '../order-list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 import { shortText } from '../string-schemas';
 
@@ -74,10 +74,10 @@ export class RefundOrderTool implements McpToolHandler<RefundOrderToolInput> {
     ) {}
 
     async execute(ctx: RequestContext, input: RefundOrderToolInput) {
-        const order = await this.orderService.findOne(ctx, input.id, ['payments', 'payments.refunds']);
-        if (!order) {
-            throw new EntityNotFoundError('Order', input.id);
-        }
+        const order = await findOrderOrThrow(this.orderService, ctx, input.id, [
+            'payments',
+            'payments.refunds',
+        ]);
 
         const payment = input.paymentId
             ? order.payments.find(p => idsAreEqual(p.id, input.paymentId))

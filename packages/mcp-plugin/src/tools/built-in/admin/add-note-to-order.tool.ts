@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { HistoryEntryType } from '@vendure/common/lib/generated-types';
-import { EntityNotFoundError, HistoryService, OrderService, Permission, RequestContext } from '@vendure/core';
+import { HistoryService, OrderService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { idSchema } from '../id-schema';
-import { ORDER_DETAIL_RELATIONS } from '../order-list-helpers';
+import { findOrderOrThrow, ORDER_DETAIL_RELATIONS } from '../order-list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 import { longText } from '../string-schemas';
 
@@ -45,10 +45,7 @@ export class AddNoteToOrderTool implements McpToolHandler<AddNoteToOrderToolInpu
     ) {}
 
     async execute(ctx: RequestContext, input: AddNoteToOrderToolInput) {
-        const order = await this.orderService.findOne(ctx, input.id, ORDER_DETAIL_RELATIONS);
-        if (!order) {
-            throw new EntityNotFoundError('Order', input.id);
-        }
+        const order = await findOrderOrThrow(this.orderService, ctx, input.id, ORDER_DETAIL_RELATIONS);
 
         const note = await this.historyService.createHistoryEntryForOrder(
             { ctx, orderId: order.id, type: HistoryEntryType.ORDER_NOTE, data: { note: input.note } },

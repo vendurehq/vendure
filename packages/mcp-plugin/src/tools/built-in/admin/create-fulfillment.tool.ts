@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { OrderLineInput } from '@vendure/common/lib/generated-types';
 import {
-    EntityNotFoundError,
     Fulfillment,
     FulfillmentState,
     FulfillmentStateTransitionError,
@@ -21,7 +20,7 @@ import { z } from 'zod';
 
 import { idSchema } from '../id-schema';
 import { int32Schema } from '../int32-schema';
-import { ORDER_DETAIL_RELATIONS } from '../order-list-helpers';
+import { findOrderOrThrow, ORDER_DETAIL_RELATIONS } from '../order-list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 import { shortText } from '../string-schemas';
 
@@ -86,10 +85,7 @@ export class CreateFulfillmentTool implements McpToolHandler<CreateFulfillmentIn
     ) {}
 
     async execute(ctx: RequestContext, input: CreateFulfillmentInput) {
-        const order = await this.orderService.findOne(ctx, input.id, ORDER_DETAIL_RELATIONS);
-        if (!order) {
-            throw new EntityNotFoundError('Order', input.id);
-        }
+        const order = await findOrderOrThrow(this.orderService, ctx, input.id, ORDER_DETAIL_RELATIONS);
         const lines = input.lines ? this.linesOfOrder(order, input.lines) : unfulfilledLines(order);
         try {
             // Creating the fulfillment, moving it on and reading the result back are one unit of

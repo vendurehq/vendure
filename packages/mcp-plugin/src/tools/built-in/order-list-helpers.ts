@@ -1,6 +1,14 @@
 // Helpers shared by the tools that list or load Orders.
 import { OrderListOptions, SortOrder } from '@vendure/common/lib/generated-types';
-import { Order, RelationPaths, RequestContext, TranslatorService } from '@vendure/core';
+import {
+    EntityNotFoundError,
+    ID,
+    Order,
+    OrderService,
+    RelationPaths,
+    RequestContext,
+    TranslatorService,
+} from '@vendure/core';
 
 import { type ListInput, listOptions } from './list-helpers';
 
@@ -39,6 +47,23 @@ export const ORDER_LIST_RELATIONS: RelationPaths<Order> = [
 ];
 
 export const ORDER_DETAIL_RELATIONS: RelationPaths<Order> = [...ORDER_LIST_RELATIONS, 'customer.user'];
+
+/**
+ * Loads one Order by id for an admin tool, or throws the same "not found" error core would.
+ * Tools call this at the top so a missing order is refused before any work starts.
+ */
+export async function findOrderOrThrow(
+    orderService: OrderService,
+    ctx: RequestContext,
+    id: ID,
+    relations: RelationPaths<Order>,
+): Promise<Order> {
+    const order = await orderService.findOne(ctx, id, relations);
+    if (!order) {
+        throw new EntityNotFoundError('Order', id);
+    }
+    return order;
+}
 
 export function translateLineVariants(orders: Order[], translator: TranslatorService, ctx: RequestContext) {
     for (const order of orders) {
