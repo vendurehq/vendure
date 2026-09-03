@@ -46,7 +46,7 @@ describe('McpShopSessionService', () => {
                 ctx: fakeCtx(),
                 input: { note: 'hello', sessionToken: 'existing-token' },
                 isOAuthCall: false,
-                createSessionIfMissing: false,
+                toolWritesToCart: false,
             });
 
             expect(outcome).toMatchObject({
@@ -66,7 +66,7 @@ describe('McpShopSessionService', () => {
                 ctx,
                 input: { sessionToken: undefined },
                 isOAuthCall: false,
-                createSessionIfMissing: false,
+                toolWritesToCart: false,
             });
 
             expect(outcome).toEqual({ kind: 'prepared', ctx, input: {} });
@@ -285,21 +285,24 @@ describe('McpShopSessionService', () => {
     describe('resolveHeaderToken', () => {
         it('resolves a missing or unknown token to no session so the request proceeds session-less', async () => {
             const { service } = build();
-            expect(await service.resolveHeaderToken(undefined)).toEqual({});
-            expect(await service.resolveHeaderToken('gone')).toEqual({ session: undefined });
+            expect(await service.resolveHeaderToken(undefined)).toEqual({ kind: 'resolved' });
+            expect(await service.resolveHeaderToken('gone')).toEqual({
+                kind: 'resolved',
+                session: undefined,
+            });
         });
 
         it('returns the anonymous session for a valid token', async () => {
             const { service, sessionService } = build();
             const session = { id: 's1', token: 't1', expires: new Date() };
             sessionService.getSessionFromToken.mockResolvedValue(session);
-            expect(await service.resolveHeaderToken('t1')).toEqual({ session });
+            expect(await service.resolveHeaderToken('t1')).toEqual({ kind: 'resolved', session });
         });
 
         it('treats a blank header value as no token', async () => {
             const { service, sessionService } = build();
-            expect(await service.resolveHeaderToken('')).toEqual({ session: undefined });
-            expect(await service.resolveHeaderToken('   ')).toEqual({ session: undefined });
+            expect(await service.resolveHeaderToken('')).toEqual({ kind: 'resolved', session: undefined });
+            expect(await service.resolveHeaderToken('   ')).toEqual({ kind: 'resolved', session: undefined });
             expect(sessionService.getSessionFromToken).not.toHaveBeenCalled();
         });
 
@@ -307,7 +310,10 @@ describe('McpShopSessionService', () => {
             const { service, sessionService } = build();
             sessionService.getSessionFromToken.mockResolvedValue({ id: 's2', token: 't2', user: { id: 1 } });
             const outcome = await service.resolveHeaderToken('t2');
-            expect(outcome).toEqual({ refusal: expect.stringMatching(/belongs to a signed-in user/) });
+            expect(outcome).toEqual({
+                kind: 'refused',
+                message: expect.stringMatching(/belongs to a signed-in user/),
+            });
         });
     });
 });

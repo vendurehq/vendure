@@ -392,7 +392,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                 input: toolInput,
                 isOAuthCall: executionContext.grant != null,
                 // A preview runs no handler, so it must not start a cart of its own.
-                createSessionIfMissing: tool.resolvedBehavior !== 'readonly' && !isConfirmationPreview,
+                toolWritesToCart: tool.resolvedBehavior !== 'readonly' && !isConfirmationPreview,
             });
             if (prepared.kind === 'refused') {
                 return this.errorResult(prepared.message);

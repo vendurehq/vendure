@@ -476,8 +476,8 @@ export class McpTransportController {
         channelToken?: string,
     ): Promise<RequestContext> {
         const resolution = await this.shopSession.resolveHeaderToken(sessionToken);
-        if ('refusal' in resolution) {
-            throw new UnauthorizedException(resolution.refusal);
+        if (resolution.kind === 'refused') {
+            throw new UnauthorizedException(resolution.message);
         }
         const channel = await this.channelService.getChannelFromToken(channelToken ?? '');
         return new RequestContext({

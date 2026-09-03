@@ -43,26 +43,22 @@ export class McpShopSessionService {
         ctx: RequestContext;
         input: Record<string, unknown>;
         isOAuthCall: boolean;
-        createSessionIfMissing: boolean;
+        toolWritesToCart: boolean;
     }): Promise<PreparedShopSessionCall> {
         const { sessionToken, ...input } = call.input;
         const outcome = await this.resolveForToolCall({
             ctx: call.ctx,
             sessionToken: typeof sessionToken === 'string' ? sessionToken : undefined,
             isOAuthCall: call.isOAuthCall,
-            toolWritesToCart: call.createSessionIfMissing,
+            toolWritesToCart: call.toolWritesToCart,
         });
         if (outcome.kind === 'refused') {
             return outcome;
         }
-        return {
-            kind: 'prepared',
-            ctx: outcome.kind === 'resolved' ? outcome.ctx : call.ctx,
-            input,
-            ...(outcome.kind === 'resolved' && outcome.sessionToken !== undefined
-                ? { sessionToken: outcome.sessionToken }
-                : {}),
-        };
+        if (outcome.kind === 'unchanged') {
+            return { kind: 'prepared', ctx: call.ctx, input };
+        }
+        return { kind: 'prepared', ctx: outcome.ctx, input, sessionToken: outcome.sessionToken };
     }
 
     /** Adds the resolved token without losing handler results that are not plain objects. */
@@ -128,10 +124,12 @@ export class McpShopSessionService {
      */
     async resolveHeaderToken(
         header: string | undefined,
-    ): Promise<{ session?: CachedSession } | { refusal: string }> {
+    ): Promise<{ kind: 'refused'; message: string } | { kind: 'resolved'; session?: CachedSession }> {
         const token = trimmed(header);
         const session = token ? await this.sessionService.getSessionFromToken(token) : undefined;
-        return session?.user ? { refusal: REFUSAL.signedInUser } : { session };
+        return session?.user
+            ? { kind: 'refused', message: REFUSAL.signedInUser }
+            : { kind: 'resolved', session };
     }
 
     private resolved(ctx: RequestContext, session: CachedSession): ShopSessionOutcome {
