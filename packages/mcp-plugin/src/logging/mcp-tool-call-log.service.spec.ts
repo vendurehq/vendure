@@ -8,17 +8,15 @@ import { McpPluginOptions } from '../types';
 
 import { McpToolCallLogService } from './mcp-tool-call-log.service';
 
-/** Options to steer the persistence / event-publish / delete mocks. */
+/** Options to steer the persistence / event-publish mocks. */
 interface LoggingFailures {
     saveThrows?: boolean;
     publishThrows?: boolean;
-    deleteAffected?: number;
 }
 
 function build(options: McpPluginOptions, failures: LoggingFailures = {}) {
     const savedLogs: McpToolCallLog[] = [];
     const publishedEvents: McpToolCallEvent[] = [];
-    const selectWhere: Array<{ clause: string; params: Record<string, unknown> }> = [];
     const save = vi.fn((entity: McpToolCallLog) => {
         if (failures.saveThrows) {
             return Promise.reject(new Error('save failed'));
@@ -27,48 +25,7 @@ function build(options: McpPluginOptions, failures: LoggingFailures = {}) {
         savedLogs.push(entity);
         return Promise.resolve(entity);
     });
-    // Query-builder mock for the batched retention prune: a SELECT
-    // (.select().where().limit().getRawMany()) hands out up to `limit` expired-row ids, then a DELETE
-    // (.delete().where('id IN ...').execute()) removes them. `failures.deleteAffected` seeds how many
-    // expired rows exist so the prune loop drains them and terminates.
-    let remainingExpired = failures.deleteAffected ?? 0;
-    const createQueryBuilder = () => {
-        const qb: any = {
-            _mode: 'select',
-            _limit: undefined as number | undefined,
-            _deleteIds: [] as unknown[],
-            select: () => {
-                qb._mode = 'select';
-                return qb;
-            },
-            delete: () => {
-                qb._mode = 'delete';
-                return qb;
-            },
-            where: (clause: string, params: Record<string, unknown>) => {
-                if (qb._mode === 'delete') {
-                    qb._deleteIds = (params.ids as unknown[]) ?? [];
-                } else {
-                    selectWhere.push({ clause, params });
-                }
-                return qb;
-            },
-            limit: (n: number) => {
-                qb._limit = n;
-                return qb;
-            },
-            getRawMany: () => {
-                const n = Math.min(remainingExpired, qb._limit ?? remainingExpired);
-                return Promise.resolve(Array.from({ length: n }, (_, i) => ({ id: i + 1 })));
-            },
-            execute: () => {
-                remainingExpired -= qb._deleteIds.length;
-                return Promise.resolve({ affected: qb._deleteIds.length });
-            },
-        };
-        return qb;
-    };
-    const getRepository = vi.fn(() => ({ save, createQueryBuilder }));
+    const getRepository = vi.fn(() => ({ save }));
     const connection = { getRepository };
     const publish = vi.fn((event: McpToolCallEvent) => {
         if (failures.publishThrows) {
@@ -83,7 +40,7 @@ function build(options: McpPluginOptions, failures: LoggingFailures = {}) {
         eventBus as any,
         resolveMcpPluginOptions(options),
     );
-    return { service, savedLogs, publishedEvents, selectWhere, save, publish, getRepository };
+    return { service, savedLogs, publishedEvents, save, publish };
 }
 
 /** Minimal registered-tool stand-in for the logger (only name/pluginSource are read). */
@@ -313,46 +270,5 @@ describe('McpToolCallLogService tool-call logging', () => {
         expect(savedLogs).toHaveLength(1);
         expect(warnSpy).toHaveBeenCalledOnce();
         expect(warnSpy.mock.calls[0][0]).toMatch(/publishing its McpToolCallEvent failed/);
-    });
-
-    it('deleteExpiredToolCallLogs filters createdAt by the configured ttlDays and returns the count', async () => {
-        vi.useFakeTimers();
-        vi.setSystemTime(new Date('2026-02-01T00:00:00Z'));
-        try {
-            const { service, selectWhere } = build({ logging: { ttlDays: 10 } }, { deleteAffected: 3 });
-            const count = await service.deleteExpiredToolCallLogs({} as any);
-            expect(count).toBe(3);
-            expect(selectWhere.length).toBeGreaterThanOrEqual(1);
-            expect(selectWhere[0].clause).toMatch(/createdAt < :cutoff/);
-            const cutoff = selectWhere[0].params.cutoff as Date;
-            expect(cutoff.toISOString()).toBe(
-                new Date(Date.parse('2026-02-01T00:00:00Z') - 10 * 86_400_000).toISOString(),
-            );
-        } finally {
-            vi.useRealTimers();
-        }
-    });
-
-    it('deleteExpiredToolCallLogs keeps every row and runs no query when ttlDays is 0', async () => {
-        const { service, getRepository } = build({ logging: { ttlDays: 0 } }, { deleteAffected: 3 });
-        const count = await service.deleteExpiredToolCallLogs({} as any);
-        expect(count).toBe(0);
-        expect(getRepository).not.toHaveBeenCalled();
-    });
-
-    it('deleteExpiredToolCallLogs defaults to a 30-day window and returns 0 when nothing matched', async () => {
-        vi.useFakeTimers();
-        vi.setSystemTime(new Date('2026-02-01T00:00:00Z'));
-        try {
-            const { service, selectWhere } = build({});
-            const count = await service.deleteExpiredToolCallLogs({} as any);
-            expect(count).toBe(0);
-            const cutoff = selectWhere[0].params.cutoff as Date;
-            expect(cutoff.toISOString()).toBe(
-                new Date(Date.parse('2026-02-01T00:00:00Z') - 30 * 86_400_000).toISOString(),
-            );
-        } finally {
-            vi.useRealTimers();
-        }
     });
 });

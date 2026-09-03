@@ -32,6 +32,7 @@ import {
     McpToolCallLog,
 } from './entities';
 import { ResolvedMcpPluginOptions } from './internal-types';
+import { McpToolCallLogRetentionService } from './logging/mcp-tool-call-log-retention.service';
 import { McpToolCallLogService } from './logging/mcp-tool-call-log.service';
 import { McpCimdClientResolverService } from './oauth/cimd/cimd-client-resolver.service';
 import { McpGrantSessionService } from './oauth/grant-session.service';
@@ -94,6 +95,7 @@ import { McpPluginOptions } from './types';
         McpRateLimiterService,
         McpOauthRateLimitGuard,
         McpToolCallLogService,
+        McpToolCallLogRetentionService,
         McpActiveOrderService,
         McpToolSerializerService,
         McpCatalogQueryService,

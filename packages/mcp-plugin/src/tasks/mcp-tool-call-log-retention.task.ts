@@ -1,6 +1,6 @@
 import { ScheduledTask } from '@vendure/core';
 
-import { McpToolCallLogService } from '../logging/mcp-tool-call-log.service';
+import { McpToolCallLogRetentionService } from '../logging/mcp-tool-call-log-retention.service';
 
 /**
  * @description
@@ -13,7 +13,7 @@ export const mcpToolCallLogRetentionTask = new ScheduledTask({
     schedule: cron => cron.everyDayAt(2, 30),
     async execute({ injector, scheduledContext }) {
         const deletedCount = await injector
-            .get(McpToolCallLogService)
+            .get(McpToolCallLogRetentionService)
             .deleteExpiredToolCallLogs(scheduledContext);
         return { deletedCount };
     },

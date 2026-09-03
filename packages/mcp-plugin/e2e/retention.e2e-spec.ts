@@ -11,7 +11,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import { McpToolCallLog } from '../src/entities/mcp-tool-call-log.entity';
-import { McpToolCallLogService } from '../src/logging/mcp-tool-call-log.service';
+import { McpToolCallLogRetentionService } from '../src/logging/mcp-tool-call-log-retention.service';
 import { McpPlugin } from '../src/plugin';
 import { mcpToolCallLogRetentionTask } from '../src/tasks/mcp-tool-call-log-retention.task';
 import { McpPluginOptions } from '../src/types';
@@ -28,13 +28,13 @@ describe('MCP tool-call log retention', () => {
 
     let connection: TransactionalConnection;
     let adminCtx: RequestContext;
-    let toolCallLog: McpToolCallLogService;
+    let toolCallLogRetention: McpToolCallLogRetentionService;
 
     beforeAll(async () => {
         McpPlugin.init(options);
         await server.init(testServerInit);
         connection = server.app.get(TransactionalConnection);
-        toolCallLog = server.app.get(McpToolCallLogService);
+        toolCallLogRetention = server.app.get(McpToolCallLogRetentionService);
         adminCtx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
     }, TEST_SETUP_TIMEOUT_MS);
 
@@ -60,7 +60,7 @@ describe('MCP tool-call log retention', () => {
         await seedLog('expire-old-a', 40); // expired
         await seedLog('expire-old-b', 60); // expired
 
-        const deleted = await toolCallLog.deleteExpiredToolCallLogs(adminCtx);
+        const deleted = await toolCallLogRetention.deleteExpiredToolCallLogs(adminCtx);
         expect(deleted).toBe(2);
 
         const names = await toolNames();

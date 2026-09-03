@@ -8,6 +8,7 @@ import {
     MS_PER_DAY,
     RETENTION_DELETE_BATCH_SIZE,
 } from '../constants';
+import { deleteInBatches } from '../delete-in-batches';
 import { McpAuthorizationCode } from '../entities/mcp-authorization-code.entity';
 import { McpAuthorizationRequest } from '../entities/mcp-authorization-request.entity';
 import { McpOauthClient } from '../entities/mcp-oauth-client.entity';
@@ -47,7 +48,8 @@ export class McpOauthRetentionService {
      * orphaned sessions don't outlive their grant records.
      */
     private deleteSessionsOfDeadGrants(ctx: RequestContext): Promise<number> {
-        return this.deleteInBatches(
+        return deleteInBatches(
+            this.connection,
             ctx,
             Session,
             () =>
@@ -78,7 +80,7 @@ export class McpOauthRetentionService {
         ctx: RequestContext,
         entity: ObjectType<T>,
     ): Promise<number> {
-        return this.deleteInBatches(ctx, entity, () =>
+        return deleteInBatches(this.connection, ctx, entity, () =>
             this.connection
                 .getRepository(ctx, entity)
                 .createQueryBuilder('record')
@@ -104,7 +106,7 @@ export class McpOauthRetentionService {
             return Promise.resolve(0);
         }
         const cutoff = new Date(Date.now() - oauth.grantRetentionDays * MS_PER_DAY);
-        return this.deleteInBatches(ctx, McpOauthGrant, () =>
+        return deleteInBatches(this.connection, ctx, McpOauthGrant, () =>
             this.connection
                 .getRepository(ctx, McpOauthGrant)
                 .createQueryBuilder('grant')
@@ -123,7 +125,7 @@ export class McpOauthRetentionService {
      */
     private deleteUnusedClients(ctx: RequestContext): Promise<number> {
         const cutoff = new Date(Date.now() - MCP_UNUSED_OAUTH_CLIENT_RETENTION_MS);
-        return this.deleteInBatches(ctx, McpOauthClient, () =>
+        return deleteInBatches(this.connection, ctx, McpOauthClient, () =>
             this.connection
                 .getRepository(ctx, McpOauthClient)
                 .createQueryBuilder('client')
@@ -135,37 +137,5 @@ export class McpOauthRetentionService {
                 .limit(RETENTION_DELETE_BATCH_SIZE)
                 .getRawMany<{ id: ID }>(),
         );
-    }
-
-    /**
-     * Deletes rows from `entity` by id, one batch at a time: `selectBatch` returns at most a
-     * batch of ids, and the loop ends when a short batch comes back. Same shape as the tool-call
-     * log sweep, which keeps each statement small enough not to lock a large table.
-     */
-    private async deleteInBatches<T extends ObjectLiteral, R extends { id: ID }>(
-        ctx: RequestContext,
-        entity: ObjectType<T>,
-        selectBatch: () => Promise<R[]>,
-        afterDelete?: (rows: R[]) => Promise<void>,
-    ): Promise<number> {
-        const repository = this.connection.getRepository(ctx, entity);
-        let totalDeleted = 0;
-        for (;;) {
-            const rows = await selectBatch();
-            if (rows.length === 0) {
-                break;
-            }
-            const result = await repository
-                .createQueryBuilder()
-                .delete()
-                .where('id IN (:...ids)', { ids: rows.map(row => row.id) })
-                .execute();
-            await afterDelete?.(rows);
-            totalDeleted += result.affected ?? rows.length;
-            if (rows.length < RETENTION_DELETE_BATCH_SIZE) {
-                break;
-            }
-        }
-        return totalDeleted;
     }
 }

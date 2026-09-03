@@ -19,7 +19,7 @@ import { DateUtils } from 'typeorm/util/DateUtils';
 import { MCP_PLUGIN_OPTIONS, mcpServerPermission } from '../constants';
 import { McpOauthGrant, McpOauthGrantStatus, McpToolCallLog } from '../entities';
 import { ResolvedMcpPluginOptions } from '../internal-types';
-import { McpToolCallLogService } from '../logging/mcp-tool-call-log.service';
+import { McpToolCallLogRetentionService } from '../logging/mcp-tool-call-log-retention.service';
 import { McpOauthService } from '../oauth/oauth.service';
 import { McpToolRegistryService } from '../registry/mcp-tool-registry.service';
 import { McpRegisteredTool } from '../registry/registry-types';
@@ -92,11 +92,11 @@ export class McpAdminResolver {
     constructor(
         private connection: TransactionalConnection,
         private registry: McpToolRegistryService,
-        private toolCallLog: McpToolCallLogService,
         private oauthService: McpOauthService,
         private cacheService: CacheService,
         private listQueryBuilder: ListQueryBuilder,
         @Inject(MCP_PLUGIN_OPTIONS) private options: ResolvedMcpPluginOptions,
+        private toolCallLogRetention: McpToolCallLogRetentionService,
     ) {}
 
     @Query()
@@ -220,7 +220,7 @@ export class McpAdminResolver {
     @Mutation()
     @Allow(mcpServerPermission.Update)
     async removeExpiredMcpToolCallLogs(@Ctx() ctx: RequestContext): Promise<number> {
-        return this.toolCallLog.deleteExpiredToolCallLogs(ctx, ctx.channelId);
+        return this.toolCallLogRetention.deleteExpiredToolCallLogs(ctx, ctx.channelId);
     }
 
     @Mutation()

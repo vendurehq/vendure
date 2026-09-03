@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { EventBus, ID, Logger, RequestContext, TransactionalConnection } from '@vendure/core';
+import { EventBus, Logger, TransactionalConnection } from '@vendure/core';
 
-import { loggerCtx, MCP_PLUGIN_OPTIONS, MS_PER_DAY, RETENTION_DELETE_BATCH_SIZE } from '../constants';
+import { loggerCtx, MCP_PLUGIN_OPTIONS } from '../constants';
 import { McpToolCallLog } from '../entities/mcp-tool-call-log.entity';
 import { McpToolCallEvent } from '../events/mcp-tool-call.event';
 import { McpExecutionContext, ResolvedMcpPluginOptions } from '../internal-types';
@@ -109,41 +109,5 @@ export class McpToolCallLogService {
             return { omitted: `body exceeded logging.maxBodyBytes (${maxBodyBytes} bytes)`, bytes };
         }
         return value;
-    }
-
-    async deleteExpiredToolCallLogs(ctx: RequestContext, channelId?: ID | null): Promise<number> {
-        const ttlDays = this.options.logging.ttlDays;
-        if (ttlDays === 0) {
-            return 0;
-        }
-        const cutoff = new Date(Date.now() - ttlDays * MS_PER_DAY);
-        const repository = this.connection.getRepository(ctx, McpToolCallLog);
-        let totalDeleted = 0;
-        for (;;) {
-            const query = repository
-                .createQueryBuilder('log')
-                .select('log.id', 'id')
-                .where('log.createdAt < :cutoff', { cutoff })
-                .limit(RETENTION_DELETE_BATCH_SIZE);
-            if (channelId != null) {
-                // A channel only ever prunes its own rows, matching what it can see in the
-                // dashboard log list.
-                query.andWhere('log.channelId = :channelId', { channelId });
-            }
-            const expired = await query.getRawMany<{ id: ID }>();
-            if (expired.length === 0) {
-                break;
-            }
-            const result = await repository
-                .createQueryBuilder()
-                .delete()
-                .where('id IN (:...ids)', { ids: expired.map(row => row.id) })
-                .execute();
-            totalDeleted += result.affected ?? expired.length;
-            if (expired.length < RETENTION_DELETE_BATCH_SIZE) {
-                break;
-            }
-        }
-        return totalDeleted;
     }
 }
