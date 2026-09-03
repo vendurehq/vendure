@@ -31,7 +31,9 @@ assistant built as a Vendure plugin skips this flow entirely: see
    - `response_type=code`
    - `client_id`
    - `redirect_uri`
-   - `code_challenge`, a PKCE challenge using `S256`
+   - `code_challenge`, a PKCE challenge
+   - `code_challenge_method`, which must be `S256`. Any other value redirects back to
+     `redirect_uri` with `error=invalid_request`.
    - `resource`, naming what it wants access to
 
    The server records a pending request. It then redirects to the consent page
@@ -181,8 +183,10 @@ session holds survives:
 - the active channel
 - custom fields
 
-The rotation is written in a single transaction. A refresh that cannot be completed
-therefore leaves the client's existing refresh token working for a retry.
+The rotation is written in a single transaction. If the response is lost after the
+commit, the client still holds the old token. Its retry then presents a token the
+server has already rotated. The server treats that as reuse, revokes the whole grant
+and deletes its session. The user must authorize the client again.
 
 ### What ends a session
 
@@ -254,9 +258,8 @@ the person chatting. A refusal arrives in one of two shapes:
 | Once a tool has started | An ordinary failed tool result, with a text message and no structured retry hint |
 
 Read the retry hint defensively, and treat a missing value as "wait a few seconds".
-Do not branch on the numeric error code or on the HTTP status. A refusal is `429` when
-the request expected no reply. It is `200` when there is a request to answer, which
-lets `error.data` survive a client that discards non-2xx bodies.
+Do not branch on the numeric error code or on the HTTP status. Every refusal is HTTP
+`429`, with the retry hint in the JSON-RPC error body.
 
 The limits behind these refusals are configured through `rateLimits`. See
 [Production Hardening](/guides/mcp-server/production/#set-rate-limits) for the

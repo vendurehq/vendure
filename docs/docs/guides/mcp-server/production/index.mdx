@@ -12,6 +12,7 @@ Before deploying the Vendure MCP server to production, configure the following:
 3. DNS-rebinding protection
 4. Reverse proxy
 5. Rate limits
+6. Shop endpoint access
 
 Each option is documented in detail in
 [`McpPluginOptions`](/reference/core-plugins/mcp-plugin/mcp-plugin-options/).
@@ -118,6 +119,21 @@ requests across multiple IP addresses to bypass an IP-based limit.
 
 A caller that exceeds a limit receives an HTTP 429 — see
 [What a rate-limited caller sees](#what-a-rate-limited-caller-sees).
+
+## Decide who may call the shop endpoint
+
+`shopAccess` decides who may call `POST /mcp/shop`.
+
+| Value | What it means |
+|---|---|
+| `anonymous` (default) | Any caller with no token may use every shop tool. That includes the eight mutating cart and checkout tools (`add_to_cart`, `update_cart_line`, `remove_from_cart`, `apply_coupon_code`, `remove_coupon_code`, `set_checkout_details`, `set_shipping_method`, `place_order`). The only bounds are the per-IP limits, 60 requests per minute by default and 5 per minute for `place_order` |
+| `authenticated` | Every call needs a customer Bearer token. Token-less calls get `401` with the OAuth challenge. This value requires an `oauth` block, and the plugin refuses to start without one |
+| `disabled` | The endpoint answers `404`. Customer authorization requests are refused |
+
+The default is `anonymous`.
+
+Set `authenticated` or `disabled` before going live unless you want anonymous agents to build carts and place
+orders.
 
 ## How it behaves
 

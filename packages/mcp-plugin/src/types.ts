@@ -258,8 +258,10 @@ export type McpLogRedactFn = (entry: { toolName: string; input: unknown; output:
 
 /**
  * @description
- * Controls how MCP tool calls are logged and retained. Every call is recorded as an
- * {@link McpToolCallLog} row and published as an `McpToolCallEvent`.
+ * Controls how MCP tool calls are logged and retained. Every call that runs a tool is recorded
+ * as an {@link McpToolCallLog} row and published as an `McpToolCallEvent`. Calls refused before
+ * the tool runs (an unknown or switched-off tool, invalid arguments, a missing permission, a rate
+ * limit) and the confirmation preview of a destructive tool leave no row and no event.
  *
  * @docsCategory core plugins/McpPlugin
  * @since 3.8.0

@@ -2,7 +2,7 @@
 title: "McpPlugin"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/mcp-plugin/src/plugin.ts" sourceLine="70" packageName="@vendure/mcp-plugin" since="3.8.0" />
+<GenerationInfo sourceFile="packages/mcp-plugin/src/plugin.ts" sourceLine="78" packageName="@vendure/mcp-plugin" since="3.8.0" />
 
 Exposes Vendure's data and operations to AI agents via the [Model Context Protocol](https://modelcontextprotocol.io/).
 Tools decorated with `@McpTool` are automatically discovered and registered at bootstrap.
@@ -22,14 +22,15 @@ const config: VendureConfig = {
 ```
 
 ```ts title="Signature"
-class McpPlugin implements OnApplicationBootstrap {
+class McpPlugin implements NestModule, OnApplicationBootstrap {
     static options: ResolvedMcpPluginOptions;
-    constructor(processContext: ProcessContext)
+    constructor(processContext: ProcessContext, i18nService: I18nService)
+    configure(consumer: MiddlewareConsumer) => void;
     init(options: McpPluginOptions = {}) => Type<McpPlugin>;
     onApplicationBootstrap() => void;
 }
 ```
-* Implements: OnApplicationBootstrap
+* Implements: NestModule, OnApplicationBootstrap
 
 
 
@@ -41,6 +42,11 @@ class McpPlugin implements OnApplicationBootstrap {
 
 The plugin options with every default applied. `init()` sets this, so it holds no value
 until the plugin is added to your Vendure config.
+### configure
+
+<MemberInfo kind="method" type={`(consumer: MiddlewareConsumer) => void`}   />
+
+
 ### init
 
 <MemberInfo kind="method" type={`(options: <a href='/reference/core-plugins/mcp-plugin/mcp-plugin-options#mcppluginoptions'>McpPluginOptions</a> = {}) => Type<<a href='/reference/core-plugins/mcp-plugin/#mcpplugin'>McpPlugin</a>>`}   />
@@ -52,8 +58,9 @@ Any option you leave out falls back to its default.
 <MemberInfo kind="method" type={`() => void`}   />
 
 Runs at startup, and only does work on the main server process. Builds the MCP message
-schemas up front so the first request does not pay for it. Also checks the configured
-OAuth options, and throws when one is invalid or unsafe for a production server.
+schemas up front so the first request does not pay for it, then checks the configured
+options (see `checkMcpPluginOptions`), which throws when one is invalid or unsafe for a
+production server.
 
 
 </div>

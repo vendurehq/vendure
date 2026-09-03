@@ -41,8 +41,7 @@ class McpOauthClient extends VendureEntity {
 
 <MemberInfo kind="property" type={`string`}   />
 
-A random token if the client registered itself, or the URL of its metadata document if it
-identified itself with one.
+Unique client identifier (generated or metadata URL).
 ### clientName
 
 <MemberInfo kind="property" type={`string`}   />
@@ -59,8 +58,7 @@ was not a valid `https` URL.
 
 <MemberInfo kind="property" type={`string | null`}   />
 
-Logo shown on the consent page. Null if the client sent none, or sent something that was
-not a valid `https` URL.
+Client logo URL (HTTPS only).
 ### redirectUris
 
 <MemberInfo kind="property" type={`string[]`}   />
@@ -88,8 +86,7 @@ again. Null for a client that registered itself and has no document.
 
 <MemberInfo kind="property" type={`Date | null`}   />
 
-When this client last got a token. Staying null is what marks the row as never used, and
-lets the cleanup job remove it.
+
 
 
 </div>

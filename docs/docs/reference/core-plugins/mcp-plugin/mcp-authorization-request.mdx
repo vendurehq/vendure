@@ -2,11 +2,10 @@
 title: "McpAuthorizationRequest"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/mcp-plugin/src/entities/mcp-authorization-request.entity.ts" sourceLine="16" packageName="@vendure/mcp-plugin" since="3.8.0" />
+<GenerationInfo sourceFile="packages/mcp-plugin/src/entities/mcp-authorization-request.entity.ts" sourceLine="15" packageName="@vendure/mcp-plugin" since="3.8.0" />
 
-A pending OAuth authorization request, saved before the user consents. Holds the
-PKCE challenge and redirect parameters, plus a short-lived `requestToken` (stored
-as a hash) that links the consent page back to this request.
+Pending OAuth authorization request before user consent.
+Stores redirect info, PKCE challenge, and a hashed request token.
 
 ```ts title="Signature"
 class McpAuthorizationRequest extends VendureEntity {
@@ -46,8 +45,7 @@ class McpAuthorizationRequest extends VendureEntity {
 
 <MemberInfo kind="property" type={`string`}   />
 
-A hash of the token that the consent page carries in its URL. The token itself is never
-stored.
+Hash of the request token used by the consent page.
 ### oauthClient
 
 <MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-oauth-client#mcpoauthclient'>McpOauthClient</a>`}   />
@@ -77,24 +75,22 @@ stored.
 
 <MemberInfo kind="property" type={`string`} default={`'S256'`}   />
 
-Always `S256`. The authorize endpoint refuses any other method.
+PKCE method. Always `S256`.
 ### toolset
 
 <MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-toolset#mcptoolset'>McpToolset</a>`}   />
 
-Decides which consent page the browser is sent to, and which of the two approval
-mutations is allowed to answer this request.
+
 ### resource
 
 <MemberInfo kind="property" type={`string`}   />
 
-The endpoint being asked for: the issuer URL plus `/mcp/admin` or `/mcp/shop`.
+Target endpoint (issuer + `/mcp/admin` or `/mcp/shop`).
 ### expiresAt
 
 <MemberInfo kind="property" type={`Date`}   />
 
-How long the user has to decide, ten minutes by default. A request nobody answers is left
-for the cleanup job.
+
 
 
 </div>

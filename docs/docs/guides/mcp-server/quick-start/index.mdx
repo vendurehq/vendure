@@ -39,6 +39,9 @@ To get a server running and confirm it works:
 npm install @vendure/mcp-plugin
 ```
 
+The plugin requires Vendure 3.8.0 or later. On an older version the server refuses to boot with a compatibility
+error.
+
 Add the plugin to your Vendure config. It needs no configuration to start:
 
 ```ts title="src/vendure-config.ts"
@@ -50,8 +53,10 @@ export const config: VendureConfig = {
 };
 ```
 
-That serves the anonymous shop endpoint. Configure OAuth later, when you need the admin endpoint or authenticated
-customer access. [`McpPluginOptions`](/reference/core-plugins/mcp-plugin/mcp-plugin-options/) documents every
+That serves the anonymous shop endpoint. `shopAccess` controls who may call it: `anonymous` (default),
+`authenticated` or `disabled`. See
+[Production Hardening](/guides/mcp-server/production/#decide-who-may-call-the-shop-endpoint). Configure OAuth
+later, when you need the admin endpoint or authenticated customer access. [`McpPluginOptions`](/reference/core-plugins/mcp-plugin/mcp-plugin-options/) documents every
 option.
 
 ## Database migration
@@ -101,7 +106,8 @@ The client now reaches the anonymous shop tools. For the admin endpoint or authe
 configure OAuth and point the client at that endpoint. The client runs the OAuth flow for you.
 
 :::tip
-The dashboard page named MCP Server, under the System menu, shows copyable connection snippets for both
+The dashboard has an MCP Server section in its navigation with four pages: Overview, Tools, Grants and
+Activity. The Connect a client button on the Overview page shows copyable connection snippets for both
 endpoints. [OAuth & Consent](/guides/mcp-server/oauth-consent/) covers how admin sign-in works through the
 dashboard.
 :::
@@ -112,10 +118,15 @@ Configure OAuth when you need the admin endpoint or authenticated customer acces
 needs a token fails with `400 MCP OAuth is not configured`.
 
 ```ts title="src/vendure-config.ts"
+// Generate once with: openssl rand -base64 32
+const tokenSecret = process.env.MCP_TOKEN_SECRET;
+if (!tokenSecret) {
+    throw new Error('MCP_TOKEN_SECRET is not set');
+}
+
 McpPlugin.init({
     oauth: {
-        // Generate once with: openssl rand -base64 32
-        tokenSecret: process.env.MCP_TOKEN_SECRET,
+        tokenSecret,
         issuer: 'https://my-store.example.com',
         storefrontConsentUrl: 'https://my-storefront.example.com/mcp/authorize',
     },

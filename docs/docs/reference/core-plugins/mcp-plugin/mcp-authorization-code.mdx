@@ -2,11 +2,10 @@
 title: "McpAuthorizationCode"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/mcp-plugin/src/entities/mcp-authorization-code.entity.ts" sourceLine="17" packageName="@vendure/mcp-plugin" since="3.8.0" />
+<GenerationInfo sourceFile="packages/mcp-plugin/src/entities/mcp-authorization-code.entity.ts" sourceLine="16" packageName="@vendure/mcp-plugin" since="3.8.0" />
 
-A short-lived authorization code from the OAuth flow, exchanged for tokens. The
-`code` is stored as a hash. `actorId` and `actorType` record who
-approved, so a Vendure session can be created for them when the code is exchanged.
+Short-lived OAuth authorization code exchanged for tokens.
+The code is stored as a hash. Actor info is kept to recreate the session on exchange.
 
 ```ts title="Signature"
 class McpAuthorizationCode extends VendureEntity {
@@ -48,8 +47,7 @@ class McpAuthorizationCode extends VendureEntity {
 
 <MemberInfo kind="property" type={`string`}   />
 
-A hash of the code handed to the client. The code itself is never stored, and the row
-disappears the moment it is exchanged for tokens.
+Hash of the authorization code. The raw code is never stored and is deleted after use.
 ### oauthClient
 
 <MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-oauth-client#mcpoauthclient'>McpOauthClient</a>`}   />
@@ -79,14 +77,13 @@ disappears the moment it is exchanged for tokens.
 
 <MemberInfo kind="property" type={`string`}   />
 
-The endpoint this approval was for: the issuer URL plus `/mcp/admin` or `/mcp/shop`. The
-token request has to ask for the same one.
+Target endpoint (issuer + `/mcp/admin` or `/mcp/shop`).
+Must match during token exchange.
 ### channelId
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a> | null`}   />
 
-The channel the customer approved on, which the grant inherits. Null for an admin
-approval, which is not tied to a channel.
+
 ### codeChallenge
 
 <MemberInfo kind="property" type={`string`}   />
@@ -96,13 +93,12 @@ approval, which is not tied to a channel.
 
 <MemberInfo kind="property" type={`string`} default={`'S256'`}   />
 
-Always `S256`. The authorize endpoint refuses any other method.
+PKCE method. Always `S256`
 ### expiresAt
 
 <MemberInfo kind="property" type={`Date`}   />
 
-A minute after approval by default. A code nobody exchanges in time is left for the
-cleanup job.
+
 
 
 </div>

@@ -16,6 +16,7 @@ interface McpToolMetadata {
     toolset: McpToolset;
     permissions?: Permission[];
     behavior?: McpToolBehavior;
+    usesActiveOrder?: boolean;
     inputSchema?: McpToolSchema;
     outputSchema?: McpToolSchema;
 }
@@ -83,6 +84,14 @@ How the tool behaves, which decides how it is exposed to the agent:
   annotation is set to true. An optional `confirm` field is added to the input schema the
   caller sees. The registry refuses to run the tool unless the call passes `confirm: true`.
   A destructive tool must not declare a `confirm` property of its own.
+### usesActiveOrder
+
+<MemberInfo kind="property" type={`boolean`} default={`false`}   />
+
+Set to `true` for Shop tools that use the shopper's active Order. This enables anonymous
+callers to continue the same cart using a `sessionToken`.
+
+Only valid for Shop tools. The `sessionToken` field is managed automatically.
 ### inputSchema
 
 <MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-tool-schema#mcptoolschema'>McpToolSchema</a>`}   />

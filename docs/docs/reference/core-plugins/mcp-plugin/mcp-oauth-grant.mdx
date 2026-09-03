@@ -108,21 +108,17 @@ The one endpoint these tokens work against: the issuer URL plus `/mcp/admin` or
 
 <MemberInfo kind="property" type={`Date`}   />
 
-When the current access token stops working. Every refresh pushes it out again by the
-configured access-token lifetime.
+
 ### expiresAt
 
 <MemberInfo kind="property" type={`Date`}   />
 
-When the grant itself dies, set from the refresh-token lifetime. Every refresh pushes it
-out again, so a client that keeps refreshing keeps the grant alive.
+
 ### revokedAt
 
 <MemberInfo kind="property" type={`Date | null`}   />
 
-Null while the grant still works. An administrator, the customer, or the client itself
-can revoke it, and the server does so on its own if an already-replaced refresh token
-comes back.
+
 ### vendureSessionId
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
@@ -133,14 +129,12 @@ session, and so does the cleanup job once the grant has expired.
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a> | null`}   />
 
-The channel the customer approved on. Null for an admin grant, whose calls run on the
-default channel.
+
 ### lastActivityAt
 
 <MemberInfo kind="property" type={`Date`}   />
 
-Updated on every refresh, and by tool calls at most once a minute, so it lags real
-activity by up to that long.
+
 ### status
 
 <MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-oauth-grant-status#mcpoauthgrantstatus'>McpOauthGrantStatus</a>`}   />

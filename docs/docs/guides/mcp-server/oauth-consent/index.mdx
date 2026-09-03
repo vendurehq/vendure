@@ -67,9 +67,14 @@ page:
 Set `oauth.storefrontConsentUrl` to the absolute URL of your page:
 
 ```ts title="src/vendure-config.ts"
+const tokenSecret = process.env.MCP_TOKEN_SECRET;
+if (!tokenSecret) {
+    throw new Error('MCP_TOKEN_SECRET is not set');
+}
+
 McpPlugin.init({
     oauth: {
-        tokenSecret: process.env.MCP_TOKEN_SECRET,
+        tokenSecret,
         issuer: 'https://my-store.example.com',
         storefrontConsentUrl: 'https://my-storefront.example.com/mcp/authorize',
     },
