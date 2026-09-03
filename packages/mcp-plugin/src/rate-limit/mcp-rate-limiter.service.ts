@@ -58,7 +58,7 @@ export class McpRateLimiterService {
         endpoint: McpToolset,
         clientIp?: string,
     ): Promise<McpRateLimitExceeded | undefined> {
-        const check = this.buildAnonymousIpCheck(endpoint, this.ipKey(clientIp));
+        const check = this.buildAnonymousIpCheck(endpoint, ipBucketKey(clientIp));
         if (!check) {
             return undefined;
         }
@@ -67,7 +67,7 @@ export class McpRateLimiterService {
 
     /** Meters the OAuth endpoints per IP; they have no session or user to key on. */
     async checkOauthIpRateLimit(clientIp?: string): Promise<McpRateLimitExceeded | undefined> {
-        const check = this.buildOauthIpCheck(this.ipKey(clientIp));
+        const check = this.buildOauthIpCheck(ipBucketKey(clientIp));
         if (!check) {
             return undefined;
         }
@@ -80,7 +80,7 @@ export class McpRateLimiterService {
      * - once exceeded, all requests are blocked until window resets
      */
     async checkBearerAuthFailureRateLimit(clientIp?: string): Promise<McpRateLimitExceeded | undefined> {
-        const check = this.buildBearerAuthFailureCheck(this.ipKey(clientIp));
+        const check = this.buildBearerAuthFailureCheck(ipBucketKey(clientIp));
         if (!check) {
             return undefined;
         }
@@ -96,7 +96,7 @@ export class McpRateLimiterService {
 
     /** Counts one failed bearer authentication for this address. */
     async recordBearerAuthFailure(clientIp?: string): Promise<void> {
-        const check = this.buildBearerAuthFailureCheck(this.ipKey(clientIp));
+        const check = this.buildBearerAuthFailureCheck(ipBucketKey(clientIp));
         if (!check) {
             return;
         }
@@ -158,7 +158,7 @@ export class McpRateLimiterService {
         const perSessionRpm = this.resolveRpm(rateLimits.perSession);
         if (perSessionRpm > 0) {
             checks.push({
-                key: `session:${endpoint}:${this.actorSessionKey(input.executionContext)}`,
+                key: `session:${endpoint}:${this.sessionOrIpKey(input.executionContext)}`,
                 rpm: perSessionRpm,
                 scope: 'session',
             });
@@ -219,7 +219,7 @@ export class McpRateLimiterService {
         return { key: `auth-failure:${ipKey}`, rpm, scope: 'authentication failures' };
     }
 
-    /** The bucket for `input.subject`, keyed by actor+session (see {@link toolActorKey}). */
+    /** The bucket for `input.subject`, keyed by actor+session (see {@link perToolBucketKey}). */
     private buildPerToolChecks(input: RateLimitInput): RateLimitCheck[] {
         const rpm = this.resolveRpm(this.options.rateLimits.perTool[input.subject]);
         if (rpm <= 0) {
@@ -227,7 +227,7 @@ export class McpRateLimiterService {
         }
         return [
             {
-                key: `tool:${input.endpoint}:${this.toolActorKey(input.executionContext)}:${input.subject}`,
+                key: `tool:${input.endpoint}:${this.perToolBucketKey(input.executionContext)}:${input.subject}`,
                 rpm,
                 scope: `tool:${input.subject}`,
             },
@@ -278,9 +278,9 @@ export class McpRateLimiterService {
         return 'none';
     }
 
-    private actorSessionKey(executionContext: McpExecutionContext): string {
+    private sessionOrIpKey(executionContext: McpExecutionContext): string {
         if (executionContext.grant == null && executionContext.clientIp != null) {
-            return `anonymous-ip:${this.ipKey(executionContext.clientIp)}`;
+            return `anonymous-ip:${ipBucketKey(executionContext.clientIp)}`;
         }
         return this.sessionKey(executionContext);
     }
@@ -303,15 +303,11 @@ export class McpRateLimiterService {
      * - client alone would collapse all users under one bucket
      * - session preserves per-session fairness under shared clients
      */
-    private toolActorKey(executionContext: McpExecutionContext): string {
+    private perToolBucketKey(executionContext: McpExecutionContext): string {
         const clientKey = this.clientKey(executionContext);
         return clientKey
             ? `client:${clientKey}:session:${this.sessionKey(executionContext)}`
-            : this.actorSessionKey(executionContext);
-    }
-
-    private ipKey(clientIp?: string): string {
-        return ipBucketKey(clientIp);
+            : this.sessionOrIpKey(executionContext);
     }
 
     private cacheKey(key: string): string {
