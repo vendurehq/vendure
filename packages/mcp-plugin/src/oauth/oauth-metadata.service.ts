@@ -40,7 +40,7 @@ export class McpOauthMetadataService {
         if (endpoint !== 'shop' && endpoint !== 'admin') {
             throw new NotFoundException();
         }
-        if (endpoint === 'shop' && this.options.shopAccess === 'disabled') {
+        if (!this.availableToolsets().includes(endpoint)) {
             throw new NotFoundException();
         }
         const issuer = this.issuerOrigin();
@@ -72,27 +72,19 @@ export class McpOauthMetadataService {
                 'OAuth resource must not include query parameters or fragments',
             );
         }
-        const toolsets: readonly McpToolset[] =
-            this.options.shopAccess === 'disabled' ? (['admin'] as const) : (['shop', 'admin'] as const);
-        for (const toolset of toolsets) {
-            if (this.sameResourceUrl(url, new URL(this.resourceForToolset(toolset)))) {
-                return { resource: this.resourceForToolset(toolset), toolset };
+        const wanted = comparableResource(url);
+        for (const toolset of this.availableToolsets()) {
+            const candidate = this.resourceForToolset(toolset);
+            if (comparableResource(new URL(candidate)) === wanted) {
+                return { resource: candidate, toolset };
             }
         }
         throw new McpOauthError('invalid_target', 'Unsupported OAuth resource');
     }
 
-    private sameResourceUrl(left: URL, right: URL): boolean {
-        return (
-            left.protocol.toLowerCase() === right.protocol.toLowerCase() &&
-            left.hostname.toLowerCase() === right.hostname.toLowerCase() &&
-            left.port === right.port &&
-            this.normalizeResourcePath(left.pathname) === this.normalizeResourcePath(right.pathname)
-        );
-    }
-
-    private normalizeResourcePath(pathname: string): string {
-        return pathname.length > 1 ? pathname.replace(/\/$/, '') : pathname;
+    /** Shop is not a valid toolset when shop access is switched off. */
+    private availableToolsets(): McpToolset[] {
+        return this.options.shopAccess === 'disabled' ? ['admin'] : ['shop', 'admin'];
     }
 
     /** The configured issuer URL with any trailing slash removed. */
@@ -103,4 +95,10 @@ export class McpOauthMetadataService {
     resourceForToolset(toolset: McpToolset): string {
         return `${this.issuerOrigin()}/mcp/${toolset}`;
     }
+}
+
+/** Origin plus path with a trailing slash removed, so two spellings of one resource compare equal. */
+function comparableResource(url: URL): string {
+    const path = url.pathname.length > 1 ? url.pathname.replace(/\/$/, '') : url.pathname;
+    return `${url.origin}${path}`;
 }
