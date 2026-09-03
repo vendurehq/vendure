@@ -25,8 +25,8 @@ export class McpToolCallLogService {
         @Inject(MCP_PLUGIN_OPTIONS) private options: ResolvedMcpPluginOptions,
     ) {}
 
-    async logToolCall(input: LogToolCallInput): Promise<void> {
-        const { ctx, grant, clientIp } = input.executionContext;
+    async logToolCall(call: LogToolCallInput): Promise<void> {
+        const { ctx, grant, clientIp } = call.executionContext;
         let saved = false;
         try {
             const log = new McpToolCallLog({
@@ -42,13 +42,13 @@ export class McpToolCallLogService {
                     (ctx.apiType === 'admin' ? 'admin' : ctx.activeUserId != null ? 'customer' : 'anonymous'),
                 channelId: grant ? (grant.channelId ?? null) : (ctx.channelId ?? null),
                 clientIp: this.options.logging.captureClientIp ? (clientIp ?? null) : null,
-                toolName: input.tool.name,
-                pluginSource: input.tool.pluginSource,
-                durationMs: input.durationMs,
-                status: input.status,
+                toolName: call.tool.name,
+                pluginSource: call.tool.pluginSource,
+                durationMs: call.durationMs,
+                status: call.status,
                 oauthClientId: grant?.oauthClientId ?? null,
             });
-            const bodies = this.captureBodies(input);
+            const bodies = this.captureBodies(call);
             log.input = bodies.input;
             log.output = bodies.output;
             await this.connection.getRepository(ctx, McpToolCallLog).save(log);
@@ -58,11 +58,11 @@ export class McpToolCallLogService {
             const reason = e instanceof Error ? e.message : String(e);
             if (saved) {
                 Logger.warn(
-                    `Recorded MCP tool call "${input.tool.name}" but publishing its McpToolCallEvent failed: ${reason}`,
+                    `Recorded MCP tool call "${call.tool.name}" but publishing its McpToolCallEvent failed: ${reason}`,
                     loggerCtx,
                 );
             } else {
-                Logger.warn(`Failed to record MCP tool call "${input.tool.name}": ${reason}`, loggerCtx);
+                Logger.warn(`Failed to record MCP tool call "${call.tool.name}": ${reason}`, loggerCtx);
             }
         }
     }
@@ -71,7 +71,7 @@ export class McpToolCallLogService {
      * The `input` and `output` values to store on the log row. Both are null in `metadata` capture
      * mode, and both are null when the operator's redact function throws.
      */
-    private captureBodies(input: LogToolCallInput): { input: unknown; output: unknown } {
+    private captureBodies(call: LogToolCallInput): { input: unknown; output: unknown } {
         const logging = this.options.logging;
         if (logging.capture !== 'full') {
             return { input: null, output: null };
@@ -80,21 +80,21 @@ export class McpToolCallLogService {
         if (logging.redact) {
             try {
                 bodies = logging.redact({
-                    toolName: input.tool.name,
-                    input: input.input,
-                    output: input.output,
+                    toolName: call.tool.name,
+                    input: call.input,
+                    output: call.output,
                 });
             } catch (redactError) {
                 const reason = redactError instanceof Error ? redactError.message : String(redactError);
                 Logger.warn(
                     `The configured logging.redact function threw while redacting tool call ` +
-                        `"${input.tool.name}": ${reason}. ` +
+                        `"${call.tool.name}": ${reason}. ` +
                         `The call was recorded without its input/output bodies.`,
                     loggerCtx,
                 );
             }
         } else {
-            bodies = { input: input.input, output: input.output };
+            bodies = { input: call.input, output: call.output };
         }
         return { input: this.capBody(bodies?.input), output: this.capBody(bodies?.output) };
     }
