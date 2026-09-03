@@ -254,8 +254,7 @@ export class McpAdminResolver {
         const durationCount = await this.windowedQuery(ctx, since)
             .andWhere('log.durationMs IS NOT NULL')
             .getCount();
-        const p50LatencyMs = await this.durationPercentile(ctx, since, durationCount, 0.5);
-        const p95LatencyMs = await this.durationPercentile(ctx, since, durationCount, 0.95);
+        const { p50LatencyMs, p95LatencyMs } = await this.durationPercentiles(ctx, since, durationCount);
 
         return {
             totalCalls,
@@ -269,35 +268,57 @@ export class McpAdminResolver {
     }
 
     /**
-     * Returns the nth-percentile durationMs for the window: order the rows by duration
-     * and jump to the row at that position. Works the same on SQLite and Postgres.
+     * Returns the p50 and p95 durationMs for the window in one statement: number the rows in
+     * duration order and pick the two positions.
      */
-    private async durationPercentile(
+    private async durationPercentiles(
         ctx: RequestContext,
         since: string,
         total: number,
-        percentile: number,
-    ): Promise<number | null> {
+    ): Promise<{ p50LatencyMs: number | null; p95LatencyMs: number | null }> {
         if (total === 0) {
-            return null;
+            return { p50LatencyMs: null, p95LatencyMs: null };
         }
-        const offset = Math.min(total - 1, Math.floor((total - 1) * percentile));
-        const row = await this.windowedQuery(ctx, since)
-            .andWhere('log.durationMs IS NOT NULL')
-            .select('log.durationMs', 'durationMs')
-            .orderBy('log.durationMs', 'ASC')
-            .offset(offset)
-            .limit(1)
-            .getRawOne<{ durationMs: string | number }>();
-        return row ? Number(row.durationMs) : null;
+        // 1-based position of the nth-percentile row in duration order.
+        const positionOf = (percentile: number) => Math.floor((total - 1) * percentile) + 1;
+        const p50Position = positionOf(0.5);
+        const p95Position = positionOf(0.95);
+        // Lower-case aliases: the outer query names columns of a subquery, which TypeORM does not
+        // quote, and Postgres folds unquoted names to lower case.
+        const rows = await this.connection
+            .getRepository(ctx, McpToolCallLog)
+            .manager.createQueryBuilder()
+            .select('ranked.duration_ms', 'duration_ms')
+            .addSelect('ranked.row_position', 'row_position')
+            .from(subQuery => {
+                const ranked = subQuery
+                    .select('log.durationMs', 'duration_ms')
+                    .addSelect('ROW_NUMBER() OVER (ORDER BY log.durationMs ASC)', 'row_position')
+                    .from(McpToolCallLog, 'log');
+                return this.limitToWindow(ranked, ctx, since).andWhere('log.durationMs IS NOT NULL');
+            }, 'ranked')
+            .where('ranked.row_position IN (:...positions)', { positions: [p50Position, p95Position] })
+            .getRawMany<{ duration_ms: string | number; row_position: string | number }>();
+        const durationAt = (position: number) => {
+            const row = rows.find(r => Number(r.row_position) === position);
+            return row ? Number(row.duration_ms) : null;
+        };
+        return { p50LatencyMs: durationAt(p50Position), p95LatencyMs: durationAt(p95Position) };
     }
 
     /** A query over the tool-call log, limited to the window and the active channel. */
     private windowedQuery(ctx: RequestContext, since: string) {
-        const qb = this.connection
-            .getRepository(ctx, McpToolCallLog)
-            .createQueryBuilder('log')
-            .where('log.createdAt >= :since', { since });
+        const qb = this.connection.getRepository(ctx, McpToolCallLog).createQueryBuilder('log');
+        return this.limitToWindow(qb, ctx, since);
+    }
+
+    /** Adds the window and channel conditions to a query whose log alias is `log`. */
+    private limitToWindow<T extends ObjectLiteral>(
+        qb: SelectQueryBuilder<T>,
+        ctx: RequestContext,
+        since: string,
+    ) {
+        qb.where('log.createdAt >= :since', { since });
         this.scopeToChannel(qb, 'log', ctx.channelId);
         return qb;
     }
