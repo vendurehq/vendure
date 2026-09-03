@@ -8,10 +8,10 @@ import { RETENTION_DELETE_BATCH_SIZE } from './constants';
  * batch of ids, and the loop ends when a short batch comes back. Both retention sweeps use it,
  * which keeps each statement small enough not to lock a large table.
  */
-export async function deleteInBatches<T extends ObjectLiteral, R extends { id: ID }>(
+export async function deleteInBatches<R extends { id: ID }>(
     connection: TransactionalConnection,
     ctx: RequestContext,
-    entity: ObjectType<T>,
+    entity: ObjectType<ObjectLiteral>,
     selectBatch: () => Promise<R[]>,
     afterDelete?: (rows: R[]) => Promise<void>,
 ): Promise<number> {

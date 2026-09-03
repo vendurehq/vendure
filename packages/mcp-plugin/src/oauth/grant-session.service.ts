@@ -41,6 +41,10 @@ export class McpGrantSessionService {
         private configService: ConfigService,
     ) {}
 
+    /**
+     * Marks the grant revoked and deletes its Vendure session. A grant that is already revoked
+     * is left alone, so callers do not need to check `revokedAt` first.
+     */
     async revokeGrant(ctx: RequestContext, grant: McpOauthGrant): Promise<void> {
         const sessionToken = await this.connection.withTransaction(ctx, async txCtx => {
             // Conditional on the grant still being live, so that when two callers revoke the

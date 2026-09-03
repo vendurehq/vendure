@@ -213,11 +213,10 @@ export class McpOauthService {
                         'Set it to your storefront consent page URL. Staff-only deployments do not need it.',
                     loggerCtx,
                 );
-                return appendOAuthParams(redirectUri, {
-                    error: 'server_error',
-                    error_description: 'This store is not configured to authorize customer access.',
-                    state: input.state,
-                });
+                return redirectError(
+                    'server_error',
+                    'This store is not configured to authorize customer access.',
+                );
             }
             consentUrl = new URL(storefrontConsentUrl);
         }
@@ -348,7 +347,7 @@ export class McpOauthService {
                 { previousRefreshTokenHash: hash },
             ],
         });
-        if (grant && !grant.revokedAt) {
+        if (grant) {
             await this.grantSessions.revokeGrant(ctx, grant);
         }
         return {};
@@ -368,9 +367,7 @@ export class McpOauthService {
         ) {
             return false;
         }
-        if (!grant.revokedAt) {
-            await this.grantSessions.revokeGrant(ctx, grant);
-        }
+        await this.grantSessions.revokeGrant(ctx, grant);
         return true;
     }
 
@@ -410,9 +407,7 @@ export class McpOauthService {
         if (!grant || grant.actorType !== 'customer' || !idsAreEqual(grant.actorId, ctx.activeUserId)) {
             throw new EntityNotFoundError('McpOauthGrant', grantId);
         }
-        if (!grant.revokedAt) {
-            await this.grantSessions.revokeGrant(ctx, grant);
-        }
+        await this.grantSessions.revokeGrant(ctx, grant);
         return true;
     }
 
@@ -532,7 +527,7 @@ export class McpOauthService {
         requestToken: string,
         expectedToolset: McpToolset,
         existingCtx?: RequestContext,
-    ): Promise<{ ctx: RequestContext; request: McpAuthorizationRequest }> {
+    ): Promise<McpAuthorizationRequest> {
         const ctx = existingCtx ?? (await this.createAdminCtx());
         const request = await this.findActiveAuthorizationRequest(requestToken, ctx);
         if (request.toolset !== expectedToolset) {
@@ -547,7 +542,7 @@ export class McpOauthService {
         if (!claim.affected) {
             throw new BadRequestException('Authorization request invalid or expired');
         }
-        return { ctx, request };
+        return request;
     }
 
     /** Consumes the request and sends the browser back with `error=access_denied`. */
@@ -555,7 +550,7 @@ export class McpOauthService {
         requestToken: string,
         expectedToolset: McpToolset,
     ): Promise<{ redirectUrl: string }> {
-        const { request } = await this.consumeAuthorizationRequest(requestToken, expectedToolset);
+        const request = await this.consumeAuthorizationRequest(requestToken, expectedToolset);
         return {
             redirectUrl: appendOAuthParams(request.redirectUri, {
                 error: 'access_denied',
@@ -571,13 +566,13 @@ export class McpOauthService {
     private async approveAuthorizationRequest(
         requestToken: string,
         expectedToolset: McpToolset,
-        approver: { actorId: ID; actorType: McpGrantUserType; channelId?: ID | null },
+        approver: { actorId: ID; actorType: McpGrantUserType; channelId: ID | null },
     ): Promise<{ redirectUrl: string }> {
         const ctx = await this.createAdminCtx();
-        const { actorId, actorType, channelId = null } = approver;
+        const { actorId, actorType, channelId } = approver;
         const codePlaintext = randomToken();
         const consented = await this.connection.withTransaction(ctx, async txCtx => {
-            const { request } = await this.consumeAuthorizationRequest(requestToken, expectedToolset, txCtx);
+            const request = await this.consumeAuthorizationRequest(requestToken, expectedToolset, txCtx);
             await this.connection.getRepository(txCtx, McpAuthorizationCode).save(
                 new McpAuthorizationCode({
                     code: this.hashLookup(codePlaintext),
@@ -683,7 +678,7 @@ export class McpOauthService {
             const reused = await grantRepo.findOne({
                 where: { previousRefreshTokenHash: refreshTokenHash },
             });
-            if (reused && !reused.revokedAt) {
+            if (reused) {
                 await this.grantSessions.revokeGrant(ctx, reused);
             }
             throw new McpOauthError('invalid_grant', 'Refresh token invalid or expired');

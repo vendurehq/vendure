@@ -36,24 +36,25 @@ export class McpOauthMetadataService {
         };
     }
 
-    protectedResourceMetadata(endpoint: string) {
-        if (endpoint !== 'shop' && endpoint !== 'admin') {
+    protectedResourceMetadata(toolsetParam: string) {
+        if (toolsetParam !== 'shop' && toolsetParam !== 'admin') {
             throw new NotFoundException();
         }
-        if (!this.availableToolsets().includes(endpoint)) {
+        const toolset: McpToolset = toolsetParam;
+        if (!this.availableToolsets().includes(toolset)) {
             throw new NotFoundException();
         }
         const issuer = this.issuerOrigin();
         return {
-            resource: this.resourceForToolset(endpoint),
+            resource: this.resourceForToolset(toolset),
             authorization_servers: [issuer],
             bearer_methods_supported: ['header'],
-            resource_name: `Vendure ${endpoint} MCP`,
+            resource_name: `Vendure ${toolset} MCP`,
         };
     }
 
-    protectedResourceMetadataUrl(endpoint: McpToolset): string {
-        return getOAuthProtectedResourceMetadataUrl(new URL(this.resourceForToolset(endpoint)));
+    protectedResourceMetadataUrl(toolset: McpToolset): string {
+        return getOAuthProtectedResourceMetadataUrl(new URL(this.resourceForToolset(toolset)));
     }
 
     resolveResource(resource?: string): { resource: string; toolset: McpToolset } {

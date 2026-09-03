@@ -39,9 +39,9 @@ export class McpOauthController {
         return this.oauthMetadata.metadata();
     }
 
-    @Get('.well-known/oauth-protected-resource/mcp/:endpoint')
-    protectedResourceMetadata(@Param('endpoint') endpoint: string) {
-        return this.oauthMetadata.protectedResourceMetadata(endpoint);
+    @Get('.well-known/oauth-protected-resource/mcp/:toolset')
+    protectedResourceMetadata(@Param('toolset') toolsetParam: string) {
+        return this.oauthMetadata.protectedResourceMetadata(toolsetParam);
     }
 
     // Every route below either carries or accepts a credential, so none of them may be cached
