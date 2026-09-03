@@ -156,76 +156,29 @@ function scopePresentation(toolset: string, account?: { name: string; emailAddre
     };
 }
 
-function ConsentCard({ requestToken }: { requestToken: string }) {
+function ConsentDetails({
+    info,
+    onApprove,
+    onDeny,
+    isPending,
+    error,
+}: {
+    info: AuthRequestInfo;
+    onApprove: () => void;
+    onDeny: () => void;
+    isPending: boolean;
+    error: Error | null;
+}) {
     const { t } = useLingui();
     const { user } = useAuth();
-    // The grant is bound to whichever channel the dashboard's channel selector is on, so the
-    // card has to say which one that is before the administrator approves.
-    const { activeChannel } = useChannel();
     // Only used to name the account in the scope sentence; the wording falls back to the
     // generic one if the dashboard has not loaded the administrator yet.
     const signedInAccount = user
         ? { name: `${user.firstName} ${user.lastName}`.trim(), emailAddress: user.emailAddress }
         : undefined;
-
-    const {
-        data: info,
-        error,
-        isLoading,
-    } = useQuery({
-        queryKey: ['mcp-authorization-request', requestToken],
-        queryFn: async (): Promise<AuthRequestInfo> => {
-            const res = await fetch(
-                `/${OAUTH_ENDPOINT_PATHS.authorizationRequest}?request_token=${encodeURIComponent(requestToken)}`,
-                { credentials: 'include' },
-            );
-            if (!res.ok) {
-                throw new Error(t`Request failed (${res.status})`);
-            }
-            return res.json() as Promise<AuthRequestInfo>;
-        },
-        // Don't retry: expired/used requests will always fail
-        retry: false,
-        // Clear previous data to avoid showing the wrong app while loading
-        placeholderData: undefined,
-    });
-
-    const authorize = useMutation({
-        mutationFn: (approved: boolean) => api.mutate(authorizeMcpClientDocument, { requestToken, approved }),
-        onSuccess: data => {
-            window.location.href = data.authorizeMcpClient.redirectUrl;
-        },
-    });
-
-    if (isLoading) {
-        return (
-            <ConsentShell
-                title={<Trans>Authorize MCP access</Trans>}
-                description={<Trans>Loading authorization request…</Trans>}
-            >
-                <Skeleton className="h-20 w-full" />
-                <Skeleton className="h-5 w-2/3" />
-            </ConsentShell>
-        );
-    }
-
-    if (error || !info) {
-        return (
-            <ConsentShell title={<Trans>Authorization request could not be loaded</Trans>}>
-                <p className="text-sm">
-                    <Trans>
-                        The link may have expired or already been used. Start the connection again from your
-                        MCP client.
-                    </Trans>
-                </p>
-                {/* The response does not say why it failed, so the raw message sits underneath as
-                    a detail rather than being presented as the reason. */}
-                {error?.message ? (
-                    <p className="text-xs text-muted-foreground break-all">{error.message}</p>
-                ) : null}
-            </ConsentShell>
-        );
-    }
+    // The grant is bound to whichever channel the dashboard's channel selector is on, so the
+    // card has to say which one that is before the administrator approves.
+    const { activeChannel } = useChannel();
 
     const redirectHost = hostnameOf(info.redirect_uri);
     const isCimdClient = info.client_id_source === 'cimd';
@@ -266,7 +219,7 @@ function ConsentCard({ requestToken }: { requestToken: string }) {
             }
             footer={
                 <>
-                    {authorize.error != null ? (
+                    {error != null ? (
                         <CardContent className="w-full pt-0">
                             <Alert variant="destructive">
                                 <AlertTriangleIcon className="h-4 w-4" />
@@ -274,20 +227,16 @@ function ConsentCard({ requestToken }: { requestToken: string }) {
                                     <div>
                                         <Trans>The request could not be completed</Trans>
                                     </div>
-                                    <div className="break-all">{authorize.error.message}</div>
+                                    <div className="break-all">{error.message}</div>
                                 </AlertDescription>
                             </Alert>
                         </CardContent>
                     ) : null}
                     <CardFooter className="justify-end gap-2">
-                        <Button
-                            variant="outline"
-                            disabled={authorize.isPending}
-                            onClick={() => authorize.mutate(false)}
-                        >
+                        <Button variant="outline" disabled={isPending} onClick={onDeny}>
                             <Trans>Deny</Trans>
                         </Button>
-                        <Button disabled={authorize.isPending} onClick={() => authorize.mutate(true)}>
+                        <Button disabled={isPending} onClick={onApprove}>
                             <Trans>Approve</Trans>
                         </Button>
                     </CardFooter>
@@ -353,6 +302,79 @@ function ConsentCard({ requestToken }: { requestToken: string }) {
                 </p>
             ) : null}
         </ConsentShell>
+    );
+}
+
+function ConsentCard({ requestToken }: { requestToken: string }) {
+    const { t } = useLingui();
+
+    const {
+        data: info,
+        error,
+        isLoading,
+    } = useQuery({
+        queryKey: ['mcp-authorization-request', requestToken],
+        queryFn: async (): Promise<AuthRequestInfo> => {
+            const res = await fetch(
+                `/${OAUTH_ENDPOINT_PATHS.authorizationRequest}?request_token=${encodeURIComponent(requestToken)}`,
+                { credentials: 'include' },
+            );
+            if (!res.ok) {
+                throw new Error(t`Request failed (${res.status})`);
+            }
+            return res.json() as Promise<AuthRequestInfo>;
+        },
+        // Don't retry: expired/used requests will always fail
+        retry: false,
+        // Clear previous data to avoid showing the wrong app while loading
+        placeholderData: undefined,
+    });
+
+    const authorize = useMutation({
+        mutationFn: (approved: boolean) => api.mutate(authorizeMcpClientDocument, { requestToken, approved }),
+        onSuccess: data => {
+            window.location.href = data.authorizeMcpClient.redirectUrl;
+        },
+    });
+
+    if (isLoading) {
+        return (
+            <ConsentShell
+                title={<Trans>Authorize MCP access</Trans>}
+                description={<Trans>Loading authorization request…</Trans>}
+            >
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-5 w-2/3" />
+            </ConsentShell>
+        );
+    }
+
+    if (error || !info) {
+        return (
+            <ConsentShell title={<Trans>Authorization request could not be loaded</Trans>}>
+                <p className="text-sm">
+                    <Trans>
+                        The link may have expired or already been used. Start the connection again from your
+                        MCP client.
+                    </Trans>
+                </p>
+                {/* The response does not say why it failed, so the raw message sits underneath as
+                    a detail rather than being presented as the reason. */}
+                {error?.message ? (
+                    <p className="text-xs text-muted-foreground break-all">{error.message}</p>
+                ) : null}
+            </ConsentShell>
+        );
+    }
+
+    return (
+        <ConsentDetails
+            info={info}
+            onApprove={() => authorize.mutate(true)}
+            onDeny={() => authorize.mutate(false)}
+            isPending={authorize.isPending}
+            error={authorize.error}
+        />
     );
 }
 
