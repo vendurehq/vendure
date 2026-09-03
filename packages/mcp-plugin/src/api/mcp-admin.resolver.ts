@@ -7,10 +7,13 @@ import {
     ID,
     ListQueryBuilder,
     ListQueryOptions,
+    NullOptionals,
     Permission,
     RequestContext,
+    SortParameter,
     TransactionalConnection,
     UserInputError,
+    VendureEntity,
 } from '@vendure/core';
 import { McpToolBehavior, McpToolset } from '@vendure/mcp-sdk';
 import { ObjectLiteral, SelectQueryBuilder } from 'typeorm';
@@ -108,10 +111,7 @@ export class McpAdminResolver {
             });
         }
         this.scopeToChannel(qb, 'mcpoauthgrant', ctx.channelId);
-        if (Object.keys(args.options?.sort ?? {}).length === 0) {
-            qb.orderBy('mcpoauthgrant.lastActivityAt', 'DESC');
-        }
-        qb.addOrderBy('mcpoauthgrant.id', 'DESC');
+        this.applyDefaultOrder(qb, 'mcpoauthgrant', args.options?.sort, 'lastActivityAt');
         const [items, totalItems] = await qb.getManyAndCount();
         return { items, totalItems };
     }
@@ -127,10 +127,7 @@ export class McpAdminResolver {
             entityAlias: 'log',
         });
         this.scopeToChannel(qb, 'log', ctx.channelId);
-        if (Object.keys(args.options?.sort ?? {}).length === 0) {
-            qb.orderBy('log.createdAt', 'DESC');
-        }
-        qb.addOrderBy('log.id', 'DESC');
+        this.applyDefaultOrder(qb, 'log', args.options?.sort, 'createdAt');
         const [items, totalItems] = await qb.getManyAndCount();
         return { items, totalItems };
     }
@@ -306,6 +303,27 @@ export class McpAdminResolver {
     private scopeToChannel<T extends ObjectLiteral>(qb: SelectQueryBuilder<T>, alias: string, channelId: ID) {
         qb.andWhere(`${alias}.channelId = :channelId`, { channelId });
     }
+
+    /**
+     * Newest first when the caller sent no sort of their own, and always id DESC last so rows that
+     * share a timestamp come back in a stable order.
+     */
+    private applyDefaultOrder<T extends VendureEntity>(
+        qb: SelectQueryBuilder<T>,
+        alias: string,
+        sort: NullOptionals<SortParameter<T>> | null | undefined,
+        column: string,
+    ): void {
+        if (Object.keys(sort ?? {}).length === 0) {
+            qb.orderBy(`${alias}.${column}`, 'DESC');
+        }
+        qb.addOrderBy(`${alias}.id`, 'DESC');
+    }
+}
+
+/** A field that holds personal data: visible only with ReadCustomer on top of the MCP read permission. */
+function personalField<T>(ctx: RequestContext, value: T): T | null {
+    return ctx.userHasPermissions([Permission.ReadCustomer]) ? value : null;
 }
 
 /**
@@ -324,17 +342,17 @@ export class McpToolCallLogEntityResolver {
     // Not `@Allow`: that would error on every row, and the log should stay readable for admins without customer access.
     @ResolveField()
     input(@Parent() log: McpToolCallLog, @Ctx() ctx: RequestContext): unknown {
-        return ctx.userHasPermissions([Permission.ReadCustomer]) ? log.input : null;
+        return personalField(ctx, log.input);
     }
 
     @ResolveField()
     output(@Parent() log: McpToolCallLog, @Ctx() ctx: RequestContext): unknown {
-        return ctx.userHasPermissions([Permission.ReadCustomer]) ? log.output : null;
+        return personalField(ctx, log.output);
     }
 
     @ResolveField()
     clientIp(@Parent() log: McpToolCallLog, @Ctx() ctx: RequestContext): string | null {
-        return ctx.userHasPermissions([Permission.ReadCustomer]) ? log.clientIp : null;
+        return personalField(ctx, log.clientIp);
     }
 
     // Resolved per row rather than joined, because the stored id points at either a Customer
