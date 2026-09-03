@@ -15,27 +15,53 @@ import { McpPluginOptions, McpRateLimitOptions } from './types';
  * plugin's `configuration` hook defaults later because it needs the configured API port.
  */
 export function resolveMcpPluginOptions(options: McpPluginOptions = {}): ResolvedMcpPluginOptions {
-    const oauth = options.oauth && { ...DEFAULT_OAUTH_OPTIONS, ...options.oauth };
+    const oauth = options.oauth && { ...DEFAULT_OAUTH_OPTIONS, ...withoutUndefined(options.oauth) };
     const ttlDays = options.logging?.ttlDays ?? DEFAULT_LOG_TTL_DAYS;
     assertNonNegativeNumber('logging.ttlDays', ttlDays);
     if (oauth) {
         assertNonNegativeNumber('oauth.grantRetentionDays', oauth.grantRetentionDays);
     }
+    const toolExposure = options.toolExposure ?? DEFAULT_TOOL_EXPOSURE;
+    const shopAccess = options.shopAccess ?? DEFAULT_SHOP_ACCESS;
+    const capture = options.logging?.capture ?? DEFAULT_LOG_CAPTURE;
+    assertOneOf('toolExposure', toolExposure, ['direct', 'discovery']);
+    assertOneOf('shopAccess', shopAccess, ['anonymous', 'authenticated', 'disabled']);
+    assertOneOf('logging.capture', capture, ['metadata', 'full']);
+    if (shopAccess === 'authenticated' && !oauth) {
+        throw new Error(
+            'McpPlugin: shopAccess "authenticated" needs an oauth block, because the shop endpoint ' +
+                'answers every token-less request with an OAuth challenge that names the issuer.',
+        );
+    }
     return {
-        toolExposure: options.toolExposure ?? DEFAULT_TOOL_EXPOSURE,
-        shopAccess: options.shopAccess ?? DEFAULT_SHOP_ACCESS,
+        toolExposure,
+        shopAccess,
         oauth,
         rateLimits: resolveRateLimits(options.rateLimits),
         dnsRebinding: options.dnsRebinding,
         logging: {
             ttlDays,
-            capture: options.logging?.capture ?? DEFAULT_LOG_CAPTURE,
+            capture,
             redact: options.logging?.redact,
             maxBodyBytes: options.logging?.maxBodyBytes ?? DEFAULT_LOG_MAX_BODY_BYTES,
             retentionSchedule: options.logging?.retentionSchedule,
             captureClientIp: options.logging?.captureClientIp ?? false,
         },
     };
+}
+
+/**
+ * Returns a copy of the object without the keys whose value is `undefined`. An option read from an
+ * environment variable that is not set must fall back to its default rather than erase it.
+ */
+function withoutUndefined<T extends object>(value: T): T {
+    return Object.fromEntries(Object.entries(value).filter(([, v]) => v !== undefined)) as T;
+}
+
+function assertOneOf(name: string, value: string, allowed: readonly string[]): void {
+    if (!allowed.includes(value)) {
+        throw new Error(`McpPlugin: ${name} must be one of ${allowed.join(', ')}, got ${String(value)}.`);
+    }
 }
 
 function assertNonNegativeNumber(name: string, value: number): void {
@@ -53,7 +79,10 @@ function resolveRateLimits(rateLimits?: McpRateLimitOptions): Required<McpRateLi
         perSession: rateLimits?.perSession ?? DEFAULT_RATE_LIMIT_OPTIONS.perSession,
         perUser: rateLimits?.perUser ?? DEFAULT_RATE_LIMIT_OPTIONS.perUser,
         perClient: rateLimits?.perClient ?? DEFAULT_RATE_LIMIT_OPTIONS.perClient,
-        perTool: { ...DEFAULT_RATE_LIMIT_OPTIONS.perTool, ...rateLimits?.perTool },
+        perTool: {
+            ...DEFAULT_RATE_LIMIT_OPTIONS.perTool,
+            ...(rateLimits?.perTool && withoutUndefined(rateLimits.perTool)),
+        },
         anonymousIp: rateLimits?.anonymousIp ?? DEFAULT_RATE_LIMIT_OPTIONS.anonymousIp,
         oauthIp: rateLimits?.oauthIp ?? DEFAULT_RATE_LIMIT_OPTIONS.oauthIp,
     };

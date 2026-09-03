@@ -49,6 +49,54 @@ describe('resolveMcpPluginOptions', () => {
         });
     });
 
+    // An option read from an environment variable that is not set arrives as `undefined`, and must
+    // fall back to its default rather than erase it.
+    it('ignores undefined oauth values instead of overwriting the defaults', () => {
+        const resolved = resolveMcpPluginOptions({
+            oauth: { tokenSecret: 's', adminConsentPath: undefined, accessTokenTtlSeconds: undefined },
+        });
+        expect(resolved.oauth?.adminConsentPath).toBe(DEFAULT_OAUTH_OPTIONS.adminConsentPath);
+        expect(resolved.oauth?.accessTokenTtlSeconds).toBe(DEFAULT_OAUTH_OPTIONS.accessTokenTtlSeconds);
+    });
+
+    it('ignores an undefined per-tool entry instead of removing the shipped cap', () => {
+        const resolved = resolveMcpPluginOptions({ rateLimits: { perTool: { place_order: undefined } } });
+        expect(resolved.rateLimits.perTool.place_order).toEqual({ rpm: 5 });
+    });
+
+    it('rejects a shopAccess value that is not one of the documented modes', () => {
+        expect(() => resolveMcpPluginOptions({ shopAccess: 'Disabled' as any })).toThrow(
+            /shopAccess must be one of anonymous, authenticated, disabled, got Disabled\./,
+        );
+    });
+
+    it('rejects a toolExposure value that is not one of the documented modes', () => {
+        expect(() => resolveMcpPluginOptions({ toolExposure: 'all' as any })).toThrow(
+            /toolExposure must be one of direct, discovery, got all\./,
+        );
+    });
+
+    it('rejects a logging.capture value that is not one of the documented modes', () => {
+        expect(() => resolveMcpPluginOptions({ logging: { capture: 'everything' as any } })).toThrow(
+            /logging\.capture must be one of metadata, full, got everything\./,
+        );
+    });
+
+    // Without an oauth block the shop endpoint challenges every request with an issuer it does not have.
+    it('rejects shopAccess "authenticated" without an oauth block', () => {
+        expect(() => resolveMcpPluginOptions({ shopAccess: 'authenticated' })).toThrow(
+            /shopAccess "authenticated" needs an oauth block/,
+        );
+    });
+
+    it('accepts shopAccess "authenticated" with an oauth block', () => {
+        const resolved = resolveMcpPluginOptions({
+            shopAccess: 'authenticated',
+            oauth: { tokenSecret: 's' },
+        });
+        expect(resolved.shopAccess).toBe('authenticated');
+    });
+
     it.each([-1, NaN, Infinity])('rejects logging.ttlDays of %s', value => {
         expect(() => resolveMcpPluginOptions({ logging: { ttlDays: value } })).toThrow(
             /logging\.ttlDays must be a non-negative finite number/,

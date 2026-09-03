@@ -3,7 +3,6 @@ import { MiddlewareConsumer, NestModule, OnApplicationBootstrap, Type } from '@n
 import { DiscoveryModule } from '@nestjs/core';
 import {
     I18nService,
-    Logger,
     PluginCommonModule,
     ProcessContext,
     SettingsStoreScopes,
@@ -18,11 +17,11 @@ import {
     McpToolCallLogEntityResolver,
 } from './api/mcp-admin.resolver';
 import { McpShopResolver } from './api/mcp-shop.resolver';
+import { checkMcpPluginOptions } from './check-options';
 import {
     MCP_PLUGIN_OPTIONS,
     MCP_SETTINGS_NAMESPACE,
     MCP_TOOL_TOGGLES_FIELD_NAME,
-    loggerCtx,
     mcpServerPermission,
 } from './constants';
 import {
@@ -35,7 +34,6 @@ import {
 import { ResolvedMcpPluginOptions } from './internal-types';
 import { McpToolCallLogService } from './logging/mcp-tool-call-log.service';
 import { McpCimdClientResolverService } from './oauth/cimd/cimd-client-resolver.service';
-import { isLoopbackHostname } from './oauth/loopback';
 import { McpOauthRetentionService } from './oauth/oauth-retention.service';
 import { McpOauthController } from './oauth/oauth.controller';
 import { McpOauthService } from './oauth/oauth.service';
@@ -177,8 +175,9 @@ export class McpPlugin implements NestModule, OnApplicationBootstrap {
     /**
      * @description
      * Runs at startup, and only does work on the main server process. Builds the MCP message
-     * schemas up front so the first request does not pay for it. Also checks the configured
-     * OAuth options, and throws when one is invalid or unsafe for a production server.
+     * schemas up front so the first request does not pay for it, then checks the configured
+     * options (see `checkMcpPluginOptions`), which throws when one is invalid or unsafe for a
+     * production server.
      */
     onApplicationBootstrap(): void {
         // Only the main server serves the OAuth routes, so only it needs this check.
@@ -188,133 +187,6 @@ export class McpPlugin implements NestModule, OnApplicationBootstrap {
         // The SDK builds the schemas it validates MCP messages against on first use. Build them
         // now so that cost lands on startup rather than on whichever request arrives first.
         preloadSchemas();
-
-        const logging = McpPlugin.options.logging;
-        if (logging?.capture === 'full' && !logging.redact) {
-            Logger.warn(
-                'Full MCP logging is enabled without redaction. ' +
-                    'This may store sensitive data. Add logging.redact to sanitize logs, ' +
-                    'or switch to metadata-only logging.',
-                loggerCtx,
-            );
-        }
-        // Without an allowlist the endpoints answer any Host and Origin, which is what lets a
-        // page in a browser reach a server it should not.
-        const dnsRebinding = McpPlugin.options.dnsRebinding;
-        if (
-            process.env.NODE_ENV === 'production' &&
-            !dnsRebinding?.allowedHosts?.length &&
-            !dnsRebinding?.allowedOrigins?.length
-        ) {
-            Logger.warn(
-                'dnsRebinding is not set, so the MCP endpoints accept any Host and Origin header. ' +
-                    'Set dnsRebinding.allowedHosts and dnsRebinding.allowedOrigins for a server that ' +
-                    'browsers can reach.',
-                loggerCtx,
-            );
-        }
-        const oauth = McpPlugin.options.oauth;
-        if (!oauth) {
-            return;
-        }
-
-        this.assertIssuerIsOrigin(oauth.issuer);
-        this.assertAdminConsentPathIsRelative(oauth.adminConsentPath);
-        this.assertTokenSecretIsSet(oauth.tokenSecret);
-
-        const isProduction = process.env.NODE_ENV === 'production';
-        if (isProduction) {
-            if (oauth.allowLoopbackCimdDocuments) {
-                throw new Error(
-                    `McpPlugin: oauth.allowLoopbackCimdDocuments cannot be enabled in production. ` +
-                        `It lets any caller of the authorize endpoint make this server open a ` +
-                        `connection to any port on the machine it runs on, and is only meant for ` +
-                        `fetching a client metadata document from your own development setup.`,
-                );
-            }
-            if (this.isLoopbackUrl(oauth.issuer)) {
-                throw new Error(
-                    `McpPlugin: oauth.issuer cannot be a loopback URL ("${oauth.issuer ?? ''}") in production. ` +
-                        `Set it to your public Vendure server URL so clients can reach it.`,
-                );
-            }
-            if (new URL(oauth.issuer ?? '').protocol !== 'https:') {
-                throw new Error(
-                    `McpPlugin: oauth.issuer must use https in production ("${oauth.issuer ?? ''}").`,
-                );
-            }
-            if (oauth.storefrontConsentUrl != null) {
-                if (oauth.storefrontConsentUrl === '') {
-                    throw new Error(
-                        `McpPlugin: oauth.storefrontConsentUrl is empty. Set it to your public ` +
-                            `storefront consent page URL, or leave the option out altogether if this ` +
-                            `deployment only serves staff.`,
-                    );
-                }
-                if (this.isLoopbackUrl(oauth.storefrontConsentUrl)) {
-                    throw new Error(
-                        `McpPlugin: oauth.storefrontConsentUrl cannot be a loopback URL ` +
-                            `("${oauth.storefrontConsentUrl}") in production. Set it to your public ` +
-                            `storefront consent page URL.`,
-                    );
-                }
-                if (new URL(oauth.storefrontConsentUrl).protocol !== 'https:') {
-                    throw new Error(
-                        `McpPlugin: oauth.storefrontConsentUrl must use https in production ` +
-                            `("${oauth.storefrontConsentUrl}"). A consent page carries a customer's ` +
-                            `session, so it cannot be served over plain HTTP.`,
-                    );
-                }
-            }
-        }
-    }
-
-    private assertAdminConsentPathIsRelative(path?: string): void {
-        if (path != null && (!path.startsWith('/') || path.startsWith('//'))) {
-            throw new Error(
-                `McpPlugin: oauth.adminConsentPath must be a path starting with "/" (for example ` +
-                    `"/dashboard/mcp/authorize") — got "${path}". It is resolved against oauth.issuer, ` +
-                    `because the admin consent page must be served by the Vendure server itself.`,
-            );
-        }
-    }
-
-    private assertTokenSecretIsSet(tokenSecret: string): void {
-        if (!tokenSecret) {
-            throw new Error(
-                'McpPlugin: oauth.tokenSecret is required and cannot be empty. It is used to securely hash and verify issued OAuth tokens.',
-            );
-        }
-    }
-
-    private assertIssuerIsOrigin(issuer?: string): void {
-        let url: URL;
-        try {
-            url = new URL(issuer ?? '');
-        } catch {
-            throw new Error(
-                `McpPlugin: oauth.issuer must be a valid URL such as "https://example.com" — ` +
-                    `received "${issuer ?? ''}". Include the scheme; a host on its own is not a URL.`,
-            );
-        }
-        if (url.pathname !== '/' || url.search || url.hash) {
-            throw new Error(
-                `McpPlugin: oauth.issuer must be the scheme, host and port of your Vendure server ` +
-                    `(for example "https://example.com") with no path, query or fragment — got ` +
-                    `"${issuer ?? ''}". If Vendure is served under a path, either give it its own ` +
-                    `subdomain or have the proxy forward /.well-known/* to it as well.`,
-            );
-        }
-    }
-
-    private isLoopbackUrl(url?: string): boolean {
-        if (!url) return true;
-
-        try {
-            return isLoopbackHostname(new URL(url).hostname);
-        } catch {
-            // Not a valid URL, so not a real public address either — treat as unsafe.
-            return true;
-        }
+        checkMcpPluginOptions(McpPlugin.options);
     }
 }

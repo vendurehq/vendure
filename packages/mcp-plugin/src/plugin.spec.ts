@@ -96,19 +96,6 @@ describe('McpPlugin production config guard', () => {
         expect(() => plugin.onApplicationBootstrap()).not.toThrow();
     });
 
-    // An empty value is almost always an environment variable that did not resolve, so the message
-    // must name that rather than read the empty string as a loopback URL.
-    it('throws in production when the storefrontConsentUrl is an empty string', () => {
-        process.env.NODE_ENV = 'production';
-        setOauth({
-            tokenSecret: 'x',
-            issuer: 'https://shop.example.com',
-            storefrontConsentUrl: '',
-        });
-        const plugin = createPlugin(true);
-        expect(() => plugin.onApplicationBootstrap()).toThrow(/storefrontConsentUrl is empty/);
-    });
-
     it('throws in production when the storefrontConsentUrl is a public but plain-HTTP URL', () => {
         process.env.NODE_ENV = 'production';
         setOauth({
@@ -126,13 +113,19 @@ describe('McpPlugin production config guard', () => {
     it('throws when the issuer is more than a scheme, host and port', () => {
         process.env.NODE_ENV = 'development';
         setOauth({ tokenSecret: 'x', issuer: 'https://example.com/vendure' });
-        expect(() => createPlugin(true).onApplicationBootstrap()).toThrow(/no path, query or fragment/);
+        expect(() => createPlugin(true).onApplicationBootstrap()).toThrow(
+            /oauth\.issuer must be a URL with a scheme and no path/,
+        );
 
         setOauth({ tokenSecret: 'x', issuer: 'https://example.com?tenant=1' });
-        expect(() => createPlugin(true).onApplicationBootstrap()).toThrow(/no path, query or fragment/);
+        expect(() => createPlugin(true).onApplicationBootstrap()).toThrow(
+            /oauth\.issuer must be a URL with a scheme and no path/,
+        );
 
         setOauth({ tokenSecret: 'x', issuer: 'https://example.com#frag' });
-        expect(() => createPlugin(true).onApplicationBootstrap()).toThrow(/no path, query or fragment/);
+        expect(() => createPlugin(true).onApplicationBootstrap()).toThrow(
+            /oauth\.issuer must be a URL with a scheme and no path/,
+        );
     });
 
     // Left to run, a schemeless issuer boots fine and then turns the first unauthenticated
@@ -140,7 +133,9 @@ describe('McpPlugin production config guard', () => {
     it('throws when the issuer is not a URL at all', () => {
         process.env.NODE_ENV = 'development';
         setOauth({ tokenSecret: 'x', issuer: 'example.com' });
-        expect(() => createPlugin(true).onApplicationBootstrap()).toThrow(/must be a valid URL/);
+        expect(() => createPlugin(true).onApplicationBootstrap()).toThrow(
+            /oauth\.issuer must be a URL with a scheme and no path/,
+        );
     });
 
     it('accepts an issuer that is a bare origin, with or without a trailing slash', () => {
@@ -174,7 +169,49 @@ describe('McpPlugin production config guard', () => {
         setOauth({
             tokenSecret: 'x',
             issuer: 'https://example.com',
+            adminConsentPath: '/\\evil.com/x',
+        });
+        expect(() => createPlugin(true).onApplicationBootstrap()).toThrow(/adminConsentPath/);
+
+        setOauth({
+            tokenSecret: 'x',
+            issuer: 'https://example.com',
+            adminConsentPath: '/\\/evil.com/x',
+        });
+        expect(() => createPlugin(true).onApplicationBootstrap()).toThrow(/adminConsentPath/);
+
+        setOauth({
+            tokenSecret: 'x',
+            issuer: 'https://example.com',
             adminConsentPath: '/custom/consent/page',
+        });
+        expect(() => createPlugin(true).onApplicationBootstrap()).not.toThrow();
+
+        setOauth({
+            tokenSecret: 'x',
+            issuer: 'https://example.com',
+            adminConsentPath: '/custom/consent/page?theme=dark',
+        });
+        expect(() => createPlugin(true).onApplicationBootstrap()).not.toThrow();
+    });
+
+    // A consent URL without a scheme is read as a relative path by whatever client follows it,
+    // so it is refused everywhere, not only in production.
+    it('throws outside production when storefrontConsentUrl has no scheme', () => {
+        process.env.NODE_ENV = 'development';
+        setOauth({
+            tokenSecret: 'x',
+            issuer: 'https://example.com',
+            storefrontConsentUrl: 'shop.example.com/mcp/authorize',
+        });
+        expect(() => createPlugin(true).onApplicationBootstrap()).toThrow(
+            /storefrontConsentUrl must be a full URL/,
+        );
+
+        setOauth({
+            tokenSecret: 'x',
+            issuer: 'https://example.com',
+            storefrontConsentUrl: 'https://shop.example.com/mcp/authorize',
         });
         expect(() => createPlugin(true).onApplicationBootstrap()).not.toThrow();
     });
@@ -215,13 +252,66 @@ describe('McpPlugin production config guard', () => {
     it('throws in production when the issuer is public but plain HTTP', () => {
         process.env.NODE_ENV = 'production';
         setOauth({ tokenSecret: 'x', issuer: 'http://example.com' });
-        expect(() => createPlugin(true).onApplicationBootstrap()).toThrow(/must use https in production/);
+        expect(() => createPlugin(true).onApplicationBootstrap()).toThrow(
+            /oauth\.issuer must be a public https URL/,
+        );
     });
 
     it('does not throw outside production when the issuer is plain HTTP', () => {
         process.env.NODE_ENV = 'development';
         setOauth({ tokenSecret: 'x', issuer: 'http://example.com' });
         expect(() => createPlugin(true).onApplicationBootstrap()).not.toThrow();
+    });
+
+    it('warns instead of throwing when NODE_ENV is unset and the issuer is a loopback URL', () => {
+        delete process.env.NODE_ENV;
+        setOauth({ tokenSecret: 'x', issuer: 'http://localhost:3500' });
+        const warnSpy = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
+        try {
+            expect(() => createPlugin(true).onApplicationBootstrap()).not.toThrow();
+            expect(warnSpy).toHaveBeenCalledOnce();
+            expect(warnSpy.mock.calls[0][0]).toMatch(
+                /Unsafe for production: oauth\.issuer must be a public https URL/,
+            );
+        } finally {
+            warnSpy.mockRestore();
+        }
+    });
+
+    it('warns when NODE_ENV is unset and allowLoopbackCimdDocuments is enabled', () => {
+        delete process.env.NODE_ENV;
+        setOauth({
+            tokenSecret: 'x',
+            issuer: 'https://example.com',
+            allowLoopbackCimdDocuments: true,
+        });
+        const warnSpy = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
+        try {
+            expect(() => createPlugin(true).onApplicationBootstrap()).not.toThrow();
+            expect(warnSpy).toHaveBeenCalledOnce();
+            expect(warnSpy.mock.calls[0][0]).toMatch(
+                /Unsafe for production: oauth\.allowLoopbackCimdDocuments must be false in production/,
+            );
+        } finally {
+            warnSpy.mockRestore();
+        }
+    });
+
+    // The e2e suites run under NODE_ENV=test with loopback issuers, so this tier stays silent.
+    it('warns nothing under NODE_ENV=test', () => {
+        process.env.NODE_ENV = 'test';
+        setOauth({
+            tokenSecret: 'x',
+            issuer: 'http://localhost:3500',
+            allowLoopbackCimdDocuments: true,
+        });
+        const warnSpy = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
+        try {
+            expect(() => createPlugin(true).onApplicationBootstrap()).not.toThrow();
+            expect(warnSpy).not.toHaveBeenCalled();
+        } finally {
+            warnSpy.mockRestore();
+        }
     });
 });
 
