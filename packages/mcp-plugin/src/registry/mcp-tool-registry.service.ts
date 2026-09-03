@@ -72,6 +72,11 @@ const NARROWING_ARGUMENT_ADVICE: Record<string, string> = {
 // Enforce SEP-986 because some MCP clients reject non-conforming tool names.
 const TOOL_NAME_PATTERN = /^[A-Za-z0-9._-]{1,128}$/;
 
+/** What admission decided: either a result to send back unchanged, or the tool and input to run. */
+type ToolCallAdmission =
+    | { kind: 'refused'; result: CallToolResult }
+    | { kind: 'admitted'; tool: McpRegisteredTool; input: Record<string, unknown> };
+
 /**
  * @description
  * Single source of truth for discovered `@McpTool` providers. It discovers tools at bootstrap,
@@ -341,33 +346,15 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         input: unknown,
         validateInput: boolean,
     ): Promise<CallToolResult> {
-        const ctx = executionContext.ctx;
         // The caller owns `executionContext`, and the transport reuses one object for every message
         // in a batch, so a session resolved for this call is kept in a copy rather than written back.
         let callContext: McpExecutionContext = executionContext;
-        const rateLimited = await this.enforceRateLimitOrError(executionContext, toolset, name);
-        if (rateLimited) {
-            return rateLimited;
+        const admission = await this.admitToolCall(executionContext, toolset, name, input, validateInput);
+        if (admission.kind === 'refused') {
+            return admission.result;
         }
-        const tool = this.tools.get(this.toolKey(toolset, name));
-        if (!tool) {
-            return this.errorResult(`Unknown MCP tool: ${name}`);
-        }
-        const toggles = await this.getToolToggles(ctx);
-        if (!this.isToolEnabled(tool, toggles)) {
-            return this.errorResult(`MCP tool is disabled: ${name}`);
-        }
-        if (!this.hasPermissions(ctx, tool.permissions ?? [Permission.Public])) {
-            return this.errorResult(`You do not have permission to call MCP tool: ${name}`);
-        }
-        let toolInput: Record<string, unknown> = (input ?? {}) as Record<string, unknown>;
-        if (validateInput) {
-            const validated = await this.toolSchema.validate(tool.compiledInputSchema, toolInput);
-            if (!validated.ok) {
-                return this.errorResult(`Invalid arguments for tool "${name}": ${validated.message}`);
-            }
-            toolInput = (validated.value ?? {}) as Record<string, unknown>;
-        }
+        const { tool } = admission;
+        let toolInput = admission.input;
         // A destructive tool called without `confirm: true` only describes what it would do.
         const isConfirmationPreview = tool.resolvedBehavior === 'destructive' && toolInput.confirm !== true;
 
@@ -404,67 +391,14 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                 toolInput,
                 this.toCallerInfo(callContext),
             );
-
-            if (isGraphQlErrorResult(output as GraphQLErrorResult | undefined)) {
-                const errorResult = { ...(output as GraphQLErrorResult) };
-                await this.toolCallLog.logToolCall({
-                    executionContext: callContext,
-                    tool,
-                    input: toolInput,
-                    output: errorResult,
-                    durationMs: Date.now() - startedAt,
-                    status: 'error',
-                });
-
-                const messageKey = `errorResult.${errorResult.message}`;
-                const translated = this.translateForCaller(
-                    callContext.ctx,
-                    messageKey,
-                    errorResult as unknown as Record<string, unknown>,
-                );
-                const translatedResult = {
-                    ...errorResult,
-                    message: translated === messageKey ? errorResult.message : translated,
-                };
-                return this.vendureErrorResult(
-                    this.shopSession.addSessionTokenToResult(translatedResult, sessionTokenForResult),
-                );
-            }
-            if (tool.compiledOutputSchema) {
-                const validated = await this.toolSchema.validate(tool.compiledOutputSchema, output);
-                if (!validated.ok) {
-                    Logger.warn(
-                        `MCP tool "${tool.name}" returned output that does not match its schema: ${validated.message}`,
-                        loggerCtx,
-                    );
-                }
-            }
-            // Serializing before the log row is written means a value that cannot be serialized
-            // lands in the catch below as the call's single error row.
-            const result = this.shopSession.addSessionTokenToResult(output, sessionTokenForResult);
-            const text = JSON.stringify(result ?? null);
-            const bytes = Buffer.byteLength(text, 'utf8');
-            const overLimit = bytes > MAX_RESULT_BYTES;
-            // An oversized read returned nothing the caller can use, so it is a failure. An
-            // oversized write already changed the data, so it stays a success and only the
-            // result is withheld.
-            const refuseAsError = overLimit && tool.resolvedBehavior === 'readonly';
-            const refusalMessage = refuseAsError ? this.tooLargeMessage(tool, bytes) : undefined;
-            await this.toolCallLog.logToolCall({
-                executionContext: callContext,
+            return await this.buildToolCallResult({
+                callContext,
                 tool,
                 input: toolInput,
-                output: refusalMessage !== undefined ? { message: refusalMessage } : output,
-                durationMs: Date.now() - startedAt,
-                status: refuseAsError ? 'error' : 'success',
+                output,
+                startedAt,
+                sessionToken: sessionTokenForResult,
             });
-            if (refusalMessage !== undefined) {
-                return this.errorResult(refusalMessage, sessionTokenForResult);
-            }
-            if (overLimit) {
-                return this.completedTooLargeResult(tool, bytes, sessionTokenForResult);
-            }
-            return this.successResult(result, text);
         } catch (e) {
             const message = e instanceof Error ? e.message : 'MCP tool failed';
             const callerSafe = this.isCallerSafeError(e);
@@ -483,8 +417,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                 executionContext: callContext,
                 tool,
                 input: toolInput,
-                // The real message always goes into the log row — it's operator-only data, only
-                // ever persisted when the operator opts into `capture: 'full'`.
                 output: { message },
                 durationMs: Date.now() - startedAt,
                 status: 'error',
@@ -494,6 +426,134 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                 sessionTokenForResult,
             );
         }
+    }
+
+    /**
+     * Decides whether a call is allowed to run at all. Gives back either a result to send straight
+     * to the caller, or the tool to run together with the input it should receive.
+     */
+    private async admitToolCall(
+        executionContext: McpExecutionContext,
+        toolset: McpToolset,
+        name: string,
+        input: unknown,
+        validateInput: boolean,
+    ): Promise<ToolCallAdmission> {
+        const ctx = executionContext.ctx;
+        const rateLimited = await this.enforceRateLimitOrError(executionContext, toolset, name);
+        if (rateLimited) {
+            return { kind: 'refused', result: rateLimited };
+        }
+        const tool = this.tools.get(this.toolKey(toolset, name));
+        if (!tool) {
+            return { kind: 'refused', result: this.errorResult(`Unknown MCP tool: ${name}`) };
+        }
+        const toggles = await this.getToolToggles(ctx);
+        if (!this.isToolEnabled(tool, toggles)) {
+            return { kind: 'refused', result: this.errorResult(`MCP tool is disabled: ${name}`) };
+        }
+        if (!this.hasPermissions(ctx, tool.permissions ?? [Permission.Public])) {
+            return {
+                kind: 'refused',
+                result: this.errorResult(`You do not have permission to call MCP tool: ${name}`),
+            };
+        }
+        let toolInput: Record<string, unknown> = (input ?? {}) as Record<string, unknown>;
+        if (validateInput) {
+            const validated = await this.toolSchema.validate(tool.compiledInputSchema, toolInput);
+            if (!validated.ok) {
+                return {
+                    kind: 'refused',
+                    result: this.errorResult(`Invalid arguments for tool "${name}": ${validated.message}`),
+                };
+            }
+            toolInput = (validated.value ?? {}) as Record<string, unknown>;
+        }
+        return { kind: 'admitted', tool, input: toolInput };
+    }
+
+    /**
+     * Turns what a tool handler returned into the result the caller sees, and writes the log row
+     * for the call. A Vendure error result, a result too large to send, and a plain success are
+     * each handled here.
+     */
+    private async buildToolCallResult(call: {
+        callContext: McpExecutionContext;
+        tool: McpRegisteredTool;
+        input: Record<string, unknown>;
+        output: unknown;
+        startedAt: number;
+        sessionToken: string | undefined;
+    }): Promise<CallToolResult> {
+        const {
+            callContext,
+            tool,
+            input: toolInput,
+            output,
+            startedAt,
+            sessionToken: sessionTokenForResult,
+        } = call;
+
+        if (isGraphQlErrorResult(output as GraphQLErrorResult | undefined)) {
+            const errorResult = { ...(output as GraphQLErrorResult) };
+            await this.toolCallLog.logToolCall({
+                executionContext: callContext,
+                tool,
+                input: toolInput,
+                output: errorResult,
+                durationMs: Date.now() - startedAt,
+                status: 'error',
+            });
+
+            const messageKey = `errorResult.${errorResult.message}`;
+            const translated = this.translateForCaller(
+                callContext.ctx,
+                messageKey,
+                errorResult as unknown as Record<string, unknown>,
+            );
+            const translatedResult = {
+                ...errorResult,
+                message: translated === messageKey ? errorResult.message : translated,
+            };
+            return this.vendureErrorResult(
+                this.shopSession.addSessionTokenToResult(translatedResult, sessionTokenForResult),
+            );
+        }
+        if (tool.compiledOutputSchema) {
+            const validated = await this.toolSchema.validate(tool.compiledOutputSchema, output);
+            if (!validated.ok) {
+                Logger.warn(
+                    `MCP tool "${tool.name}" returned output that does not match its schema: ${validated.message}`,
+                    loggerCtx,
+                );
+            }
+        }
+        // Serializing before the log row is written means a value that cannot be serialized
+        // lands in the catch below as the call's single error row.
+        const result = this.shopSession.addSessionTokenToResult(output, sessionTokenForResult);
+        const text = JSON.stringify(result ?? null);
+        const bytes = Buffer.byteLength(text, 'utf8');
+        const overLimit = bytes > MAX_RESULT_BYTES;
+        // An oversized read returned nothing the caller can use, so it is a failure. An
+        // oversized write already changed the data, so it stays a success and only the
+        // result is withheld.
+        const refuseAsError = overLimit && tool.resolvedBehavior === 'readonly';
+        const refusalMessage = refuseAsError ? this.tooLargeMessage(tool, bytes) : undefined;
+        await this.toolCallLog.logToolCall({
+            executionContext: callContext,
+            tool,
+            input: toolInput,
+            output: refusalMessage !== undefined ? { message: refusalMessage } : output,
+            durationMs: Date.now() - startedAt,
+            status: refuseAsError ? 'error' : 'success',
+        });
+        if (refusalMessage !== undefined) {
+            return this.errorResult(refusalMessage, sessionTokenForResult);
+        }
+        if (overLimit) {
+            return this.completedTooLargeResult(tool, bytes, sessionTokenForResult);
+        }
+        return this.successResult(result, text);
     }
 
     /**
