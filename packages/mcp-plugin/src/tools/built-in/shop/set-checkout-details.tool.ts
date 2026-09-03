@@ -6,7 +6,6 @@ import {
     GraphQLErrorResult,
     isGraphQlErrorResult,
     Order,
-    OrderModificationError,
     OrderService,
     Permission,
     RequestContext,
@@ -16,7 +15,7 @@ import {
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { cartIsEditable, McpActiveOrderService } from '../active-order.service';
+import { McpActiveOrderService } from '../active-order.service';
 import { McpCustomFieldInputService } from '../custom-field-input.service';
 import { emailAddressSchema } from '../email-schema';
 import { McpToolSerializerService } from '../serializer.service';
@@ -107,9 +106,9 @@ export class SetCheckoutDetailsTool implements McpToolHandler<SetCheckoutDetails
         }
         await this.customFieldInput.assertWritable(ctx, 'Address', input.shippingAddress?.customFields);
         await this.customFieldInput.assertWritable(ctx, 'Address', input.billingAddress?.customFields);
-        const cart = await this.activeOrder.findOrThrow(ctx);
-        if (!cartIsEditable(cart)) {
-            return this.serializer.orderOrError(new OrderModificationError());
+        const cart = await this.activeOrder.findEditable(ctx);
+        if (isGraphQlErrorResult(cart)) {
+            return this.serializer.orderOrError(cart);
         }
         return this.connection.withTransaction(cart.ctx, async txCtx => {
             // The customer relation is loaded so that the answer can show who the cart belongs to.

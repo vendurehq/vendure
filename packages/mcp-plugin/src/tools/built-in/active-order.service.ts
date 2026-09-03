@@ -5,6 +5,7 @@ import {
     ID,
     IllegalOperationError,
     Order,
+    OrderModificationError,
     OrderService,
     RequestContext,
     Session,
@@ -22,7 +23,7 @@ export interface ActiveOrderRef {
 
 const EDITABLE_ORDER_STATES: Array<Order['state']> = ['AddingItems', 'Draft'];
 
-export function cartIsEditable(cart: ActiveOrderRef): boolean {
+function cartIsEditable(cart: ActiveOrderRef): boolean {
     return EDITABLE_ORDER_STATES.includes(cart.state);
 }
 
@@ -119,6 +120,16 @@ export class McpActiveOrderService {
             throw new UserInputError('There is no active cart. Add an item with add_to_cart first.');
         }
         return order;
+    }
+
+    /**
+     * The shopper's current cart when it can still be changed, otherwise the error result core
+     * returns for a cart in the wrong state. Core checks the state itself for line and shipping-method
+     * changes; coupon and address changes do not, so those tools call this instead of `findOrThrow`.
+     */
+    async findEditable(ctx: RequestContext): Promise<ActiveOrderRef | OrderModificationError> {
+        const cart = await this.findOrThrow(ctx);
+        return cartIsEditable(cart) ? cart : new OrderModificationError();
     }
 
     async findWithLines(ctx: RequestContext): Promise<Order | undefined> {

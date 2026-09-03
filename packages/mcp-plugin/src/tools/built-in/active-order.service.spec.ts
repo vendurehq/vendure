@@ -1,4 +1,4 @@
-import { IllegalOperationError, UserInputError } from '@vendure/core';
+import { IllegalOperationError, OrderModificationError, UserInputError } from '@vendure/core';
 import { LockNotSupportedOnGivenDriverError } from 'typeorm';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -322,6 +322,59 @@ describe('McpActiveOrderService', () => {
             await expect(service.findOrThrow(ctxWithSession)).rejects.toThrow(
                 'There is no active cart. Add an item with add_to_cart first.',
             );
+        });
+    });
+
+    describe('findEditable', () => {
+        it('returns the cart when it is in AddingItems', async () => {
+            const activeOrderService = {
+                getActiveOrder: vi
+                    .fn()
+                    .mockResolvedValue({ id: '1', code: 'T_1', currencyCode: 'USD', state: 'AddingItems' }),
+            };
+            const service = new McpActiveOrderService(
+                activeOrderService as never,
+                { findOne: vi.fn() } as never,
+                connectionStub() as never,
+            );
+
+            const result = await service.findEditable(ctxWithSession);
+
+            expect(result).toMatchObject({ id: '1', state: 'AddingItems' });
+            expect(result).not.toBeInstanceOf(OrderModificationError);
+        });
+
+        it('returns an OrderModificationError result when the cart is in ArrangingPayment', async () => {
+            const activeOrderService = {
+                getActiveOrder: vi.fn().mockResolvedValue({
+                    id: '1',
+                    code: 'T_1',
+                    currencyCode: 'USD',
+                    state: 'ArrangingPayment',
+                }),
+            };
+            const service = new McpActiveOrderService(
+                activeOrderService as never,
+                { findOne: vi.fn() } as never,
+                connectionStub() as never,
+            );
+
+            const result = await service.findEditable(ctxWithSession);
+
+            expect(result).toBeInstanceOf(OrderModificationError);
+        });
+
+        it('throws the same UserInputError as findOrThrow when there is no cart', async () => {
+            const activeOrderService = {
+                getActiveOrder: vi.fn().mockResolvedValue(undefined),
+            };
+            const service = new McpActiveOrderService(
+                activeOrderService as never,
+                { findOne: vi.fn() } as never,
+                connectionStub() as never,
+            );
+
+            await expect(service.findEditable(ctxWithSession)).rejects.toBeInstanceOf(UserInputError);
         });
     });
 
