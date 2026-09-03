@@ -64,6 +64,12 @@ import {
 } from './oauth-utils';
 import { deriveHashKey, hashLookupToken } from './token-hash';
 
+/** What findGrantAndSessionToken returns for a live access token: the grant and its Vendure session token, if any. */
+interface GrantLookup {
+    grant: McpOauthGrant;
+    sessionToken: string | null;
+}
+
 /**
  * MCP OAuth 2.1 authorization server.
  *
@@ -89,7 +95,7 @@ export class McpOauthService {
     ) {}
 
     async registerClient(input: RegisterClientInput): Promise<RegisteredClientResponse> {
-        this.resolvedOauth();
+        this.resolvedOauth(); // Refuses before any write when OAuth is not configured.
         if (!input.client_name) {
             throw new McpOauthError('invalid_client_metadata', 'client_name is required');
         }
@@ -144,7 +150,7 @@ export class McpOauthService {
     }
 
     async createAuthorizationRedirect(input: AuthorizeInput): Promise<string> {
-        this.resolvedOauth();
+        const oauth = this.resolvedOauth();
         if (!input.client_id || !input.redirect_uri) {
             throw new BadRequestException('client_id and redirect_uri are required');
         }
@@ -198,9 +204,9 @@ export class McpOauthService {
 
         let consentUrl: URL;
         if (toolset === 'admin') {
-            consentUrl = new URL(this.resolvedOauth().adminConsentPath, this.resolvedOauth().issuer);
+            consentUrl = new URL(oauth.adminConsentPath, oauth.issuer);
         } else {
-            const storefrontConsentUrl = this.resolvedOauth().storefrontConsentUrl;
+            const storefrontConsentUrl = oauth.storefrontConsentUrl;
             if (!storefrontConsentUrl) {
                 Logger.error(
                     'A customer authorization request was refused because oauth.storefrontConsentUrl is not set. ' +
@@ -228,7 +234,7 @@ export class McpOauthService {
                 codeChallengeMethod: 'S256',
                 toolset,
                 resource,
-                expiresAt: addSeconds(new Date(), this.resolvedOauth().authorizationRequestTtlSeconds),
+                expiresAt: addSeconds(new Date(), oauth.authorizationRequestTtlSeconds),
             }),
         );
         consentUrl.searchParams.set('request_token', requestTokenPlaintext);
@@ -416,23 +422,8 @@ export class McpOauthService {
         req?: I18nRequest,
     ): Promise<McpAuthenticatedContext> {
         const adminCtx = await this.createAdminCtx();
-        const resolved = await this.findGrantAndSessionToken(adminCtx, token);
-        const grant = resolved?.grant;
-        if (!grant || grant.revokedAt || grant.accessTokenExpiresAt <= new Date()) {
-            throw new UnauthorizedException('Invalid or expired access token');
-        }
-        if (
-            (apiType === 'admin' && grant.actorType !== 'admin') ||
-            (apiType === 'shop' && grant.actorType !== 'customer')
-        ) {
-            throw new UnauthorizedException('Access token does not allow this MCP endpoint');
-        }
-        if (grant.resource !== this.oauthMetadata.resourceForToolset(apiType)) {
-            throw new UnauthorizedException('Access token was not issued for this MCP resource');
-        }
-        if (grant.expiresAt <= new Date()) {
-            throw new UnauthorizedException('MCP grant is expired');
-        }
+        const resolved = this.usableGrant(await this.findGrantAndSessionToken(adminCtx, token), apiType);
+        const { grant } = resolved;
 
         let vendureSession = resolved.sessionToken
             ? await this.sessionService.getSessionFromToken(resolved.sessionToken)
@@ -462,13 +453,40 @@ export class McpOauthService {
             req,
             translationFn: req?.t,
         });
-        // Update the audit timestamp at most once per interval, in the background, as a
-        // single-column update; the request must not wait for it. Mirrors how core
-        // updates ApiKey.lastUsedAt in auth-guard.ts.
+        this.touchGrantActivity(adminCtx, grant);
+        return { ctx, grant };
+    }
+
+    private usableGrant(resolved: GrantLookup | undefined, apiType: McpToolset): GrantLookup {
+        if (!resolved || resolved.grant.revokedAt || resolved.grant.accessTokenExpiresAt <= new Date()) {
+            throw new UnauthorizedException('Invalid or expired access token');
+        }
+        const { grant } = resolved;
+        if (
+            (apiType === 'admin' && grant.actorType !== 'admin') ||
+            (apiType === 'shop' && grant.actorType !== 'customer')
+        ) {
+            throw new UnauthorizedException('Access token does not allow this MCP endpoint');
+        }
+        if (grant.resource !== this.oauthMetadata.resourceForToolset(apiType)) {
+            throw new UnauthorizedException('Access token was not issued for this MCP resource');
+        }
+        if (grant.expiresAt <= new Date()) {
+            throw new UnauthorizedException('MCP grant is expired');
+        }
+        return resolved;
+    }
+
+    /**
+     * Updates the audit timestamp at most once per interval, in the background, as a
+     * single-column update; the request must not wait for it. Mirrors how core
+     * updates ApiKey.lastUsedAt in auth-guard.ts.
+     */
+    private touchGrantActivity(ctx: RequestContext, grant: McpOauthGrant): void {
         const staleBefore = new Date(Date.now() - MCP_GRANT_ACTIVITY_UPDATE_INTERVAL_MS);
         if (!grant.lastActivityAt || grant.lastActivityAt < staleBefore) {
             this.connection
-                .getRepository(adminCtx, McpOauthGrant)
+                .getRepository(ctx, McpOauthGrant)
                 .update({ id: grant.id }, { lastActivityAt: new Date() })
                 .catch(err =>
                     Logger.error(
@@ -478,7 +496,6 @@ export class McpOauthService {
                     ),
                 );
         }
-        return { ctx, grant };
     }
 
     /**
@@ -490,7 +507,7 @@ export class McpOauthService {
     private async findGrantAndSessionToken(
         ctx: RequestContext,
         accessToken: string,
-    ): Promise<{ grant: McpOauthGrant; sessionToken: string | null } | undefined> {
+    ): Promise<GrantLookup | undefined> {
         const result = await this.connection
             .getRepository(ctx, McpOauthGrant)
             .createQueryBuilder('grant')
@@ -650,6 +667,7 @@ export class McpOauthService {
     }
 
     private async exchangeRefreshToken(input: TokenInput) {
+        const oauth = this.resolvedOauth();
         if (!input.refresh_token || !input.client_id || !input.resource) {
             throw new McpOauthError('invalid_request', 'refresh_token, client_id and resource are required');
         }
@@ -696,8 +714,8 @@ export class McpOauthService {
                     accessTokenHash: this.hashLookup(accessPlaintext),
                     refreshTokenHash: this.hashLookup(refreshPlaintext),
                     previousRefreshTokenHash: refreshTokenHash,
-                    accessTokenExpiresAt: addSeconds(now, this.resolvedOauth().accessTokenTtlSeconds),
-                    expiresAt: addSeconds(now, this.resolvedOauth().refreshTokenTtlSeconds),
+                    accessTokenExpiresAt: addSeconds(now, oauth.accessTokenTtlSeconds),
+                    expiresAt: addSeconds(now, oauth.refreshTokenTtlSeconds),
                     lastActivityAt: now,
                 })
                 .where('id = :id', { id: grant.id })
@@ -722,6 +740,7 @@ export class McpOauthService {
         resource: string,
         channelId: ID | null,
     ): Promise<OAuthTokenResponse> {
+        const oauth = this.resolvedOauth();
         // `getUserById` returns soft-deleted users, and an authorization code can outlive the
         // account that approved it, so `deletedAt` has to be checked here as well as on the
         // session re-creation path.
@@ -743,8 +762,8 @@ export class McpOauthService {
                 actorId,
                 actorType,
                 resource,
-                accessTokenExpiresAt: addSeconds(now, this.resolvedOauth().accessTokenTtlSeconds),
-                expiresAt: addSeconds(now, this.resolvedOauth().refreshTokenTtlSeconds),
+                accessTokenExpiresAt: addSeconds(now, oauth.accessTokenTtlSeconds),
+                expiresAt: addSeconds(now, oauth.refreshTokenTtlSeconds),
                 revokedAt: null,
                 vendureSessionId: createdSession.id,
                 channelId,
