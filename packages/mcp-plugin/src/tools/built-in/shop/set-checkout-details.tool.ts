@@ -59,15 +59,6 @@ const setCheckoutDetailsInput = z
 
 type SetCheckoutDetailsInput = z.infer<typeof setCheckoutDetailsInput>;
 
-const shippingMethodReplacedMessage =
-    'The new shipping address made the chosen shipping method ineligible, so the store replaced it ' +
-    'with the cheapest eligible one (see order.shippingLines). Tell the shopper, or call ' +
-    'get_eligible_shipping_methods and set_shipping_method to pick another.';
-const shippingMethodRemovedMessage =
-    'The new shipping address made the chosen shipping method ineligible and no other method is ' +
-    'eligible, so the cart has no shipping method. Call get_eligible_shipping_methods and ' +
-    'set_shipping_method again before place_order.';
-
 @McpTool({
     name: 'set_checkout_details',
     toolset: 'shop',
@@ -151,13 +142,9 @@ export class SetCheckoutDetailsTool implements McpToolHandler<SetCheckoutDetails
                 order = await this.orderService.setBillingAddress(txCtx, cart.id, billingAddress);
             }
 
-            const methodsAfter = shippingMethodIds(order);
-            const changed = methodsBefore.length > 0 && !sameIds(methodsBefore, methodsAfter);
-            const message =
-                methodsAfter.length === 0 ? shippingMethodRemovedMessage : shippingMethodReplacedMessage;
             return {
                 order: this.serializer.order(order),
-                ...(changed ? { shippingMethodChanged: true, message } : {}),
+                ...this.shippingMethodChange(methodsBefore, order),
             };
         });
     }
@@ -181,7 +168,33 @@ export class SetCheckoutDetailsTool implements McpToolHandler<SetCheckoutDetails
         }
         return this.orderService.addCustomerToOrder(ctx, order.id, customer);
     }
+
+    /**
+     * Reports when the address change made the store swap or drop the cart's shipping method, so
+     * the agent can tell the shopper. Returns nothing when the method is unchanged or there was none.
+     */
+    private shippingMethodChange(
+        methodsBefore: string[],
+        after: Order | undefined,
+    ): { shippingMethodChanged: true; message: string } | undefined {
+        const methodsAfter = shippingMethodIds(after);
+        if (methodsBefore.length === 0 || sameIds(methodsBefore, methodsAfter)) {
+            return undefined;
+        }
+        const message =
+            methodsAfter.length === 0 ? shippingMethodRemovedMessage : shippingMethodReplacedMessage;
+        return { shippingMethodChanged: true, message };
+    }
 }
+
+const shippingMethodReplacedMessage =
+    'The new shipping address made the chosen shipping method ineligible, so the store replaced it ' +
+    'with the cheapest eligible one (see order.shippingLines). Tell the shopper, or call ' +
+    'get_eligible_shipping_methods and set_shipping_method to pick another.';
+const shippingMethodRemovedMessage =
+    'The new shipping address made the chosen shipping method ineligible and no other method is ' +
+    'eligible, so the cart has no shipping method. Call get_eligible_shipping_methods and ' +
+    'set_shipping_method again before place_order.';
 
 function shippingMethodIds(order: Order | undefined): string[] {
     return (order?.shippingLines ?? []).map(line => String(line.shippingMethodId)).sort();
