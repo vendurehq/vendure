@@ -5,16 +5,18 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import { McpPlugin } from '../src/plugin';
 
+import { exchangeCode, runAuthorizationCodeFlowToCode } from './utils/oauth-test-client';
 import { testServerInit } from './utils/test-server';
 
 describe('McpPlugin OAuth routes', () => {
     const config = mergeConfig(testConfig(), {
         plugins: [McpPlugin.init({ oauth: { tokenSecret: 'test-secret' } })],
     });
-    const { server } = createTestEnvironment(config);
+    const { server, adminClient } = createTestEnvironment(config);
 
     beforeAll(async () => {
         await server.init(testServerInit);
+        await adminClient.asSuperAdmin();
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -249,6 +251,41 @@ describe('McpPlugin OAuth routes', () => {
             expect(res.status).toBe(200);
             expect(await res.json()).toEqual({});
         });
+    });
+
+    // RFC 6749 §5.1: a response that carries or refuses a credential must not be cached, so
+    // no proxy or browser can hand it to somebody else.
+    it('sends no-store on both a successful token response and a refused registration', async () => {
+        const port = config.apiOptions.port;
+        const baseUrl = `http://localhost:${port}`;
+        const pending = await runAuthorizationCodeFlowToCode({
+            baseUrl,
+            issuer: baseUrl,
+            superAdminToken: adminClient.getAuthToken(),
+        });
+        const tokenRes = await exchangeCode({
+            baseUrl,
+            body: {
+                grant_type: 'authorization_code',
+                code: pending.code,
+                client_id: pending.client_id,
+                redirect_uri: pending.redirect_uri,
+                code_verifier: pending.code_verifier,
+                resource: pending.resource,
+            },
+        });
+        expect(tokenRes.status).toBe(200);
+        expect(tokenRes.headers.get('cache-control')).toBe('no-store');
+        expect(tokenRes.headers.get('pragma')).toBe('no-cache');
+
+        const refusedRegister = await fetch(`${baseUrl}/mcp/oauth/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ redirect_uris: ['https://example.com/cb'] }),
+        });
+        expect(refusedRegister.status).toBe(400);
+        expect(refusedRegister.headers.get('cache-control')).toBe('no-store');
+        expect(refusedRegister.headers.get('pragma')).toBe('no-cache');
     });
 
     // Metadata must 404 for a resource this server doesn't host, not fabricate a document for it.

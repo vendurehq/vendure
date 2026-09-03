@@ -197,37 +197,56 @@ export class McpOauthService {
     }
 
     async createAuthorizationRedirect(input: AuthorizeInput): Promise<string> {
-        if (input.response_type !== 'code') {
-            throw new BadRequestException('Only response_type=code is supported');
-        }
-        if (!input.client_id || !input.redirect_uri || !input.code_challenge) {
-            throw new BadRequestException('client_id, redirect_uri and code_challenge are required');
-        }
-        if (input.code_challenge_method !== 'S256') {
-            throw new BadRequestException('Only PKCE S256 is supported');
-        }
         this.resolvedOauth();
-        const { resource, toolset } = this.resolveResource(input.resource);
+        if (!input.client_id || !input.redirect_uri) {
+            throw new BadRequestException('client_id and redirect_uri are required');
+        }
         const ctx = await this.createAdminCtx();
         const client = await this.findClient(ctx, input.client_id);
         if (!client.redirectUris.includes(input.redirect_uri)) {
             throw new BadRequestException('redirect_uri is not registered for client');
         }
-        // From here the redirect_uri is a verified target, so remaining request errors are
-        // reported by redirecting there rather than by an HTTP error response.
+        // From here the redirect_uri is a verified target, so every remaining request error is
+        // reported by redirecting there. An HTTP error would only be seen by the browser, not by
+        // the client that started the flow.
         const redirectUri = input.redirect_uri;
-        const invalidRequest = (error_description: string) =>
+        const redirectError = (error: string, error_description: string) =>
             appendOAuthParams(redirectUri, {
-                error: 'invalid_request',
+                error,
                 error_description,
                 state: input.state,
             });
+        if (input.response_type !== 'code') {
+            return redirectError('unsupported_response_type', 'Only response_type=code is supported');
+        }
+        if (!input.code_challenge) {
+            return redirectError('invalid_request', 'code_challenge is required');
+        }
+        if (input.code_challenge_method !== 'S256') {
+            return redirectError('invalid_request', 'Only PKCE S256 is supported');
+        }
+        let resource: string;
+        let toolset: McpToolset;
+        try {
+            ({ resource, toolset } = this.resolveResource(input.resource));
+        } catch (e) {
+            if (e instanceof McpOauthError) {
+                return redirectError(e.code, e.message);
+            }
+            throw e;
+        }
         if (input.state && input.state.length > MAX_OAUTH_STATE_LENGTH) {
-            return invalidRequest(`state must not exceed ${MAX_OAUTH_STATE_LENGTH} characters`);
+            return redirectError(
+                'invalid_request',
+                `state must not exceed ${MAX_OAUTH_STATE_LENGTH} characters`,
+            );
         }
         // RFC 7636 §4.2: a code_challenge is 43-128 characters.
         if (input.code_challenge.length < 43 || input.code_challenge.length > 128) {
-            return invalidRequest('code_challenge must be between 43 and 128 characters (RFC 7636)');
+            return redirectError(
+                'invalid_request',
+                'code_challenge must be between 43 and 128 characters (RFC 7636)',
+            );
         }
 
         let consentUrl: URL;

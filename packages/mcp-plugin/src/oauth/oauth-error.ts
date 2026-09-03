@@ -24,8 +24,11 @@ export type McpOauthErrorCode =
  * { error, error_description }
  */
 export class McpOauthError extends BadRequestException {
+    readonly code: McpOauthErrorCode;
+
     constructor(code: McpOauthErrorCode, description: string) {
         super({ error: code, error_description: description });
+        this.code = code;
         this.message = description;
     }
 }
@@ -54,6 +57,8 @@ export function parseOAuthInput<T>(schema: ZodType<T>, value: unknown, code: Mcp
 export class McpOauthExceptionFilter implements ExceptionFilter {
     catch(exception: McpOauthError, host: ArgumentsHost): void {
         const res = host.switchToHttp().getResponse<Response>();
+        res.setHeader('Cache-Control', 'no-store');
+        res.setHeader('Pragma', 'no-cache');
         res.status(exception.getStatus()).json(exception.getResponse());
     }
 }

@@ -8,9 +8,10 @@ import { McpPlugin } from '../src/plugin';
 import { McpPluginOptions } from '../src/types';
 
 import { McpTestToolsPlugin } from './fixtures/mcp-test-tools';
-import { callTool, expectRateLimitRefusal, postMcp, rpc } from './utils/mcp-http-client';
+import { callTool, expectRateLimitRefusal, initializeParams, postMcp, rpc } from './utils/mcp-http-client';
 import {
     PLACEHOLDER_CODE_CHALLENGE,
+    registerClient,
     runAuthorizationCodeFlow,
     runShopAuthorizationCodeFlow,
 } from './utils/oauth-test-client';
@@ -219,13 +220,30 @@ describe('MCP transport rate limiting', () => {
         expect(await countAnonymousSessions(server)).toBe(before);
     });
 
-    it('addresses the refusal to the first message that carries an id', async () => {
+    it('addresses a batch refusal to every message that carries an id', async () => {
         // The anonymous-IP bucket is still spent, so this batch is refused at the same gate. Its
-        // first message is a notification with no id, so the refusal has to skip past it and answer
-        // the request behind it — otherwise a batching client cannot match the refusal to what it sent.
+        // first message is a notification with no id, so it gets no entry, and the request behind
+        // it does — otherwise a batching client cannot match the refusal to what it sent.
         const batch = [{ jsonrpc: '2.0', method: 'notifications/initialized' }, rpc('ping', {}, 7)];
         const refused = await postMcp(baseUrl(), 'shop', batch);
-        expectRateLimitRefusal(refused, { scope: 'anonymous IP', id: 7 });
+        expect(Array.isArray(refused.body)).toBe(true);
+        expect(refused.body).toHaveLength(1);
+        expectRateLimitRefusal({ ...refused, body: refused.body[0] }, { scope: 'anonymous IP', id: 7 });
+
+        const twoRequests = [
+            rpc('initialize', initializeParams(), 8),
+            rpc('initialize', initializeParams(), 9),
+        ];
+        const bothRefused = await postMcp(baseUrl(), 'shop', twoRequests);
+        expect(bothRefused.body).toHaveLength(2);
+        expectRateLimitRefusal(
+            { ...bothRefused, body: bothRefused.body[0] },
+            { scope: 'anonymous IP', id: 8 },
+        );
+        expectRateLimitRefusal(
+            { ...bothRefused, body: bothRefused.body[1] },
+            { scope: 'anonymous IP', id: 9 },
+        );
     });
 });
 
@@ -456,18 +474,31 @@ describe('MCP transport shopAccess: disabled', () => {
 
     // resolveResource no longer recognises the shop resource at all when shopAccess is disabled,
     // so an authorize request naming it fails the same way it would for any unrecognised URL.
+    // The client is registered first because the refusal is a redirect to its own redirect_uri.
     it('refuses an authorize request naming the shop resource as an unsupported resource', async () => {
+        const redirectUri = 'https://example.com/cb';
+        const registerRes = await registerClient({
+            baseUrl: baseUrl(),
+            body: {
+                client_name: `shop-resource-disabled-${Math.random().toString(36).slice(2)}`,
+                redirect_uris: [redirectUri],
+            },
+        });
+        const { client_id } = (await registerRes.json()) as { client_id: string };
+
         const authorizeUrl = new URL(`${baseUrl()}/mcp/oauth/authorize`);
         authorizeUrl.searchParams.set('response_type', 'code');
-        authorizeUrl.searchParams.set('client_id', 'irrelevant-client-id');
-        authorizeUrl.searchParams.set('redirect_uri', 'https://example.com/cb');
+        authorizeUrl.searchParams.set('client_id', client_id);
+        authorizeUrl.searchParams.set('redirect_uri', redirectUri);
         authorizeUrl.searchParams.set('code_challenge', PLACEHOLDER_CODE_CHALLENGE);
         authorizeUrl.searchParams.set('code_challenge_method', 'S256');
         authorizeUrl.searchParams.set('resource', `${ISSUER}/mcp/shop`);
 
         const res = await fetch(authorizeUrl, { redirect: 'manual' });
-        expect(res.status).toBe(400);
-        expect(await res.text()).toMatch(/Unsupported OAuth resource/i);
+        expect(res.status).toBe(302);
+        const location = new URL(res.headers.get('location') as string);
+        expect(location.searchParams.get('error')).toBe('invalid_target');
+        expect(location.searchParams.get('error_description')).toMatch(/Unsupported OAuth resource/i);
     });
 });
 

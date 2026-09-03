@@ -1032,6 +1032,29 @@ describe('McpToolRegistryService', () => {
             expect(result.structuredContent).toEqual({ ok: true, sessionToken: 'existing-token' });
         });
 
+        it('leaves the caller execution context alone when a call resolves its own session', async () => {
+            // The transport hands the same execution context to every message in a batch, so a
+            // session resolved for one call must not become the next call's starting point.
+            const session = { id: 's1', token: 'existing-token', expires: new Date(Date.now() + 60_000) };
+            const execute = vi.fn((_ctx: unknown, _input: unknown) => ({ ok: true }));
+            const { service, sessionService } = build([wrapper(cartTool(), execute)]);
+            sessionService.getSessionFromToken.mockResolvedValue(session);
+            service.onApplicationBootstrap();
+
+            const ctx = makeCtx();
+            const executionContext = { ctx };
+            await service.callToolDirect(executionContext, 'shop', 'touch_cart', { note: 'a' });
+            await service.callToolDirect(executionContext, 'shop', 'touch_cart', {
+                note: 'b',
+                sessionToken: 'existing-token',
+            });
+
+            expect(executionContext.ctx).toBe(ctx);
+            const tokenCallCtx = execute.mock.calls[1][0] as any;
+            expect(tokenCallCtx).not.toBe(ctx);
+            expect(tokenCallCtx._session).toBe(session);
+        });
+
         it('creates no session for a readonly tool called without one', async () => {
             const { service, sessionService } = build([
                 wrapper(shopTool({ name: 'look' }), () => ({ items: [] })),

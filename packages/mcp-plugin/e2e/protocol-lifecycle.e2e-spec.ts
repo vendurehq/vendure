@@ -320,6 +320,19 @@ describe('MCP protocol conformance (direct mode)', () => {
         expect(res.body.result).toBeUndefined();
     });
 
+    it('answers a batch containing subscriptions/listen with one error per message id', async () => {
+        // The refusal happens before the SDK sees the body, so it has to address every message in
+        // the batch itself. A single error would leave a batching client unable to match the reply.
+        const res = await postMcp(baseUrl(), 'shop', [
+            rpc('tools/list', {}, 7),
+            rpc('subscriptions/listen', { notifications: { toolsListChanged: true } }, 8),
+        ]);
+        expect(res.status).toBe(404);
+        expect(Array.isArray(res.body)).toBe(true);
+        expect(res.body.map((entry: any) => entry.id)).toEqual([7, 8]);
+        expect(res.body.map((entry: any) => entry.error.code)).toEqual([-32601, -32601]);
+    });
+
     it('the official MCP SDK client connects, lists, and calls a shop tool (interop)', async () => {
         const client = new Client({ name: 'interop-test', version: '1.0.0' });
         const transport = new StreamableHTTPClientTransport(new URL(`${baseUrl()}/mcp/shop`));

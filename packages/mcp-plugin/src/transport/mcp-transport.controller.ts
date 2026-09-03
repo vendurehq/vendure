@@ -263,12 +263,11 @@ export class McpTransportController {
     private sendSubscriptionsUnsupported(res: Response, body: unknown): void {
         res.status(404);
         res.setHeader('Content-Type', 'application/json');
-        const payload: JsonRpcError = {
-            jsonrpc: '2.0',
-            id: this.firstRequestId(body),
-            // -32601 with HTTP 404 is exactly how the SDK answers a method it does not implement.
-            error: { code: -32601, message: 'Method not found: subscriptions/listen' },
-        };
+        // -32601 with HTTP 404 is exactly how the SDK answers a method it does not implement.
+        const payload = this.refusalPayload(body, {
+            code: -32601,
+            message: 'Method not found: subscriptions/listen',
+        });
         res.send(JSON.stringify(payload));
     }
 
@@ -319,35 +318,49 @@ export class McpTransportController {
      * The JSON-RPC body includes retry details for MCP-aware clients.
      */
     private sendRateLimitError(res: Response, body: unknown, exceeded: McpRateLimitExceeded): void {
-        const id = this.firstRequestId(body);
         res.status(429);
         res.setHeader('Retry-After', String(exceeded.retryAfterSeconds));
         res.setHeader('Content-Type', 'application/json');
-        const payload: JsonRpcError = {
-            jsonrpc: '2.0',
-            id,
-            error: {
-                code: RATE_LIMIT_ERROR_CODE,
-                message: exceeded.message,
-                data: {
-                    retryAfterSeconds: exceeded.retryAfterSeconds,
-                    scope: exceeded.scope,
-                },
+        const payload = this.refusalPayload(body, {
+            code: RATE_LIMIT_ERROR_CODE,
+            message: exceeded.message,
+            data: {
+                retryAfterSeconds: exceeded.retryAfterSeconds,
+                scope: exceeded.scope,
             },
-        };
+        });
         res.send(JSON.stringify(payload));
     }
 
-    /** The id of the first message that carries one, or `null` if the body is all notifications. */
-    private firstRequestId(body: unknown): string | number | null {
-        const messages = Array.isArray(body) ? body : [body];
-        for (const message of messages) {
-            const id = (message as { id?: unknown } | null)?.id;
-            if (id !== undefined) {
-                return id as string | number | null;
+    /**
+     * Builds the body that refuses a request before the SDK sees it: one error per message with an
+     * id when the body is a batch, so the client can match each refusal, else a single error.
+     */
+    private refusalPayload(body: unknown, error: JsonRpcError['error']): JsonRpcError | JsonRpcError[] {
+        if (Array.isArray(body)) {
+            const errors = body
+                .filter(message => this.hasRequestId(message))
+                .map(message => ({
+                    jsonrpc: '2.0' as const,
+                    id: (message as { id: string | number | null }).id,
+                    error,
+                }));
+            if (errors.length > 0) {
+                return errors;
             }
         }
-        return null;
+        return { jsonrpc: '2.0', id: this.requestId(body), error };
+    }
+
+    /** True when a message carries an id JSON-RPC allows, so a reply can be addressed to it. */
+    private hasRequestId(message: unknown): boolean {
+        const id = (message as { id?: unknown } | null)?.id;
+        return typeof id === 'string' || typeof id === 'number' || id === null;
+    }
+
+    /** The message's own id, or `null` when it has none or one of an unusable type. */
+    private requestId(message: unknown): string | number | null {
+        return this.hasRequestId(message) ? (message as { id: string | number | null }).id : null;
     }
 
     private buildAuthInfo(

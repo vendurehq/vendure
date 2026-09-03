@@ -306,6 +306,35 @@ describe('McpPlugin logging options + retention task', () => {
         expect(warnSpy).not.toHaveBeenCalled();
         warnSpy.mockRestore();
     });
+
+    it('warns in production when no dnsRebinding allowlist is configured', () => {
+        McpPlugin.init({});
+        const previousNodeEnv = process.env.NODE_ENV;
+        process.env.NODE_ENV = 'production';
+        const warnSpy = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
+        try {
+            new McpPlugin({ isServer: true } as ProcessContext, {} as I18nService).onApplicationBootstrap();
+            expect(warnSpy).toHaveBeenCalledOnce();
+            expect(warnSpy.mock.calls[0][0]).toMatch(/dnsRebinding is not set/);
+        } finally {
+            warnSpy.mockRestore();
+            process.env.NODE_ENV = previousNodeEnv;
+        }
+    });
+
+    it('does not warn in production when an allowlist is configured', () => {
+        McpPlugin.init({ dnsRebinding: { allowedHosts: ['shop.example.com'] } });
+        const previousNodeEnv = process.env.NODE_ENV;
+        process.env.NODE_ENV = 'production';
+        const warnSpy = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
+        try {
+            new McpPlugin({ isServer: true } as ProcessContext, {} as I18nService).onApplicationBootstrap();
+            expect(warnSpy).not.toHaveBeenCalled();
+        } finally {
+            warnSpy.mockRestore();
+            process.env.NODE_ENV = previousNodeEnv;
+        }
+    });
 });
 
 describe('McpPlugin OAuth retention task', () => {

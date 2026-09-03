@@ -120,32 +120,9 @@ describe('McpOauthService metadata', () => {
 });
 
 describe('McpOauthService PKCE / grant gating', () => {
-    it('rejects a non-code response_type', async () => {
-        const service = createService({ oauth: { tokenSecret: 's' } });
-        await expect(
-            service.createAuthorizationRedirect({
-                response_type: 'token',
-                client_id: 'c',
-                redirect_uri: 'https://x/cb',
-                code_challenge: 'abc',
-                code_challenge_method: 'S256',
-            }),
-        ).rejects.toThrow('Only response_type=code is supported');
-    });
-
-    it('rejects a plain PKCE code_challenge_method (S256 only)', async () => {
-        const service = createService({ oauth: { tokenSecret: 's' } });
-        await expect(
-            service.createAuthorizationRedirect({
-                response_type: 'code',
-                client_id: 'c',
-                redirect_uri: 'https://x/cb',
-                code_challenge: 'abc',
-                code_challenge_method: 'plain',
-            }),
-        ).rejects.toThrow('Only PKCE S256 is supported');
-    });
-
+    // The response_type and PKCE checks now answer by redirecting to the registered
+    // redirect_uri, which needs a stored client, so they are covered by the e2e suite
+    // (oauth-edge.e2e-spec.ts) rather than here.
     it('rejects an unsupported grant_type at the token endpoint', async () => {
         const service = createService({ oauth: { tokenSecret: 's' } });
         await expect(service.exchangeToken({ grant_type: 'password' })).rejects.toThrow(
@@ -155,34 +132,20 @@ describe('McpOauthService PKCE / grant gating', () => {
 
     // With shopAccess disabled, resolveResource must not recognise the shop resource at all —
     // an authorize request naming it fails the same way it would for any unrecognised URL.
-    it('refuses an authorize request for the shop resource when shopAccess is disabled', async () => {
+    it('refuses the shop resource when shopAccess is disabled', () => {
         const service = createService({ oauth: { tokenSecret: 's' }, shopAccess: 'disabled' });
-        await expect(
-            service.createAuthorizationRedirect({
-                response_type: 'code',
-                client_id: 'c',
-                redirect_uri: 'https://x/cb',
-                code_challenge: 'abc',
-                code_challenge_method: 'S256',
-                resource: `${ISSUER}/mcp/shop`,
-            }),
-        ).rejects.toThrow('Unsupported OAuth resource');
+        expect(() => (service as any).resolveResource(`${ISSUER}/mcp/shop`)).toThrow(
+            'Unsupported OAuth resource',
+        );
     });
 
     // A resource with a query string gets the specific message, not the generic
     // "Unsupported OAuth resource" — the caller needs to know which part of the URL to fix.
-    it('names the query-string problem when an authorize request resource carries one', async () => {
+    it('names the query-string problem when a resource carries one', () => {
         const service = createService({ oauth: { tokenSecret: 's' } });
-        await expect(
-            service.createAuthorizationRedirect({
-                response_type: 'code',
-                client_id: 'c',
-                redirect_uri: 'https://x/cb',
-                code_challenge: 'abc',
-                code_challenge_method: 'S256',
-                resource: `${ISSUER}/mcp/shop?x=1`,
-            }),
-        ).rejects.toThrow('OAuth resource must not include query parameters or fragments');
+        expect(() => (service as any).resolveResource(`${ISSUER}/mcp/shop?x=1`)).toThrow(
+            'OAuth resource must not include query parameters or fragments',
+        );
     });
 });
 

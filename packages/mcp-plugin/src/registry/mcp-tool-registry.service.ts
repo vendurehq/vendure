@@ -342,6 +342,9 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         validateInput: boolean,
     ): Promise<CallToolResult> {
         const ctx = executionContext.ctx;
+        // The caller owns `executionContext`, and the transport reuses one object for every message
+        // in a batch, so a session resolved for this call is kept in a copy rather than written back.
+        let callContext: McpExecutionContext = executionContext;
         const rateLimited = await this.enforceRateLimitOrError(executionContext, toolset, name);
         if (rateLimited) {
             return rateLimited;
@@ -383,7 +386,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                 return this.errorResult(prepared.message);
             }
             toolInput = prepared.input;
-            executionContext.ctx = prepared.ctx;
+            callContext = { ...executionContext, ctx: prepared.ctx };
             sessionTokenForResult = prepared.sessionToken;
         }
         // The preview carries the token too, so the confirming call can act on the same cart.
@@ -397,15 +400,15 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         const startedAt = Date.now();
         try {
             const output = await tool.handler.execute(
-                executionContext.ctx,
+                callContext.ctx,
                 toolInput,
-                this.toCallerInfo(executionContext),
+                this.toCallerInfo(callContext),
             );
 
             if (isGraphQlErrorResult(output as GraphQLErrorResult | undefined)) {
                 const errorResult = { ...(output as GraphQLErrorResult) };
                 await this.toolCallLog.logToolCall({
-                    executionContext,
+                    executionContext: callContext,
                     tool,
                     input: toolInput,
                     output: errorResult,
@@ -415,7 +418,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
 
                 const messageKey = `errorResult.${errorResult.message}`;
                 const translated = this.translateForCaller(
-                    executionContext.ctx,
+                    callContext.ctx,
                     messageKey,
                     errorResult as unknown as Record<string, unknown>,
                 );
@@ -448,7 +451,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             const refuseAsError = overLimit && tool.resolvedBehavior === 'readonly';
             const refusalMessage = refuseAsError ? this.tooLargeMessage(tool, bytes) : undefined;
             await this.toolCallLog.logToolCall({
-                executionContext,
+                executionContext: callContext,
                 tool,
                 input: toolInput,
                 output: refusalMessage !== undefined ? { message: refusalMessage } : output,
@@ -467,7 +470,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             const callerSafe = this.isCallerSafeError(e);
             const callerMessage =
                 callerSafe && e instanceof I18nError
-                    ? this.translateForCaller(executionContext.ctx, e.message, e.variables)
+                    ? this.translateForCaller(callContext.ctx, e.message, e.variables)
                     : message;
             if (!callerSafe) {
                 Logger.error(
@@ -477,7 +480,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                 );
             }
             await this.toolCallLog.logToolCall({
-                executionContext,
+                executionContext: callContext,
                 tool,
                 input: toolInput,
                 // The real message always goes into the log row — it's operator-only data, only

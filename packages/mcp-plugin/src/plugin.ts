@@ -198,6 +198,21 @@ export class McpPlugin implements NestModule, OnApplicationBootstrap {
                 loggerCtx,
             );
         }
+        // Without an allowlist the endpoints answer any Host and Origin, which is what lets a
+        // page in a browser reach a server it should not.
+        const dnsRebinding = McpPlugin.options.dnsRebinding;
+        if (
+            process.env.NODE_ENV === 'production' &&
+            !dnsRebinding?.allowedHosts?.length &&
+            !dnsRebinding?.allowedOrigins?.length
+        ) {
+            Logger.warn(
+                'dnsRebinding is not set, so the MCP endpoints accept any Host and Origin header. ' +
+                    'Set dnsRebinding.allowedHosts and dnsRebinding.allowedOrigins for a server that ' +
+                    'browsers can reach.',
+                loggerCtx,
+            );
+        }
         const oauth = McpPlugin.options.oauth;
         if (!oauth) {
             return;

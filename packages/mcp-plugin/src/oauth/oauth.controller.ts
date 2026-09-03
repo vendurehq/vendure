@@ -2,6 +2,7 @@ import {
     Body,
     Controller,
     Get,
+    Header,
     HttpCode,
     Param,
     Post,
@@ -39,13 +40,19 @@ export class McpOauthController {
         return this.oauthService.protectedResourceMetadata(endpoint);
     }
 
+    // Every route below either carries or accepts a credential, so none of them may be cached
+    // (RFC 6749 section 5.1). The two metadata documents above are public and stay cacheable.
     @Post(OAUTH_ENDPOINT_PATHS.register)
+    @Header('Cache-Control', 'no-store')
+    @Header('Pragma', 'no-cache')
     register(@Body() body: unknown) {
         const input = parseOAuthInput(registerClientInputSchema, body, 'invalid_client_metadata');
         return this.oauthService.registerClient(input);
     }
 
     @Get(OAUTH_ENDPOINT_PATHS.authorize)
+    @Header('Cache-Control', 'no-store')
+    @Header('Pragma', 'no-cache')
     async authorize(@Query() query: unknown, @Res() res: Response): Promise<void> {
         const input = parseOAuthInput(authorizeInputSchema, query, 'invalid_request');
         const redirectUrl = await this.oauthService.createAuthorizationRedirect(input);
@@ -53,6 +60,8 @@ export class McpOauthController {
     }
 
     @Get(OAUTH_ENDPOINT_PATHS.authorizationRequest)
+    @Header('Cache-Control', 'no-store')
+    @Header('Pragma', 'no-cache')
     authorizationRequest(@Query('request_token') requestToken: unknown) {
         const token = parseOAuthInput(z.string().optional(), requestToken, 'invalid_request');
         return this.oauthService.getAuthorizationRequestInfo(token);
@@ -62,6 +71,8 @@ export class McpOauthController {
     // @Post default of 201.
     @Post(OAUTH_ENDPOINT_PATHS.token)
     @HttpCode(200)
+    @Header('Cache-Control', 'no-store')
+    @Header('Pragma', 'no-cache')
     token(@Body() body: unknown) {
         const input = parseOAuthInput(tokenInputSchema, body, 'invalid_request');
         return this.oauthService.exchangeToken(input);
@@ -69,6 +80,8 @@ export class McpOauthController {
 
     @Post(OAUTH_ENDPOINT_PATHS.revoke)
     @HttpCode(200)
+    @Header('Cache-Control', 'no-store')
+    @Header('Pragma', 'no-cache')
     revoke(@Body() body: unknown) {
         // RFC 7009 §2.2 leaves revocation no way to report a bad token, so a token that is not
         // a string is treated as no token at all and the route still answers 200.

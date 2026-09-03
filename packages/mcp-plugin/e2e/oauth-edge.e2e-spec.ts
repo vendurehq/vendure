@@ -227,6 +227,63 @@ describe('McpPlugin OAuth edge & security cases', () => {
         expect(await res.text()).toMatch(/redirect_uri is not registered/i);
     });
 
+    // Once the redirect_uri is known to belong to the client, a bad request is reported by
+    // redirecting there. Only the client that started the flow sees that; an HTTP error page
+    // would be shown to the browser and leave the client waiting.
+    describe('authorize errors that redirect instead of answering with an HTTP error', () => {
+        const redirectUri = 'https://example.com/redirect-errors';
+        let clientId: string;
+
+        beforeAll(async () => {
+            const registerRes = await registerClient({
+                baseUrl: baseUrl(),
+                body: {
+                    client_name: `redirect-errors-${Math.random().toString(36).slice(2)}`,
+                    redirect_uris: [redirectUri],
+                },
+            });
+            ({ client_id: clientId } = (await registerRes.json()) as { client_id: string });
+        });
+
+        /** Runs authorize with the registered client and returns the redirect target it answers with. */
+        const authorizeWith = async (params: Record<string, string>) => {
+            const { code_challenge } = pkcePair();
+            const res = await authorize({
+                baseUrl: baseUrl(),
+                params: {
+                    response_type: 'code',
+                    client_id: clientId,
+                    redirect_uri: redirectUri,
+                    code_challenge,
+                    code_challenge_method: 'S256',
+                    resource: `${ISSUER}/mcp/admin`,
+                    state: 'abc',
+                    ...params,
+                },
+            });
+            expect(res.status).toBe(302);
+            const location = new URL(res.headers.get('location') as string);
+            expect(`${location.origin}${location.pathname}`).toBe(redirectUri);
+            expect(location.searchParams.get('state')).toBe('abc');
+            return location;
+        };
+
+        it('redirects with unsupported_response_type for a non-code response_type', async () => {
+            const location = await authorizeWith({ response_type: 'token' });
+            expect(location.searchParams.get('error')).toBe('unsupported_response_type');
+        });
+
+        it('redirects with invalid_request for a plain PKCE method', async () => {
+            const location = await authorizeWith({ code_challenge_method: 'plain' });
+            expect(location.searchParams.get('error')).toBe('invalid_request');
+        });
+
+        it('redirects with invalid_target for a resource that is neither toolset', async () => {
+            const location = await authorizeWith({ resource: `${ISSUER}/mcp/nothing` });
+            expect(location.searchParams.get('error')).toBe('invalid_target');
+        });
+    });
+
     it('rejects token exchange when redirect_uri does not match the authorization code', async () => {
         const oauth = server.app.get(McpOauthService);
         const flow = await authorizeAdminToCode({ redirectUri: 'https://example.com/code-uri' });
@@ -266,8 +323,11 @@ describe('McpPlugin OAuth edge & security cases', () => {
                 // Deliberately omit the `resource` parameter.
             },
         });
-        expect(res.status).toBe(400);
-        expect(await res.text()).toMatch(/resource is required/i);
+        // The redirect_uri belongs to the client, so the refusal is reported by redirecting there.
+        expect(res.status).toBe(302);
+        const location = new URL(res.headers.get('location') as string);
+        expect(location.searchParams.get('error')).toBe('invalid_target');
+        expect(location.searchParams.get('error_description')).toMatch(/resource is required/i);
     });
 
     it('rejects token exchange when the resource is missing', async () => {
