@@ -29,7 +29,7 @@ import { OAUTH_ENDPOINT_PATHS } from '../oauth/endpoint-paths';
 import { isLoopbackHostname } from '../oauth/loopback';
 
 import { TooltipButton } from './components/tooltip-button';
-import { authorizeMcpClientDocument } from './mcp.graphql';
+import { authorizeMcpClientMutation } from './mcp.graphql';
 
 /**
  * Shape returned by the `/mcp/oauth/authorization-request` REST endpoint. Mirrors
@@ -184,11 +184,8 @@ function ConsentDetails({
     const isCimdClient = info.client_id_source === 'cimd';
     // For a CIMD client the address is the client_id URL its metadata was fetched from; for
     // any other client it is whatever URI the client reported at registration.
-    const clientDomain = isCimdClient
-        ? (hostnameOf(info.client_id) ?? info.client_id)
-        : info.client_uri
-          ? (hostnameOf(info.client_uri) ?? info.client_uri)
-          : null;
+    const clientAddress = isCimdClient ? info.client_id : info.client_uri;
+    const clientDomain = clientAddress ? (hostnameOf(clientAddress) ?? clientAddress) : null;
     const scope = scopePresentation(info.toolset, signedInAccount);
     // Amber is reserved for a destination worth a second look: a client whose hostname Vendure
     // could not check itself, a plain-http address, one on the local machine, or one on a
@@ -331,7 +328,7 @@ function ConsentCard({ requestToken }: { requestToken: string }) {
     });
 
     const authorize = useMutation({
-        mutationFn: (approved: boolean) => api.mutate(authorizeMcpClientDocument, { requestToken, approved }),
+        mutationFn: (approved: boolean) => api.mutate(authorizeMcpClientMutation, { requestToken, approved }),
         onSuccess: data => {
             window.location.href = data.authorizeMcpClient.redirectUrl;
         },

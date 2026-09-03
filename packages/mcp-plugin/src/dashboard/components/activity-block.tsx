@@ -1,5 +1,5 @@
 import { Trans } from '@lingui/react/macro';
-import { Badge, PaginatedListDataTable } from '@vendure/dashboard';
+import { Badge, PaginatedListDataTable, type ResultOf } from '@vendure/dashboard';
 
 import { mcpToolCallLogsQuery } from '../mcp.graphql';
 
@@ -7,8 +7,10 @@ import { ActorCell } from './actor-cell';
 import { EmptyCell } from './empty-cell';
 import { useMcpTableState } from './use-mcp-table-state';
 
-function CallStatusBadge({ status }: { status: string }) {
-    const variant = status === 'success' ? 'success' : status === 'error' ? 'destructive' : 'secondary';
+type CallLog = ResultOf<typeof mcpToolCallLogsQuery>['mcpToolCallLogs']['items'][number];
+
+function CallStatusBadge({ status }: { status: CallLog['status'] }) {
+    const variant = status === 'success' ? 'success' : 'destructive';
     return <Badge variant={variant}>{status}</Badge>;
 }
 

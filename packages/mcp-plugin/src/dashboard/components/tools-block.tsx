@@ -20,7 +20,7 @@ import {
 import { InfoIcon, TriangleAlert } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import { mcpServerConfigQuery, mcpToolsQuery, setMcpToolEnabledDocument } from '../mcp.graphql';
+import { mcpServerConfigQuery, mcpToolsQuery, setMcpToolEnabledMutation } from '../mcp.graphql';
 
 import { TooltipButton } from './tooltip-button';
 import { useMcpColumnVisibility } from './use-mcp-table-state';
@@ -83,7 +83,7 @@ export function ToolsBlock() {
 
     const toggle = useMutation({
         mutationFn: (vars: { toolName: string; toolset: McpTool['toolset']; enabled: boolean }) =>
-            api.mutate(setMcpToolEnabledDocument, vars),
+            api.mutate(setMcpToolEnabledMutation, vars),
         // Flip the switch in the cached list immediately so it doesn't sit in its
         // old position until the refetch lands. Rolled back if the server rejects.
         onMutate: async vars => {

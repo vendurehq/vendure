@@ -1,7 +1,7 @@
 import { graphql } from '@/gql';
 
 /**
- * Every request the MCP Server dashboard page sends. The Admin API schema supplies the reply
+ * Every request the MCP Server dashboard pages send. The Admin API schema supplies the reply
  * and variable types, so a change to `src/api/api-extensions.ts` that these requests do not
  * match stops the dashboard code compiling.
  */
@@ -91,23 +91,21 @@ export const mcpOauthGrantsQuery = graphql(`
     }
 `);
 
-export const setMcpToolEnabledDocument = graphql(`
+export const setMcpToolEnabledMutation = graphql(`
     mutation SetMcpToolEnabled($toolName: String!, $toolset: McpToolset!, $enabled: Boolean!) {
         setMcpToolEnabled(toolName: $toolName, toolset: $toolset, enabled: $enabled) {
-            name
-            toolset
             enabled
         }
     }
 `);
 
-export const revokeMcpOauthGrantDocument = graphql(`
+export const revokeMcpOauthGrantMutation = graphql(`
     mutation RevokeMcpOauthGrant($id: ID!) {
         revokeMcpOauthGrant(id: $id)
     }
 `);
 
-export const authorizeMcpClientDocument = graphql(`
+export const authorizeMcpClientMutation = graphql(`
     mutation AuthorizeMcpClient($requestToken: String!, $approved: Boolean!) {
         authorizeMcpClient(requestToken: $requestToken, approved: $approved) {
             redirectUrl

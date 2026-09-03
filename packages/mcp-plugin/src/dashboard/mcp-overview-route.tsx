@@ -10,7 +10,7 @@ import {
     PermissionGuard,
 } from '@vendure/dashboard';
 
-import { ConnectionDialog } from './components/connection-block';
+import { ConnectionDialog } from './components/connection-dialog';
 import { StatsBlock } from './components/stats-block';
 
 export const mcpOverviewRoute: DashboardRouteDefinition = {

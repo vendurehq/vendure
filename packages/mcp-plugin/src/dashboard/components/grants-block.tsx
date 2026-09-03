@@ -12,6 +12,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
     PaginatedListDataTable,
+    type ResultOf,
     toast,
     useMutation,
     usePermissions,
@@ -20,14 +21,16 @@ import {
 import { BanIcon, EllipsisIcon, InfoIcon } from 'lucide-react';
 import { useRef } from 'react';
 
-import { mcpOauthGrantsQuery, mcpServerConfigQuery, revokeMcpOauthGrantDocument } from '../mcp.graphql';
+import { mcpOauthGrantsQuery, mcpServerConfigQuery, revokeMcpOauthGrantMutation } from '../mcp.graphql';
 
 import { ActorCell } from './actor-cell';
 import { EmptyCell } from './empty-cell';
 import { useMcpTableState } from './use-mcp-table-state';
 
+type Grant = ResultOf<typeof mcpOauthGrantsQuery>['mcpOauthGrants']['items'][number];
+
 /** Shows the status value the server sent: "active", "expired" or "revoked". */
-function GrantStatusBadge({ status }: { status: string }) {
+function GrantStatusBadge({ status }: { status: Grant['status'] }) {
     if (status === 'revoked') {
         return (
             <Badge variant="destructive">
@@ -75,7 +78,7 @@ export function GrantsBlock() {
     const oauthMissing = configData?.mcpServerConfig.oauthConfigured === false;
 
     const revoke = useMutation({
-        mutationFn: (vars: { id: string }) => api.mutate(revokeMcpOauthGrantDocument, vars),
+        mutationFn: (vars: { id: string }) => api.mutate(revokeMcpOauthGrantMutation, vars),
         onSuccess: result => {
             if (result.revokeMcpOauthGrant) {
                 toast.success(t`Grant revoked`);
