@@ -77,6 +77,15 @@ type ToolCallAdmission =
     | { kind: 'refused'; result: CallToolResult }
     | { kind: 'admitted'; tool: McpRegisteredTool; input: Record<string, unknown> };
 
+interface ToolCallOptions {
+    /**
+     * Whether to validate the arguments against the tool's own schema. The MCP SDK has already
+     * done that for a direct `tools/call`, but not for an in-process call or for the inner
+     * arguments of an `execute_tool` envelope.
+     */
+    validateInput: boolean;
+}
+
 /**
  * @description
  * Single source of truth for discovered `@McpTool` providers. It discovers tools at bootstrap,
@@ -127,8 +136,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         if (this.options.toolExposure === 'discovery') {
             return this.discoveryMetaTools;
         }
-        const toggles = await this.getToolToggles(executionContext.ctx);
-        return this.visibleTools(executionContext.ctx, toolset, toggles);
+        return this.visibleTools(executionContext.ctx, toolset);
     }
 
     /**
@@ -150,15 +158,21 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                 return this.searchTools(executionContext, toolset, input);
             }
             if (name === EXECUTE_TOOL) {
-                return this.callToolFromEnvelope(executionContext, toolset, input);
+                // The SDK validated only the envelope, so the tool's own arguments are validated here.
+                const { name: innerName, arguments: args } = input as {
+                    name: string;
+                    arguments?: Record<string, unknown>;
+                };
+                return this.callRegisteredTool(executionContext, toolset, innerName, args ?? {}, {
+                    validateInput: true,
+                });
             }
         }
-        return this.callRegisteredTool(executionContext, toolset, name, input, false);
+        return this.callRegisteredTool(executionContext, toolset, name, input, { validateInput: false });
     }
 
     async getCallableTools(ctx: RequestContext, toolset: McpToolset): Promise<McpToolSummary[]> {
-        const toggles = await this.getToolToggles(ctx);
-        return this.visibleTools(ctx, toolset, toggles).map(tool => this.toolSummary(tool));
+        return (await this.visibleTools(ctx, toolset)).map(tool => this.toolSummary(tool));
     }
 
     /**
@@ -174,7 +188,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         name: string,
         input: unknown,
     ): Promise<CallToolResult> {
-        return this.callRegisteredTool(executionContext, toolset, name, input, true);
+        return this.callRegisteredTool(executionContext, toolset, name, input, { validateInput: true });
     }
 
     async getToolToggles(ctx: RequestContext): Promise<Record<string, boolean>> {
@@ -261,6 +275,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     ): McpRegisteredTool {
         this.assertValidToolMetadata(metadata);
         const resolvedBehavior = metadata.behavior ?? 'mutating';
+        const acceptsSessionToken = this.acceptsSessionToken(metadata);
         const schemas = this.toolSchema.prepareToolSchemas({
             toolName: metadata.name,
             pluginSource,
@@ -268,7 +283,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             outputSchema: metadata.outputSchema,
             injectedFields: {
                 confirm: resolvedBehavior === 'destructive',
-                sessionToken: this.acceptsSessionToken(metadata),
+                sessionToken: acceptsSessionToken,
             },
         });
         return {
@@ -276,6 +291,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             handler,
             pluginSource,
             resolvedBehavior,
+            acceptsSessionToken,
             annotations: this.deriveAnnotations(metadata, resolvedBehavior),
             ...schemas,
         };
@@ -353,12 +369,12 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         toolset: McpToolset,
         name: string,
         input: unknown,
-        validateInput: boolean,
+        options: ToolCallOptions,
     ): Promise<CallToolResult> {
         // The caller owns `executionContext`, and the transport reuses one object for every message
         // in a batch, so a session resolved for this call is kept in a copy rather than written back.
         let callContext: McpExecutionContext = executionContext;
-        const admission = await this.admitToolCall(executionContext, toolset, name, input, validateInput);
+        const admission = await this.admitToolCall(executionContext, toolset, name, input, options);
         if (admission.kind === 'refused') {
             return admission.result;
         }
@@ -370,7 +386,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         // Active-order tools exchange the registry-owned sessionToken argument for the context the
         // handler acts on. The prepared input no longer contains the credential, so logs do not either.
         let sessionTokenForResult: string | undefined;
-        if (this.acceptsSessionToken(tool)) {
+        if (tool.acceptsSessionToken) {
             const prepared = await this.shopSession.prepareToolCall({
                 ctx: executionContext.ctx,
                 input: toolInput,
@@ -446,7 +462,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         toolset: McpToolset,
         name: string,
         input: unknown,
-        validateInput: boolean,
+        options: ToolCallOptions,
     ): Promise<ToolCallAdmission> {
         const ctx = executionContext.ctx;
         const rateLimited = await this.rateLimiter.checkRateLimit({
@@ -465,14 +481,14 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         if (!this.isToolEnabled(tool, toggles)) {
             return { kind: 'refused', result: this.errorResult(`MCP tool is disabled: ${name}`) };
         }
-        if (!this.hasPermissions(ctx, tool.permissions ?? [Permission.Public])) {
+        if (!this.hasPermissions(ctx, tool)) {
             return {
                 kind: 'refused',
                 result: this.errorResult(`You do not have permission to call MCP tool: ${name}`),
             };
         }
         let toolInput: Record<string, unknown> = (input ?? {}) as Record<string, unknown>;
-        if (validateInput) {
+        if (options.validateInput) {
             const validated = await this.toolSchema.validate(tool.compiledInputSchema, toolInput);
             if (!validated.ok) {
                 return {
@@ -565,21 +581,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         return this.successResult(result, text);
     }
 
-    /**
-     * Handles `execute_tool` calls by unwrapping the envelope and routing to a tool.
-     *
-     * Rate limiting is applied before tool lookup so even invalid calls are counted.
-     * Inner arguments are then validated against the tool schema.
-     */
-    private async callToolFromEnvelope(
-        executionContext: McpExecutionContext,
-        toolset: McpToolset,
-        input: unknown,
-    ): Promise<CallToolResult> {
-        const { name, arguments: args } = input as { name: string; arguments?: Record<string, unknown> };
-        return this.callRegisteredTool(executionContext, toolset, name, args ?? {}, true);
-    }
-
     private async searchTools(
         executionContext: McpExecutionContext,
         toolset: McpToolset,
@@ -601,15 +602,14 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             Math.max(typeof params.limit === 'number' ? params.limit : SEARCH_DEFAULT_LIMIT, 1),
             SEARCH_MAX_LIMIT,
         );
-        const toggles = await this.getToolToggles(executionContext.ctx);
-        const tools = this.visibleTools(executionContext.ctx, toolset, toggles);
+        const tools = await this.visibleTools(executionContext.ctx, toolset);
         const index = this.bm25.get(toolset);
         const matches = tools
             .map(tool => ({
                 tool,
                 score: query.length === 0 ? 1 : (index?.score(tool.name, query) ?? 0),
             }))
-            .filter(item => query.length === 0 || item.score > 0)
+            .filter(item => item.score > 0)
             .sort((a, b) => b.score - a.score || a.tool.name.localeCompare(b.tool.name))
             .slice(0, limit)
             .map(item => this.toolSummary(item.tool));
@@ -705,15 +705,12 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         ];
     }
 
-    private visibleTools(
-        ctx: RequestContext,
-        toolset: McpToolset,
-        toggles: Record<string, boolean>,
-    ): McpRegisteredTool[] {
+    private async visibleTools(ctx: RequestContext, toolset: McpToolset): Promise<McpRegisteredTool[]> {
+        const toggles = await this.getToolToggles(ctx);
         return [...this.tools.values()]
             .filter(tool => tool.toolset === toolset)
             .filter(tool => this.isToolEnabled(tool, toggles))
-            .filter(tool => this.hasPermissions(ctx, tool.permissions ?? [Permission.Public]))
+            .filter(tool => this.hasPermissions(ctx, tool))
             .sort((a, b) => a.name.localeCompare(b.name));
     }
 
@@ -726,7 +723,8 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         };
     }
 
-    private hasPermissions(ctx: RequestContext, permissions: Permission[]): boolean {
+    private hasPermissions(ctx: RequestContext, tool: Pick<McpRegisteredTool, 'permissions'>): boolean {
+        const permissions = tool.permissions ?? [];
         if (this.isPubliclyCallable(permissions)) {
             return true;
         }

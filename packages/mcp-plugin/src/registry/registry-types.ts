@@ -16,6 +16,11 @@ export interface McpRegisteredTool extends McpToolMetadata {
     /** MCP annotations derived from behavior; surfaced to the agent in `tools/list` and `search_tools`. */
     annotations: ToolAnnotations;
     /**
+     * Whether the wire schema carries the registry-owned `sessionToken` argument. Decided once at
+     * discovery, so the advertised schema and the call-time session exchange cannot disagree.
+     */
+    acceptsSessionToken: boolean;
+    /**
      * The tool's original input schema. Derived once during discovery from the tool's
      * `inputSchema`, or a default no-args schema when none is provided. This schema is
      * never modified; additional fields are added to a separate copy for the wire schema.
