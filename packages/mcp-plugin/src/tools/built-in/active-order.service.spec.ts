@@ -38,7 +38,7 @@ function cartCtx(currencyCode = 'USD', activeOrderId?: string): FakeCtx {
     return new FakeCtx(currencyCode, { id: 's1', token: 't1', activeOrderId });
 }
 
-/** A ctx carrying a session, which find/findWithLines require before touching core. */
+/** A ctx carrying a session, which find/findOrderWithLines require before touching core. */
 const ctxWithSession = cartCtx() as never;
 
 /**
@@ -139,7 +139,7 @@ describe('McpActiveOrderService', () => {
         });
     });
 
-    it.each(['find', 'findWithLines'] as const)(
+    it.each(['find', 'findOrderWithLines'] as const)(
         '%s returns undefined without touching core when the ctx has no session',
         async method => {
             const activeOrderService = { getActiveOrder: vi.fn() };
@@ -378,7 +378,7 @@ describe('McpActiveOrderService', () => {
         });
     });
 
-    describe('findWithLines', () => {
+    describe('findOrderWithLines', () => {
         it('returns undefined without fetching relations when no active order exists', async () => {
             const activeOrderService = {
                 getActiveOrder: vi.fn().mockResolvedValue(undefined),
@@ -392,7 +392,7 @@ describe('McpActiveOrderService', () => {
                 connectionStub() as never,
             );
 
-            const result = await service.findWithLines(ctxWithSession);
+            const result = await service.findOrderWithLines(ctxWithSession);
 
             expect(result).toBeUndefined();
             expect(activeOrderService.getActiveOrder).toHaveBeenCalledWith(ctxWithSession, undefined);
@@ -414,7 +414,7 @@ describe('McpActiveOrderService', () => {
                 connectionStub() as never,
             );
 
-            const result = await service.findWithLines(ctxWithSession);
+            const result = await service.findOrderWithLines(ctxWithSession);
 
             expect(orderService.findOne).toHaveBeenCalledWith(ctxWithSession, '1', [
                 'lines',
@@ -441,7 +441,7 @@ describe('McpActiveOrderService', () => {
                 connectionStub() as never,
             );
 
-            const result = await service.findWithLines(ctxWithSession);
+            const result = await service.findOrderWithLines(ctxWithSession);
 
             expect(result).toBe(activeOrder);
         });

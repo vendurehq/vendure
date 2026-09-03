@@ -132,7 +132,7 @@ export class McpActiveOrderService {
         return cartIsEditable(cart) ? cart : new OrderModificationError();
     }
 
-    async findWithLines(ctx: RequestContext): Promise<Order | undefined> {
+    async findOrderWithLines(ctx: RequestContext): Promise<Order | undefined> {
         const order = await this.activeOrder(ctx);
         if (!order) {
             return undefined;
