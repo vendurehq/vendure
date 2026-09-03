@@ -175,6 +175,45 @@ export class McpTransportController {
         const token = this.getBearerToken(this.getHeader(req.headers, 'authorization'));
         const clientIp = getClientIp(req);
 
+        const executionContext = await this.resolveCaller(toolset, req, res, body, token, clientIp);
+        if (!executionContext) {
+            return;
+        }
+
+        const contentType = this.getHeader(req.headers, 'content-type') ?? '';
+        const isJson = isJsonContentType(contentType);
+        const parsedBody = isJson ? body : undefined;
+        // Charged for every content type, including the ones the SDK will refuse: resolving the
+        // caller above already cost a database round trip, so an unusable body must still be metered.
+        const preCheckExceeded = await this.preCheckHandshakeRateLimit(body, toolset, executionContext);
+        if (preCheckExceeded) {
+            this.sendRateLimitError(res, body, preCheckExceeded);
+            return;
+        }
+
+        if (isJson && this.callsSubscriptionsListen(body)) {
+            this.sendSubscriptionsUnsupported(res, body);
+            return;
+        }
+
+        (req as Request & { auth?: AuthInfo }).auth = this.buildAuthInfo(executionContext, toolset, token);
+        await this.nodeHandler(req, res, parsedBody);
+    }
+
+    /**
+     * Works out who is calling and whether they may: the shop-access policy, the two
+     * pre-authentication rate-limit gates, the admin token requirement, and the OAuth or
+     * anonymous-shop context. Returns undefined when it has already written the refusal
+     * response, the same convention the DNS-rebinding guards use.
+     */
+    private async resolveCaller(
+        toolset: McpToolset,
+        req: I18nRequest,
+        res: Response,
+        body: unknown,
+        token: string | undefined,
+        clientIp: string | undefined,
+    ): Promise<McpExecutionContext | undefined> {
         if (toolset === 'shop' && this.options.shopAccess === 'authenticated' && !token) {
             this.setAuthChallenge(res, 'shop');
             throw new UnauthorizedException('Shop MCP endpoint requires a Bearer token');
@@ -185,7 +224,7 @@ export class McpTransportController {
             const exceeded = await this.rateLimiter.checkAnonymousIpRateLimit(toolset, clientIp);
             if (exceeded) {
                 this.sendRateLimitError(res, body, exceeded);
-                return;
+                return undefined;
             }
         }
 
@@ -195,7 +234,7 @@ export class McpTransportController {
             const exceeded = await this.rateLimiter.checkBearerAuthFailureRateLimit(clientIp);
             if (exceeded) {
                 this.sendRateLimitError(res, body, exceeded);
-                return;
+                return undefined;
             }
         }
 
@@ -228,24 +267,7 @@ export class McpTransportController {
             }
         }
 
-        const contentType = this.getHeader(req.headers, 'content-type') ?? '';
-        const isJson = isJsonContentType(contentType);
-        const parsedBody = isJson ? body : undefined;
-        // Charged for every content type, including the ones the SDK will refuse: resolving the
-        // caller above already cost a database round trip, so an unusable body must still be metered.
-        const preCheckExceeded = await this.preCheckHandshakeRateLimit(body, toolset, executionContext);
-        if (preCheckExceeded) {
-            this.sendRateLimitError(res, body, preCheckExceeded);
-            return;
-        }
-
-        if (isJson && this.callsSubscriptionsListen(body)) {
-            this.sendSubscriptionsUnsupported(res, body);
-            return;
-        }
-
-        (req as Request & { auth?: AuthInfo }).auth = this.buildAuthInfo(executionContext, toolset, token);
-        await this.nodeHandler(req, res, parsedBody);
+        return executionContext;
     }
 
     /** True when any message in the body asks to open a subscription stream. */
