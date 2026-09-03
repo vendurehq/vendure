@@ -146,6 +146,19 @@ describe('McpShopSessionService', () => {
             });
         });
 
+        it('refuses a sessionToken argument when the context already belongs to a signed-in user (in-process call)', async () => {
+            const { service, sessionService } = build();
+            sessionService.getSessionFromToken.mockResolvedValue({ ...ANON_SESSION });
+            const outcome = await service.resolveForToolCall({
+                ctx: fakeCtx({ session: { id: 's1', token: 'customer-token', user: { id: 7 } } }),
+                sessionToken: 'anon-token',
+                isOAuthCall: false,
+                toolWritesToCart: true,
+            });
+            expect(outcome).toEqual({ kind: 'refused', message: expect.stringMatching(/omit it/i) });
+            expect(sessionService.getSessionFromToken).not.toHaveBeenCalled();
+        });
+
         it('resolves a valid anonymous token to a copied context carrying the session, and echoes the token', async () => {
             const { service, sessionService } = build();
             const session = { id: 's1', token: 'existing-token', expires: new Date(Date.now() + 60_000) };

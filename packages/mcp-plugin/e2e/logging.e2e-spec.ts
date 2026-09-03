@@ -289,6 +289,38 @@ describe('MCP tool-call log input/output permission gating (full capture)', () =
         expect(row.clientIp).toBeNull();
     });
 
+    it('an admin without ReadCustomer cannot filter or sort the list by clientIp', async () => {
+        const limitedToken = await provisionAdmin(
+            { adminClient, adminApiUrl: adminApiUrl(), channelId: defaultChannelGqlId },
+            'mcp-read-only-log-filter',
+            ['ReadMcpServer'],
+        );
+
+        const filtered = await adminGraphQL(limitedToken, MCP_TOOL_CALL_LOGS_WITH_BODIES_QUERY, {
+            options: { filter: { clientIp: { isNull: false } } },
+        });
+        expect(filtered.errors?.[0]?.extensions?.code).toBe('FORBIDDEN');
+        expect(filtered.data?.mcpToolCallLogs ?? null).toBeNull();
+
+        const nested = await adminGraphQL(limitedToken, MCP_TOOL_CALL_LOGS_WITH_BODIES_QUERY, {
+            options: { filter: { _or: [{ toolName: { eq: 'shop_ping' } }, { clientIp: { isNull: false } }] } },
+        });
+        expect(nested.errors?.[0]?.extensions?.code).toBe('FORBIDDEN');
+
+        const sorted = await adminGraphQL(limitedToken, MCP_TOOL_CALL_LOGS_WITH_BODIES_QUERY, {
+            options: { sort: { clientIp: 'ASC' } },
+        });
+        expect(sorted.errors?.[0]?.extensions?.code).toBe('FORBIDDEN');
+    });
+
+    it('the superadmin, who holds ReadCustomer, can filter by clientIp', async () => {
+        const result = await adminGraphQL(superAdminToken, MCP_TOOL_CALL_LOGS_WITH_BODIES_QUERY, {
+            options: { filter: { clientIp: { isNull: false } }, take: 1 },
+        });
+        expect(result.errors).toBeUndefined();
+        expect(result.data.mcpToolCallLogs.totalItems).toBeGreaterThan(0);
+    });
+
     it('the superadmin, who holds ReadCustomer, sees the actual bodies and clientIp', async () => {
         const result = await adminGraphQL(superAdminToken, MCP_TOOL_CALL_LOGS_WITH_BODIES_QUERY, {
             options: { filter: { toolName: { eq: 'shop_ping' } }, take: 1 },

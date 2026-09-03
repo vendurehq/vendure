@@ -4,6 +4,7 @@ import {
     Allow,
     CacheService,
     Ctx,
+    ForbiddenError,
     ID,
     ListQueryBuilder,
     ListQueryOptions,
@@ -66,12 +67,12 @@ interface McpServerConfig {
     issuer: string | null;
 }
 
-const STATS_TIME_RANGE_HOURS: Record<string, number> = {
-    '1h': 1,
-    '24h': 24,
-    '7d': 24 * 7,
-    '30d': 24 * 30,
-};
+const STATS_TIME_RANGE_HOURS = new Map<string, number>([
+    ['1h', 1],
+    ['24h', 24],
+    ['7d', 24 * 7],
+    ['30d', 24 * 30],
+]);
 
 const STATS_CACHE_TTL_MS = 60_000;
 
@@ -122,6 +123,13 @@ export class McpAdminResolver {
         @Ctx() ctx: RequestContext,
         @Args() args: { options?: ListQueryOptions<McpToolCallLog> },
     ): Promise<{ items: McpToolCallLog[]; totalItems: number }> {
+        // Filtering or sorting by clientIp would reveal the addresses the field resolver hides.
+        if (
+            !ctx.userHasPermissions([Permission.ReadCustomer]) &&
+            listOptionsUseField(args.options, 'clientIp')
+        ) {
+            throw new ForbiddenError();
+        }
         const qb = this.listQueryBuilder.build(McpToolCallLog, args.options ?? undefined, {
             ctx,
             entityAlias: 'log',
@@ -136,10 +144,10 @@ export class McpAdminResolver {
     @Allow(mcpServerPermission.Read)
     async mcpStats(@Ctx() ctx: RequestContext, @Args() args: { timeRange?: string }): Promise<McpStats> {
         const timeRange = args.timeRange ?? '24h';
-        const hours = STATS_TIME_RANGE_HOURS[timeRange];
+        const hours = STATS_TIME_RANGE_HOURS.get(timeRange);
         if (hours == null) {
             throw new UserInputError(
-                `Invalid timeRange "${timeRange}" - use one of ${Object.keys(STATS_TIME_RANGE_HOURS).join(', ')}`,
+                `Invalid timeRange "${timeRange}" - use one of ${Array.from(STATS_TIME_RANGE_HOURS.keys()).join(', ')}`,
             );
         }
         const cacheKey = `mcp:stats:${String(ctx.channelId)}:${timeRange}`;
@@ -324,6 +332,27 @@ export class McpAdminResolver {
 /** A field that holds personal data: visible only with ReadCustomer on top of the MCP read permission. */
 function personalField<T>(ctx: RequestContext, value: T): T | null {
     return ctx.userHasPermissions([Permission.ReadCustomer]) ? value : null;
+}
+
+/** True when the list options sort by the field or filter on it, including inside nested `_and` / `_or` groups. */
+function listOptionsUseField(options: ListQueryOptions<McpToolCallLog> | undefined, field: string): boolean {
+    if (options?.sort && field in options.sort) {
+        return true;
+    }
+    return filterUsesField(options?.filter, field);
+}
+
+function filterUsesField(filter: unknown, field: string): boolean {
+    if (!filter || typeof filter !== 'object') {
+        return false;
+    }
+    const { _and, _or, ...fields } = filter as Record<string, unknown>;
+    if (field in fields) {
+        return true;
+    }
+    return [_and, _or].some(
+        group => Array.isArray(group) && group.some(item => filterUsesField(item, field)),
+    );
 }
 
 /**

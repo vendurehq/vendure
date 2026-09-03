@@ -18,6 +18,7 @@ export class ShopPingTool implements McpToolHandler {
             sessionId: ctx.session?.id ?? null,
             sessionToken: ctx.session?.token ?? null,
             channelId: ctx.channelId ?? null,
+            languageCode: ctx.languageCode,
         };
     }
 }

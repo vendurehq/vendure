@@ -7,8 +7,8 @@ const REFUSAL = {
     unknownToken:
         'This sessionToken is not valid or has expired. Retry the call without sessionToken; ' +
         'a tool that writes to the cart will start a new cart and return a new sessionToken.',
-    oauthCall:
-        'This call is authenticated, so it already acts on the customer behind the OAuth grant. ' +
+    authenticatedCall:
+        'This call is authenticated, so it already acts on the signed-in customer. ' +
         'sessionToken is only for anonymous shop access, omit it.',
 };
 
@@ -87,7 +87,13 @@ export class McpShopSessionService {
 
         // An OAuth call already acts on the customer behind the grant; a token argument is a mistake.
         if (call.isOAuthCall) {
-            return sessionToken ? refused(REFUSAL.oauthCall) : { kind: 'unchanged' };
+            return sessionToken ? refused(REFUSAL.authenticatedCall) : { kind: 'unchanged' };
+        }
+
+        // An in-process call whose context already belongs to a signed-in customer must not be
+        // swapped to an anonymous cart by a token the model kept from before the customer logged in.
+        if (sessionToken && call.ctx.activeUserId != null) {
+            return refused(REFUSAL.authenticatedCall);
         }
 
         // An explicit token must name a live anonymous session.

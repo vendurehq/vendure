@@ -424,6 +424,12 @@ describe('MCP admin API', () => {
             expect(result.data?.mcpStats ?? null).toBeNull();
         });
 
+        it('mcpStats rejects an Object.prototype key as timeRange', async () => {
+            const result = await adminGraphQL(superAdminToken, MCP_STATS_QUERY, { timeRange: 'toString' });
+            expect(result.errors?.[0]?.extensions?.code).toBe('USER_INPUT_ERROR');
+            expect(result.data?.mcpStats ?? null).toBeNull();
+        });
+
         it('removeExpiredMcpToolCallLogs deletes only expired rows and returns the count', async () => {
             const result = await adminGraphQL<{ removeExpiredMcpToolCallLogs: number }>(
                 superAdminToken,

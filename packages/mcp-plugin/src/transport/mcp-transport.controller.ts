@@ -34,6 +34,7 @@ import type { Request, Response } from 'express';
 
 import { loggerCtx, MCP_PLUGIN_OPTIONS, RATE_LIMIT_ERROR_CODE } from '../constants';
 import { getClientIp } from '../get-client-ip';
+import { getLanguageCodeFromQuery } from '../get-language-code';
 import { McpExecutionContext, ResolvedMcpPluginOptions } from '../internal-types';
 import { McpOauthMetadataService } from '../oauth/oauth-metadata.service';
 import { McpOauthService } from '../oauth/oauth.service';
@@ -79,7 +80,7 @@ export class McpChannelTokenExceptionFilter extends ExceptionLoggerFilter {
     catch(exception: ChannelNotFoundError, host: ArgumentsHost) {
         return super.catch(
             new BadRequestException(
-                `The ${this.channelTokenHeader} header does not name a sales channel of this server.`,
+                `The ${this.channelTokenHeader} query parameter or header does not name a sales channel of this server.`,
             ),
             host,
         );
@@ -262,7 +263,7 @@ export class McpTransportController {
                 const ctx = await this.createAnonymousShopContext(
                     req,
                     this.getVendureSessionToken(req.headers),
-                    this.getChannelToken(req.headers),
+                    this.getChannelToken(req),
                 );
                 // Preserve the session token from the header in the response so the client can reuse it.
                 this.setVendureSessionToken(res, ctx.session?.token);
@@ -483,6 +484,7 @@ export class McpTransportController {
         return new RequestContext({
             apiType: 'shop',
             channel,
+            languageCode: getLanguageCodeFromQuery(req),
             session: resolution.session,
             isAuthorized: false,
             authorizedAsOwnerOnly: true,
@@ -505,9 +507,14 @@ export class McpTransportController {
         }
     }
 
-    private getChannelToken(headers: Record<string, string | string[] | undefined>): string | undefined {
+    /** Same precedence as core's RequestContextService: the query parameter wins over the header. */
+    private getChannelToken(req: I18nRequest): string | undefined {
         const key = this.configService.apiOptions.channelTokenKey;
-        const value = this.getHeader(headers, key);
+        const fromQuery = req.query?.[key];
+        if (typeof fromQuery === 'string' && fromQuery) {
+            return fromQuery;
+        }
+        const value = this.getHeader(req.headers, key);
         return value || undefined;
     }
 

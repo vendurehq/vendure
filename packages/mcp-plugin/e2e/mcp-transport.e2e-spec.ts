@@ -156,6 +156,30 @@ describe('MCP transport (auth, session, channel, destructive)', () => {
         expect(scopedChannelId).not.toBe(defaultChannelId);
     });
 
+    it('selects a non-default channel from the channel token query parameter, as core does', async () => {
+        expect(secondChannelToken).toBeTruthy();
+        const defaultCall = await postMcp(baseUrl(), 'shop', callTool('shop_ping', {}, 1));
+        const defaultChannelId = defaultCall.body.result.structuredContent.channelId;
+
+        const scoped = await postMcp(baseUrl(), 'shop', callTool('shop_ping', {}, 2), {
+            query: { [CHANNEL_TOKEN_HEADER]: secondChannelToken as string },
+        });
+        expect(scoped.body.result.isError).toBeUndefined();
+        const scopedChannelId = scoped.body.result.structuredContent.channelId;
+        expect(scopedChannelId).toBeTruthy();
+        expect(scopedChannelId).not.toBe(defaultChannelId);
+    });
+
+    it('applies a languageCode query parameter to an anonymous shop call', async () => {
+        const plain = await postMcp(baseUrl(), 'shop', callTool('shop_ping', {}, 1));
+        expect(plain.body.result.structuredContent.languageCode).toBe('en');
+
+        const german = await postMcp(baseUrl(), 'shop', callTool('shop_ping', {}, 2), {
+            query: { languageCode: 'de' },
+        });
+        expect(german.body.result.structuredContent.languageCode).toBe('de');
+    });
+
     it('gates a destructive tool behind confirmation, then runs it with confirm:true', async () => {
         const preview = await postMcp(baseUrl(), 'shop', callTool('shop_delete', { id: 'abc' }, 1));
         expect(preview.body.result.isError).toBeUndefined();
@@ -569,5 +593,19 @@ describe('MCP transport shopAccess: authenticated', () => {
             token: flow.access_token,
         });
         expect(result.body.result.isError).toBeUndefined();
+    });
+
+    it('applies a languageCode query parameter to a bearer-authenticated call', async () => {
+        const flow = await runShopAuthorizationCodeFlow({
+            baseUrl: baseUrl(),
+            issuer: ISSUER,
+            vendureAuthToken: customerAuthToken,
+        });
+        const result = await postMcp(baseUrl(), 'shop', callTool('shop_ping', {}, 1), {
+            token: flow.access_token,
+            query: { languageCode: 'de' },
+        });
+        expect(result.body.result.isError).toBeUndefined();
+        expect(result.body.result.structuredContent.languageCode).toBe('de');
     });
 });

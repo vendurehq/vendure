@@ -36,6 +36,7 @@ import { McpAuthorizationCode } from '../entities/mcp-authorization-code.entity'
 import { McpAuthorizationRequest } from '../entities/mcp-authorization-request.entity';
 import { McpOauthClient } from '../entities/mcp-oauth-client.entity';
 import { McpOauthGrant } from '../entities/mcp-oauth-grant.entity';
+import { getLanguageCodeFromQuery } from '../get-language-code';
 import { McpAuthenticatedContext, ResolvedMcpPluginOptions } from '../internal-types';
 import { McpGrantUserType } from '../types';
 
@@ -442,6 +443,7 @@ export class McpOauthService {
         const ctx = new RequestContext({
             apiType,
             channel,
+            languageCode: getLanguageCodeFromQuery(req),
             session: vendureSession,
             isAuthorized: true,
             authorizedAsOwnerOnly: false,

@@ -29,6 +29,8 @@ export interface PostMcpOptions {
     protocolVersion?: string;
     /** Extra request headers (e.g. session/channel tokens, Host, Origin). */
     headers?: Record<string, string>;
+    /** Query-string parameters appended to the endpoint URL (e.g. channel token, languageCode). */
+    query?: Record<string, string>;
 }
 
 /** JSON-RPC request envelope. */
@@ -108,7 +110,8 @@ export async function postMcp(
     if (!isInitialize) {
         headers['MCP-Protocol-Version'] = options.protocolVersion ?? LATEST_PROTOCOL_VERSION;
     }
-    const response = await fetch(`${baseUrl}/mcp/${toolset}`, {
+    const queryString = options.query ? `?${new URLSearchParams(options.query).toString()}` : '';
+    const response = await fetch(`${baseUrl}/mcp/${toolset}${queryString}`, {
         method: 'POST',
         headers,
         body: JSON.stringify(message),
