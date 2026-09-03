@@ -259,6 +259,34 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         handler: McpToolHandler,
         pluginSource: string,
     ): McpRegisteredTool {
+        this.assertValidToolMetadata(metadata);
+        const resolvedBehavior = metadata.behavior ?? 'mutating';
+        const schemas = this.toolSchema.prepareToolSchemas({
+            toolName: metadata.name,
+            pluginSource,
+            inputSchema: metadata.inputSchema,
+            outputSchema: metadata.outputSchema,
+            injectedFields: {
+                confirm: resolvedBehavior === 'destructive',
+                sessionToken: this.acceptsSessionToken(metadata),
+            },
+        });
+        return {
+            ...metadata,
+            handler,
+            pluginSource,
+            resolvedBehavior,
+            annotations: this.deriveAnnotations(metadata, resolvedBehavior),
+            ...schemas,
+        };
+    }
+
+    /**
+     * Throws a descriptive error for each way a tool author can declare a tool the server cannot
+     * serve: a name outside the allowed character set, Permission.Owner or an unknown permission,
+     * usesActiveOrder on a non-shop tool, or an admin tool with no permissions.
+     */
+    private assertValidToolMetadata(metadata: McpToolMetadata): void {
         if (typeof metadata.name !== 'string' || !TOOL_NAME_PATTERN.test(metadata.name)) {
             throw new Error(
                 `MCP tool name "${String(metadata.name)}" must contain 1–128 letters, digits, ` +
@@ -291,25 +319,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                     `may call it.`,
             );
         }
-        const resolvedBehavior = metadata.behavior ?? 'mutating';
-        const schemas = this.toolSchema.prepareToolSchemas({
-            toolName: metadata.name,
-            pluginSource,
-            inputSchema: metadata.inputSchema,
-            outputSchema: metadata.outputSchema,
-            injectedFields: {
-                confirm: resolvedBehavior === 'destructive',
-                sessionToken: this.acceptsSessionToken(metadata),
-            },
-        });
-        return {
-            ...metadata,
-            handler,
-            pluginSource,
-            resolvedBehavior,
-            annotations: this.deriveAnnotations(metadata, resolvedBehavior),
-            ...schemas,
-        };
     }
 
     private getKnownPermissions(): Set<string> {
