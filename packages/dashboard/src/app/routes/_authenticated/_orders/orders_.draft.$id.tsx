@@ -17,7 +17,7 @@ import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wra
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { api } from '@/vdb/graphql/api.js';
 import { Trans, useLingui } from '@lingui/react/macro';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { ResultOf } from 'gql.tada';
 import { User } from 'lucide-react';
@@ -98,11 +98,22 @@ function DraftOrderPage() {
         },
     });
 
+    const queryClient = useQueryClient();
+    const eligibleShippingMethodsQueryKey = ['eligibleShippingMethods', entity?.id];
+
     const { data: eligibleShippingMethods } = useQuery({
-        queryKey: ['eligibleShippingMethods', entity?.id],
+        queryKey: eligibleShippingMethodsQueryKey,
         queryFn: () => api.query(draftOrderEligibleShippingMethodsDocument, { orderId: entity?.id ?? '' }),
         enabled: !!entity?.shippingAddress?.streetLine1,
     });
+
+    // Eligible shipping methods depend on the order's lines, customer, and
+    // shipping address -- invalidate after any mutation that can change one
+    // of those, alongside the existing refreshEntity() calls, otherwise the
+    // dashboard keeps showing a stale list until the page is reloaded (#5253).
+    const invalidateEligibleShippingMethods = () => {
+        queryClient.invalidateQueries({ queryKey: eligibleShippingMethodsQueryKey });
+    };
 
     const { mutate: addItemToDraftOrder } = useMutation({
         mutationFn: api.mutate(addItemToDraftOrderDocument),
@@ -112,6 +123,7 @@ function DraftOrderPage() {
                 case 'Order':
                     toast.success(t`Item added to order`);
                     refreshEntity();
+                    invalidateEligibleShippingMethods();
                     break;
                 default:
                     toast.error(order.message);
@@ -133,6 +145,7 @@ function DraftOrderPage() {
                 case 'Order':
                     toast.success(t`Order line updated`);
                     refreshEntity();
+                    invalidateEligibleShippingMethods();
                     break;
                 default:
                     toast.error(order.message);
@@ -152,6 +165,7 @@ function DraftOrderPage() {
                 case 'Order':
                     toast.success(t`Order line removed`);
                     refreshEntity();
+                    invalidateEligibleShippingMethods();
                     break;
                 default:
                     toast.error(order.message);
@@ -217,6 +231,7 @@ function DraftOrderPage() {
                         toast.error(t`Failed to set address for order: ${e instanceof Error ? e.message : String(e)}`);
                     }
                     refreshEntity();
+                    invalidateEligibleShippingMethods();
                     break;
                 }
                 default:
@@ -234,6 +249,7 @@ function DraftOrderPage() {
         onSuccess: (result: ResultOf<typeof setShippingAddressForDraftOrderDocument>) => {
             toast.success(t`Shipping address set for order`);
             refreshEntity();
+            invalidateEligibleShippingMethods();
         },
         onError: error => {
             toast.error(t`Failed to set shipping address for order: ${error.message}`);
@@ -256,6 +272,7 @@ function DraftOrderPage() {
         onSuccess: (result: ResultOf<typeof unsetShippingAddressForDraftOrderDocument>) => {
             toast.success(t`Shipping address unset for order`);
             refreshEntity();
+            invalidateEligibleShippingMethods();
         },
         onError: error => {
             toast.error(t`Failed to unset shipping address for order: ${error.message}`);
