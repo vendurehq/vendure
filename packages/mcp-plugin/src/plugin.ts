@@ -13,7 +13,7 @@ import { adminApiExtensions, shopApiExtensions } from './api/api-extensions';
 import { McpActorService } from './api/mcp-actor.service';
 import {
     McpAdminResolver,
-    McpOauthGrantActorResolver,
+    McpOauthGrantEntityResolver,
     McpToolCallLogEntityResolver,
 } from './api/mcp-admin.resolver';
 import { McpShopResolver } from './api/mcp-shop.resolver';
@@ -106,7 +106,7 @@ import { McpPluginOptions } from './types';
     entities: [McpOauthClient, McpAuthorizationCode, McpAuthorizationRequest, McpOauthGrant, McpToolCallLog],
     adminApiExtensions: {
         schema: adminApiExtensions,
-        resolvers: [McpAdminResolver, McpToolCallLogEntityResolver, McpOauthGrantActorResolver],
+        resolvers: [McpAdminResolver, McpToolCallLogEntityResolver, McpOauthGrantEntityResolver],
     },
     shopApiExtensions: {
         schema: shopApiExtensions,

@@ -17,13 +17,13 @@ import { ObjectLiteral, SelectQueryBuilder } from 'typeorm';
 import { DateUtils } from 'typeorm/util/DateUtils';
 
 import { MCP_PLUGIN_OPTIONS, mcpServerPermission } from '../constants';
-import { McpOauthGrant, McpOauthGrantStatus, McpToolCallLog } from '../entities';
+import { McpOauthGrant, McpToolCallLog } from '../entities';
 import { ResolvedMcpPluginOptions } from '../internal-types';
 import { McpToolCallLogRetentionService } from '../logging/mcp-tool-call-log-retention.service';
 import { McpOauthService } from '../oauth/oauth.service';
 import { McpToolRegistryService } from '../registry/mcp-tool-registry.service';
 import { McpRegisteredTool } from '../registry/registry-types';
-import { McpGrantUserType, McpToolCallStatus, McpToolExposureMode } from '../types';
+import { McpToolCallStatus, McpToolExposureMode } from '../types';
 
 import { McpActorService } from './mcp-actor.service';
 
@@ -36,21 +36,6 @@ interface McpToolInfo {
     pluginSource: string;
     behavior: McpToolBehavior;
     enabled: boolean;
-}
-
-/** An OAuth grant, summarised for the admin overview. */
-interface McpOauthGrantInfo {
-    id: ID;
-    createdAt: Date;
-    updatedAt: Date;
-    actorId: string;
-    actorType: McpGrantUserType;
-    channelId: ID | null;
-    oauthClientName: string | null;
-    lastActivityAt: Date;
-    expiresAt: Date;
-    revokedAt: Date | null;
-    status: McpOauthGrantStatus;
 }
 
 // Written as `type`, not `interface`: these get cached, and CacheService only accepts
@@ -111,7 +96,7 @@ export class McpAdminResolver {
     async mcpOauthGrants(
         @Ctx() ctx: RequestContext,
         @Args() args: { includeInactive: boolean; options?: ListQueryOptions<McpOauthGrant> },
-    ): Promise<{ items: McpOauthGrantInfo[]; totalItems: number }> {
+    ): Promise<{ items: McpOauthGrant[]; totalItems: number }> {
         const qb = this.listQueryBuilder.build(McpOauthGrant, args.options ?? undefined, {
             ctx,
             relations: ['oauthClient'],
@@ -127,20 +112,7 @@ export class McpAdminResolver {
             qb.orderBy('mcpoauthgrant.lastActivityAt', 'DESC');
         }
         qb.addOrderBy('mcpoauthgrant.id', 'DESC');
-        const [grants, totalItems] = await qb.getManyAndCount();
-        const items = grants.map(grant => ({
-            id: grant.id,
-            createdAt: grant.createdAt,
-            updatedAt: grant.updatedAt,
-            actorId: String(grant.actorId),
-            actorType: grant.actorType,
-            channelId: grant.channelId,
-            oauthClientName: grant.oauthClient?.clientName ?? null,
-            lastActivityAt: grant.lastActivityAt,
-            expiresAt: grant.expiresAt,
-            revokedAt: grant.revokedAt,
-            status: grant.status,
-        }));
+        const [items, totalItems] = await qb.getManyAndCount();
         return { items, totalItems };
     }
 
@@ -380,19 +352,25 @@ export class McpToolCallLogEntityResolver {
     }
 }
 
-/** The same name lookup for OAuth grants, which store the user id as `actorId`. */
+/** Resolves the fields of an OAuth grant that are not stored as plain columns on the entity. */
 @Resolver('McpOauthGrant')
-export class McpOauthGrantActorResolver {
+export class McpOauthGrantEntityResolver {
     constructor(private actorService: McpActorService) {}
 
+    // The client is loaded as a re lation by the list query; the schema exposes only its name.
     @ResolveField()
-    async actorName(@Parent() grant: McpOauthGrantInfo, @Ctx() ctx: RequestContext): Promise<string | null> {
+    oauthClientName(@Parent() grant: McpOauthGrant): string | null {
+        return grant.oauthClient?.clientName ?? null;
+    }
+
+    @ResolveField()
+    async actorName(@Parent() grant: McpOauthGrant, @Ctx() ctx: RequestContext): Promise<string | null> {
         const identity = await this.actorService.resolveIdentity(ctx, grant.actorId, grant.actorType);
         return identity.name;
     }
 
     @ResolveField()
-    async customerId(@Parent() grant: McpOauthGrantInfo, @Ctx() ctx: RequestContext): Promise<ID | null> {
+    async customerId(@Parent() grant: McpOauthGrant, @Ctx() ctx: RequestContext): Promise<ID | null> {
         const identity = await this.actorService.resolveIdentity(ctx, grant.actorId, grant.actorType);
         return identity.customerId;
     }
