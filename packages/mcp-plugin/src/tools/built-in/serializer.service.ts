@@ -495,9 +495,6 @@ export class McpToolSerializerService {
             source: asset.source,
             preview: asset.preview,
             focalPoint: asset.focalPoint,
-            // Undefined unless the caller loaded the asset's `tags` relation, which no built-in
-            // tool currently does.
-            tags: asset.tags?.map(tag => tag.value),
         };
     }
 }

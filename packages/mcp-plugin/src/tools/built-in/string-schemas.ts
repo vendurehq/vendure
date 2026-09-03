@@ -8,3 +8,7 @@ import { z } from 'zod';
 export const shortText = z.string().max(255);
 
 export const longText = z.string().max(10000);
+
+export function enumString<T extends string>(schema: z.ZodString): z.ZodType<T> {
+    return schema as unknown as z.ZodType<T>;
+}

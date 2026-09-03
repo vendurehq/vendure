@@ -3,10 +3,9 @@ import { OrderService, OrderState, Permission, RequestContext } from '@vendure/c
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { enumString } from '../enum-string-schema';
 import { idSchema } from '../id-schema';
 import { McpToolSerializerService } from '../serializer.service';
-import { shortText } from '../string-schemas';
+import { enumString, shortText } from '../string-schemas';
 
 const updateOrderStateInput = z.strictObject({
     id: idSchema.describe('Order ID.'),

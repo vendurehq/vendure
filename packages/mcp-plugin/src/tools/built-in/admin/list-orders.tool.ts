@@ -15,6 +15,7 @@ import {
     ORDER_LIST_RELATIONS,
     ORDER_SORT_FIELDS,
     orderListOptions,
+    sortDirection,
     translateLineVariants,
 } from '../order-list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
@@ -52,7 +53,7 @@ const listOrdersInput = z.strictObject({
                 'no orderPlacedAt, so when sorting by it filter active: false to see placed orders only.',
         )
         .optional(),
-    sortDirection: z.enum(['ASC', 'DESC']).describe('Sort direction. Defaults to DESC.').optional(),
+    sortDirection: sortDirection.describe('Sort direction. Defaults to DESC.').optional(),
 });
 
 type ListOrdersInput = z.infer<typeof listOrdersInput>;
