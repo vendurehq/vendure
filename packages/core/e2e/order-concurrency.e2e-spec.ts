@@ -167,6 +167,38 @@ describeOnRealDb('Order concurrency', () => {
         expect(activeOrder!.lines.length).toBe(variantsToAdd.length);
     });
 
+    // #3398 — the case the Order lock exists for: the order already exists when the concurrent
+    // requests arrive, so determining the active order finds it rather than creating it, and the
+    // lock on the Session is never reached. Only the lock taken when the Order itself is read
+    // serializes these, so this is the test which pins that lock in place.
+    it('adds every item when items are added concurrently to an existing order', async () => {
+        const client = await newShopClient();
+        // Establish the order first, so that the concurrent requests below take the path where an
+        // active order is already recorded on the session.
+        await client.query(addItemToOrderDocument, {
+            productVariantId: variantIds[0],
+            quantity: 1,
+        });
+        const variantsToAdd = variantIds.slice(1, 4);
+
+        await Promise.all(
+            variantsToAdd.map(productVariantId =>
+                client.query(addItemToOrderDocument, { productVariantId, quantity: 1 }),
+            ),
+        );
+
+        const { activeOrder } = await client.query(getActiveOrderDocument);
+        expect(activeOrder!.lines.map(l => l.productVariant.id).sort()).toEqual(
+            [variantIds[0], ...variantsToAdd].sort(),
+        );
+        // The lines are separate rows, so they survive on their own. The order's own totals are
+        // not: each request recalculates them from the snapshot it read and writes the result to
+        // the same columns, so without serialization the last writer wins and the total reflects
+        // only the lines it happened to see.
+        const expectedSubTotal = activeOrder!.lines.reduce((sum, line) => sum + line.linePrice, 0);
+        expect(activeOrder!.subTotal).toBe(expectedSubTotal);
+    });
+
     // #4152 — determining the active order is a check-then-act. Concurrent first requests on one
     // session each found no order and each created one, leaving the customer with several.
     it('creates exactly one order when a fresh session adds items concurrently', async () => {
