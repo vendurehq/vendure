@@ -1,18 +1,13 @@
-import { getOAuthProtectedResourceMetadataUrl } from '@modelcontextprotocol/server';
 import {
     BadRequestException,
     ForbiddenException,
     Inject,
     Injectable,
-    NotFoundException,
     UnauthorizedException,
 } from '@nestjs/common';
 import {
     Administrator,
-    AuthenticatedSession,
-    CachedSession,
     ChannelService,
-    ConfigService,
     EntityNotFoundError,
     I18nRequest,
     ID,
@@ -23,7 +18,6 @@ import {
     Session,
     SessionService,
     TransactionalConnection,
-    User,
     UserService,
 } from '@vendure/core';
 import { McpToolset } from '@vendure/mcp-sdk';
@@ -47,8 +41,9 @@ import { McpGrantUserType } from '../types';
 
 import { McpCimdClientResolverService } from './cimd/cimd-client-resolver.service';
 import { isUrlClientId } from './cimd/cimd-url';
-import { OAUTH_ENDPOINT_PATHS } from './endpoint-paths';
+import { McpGrantSessionService } from './grant-session.service';
 import { McpOauthError } from './oauth-error';
+import { McpOauthMetadataService } from './oauth-metadata.service';
 import {
     AuthorizationRequestInfo,
     AuthorizeInput,
@@ -62,23 +57,12 @@ import {
     addSeconds,
     appendOAuthParams,
     assertSafeRedirectUri,
-    deleteCachedVendureSession,
     httpsUrlOrNull,
     randomToken,
+    resolvedOauthOptions,
     verifyPkceChallenge,
 } from './oauth-utils';
 import { deriveHashKey, hashLookupToken } from './token-hash';
-
-/**
- * Name recorded against the dedicated Vendure session created for an MCP grant.
- */
-const MCP_SESSION_STRATEGY = 'mcp-dedicated-session';
-
-/**
- * Thrown inside the session re-creation transaction purely to roll it back, when another
- * request has already given the grant a new session or revoked it. Never leaves this file.
- */
-class GrantSessionAlreadyReplaced extends Error {}
 
 /**
  * MCP OAuth 2.1 authorization server.
@@ -98,9 +82,10 @@ export class McpOauthService {
         private sessionService: SessionService,
         private channelService: ChannelService,
         private userService: UserService,
-        private configService: ConfigService,
         @Inject(MCP_PLUGIN_OPTIONS) private options: ResolvedMcpPluginOptions,
         private cimdClientResolver: McpCimdClientResolverService,
+        private grantSessions: McpGrantSessionService,
+        private oauthMetadata: McpOauthMetadataService,
     ) {}
 
     async registerClient(input: RegisterClientInput): Promise<RegisteredClientResponse> {
@@ -158,44 +143,6 @@ export class McpOauthService {
         };
     }
 
-    metadata() {
-        const issuer = this.issuerOrigin();
-        return {
-            issuer,
-            authorization_endpoint: `${issuer}/${OAUTH_ENDPOINT_PATHS.authorize}`,
-            token_endpoint: `${issuer}/${OAUTH_ENDPOINT_PATHS.token}`,
-            registration_endpoint: `${issuer}/${OAUTH_ENDPOINT_PATHS.register}`,
-            revocation_endpoint: `${issuer}/${OAUTH_ENDPOINT_PATHS.revoke}`,
-            response_types_supported: ['code'],
-            grant_types_supported: SUPPORTED_OAUTH_GRANT_TYPES,
-            code_challenge_methods_supported: ['S256'],
-            token_endpoint_auth_methods_supported: ['none'],
-            // CIMD (draft-ietf-oauth-client-id-metadata-document §6): clients check this
-            // flag before sending a URL client_id, so it must be present because we support it.
-            client_id_metadata_document_supported: true,
-        };
-    }
-
-    protectedResourceMetadata(endpoint: string) {
-        if (endpoint !== 'shop' && endpoint !== 'admin') {
-            throw new NotFoundException();
-        }
-        if (endpoint === 'shop' && this.options.shopAccess === 'disabled') {
-            throw new NotFoundException();
-        }
-        const issuer = this.issuerOrigin();
-        return {
-            resource: this.resourceForToolset(endpoint),
-            authorization_servers: [issuer],
-            bearer_methods_supported: ['header'],
-            resource_name: `Vendure ${endpoint} MCP`,
-        };
-    }
-
-    protectedResourceMetadataUrl(endpoint: McpToolset): string {
-        return getOAuthProtectedResourceMetadataUrl(new URL(this.resourceForToolset(endpoint)));
-    }
-
     async createAuthorizationRedirect(input: AuthorizeInput): Promise<string> {
         this.resolvedOauth();
         if (!input.client_id || !input.redirect_uri) {
@@ -228,7 +175,7 @@ export class McpOauthService {
         let resource: string;
         let toolset: McpToolset;
         try {
-            ({ resource, toolset } = this.resolveResource(input.resource));
+            ({ resource, toolset } = this.oauthMetadata.resolveResource(input.resource));
         } catch (e) {
             if (e instanceof McpOauthError) {
                 return redirectError(e.code, e.message);
@@ -396,7 +343,7 @@ export class McpOauthService {
             ],
         });
         if (grant && !grant.revokedAt) {
-            await this.revokeGrant(ctx, grant);
+            await this.grantSessions.revokeGrant(ctx, grant);
         }
         return {};
     }
@@ -416,7 +363,7 @@ export class McpOauthService {
             return false;
         }
         if (!grant.revokedAt) {
-            await this.revokeGrant(ctx, grant);
+            await this.grantSessions.revokeGrant(ctx, grant);
         }
         return true;
     }
@@ -458,30 +405,9 @@ export class McpOauthService {
             throw new EntityNotFoundError('McpOauthGrant', grantId);
         }
         if (!grant.revokedAt) {
-            await this.revokeGrant(ctx, grant);
+            await this.grantSessions.revokeGrant(ctx, grant);
         }
         return true;
-    }
-
-    private async revokeGrant(ctx: RequestContext, grant: McpOauthGrant): Promise<void> {
-        const sessionToken = await this.connection.withTransaction(ctx, async txCtx => {
-            // Conditional on the grant still being live, so that when two callers revoke the
-            // same grant at once only one of them matches. The loser must not go on to delete
-            // a session row, because by then the winner may already have replaced it.
-            const claim = await this.connection
-                .getRepository(txCtx, McpOauthGrant)
-                .createQueryBuilder()
-                .update(McpOauthGrant)
-                .set({ revokedAt: new Date() })
-                .where('id = :id', { id: grant.id })
-                .andWhere('revokedAt IS NULL')
-                .execute();
-            if (!claim.affected) {
-                return undefined;
-            }
-            return this.deleteVendureSessionRow(txCtx, grant.vendureSessionId);
-        });
-        await deleteCachedVendureSession(this.configService, sessionToken);
     }
 
     async authenticateBearerToken(
@@ -501,7 +427,7 @@ export class McpOauthService {
         ) {
             throw new UnauthorizedException('Access token does not allow this MCP endpoint');
         }
-        if (grant.resource !== this.resourceForToolset(apiType)) {
+        if (grant.resource !== this.oauthMetadata.resourceForToolset(apiType)) {
             throw new UnauthorizedException('Access token was not issued for this MCP resource');
         }
         if (grant.expiresAt <= new Date()) {
@@ -514,17 +440,17 @@ export class McpOauthService {
         if (!vendureSession) {
             const user = await this.userService.getUserById(adminCtx, grant.actorId);
             if (!user || user.deletedAt) {
-                await this.revokeGrant(adminCtx, grant);
+                await this.grantSessions.revokeGrant(adminCtx, grant);
                 throw new UnauthorizedException('Vendure user no longer exists');
             }
-            vendureSession = await this.recreateGrantSession(adminCtx, grant, user);
+            vendureSession = await this.grantSessions.recreateGrantSession(adminCtx, grant, user);
         }
 
         const channel = grant.channelId
             ? await this.channelService.findOne(adminCtx, grant.channelId)
             : await this.channelService.getDefaultChannel(adminCtx);
         if (!channel) {
-            await this.revokeGrant(adminCtx, grant);
+            await this.grantSessions.revokeGrant(adminCtx, grant);
             throw new UnauthorizedException('Channel no longer exists');
         }
         const ctx = new RequestContext({
@@ -577,91 +503,6 @@ export class McpOauthService {
             .getRawAndEntities<{ vendureSessionToken: string | null }>();
         const grant = result.entities[0];
         return grant ? { grant, sessionToken: result.raw[0]?.vendureSessionToken ?? null } : undefined;
-    }
-
-    /**
-     * Atomically replaces a lapsed Vendure session for an active grant.
-     *
-     * Runs in a single transaction to prevent orphaned active sessions, using
-     * conditional updates to safely handle race conditions and concurrent revocations.
-     */
-    private async recreateGrantSession(
-        ctx: RequestContext,
-        grant: McpOauthGrant,
-        user: User,
-    ): Promise<CachedSession> {
-        const staleSessionId = grant.vendureSessionId;
-        let staleSessionToken: string | undefined;
-        let createdSessionToken: string | undefined;
-        try {
-            await this.connection.withTransaction(ctx, async txCtx => {
-                // The lapsed session row may still be in the table, because Vendure clears
-                // expired sessions with a background job rather than on read.
-                staleSessionToken = await this.deleteVendureSessionRow(txCtx, staleSessionId);
-                const created = await this.createVendureSession(txCtx, user);
-                createdSessionToken = created.token;
-                const claim = await this.connection
-                    .getRepository(txCtx, McpOauthGrant)
-                    .createQueryBuilder()
-                    .update(McpOauthGrant)
-                    .set({ vendureSessionId: created.id })
-                    .where('id = :id', { id: grant.id })
-                    .andWhere('vendureSessionId = :staleSessionId', { staleSessionId })
-                    .andWhere('revokedAt IS NULL')
-                    .execute();
-                if (!claim.affected) {
-                    throw new GrantSessionAlreadyReplaced();
-                }
-            });
-        } catch (e) {
-            if (!(e instanceof GrantSessionAlreadyReplaced)) {
-                throw e;
-            }
-            // The session row we created was rolled back with the rest of the transaction, but
-            // Core had already written it to the session cache, so that entry has to go by hand.
-            await deleteCachedVendureSession(this.configService, createdSessionToken);
-            return this.loadSessionOfReplacedGrant(ctx, grant);
-        }
-
-        // Deleting the stale row is only half the job: a cached session is served without
-        // touching the database until its entry ages out.
-        await deleteCachedVendureSession(this.configService, staleSessionToken);
-        const session = createdSessionToken
-            ? await this.sessionService.getSessionFromToken(createdSessionToken)
-            : undefined;
-        if (!session) {
-            throw new UnauthorizedException('Failed to establish Vendure session');
-        }
-        grant.vendureSessionId = session.id;
-        return session;
-    }
-
-    /**
-     * Reads back a grant whose session another request replaced while this one was building its
-     * own, and returns that session. If the grant turns out to have been revoked instead, or its
-     * new session is unusable, this request has nothing to run on.
-     */
-    private async loadSessionOfReplacedGrant(
-        ctx: RequestContext,
-        grant: McpOauthGrant,
-    ): Promise<CachedSession> {
-        const current = await this.connection
-            .getRepository(ctx, McpOauthGrant)
-            .findOne({ where: { id: grant.id } });
-        if (!current || current.revokedAt) {
-            throw new UnauthorizedException('Invalid or expired access token');
-        }
-        const sessionRow = await this.connection
-            .getRepository(ctx, Session)
-            .findOne({ where: { id: current.vendureSessionId } });
-        const session = sessionRow
-            ? await this.sessionService.getSessionFromToken(sessionRow.token)
-            : undefined;
-        if (!session) {
-            throw new UnauthorizedException('Failed to establish Vendure session');
-        }
-        grant.vendureSessionId = current.vendureSessionId;
-        return session;
     }
 
     /**
@@ -758,7 +599,7 @@ export class McpOauthService {
                 'code, client_id, redirect_uri, code_verifier and resource are required',
             );
         }
-        const { resource } = this.resolveResource(input.resource);
+        const { resource } = this.oauthMetadata.resolveResource(input.resource);
         const ctx = await this.createAdminCtx();
         const codeRepo = this.connection.getRepository(ctx, McpAuthorizationCode);
         const codeHash = this.hashLookup(input.code);
@@ -812,7 +653,7 @@ export class McpOauthService {
         if (!input.refresh_token || !input.client_id || !input.resource) {
             throw new McpOauthError('invalid_request', 'refresh_token, client_id and resource are required');
         }
-        const { resource } = this.resolveResource(input.resource);
+        const { resource } = this.oauthMetadata.resolveResource(input.resource);
         const ctx = await this.createAdminCtx();
         const grantRepo = this.connection.getRepository(ctx, McpOauthGrant);
         const refreshTokenHash = this.hashLookup(input.refresh_token);
@@ -825,7 +666,7 @@ export class McpOauthService {
                 where: { previousRefreshTokenHash: refreshTokenHash },
             });
             if (reused && !reused.revokedAt) {
-                await this.revokeGrant(ctx, reused);
+                await this.grantSessions.revokeGrant(ctx, reused);
             }
             throw new McpOauthError('invalid_grant', 'Refresh token invalid or expired');
         }
@@ -891,7 +732,7 @@ export class McpOauthService {
         const now = new Date();
         const accessPlaintext = randomToken();
         const refreshPlaintext = randomToken();
-        const createdSession = await this.createVendureSession(ctx, user);
+        const createdSession = await this.grantSessions.createVendureSession(ctx, user);
         await this.connection.getRepository(ctx, McpOauthGrant).save(
             new McpOauthGrant({
                 accessTokenHash: this.hashLookup(accessPlaintext),
@@ -926,31 +767,6 @@ export class McpOauthService {
         };
     }
 
-    /**
-     * Creates the dedicated Vendure session for a grant. No token is supplied, so Core
-     * generates an ordinary random one — nothing about the session is derivable from
-     * the OAuth tokens that reach it.
-     */
-    private createVendureSession(ctx: RequestContext, user: User): Promise<AuthenticatedSession> {
-        return this.sessionService.createNewAuthenticatedSession(ctx, user, MCP_SESSION_STRATEGY);
-    }
-
-    /**
-     * Removes a Vendure session row by id, if it still exists, and returns the token it
-     * held so the caller can evict the cache entry. Deleting the row alone is not enough:
-     * a cached session is served without touching the database until its entry ages out.
-     */
-    private async deleteVendureSessionRow(ctx: RequestContext, sessionId: ID): Promise<string | undefined> {
-        const session = await this.connection
-            .getRepository(ctx, Session)
-            .findOne({ where: { id: sessionId } });
-        if (!session) {
-            return;
-        }
-        await this.connection.getRepository(ctx, Session).remove(session);
-        return session.token;
-    }
-
     private async findClient(ctx: RequestContext, clientId: string): Promise<McpOauthClient> {
         if (isUrlClientId(clientId)) {
             return this.cimdClientResolver.resolveClient(ctx, clientId);
@@ -980,54 +796,6 @@ export class McpOauthService {
 
     private createAdminCtx(): Promise<RequestContext> {
         return this.requestContextService.create({ apiType: 'admin' });
-    }
-
-    private resolveResource(resource?: string): { resource: string; toolset: McpToolset } {
-        if (!resource) {
-            throw new McpOauthError('invalid_target', 'resource is required');
-        }
-        let url: URL;
-        try {
-            url = new URL(resource);
-        } catch {
-            throw new McpOauthError('invalid_target', 'Unsupported OAuth resource');
-        }
-        if (url.search || url.hash) {
-            throw new McpOauthError(
-                'invalid_target',
-                'OAuth resource must not include query parameters or fragments',
-            );
-        }
-        const toolsets: readonly McpToolset[] =
-            this.options.shopAccess === 'disabled' ? (['admin'] as const) : (['shop', 'admin'] as const);
-        for (const toolset of toolsets) {
-            if (this.sameResourceUrl(url, new URL(this.resourceForToolset(toolset)))) {
-                return { resource: this.resourceForToolset(toolset), toolset };
-            }
-        }
-        throw new McpOauthError('invalid_target', 'Unsupported OAuth resource');
-    }
-
-    private sameResourceUrl(left: URL, right: URL): boolean {
-        return (
-            left.protocol.toLowerCase() === right.protocol.toLowerCase() &&
-            left.hostname.toLowerCase() === right.hostname.toLowerCase() &&
-            left.port === right.port &&
-            this.normalizeResourcePath(left.pathname) === this.normalizeResourcePath(right.pathname)
-        );
-    }
-
-    private normalizeResourcePath(pathname: string): string {
-        return pathname.length > 1 ? pathname.replace(/\/$/, '') : pathname;
-    }
-
-    /** The configured issuer URL with any trailing slash removed. */
-    private issuerOrigin(): string {
-        return this.resolvedOauth().issuer.replace(/\/$/, '');
-    }
-
-    private resourceForToolset(toolset: McpToolset): string {
-        return `${this.issuerOrigin()}/mcp/${toolset}`;
     }
 
     /**
@@ -1083,18 +851,9 @@ export class McpOauthService {
         }
     }
 
-    /**
-     * Returns the resolved OAuth options, throwing if OAuth was not configured
-     * (i.e. no `oauth.tokenSecret` was supplied to the plugin).
-     */
+    /** See {@link resolvedOauthOptions}. */
     private resolvedOauth(): ResolvedMcpOauthOptions {
-        if (!this.options.oauth?.tokenSecret) {
-            throw new McpOauthError(
-                'server_error',
-                'MCP OAuth is not configured (oauth.tokenSecret is required)',
-            );
-        }
-        return this.options.oauth as ResolvedMcpOauthOptions;
+        return resolvedOauthOptions(this.options);
     }
 
     /**

@@ -36,6 +36,7 @@ import type { Request, Response } from 'express';
 import { loggerCtx, MCP_PLUGIN_OPTIONS, RATE_LIMIT_ERROR_CODE } from '../constants';
 import { getClientIp } from '../get-client-ip';
 import { McpExecutionContext, ResolvedMcpPluginOptions } from '../internal-types';
+import { McpOauthMetadataService } from '../oauth/oauth-metadata.service';
 import { McpOauthService } from '../oauth/oauth.service';
 import { McpRateLimiterService, McpRateLimitExceeded } from '../rate-limit/mcp-rate-limiter.service';
 import { McpToolRegistryService } from '../registry/mcp-tool-registry.service';
@@ -102,6 +103,7 @@ export class McpTransportController {
         private requestContextService: RequestContextService,
         private shopSession: McpShopSessionService,
         private channelService: ChannelService,
+        private oauthMetadata: McpOauthMetadataService,
     ) {
         const handler = createMcpHandler(
             async mcpCtx => {
@@ -404,7 +406,7 @@ export class McpTransportController {
      * means a token was sent and rejected. Callers pass `invalidToken: true` only for the latter case.
      */
     private setAuthChallenge(res: Response, toolset: McpToolset, options?: { invalidToken?: boolean }): void {
-        const resourceMetadata = `resource_metadata="${this.oauthService.protectedResourceMetadataUrl(toolset)}"`;
+        const resourceMetadata = `resource_metadata="${this.oauthMetadata.protectedResourceMetadataUrl(toolset)}"`;
         const challenge = options?.invalidToken
             ? `Bearer ${resourceMetadata}, error="invalid_token"`
             : `Bearer ${resourceMetadata}`;

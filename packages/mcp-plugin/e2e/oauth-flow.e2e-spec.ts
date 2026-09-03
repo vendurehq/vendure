@@ -28,6 +28,7 @@ import { McpAuthorizationCode } from '../src/entities/mcp-authorization-code.ent
 import { McpAuthorizationRequest } from '../src/entities/mcp-authorization-request.entity';
 import { McpOauthClient } from '../src/entities/mcp-oauth-client.entity';
 import { McpOauthGrant } from '../src/entities/mcp-oauth-grant.entity';
+import { McpGrantSessionService } from '../src/oauth/grant-session.service';
 import { McpOauthRetentionResult, McpOauthRetentionService } from '../src/oauth/oauth-retention.service';
 import { McpOauthService } from '../src/oauth/oauth.service';
 import { deriveHashKey, hashLookupToken, hashToken } from '../src/oauth/token-hash';
@@ -398,7 +399,9 @@ describe('McpPlugin OAuth end-to-end flow', () => {
         const countAfterWinner = await mcpSessionCount(ctx, grant.actorId);
 
         const user = await server.app.get(UserService).getUserById(ctx, grant.actorId);
-        const loserSession = await (oauth as any).recreateGrantSession(ctx, staleGrantView, user);
+        const loserSession = await server.app
+            .get(McpGrantSessionService)
+            .recreateGrantSession(ctx, staleGrantView, user);
 
         expect(await mcpSessionCount(ctx, grant.actorId)).toBe(countAfterWinner);
         expect(loserSession.token).toBe(sessionTokenOf(winner.ctx));

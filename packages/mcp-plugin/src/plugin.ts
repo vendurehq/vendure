@@ -34,6 +34,8 @@ import {
 import { ResolvedMcpPluginOptions } from './internal-types';
 import { McpToolCallLogService } from './logging/mcp-tool-call-log.service';
 import { McpCimdClientResolverService } from './oauth/cimd/cimd-client-resolver.service';
+import { McpGrantSessionService } from './oauth/grant-session.service';
+import { McpOauthMetadataService } from './oauth/oauth-metadata.service';
 import { McpOauthRetentionService } from './oauth/oauth-retention.service';
 import { McpOauthController } from './oauth/oauth.controller';
 import { McpOauthService } from './oauth/oauth.service';
@@ -81,6 +83,8 @@ import { McpPluginOptions } from './types';
     providers: [
         { provide: MCP_PLUGIN_OPTIONS, useFactory: () => McpPlugin.options },
         McpOauthService,
+        McpGrantSessionService,
+        McpOauthMetadataService,
         McpOauthRetentionService,
         McpCimdClientResolverService,
         McpToolRegistryService,

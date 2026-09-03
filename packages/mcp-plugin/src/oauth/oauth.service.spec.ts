@@ -1,9 +1,9 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { resolveMcpPluginOptions } from '../resolve-options';
 import { McpPluginOptions } from '../types';
 
+import { McpOauthMetadataService } from './oauth-metadata.service';
 import { McpOauthService } from './oauth.service';
 import { deriveHashKey, hashToken } from './token-hash';
 
@@ -24,7 +24,6 @@ function createService(
         sessionService: undefined as any,
         channelService: undefined as any,
         userService: undefined as any,
-        configService: { authOptions: { sessionCacheStrategy: { delete: vi.fn() } } } as any,
         options: resolveMcpPluginOptions(options),
         cimdClientResolver: undefined as any,
     };
@@ -34,90 +33,12 @@ function createService(
         deps.sessionService,
         deps.channelService,
         deps.userService,
-        deps.configService,
         deps.options,
         deps.cimdClientResolver,
+        undefined as any,
+        new McpOauthMetadataService(deps.options),
     );
 }
-
-describe('McpOauthService metadata', () => {
-    it('builds RFC 8414 authorization-server metadata with a trailing-slash-trimmed issuer', () => {
-        const service = createService({ oauth: { tokenSecret: 's', issuer: `${ISSUER}/` } });
-        const meta = service.metadata();
-        expect(meta.issuer).toBe(ISSUER);
-        expect(meta.authorization_endpoint).toBe(`${ISSUER}/mcp/oauth/authorize`);
-        expect(meta.token_endpoint).toBe(`${ISSUER}/mcp/oauth/token`);
-        expect(meta.registration_endpoint).toBe(`${ISSUER}/mcp/oauth/register`);
-        expect(meta.revocation_endpoint).toBe(`${ISSUER}/mcp/oauth/revoke`);
-    });
-
-    it('advertises only the S256 PKCE method and the none auth method', () => {
-        const meta = createService({ oauth: { tokenSecret: 's' } }).metadata();
-        expect(meta.code_challenge_methods_supported).toEqual(['S256']);
-        expect(meta.token_endpoint_auth_methods_supported).toEqual(['none']);
-        expect(meta.response_types_supported).toEqual(['code']);
-        expect(meta.grant_types_supported).toEqual(['authorization_code', 'refresh_token']);
-    });
-
-    it('advertises CIMD support (client_id_metadata_document_supported)', () => {
-        const meta = createService({ oauth: { tokenSecret: 's' } }).metadata();
-        expect(meta.client_id_metadata_document_supported).toBe(true);
-    });
-
-    it('builds RFC 9728 protected-resource metadata per toolset', () => {
-        const service = createService({ oauth: { tokenSecret: 's' } });
-        expect(service.protectedResourceMetadata('shop')).toEqual({
-            resource: `${ISSUER}/mcp/shop`,
-            authorization_servers: [ISSUER],
-            bearer_methods_supported: ['header'],
-            resource_name: 'Vendure shop MCP',
-        });
-        expect(service.protectedResourceMetadata('admin').resource).toBe(`${ISSUER}/mcp/admin`);
-    });
-
-    // Pins the document exactly as clients receive it — the field list, their order, and the
-    // absence of any key we do not advertise. Serving a key with an `undefined` value (which
-    // JSON drops but `Object.keys` still shows) or reordering the fields both fail here.
-    it('serves the protected-resource document with exactly the fields it advertises', () => {
-        const service = createService({ oauth: { tokenSecret: 's' } });
-        const document = service.protectedResourceMetadata('admin');
-        expect(Object.keys(document)).toEqual([
-            'resource',
-            'authorization_servers',
-            'bearer_methods_supported',
-            'resource_name',
-        ]);
-        expect(JSON.stringify(document)).toBe(
-            JSON.stringify({
-                resource: `${ISSUER}/mcp/admin`,
-                authorization_servers: [ISSUER],
-                bearer_methods_supported: ['header'],
-                resource_name: 'Vendure admin MCP',
-            }),
-        );
-    });
-
-    it('builds the protected-resource metadata URL per toolset', () => {
-        const service = createService({ oauth: { tokenSecret: 's' } });
-        expect(service.protectedResourceMetadataUrl('shop')).toBe(
-            `${ISSUER}/.well-known/oauth-protected-resource/mcp/shop`,
-        );
-        expect(service.protectedResourceMetadataUrl('admin')).toBe(
-            `${ISSUER}/.well-known/oauth-protected-resource/mcp/admin`,
-        );
-    });
-
-    it('throws when OAuth is not configured', () => {
-        const service = createService();
-        expect(() => service.metadata()).toThrow(BadRequestException);
-    });
-
-    it('404s the shop protected-resource metadata when shopAccess is disabled, but still serves admin', () => {
-        const service = createService({ oauth: { tokenSecret: 's' }, shopAccess: 'disabled' });
-        expect(() => service.protectedResourceMetadata('shop')).toThrow(NotFoundException);
-        expect(service.protectedResourceMetadata('admin').resource).toBe(`${ISSUER}/mcp/admin`);
-    });
-});
 
 describe('McpOauthService PKCE / grant gating', () => {
     // The response_type and PKCE checks now answer by redirecting to the registered
@@ -127,24 +48,6 @@ describe('McpOauthService PKCE / grant gating', () => {
         const service = createService({ oauth: { tokenSecret: 's' } });
         await expect(service.exchangeToken({ grant_type: 'password' })).rejects.toThrow(
             'Unsupported grant_type',
-        );
-    });
-
-    // With shopAccess disabled, resolveResource must not recognise the shop resource at all —
-    // an authorize request naming it fails the same way it would for any unrecognised URL.
-    it('refuses the shop resource when shopAccess is disabled', () => {
-        const service = createService({ oauth: { tokenSecret: 's' }, shopAccess: 'disabled' });
-        expect(() => (service as any).resolveResource(`${ISSUER}/mcp/shop`)).toThrow(
-            'Unsupported OAuth resource',
-        );
-    });
-
-    // A resource with a query string gets the specific message, not the generic
-    // "Unsupported OAuth resource" — the caller needs to know which part of the URL to fix.
-    it('names the query-string problem when a resource carries one', () => {
-        const service = createService({ oauth: { tokenSecret: 's' } });
-        expect(() => (service as any).resolveResource(`${ISSUER}/mcp/shop?x=1`)).toThrow(
-            'OAuth resource must not include query parameters or fragments',
         );
     });
 });

@@ -21,6 +21,7 @@ import {
 
 import { OAUTH_ENDPOINT_PATHS } from './endpoint-paths';
 import { McpOauthExceptionFilter, parseOAuthInput } from './oauth-error';
+import { McpOauthMetadataService } from './oauth-metadata.service';
 import { authorizeInputSchema, registerClientInputSchema, tokenInputSchema } from './oauth-types';
 import { McpOauthService } from './oauth.service';
 
@@ -28,16 +29,19 @@ import { McpOauthService } from './oauth.service';
 @UseFilters(new McpOauthRateLimitExceptionFilter(), new McpOauthExceptionFilter())
 @Controller()
 export class McpOauthController {
-    constructor(private oauthService: McpOauthService) {}
+    constructor(
+        private oauthService: McpOauthService,
+        private oauthMetadata: McpOauthMetadataService,
+    ) {}
 
     @Get('.well-known/oauth-authorization-server')
     metadata() {
-        return this.oauthService.metadata();
+        return this.oauthMetadata.metadata();
     }
 
     @Get('.well-known/oauth-protected-resource/mcp/:endpoint')
     protectedResourceMetadata(@Param('endpoint') endpoint: string) {
-        return this.oauthService.protectedResourceMetadata(endpoint);
+        return this.oauthMetadata.protectedResourceMetadata(endpoint);
     }
 
     // Every route below either carries or accepts a credential, so none of them may be cached

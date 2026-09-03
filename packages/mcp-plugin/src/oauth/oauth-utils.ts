@@ -2,9 +2,11 @@ import { ConfigService, Logger } from '@vendure/core';
 import { createHash, randomBytes } from 'node:crypto';
 
 import { loggerCtx, MAX_CLIENT_METADATA_FIELD_LENGTH } from '../constants';
+import { ResolvedMcpPluginOptions } from '../internal-types';
 
 import { isLoopbackHostname } from './loopback';
 import { McpOauthError } from './oauth-error';
+import { ResolvedMcpOauthOptions } from './oauth-types';
 
 export function randomToken(): string {
     return randomBytes(32).toString('base64url');
@@ -89,4 +91,18 @@ export async function deleteCachedVendureSession(
             error instanceof Error ? error.stack : undefined,
         );
     }
+}
+
+/**
+ * Returns the resolved OAuth options, throwing if OAuth was not configured
+ * (i.e. no `oauth.tokenSecret` was supplied to the plugin).
+ */
+export function resolvedOauthOptions(options: ResolvedMcpPluginOptions): ResolvedMcpOauthOptions {
+    if (!options.oauth?.tokenSecret) {
+        throw new McpOauthError(
+            'server_error',
+            'MCP OAuth is not configured (oauth.tokenSecret is required)',
+        );
+    }
+    return options.oauth as ResolvedMcpOauthOptions;
 }
