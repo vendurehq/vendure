@@ -32,20 +32,12 @@ export class McpToolSchemaService {
         injectedFields: McpToolInjectedFields;
     }): PreparedMcpToolSchemas {
         const { toolName, pluginSource, injectedFields } = options;
-        const resolvedInput = this.resolveAuthorSchema(
-            options.inputSchema,
-            `${toolName} inputSchema`,
-            pluginSource,
-            'input',
-        );
-        const resolvedOutput = this.resolveAuthorSchema(
-            options.outputSchema,
-            `${toolName} outputSchema`,
-            pluginSource,
-            'output',
-        );
-        const jsonInputSchema = resolvedInput?.json ?? NO_ARGS_SCHEMA;
         const toolLabel = `MCP tool "${toolName}" (${pluginSource})`;
+        const inputLabel = `${toolLabel} inputSchema`;
+        const outputLabel = `${toolLabel} outputSchema`;
+        const resolvedInput = this.resolveAuthorSchema(options.inputSchema, inputLabel, 'input');
+        const resolvedOutput = this.resolveAuthorSchema(options.outputSchema, outputLabel, 'output');
+        const jsonInputSchema = resolvedInput?.json ?? NO_ARGS_SCHEMA;
 
         if (injectedFields.confirm) {
             this.assertNotDeclared({
@@ -77,20 +69,20 @@ export class McpToolSchemaService {
         const wireJsonSchema = this.addInjectedFields(jsonInputSchema, injectedFields);
         const compiledInputSchema = resolvedInput?.standard
             ? this.toRegisteredStandardSchema(resolvedInput.standard, wireJsonSchema, injectedFields)
-            : this.compileJsonSchema(wireJsonSchema, `${toolName} inputSchema`, pluginSource);
+            : this.compileJsonSchema(wireJsonSchema, inputLabel);
         const compiledOutputSchema = resolvedOutput
-            ? this.compileJsonSchema(resolvedOutput.json, `${toolName} outputSchema`, pluginSource)
+            ? this.compileJsonSchema(resolvedOutput.json, outputLabel)
             : undefined;
 
         return { jsonInputSchema, wireJsonSchema, compiledInputSchema, compiledOutputSchema };
     }
 
-    compileJsonSchema(schema: McpJsonSchema, label: string, pluginSource: string): StandardSchemaWithJSON {
+    compileJsonSchema(schema: McpJsonSchema, label: string): StandardSchemaWithJSON {
         try {
             return fromJsonSchema(schema as unknown as JsonSchemaType);
         } catch (e) {
             throw new Error(
-                `MCP tool ${label} (${pluginSource}) failed to compile: ${e instanceof Error ? e.message : String(e)}. ` +
+                `${label} failed to compile: ${e instanceof Error ? e.message : String(e)}. ` +
                     `Author schemas as JSON Schema 2020-12 without a "$schema" key.`,
             );
         }
@@ -167,7 +159,6 @@ export class McpToolSchemaService {
     private deriveJsonSchema(
         schema: McpStandardSchema,
         label: string,
-        pluginSource: string,
         direction: 'input' | 'output',
     ): McpJsonSchema {
         let json: Record<string, unknown>;
@@ -175,7 +166,7 @@ export class McpToolSchemaService {
             json = schema['~standard'].jsonSchema[direction]({ target: 'draft-2020-12' });
         } catch (e) {
             throw new Error(
-                `MCP tool ${label} (${pluginSource}): the Standard Schema could not be converted to ` +
+                `${label}: the Standard Schema could not be converted to ` +
                     `JSON Schema: ${e instanceof Error ? e.message : String(e)}`,
             );
         }
@@ -187,13 +178,13 @@ export class McpToolSchemaService {
             // and the generic "must describe an object" message does not say how to fix it.
             if (type === undefined && (json.anyOf !== undefined || json.oneOf !== undefined)) {
                 throw new Error(
-                    `MCP tool ${label} (${pluginSource}): the Standard Schema is a union (anyOf/oneOf) ` +
+                    `${label}: the Standard Schema is a union (anyOf/oneOf) ` +
                         `at the top level, and an MCP tool input must be a single object. Wrap it in an ` +
                         `object, e.g. z.object({ input: z.discriminatedUnion(...) }).`,
                 );
             }
             throw new Error(
-                `MCP tool ${label} (${pluginSource}): the Standard Schema must describe an object at the ` +
+                `${label}: the Standard Schema must describe an object at the ` +
                     `top level (the converted JSON Schema has type "${String(type)}").`,
             );
         }
@@ -281,7 +272,6 @@ export class McpToolSchemaService {
     private resolveAuthorSchema(
         raw: McpToolSchema | undefined,
         label: string,
-        pluginSource: string,
         direction: 'input' | 'output',
     ): { json: McpJsonSchema; standard?: McpStandardSchema } | undefined {
         if (raw === undefined) {
@@ -289,11 +279,11 @@ export class McpToolSchemaService {
         }
         // Some Standard Schema objects also carry `type: 'object'`, so check them first.
         if (this.isStandardSchema(raw)) {
-            return { json: this.deriveJsonSchema(raw, label, pluginSource, direction), standard: raw };
+            return { json: this.deriveJsonSchema(raw, label, direction), standard: raw };
         }
         if (typeof this.standardProps(raw)?.validate === 'function') {
             throw new Error(
-                `MCP tool ${label} (${pluginSource}): the schema implements Standard Schema validation but ` +
+                `${label}: the schema implements Standard Schema validation but ` +
                     `cannot emit JSON Schema. Use a library version with JSON Schema conversion ` +
                     `(e.g. zod v4), or author the schema as plain JSON Schema.`,
             );
@@ -302,7 +292,7 @@ export class McpToolSchemaService {
             return { json: raw };
         }
         throw new Error(
-            `MCP tool ${label} (${pluginSource}): the schema must be a plain JSON Schema object ` +
+            `${label}: the schema must be a plain JSON Schema object ` +
                 `({ type: 'object', ... }) or a Standard Schema with JSON conversion (e.g. a zod v4 schema).`,
         );
     }

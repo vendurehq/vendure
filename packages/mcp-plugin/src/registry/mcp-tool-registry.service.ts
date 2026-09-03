@@ -687,8 +687,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                 annotations: { readOnlyHint: true, idempotentHint: true },
                 compiledInputSchema: this.toolSchema.compileJsonSchema(
                     searchSchema,
-                    SEARCH_TOOLS,
-                    'McpPlugin',
+                    `MCP tool "${SEARCH_TOOLS}" (McpPlugin) inputSchema`,
                 ),
             },
             {
@@ -698,8 +697,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                 annotations: {},
                 compiledInputSchema: this.toolSchema.compileJsonSchema(
                     executeSchema,
-                    EXECUTE_TOOL,
-                    'McpPlugin',
+                    `MCP tool "${EXECUTE_TOOL}" (McpPlugin) inputSchema`,
                 ),
             },
         ];

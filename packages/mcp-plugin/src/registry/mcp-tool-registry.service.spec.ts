@@ -190,7 +190,7 @@ describe('McpToolRegistryService', () => {
             } as any;
             const { service } = build([wrapper(shopTool({ inputSchema: badSchema }))]);
             expect(() => service.onApplicationBootstrap()).toThrow(
-                /get_thing inputSchema.*failed to compile/,
+                /MCP tool "get_thing" \(TestModule\) inputSchema failed to compile/,
             );
         });
 
