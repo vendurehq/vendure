@@ -6,7 +6,6 @@ import {
     McpOauthRateLimitExceptionFilter,
     McpOauthRateLimitGuard,
 } from './mcp-oauth-rate-limit.guard';
-import { McpRateLimitExceededError } from './mcp-rate-limiter.service';
 
 /** A fake Nest ExecutionContext/ArgumentsHost exposing just the request/response the guard/filter read. */
 function fakeHost(
@@ -33,22 +32,20 @@ function fakeResponse() {
 
 describe('McpOauthRateLimitGuard', () => {
     it('passes the request through when the limiter allows it', async () => {
-        const rateLimiter = { enforceOauthIpRateLimit: vi.fn().mockResolvedValue(undefined) };
+        const rateLimiter = { checkOauthIpRateLimit: vi.fn().mockResolvedValue(undefined) };
         const guard = new McpOauthRateLimitGuard(rateLimiter as any);
 
         await expect(guard.canActivate(fakeHost({ ip: '1.2.3.4' }))).resolves.toBe(true);
-        expect(rateLimiter.enforceOauthIpRateLimit).toHaveBeenCalledWith('1.2.3.4');
+        expect(rateLimiter.checkOauthIpRateLimit).toHaveBeenCalledWith('1.2.3.4');
     });
 
     it('throws McpOauthRateLimitExceededHttpException carrying the retry-after seconds', async () => {
         const rateLimiter = {
-            enforceOauthIpRateLimit: vi.fn().mockRejectedValue(
-                new McpRateLimitExceededError({
-                    message: 'Rate limit exceeded',
-                    retryAfterSeconds: 7,
-                    scope: 'OAuth IP',
-                }),
-            ),
+            checkOauthIpRateLimit: vi.fn().mockResolvedValue({
+                message: 'Rate limit exceeded',
+                retryAfterSeconds: 7,
+                scope: 'OAuth IP',
+            }),
         };
         const guard = new McpOauthRateLimitGuard(rateLimiter as any);
 
@@ -59,7 +56,7 @@ describe('McpOauthRateLimitGuard', () => {
 
     it('rethrows any other error unchanged', async () => {
         const boom = new Error('boom');
-        const rateLimiter = { enforceOauthIpRateLimit: vi.fn().mockRejectedValue(boom) };
+        const rateLimiter = { checkOauthIpRateLimit: vi.fn().mockRejectedValue(boom) };
         const guard = new McpOauthRateLimitGuard(rateLimiter as any);
 
         await expect(guard.canActivate(fakeHost({ ip: '1.2.3.4' }))).rejects.toBe(boom);

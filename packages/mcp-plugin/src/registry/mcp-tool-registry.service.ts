@@ -30,7 +30,7 @@ import {
 import { loggerCtx, MCP_PLUGIN_OPTIONS, MCP_TOOL_TOGGLES_STORE_KEY } from '../constants';
 import { McpExecutionContext, ResolvedMcpPluginOptions } from '../internal-types';
 import { McpToolCallLogService } from '../logging/mcp-tool-call-log.service';
-import { McpRateLimiterService, McpRateLimitExceededError } from '../rate-limit/mcp-rate-limiter.service';
+import { McpRateLimiterService } from '../rate-limit/mcp-rate-limiter.service';
 import { McpShopSessionService } from '../shop-session/mcp-shop-session.service';
 import { McpToolSummary } from '../types';
 
@@ -440,9 +440,13 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         validateInput: boolean,
     ): Promise<ToolCallAdmission> {
         const ctx = executionContext.ctx;
-        const rateLimited = await this.enforceRateLimitOrError(executionContext, toolset, name);
+        const rateLimited = await this.rateLimiter.checkRateLimit({
+            executionContext,
+            endpoint: toolset,
+            subject: name,
+        });
         if (rateLimited) {
-            return { kind: 'refused', result: rateLimited };
+            return { kind: 'refused', result: this.errorResult(rateLimited.message) };
         }
         const tool = this.tools.get(this.toolKey(toolset, name));
         if (!tool) {
@@ -578,9 +582,13 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     ): Promise<CallToolResult> {
         // search_tools has no target tool to rate-limit downstream (unlike execute_tool, which
         // funnels through callRegisteredTool), so gate it here against the shared buckets.
-        const rateLimited = await this.enforceRateLimitOrError(executionContext, toolset, SEARCH_TOOLS);
+        const rateLimited = await this.rateLimiter.checkRateLimit({
+            executionContext,
+            endpoint: toolset,
+            subject: SEARCH_TOOLS,
+        });
         if (rateLimited) {
-            return rateLimited;
+            return this.errorResult(rateLimited.message);
         }
         const params = (input ?? {}) as { query?: unknown; limit?: unknown };
         const query = typeof params.query === 'string' ? params.query.toLowerCase() : '';
@@ -744,26 +752,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             grant: state.grant ? { id: state.grant.id, oauthClientId: state.grant.oauthClientId } : undefined,
             clientIp: state.clientIp,
         };
-    }
-
-    private async enforceRateLimitOrError(
-        executionContext: McpExecutionContext,
-        toolset: McpToolset,
-        subject: string,
-    ): Promise<CallToolResult | undefined> {
-        try {
-            await this.rateLimiter.enforceRateLimit({
-                executionContext,
-                endpoint: toolset,
-                subject,
-            });
-            return undefined;
-        } catch (e) {
-            if (e instanceof McpRateLimitExceededError) {
-                return this.errorResult(e.message);
-            }
-            throw e;
-        }
     }
 
     private getPluginSource(wrapper: {

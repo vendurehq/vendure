@@ -4,7 +4,7 @@ import { Logger, OrderStateTransitionError, PermissionDefinition, UserInputError
 import { McpStandardSchema, McpToolMetadata, McpToolset } from '@vendure/mcp-sdk';
 import { describe, expect, it, vi } from 'vitest';
 
-import { McpRateLimitExceededError } from '../rate-limit/mcp-rate-limiter.service';
+import { McpRateLimitExceeded } from '../rate-limit/mcp-rate-limiter.service';
 import { resolveMcpPluginOptions } from '../resolve-options';
 import { McpShopSessionService } from '../shop-session/mcp-shop-session.service';
 import { McpPluginOptions } from '../types';
@@ -16,12 +16,11 @@ import { McpToolSchemaService } from './mcp-tool-schema.service';
 const _standardSchemaTypeCheck: StandardSchemaWithJSON = undefined as unknown as McpStandardSchema;
 void _standardSchemaTypeCheck;
 
-const rateLimitError = () =>
-    new McpRateLimitExceededError({
-        message: 'Rate limit exceeded for x (session). Retry after 30 seconds.',
-        retryAfterSeconds: 30,
-        scope: 'session',
-    });
+const rateLimitExceeded = (): McpRateLimitExceeded => ({
+    message: 'Rate limit exceeded for x (session). Retry after 30 seconds.',
+    retryAfterSeconds: 30,
+    scope: 'session',
+});
 
 /** Builds a fake Nest InstanceWrapper carrying `@McpTool` metadata and an execute() spy. */
 function wrapper(metadata: McpToolMetadata, execute: (...args: any[]) => any = () => ({ ok: true })) {
@@ -72,7 +71,9 @@ function build(
         }),
     };
     const rateLimiter = {
-        enforceRateLimit: vi.fn(() => Promise.resolve(undefined)),
+        checkRateLimit: vi.fn(
+            (): Promise<McpRateLimitExceeded | undefined> => Promise.resolve(undefined),
+        ),
     };
     const toolCallLog = {
         logToolCall: vi.fn(() => Promise.resolve(undefined)),
@@ -776,9 +777,9 @@ describe('McpToolRegistryService', () => {
                 wrapper(shopTool({ permissions: [Permission.ReadCatalog] })),
             ]);
             service.onApplicationBootstrap();
-            rateLimiter.enforceRateLimit.mockRejectedValueOnce(rateLimitError());
+            rateLimiter.checkRateLimit.mockResolvedValueOnce(rateLimitExceeded());
             const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'get_thing', {});
-            expect(rateLimiter.enforceRateLimit).toHaveBeenCalledOnce();
+            expect(rateLimiter.checkRateLimit).toHaveBeenCalledOnce();
             expect(result.isError).toBe(true);
             expect((result.content as any)[0].text).toMatch(/Rate limit exceeded/);
         });
@@ -787,7 +788,7 @@ describe('McpToolRegistryService', () => {
             const { service, rateLimiter } = build([wrapper(shopTool())]);
             service.onApplicationBootstrap();
             await service.callTool({ ctx: makeCtx() }, 'shop', 'no_such_tool', {});
-            expect(rateLimiter.enforceRateLimit).toHaveBeenCalledWith(
+            expect(rateLimiter.checkRateLimit).toHaveBeenCalledWith(
                 expect.objectContaining({ endpoint: 'shop', subject: 'no_such_tool' }),
             );
         });
@@ -797,9 +798,9 @@ describe('McpToolRegistryService', () => {
                 toolExposure: 'discovery',
             });
             service.onApplicationBootstrap();
-            rateLimiter.enforceRateLimit.mockRejectedValueOnce(rateLimitError());
+            rateLimiter.checkRateLimit.mockResolvedValueOnce(rateLimitExceeded());
             const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'search_tools', { query: 'x' });
-            expect(rateLimiter.enforceRateLimit).toHaveBeenCalledWith(
+            expect(rateLimiter.checkRateLimit).toHaveBeenCalledWith(
                 expect.objectContaining({ subject: 'search_tools' }),
             );
             expect(result.isError).toBe(true);
@@ -813,12 +814,12 @@ describe('McpToolRegistryService', () => {
                 toolExposure: 'discovery',
             });
             service.onApplicationBootstrap();
-            rateLimiter.enforceRateLimit.mockRejectedValueOnce(rateLimitError());
+            rateLimiter.checkRateLimit.mockResolvedValueOnce(rateLimitExceeded());
             const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'execute_tool', {
                 name: 'no_such_tool',
                 arguments: {},
             });
-            expect(rateLimiter.enforceRateLimit).toHaveBeenCalledWith(
+            expect(rateLimiter.checkRateLimit).toHaveBeenCalledWith(
                 expect.objectContaining({ endpoint: 'shop', subject: 'no_such_tool' }),
             );
             expect(result.isError).toBe(true);
@@ -1148,7 +1149,7 @@ describe('McpToolRegistryService', () => {
             expect((result.content as any)[0].text).toMatch(/Invalid arguments for tool "echo"/);
             expect(execute).not.toHaveBeenCalled();
             // Even an invalid-args call consumes a bucket (keyed by the inner tool), before it errors.
-            expect(rateLimiter.enforceRateLimit).toHaveBeenCalledWith(
+            expect(rateLimiter.checkRateLimit).toHaveBeenCalledWith(
                 expect.objectContaining({ endpoint: 'shop', subject: 'echo' }),
             );
         });

@@ -32,13 +32,6 @@ export interface RateLimitInput {
     subject: string;
 }
 
-export class McpRateLimitExceededError extends Error {
-    constructor(public readonly details: McpRateLimitExceeded) {
-        super(details.message);
-        Object.setPrototypeOf(this, McpRateLimitExceededError.prototype);
-    }
-}
-
 @Injectable()
 export class McpRateLimiterService {
     /** Tail of the increment queue per bucket key; an entry is removed once its tail settles. */
@@ -48,14 +41,6 @@ export class McpRateLimiterService {
         private cacheService: CacheService,
         @Inject(MCP_PLUGIN_OPTIONS) private options: ResolvedMcpPluginOptions,
     ) {}
-
-    /** Throws {@link McpRateLimitExceededError} if any relevant bucket is at/over its limit. */
-    async enforceRateLimit(input: RateLimitInput): Promise<void> {
-        const exceeded = await this.checkRateLimit(input);
-        if (exceeded) {
-            throw new McpRateLimitExceededError(exceeded);
-        }
-    }
 
     /**
      * Charges every relevant bucket, then reports the first bucket over its limit (or `undefined`
@@ -80,15 +65,13 @@ export class McpRateLimiterService {
         return this.runChecks([check], 'MCP request');
     }
 
-    async enforceOauthIpRateLimit(clientIp?: string): Promise<void> {
+    /** Meters the OAuth endpoints per IP; they have no session or user to key on. */
+    async checkOauthIpRateLimit(clientIp?: string): Promise<McpRateLimitExceeded | undefined> {
         const check = this.buildOauthIpCheck(this.ipKey(clientIp));
         if (!check) {
-            return;
+            return undefined;
         }
-        const exceeded = await this.runChecks([check], 'MCP OAuth request');
-        if (exceeded) {
-            throw new McpRateLimitExceededError(exceeded);
-        }
+        return this.runChecks([check], 'MCP OAuth request');
     }
 
     /**

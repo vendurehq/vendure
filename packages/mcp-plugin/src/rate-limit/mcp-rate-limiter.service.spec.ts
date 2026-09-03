@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resolveMcpPluginOptions } from '../resolve-options';
 import { McpPluginOptions } from '../types';
 
-import { McpRateLimiterService, McpRateLimitExceededError } from './mcp-rate-limiter.service';
+import { McpRateLimiterService } from './mcp-rate-limiter.service';
 
 /**
  * In-memory CacheService stand-in that honours the TTL passed on write, which is what a shared
@@ -76,8 +76,8 @@ describe('McpRateLimiterService rate limiting', () => {
             rateLimits: { perSession: { rpm: 2 }, perClient: { rpm: 0 }, anonymousIp: false },
         });
         const ctx = sessionCtx('subject-a');
-        await service.enforceRateLimit({ executionContext: ctx, endpoint: 'admin', subject: 'ping' });
-        await service.enforceRateLimit({ executionContext: ctx, endpoint: 'admin', subject: 'ping' });
+        await service.checkRateLimit({ executionContext: ctx, endpoint: 'admin', subject: 'ping' });
+        await service.checkRateLimit({ executionContext: ctx, endpoint: 'admin', subject: 'ping' });
 
         const exceeded = await service.checkRateLimit({
             executionContext: ctx,
@@ -91,15 +91,15 @@ describe('McpRateLimiterService rate limiting', () => {
         expect(exceeded?.message).toMatch(/Retry after \d+ seconds\./);
     });
 
-    it('enforceRateLimit throws McpRateLimitExceededError once over the limit', async () => {
+    it('checkRateLimit reports the refusal once over the limit', async () => {
         const { service } = build({
             rateLimits: { perSession: { rpm: 1 }, perClient: { rpm: 0 }, anonymousIp: false },
         });
         const ctx = sessionCtx('subject-a');
-        await service.enforceRateLimit({ executionContext: ctx, endpoint: 'admin', subject: 'ping' });
-        await expect(
-            service.enforceRateLimit({ executionContext: ctx, endpoint: 'admin', subject: 'ping' }),
-        ).rejects.toBeInstanceOf(McpRateLimitExceededError);
+        await service.checkRateLimit({ executionContext: ctx, endpoint: 'admin', subject: 'ping' });
+        expect(
+            await service.checkRateLimit({ executionContext: ctx, endpoint: 'admin', subject: 'ping' }),
+        ).toBeDefined();
     });
 
     it('resets the bucket after the 60s window elapses', async () => {
@@ -107,7 +107,7 @@ describe('McpRateLimiterService rate limiting', () => {
             rateLimits: { perSession: { rpm: 1 }, perClient: { rpm: 0 }, anonymousIp: false },
         });
         const ctx = sessionCtx('subject-a');
-        await service.enforceRateLimit({ executionContext: ctx, endpoint: 'admin', subject: 'ping' });
+        await service.checkRateLimit({ executionContext: ctx, endpoint: 'admin', subject: 'ping' });
         expect(
             await service.checkRateLimit({ executionContext: ctx, endpoint: 'admin', subject: 'ping' }),
         ).toBeDefined();
@@ -124,7 +124,7 @@ describe('McpRateLimiterService rate limiting', () => {
         });
         const a = sessionCtx('subject-a');
         const b = sessionCtx('subject-b');
-        await service.enforceRateLimit({ executionContext: a, endpoint: 'admin', subject: 'ping' });
+        await service.checkRateLimit({ executionContext: a, endpoint: 'admin', subject: 'ping' });
         expect(
             await service.checkRateLimit({ executionContext: a, endpoint: 'admin', subject: 'ping' }),
         ).toBeDefined();
@@ -200,23 +200,23 @@ describe('McpRateLimiterService rate limiting', () => {
         });
         // A caller that omits the session header gets a fresh session token on every request. The
         // bucket must survive the token change, so these callers are keyed by IP instead.
-        await service.enforceRateLimit({
+        await service.checkRateLimit({
             executionContext: anonHttpCtx('fresh-1', '1.2.3.4'),
             endpoint: 'shop',
             subject: 'ping',
         });
-        await service.enforceRateLimit({
+        await service.checkRateLimit({
             executionContext: anonHttpCtx('fresh-2', '1.2.3.4'),
             endpoint: 'shop',
             subject: 'ping',
         });
-        await expect(
-            service.enforceRateLimit({
+        expect(
+            await service.checkRateLimit({
                 executionContext: anonHttpCtx('fresh-3', '1.2.3.4'),
                 endpoint: 'shop',
                 subject: 'ping',
             }),
-        ).rejects.toBeInstanceOf(McpRateLimitExceededError);
+        ).toBeDefined();
     });
 
     it('limits an anonymous HTTP caller per tool across fresh session tokens', async () => {
@@ -228,18 +228,18 @@ describe('McpRateLimiterService rate limiting', () => {
                 perTool: { apply_coupon_code: { rpm: 1 } },
             },
         });
-        await service.enforceRateLimit({
+        await service.checkRateLimit({
             executionContext: anonHttpCtx('fresh-1', '1.2.3.4'),
             endpoint: 'shop',
             subject: 'apply_coupon_code',
         });
-        await expect(
-            service.enforceRateLimit({
+        expect(
+            await service.checkRateLimit({
                 executionContext: anonHttpCtx('fresh-2', '1.2.3.4'),
                 endpoint: 'shop',
                 subject: 'apply_coupon_code',
             }),
-        ).rejects.toMatchObject({ details: { scope: 'tool:apply_coupon_code' } });
+        ).toMatchObject({ scope: 'tool:apply_coupon_code' });
     });
 
     it('applies the OAuth-IP limit and reports the OAuth IP scope', async () => {
@@ -251,11 +251,9 @@ describe('McpRateLimiterService rate limiting', () => {
                 oauthIp: { rpm: 2 },
             },
         });
-        await service.enforceOauthIpRateLimit('1.2.3.4');
-        await service.enforceOauthIpRateLimit('1.2.3.4');
-        await expect(service.enforceOauthIpRateLimit('1.2.3.4')).rejects.toMatchObject({
-            details: { scope: 'OAuth IP' },
-        });
+        await service.checkOauthIpRateLimit('1.2.3.4');
+        await service.checkOauthIpRateLimit('1.2.3.4');
+        expect(await service.checkOauthIpRateLimit('1.2.3.4')).toMatchObject({ scope: 'OAuth IP' });
     });
 
     it('keys the OAuth-IP bucket per IP — exhausting one IP does not limit another', async () => {
@@ -267,11 +265,9 @@ describe('McpRateLimiterService rate limiting', () => {
                 oauthIp: { rpm: 1 },
             },
         });
-        await service.enforceOauthIpRateLimit('1.2.3.4');
-        await expect(service.enforceOauthIpRateLimit('1.2.3.4')).rejects.toBeInstanceOf(
-            McpRateLimitExceededError,
-        );
-        await expect(service.enforceOauthIpRateLimit('5.6.7.8')).resolves.toBeUndefined();
+        await service.checkOauthIpRateLimit('1.2.3.4');
+        expect(await service.checkOauthIpRateLimit('1.2.3.4')).toBeDefined();
+        expect(await service.checkOauthIpRateLimit('5.6.7.8')).toBeUndefined();
     });
 
     it('does not apply the OAuth-IP limit when disabled (oauthIp: false)', async () => {
@@ -279,7 +275,7 @@ describe('McpRateLimiterService rate limiting', () => {
             rateLimits: { perSession: { rpm: 0 }, perClient: { rpm: 0 }, anonymousIp: false, oauthIp: false },
         });
         for (let i = 0; i < 5; i++) {
-            await expect(service.enforceOauthIpRateLimit('1.2.3.4')).resolves.toBeUndefined();
+            expect(await service.checkOauthIpRateLimit('1.2.3.4')).toBeUndefined();
         }
     });
 
@@ -293,7 +289,7 @@ describe('McpRateLimiterService rate limiting', () => {
             },
         });
         for (let i = 0; i < 5; i++) {
-            await expect(service.enforceOauthIpRateLimit('1.2.3.4')).resolves.toBeUndefined();
+            expect(await service.checkOauthIpRateLimit('1.2.3.4')).toBeUndefined();
         }
     });
 
@@ -306,16 +302,10 @@ describe('McpRateLimiterService rate limiting', () => {
                 oauthIp: { rpm: 1 },
             },
         });
-        await service.enforceOauthIpRateLimit('1.2.3.4');
-        try {
-            await service.enforceOauthIpRateLimit('1.2.3.4');
-            expect.unreachable('expected enforceOauthIpRateLimit to throw');
-        } catch (e) {
-            expect(e).toBeInstanceOf(McpRateLimitExceededError);
-            const exceeded = e as McpRateLimitExceededError;
-            expect(exceeded.details.retryAfterSeconds).toBeGreaterThan(0);
-            expect(exceeded.details.retryAfterSeconds).toBeLessThanOrEqual(60);
-        }
+        await service.checkOauthIpRateLimit('1.2.3.4');
+        const exceeded = await service.checkOauthIpRateLimit('1.2.3.4');
+        expect(exceeded?.retryAfterSeconds).toBeGreaterThan(0);
+        expect(exceeded?.retryAfterSeconds).toBeLessThanOrEqual(60);
     });
 
     it('keeps in-process callers (no grant, no client IP) on separate per-session buckets', async () => {
@@ -324,18 +314,18 @@ describe('McpRateLimiterService rate limiting', () => {
         });
         // McpToolExecutionService passes { ctx } with no clientIp. Two merchant-assistant users
         // must not share a bucket; that would make perSession a store-wide limit.
-        await service.enforceRateLimit({
+        await service.checkRateLimit({
             executionContext: sessionCtx('assistant-user-a'),
             endpoint: 'shop',
             subject: 'tools/call',
         });
-        await expect(
-            service.enforceRateLimit({
+        expect(
+            await service.checkRateLimit({
                 executionContext: sessionCtx('assistant-user-b'),
                 endpoint: 'shop',
                 subject: 'tools/call',
             }),
-        ).resolves.toBeUndefined();
+        ).toBeUndefined();
     });
 
     it('counts one user across their separate sessions and reports the user scope', async () => {
@@ -349,23 +339,23 @@ describe('McpRateLimiterService rate limiting', () => {
         });
         // These are two conversations for one person: each has its own session bucket, and they
         // share the user bucket.
-        await service.enforceRateLimit({
+        await service.checkRateLimit({
             executionContext: userCtx('chat-1', 'user-7'),
             endpoint: 'shop',
             subject: 'ping',
         });
-        await service.enforceRateLimit({
+        await service.checkRateLimit({
             executionContext: userCtx('chat-2', 'user-7'),
             endpoint: 'shop',
             subject: 'ping',
         });
-        await expect(
-            service.enforceRateLimit({
+        expect(
+            await service.checkRateLimit({
                 executionContext: userCtx('chat-3', 'user-7'),
                 endpoint: 'shop',
                 subject: 'ping',
             }),
-        ).rejects.toMatchObject({ details: { scope: 'user' } });
+        ).toMatchObject({ scope: 'user' });
     });
 
     it('keeps two users on separate per-user buckets', async () => {
@@ -377,18 +367,18 @@ describe('McpRateLimiterService rate limiting', () => {
                 anonymousIp: false,
             },
         });
-        await service.enforceRateLimit({
+        await service.checkRateLimit({
             executionContext: userCtx('chat-1', 'user-7'),
             endpoint: 'shop',
             subject: 'ping',
         });
-        await expect(
-            service.enforceRateLimit({
+        expect(
+            await service.checkRateLimit({
                 executionContext: userCtx('chat-1', 'user-8'),
                 endpoint: 'shop',
                 subject: 'ping',
             }),
-        ).resolves.toBeUndefined();
+        ).toBeUndefined();
     });
 
     it('keeps counting a user after they re-authorize into a new grant and client record', async () => {
@@ -404,18 +394,18 @@ describe('McpRateLimiterService rate limiting', () => {
         // gives them a new client record, so the session and client buckets both start fresh. The
         // user bucket has to keep counting, or anyone who can run the authorization flow could reset
         // their own limits at will.
-        await service.enforceRateLimit({
+        await service.checkRateLimit({
             executionContext: oauthCtx('grant-1', 'user-7', 'client-1'),
             endpoint: 'shop',
             subject: 'ping',
         });
-        await expect(
-            service.enforceRateLimit({
+        expect(
+            await service.checkRateLimit({
                 executionContext: oauthCtx('grant-2', 'user-7', 'client-2'),
                 endpoint: 'shop',
                 subject: 'ping',
             }),
-        ).rejects.toMatchObject({ details: { scope: 'user' } });
+        ).toMatchObject({ scope: 'user' });
     });
 
     it('shares one client bucket across the grants of a single OAuth client', async () => {
@@ -428,30 +418,30 @@ describe('McpRateLimiterService rate limiting', () => {
             },
         });
         // Every shopper using one client shares its bucket, which is why the default is high.
-        await service.enforceRateLimit({
+        await service.checkRateLimit({
             executionContext: oauthCtx('grant-1', 'user-7', 'client-1'),
             endpoint: 'shop',
             subject: 'ping',
         });
-        await service.enforceRateLimit({
+        await service.checkRateLimit({
             executionContext: oauthCtx('grant-2', 'user-8', 'client-1'),
             endpoint: 'shop',
             subject: 'ping',
         });
-        await expect(
-            service.enforceRateLimit({
+        expect(
+            await service.checkRateLimit({
                 executionContext: oauthCtx('grant-3', 'user-9', 'client-1'),
                 endpoint: 'shop',
                 subject: 'ping',
             }),
-        ).rejects.toMatchObject({ details: { scope: 'OAuth client' } });
-        await expect(
-            service.enforceRateLimit({
+        ).toMatchObject({ scope: 'OAuth client' });
+        expect(
+            await service.checkRateLimit({
                 executionContext: oauthCtx('grant-4', 'user-7', 'client-2'),
                 endpoint: 'shop',
                 subject: 'ping',
             }),
-        ).resolves.toBeUndefined();
+        ).toBeUndefined();
     });
 
     it('gives an anonymous shop caller no per-user bucket', async () => {
@@ -464,18 +454,18 @@ describe('McpRateLimiterService rate limiting', () => {
             },
         });
         // Nobody is signed in, so there is no user to key on; anonymousIp covers these callers.
-        await service.enforceRateLimit({
+        await service.checkRateLimit({
             executionContext: anonHttpCtx('fresh-1', '1.2.3.4'),
             endpoint: 'shop',
             subject: 'ping',
         });
-        await expect(
-            service.enforceRateLimit({
+        expect(
+            await service.checkRateLimit({
                 executionContext: anonHttpCtx('fresh-2', '1.2.3.4'),
                 endpoint: 'shop',
                 subject: 'ping',
             }),
-        ).resolves.toBeUndefined();
+        ).toBeUndefined();
     });
 });
 
@@ -498,7 +488,7 @@ describe('McpRateLimiterService shared buckets across instances with skewed cloc
         // The cache keeps its own clock (as Redis does), and the server's clock runs 90s ahead of it.
         const { service } = build(soloSession, () => START);
         const ctx = sessionCtx('skew-a');
-        await service.enforceRateLimit({ executionContext: ctx, endpoint: 'admin', subject: 'ping' });
+        await service.checkRateLimit({ executionContext: ctx, endpoint: 'admin', subject: 'ping' });
 
         vi.setSystemTime(new Date(START + 90_000));
         // The cache entry is still alive, so the limit must still apply even though the stored
@@ -514,7 +504,7 @@ describe('McpRateLimiterService shared buckets across instances with skewed cloc
         const { service } = build(soloSession);
         const ctx = sessionCtx('skew-b');
         vi.setSystemTime(new Date(START + 90_000));
-        await service.enforceRateLimit({ executionContext: ctx, endpoint: 'admin', subject: 'ping' });
+        await service.checkRateLimit({ executionContext: ctx, endpoint: 'admin', subject: 'ping' });
 
         vi.setSystemTime(new Date(START));
         const exceeded = await service.checkRateLimit({

@@ -12,7 +12,7 @@ import type { Request, Response } from 'express';
 
 import { getClientIp } from '../get-client-ip';
 
-import { McpRateLimiterService, McpRateLimitExceededError } from './mcp-rate-limiter.service';
+import { McpRateLimiterService } from './mcp-rate-limiter.service';
 
 export class McpOauthRateLimitExceededHttpException extends HttpException {
     constructor(public readonly retryAfterSeconds: number) {
@@ -42,13 +42,9 @@ export class McpOauthRateLimitGuard implements CanActivate {
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
         const req = context.switchToHttp().getRequest<Request>();
-        try {
-            await this.rateLimiter.enforceOauthIpRateLimit(getClientIp(req));
-        } catch (e) {
-            if (!(e instanceof McpRateLimitExceededError)) {
-                throw e;
-            }
-            throw new McpOauthRateLimitExceededHttpException(e.details.retryAfterSeconds);
+        const exceeded = await this.rateLimiter.checkOauthIpRateLimit(getClientIp(req));
+        if (exceeded) {
+            throw new McpOauthRateLimitExceededHttpException(exceeded.retryAfterSeconds);
         }
         return true;
     }
