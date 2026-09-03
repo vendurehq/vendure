@@ -3,17 +3,19 @@ import { PaginatedList } from '@vendure/common/lib/shared-types';
 import {
     ConfigService,
     ID,
+    idsAreEqual,
     ListQueryBuilder,
     ListQueryOptions,
     Product,
     ProductVariant,
     ProductVariantService,
     RequestContext,
+    StockLevel,
     TransactionalConnection,
     Translated,
     TranslatorService,
 } from '@vendure/core';
-import { FindOptionsWhere, IsNull, Raw } from 'typeorm';
+import { FindOptionsWhere, In, IsNull, Raw } from 'typeorm';
 
 @Injectable()
 export class McpCatalogQueryService {
@@ -53,6 +55,34 @@ export class McpCatalogQueryService {
             }
         }
         return grouped;
+    }
+
+    /**
+     * Available stock for a page of variants with one StockLevel query instead of one per variant,
+     * then the configured StockLocationStrategy decides the number the same way core's
+     * StockLevelService.getAvailableStock does.
+     */
+    async withAvailableStock(
+        ctx: RequestContext,
+        variants: ProductVariant[],
+    ): Promise<Array<{ variant: ProductVariant; stockOnHand: number }>> {
+        if (variants.length === 0) {
+            return [];
+        }
+        const stockLevels = await this.connection.getRepository(ctx, StockLevel).find({
+            where: { productVariantId: In(variants.map(variant => variant.id)) },
+        });
+        const { stockLocationStrategy } = this.configService.catalogOptions;
+        return Promise.all(
+            variants.map(async variant => {
+                const { stockOnHand } = await stockLocationStrategy.getAvailableStock(
+                    ctx,
+                    variant.id,
+                    stockLevels.filter(level => idsAreEqual(level.productVariantId, variant.id)),
+                );
+                return { variant, stockOnHand };
+            }),
+        );
     }
 
     /**

@@ -13,15 +13,25 @@ const expectedExports = [
     'paginationFields',
     'slicePage',
     'stringFilter',
+    'variantOffset',
+    'variantPaging',
 ];
 
 describe('built-in list helpers', () => {
     it('exports only the helpers consumed by the shipped tools', () => {
         expect(Object.keys(listHelpers).sort()).toEqual(expectedExports);
-        // The exports that are not functions: the page-size cap, and the four filter operator
-        // schemas the filterable list tools build their filter objects from.
-        const { MAX_LIST_PAGE_SIZE, stringFilter, dateFilter, numberFilter, booleanFilter, ...helpers } =
-            listHelpers;
+        // The exports that are not functions: the page-size cap, the four filter operator
+        // schemas the filterable list tools build their filter objects from, and the shared
+        // variantOffset field.
+        const {
+            MAX_LIST_PAGE_SIZE,
+            stringFilter,
+            dateFilter,
+            numberFilter,
+            booleanFilter,
+            variantOffset,
+            ...helpers
+        } = listHelpers;
         expect(Object.values(helpers).every(value => typeof value === 'function')).toBe(true);
         expect(MAX_LIST_PAGE_SIZE).toBe(100);
     });

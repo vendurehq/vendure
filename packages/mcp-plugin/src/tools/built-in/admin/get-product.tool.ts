@@ -1,32 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import {
-    ConfigService,
-    idsAreEqual,
     Permission,
     ProductOptionGroupService,
     ProductService,
     ProductVariantService,
     RequestContext,
-    StockLevel,
-    TransactionalConnection,
 } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
-import { In } from 'typeorm';
 import { z } from 'zod';
 
+import { McpCatalogQueryService } from '../catalog-query.service';
 import { idSchema } from '../id-schema';
-import { int32Schema } from '../int32-schema';
+import { variantOffset, variantPaging } from '../list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 
 const getProductInput = z.strictObject({
     id: idSchema.describe('Product ID.'),
-    variantOffset: int32Schema
-        .min(0)
-        .describe(
-            'Number of variants to skip. Use with hasMoreVariants when a product has more ' +
-                'variants than one answer returns.',
-        )
-        .optional(),
+    variantOffset,
 });
 
 type GetProductInput = z.infer<typeof getProductInput>;
@@ -58,8 +48,7 @@ export class AdminGetProductTool implements McpToolHandler<GetProductInput> {
         private productService: ProductService,
         private productVariantService: ProductVariantService,
         private productOptionGroupService: ProductOptionGroupService,
-        private connection: TransactionalConnection,
-        private configService: ConfigService,
+        private catalog: McpCatalogQueryService,
         private serializer: McpToolSerializerService,
     ) {}
 
@@ -76,27 +65,16 @@ export class AdminGetProductTool implements McpToolHandler<GetProductInput> {
             { skip: offset },
             [],
         );
-        const stockLevels = await this.connection.getRepository(ctx, StockLevel).find({
-            where: { productVariantId: In(variants.items.map(variant => variant.id)) },
-        });
-        const { stockLocationStrategy } = this.configService.catalogOptions;
-        const variantsWithStock = await Promise.all(
-            variants.items.map(async variant => {
-                const { stockOnHand } = await stockLocationStrategy.getAvailableStock(
-                    ctx,
-                    variant.id,
-                    stockLevels.filter(level => idsAreEqual(level.productVariantId, variant.id)),
-                );
-                return this.serializer.adminVariant(variant, stockOnHand);
-            }),
+        const withStock = await this.catalog.withAvailableStock(ctx, variants.items);
+        const variantsWithStock = withStock.map(({ variant, stockOnHand }) =>
+            this.serializer.adminVariant(variant, stockOnHand),
         );
         const optionGroups = await this.productOptionGroupService.getOptionGroupsByProductId(ctx, product.id);
         return {
             product: {
                 ...this.serializer.product(product),
                 variants: variantsWithStock,
-                variantTotal: variants.totalItems,
-                hasMoreVariants: offset + variants.items.length < variants.totalItems,
+                ...variantPaging(offset, variants),
                 optionGroups: optionGroups.map(group => this.serializer.optionGroup(group)),
             },
         };

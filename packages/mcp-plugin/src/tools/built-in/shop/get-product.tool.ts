@@ -4,20 +4,14 @@ import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { idSchema } from '../id-schema';
-import { int32Schema } from '../int32-schema';
+import { variantOffset, variantPaging } from '../list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 import { shortText } from '../string-schemas';
 
 const getProductInput = z.strictObject({
     id: idSchema.describe('Product ID.').optional(),
     slug: shortText.describe('Product slug, used when ID is omitted.').optional(),
-    variantOffset: int32Schema
-        .min(0)
-        .describe(
-            'Number of variants to skip. Use with hasMoreVariants when a product has more ' +
-                'variants than one answer returns.',
-        )
-        .optional(),
+    variantOffset,
 });
 
 type GetProductInput = z.infer<typeof getProductInput>;
@@ -70,8 +64,7 @@ export class ShopGetProductTool implements McpToolHandler<GetProductInput> {
             product: {
                 ...this.serializer.product(product),
                 variants: variants.items.map(variant => this.serializer.variant(variant)),
-                variantTotal: variants.totalItems,
-                hasMoreVariants: offset + variants.items.length < variants.totalItems,
+                ...variantPaging(offset, variants),
             },
         };
     }
