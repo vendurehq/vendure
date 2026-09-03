@@ -3,13 +3,8 @@ import { CustomerService, OrderService, Permission, RequestContext, TranslatorSe
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import {
-    ORDER_LIST_RELATIONS,
-    orderListOptions,
-    page,
-    paginationFields,
-    translateLineVariants,
-} from '../list-helpers';
+import { page, paginationFields } from '../list-helpers';
+import { ORDER_LIST_RELATIONS, orderListOptions, translateLineVariants } from '../order-list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 
 const listMyOrdersInput = z.strictObject({

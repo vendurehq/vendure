@@ -3,7 +3,7 @@ import { ConfigService, OrderService, Permission, RequestContext } from '@vendur
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { ORDER_DETAIL_RELATIONS } from '../list-helpers';
+import { ORDER_DETAIL_RELATIONS } from '../order-list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 import { shortText } from '../string-schemas';
 

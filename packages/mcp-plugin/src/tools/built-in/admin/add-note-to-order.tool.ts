@@ -5,7 +5,7 @@ import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { idSchema } from '../id-schema';
-import { ORDER_DETAIL_RELATIONS } from '../list-helpers';
+import { ORDER_DETAIL_RELATIONS } from '../order-list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 import { longText } from '../string-schemas';
 

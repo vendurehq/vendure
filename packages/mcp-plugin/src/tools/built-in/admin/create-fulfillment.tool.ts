@@ -21,7 +21,7 @@ import { z } from 'zod';
 
 import { idSchema } from '../id-schema';
 import { int32Schema } from '../int32-schema';
-import { ORDER_DETAIL_RELATIONS } from '../list-helpers';
+import { ORDER_DETAIL_RELATIONS } from '../order-list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 import { shortText } from '../string-schemas';
 

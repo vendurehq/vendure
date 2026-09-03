@@ -1,4 +1,14 @@
-import { Collection, CollectionService, ID, RelationPaths, RequestContext } from '@vendure/core';
+import { SortOrder } from '@vendure/common/lib/generated-types';
+import {
+    Collection,
+    CollectionService,
+    ID,
+    ListQueryOptions,
+    RelationPaths,
+    RequestContext,
+} from '@vendure/core';
+
+import { type ListInput, listOptions } from '../list-helpers';
 
 /** Which key a shop collection tool was given: the collection's id, or its slug. */
 export type CollectionLookup = { kind: 'id'; value: ID } | { kind: 'slug'; value: string };
@@ -34,4 +44,15 @@ export async function findPublicCollection(
 /** The one wording every shop tool uses when the lookup found no public collection. */
 export function noCollectionMessage(lookup: CollectionLookup): string {
     return `No collection with ${lookup.kind} ${String(lookup.value)}.`;
+}
+
+export function publicCollectionListOptions(input: ListInput): ListQueryOptions<Collection> {
+    const options = listOptions<Collection>({ limit: input.limit, offset: input.offset });
+    return {
+        ...options,
+        sort: { position: SortOrder.ASC, id: SortOrder.ASC },
+        filter: {
+            isPrivate: { eq: false },
+        },
+    };
 }

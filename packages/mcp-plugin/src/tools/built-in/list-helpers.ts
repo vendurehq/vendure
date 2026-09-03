@@ -1,21 +1,12 @@
-import { OrderListOptions, SortOrder } from '@vendure/common/lib/generated-types';
-import {
-    Collection,
-    ListQueryOptions,
-    Order,
-    Product,
-    RelationPaths,
-    RequestContext,
-    TranslatorService,
-    VendureEntity,
-} from '@vendure/core';
+import { SortOrder } from '@vendure/common/lib/generated-types';
+import { ListQueryOptions, VendureEntity } from '@vendure/core';
 import { z } from 'zod';
 
 import { int32Schema } from './int32-schema';
 import { shortText } from './string-schemas';
 
 /** Common pagination fields shared by the list tool inputs (already validated by the tool schema). */
-interface ListInput {
+export interface ListInput {
     limit?: number;
     offset?: number;
     filter?: Record<string, unknown>;
@@ -87,108 +78,4 @@ export function listOptions<T extends VendureEntity>(input: ListInput): ListQuer
         ...(input.filter ? { filter: input.filter as ListQueryOptions<T>['filter'] } : {}),
         sort: { createdAt: SortOrder.DESC, id: SortOrder.DESC } as ListQueryOptions<T>['sort'],
     };
-}
-
-/**
- * Trims a plural ending off a word. Only characters at the end are removed, and product matching
- * is substring-based, so the trimmed word always finds everything the original word would find.
- * Words under four characters are left alone so that "gas" or "bus" are not mangled.
- */
-function singular(word: string): string {
-    if (word.length < 4) {
-        return word;
-    }
-    if (/(?:s|x|z|ch|sh)es$/i.test(word)) {
-        return word.slice(0, -2);
-    }
-    if (/[^s]s$/i.test(word)) {
-        return word.slice(0, -1);
-    }
-    return word;
-}
-
-/**
- * Splits a search query into the words a product has to match. Pass `trimPlurals` to get the words
- * with their plural endings removed; `search_products` uses that as a second attempt when the words
- * as the shopper typed them find nothing.
- */
-export function productSearchWords(query: string | undefined, trimPlurals = false): string[] {
-    const words = (query ?? '')
-        .trim()
-        .split(/\s+/)
-        .filter(word => word.length > 0);
-    return trimPlurals ? words.map(singular) : words;
-}
-
-/**
- * Builds the query for a public product search: only enabled products, and every word has to turn
- * up in the product's name or slug, in any order. Descriptions are not searched.
- */
-export function publicProductListOptions(input: ListInput, words: string[] = []): ListQueryOptions<Product> {
-    const options = listOptions<Product>({ limit: input.limit, offset: input.offset });
-    const wordFilters = words.map(word => ({
-        _or: [{ name: { contains: word } }, { slug: { contains: word } }],
-    }));
-    return {
-        ...options,
-        filter: {
-            enabled: { eq: true },
-            ...(wordFilters.length ? { _and: wordFilters } : {}),
-        },
-    };
-}
-
-export function publicCollectionListOptions(input: ListInput): ListQueryOptions<Collection> {
-    const options = listOptions<Collection>({ limit: input.limit, offset: input.offset });
-    return {
-        ...options,
-        sort: { position: SortOrder.ASC, id: SortOrder.ASC },
-        filter: {
-            isPrivate: { eq: false },
-        },
-    };
-}
-
-/**
- * The Order fields `list_orders` can sort by. Kept to the few an operations user asks for, so the
- * tool's input stays small: when an order happened, when it last changed, and how big it is.
- */
-export const ORDER_SORT_FIELDS = ['orderPlacedAt', 'updatedAt', 'createdAt', 'total'] as const;
-
-export type OrderSortField = (typeof ORDER_SORT_FIELDS)[number];
-
-interface OrderListInput extends ListInput {
-    sortBy?: OrderSortField;
-    sortDirection?: 'ASC' | 'DESC';
-}
-
-export function orderListOptions(input: OrderListInput, defaultSort: OrderSortField): OrderListOptions {
-    const field = input.sortBy ?? defaultSort;
-    const direction = input.sortDirection === 'ASC' ? SortOrder.ASC : SortOrder.DESC;
-    return {
-        ...(listOptions<Order>(input) as OrderListOptions),
-        sort: { [field]: direction, id: direction },
-    };
-}
-
-export const ORDER_LIST_RELATIONS: RelationPaths<Order> = [
-    'lines',
-    'lines.productVariant',
-    'lines.productVariant.translations',
-    'shippingLines',
-    'payments',
-    'payments.refunds',
-    'fulfillments',
-    'fulfillments.lines',
-    'customer',
-];
-
-export const ORDER_DETAIL_RELATIONS: RelationPaths<Order> = [...ORDER_LIST_RELATIONS, 'customer.user'];
-
-export function translateLineVariants(orders: Order[], translator: TranslatorService, ctx: RequestContext) {
-    for (const order of orders) {
-        for (const line of order.lines) {
-            line.productVariant = translator.translate(line.productVariant, ctx);
-        }
-    }
 }

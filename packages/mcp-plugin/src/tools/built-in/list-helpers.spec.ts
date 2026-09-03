@@ -5,73 +5,25 @@ import * as listHelpers from './list-helpers';
 
 const expectedExports = [
     'MAX_LIST_PAGE_SIZE',
-    'ORDER_DETAIL_RELATIONS',
-    'ORDER_LIST_RELATIONS',
-    'ORDER_SORT_FIELDS',
     'booleanFilter',
     'dateFilter',
     'listOptions',
     'numberFilter',
-    'orderListOptions',
     'page',
     'paginationFields',
-    'productSearchWords',
-    'publicCollectionListOptions',
-    'publicProductListOptions',
     'slicePage',
     'stringFilter',
-    'translateLineVariants',
 ];
 
 describe('built-in list helpers', () => {
     it('exports only the helpers consumed by the shipped tools', () => {
         expect(Object.keys(listHelpers).sort()).toEqual(expectedExports);
-        // The exports that are not functions: the sortable Order fields the list_orders tool turns
-        // into its sortBy enum, the relations the order list and single-order tools load, the
-        // page-size cap, and the four filter operator schemas the filterable list tools build their
-        // filter objects from.
-        const {
-            ORDER_SORT_FIELDS,
-            ORDER_LIST_RELATIONS,
-            ORDER_DETAIL_RELATIONS,
-            MAX_LIST_PAGE_SIZE,
-            stringFilter,
-            dateFilter,
-            numberFilter,
-            booleanFilter,
-            ...helpers
-        } = listHelpers;
+        // The exports that are not functions: the page-size cap, and the four filter operator
+        // schemas the filterable list tools build their filter objects from.
+        const { MAX_LIST_PAGE_SIZE, stringFilter, dateFilter, numberFilter, booleanFilter, ...helpers } =
+            listHelpers;
         expect(Object.values(helpers).every(value => typeof value === 'function')).toBe(true);
-        expect(ORDER_SORT_FIELDS).toEqual(['orderPlacedAt', 'updatedAt', 'createdAt', 'total']);
         expect(MAX_LIST_PAGE_SIZE).toBe(100);
-    });
-
-    it('sorts orders by the caller default unless asked otherwise, with an id tiebreaker', () => {
-        expect(listHelpers.orderListOptions({}, 'updatedAt')).toEqual({
-            take: 25,
-            skip: 0,
-            sort: { updatedAt: 'DESC', id: 'DESC' },
-        });
-        expect(listHelpers.orderListOptions({}, 'createdAt')).toEqual({
-            take: 25,
-            skip: 0,
-            sort: { createdAt: 'DESC', id: 'DESC' },
-        });
-        expect(
-            listHelpers.orderListOptions(
-                {
-                    limit: 5,
-                    offset: 10,
-                    sortBy: 'total',
-                    sortDirection: 'ASC',
-                },
-                'updatedAt',
-            ),
-        ).toEqual({
-            take: 5,
-            skip: 10,
-            sort: { total: 'ASC', id: 'ASC' },
-        });
     });
 
     it('forwards a filter to core and leaves the key out when there is none', () => {
@@ -85,32 +37,6 @@ describe('built-in list helpers', () => {
             skip: 10,
             filter: { emailAddress: { eq: 'jane@example.test' } },
             sort: { createdAt: 'DESC', id: 'DESC' },
-        });
-    });
-
-    it('keeps collections in the order the operator arranged them', () => {
-        expect(listHelpers.publicCollectionListOptions({ limit: 5 })).toEqual({
-            take: 5,
-            skip: 0,
-            sort: { position: 'ASC', id: 'ASC' },
-            filter: { isPrivate: { eq: false } },
-        });
-    });
-
-    it('carries an order filter and the sort together', () => {
-        expect(
-            listHelpers.orderListOptions(
-                {
-                    filter: { state: { eq: 'ArrangingPayment' } },
-                    sortBy: 'updatedAt',
-                },
-                'updatedAt',
-            ),
-        ).toEqual({
-            take: 25,
-            skip: 0,
-            filter: { state: { eq: 'ArrangingPayment' } },
-            sort: { updatedAt: 'DESC', id: 'DESC' },
         });
     });
 
@@ -152,48 +78,5 @@ describe('built-in list helpers', () => {
         expect(accepts({ eq: 'a'.repeat(256) })).toBe(false);
         expect(accepts({ in: Array.from({ length: 100 }, () => 'code') })).toBe(true);
         expect(accepts({ in: Array.from({ length: 101 }, () => 'code') })).toBe(false);
-    });
-
-    it('requires every search word to match the product name or slug', () => {
-        expect(listHelpers.publicProductListOptions({ limit: 10, offset: 5 }, ['camera', 'bag'])).toEqual({
-            take: 10,
-            skip: 5,
-            sort: { createdAt: 'DESC', id: 'DESC' },
-            filter: {
-                enabled: { eq: true },
-                _and: [
-                    { _or: [{ name: { contains: 'camera' } }, { slug: { contains: 'camera' } }] },
-                    { _or: [{ name: { contains: 'bag' } }, { slug: { contains: 'bag' } }] },
-                ],
-            },
-        });
-    });
-
-    it('drops the word filter entirely when nothing was searched for', () => {
-        // An empty _and would produce an empty bracket in the SQL, so it has to be left out.
-        expect(listHelpers.publicProductListOptions({})).toEqual({
-            take: 25,
-            skip: 0,
-            sort: { createdAt: 'DESC', id: 'DESC' },
-            filter: { enabled: { eq: true } },
-        });
-    });
-
-    it('splits a query into words and leaves them as typed by default', () => {
-        expect(listHelpers.productSearchWords('  Camera   Bags ')).toEqual(['Camera', 'Bags']);
-        expect(listHelpers.productSearchWords(undefined)).toEqual([]);
-        expect(listHelpers.productSearchWords('   ')).toEqual([]);
-    });
-
-    it('trims plural endings only when asked to', () => {
-        const trimmed = (query: string) => listHelpers.productSearchWords(query, true);
-        expect(trimmed('cameras bags shoes')).toEqual(['camera', 'bag', 'shoe']);
-        expect(trimmed('boxes watches dresses lenses')).toEqual(['box', 'watch', 'dress', 'lens']);
-        expect(trimmed('glass class gas bus')).toEqual(['glass', 'class', 'gas', 'bus']);
-        expect(trimmed('camera folding')).toEqual(['camera', 'folding']);
-        // A singular noun ending in one "s" is over-trimmed. Trimming the end of a word can only
-        // widen a substring match, so "len" still finds "Lens", and this pass runs only after the
-        // words as typed have already found nothing.
-        expect(trimmed('lens')).toEqual(['len']);
     });
 });

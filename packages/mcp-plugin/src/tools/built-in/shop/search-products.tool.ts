@@ -5,11 +5,12 @@ import { z } from 'zod';
 
 import { McpCatalogQueryService } from '../catalog-query.service';
 import { idSchema } from '../id-schema';
-import { page, paginationFields, productSearchWords, publicProductListOptions } from '../list-helpers';
+import { page, paginationFields } from '../list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 import { shortText } from '../string-schemas';
 
 import { collectionLookup, findPublicCollection, noCollectionMessage } from './collection-lookup';
+import { productSearchWords, publicProductListOptions } from './product-search-query';
 
 // Each word adds two LIKE conditions to the query, and a long query matches nothing anyway.
 const MAX_QUERY_LENGTH = 200;
