@@ -2,11 +2,10 @@ import { ConfigService, Logger } from '@vendure/core';
 import { createHash, randomBytes } from 'node:crypto';
 
 import { loggerCtx, MAX_CLIENT_METADATA_FIELD_LENGTH } from '../constants';
-import { ResolvedMcpPluginOptions } from '../internal-types';
+import { McpOauthOptionsWithDefaults, ResolvedMcpPluginOptions } from '../internal-types';
 
 import { isLoopbackHostname } from './loopback';
 import { McpOauthError } from './oauth-error';
-import { ResolvedMcpOauthOptions } from './oauth-types';
 
 export function randomToken(): string {
     return randomBytes(32).toString('base64url');
@@ -93,16 +92,21 @@ export async function deleteCachedVendureSession(
     }
 }
 
+/** The OAuth options with defaults applied and the issuer known. */
+export type McpOauthOptionsWithIssuer = McpOauthOptionsWithDefaults & { issuer: string };
+
 /**
  * Returns the resolved OAuth options, throwing if OAuth was not configured
  * (i.e. no `oauth.tokenSecret` was supplied to the plugin).
  */
-export function resolvedOauthOptions(options: ResolvedMcpPluginOptions): ResolvedMcpOauthOptions {
+export function resolvedOauthOptions(options: ResolvedMcpPluginOptions): McpOauthOptionsWithIssuer {
     if (!options.oauth?.tokenSecret) {
         throw new McpOauthError(
             'server_error',
             'MCP OAuth is not configured (oauth.tokenSecret is required)',
         );
     }
-    return options.oauth as ResolvedMcpOauthOptions;
+    // The plugin's configuration hook sets oauth.issuer at boot when the user left it out, so by
+    // the time any request arrives it is always a string.
+    return options.oauth as McpOauthOptionsWithIssuer;
 }

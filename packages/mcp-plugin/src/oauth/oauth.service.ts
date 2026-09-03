@@ -50,7 +50,6 @@ import {
     OAuthTokenResponse,
     RegisterClientInput,
     RegisteredClientResponse,
-    ResolvedMcpOauthOptions,
     TokenInput,
 } from './oauth-types';
 import {
@@ -58,6 +57,7 @@ import {
     appendOAuthParams,
     assertSafeRedirectUri,
     httpsUrlOrNull,
+    McpOauthOptionsWithIssuer,
     randomToken,
     resolvedOauthOptions,
     verifyPkceChallenge,
@@ -852,7 +852,7 @@ export class McpOauthService {
     }
 
     /** See {@link resolvedOauthOptions}. */
-    private resolvedOauth(): ResolvedMcpOauthOptions {
+    private resolvedOauth(): McpOauthOptionsWithIssuer {
         return resolvedOauthOptions(this.options);
     }
 
