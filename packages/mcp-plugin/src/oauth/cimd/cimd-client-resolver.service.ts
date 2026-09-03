@@ -33,43 +33,39 @@ export class McpCimdClientResolverService {
         @Inject(MCP_PLUGIN_OPTIONS) private options: ResolvedMcpPluginOptions,
     ) {}
 
+    // Documents on the local machine are a development-only convenience (draft §8.6), so the
+    // operator has to ask for them; `McpPlugin` refuses to start with them on in production.
+    private get allowLoopback(): boolean {
+        return this.options.oauth?.allowLoopbackCimdDocuments === true;
+    }
+
     async resolveClient(ctx: RequestContext, clientId: string): Promise<McpOauthClient> {
-        // Documents on the local machine are a development-only convenience (draft §8.6), so the
-        // operator has to ask for them; `McpPlugin` refuses to start with them on in production.
-        const allowLoopback = this.options.oauth?.allowLoopbackCimdDocuments === true;
-        const url = validateCimdClientIdUrl(clientId, { allowLoopback });
+        const url = validateCimdClientIdUrl(clientId, { allowLoopback: this.allowLoopback });
         const cached = await this.findClientRow(ctx, clientId);
         if (cached && this.isFresh(cached)) {
             return cached;
         }
-        const document = await this.resolveDocument(clientId, url, allowLoopback);
+        const document = await this.resolveDocument(clientId, url);
         return this.storeDocument(ctx, clientId, document);
     }
 
     /** Fetches and validates the document, sharing one request with any concurrent caller. */
-    private resolveDocument(clientId: string, url: URL, allowLoopback: boolean): Promise<CimdDocument> {
+    private resolveDocument(clientId: string, url: URL): Promise<CimdDocument> {
         const running = this.inFlight.get(clientId);
         if (running) {
             return running;
         }
-        const task = this.fetchAndValidate(clientId, url, allowLoopback).finally(() => {
-            this.inFlight.delete(clientId);
-        });
-        this.inFlight.set(clientId, task);
-        return task;
-    }
-
-    private async fetchAndValidate(
-        clientId: string,
-        url: URL,
-        allowLoopback: boolean,
-    ): Promise<CimdDocument> {
-        const body = await fetchCimdDocument(url, {
+        const task = fetchCimdDocument(url, {
             timeoutMs: CIMD_FETCH_TIMEOUT_MS,
             maxBytes: CIMD_MAX_DOCUMENT_BYTES,
-            allowLoopback,
-        });
-        return parseCimdDocument(clientId, body);
+            allowLoopback: this.allowLoopback,
+        })
+            .then(body => parseCimdDocument(clientId, body))
+            .finally(() => {
+                this.inFlight.delete(clientId);
+            });
+        this.inFlight.set(clientId, task);
+        return task;
     }
 
     /** Writes the validated document to its client row, creating the row the first time. */
@@ -109,6 +105,8 @@ export class McpCimdClientResolverService {
 
     private async findClientRow(ctx: RequestContext, clientId: string): Promise<McpOauthClient | undefined> {
         const row = await this.connection.getRepository(ctx, McpOauthClient).findOne({ where: { clientId } });
+        // SQL equality follows the column collation (MySQL's default ignores case and trailing
+        // spaces), so the row is used only when its stored id is exactly the one asked for.
         return row?.clientId === clientId ? row : undefined;
     }
 

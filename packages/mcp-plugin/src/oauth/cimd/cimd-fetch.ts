@@ -64,12 +64,8 @@ loopbackRanges.addSubnet('127.0.0.0', 8, 'ipv4');
 loopbackRanges.addAddress('::1', 'ipv6');
 
 /** True when a resolved address may be dialed. Loopback is only allowed in development. */
-export function isAllowedCimdAddress(
-    address: string,
-    family: number | string,
-    allowLoopback: boolean,
-): boolean {
-    const familyName = family === 6 || family === 'IPv6' || family === 'ipv6' ? 'ipv6' : 'ipv4';
+export function isAllowedCimdAddress(address: string, family: number, allowLoopback: boolean): boolean {
+    const familyName = family === 6 ? 'ipv6' : 'ipv4';
     try {
         if (allowLoopback && loopbackRanges.check(address, familyName)) {
             return true;
@@ -140,19 +136,9 @@ function runFetch(url: URL, options: CimdFetchOptions): Promise<string> {
     const deadline = AbortSignal.timeout(options.timeoutMs);
     const timedOut = () => new BadRequestException('client_id metadata document request timed out');
     return new Promise<string>((resolve, reject) => {
-        let settled = false;
         const fail = (error: Error) => {
-            if (!settled) {
-                settled = true;
-                request.destroy();
-                reject(error);
-            }
-        };
-        const succeed = (body: string) => {
-            if (!settled) {
-                settled = true;
-                resolve(body);
-            }
+            request.destroy();
+            reject(error);
         };
         const request = transport.request(
             url,
@@ -189,7 +175,7 @@ function runFetch(url: URL, options: CimdFetchOptions): Promise<string> {
                     chunks.push(chunk);
                 });
                 response.on('end', () => {
-                    succeed(Buffer.concat(chunks).toString('utf8'));
+                    resolve(Buffer.concat(chunks).toString('utf8'));
                 });
                 // The deadline destroys the request mid-body, which surfaces here rather than on
                 // the request itself, so it has to be reported as the timeout it is.
