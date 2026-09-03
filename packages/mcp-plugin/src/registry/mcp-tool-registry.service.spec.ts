@@ -43,9 +43,16 @@ function makeCtx(
     return {
         activeUserId: opts.activeUserId,
         userHasPermissions: (perms: Permission[]) => perms.some(p => (opts.granted ?? []).includes(p)),
-        // Stands in for the request core's translation middleware has touched. Left off, the
-        // registry has nothing to translate with and hands the caller the raw text.
-        req: opts.translate ? { t: opts.translate } : undefined,
+        // Stands in for core's RequestContext.translate, including the way it swallows a throw
+        // from the translation function. Left off, it returns the key unchanged, which is what
+        // core does for a context built without a translation function.
+        translate(key: string, vars?: any) {
+            try {
+                return opts.translate ? opts.translate(key, vars) : key;
+            } catch (e: any) {
+                return `Translation format error: ${JSON.stringify(e.message)}). Original key: ${key}`;
+            }
+        },
         // The session swap in McpShopSessionService clones the context via copy().
         copy() {
             return { ...this };
@@ -1514,12 +1521,17 @@ describe('McpToolRegistryService', () => {
             expect((result.content as any)[0].text).toBe('error.order-does-not-contain-line-with-id');
         });
 
-        it('keeps a plain sentence containing a brace, which the formatter cannot parse', async () => {
+        it('reports a formatter failure the way core does, keeping the original sentence', async () => {
+            // A plugin sentence with a literal brace makes the ICU formatter throw. Core's
+            // RequestContext.translate catches that and returns a diagnostic that still ends
+            // with the original text, so the caller can read what went wrong.
             const { result } = await callWith(() => {
                 throw new UserInputError('Value {x} is not allowed');
             }, makeCtx({ translate }));
 
-            expect((result.content as any)[0].text).toBe('Value {x} is not allowed');
+            expect((result.content as any)[0].text).toBe(
+                'Translation format error: "ICU: unexpected brace"). Original key: Value {x} is not allowed',
+            );
         });
 
         it('keeps a plain sentence that has no translation', async () => {

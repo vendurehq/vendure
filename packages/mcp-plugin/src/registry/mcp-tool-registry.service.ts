@@ -413,7 +413,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             const callerSafe = this.isCallerSafeError(e);
             const callerMessage =
                 callerSafe && e instanceof I18nError
-                    ? this.translateForCaller(callContext.ctx, e.message, e.variables)
+                    ? callContext.ctx.translate(e.message, e.variables)
                     : message;
             if (!callerSafe) {
                 Logger.error(
@@ -519,11 +519,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             });
 
             const messageKey = `errorResult.${errorResult.message}`;
-            const translated = this.translateForCaller(
-                callContext.ctx,
-                messageKey,
-                errorResult as unknown as Record<string, unknown>,
-            );
+            const translated = callContext.ctx.translate(messageKey, errorResult);
             const translatedResult = {
                 ...errorResult,
                 message: translated === messageKey ? errorResult.message : translated,
@@ -772,23 +768,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
 
     private isCallerSafeError(e: unknown): boolean {
         return CALLER_SAFE_ERROR_TYPES.some(ErrorType => e instanceof ErrorType);
-    }
-
-    private translateForCaller(
-        ctx: RequestContext,
-        key: string,
-        variables?: Record<string, unknown>,
-    ): string {
-        const req = ctx.req;
-        if (!req || !('t' in req) || typeof req.t !== 'function') {
-            return key;
-        }
-        try {
-            const translated: unknown = req.t(key, variables);
-            return typeof translated === 'string' && translated !== key ? translated : key;
-        } catch {
-            return key;
-        }
     }
 
     /**
