@@ -4,23 +4,14 @@ import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { McpCustomFieldInputService } from '../custom-field-input.service';
-import { emailAddressSchema } from '../email-schema';
 import { idSchema } from '../id-schema';
 import { McpToolSerializerService } from '../serializer.service';
-import { shortText } from '../string-schemas';
 
-const customerUpdateSchema = z.strictObject({
-    firstName: shortText.describe('Customer first name.').optional(),
-    lastName: shortText.describe('Customer last name.').optional(),
-    emailAddress: emailAddressSchema.optional(),
-    phoneNumber: shortText.describe('Customer phone number.').optional(),
-    title: shortText.describe('Customer title, e.g. "Mr" or "Ms".').optional(),
-    customFields: z.looseObject({}).describe('Customer custom fields.').optional(),
-});
+import { customerFieldsSchema } from './entity-field-schemas';
 
 const updateCustomerInput = z.strictObject({
     id: idSchema.describe('Customer ID.'),
-    input: customerUpdateSchema,
+    input: customerFieldsSchema.partial(),
 });
 
 type UpdateCustomerToolInput = z.infer<typeof updateCustomerInput>;

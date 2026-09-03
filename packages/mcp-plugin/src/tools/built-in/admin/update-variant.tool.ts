@@ -1,42 +1,22 @@
 import { Injectable } from '@nestjs/common';
-import { GlobalFlag } from '@vendure/common/lib/generated-types';
 import { Permission, ProductVariantService, RequestContext, StockLevelService } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { McpCustomFieldInputService } from '../custom-field-input.service';
-import { idSchema, MAX_ID_LIST_LENGTH } from '../id-schema';
-import { int32Schema } from '../int32-schema';
+import { idSchema } from '../id-schema';
 import { McpToolSerializerService } from '../serializer.service';
 import { shortText } from '../string-schemas';
 
+import { variantFieldsSchema } from './entity-field-schemas';
 import { variantTranslationSchema } from './translation-schemas';
 
-const updateVariantInputSchema = z.strictObject({
+const updateVariantInputSchema = variantFieldsSchema.extend({
     sku: shortText.describe('Stock keeping unit.').optional(),
     translations: z
         .array(variantTranslationSchema)
         .describe('Localized variant content to update.')
         .optional(),
-    price: int32Schema.min(0).describe('Price as a whole number of minor units, e.g. cents.').optional(),
-    optionIds: z
-        .array(idSchema.describe('Vendure ID.'))
-        .max(MAX_ID_LIST_LENGTH)
-        .describe('Product option IDs for this variant.')
-        .optional(),
-    taxCategoryId: idSchema.describe('Tax category ID.').optional(),
-    featuredAssetId: idSchema.describe('Featured asset ID.').optional(),
-    assetIds: z
-        .array(idSchema.describe('Vendure ID.'))
-        .max(MAX_ID_LIST_LENGTH)
-        .describe('Asset IDs to attach.')
-        .optional(),
-    trackInventory: z
-        .enum(GlobalFlag)
-        .describe('Inventory tracking: "TRUE", "FALSE", or "INHERIT".')
-        .optional(),
-    enabled: z.boolean().describe('Whether the variant is enabled.').optional(),
-    customFields: z.looseObject({}).describe('Variant custom fields.').optional(),
 });
 
 const updateVariantInput = z.strictObject({
