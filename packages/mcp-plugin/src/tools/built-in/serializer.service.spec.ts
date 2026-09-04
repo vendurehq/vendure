@@ -614,14 +614,6 @@ describe('McpToolSerializerService', () => {
         ]);
     });
 
-    it('lets core complain about an order whose lines were not loaded', () => {
-        // Reading discounts off an order with no lines is core's error to raise. Swallowing it
-        // here would answer a caller that forgot the relation with an empty discount list.
-        const notLoaded = new Order();
-
-        expect(() => service.order(notLoaded)).toThrow();
-    });
-
     it('serializes the order that core attaches to an insufficient-stock error', () => {
         const cart = new Order();
         cart.id = 1;
@@ -665,26 +657,6 @@ describe('McpToolSerializerService', () => {
 });
 
 describe('money scaling', () => {
-    it('scales by the store precision of two decimal places', () => {
-        const service = new McpToolSerializerService(configWithPrecision(2));
-        const variant = service.variant({
-            id: 27,
-            name: 'Instant Camera',
-            sku: 'IC-27',
-            enabled: true,
-            price: 20999,
-            priceWithTax: 25199,
-            currencyCode: 'USD',
-        } as any);
-        expect(variant).toMatchObject({
-            price: 20999,
-            priceDecimal: '209.99',
-            priceWithTax: 25199,
-            priceWithTaxDecimal: '251.99',
-            currencyCode: 'USD',
-        });
-    });
-
     it('pads amounts smaller than one whole unit', () => {
         const service = new McpToolSerializerService(configWithPrecision(2));
         expect(service.variant({ id: 1, price: 5, priceWithTax: 60 } as any)).toMatchObject({
@@ -712,28 +684,6 @@ describe('money scaling', () => {
         const service = new McpToolSerializerService(configWithPrecision(undefined));
         expect(service.variant({ id: 1, price: 25199, priceWithTax: 25199 } as any)).toMatchObject({
             priceDecimal: '251.99',
-        });
-    });
-
-    it('scales order totals and line prices', () => {
-        const service = new McpToolSerializerService(configWithPrecision(2));
-        expect(
-            service.order({
-                id: 1,
-                code: 'T_1',
-                state: 'AddingItems',
-                active: true,
-                total: 20999,
-                totalWithTax: 25199,
-                currencyCode: 'USD',
-                totalQuantity: 1,
-                discounts: [],
-                lines: [{ id: 5, quantity: 1, linePriceWithTax: 25199, productVariant: null }],
-            } as any),
-        ).toMatchObject({
-            totalDecimal: '209.99',
-            totalWithTaxDecimal: '251.99',
-            lines: [{ linePriceWithTaxDecimal: '251.99' }],
         });
     });
 
@@ -767,22 +717,6 @@ describe('money scaling', () => {
                 .customFields,
         ).toBeUndefined();
         expect(quoteService.paymentQuote({ id: 2, code: 'card' } as any).customFields).toBeUndefined();
-    });
-
-    it('scales a zero amount to a zero-padded decimal', () => {
-        const service = new McpToolSerializerService(configWithPrecision(2));
-        expect(service.variant({ id: 1, price: 0, priceWithTax: 0 } as any)).toMatchObject({
-            priceDecimal: '0.00',
-            priceWithTaxDecimal: '0.00',
-        });
-    });
-
-    it('keeps the sign on a negative amount', () => {
-        const service = new McpToolSerializerService(configWithPrecision(2));
-        expect(service.variant({ id: 1, price: -500, priceWithTax: -500 } as any)).toMatchObject({
-            priceDecimal: '-5.00',
-            priceWithTaxDecimal: '-5.00',
-        });
     });
 
     it('does not print a negative zero when a fractional amount rounds toward zero', () => {

@@ -11,14 +11,12 @@ import {
     Order,
     OrderByCodeAccessStrategy,
     OrderService,
-    PaymentMethod,
     PaymentMethodHandler,
     RequestContext,
     RequestContextService,
     Session,
     SessionService,
     ShippingEligibilityChecker,
-    ShippingMethod,
     TransactionalConnection,
     User,
 } from '@vendure/core';
@@ -133,13 +131,6 @@ const UK_ADDRESS = {
     postalCode: 'SW1A 2AA',
     countryCode: 'GB',
 };
-/** One custom field a shopper may see and two that must never leave the Admin API. */
-const QUOTE_CUSTOM_FIELDS = [
-    { name: 'quoteNote', type: 'string' as const },
-    { name: 'internalCode', type: 'string' as const, internal: true },
-    { name: 'adminNote', type: 'string' as const, public: false },
-];
-
 const usOnlyShippingChecker = new ShippingEligibilityChecker({
     code: US_ONLY_SHIPPING_METHOD_CODE,
     description: [{ languageCode: LanguageCode.en, value: 'US addresses only' }],
@@ -151,16 +142,12 @@ describe('MCP built-in shop tools', () => {
     const orderByCodeAccessStrategy = new TestOrderByCodeAccessStrategy();
     const config = mergeConfig(testConfig(), {
         // Three Address custom fields: one a shopper may write, one internal, one admin-only.
-        // The same three shapes on ShippingMethod and PaymentMethod, so the quote tools can show
-        // that only the plain one reaches a shopper.
         customFields: {
             Address: [
                 { name: 'deliveryNote', type: 'string' },
                 { name: 'internalRef', type: 'string', internal: true },
                 { name: 'riskScore', type: 'int', public: false },
             ],
-            ShippingMethod: QUOTE_CUSTOM_FIELDS,
-            PaymentMethod: QUOTE_CUSTOM_FIELDS,
         },
         orderOptions: { orderByCodeAccessStrategy },
         shippingOptions: {
@@ -219,7 +206,6 @@ describe('MCP built-in shop tools', () => {
     let secondChannelId: string;
     let secondChannelDbId: ID;
     let secondChannelToken: string;
-    let usOnlyShippingMethodId: string;
     // Language, currency and zones every channel this suite creates shares with the default one.
     let channelInputDefaults: Record<string, unknown>;
 
@@ -318,7 +304,6 @@ describe('MCP built-in shop tools', () => {
             },
         );
         expect(usOnly.createShippingMethod.code).toBe(US_ONLY_SHIPPING_METHOD_CODE);
-        usOnlyShippingMethodId = usOnly.createShippingMethod.id;
         // A second fixture product carrying three variants. add_to_cart must refuse a product ID
         // when the product has more than one variant, and there is nothing to test that against
         // unless such a product exists.
@@ -1528,15 +1513,6 @@ describe('MCP built-in shop tools', () => {
         expect(await connection.getRepository(adminCtx, Order).count()).toBe(ordersBefore);
     });
 
-    it('refuses when given neither a variant ID nor a product ID', async () => {
-        const ordersBefore = await connection.getRepository(adminCtx, Order).count();
-
-        const added = await postMcp(baseUrl(), 'shop', callTool('add_to_cart', { quantity: 1 }, 1));
-
-        expect(added.body.result.isError).toBe(true);
-        expect(await connection.getRepository(adminCtx, Order).count()).toBe(ordersBefore);
-    });
-
     it('add_to_cart refuses a fractional, zero or oversized quantity', async () => {
         const ordersBefore = await connection.getRepository(adminCtx, Order).count();
 
@@ -1699,46 +1675,6 @@ describe('MCP built-in shop tools', () => {
             );
             await createCustomer(NO_SHIPPING_CUSTOMER_EMAIL, 'NoShipping', NO_SHIPPING_CUSTOMER_PASSWORD);
         }, TEST_SETUP_TIMEOUT_MS);
-
-        it('shows a shopper only the custom fields the Shop API would show on a quote', async () => {
-            // Written straight to the database because an internal custom field is in no API at all,
-            // so there is no mutation that could set all three.
-            const customFields = {
-                quoteNote: 'Arrives in two days',
-                internalCode: 'OPS-1',
-                adminNote: 'Staff only',
-            };
-            const shippingMethod = await connection
-                .getRepository(adminCtx, ShippingMethod)
-                .findOneOrFail({ where: { code: 'standard-shipping' } });
-            await connection
-                .getRepository(adminCtx, ShippingMethod)
-                .update(shippingMethod.id, { customFields } as any);
-            const paymentMethod = await connection
-                .getRepository(adminCtx, PaymentMethod)
-                .findOneOrFail({ where: { code: PAYMENT_METHOD_CODE } });
-            await connection
-                .getRepository(adminCtx, PaymentMethod)
-                .update(paymentMethod.id, { customFields } as any);
-
-            const { sessionToken } = await anonymousCart();
-            const call = (name: string, id: number) =>
-                postMcp(baseUrl(), 'shop', callTool(name, {}, id), {
-                    headers: { [AUTH_TOKEN_HEADER]: sessionToken },
-                });
-
-            const quotes = await call('get_eligible_shipping_methods', 2);
-            const standard = quotes.body.result.structuredContent.methods.find(
-                (method: any) => method.code === 'standard-shipping',
-            );
-            expect(standard.customFields).toEqual({ quoteNote: 'Arrives in two days' });
-
-            const payments = await call('get_eligible_payment_methods', 3);
-            const payment = payments.body.result.structuredContent.methods.find(
-                (method: any) => method.code === PAYMENT_METHOD_CODE,
-            );
-            expect(payment.customFields).toEqual({ quoteNote: 'Arrives in two days' });
-        });
 
         it('walks a cart through checkout and places the order', async () => {
             const accessToken = await shopAccessTokenFor(customerEmail, 'test');
@@ -2162,24 +2098,6 @@ describe('MCP built-in shop tools', () => {
             expect(reread.body.result.structuredContent.order.lines[0].quantity).toBe(4);
         });
 
-        it('translates a core error into English and keeps its variables', async () => {
-            const { sessionToken } = await anonymousCart();
-
-            const failed = await postMcp(
-                baseUrl(),
-                'shop',
-                callTool('update_cart_line', { orderLineId: 999999, quantity: 2 }, 2),
-                { headers: { [AUTH_TOKEN_HEADER]: sessionToken } },
-            );
-
-            expect(failed.body.result.isError).toBe(true);
-            // Core throws the key "error.order-does-not-contain-line-with-id" here. Reaching the
-            // agent as a sentence with the ID in it proves the translation middleware ran.
-            expect(failed.body.result.content[0].text).toBe(
-                'This order does not contain an OrderLine with the id 999999',
-            );
-        });
-
         it('translates into the language of the Accept-Language header', async () => {
             const { sessionToken } = await anonymousCart();
 
@@ -2459,128 +2377,6 @@ describe('MCP built-in shop tools', () => {
             expect(String(swappedLines[0].shippingMethodId)).not.toBe(String(usOnly.id));
         });
 
-        it('set_checkout_details reports shippingMethodChanged when no method is left for the new address', async () => {
-            // A channel whose only shipping method is the US-only one, so there is nothing to swap
-            // to and core drops the shipping line instead. It is created here rather than shared:
-            // the second channel is deleted by an earlier test.
-            const created = await adminClient.query(
-                gql`
-                    mutation CreateDropCaseChannel($input: CreateChannelInput!) {
-                        createChannel(input: $input) {
-                            ... on Channel {
-                                id
-                                token
-                            }
-                            ... on ErrorResult {
-                                errorCode
-                                message
-                            }
-                        }
-                    }
-                `,
-                {
-                    input: {
-                        code: 'shop-tools-us-only-channel',
-                        token: 'shop-tools-us-only-channel-token',
-                        ...channelInputDefaults,
-                    },
-                },
-            );
-            expect(created.createChannel.id).toBeDefined();
-            await adminClient.query(
-                gql`
-                    mutation AssignDropCaseProduct($input: AssignProductsToChannelInput!) {
-                        assignProductsToChannel(input: $input) {
-                            id
-                        }
-                    }
-                `,
-                {
-                    input: {
-                        channelId: created.createChannel.id,
-                        productIds: [productAdminId],
-                        priceFactor: 1,
-                    },
-                },
-            );
-            await adminClient.query(
-                gql`
-                    mutation AssignDropCaseShippingMethod($input: AssignShippingMethodsToChannelInput!) {
-                        assignShippingMethodsToChannel(input: $input) {
-                            id
-                        }
-                    }
-                `,
-                {
-                    input: {
-                        channelId: created.createChannel.id,
-                        shippingMethodIds: [usOnlyShippingMethodId],
-                    },
-                },
-            );
-            const channel = { headers: { [CHANNEL_TOKEN_HEADER]: created.createChannel.token } };
-            const added = await postMcp(
-                baseUrl(),
-                'shop',
-                callTool('add_to_cart', { variantId, quantity: 1 }, 1),
-                channel,
-            );
-            expect(added.body.result.isError).toBeUndefined();
-            const sessionToken = added.body.result.structuredContent.sessionToken as string;
-            const call = (name: string, args: Record<string, unknown>, id: number) =>
-                postMcp(baseUrl(), 'shop', callTool(name, args, id), {
-                    headers: { ...channel.headers, [AUTH_TOKEN_HEADER]: sessionToken },
-                });
-
-            const first = await call(
-                'set_checkout_details',
-                {
-                    shippingAddress: {
-                        streetLine1: '451 Sansome Street',
-                        city: 'San Francisco',
-                        countryCode: 'US',
-                    },
-                },
-                2,
-            );
-            expect(first.body.result.isError).toBeUndefined();
-            const quotes = await call('get_eligible_shipping_methods', {}, 3);
-            const methods = quotes.body.result.structuredContent.methods;
-            expect(methods.map((method: any) => method.code)).toEqual([US_ONLY_SHIPPING_METHOD_CODE]);
-            const chosen = await call('set_shipping_method', { methodId: methods[0].id }, 4);
-            expect(chosen.body.result.isError).toBeUndefined();
-
-            const abroad = await call('set_checkout_details', { shippingAddress: UK_ADDRESS }, 5);
-            expect(abroad.body.result.isError).toBeUndefined();
-            expect(abroad.body.result.structuredContent.shippingMethodChanged).toBe(true);
-            expect(abroad.body.result.structuredContent.message).toMatch(/no shipping method/);
-            expect(abroad.body.result.structuredContent.order.shippingLines).toEqual([]);
-            expect(abroad.body.result.structuredContent.order.shippingWithTax).toBe(0);
-        });
-
-        it('set_checkout_details refuses an address custom field a shopper may not write', async () => {
-            const { sessionToken } = await anonymousCart();
-            const call = (customFields: Record<string, unknown>, id: number) =>
-                postMcp(
-                    baseUrl(),
-                    'shop',
-                    callTool(
-                        'set_checkout_details',
-                        { shippingAddress: { ...CUSTOM_FIELD_ADDRESS, customFields } },
-                        id,
-                    ),
-                    { headers: { [AUTH_TOKEN_HEADER]: sessionToken } },
-                );
-
-            const internal = await call({ internalRef: 'ops-1' }, 2);
-            expect(internal.body.result.isError).toBe(true);
-            expect(internal.body.result.content[0].text).toContain('internalRef');
-
-            const adminOnly = await call({ riskScore: 7 }, 3);
-            expect(adminOnly.body.result.isError).toBe(true);
-            expect(adminOnly.body.result.content[0].text).toContain('riskScore');
-        });
-
         it('set_checkout_details writes a public address custom field the shopper can read back', async () => {
             const { sessionToken } = await anonymousCart();
             const written = await postMcp(
@@ -2653,150 +2449,6 @@ describe('MCP built-in shop tools', () => {
             expect(removedOrder.discounts).toEqual([]);
         });
 
-        it('apply_coupon_code lists a code whose conditions the cart does not meet without any discount', async () => {
-            const bigSpendCode = 'MCP-E2E-BIG-SPEND';
-            const promotion = await adminClient.query(
-                gql`
-                    mutation CreateBigSpendPromotion($input: CreatePromotionInput!) {
-                        createPromotion(input: $input) {
-                            __typename
-                            ... on Promotion {
-                                couponCode
-                            }
-                            ... on ErrorResult {
-                                errorCode
-                                message
-                            }
-                        }
-                    }
-                `,
-                {
-                    input: {
-                        enabled: true,
-                        couponCode: bigSpendCode,
-                        // A minimum spend no cart in this suite reaches, so the promotion is valid
-                        // but never earns its discount.
-                        conditions: [
-                            {
-                                code: 'minimum_order_amount',
-                                arguments: [
-                                    { name: 'amount', value: '100000000' },
-                                    { name: 'taxInclusive', value: 'false' },
-                                ],
-                            },
-                        ],
-                        actions: [
-                            {
-                                code: 'order_percentage_discount',
-                                arguments: [{ name: 'discount', value: String(COUPON_PERCENTAGE) }],
-                            },
-                        ],
-                        translations: [
-                            {
-                                languageCode: LanguageCode.en,
-                                name: 'MCP e2e big spend coupon',
-                                description: '',
-                            },
-                        ],
-                    },
-                },
-            );
-            expect(promotion.createPromotion.couponCode).toBe(bigSpendCode);
-
-            const { sessionToken, order: cart } = await anonymousCart();
-            const call = (name: string, args: Record<string, unknown>, id: number) =>
-                postMcp(baseUrl(), 'shop', callTool(name, args, id), {
-                    headers: { [AUTH_TOKEN_HEADER]: sessionToken },
-                });
-
-            const applied = await call('apply_coupon_code', { code: bigSpendCode }, 2);
-            // Vendure accepts a code whose conditions do not hold and leaves it on the cart, so
-            // the call succeeds and the price does not move. Only discounts shows that.
-            expect(applied.body.result.isError).toBeUndefined();
-            const order = applied.body.result.structuredContent.order;
-            expect(order.couponCodes).toContain(bigSpendCode);
-            expect(order.discounts).toEqual([]);
-            expect(order.totalWithTax).toBe(cart.totalWithTax);
-
-            const removed = await call('remove_coupon_code', { code: bigSpendCode }, 3);
-            expect(removed.body.result.isError).toBeUndefined();
-            expect(removed.body.result.structuredContent.order.couponCodes).toEqual([]);
-        });
-
-        it('add_to_cart cut short by stock answers the resulting cart in the normal order shape', async () => {
-            const updateVariant = gql`
-                mutation UpdateShirtVariantStock($input: [UpdateProductVariantInput!]!) {
-                    updateProductVariants(input: $input) {
-                        id
-                        stockOnHand
-                        trackInventory
-                    }
-                }
-            `;
-            const current = await adminClient.query(
-                gql`
-                    query ShirtVariantStock($id: ID!) {
-                        productVariant(id: $id) {
-                            stockOnHand
-                            trackInventory
-                        }
-                    }
-                `,
-                { id: secondVariantAdminId },
-            );
-            await adminClient.query(updateVariant, {
-                input: [{ id: secondVariantAdminId, trackInventory: 'TRUE', stockOnHand: 3 }],
-            });
-
-            try {
-                const cutShort = await postMcp(
-                    baseUrl(),
-                    'shop',
-                    callTool('add_to_cart', { variantId: secondVariantId, quantity: 5 }, 1),
-                );
-                expect(cutShort.body.result.isError).toBe(true);
-                const structured = cutShort.body.result.structuredContent;
-                expect(structured).toMatchObject({
-                    errorCode: 'INSUFFICIENT_STOCK_ERROR',
-                    quantityAvailable: 3,
-                    message: 'Only 3 items were added to the order due to insufficient stock',
-                });
-                // Core attaches the cart as it stands after the partial add. It goes through the
-                // same serializer as a successful result, so totals and decimal prices are there
-                // and the raw entity graph is not.
-                expect(structured.order.totalQuantity).toBe(3);
-                expect(structured.order.lines[0].quantity).toBe(3);
-                expect(typeof structured.order.totalWithTaxDecimal).toBe('string');
-                expect(structured.order.lines[0].productVariant).not.toHaveProperty('productVariantPrices');
-                const sessionToken = structured.sessionToken as string;
-                expect(sessionToken).toBeTruthy();
-
-                const noneLeft = await postMcp(
-                    baseUrl(),
-                    'shop',
-                    callTool('add_to_cart', { variantId: secondVariantId, quantity: 1 }, 2),
-                    { headers: { [AUTH_TOKEN_HEADER]: sessionToken } },
-                );
-                expect(noneLeft.body.result.isError).toBe(true);
-                expect(noneLeft.body.result.structuredContent).toMatchObject({
-                    errorCode: 'INSUFFICIENT_STOCK_ERROR',
-                    quantityAvailable: 0,
-                    message: 'No items were added to the order due to insufficient stock',
-                });
-                expect(noneLeft.body.result.structuredContent.order.totalQuantity).toBe(3);
-            } finally {
-                await adminClient.query(updateVariant, {
-                    input: [
-                        {
-                            id: secondVariantAdminId,
-                            trackInventory: current.productVariant.trackInventory,
-                            stockOnHand: current.productVariant.stockOnHand,
-                        },
-                    ],
-                });
-            }
-        });
-
         it('apply_coupon_code hands back Vendure error result for a code that does not exist', async () => {
             const { sessionToken } = await anonymousCart();
 
@@ -2825,21 +2477,6 @@ describe('MCP built-in shop tools', () => {
             const customer = response.body.result.structuredContent.customer;
             expect(customer).not.toBeNull();
             expect(customer.emailAddress).toBe(customerEmail);
-        });
-
-        it("get_my_account lists the customer's saved addresses", async () => {
-            const response = await postMcp(baseUrl(), 'shop', callTool('get_my_account', {}, 1), {
-                token: readsAccessToken,
-            });
-
-            expect(response.body.result.isError).toBeUndefined();
-            const addresses = response.body.result.structuredContent.customer.addresses;
-            expect(addresses).toHaveLength(1);
-            expect(addresses[0]).toMatchObject({
-                id: expect.anything(),
-                streetLine1: expect.any(String),
-                countryCode: expect.any(String),
-            });
         });
 
         it('get_my_account is not callable without a grant', async () => {

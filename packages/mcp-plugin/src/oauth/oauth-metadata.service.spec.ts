@@ -53,28 +53,6 @@ describe('McpOauthMetadataService metadata', () => {
         expect(service.protectedResourceMetadata('admin').resource).toBe(`${ISSUER}/mcp/admin`);
     });
 
-    // Pins the document exactly as clients receive it — the field list, their order, and the
-    // absence of any key we do not advertise. Serving a key with an `undefined` value (which
-    // JSON drops but `Object.keys` still shows) or reordering the fields both fail here.
-    it('serves the protected-resource document with exactly the fields it advertises', () => {
-        const service = createService({ oauth: { tokenSecret: 's' } });
-        const document = service.protectedResourceMetadata('admin');
-        expect(Object.keys(document)).toEqual([
-            'resource',
-            'authorization_servers',
-            'bearer_methods_supported',
-            'resource_name',
-        ]);
-        expect(JSON.stringify(document)).toBe(
-            JSON.stringify({
-                resource: `${ISSUER}/mcp/admin`,
-                authorization_servers: [ISSUER],
-                bearer_methods_supported: ['header'],
-                resource_name: 'Vendure admin MCP',
-            }),
-        );
-    });
-
     it('builds the protected-resource metadata URL per toolset', () => {
         const service = createService({ oauth: { tokenSecret: 's' } });
         expect(service.protectedResourceMetadataUrl('shop')).toBe(

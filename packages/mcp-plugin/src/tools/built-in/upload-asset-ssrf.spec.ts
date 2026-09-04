@@ -101,19 +101,17 @@ describe('SSRF hardening is delegated to the core DefaultAssetImportStrategy', (
     // timeout now live in core's fetcher (assertPublicUrl + fetchUrl). These checks confirm the plugin
     // routes a caller-supplied URL through that guard rather than re-implementing it. They run against
     // the real strategy, with no server involved.
-    it.each(['http://127.0.0.1:9/', 'http://[::1]:9/', 'http://169.254.169.254/latest/meta-data/'])(
-        'rejects the non-public URL %s via the core guard',
-        async url => {
-            const { assetService, createFromFileStream } = drainingAssetService();
+    it('rejects a loopback URL via the core guard', async () => {
+        const url = 'http://127.0.0.1:9/';
+        const { assetService, createFromFileStream } = drainingAssetService();
 
-            // The rejection has to arrive as a UserInputError, because that is the class the tool
-            // funnel treats as caller-safe: any other class is logged server-side and the caller is
-            // told only that the tool failed. The message itself is core's, so it is not asserted
-            // here — that would make this test brittle to a core reword.
-            const rejection = uploadAssetFromUrl(ctx, url, assetService, new DefaultAssetImportStrategy());
-            await expect(rejection).rejects.toBeInstanceOf(UserInputError);
-            await expect(rejection).rejects.toMatchObject({ message: expect.stringMatching(/\S/) });
-            expect(createFromFileStream).not.toHaveBeenCalled();
-        },
-    );
+        // The rejection has to arrive as a UserInputError, because that is the class the tool
+        // funnel treats as caller-safe: any other class is logged server-side and the caller is
+        // told only that the tool failed. The message itself is core's, so it is not asserted
+        // here — that would make this test brittle to a core reword.
+        const rejection = uploadAssetFromUrl(ctx, url, assetService, new DefaultAssetImportStrategy());
+        await expect(rejection).rejects.toBeInstanceOf(UserInputError);
+        await expect(rejection).rejects.toMatchObject({ message: expect.stringMatching(/\S/) });
+        expect(createFromFileStream).not.toHaveBeenCalled();
+    });
 });

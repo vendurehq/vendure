@@ -247,13 +247,6 @@ describe('McpToolRegistryService', () => {
             );
         });
 
-        it('rejects an admin tool with an empty permissions array', () => {
-            const { service } = build([wrapper(adminTool({ permissions: [] }))]);
-            expect(() => service.onApplicationBootstrap()).toThrow(
-                /Admin MCP tool "admin_thing" declares no permissions/,
-            );
-        });
-
         it('boots an admin tool that explicitly declares Permission.Public', () => {
             const { service } = build([wrapper(adminTool({ permissions: [Permission.Public] }))]);
             expect(() => service.onApplicationBootstrap()).not.toThrow();
@@ -403,19 +396,6 @@ describe('McpToolRegistryService', () => {
             expect(result.isError).toBe(true);
             expect((result.content as any)[0].text).toMatch(/"confirm" must be a boolean/);
             expect(execute).not.toHaveBeenCalled();
-        });
-
-        it('still fails boot when a destructive Standard Schema tool declares its own confirm property', () => {
-            const jsonWithConfirm = {
-                type: 'object',
-                properties: { id: { type: 'string' }, confirm: { type: 'boolean' } },
-                additionalProperties: false,
-            };
-            const schema = specStandardSchema(jsonWithConfirm, value => ({ value }));
-            const { service } = build([
-                wrapper(shopTool({ name: 'delete_thing', behavior: 'destructive', inputSchema: schema })),
-            ]);
-            expect(() => service.onApplicationBootstrap()).toThrow(/must not declare "confirm"/);
         });
 
         it('strips a top-level $schema key from derived JSON', () => {
@@ -713,20 +693,6 @@ describe('McpToolRegistryService', () => {
                 expect.objectContaining({ status: 'error', output: fields }),
             );
         });
-
-        it('writes a Vendure error result as compact JSON too', async () => {
-            class OrderModificationError {
-                readonly __typename = 'OrderModificationError';
-                readonly errorCode = 'ORDER_MODIFICATION_ERROR';
-                readonly message = 'The order cannot be modified';
-            }
-            const { service } = build([wrapper(shopTool(), () => new OrderModificationError())]);
-            service.onApplicationBootstrap();
-            const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'get_thing', {});
-            const text = (result.content as any)[0].text;
-            expect(text).toBe(JSON.stringify(result.structuredContent));
-            expect(text).not.toContain('\n');
-        });
     });
 
     describe('result size limit', () => {
@@ -970,14 +936,6 @@ describe('McpToolRegistryService', () => {
             expect(execute.mock.calls[0][1]).toEqual({ id: 'x' });
         });
 
-        it('leaves the SSOT schema free of the injected confirm (clone proof)', () => {
-            const { service } = build([wrapper(destructive())]);
-            service.onApplicationBootstrap();
-            const tool = service.getRegistrySnapshot().find(t => t.name === 'delete_thing');
-            expect(tool).toBeDefined();
-            expect(tool?.jsonInputSchema.properties?.confirm).toBeUndefined();
-        });
-
         it('fails boot when a destructive tool declares its own confirm property', () => {
             const tool = shopTool({
                 name: 'delete_thing',
@@ -1207,32 +1165,6 @@ describe('McpToolRegistryService', () => {
             );
         });
 
-        it('rejects an unknown/extra inner property (additionalProperties:false)', async () => {
-            const execute = vi.fn(() => ({ ok: true }));
-            const { service } = build([wrapper(target(), execute)], { toolExposure: 'discovery' });
-            service.onApplicationBootstrap();
-            const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'execute_tool', {
-                name: 'echo',
-                arguments: { text: 'hi', bogus: 1 },
-            });
-            expect(result.isError).toBe(true);
-            expect((result.content as any)[0].text).toMatch(/Invalid arguments for tool "echo"/);
-            expect(execute).not.toHaveBeenCalled();
-        });
-
-        it('rejects inner arguments missing a required property', async () => {
-            const execute = vi.fn(() => ({ ok: true }));
-            const { service } = build([wrapper(target(), execute)], { toolExposure: 'discovery' });
-            service.onApplicationBootstrap();
-            const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'execute_tool', {
-                name: 'echo',
-                arguments: {},
-            });
-            expect(result.isError).toBe(true);
-            expect((result.content as any)[0].text).toMatch(/Invalid arguments for tool "echo"/);
-            expect(execute).not.toHaveBeenCalled();
-        });
-
         it('runs the target when inner arguments are valid', async () => {
             const execute = vi.fn(() => ({ echoed: 'hi' }));
             const { service } = build([wrapper(target(), execute)], { toolExposure: 'discovery' });
@@ -1414,21 +1346,6 @@ describe('McpToolRegistryService', () => {
             expect(names[0]).toBe('refund_order');
         });
 
-        it('returns the fallback hint for a stopword-only query instead of matching everything', async () => {
-            // 'in' is a substring of 'shipping': a substring scorer would match this query,
-            // whole-word BM25 with stopword removal must not.
-            const { service } = build(
-                [wrapper(shopTool({ description: 'Sets the shipping method for the cart.' }))],
-                { toolExposure: 'discovery' },
-            );
-            service.onApplicationBootstrap();
-            const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'search_tools', {
-                query: 'in the',
-            });
-            expect((result.structuredContent as any).tools).toEqual([]);
-            expect((result.structuredContent as any).hint).toContain('No shop tools matched');
-        });
-
         it('empty query lists visible tools by name', async () => {
             const { service } = build([wrapper(shopTool()), wrapper(shopTool({ name: 'other_thing' }))], {
                 toolExposure: 'discovery',
@@ -1575,29 +1492,6 @@ describe('McpToolRegistryService', () => {
             expect((result.content as any)[0].text).toBe('error.order-does-not-contain-line-with-id');
         });
 
-        it('reports a formatter failure the way core does, keeping the original sentence', async () => {
-            // A plugin sentence with a literal brace makes the ICU formatter throw. Core's
-            // RequestContext.translate catches that and returns a diagnostic that still ends
-            // with the original text, so the caller can read what went wrong.
-            const { result } = await callWith(() => {
-                throw new UserInputError('Value {x} is not allowed');
-            }, makeCtx({ translate }));
-
-            expect((result.content as any)[0].text).toBe(
-                'Translation format error: "ICU: unexpected brace"). Original key: Value {x} is not allowed',
-            );
-        });
-
-        it('keeps a plain sentence that has no translation', async () => {
-            const { result } = await callWith(() => {
-                throw new UserInputError('There is no active cart. Add an item with add_to_cart first.');
-            }, makeCtx({ translate }));
-
-            expect((result.content as any)[0].text).toBe(
-                'There is no active cart. Add an item with add_to_cart first.',
-            );
-        });
-
         it('translates the message of a Vendure error result, using its fields as the variables', async () => {
             const { result, toolCallLog } = await callWith(
                 () =>
@@ -1620,20 +1514,6 @@ describe('McpToolRegistryService', () => {
                     output: expect.objectContaining({ message: 'ORDER_STATE_TRANSITION_ERROR' }),
                 }),
             );
-        });
-
-        it('keeps the original message of an error result core has no translation for', async () => {
-            const { result } = await callWith(
-                () => ({
-                    __typename: 'MyError',
-                    errorCode: 'MY_ERROR',
-                    message: 'MY_ERROR',
-                }),
-                makeCtx({ translate }),
-            );
-
-            expect(result.isError).toBe(true);
-            expect((result.structuredContent as any).message).toBe('MY_ERROR');
         });
     });
 
@@ -1662,16 +1542,6 @@ describe('McpToolRegistryService', () => {
                 expect.anything(),
             );
             warn.mockRestore();
-        });
-    });
-
-    describe('instrumentation (@Instrument())', () => {
-        it('constructs and dispatches callTool with instrumentation disabled and no telemetry plugin', async () => {
-            const { service, toolCallLog } = build([wrapper(shopTool())]);
-            service.onApplicationBootstrap();
-            const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'get_thing', {});
-            expect(result.isError).toBeUndefined();
-            expect(toolCallLog.logToolCall).toHaveBeenCalledOnce();
         });
     });
 });

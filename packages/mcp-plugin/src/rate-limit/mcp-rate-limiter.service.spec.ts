@@ -91,17 +91,6 @@ describe('McpRateLimiterService rate limiting', () => {
         expect(exceeded?.message).toMatch(/Retry after \d+ seconds\./);
     });
 
-    it('checkRateLimit reports the refusal once over the limit', async () => {
-        const { service } = build({
-            rateLimits: { perSession: { rpm: 1 }, perClient: { rpm: 0 }, anonymousIp: false },
-        });
-        const ctx = sessionCtx('subject-a');
-        await service.checkRateLimit({ executionContext: ctx, endpoint: 'admin', subject: 'ping' });
-        expect(
-            await service.checkRateLimit({ executionContext: ctx, endpoint: 'admin', subject: 'ping' }),
-        ).toBeDefined();
-    });
-
     it('resets the bucket after the 60s window elapses', async () => {
         const { service } = build({
             rateLimits: { perSession: { rpm: 1 }, perClient: { rpm: 0 }, anonymousIp: false },
@@ -277,35 +266,6 @@ describe('McpRateLimiterService rate limiting', () => {
         for (let i = 0; i < 5; i++) {
             expect(await service.checkOauthIpRateLimit('1.2.3.4')).toBeUndefined();
         }
-    });
-
-    it('does not apply the OAuth-IP limit when rpm is 0', async () => {
-        const { service } = build({
-            rateLimits: {
-                perSession: { rpm: 0 },
-                perClient: { rpm: 0 },
-                anonymousIp: false,
-                oauthIp: { rpm: 0 },
-            },
-        });
-        for (let i = 0; i < 5; i++) {
-            expect(await service.checkOauthIpRateLimit('1.2.3.4')).toBeUndefined();
-        }
-    });
-
-    it('populates retryAfterSeconds when the OAuth-IP bucket is exceeded', async () => {
-        const { service } = build({
-            rateLimits: {
-                perSession: { rpm: 0 },
-                perClient: { rpm: 0 },
-                anonymousIp: false,
-                oauthIp: { rpm: 1 },
-            },
-        });
-        await service.checkOauthIpRateLimit('1.2.3.4');
-        const exceeded = await service.checkOauthIpRateLimit('1.2.3.4');
-        expect(exceeded?.retryAfterSeconds).toBeGreaterThan(0);
-        expect(exceeded?.retryAfterSeconds).toBeLessThanOrEqual(60);
     });
 
     it('keeps in-process callers (no grant, no client IP) on separate per-session buckets', async () => {

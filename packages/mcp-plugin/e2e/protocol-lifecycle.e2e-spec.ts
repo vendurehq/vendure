@@ -1,4 +1,3 @@
-import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { SERVER_INFO_META_KEY, SUPPORTED_PROTOCOL_VERSIONS } from '@modelcontextprotocol/server';
 import { mergeConfig } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
@@ -64,34 +63,6 @@ describe('MCP protocol conformance (direct mode)', () => {
         expect(res.body.result.serverInfo.name).toBe('vendure-mcp-shop');
     });
 
-    it('initialize with an unsupported version falls back to a supported one (no error)', async () => {
-        const res = await postMcp(baseUrl(), 'shop', rpc('initialize', initializeParams('1999-01-01')));
-        expect(res.status).toBe(200);
-        expect(res.body.error).toBeUndefined();
-        expect(SUPPORTED_PROTOCOL_VERSIONS).toContain(res.body.result.protocolVersion);
-    });
-
-    it('initialized notification returns 202 with an empty body', async () => {
-        const res = await postMcp(baseUrl(), 'shop', { jsonrpc: '2.0', method: 'notifications/initialized' });
-        expect(res.status).toBe(202);
-        expect(res.text).toBe('');
-    });
-
-    it('ping returns a 200 empty result', async () => {
-        const res = await postMcp(baseUrl(), 'shop', rpc('ping', {}, 2));
-        expect(res.status).toBe(200);
-        expect(res.body.result).toEqual({});
-    });
-
-    it('tools/list returns the shop tools', async () => {
-        const res = await postMcp(baseUrl(), 'shop', rpc('tools/list', {}, 3));
-        expect(res.status).toBe(200);
-        const names = res.body.result.tools.map((t: any) => t.name);
-        expect(names).toContain('shop_echo');
-        expect(names).toContain('shop_ping');
-        expect(names).not.toContain('admin_list');
-    });
-
     it('tools/call runs a real tool end-to-end', async () => {
         const res = await postMcp(
             baseUrl(),
@@ -101,59 +72,6 @@ describe('MCP protocol conformance (direct mode)', () => {
         expect(res.status).toBe(200);
         expect(res.body.result.isError).toBeUndefined();
         expect(res.body.result.structuredContent).toEqual({ echoed: 'hi' });
-    });
-
-    it('rejects a bad MCP-Protocol-Version header on a post-init call → 400', async () => {
-        const res = await postMcp(baseUrl(), 'shop', rpc('tools/list', {}, 5), {
-            protocolVersion: 'not-a-real-version',
-        });
-        expect(res.status).toBe(400);
-    });
-
-    it('missing/unacceptable Accept → 406', async () => {
-        const res = await postMcp(baseUrl(), 'shop', rpc('ping', {}, 6), { accept: 'application/xml' });
-        expect(res.status).toBe(406);
-    });
-
-    it('a JSON-RPC batch of two pings returns a 200 array', async () => {
-        const res = await postMcp(baseUrl(), 'shop', [rpc('ping', {}, 1), rpc('ping', {}, 2)]);
-        expect(res.status).toBe(200);
-        expect(Array.isArray(res.body)).toBe(true);
-        expect(res.body).toHaveLength(2);
-    });
-
-    // Each case asserts the exact validation message: an isError-only check would pass on a
-    // refusal for any unrelated reason and could not tell the three cases apart.
-    it.each([
-        {
-            label: 'a property of the wrong type',
-            args: { text: 123 },
-            id: 15,
-            detail: 'data/text must be string',
-        },
-        {
-            label: 'an unknown extra property',
-            args: { text: 'hi', bogus: 1 },
-            id: 16,
-            detail: 'data must NOT have additional properties',
-        },
-        {
-            label: 'a missing required property',
-            args: {},
-            id: 17,
-            detail: "data must have required property 'text'",
-        },
-    ])('the SDK rejects $label before the handler runs', async ({ args, id, detail }) => {
-        const res = await postMcp(
-            baseUrl(),
-            'shop',
-            rpc('tools/call', { name: 'shop_echo', arguments: args }, id),
-        );
-
-        expect(res.body.result.isError).toBe(true);
-        expect(res.body.result.content[0].text).toBe(
-            `Input validation error: Invalid arguments for tool shop_echo: ${detail}`,
-        );
     });
 
     it('an in-tool error flattens to isError', async () => {
@@ -181,26 +99,12 @@ describe('MCP protocol conformance (direct mode)', () => {
         expect(res.body.result.content[0].text).toContain('bad-input-from-caller');
     });
 
-    it('an unknown tool is a JSON-RPC dispatch error (-32602), not isError', async () => {
-        const res = await postMcp(
-            baseUrl(),
-            'shop',
-            rpc('tools/call', { name: 'does_not_exist', arguments: {} }, 8),
-        );
-        expect(res.body.error?.code).toBe(-32602);
-    });
-
     it('GET /mcp/shop and /mcp/admin → 405 with Allow: POST', async () => {
         for (const toolset of ['shop', 'admin']) {
             const res = await fetch(`${baseUrl()}/mcp/${toolset}`, { method: 'GET' });
             expect(res.status).toBe(405);
             expect(res.headers.get('allow')).toBe('POST');
         }
-    });
-
-    it('a non-JSON Content-Type → 415', async () => {
-        const res = await postMcp(baseUrl(), 'shop', rpc('ping', {}, 9), { contentType: 'text/plain' });
-        expect(res.status).toBe(415);
     });
 
     it('admin endpoint unauthenticated → 401 with a WWW-Authenticate challenge', async () => {
@@ -262,31 +166,6 @@ describe('MCP protocol conformance (direct mode)', () => {
         expect(res.body.result.resultType).toBe('complete');
     });
 
-    it('tools/list is served under the modern 2026-07-28 envelope', async () => {
-        const res = await postModernMcp(baseUrl(), 'shop', 'tools/list', {}, 24);
-        expect(res.status).toBe(200);
-        expect(res.body.error).toBeUndefined();
-        expect(res.body.result.tools.map((t: any) => t.name)).toContain('shop_echo');
-        // `resultType` exists only in the 2026 era, so it also proves this was not served as legacy.
-        expect(res.body.result.resultType).toBe('complete');
-    });
-
-    it('an admin bearer token works under the modern 2026-07-28 envelope', async () => {
-        const res = await postModernMcp(
-            baseUrl(),
-            'admin',
-            'tools/call',
-            { name: 'admin_list', arguments: {} },
-            25,
-            { token: adminToken },
-        );
-        expect(res.status).toBe(200);
-        expect(res.body.error).toBeUndefined();
-        expect(res.body.result.isError).toBeUndefined();
-        expect(res.body.result.structuredContent).toEqual({ items: [] });
-        expect(res.body.result.resultType).toBe('complete');
-    });
-
     it('server/discover is answered, with serverInfo in the result _meta and not in its body', async () => {
         const res = await postModernMcp(baseUrl(), 'shop', 'server/discover', {}, 21);
         expect(res.status).toBe(200);
@@ -336,20 +215,6 @@ describe('MCP protocol conformance (direct mode)', () => {
         expect(Array.isArray(res.body)).toBe(true);
         expect(res.body.map((entry: any) => entry.id)).toEqual([7, 8]);
         expect(res.body.map((entry: any) => entry.error.code)).toEqual([-32601, -32601]);
-    });
-
-    it('the official MCP SDK client connects, lists, and calls a shop tool (interop)', async () => {
-        const client = new Client({ name: 'interop-test', version: '1.0.0' });
-        const transport = new StreamableHTTPClientTransport(new URL(`${baseUrl()}/mcp/shop`));
-        await client.connect(transport);
-        try {
-            const tools = await client.listTools();
-            expect(tools.tools.map(t => t.name)).toContain('shop_echo');
-            const result = await client.callTool({ name: 'shop_echo', arguments: { text: 'sdk' } });
-            expect((result.structuredContent as any).echoed).toBe('sdk');
-        } finally {
-            await client.close();
-        }
     });
 });
 

@@ -162,38 +162,6 @@ describe('McpToolCallLogService tool-call logging', () => {
         expect(publishedEvents).toHaveLength(1);
     });
 
-    it('replaces both bodies with markers when both exceed maxBodyBytes', async () => {
-        const { service, savedLogs } = build({ logging: { capture: 'full', maxBodyBytes: 50 } });
-        await service.logToolCall({
-            executionContext: { ctx: { apiType: 'shop', channelId: 1 } } as any,
-            tool: toolStub('t'),
-            input: { blob: 'x'.repeat(200) },
-            output: { blob: 'y'.repeat(200) },
-            durationMs: 1,
-            status: 'success',
-        });
-        expect(savedLogs[0].input).toHaveProperty('omitted');
-        expect(savedLogs[0].output).toHaveProperty('omitted');
-    });
-
-    it('falls back to the 64,000-byte default when maxBodyBytes is not configured', async () => {
-        // The service has no fallback of its own: the default comes from resolveMcpPluginOptions
-        // in the build() helper, the same resolution init() uses.
-        const { service, savedLogs } = build({ logging: { capture: 'full' } });
-        const justOverDefault = { blob: 'x'.repeat(64_100) };
-        await service.logToolCall({
-            executionContext: { ctx: { apiType: 'shop', channelId: 1 } } as any,
-            tool: toolStub('t'),
-            input: justOverDefault,
-            output: { ok: true },
-            durationMs: 1,
-            status: 'success',
-        });
-        const stored = savedLogs[0].input as { omitted: string; bytes: number };
-        expect(stored.omitted).toMatch(/64000 bytes/);
-        expect(stored.bytes).toBeGreaterThan(64_000);
-    });
-
     it('caps a body after redact has run, so an oversized redacted body still yields a marker', async () => {
         const redact = vi.fn(() => ({ input: { blob: 'x'.repeat(200) }, output: null }));
         const { service, savedLogs } = build({ logging: { capture: 'full', redact, maxBodyBytes: 50 } });

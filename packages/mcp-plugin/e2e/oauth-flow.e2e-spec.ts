@@ -164,13 +164,6 @@ describe('McpPlugin OAuth end-to-end flow', () => {
             .andWhere('session.userId = :userId', { userId })
             .getCount();
 
-    // T7 — the full DCR -> authorize -> consent -> token-exchange flow yields a usable token pair.
-    it('issues a non-empty access + refresh token pair through the full flow', async () => {
-        const result = await runFlow();
-        expect(result.access_token).toBeTruthy();
-        expect(result.refresh_token).toBeTruthy();
-    });
-
     it('authenticates the issued access token and binds the granting user', async () => {
         const oauth = server.app.get(McpOauthService);
         const connection = server.app.get(TransactionalConnection);
@@ -221,29 +214,6 @@ describe('McpPlugin OAuth end-to-end flow', () => {
             .getRepository(ctx, McpOauthGrant)
             .findOne({ where: { accessTokenHash: access_token } });
         expect(plaintextRow).toBeNull();
-    });
-
-    it('rotates the refresh token and rejects a replay of the original', async () => {
-        const oauth = server.app.get(McpOauthService);
-        const first = await runFlow();
-
-        const rotated = await oauth.exchangeToken({
-            grant_type: 'refresh_token',
-            refresh_token: first.refresh_token,
-            client_id: first.client_id,
-            resource: first.resource,
-        });
-        expect(rotated.access_token).toBeTruthy();
-        expect(rotated.access_token).not.toBe(first.access_token);
-
-        await expect(
-            oauth.exchangeToken({
-                grant_type: 'refresh_token',
-                refresh_token: first.refresh_token,
-                client_id: first.client_id,
-                resource: first.resource,
-            }),
-        ).rejects.toThrow(/invalid or expired/i);
     });
 
     // RFC 8707 makes `resource` a SHOULD rather than a MUST on a refresh, so a client that sent

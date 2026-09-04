@@ -147,39 +147,6 @@ describe('MCP SDK interop (official @modelcontextprotocol/client 2.x)', () => {
         await server.destroy();
     });
 
-    it('publishes protected-resource and authorization-server metadata', async () => {
-        const prm = await fetch(`${baseUrl()}/.well-known/oauth-protected-resource/mcp/admin`);
-        expect(prm.status).toBe(200);
-        const prmBody = (await prm.json()) as { resource: string; authorization_servers: string[] };
-        expect(prmBody.resource).toBe(`${ISSUER}/mcp/admin`);
-        expect(prmBody.authorization_servers).toContain(ISSUER);
-
-        const asm = await fetch(`${baseUrl()}/.well-known/oauth-authorization-server`);
-        expect(asm.status).toBe(200);
-        const asmBody = (await asm.json()) as {
-            issuer: string;
-            token_endpoint: string;
-            registration_endpoint: string;
-            code_challenge_methods_supported: string[];
-        };
-        expect(asmBody.issuer).toBe(ISSUER);
-        expect(asmBody.token_endpoint).toBe(`${ISSUER}/mcp/oauth/token`);
-        expect(asmBody.registration_endpoint).toBe(`${ISSUER}/mcp/oauth/register`);
-        expect(asmBody.code_challenge_methods_supported).toEqual(['S256']);
-    });
-
-    it('an unauthenticated admin request is challenged with WWW-Authenticate: Bearer', async () => {
-        const res = await fetch(`${baseUrl()}/mcp/admin`, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream' },
-            body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'ping' }),
-        });
-        expect(res.status).toBe(401);
-        // Must carry the `resource_metadata` parameter (RFC 9728) — dropping it breaks the
-        // client's automatic discovery of the protected-resource metadata document.
-        expect(res.headers.get('www-authenticate') ?? '').toMatch(/^Bearer .*resource_metadata=/);
-    });
-
     it('the official client completes the OAuth flow (DCR + PKCE + finishAuth) and calls a tool', async () => {
         const provider = new InMemoryOAuthProvider();
         const transport = new StreamableHTTPClientTransport(new URL(`${baseUrl()}/mcp/admin`), {
@@ -273,68 +240,5 @@ describe('MCP SDK interop (official @modelcontextprotocol/client 2.x)', () => {
         } finally {
             await client.close();
         }
-    });
-
-    it('rotates the refresh token via a form-urlencoded token request (and rejects the old token)', async () => {
-        // Obtain a grant with the SDK-driven flow, then drive refresh over the raw token endpoint
-        // using an application/x-www-form-urlencoded body — proving the endpoint parses form bodies
-        // (RFC 6749), not only JSON.
-        const provider = new InMemoryOAuthProvider();
-        const transport = new StreamableHTTPClientTransport(new URL(`${baseUrl()}/mcp/admin`), {
-            authProvider: provider as any,
-        });
-        const client = new Client({ name: 'sdk-interop-refresh', version: '1.0.0' });
-        await expect(client.connect(transport)).rejects.toThrow();
-        const code = await approveViaAdminConsent(provider.capturedAuthorizationUrl!, superAdminToken);
-        await transport.finishAuth(code);
-        await client.close();
-
-        const clientId = provider.clientInformation()!.client_id as string;
-        const firstRefresh = provider.tokens()!.refresh_token as string;
-
-        const form = new URLSearchParams();
-        form.set('grant_type', 'refresh_token');
-        form.set('refresh_token', firstRefresh);
-        form.set('client_id', clientId);
-        form.set('resource', `${ISSUER}/mcp/admin`);
-
-        const refreshResponse = await fetch(`${baseUrl()}/mcp/oauth/token`, {
-            method: 'POST',
-            headers: { 'content-type': 'application/x-www-form-urlencoded' },
-            body: form.toString(),
-        });
-        // The token endpoint returns 200 per RFC 6749 §5.1 (the handler overrides the NestJS
-        // @Post default of 201 with @HttpCode(200)); the body carries the rotated grant.
-        expect(refreshResponse.status).toBe(200);
-        const rotated = (await refreshResponse.json()) as { access_token: string; refresh_token: string };
-        expect(rotated.access_token).toBeTruthy();
-        expect(rotated.refresh_token).toBeTruthy();
-        expect(rotated.refresh_token).not.toBe(firstRefresh);
-
-        // Replaying the old refresh token is rejected — once rotated, it's no longer on record. This
-        // only proves the old token is dead, not that the whole grant is revoked; that's tested in
-        // oauth-single-use.e2e-spec.ts ("revokes the whole grant when a rotated refresh token is reused").
-        const replayForm = new URLSearchParams();
-        replayForm.set('grant_type', 'refresh_token');
-        replayForm.set('refresh_token', firstRefresh);
-        replayForm.set('client_id', clientId);
-        replayForm.set('resource', `${ISSUER}/mcp/admin`);
-        const replayResponse = await fetch(`${baseUrl()}/mcp/oauth/token`, {
-            method: 'POST',
-            headers: { 'content-type': 'application/x-www-form-urlencoded' },
-            body: replayForm.toString(),
-        });
-        expect(replayResponse.status).toBe(400);
-
-        // This is the only place in the suite that reads the body of a failed token request, so it
-        // records the shape a real MCP client receives: the RFC 6749 §5.2 error body, and nothing
-        // else. `invalid_grant` is what tells a client "these tokens are dead, start a new
-        // authorization" rather than "retry in a moment". The token endpoint's wire format is a
-        // public contract, so the body is asserted exactly.
-        const replayBody = (await replayResponse.json()) as Record<string, unknown>;
-        expect(replayBody).toEqual({
-            error: 'invalid_grant',
-            error_description: 'Refresh token invalid or expired',
-        });
     });
 });

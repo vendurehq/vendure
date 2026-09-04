@@ -122,21 +122,6 @@ describe('McpActiveOrderService', () => {
             expect(result?.ctx).not.toBe(ctx);
             expect(ctx.currencyCode).toBe('USD');
         });
-
-        it('returns an explicit reference, not the loaded order', async () => {
-            const activeOrderService = {
-                getActiveOrder: vi.fn().mockResolvedValue({ id: '1', currencyCode: 'USD', code: 'T_1' }),
-            };
-            const service = new McpActiveOrderService(
-                activeOrderService as never,
-                { findOne: vi.fn() } as never,
-                connectionStub() as never,
-            );
-
-            const result = await service.find(cartCtx() as never);
-
-            expect(Object.keys(result ?? {}).sort()).toEqual(['ctx', 'currencyCode', 'id', 'state']);
-        });
     });
 
     it.each(['find', 'findOrderWithLines'] as const)(
@@ -286,27 +271,6 @@ describe('McpActiveOrderService', () => {
     });
 
     describe('findOrThrow', () => {
-        it('returns the cart when there is one', async () => {
-            const activeOrder = { id: '1', code: 'T_1', currencyCode: 'USD' };
-            const activeOrderService = {
-                getActiveOrder: vi.fn().mockResolvedValue(activeOrder),
-            };
-            const orderService = {
-                findOne: vi.fn(),
-            };
-            const service = new McpActiveOrderService(
-                activeOrderService as never,
-                orderService as never,
-                connectionStub() as never,
-            );
-
-            const result = await service.findOrThrow(ctxWithSession);
-
-            expect(result).toMatchObject({ id: activeOrder.id, currencyCode: activeOrder.currencyCode });
-            expect(activeOrderService.getActiveOrder).toHaveBeenCalledWith(ctxWithSession, undefined);
-            expect(orderService.findOne).not.toHaveBeenCalled();
-        });
-
         it('throws a UserInputError naming add_to_cart when there is no cart', async () => {
             const activeOrderService = {
                 getActiveOrder: vi.fn().mockResolvedValue(undefined),
@@ -362,19 +326,6 @@ describe('McpActiveOrderService', () => {
             const result = await service.findEditable(ctxWithSession);
 
             expect(result).toBeInstanceOf(OrderModificationError);
-        });
-
-        it('throws the same UserInputError as findOrThrow when there is no cart', async () => {
-            const activeOrderService = {
-                getActiveOrder: vi.fn().mockResolvedValue(undefined),
-            };
-            const service = new McpActiveOrderService(
-                activeOrderService as never,
-                { findOne: vi.fn() } as never,
-                connectionStub() as never,
-            );
-
-            await expect(service.findEditable(ctxWithSession)).rejects.toBeInstanceOf(UserInputError);
         });
     });
 

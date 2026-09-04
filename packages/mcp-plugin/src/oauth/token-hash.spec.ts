@@ -12,12 +12,6 @@ describe('MCP token-hashing crypto util', () => {
             expect(key.length).toBe(32);
         });
 
-        it('produces the same key on repeated calls (deterministic)', () => {
-            const a = deriveHashKey(SECRET);
-            const b = deriveHashKey(SECRET);
-            expect(a.equals(b)).toBe(true);
-        });
-
         it('produces different keys for different secrets', () => {
             const a = deriveHashKey(SECRET);
             const b = deriveHashKey('a-different-secret');

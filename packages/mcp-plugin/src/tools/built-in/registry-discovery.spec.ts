@@ -91,25 +91,15 @@ describe('built-in registry discovery', () => {
         const moduleRef = await bootRegistry();
         try {
             const registry = moduleRef.get(McpToolRegistryService);
+            const snapshot = registry.getRegistrySnapshot();
             expect(
-                registry
-                    .getRegistrySnapshot()
+                snapshot
                     .filter(tool => tool.toolset === 'shop')
                     .map(tool => tool.name)
                     .sort(),
             ).toEqual(shopToolNames);
-        } finally {
-            await moduleRef.close();
-        }
-    });
-
-    it('bootstraps Nest providers and discovers exactly the declared admin tools', async () => {
-        const moduleRef = await bootRegistry();
-        try {
-            const registry = moduleRef.get(McpToolRegistryService);
             expect(
-                registry
-                    .getRegistrySnapshot()
+                snapshot
                     .filter(tool => tool.toolset === 'admin')
                     .map(tool => tool.name)
                     .sort(),

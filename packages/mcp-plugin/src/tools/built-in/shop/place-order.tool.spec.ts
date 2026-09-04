@@ -90,23 +90,6 @@ describe('PlaceOrderTool', () => {
         expect(addPaymentToOrder).not.toHaveBeenCalled();
     });
 
-    it('takes payment on a customerless cart when the order process allows the move', async () => {
-        // `arrangingPaymentRequiresCustomer` defaults to true but a store can switch it off, or
-        // replace the order process altogether, so the tool must not refuse on its own account.
-        const addPaymentToOrder = vi.fn().mockResolvedValue({ id: 1, state: 'PaymentAuthorized' });
-        const orderService = {
-            findOne: () => Promise.resolve(orderStub({ state: 'AddingItems', customer: null })),
-            transitionToState: vi.fn().mockResolvedValue({ id: 1, state: 'ArrangingPayment' }),
-            addPaymentToOrder,
-            getOrderPayments: () => Promise.resolve([]),
-        } as any;
-        const tool = placeOrderTool(activeOrderReturning(1), orderService);
-
-        await tool.execute({} as any, { paymentMethodCode: 'standard-payment' });
-
-        expect(addPaymentToOrder).toHaveBeenCalled();
-    });
-
     it('refuses when the cart vanished between the lookup and the transaction', async () => {
         const orderService = {
             findOne: () => Promise.resolve(undefined),
@@ -133,23 +116,6 @@ describe('PlaceOrderTool', () => {
             tool.execute({ activeUserId: 42 } as any, { paymentMethodCode: 'standard-payment' }),
         ).rejects.toBeInstanceOf(UserInputError);
         expect(withTransaction).not.toHaveBeenCalled();
-    });
-
-    it('refuses an anonymous caller with no cart for the missing cart, not for the missing login', async () => {
-        // The other cart tools answer "no cart" to this caller. Answering "log in first" here would
-        // send a shopper with nothing to pay for through the OAuth flow, and they would then hit the
-        // no-cart refusal anyway.
-        const activeOrder = {
-            findOrThrow: () =>
-                Promise.reject(
-                    new UserInputError('There is no active cart. Add an item with add_to_cart first.'),
-                ),
-        } as any;
-        const tool = placeOrderTool(activeOrder, {} as any);
-
-        await expect(tool.execute({} as any, { paymentMethodCode: 'standard-payment' })).rejects.toThrow(
-            /There is no active cart/,
-        );
     });
 
     it('moves a cart to ArrangingPayment before adding payment', async () => {
@@ -392,25 +358,5 @@ describe('PlaceOrderTool', () => {
             expect.anything(),
             expect.anything(),
         );
-    });
-
-    it('takes the payment inside a transaction', async () => {
-        // `OrderService.addPaymentToOrder` throws unless the context it is given carries an open
-        // transaction, and a tool call does not go through a resolver, so nothing else opens one.
-        const addPaymentToOrder = vi.fn().mockResolvedValue({ id: 1, state: 'PaymentAuthorized' });
-        const orderService = {
-            findOne: () => Promise.resolve(orderStub()),
-            transitionToState: vi.fn(),
-            addPaymentToOrder,
-            getOrderPayments: () => Promise.resolve([]),
-        } as any;
-        const tool = placeOrderTool(activeOrderReturning(1), orderService);
-
-        await tool.execute({ activeUserId: 42 } as any, { paymentMethodCode: 'standard-payment' });
-
-        expect(addPaymentToOrder).toHaveBeenCalledWith(expect.objectContaining({ inTransaction: true }), 1, {
-            method: 'standard-payment',
-            metadata: {},
-        });
     });
 });

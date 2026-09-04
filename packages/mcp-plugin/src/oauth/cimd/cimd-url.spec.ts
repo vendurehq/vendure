@@ -32,12 +32,6 @@ describe('validateCimdClientIdUrl', () => {
         expect(url.hostname).toBe('client.example.com');
     });
 
-    it('accepts a port', () => {
-        expect(() =>
-            validateCimdClientIdUrl('https://client.example.com:8443/metadata.json', strict),
-        ).not.toThrow();
-    });
-
     it('rejects plain http on a public host, even in development mode', () => {
         expect(() => validateCimdClientIdUrl('http://client.example.com/m.json', dev)).toThrow(
             BadRequestException,

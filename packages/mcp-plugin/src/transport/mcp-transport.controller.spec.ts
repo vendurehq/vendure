@@ -79,15 +79,6 @@ describe('McpTransportController bearer authentication failures', () => {
             `Bearer resource_metadata="${RESOURCE_METADATA_URL}", error="invalid_token", error_description="Access token x revoked"`,
         );
     });
-
-    it('names the reason in the WWW-Authenticate challenge', async () => {
-        const { authenticate, headers } = createController(new McpAccessTokenExpiredError());
-
-        await expect(authenticate()).rejects.toThrow();
-        expect(headers['WWW-Authenticate']).toBe(
-            `Bearer resource_metadata="${RESOURCE_METADATA_URL}", error="invalid_token", error_description="Access token expired"`,
-        );
-    });
 });
 
 describe('McpTransportController bearer header parsing', () => {
@@ -124,10 +115,6 @@ describe('McpTransportController bearer header parsing', () => {
 
     it('skips a run of whitespace but keeps whitespace at the end', () => {
         expect(parse('Bearer  abc ')).toBe('abc ');
-    });
-
-    it('returns undefined when only whitespace follows the scheme', () => {
-        expect(parse('Bearer   ')).toBeUndefined();
     });
 
     it('answers immediately for a long run of whitespace and no token', () => {

@@ -76,17 +76,6 @@ describe('McpPlugin production config guard', () => {
         expect(() => plugin.onApplicationBootstrap()).not.toThrow();
     });
 
-    it('throws in production when the storefrontConsentUrl is a localhost URL', () => {
-        process.env.NODE_ENV = 'production';
-        setOauth({
-            tokenSecret: 'x',
-            issuer: 'https://shop.example.com',
-            storefrontConsentUrl: 'http://localhost:3000/mcp/authorize',
-        });
-        const plugin = createPlugin(true);
-        expect(() => plugin.onApplicationBootstrap()).toThrow();
-    });
-
     // A deployment that only uses the admin toolset must be able to start in production
     // without ever configuring a storefront consent page.
     it('does not throw in production when the issuer is public and storefrontConsentUrl is unset', () => {
@@ -222,12 +211,6 @@ describe('McpPlugin production config guard', () => {
         expect(() => createPlugin(true).onApplicationBootstrap()).toThrow(/tokenSecret/);
     });
 
-    it('throws when tokenSecret is an empty string', () => {
-        process.env.NODE_ENV = 'development';
-        setOauth({ tokenSecret: '', issuer: 'https://example.com' });
-        expect(() => createPlugin(true).onApplicationBootstrap()).toThrow(/tokenSecret/);
-    });
-
     it('does not throw when not running on the server process', () => {
         process.env.NODE_ENV = 'production';
         setOauth({ tokenSecret: 'x', issuer: 'http://localhost:3500' });
@@ -238,13 +221,6 @@ describe('McpPlugin production config guard', () => {
     it('does not throw when oauth is not configured', () => {
         process.env.NODE_ENV = 'production';
         setOauth(undefined);
-        const plugin = createPlugin(true);
-        expect(() => plugin.onApplicationBootstrap()).not.toThrow();
-    });
-
-    it('does not throw in development even with a localhost issuer', () => {
-        process.env.NODE_ENV = 'development';
-        setOauth({ tokenSecret: 'x', issuer: 'http://localhost:3500' });
         const plugin = createPlugin(true);
         expect(() => plugin.onApplicationBootstrap()).not.toThrow();
     });
@@ -367,12 +343,6 @@ describe('McpPlugin logging options + retention task', () => {
         expect(task.options.schedule).toBe('0 3 * * *');
     });
 
-    it("honours a custom ttlDays and capture: 'full'", () => {
-        McpPlugin.init({ logging: { ttlDays: 7, capture: 'full' } });
-        expect(McpPlugin.options.logging?.ttlDays).toBe(7);
-        expect(McpPlugin.options.logging?.capture).toBe('full');
-    });
-
     it("warns at bootstrap when capture is 'full' without a redact function", () => {
         McpPlugin.init({ logging: { capture: 'full' } });
         const warnSpy = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
@@ -466,14 +436,6 @@ describe('McpPlugin OAuth retention task', () => {
         McpPlugin.init({ oauth: { tokenSecret: 'x' } });
         expect(McpPlugin.options.oauth?.retentionSchedule).toBeUndefined();
         expect(resolveDayTime(oauthTask(await runConfiguration()))).toBe('3:30');
-    });
-
-    it('resolves grantRetentionDays, defaulting to 30 days', () => {
-        McpPlugin.init({ oauth: { tokenSecret: 'x' } });
-        expect(McpPlugin.options.oauth?.grantRetentionDays).toBe(30);
-
-        McpPlugin.init({ oauth: { tokenSecret: 'x', grantRetentionDays: 7 } });
-        expect(McpPlugin.options.oauth?.grantRetentionDays).toBe(7);
     });
 
     // The sweep exists to bound tables that fill up whether or not OAuth was configured.

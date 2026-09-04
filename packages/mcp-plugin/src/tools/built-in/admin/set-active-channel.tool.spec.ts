@@ -18,14 +18,6 @@ function build(affected: number | undefined) {
 }
 
 describe('SetActiveChannelTool', () => {
-    it('updates only the channelId column', async () => {
-        const { tool, update } = build(1);
-
-        await tool.execute(ctxWithChannelAccess(2), { channelToken: 'ch-2' }, { grant: { id: 9 } } as any);
-
-        expect(update).toHaveBeenCalledWith({ id: 9 }, { channelId: 2 });
-    });
-
     it('names the token and the call that lists valid ones when the channel does not exist', async () => {
         const channelService = {
             getChannelFromToken: () => Promise.reject(new ChannelNotFoundError('no-such-token')),

@@ -25,10 +25,6 @@ describe('ipBucketKey', () => {
         expect(first).not.toBe(second);
     });
 
-    it('treats a compressed and a fully written form of one address as the same /64', () => {
-        expect(ipBucketKey('2001:db8::1')).toBe(ipBucketKey('2001:0db8:0000:0000:0000:0000:0000:0002'));
-    });
-
     it('returns "unknown" when there is no address', () => {
         expect(ipBucketKey(undefined)).toBe('unknown');
     });

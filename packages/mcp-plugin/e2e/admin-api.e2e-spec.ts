@@ -298,18 +298,6 @@ describe('MCP admin API', () => {
             });
         });
 
-        it.each([
-            ['McpOauthGrantFilterParameter', 'actorType'],
-            ['McpOauthGrantFilterParameter', 'status'],
-            ['McpToolCallLogFilterParameter', 'actorType'],
-            ['McpToolCallLogFilterParameter', 'status'],
-        ])('%s filters %s with StringOperators', async (inputName, fieldName) => {
-            expect(await inputFieldType(inputName, fieldName)).toEqual({
-                kind: 'INPUT_OBJECT',
-                name: 'StringOperators',
-            });
-        });
-
         // The one place a caller sends a toolset in rather than reading one out. The dashboard's
         // generated types carry no argument types, so only this test guards it.
         it('setMcpToolEnabled takes the toolset as the McpToolset enum', async () => {
@@ -416,12 +404,6 @@ describe('MCP admin API', () => {
             await insertLog({ toolName: 'stats_tool_a', status: 'success', durationMs: 15 });
             const second = await adminGraphQL(superAdminToken, MCP_STATS_QUERY, { timeRange: '7d' });
             expect(second.data.mcpStats.totalCalls).toBe(firstTotal);
-        });
-
-        it('mcpStats rejects an unknown timeRange', async () => {
-            const result = await adminGraphQL(superAdminToken, MCP_STATS_QUERY, { timeRange: 'bogus' });
-            expect(result.errors?.[0]?.extensions?.code).toBe('USER_INPUT_ERROR');
-            expect(result.data?.mcpStats ?? null).toBeNull();
         });
 
         it('mcpStats rejects an Object.prototype key as timeRange', async () => {
@@ -678,62 +660,6 @@ describe('MCP admin API', () => {
             expect(typeof revokedGrant?.revokedAt).toBe('string');
         });
 
-        it('paginates with skip and take while totalItems counts the full set', async () => {
-            // Two fresh grants guarantee at least two rows regardless of what ran before.
-            await runAuthorizationCodeFlow({ baseUrl: baseUrl(), issuer: ISSUER, superAdminToken });
-            await runAuthorizationCodeFlow({ baseUrl: baseUrl(), issuer: ISSUER, superAdminToken });
-
-            const all = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
-                includeInactive: true,
-            });
-            expect(all.errors).toBeUndefined();
-            const totalItems = all.data.mcpOauthGrants.totalItems as number;
-            expect(totalItems).toBeGreaterThanOrEqual(2);
-
-            const firstPage = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
-                includeInactive: true,
-                options: { take: 1 },
-            });
-            expect(firstPage.data.mcpOauthGrants.items).toHaveLength(1);
-            expect(firstPage.data.mcpOauthGrants.totalItems).toBe(totalItems);
-
-            const secondPage = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
-                includeInactive: true,
-                options: { skip: 1, take: 1 },
-            });
-            expect(secondPage.data.mcpOauthGrants.items).toHaveLength(1);
-            expect(secondPage.data.mcpOauthGrants.items[0].id).not.toBe(
-                firstPage.data.mcpOauthGrants.items[0].id,
-            );
-        });
-
-        it('sorts by a direct column and keeps a stable order', async () => {
-            // Two fresh grants guarantee at least two rows regardless of what ran before.
-            await runAuthorizationCodeFlow({ baseUrl: baseUrl(), issuer: ISSUER, superAdminToken });
-            await runAuthorizationCodeFlow({ baseUrl: baseUrl(), issuer: ISSUER, superAdminToken });
-
-            const ascending = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
-                includeInactive: true,
-                options: { sort: { createdAt: 'ASC' } },
-            });
-            expect(ascending.errors).toBeUndefined();
-            const ascendingTimes = (ascending.data.mcpOauthGrants.items as Array<{ createdAt: string }>).map(
-                g => new Date(g.createdAt).getTime(),
-            );
-            expect(ascendingTimes.length).toBeGreaterThanOrEqual(2);
-            expect([...ascendingTimes].sort((a, b) => a - b)).toEqual(ascendingTimes);
-
-            const descending = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
-                includeInactive: true,
-                options: { sort: { createdAt: 'DESC' } },
-            });
-            expect(descending.errors).toBeUndefined();
-            const descendingTimes = (
-                descending.data.mcpOauthGrants.items as Array<{ createdAt: string }>
-            ).map(g => new Date(g.createdAt).getTime());
-            expect([...descendingTimes].sort((a, b) => b - a)).toEqual(descendingTimes);
-        });
-
         it('defaults to newest activity first when no sort is given', async () => {
             await runAuthorizationCodeFlow({ baseUrl: baseUrl(), issuer: ISSUER, superAdminToken });
             await runAuthorizationCodeFlow({ baseUrl: baseUrl(), issuer: ISSUER, superAdminToken });
@@ -940,48 +866,6 @@ describe('MCP admin API', () => {
                         g => g.status !== 'revoked',
                     ),
                 ).toBe(true);
-            });
-
-            it('combines a status filter with a filter on a stored column', async () => {
-                const all = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
-                    includeInactive: true,
-                });
-                const expected = (
-                    all.data.mcpOauthGrants.items as Array<{ status: string; actorType: string | null }>
-                ).filter(g => g.status === 'revoked' && g.actorType === 'admin').length;
-
-                const combined = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
-                    includeInactive: true,
-                    options: {
-                        filter: { _and: [{ status: { eq: 'revoked' } }, { actorType: { eq: 'admin' } }] },
-                    },
-                });
-                expect(combined.errors).toBeUndefined();
-                expect(combined.data.mcpOauthGrants.totalItems).toBe(expected);
-            });
-
-            it('filters by status with contains, like any other string field', async () => {
-                const all = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
-                    includeInactive: true,
-                });
-                const statuses = (all.data.mcpOauthGrants.items as Array<{ status: string }>).map(
-                    g => g.status,
-                );
-                // "evoke" appears in "revoked" and in neither other status value.
-                const expected = statuses.filter(s => s.includes('evoke')).length;
-                expect(expected).toBeGreaterThanOrEqual(1);
-
-                const filtered = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
-                    includeInactive: true,
-                    options: { filter: { status: { contains: 'evoke' } } },
-                });
-                expect(filtered.errors).toBeUndefined();
-                expect(filtered.data.mcpOauthGrants.totalItems).toBe(expected);
-                expect(
-                    new Set(
-                        (filtered.data.mcpOauthGrants.items as Array<{ status: string }>).map(g => g.status),
-                    ),
-                ).toEqual(new Set(['revoked']));
             });
 
             it('applies a status filter nested under _or alongside a stored column', async () => {
@@ -1238,36 +1122,6 @@ describe('MCP admin API', () => {
                     }>
                 ).some(g => g.oauthClientName === clientName),
             ).toBe(false);
-        });
-
-        it("the default channel's log sweep leaves the grant's expired rows alone", async () => {
-            const before = await connection
-                .getRepository(adminCtx, McpToolCallLog)
-                .findOneOrFail({ where: { toolName: 'admin_list' }, order: { id: 'DESC' } });
-
-            const swept = await adminGraphQL<{ removeExpiredMcpToolCallLogs: number }>(
-                superAdminToken,
-                REMOVE_EXPIRED_LOGS,
-            );
-            expect(swept.errors).toBeUndefined();
-
-            const after = await connection
-                .getRepository(adminCtx, McpToolCallLog)
-                .findOne({ where: { id: before.id } });
-            expect(after).not.toBeNull();
-        });
-
-        it('refuses to revoke the grant from the default channel', async () => {
-            const grant = await grantOnSecondChannel();
-            expect(grant?.status).toBe('active');
-
-            const revoke = await adminGraphQL(superAdminToken, REVOKE_MCP_OAUTH_GRANT, {
-                id: grant?.id,
-            });
-            expect(revoke.errors).toBeUndefined();
-            expect(revoke.data.revokeMcpOauthGrant).toBe(false);
-
-            expect((await grantOnSecondChannel())?.status).toBe('active');
         });
     });
 

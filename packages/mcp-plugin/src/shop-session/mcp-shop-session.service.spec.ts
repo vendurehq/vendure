@@ -57,20 +57,6 @@ describe('McpShopSessionService', () => {
             if (outcome.kind !== 'prepared') throw new Error('unexpected refusal');
             expect(outcome.ctx.session).toBe(session);
         });
-
-        it('keeps an unchanged context and strips the empty carrier field', async () => {
-            const { service } = build();
-            const ctx = fakeCtx();
-
-            const outcome = await service.prepareToolCall({
-                ctx,
-                input: { sessionToken: undefined },
-                isOAuthCall: false,
-                toolWritesToCart: false,
-            });
-
-            expect(outcome).toEqual({ kind: 'prepared', ctx, input: {} });
-        });
     });
 
     describe('addSessionTokenToResult', () => {

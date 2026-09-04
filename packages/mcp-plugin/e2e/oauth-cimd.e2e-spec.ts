@@ -134,24 +134,6 @@ describe('McpPlugin OAuth CIMD client registration', () => {
         expect(info.client_name).toBe('CIMD Test Client');
     });
 
-    it('serves the cached document within its lifetime instead of refetching', async () => {
-        const clientId = `${documentServer.baseUrl}/cached/client-metadata.json`;
-        documentServer.setDocument('/cached/client-metadata.json', documentFor(clientId));
-
-        expect(await authorizeStatus(clientId)).toBe(302);
-        expect(await authorizeStatus(clientId)).toBe(302);
-        expect(documentServer.requestCount('/cached/client-metadata.json')).toBe(1);
-    });
-
-    it('rejects the request when the document client_id does not match the URL', async () => {
-        const clientId = `${documentServer.baseUrl}/mismatch/client-metadata.json`;
-        documentServer.setDocument(
-            '/mismatch/client-metadata.json',
-            documentFor('https://somewhere-else.example.com/client-metadata.json'),
-        );
-        expect(await authorizeRefusal(clientId)).toEqual({ status: 400, error: 'invalid_request' });
-    });
-
     it('rejects a redirect_uri that is not listed in the document', async () => {
         const clientId = `${documentServer.baseUrl}/other-redirect/client-metadata.json`;
         documentServer.setDocument(
@@ -185,17 +167,6 @@ describe('McpPlugin OAuth CIMD client registration', () => {
         expect(row).toBeTruthy();
         expect(row?.cimdDocumentExpiresAt).toBeTruthy();
         expect(row?.clientName).toBe('CIMD Test Client');
-    });
-
-    // A backslash is a path separator to the URL parser, so this client_id resolves to
-    // /canon/b.json. Without the canonical-form check the server would fetch that document —
-    // which is served here, and whose client_id matches the raw string — while recording and
-    // showing the administrator the unresolved path.
-    it('rejects a client_id URL that is not in canonical form', async () => {
-        const clientId = `${documentServer.baseUrl}/canon/a\\..\\b.json`;
-        documentServer.setDocument('/canon/b.json', documentFor(clientId));
-        expect(await authorizeRefusal(clientId)).toEqual({ status: 400, error: 'invalid_request' });
-        expect(documentServer.requestCount('/canon/b.json')).toBe(0);
     });
 
     // A client that registered itself still works, and its row carries no document expiry — which

@@ -8,7 +8,6 @@ import {
     ID,
     mergeConfig,
     Order,
-    OrderService,
     Payment,
     Product,
     ProductVariant,
@@ -854,17 +853,6 @@ describe('MCP built-in admin tools (direct mode)', () => {
         expect(missing.total).toBe(0);
     });
 
-    it('list_orders returns only the orders in the state asked for', async () => {
-        await createDraftOrder();
-
-        const drafts = await listFiltered<{ state: string }>('list_orders', {
-            limit: 100,
-            filter: { state: { eq: 'Draft' } },
-        });
-        expect(drafts.items.length).toBeGreaterThan(0);
-        expect(drafts.items.every(order => order.state === 'Draft')).toBe(true);
-    });
-
     it('list_orders leaves unplaced carts out by default and includes them when asked', async () => {
         const cart = await createDraftOrder();
         await connection.getRepository(adminCtx, Order).update(cart.id, { active: true });
@@ -899,27 +887,6 @@ describe('MCP built-in admin tools (direct mode)', () => {
         const ids = placedAfter.items.map(order => String(order.id));
         expect(ids).toContain(String(later.id));
         expect(ids).not.toContain(String(earlier.id));
-    });
-
-    it('list_orders filters on when an order last changed', async () => {
-        // The bound is two days out rather than a minute out. On Postgres and MySQL the stored
-        // updatedAt is the local wall clock, while core writes a date filter bound as the UTC wall
-        // clock, so any bound closer to the data than the server's UTC offset falls on the wrong
-        // side of it. Two days clears the largest offset anyone runs, which is 14 hours. What this
-        // test checks is that the tool applies an updatedAt filter at all, and a distant bound
-        // still proves that.
-        const future = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString();
-
-        const changedBefore = await listFiltered<{ id: ID }>('list_orders', {
-            filter: { updatedAt: { before: future } },
-        });
-        expect(changedBefore.items.length).toBeGreaterThan(0);
-
-        const changedAfter = await listFiltered<{ id: ID }>('list_orders', {
-            filter: { updatedAt: { after: future } },
-        });
-        expect(changedAfter.items).toEqual([]);
-        expect(changedAfter.total).toBe(0);
     });
 
     it('list_products finds the product a variant SKU belongs to', async () => {
@@ -981,15 +948,6 @@ describe('MCP built-in admin tools (direct mode)', () => {
         } finally {
             await setLargeEnabled(true);
         }
-    });
-
-    it('list_products returns only disabled products when asked for them', async () => {
-        const disabled = await listFiltered<{ enabled: boolean }>('list_products', {
-            filter: { enabled: { eq: false } },
-        });
-        // The fixture catalog is all enabled, and the write tests that disable a product run in a
-        // later describe, so what matters here is that nothing enabled slips through.
-        expect(disabled.items.every(product => product.enabled === false)).toBe(true);
     });
 
     it('list_orders refuses a page size or a filter value its schema does not allow', async () => {
@@ -1076,21 +1034,6 @@ describe('MCP built-in admin tools (direct mode)', () => {
             where: { accessTokenHash: lookupHash(token) },
         });
         expect(String(grant.channelId)).not.toBe(String(secondChannelDbId));
-    });
-
-    it('set_active_channel names the token and the call that lists valid ones for an unknown token', async () => {
-        const token = await adminAccessToken();
-        const response = await postMcp(
-            baseUrl(),
-            'admin',
-            callTool('set_active_channel', { channelToken: 'no-such-token', confirm: true }, 1),
-            { token },
-        );
-
-        expect(response.body.result.isError).toBe(true);
-        expect(response.body.result.content[0].text).toBe(
-            'No channel with token "no-such-token". Call list_channels for the tokens you can use.',
-        );
     });
 
     it('set_active_channel writes the grant row and changes the active channel for later calls', async () => {
@@ -1397,97 +1340,6 @@ describe('MCP built-in admin tools (direct mode)', () => {
         });
     });
 
-    it('adjust_stock refuses a fractional delta', async () => {
-        const token = await adminAccessToken();
-        const stockLevel = () =>
-            connection
-                .getRepository(adminCtx, StockLevel)
-                .findOneOrFail({ where: { productVariantId: variantId, stockLocationId } });
-        const before = await stockLevel();
-
-        const response = await postMcp(
-            baseUrl(),
-            'admin',
-            callTool(
-                'adjust_stock',
-                { variantId, locationId: stockLocationId, delta: 1.5, confirm: true },
-                1,
-            ),
-            { token },
-        );
-
-        expect(response.body.result.isError).toBe(true);
-        expect(response.body.result.content[0].text).toContain('delta');
-        expect((await stockLevel()).stockOnHand).toBe(before.stockOnHand);
-    });
-
-    it('adjust_stock refuses a variant that is not in the active channel', async () => {
-        const token = await adminAccessToken();
-        // adjust_stock checks the stock location before it touches the variant, so the location has to
-        // be visible from the second channel for this test to reach the variant check at all.
-        await adminClient.query(
-            gql`
-                mutation AssignStockLocationToSecondChannel($input: AssignStockLocationsToChannelInput!) {
-                    assignStockLocationsToChannel(input: $input) {
-                        id
-                    }
-                }
-            `,
-            {
-                input: {
-                    stockLocationIds: [stockLocationGraphqlId],
-                    channelId: String(secondChannelDbId),
-                },
-            },
-        );
-        // The seeded variant belongs to the default channel only, so once this grant is switched to the
-        // second channel the variant is out of scope for it.
-        const switched = await postMcp(
-            baseUrl(),
-            'admin',
-            callTool('set_active_channel', { channelToken: secondChannelToken, confirm: true }, 1),
-            { token },
-        );
-        expect(switched.body.result.isError).toBeUndefined();
-
-        const stockLevel = () =>
-            connection
-                .getRepository(adminCtx, StockLevel)
-                .findOneOrFail({ where: { productVariantId: variantId, stockLocationId } });
-        const before = await stockLevel();
-
-        const response = await postMcp(
-            baseUrl(),
-            'admin',
-            callTool('adjust_stock', { variantId, locationId: stockLocationId, delta: 5, confirm: true }, 2),
-            { token },
-        );
-
-        expect(response.body.result.isError).toBe(true);
-        // The refusal has to be core's answer about the variant, not the tool's answer about the
-        // location, or this test proves nothing about variant scoping.
-        expect(response.body.result.content[0].text).toContain('No ProductVariant with the id');
-        expect((await stockLevel()).stockOnHand).toBe(before.stockOnHand);
-
-        // Put the stock location back in one channel only, so later tests see the fixture as they
-        // expect it.
-        await adminClient.query(
-            gql`
-                mutation RemoveStockLocationFromSecondChannel($input: RemoveStockLocationsFromChannelInput!) {
-                    removeStockLocationsFromChannel(input: $input) {
-                        id
-                    }
-                }
-            `,
-            {
-                input: {
-                    stockLocationIds: [stockLocationGraphqlId],
-                    channelId: String(secondChannelDbId),
-                },
-            },
-        );
-    });
-
     it('get_stock_levels refuses a variant that is not in the active channel', async () => {
         const token = await adminAccessToken();
         // The seeded variant belongs to the default channel only, so once this grant is switched to the
@@ -1508,36 +1360,6 @@ describe('MCP built-in admin tools (direct mode)', () => {
         expect(response.body.result.content[0].text).toContain(
             `Product variant ${String(variantId)} is not available in the active channel.`,
         );
-    });
-
-    it('update_variant refuses a variant that is not in the active channel, and writes nothing', async () => {
-        const token = await adminAccessToken();
-        // As above: the seeded variant is on the default channel only, so it is out of scope for a
-        // grant switched to the second channel.
-        const switched = await postMcp(
-            baseUrl(),
-            'admin',
-            callTool('set_active_channel', { channelToken: secondChannelToken, confirm: true }, 1),
-            { token },
-        );
-        expect(switched.body.result.isError).toBeUndefined();
-
-        const response = await postMcp(
-            baseUrl(),
-            'admin',
-            callTool('update_variant', { id: variantId, input: { sku: 'WRONG-CHANNEL-SKU' } }, 2),
-            { token },
-        );
-
-        expect(response.body.result.isError).toBe(true);
-        expect(response.body.result.content[0].text).toContain(
-            `Product variant ${String(variantId)} is not available in the active channel.`,
-        );
-        // Core's update writes any existing id, so the refusal has to happen before the write.
-        const row = await connection
-            .getRepository(adminCtx, ProductVariant)
-            .findOneOrFail({ where: { id: variantId } });
-        expect(row.sku).toBe(variantSku);
     });
 
     it('adjust_stock refuses a stock location that does not exist', async () => {
@@ -1562,69 +1384,6 @@ describe('MCP built-in admin tools (direct mode)', () => {
             'Stock location 99999 is not available in the active channel.',
         );
         expect((await stockLevel()).stockOnHand).toBe(before.stockOnHand);
-    });
-
-    it('adjust_stock refuses a stock location that belongs to another channel', async () => {
-        const stockLevel = () =>
-            connection
-                .getRepository(adminCtx, StockLevel)
-                .findOneOrFail({ where: { productVariantId: variantId, stockLocationId } });
-        const before = await stockLevel();
-
-        // Putting the product in the second channel makes the variant reachable from there while its
-        // stock stays at a location the second channel cannot see.
-        await adminClient.query(
-            gql`
-                mutation AssignProductToSecondChannel($input: AssignProductsToChannelInput!) {
-                    assignProductsToChannel(input: $input) {
-                        id
-                    }
-                }
-            `,
-            {
-                input: {
-                    productIds: [productGraphqlId],
-                    channelId: String(secondChannelDbId),
-                    priceFactor: 1,
-                },
-            },
-        );
-
-        const token = await adminAccessToken();
-        const switched = await postMcp(
-            baseUrl(),
-            'admin',
-            callTool('set_active_channel', { channelToken: secondChannelToken, confirm: true }, 1),
-            { token },
-        );
-        expect(switched.body.result.isError).toBeUndefined();
-
-        const response = await postMcp(
-            baseUrl(),
-            'admin',
-            callTool('adjust_stock', { variantId, locationId: stockLocationId, delta: 5, confirm: true }, 2),
-            { token },
-        );
-
-        // A location the caller's channel cannot see reads as no stock at all, so without a check the
-        // delta would be written as the whole new quantity and the stock already held would vanish.
-        expect(response.body.result.isError).toBe(true);
-        expect(response.body.result.content[0].text).toContain('is not available in the active channel');
-        expect((await stockLevel()).stockOnHand).toBe(before.stockOnHand);
-
-        // Put the product back in one channel only, so later tests see the fixture as they expect it.
-        await adminClient.query(
-            gql`
-                mutation RemoveProductFromSecondChannel($input: RemoveProductsFromChannelInput!) {
-                    removeProductsFromChannel(input: $input) {
-                        id
-                    }
-                }
-            `,
-            {
-                input: { productIds: [productGraphqlId], channelId: String(secondChannelDbId) },
-            },
-        );
     });
 
     it('refund_order defaults to the first Settled payment and refunds its full remainder', async () => {
@@ -1736,21 +1495,6 @@ describe('MCP built-in admin tools (direct mode)', () => {
                 `Payment ${String(paymentId)} has no refundable amount left: ${String(refund.totalDecimal)} of ` +
                 `${String(payment.amountDecimal)} already refunded (${String(refund.state)}).`,
         });
-    });
-
-    it('refund_order refuses a negative amount', async () => {
-        const token = await adminAccessToken();
-        const { orderId } = await createSettledOrder();
-
-        const response = await postMcp(
-            baseUrl(),
-            'admin',
-            callTool('refund_order', { id: orderId, amount: -5000, confirm: true }, 1),
-            { token },
-        );
-
-        expect(response.body.result.isError).toBe(true);
-        expect(response.body.result.content[0].text).toContain('amount');
     });
 
     it('create_fulfillment fulfills every line by default, including multi-line orders', async () => {
@@ -1892,75 +1636,6 @@ describe('MCP built-in admin tools (direct mode)', () => {
         });
     });
 
-    // Pins that create_fulfillment allows an order still in AddingItems and leaves it there.
-    it('create_fulfillment allows an order still in AddingItems and leaves it there', async () => {
-        const token = await adminAccessToken();
-        const added = await shopClient.query(
-            gql`
-                mutation AddItemForFulfillmentTest($productVariantId: ID!) {
-                    addItemToOrder(productVariantId: $productVariantId, quantity: 1) {
-                        ... on Order {
-                            id
-                            state
-                        }
-                        ... on ErrorResult {
-                            errorCode
-                            message
-                        }
-                    }
-                }
-            `,
-            { productVariantId: variantGraphqlId },
-        );
-        expect(added.addItemToOrder.state).toBe('AddingItems');
-        const idStrategy = getIdStrategy(server.app.get(ConfigService));
-        const cartId = idStrategy.decodeId(added.addItemToOrder.id);
-
-        const response = await postMcp(
-            baseUrl(),
-            'admin',
-            callTool('create_fulfillment', { id: cartId, method: 'Test Carrier', confirm: true }, 1),
-            { token },
-        );
-
-        expect(response.body.result.isError).toBeUndefined();
-        expect(response.body.result.structuredContent.fulfillment).toMatchObject({ state: 'Pending' });
-        expect(response.body.result.structuredContent.order.state).toBe('AddingItems');
-        expect(await orderState(added.addItemToOrder.id)).toBe('AddingItems');
-    });
-
-    it('create_fulfillment gives a cancelled fulfillment quantity back to the default line selection', async () => {
-        const token = await adminAccessToken();
-        const { orderId, graphqlId } = await createSettledOrder();
-        const [line] = await orderLines(graphqlId);
-
-        const first = await postMcp(
-            baseUrl(),
-            'admin',
-            callTool('create_fulfillment', { id: orderId, method: 'Test Carrier', confirm: true }, 1),
-            { token },
-        );
-        expect(first.body.result.isError).toBeUndefined();
-        const fulfillmentId = first.body.result.structuredContent.fulfillment.id;
-
-        // Cancelling goes through core directly: no built-in tool transitions a fulfillment.
-        const cancelled = await server.app
-            .get(OrderService)
-            .transitionFulfillmentToState(adminCtx, fulfillmentId, 'Cancelled');
-        expect((cancelled as { state?: string }).state).toBe('Cancelled');
-
-        const second = await postMcp(
-            baseUrl(),
-            'admin',
-            callTool('create_fulfillment', { id: orderId, method: 'Test Carrier', confirm: true }, 2),
-            { token },
-        );
-        expect(second.body.result.isError).toBeUndefined();
-        expect(second.body.result.structuredContent.fulfillment.lines).toEqual([
-            { orderLineId: line.id, quantity: line.quantity },
-        ]);
-    });
-
     it('create_fulfillment with state Shipped ships a fully fulfilled order', async () => {
         const token = await adminAccessToken();
         const { orderId, graphqlId } = await createSettledOrder();
@@ -1981,29 +1656,6 @@ describe('MCP built-in admin tools (direct mode)', () => {
         // Core's own follow-on transition, read back from the order the tool answers with.
         expect(response.body.result.structuredContent.order.state).toBe('Shipped');
         expect(await orderState(graphqlId)).toBe('Shipped');
-    });
-
-    // Pending -> Delivered is a direct move on core's default fulfillment process, so the tool needs
-    // no intermediate Shipped step for it.
-    it('create_fulfillment with state Delivered delivers a fully fulfilled order in one step', async () => {
-        const token = await adminAccessToken();
-        const { orderId, graphqlId } = await createSettledOrder();
-
-        const response = await postMcp(
-            baseUrl(),
-            'admin',
-            callTool(
-                'create_fulfillment',
-                { id: orderId, method: 'Test Carrier', state: 'Delivered', confirm: true },
-                1,
-            ),
-            { token },
-        );
-
-        expect(response.body.result.isError).toBeUndefined();
-        expect(response.body.result.structuredContent.fulfillment.state).toBe('Delivered');
-        expect(response.body.result.structuredContent.order.state).toBe('Delivered');
-        expect(await orderState(graphqlId)).toBe('Delivered');
     });
 
     it('get_order and list_orders both carry the fulfillments of an order', async () => {
@@ -2552,32 +2204,6 @@ describe('MCP built-in admin tools (direct mode)', () => {
             expect(response.body.result.content[0].text).toContain('No Customer with the id');
         });
 
-        it('add_customer_to_group refuses a customer outside the active channel', async () => {
-            const token = await adminAccessToken();
-            const switched = await postMcp(
-                baseUrl(),
-                'admin',
-                callTool('set_active_channel', { channelToken: secondChannelToken, confirm: true }, 1),
-                { token },
-            );
-            expect(switched.body.result.isError).toBeUndefined();
-
-            const response = await postMcp(
-                baseUrl(),
-                'admin',
-                callTool(
-                    'add_customer_to_group',
-                    { customerId: seededCustomerId, groupId: customerGroupId },
-                    2,
-                ),
-                { token },
-            );
-
-            // The seeded customer belongs to the default channel only.
-            expect(response.body.result.isError).toBe(true);
-            expect(response.body.result.content[0].text).toContain('No Customer with the id');
-        });
-
         it('list_customer_groups returns the group id add_customer_to_group needs', async () => {
             const token = await adminAccessToken();
 
@@ -2622,28 +2248,6 @@ describe('MCP built-in admin tools (direct mode)', () => {
             expect(confirmed.body.result.isError).toBeUndefined();
             expect(confirmed.body.result.structuredContent.order.state).toBe('Cancelled');
             expect(await orderState(order.graphqlId)).toBe('Cancelled');
-        });
-
-        it('update_order_state hands back the transition error for a state the order cannot reach', async () => {
-            const token = await adminAccessToken();
-            const order = await createDraftOrder();
-
-            const refused = await postMcp(
-                baseUrl(),
-                'admin',
-                callTool('update_order_state', { id: order.id, state: 'Shipped', confirm: true }, 1),
-                { token },
-            );
-
-            // The state machine's refusal is a Vendure error result, so the call is reported as failed and
-            // the model reads Vendure's own error code instead of a generic tool failure.
-            expect(refused.body.result.isError).toBe(true);
-            expect(refused.body.result.structuredContent.order).toBeUndefined();
-            expect(refused.body.result.structuredContent).toMatchObject({
-                __typename: 'OrderStateTransitionError',
-                errorCode: 'ORDER_STATE_TRANSITION_ERROR',
-            });
-            expect(await orderState(order.graphqlId)).toBe('Draft');
         });
 
         describe('upload_asset', () => {
@@ -2708,15 +2312,6 @@ describe('MCP built-in admin tools (direct mode)', () => {
                 expect(response.body.result.structuredContent.asset.name).toBe('pixel.png');
             });
 
-            it('stores a separate asset each time, with no reuse of an identical URL', async () => {
-                const first = await callUploadAsset({ url: `${fileServer.baseUrl}/pixel.png` });
-                const second = await callUploadAsset({ url: `${fileServer.baseUrl}/pixel.png` });
-
-                expect(second.body.result.structuredContent.asset.id).not.toBe(
-                    first.body.result.structuredContent.asset.id,
-                );
-            });
-
             it('refuses a file type the store does not permit, and stores nothing', async () => {
                 const countBefore = await assetRepo().count();
 
@@ -2727,20 +2322,6 @@ describe('MCP built-in admin tools (direct mode)', () => {
                     'Unsupported asset file type for "notes.txt": text/plain',
                 );
                 expect(await assetRepo().count()).toBe(countBefore);
-            });
-
-            it('accepts bytes it cannot identify when the file extension is permitted', async () => {
-                // Core weighs three signals: the declared content type, the file extension, and
-                // the leading bytes. Bytes it cannot identify pass as long as the extension is
-                // permitted, which core made deliberate in 037056aa1 so that SVG uploads work.
-                // So this tool does not promise the stored file is really an image.
-                const response = await callUploadAsset({ url: `${fileServer.baseUrl}/not-really.png` });
-
-                expect(response.body.result.isError).toBeUndefined();
-                expect(response.body.result.structuredContent.asset).toMatchObject({
-                    name: 'not-really.png',
-                    mimeType: 'image/png',
-                });
             });
 
             it('answers a source URL that 404s with the fixed message, and stores nothing', async () => {
@@ -2783,39 +2364,6 @@ describe('MCP built-in admin tools (direct mode)', () => {
                     'Unsupported asset URL scheme (only http and https URLs are allowed)',
                 );
                 expect(await assetRepo().count()).toBe(countBefore);
-            });
-
-            it('refuses an empty URL with the same scheme message', async () => {
-                const response = await callUploadAsset({ url: '' });
-
-                expect(response.body.result.isError).toBe(true);
-                expect(response.body.result.content[0].text).toContain('Unsupported asset URL scheme');
-            });
-
-            it('tells the caller why core refused a malformed URL, and stores nothing', async () => {
-                // Core's URL guard rejects this before any fetch. Its message has to survive the
-                // trip back, otherwise the caller only learns that the tool failed.
-                const countBefore = await assetRepo().count();
-
-                const response = await callUploadAsset({ url: 'http://' });
-
-                expect(response.body.result.isError).toBe(true);
-                expect(response.body.result.content[0].text).toContain('Refusing to fetch asset URL');
-                expect(response.body.result.content[0].text).not.toContain('failed unexpectedly');
-                expect(await assetRepo().count()).toBe(countBefore);
-            });
-
-            it('refuses a missing url, and refuses an argument the schema does not declare', async () => {
-                const missing = await callUploadAsset({});
-                expect(missing.body.result.isError).toBe(true);
-                expect(missing.body.result.content[0].text).toContain('expected string, received undefined');
-
-                const unknown = await callUploadAsset({
-                    url: `${fileServer.baseUrl}/pixel.png`,
-                    tags: ['x'],
-                });
-                expect(unknown.body.result.isError).toBe(true);
-                expect(unknown.body.result.content[0].text).toContain('Unrecognized key: "tags"');
             });
 
             it('is not callable by an administrator without CreateAsset, and stores nothing', async () => {

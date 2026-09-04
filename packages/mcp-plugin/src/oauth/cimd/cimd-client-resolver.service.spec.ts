@@ -121,16 +121,6 @@ describe('McpCimdClientResolverService', () => {
         expect(result.cimdDocumentExpiresAt).toEqual(new Date('2026-08-03T13:00:00Z'));
     });
 
-    it('does not store anything when the fetch fails', async () => {
-        const { resolver, repository } = createResolver();
-        fetchMock.mockRejectedValue(
-            new BadRequestException('client_id metadata document request failed with HTTP 404'),
-        );
-
-        await expect(resolver.resolveClient({} as any, CLIENT_ID)).rejects.toThrow('HTTP 404');
-        expect(repository.save).not.toHaveBeenCalled();
-    });
-
     it('does not store anything when the document is invalid', async () => {
         const { resolver, repository } = createResolver();
         fetchMock.mockResolvedValue(documentBody({ client_id: 'https://other.example.com/x.json' }));

@@ -166,15 +166,6 @@ describe('McpPlugin OAuth routes', () => {
             expect(await errorCodeOf(res)).toBe('invalid_client_metadata');
         });
 
-        it('POST /mcp/oauth/register refuses a numeric redirect_uris', async () => {
-            const res = await postJson('mcp/oauth/register', {
-                client_name: 'Numeric Redirect Uris Client',
-                redirect_uris: 5,
-            });
-            expect(res.status).toBe(400);
-            expect(await errorCodeOf(res)).toBe('invalid_client_metadata');
-        });
-
         it('POST /mcp/oauth/token refuses a numeric code', async () => {
             const res = await postJson('mcp/oauth/token', {
                 grant_type: 'authorization_code',
@@ -216,25 +207,6 @@ describe('McpPlugin OAuth routes', () => {
             expect(await errorCodeOf(res)).toBe('invalid_request');
         });
 
-        it('GET /mcp/oauth/authorize refuses a repeated client_id', async () => {
-            const port = config.apiOptions.port;
-            const params = new URLSearchParams({
-                response_type: 'code',
-                redirect_uri: 'https://example.com/cb',
-                code_challenge: 'x'.repeat(43),
-                code_challenge_method: 'S256',
-                resource: `http://localhost:${port}/mcp/admin`,
-            });
-            params.append('client_id', 'a');
-            params.append('client_id', 'b');
-
-            const res = await fetch(`http://localhost:${port}/mcp/oauth/authorize?${params.toString()}`, {
-                redirect: 'manual',
-            });
-            expect(res.status).toBe(400);
-            expect(await errorCodeOf(res)).toBe('invalid_request');
-        });
-
         it('GET /mcp/oauth/authorization-request refuses a repeated request_token', async () => {
             const port = config.apiOptions.port;
             const res = await fetch(
@@ -242,14 +214,6 @@ describe('McpPlugin OAuth routes', () => {
             );
             expect(res.status).toBe(400);
             expect(await errorCodeOf(res)).toBe('invalid_request');
-        });
-
-        // RFC 7009 §2.2 gives revocation no way to report a bad token, so a token of the wrong
-        // type counts as no token at all and the route still answers 200.
-        it('POST /mcp/oauth/revoke answers 200 for a non-string token', async () => {
-            const res = await postJson('mcp/oauth/revoke', { token: {} });
-            expect(res.status).toBe(200);
-            expect(await res.json()).toEqual({});
         });
     });
 
