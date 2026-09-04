@@ -46,6 +46,15 @@ export function parseOptionFlags(option: CliCommandOption): ParsedCliOption {
 }
 
 /**
+ * An option together with every sub-option it declares. Sub-options are
+ * registered on the same Commander command as their parent, so every check
+ * that applies to an option applies to them too.
+ */
+export function withSubOptions(options: CliCommandOption[]): CliCommandOption[] {
+    return options.flatMap(option => [option, ...withSubOptions(option.subOptions ?? [])]);
+}
+
+/**
  * How an option is named in error messages.
  */
 export function describeOption(option: CliCommandOption): string {

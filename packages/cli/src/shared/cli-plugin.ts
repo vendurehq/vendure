@@ -5,7 +5,7 @@ import {
     CliCommandOption,
     isCliCommandGroup,
 } from './cli-command-definition';
-import { describeOption, parseOptionFlags } from './cli-command-options';
+import { describeOption, parseOptionFlags, withSubOptions } from './cli-command-options';
 
 /**
  * A CLI plugin that can add new commands or replace existing ones.
@@ -19,6 +19,8 @@ import { describeOption, parseOptionFlags } from './cli-command-options';
  *   }
  * }
  * ```
+ *
+ * @since 3.8.0
  */
 export interface CliPlugin {
     /**
@@ -37,6 +39,8 @@ export interface CliPlugin {
      * by every command. They can be given anywhere on the command line
      * (`vendure --token X project list` and `vendure project list --token X`
      * are equivalent) and reach actions via `CliCommandContext.inheritedOptions`.
+     *
+     * @since 3.8.0
      */
     rootOptions?: CliCommandOption[];
     /**
@@ -44,6 +48,8 @@ export interface CliPlugin {
      * contributed by another plugin. Unlike replacing a command, several
      * plugins can extend the same one: their options are merged and their
      * decorators are composed in `vendure.cli.plugins` order.
+     *
+     * @since 3.8.0
      */
     extendCommands?: CliCommandExtension[];
 }
@@ -121,6 +127,8 @@ function assertExtensions(
 
 /**
  * Validates and returns a CLI plugin definition for export from a plugin package.
+ *
+ * @since 3.8.0
  */
 export function defineCliPlugin(plugin: CliPlugin): CliPlugin {
     assertCliPlugin(plugin);
@@ -173,7 +181,7 @@ function assertNodes(
 
 function assertUniqueOptions(pluginId: string, options: CliCommandOption[], context: string): void {
     const seenFlags = new Set<string>();
-    for (const option of options) {
+    for (const option of withSubOptions(options)) {
         if (!option || typeof option.long !== 'string' || option.long.trim().length === 0) {
             throw new Error(`CLI plugin "${pluginId}" has an option without a long flag in ${context}`);
         }
@@ -202,7 +210,7 @@ function assertDoesNotShadow(
     inheritedOptions: CliCommandOption[],
 ): void {
     const inheritedFlags = new Map<string, CliCommandOption>();
-    for (const option of inheritedOptions) {
+    for (const option of withSubOptions(inheritedOptions)) {
         const { long, short } = parseOptionFlags(option);
         for (const flag of [long, short]) {
             if (flag) {
@@ -210,7 +218,7 @@ function assertDoesNotShadow(
             }
         }
     }
-    for (const option of ownOptions) {
+    for (const option of withSubOptions(ownOptions)) {
         const { long, short } = parseOptionFlags(option);
         for (const flag of [long, short]) {
             if (!flag) {

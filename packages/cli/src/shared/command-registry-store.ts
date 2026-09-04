@@ -8,7 +8,7 @@ import {
     CliCommandOption,
     isCliCommandGroup,
 } from './cli-command-definition';
-import { describeOption, ParsedCliOption, parseOptionFlags } from './cli-command-options';
+import { describeOption, ParsedCliOption, parseOptionFlags, withSubOptions } from './cli-command-options';
 import { CliPlugin, normalizeCommandPath } from './cli-plugin';
 
 /**
@@ -31,8 +31,12 @@ interface RegisteredCommand {
     source?: string;
     /** Plugins that have extended this command, in the order they were applied. */
     extendedBy: string[];
-    /** Plugin whose extension last set the description. */
-    describedBy?: string;
+    /**
+     * Plugin whose extension last set the description, keyed by the command
+     * path it set. A tree holds several commands, so ownership cannot be
+     * recorded against the tree as a whole.
+     */
+    describedBy: Record<string, string>;
 }
 
 interface RegisteredOption {
@@ -78,7 +82,7 @@ export class CommandRegistry {
     }
 
     register(command: CliCommandNode): void {
-        this.state.commands.set(command.name, { node: command, extendedBy: [] });
+        this.state.commands.set(command.name, { node: command, extendedBy: [], describedBy: {} });
     }
 
     /**
@@ -98,7 +102,7 @@ export class CommandRegistry {
         const conflicts: string[] = [];
         const notices: string[] = [];
 
-        for (const option of plugin.rootOptions ?? []) {
+        for (const option of withSubOptions(plugin.rootOptions ?? [])) {
             this.draftRootOption(draft, option, plugin.id, conflicts);
         }
         for (const node of plugin.commands) {
@@ -253,7 +257,7 @@ function draftCommand(
     if (existing) {
         notices.push(`Replaced command "${node.name}" via ${source}\n`);
     }
-    draft.commands.set(node.name, { node, source, extendedBy: [] });
+    draft.commands.set(node.name, { node, source, extendedBy: [], describedBy: {} });
 }
 
 function draftExtension(
@@ -292,7 +296,8 @@ function draftExtension(
         );
     }
     const inheritedShared = ancestorSharedOptions(draft, path);
-    for (const option of extension.options ?? []) {
+    const targetOptions = withSubOptions(target.options ?? []);
+    for (const option of withSubOptions(extension.options ?? [])) {
         const parsed = parseOptionFlags(option);
         for (const flag of [parsed.long, parsed.short]) {
             if (flag && RESERVED_FLAGS.includes(flag)) {
@@ -302,7 +307,7 @@ function draftExtension(
                 );
             }
         }
-        const clash = (target.options ?? []).find(existing => isSameOption(existing, parsed));
+        const clash = targetOptions.find(existing => isSameOption(existing, parsed));
         if (clash) {
             conflicts.push(`Option "${describeOption(option)}" is already declared on "vendure ${label}".`);
         }
@@ -339,10 +344,11 @@ function draftExtension(
         return;
     }
 
-    if (extension.description && entry.describedBy && entry.describedBy !== source) {
+    const previousDescriber = entry.describedBy[label];
+    if (extension.description && previousDescriber && previousDescriber !== source) {
         notices.push(
             `Description of "vendure ${label}" set by ${source} replaces the one set by ` +
-                `${entry.describedBy}\n`,
+                `${previousDescriber}\n`,
         );
     }
 
@@ -350,7 +356,7 @@ function draftExtension(
         ...entry,
         node: replaceNodeAtPath(entry.node, path.slice(1), extended),
         extendedBy: [...entry.extendedBy, source],
-        describedBy: extension.description ? source : entry.describedBy,
+        describedBy: extension.description ? { ...entry.describedBy, [label]: source } : entry.describedBy,
     });
 }
 
@@ -434,7 +440,7 @@ function listCommandOptions(nodes: CliCommandNode[], path: string[] = []): Decla
     for (const node of nodes) {
         const commandPath = [...path, node.name];
         const isGroupOption = isCliCommandGroup(node);
-        for (const option of node.options ?? []) {
+        for (const option of withSubOptions(node.options ?? [])) {
             declared.push({ path: commandPath, option, isGroupOption });
         }
         if (isCliCommandGroup(node)) {
@@ -455,7 +461,7 @@ function ancestorSharedOptions(draft: RegistryState, path: string[]): CliCommand
         if (!isCliCommandGroup(node)) {
             break;
         }
-        options.push(...(node.options ?? []));
+        options.push(...withSubOptions(node.options ?? []));
         node = node.subcommands.find(subcommand => subcommand.name === path[i + 1]);
     }
     return options;

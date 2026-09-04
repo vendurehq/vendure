@@ -1,3 +1,8 @@
+/**
+ * An option on a CLI command.
+ *
+ * @since 3.8.0
+ */
 export interface CliCommandOption {
     long: string;
     short?: string;
@@ -11,6 +16,11 @@ export interface CliCommandOption {
     interactiveFn?: () => Promise<any>; // Function to execute in interactive mode
 }
 
+/**
+ * A positional argument on a CLI command.
+ *
+ * @since 3.8.0
+ */
 export interface CliCommandArgument {
     name: string;
     description: string;
@@ -28,6 +38,8 @@ export interface CliCommandArgument {
  *
  * Keys are Commander attribute names: the long flag without `--`, camel-cased.
  * `--api-token <token>` is therefore `apiToken`.
+ *
+ * @since 3.8.0
  */
 export interface CliCommandContext<TInheritedOptions extends Record<string, any> = Record<string, any>> {
     /**
@@ -46,6 +58,11 @@ export interface CliCommandContext<TInheritedOptions extends Record<string, any>
     commandPath: string[];
 }
 
+/**
+ * A CLI command that runs an action.
+ *
+ * @since 3.8.0
+ */
 export interface CliCommandDefinition {
     name: string;
     description: string;
@@ -56,6 +73,8 @@ export interface CliCommandDefinition {
      * name — a built-in, or one registered by an earlier plugin. Without it a
      * name collision is reported as an error and the plugin is skipped, so a
      * command can never be replaced by accident.
+     *
+     * @since 3.8.0
      */
     replaces?: boolean;
     /**
@@ -75,6 +94,8 @@ export interface CliCommandDefinition {
 
 /**
  * A command implementation, as the CLI host invokes it.
+ *
+ * @since 3.8.0
  */
 export type CliCommandAction = (...args: any[]) => Promise<void | number>;
 
@@ -82,6 +103,8 @@ export type CliCommandAction = (...args: any[]) => Promise<void | number>;
  * A command that exists only to group subcommands, e.g. the `config` in
  * `vendure config server set`. A group has no action of its own: running it
  * without a subcommand prints its help.
+ *
+ * @since 3.8.0
  */
 export interface CliCommandGroupDefinition {
     name: string;
@@ -104,6 +127,8 @@ export interface CliCommandGroupDefinition {
 /**
  * A node in a CLI command tree: either a command that runs an action, or a
  * group of further commands.
+ *
+ * @since 3.8.0
  */
 export type CliCommandNode = CliCommandDefinition | CliCommandGroupDefinition;
 
@@ -113,6 +138,8 @@ export function isCliCommandGroup(node: CliCommandNode): node is CliCommandGroup
 
 /**
  * What the host hands a {@link CliCommandDecorator}.
+ *
+ * @since 3.8.0
  */
 export interface CliCommandDecoratorInput {
     /**
@@ -133,6 +160,8 @@ export interface CliCommandDecoratorInput {
 /**
  * Builds a replacement action that wraps the one it is given. The host calls it
  * once, when the plugin is registered.
+ *
+ * @since 3.8.0
  */
 export type CliCommandDecorator = (input: CliCommandDecoratorInput) => CliCommandAction;
 
@@ -147,6 +176,8 @@ export type CliCommandDecorator = (input: CliCommandDecoratorInput) => CliComman
  * cannot add positional arguments: Commander passes one argument slot per
  * declared positional, so an appended argument would shift the options,
  * command and context an existing action receives.
+ *
+ * @since 3.8.0
  */
 export interface CliCommandExtension {
     /**
@@ -175,6 +206,8 @@ export interface CliCommandExtension {
  * Plugin packages are discovered from direct dependencies that declare
  * `vendure.cliPlugin`, but are only **loaded** when listed in `plugins`
  * (explicit activation). Use `vendure plugins` to manage this list.
+ *
+ * @since 3.8.0
  */
 export interface ProjectCliPluginConfig {
     /**
