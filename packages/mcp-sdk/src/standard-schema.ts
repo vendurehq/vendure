@@ -17,7 +17,7 @@ export interface McpStandardSchemaIssue {
      * an array index, or an object carrying that key. It is absent when the issue applies to the
      * value as a whole.
      */
-    readonly path?: ReadonlyArray<PropertyKey | { readonly key: PropertyKey }> | undefined;
+    readonly path?: ReadonlyArray<PropertyKey | { readonly key: PropertyKey }>;
 }
 
 /**
@@ -60,15 +60,15 @@ export interface McpStandardSchema<Input = unknown, Output = Input> {
         readonly validate: (
             value: unknown,
         ) => McpStandardSchemaResult<Output> | Promise<McpStandardSchemaResult<Output>>;
-        readonly types?: { readonly input: Input; readonly output: Output } | undefined;
+        readonly types?: { readonly input: Input; readonly output: Output };
         readonly jsonSchema: {
             input(options: {
                 readonly target: string;
-                readonly libraryOptions?: Record<string, unknown> | undefined;
+                readonly libraryOptions?: Record<string, unknown>;
             }): Record<string, unknown>;
             output(options: {
                 readonly target: string;
-                readonly libraryOptions?: Record<string, unknown> | undefined;
+                readonly libraryOptions?: Record<string, unknown>;
             }): Record<string, unknown>;
         };
     };
