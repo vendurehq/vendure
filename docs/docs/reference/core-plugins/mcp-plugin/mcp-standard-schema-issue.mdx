@@ -9,7 +9,7 @@ One validation failure reported by an [McpStandardSchema](/reference/core-plugin
 ```ts title="Signature"
 interface McpStandardSchemaIssue {
     readonly message: string;
-    readonly path?: ReadonlyArray<PropertyKey | { readonly key: PropertyKey }> | undefined;
+    readonly path?: ReadonlyArray<PropertyKey | { readonly key: PropertyKey }>;
 }
 ```
 
@@ -22,7 +22,7 @@ interface McpStandardSchemaIssue {
 A human readable message describing why the value was rejected.
 ### path
 
-<MemberInfo kind="property" type={`ReadonlyArray<PropertyKey | { readonly key: PropertyKey }> | undefined`}   />
+<MemberInfo kind="property" type={`ReadonlyArray<PropertyKey | { readonly key: PropertyKey }>`}   />
 
 Where the rejected value sits inside the validated input. Each segment is a property key,
 an array index, or an object carrying that key. It is absent when the issue applies to the
