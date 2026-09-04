@@ -223,7 +223,9 @@ describe('CommandRegistry nested commands and shared options', () => {
         // The built-in `plugins --json` and a shared `--json` both take no
         // value, so they can refer to the same value.
         const registry = registryWithBuiltins();
-        expect(() => registry.applyPlugin(cloudPlugin())).not.toThrow();
+        registry.applyPlugin(cloudPlugin());
+
+        expect(registry.getRootOptions().map(option => option.long)).toEqual(['--token <token>', '--json']);
     });
 
     it('rejects a plugin that replaces a built-in without opting in', () => {
@@ -358,7 +360,11 @@ describe('CommandRegistry nested commands and shared options', () => {
             expect.unreachable('applyPlugin should have thrown');
         } catch (e) {
             expect(e).toBeInstanceOf(CliPluginRegistrationError);
-            expect((e as CliPluginRegistrationError).conflicts).toHaveLength(2);
+            expect((e as CliPluginRegistrationError).conflicts).toEqual([
+                'Shared option "--version" uses "--version", which is reserved by the CLI.',
+                'Command "dev" is already provided by the CLI. Set "replaces: true" on it to override ' +
+                    'that deliberately, or use "extendCommands" to add to it without discarding it.',
+            ]);
         }
     });
 });
@@ -457,7 +463,7 @@ describe('defineCliPlugin() with nested commands', () => {
         ).toThrow(/declares the command "project list" more than once/);
     });
 
-    it('rejects a nested command that shadows a shared option', () => {
+    it('rejects a nested group that shares a flag an ancestor already shares', () => {
         expect(() =>
             defineCliPlugin({
                 id: '@example/shadow',
@@ -466,16 +472,8 @@ describe('defineCliPlugin() with nested commands', () => {
                     {
                         name: 'project',
                         description: 'Manage projects',
-                        subcommands: [
-                            {
-                                name: 'list',
-                                description: 'List projects',
-                                options: [
-                                    { long: '--token <token>', description: 'Override', required: true },
-                                ],
-                                action: async () => 0,
-                            },
-                        ],
+                        options: [{ long: '--token <token>', description: 'Override', required: true }],
+                        subcommands: [{ name: 'list', description: 'List projects', action: async () => 0 }],
                     },
                 ],
             }),

@@ -15,6 +15,7 @@ import {
     createTestProject,
     installCliPluginFixture,
     readEnabledCliPlugins,
+    readMarker,
 } from './cli-test-utils';
 
 interface CloudResult {
@@ -29,14 +30,7 @@ interface CloudResult {
  * host passed to the command action.
  */
 function parseCloudResult(stdout: string): CloudResult {
-    const line = stdout
-        .split('\n')
-        .map(l => l.trim())
-        .find(l => l.startsWith('CLOUD_RESULT '));
-    if (!line) {
-        throw new Error(`No CLOUD_RESULT line in CLI output:\n${stdout}`);
-    }
-    return JSON.parse(line.slice('CLOUD_RESULT '.length));
+    return readMarker(stdout, 'CLOUD_RESULT');
 }
 
 describe('CLI plugin nested commands', () => {
@@ -147,7 +141,8 @@ describe('CLI plugin nested commands', () => {
         const result = await project.runCliCommand(['plugins', '--json']);
 
         expect(result.exitCode).toBe(0);
-        expect(() => JSON.parse(result.stdout)).not.toThrow();
+        const listed = JSON.parse(result.stdout);
+        expect(JSON.stringify(listed)).toContain('@vendure-e2e/cloud-cli-plugin');
     });
 
     it('rejects a group option outside its group', async () => {
@@ -175,22 +170,25 @@ describe('CLI plugin help output', () => {
     it('shows plugin commands and shared options in root help', async () => {
         const result = await project.runCliCommand(['--help']);
 
-        for (const name of ['project', 'config', 'backup', 'restore']) {
-            expect(result.stdout).toContain(name);
-        }
+        // Anchored on the command list: these words also appear in built-in
+        // descriptions and option names, so `toContain` would pass regardless.
+        expect(result.stdout).toMatch(/^\s+project\s+Manage Cloud projects$/m);
+        expect(result.stdout).toMatch(/^\s+config \[options\]\s+Manage Cloud configuration$/m);
+        expect(result.stdout).toMatch(/^\s+backup\s+Manage backups$/m);
+        expect(result.stdout).toMatch(/^\s+restore\s+Restore from a backup$/m);
         for (const option of ['--token', '--project', '--environment', '--json']) {
-            expect(result.stdout).toContain(option);
+            expect(result.stdout).toMatch(new RegExp(`^\\s+${option}`, 'm'));
         }
     });
 
     it('shows subcommands and inherited options in parent help', async () => {
         const result = await project.runCliCommand(['config', '--help']);
 
-        expect(result.stdout).toContain('vendure config');
-        expect(result.stdout).toContain('server');
-        expect(result.stdout).toContain('--profile');
+        expect(result.stdout).toContain('Usage: vendure config');
+        expect(result.stdout).toMatch(/^\s+server\s+Server configuration$/m);
+        expect(result.stdout).toMatch(/^\s+--profile /m);
         expect(result.stdout).toContain('Global Options:');
-        expect(result.stdout).toContain('--token');
+        expect(result.stdout).toMatch(/^\s+--token /m);
     });
 
     it('shows the options valid at every level in leaf help', async () => {
@@ -206,8 +204,8 @@ describe('CLI plugin help output', () => {
         const result = await project.runCliCommand(['backup'], { expectError: true });
 
         expect(result.exitCode).toBe(1);
-        expect(result.stderr).toContain('vendure backup');
-        expect(result.stderr).toContain('db');
+        expect(result.stderr).toContain('Usage: vendure backup');
+        expect(result.stderr).toMatch(/^\s+db\s+Database backups$/m);
     });
 
     it('fails on an unknown subcommand', async () => {
@@ -281,6 +279,30 @@ describe('CLI plugin collisions', () => {
             const rival = await project.runCliCommand(['rival'], { expectError: true });
             expect(rival.exitCode).toBe(1);
             expect(rival.stderr).toContain('Unknown command "rival"');
+        } finally {
+            project.cleanup();
+        }
+    });
+});
+
+describe('CLI plugin discovery without activation', () => {
+    it('does not load a plugin that is installed but not enabled', async () => {
+        const project = createTestProject('cli-plugin-inactive');
+        try {
+            const packageName = installCliPluginFixture(project, 'cloud-cli-plugin', { enable: false });
+
+            // The hint is suppressed for --help and for `plugins` itself,
+            // so drive it with an ordinary command that exits quickly.
+            const hinted = await project.runCliCommand(['dev', 'bogus'], { expectError: true });
+            expect(hinted.stderr).toContain('Run "vendure plugins" to review them.');
+
+            // The command it declares is not registered, but the CLI knows
+            // which package would provide it, from vendure.cliCommands.
+            const unknown = await project.runCliCommand(['project', 'list'], { expectError: true });
+            expect(unknown.exitCode).toBe(1);
+            expect(unknown.stderr).toContain('Unknown command "project"');
+            expect(unknown.stderr).toContain(`It is provided by ${packageName}`);
+            expect(unknown.stderr).toContain(`vendure plugins add ${packageName}`);
         } finally {
             project.cleanup();
         }

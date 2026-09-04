@@ -16,7 +16,9 @@ class ExitSignal extends Error {
 
 export interface CliRun {
     exitCode?: number;
+    /** Commander's own output plus anything the action wrote to stdout. */
     stdout: string;
+    /** Commander's own errors plus anything the host or action wrote to stderr. */
     stderr: string;
 }
 
@@ -51,6 +53,10 @@ export async function runCli(
         stderr += String(str);
         return true;
     });
+    const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(str => {
+        stdout += String(str);
+        return true;
+    });
 
     let exitCode: number | undefined;
     try {
@@ -66,6 +72,7 @@ export async function runCli(
     } finally {
         exitSpy.mockRestore();
         stderrSpy.mockRestore();
+        stdoutSpy.mockRestore();
     }
 
     return { exitCode, stdout, stderr };

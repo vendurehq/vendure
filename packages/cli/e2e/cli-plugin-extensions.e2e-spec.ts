@@ -20,6 +20,7 @@ import {
     createTestProject,
     installCliPluginFixture,
     readEnabledCliPlugins,
+    readMarker,
 } from './cli-test-utils';
 
 /**
@@ -34,14 +35,7 @@ function traceOf(stdout: string): string[] {
 }
 
 function markerPayload(stdout: string, marker: string): any {
-    const line = stdout
-        .split('\n')
-        .map(l => l.trim())
-        .find(l => l.startsWith(`${marker} `));
-    if (!line) {
-        throw new Error(`No ${marker} line in CLI output:\n${stdout}`);
-    }
-    return JSON.parse(line.slice(marker.length + 1));
+    return readMarker(stdout, marker);
 }
 
 describe('Several plugins extending one command', () => {
@@ -157,6 +151,7 @@ describe('Extension collisions and recovery', () => {
 
             const unknown = await project.runCliCommand(['broken-extra'], { expectError: true });
             expect(unknown.exitCode).toBe(1);
+            expect(unknown.stderr).toContain('Unknown command "broken-extra"');
 
             const removed = await project.runCliCommand(['plugins', 'remove', broken]);
             expect(removed.exitCode).toBe(0);

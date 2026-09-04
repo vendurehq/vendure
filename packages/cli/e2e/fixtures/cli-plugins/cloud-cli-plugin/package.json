@@ -5,6 +5,11 @@
     "main": "cli-plugin.js",
     "vendure": {
         "cliPlugin": "./cli-plugin.js",
-        "cliCommands": ["project", "config", "backup", "restore"]
+        "cliCommands": [
+            "project",
+            "config",
+            "backup",
+            "restore"
+        ]
     }
 }

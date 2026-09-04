@@ -1,4 +1,3 @@
-/* eslint-disable */
 // Takes over the built-in `add` command without declaring `replaces: true`.
 const { defineCliPlugin } = require('@vendure/cli');
 

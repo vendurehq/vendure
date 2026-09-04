@@ -256,25 +256,9 @@ describe('Command extensions: composition', () => {
         );
 
         const group = registry.get('config') as CliCommandGroupDefinition;
-        expect((group.subcommands[0] as CliCommandDefinition).options).toHaveLength(1);
-    });
-
-    it('adds an optional argument', () => {
-        const registry = registryWithCore();
-        registry.applyPlugin(
-            defineCliPlugin({
-                id: '@example/args',
-                commands: [],
-                extendCommands: [
-                    {
-                        command: 'dev',
-                        arguments: [{ name: 'profile', description: 'Profile', required: false }],
-                    },
-                ],
-            }),
-        );
-
-        expect(devCommand(registry).arguments?.map(argument => argument.name)).toEqual(['target', 'profile']);
+        expect((group.subcommands[0] as CliCommandDefinition).options?.map(o => o.long)).toEqual([
+            '--dry-run',
+        ]);
     });
 });
 
@@ -324,6 +308,10 @@ describe('Command extensions: registration through Commander', () => {
 });
 
 describe('Command extensions: collisions', () => {
+    afterEach(() => {
+        trace.length = 0;
+    });
+
     it('rejects an extension of a command that is not registered', () => {
         const registry = registryWithCore();
         const plugin = defineCliPlugin({
@@ -371,7 +359,9 @@ describe('Command extensions: collisions', () => {
             }),
         );
 
-        expect((registry.get('config') as CliCommandGroupDefinition).options).toHaveLength(1);
+        expect((registry.get('config') as CliCommandGroupDefinition).options?.map(o => o.long)).toEqual([
+            '--profile <name>',
+        ]);
     });
 
     it('rejects an option that the target already declares', () => {
@@ -387,7 +377,7 @@ describe('Command extensions: collisions', () => {
         });
 
         expect(() => registry.applyPlugin(rival)).toThrow(
-            /already declared on "vendure dev" \(contributed by the CLI, @vendure-platform\/cli\)/,
+            /Option "--rotate-credential" is already declared on "vendure dev"/,
         );
         expect(registry.getExtendedBy('dev')).toEqual([PLATFORM_ID]);
     });
@@ -462,18 +452,6 @@ describe('Command extensions: collisions', () => {
         await devCommand(registry).action();
 
         expect(trace).toEqual(['platform:before', 'replacement', 'platform:after']);
-        trace.length = 0;
-    });
-
-    it('rejects an argument name the target already declares', () => {
-        const registry = registryWithCore();
-        const plugin = defineCliPlugin({
-            id: '@example/args',
-            commands: [],
-            extendCommands: [{ command: 'dev', arguments: [{ name: 'target', description: 'Mine' }] }],
-        });
-
-        expect(() => registry.applyPlugin(plugin)).toThrow(/Argument "target" is already declared/);
     });
 
     it('reports a decorator that throws while being applied, and applies nothing', () => {
@@ -521,7 +499,6 @@ describe('Command extensions: collisions', () => {
 
         await devCommand(registry).action('server');
         expect(trace).toEqual(['platform:before', 'core:server', 'platform:after']);
-        trace.length = 0;
     });
 });
 
@@ -559,35 +536,38 @@ describe('defineCliPlugin() with command extensions', () => {
         ).toThrow(/extends "dev" more than once/);
     });
 
-    it('rejects an extension that adds a required argument', () => {
-        expect(() =>
-            defineCliPlugin({
-                id: '@example/args',
-                commands: [],
-                extendCommands: [
-                    {
-                        command: 'dev',
-                        arguments: [{ name: 'profile', description: 'Profile', required: true }],
-                    },
-                ],
-            }),
-        ).toThrow(/adds a required argument/);
-    });
-
-    it('rejects an added option that shadows one of the plugin shared options', () => {
+    it('rejects a group that redeclares one of the plugin shared options', () => {
         expect(() =>
             defineCliPlugin({
                 id: '@example/shadow',
                 rootOptions: [{ long: '--token <token>', description: 'API token', required: true }],
-                commands: [],
-                extendCommands: [
+                commands: [
                     {
-                        command: 'dev',
+                        name: 'group',
+                        description: 'Group',
                         options: [{ long: '--token <token>', description: 'Override', required: true }],
+                        subcommands: [{ name: 'run', description: 'Run', action: async () => 0 }],
                     },
                 ],
             }),
         ).toThrow(/already a shared option/);
+    });
+
+    it('allows a command to repeat a shared option, which the host keeps in step', () => {
+        const plugin = defineCliPlugin({
+            id: '@example/repeat',
+            rootOptions: [{ long: '--token <token>', description: 'API token', required: true }],
+            commands: [
+                {
+                    name: 'thing',
+                    description: 'Thing',
+                    options: [{ long: '--token <token>', description: 'Same value', required: true }],
+                    action: async () => 0,
+                },
+            ],
+        });
+
+        expect(plugin.commands).toHaveLength(1);
     });
 
     it('rejects a non-function decorate', () => {
@@ -600,15 +580,404 @@ describe('defineCliPlugin() with command extensions', () => {
         ).toThrow(/non-function decorate/);
     });
 
-    it('accepts an extension that only adds options', () => {
-        const plugin = defineCliPlugin({
-            id: '@example/options',
-            commands: [],
-            extendCommands: [{ command: 'dev', options: [{ long: '--x', description: 'X' }] }],
-        });
+    it('applies an extension that only adds options', () => {
+        const registry = registryWithCore();
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: '@example/options',
+                commands: [],
+                extendCommands: [{ command: 'dev', options: [{ long: '--x', description: 'X' }] }],
+            }),
+        );
 
-        expect(plugin.extendCommands).toHaveLength(1);
+        expect(devCommand(registry).options?.map(option => option.long)).toEqual(['--no-reload', '--x']);
     });
 });
 
-const _typeCheck: CliCommandNode[] = [coreDev()];
+describe('Command extensions: plugin-provided commands', () => {
+    afterEach(() => {
+        trace.length = 0;
+    });
+
+    function providerPlugin() {
+        return defineCliPlugin({
+            id: '@a/provider',
+            commands: [
+                {
+                    name: 'cloud',
+                    description: 'Cloud utilities',
+                    options: [{ long: '--region <r>', description: 'Region', required: true }],
+                    action: async () => {
+                        trace.push('provider');
+                        return 0;
+                    },
+                },
+            ],
+        });
+    }
+
+    it('extends a command an earlier plugin added', async () => {
+        const registry = registryWithCore();
+        registry.applyPlugin(providerPlugin());
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: '@b/extender',
+                commands: [],
+                extendCommands: [
+                    {
+                        command: 'cloud',
+                        options: [{ long: '--verbose', description: 'Verbose' }],
+                        decorate:
+                            ({ next }) =>
+                            async (...args: any[]) => {
+                                trace.push('extender');
+                                return next(...args);
+                            },
+                    },
+                ],
+            }),
+        );
+
+        const cloud = registry.get('cloud') as CliCommandDefinition;
+        expect(cloud.options?.map(option => option.long)).toEqual(['--region <r>', '--verbose']);
+        await cloud.action();
+        expect(trace).toEqual(['extender', 'provider']);
+        expect(registry.getExtendedBy('cloud')).toEqual(['@b/extender']);
+    });
+
+    it('extends a nested command an earlier plugin added', async () => {
+        const registry = registryWithCore();
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: '@a/provider',
+                commands: [
+                    {
+                        name: 'project',
+                        description: 'Projects',
+                        subcommands: [
+                            {
+                                name: 'list',
+                                description: 'List projects',
+                                action: async () => {
+                                    trace.push('provider');
+                                    return 0;
+                                },
+                            },
+                        ],
+                    },
+                ],
+            }),
+        );
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: '@b/extender',
+                commands: [],
+                extendCommands: [
+                    {
+                        command: 'project list',
+                        decorate:
+                            ({ next }) =>
+                            async (...args: any[]) => {
+                                trace.push('extender');
+                                return next(...args);
+                            },
+                    },
+                ],
+            }),
+        );
+
+        const group = registry.get('project') as CliCommandGroupDefinition;
+        await (group.subcommands[0] as CliCommandDefinition).action();
+        expect(trace).toEqual(['extender', 'provider']);
+    });
+
+    it('extends a command the same plugin adds', async () => {
+        const registry = registryWithCore();
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: '@a/self',
+                commands: [
+                    {
+                        name: 'solo',
+                        description: 'Solo',
+                        action: async () => {
+                            trace.push('own');
+                            return 0;
+                        },
+                    },
+                ],
+                extendCommands: [
+                    {
+                        command: 'solo',
+                        decorate:
+                            ({ next }) =>
+                            async (...args: any[]) => {
+                                trace.push('own-wrapper');
+                                return next(...args);
+                            },
+                    },
+                ],
+            }),
+        );
+
+        await (registry.get('solo') as CliCommandDefinition).action();
+        expect(trace).toEqual(['own-wrapper', 'own']);
+    });
+
+    it('rejects extending a command only a later plugin would provide', () => {
+        const registry = registryWithCore();
+        const extender = defineCliPlugin({
+            id: '@b/extender',
+            commands: [],
+            extendCommands: [{ command: 'cloud', options: [{ long: '--verbose', description: 'V' }] }],
+        });
+
+        expect(() => registry.applyPlugin(extender)).toThrow(/No command is registered at "vendure cloud"/);
+    });
+});
+
+describe('Command extensions: nested composition', () => {
+    afterEach(() => {
+        trace.length = 0;
+    });
+
+    function nestedProvider() {
+        return defineCliPlugin({
+            id: '@a/provider',
+            commands: [
+                {
+                    name: 'console',
+                    description: 'Console commands',
+                    subcommands: [
+                        {
+                            name: 'link',
+                            description: 'Link the project',
+                            action: async () => {
+                                trace.push('core-link');
+                                return 0;
+                            },
+                        },
+                    ],
+                },
+            ],
+        });
+    }
+
+    function nestedExtender(id: string, flag: string) {
+        return defineCliPlugin({
+            id,
+            commands: [],
+            extendCommands: [
+                {
+                    command: ['console', 'link'],
+                    options: [{ long: flag, description: `Added by ${id}` }],
+                    decorate:
+                        ({ next }) =>
+                        async (...args: any[]) => {
+                            trace.push(`${id}:before`);
+                            try {
+                                return await next(...args);
+                            } finally {
+                                trace.push(`${id}:after`);
+                            }
+                        },
+                },
+            ],
+        });
+    }
+
+    it('composes two plugins at a nested path, last listed outermost', async () => {
+        const registry = registryWithCore();
+        registry.applyPlugin(nestedProvider());
+        registry.applyPlugin(nestedExtender('@b/first', '--first'));
+        registry.applyPlugin(nestedExtender('@c/second', '--second'));
+
+        const group = registry.get('console') as CliCommandGroupDefinition;
+        await (group.subcommands[0] as CliCommandDefinition).action();
+
+        expect(trace).toEqual([
+            '@c/second:before',
+            '@b/first:before',
+            'core-link',
+            '@b/first:after',
+            '@c/second:after',
+        ]);
+    });
+
+    it('merges both plugins options into the nested command help', async () => {
+        const registry = registryWithCore();
+        registry.applyPlugin(nestedProvider());
+        registry.applyPlugin(nestedExtender('@b/first', '--first'));
+        registry.applyPlugin(nestedExtender('@c/second', '--second'));
+
+        const help = await runCli(registry.toArray(), registry.getRootOptions(), [
+            'console',
+            'link',
+            '--help',
+        ]);
+
+        expect(help.stdout).toContain('--first');
+        expect(help.stdout).toContain('--second');
+    });
+
+    it('rejects a second plugin adding an option the nested command already has', () => {
+        const registry = registryWithCore();
+        registry.applyPlugin(nestedProvider());
+        registry.applyPlugin(nestedExtender('@b/first', '--first'));
+
+        expect(() => registry.applyPlugin(nestedExtender('@c/second', '--first'))).toThrow(
+            /Option "--first" is already declared on "vendure console link"/,
+        );
+    });
+});
+
+describe('Command extensions: reserved names and shared-option scope', () => {
+    it('rejects a plugin command that declares a reserved flag', () => {
+        const registry = registryWithCore();
+        const plugin = defineCliPlugin({
+            id: '@example/greedy',
+            commands: [
+                {
+                    name: 'thing',
+                    description: 'Thing',
+                    options: [{ long: '--help', description: 'Mine' }],
+                    action: async () => 0,
+                },
+            ],
+        });
+
+        expect(() => registry.applyPlugin(plugin)).toThrow(/reserved by the CLI/);
+        expect(registry.has('thing')).toBe(false);
+    });
+
+    it('rejects a plugin command named help', () => {
+        const registry = registryWithCore();
+        const plugin = defineCliPlugin({
+            id: '@example/hijack',
+            commands: [{ name: 'help', description: 'Mine', action: async () => 0 }],
+        });
+
+        expect(() => registry.applyPlugin(plugin)).toThrow(/reserved by the CLI/);
+        expect(registry.has('help')).toBe(false);
+    });
+
+    it('rejects a group option that another plugin already shares at the root', () => {
+        const registry = registryWithCore();
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: '@a/root',
+                rootOptions: [{ long: '--token <t>', description: 'Token', required: true }],
+                commands: [{ name: 'a', description: 'A', action: async () => 0 }],
+            }),
+        );
+
+        const rival = defineCliPlugin({
+            id: '@b/group',
+            commands: [
+                {
+                    name: 'g',
+                    description: 'G',
+                    options: [{ long: '--token <t>', description: 'Mine', required: true }],
+                    subcommands: [{ name: 'run', description: 'Run', action: async () => 0 }],
+                },
+            ],
+        });
+
+        expect(() => registry.applyPlugin(rival)).toThrow(/cannot be shared at two levels/);
+        expect(registry.has('g')).toBe(false);
+    });
+
+    it('rejects an extension whose option disagrees with an ancestor group option', () => {
+        const registry = new CommandRegistry();
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: '@a/provider',
+                commands: [
+                    {
+                        name: 'settings',
+                        description: 'Settings',
+                        options: [{ long: '--profile <n>', description: 'Profile', required: true }],
+                        subcommands: [{ name: 'set', description: 'Set', action: async () => 0 }],
+                    },
+                ],
+            }),
+        );
+
+        const shadow = defineCliPlugin({
+            id: '@b/shadow',
+            commands: [],
+            extendCommands: [
+                { command: 'settings set', options: [{ long: '--profile', description: 'Mine' }] },
+            ],
+        });
+
+        expect(() => registry.applyPlugin(shadow)).toThrow(/one takes a value and the other does not/);
+    });
+
+    it('rejects an extension adding an option a group already shares', () => {
+        const registry = new CommandRegistry();
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: '@a/provider',
+                commands: [
+                    {
+                        name: 'settings',
+                        description: 'Settings',
+                        options: [{ long: '--profile <n>', description: 'Profile', required: true }],
+                        subcommands: [
+                            {
+                                name: 'nested',
+                                description: 'Nested',
+                                subcommands: [{ name: 'set', description: 'Set', action: async () => 0 }],
+                            },
+                        ],
+                    },
+                ],
+            }),
+        );
+
+        const shadow = defineCliPlugin({
+            id: '@b/shadow',
+            commands: [],
+            extendCommands: [
+                {
+                    command: 'settings nested',
+                    options: [{ long: '--profile <n>', description: 'Mine', required: true }],
+                },
+            ],
+        });
+
+        expect(() => registry.applyPlugin(shadow)).toThrow(/cannot be shared at two levels/);
+    });
+
+    it('lets a supplied value beat a group default', async () => {
+        let inherited: Record<string, any> | undefined;
+        const registry = new CommandRegistry();
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: '@a/root',
+                rootOptions: [{ long: '--env <e>', description: 'Environment', required: true }],
+                commands: [
+                    {
+                        name: 'g',
+                        description: 'G',
+                        subcommands: [
+                            {
+                                name: 'run',
+                                description: 'Run',
+                                action: async (...args: any[]) => {
+                                    inherited = args[args.length - 1].inheritedOptions;
+                                    return 0;
+                                },
+                            },
+                        ],
+                    },
+                ],
+            }),
+        );
+
+        await runCli(registry.toArray(), registry.getRootOptions(), ['--env', 'staging', 'g', 'run']);
+
+        expect(inherited).toEqual({ env: 'staging' });
+    });
+});

@@ -5,6 +5,8 @@
     "main": "cli-plugin.js",
     "vendure": {
         "cliPlugin": "./cli-plugin.js",
-        "cliCommands": ["doctor"]
+        "cliCommands": [
+            "doctor"
+        ]
     }
 }

@@ -1,4 +1,3 @@
-/* eslint-disable */
 // Registers a shared option that another plugin already owns.
 const { defineCliPlugin } = require('@vendure/cli');
 

@@ -1,4 +1,3 @@
-/* eslint-disable */
 // The decorator throws while the plugin is being registered.
 const { defineCliPlugin } = require('@vendure/cli');
 

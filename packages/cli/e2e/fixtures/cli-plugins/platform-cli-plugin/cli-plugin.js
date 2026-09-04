@@ -1,4 +1,3 @@
-/* eslint-disable */
 /**
  * Mirrors what @vendure-platform/cli does to `dev`: add an option and wrap the
  * action. The wrapper calls the action it is handed, so another plugin can wrap
@@ -22,11 +21,13 @@ module.exports = defineCliPlugin({
             decorate:
                 ({ next }) =>
                 async (...args) => {
-                    const context = args[args.length - 1];
+                    // The host appends its context after Commander's options
+                    // and Command, so the last three slots are always these.
+                    const [options, , context] = args.slice(-3);
                     process.stdout.write(
                         `PLATFORM_BEFORE ${JSON.stringify({
                             command: context.commandPath,
-                            rotate: args[args.length - 3].rotateCredential === true,
+                            rotate: options.rotateCredential === true,
                         })}\n`,
                     );
                     try {

@@ -164,7 +164,6 @@ export function installCliPluginFixture(
     const packageName = JSON.parse(readFileSync(join(fixtureDir, 'package.json'), 'utf-8')).name as string;
     const targetDir = join(project.projectDir, 'node_modules', ...packageName.split('/'));
 
-    mkdirSync(targetDir, { recursive: true });
     cpSync(fixtureDir, targetDir, { recursive: true });
     linkCliPackage(project);
 
@@ -186,6 +185,10 @@ export function installCliPluginFixture(
 /**
  * Makes `require('@vendure/cli')` resolve from the test project, so a plugin
  * fixture uses the same public API a real plugin package would.
+ *
+ * The link points at the real package directory. `cleanup()` removes it with
+ * `rmSync`, which unlinks the symlink rather than following it, so the
+ * repository is not touched.
  */
 function linkCliPackage(project: CliTestProject): void {
     const scopeDir = join(project.projectDir, 'node_modules', '@vendure');
@@ -203,6 +206,20 @@ function updatePackageJson(project: CliTestProject, mutate: (packageJson: any) =
     const packageJson = JSON.parse(project.readFile('package.json'));
     mutate(packageJson);
     project.writeFile('package.json', JSON.stringify(packageJson, null, 2));
+}
+
+/**
+ * Reads back a `PREFIX {json}` line that a plugin fixture printed.
+ */
+export function readMarker(stdout: string, prefix: string): any {
+    const line = stdout
+        .split('\n')
+        .map(l => l.trim())
+        .find(l => l.startsWith(`${prefix} `));
+    if (!line) {
+        throw new Error(`No ${prefix} line in CLI output:\n${stdout}`);
+    }
+    return JSON.parse(line.slice(prefix.length + 1));
 }
 
 export function readEnabledCliPlugins(project: CliTestProject): string[] {

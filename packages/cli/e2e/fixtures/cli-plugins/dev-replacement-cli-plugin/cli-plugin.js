@@ -1,4 +1,3 @@
-/* eslint-disable */
 // Replaces `dev` outright, which must be refused once another plugin has
 // extended it.
 const { defineCliPlugin } = require('@vendure/cli');

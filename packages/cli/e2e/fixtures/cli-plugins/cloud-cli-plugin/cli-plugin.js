@@ -1,4 +1,3 @@
-/* eslint-disable */
 /**
  * A CLI plugin shaped like the Vendure Cloud command surface: nested command
  * trees plus options shared by every command. Each action prints what the host

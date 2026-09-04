@@ -126,15 +126,18 @@ describe('registerCommands() with nested commands', () => {
         expect(calls[0].positionals).toEqual(['apiPort', '3001']);
     });
 
-    it('executes the remaining fixture commands', async () => {
+    it('executes a three-level command with no arguments', async () => {
         await runCli(cloudCommands(), rootOptions, ['backup', 'db', 'list']);
+
+        expect(calls[0].commandPath).toEqual(['backup', 'db', 'list']);
+        expect(calls[0].positionals).toEqual([]);
+    });
+
+    it('executes a two-level command with an argument', async () => {
         await runCli(cloudCommands(), rootOptions, ['restore', 'db', 'backup-42']);
 
-        expect(calls.map(call => call.commandPath)).toEqual([
-            ['backup', 'db', 'list'],
-            ['restore', 'db'],
-        ]);
-        expect(calls[1].positionals).toEqual(['backup-42']);
+        expect(calls[0].commandPath).toEqual(['restore', 'db']);
+        expect(calls[0].positionals).toEqual(['backup-42']);
     });
 
     it('passes shared root options given before the command path', async () => {
@@ -255,27 +258,44 @@ describe('registerCommands() with nested commands', () => {
         expect(calls[0].options.json).toBe(true);
         expect(calls[0].inheritedOptions.json).toBe(true);
     });
+
+    it('shares one value between a shared option and a command option of the same name', async () => {
+        // The flag written before the command is consumed by the shared option,
+        // so only the host copying it onto the command keeps both in step.
+        const commands: CliCommandNode[] = [
+            recordingLeaf('plugins', 'Manage CLI plugins', {
+                options: [{ long: '--json', description: 'Output JSON' }],
+            }),
+        ];
+        await runCli(commands, rootOptions, ['--json', 'plugins']);
+
+        expect(calls[0].options.json).toBe(true);
+        expect(calls[0].inheritedOptions.json).toBe(true);
+    });
 });
 
 describe('registerCommands() help output', () => {
     it('lists top-level commands and shared options in root help', async () => {
         const result = await runCli(cloudCommands(), rootOptions, ['--help']);
 
-        expect(result.stdout).toContain('--token');
-        expect(result.stdout).toContain('--json');
-        for (const name of ['project', 'config', 'backup', 'restore']) {
-            expect(result.stdout).toContain(name);
-        }
+        expect(result.stdout).toMatch(/^\s+--token /m);
+        expect(result.stdout).toMatch(/^\s+--json /m);
+        // Anchored on the command list: the bare words appear in descriptions
+        // and option names too, so `toContain` would pass without the commands.
+        expect(result.stdout).toMatch(/^\s+project\s+Manage projects$/m);
+        expect(result.stdout).toMatch(/^\s+config \[options\]\s+Manage configuration$/m);
+        expect(result.stdout).toMatch(/^\s+backup\s+Manage backups$/m);
+        expect(result.stdout).toMatch(/^\s+restore\s+Restore from a backup$/m);
     });
 
     it('lists subcommands and inherited options in parent help', async () => {
         const result = await runCli(cloudCommands(), rootOptions, ['config', '--help']);
 
-        expect(result.stdout).toContain('vendure config');
-        expect(result.stdout).toContain('server');
-        expect(result.stdout).toContain('--profile');
+        expect(result.stdout).toContain('Usage: vendure config');
+        expect(result.stdout).toMatch(/^\s+server\s+Server configuration$/m);
+        expect(result.stdout).toMatch(/^\s+--profile /m);
         expect(result.stdout).toContain('Global Options:');
-        expect(result.stdout).toContain('--token');
+        expect(result.stdout).toMatch(/^\s+--token /m);
     });
 
     it('lists the options valid at every level in leaf help', async () => {
@@ -283,16 +303,16 @@ describe('registerCommands() help output', () => {
 
         expect(result.stdout).toContain('vendure config server set [options] <key> <value>');
         expect(result.stdout).toContain('Global Options:');
-        expect(result.stdout).toContain('--profile');
-        expect(result.stdout).toContain('--token');
+        expect(result.stdout).toMatch(/^\s+--profile /m);
+        expect(result.stdout).toMatch(/^\s+--token /m);
     });
 
     it('prints help and fails when a group is run without a subcommand', async () => {
         const result = await runCli(cloudCommands(), rootOptions, ['config']);
 
         expect(result.exitCode).toBe(1);
-        expect(result.stderr).toContain('vendure config');
-        expect(result.stderr).toContain('server');
+        expect(result.stderr).toContain('Usage: vendure config');
+        expect(result.stderr).toMatch(/^\s+server\s+Server configuration$/m);
     });
 });
 

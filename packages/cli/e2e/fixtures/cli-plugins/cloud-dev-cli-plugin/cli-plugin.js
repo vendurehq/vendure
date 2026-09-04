@@ -1,4 +1,3 @@
-/* eslint-disable */
 /**
  * A second plugin extending the same command, standing in for @vendure/cloud.
  */
@@ -20,10 +19,13 @@ module.exports = defineCliPlugin({
             decorate:
                 ({ command, next }) =>
                 async (...args) => {
+                    // The host appends its context after Commander's options
+                    // and Command, so the last three slots are always these.
+                    const [options] = args.slice(-3);
                     process.stdout.write(
                         `CLOUD_BEFORE ${JSON.stringify({
                             sawOptions: (command.options || []).map(option => option.long),
-                            cloudEnv: args[args.length - 3].cloudEnv,
+                            cloudEnv: options.cloudEnv,
                         })}\n`,
                     );
                     try {
