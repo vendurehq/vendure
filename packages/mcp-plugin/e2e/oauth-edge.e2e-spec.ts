@@ -1162,12 +1162,12 @@ describe('OAuth lifetime and consent-path options', () => {
     /**
      * Asserts a stored expiry is exactly `ttlSeconds` after the moment the row was written. The row
      * was written somewhere inside the timed window, so the expiry must fall inside that window
-     * shifted forward by the lifetime. One second of slack at the lower end covers a stored
-     * timestamp truncated to whole seconds.
+     * shifted forward by the lifetime. One second of slack at each end covers a stored timestamp
+     * that the database truncated (MariaDB) or rounded (MySQL) to whole seconds.
      */
     function expectExpiry(expiresAt: Date, ttlSeconds: number, window: { from: number; to: number }): void {
         expect(expiresAt.getTime()).toBeGreaterThanOrEqual(window.from + ttlSeconds * 1000 - 1000);
-        expect(expiresAt.getTime()).toBeLessThanOrEqual(window.to + ttlSeconds * 1000);
+        expect(expiresAt.getTime()).toBeLessThanOrEqual(window.to + ttlSeconds * 1000 + 1000);
     }
 
     /** Registers a client and authorizes, stopping at the consent redirect. */
