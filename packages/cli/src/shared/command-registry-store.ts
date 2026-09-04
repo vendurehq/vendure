@@ -1,7 +1,7 @@
 import pc from 'picocolors';
 
 import { CliCommandNode, CliCommandOption, isCliCommandGroup } from './cli-command-definition';
-import { buildOptionFlags, describeOption, parseOptionFlags } from './cli-command-options';
+import { buildOptionFlags, describeOption, ParsedCliOption, parseOptionFlags } from './cli-command-options';
 import { CliPlugin } from './cli-plugin';
 
 /**
@@ -109,15 +109,15 @@ export class CommandRegistry {
         const declaredOptions = this.listDeclaredCommandOptions();
 
         for (const option of plugin.rootOptions ?? []) {
-            const { long, short } = parseOptionFlags(option);
-            for (const flag of [long, short]) {
+            const parsed = parseOptionFlags(option);
+            for (const flag of [parsed.long, parsed.short]) {
                 if (flag && RESERVED_FLAGS.includes(flag)) {
                     conflicts.push(
                         `Shared option "${describeOption(option)}" uses "${flag}", which is reserved by the CLI.`,
                     );
                 }
             }
-            const existing = this.findRootOptionByFlag(long, short);
+            const existing = this.findRootOption(parsed);
             if (existing) {
                 conflicts.push(
                     `Shared option "${describeOption(option)}" is already registered by ` +
@@ -125,7 +125,7 @@ export class CommandRegistry {
                 );
             }
             for (const declared of declaredOptions) {
-                if (matchesFlag(declared.option, long, short) && !takesSameValue(declared.option, option)) {
+                if (isSameOption(declared.option, parsed) && !takesSameValue(declared.option, option)) {
                     conflicts.push(
                         `Shared option "${describeOption(option)}" is not compatible with ` +
                             `"${describeOption(declared.option)}" on "vendure ${declared.path.join(' ')}": ` +
@@ -146,8 +146,7 @@ export class CommandRegistry {
         }
 
         for (const declared of listCommandOptions(plugin.commands)) {
-            const { long, short } = parseOptionFlags(declared.option);
-            const shared = this.findRootOptionByFlag(long, short);
+            const shared = this.findRootOption(parseOptionFlags(declared.option));
             if (shared && !takesSameValue(shared.option, declared.option)) {
                 conflicts.push(
                     `Option "${describeOption(declared.option)}" on "vendure ${declared.path.join(' ')}" is not ` +
@@ -160,8 +159,8 @@ export class CommandRegistry {
         return conflicts;
     }
 
-    private findRootOptionByFlag(long?: string, short?: string): RegisteredOption | undefined {
-        return Array.from(this.rootOptions.values()).find(entry => matchesFlag(entry.option, long, short));
+    private findRootOption(parsed: ParsedCliOption): RegisteredOption | undefined {
+        return Array.from(this.rootOptions.values()).find(entry => isSameOption(entry.option, parsed));
     }
 
     private listDeclaredCommandOptions(): Array<{ path: string[]; option: CliCommandOption }> {
@@ -186,9 +185,18 @@ function listCommandOptions(
     return declared;
 }
 
-function matchesFlag(option: CliCommandOption, long?: string, short?: string): boolean {
+/**
+ * Two options are the same option when they share a flag, or when they resolve
+ * to the same attribute name — `--api-token` and `--apiToken` are written
+ * differently but Commander stores both under `apiToken`.
+ */
+function isSameOption(option: CliCommandOption, other: ParsedCliOption): boolean {
     const parsed = parseOptionFlags(option);
-    return (long != null && parsed.long === long) || (short != null && parsed.short === short);
+    return (
+        (other.long != null && parsed.long === other.long) ||
+        (other.short != null && parsed.short === other.short) ||
+        parsed.attributeName === other.attributeName
+    );
 }
 
 /**

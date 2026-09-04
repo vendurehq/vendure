@@ -265,6 +265,28 @@ describe('CommandRegistry nested commands and shared options', () => {
         expect(registry.has('other')).toBe(false);
     });
 
+    it('rejects a shared option that resolves to the same name as another', () => {
+        // `--api-token` and `--apiToken` are written differently, but Commander
+        // stores both under `apiToken`.
+        const registry = registryWithBuiltins();
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: '@example/first',
+                rootOptions: [{ long: '--api-token <token>', description: 'API token', required: true }],
+                commands: [{ name: 'first', description: 'First', action: async () => 0 }],
+            }),
+        );
+
+        const second = defineCliPlugin({
+            id: '@example/second',
+            rootOptions: [{ long: '--apiToken <token>', description: 'API token', required: true }],
+            commands: [{ name: 'second', description: 'Second', action: async () => 0 }],
+        });
+
+        expect(() => registry.applyPlugin(second)).toThrow(/already registered by @example\/first/);
+        expect(registry.getRootOptions()).toHaveLength(1);
+    });
+
     it('rejects a shared option that takes a flag reserved by the CLI', () => {
         const registry = registryWithBuiltins();
         const plugin = defineCliPlugin({
