@@ -3775,31 +3775,31 @@
                   "title": "McpAuthorizationCode",
                   "slug": "mcp-authorization-code",
                   "file": "docs/reference/core-plugins/mcp-plugin/mcp-authorization-code.mdx",
-                  "lastModified": "2026-09-03T11:10:52+02:00"
+                  "lastModified": "2026-09-04T13:51:38+02:00"
                 },
                 {
                   "title": "McpAuthorizationRequest",
                   "slug": "mcp-authorization-request",
                   "file": "docs/reference/core-plugins/mcp-plugin/mcp-authorization-request.mdx",
-                  "lastModified": "2026-09-03T11:10:52+02:00"
+                  "lastModified": "2026-09-04T13:51:38+02:00"
                 },
                 {
                   "title": "McpCallerGrant",
                   "slug": "mcp-caller-grant",
                   "file": "docs/reference/core-plugins/mcp-plugin/mcp-caller-grant.mdx",
-                  "lastModified": "2026-09-03T11:10:52+02:00"
+                  "lastModified": "2026-09-04T13:16:48+02:00"
                 },
                 {
                   "title": "McpCallerInfo",
                   "slug": "mcp-caller-info",
                   "file": "docs/reference/core-plugins/mcp-plugin/mcp-caller-info.mdx",
-                  "lastModified": "2026-09-03T11:10:52+02:00"
+                  "lastModified": "2026-09-04T13:16:48+02:00"
                 },
                 {
                   "title": "McpDnsRebindingOptions",
                   "slug": "mcp-dns-rebinding-options",
                   "file": "docs/reference/core-plugins/mcp-plugin/mcp-dns-rebinding-options.mdx",
-                  "lastModified": "2026-09-03T11:37:15+02:00"
+                  "lastModified": "2026-09-04T13:16:48+02:00"
                 },
                 {
                   "title": "McpJsonSchema",
@@ -3811,13 +3811,13 @@
                   "title": "McpLoggingOptions",
                   "slug": "mcp-logging-options",
                   "file": "docs/reference/core-plugins/mcp-plugin/mcp-logging-options.mdx",
-                  "lastModified": "2026-09-03T11:37:15+02:00"
+                  "lastModified": "2026-09-04T13:16:48+02:00"
                 },
                 {
                   "title": "McpLogRedactFn",
                   "slug": "mcp-log-redact-fn",
                   "file": "docs/reference/core-plugins/mcp-plugin/mcp-log-redact-fn.mdx",
-                  "lastModified": "2026-09-03T11:37:15+02:00"
+                  "lastModified": "2026-09-04T13:16:48+02:00"
                 },
                 {
                   "title": "McpOauthClient",
@@ -3829,7 +3829,7 @@
                   "title": "McpOauthGrant",
                   "slug": "mcp-oauth-grant",
                   "file": "docs/reference/core-plugins/mcp-plugin/mcp-oauth-grant.mdx",
-                  "lastModified": "2026-09-03T11:10:52+02:00"
+                  "lastModified": "2026-09-04T13:16:48+02:00"
                 },
                 {
                   "title": "McpOauthGrantStatus",
@@ -3841,25 +3841,25 @@
                   "title": "McpOauthOptions",
                   "slug": "mcp-oauth-options",
                   "file": "docs/reference/core-plugins/mcp-plugin/mcp-oauth-options.mdx",
-                  "lastModified": "2026-09-03T11:37:15+02:00"
+                  "lastModified": "2026-09-04T13:16:48+02:00"
                 },
                 {
                   "title": "McpPluginOptions",
                   "slug": "mcp-plugin-options",
                   "file": "docs/reference/core-plugins/mcp-plugin/mcp-plugin-options.mdx",
-                  "lastModified": "2026-09-03T11:37:15+02:00"
+                  "lastModified": "2026-09-04T13:16:48+02:00"
                 },
                 {
                   "title": "McpRateLimitOptions",
                   "slug": "mcp-rate-limit-options",
                   "file": "docs/reference/core-plugins/mcp-plugin/mcp-rate-limit-options.mdx",
-                  "lastModified": "2026-09-03T11:37:15+02:00"
+                  "lastModified": "2026-09-04T13:16:48+02:00"
                 },
                 {
                   "title": "McpStandardSchema",
                   "slug": "mcp-standard-schema",
                   "file": "docs/reference/core-plugins/mcp-plugin/mcp-standard-schema.mdx",
-                  "lastModified": "2026-08-20T17:09:54+02:00"
+                  "lastModified": "2026-09-04T13:16:48+02:00"
                 },
                 {
                   "title": "McpStandardSchemaIssue",
@@ -3877,7 +3877,7 @@
                   "title": "McpTool",
                   "slug": "mcp-tool",
                   "file": "docs/reference/core-plugins/mcp-plugin/mcp-tool.mdx",
-                  "lastModified": "2026-09-03T11:10:52+02:00"
+                  "lastModified": "2026-09-04T13:16:48+02:00"
                 },
                 {
                   "title": "McpToolBehavior",
@@ -3895,7 +3895,7 @@
                   "title": "McpToolCallLog",
                   "slug": "mcp-tool-call-log",
                   "file": "docs/reference/core-plugins/mcp-plugin/mcp-tool-call-log.mdx",
-                  "lastModified": "2026-09-03T11:10:52+02:00"
+                  "lastModified": "2026-09-04T13:16:48+02:00"
                 },
                 {
                   "title": "McpToolExecutionService",
@@ -3913,13 +3913,13 @@
                   "title": "McpToolHandler",
                   "slug": "mcp-tool-handler",
                   "file": "docs/reference/core-plugins/mcp-plugin/mcp-tool-handler.mdx",
-                  "lastModified": "2026-09-03T11:10:52+02:00"
+                  "lastModified": "2026-09-04T13:16:48+02:00"
                 },
                 {
                   "title": "McpToolMetadata",
                   "slug": "mcp-tool-metadata",
                   "file": "docs/reference/core-plugins/mcp-plugin/mcp-tool-metadata.mdx",
-                  "lastModified": "2026-09-03T11:10:52+02:00"
+                  "lastModified": "2026-09-04T13:16:48+02:00"
                 },
                 {
                   "title": "McpToolSchema",
@@ -3937,10 +3937,10 @@
                   "title": "McpToolSummary",
                   "slug": "mcp-tool-summary",
                   "file": "docs/reference/core-plugins/mcp-plugin/mcp-tool-summary.mdx",
-                  "lastModified": "2026-09-03T11:37:15+02:00"
+                  "lastModified": "2026-09-04T13:16:48+02:00"
                 }
               ],
-              "lastModified": "2026-09-04T09:42:15Z"
+              "lastModified": "2026-09-04T13:16:48+02:00"
             },
             {
               "title": "TelemetryPlugin",
