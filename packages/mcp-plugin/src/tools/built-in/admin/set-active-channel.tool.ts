@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
+    Channel,
+    ChannelNotFoundError,
     ChannelService,
     EntityNotFoundError,
     ForbiddenError,
@@ -8,6 +10,7 @@ import {
     Permission,
     RequestContext,
     TransactionalConnection,
+    UserInputError,
 } from '@vendure/core';
 import { McpCallerInfo, McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
@@ -50,7 +53,16 @@ export class SetActiveChannelTool implements McpToolHandler<SetActiveChannelInpu
     ) {}
 
     async execute(ctx: RequestContext, input: SetActiveChannelInput, caller?: McpCallerInfo) {
-        const channel = await this.channelService.getChannelFromToken(ctx, input.channelToken);
+        let channel: Channel;
+        try {
+            channel = await this.channelService.getChannelFromToken(ctx, input.channelToken);
+        } catch (e) {
+            if (!(e instanceof ChannelNotFoundError)) throw e;
+            throw new UserInputError(
+                `No channel with token "${input.channelToken}". Call list_channels for the tokens ` +
+                    'you can use.',
+            );
+        }
         const accessibleIds = userChannelIds(ctx);
         if (!accessibleIds.some(id => idsAreEqual(id, channel.id))) {
             throw new ForbiddenError();

@@ -1,5 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { Permission, ProductVariantService, RequestContext, StockLevelService } from '@vendure/core';
+import {
+    Permission,
+    ProductService,
+    ProductVariantService,
+    RequestContext,
+    StockLevelService,
+    UserInputError,
+} from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
@@ -46,6 +53,7 @@ type CreateVariantToolInput = z.infer<typeof createVariantInput>;
 export class CreateVariantTool implements McpToolHandler<CreateVariantToolInput> {
     constructor(
         private productVariantService: ProductVariantService,
+        private productService: ProductService,
         private stockLevelService: StockLevelService,
         private customFieldInput: McpCustomFieldInputService,
         private serializer: McpToolSerializerService,
@@ -53,6 +61,10 @@ export class CreateVariantTool implements McpToolHandler<CreateVariantToolInput>
 
     async execute(ctx: RequestContext, input: CreateVariantToolInput) {
         await this.customFieldInput.assertWritable(ctx, 'ProductVariant', input.input.customFields);
+        const product = await this.productService.findOne(ctx, input.productId);
+        if (!product) {
+            throw new UserInputError(`Product ${input.productId} is not available in the active channel.`);
+        }
         const [variant] = await this.productVariantService.create(ctx, [
             { ...input.input, productId: input.productId },
         ]);

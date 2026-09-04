@@ -1078,6 +1078,21 @@ describe('MCP built-in admin tools (direct mode)', () => {
         expect(String(grant.channelId)).not.toBe(String(secondChannelDbId));
     });
 
+    it('set_active_channel names the token and the call that lists valid ones for an unknown token', async () => {
+        const token = await adminAccessToken();
+        const response = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool('set_active_channel', { channelToken: 'no-such-token', confirm: true }, 1),
+            { token },
+        );
+
+        expect(response.body.result.isError).toBe(true);
+        expect(response.body.result.content[0].text).toBe(
+            'No channel with token "no-such-token". Call list_channels for the tokens you can use.',
+        );
+    });
+
     it('set_active_channel writes the grant row and changes the active channel for later calls', async () => {
         const token = await adminAccessToken();
 
@@ -1210,6 +1225,19 @@ describe('MCP built-in admin tools (direct mode)', () => {
         expect(past.variants).toEqual([]);
         expect(past.variantTotal).toBe(variantCount);
         expect(past.hasMoreVariants).toBe(false);
+    });
+
+    it('get_product says what an id argument must be when the value is neither a string nor a number', async () => {
+        const token = await adminAccessToken();
+
+        const response = await postMcp(baseUrl(), 'admin', callTool('get_product', { id: true }, 1), {
+            token,
+        });
+
+        expect(response.body.result.isError).toBe(true);
+        expect(response.body.result.content[0].text).toContain(
+            'id: must be a Vendure entity id (a string or a number)',
+        );
     });
 
     it('get_product returns option groups with the option IDs create_variant takes', async () => {
@@ -1480,6 +1508,36 @@ describe('MCP built-in admin tools (direct mode)', () => {
         expect(response.body.result.content[0].text).toContain(
             `Product variant ${String(variantId)} is not available in the active channel.`,
         );
+    });
+
+    it('update_variant refuses a variant that is not in the active channel, and writes nothing', async () => {
+        const token = await adminAccessToken();
+        // As above: the seeded variant is on the default channel only, so it is out of scope for a
+        // grant switched to the second channel.
+        const switched = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool('set_active_channel', { channelToken: secondChannelToken, confirm: true }, 1),
+            { token },
+        );
+        expect(switched.body.result.isError).toBeUndefined();
+
+        const response = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool('update_variant', { id: variantId, input: { sku: 'WRONG-CHANNEL-SKU' } }, 2),
+            { token },
+        );
+
+        expect(response.body.result.isError).toBe(true);
+        expect(response.body.result.content[0].text).toContain(
+            `Product variant ${String(variantId)} is not available in the active channel.`,
+        );
+        // Core's update writes any existing id, so the refusal has to happen before the write.
+        const row = await connection
+            .getRepository(adminCtx, ProductVariant)
+            .findOneOrFail({ where: { id: variantId } });
+        expect(row.sku).toBe(variantSku);
     });
 
     it('adjust_stock refuses a stock location that does not exist', async () => {
@@ -2732,6 +2790,19 @@ describe('MCP built-in admin tools (direct mode)', () => {
 
                 expect(response.body.result.isError).toBe(true);
                 expect(response.body.result.content[0].text).toContain('Unsupported asset URL scheme');
+            });
+
+            it('tells the caller why core refused a malformed URL, and stores nothing', async () => {
+                // Core's URL guard rejects this before any fetch. Its message has to survive the
+                // trip back, otherwise the caller only learns that the tool failed.
+                const countBefore = await assetRepo().count();
+
+                const response = await callUploadAsset({ url: 'http://' });
+
+                expect(response.body.result.isError).toBe(true);
+                expect(response.body.result.content[0].text).toContain('Refusing to fetch asset URL');
+                expect(response.body.result.content[0].text).not.toContain('failed unexpectedly');
+                expect(await assetRepo().count()).toBe(countBefore);
             });
 
             it('refuses a missing url, and refuses an argument the schema does not declare', async () => {

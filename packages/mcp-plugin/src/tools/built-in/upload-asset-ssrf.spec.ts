@@ -106,11 +106,13 @@ describe('SSRF hardening is delegated to the core DefaultAssetImportStrategy', (
         async url => {
             const { assetService, createFromFileStream } = drainingAssetService();
 
-            // Assert on the behaviour (rejected, no asset created) rather than core's exact message,
-            // which the plugin does not own and which would make this test brittle to a core reword.
-            await expect(
-                uploadAssetFromUrl(ctx, url, assetService, new DefaultAssetImportStrategy()),
-            ).rejects.toThrow();
+            // The rejection has to arrive as a UserInputError, because that is the class the tool
+            // funnel treats as caller-safe: any other class is logged server-side and the caller is
+            // told only that the tool failed. The message itself is core's, so it is not asserted
+            // here — that would make this test brittle to a core reword.
+            const rejection = uploadAssetFromUrl(ctx, url, assetService, new DefaultAssetImportStrategy());
+            await expect(rejection).rejects.toBeInstanceOf(UserInputError);
+            await expect(rejection).rejects.toMatchObject({ message: expect.stringMatching(/\S/) });
             expect(createFromFileStream).not.toHaveBeenCalled();
         },
     );

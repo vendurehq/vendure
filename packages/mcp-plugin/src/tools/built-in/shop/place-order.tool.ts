@@ -3,18 +3,23 @@ import { PaymentInput } from '@vendure/common/lib/generated-shop-types';
 import {
     CustomerService,
     EntityNotFoundError,
+    ForbiddenError,
     idsAreEqual,
+    IllegalOperationError,
     isGraphQlErrorResult,
+    Logger,
     OrderService,
     Permission,
     RequestContext,
     SessionService,
     TransactionalConnection,
+    UnauthorizedError,
     UserInputError,
 } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
+import { loggerCtx } from '../../../constants';
 import { McpActiveOrderService } from '../active-order.service';
 import { McpToolSerializerService } from '../serializer.service';
 import { shortText } from '../string-schemas';
@@ -25,6 +30,18 @@ const placeOrderInput = z.strictObject({
 });
 
 type PlaceOrderInput = z.infer<typeof placeOrderInput>;
+
+// Error classes whose own message is meant for the caller. Taking a payment can fail with one of
+// these for a reason the caller can act on — an unknown, disabled or wrong-channel payment method
+// code, or a cart that has gone — so this tool passes them on rather than replacing them. This is
+// the same set the tool funnel treats as caller-safe.
+const CALLER_SAFE_ERRORS = [
+    UserInputError,
+    IllegalOperationError,
+    EntityNotFoundError,
+    ForbiddenError,
+    UnauthorizedError,
+] as const;
 
 @McpTool({
     name: 'place_order',
@@ -96,7 +113,28 @@ export class PlaceOrderTool implements McpToolHandler<PlaceOrderInput> {
                 method: input.paymentMethodCode,
                 metadata: input.paymentMetadata ?? {},
             };
-            const result = await this.orderService.addPaymentToOrder(txCtx, order.id, payment);
+            let result: Awaited<ReturnType<OrderService['addPaymentToOrder']>>;
+            try {
+                result = await this.orderService.addPaymentToOrder(txCtx, order.id, payment);
+            } catch (e) {
+                if (CALLER_SAFE_ERRORS.some(errorType => e instanceof errorType)) {
+                    throw e;
+                }
+                // Anything else came out of the payment handler, which runs outside this
+                // transaction, so the rollback cannot undo a charge it already made. The caller is
+                // told to check rather than retry, and the real message is kept for the operator.
+                Logger.error(
+                    `place_order payment failed for order ${order.id}: ${
+                        e instanceof Error ? e.message : String(e)
+                    }`,
+                    loggerCtx,
+                    e instanceof Error ? e.stack : undefined,
+                );
+                throw new UserInputError(
+                    'The payment provider could not be reached or refused the request. Do not retry ' +
+                        'automatically. Call get_cart to check whether a payment was recorded, and tell the user.',
+                );
+            }
 
             if (isGraphQlErrorResult(result)) {
                 if (movedOutOfCart) {

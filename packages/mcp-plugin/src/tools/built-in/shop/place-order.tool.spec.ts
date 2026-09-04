@@ -1,5 +1,5 @@
-import { EntityNotFoundError, UserInputError } from '@vendure/core';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { EntityNotFoundError, Logger, UserInputError } from '@vendure/core';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { PlaceOrderTool } from './place-order.tool';
 
@@ -59,6 +59,12 @@ function placeOrderTool(activeOrder: any, orderService: any, connection: any = c
 describe('PlaceOrderTool', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+    });
+
+    afterEach(() => {
+        // One case spies on Logger.error. `clearAllMocks` forgets the recorded calls but leaves the
+        // spy in place, so it has to be restored or it outlives its test.
+        vi.restoreAllMocks();
     });
 
     it('answers a refused move on a cart that nobody has claimed with the call that fixes it', async () => {
@@ -343,6 +349,49 @@ describe('PlaceOrderTool', () => {
 
         expect(result.status).toBe('awaiting_payment');
         expect(result.message).not.toContain('ArrangingPayment');
+    });
+
+    it('passes on a payment-method refusal unchanged, so the caller can retry with a valid code', async () => {
+        // `addPaymentToOrder` itself refuses an unknown, disabled or wrong-channel method code.
+        // That refusal is caller-safe and a corrected code is exactly what should be retried, so
+        // the tool must not swap it for the payment-provider warning.
+        const refusal = new UserInputError('error.payment-method-not-found', { method: 'nope' });
+        const orderService = {
+            findOne: () => Promise.resolve(orderStub()),
+            transitionToState: vi.fn(),
+            addPaymentToOrder: () => Promise.reject(refusal),
+        } as any;
+        const tool = placeOrderTool(activeOrderReturning(1), orderService);
+
+        await expect(tool.execute({ activeUserId: 42 } as any, { paymentMethodCode: 'nope' })).rejects.toBe(
+            refusal,
+        );
+    });
+
+    it('tells the caller a payment may have been taken when the payment handler throws', async () => {
+        const error = vi.spyOn(Logger, 'error').mockImplementation(() => undefined);
+        const orderService = {
+            findOne: () => Promise.resolve(orderStub()),
+            transitionToState: vi.fn(),
+            addPaymentToOrder: () => Promise.reject(new Error('gateway timeout')),
+        } as any;
+        const tool = placeOrderTool(activeOrderReturning(1), orderService);
+
+        const rejection = tool.execute({ activeUserId: 42 } as any, {
+            paymentMethodCode: 'standard-payment',
+        });
+
+        await expect(rejection).rejects.toBeInstanceOf(UserInputError);
+        await expect(rejection).rejects.toThrowError(
+            'The payment provider could not be reached or refused the request. Do not retry ' +
+                'automatically. Call get_cart to check whether a payment was recorded, and tell the user.',
+        );
+        // The provider's own words stay server-side, but an operator still needs them.
+        expect(error).toHaveBeenCalledWith(
+            expect.stringContaining('gateway timeout'),
+            expect.anything(),
+            expect.anything(),
+        );
     });
 
     it('takes the payment inside a transaction', async () => {

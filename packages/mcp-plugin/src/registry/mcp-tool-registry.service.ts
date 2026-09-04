@@ -57,7 +57,10 @@ const CALLER_SAFE_ERROR_TYPES = [
     ForbiddenError,
     UnauthorizedError,
 ] as const;
-const GENERIC_TOOL_ERROR_MESSAGE = 'The tool failed unexpectedly';
+const GENERIC_TOOL_ERROR_MESSAGE =
+    'The tool failed unexpectedly. This is a server-side fault, not a problem with your ' +
+    'arguments. Do not retry with different arguments; tell the user the operation could not ' +
+    'be completed.';
 // Largest serialized result text a tool may return, in bytes. 100 KB is roughly 25,000 tokens,
 // which is the cap Claude Code applies to a tool response before it truncates the text.
 const MAX_RESULT_BYTES = 100_000;

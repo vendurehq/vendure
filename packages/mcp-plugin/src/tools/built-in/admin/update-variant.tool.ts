@@ -1,5 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { Permission, ProductVariantService, RequestContext, StockLevelService } from '@vendure/core';
+import {
+    Permission,
+    ProductVariantService,
+    RequestContext,
+    StockLevelService,
+    UserInputError,
+} from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
@@ -55,6 +61,10 @@ export class UpdateVariantTool implements McpToolHandler<UpdateVariantToolInput>
 
     async execute(ctx: RequestContext, input: UpdateVariantToolInput) {
         await this.customFieldInput.assertWritable(ctx, 'ProductVariant', input.input.customFields);
+        const existing = await this.productVariantService.findOne(ctx, input.id, []);
+        if (!existing) {
+            throw new UserInputError(`Product variant ${input.id} is not available in the active channel.`);
+        }
         const [variant] = await this.productVariantService.update(ctx, [{ ...input.input, id: input.id }]);
         const { stockOnHand } = await this.stockLevelService.getAvailableStock(ctx, variant.id);
         return { variant: this.serializer.adminVariant(variant, stockOnHand) };

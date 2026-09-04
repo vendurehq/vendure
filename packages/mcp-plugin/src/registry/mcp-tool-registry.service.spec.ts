@@ -78,9 +78,7 @@ function build(
         }),
     };
     const rateLimiter = {
-        checkRateLimit: vi.fn(
-            (): Promise<McpRateLimitExceeded | undefined> => Promise.resolve(undefined),
-        ),
+        checkRateLimit: vi.fn((): Promise<McpRateLimitExceeded | undefined> => Promise.resolve(undefined)),
     };
     const toolCallLog = {
         logToolCall: vi.fn(() => Promise.resolve(undefined)),
@@ -1437,7 +1435,11 @@ describe('McpToolRegistryService', () => {
             service.onApplicationBootstrap();
             const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'get_thing', {});
             expect(result.isError).toBe(true);
-            expect((result.content as any)[0].text).toBe('The tool failed unexpectedly');
+            expect((result.content as any)[0].text).toBe(
+                'The tool failed unexpectedly. This is a server-side fault, not a problem with ' +
+                    'your arguments. Do not retry with different arguments; tell the user the ' +
+                    'operation could not be completed.',
+            );
             expect((result.content as any)[0].text).not.toContain('database connection refused');
             expect(error).toHaveBeenCalledWith(
                 expect.stringContaining('database connection refused'),
@@ -1463,7 +1465,11 @@ describe('McpToolRegistryService', () => {
             const { service, toolCallLog } = build([wrapper(shopTool(), execute)]);
             service.onApplicationBootstrap();
             const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'get_thing', {});
-            expect((result.content as any)[0].text).toBe('The tool failed unexpectedly');
+            expect((result.content as any)[0].text).toBe(
+                'The tool failed unexpectedly. This is a server-side fault, not a problem with ' +
+                    'your arguments. Do not retry with different arguments; tell the user the ' +
+                    'operation could not be completed.',
+            );
             expect(toolCallLog.logToolCall).toHaveBeenCalledWith(
                 expect.objectContaining({ status: 'error', output: { message: 'MCP tool failed' } }),
             );

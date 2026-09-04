@@ -30,8 +30,13 @@ async function fetchAsset(url: string, assetImportStrategy: AssetImportStrategy)
     try {
         return await assetImportStrategy.getStreamFromPath(url);
     } catch (e) {
-        if (e instanceof UserInputError || e instanceof InternalServerError) {
+        if (e instanceof UserInputError) {
             throw e;
+        }
+        if (e instanceof InternalServerError) {
+            // Vendure throws InternalServerError for blocked/invalid URLs.
+            // Convert to UserInputError so the tool funnel exposes the specific reason instead of masking it.
+            throw new UserInputError(e.message);
         }
         throw new UserInputError(
             'The URL could not be fetched as a file. It must answer HTTP 200 with the file itself; ' +
