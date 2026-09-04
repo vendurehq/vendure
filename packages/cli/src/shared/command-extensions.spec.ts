@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runCli } from './__tests__/run-cli';
 import { CliCommandDefinition, CliCommandGroupDefinition, CliCommandOption } from './cli-command-definition';
@@ -10,6 +10,10 @@ import { CliPluginRegistrationError, CommandRegistry } from './command-registry-
  * test can assert that every wrapper ran exactly once and in which order.
  */
 const trace: string[] = [];
+
+beforeEach(() => {
+    trace.length = 0;
+});
 
 const PLATFORM_ID = '@vendure-platform/cli';
 const CLOUD_ID = '@vendure/cloud';
@@ -97,10 +101,6 @@ function devCommand(registry: CommandRegistry): CliCommandDefinition {
 }
 
 describe('Command extensions: composition', () => {
-    afterEach(() => {
-        trace.length = 0;
-    });
-
     it('runs every wrapper exactly once, outermost first', async () => {
         const registry = registryWithCore();
         registry.applyPlugin(platformPlugin());
@@ -263,10 +263,6 @@ describe('Command extensions: composition', () => {
 });
 
 describe('Command extensions: registration through Commander', () => {
-    afterEach(() => {
-        trace.length = 0;
-    });
-
     it('exposes every plugin option and runs the whole chain', async () => {
         const registry = registryWithCore();
         registry.applyPlugin(platformPlugin());
@@ -308,10 +304,6 @@ describe('Command extensions: registration through Commander', () => {
 });
 
 describe('Command extensions: collisions', () => {
-    afterEach(() => {
-        trace.length = 0;
-    });
-
     it('rejects an extension of a command that is not registered', () => {
         const registry = registryWithCore();
         const plugin = defineCliPlugin({
@@ -553,7 +545,8 @@ describe('defineCliPlugin() with command extensions', () => {
         ).toThrow(/already a shared option/);
     });
 
-    it('allows a command to repeat a shared option, which the host keeps in step', () => {
+    it('allows a command to repeat a shared option of the same shape', () => {
+        const registry = registryWithCore();
         const plugin = defineCliPlugin({
             id: '@example/repeat',
             rootOptions: [{ long: '--token <token>', description: 'API token', required: true }],
@@ -567,7 +560,10 @@ describe('defineCliPlugin() with command extensions', () => {
             ],
         });
 
-        expect(plugin.commands).toHaveLength(1);
+        expect(() => registry.applyPlugin(plugin)).not.toThrow();
+        expect((registry.get('thing') as CliCommandDefinition).options?.map(o => o.long)).toEqual([
+            '--token <token>',
+        ]);
     });
 
     it('rejects a non-function decorate', () => {
@@ -595,10 +591,6 @@ describe('defineCliPlugin() with command extensions', () => {
 });
 
 describe('Command extensions: plugin-provided commands', () => {
-    afterEach(() => {
-        trace.length = 0;
-    });
-
     function providerPlugin() {
         return defineCliPlugin({
             id: '@a/provider',
@@ -737,10 +729,6 @@ describe('Command extensions: plugin-provided commands', () => {
 });
 
 describe('Command extensions: nested composition', () => {
-    afterEach(() => {
-        trace.length = 0;
-    });
-
     function nestedProvider() {
         return defineCliPlugin({
             id: '@a/provider',
@@ -950,7 +938,7 @@ describe('Command extensions: reserved names and shared-option scope', () => {
         expect(() => registry.applyPlugin(shadow)).toThrow(/cannot be shared at two levels/);
     });
 
-    it('lets a supplied value beat a group default', async () => {
+    it('passes a supplied root option value to a nested command', async () => {
         let inherited: Record<string, any> | undefined;
         const registry = new CommandRegistry();
         registry.applyPlugin(
@@ -1270,7 +1258,7 @@ describe('Command extensions: sub-option depth', () => {
         const run = await runCli(registry.toArray(), [], ['deep', '--a', '1', '--b', '2']);
 
         expect(run.exitCode).toBe(0);
-        expect(seen).toMatchObject({ a: '1', b: '2' });
+        expect(seen).toEqual({ a: '1', b: '2' });
     });
 });
 
@@ -1300,5 +1288,188 @@ describe('Command extensions: the decorator cannot reach the registered command'
 
         expect(() => registry.applyPlugin(naughty)).toThrow(/Extending "vendure dev" failed/);
         expect(original.options?.length).toBe(optionCount);
+    });
+});
+
+describe('Command extensions: value shape across levels', () => {
+    it('rejects a group extension whose flag disagrees with a leaf below it', () => {
+        const registry = new CommandRegistry();
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: '@a/tree',
+                commands: [
+                    {
+                        name: 'config',
+                        description: 'Config',
+                        subcommands: [
+                            {
+                                name: 'server',
+                                description: 'Server',
+                                options: [{ long: '--dry-run', description: 'Boolean' }],
+                                action: async () => 0,
+                            },
+                        ],
+                    },
+                ],
+            }),
+        );
+
+        const rival = defineCliPlugin({
+            id: '@b/ext',
+            commands: [],
+            extendCommands: [
+                {
+                    command: 'config',
+                    options: [{ long: '--dry-run <path>', description: 'Valued', required: true }],
+                },
+            ],
+        });
+
+        expect(() => registry.applyPlugin(rival)).toThrow(/one takes a value and the other does not/);
+    });
+
+    it('rejects a leaf whose flag disagrees with its own group', () => {
+        expect(() =>
+            defineCliPlugin({
+                id: '@a/one',
+                commands: [
+                    {
+                        name: 'config',
+                        description: 'Config',
+                        options: [{ long: '--dry-run <path>', description: 'Valued', required: true }],
+                        subcommands: [
+                            {
+                                name: 'server',
+                                description: 'Server',
+                                options: [{ long: '--dry-run', description: 'Boolean' }],
+                                action: async () => 0,
+                            },
+                        ],
+                    },
+                ],
+            }),
+        ).toThrow(/one takes a value and the other does not/);
+    });
+
+    it('accepts a leaf repeating a group flag of the same shape', async () => {
+        let seen: Record<string, any> | undefined;
+        const registry = new CommandRegistry();
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: '@a/one',
+                commands: [
+                    {
+                        name: 'config',
+                        description: 'Config',
+                        options: [{ long: '--dry-run', description: 'Boolean' }],
+                        subcommands: [
+                            {
+                                name: 'server',
+                                description: 'Server',
+                                options: [{ long: '--dry-run', description: 'Boolean' }],
+                                action: async (options: Record<string, any>) => {
+                                    seen = options;
+                                    return 0;
+                                },
+                            },
+                        ],
+                    },
+                ],
+            }),
+        );
+
+        const run = await runCli(registry.toArray(), registry.getRootOptions(), [
+            'config',
+            '--dry-run',
+            'server',
+        ]);
+
+        expect(run.exitCode).toBe(0);
+        expect(seen?.dryRun).toBe(true);
+    });
+});
+
+describe('Shared root options with sub-options', () => {
+    it('registers a root sub-option exactly once', async () => {
+        const registry = new CommandRegistry();
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: '@a/sub',
+                rootOptions: [
+                    {
+                        long: '--auth <mode>',
+                        description: 'Auth mode',
+                        required: true,
+                        subOptions: [{ long: '--auth-token <t>', description: 'Token', required: true }],
+                    },
+                ],
+                commands: [{ name: 'x', description: 'X', action: async () => 0 }],
+            }),
+        );
+
+        // The parent still carries its sub-option, so the host expands it once.
+        expect(registry.getRootOptions().map(option => option.long)).toEqual(['--auth <mode>']);
+
+        const help = await runCli(registry.toArray(), registry.getRootOptions(), ['--help']);
+        const authTokenLines = help.stdout.split('\n').filter(line => line.includes('--auth-token'));
+        expect(authTokenLines).toHaveLength(1);
+    });
+
+    it('still detects a collision on a root sub-option', () => {
+        const registry = new CommandRegistry();
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: '@a/first',
+                rootOptions: [
+                    {
+                        long: '--a <v>',
+                        description: 'A',
+                        required: true,
+                        subOptions: [{ long: '--shared <v>', description: 'Shared', required: true }],
+                    },
+                ],
+                commands: [{ name: 'ca', description: 'CA', action: async () => 0 }],
+            }),
+        );
+
+        const rival = defineCliPlugin({
+            id: '@b/second',
+            rootOptions: [{ long: '--shared <v>', description: 'Mine', required: true }],
+            commands: [{ name: 'cb', description: 'CB', action: async () => 0 }],
+        });
+
+        expect(() => registry.applyPlugin(rival)).toThrow(/already registered by @a\/first/);
+    });
+});
+
+describe('Reserved short flags', () => {
+    it('rejects a shared option using the short version flag', () => {
+        const registry = registryWithCore();
+        const plugin = defineCliPlugin({
+            id: '@example/greedy',
+            rootOptions: [{ short: '-V', long: '--verbose', description: 'Verbose' }],
+            commands: [{ name: 'thing', description: 'Thing', action: async () => 0 }],
+        });
+
+        expect(() => registry.applyPlugin(plugin)).toThrow(/"-V", which is reserved by the CLI/);
+    });
+
+    it('detects a collision on the short flag alone', () => {
+        const registry = registryWithCore();
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: '@a/first',
+                rootOptions: [{ short: '-t', long: '--token <t>', description: 'Token', required: true }],
+                commands: [{ name: 'ca', description: 'CA', action: async () => 0 }],
+            }),
+        );
+
+        const rival = defineCliPlugin({
+            id: '@b/second',
+            rootOptions: [{ short: '-t', long: '--target <t>', description: 'Target', required: true }],
+            commands: [{ name: 'cb', description: 'CB', action: async () => 0 }],
+        });
+
+        expect(() => registry.applyPlugin(rival)).toThrow(/already registered by @a\/first/);
     });
 });

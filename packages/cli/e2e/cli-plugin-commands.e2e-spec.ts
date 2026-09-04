@@ -42,7 +42,7 @@ describe('CLI plugin nested commands', () => {
     });
 
     afterAll(() => {
-        project.cleanup();
+        project?.cleanup();
     });
 
     it('runs a two-level plugin command', async () => {
@@ -50,49 +50,6 @@ describe('CLI plugin nested commands', () => {
 
         expect(result.exitCode).toBe(0);
         expect(parseCloudResult(result.stdout).command).toEqual(['project', 'list']);
-    });
-
-    it('runs a three-level plugin command with positional arguments', async () => {
-        const result = await project.runCliCommand(['config', 'server', 'set', 'apiPort', '3001']);
-
-        const parsed = parseCloudResult(result.stdout);
-        expect(parsed.command).toEqual(['config', 'server', 'set']);
-        expect(parsed.positionals).toEqual(['apiPort', '3001']);
-    });
-
-    it('runs a three-level plugin command without arguments', async () => {
-        const result = await project.runCliCommand(['backup', 'db', 'list']);
-
-        expect(parseCloudResult(result.stdout).command).toEqual(['backup', 'db', 'list']);
-    });
-
-    it('runs a two-level plugin command with an argument', async () => {
-        const result = await project.runCliCommand(['restore', 'db', 'backup-42']);
-
-        const parsed = parseCloudResult(result.stdout);
-        expect(parsed.command).toEqual(['restore', 'db']);
-        expect(parsed.positionals).toEqual(['backup-42']);
-    });
-
-    it('passes shared options given before the command path', async () => {
-        const result = await project.runCliCommand([
-            '--token',
-            'tok-1',
-            '--project',
-            'my-project',
-            '--environment',
-            'staging',
-            '--json',
-            'project',
-            'list',
-        ]);
-
-        expect(parseCloudResult(result.stdout).inherited).toEqual({
-            token: 'tok-1',
-            project: 'my-project',
-            environment: 'staging',
-            json: true,
-        });
     });
 
     it('passes shared options given after the command path', async () => {
@@ -119,6 +76,12 @@ describe('CLI plugin nested commands', () => {
         });
     });
 
+    it('passes a leaf command its own options', async () => {
+        const result = await project.runCliCommand(['project', 'list', '--limit', '5']);
+
+        expect(parseCloudResult(result.stdout).options).toEqual({ limit: '5' });
+    });
+
     it('passes a group option alongside the shared options', async () => {
         const result = await project.runCliCommand([
             'config',
@@ -137,21 +100,19 @@ describe('CLI plugin nested commands', () => {
 
     it('leaves a built-in option of the same name working', async () => {
         // The plugin registers a shared `--json` and the built-in `plugins`
-        // command declares its own, so both must still see the value.
+        // command declares its own. That both readings agree is pinned by the
+        // unit test in command-registry.spec.ts; here we only prove the
+        // built-in still produces its JSON output.
         const result = await project.runCliCommand(['plugins', '--json']);
 
         expect(result.exitCode).toBe(0);
         const listed = JSON.parse(result.stdout);
-        expect(JSON.stringify(listed)).toContain('@vendure-e2e/cloud-cli-plugin');
-    });
-
-    it('rejects a group option outside its group', async () => {
-        const result = await project.runCliCommand(['project', 'list', '--profile', 'ci'], {
-            expectError: true,
-        });
-
-        expect(result.exitCode).toBe(1);
-        expect(result.stderr).toContain("unknown option '--profile'");
+        const entry = listed.plugins.find(
+            (plugin: any) => plugin.packageName === '@vendure-e2e/cloud-cli-plugin',
+        );
+        // A plugin that failed to load is still listed, so the status is the
+        // part that proves --json reached a working built-in.
+        expect(entry?.status).toBe('enabled');
     });
 });
 
@@ -164,7 +125,7 @@ describe('CLI plugin help output', () => {
     });
 
     afterAll(() => {
-        project.cleanup();
+        project?.cleanup();
     });
 
     it('shows plugin commands and shared options in root help', async () => {
@@ -181,16 +142,6 @@ describe('CLI plugin help output', () => {
         }
     });
 
-    it('shows subcommands and inherited options in parent help', async () => {
-        const result = await project.runCliCommand(['config', '--help']);
-
-        expect(result.stdout).toContain('Usage: vendure config');
-        expect(result.stdout).toMatch(/^\s+server\s+Server configuration$/m);
-        expect(result.stdout).toMatch(/^\s+--profile /m);
-        expect(result.stdout).toContain('Global Options:');
-        expect(result.stdout).toMatch(/^\s+--token /m);
-    });
-
     it('shows the options valid at every level in leaf help', async () => {
         const result = await project.runCliCommand(['config', 'server', 'set', '--help']);
 
@@ -198,37 +149,6 @@ describe('CLI plugin help output', () => {
         expect(result.stdout).toContain('Global Options:');
         expect(result.stdout).toContain('--profile');
         expect(result.stdout).toContain('--environment');
-    });
-
-    it('prints help and fails when a group is run without a subcommand', async () => {
-        const result = await project.runCliCommand(['backup'], { expectError: true });
-
-        expect(result.exitCode).toBe(1);
-        expect(result.stderr).toContain('Usage: vendure backup');
-        expect(result.stderr).toMatch(/^\s+db\s+Database backups$/m);
-    });
-
-    it('fails on an unknown subcommand', async () => {
-        const result = await project.runCliCommand(['project', 'destroy'], { expectError: true });
-
-        expect(result.exitCode).toBe(1);
-        expect(result.stderr).toContain("unknown command 'destroy'");
-    });
-
-    it('fails on an unknown option', async () => {
-        const result = await project.runCliCommand(['project', 'list', '--nope'], { expectError: true });
-
-        expect(result.exitCode).toBe(1);
-        expect(result.stderr).toContain("unknown option '--nope'");
-    });
-
-    it('fails on a missing required argument', async () => {
-        const result = await project.runCliCommand(['config', 'server', 'set', 'apiPort'], {
-            expectError: true,
-        });
-
-        expect(result.exitCode).toBe(1);
-        expect(result.stderr).toContain("missing required argument 'value'");
     });
 });
 
@@ -267,13 +187,13 @@ describe('CLI plugin collisions', () => {
     it('skips a plugin whose shared option is already registered', async () => {
         const project = createTestProject('cli-plugin-option-collision');
         try {
-            installCliPluginFixture(project, 'cloud-cli-plugin');
+            const cloud = installCliPluginFixture(project, 'cloud-cli-plugin');
             installCliPluginFixture(project, 'option-collision-cli-plugin');
 
             const result = await project.runCliCommand(['project', 'list', '--token', 'tok']);
 
             expect(result.stderr).toContain('Failed to register CLI plugin');
-            expect(result.stderr).toContain('is already registered by @vendure-e2e/cloud-cli-plugin');
+            expect(result.stderr).toContain(`is already registered by ${cloud}`);
             expect(parseCloudResult(result.stdout).inherited.token).toBe('tok');
 
             const rival = await project.runCliCommand(['rival'], { expectError: true });

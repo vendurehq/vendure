@@ -33,6 +33,9 @@ module.exports = defineCliPlugin({
                 {
                     name: 'list',
                     description: 'List the projects you can access',
+                    options: [
+                        { long: '--limit <n>', description: 'Maximum number of projects', required: true },
+                    ],
                     action: async (options, command, context) => report(context, options),
                 },
             ],

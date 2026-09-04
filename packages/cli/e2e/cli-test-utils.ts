@@ -158,7 +158,7 @@ const CLI_PLUGIN_FIXTURES_DIR = join(__dirname, 'fixtures', 'cli-plugins');
 export function installCliPluginFixture(
     project: CliTestProject,
     fixtureName: string,
-    options: { enable?: boolean } = {},
+    { enable = true }: { enable?: boolean } = {},
 ): string {
     const fixtureDir = join(CLI_PLUGIN_FIXTURES_DIR, fixtureName);
     const packageName = JSON.parse(readFileSync(join(fixtureDir, 'package.json'), 'utf-8')).name as string;
@@ -169,7 +169,7 @@ export function installCliPluginFixture(
 
     updatePackageJson(project, packageJson => {
         packageJson.dependencies = { ...packageJson.dependencies, [packageName]: '1.0.0' };
-        if (options.enable !== false) {
+        if (enable) {
             const vendure = packageJson.vendure ?? {};
             const cli = vendure.cli ?? {};
             packageJson.vendure = {
@@ -185,6 +185,10 @@ export function installCliPluginFixture(
 /**
  * Makes `require('@vendure/cli')` resolve from the test project, so a plugin
  * fixture uses the same public API a real plugin package would.
+ *
+ * Also adds `@vendure/cli` to the project's devDependencies, which is how
+ * `resolveCliProjectRoot` recognises the temp directory as the project root.
+ * Without it plugin discovery walks past the project and finds nothing.
  *
  * The link points at the real package directory. `cleanup()` removes it with
  * `rmSync`, which unlinks the symlink rather than following it, so the
@@ -211,7 +215,7 @@ function updatePackageJson(project: CliTestProject, mutate: (packageJson: any) =
 /**
  * Reads back a `PREFIX {json}` line that a plugin fixture printed.
  */
-export function readMarker(stdout: string, prefix: string): any {
+export function readMarker<T = any>(stdout: string, prefix: string): T {
     const line = stdout
         .split('\n')
         .map(l => l.trim())
@@ -219,7 +223,7 @@ export function readMarker(stdout: string, prefix: string): any {
     if (!line) {
         throw new Error(`No ${prefix} line in CLI output:\n${stdout}`);
     }
-    return JSON.parse(line.slice(prefix.length + 1));
+    return JSON.parse(line.slice(prefix.length + 1)) as T;
 }
 
 export function readEnabledCliPlugins(project: CliTestProject): string[] {

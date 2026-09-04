@@ -44,7 +44,7 @@ describe('Several plugins extending one command', () => {
     });
 
     afterAll(() => {
-        project.cleanup();
+        project?.cleanup();
     });
 
     it('runs both wrappers and the built-in in one invocation', async () => {
@@ -158,12 +158,12 @@ describe('Extension collisions and recovery', () => {
     it('refuses to replace a command another plugin has extended', async () => {
         const project = createTestProject('cli-plugin-replace-extended');
         try {
-            installCliPluginFixture(project, 'platform-cli-plugin');
+            const platform = installCliPluginFixture(project, 'platform-cli-plugin');
             installCliPluginFixture(project, 'dev-replacement-cli-plugin');
 
             const result = await project.runCliCommand(['dev', 'bogus'], { expectError: true });
 
-            expect(result.stderr).toContain('has been extended by @vendure-e2e/platform-cli-plugin');
+            expect(result.stderr).toContain(`has been extended by ${platform}`);
             expect(result.stdout).not.toContain('REPLACEMENT_DEV');
             expect(traceOf(result.stdout)).toEqual(['PLATFORM_BEFORE', 'PLATFORM_AFTER']);
         } finally {

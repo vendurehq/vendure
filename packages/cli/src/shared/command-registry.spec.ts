@@ -2,10 +2,11 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { runCli } from './__tests__/run-cli';
 import {
-    CliCommandContext,
     CliCommandDefinition,
     CliCommandNode,
     CliCommandOption,
+    readCommandContext,
+    readCommandOptions,
 } from './cli-command-definition';
 import { exitCliCommand } from './cli-command-exit';
 
@@ -36,11 +37,12 @@ function recordingLeaf(
         description,
         ...extra,
         action: async (...args: any[]) => {
-            const context = args[args.length - 1] as CliCommandContext;
+            // Uses the exported helpers, so a break in them fails these tests.
+            const context = readCommandContext(args);
             calls.push({
                 commandPath: context.commandPath,
                 positionals: args.slice(0, args.length - 3),
-                options: args[args.length - 3],
+                options: readCommandOptions(args),
                 inheritedOptions: context.inheritedOptions,
             });
             return 0;
@@ -109,6 +111,7 @@ describe('registerCommands() with nested commands', () => {
         const result = await runCli(cloudCommands(), rootOptions, ['project', 'list']);
 
         expect(result.exitCode).toBe(0);
+        expect(calls).toHaveLength(1);
         expect(calls[0].commandPath).toEqual(['project', 'list']);
     });
 
