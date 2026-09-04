@@ -934,8 +934,7 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
     private registerSQLiteRegexpFunction() {
         const dbType = this.connection.rawConnection.options.type;
         // Only the SQLite flavours evaluate regex filters via a JS function; other backends
-        // defer to the database's own engine, so the regexp function (and any re2 warning)
-        // must not be created for them.
+        // defer to the database's own engine, so the regexp function must not be created for them.
         if (dbType === 'better-sqlite3') {
             const driver = this.connection.rawConnection.driver as BetterSqlite3Driver;
             driver.databaseConnection.function('regexp', createSqliteRegexpFunction());

@@ -426,9 +426,7 @@ export function getSingleProjectPackageJson(
  * unless allowlisted, so this list feeds their respective allowlist mechanisms
  * (`onlyBuiltDependencies`, `dependenciesMeta.built`, `trustedDependencies`).
  * `bcrypt` (core), `sharp` (asset-server-plugin) and `esbuild` (vite) are always present;
- * SQLite adds `better-sqlite3` and `re2`. `re2` lets core evaluate `regex` list filters in
- * guaranteed linear time; without its native binding those filters fall back to the built-in
- * RegExp engine, which is vulnerable to ReDoS on SQLite backends (GHSA-jgm3-qmp2-c4p7).
+ * SQLite adds `better-sqlite3`.
  *
  * This list is derived from the scaffold's transitive native deps; re-check it against
  * `getDependencies()` whenever Vendure's direct native-dep surface changes.
@@ -436,7 +434,7 @@ export function getSingleProjectPackageJson(
 export function getNativeBuildDependencies(dbType: DbType): string[] {
     const deps = ['bcrypt', 'esbuild', 'sharp'];
     if (dbType === 'sqlite') {
-        deps.push('better-sqlite3', 're2');
+        deps.push('better-sqlite3');
     }
     return deps.sort((a, b) => a.localeCompare(b));
 }
