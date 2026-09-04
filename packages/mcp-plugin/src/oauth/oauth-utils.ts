@@ -38,7 +38,7 @@ export function appendOAuthParams(redirectUri: string, params: Record<string, st
  * not http(s) is treated as a native app's private-use scheme (RFC 8252), e.g.
  * `cursor://anysphere.cursor-mcp/oauth/callback` — the OS hands those to the installed app.
  */
-const FORBIDDEN_REDIRECT_SCHEMES = ['javascript:', 'data:', 'vbscript:', 'file:', 'blob:', 'about:'];
+const FORBIDDEN_REDIRECT_SCHEMES = new Set(['javascript:', 'data:', 'vbscript:', 'file:', 'blob:', 'about:']);
 
 export function assertSafeRedirectUri(redirectUri: string): void {
     let url: URL;
@@ -50,7 +50,7 @@ export function assertSafeRedirectUri(redirectUri: string): void {
     if (url.protocol === 'http:' && !isLoopbackHostname(url.hostname)) {
         throw new McpOauthError('invalid_redirect_uri', 'redirect_uri may only use HTTP on localhost');
     }
-    if (FORBIDDEN_REDIRECT_SCHEMES.includes(url.protocol.toLowerCase())) {
+    if (FORBIDDEN_REDIRECT_SCHEMES.has(url.protocol.toLowerCase())) {
         throw new McpOauthError(
             'invalid_redirect_uri',
             `redirect_uri must not use the ${url.protocol} scheme`,

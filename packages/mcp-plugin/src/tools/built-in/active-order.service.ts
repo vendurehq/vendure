@@ -25,10 +25,10 @@ export const NO_CART_MESSAGE =
     'There is no cart for this session. Call add_to_cart first; it returns the sessionToken to ' +
     'use on later calls.';
 
-const EDITABLE_ORDER_STATES: Array<Order['state']> = ['AddingItems', 'Draft'];
+const EDITABLE_ORDER_STATES: ReadonlySet<Order['state']> = new Set(['AddingItems', 'Draft']);
 
 function cartIsEditable(cart: ActiveOrderRef): boolean {
-    return EDITABLE_ORDER_STATES.includes(cart.state);
+    return EDITABLE_ORDER_STATES.has(cart.state);
 }
 
 /**
@@ -44,9 +44,9 @@ function withCurrency(ctx: RequestContext, currencyCode: CurrencyCode): RequestC
 @Injectable()
 export class McpActiveOrderService {
     constructor(
-        private activeOrderService: ActiveOrderService,
-        private orderService: OrderService,
-        private connection: TransactionalConnection,
+        private readonly activeOrderService: ActiveOrderService,
+        private readonly orderService: OrderService,
+        private readonly connection: TransactionalConnection,
     ) {}
 
     /** The shopper's current cart, or undefined when they have none. Order lines are not loaded. */

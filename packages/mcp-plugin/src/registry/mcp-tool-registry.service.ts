@@ -42,7 +42,7 @@ import { McpExposedTool, McpRegisteredTool } from './registry-types';
 /** Discovery meta-tool names — reserved so user tools cannot collide with them. */
 const SEARCH_TOOLS = 'search_tools';
 const EXECUTE_TOOL = 'execute_tool';
-const RESERVED_META_TOOL_NAMES: readonly string[] = [SEARCH_TOOLS, EXECUTE_TOOL];
+const RESERVED_META_TOOL_NAMES: ReadonlySet<string> = new Set([SEARCH_TOOLS, EXECUTE_TOOL]);
 const ALL_TOOLSETS: readonly McpToolset[] = ['shop', 'admin'];
 // These limits are also stated in the no-results hint and the meta-tool's own schema
 // description, so changing them means changing all three places.
@@ -106,15 +106,15 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     private toggleCache = new WeakMap<RequestContext, Record<string, boolean>>();
 
     constructor(
-        private discoveryService: DiscoveryService,
-        private settingsStoreService: SettingsStoreService,
-        private rateLimiter: McpRateLimiterService,
-        private toolCallLog: McpToolCallLogService,
-        private toolSchema: McpToolSchemaService,
-        private shopSession: McpShopSessionService,
-        private configService: ConfigService,
-        private connection: TransactionalConnection,
-        @Inject(MCP_PLUGIN_OPTIONS) private options: ResolvedMcpPluginOptions,
+        private readonly discoveryService: DiscoveryService,
+        private readonly settingsStoreService: SettingsStoreService,
+        private readonly rateLimiter: McpRateLimiterService,
+        private readonly toolCallLog: McpToolCallLogService,
+        private readonly toolSchema: McpToolSchemaService,
+        private readonly shopSession: McpShopSessionService,
+        private readonly configService: ConfigService,
+        private readonly connection: TransactionalConnection,
+        @Inject(MCP_PLUGIN_OPTIONS) private readonly options: ResolvedMcpPluginOptions,
     ) {}
 
     /** @internal */
@@ -355,7 +355,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     }
 
     private registerTool(tool: McpRegisteredTool): void {
-        if (RESERVED_META_TOOL_NAMES.includes(tool.name)) {
+        if (RESERVED_META_TOOL_NAMES.has(tool.name)) {
             throw new Error(`MCP tool name "${tool.name}" is reserved for discovery`);
         }
         const key = this.toolKey(tool.toolset, tool.name);

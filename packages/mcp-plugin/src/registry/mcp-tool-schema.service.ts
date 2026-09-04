@@ -109,7 +109,7 @@ export class McpToolSchemaService {
             return jsonInputSchema;
         }
         const wire = structuredClone(jsonInputSchema);
-        wire.properties = { ...(wire.properties ?? {}) };
+        wire.properties = { ...wire.properties };
         if (injectedFields.confirm) {
             wire.properties.confirm = {
                 type: 'boolean',
@@ -282,7 +282,7 @@ export class McpToolSchemaService {
             return { json: this.deriveJsonSchema(raw, label, direction), standard: raw };
         }
         if (typeof this.standardProps(raw)?.validate === 'function') {
-            throw new Error(
+            throw new TypeError(
                 `${label}: the schema implements Standard Schema validation but ` +
                     `cannot emit JSON Schema. Use a library version with JSON Schema conversion ` +
                     `(e.g. zod v4), or author the schema as plain JSON Schema.`,

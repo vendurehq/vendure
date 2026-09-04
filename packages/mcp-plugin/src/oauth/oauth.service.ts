@@ -84,15 +84,15 @@ export class McpOauthService {
     private cachedHashKey: Buffer | undefined;
 
     constructor(
-        private connection: TransactionalConnection,
-        private requestContextService: RequestContextService,
-        private sessionService: SessionService,
-        private channelService: ChannelService,
-        private userService: UserService,
-        @Inject(MCP_PLUGIN_OPTIONS) private options: ResolvedMcpPluginOptions,
-        private cimdClientResolver: McpCimdClientResolverService,
-        private grantSessions: McpGrantSessionService,
-        private oauthMetadata: McpOauthMetadataService,
+        private readonly connection: TransactionalConnection,
+        private readonly requestContextService: RequestContextService,
+        private readonly sessionService: SessionService,
+        private readonly channelService: ChannelService,
+        private readonly userService: UserService,
+        @Inject(MCP_PLUGIN_OPTIONS) private readonly options: ResolvedMcpPluginOptions,
+        private readonly cimdClientResolver: McpCimdClientResolverService,
+        private readonly grantSessions: McpGrantSessionService,
+        private readonly oauthMetadata: McpOauthMetadataService,
     ) {}
 
     async registerClient(input: RegisterClientInput): Promise<RegisteredClientResponse> {
@@ -405,7 +405,7 @@ export class McpOauthService {
         const grant = await this.connection
             .getRepository(ctx, McpOauthGrant)
             .findOne({ where: { id: grantId } });
-        if (!grant || grant.actorType !== 'customer' || !idsAreEqual(grant.actorId, ctx.activeUserId)) {
+        if (grant?.actorType !== 'customer' || !idsAreEqual(grant.actorId, ctx.activeUserId)) {
             throw new EntityNotFoundError('McpOauthGrant', grantId);
         }
         await this.grantSessions.revokeGrant(ctx, grant);

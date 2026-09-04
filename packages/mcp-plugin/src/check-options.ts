@@ -138,7 +138,7 @@ function publicHttpsProblem(name: string, url: string): string | undefined {
     } catch {
         // Not a URL at all, so not a public address either.
     }
-    if (!parsed || parsed.protocol !== 'https:' || isLoopbackHostname(parsed.hostname)) {
+    if (parsed?.protocol !== 'https:' || isLoopbackHostname(parsed.hostname)) {
         return `${name} must be a public https URL in production, got "${url}".`;
     }
     return undefined;

@@ -178,8 +178,8 @@ export function expectRateLimitRefusal(
     // matched loosely here and pinned exactly by the callers that care which subject was charged.
     expect(result.body.error.message).toMatch(
         new RegExp(
-            `^Rate limit exceeded for \\S.* \\(${expected.scope}\\)\\. ` +
-                `Retry after ${retryAfterHeader} seconds\\.$`,
+            String.raw`^Rate limit exceeded for \S.* \(${expected.scope}\)\. ` +
+                String.raw`Retry after ${retryAfterHeader} seconds\.$`,
         ),
     );
     expect(result.body.error.data.scope).toBe(expected.scope);
