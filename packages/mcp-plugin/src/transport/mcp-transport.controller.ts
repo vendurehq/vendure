@@ -174,11 +174,7 @@ export class McpTransportController {
         res: Response,
         body: unknown,
     ): Promise<void> {
-        // DNS-rebinding protection. Each guard writes its own 403 response and returns false when it rejects.
-        if (this.hostGuard && !this.hostGuard(req, res)) {
-            return;
-        }
-        if (this.originGuard && !this.originGuard(req, res)) {
+        if (this.blockedByDnsRebindingGuard(req, res)) {
             return;
         }
 
@@ -190,24 +186,49 @@ export class McpTransportController {
             return;
         }
 
-        const contentType = this.getHeader(req.headers, 'content-type') ?? '';
-        const isJson = isJsonContentType(contentType);
-        const parsedBody = isJson ? body : undefined;
-        // Charged for every content type, including the ones the SDK will refuse: resolving the
-        // caller above already cost a database round trip, so an unusable body must still be metered.
-        const preCheckExceeded = await this.preCheckHandshakeRateLimit(body, toolset, executionContext);
-        if (preCheckExceeded) {
-            this.sendRateLimitError(res, body, preCheckExceeded);
-            return;
-        }
-
-        if (isJson && this.callsSubscriptionsListen(body)) {
-            this.sendSubscriptionsUnsupported(res, body);
+        const isJson = isJsonContentType(this.getHeader(req.headers, 'content-type') ?? '');
+        if (await this.refusedBeforeDispatch(toolset, res, body, isJson, executionContext)) {
             return;
         }
 
         (req as Request & { auth?: AuthInfo }).auth = this.buildAuthInfo(executionContext, toolset, token);
-        await this.nodeHandler(req, res, parsedBody);
+        await this.nodeHandler(req, res, isJson ? body : undefined);
+    }
+
+    /** Each guard writes its own 403 response and returns false when it rejects. */
+    private blockedByDnsRebindingGuard(req: I18nRequest, res: Response): boolean {
+        if (this.hostGuard && !this.hostGuard(req, res)) {
+            return true;
+        }
+        if (this.originGuard && !this.originGuard(req, res)) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * The refusals that come after the caller is known. Returns true once one of them has written
+     * the response, the same convention the DNS-rebinding guards use.
+     */
+    private async refusedBeforeDispatch(
+        toolset: McpToolset,
+        res: Response,
+        body: unknown,
+        isJson: boolean,
+        executionContext: McpExecutionContext,
+    ): Promise<boolean> {
+        // Charged for every content type, including the ones the SDK will refuse: resolving the
+        // caller already cost a database round trip, so an unusable body must still be metered.
+        const preCheckExceeded = await this.preCheckHandshakeRateLimit(body, toolset, executionContext);
+        if (preCheckExceeded) {
+            this.sendRateLimitError(res, body, preCheckExceeded);
+            return true;
+        }
+        if (isJson && this.callsSubscriptionsListen(body)) {
+            this.sendSubscriptionsUnsupported(res, body);
+            return true;
+        }
+        return false;
     }
 
     /**

@@ -238,6 +238,51 @@ describe('McpToolCallLogService tool-call logging', () => {
         expect(publishedEvents[0].entry.input).toBeNull();
     });
 
+    // Unit tests cannot observe fields set by the entity constructor, so resolution is called directly.
+    describe('actor resolution', () => {
+        function resolve(grant: unknown, ctx: unknown) {
+            const { service } = build({});
+            return {
+                actor: (service as any).resolveActor(grant, ctx),
+                actorType: (service as any).resolveActorType(grant, ctx),
+            };
+        }
+
+        it('takes actor and actorType from the grant when there is one', () => {
+            const grant = { actorId: 42, actorType: 'customer' };
+            const ctx = { apiType: 'admin', activeUserId: 7 };
+            expect(resolve(grant, ctx)).toEqual({ actor: '42', actorType: 'customer' });
+        });
+
+        it('falls back to the logged-in user of an admin request', () => {
+            expect(resolve(undefined, { apiType: 'admin', activeUserId: 7 })).toEqual({
+                actor: '7',
+                actorType: 'admin',
+            });
+        });
+
+        it('falls back to the logged-in user of a shop request as a customer', () => {
+            expect(resolve(undefined, { apiType: 'shop', activeUserId: 7 })).toEqual({
+                actor: '7',
+                actorType: 'customer',
+            });
+        });
+
+        it('reports an anonymous shop request with no actor', () => {
+            expect(resolve(undefined, { apiType: 'shop' })).toEqual({
+                actor: null,
+                actorType: 'anonymous',
+            });
+        });
+
+        it('reports an anonymous admin request as admin with no actor', () => {
+            expect(resolve(undefined, { apiType: 'admin' })).toEqual({
+                actor: null,
+                actorType: 'admin',
+            });
+        });
+    });
+
     it('never throws and warns when the write fails (no event published)', async () => {
         const { service, publishedEvents } = build({}, { saveThrows: true });
         await expect(

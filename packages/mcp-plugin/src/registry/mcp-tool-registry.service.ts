@@ -81,6 +81,15 @@ type ToolCallAdmission =
     | { kind: 'refused'; result: CallToolResult }
     | { kind: 'admitted'; tool: McpRegisteredTool; input: Record<string, unknown> };
 
+type ResolvedToolCallSession =
+    | { kind: 'refused'; result: CallToolResult }
+    | {
+          kind: 'ready';
+          callContext: McpExecutionContext;
+          input: Record<string, unknown>;
+          sessionToken: string | undefined;
+      };
+
 interface ToolCallOptions {
     /**
      * Whether to validate the arguments against the tool's own schema. The MCP SDK has already
@@ -376,92 +385,140 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         input: unknown,
         options: ToolCallOptions,
     ): Promise<CallToolResult> {
-        // The caller owns `executionContext`, and the transport reuses one object for every message
-        // in a batch, so a session resolved for this call is kept in a copy rather than written back.
-        let callContext: McpExecutionContext = executionContext;
         const admission = await this.admitToolCall(executionContext, toolset, name, input, options);
         if (admission.kind === 'refused') {
             return admission.result;
         }
         const { tool } = admission;
-        let toolInput = admission.input;
         // A destructive tool called without `confirm: true` only describes what it would do.
-        const isConfirmationPreview = tool.resolvedBehavior === 'destructive' && toolInput.confirm !== true;
+        const isConfirmationPreview =
+            tool.resolvedBehavior === 'destructive' && admission.input.confirm !== true;
 
-        // Active-order tools exchange the registry-owned sessionToken argument for the context the
-        // handler acts on. The prepared input no longer contains the credential, so logs do not either.
-        let sessionTokenForResult: string | undefined;
-        if (tool.acceptsSessionToken) {
-            const prepared = await this.shopSession.prepareToolCall({
-                ctx: executionContext.ctx,
-                input: toolInput,
-                isOAuthCall: executionContext.grant != null,
-                // A preview runs no handler, so it must not start a cart of its own.
-                toolWritesToCart: tool.resolvedBehavior !== 'readonly' && !isConfirmationPreview,
-            });
-            if (prepared.kind === 'refused') {
-                return this.errorResult(prepared.message);
-            }
-            toolInput = prepared.input;
-            callContext = { ...executionContext, ctx: prepared.ctx };
-            sessionTokenForResult = prepared.sessionToken;
+        const session = await this.resolveShopSession(
+            executionContext,
+            tool,
+            admission.input,
+            isConfirmationPreview,
+        );
+        if (session.kind === 'refused') {
+            return session.result;
         }
+        const { callContext, sessionToken } = session;
         // The preview carries the token too, so the confirming call can act on the same cart.
         if (isConfirmationPreview) {
-            return this.confirmationRequiredResult(tool, sessionTokenForResult);
+            return this.confirmationRequiredResult(tool, sessionToken);
         }
+        let toolInput = session.input;
         if (tool.resolvedBehavior === 'destructive') {
             const { confirm, ...rest } = toolInput;
             toolInput = rest;
         }
+
         const startedAt = Date.now();
         try {
-            // A writing tool runs in one transaction: a throw rolls back all its writes. The log
-            // row below uses the outer ctx, so a rolled-back call is still logged.
-            const output =
-                tool.resolvedBehavior === 'readonly'
-                    ? await tool.handler.execute(callContext.ctx, toolInput, this.toCallerInfo(callContext))
-                    : // withTransaction needs a promise; some handlers return a plain value.
-                      await this.connection.withTransaction(callContext.ctx, txCtx =>
-                          Promise.resolve(
-                              tool.handler.execute(txCtx, toolInput, this.toCallerInfo(callContext)),
-                          ),
-                      );
+            const output = await this.runToolHandler(tool, callContext, toolInput);
             return await this.buildToolCallResult({
                 callContext,
                 tool,
                 input: toolInput,
                 output,
                 startedAt,
-                sessionToken: sessionTokenForResult,
+                sessionToken,
             });
         } catch (e) {
-            const message = e instanceof Error ? e.message : 'MCP tool failed';
-            const callerSafe = this.isCallerSafeError(e);
-            const callerMessage =
-                callerSafe && e instanceof I18nError
-                    ? callContext.ctx.translate(e.message, e.variables)
-                    : message;
-            if (!callerSafe) {
-                Logger.error(
-                    `MCP tool "${tool.name}" failed: ${message}`,
-                    loggerCtx,
-                    e instanceof Error ? e.stack : undefined,
-                );
-            }
-            await this.toolCallLog.logToolCall({
-                executionContext: callContext,
+            return await this.handleToolCallError({
+                error: e,
+                callContext,
                 tool,
                 input: toolInput,
-                output: { message },
-                durationMs: Date.now() - startedAt,
-                status: 'error',
+                startedAt,
+                sessionToken,
             });
-            return this.errorResult(
-                callerSafe ? callerMessage : GENERIC_TOOL_ERROR_MESSAGE,
-                sessionTokenForResult,
+        }
+    }
+
+    /**
+     * Active-order tools exchange the registry-owned sessionToken argument for the context the
+     * handler acts on. The prepared input no longer contains the credential, so logs do not either.
+     */
+    private async resolveShopSession(
+        executionContext: McpExecutionContext,
+        tool: McpRegisteredTool,
+        input: Record<string, unknown>,
+        isConfirmationPreview: boolean,
+    ): Promise<ResolvedToolCallSession> {
+        if (!tool.acceptsSessionToken) {
+            return { kind: 'ready', callContext: executionContext, input, sessionToken: undefined };
+        }
+        const prepared = await this.shopSession.prepareToolCall({
+            ctx: executionContext.ctx,
+            input,
+            isOAuthCall: executionContext.grant != null,
+            // A preview runs no handler, so it must not start a cart of its own.
+            toolWritesToCart: tool.resolvedBehavior !== 'readonly' && !isConfirmationPreview,
+        });
+        if (prepared.kind === 'refused') {
+            return { kind: 'refused', result: this.errorResult(prepared.message) };
+        }
+        return {
+            kind: 'ready',
+            // The transport reuses one execution context for every message in a batch, so the
+            // resolved session goes into a copy rather than being written back.
+            callContext: { ...executionContext, ctx: prepared.ctx },
+            input: prepared.input,
+            sessionToken: prepared.sessionToken,
+        };
+    }
+
+    /**
+     * A writing tool runs in one transaction: a throw rolls back all its writes. The log row is
+     * written with the outer ctx, so a rolled-back call is still logged.
+     */
+    private async runToolHandler(
+        tool: McpRegisteredTool,
+        callContext: McpExecutionContext,
+        toolInput: Record<string, unknown>,
+    ): Promise<unknown> {
+        if (tool.resolvedBehavior === 'readonly') {
+            return tool.handler.execute(callContext.ctx, toolInput, this.toCallerInfo(callContext));
+        }
+        // withTransaction needs a promise; some handlers return a plain value.
+        return this.connection.withTransaction(callContext.ctx, txCtx =>
+            Promise.resolve(tool.handler.execute(txCtx, toolInput, this.toCallerInfo(callContext))),
+        );
+    }
+
+    private async handleToolCallError(call: {
+        error: unknown;
+        callContext: McpExecutionContext;
+        tool: McpRegisteredTool;
+        input: Record<string, unknown>;
+        startedAt: number;
+        sessionToken: string | undefined;
+    }): Promise<CallToolResult> {
+        const { error, callContext, tool, input, startedAt, sessionToken } = call;
+        const message = error instanceof Error ? error.message : 'MCP tool failed';
+        const callerSafe = this.isCallerSafeError(error);
+        const callerMessage =
+            callerSafe && error instanceof I18nError
+                ? callContext.ctx.translate(error.message, error.variables)
+                : message;
+        if (!callerSafe) {
+            Logger.error(
+                `MCP tool "${tool.name}" failed: ${message}`,
+                loggerCtx,
+                error instanceof Error ? error.stack : undefined,
             );
         }
+        await this.toolCallLog.logToolCall({
+            executionContext: callContext,
+            tool,
+            input,
+            output: { message },
+            durationMs: Date.now() - startedAt,
+            status: 'error',
+        });
+        return this.errorResult(callerSafe ? callerMessage : GENERIC_TOOL_ERROR_MESSAGE, sessionToken);
     }
 
     /**

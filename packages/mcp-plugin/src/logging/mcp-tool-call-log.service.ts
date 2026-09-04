@@ -1,12 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { EventBus, Logger, TransactionalConnection } from '@vendure/core';
+import { EventBus, Logger, RequestContext, TransactionalConnection } from '@vendure/core';
 
 import { loggerCtx, MCP_PLUGIN_OPTIONS } from '../constants';
+import { McpOauthGrant } from '../entities/mcp-oauth-grant.entity';
 import { McpToolCallLog } from '../entities/mcp-tool-call-log.entity';
 import { McpToolCallEvent } from '../events/mcp-tool-call.event';
 import { McpExecutionContext, ResolvedMcpPluginOptions } from '../internal-types';
 import { McpRegisteredTool } from '../registry/registry-types';
-import { McpToolCallStatus } from '../types';
+import { McpActorType, McpToolCallStatus } from '../types';
 
 export interface LogToolCallInput {
     executionContext: McpExecutionContext;
@@ -31,15 +32,8 @@ export class McpToolCallLogService {
         try {
             const log = new McpToolCallLog({
                 grantId: grant?.id ?? null,
-                actor:
-                    grant?.actorId != null
-                        ? String(grant.actorId)
-                        : ctx.activeUserId != null
-                          ? String(ctx.activeUserId)
-                          : null,
-                actorType:
-                    grant?.actorType ??
-                    (ctx.apiType === 'admin' ? 'admin' : ctx.activeUserId != null ? 'customer' : 'anonymous'),
+                actor: this.resolveActor(grant, ctx),
+                actorType: this.resolveActorType(grant, ctx),
                 channelId: grant ? (grant.channelId ?? null) : (ctx.channelId ?? null),
                 clientIp: this.options.logging.captureClientIp ? (clientIp ?? null) : null,
                 toolName: call.tool.name,
@@ -65,6 +59,29 @@ export class McpToolCallLogService {
                 Logger.warn(`Failed to record MCP tool call "${call.tool.name}": ${reason}`, loggerCtx);
             }
         }
+    }
+
+    private resolveActor(grant: McpOauthGrant | undefined, ctx: RequestContext): string | null {
+        if (grant?.actorId != null) {
+            return String(grant.actorId);
+        }
+        if (ctx.activeUserId != null) {
+            return String(ctx.activeUserId);
+        }
+        return null;
+    }
+
+    private resolveActorType(grant: McpOauthGrant | undefined, ctx: RequestContext): McpActorType {
+        if (grant?.actorType != null) {
+            return grant.actorType;
+        }
+        if (ctx.apiType === 'admin') {
+            return 'admin';
+        }
+        if (ctx.activeUserId != null) {
+            return 'customer';
+        }
+        return 'anonymous';
     }
 
     /**

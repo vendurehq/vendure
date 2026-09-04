@@ -4,10 +4,12 @@ import {
     CustomerService,
     EntityNotFoundError,
     ForbiddenError,
+    ID,
     idsAreEqual,
     IllegalOperationError,
     isGraphQlErrorResult,
     Logger,
+    Order,
     OrderService,
     Permission,
     RequestContext,
@@ -83,87 +85,106 @@ export class PlaceOrderTool implements McpToolHandler<PlaceOrderInput> {
                 // The cart was there a moment ago, so only a concurrent deletion gets here.
                 throw new EntityNotFoundError('Order', order.id);
             }
-            let movedOutOfCart = false;
-            if (current.state === 'AddingItems') {
-                const transition = await this.orderService.transitionToState(
-                    txCtx,
-                    order.id,
-                    'ArrangingPayment',
-                );
-                if (isGraphQlErrorResult(transition)) {
-                    if (
-                        transition.transitionError ===
-                        txCtx.translate('message.cannot-transition-to-payment-without-customer', {
-                            fromState: current.state,
-                            toState: 'ArrangingPayment',
-                        })
-                    ) {
-                        throw new UserInputError(
-                            'This cart has no customer yet. For a guest checkout call ' +
-                                'set_checkout_details with customer { emailAddress, firstName, ' +
-                                'lastName } first, or sign in as a customer.',
-                        );
-                    }
-                    return this.serializer.orderOrError(transition);
-                }
-                movedOutOfCart = true;
+
+            const arranging = await this.startArrangingPayment(txCtx, current);
+            if (arranging.kind === 'error') {
+                return arranging.result;
             }
 
-            const payment: PaymentInput = {
-                method: input.paymentMethodCode,
-                metadata: input.paymentMetadata ?? {},
-            };
-            let result: Awaited<ReturnType<OrderService['addPaymentToOrder']>>;
-            try {
-                result = await this.orderService.addPaymentToOrder(txCtx, order.id, payment);
-            } catch (e) {
-                if (CALLER_SAFE_ERRORS.some(errorType => e instanceof errorType)) {
-                    throw e;
-                }
-                // Anything else came out of the payment handler, which runs outside this
-                // transaction, so the rollback cannot undo a charge it already made. The caller is
-                // told to check rather than retry, and the real message is kept for the operator.
-                Logger.error(
-                    `place_order payment failed for order ${order.id}: ${
-                        e instanceof Error ? e.message : String(e)
-                    }`,
-                    loggerCtx,
-                    e instanceof Error ? e.stack : undefined,
-                );
-                throw new UserInputError(
-                    'The payment provider could not be reached or refused the request. Do not retry ' +
-                        'automatically. Call get_cart to check whether a payment was recorded, and tell the user.',
-                );
-            }
-
+            const result = await this.takePayment(txCtx, order.id, input);
             if (isGraphQlErrorResult(result)) {
-                if (movedOutOfCart) {
+                if (arranging.movedOutOfCart) {
                     await this.orderService.transitionToState(txCtx, order.id, 'AddingItems');
                 }
                 return this.serializer.orderOrError(result);
             }
 
             result.payments = await this.orderService.getOrderPayments(txCtx, result.id);
-
-            if (result.orderPlacedAt) {
-                await this.customerService.createAddressesForNewCustomer(txCtx, result);
-                if (txCtx.session && idsAreEqual(txCtx.session.activeOrderId, order.id)) {
-                    await this.sessionService.unsetActiveOrder(txCtx, txCtx.session);
-                }
-                return { status: 'placed' as const, order: this.serializer.order(result) };
-            }
-
-            let message =
-                'Payment was created, but the order is not placed yet. Look at order.payments for ' +
-                "each payment's state and any publicMetadata with the shopper's next step.";
-            if (result.state === 'ArrangingPayment') {
-                message += ' The cart cannot be edited while the order is in ArrangingPayment.';
-            }
-            return {
-                status: 'awaiting_payment' as const,
-                order: this.serializer.order(result),
-                message,
-            };
+            return this.describeOutcome(txCtx, order.id, result);
         });
+    }
+
+    private async startArrangingPayment(
+        txCtx: RequestContext,
+        current: Order,
+    ): Promise<
+        | { kind: 'error'; result: ReturnType<McpToolSerializerService['orderOrError']> }
+        | { kind: 'ok'; movedOutOfCart: boolean }
+    > {
+        if (current.state !== 'AddingItems') {
+            return { kind: 'ok', movedOutOfCart: false };
+        }
+        const transition = await this.orderService.transitionToState(txCtx, current.id, 'ArrangingPayment');
+        if (isGraphQlErrorResult(transition)) {
+            if (
+                transition.transitionError ===
+                txCtx.translate('message.cannot-transition-to-payment-without-customer', {
+                    fromState: current.state,
+                    toState: 'ArrangingPayment',
+                })
+            ) {
+                throw new UserInputError(
+                    'This cart has no customer yet. For a guest checkout call ' +
+                        'set_checkout_details with customer { emailAddress, firstName, ' +
+                        'lastName } first, or sign in as a customer.',
+                );
+            }
+            return { kind: 'error', result: this.serializer.orderOrError(transition) };
+        }
+        return { kind: 'ok', movedOutOfCart: true };
+    }
+
+    private async takePayment(
+        txCtx: RequestContext,
+        orderId: ID,
+        input: PlaceOrderInput,
+    ): Promise<Awaited<ReturnType<OrderService['addPaymentToOrder']>>> {
+        const payment: PaymentInput = {
+            method: input.paymentMethodCode,
+            metadata: input.paymentMetadata ?? {},
+        };
+        try {
+            return await this.orderService.addPaymentToOrder(txCtx, orderId, payment);
+        } catch (e) {
+            if (CALLER_SAFE_ERRORS.some(errorType => e instanceof errorType)) {
+                throw e;
+            }
+            // Anything else came out of the payment handler, which runs outside this transaction,
+            // so the rollback cannot undo a charge it already made. The caller is told to check
+            // rather than retry, and the real message is kept for the operator.
+            Logger.error(
+                `place_order payment failed for order ${orderId}: ${
+                    e instanceof Error ? e.message : String(e)
+                }`,
+                loggerCtx,
+                e instanceof Error ? e.stack : undefined,
+            );
+            throw new UserInputError(
+                'The payment provider could not be reached or refused the request. Do not retry ' +
+                    'automatically. Call get_cart to check whether a payment was recorded, and tell the user.',
+            );
+        }
+    }
+
+    private async describeOutcome(txCtx: RequestContext, orderId: ID, result: Order) {
+        if (result.orderPlacedAt) {
+            await this.customerService.createAddressesForNewCustomer(txCtx, result);
+            if (txCtx.session && idsAreEqual(txCtx.session.activeOrderId, orderId)) {
+                await this.sessionService.unsetActiveOrder(txCtx, txCtx.session);
+            }
+            return { status: 'placed' as const, order: this.serializer.order(result) };
+        }
+
+        let message =
+            'Payment was created, but the order is not placed yet. Look at order.payments for ' +
+            "each payment's state and any publicMetadata with the shopper's next step.";
+        if (result.state === 'ArrangingPayment') {
+            message += ' The cart cannot be edited while the order is in ArrangingPayment.';
+        }
+        return {
+            status: 'awaiting_payment' as const,
+            order: this.serializer.order(result),
+            message,
+        };
     }
 }

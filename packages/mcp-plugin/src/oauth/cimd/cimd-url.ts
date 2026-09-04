@@ -28,18 +28,37 @@ export interface CimdClientIdUrlOptions {
  * and ensures the value matches canonical URL parsing rules.
  */
 export function validateCimdClientIdUrl(clientId: string, options: CimdClientIdUrlOptions): URL {
+    assertWithinLengthLimit(clientId);
+    const url = parseClientIdUrl(clientId);
+    const loopback = isLoopbackHostname(url.hostname);
+    assertSchemeAllowed(url, loopback, options);
+    assertNoUserinfo(url);
+    assertNoFragment(url);
+    assertNoQueryString(url, clientId);
+    assertHasPath(url);
+    assertNoDotSegments(clientId);
+    assertHostnameIsNotIpAddress(url, loopback, options);
+    assertCanonicalForm(url, clientId);
+    return url;
+}
+
+function assertWithinLengthLimit(clientId: string): void {
     if (clientId.length > CIMD_MAX_CLIENT_ID_LENGTH) {
         throw new BadRequestException(
             `client_id URL must be at most ${CIMD_MAX_CLIENT_ID_LENGTH} characters`,
         );
     }
-    let url: URL;
+}
+
+function parseClientIdUrl(clientId: string): URL {
     try {
-        url = new URL(clientId);
+        return new URL(clientId);
     } catch {
         throw new BadRequestException('client_id is not a valid URL');
     }
-    const loopback = isLoopbackHostname(url.hostname);
+}
+
+function assertSchemeAllowed(url: URL, loopback: boolean, options: CimdClientIdUrlOptions): void {
     const httpLoopbackAllowed = options.allowLoopback && url.protocol === 'http:' && loopback;
     if (url.protocol !== 'https:' && !httpLoopbackAllowed) {
         throw new BadRequestException('client_id URL must use https');
@@ -47,40 +66,64 @@ export function validateCimdClientIdUrl(clientId: string, options: CimdClientIdU
     if (loopback && !options.allowLoopback) {
         throw new BadRequestException('client_id URL must not point at a loopback address');
     }
+}
+
+function assertNoUserinfo(url: URL): void {
     if (url.username || url.password) {
         throw new BadRequestException('client_id URL must not contain userinfo');
     }
+}
+
+function assertNoFragment(url: URL): void {
     if (url.hash) {
         throw new BadRequestException('client_id URL must not contain a fragment');
     }
+}
+
+function assertNoQueryString(url: URL, clientId: string): void {
     if (url.search || clientId.includes('?')) {
         throw new BadRequestException('client_id URL must not contain a query string');
     }
+}
+
+function assertHasPath(url: URL): void {
     if (url.pathname === '/') {
         throw new BadRequestException(
             'client_id URL must include a path, for example /oauth-client-metadata.json',
         );
     }
-    // The WHATWG URL parser resolves "." and ".." segments silently, so inspect the raw
-    // string: the document's client_id must equal this exact string, and the draft forbids
-    // dot segments outright.
+}
+
+/**
+ * The WHATWG URL parser resolves "." and ".." segments silently, so inspect the raw
+ * string: the document's client_id must equal this exact string, and the draft forbids
+ * dot segments outright.
+ */
+function assertNoDotSegments(clientId: string): void {
     for (const segment of clientId.split('/')) {
         const normalized = segment.toLowerCase().replace(/%2e/g, '.');
         if (normalized === '.' || normalized === '..') {
             throw new BadRequestException('client_id URL must not contain dot path segments');
         }
     }
+}
+
+function assertHostnameIsNotIpAddress(url: URL, loopback: boolean, options: CimdClientIdUrlOptions): void {
     const bareHost = url.hostname.replace(/^\[|\]$/g, '');
     if (isIP(bareHost) !== 0 && !(options.allowLoopback && loopback)) {
         throw new BadRequestException('client_id URL must use a hostname, not an IP address');
     }
-    // Last: the string must survive parsing unchanged. The parser rewrites a URL in ways
-    // the checks above cannot see, such as resolving "." and ".." segments and treating
-    // "\" as a path separator.
+}
+
+/**
+ * The string must survive parsing unchanged. The parser rewrites a URL in ways the other
+ * checks cannot see, such as resolving "." and ".." segments and treating "\" as a path
+ * separator.
+ */
+function assertCanonicalForm(url: URL, clientId: string): void {
     if (url.href !== clientId) {
         throw new BadRequestException(
             `client_id URL must be given in canonical form (${url.href}), not "${clientId}"`,
         );
     }
-    return url;
 }
