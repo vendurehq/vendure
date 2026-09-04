@@ -981,3 +981,157 @@ describe('Command extensions: reserved names and shared-option scope', () => {
         expect(inherited).toEqual({ env: 'staging' });
     });
 });
+
+describe('Command extensions: sub-options and description ownership', () => {
+    it('rejects a shared option whose sub-option uses a reserved flag', () => {
+        const registry = registryWithCore();
+        const plugin = defineCliPlugin({
+            id: '@example/sneaky',
+            rootOptions: [
+                {
+                    long: '--mode <m>',
+                    description: 'Mode',
+                    required: true,
+                    subOptions: [{ long: '--help', description: 'Sneaky' }],
+                },
+            ],
+            commands: [{ name: 'thing', description: 'Thing', action: async () => 0 }],
+        });
+
+        expect(() => registry.applyPlugin(plugin)).toThrow(/reserved by the CLI/);
+        expect(registry.has('thing')).toBe(false);
+    });
+
+    it('rejects a sub-option that another plugin already shares', () => {
+        const registry = registryWithCore();
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: '@a/first',
+                rootOptions: [
+                    {
+                        long: '--a <v>',
+                        description: 'A',
+                        required: true,
+                        subOptions: [{ long: '--shared <v>', description: 'Shared', required: true }],
+                    },
+                ],
+                commands: [{ name: 'ca', description: 'CA', action: async () => 0 }],
+            }),
+        );
+
+        const rival = defineCliPlugin({
+            id: '@b/second',
+            rootOptions: [
+                {
+                    long: '--b <v>',
+                    description: 'B',
+                    required: true,
+                    subOptions: [{ long: '--shared <v>', description: 'Mine', required: true }],
+                },
+            ],
+            commands: [{ name: 'cb', description: 'CB', action: async () => 0 }],
+        });
+
+        expect(() => registry.applyPlugin(rival)).toThrow(/already registered by @a\/first/);
+        expect(registry.has('cb')).toBe(false);
+    });
+
+    it('rejects a command sub-option that uses a reserved flag', () => {
+        const registry = registryWithCore();
+        const plugin = defineCliPlugin({
+            id: '@example/sneaky',
+            commands: [
+                {
+                    name: 'thing',
+                    description: 'Thing',
+                    options: [
+                        {
+                            long: '--mode <m>',
+                            description: 'Mode',
+                            required: true,
+                            subOptions: [{ long: '-h', description: 'Sneaky' }],
+                        },
+                    ],
+                    action: async () => 0,
+                },
+            ],
+        });
+
+        expect(() => registry.applyPlugin(plugin)).toThrow(/reserved by the CLI/);
+    });
+
+    it('records description ownership per command, not per tree', () => {
+        const writeSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+        const registry = new CommandRegistry();
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: '@a/provider',
+                commands: [
+                    {
+                        name: 'config',
+                        description: 'Config',
+                        subcommands: [
+                            { name: 'server', description: 'Server', action: async () => 0 },
+                            { name: 'database', description: 'Database', action: async () => 0 },
+                        ],
+                    },
+                ],
+            }),
+        );
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: '@b/first',
+                commands: [],
+                extendCommands: [{ command: 'config server', description: 'Server by B' }],
+            }),
+        );
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: '@c/second',
+                commands: [],
+                extendCommands: [{ command: 'config database', description: 'Database by C' }],
+            }),
+        );
+
+        // Two different commands were described, so nothing was replaced.
+        const written = writeSpy.mock.calls.map(call => String(call[0])).join('');
+        expect(written).not.toContain('Description of');
+        writeSpy.mockRestore();
+    });
+
+    it('still reports a replacement when the same command is described twice', () => {
+        const writeSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+        const registry = new CommandRegistry();
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: '@a/provider',
+                commands: [
+                    {
+                        name: 'config',
+                        description: 'Config',
+                        subcommands: [{ name: 'server', description: 'Server', action: async () => 0 }],
+                    },
+                ],
+            }),
+        );
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: '@b/first',
+                commands: [],
+                extendCommands: [{ command: 'config server', description: 'Server by B' }],
+            }),
+        );
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: '@c/second',
+                commands: [],
+                extendCommands: [{ command: 'config server', description: 'Server by C' }],
+            }),
+        );
+
+        const written = writeSpy.mock.calls.map(call => String(call[0])).join('');
+        expect(written).toContain('Description of "vendure config server" set by @c/second');
+        expect(written).toContain('@b/first');
+        writeSpy.mockRestore();
+    });
+});
