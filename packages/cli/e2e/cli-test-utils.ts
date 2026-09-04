@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -143,6 +143,70 @@ export const config: VendureConfig = {
             });
         },
     };
+}
+
+const CLI_PACKAGE_DIR = join(__dirname, '..');
+const CLI_PLUGIN_FIXTURES_DIR = join(__dirname, 'fixtures', 'cli-plugins');
+
+/**
+ * Copies a CLI plugin fixture into the test project's node_modules, declares it
+ * as a direct dependency and, unless `enable` is false, lists it in
+ * `vendure.cli.plugins` so the CLI actually loads it.
+ *
+ * Returns the package name of the installed plugin.
+ */
+export function installCliPluginFixture(
+    project: CliTestProject,
+    fixtureName: string,
+    options: { enable?: boolean } = {},
+): string {
+    const fixtureDir = join(CLI_PLUGIN_FIXTURES_DIR, fixtureName);
+    const packageName = JSON.parse(readFileSync(join(fixtureDir, 'package.json'), 'utf-8')).name as string;
+    const targetDir = join(project.projectDir, 'node_modules', ...packageName.split('/'));
+
+    mkdirSync(targetDir, { recursive: true });
+    cpSync(fixtureDir, targetDir, { recursive: true });
+    linkCliPackage(project);
+
+    updatePackageJson(project, packageJson => {
+        packageJson.dependencies = { ...packageJson.dependencies, [packageName]: '1.0.0' };
+        if (options.enable !== false) {
+            const vendure = packageJson.vendure ?? {};
+            const cli = vendure.cli ?? {};
+            packageJson.vendure = {
+                ...vendure,
+                cli: { ...cli, plugins: [...(cli.plugins ?? []), packageName] },
+            };
+        }
+    });
+
+    return packageName;
+}
+
+/**
+ * Makes `require('@vendure/cli')` resolve from the test project, so a plugin
+ * fixture uses the same public API a real plugin package would.
+ */
+function linkCliPackage(project: CliTestProject): void {
+    const scopeDir = join(project.projectDir, 'node_modules', '@vendure');
+    const linkPath = join(scopeDir, 'cli');
+    if (!existsSync(linkPath)) {
+        mkdirSync(scopeDir, { recursive: true });
+        symlinkSync(CLI_PACKAGE_DIR, linkPath, process.platform === 'win32' ? 'junction' : 'dir');
+    }
+    updatePackageJson(project, packageJson => {
+        packageJson.devDependencies = { ...packageJson.devDependencies, '@vendure/cli': '*' };
+    });
+}
+
+function updatePackageJson(project: CliTestProject, mutate: (packageJson: any) => void): void {
+    const packageJson = JSON.parse(project.readFile('package.json'));
+    mutate(packageJson);
+    project.writeFile('package.json', JSON.stringify(packageJson, null, 2));
+}
+
+export function readEnabledCliPlugins(project: CliTestProject): string[] {
+    return JSON.parse(project.readFile('package.json')).vendure?.cli?.plugins ?? [];
 }
 
 /**

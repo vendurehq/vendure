@@ -4,9 +4,17 @@ import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { builtinCommands } from '../commands/builtins';
+import { CliCommandDefinition, CliCommandGroupDefinition, isCliCommandGroup } from './cli-command-definition';
 import { defineCliPlugin } from './cli-plugin';
-import { CommandRegistry } from './command-registry-store';
-import { PackageJsonLike, discoverCliPlugins, findInactivePluginProvidingCommand, listDirectDependencyNames, listInactiveCliPluginPackages, resolveCliPlugins } from './resolve-cli-plugins';
+import { CliPluginRegistrationError, CommandRegistry } from './command-registry-store';
+import {
+    PackageJsonLike,
+    discoverCliPlugins,
+    findInactivePluginProvidingCommand,
+    listDirectDependencyNames,
+    listInactiveCliPluginPackages,
+    resolveCliPlugins,
+} from './resolve-cli-plugins';
 
 describe('defineCliPlugin()', () => {
     it('returns a valid plugin definition', () => {
@@ -80,6 +88,7 @@ describe('CommandRegistry', () => {
                     {
                         name: 'dev',
                         description: 'Cloud dev',
+                        replaces: true,
                         action: async () => 0,
                     },
                 ],
@@ -132,7 +141,7 @@ describe('CommandRegistry', () => {
             description: 'Built-in',
             action: builtinAction,
         });
-        const builtin = registry.get('dev')!;
+        const builtin = registry.get('dev') as CliCommandDefinition;
         registry.applyPlugin(
             defineCliPlugin({
                 id: '@example/wrap',
@@ -140,6 +149,7 @@ describe('CommandRegistry', () => {
                     {
                         name: 'dev',
                         description: 'Wrapped',
+                        replaces: true,
                         action: async (...args) => {
                             order.push('before');
                             const code = await builtin.action(...args);
@@ -150,7 +160,7 @@ describe('CommandRegistry', () => {
                 ],
             }),
         );
-        const exitCode = await registry.get('dev')!.action();
+        const exitCode = await (registry.get('dev') as CliCommandDefinition).action();
         expect(exitCode).toBe(0);
         expect(order).toEqual(['before', 'builtin', 'after']);
     });
@@ -165,6 +175,302 @@ describe('CommandRegistry', () => {
         expect(exitCode).toBe(1);
         expect(exitSpy).not.toHaveBeenCalled();
         exitSpy.mockRestore();
+    });
+});
+
+describe('CommandRegistry nested commands and shared options', () => {
+    function registryWithBuiltins(): CommandRegistry {
+        const registry = new CommandRegistry();
+        registry.registerAll([
+            { name: 'dev', description: 'Built-in dev', action: async () => 0 },
+            {
+                name: 'plugins',
+                description: 'Manage CLI plugins',
+                options: [{ long: '--json', description: 'Output JSON' }],
+                action: async () => 0,
+            },
+        ]);
+        return registry;
+    }
+
+    const cloudPlugin = () =>
+        defineCliPlugin({
+            id: '@vendure/cloud',
+            rootOptions: [
+                { long: '--token <token>', description: 'API token', required: true },
+                { long: '--json', description: 'Output JSON' },
+            ],
+            commands: [
+                {
+                    name: 'project',
+                    description: 'Manage projects',
+                    subcommands: [{ name: 'list', description: 'List projects', action: async () => 0 }],
+                },
+            ],
+        });
+
+    it('registers a nested command tree and its shared options', () => {
+        const registry = registryWithBuiltins();
+        registry.applyPlugin(cloudPlugin());
+
+        const project = registry.get('project');
+        expect(project && isCliCommandGroup(project)).toBe(true);
+        expect((project as CliCommandGroupDefinition).subcommands.map(c => c.name)).toEqual(['list']);
+        expect(registry.getRootOptions().map(o => o.long)).toEqual(['--token <token>', '--json']);
+    });
+
+    it('accepts a shared option that an existing command also declares', () => {
+        // The built-in `plugins --json` and a shared `--json` both take no
+        // value, so they can refer to the same value.
+        const registry = registryWithBuiltins();
+        expect(() => registry.applyPlugin(cloudPlugin())).not.toThrow();
+    });
+
+    it('rejects a plugin that replaces a built-in without opting in', () => {
+        const registry = registryWithBuiltins();
+        const plugin = defineCliPlugin({
+            id: '@example/sneaky',
+            commands: [{ name: 'dev', description: 'Sneaky dev', action: async () => 0 }],
+        });
+
+        expect(() => registry.applyPlugin(plugin)).toThrow(CliPluginRegistrationError);
+        expect(registry.get('dev')?.description).toBe('Built-in dev');
+    });
+
+    it('rejects a plugin that replaces another plugin command without opting in', () => {
+        const registry = registryWithBuiltins();
+        registry.applyPlugin(cloudPlugin());
+
+        const other = defineCliPlugin({
+            id: '@example/other',
+            commands: [{ name: 'project', description: 'Other projects', action: async () => 0 }],
+        });
+
+        expect(() => registry.applyPlugin(other)).toThrow(/already provided by @vendure\/cloud/);
+        const stillRegistered = registry.get('project');
+        expect(stillRegistered && isCliCommandGroup(stillRegistered)).toBe(true);
+    });
+
+    it('rejects a shared option already registered by another plugin', () => {
+        const registry = registryWithBuiltins();
+        registry.applyPlugin(cloudPlugin());
+
+        const other = defineCliPlugin({
+            id: '@example/other',
+            rootOptions: [{ long: '--token <token>', description: 'Another token', required: true }],
+            commands: [{ name: 'other', description: 'Other', action: async () => 0 }],
+        });
+
+        expect(() => registry.applyPlugin(other)).toThrow(/already registered by @vendure\/cloud/);
+        expect(registry.has('other')).toBe(false);
+    });
+
+    it('rejects a shared option that takes a flag reserved by the CLI', () => {
+        const registry = registryWithBuiltins();
+        const plugin = defineCliPlugin({
+            id: '@example/greedy',
+            rootOptions: [{ long: '--help', description: 'Custom help' }],
+            commands: [{ name: 'greedy', description: 'Greedy', action: async () => 0 }],
+        });
+
+        expect(() => registry.applyPlugin(plugin)).toThrow(/reserved by the CLI/);
+    });
+
+    it('rejects a shared option whose value shape disagrees with an existing command option', () => {
+        const registry = registryWithBuiltins();
+        const plugin = defineCliPlugin({
+            id: '@example/clash',
+            rootOptions: [{ long: '--json <file>', description: 'Write JSON to a file', required: true }],
+            commands: [{ name: 'clash', description: 'Clash', action: async () => 0 }],
+        });
+
+        expect(() => registry.applyPlugin(plugin)).toThrow(/one takes a value and the other does not/);
+    });
+
+    it('rejects a command option whose value shape disagrees with a shared option', () => {
+        const registry = registryWithBuiltins();
+        registry.applyPlugin(cloudPlugin());
+
+        const plugin = defineCliPlugin({
+            id: '@example/clash',
+            commands: [
+                {
+                    name: 'clash',
+                    description: 'Clash',
+                    options: [{ long: '--token', description: 'Use the stored token' }],
+                    action: async () => 0,
+                },
+            ],
+        });
+
+        expect(() => registry.applyPlugin(plugin)).toThrow(/one takes a value and the other does not/);
+    });
+
+    it('keeps the built-in commands available when a plugin is rejected', () => {
+        const registry = registryWithBuiltins();
+        const plugin = defineCliPlugin({
+            id: '@example/broken',
+            rootOptions: [{ long: '--help', description: 'Custom help' }],
+            commands: [
+                { name: 'dev', description: 'Broken dev', replaces: true, action: async () => 0 },
+                { name: 'broken', description: 'Broken', action: async () => 0 },
+            ],
+        });
+
+        expect(() => registry.applyPlugin(plugin)).toThrow(CliPluginRegistrationError);
+        expect(registry.has('plugins')).toBe(true);
+        expect(registry.get('dev')?.description).toBe('Built-in dev');
+        expect(registry.has('broken')).toBe(false);
+    });
+
+    it('reports every conflict at once', () => {
+        const registry = registryWithBuiltins();
+        const plugin = defineCliPlugin({
+            id: '@example/messy',
+            rootOptions: [{ long: '--version', description: 'Custom version' }],
+            commands: [{ name: 'dev', description: 'Messy dev', action: async () => 0 }],
+        });
+
+        try {
+            registry.applyPlugin(plugin);
+            expect.unreachable('applyPlugin should have thrown');
+        } catch (e) {
+            expect(e).toBeInstanceOf(CliPluginRegistrationError);
+            expect((e as CliPluginRegistrationError).conflicts).toHaveLength(2);
+        }
+    });
+});
+
+describe('defineCliPlugin() with nested commands', () => {
+    it('accepts a nested tree with shared options', () => {
+        const plugin = defineCliPlugin({
+            id: '@vendure/cloud',
+            rootOptions: [{ long: '--token <token>', description: 'API token', required: true }],
+            commands: [
+                {
+                    name: 'config',
+                    description: 'Manage configuration',
+                    options: [{ long: '--profile <name>', description: 'Profile', required: true }],
+                    subcommands: [
+                        {
+                            name: 'server',
+                            description: 'Server configuration',
+                            subcommands: [
+                                {
+                                    name: 'set',
+                                    description: 'Set a value',
+                                    arguments: [
+                                        { name: 'key', description: 'Key', required: true },
+                                        { name: 'value', description: 'Value', required: true },
+                                    ],
+                                    action: async () => 0,
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        });
+
+        expect(plugin.commands).toHaveLength(1);
+    });
+
+    it('rejects a command group without subcommands', () => {
+        expect(() =>
+            defineCliPlugin({
+                id: '@example/empty',
+                commands: [{ name: 'project', description: 'Manage projects', subcommands: [] }],
+            }),
+        ).toThrow(/at least one subcommand/);
+    });
+
+    it('rejects a command group that also declares an action', () => {
+        expect(() =>
+            defineCliPlugin({
+                id: '@example/both',
+                commands: [
+                    {
+                        name: 'project',
+                        description: 'Manage projects',
+                        subcommands: [{ name: 'list', description: 'List projects', action: async () => 0 }],
+                        action: async () => 0,
+                    } as any,
+                ],
+            }),
+        ).toThrow(/declares both subcommands and an action/);
+    });
+
+    it('rejects a nested command without an action', () => {
+        expect(() =>
+            defineCliPlugin({
+                id: '@example/broken',
+                commands: [
+                    {
+                        name: 'project',
+                        description: 'Manage projects',
+                        subcommands: [
+                            { name: 'list', description: 'List projects', action: undefined as any },
+                        ],
+                    },
+                ],
+            }),
+        ).toThrow(/command "project list" must provide an action function/);
+    });
+
+    it('rejects duplicate sibling command names', () => {
+        expect(() =>
+            defineCliPlugin({
+                id: '@example/dupes',
+                commands: [
+                    {
+                        name: 'project',
+                        description: 'Manage projects',
+                        subcommands: [
+                            { name: 'list', description: 'List projects', action: async () => 0 },
+                            { name: 'list', description: 'List projects again', action: async () => 0 },
+                        ],
+                    },
+                ],
+            }),
+        ).toThrow(/declares the command "project list" more than once/);
+    });
+
+    it('rejects a nested command that shadows a shared option', () => {
+        expect(() =>
+            defineCliPlugin({
+                id: '@example/shadow',
+                rootOptions: [{ long: '--token <token>', description: 'API token', required: true }],
+                commands: [
+                    {
+                        name: 'project',
+                        description: 'Manage projects',
+                        subcommands: [
+                            {
+                                name: 'list',
+                                description: 'List projects',
+                                options: [
+                                    { long: '--token <token>', description: 'Override', required: true },
+                                ],
+                                action: async () => 0,
+                            },
+                        ],
+                    },
+                ],
+            }),
+        ).toThrow(/already a shared option/);
+    });
+
+    it('rejects a shared option declared twice', () => {
+        expect(() =>
+            defineCliPlugin({
+                id: '@example/dupes',
+                rootOptions: [
+                    { long: '--token <token>', description: 'API token', required: true },
+                    { long: '--token <token>', description: 'API token again', required: true },
+                ],
+                commands: [{ name: 'noop', description: 'Noop', action: async () => 0 }],
+            }),
+        ).toThrow(/declares "--token" twice/);
     });
 });
 
@@ -581,10 +887,12 @@ describe('resolveCliPlugins()', () => {
             resolvePackage: fixture.resolvePackage,
         });
         expect(match?.packageName).toBe('@vendure/cloud');
-        expect(listInactiveCliPluginPackages({
-            cwd: fixture.root,
-            projectPackageJson,
-            resolvePackage: fixture.resolvePackage,
-        })).toEqual(['@vendure/cloud']);
+        expect(
+            listInactiveCliPluginPackages({
+                cwd: fixture.root,
+                projectPackageJson,
+                resolvePackage: fixture.resolvePackage,
+            }),
+        ).toEqual(['@vendure/cloud']);
     });
 });

@@ -1,0 +1,10 @@
+{
+    "name": "@vendure-e2e/option-collision-cli-plugin",
+    "version": "1.0.0",
+    "private": true,
+    "main": "cli-plugin.js",
+    "vendure": {
+        "cliPlugin": "./cli-plugin.js",
+        "cliCommands": ["rival"]
+    }
+}
