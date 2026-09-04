@@ -174,8 +174,7 @@ export class McpToolSchemaService {
         delete json.$schema;
         if (!this.isMcpJsonSchema(json)) {
             const type = (json as { type?: unknown }).type;
-            // A union converts to anyOf/oneOf with no root type. It is a common authoring mistake
-            // and the generic "must describe an object" message does not say how to fix it.
+            // A union converts to anyOf/oneOf with no root type, so it needs its own message to say how to fix it.
             if (type === undefined && (json.anyOf !== undefined || json.oneOf !== undefined)) {
                 throw new Error(
                     `${label}: the Standard Schema is a union (anyOf/oneOf) ` +

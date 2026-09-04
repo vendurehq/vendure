@@ -14,10 +14,6 @@ export interface CimdDocument {
     tokenEndpointAuthMethod: 'none';
 }
 
-/**
- * Parses and validates a CIMD document.
- * Ensures required fields match the expected client_id and constraints.
- */
 export function parseCimdDocument(clientId: string, rawBody: string): CimdDocument {
     let parsed: unknown;
     try {
@@ -53,7 +49,6 @@ export function parseCimdDocument(clientId: string, rawBody: string): CimdDocume
     for (const uri of redirectUris) {
         assertSafeRedirectUri(uri);
     }
-    // CIMD documents must not include client secrets
     if ('client_secret' in document || 'client_secret_expires_at' in document) {
         throw new BadRequestException('client_id metadata document must not contain a client secret');
     }
@@ -66,9 +61,7 @@ export function parseCimdDocument(clientId: string, rawBody: string): CimdDocume
             'client_id metadata document must support token_endpoint_auth_method "none"',
         );
     }
-    // A CIMD document is portable across authorization servers, so it may list grant types
-    // other servers support. Keep the intersection, but the grant this flow runs on must
-    // be there.
+    // A document may list grant types meant for other servers too, so only keep the ones we support.
     const declaredGrantTypes = Array.isArray(document.grant_types)
         ? document.grant_types.filter((grant): grant is string => typeof grant === 'string')
         : SUPPORTED_OAUTH_GRANT_TYPES;

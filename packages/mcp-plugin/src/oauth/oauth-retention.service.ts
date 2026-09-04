@@ -42,11 +42,7 @@ export class McpOauthRetentionService {
         return { deletedSessions, deletedRequests, deletedCodes, deletedGrants, deletedClients };
     }
 
-    /**
-     * Cleans up Vendure sessions for expired or revoked grants.
-     * Prevents expired grants from retaining active GraphQL sessions and ensures
-     * orphaned sessions don't outlive their grant records.
-     */
+    /** Prevents expired or revoked grants from leaving a live GraphQL session behind. */
     private deleteSessionsOfDeadGrants(ctx: RequestContext): Promise<number> {
         return deleteInBatches(
             this.connection,
@@ -71,11 +67,7 @@ export class McpOauthRetentionService {
         );
     }
 
-    /**
-     * Deletes authorization requests or codes that have expired without ever being used. Their
-     * lifetimes are 10 minutes and 60 seconds; a used one is deleted immediately by the atomic
-     * claim that consumes it, so this only ever catches abandoned flows.
-     */
+    /** Only ever catches abandoned flows, since a used request or code is deleted immediately when it's consumed. */
     private deleteExpiredShortLivedRecords<T extends ObjectLiteral>(
         ctx: RequestContext,
         entity: ObjectType<T>,
@@ -91,12 +83,7 @@ export class McpOauthRetentionService {
         );
     }
 
-    /**
-     * Deletes grants that have been dead — expired or revoked — for longer than
-     * `oauth.grantRetentionDays`. The row outlives the authorization it recorded because it is the
-     * only OAuth record with audit value; the option's default matches the tool-call log window so
-     * that, out of the box, every retained log can still resolve the grant it points at.
-     */
+    /** Kept longer than other OAuth records for audit value; the default retention matches the tool-call log window so a retained log can still resolve its grant. */
     private deleteDeadGrants(ctx: RequestContext): Promise<number> {
         const oauth = this.options.oauth;
         if (!oauth) {
@@ -118,11 +105,6 @@ export class McpOauthRetentionService {
         );
     }
 
-    /**
-     * Deletes client registrations that were never used: older than
-     * `MCP_UNUSED_OAUTH_CLIENT_RETENTION_MS`, never issued a token (`lastUsedAt IS NULL`),
-     * and with no grants.
-     */
     private deleteUnusedClients(ctx: RequestContext): Promise<number> {
         const cutoff = new Date(Date.now() - MCP_UNUSED_OAUTH_CLIENT_RETENTION_MS);
         return deleteInBatches(this.connection, ctx, McpOauthClient, () =>

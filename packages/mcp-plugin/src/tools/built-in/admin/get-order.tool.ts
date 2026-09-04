@@ -19,8 +19,7 @@ const getOrderInput = z
 
 type GetOrderInput = z.infer<typeof getOrderInput>;
 
-// `get_order` exists in both toolsets, so this class gets its own name rather than reusing the shop
-// `ShopGetOrderTool`. A distinct class means stack traces and editor symbol search point at the right one.
+// Named distinctly from the shop version so stack traces and symbol search aren't ambiguous.
 @McpTool({
     name: 'get_order',
     toolset: 'admin',

@@ -14,8 +14,7 @@ defineDashboardExtension({
             id: 'mcp-server',
             title: 'MCP Server',
             icon: PlugIcon,
-            // The core "System" section is also at the bottom with order 200, so this
-            // section lands just below it.
+            // order 250 lands below the core "System" section, which is at 200.
             placement: 'bottom',
             order: 250,
         },

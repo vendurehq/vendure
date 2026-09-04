@@ -50,11 +50,7 @@ export class McpOauthRateLimitGuard implements CanActivate {
     }
 }
 
-/**
- * Answers an over-budget request: sets `Retry-After` and sends the exception's own 429 body.
- * Controller-scoped filters run before app-wide ones, which is what keeps Vendure's
- * ExceptionLoggerFilter from rewriting the body.
- */
+// Scoped to the controller so it runs before Vendure's app-wide ExceptionLoggerFilter can rewrite the body.
 @Catch(McpOauthRateLimitExceededHttpException)
 export class McpOauthRateLimitExceptionFilter implements ExceptionFilter {
     catch(exception: McpOauthRateLimitExceededHttpException, host: ArgumentsHost): void {

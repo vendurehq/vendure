@@ -29,7 +29,6 @@ import { useMcpTableState } from './use-mcp-table-state';
 
 type Grant = ResultOf<typeof mcpOauthGrantsQuery>['mcpOauthGrants']['items'][number];
 
-/** Shows the status value the server sent: "active", "expired" or "revoked". */
 function GrantStatusBadge({ status }: { status: Grant['status'] }) {
     if (status === 'revoked') {
         return (
@@ -125,8 +124,7 @@ export function GrantsBlock() {
                     actorName: {
                         header: () => <Trans>Granted to</Trans>,
                         meta: { dependencies: ['actorType', 'customerId'] },
-                        // The name is looked up per row and has no database column, so the server
-                        // rejects any attempt to sort or filter by it.
+                        // No database column to sort or filter by; it's looked up per row.
                         enableSorting: false,
                         enableColumnFilter: false,
                         cell: ({ row }) => (
@@ -146,9 +144,7 @@ export function GrantsBlock() {
                                 <EmptyCell />
                             ),
                     },
-                    // Only feeds the "Granted to" cell, which lists it as a dependency so it is still
-                    // fetched. It gets no column of its own, since it has no database column to sort
-                    // or filter by.
+                    // Fetched only to feed the "Granted to" cell; no database column to sort or filter by.
                     customerId: { meta: { disabled: true } },
                     lastActivityAt: { header: () => <Trans>Last activity</Trans> },
                     expiresAt: { header: () => <Trans>Expires</Trans> },
@@ -162,9 +158,7 @@ export function GrantsBlock() {
                         header: () => <Trans>Actions</Trans>,
                         meta: { dependencies: ['id', 'revokedAt'] },
                         enableHiding: false,
-                        // A revoked grant has nothing left to act on, and a user without the update
-                        // permission cannot revoke one. Either way the column still shows a disabled
-                        // control so the row doesn't look broken.
+                        // Shows a disabled control rather than nothing, so the row doesn't look broken.
                         cell: ({ row }) =>
                             row.original.revokedAt != null || !canUpdate ? (
                                 <Button
@@ -205,11 +199,7 @@ export function GrantsBlock() {
                             ),
                     },
                 }}
-                // Every column has to be named here, including the ones hidden by default. The
-                // dashboard appends any column left out of this list after the listed ones, which
-                // for this table means after "actions" - so an omitted column would show up to the
-                // right of the revoke menu once the user enables it. "actions" stays last, and
-                // id / createdAt / updatedAt are moved to the front by the dashboard itself.
+                // "actions" must stay last, so every other column is named here rather than left to append after it.
                 defaultColumnOrder={[
                     'oauthClientName',
                     'actorName',

@@ -13,9 +13,7 @@ const listCustomerGroupsInput = z.strictObject({
 
 type ListCustomerGroupsInput = z.infer<typeof listCustomerGroupsInput>;
 
-// This tool exists because `add_customer_to_group` requires a `groupId` and no other tool returns one.
-// Every required foreign-key input of a built-in tool needs a way to discover its value inside the
-// toolset; an optional input does not earn a tool of its own.
+// This tool exists so agents can look up the groupId that add_customer_to_group requires.
 @McpTool({
     name: 'list_customer_groups',
     toolset: 'admin',

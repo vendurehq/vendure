@@ -1,10 +1,5 @@
 import { gql } from 'graphql-tag';
 
-/**
- * Admin API for the MCP server: list tools and OAuth grants, page through the
- * tool-call log, read usage stats, record an admin's consent decision, and run
- * the maintenance mutations (toggle a tool, revoke a grant, delete old logs).
- */
 export const adminApiExtensions = gql`
     "Which endpoint a tool is served from."
     enum McpToolset {

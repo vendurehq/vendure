@@ -1,10 +1,6 @@
 import { graphql } from '@/gql';
 
-/**
- * Every request the MCP Server dashboard pages send. The Admin API schema supplies the reply
- * and variable types, so a change to `src/api/api-extensions.ts` that these requests do not
- * match stops the dashboard code compiling.
- */
+// A mismatch with src/api/api-extensions.ts stops the dashboard code compiling.
 
 export const mcpToolsQuery = graphql(`
     query McpTools {

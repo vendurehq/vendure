@@ -50,10 +50,7 @@ export function resolveMcpPluginOptions(options: McpPluginOptions = {}): Resolve
     };
 }
 
-/**
- * Returns a copy of the object without the keys whose value is `undefined`. An option read from an
- * environment variable that is not set must fall back to its default rather than erase it.
- */
+// An option read from an unset environment variable must fall back to its default rather than erase it.
 function withoutUndefined<T extends object>(value: T): T {
     return Object.fromEntries(Object.entries(value).filter(([, v]) => v !== undefined)) as T;
 }
@@ -70,10 +67,7 @@ function assertNonNegativeNumber(name: string, value: number): void {
     }
 }
 
-/**
- * Merges user rate-limit options over the defaults. The anonymous-IP backstop stays ON unless
- * the user explicitly passes `anonymousIp: false`.
- */
+// The anonymous-IP backstop stays on unless the user explicitly passes `anonymousIp: false`.
 function resolveRateLimits(rateLimits?: McpRateLimitOptions): Required<McpRateLimitOptions> {
     const resolved: Required<McpRateLimitOptions> = {
         perSession: rateLimits?.perSession ?? DEFAULT_RATE_LIMIT_OPTIONS.perSession,

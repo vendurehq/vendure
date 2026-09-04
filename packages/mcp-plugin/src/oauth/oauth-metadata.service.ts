@@ -9,11 +9,7 @@ import { OAUTH_ENDPOINT_PATHS } from './endpoint-paths';
 import { McpOauthError } from './oauth-error';
 import { resolvedOauthOptions } from './oauth-utils';
 
-/**
- * Builds the OAuth discovery documents this server publishes, and resolves the `resource`
- * values they advertise: the RFC 8414 authorization-server metadata, the RFC 9728
- * protected-resource metadata for each toolset, and the URL those documents live at.
- */
+/** Builds the RFC 8414 and RFC 9728 OAuth discovery documents this server publishes. */
 @Injectable()
 export class McpOauthMetadataService {
     constructor(@Inject(MCP_PLUGIN_OPTIONS) private readonly options: ResolvedMcpPluginOptions) {}
@@ -88,7 +84,6 @@ export class McpOauthMetadataService {
         return this.options.shopAccess === 'disabled' ? ['admin'] : ['shop', 'admin'];
     }
 
-    /** The configured issuer URL with any trailing slash removed. */
     private issuerOrigin(): string {
         return resolvedOauthOptions(this.options).issuer.replace(/\/$/, '');
     }

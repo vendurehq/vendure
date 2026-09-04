@@ -10,10 +10,8 @@ import {
 
 import { type ListInput, listOptions } from '../list-helpers';
 
-/** Which key a shop collection tool was given: the collection's id, or its slug. */
 export type CollectionLookup = { kind: 'id'; value: ID } | { kind: 'slug'; value: string };
 
-/** Settles the id-or-slug choice once; the id wins when both are given. */
 export function collectionLookup(id: ID | undefined, slug: string | undefined): CollectionLookup | undefined {
     if (id != null) {
         return { kind: 'id', value: id };
@@ -24,10 +22,7 @@ export function collectionLookup(id: ID | undefined, slug: string | undefined): 
     return undefined;
 }
 
-/**
- * The public collection the lookup names, or undefined. A private collection is hidden from
- * shoppers, so it counts as unknown here too.
- */
+// A private collection is hidden from shoppers, so it counts as unknown here too.
 export async function findPublicCollection(
     collectionService: CollectionService,
     ctx: RequestContext,

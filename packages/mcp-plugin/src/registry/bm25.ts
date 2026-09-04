@@ -5,11 +5,7 @@ const STOPWORDS = new Set(
     ).split(' '),
 );
 
-/**
- * Lowercases and splits on any non-alphanumeric run (so snake_case names split into words),
- * then drops stopwords. Whole-word matching is what lets a nonsense query score zero and
- * trigger the zero-result hint, where substring matching could not.
- */
+// Whole-word matching lets a nonsense query score zero and trigger the no-results hint, which substring matching could not.
 export function tokenize(text: string): string[] {
     return text
         .toLowerCase()
@@ -18,22 +14,15 @@ export function tokenize(text: string): string[] {
 }
 
 interface Bm25Doc {
-    /** How many times each term appears in this document. */
     termCounts: Map<string, number>;
     length: number;
 }
 
-// Standard Okapi BM25 tuning values: K1 caps how much repeated occurrences of a term add,
-// B sets how strongly long documents are penalized.
+// Standard Okapi BM25 tuning values.
 const K1 = 1.5;
 const B = 0.75;
 
-/**
- * Okapi BM25 over a fixed set of named documents. Rare query terms count more than common
- * ones (a "refund" hit says more than an "order" hit when half the tools mention orders).
- * The corpus is fixed after tool discovery, so the index is built once at bootstrap and
- * never needs maintenance.
- */
+// Rare query terms count more than common ones, so a "refund" hit says more than an "order" hit when half the tools mention orders.
 export class Bm25Index {
     private readonly docs = new Map<string, Bm25Doc>();
     private readonly df = new Map<string, number>();

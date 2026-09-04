@@ -29,7 +29,6 @@ type McpTool = ResultOf<typeof mcpToolsQuery>['mcpTools'][number];
 
 const toolsQueryKey = ['mcp-tools'];
 
-/** How each safety level looks, and what it means for the data in the store. */
 function safetyPresentation(behavior: McpTool['behavior']) {
     if (behavior === 'destructive') {
         return {
@@ -84,8 +83,7 @@ export function ToolsBlock() {
     const toggle = useMutation({
         mutationFn: (vars: { toolName: string; toolset: McpTool['toolset']; enabled: boolean }) =>
             api.mutate(setMcpToolEnabledMutation, vars),
-        // Flip the switch in the cached list immediately so it doesn't sit in its
-        // old position until the refetch lands. Rolled back if the server rejects.
+        // Optimistic update so the switch doesn't wait for the refetch; rolled back on server rejection.
         onMutate: async vars => {
             await queryClient.cancelQueries({ queryKey: toolsQueryKey });
             const previous = queryClient.getQueryData<ResultOf<typeof mcpToolsQuery>>(toolsQueryKey);
@@ -173,8 +171,7 @@ export function ToolsBlock() {
                     customConfig={{ header: () => <Trans>Plugin</Trans> }}
                 />
             ),
-            // The plugin that registered the tool, so operators can tell built-in tools apart
-            // from ones their own plugins contribute.
+            // Lets operators tell built-in tools apart from ones their own plugins contribute.
             cell: ({ row }) => (
                 <span className="text-sm text-muted-foreground">{row.original.pluginSource}</span>
             ),
@@ -262,9 +259,7 @@ export function ToolsBlock() {
                     rowCount: undefined,
                     getSortedRowModel: getSortedRowModel(),
                     getFilteredRowModel: getFilteredRowModel(),
-                    // Without this, any data refresh (e.g. the refetch after toggling
-                    // a tool) would jump the table back to page 1. Search and filter
-                    // changes still reset the page via the DataTable itself.
+                    // Stops a data refresh (e.g. after toggling a tool) from jumping back to page 1.
                     autoResetPageIndex: false,
                 })}
                 page={page}

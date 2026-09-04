@@ -18,14 +18,8 @@ import { ExternalLinkIcon, PlugIcon } from 'lucide-react';
 
 import { mcpServerConfigQuery } from '../mcp.graphql';
 
-/** Docs page that walks through connecting an MCP client to a Vendure server. */
 const SETUP_GUIDE_URL = 'https://docs.vendure.io/guides/mcp-server/quick-start/';
 
-/**
- * A muted label above a read-only value, shown in a monospace box with the copy button at the
- * right edge of the box. Long values are truncated, and the whole value is still copied and is
- * readable from the tooltip.
- */
 function CopyableField({ label, value }: { label: React.ReactNode; value: string }) {
     return (
         <div className="space-y-1.5">
@@ -39,19 +33,14 @@ function CopyableField({ label, value }: { label: React.ReactNode; value: string
     );
 }
 
-/**
- * The endpoints and setup pointers an operator needs once, when wiring up a client. It lives
- * behind a header button rather than on the page so it does not compete with the day-to-day
- * health and activity blocks.
- */
+// Behind a header button rather than on the page, so it doesn't compete with the day-to-day blocks.
 export function ConnectionDialog() {
     const { data, isLoading } = useQuery({
         queryKey: ['mcp-server-config'],
         queryFn: () => api.query(mcpServerConfigQuery),
     });
     const config = data?.mcpServerConfig;
-    // Clients have to reach the server on its OAuth issuer origin, which is not always the
-    // origin the dashboard itself is served from.
+    // Clients reach the server on its OAuth issuer origin, which can differ from the dashboard's own origin.
     const origin = config?.issuer ?? window.location.origin;
     const adminUrl = `${origin}/mcp/admin`;
     const shopUrl = `${origin}/mcp/shop`;

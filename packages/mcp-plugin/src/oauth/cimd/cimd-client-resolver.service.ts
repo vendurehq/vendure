@@ -15,17 +15,10 @@ import { CimdDocument, parseCimdDocument } from './cimd-document';
 import { fetchCimdDocument } from './cimd-fetch';
 import { validateCimdClientIdUrl } from './cimd-url';
 
-/**
- * Resolves a URL-based client_id into a cached {@link McpOauthClient} using a CIMD document.
- * The client row acts as the cache and is refreshed when expired.
- * Invalid or failed documents are never cached.
- */
+/** Caches CIMD documents as client rows so they aren't refetched on every request; invalid documents are never cached. */
 @Injectable()
 export class McpCimdClientResolverService {
-    /**
-     * Deduplicates concurrent fetches of the same client_id.
-     * Each caller still persists its own result.
-     */
+    /** Avoids firing off duplicate fetches when several requests for the same client_id arrive at once. */
     private readonly inFlight = new Map<string, Promise<CimdDocument>>();
 
     constructor(
@@ -68,7 +61,6 @@ export class McpCimdClientResolverService {
         return task;
     }
 
-    /** Writes the validated document to its client row, creating the row the first time. */
     private async storeDocument(
         ctx: RequestContext,
         clientId: string,
@@ -91,10 +83,8 @@ export class McpCimdClientResolverService {
         try {
             return await repository.save(client);
         } catch (error) {
-            // Two servers can race to insert the first row for one client_id, and the unique
-            // index lets only one of them win; serve the winner's copy. Any other write failure
-            // must surface, because the row still on file describes an older document — carrying
-            // on with it would authorize a redirect destination the client has since dropped.
+            // If two servers race to create the same client row, use whichever one won rather than
+            // failing; other errors must still surface, since the existing row could be stale.
             const winner = await this.findClientRow(ctx, clientId);
             if (winner && this.isFresh(winner)) {
                 return winner;

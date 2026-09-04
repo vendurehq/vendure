@@ -21,8 +21,7 @@ const getProductInput = z.strictObject({
 
 type GetProductInput = z.infer<typeof getProductInput>;
 
-// `get_product` exists in both toolsets, so this class gets its own name rather than reusing the shop
-// `ShopGetProductTool`. A distinct class means stack traces and editor symbol search point at the right one.
+// Named distinctly from the shop version so stack traces and symbol search aren't ambiguous.
 @McpTool({
     name: 'get_product',
     toolset: 'admin',

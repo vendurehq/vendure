@@ -98,9 +98,8 @@ export class SetCheckoutDetailsTool implements McpToolHandler<SetCheckoutDetails
     ) {}
 
     async execute(ctx: RequestContext, input: SetCheckoutDetailsInput) {
-        // Core's DefaultGuestCheckoutStrategy refuses a signed-in caller too, with
-        // AlreadyLoggedInError. This guard is only here for the clearer sentence, and to stop
-        // before the cart is touched.
+        // Core rejects this too, but with a less helpful error; this catches it earlier with a
+        // clearer message and before the cart is touched.
         if (input.customer && ctx.activeUserId) {
             throw new UserInputError('This call is signed in as a customer; omit customer.');
         }
@@ -120,10 +119,8 @@ export class SetCheckoutDetailsTool implements McpToolHandler<SetCheckoutDetails
             const methodsBefore = shippingMethodIds(before);
 
             let order: Order | undefined = before;
-            // A rejected guest — an email that already has an account, say — comes back as a
-            // returned error result, which leaves the transaction to commit whatever was written
-            // before it, while a thrown error rolls the whole call back. So the buyer is named
-            // first: a refusal there then leaves the cart with no addresses written either.
+            // Done first: a returned error here doesn't roll back the transaction, so naming the
+            // buyer before writing the addresses avoids leaving only the addresses saved on a refusal.
             if (input.customer) {
                 const withCustomer = await this.setGuestCustomer(txCtx, before, input.customer);
                 if (isGraphQlErrorResult(withCustomer)) {
@@ -148,13 +145,7 @@ export class SetCheckoutDetailsTool implements McpToolHandler<SetCheckoutDetails
         });
     }
 
-    /**
-     * Names a guest buyer on the cart, the same way the Shop API's `setCustomerForOrder` mutation
-     * does. The store's guest checkout strategy turns the details into a Customer, and refuses
-     * when guest checkout is switched off or when the email address already has an account; the
-     * cart is then attached to that Customer. The other half of what the Shop API does for a guest,
-     * saving the checkout address to the new Customer's address book, happens in `place_order`.
-     */
+    // Saving the checkout address to the new guest Customer's address book happens in place_order.
     private async setGuestCustomer(
         ctx: RequestContext,
         order: Order,
@@ -168,10 +159,7 @@ export class SetCheckoutDetailsTool implements McpToolHandler<SetCheckoutDetails
         return this.orderService.addCustomerToOrder(ctx, order.id, customer);
     }
 
-    /**
-     * Reports when the address change made the store swap or drop the cart's shipping method, so
-     * the agent can tell the shopper. Returns nothing when the method is unchanged or there was none.
-     */
+    // Lets the agent tell the shopper when the address change swapped or dropped the shipping method.
     private shippingMethodChange(
         methodsBefore: string[],
         after: Order | undefined,

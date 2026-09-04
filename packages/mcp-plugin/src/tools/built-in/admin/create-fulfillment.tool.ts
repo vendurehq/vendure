@@ -71,8 +71,7 @@ class RefusedTransition extends Error {
         'record a shipment for an order',
     ],
     permissions: [Permission.UpdateOrder],
-    // Fulfilling writes Sale stock movements, and with `state` it carries the order to Shipped or
-    // Delivered. No built-in tool undoes either, so this asks for a confirmation like adjust_stock.
+    // Marked destructive because nothing undoes a fulfillment or the stock movement it writes.
     behavior: 'destructive',
     inputSchema: createFulfillmentInput,
 })
@@ -137,13 +136,8 @@ export class CreateFulfillmentTool implements McpToolHandler<CreateFulfillmentIn
         return result;
     }
 
-    /**
-     * The caller's lines, once every one of them is confirmed to be on the named order.
-     *
-     * `OrderService.createFulfillment` takes no order id: it works out which orders to fulfill from
-     * the line ids alone. So without this check, naming one order and passing another order's line
-     * would fulfill that other order while the answer showed the named one.
-     */
+    // Core works out which order to fulfill from the line ids alone, so without this check a line
+    // id from a different order would silently fulfill that order instead of the one named here.
     private linesOfOrder(order: Order, lines: OrderLineInput[]): OrderLineInput[] {
         for (const line of lines) {
             if (!order.lines.some(orderLine => idsAreEqual(orderLine.id, line.orderLineId))) {
@@ -156,12 +150,7 @@ export class CreateFulfillmentTool implements McpToolHandler<CreateFulfillmentIn
     }
 }
 
-/**
- * Every line of the order with the quantity that no live fulfillment already covers. This is the
- * rule core applies in its own `requestedFulfillmentQuantityExceedsLineQuantity` check when a caller
- * names the lines: a fulfillment in the Cancelled state does not count, so cancelling one frees its
- * quantity again. The order arrives with `fulfillments.lines` loaded, so this needs no query.
- */
+// A cancelled fulfillment doesn't count, so cancelling one frees its quantity to be fulfilled again.
 function unfulfilledLines(order: Order): OrderLineInput[] {
     const fulfilled = new Map<string, number>();
     for (const fulfillment of order.fulfillments ?? []) {

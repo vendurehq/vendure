@@ -27,32 +27,22 @@ import {
 /** How much of a product's description a list item keeps; `get_product` has the whole text. */
 const LIST_ITEM_DESCRIPTION_LENGTH = 200;
 
-/**
- * Turns Vendure entities into the JSON that the built-in tools return.
- *
- * Every built-in tool that returns an entity goes through this one service, so each entity's
- * output shape has a single definition. Prices need the store's configured number of decimal
- * places, which is only reachable through `ConfigService`, which is why this is an injectable
- * service rather than a set of plain functions.
- */
+// Every built-in tool that returns an entity goes through this service, so each entity's output
+// shape has a single definition. It needs to be injectable because prices need the store's
+// configured decimal places, which only ConfigService can provide.
 @Injectable()
 export class McpToolSerializerService {
     constructor(private readonly configService: ConfigService) {}
 
-    /**
-     * Vendure keeps money as a whole number in the currency's smallest unit — 25199 means 251.99
-     * in a store that keeps two decimal places. Tool results carry both that whole number, for
-     * anything doing sums, and this string, so a language model can quote a price without having
-     * to divide anything itself.
-     *
-     * The digits are shifted as text rather than divided, because dividing by 100 introduces
-     * floating-point error on values a shop will really see.
-     */
+    // Tool results carry the raw whole-number amount as well as this formatted string, so a
+    // language model can quote a price without doing the division itself.
+    //
+    // The digits are shifted as text rather than divided, because dividing by 100 can introduce
+    // floating-point error on real-world prices.
     decimal(value: number | undefined | null): string {
         const precision = this.configService.entityOptions.moneyStrategy.precision ?? 2;
-        // Every money value Vendure hands to this method is already a whole number under the
-        // default configuration, so this rounding normally changes nothing. It only matters if a
-        // store configures its own money strategy that can hand over a fractional amount instead.
+        // Only matters if a store configures its own money strategy that can hand over a
+        // fractional amount; under the default one this is already a whole number.
         const rounded = Math.round(value ?? 0);
         const negative = rounded < 0;
         const digits = String(Math.abs(rounded));
@@ -65,10 +55,7 @@ export class McpToolSerializerService {
         return `${negative ? '-' : ''}${whole}.${fraction}`;
     }
 
-    /**
-     * Dates go out as ISO 8601 strings in UTC, which is the one format a language model can
-     * compare and quote without knowing anything about the server's timezone.
-     */
+    // UTC ISO strings so a language model can compare and quote dates without knowing the server's timezone.
     private isoDate(value: Date | undefined | null): string | null {
         return value ? new Date(value).toISOString() : null;
     }
@@ -136,11 +123,7 @@ export class McpToolSerializerService {
         };
     }
 
-    /**
-     * A product's option group with its options, for example "size" with small, medium and large.
-     * The option IDs are what `create_variant` and `update_variant` take, so an agent can build a
-     * variant without going to the dashboard for them.
-     */
+    // The option IDs here are what create_variant and update_variant take.
     optionGroup(group: ProductOptionGroup) {
         return {
             id: group.id,
@@ -154,10 +137,7 @@ export class McpToolSerializerService {
         };
     }
 
-    /**
-     * One stock location's figures for a variant. `stockLocationId` is what `adjust_stock` needs;
-     * the location name is there so an agent can tell locations apart without another lookup.
-     */
+    // stockLocationId is what adjust_stock needs; the name lets an agent tell locations apart.
     stockLevel(level: StockLevel) {
         return {
             stockLocationId: level.stockLocationId,
@@ -223,11 +203,7 @@ export class McpToolSerializerService {
         return { id: group.id, name: group.name };
     }
 
-    /**
-     * Vendure's customer mutations return either the Customer or one of its typed error results.
-     * Errors are returned directly so the registry can report them as failed tool calls, following
-     * the same convention as `orderOrError` below.
-     */
+    // Errors are returned directly so the registry can report them as failed tool calls.
     customerOrError(result: Customer | GraphQLErrorResult) {
         if (!isGraphQlErrorResult(result)) {
             return { customer: this.customer(result) };
@@ -235,10 +211,7 @@ export class McpToolSerializerService {
         return { ...result };
     }
 
-    /**
-     * A payment taken against an order. The state and the amount tell a caller whether this payment
-     * finished the checkout, or left part of the total unpaid.
-     */
+    // State and amount together tell a caller whether this payment finished the checkout or left a balance.
     payment(payment: Payment) {
         return {
             id: payment.id,
@@ -297,9 +270,8 @@ export class McpToolSerializerService {
         countryCode?: string | null;
         phoneNumber?: string | null;
     }) {
-        // Only the fields that hold something are emitted: a key set to null tells the caller
-        // nothing it cannot see from the key being absent, and costs it tokens. An empty string
-        // stays, because that is a value someone typed into the field.
+        // Null fields are dropped rather than sent as null, to save tokens; an empty string is kept
+        // since that's a value someone actually typed in.
         const present: Record<string, string> = {};
         const fields = [
             'fullName',
@@ -372,8 +344,7 @@ export class McpToolSerializerService {
                         : null,
                 })) ?? [],
             payments: order.payments ? order.payments.map(payment => this.payment(payment)) : undefined,
-            // Undefined unless the tool loaded `fulfillments`, the same convention as `payments`.
-            // The cart tools leave it out: an open cart has no shipments to report.
+            // Left out by the cart tools, since an open cart has no shipments to report.
             fulfillments: order.fulfillments
                 ? order.fulfillments.map(fulfillment =>
                       this.fulfillment(fulfillment, fulfillment.lines ?? []),
@@ -406,11 +377,7 @@ export class McpToolSerializerService {
         };
     }
 
-    /**
-     * Vendure mutations return either an entity or a typed error. Errors are returned directly so
-     * the registry can report them as failed tool calls. Errors containing orders or money values
-     * are serialized consistently with successful results.
-     */
+    // Errors are returned directly so the registry can report them as failed tool calls.
     orderOrError(result: Order | GraphQLErrorResult) {
         if (!isGraphQlErrorResult(result)) {
             return { order: this.order(result) };
@@ -430,10 +397,7 @@ export class McpToolSerializerService {
         return errorResult;
     }
 
-    /**
-     * Copies the quote so calculator `metadata` passes through, then cuts `customFields` down to
-     * what the Shop API would show. The currency belongs to the order, so the caller passes it in.
-     */
+    // The currency belongs to the order, not the quote, so the caller passes it in.
     shippingQuote(quote: ShippingMethodQuote, currencyCode: CurrencyCode) {
         return {
             ...quote,
@@ -452,10 +416,7 @@ export class McpToolSerializerService {
         };
     }
 
-    /**
-     * Drops custom fields a shop caller may not see: undeclared, internal, `public: false`, or behind
-     * a permission (a shop caller never holds admin permissions, so core would hide those too).
-     */
+    // A shop caller never holds admin permissions, so anything permission-gated is hidden too.
     private shopVisibleCustomFields(
         entityName: keyof CustomFields,
         customFields: Record<string, unknown> | null | undefined,

@@ -114,9 +114,8 @@ import { McpPluginOptions } from './types';
     },
     dashboard: '../src/dashboard/index.tsx',
     configuration: config => {
-        // No issuer configured: default to the address the API server actually listens on.
-        // Correct for local development only. In production the loopback check below
-        // refuses it, so a public issuer must always be set explicitly there.
+        // Defaults to the API server's own address; correct for local development only, since
+        // a production server is required to set an explicit public issuer.
         if (McpPlugin.options.oauth && !McpPlugin.options.oauth.issuer) {
             McpPlugin.options.oauth.issuer = `http://localhost:${config.apiOptions.port}`;
         }
@@ -180,18 +179,15 @@ export class McpPlugin implements NestModule, OnApplicationBootstrap {
 
     /**
      * @description
-     * Runs at startup, and only does work on the main server process. Builds the MCP message
-     * schemas up front so the first request does not pay for it, then checks the configured
-     * options (see `checkMcpPluginOptions`), which throws when one is invalid or unsafe for a
-     * production server.
+     * Builds the MCP message schemas up front, so the cost lands on startup rather than the
+     * first request, then checks the configured options for anything invalid or unsafe for a
+     * production server. Runs at startup, main server process only.
      */
     onApplicationBootstrap(): void {
         // Only the main server serves the OAuth routes, so only it needs this check.
         if (!this.processContext.isServer) {
             return;
         }
-        // The SDK builds the schemas it validates MCP messages against on first use. Build them
-        // now so that cost lands on startup rather than on whichever request arrives first.
         preloadSchemas();
         checkMcpPluginOptions(McpPlugin.options);
     }

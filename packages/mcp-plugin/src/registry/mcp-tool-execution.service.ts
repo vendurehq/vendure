@@ -42,25 +42,13 @@ import { McpToolRegistryService } from './mcp-tool-registry.service';
 export class McpToolExecutionService {
     constructor(private readonly registry: McpToolRegistryService) {}
 
-    /**
-     * Returns the tools in the given toolset that the caller is allowed to use.
-     * The returned summaries include the input schema for each tool.
-     *
-     * The context must match the toolset: use a Shop API context for `'shop'` and an Admin API
-     * context for `'admin'`.
-     */
+    /** The context must match the toolset: a Shop API context for `'shop'`, an Admin API context for `'admin'`. */
     async listTools(ctx: RequestContext, toolset: McpToolset): Promise<McpToolSummary[]> {
         this.assertContextMatchesToolset(ctx, toolset);
         return this.registry.getCallableTools(ctx, toolset);
     }
 
-    /**
-     * Runs a tool with the given context and input. If `input` is omitted, the tool is called
-     * without arguments.
-     *
-     * Most failures are returned as `isError: true` rather than thrown. Destructive tools require
-     * `confirm: true`.
-     */
+    /** Most failures come back as `isError: true` rather than thrown. Destructive tools require `confirm: true`. */
     async executeTool(
         ctx: RequestContext,
         toolset: McpToolset,

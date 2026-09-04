@@ -11,12 +11,7 @@ import type { ZodType } from 'zod';
 
 import { loggerCtx } from '../constants';
 
-/**
- * OAuth error codes returned by this server.
- *
- * These mostly follow the OAuth spec. We don’t include `invalid_client`
- * because clients are not authenticated (auth method is "none").
- */
+/** Follows the OAuth spec's error codes, minus `invalid_client` since clients here are never authenticated. */
 export type McpOauthErrorCode =
     | 'invalid_request'
     | 'invalid_grant'
@@ -26,12 +21,6 @@ export type McpOauthErrorCode =
     | 'invalid_redirect_uri'
     | 'server_error';
 
-/**
- * Error thrown by OAuth endpoints (token, client registration).
- *
- * Always returns a 400 response with a standard OAuth error body:
- * { error, error_description }
- */
 export class McpOauthError extends BadRequestException {
     readonly code: McpOauthErrorCode;
 
@@ -42,23 +31,14 @@ export class McpOauthError extends BadRequestException {
     }
 }
 
-/**
- * A bearer token whose own lifetime has run out, while the grant behind it is otherwise fine.
- * Kept apart from the other 401s so the transport can answer it as a routine refresh rather
- * than as a failed authentication attempt.
- */
+/** Kept apart from other 401s so the transport can treat it as a routine token refresh rather than a failed authentication attempt. */
 export class McpAccessTokenExpiredError extends UnauthorizedException {
     constructor() {
         super('Access token expired');
     }
 }
 
-/**
- * Validates REST payloads against a Zod schema before hitting the service.
- *
- * Prevents unvalidated client input from causing deep 500 errors, converting
- * invalid runtime types into OAuth-compliant 400 responses.
- */
+/** Converts a schema failure into an OAuth-compliant 400, so bad client input never reaches the service as a 500. */
 export function parseOAuthInput<T>(schema: ZodType<T>, value: unknown, code: McpOauthErrorCode): T {
     const result = schema.safeParse(value);
     if (result.success) {
@@ -69,12 +49,7 @@ export function parseOAuthInput<T>(schema: ZodType<T>, value: unknown, code: Mcp
     throw new McpOauthError(code, fieldPath ? `${fieldPath}: ${issue.message}` : issue.message);
 }
 
-/**
- * Answers every bad request from the OAuth endpoints with the OAuth error body, so a client has
- * one shape to parse: an {@link McpOauthError} is sent as-is, and any other 400 raised on the way
- * (an unknown client, a rejected client metadata document) becomes an `invalid_request` carrying
- * its message. Also prevents global error handlers from changing the response format.
- */
+/** Ensures every 400 from the OAuth endpoints comes back in the OAuth error shape, so clients only ever parse one format. */
 @Catch(BadRequestException)
 export class McpOauthExceptionFilter implements ExceptionFilter {
     catch(exception: BadRequestException, host: ArgumentsHost): void {

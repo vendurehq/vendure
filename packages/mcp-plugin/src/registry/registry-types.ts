@@ -15,27 +15,12 @@ export interface McpRegisteredTool extends McpToolMetadata {
     resolvedBehavior: McpToolBehavior;
     /** MCP annotations derived from behavior; surfaced to the agent in `tools/list` and `search_tools`. */
     annotations: ToolAnnotations;
-    /**
-     * Whether the wire schema carries the registry-owned `sessionToken` argument. Decided once at
-     * discovery, so the advertised schema and the call-time session exchange cannot disagree.
-     */
+    /** Decided once at discovery, so the advertised schema and the call-time session exchange cannot disagree. */
     acceptsSessionToken: boolean;
-    /**
-     * The tool's original input schema. Derived once during discovery from the tool's
-     * `inputSchema`, or a default no-args schema when none is provided. This schema is
-     * never modified; additional fields are added to a separate copy for the wire schema.
-     */
+    /** Never modified after discovery; additional fields go on a separate copy for the wire schema. */
     jsonInputSchema: McpJsonSchema;
-    /**
-     * Validator for the final input schema. Created once during startup and reused to
-     * validate tool calls.
-     */
     compiledInputSchema: StandardSchemaWithJSON;
-    /**
-     * The final input schema exposed to callers. It is based on `jsonInputSchema` and may
-     * include optional `confirm` or `sessionToken` fields when required. If no fields are
-     * added, it is the same schema as `jsonInputSchema`.
-     */
+    /** Based on `jsonInputSchema`, with optional `confirm` or `sessionToken` fields added when required. */
     wireJsonSchema: McpJsonSchema;
     /** Compiled validator for the declared output schema, if any. */
     compiledOutputSchema?: StandardSchemaWithJSON;

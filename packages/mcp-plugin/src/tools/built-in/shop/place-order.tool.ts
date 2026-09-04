@@ -33,10 +33,8 @@ const placeOrderInput = z.strictObject({
 
 type PlaceOrderInput = z.infer<typeof placeOrderInput>;
 
-// Error classes whose own message is meant for the caller. Taking a payment can fail with one of
-// these for a reason the caller can act on — an unknown, disabled or wrong-channel payment method
-// code, or a cart that has gone — so this tool passes them on rather than replacing them. This is
-// the same set the tool funnel treats as caller-safe.
+// These carry a message the caller can act on (e.g. a bad payment method or an expired cart),
+// so they're passed on unchanged instead of being replaced with a generic error.
 const CALLER_SAFE_ERRORS = [
     UserInputError,
     IllegalOperationError,
@@ -149,9 +147,8 @@ export class PlaceOrderTool implements McpToolHandler<PlaceOrderInput> {
             if (CALLER_SAFE_ERRORS.some(errorType => e instanceof errorType)) {
                 throw e;
             }
-            // Anything else came out of the payment handler, which runs outside this transaction,
-            // so the rollback cannot undo a charge it already made. The caller is told to check
-            // rather than retry, and the real message is kept for the operator.
+            // The payment handler runs outside this transaction, so a rollback here can't undo a
+            // charge it already made — the caller is told to check the order rather than retry.
             Logger.error(
                 `place_order payment failed for order ${orderId}: ${
                     e instanceof Error ? e.message : String(e)

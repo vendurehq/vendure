@@ -7,11 +7,8 @@ import { BlockList } from 'node:net';
 
 import { loggerCtx, MAX_CONCURRENT_CIMD_FETCHES } from '../../constants';
 
-// SSRF-protected fetch for CIMD client metadata.
-//
-// DNS is validated at socket lookup time (no DNS-rebinding window).
-// Redirects are not followed, and only 200 responses are accepted.
-// Response bodies are strictly size-limited.
+// Validates DNS at connect time and limits response size, since client_id URLs are
+// attacker-controlled and could otherwise be used to probe internal services.
 
 export interface CimdFetchOptions {
     /** Whole-request deadline — connection plus body — in milliseconds. */
@@ -23,9 +20,8 @@ export interface CimdFetchOptions {
     /** DNS lookup used by the socket; injectable for tests. */
     lookup?: typeof dns.lookup;
 }
-// Every range the IANA special-purpose registries mark as not globally reachable, so a
-// client_id URL cannot make this server probe its own network (SSRF protection). Node's
-// BlockList maps IPv4-mapped IPv6 back to IPv4, so those need no rule of their own.
+// Blocks every IANA-reserved, non-public address range so a client_id URL can't be used
+// to probe this server's own network.
 // https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
 // https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
 const blockedRanges = new BlockList();
@@ -76,11 +72,7 @@ export function isAllowedCimdAddress(address: string, family: number, allowLoopb
     }
 }
 
-/**
- * Wraps `dns.lookup` so that every address the hostname resolves to is checked against the
- * special-use blocklist before the socket may connect. All addresses must pass — a hostname
- * with one public and one private record is refused outright.
- */
+/** Checks every address a hostname resolves to, since a hostname could mix a public and a private record to slip past a single check. */
 function createGuardedLookup(allowLoopback: boolean, baseLookup: typeof dns.lookup): typeof dns.lookup {
     const guarded = (hostname: string, optionsOrCallback: any, maybeCallback?: any) => {
         const callerOptions = typeof optionsOrCallback === 'function' ? {} : (optionsOrCallback ?? {});
@@ -109,16 +101,9 @@ function createGuardedLookup(allowLoopback: boolean, baseLookup: typeof dns.look
 
 const jsonContentType = /^application\/(?:[^;+\s]+\+)?json\s*(?:;.*)?$/i;
 
-/**
- * CIMD fetches currently in flight, process-wide. Caps this server's outbound fan-out at
- * {@link MAX_CONCURRENT_CIMD_FETCHES} sockets, however many distinct client_id URLs ask at once.
- */
+/** Caps outbound fetches process-wide so many concurrent client_id URLs can't fan this server out into a flood of connections. */
 let activeFetchCount = 0;
 
-/**
- * Fetches a client metadata document. Exactly one GET; a 200 JSON response within the
- * size and time budgets resolves, anything else rejects with a BadRequestException.
- */
 export async function fetchCimdDocument(url: URL, options: CimdFetchOptions): Promise<string> {
     if (activeFetchCount >= MAX_CONCURRENT_CIMD_FETCHES) {
         throw new BadRequestException('client_id metadata document could not be fetched');
@@ -146,10 +131,8 @@ function runFetch(url: URL, options: CimdFetchOptions): Promise<string> {
                 method: 'GET',
                 headers: { accept: 'application/json' },
                 lookup: createGuardedLookup(options.allowLoopback, options.lookup ?? dns.lookup),
-                // A fresh connection per request. Node's default agent keeps sockets alive and
-                // pools them by host and port only, so a socket another part of the server left
-                // open could be handed to this request — and a reused socket never runs the
-                // lookup above, which is where the address check lives.
+                // Disables connection reuse: a pooled socket would skip the lookup above, which is
+                // where the address check happens.
                 agent: false,
                 signal: deadline,
             },

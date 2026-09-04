@@ -1,4 +1,3 @@
-// Helpers shared by the tools that list or load Orders.
 import { OrderListOptions, SortOrder } from '@vendure/common/lib/generated-types';
 import {
     EntityNotFoundError,
@@ -13,10 +12,7 @@ import { z } from 'zod';
 
 import { type ListInput, listOptions } from './list-helpers';
 
-/**
- * The Order fields `list_orders` can sort by. Kept to the few an operations user asks for, so the
- * tool's input stays small: when an order happened, when it last changed, and how big it is.
- */
+// Kept to the fields an operations user actually asks for, to keep the tool's input small.
 export const ORDER_SORT_FIELDS = ['orderPlacedAt', 'updatedAt', 'createdAt', 'total'] as const;
 
 export type OrderSortField = (typeof ORDER_SORT_FIELDS)[number];
@@ -52,10 +48,7 @@ export const ORDER_LIST_RELATIONS: RelationPaths<Order> = [
 
 export const ORDER_DETAIL_RELATIONS: RelationPaths<Order> = [...ORDER_LIST_RELATIONS, 'customer.user'];
 
-/**
- * Loads one Order by id for an admin tool, or throws the same "not found" error core would.
- * Tools call this at the top so a missing order is refused before any work starts.
- */
+// Called at the top of a tool so a missing order is refused before any work starts.
 export async function findOrderOrThrow(
     orderService: OrderService,
     ctx: RequestContext,

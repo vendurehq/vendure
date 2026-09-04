@@ -44,8 +44,7 @@ const SEARCH_TOOLS = 'search_tools';
 const EXECUTE_TOOL = 'execute_tool';
 const RESERVED_META_TOOL_NAMES: ReadonlySet<string> = new Set([SEARCH_TOOLS, EXECUTE_TOOL]);
 const ALL_TOOLSETS: readonly McpToolset[] = ['shop', 'admin'];
-// These limits are also stated in the no-results hint and the meta-tool's own schema
-// description, so changing them means changing all three places.
+// Also stated in the no-results hint and the meta-tool's schema description; keep all three in sync.
 const SEARCH_DEFAULT_LIMIT = 10;
 const SEARCH_MAX_LIMIT = 50;
 // Error types a tool throws on purpose, with a message meant to be read by the caller. Anything
@@ -153,14 +152,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         return this.visibleTools(executionContext.ctx, toolset);
     }
 
-    /**
-     * Primary execution entrypoint for MCP tool calls.
-     *
-     * Execution model:
-     * 1. resolve exposure mode (direct vs discovery)
-     * 2. validate tool name routing (meta-tools or real tools)
-     * 3. delegate to shared execution funnel
-     */
     async callTool(
         executionContext: McpExecutionContext,
         toolset: McpToolset,
@@ -190,9 +181,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     }
 
     /**
-     * Runs one named tool through the shared funnel, validating its input. Skips the meta-tool
-     * routing in {@link callTool}, so `search_tools` and `execute_tool` are unknown names here —
-     * a caller using this already knows which tool it wants.
+     * Skips the meta-tool routing in {@link callTool}, since a caller using this already knows which tool it wants.
      *
      * @internal
      */
@@ -246,10 +235,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         this.toggleCache.set(ctx, updated);
     }
 
-    /**
-     * Canonical `${toolset}:${name}` key. Used both as the in-memory registry key and as the
-     * PERSISTED key in the tool-toggle settings map — changing the format orphans stored toggles.
-     */
+    // Also the persisted key in the tool-toggle settings map, so changing the format orphans stored toggles.
     toolKey(toolset: McpToolset, name: string): string {
         return `${toolset}:${name}`;
     }
@@ -277,11 +263,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         return typeof (instance as Partial<McpToolHandler>)?.execute === 'function';
     }
 
-    /**
-     * Builds a registered tool and prepares its schemas. Rejects unsupported schemas, adds a default
-     * input schema when needed, ensures registry-managed fields are not declared by the tool itself,
-     * and compiles the input and output schemas once at startup. Errors here prevent startup.
-     */
     private buildRegisteredTool(
         metadata: McpToolMetadata,
         handler: McpToolHandler,
@@ -311,11 +292,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         };
     }
 
-    /**
-     * Throws a descriptive error for each way a tool author can declare a tool the server cannot
-     * serve: a name outside the allowed character set, Permission.Owner or an unknown permission,
-     * usesActiveOrder on a non-shop tool, or an admin tool with no permissions.
-     */
     private assertValidToolMetadata(metadata: McpToolMetadata): void {
         if (typeof metadata.name !== 'string' || !TOOL_NAME_PATTERN.test(metadata.name)) {
             throw new Error(
@@ -437,10 +413,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         }
     }
 
-    /**
-     * Active-order tools exchange the registry-owned sessionToken argument for the context the
-     * handler acts on. The prepared input no longer contains the credential, so logs do not either.
-     */
+    // The prepared input no longer contains the sessionToken credential, so logs do not either.
     private async resolveShopSession(
         executionContext: McpExecutionContext,
         tool: McpRegisteredTool,
@@ -462,18 +435,14 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         }
         return {
             kind: 'ready',
-            // The transport reuses one execution context for every message in a batch, so the
-            // resolved session goes into a copy rather than being written back.
+            // A copy, not a write-back, since the transport reuses one execution context across a batch.
             callContext: { ...executionContext, ctx: prepared.ctx },
             input: prepared.input,
             sessionToken: prepared.sessionToken,
         };
     }
 
-    /**
-     * A writing tool runs in one transaction: a throw rolls back all its writes. The log row is
-     * written with the outer ctx, so a rolled-back call is still logged.
-     */
+    // A writing tool runs in one transaction, so a throw rolls back all its writes.
     private async runToolHandler(
         tool: McpRegisteredTool,
         callContext: McpExecutionContext,
@@ -521,10 +490,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         return this.errorResult(callerSafe ? callerMessage : GENERIC_TOOL_ERROR_MESSAGE, sessionToken);
     }
 
-    /**
-     * Decides whether a call is allowed to run at all. Gives back either a result to send straight
-     * to the caller, or the tool to run together with the input it should receive.
-     */
     private async admitToolCall(
         executionContext: McpExecutionContext,
         toolset: McpToolset,
@@ -569,11 +534,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         return { kind: 'admitted', tool, input: toolInput };
     }
 
-    /**
-     * Turns what a tool handler returned into the result the caller sees, and writes the log row
-     * for the call. A Vendure error result, a result too large to send, and a plain success are
-     * each handled here.
-     */
     private async buildToolCallResult(call: {
         callContext: McpExecutionContext;
         tool: McpRegisteredTool;
@@ -621,15 +581,12 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                 );
             }
         }
-        // Serializing before the log row is written means a value that cannot be serialized
-        // lands in the catch below as the call's single error row.
+        // Serializing before the log row is written so an unserializable value is caught as one error row.
         const result = this.shopSession.addSessionTokenToResult(output, sessionTokenForResult);
         const text = JSON.stringify(result ?? null);
         const bytes = Buffer.byteLength(text, 'utf8');
         const overLimit = bytes > MAX_RESULT_BYTES;
-        // An oversized read returned nothing the caller can use, so it is a failure. An
-        // oversized write already changed the data, so it stays a success and only the
-        // result is withheld.
+        // An oversized read is a failure; an oversized write already changed the data, so only the result is withheld.
         const refuseAsError = overLimit && tool.resolvedBehavior === 'readonly';
         const refusalMessage = refuseAsError ? this.tooLargeMessage(tool, bytes) : undefined;
         await this.toolCallLog.logToolCall({
@@ -654,8 +611,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         toolset: McpToolset,
         input: unknown,
     ): Promise<CallToolResult> {
-        // search_tools has no target tool to rate-limit downstream (unlike execute_tool, which
-        // funnels through callRegisteredTool), so gate it here against the shared buckets.
+        // Unlike execute_tool, search_tools has no target tool to rate-limit downstream, so it is gated here.
         const rateLimited = await this.rateLimiter.checkRateLimit({
             executionContext,
             endpoint: toolset,
@@ -797,11 +753,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         return ctx.userHasPermissions(permissions);
     }
 
-    /**
-     * Empty, or listing `Permission.Public`: anyone may call the tool, signed in or not. The list is
-     * OR-ed, so Public alongside other permissions still lets anyone in. The empty case is spelled
-     * out because `ctx.userHasPermissions([])` returns false.
-     */
+    // Spelled out because `ctx.userHasPermissions([])` returns false, unlike an empty permissions list here.
     private isPubliclyCallable(permissions: Permission[]): boolean {
         return permissions.length === 0 || permissions.includes(Permission.Public);
     }
@@ -834,10 +786,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         return CALLER_SAFE_ERROR_TYPES.some(ErrorType => e instanceof ErrorType);
     }
 
-    /**
-     * A successful call. The tool path passes the `text` it already built to measure the result,
-     * so the same object is not serialized twice.
-     */
+    // The tool path passes the `text` it already built to measure the result, so it is not serialized twice.
     private successResult(output: unknown, text = JSON.stringify(output ?? null)): CallToolResult {
         return {
             content: [{ type: 'text', text }],
@@ -845,10 +794,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         };
     }
 
-    /**
-     * Explains that a result was too big to return, and which of this tool's own arguments would
-     * make the next attempt smaller.
-     */
     private tooLargeMessage(tool: McpRegisteredTool, bytes: number): string {
         const declared = tool.wireJsonSchema.properties ?? {};
         const advice = Object.keys(NARROWING_ARGUMENT_ADVICE)
@@ -863,10 +808,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         return `${size} Ask for less at a time: ${this.joinWithOr(advice)}.`;
     }
 
-    /**
-     * A write that finished but whose result is too big to return. This is not an error: the change
-     * is already saved, so the caller is told to read the outcome back rather than retry the write.
-     */
+    // Not an error: the write already saved, so the caller is told to read the outcome back rather than retry.
     private completedTooLargeResult(
         tool: McpRegisteredTool,
         bytes: number,
@@ -897,17 +839,12 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         return {
             isError: true,
             content: [{ type: 'text', text: message }],
-            // A failed call may still have resolved or created a session; handing its token back
-            // lets the caller keep the same cart on retry instead of leaving an orphan row.
+            // Handing back a session token from a failed call lets the caller keep the same cart on retry.
             ...(sessionToken !== undefined ? { structuredContent: { sessionToken } } : {}),
         };
     }
 
-    /**
-     * A failed call whose reason is a Vendure error result. Unlike `errorResult`, the whole object
-     * is kept: the text shows it, and the structured content is the object itself, so a caller can
-     * act on `errorCode` rather than parse a sentence.
-     */
+    // Unlike `errorResult`, the whole object is kept so a caller can act on `errorCode` rather than parse a sentence.
     private vendureErrorResult(output: unknown): CallToolResult {
         return {
             isError: true,
@@ -917,8 +854,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     }
 
     private confirmationRequiredResult(tool: McpRegisteredTool, sessionToken?: string): CallToolResult {
-        // Discovery mode never exposes the tool by name, so the retry has to go back through
-        // the meta-tool the caller actually holds.
+        // Discovery mode never exposes the tool by name, so the retry has to go through the meta-tool instead.
         const howToConfirm =
             this.options.toolExposure === 'discovery'
                 ? `Ask the user to approve it, then call "${EXECUTE_TOOL}" again for "${tool.name}" ` +

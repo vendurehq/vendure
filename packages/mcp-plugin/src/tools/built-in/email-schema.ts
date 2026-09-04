@@ -1,7 +1,6 @@
 import { z } from 'zod';
 
-// `meta` puts `format: 'email'` in the published JSON schema so a client can see what the field
-// holds; the refine is what rejects a bad value on the server.
+// `meta` just tells the client what the field holds; `refine` is what actually rejects a bad value.
 export const emailAddressSchema = z
     .string()
     .max(255)

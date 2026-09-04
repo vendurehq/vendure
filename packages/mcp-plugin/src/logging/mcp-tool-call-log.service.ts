@@ -84,10 +84,7 @@ export class McpToolCallLogService {
         return 'anonymous';
     }
 
-    /**
-     * The `input` and `output` values to store on the log row. Both are null in `metadata` capture
-     * mode, and both are null when the operator's redact function throws.
-     */
+    /** Both `input` and `output` come back null in `metadata` capture mode, or if the operator's redact function throws. */
     private captureBodies(call: LogToolCallInput): { input: unknown; output: unknown } {
         const logging = this.options.logging;
         if (logging.capture !== 'full') {

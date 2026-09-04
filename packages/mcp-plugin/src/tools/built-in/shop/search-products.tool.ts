@@ -85,9 +85,7 @@ export class SearchProductsTool implements McpToolHandler<SearchProductsInput> {
         const words = productSearchWords(input.query);
         const singularWords = productSearchWords(input.query, true);
         let result = await this.findProducts(ctx, input, words, collectionId);
-        // A shopper's plural never appears inside a singular product name, so "cameras" misses
-        // "Instant Camera". Retrying with the plural endings trimmed off only ever widens the
-        // match, and it runs only once the words as typed have already come back empty.
+        // A plural like "cameras" won't match "Instant Camera", so retry once with plurals trimmed.
         if (result.totalItems === 0 && singularWords.join(' ') !== words.join(' ')) {
             result = await this.findProducts(ctx, input, singularWords, collectionId);
         }

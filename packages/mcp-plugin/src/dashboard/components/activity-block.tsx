@@ -47,9 +47,7 @@ export function ActivityBlock() {
                     header: () => <Trans>Actor type</Trans>,
                     cell: ({ row }) => <Badge variant="outline">{row.original.actorType}</Badge>,
                 },
-                // These two only feed the Actor cell, which lists them as dependencies so they are
-                // still fetched. They get no column of their own: neither has a database column, so
-                // sorting or filtering by them would fail on the server.
+                // Fetched only to feed the Actor cell; neither has a database column to sort or filter by.
                 actorName: { meta: { disabled: true } },
                 customerId: { meta: { disabled: true } },
                 status: {
@@ -62,8 +60,7 @@ export function ActivityBlock() {
                         row.original.durationMs == null ? <EmptyCell /> : `${row.original.durationMs} ms`,
                 },
             }}
-            // Columns left out of this list are appended after the listed ones, so name
-            // them all and keep the order deliberate.
+            // Columns not listed here still show up, just appended after these.
             defaultColumnOrder={[
                 'createdAt',
                 'toolName',

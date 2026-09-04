@@ -34,8 +34,7 @@ async function fetchAsset(url: string, assetImportStrategy: AssetImportStrategy)
             throw e;
         }
         if (e instanceof InternalServerError) {
-            // Vendure throws InternalServerError for blocked/invalid URLs.
-            // Convert to UserInputError so the tool funnel exposes the specific reason instead of masking it.
+            // Converted so the tool funnel exposes the specific reason instead of masking it.
             throw new UserInputError(e.message);
         }
         throw new UserInputError(
@@ -61,10 +60,9 @@ export async function uploadAssetFromUrl(
     const capped = capStreamBytes(source, options.maxBytes ?? DEFAULT_MAX_ASSET_BYTES);
     const created = await assetService.createFromFileStream(capped, url, ctx);
     if (isGraphQlErrorResult(created)) {
-        // The store's `assetOptions.permittedFileTypes` refused this file. Throwing matches the
-        // scheme and size rejections above, and it is the only way to tell the caller why: the
-        // error result's own `message` is the fixed string "MIME_TYPE_ERROR", which Vendure
-        // translates in its GraphQL layer, and an MCP tool call never passes through that layer.
+        // The error result's own message is just the untranslated code "MIME_TYPE_ERROR", so build
+        // a readable one here instead — an MCP tool call never passes through the GraphQL layer
+        // that would normally translate it.
         throw new UserInputError(
             `Unsupported asset file type for "${created.fileName}": ${created.mimeType}`,
         );

@@ -11,13 +11,8 @@ import {
     validateCustomFieldValue,
 } from '@vendure/core';
 
-/**
- * Checks a tool's `customFields` input before it reaches a Vendure service.
- *
- * The GraphQL API checks custom fields twice: the generated schema only lists the fields the
- * caller may write, and core's interceptor validates each value. Tool calls skip both, so this
- * service does both.
- */
+// Tool calls bypass the two checks the GraphQL API normally applies to custom fields, so this
+// service does both of them instead.
 @Injectable()
 export class McpCustomFieldInputService {
     constructor(
@@ -25,11 +20,6 @@ export class McpCustomFieldInputService {
         private readonly moduleRef: ModuleRef,
     ) {}
 
-    /**
-     * Throws when the input names a custom field this caller cannot write, then runs core's own
-     * validation (readonly, permissions, nullability, patterns, ranges, the project's `validate`)
-     * over the rest. `entityName` is the entity the fields belong to, e.g. `'Product'`.
-     */
     async assertWritable(
         ctx: RequestContext,
         entityName: keyof CustomFields,

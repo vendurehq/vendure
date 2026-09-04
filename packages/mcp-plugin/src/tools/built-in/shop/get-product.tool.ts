@@ -48,11 +48,8 @@ export class ShopGetProductTool implements McpToolHandler<GetProductInput> {
         if (product?.enabled !== true) {
             return { product: null };
         }
-        // Prices are not stored on the variant row; Vendure works them out per sales channel at
-        // request time, and only ProductVariantService does that. Loading the `variants` relation
-        // through ProductService above would return variants with no price and no error. The empty
-        // relations list skips the assets, facets and options this summary never uses. Because this
-        // is a shop tool, the service already limits the result to enabled variants in this channel.
+        // Loading variants through ProductService instead would silently return them with no price,
+        // since only ProductVariantService works prices out per channel.
         const offset = input.variantOffset ?? 0;
         const variants = await this.productVariantService.getVariantsByProductId(
             ctx,

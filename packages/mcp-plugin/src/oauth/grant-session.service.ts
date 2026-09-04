@@ -20,19 +20,10 @@ import { deleteCachedVendureSession } from './oauth-utils';
  */
 const MCP_SESSION_STRATEGY = 'mcp-dedicated-session';
 
-/**
- * Thrown inside the session re-creation transaction purely to roll it back, when another
- * request has already given the grant a new session or revoked it. Never leaves this file.
- */
+/** Used only to roll back the transaction below when another request already replaced or revoked the grant; never thrown outside this file. */
 class GrantSessionAlreadyReplaced extends Error {}
 
-/**
- * Owns the one Vendure session row and one session-cache entry that back each MCP grant.
- *
- * Creates that session when a grant is issued, replaces it when it lapses, and deletes it
- * when the grant is revoked. Each step runs under the grant's own concurrency rules, so
- * simultaneous requests never leave an orphaned session behind.
- */
+/** Keeps each MCP grant's Vendure session in sync with the grant, safely even when requests race. */
 @Injectable()
 export class McpGrantSessionService {
     constructor(
@@ -41,15 +32,11 @@ export class McpGrantSessionService {
         private readonly configService: ConfigService,
     ) {}
 
-    /**
-     * Marks the grant revoked and deletes its Vendure session. A grant that is already revoked
-     * is left alone, so callers do not need to check `revokedAt` first.
-     */
+    /** Safe to call on an already-revoked grant, so callers don't need to check `revokedAt` first. */
     async revokeGrant(ctx: RequestContext, grant: McpOauthGrant): Promise<void> {
         const sessionToken = await this.connection.withTransaction(ctx, async txCtx => {
-            // Conditional on the grant still being live, so that when two callers revoke the
-            // same grant at once only one of them matches. The loser must not go on to delete
-            // a session row, because by then the winner may already have replaced it.
+            // Only one of two simultaneous revokes should win, since the loser could otherwise
+            // delete a session row the winner already replaced.
             const claim = await this.connection
                 .getRepository(txCtx, McpOauthGrant)
                 .createQueryBuilder()
@@ -66,12 +53,7 @@ export class McpGrantSessionService {
         await deleteCachedVendureSession(this.configService, sessionToken);
     }
 
-    /**
-     * Atomically replaces a lapsed Vendure session for an active grant.
-     *
-     * Runs in a single transaction to prevent orphaned active sessions, using
-     * conditional updates to safely handle race conditions and concurrent revocations.
-     */
+    /** Runs as one transaction so a lapsed session is never replaced twice or left orphaned when requests race. */
     async recreateGrantSession(
         ctx: RequestContext,
         grant: McpOauthGrant,
@@ -123,11 +105,7 @@ export class McpGrantSessionService {
         return session;
     }
 
-    /**
-     * Reads back a grant whose session another request replaced while this one was building its
-     * own, and returns that session. If the grant turns out to have been revoked instead, or its
-     * new session is unusable, this request has nothing to run on.
-     */
+    /** Falls back to the session another request just created, for when two requests try to replace the same lapsed session at once. */
     private async loadSessionOfReplacedGrant(
         ctx: RequestContext,
         grant: McpOauthGrant,
@@ -151,20 +129,12 @@ export class McpGrantSessionService {
         return session;
     }
 
-    /**
-     * Creates the dedicated Vendure session for a grant. No token is supplied, so Core
-     * generates an ordinary random one — nothing about the session is derivable from
-     * the OAuth tokens that reach it.
-     */
+    /** No token is supplied, so the session's identifier can't be derived from the OAuth tokens that reach it. */
     createVendureSession(ctx: RequestContext, user: User): Promise<AuthenticatedSession> {
         return this.sessionService.createNewAuthenticatedSession(ctx, user, MCP_SESSION_STRATEGY);
     }
 
-    /**
-     * Removes a Vendure session row by id, if it still exists, and returns the token it
-     * held so the caller can evict the cache entry. Deleting the row alone is not enough:
-     * a cached session is served without touching the database until its entry ages out.
-     */
+    /** Returns the deleted session's token too, since a cached session keeps serving until its entry ages out even after the row is gone. */
     private async deleteVendureSessionRow(ctx: RequestContext, sessionId: ID): Promise<string | undefined> {
         const session = await this.connection
             .getRepository(ctx, Session)

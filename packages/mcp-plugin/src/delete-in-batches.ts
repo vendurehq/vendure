@@ -3,11 +3,7 @@ import { ObjectLiteral, ObjectType } from 'typeorm';
 
 import { RETENTION_DELETE_BATCH_SIZE } from './constants';
 
-/**
- * Deletes rows from `entity` by id, one batch at a time: `selectBatch` returns at most a
- * batch of ids, and the loop ends when a short batch comes back. Both retention sweeps use it,
- * which keeps each statement small enough not to lock a large table.
- */
+// Deletes in batches so a large retention sweep doesn't lock the table with one big statement.
 export async function deleteInBatches<R extends { id: ID }>(
     connection: TransactionalConnection,
     ctx: RequestContext,

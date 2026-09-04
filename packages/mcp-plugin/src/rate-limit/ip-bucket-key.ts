@@ -2,15 +2,7 @@ import { isIP } from 'node:net';
 
 const IPV4_MAPPED_PREFIX = /^::ffff:/i;
 
-/**
- * The rate-limit bucket key for a client address.
- *
- * An IPv6 address is keyed by its first 64 bits, because a single machine is routinely handed a
- * whole /64 and can pick a fresh address from it for every request. Without this, every one of
- * those addresses would get its own allowance. An IPv4 address written in IPv6 form
- * (`::ffff:1.2.3.4`) is reduced to the plain IPv4 address, so a dual-stack client gets one
- * allowance rather than two.
- */
+// An IPv6 address is keyed by its first 64 bits, since a single machine can pick a fresh address from its /64 for every request.
 export function ipBucketKey(clientIp?: string): string {
     if (clientIp == null) {
         return 'unknown';
@@ -26,11 +18,7 @@ export function ipBucketKey(clientIp?: string): string {
     return `${expandIpv6(clientIp).slice(0, 4).join(':')}::/64`;
 }
 
-/**
- * Writes an IPv6 address out as its eight groups, filling in the run of zero groups that `::`
- * stands for. Node has no built-in expander, and two forms of the same address must produce the
- * same key.
- */
+// Node has no built-in expander, and two written forms of the same address must produce the same key.
 function expandIpv6(address: string): string[] {
     const [head, tail] = address.split('::');
     const headGroups = head === '' ? [] : head.split(':');

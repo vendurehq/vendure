@@ -71,14 +71,7 @@ interface GrantLookup {
     sessionToken: string | null;
 }
 
-/**
- * MCP OAuth 2.1 authorization server.
- *
- * Handles client resolution (CIMD / DCR), authorization flows, token issuance,
- * revocation, and OAuth metadata endpoints.
- * Each grant is backed by an isolated Vendure session. Tokens are independent
- * and the session token is never exposed to MCP clients.
- */
+/** Each MCP grant is backed by its own Vendure session, kept isolated so the underlying session token is never exposed to a client. */
 @Injectable()
 export class McpOauthService {
     private cachedHashKey: Buffer | undefined;
@@ -160,9 +153,8 @@ export class McpOauthService {
         if (!client.redirectUris.includes(input.redirect_uri)) {
             throw new BadRequestException('redirect_uri is not registered for client');
         }
-        // From here the redirect_uri is a verified target, so every remaining request error is
-        // reported by redirecting there. An HTTP error would only be seen by the browser, not by
-        // the client that started the flow.
+        // Errors from here on are reported by redirecting to redirect_uri, since an HTTP error
+        // response would only reach the browser, not the client waiting on the redirect.
         const redirectUri = input.redirect_uri;
         const redirectError = (error: string, error_description: string) =>
             appendOAuthParams(redirectUri, {
@@ -287,10 +279,7 @@ export class McpOauthService {
         });
     }
 
-    /**
-     * Records a customer's decision on a pending authorization request. Called from the Shop
-     * API, so `ctx` already identifies the customer and the channel.
-     */
+    /** Called from the Shop API, so `ctx` already identifies the customer and channel. */
     async approveCustomerRequest(
         ctx: RequestContext,
         requestToken: string,
@@ -336,11 +325,8 @@ export class McpOauthService {
         }
         const ctx = await this.createAdminCtx();
         const hash = this.hashLookup(token);
-        // Either token of the pair identifies the grant, and revoking one kills the
-        // whole grant (RFC 7009: revoking a refresh token invalidates its access token).
-        // The refresh token the grant last rotated away from counts too: a client whose
-        // rotation response was lost still holds it, and the server knows it, so RFC 7009's
-        // "answer 200 for an unknown token" does not apply.
+        // Revoking either token in the pair kills the whole grant (RFC 7009), and the previous
+        // refresh token counts too, since a client that lost its rotation response may still hold it.
         const grant = await this.connection.getRepository(ctx, McpOauthGrant).findOne({
             where: [
                 { accessTokenHash: hash },
@@ -372,11 +358,7 @@ export class McpOauthService {
         return true;
     }
 
-    /**
-     * The signed-in customer's own active grants (not revoked, not expired). No channel filter:
-     * the consent belongs to the person, not the storefront it happened to be made on, so a
-     * customer sees every grant regardless of which sales channel it came from.
-     */
+    /** No channel filter: consent belongs to the person, not the storefront it was given on, so a customer sees every grant regardless of channel. */
     async listCustomerGrants(ctx: RequestContext): Promise<McpOauthGrant[]> {
         if (!ctx.activeUserId) {
             throw new UnauthorizedException('Listing MCP client grants requires a signed-in customer');
@@ -393,11 +375,7 @@ export class McpOauthService {
         });
     }
 
-    /**
-     * Revokes a grant on behalf of the signed-in customer. An id that doesn't exist and an id
-     * that belongs to someone else are refused with the same EntityNotFoundError, so a caller
-     * can't use the response to tell which of those it is.
-     */
+    /** Uses the same error for an unknown grant and one owned by someone else, so a caller can't tell the two apart. */
     async revokeCustomerGrant(ctx: RequestContext, grantId: ID): Promise<boolean> {
         if (!ctx.activeUserId) {
             throw new UnauthorizedException('Revoking an MCP client grant requires a signed-in customer');
@@ -480,11 +458,7 @@ export class McpOauthService {
         return resolved;
     }
 
-    /**
-     * Updates the audit timestamp at most once per interval, in the background, as a
-     * single-column update; the request must not wait for it. Mirrors how core
-     * updates ApiKey.lastUsedAt in auth-guard.ts.
-     */
+    /** Runs in the background so the request doesn't wait on it; mirrors how core updates `ApiKey.lastUsedAt`. */
     private touchGrantActivity(ctx: RequestContext, grant: McpOauthGrant): void {
         const staleBefore = new Date(Date.now() - MCP_GRANT_ACTIVITY_UPDATE_INTERVAL_MS);
         if (!grant.lastActivityAt || grant.lastActivityAt < staleBefore) {
@@ -501,12 +475,7 @@ export class McpOauthService {
         }
     }
 
-    /**
-     * Loads the grant for an access token together with its session's token in one query.
-     * The session token is raw-selected through a LEFT JOIN rather than a mapped relation:
-     * `Session.token` must never be duplicated onto the grant entity, and a missing session
-     * (cleaned up or lapsed) must not hide a live grant from the re-creation path above.
-     */
+    /** Raw-selects the session token via LEFT JOIN rather than a relation, so a missing session doesn't hide an otherwise-live grant. */
     private async findGrantAndSessionToken(
         ctx: RequestContext,
         accessToken: string,
@@ -525,12 +494,7 @@ export class McpOauthService {
         return grant ? { grant, sessionToken: result.raw[0]?.vendureSessionToken ?? null } : undefined;
     }
 
-    /**
-     * Atomically consumes a single-use authorization request.
-     *
-     * Validates toolset entitlements (admin vs. shop) to prevent token spoofing
-     * and optionally joins an external transaction via `existingCtx`.
-     */
+    /** Checks the toolset matches, so a code requested for one API can't be used to spoof a token for the other. */
     private async consumeAuthorizationRequest(
         requestToken: string,
         expectedToolset: McpToolset,
@@ -553,7 +517,6 @@ export class McpOauthService {
         return request;
     }
 
-    /** Consumes the request and sends the browser back with `error=access_denied`. */
     private async denyAuthorizationRequest(
         requestToken: string,
         expectedToolset: McpToolset,
@@ -567,10 +530,7 @@ export class McpOauthService {
         };
     }
 
-    /**
-     * Consumes the request and issues an authorization code for `approver`.
-     * Runs both writes in a single transaction to prevent silent failures and broken client redirects.
-     */
+    /** Runs both writes in one transaction so a failure midway can't leave the client with a broken redirect. */
     private async approveAuthorizationRequest(
         requestToken: string,
         expectedToolset: McpToolset,
@@ -645,9 +605,8 @@ export class McpOauthService {
         if (!verifyPkceChallenge(input.code_verifier, code.codeChallenge)) {
             throw new McpOauthError('invalid_grant', 'Invalid PKCE verifier');
         }
-        // Claiming the code and issuing against it are one transaction: a failure in between
-        // would otherwise burn the client's single exchange attempt and leave the session
-        // `issueTokenPair` created with no grant naming it.
+        // One transaction: otherwise a failure between claiming the code and issuing tokens would
+        // burn the client's one exchange attempt and orphan the session just created.
         return this.connection.withTransaction(ctx, async txCtx => {
             const claim = await this.connection
                 .getRepository(txCtx, McpAuthorizationCode)
@@ -712,10 +671,8 @@ export class McpOauthService {
         const accessPlaintext = randomToken();
         const refreshPlaintext = randomToken();
         await this.connection.withTransaction(ctx, async txCtx => {
-            // Atomically claim the rotation by swapping the token hashes in place. If two
-            // requests race with the same refresh token, only one UPDATE matches; the loser
-            // sees affected=0 and is rejected. The old refresh hash is kept so a later
-            // replay of it is recognized as reuse (above) rather than an unknown token.
+            // If two requests race to rotate the same refresh token, only one UPDATE matches and
+            // the other is rejected; the old hash is kept so replaying it is recognized as reuse.
             const claim = await this.connection
                 .getRepository(txCtx, McpOauthGrant)
                 .createQueryBuilder()
@@ -751,9 +708,8 @@ export class McpOauthService {
         channelId: ID | null,
     ): Promise<OAuthTokenResponse> {
         const oauth = this.resolvedOauth();
-        // `getUserById` returns soft-deleted users, and an authorization code can outlive the
-        // account that approved it, so `deletedAt` has to be checked here as well as on the
-        // session re-creation path.
+        // Checked here too (not just on session re-creation) because `getUserById` returns
+        // soft-deleted users, and a code can outlive the account that approved it.
         const user = await this.userService.getUserById(ctx, actorId);
         if (!user || user.deletedAt) {
             throw new McpOauthError('invalid_grant', 'Vendure user no longer exists');
@@ -827,11 +783,7 @@ export class McpOauthService {
         return this.requestContextService.create({ apiType: 'admin' });
     }
 
-    /**
-     * CSRF guard for admin consent. Expects the Vendure server's own origin, because Vendure
-     * serves the admin consent page itself. See {@link assertOriginMatches} for how the guard
-     * works.
-     */
+    /** Expects the Vendure server's own origin, since Vendure serves the admin consent page itself. */
     private assertConsentRequestOrigin(ctx: RequestContext): void {
         this.assertOriginMatches(
             ctx,
@@ -840,11 +792,7 @@ export class McpOauthService {
         );
     }
 
-    /**
-     * CSRF guard for customer consent. Expects the origin of the configured storefront consent
-     * page, which lives on the merchant's own domain. A consent page rendered on a server calls
-     * from Node with no `Origin` header, which is allowed — see {@link assertOriginMatches}.
-     */
+    /** Expects the merchant's storefront consent page origin; a server-rendered page with no `Origin` header is allowed through. */
     private assertStorefrontConsentOrigin(ctx: RequestContext): void {
         const consentUrl = this.resolvedOauth().storefrontConsentUrl;
         if (!consentUrl) {
@@ -859,16 +807,7 @@ export class McpOauthService {
         );
     }
 
-    /**
-     * CSRF protection for the consent endpoints:
-     * If a request has an `Origin`, it must match ours.
-     *
-     * This prevents other websites from making requests using a signed-in user's session.
-     * Browsers always send `Origin` for cross-site requests, so we can detect and block them.
-     *
-     * Requests without `Origin` (e.g. server or API calls) are allowed.
-     * An `Authorization` header does not skip this check.
-     */
+    /** Blocks a cross-site request from riding a signed-in user's session, by requiring the `Origin` header to match when the browser sends one. */
     private assertOriginMatches(ctx: RequestContext, expectedOrigin: string, message: string): void {
         const rawOrigin = ctx.req?.headers?.origin;
         const originHeader = Array.isArray(rawOrigin) ? rawOrigin[0] : rawOrigin;
@@ -885,11 +824,7 @@ export class McpOauthService {
         return resolvedOauthOptions(this.options);
     }
 
-    /**
-     * Derives (once) and returns the HMAC key used to hash the OAuth credentials —
-     * access tokens, refresh tokens, authorization codes and request tokens — stored
-     * in the token/code/request columns.
-     */
+    /** Derived once and cached, since re-deriving the key for every hash would be expensive. */
     private getHashKey(): Buffer {
         if (!this.cachedHashKey) {
             this.cachedHashKey = deriveHashKey(this.resolvedOauth().tokenSecret);

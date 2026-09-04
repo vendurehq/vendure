@@ -1,14 +1,9 @@
-/**
- * Helpers shared by the built-in tool spec files. Only spec files import them, and the package
- * build compiles solely what `src/index.ts` reaches, so this file never reaches the published
- * package.
- */
+// Only spec files import this, and the build compiles solely what src/index.ts reaches, so it
+// never ends up in the published package.
 import { McpTool, McpToolMetadata } from '@vendure/mcp-sdk';
 
-/**
- * The JSON Schema an MCP client sees for a tool's input. A Standard Schema, a zod schema for
- * example, carries a converter under `~standard`; anything else is already plain JSON Schema.
- */
+// A Standard Schema, a zod schema for example, carries a converter under `~standard`;
+// anything else is already plain JSON Schema.
 export function toJsonInputSchema(schema: unknown): Record<string, unknown> {
     const std = (
         schema as { ['~standard']?: { jsonSchema?: { input?: (o: object) => Record<string, unknown> } } }

@@ -45,10 +45,7 @@ import { McpShopSessionService } from '../shop-session/mcp-shop-session.service'
 
 import { createMcpServerForRequest } from './mcp-server.factory';
 
-/**
- * The rate-limit subject used for a request body the SDK will refuse (no JSON-RPC method, or a
- * non-JSON content type). Deliberately not a valid tool or method name.
- */
+// Deliberately not a valid tool or method name, so it never collides with a real one.
 const MALFORMED_SUBJECT = 'malformed';
 
 /** Minimal JSON-RPC error envelope returned by the handshake pre-check. */
@@ -65,10 +62,7 @@ interface JsonRpcMessage {
     params?: { name?: unknown };
 }
 
-/**
- * Converts an invalid channel token to a 400 instead of a 500.
- * Keeps Vendure's default response format and logging.
- */
+// Converts an invalid channel token to a 400 instead of a 500, keeping Vendure's default response format and logging.
 @Catch(ChannelNotFoundError)
 export class McpChannelTokenExceptionFilter extends ExceptionLoggerFilter {
     private readonly channelTokenHeader: string;
@@ -206,10 +200,7 @@ export class McpTransportController {
         return false;
     }
 
-    /**
-     * The refusals that come after the caller is known. Returns true once one of them has written
-     * the response, the same convention the DNS-rebinding guards use.
-     */
+    /** The refusals that come after the caller is known. Returns true once one has written the response. */
     private async refusedBeforeDispatch(
         toolset: McpToolset,
         res: Response,
@@ -217,8 +208,7 @@ export class McpTransportController {
         isJson: boolean,
         executionContext: McpExecutionContext,
     ): Promise<boolean> {
-        // Charged for every content type, including the ones the SDK will refuse: resolving the
-        // caller already cost a database round trip, so an unusable body must still be metered.
+        // Charged even for a body the SDK will refuse, since resolving the caller already cost a database round trip.
         const preCheckExceeded = await this.preCheckHandshakeRateLimit(body, toolset, executionContext);
         if (preCheckExceeded) {
             this.sendRateLimitError(res, body, preCheckExceeded);
@@ -231,12 +221,7 @@ export class McpTransportController {
         return false;
     }
 
-    /**
-     * Works out who is calling and whether they may: the shop-access policy, the two
-     * pre-authentication rate-limit gates, the admin token requirement, and the OAuth or
-     * anonymous-shop context. Returns undefined when it has already written the refusal
-     * response, the same convention the DNS-rebinding guards use.
-     */
+    /** Returns undefined when it has already written the refusal response, rather than a caller. */
     private async resolveCaller(
         toolset: McpToolset,
         req: I18nRequest,
@@ -282,8 +267,7 @@ export class McpTransportController {
             }
         }
 
-        // Refuse an IP that has used up its failed-authentication allowance before the token is
-        // looked up, so a flood of made-up tokens does not cost a database query each.
+        // Checked before the token is looked up, so a flood of made-up tokens does not cost a database query each.
         if (token) {
             const exceeded = await this.rateLimiter.checkBearerAuthFailureRateLimit(clientIp);
             if (exceeded) {
@@ -324,24 +308,13 @@ export class McpTransportController {
         return messages.some(message => this.isMessage(message) && message.method === 'subscriptions/listen');
     }
 
-    /**
-     * Tells the caller the subscription-stream method does not exist here.
-     * The SDK would otherwise hold the connection open indefinitely, and this plugin never publishes
-     * a notification, so such a stream can only ever deliver keep-alive pings. Remove this refusal
-     * when the plugin starts publishing something worth streaming.
-     */
+    // Refused because this plugin never publishes a notification, so such a stream could only ever deliver keep-alive pings.
     private sendSubscriptionsUnsupported(res: Response, body: unknown): void {
         // -32601 with HTTP 404 is exactly how the SDK answers a method it does not implement.
         this.sendRefusal(res, 404, { code: -32601, message: 'Method not found: subscriptions/listen' }, body);
     }
 
-    /**
-     * Enforces the per-subject rate limit for every message except a `tools/call` the registry
-     * funnel will charge itself. Notifications are charged too: they carry no id and get no reply,
-     * but they still reach the transport, so leaving them free left the endpoint hammerable for
-     * nothing. A message the SDK cannot parse at all is charged under {@link MALFORMED_SUBJECT},
-     * which is not a tool name, so no `perTool` limit can match it.
-     */
+    // Notifications are charged too, since they still reach the transport even though they get no reply.
     private async preCheckHandshakeRateLimit(
         body: unknown,
         toolset: McpToolset,
@@ -365,11 +338,7 @@ export class McpTransportController {
         return undefined;
     }
 
-    /**
-     * True for a `tools/call` the tool registry will reach and charge itself. A call whose `params`
-     * is missing, or carries no tool name, is rejected by the SDK before the registry runs, so it
-     * has to be charged here instead.
-     */
+    /** A call missing `params` or a tool name never reaches the registry, so it must be charged here instead. */
     private isRegistryChargedToolCall(message: unknown): boolean {
         return (
             this.isMessage(message) &&
@@ -378,12 +347,7 @@ export class McpTransportController {
         );
     }
 
-    /**
-     * Sends a rate-limit response:
-     * HTTP 429 with a `Retry-After` header, plus a JSON-RPC error body.
-     * The 429 status lets proxies and monitoring treat this as a proper refusal.
-     * The JSON-RPC body includes retry details for MCP-aware clients.
-     */
+    // HTTP 429 lets proxies and monitoring treat this as a proper refusal; the JSON-RPC body adds retry details for MCP-aware clients.
     private sendRateLimitError(res: Response, body: unknown, exceeded: McpRateLimitExceeded): void {
         res.setHeader('Retry-After', String(exceeded.retryAfterSeconds));
         this.sendRefusal(
@@ -408,10 +372,7 @@ export class McpTransportController {
         res.send(JSON.stringify(this.refusalPayload(body, error)));
     }
 
-    /**
-     * Builds the body that refuses a request before the SDK sees it: one error per message with an
-     * id when the body is a batch, so the client can match each refusal, else a single error.
-     */
+    /** One error per message when the body is a batch, so the client can match each refusal to its request. */
     private refusalPayload(body: unknown, error: JsonRpcError['error']): JsonRpcError | JsonRpcError[] {
         if (Array.isArray(body)) {
             const errors = body
@@ -433,7 +394,6 @@ export class McpTransportController {
         return this.usableId(message) !== undefined;
     }
 
-    /** The message's own id, or `null` when it has none or one of an unusable type. */
     private requestId(message: unknown): string | number | null {
         return this.usableId(message) ?? null;
     }
@@ -443,7 +403,6 @@ export class McpTransportController {
         return typeof value === 'object' && value !== null;
     }
 
-    /** The message's id when it is one JSON-RPC allows (string, number or null), else undefined. */
     private usableId(message: unknown): string | number | null | undefined {
         if (!this.isMessage(message)) {
             return undefined;
@@ -493,12 +452,7 @@ export class McpTransportController {
         }
     }
 
-    /**
-     * Per RFC 6750 §3.1: a bare challenge means no credentials were sent, while `error="invalid_token"`
-     * means a token was sent and rejected. Callers pass `invalidToken: true` only for the latter case.
-     * `description` names which of the several ways a token can be refused applied, so a client
-     * reading only the header can tell a refresh from a re-authorization.
-     */
+    // Per RFC 6750 §3.1: a bare challenge means no credentials were sent, while `error="invalid_token"` means one was sent and rejected.
     private setAuthChallenge(
         res: Response,
         toolset: McpToolset,
@@ -508,8 +462,7 @@ export class McpTransportController {
         if (options?.invalidToken) {
             params.push('error="invalid_token"');
             if (options.description) {
-                // A header parameter is a quoted string, so only printable ASCII without a quote
-                // or a backslash can go inside it.
+                // A header parameter is a quoted string, so only printable ASCII without a quote or backslash can go inside it.
                 const description = options.description.replace(/[^\x20-\x7e]|["\\]/g, '');
                 params.push(`error_description="${description}"`);
             }

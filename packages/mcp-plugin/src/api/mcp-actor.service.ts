@@ -32,10 +32,7 @@ export class McpActorService {
         private readonly requestContextCache: RequestContextCacheService,
     ) {}
 
-    /**
-     * A list page asks for the same actor on many rows, and for two fields per row, so the
-     * answer is cached for the lifetime of the request.
-     */
+    // Cached for the request's lifetime, since a list page asks for the same actor on many rows.
     resolveIdentity(
         ctx: RequestContext,
         userId: ID | string | null | undefined,

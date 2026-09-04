@@ -26,19 +26,11 @@ export type PreparedShopSessionCall =
           sessionToken?: string;
       };
 
-/**
- * Decides which Vendure session an anonymous shop call acts on. Both carriers of the token use
- * it: the `sessionToken` tool argument (the tool-execution funnel) and the `vendure-auth-token`
- * header (the transport controller).
- */
+// Decides which Vendure session an anonymous shop call acts on, whether the token arrives as a tool argument or a header.
 @Injectable()
 export class McpShopSessionService {
     constructor(private readonly sessionService: SessionService) {}
 
-    /**
-     * Removes the registry-owned sessionToken argument and resolves the context the handler uses.
-     * The caller receives one prepared input/context pair or a caller-safe refusal.
-     */
     async prepareToolCall(call: {
         ctx: RequestContext;
         input: Record<string, unknown>;
@@ -72,11 +64,7 @@ export class McpShopSessionService {
         return { ...output, sessionToken };
     }
 
-    /**
-     * Resolves the session for one shop tool call. An explicit `sessionToken` argument wins over
-     * the session already on the context. A session is created only when there is none and the
-     * tool writes to the cart.
-     */
+    /** An explicit `sessionToken` argument wins over the session already on the context. */
     async resolveForToolCall(call: {
         ctx: RequestContext;
         sessionToken: string | undefined;
@@ -90,8 +78,7 @@ export class McpShopSessionService {
             return sessionToken ? refused(REFUSAL.authenticatedCall) : { kind: 'unchanged' };
         }
 
-        // An in-process call whose context already belongs to a signed-in customer must not be
-        // swapped to an anonymous cart by a token the model kept from before the customer logged in.
+        // A signed-in customer's context must not be swapped to an anonymous cart by a stale token.
         if (sessionToken && call.ctx.activeUserId != null) {
             return refused(REFUSAL.authenticatedCall);
         }
@@ -108,9 +95,7 @@ export class McpShopSessionService {
             return this.resolved(call.ctx, session);
         }
 
-        // No token argument. Re-read the context's session through the session cache, because an
-        // earlier call in the same request may have set its active order. A miss leaves the
-        // context alone: an in-process caller's session may not be stored in the database.
+        // Re-read through the session cache, since an earlier call in the same request may have set the active order.
         const contextToken = call.ctx.session?.token;
         if (contextToken) {
             const session = await this.sessionService.getSessionFromToken(contextToken);
@@ -124,10 +109,6 @@ export class McpShopSessionService {
         return { kind: 'unchanged' };
     }
 
-    /**
-     * Resolves a `vendure-auth-token` header value. A missing or unknown token means no session;
-     * a signed-in user's token is refused.
-     */
     async resolveHeaderToken(
         header: string | undefined,
     ): Promise<{ kind: 'refused'; message: string } | { kind: 'resolved'; session?: CachedSession }> {
@@ -156,10 +137,7 @@ function trimmed(token: string | undefined): string | undefined {
     return token?.trim() || undefined;
 }
 
-/**
- * A copy of `ctx` carrying `session`, with everything else the request had kept as is. Core swaps
- * a private field the same way (see `_currencyCode` in order.service.ts).
- */
+// Core swaps a private field the same way (see `_currencyCode` in order.service.ts).
 function withSession(ctx: RequestContext, session: CachedSession): RequestContext {
     const copy = ctx.copy();
     (copy as any)._session = session;

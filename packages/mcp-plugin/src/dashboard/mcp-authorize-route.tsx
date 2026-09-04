@@ -31,10 +31,7 @@ import { isLoopbackHostname } from '../oauth/loopback';
 import { TooltipButton } from './components/tooltip-button';
 import { authorizeMcpClientMutation } from './mcp.graphql';
 
-/**
- * Shape returned by the `/mcp/oauth/authorization-request` REST endpoint. Mirrors
- * `AuthorizationRequestInfo` from the OAuth service.
- */
+// Mirrors `AuthorizationRequestInfo` from the OAuth service.
 interface AuthRequestInfo {
     client_id: string;
     client_id_source: 'cimd' | 'dcr';
@@ -54,10 +51,7 @@ function hostnameOf(uri: string): string | null {
     }
 }
 
-/**
- * The single Card shape this screen uses, whether it is loading, has failed, or is
- * showing the real request. Keeping one shell means the page doesn't jump around.
- */
+// One shell for loading, failed and real-request states, so the page doesn't jump around.
 function ConsentShell({
     title,
     description,
@@ -81,12 +75,7 @@ function ConsentShell({
     );
 }
 
-/**
- * Badge shown next to the client's domain. Vendure fetched the client's details from that
- * domain for a CIMD client, so the hostname is something it checked itself; for any other
- * client the address is only what the client says about itself. The display name is always
- * self-chosen either way, which is why this badge sits by the domain and not by the name.
- */
+// Sits by the domain, not the name, because the display name is always chosen by the client itself.
 function HostnameTrustBadge({ verified, metadataUrl }: { verified: boolean; metadataUrl?: string }) {
     return (
         <TooltipButton
@@ -126,11 +115,7 @@ function HostnameTrustBadge({ verified, metadataUrl }: { verified: boolean; meta
     );
 }
 
-/**
- * What the client is asking for, and what approving it actually hands over. The toolset is
- * the OAuth scope: `admin` grants the Admin API, `shop` grants the Shop API. `account` is the
- * signed-in administrator, so the sentence can name whose access is being handed over.
- */
+// `account`, the signed-in administrator, lets the sentence name whose access is handed over.
 function scopePresentation(toolset: string, account?: { name: string; emailAddress: string }) {
     if (toolset === 'shop') {
         return {
@@ -171,25 +156,20 @@ function ConsentDetails({
 }) {
     const { t } = useLingui();
     const { user } = useAuth();
-    // Only used to name the account in the scope sentence; the wording falls back to the
-    // generic one if the dashboard has not loaded the administrator yet.
+    // Only used to name the account in the scope sentence.
     const signedInAccount = user
         ? { name: `${user.firstName} ${user.lastName}`.trim(), emailAddress: user.emailAddress }
         : undefined;
-    // The grant is bound to whichever channel the dashboard's channel selector is on, so the
-    // card has to say which one that is before the administrator approves.
+    // The grant is bound to whichever channel the dashboard's channel selector is on.
     const { activeChannel } = useChannel();
 
     const redirectHost = hostnameOf(info.redirect_uri);
     const isCimdClient = info.client_id_source === 'cimd';
-    // For a CIMD client the address is the client_id URL its metadata was fetched from; for
-    // any other client it is whatever URI the client reported at registration.
+    // A CIMD client's address is the client_id URL its metadata came from; others just report a URI.
     const clientAddress = isCimdClient ? info.client_id : info.client_uri;
     const clientDomain = clientAddress ? (hostnameOf(clientAddress) ?? clientAddress) : null;
     const scope = scopePresentation(info.toolset, signedInAccount);
-    // Amber is reserved for a destination worth a second look: a client whose hostname Vendure
-    // could not check itself, a plain-http address, one on the local machine, or one on a
-    // different host than the client itself.
+    // Amber flags a redirect worth a second look: unverified, plain-http, local, or off the client's host.
     const isLoopbackRedirect = redirectHost != null && isLoopbackHostname(redirectHost);
     const clientHost = isCimdClient ? hostnameOf(info.client_id) : null;
     const redirectLeavesClientHost = clientHost != null && redirectHost !== clientHost;
@@ -240,9 +220,7 @@ function ConsentDetails({
                 </>
             }
         >
-            {/* The redirect target comes first: it is the value the server validated, and it
-                decides where the authorization code actually ends up. It is only flagged in
-                amber when there is something to be wary of, so the warning keeps its meaning. */}
+            {/* Only flagged amber when there is something to be wary of, so the warning keeps its meaning. */}
             <div
                 className={
                     redirectNeedsWarning
@@ -355,8 +333,7 @@ function ConsentCard({ requestToken }: { requestToken: string }) {
                         MCP client.
                     </Trans>
                 </p>
-                {/* The response does not say why it failed, so the raw message sits underneath as
-                    a detail rather than being presented as the reason. */}
+                {/* Shown as a detail, not the reason, since the response doesn't say why it failed. */}
                 {error?.message ? (
                     <p className="text-xs text-muted-foreground break-all">{error.message}</p>
                 ) : null}

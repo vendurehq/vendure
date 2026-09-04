@@ -42,8 +42,7 @@ interface McpToolInfo {
     enabled: boolean;
 }
 
-// Written as `type`, not `interface`: these get cached, and CacheService only accepts
-// plain JSON-serialisable shapes, which TS interfaces don't count as.
+// A `type`, not `interface`, because these get cached and CacheService only accepts plain JSON shapes.
 type McpTopTool = {
     toolName: string;
     count: number;
@@ -267,10 +266,7 @@ export class McpAdminResolver {
         };
     }
 
-    /**
-     * Returns the p50 and p95 durationMs for the window in one statement: number the rows in
-     * duration order and pick the two positions.
-     */
+    // Numbers the rows in duration order and picks the two positions, in one statement.
     private async durationPercentiles(
         ctx: RequestContext,
         since: string,
@@ -283,8 +279,7 @@ export class McpAdminResolver {
         const positionOf = (percentile: number) => Math.floor((total - 1) * percentile) + 1;
         const p50Position = positionOf(0.5);
         const p95Position = positionOf(0.95);
-        // Lower-case aliases: the outer query names columns of a subquery, which TypeORM does not
-        // quote, and Postgres folds unquoted names to lower case.
+        // Lower-case aliases: Postgres folds these unquoted column names to lower case.
         const rows = await this.connection
             .getRepository(ctx, McpToolCallLog)
             .manager.createQueryBuilder()
@@ -306,13 +301,11 @@ export class McpAdminResolver {
         return { p50LatencyMs: durationAt(p50Position), p95LatencyMs: durationAt(p95Position) };
     }
 
-    /** A query over the tool-call log, limited to the window and the active channel. */
     private windowedQuery(ctx: RequestContext, since: string) {
         const qb = this.connection.getRepository(ctx, McpToolCallLog).createQueryBuilder('log');
         return this.limitToWindow(qb, ctx, since);
     }
 
-    /** Adds the window and channel conditions to a query whose log alias is `log`. */
     private limitToWindow<T extends ObjectLiteral>(
         qb: SelectQueryBuilder<T>,
         ctx: RequestContext,
@@ -323,20 +316,12 @@ export class McpAdminResolver {
         return qb;
     }
 
-    /**
-     * Limits a query to the active channel's rows. Every grant records the channel it was
-     * approved on, so a row belonging to no channel is not something this channel should see.
-     * Written once because the grants list, the tool-call log list and the statistics window
-     * all need the same condition.
-     */
+    // Shared by the grants list, the tool-call log list and the statistics window.
     private scopeToChannel<T extends ObjectLiteral>(qb: SelectQueryBuilder<T>, alias: string, channelId: ID) {
         qb.andWhere(`${alias}.channelId = :channelId`, { channelId });
     }
 
-    /**
-     * Newest first when the caller sent no sort of their own, and always id DESC last so rows that
-     * share a timestamp come back in a stable order.
-     */
+    // Newest first by default, with id DESC always last so same-timestamp rows stay in a stable order.
     private applyDefaultOrder<T extends VendureEntity>(
         qb: SelectQueryBuilder<T>,
         alias: string,
@@ -376,15 +361,8 @@ function filterUsesField(filter: unknown, field: string): boolean {
     );
 }
 
-/**
- * Three log fields can hold personal data: the call's input, the call's output (either may
- * contain names, emails or addresses), and the caller's IP address. Listing log entries only
- * needs the MCP read permission, but these three fields also need the ReadCustomer permission.
- * Without it they are returned as null, not as an error.
- *
- * This resolver also turns the stored user id into a name, which needs a lookup rather than a
- * permission check.
- */
+// Input, output and clientIp need the ReadCustomer permission on top of the MCP read permission,
+// since they can hold personal data; without it they resolve to null rather than an error.
 @Resolver('McpToolCallLog')
 export class McpToolCallLogEntityResolver {
     constructor(private readonly actorService: McpActorService) {}
@@ -405,8 +383,7 @@ export class McpToolCallLogEntityResolver {
         return personalField(ctx, log.clientIp);
     }
 
-    // Resolved per row rather than joined, because the stored id points at either a Customer
-    // or an Administrator depending on the row's actorType.
+    // Resolved per row rather than joined, since the stored id points at either a Customer or an Administrator.
     @ResolveField()
     async actorName(@Parent() log: McpToolCallLog, @Ctx() ctx: RequestContext): Promise<string | null> {
         const identity = await this.actorService.resolveIdentity(ctx, log.actor, log.actorType);
@@ -420,7 +397,6 @@ export class McpToolCallLogEntityResolver {
     }
 }
 
-/** Resolves the fields of an OAuth grant that are not stored as plain columns on the entity. */
 @Resolver('McpOauthGrant')
 export class McpOauthGrantEntityResolver {
     constructor(private readonly actorService: McpActorService) {}

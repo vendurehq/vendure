@@ -31,10 +31,7 @@ function cartIsEditable(cart: ActiveOrderRef): boolean {
     return EDITABLE_ORDER_STATES.has(cart.state);
 }
 
-/**
- * A copy of `ctx` in the given currency, everything else unchanged. Core swaps the same private
- * field on a copy when it changes an order's currency (OrderService.updateOrderCurrency).
- */
+// Mirrors how core itself swaps the currency, by setting the same private field on a copy.
 function withCurrency(ctx: RequestContext, currencyCode: CurrencyCode): RequestContext {
     const copy = ctx.copy();
     (copy as any)._currencyCode = currencyCode;
@@ -65,11 +62,7 @@ export class McpActiveOrderService {
         };
     }
 
-    /**
-     * The shopper's current cart, creating an empty one when they have none. Order lines are not
-     * loaded. `add_to_cart` is the only caller: a cart begins when the first item is added, both in
-     * the browser and here, so every other cart mutation uses `findOrThrow` instead.
-     */
+    // Only add_to_cart may start a cart; every other mutation uses findOrThrow instead.
     async findOrCreate(ctx: RequestContext): Promise<ActiveOrderRef> {
         if (!ctx.session) {
             throw new IllegalOperationError(
@@ -85,11 +78,7 @@ export class McpActiveOrderService {
         return this.bindToCart(ctx, order);
     }
 
-    /**
-     * Prevents concurrent cart calls from creating multiple active orders for the same session.
-     * Locks the session row and refreshes its active order before the tool runs.
-     * SQLite runs without the lock because it allows only one writer at a time.
-     */
+    // SQLite skips the lock because it only ever allows one writer at a time anyway.
     private async lockSessionRow(txCtx: RequestContext): Promise<void> {
         const session = txCtx.session;
         if (!session) return;
@@ -113,11 +102,7 @@ export class McpActiveOrderService {
         }
     }
 
-    /**
-     * The shopper's current cart, refusing when they have none. Only `add_to_cart` may start a cart,
-     * so every other cart mutation goes through here: acting on a cart that does not exist would
-     * otherwise create an empty order and report success against it.
-     */
+    // Without this check, acting on a cart that doesn't exist would silently create an empty one.
     async findOrThrow(ctx: RequestContext): Promise<ActiveOrderRef> {
         const order = await this.find(ctx);
         if (!order) {
@@ -126,11 +111,8 @@ export class McpActiveOrderService {
         return order;
     }
 
-    /**
-     * The shopper's current cart when it can still be changed, otherwise the error result core
-     * returns for a cart in the wrong state. Core checks the state itself for line and shipping-method
-     * changes; coupon and address changes do not, so those tools call this instead of `findOrThrow`.
-     */
+    // Coupon and address changes don't check the cart's state themselves, unlike line and
+    // shipping-method changes, so those tools call this instead of findOrThrow.
     async findEditable(ctx: RequestContext): Promise<ActiveOrderRef | OrderModificationError> {
         const cart = await this.findOrThrow(ctx);
         return cartIsEditable(cart) ? cart : new OrderModificationError();
@@ -153,10 +135,8 @@ export class McpActiveOrderService {
         );
     }
 
-    /**
-     * No session (an anonymous shopper without a sessionToken yet) means no cart; core's
-     * active-order strategy throws on a missing session.
-     */
+    // Checked here because core's active-order strategy throws on a missing session instead of
+    // just reporting no cart.
     private async activeOrder(ctx: RequestContext): Promise<Order | undefined> {
         if (!ctx.session) return undefined;
 

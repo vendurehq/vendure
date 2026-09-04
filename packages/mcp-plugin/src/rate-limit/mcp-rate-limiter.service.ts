@@ -42,18 +42,12 @@ export class McpRateLimiterService {
         @Inject(MCP_PLUGIN_OPTIONS) private readonly options: ResolvedMcpPluginOptions,
     ) {}
 
-    /**
-     * Charges every relevant bucket, then reports the first bucket over its limit (or `undefined`
-     * when all are within it). A refused request stays charged, like other fixed-window limiters.
-     */
+    // A refused request stays charged, like other fixed-window limiters.
     async checkRateLimit(input: RateLimitInput): Promise<McpRateLimitExceeded | undefined> {
         return this.runChecks(this.buildRateLimitChecks(input), input.subject);
     }
 
-    /**
-     * Early anonymous-IP gate (before session or DB access exists).
-     * This bucket is intentionally NOT part of standard request checks to avoid double charging.
-     */
+    // Kept separate from the standard request checks, which run later, to avoid double charging.
     async checkAnonymousIpRateLimit(
         endpoint: McpToolset,
         clientIp?: string,
@@ -74,11 +68,7 @@ export class McpRateLimiterService {
         return this.runChecks([check], 'MCP OAuth request');
     }
 
-    /**
-     * Rate limits repeated authentication failures per IP.
-     * - only failed attempts contribute to the counter
-     * - once exceeded, all requests are blocked until window resets
-     */
+    // Only failed attempts count; once the limit is hit, every request from the IP is blocked until the window resets.
     async checkBearerAuthFailureRateLimit(clientIp?: string): Promise<McpRateLimitExceeded | undefined> {
         const check = this.buildBearerAuthFailureCheck(ipBucketKey(clientIp));
         if (!check) {
@@ -94,7 +84,6 @@ export class McpRateLimiterService {
         return undefined;
     }
 
-    /** Counts one failed bearer authentication for this address. */
     async recordBearerAuthFailure(clientIp?: string): Promise<void> {
         const check = this.buildBearerAuthFailureCheck(ipBucketKey(clientIp));
         if (!check) {
@@ -127,8 +116,7 @@ export class McpRateLimiterService {
         resetAt: number,
         now: number,
     ): McpRateLimitExceeded {
-        // `resetAt` was written by whichever instance created the bucket, so a clock difference
-        // between instances could otherwise advertise a wait longer than a window can ever be.
+        // Capped to one window, so a clock difference between instances can't advertise a wait longer than that.
         const windowSeconds = RATE_LIMIT_WINDOW_MS / 1000;
         const retryAfterSeconds = Math.min(windowSeconds, Math.max(1, Math.ceil((resetAt - now) / 1000)));
         return {
@@ -147,10 +135,6 @@ export class McpRateLimiterService {
         return [...new Map(checks.map(check => [check.key, check])).values()];
     }
 
-    /**
-     * Shared identity buckets: session, user, OAuth client
-     * These represent persistent actor identity across tool calls.
-     */
     private buildSharedBucketChecks(input: RateLimitInput): RateLimitCheck[] {
         const checks: RateLimitCheck[] = [];
         const endpoint = input.endpoint;
@@ -189,7 +173,6 @@ export class McpRateLimiterService {
         return option === false ? 0 : (option?.rpm ?? 0);
     }
 
-    /** The anonymous-IP bucket for an endpoint, or `undefined` when it does not apply. */
     private buildAnonymousIpCheck(endpoint: McpToolset, ipKey: string): RateLimitCheck | undefined {
         const rpm = this.resolveRpm(this.options.rateLimits.anonymousIp);
         if (endpoint !== 'shop' || rpm <= 0) {
@@ -198,7 +181,6 @@ export class McpRateLimiterService {
         return { key: `anonymous-ip:${endpoint}:${ipKey}`, rpm, scope: 'anonymous IP' };
     }
 
-    /** The OAuth-IP bucket, or `undefined` when it does not apply. */
     private buildOauthIpCheck(ipKey: string): RateLimitCheck | undefined {
         const rpm = this.resolveRpm(this.options.rateLimits.oauthIp);
         if (rpm <= 0) {
@@ -207,10 +189,7 @@ export class McpRateLimiterService {
         return { key: `oauth-ip:${ipKey}`, rpm, scope: 'OAuth IP' };
     }
 
-    /**
-     * The failed-bearer-authentication bucket. A separate bucket from the OAuth surface's, but
-     * governed by the same `oauthIp` option: both meter what an unauthenticated address may spend.
-     */
+    // Governed by the same `oauthIp` option as the OAuth surface's bucket, since both meter an unauthenticated address.
     private buildBearerAuthFailureCheck(ipKey: string): RateLimitCheck | undefined {
         const rpm = this.resolveRpm(this.options.rateLimits.oauthIp);
         if (rpm <= 0) {
@@ -273,8 +252,7 @@ export class McpRateLimiterService {
         if (executionContext.grant?.id != null) {
             return `mcp:${executionContext.grant.id}`;
         }
-        // No session and no grant: an in-process caller that passed a context without a session.
-        // Every such caller shares this one bucket, because there is nothing here to tell them apart.
+        // An in-process caller with no session shares this one bucket; there is nothing here to tell them apart.
         return 'none';
     }
 
@@ -296,13 +274,7 @@ export class McpRateLimiterService {
             : undefined;
     }
 
-    /**
-     * Actor identity for tool-level rate limits.
-     *
-     * Important distinction:
-     * - client alone would collapse all users under one bucket
-     * - session preserves per-session fairness under shared clients
-     */
+    // Client alone would collapse all its users under one bucket, so session is folded in for fairness.
     private perToolBucketKey(executionContext: McpExecutionContext): string {
         const clientKey = this.clientKey(executionContext);
         return clientKey

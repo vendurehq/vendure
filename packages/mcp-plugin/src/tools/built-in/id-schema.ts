@@ -1,7 +1,6 @@
 import { z } from 'zod';
 
-// Vendure IDs are `string | number` (core's ID type — which one depends on the project's
-// EntityIdStrategy), so tool inputs must accept both.
+// Vendure IDs can be a string or a number depending on the project's ID strategy, so accept both.
 export const idSchema = z.union([z.string(), z.number()], {
     error: 'must be a Vendure entity id (a string or a number)',
 });

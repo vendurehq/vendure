@@ -35,9 +35,8 @@ type AdjustStockInput = z.infer<typeof adjustStockInput>;
         'increase stock on hand',
         'fix inventory quantity',
     ],
-    // Stock is adjusted through the core updateProductVariants mutation, which requires
-    // UpdateCatalog/UpdateProduct. UpdateStockLocation would be the wrong permission here: it
-    // covers the StockLocation entity itself, not the quantities held at a location.
+    // UpdateStockLocation would be the wrong permission: it covers the StockLocation entity
+    // itself, not the quantities held at a location, which this mutation actually changes.
     permissions: [Permission.UpdateProduct],
     behavior: 'destructive',
     inputSchema: adjustStockInput,
@@ -52,9 +51,8 @@ export class AdjustStockTool implements McpToolHandler<AdjustStockInput> {
     ) {}
 
     async execute(ctx: RequestContext, input: AdjustStockInput) {
-        // The stock level read below only sees locations in the active channel, but core's write path
-        // sees every location. Without this check a location from another channel reads as no stock at
-        // all, and the delta would be written as the whole new quantity, replacing the stock held there.
+        // The stock read below only sees locations in the active channel, but the write below does
+        // not, so we check the location here to avoid silently overwriting another channel's stock.
         const location = await this.stockLocationService.findOne(ctx, input.locationId);
         if (!location) {
             throw new UserInputError(

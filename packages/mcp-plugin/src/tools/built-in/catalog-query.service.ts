@@ -57,11 +57,7 @@ export class McpCatalogQueryService {
         return grouped;
     }
 
-    /**
-     * Available stock for a page of variants with one StockLevel query instead of one per variant,
-     * then the configured StockLocationStrategy decides the number the same way core's
-     * StockLevelService.getAvailableStock does.
-     */
+    // One StockLevel query for the whole page, instead of one per variant.
     async withAvailableStock(
         ctx: RequestContext,
         variants: ProductVariant[],
@@ -85,10 +81,7 @@ export class McpCatalogQueryService {
         );
     }
 
-    /**
-     * Lists products for the Shop API, optionally only those in one collection. Mirrors
-     * `ProductService.findAll`, whose `where` clause is fixed and cannot take the collection filter.
-     */
+    // Mirrors ProductService.findAll, which can't take a collection filter, its where clause being fixed.
     async findPublicProducts(
         ctx: RequestContext,
         options: ListQueryOptions<Product>,
@@ -112,11 +105,8 @@ export class McpCatalogQueryService {
         };
     }
 
-    /**
-     * `product.id IN (subquery)` for products with at least one enabled variant in the collection.
-     * A subquery keeps paging and counting in the list builder's single statement. Parameter names
-     * are prefixed so they cannot clash with the ones the list builder binds.
-     */
+    // A subquery keeps paging and counting in the list builder's single statement; parameter names
+    // are prefixed so they don't clash with the ones the list builder binds.
     private productIdInCollection(ctx: RequestContext, collectionId: ID) {
         const subQuery = this.connection
             .getRepository(ctx, ProductVariant)

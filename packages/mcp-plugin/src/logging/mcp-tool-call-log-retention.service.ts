@@ -6,11 +6,7 @@ import { deleteInBatches } from '../delete-in-batches';
 import { McpToolCallLog } from '../entities/mcp-tool-call-log.entity';
 import { ResolvedMcpPluginOptions } from '../internal-types';
 
-/**
- * Deletes tool-call log rows older than the configured `logging.ttlDays` window, in batches so a
- * large table is never locked by one statement. Used by the scheduled retention task and by the
- * admin mutation that prunes on demand.
- */
+// Deletes in batches so a large table is never locked by one statement.
 @Injectable()
 export class McpToolCallLogRetentionService {
     constructor(
@@ -32,8 +28,7 @@ export class McpToolCallLogRetentionService {
                 .where('log.createdAt < :cutoff', { cutoff })
                 .limit(RETENTION_DELETE_BATCH_SIZE);
             if (channelId != null) {
-                // A channel only ever prunes its own rows, matching what it can see in the
-                // dashboard log list.
+                // A channel only ever prunes its own rows, matching what it can see in the dashboard log list.
                 query.andWhere('log.channelId = :channelId', { channelId });
             }
             return query.getRawMany<{ id: ID }>();

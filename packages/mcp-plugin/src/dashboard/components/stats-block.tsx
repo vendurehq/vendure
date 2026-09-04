@@ -36,7 +36,6 @@ import { TooltipButton } from './tooltip-button';
 
 type TimeRange = '1h' | '24h' | '7d' | '30d';
 
-/** A small "i" affordance that explains how a number was worked out. */
 function StatHint({ children }: { children: React.ReactNode }) {
     const { t } = useLingui();
     return (
@@ -78,19 +77,10 @@ function StatTile({
     );
 }
 
-/**
- * The tiles and the top-tools list sit side by side once the block is wide, with the tiles
- * taking two thirds of the width. Below that width the two regions stack.
- */
 const regionsClasses = 'grid gap-4 @4xl:grid-cols-3';
 
-/**
- * The tiles region: two rows of three tiles once there is room, a plain two-column grid on
- * narrow blocks.
- */
 const tilesClasses = '@4xl:col-span-2 grid grid-cols-2 @2xl:grid-cols-3 gap-3';
 
-/** Stands in for the tiles and the top-tools list while the first result is in flight. */
 function StatsSkeleton() {
     return (
         <div className={regionsClasses}>
@@ -107,10 +97,6 @@ function StatsSkeleton() {
     );
 }
 
-/**
- * The five most-used tools, each with a bar showing how its count compares with the busiest
- * tool. The stats query already returns the counts, so this only trims and ranks them.
- */
 function TopToolsList({ tools }: { tools: Array<{ toolName: string; count: number }> }) {
     const topFive = tools.slice(0, 5);
     const maxCount = Math.max(...topFive.map(tool => tool.count));

@@ -53,11 +53,7 @@ export class ShopListCollectionsTool implements McpToolHandler<ListCollectionsIn
         );
     }
 
-    /**
-     * Lists the public children of one collection. The children come from getChildren, which is not
-     * channel-scoped, so they are loaded again through findByIds to get the channel's translations,
-     * and then put back in their original order.
-     */
+    // getChildren isn't channel-scoped, so the results are reloaded by id to get the right translations.
     private async childCollections(ctx: RequestContext, parentId: ID, input: ListCollectionsInput) {
         const parent = await this.collectionService.findOne(ctx, parentId);
         if (!parent || parent.isPrivate) {

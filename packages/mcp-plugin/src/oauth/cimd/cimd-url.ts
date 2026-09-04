@@ -8,10 +8,6 @@ import { isLoopbackHostname } from '../loopback';
 // a client_id that is an HTTPS URL pointing at a JSON document describing the client,
 // instead of an id created by registration. This module owns the URL-shape rules (§3).
 
-/**
- * Returns true if the clientId is URL-shaped (CIMD), otherwise it is treated
- * as a registered client identifier.
- */
 export function isUrlClientId(clientId: string): boolean {
     // URL scheme is case-insensitive; normalization is handled by validation layer.
     const scheme = clientId.slice(0, 8).toLowerCase();
@@ -23,10 +19,6 @@ export interface CimdClientIdUrlOptions {
     allowLoopback: boolean;
 }
 
-/**
- * Enforces HTTPS (with optional loopback exception), rejects unsafe URL forms,
- * and ensures the value matches canonical URL parsing rules.
- */
 export function validateCimdClientIdUrl(clientId: string, options: CimdClientIdUrlOptions): URL {
     assertWithinLengthLimit(clientId);
     const url = parseClientIdUrl(clientId);
@@ -94,11 +86,7 @@ function assertHasPath(url: URL): void {
     }
 }
 
-/**
- * The WHATWG URL parser resolves "." and ".." segments silently, so inspect the raw
- * string: the document's client_id must equal this exact string, and the draft forbids
- * dot segments outright.
- */
+/** The URL parser resolves "." and ".." segments silently, so check the raw string instead. */
 function assertNoDotSegments(clientId: string): void {
     for (const segment of clientId.split('/')) {
         const normalized = segment.toLowerCase().replace(/%2e/g, '.');
@@ -115,11 +103,7 @@ function assertHostnameIsNotIpAddress(url: URL, loopback: boolean, options: Cimd
     }
 }
 
-/**
- * The string must survive parsing unchanged. The parser rewrites a URL in ways the other
- * checks cannot see, such as resolving "." and ".." segments and treating "\" as a path
- * separator.
- */
+/** Catches parser rewrites the other checks can't see, such as resolving "." and ".." segments. */
 function assertCanonicalForm(url: URL, clientId: string): void {
     if (url.href !== clientId) {
         throw new BadRequestException(

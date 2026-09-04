@@ -3,11 +3,7 @@ import { DetailPageButton } from '@vendure/dashboard';
 
 import { EmptyCell } from './empty-cell';
 
-/**
- * The person a tool call ran as, or the person who approved a grant. Customers link through to
- * their customer page the way the order list does; administrators have no such page, so their
- * name is plain text.
- */
+// Customers link to their customer page; administrators have no such page, so they show as plain text.
 export function ActorCell({
     actorType,
     actorName,
@@ -24,8 +20,7 @@ export function ActorCell({
             </span>
         );
     }
-    // A name is missing when the account has since been deleted, so the row keeps its dash
-    // rather than claiming nobody was signed in.
+    // A missing name means the account was deleted since, not that nobody was signed in.
     if (!actorName) {
         return <EmptyCell />;
     }
