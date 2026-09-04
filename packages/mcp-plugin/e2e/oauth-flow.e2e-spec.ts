@@ -246,6 +246,25 @@ describe('McpPlugin OAuth end-to-end flow', () => {
         ).rejects.toThrow(/invalid or expired/i);
     });
 
+    // RFC 8707 makes `resource` a SHOULD rather than a MUST on a refresh, so a client that sent
+    // it only on the first exchange must still be able to refresh: the grant records which
+    // resource it belongs to.
+    it('refreshes a grant for a client that omits resource', async () => {
+        const oauth = server.app.get(McpOauthService);
+        const first = await runFlow();
+
+        const rotated = await oauth.exchangeToken({
+            grant_type: 'refresh_token',
+            refresh_token: first.refresh_token,
+            client_id: first.client_id,
+        });
+        expect(rotated.access_token).toBeTruthy();
+        expect(rotated.access_token).not.toBe(first.access_token);
+
+        const authenticated = await oauth.authenticateBearerToken(rotated.access_token, 'admin');
+        expect(authenticated.grant.resource).toBe(first.resource);
+    });
+
     // A1-2: a client whose rotation response was lost still holds the pre-rotation refresh
     // token. The server knows that token, so "disconnect" has to revoke rather than answer 200
     // and leave the grant and its session live for the rest of the refresh window.
@@ -270,7 +289,7 @@ describe('McpPlugin OAuth end-to-end flow', () => {
             .findOneByOrFail({ previousRefreshTokenHash: lookupHash(first.refresh_token) });
         expect(grant.revokedAt).toBeTruthy();
         await expect(oauth.authenticateBearerToken(rotated.access_token, 'admin')).rejects.toThrow(
-            'Invalid or expired access token',
+            'Access token revoked',
         );
     });
 
@@ -458,7 +477,7 @@ describe('McpPlugin OAuth end-to-end flow', () => {
 
         const after = await postMcp(baseUrl(), 'admin', rpc('tools/list', {}, 2), { token: access_token });
         expect(after.status).toBe(401);
-        expect(after.body.message).toBe('Invalid or expired access token');
+        expect(after.body.message).toBe('Access token expired');
     });
 
     // The grant's own lifetime (`expiresAt`) can lapse while its current access token is still
@@ -1036,5 +1055,73 @@ describe('McpPlugin per-user rate limiting', () => {
             token: second.access_token,
         });
         expectRateLimitRefusal(refused, { scope: 'user', id: 2 });
+    });
+});
+
+describe('McpPlugin bearer authentication failure metering', () => {
+    // The oauthIp budget also sizes a separate bucket that caps failed bearer authentications.
+    // It is set low here so the run below can send more expired-token calls than the budget allows.
+    const pluginOptions: McpPluginOptions = {
+        oauth: { tokenSecret: TOKEN_SECRET },
+        rateLimits: {
+            perSession: { rpm: 0 },
+            perUser: { rpm: 0 },
+            perClient: { rpm: 0 },
+            anonymousIp: false,
+            oauthIp: { rpm: 8 },
+        },
+    };
+    const config = mergeConfig(testConfig(), { plugins: [McpPlugin.init(pluginOptions)] });
+    const { server, adminClient } = createTestEnvironment(config);
+    const baseUrl = () => `http://localhost:${config.apiOptions.port}`;
+    const lookupHash = (value: string) => hashLookupToken(value, deriveHashKey(TOKEN_SECRET));
+
+    let consentToken: string;
+
+    beforeAll(async () => {
+        McpPlugin.init(pluginOptions);
+        await server.init(testServerInit);
+        await adminClient.asSuperAdmin();
+        consentToken = adminClient.getAuthToken();
+    }, TEST_SETUP_TIMEOUT_MS);
+
+    afterAll(async () => {
+        await server.destroy();
+    });
+
+    it('keeps serving a client that refreshes after sending more expired calls than the budget', async () => {
+        const connection = server.app.get(TransactionalConnection);
+        const oauth = server.app.get(McpOauthService);
+        const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+        const flow = await runAuthorizationCodeFlow({
+            baseUrl: baseUrl(),
+            issuer: ISSUER,
+            superAdminToken: consentToken,
+        });
+        const grantRepo = connection.getRepository(ctx, McpOauthGrant);
+        const grant = await grantRepo.findOneByOrFail({
+            accessTokenHash: lookupHash(flow.access_token),
+        });
+        await grantRepo.update({ id: grant.id }, { accessTokenExpiresAt: new Date(Date.now() - MS_PER_DAY) });
+
+        // More calls than the budget allows, if a lapsed token counted as a failure.
+        for (let id = 1; id <= 10; id++) {
+            const refused = await postMcp(baseUrl(), 'admin', rpc('ping', {}, id), {
+                token: flow.access_token,
+            });
+            expect(refused.status).toBe(401);
+            expect(refused.body.message).toBe('Access token expired');
+        }
+
+        const refreshed = await oauth.exchangeToken({
+            grant_type: 'refresh_token',
+            refresh_token: flow.refresh_token,
+            client_id: flow.client_id,
+            resource: flow.resource,
+        });
+        const allowed = await postMcp(baseUrl(), 'admin', rpc('ping', {}, 11), {
+            token: refreshed.access_token,
+        });
+        expect(allowed.status).toBe(200);
     });
 });

@@ -202,7 +202,7 @@ describe('McpPlugin OAuth single-use code', () => {
         expect(grantSession).toBeNull();
 
         await expect(oauth.authenticateBearerToken(second.access_token, 'admin')).rejects.toThrow(
-            /invalid or expired/i,
+            'Access token revoked',
         );
         await expect(
             oauth.exchangeToken({

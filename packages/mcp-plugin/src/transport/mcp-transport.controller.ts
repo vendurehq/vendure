@@ -36,6 +36,7 @@ import { loggerCtx, MCP_PLUGIN_OPTIONS, RATE_LIMIT_ERROR_CODE } from '../constan
 import { getClientIp } from '../get-client-ip';
 import { getLanguageCodeFromQuery } from '../get-language-code';
 import { McpExecutionContext, ResolvedMcpPluginOptions } from '../internal-types';
+import { McpAccessTokenExpiredError } from '../oauth/oauth-error';
 import { McpOauthMetadataService } from '../oauth/oauth-metadata.service';
 import { McpOauthService } from '../oauth/oauth.service';
 import { McpRateLimiterService, McpRateLimitExceeded } from '../rate-limit/mcp-rate-limiter.service';
@@ -442,8 +443,13 @@ export class McpTransportController {
             return await this.oauthService.authenticateBearerToken(token, toolset, req);
         } catch (e) {
             if (e instanceof UnauthorizedException) {
-                await this.rateLimiter.recordBearerAuthFailure(clientIp);
-                this.setAuthChallenge(res, toolset, { invalidToken: true });
+                // An access token that reached the end of its lifetime is answered by refreshing,
+                // so it is not a failed authentication attempt and must not spend the budget that
+                // is there to stop token guessing.
+                if (!(e instanceof McpAccessTokenExpiredError)) {
+                    await this.rateLimiter.recordBearerAuthFailure(clientIp);
+                }
+                this.setAuthChallenge(res, toolset, { invalidToken: true, description: e.message });
             }
             throw e;
         }
@@ -452,13 +458,25 @@ export class McpTransportController {
     /**
      * Per RFC 6750 §3.1: a bare challenge means no credentials were sent, while `error="invalid_token"`
      * means a token was sent and rejected. Callers pass `invalidToken: true` only for the latter case.
+     * `description` names which of the several ways a token can be refused applied, so a client
+     * reading only the header can tell a refresh from a re-authorization.
      */
-    private setAuthChallenge(res: Response, toolset: McpToolset, options?: { invalidToken?: boolean }): void {
-        const resourceMetadata = `resource_metadata="${this.oauthMetadata.protectedResourceMetadataUrl(toolset)}"`;
-        const challenge = options?.invalidToken
-            ? `Bearer ${resourceMetadata}, error="invalid_token"`
-            : `Bearer ${resourceMetadata}`;
-        res.setHeader('WWW-Authenticate', challenge);
+    private setAuthChallenge(
+        res: Response,
+        toolset: McpToolset,
+        options?: { invalidToken?: boolean; description?: string },
+    ): void {
+        const params = [`resource_metadata="${this.oauthMetadata.protectedResourceMetadataUrl(toolset)}"`];
+        if (options?.invalidToken) {
+            params.push('error="invalid_token"');
+            if (options.description) {
+                // A header parameter is a quoted string, so only printable ASCII without a quote
+                // or a backslash can go inside it.
+                const description = options.description.replace(/[^\x20-\x7e]|["\\]/g, '');
+                params.push(`error_description="${description}"`);
+            }
+        }
+        res.setHeader('WWW-Authenticate', `Bearer ${params.join(', ')}`);
     }
 
     private methodNotAllowed(res: Response): void {

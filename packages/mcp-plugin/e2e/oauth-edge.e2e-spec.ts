@@ -224,7 +224,10 @@ describe('McpPlugin OAuth edge & security cases', () => {
             },
         });
         expect(res.status).toBe(400);
-        expect(await res.text()).toMatch(/redirect_uri is not registered/i);
+        expect(await res.json()).toEqual({
+            error: 'invalid_request',
+            error_description: expect.stringMatching(/redirect_uri is not registered/i),
+        });
     });
 
     // Once the redirect_uri is known to belong to the client, a bad request is reported by
@@ -550,7 +553,7 @@ describe('McpPlugin OAuth edge & security cases', () => {
         expect(grant?.revokedAt).toBeTruthy();
 
         await expect(oauth.authenticateBearerToken(flow.access_token, 'admin')).rejects.toThrow(
-            /invalid or expired/i,
+            'Access token revoked',
         );
     });
 

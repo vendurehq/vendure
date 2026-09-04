@@ -51,6 +51,13 @@ describe('McpPlugin OAuth CIMD client registration', () => {
         return response.status;
     }
 
+    /** The status and OAuth error code of an authorization request the server refuses. */
+    async function authorizeRefusal(clientId: string): Promise<{ status: number; error?: string }> {
+        const response = await fetch(authorizeUrl(clientId), { redirect: 'manual' });
+        const body = (await response.json()) as { error?: string };
+        return { status: response.status, error: body.error };
+    }
+
     function authorizeUrl(clientId: string): URL {
         const url = new URL(`${baseUrl}/mcp/oauth/authorize`);
         url.searchParams.set('response_type', 'code');
@@ -142,7 +149,7 @@ describe('McpPlugin OAuth CIMD client registration', () => {
             '/mismatch/client-metadata.json',
             documentFor('https://somewhere-else.example.com/client-metadata.json'),
         );
-        expect(await authorizeStatus(clientId)).toBe(400);
+        expect(await authorizeRefusal(clientId)).toEqual({ status: 400, error: 'invalid_request' });
     });
 
     it('rejects a redirect_uri that is not listed in the document', async () => {
@@ -151,13 +158,13 @@ describe('McpPlugin OAuth CIMD client registration', () => {
             '/other-redirect/client-metadata.json',
             documentFor(clientId, { redirect_uris: ['https://legit.example.com/cb'] }),
         );
-        expect(await authorizeStatus(clientId)).toBe(400);
+        expect(await authorizeRefusal(clientId)).toEqual({ status: 400, error: 'invalid_request' });
     });
 
     it('fails the request on a fetch error and does not cache the failure', async () => {
         const clientId = `${documentServer.baseUrl}/flaky/client-metadata.json`;
         documentServer.setError('/flaky/client-metadata.json', 500);
-        expect(await authorizeStatus(clientId)).toBe(400);
+        expect(await authorizeRefusal(clientId)).toEqual({ status: 400, error: 'invalid_request' });
 
         // The failure was not cached (draft §5.2): once the document is reachable, the
         // very next authorization request succeeds.
@@ -187,7 +194,7 @@ describe('McpPlugin OAuth CIMD client registration', () => {
     it('rejects a client_id URL that is not in canonical form', async () => {
         const clientId = `${documentServer.baseUrl}/canon/a\\..\\b.json`;
         documentServer.setDocument('/canon/b.json', documentFor(clientId));
-        expect(await authorizeStatus(clientId)).toBe(400);
+        expect(await authorizeRefusal(clientId)).toEqual({ status: 400, error: 'invalid_request' });
         expect(documentServer.requestCount('/canon/b.json')).toBe(0);
     });
 

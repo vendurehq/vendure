@@ -221,6 +221,11 @@ describe('MCP protocol conformance (direct mode)', () => {
         // carry error="invalid_token".
         expect(res.headers.get('www-authenticate')).toMatch(/^Bearer/);
         expect(res.headers.get('www-authenticate')).toMatch(/error="invalid_token"/);
+        // The challenge also says why, so a client whose auth layer reads only the header can tell
+        // a token it should refresh from one it must re-authorize.
+        expect(res.headers.get('www-authenticate')).toMatch(
+            /error_description="Invalid or expired access token"/,
+        );
     });
 
     it('admin endpoint with a valid bearer completes initialize + tools/list + tools/call', async () => {

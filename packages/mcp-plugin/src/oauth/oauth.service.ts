@@ -43,7 +43,7 @@ import { McpGrantUserType } from '../types';
 import { McpCimdClientResolverService } from './cimd/cimd-client-resolver.service';
 import { isUrlClientId } from './cimd/cimd-url';
 import { McpGrantSessionService } from './grant-session.service';
-import { McpOauthError } from './oauth-error';
+import { McpAccessTokenExpiredError, McpOauthError } from './oauth-error';
 import { McpOauthMetadataService } from './oauth-metadata.service';
 import {
     AuthorizationRequestInfo,
@@ -455,10 +455,16 @@ export class McpOauthService {
     }
 
     private usableGrant(resolved: GrantLookup | undefined, apiType: McpToolset): GrantLookup {
-        if (!resolved || resolved.grant.revokedAt || resolved.grant.accessTokenExpiresAt <= new Date()) {
+        if (!resolved) {
             throw new UnauthorizedException('Invalid or expired access token');
         }
         const { grant } = resolved;
+        if (grant.revokedAt) {
+            throw new UnauthorizedException('Access token revoked');
+        }
+        if (grant.accessTokenExpiresAt <= new Date()) {
+            throw new McpAccessTokenExpiredError();
+        }
         if (
             (apiType === 'admin' && grant.actorType !== 'admin') ||
             (apiType === 'shop' && grant.actorType !== 'customer')
@@ -665,10 +671,9 @@ export class McpOauthService {
 
     private async exchangeRefreshToken(input: TokenInput) {
         const oauth = this.resolvedOauth();
-        if (!input.refresh_token || !input.client_id || !input.resource) {
-            throw new McpOauthError('invalid_request', 'refresh_token, client_id and resource are required');
+        if (!input.refresh_token || !input.client_id) {
+            throw new McpOauthError('invalid_request', 'refresh_token and client_id are required');
         }
-        const { resource } = this.oauthMetadata.resolveResource(input.resource);
         const ctx = await this.createAdminCtx();
         const grantRepo = this.connection.getRepository(ctx, McpOauthGrant);
         const refreshTokenHash = this.hashLookup(input.refresh_token);
@@ -691,8 +696,16 @@ export class McpOauthService {
         if (grant.oauthClient.clientId !== input.client_id) {
             throw new McpOauthError('invalid_grant', 'Refresh token does not match client');
         }
-        if (grant.resource !== resource) {
-            throw new McpOauthError('invalid_grant', 'Refresh token does not match token request resource');
+        // RFC 8707 asks a client to name the resource on a refresh but does not require it, so a
+        // request that leaves it out is refreshing for the resource the grant already names.
+        if (input.resource) {
+            const { resource } = this.oauthMetadata.resolveResource(input.resource);
+            if (grant.resource !== resource) {
+                throw new McpOauthError(
+                    'invalid_grant',
+                    'Refresh token does not match token request resource',
+                );
+            }
         }
 
         const now = new Date();
