@@ -375,9 +375,22 @@ function draftExtension(
 }
 
 /**
- * Checks each option an extension adds against the flags the CLI owns, the
- * target's own options, and the options shared by the groups above and below
- * it.
+ * The options an added option has to agree with: the target's own, those
+ * shared by the groups above it, and — when the target is a group — those
+ * declared anywhere below it.
+ */
+interface ExtensionOptionScope {
+    ancestors: CliCommandOption[];
+    descendantGroups: Array<{ path: string[]; option: CliCommandOption }>;
+    descendantLeaves: Array<{ path: string[]; option: CliCommandOption }>;
+    own: CliCommandOption[];
+    targetIsGroup: boolean;
+    label: string;
+}
+
+/**
+ * Checks each option an extension adds against the flags the CLI owns and
+ * every option already in scope at the target.
  */
 function extensionOptionConflicts(
     draft: RegistryState,
@@ -385,75 +398,82 @@ function extensionOptionConflicts(
     target: CliCommandNode,
     path: string[],
 ): string[] {
-    const label = path.join(' ');
     const targetIsGroup = isCliCommandGroup(target);
-    const scope = {
+    const scope: ExtensionOptionScope = {
         // Extending a group shares the option with everything below it, so the
         // subtree matters as much as the ancestors.
         ancestors: ancestorSharedOptions(draft, path),
         descendantGroups: targetIsGroup ? descendantGroupOptions(target, path) : [],
         descendantLeaves: targetIsGroup ? descendantLeafOptions(target, path) : [],
         own: withSubOptions(target.options ?? []),
+        targetIsGroup,
+        label: path.join(' '),
     };
 
+    return withSubOptions(extension.options ?? []).flatMap(option =>
+        addedOptionConflicts(draft, option, scope),
+    );
+}
+
+function addedOptionConflicts(
+    draft: RegistryState,
+    option: CliCommandOption,
+    scope: ExtensionOptionScope,
+): string[] {
+    const parsed = parseOptionFlags(option);
+    const name = describeOption(option);
+    const { label } = scope;
+    const group = `the command group "vendure ${label}"`;
     const conflicts: string[] = [];
-    for (const option of withSubOptions(extension.options ?? [])) {
-        const parsed = parseOptionFlags(option);
-        const name = describeOption(option);
-        const group = `the command group "vendure ${label}"`;
 
-        for (const flag of [parsed.long, parsed.short]) {
-            if (flag && RESERVED_FLAGS.includes(flag)) {
-                conflicts.push(
-                    `Option "${name}" added to "vendure ${label}" uses "${flag}", which is reserved by ` +
-                        `the CLI.`,
-                );
-            }
+    for (const flag of [parsed.long, parsed.short]) {
+        if (flag && RESERVED_FLAGS.includes(flag)) {
+            conflicts.push(
+                `Option "${name}" added to "vendure ${label}" uses "${flag}", which is reserved by the CLI.`,
+            );
         }
-        if (scope.own.some(existing => isSameOption(existing, parsed))) {
-            conflicts.push(`Option "${name}" is already declared on "vendure ${label}".`);
-        }
+    }
+    if (scope.own.some(existing => isSameOption(existing, parsed))) {
+        conflicts.push(`Option "${name}" is already declared on "vendure ${label}".`);
+    }
 
-        const descendantGroup = scope.descendantGroups.find(existing =>
-            isSameOption(existing.option, parsed),
+    const descendantGroup = scope.descendantGroups.find(existing => isSameOption(existing.option, parsed));
+    if (descendantGroup) {
+        conflicts.push(
+            `Option "${name}" added to ${group} is already shared by ` +
+                `"vendure ${descendantGroup.path.join(' ')}" below it. ${GROUP_SHARING_EXPLANATION}`,
         );
-        if (descendantGroup) {
-            conflicts.push(
-                `Option "${name}" added to ${group} is already shared by ` +
-                    `"vendure ${descendantGroup.path.join(' ')}" below it. ${GROUP_SHARING_EXPLANATION}`,
-            );
-            continue;
-        }
+        return conflicts;
+    }
 
-        const leafBelow = scope.descendantLeaves.find(
-            existing => isSameOption(existing.option, parsed) && !takesSameValue(existing.option, option),
+    const leafBelow = scope.descendantLeaves.find(
+        existing => isSameOption(existing.option, parsed) && !takesSameValue(existing.option, option),
+    );
+    if (leafBelow) {
+        conflicts.push(
+            `Option "${name}" added to ${group} is not compatible with ` +
+                `"${describeOption(leafBelow.option)}" on "vendure ${leafBelow.path.join(' ')}" below it: ` +
+                `one takes a value and the other does not.`,
         );
-        if (leafBelow) {
-            conflicts.push(
-                `Option "${name}" added to ${group} is not compatible with ` +
-                    `"${describeOption(leafBelow.option)}" on "vendure ${leafBelow.path.join(' ')}" ` +
-                    `below it: one takes a value and the other does not.`,
-            );
-            continue;
-        }
+        return conflicts;
+    }
 
-        const sharedOption =
-            findRootOption(draft, parsed)?.option ??
-            scope.ancestors.find(existing => isSameOption(existing, parsed));
-        if (!sharedOption) {
-            continue;
-        }
-        if (targetIsGroup) {
-            conflicts.push(
-                `Option "${name}" added to ${group} is already a shared option ` +
-                    `("${describeOption(sharedOption)}"). ${GROUP_SHARING_EXPLANATION}`,
-            );
-        } else if (!takesSameValue(sharedOption, option)) {
-            conflicts.push(
-                `Option "${name}" added to "vendure ${label}" is not compatible with the shared option ` +
-                    `"${describeOption(sharedOption)}": one takes a value and the other does not.`,
-            );
-        }
+    const sharedOption =
+        findRootOption(draft, parsed)?.option ??
+        scope.ancestors.find(existing => isSameOption(existing, parsed));
+    if (!sharedOption) {
+        return conflicts;
+    }
+    if (scope.targetIsGroup) {
+        conflicts.push(
+            `Option "${name}" added to ${group} is already a shared option ` +
+                `("${describeOption(sharedOption)}"). ${GROUP_SHARING_EXPLANATION}`,
+        );
+    } else if (!takesSameValue(sharedOption, option)) {
+        conflicts.push(
+            `Option "${name}" added to "vendure ${label}" is not compatible with the shared option ` +
+                `"${describeOption(sharedOption)}": one takes a value and the other does not.`,
+        );
     }
     return conflicts;
 }
