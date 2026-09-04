@@ -9,13 +9,12 @@ import { McpJsonSchema, McpStandardSchema, McpToolSchema } from '@vendure/mcp-sd
 
 const NO_ARGS_SCHEMA: McpJsonSchema = { type: 'object', properties: {}, additionalProperties: false };
 
-export interface McpToolInjectedFields {
+interface McpToolInjectedFields {
     confirm: boolean;
     sessionToken: boolean;
 }
 
-export interface PreparedMcpToolSchemas {
-    jsonInputSchema: McpJsonSchema;
+interface PreparedMcpToolSchemas {
     wireJsonSchema: McpJsonSchema;
     compiledInputSchema: StandardSchemaWithJSON;
     compiledOutputSchema?: StandardSchemaWithJSON;
@@ -74,7 +73,7 @@ export class McpToolSchemaService {
             ? this.compileJsonSchema(resolvedOutput.json, outputLabel)
             : undefined;
 
-        return { jsonInputSchema, wireJsonSchema, compiledInputSchema, compiledOutputSchema };
+        return { wireJsonSchema, compiledInputSchema, compiledOutputSchema };
     }
 
     compileJsonSchema(schema: McpJsonSchema, label: string): StandardSchemaWithJSON {

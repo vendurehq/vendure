@@ -16,13 +16,6 @@ export type McpAuthenticatedContext = Required<Pick<McpExecutionContext, 'ctx' |
 export type McpOauthOptionsWithDefaults = McpOauthOptions &
     Required<Pick<McpOauthOptions, keyof typeof DEFAULT_OAUTH_OPTIONS>>;
 
-export interface ResolvedMcpLoggingOptions extends McpLoggingOptions {
-    ttlDays: number;
-    capture: NonNullable<McpLoggingOptions['capture']>;
-    maxBodyBytes: number;
-    captureClientIp: boolean;
-}
-
 /**
  * Plugin options after `resolveMcpPluginOptions` has applied every documented default.
  * Services receive this via `MCP_PLUGIN_OPTIONS` and must not re-apply defaults.
@@ -32,5 +25,10 @@ export interface ResolvedMcpPluginOptions extends McpPluginOptions {
     shopAccess: NonNullable<McpPluginOptions['shopAccess']>;
     oauth?: McpOauthOptionsWithDefaults;
     rateLimits: Required<McpRateLimitOptions>;
-    logging: ResolvedMcpLoggingOptions;
+    logging: McpLoggingOptions & {
+        ttlDays: number;
+        capture: NonNullable<McpLoggingOptions['capture']>;
+        maxBodyBytes: number;
+        captureClientIp: boolean;
+    };
 }

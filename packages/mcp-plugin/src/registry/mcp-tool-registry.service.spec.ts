@@ -169,7 +169,7 @@ describe('McpToolRegistryService', () => {
             const { service } = build([wrapper(shopTool({ inputSchema: undefined }))]);
             service.onApplicationBootstrap();
             const tool = service.getRegistrySnapshot()[0];
-            expect(tool.jsonInputSchema).toEqual({
+            expect(tool.wireJsonSchema).toEqual({
                 type: 'object',
                 properties: {},
                 additionalProperties: false,
@@ -282,7 +282,6 @@ describe('McpToolRegistryService', () => {
             const { service } = build([wrapper(shopTool({ inputSchema: schema }))]);
             service.onApplicationBootstrap();
             const tool = service.getRegistrySnapshot()[0];
-            expect(tool.jsonInputSchema).toEqual(OBJECT_JSON);
             expect(tool.wireJsonSchema).toEqual(OBJECT_JSON);
         });
 
@@ -294,7 +293,7 @@ describe('McpToolRegistryService', () => {
             const { service } = build([wrapper(shopTool({ inputSchema: valibotLike }))]);
             service.onApplicationBootstrap();
             const tool = service.getRegistrySnapshot()[0];
-            expect(tool.jsonInputSchema).toEqual(OBJECT_JSON);
+            expect(tool.wireJsonSchema).toEqual(OBJECT_JSON);
         });
 
         it('rejects a validate-only Standard Schema (no JSON Schema conversion) with upgrade guidance', () => {
@@ -360,7 +359,7 @@ describe('McpToolRegistryService', () => {
             service.onApplicationBootstrap();
             const tool = service.getRegistrySnapshot()[0];
             expect(tool.wireJsonSchema.properties?.confirm).toBeDefined();
-            expect(tool.jsonInputSchema.properties?.confirm).toBeUndefined();
+            expect(DELETE_JSON.properties?.confirm).toBeUndefined();
 
             const preview = await service.callToolDirect({ ctx: makeCtx() }, 'shop', 'delete_thing', {
                 id: 'x',
@@ -407,7 +406,7 @@ describe('McpToolRegistryService', () => {
             const { service } = build([wrapper(shopTool({ inputSchema: schema }))]);
             service.onApplicationBootstrap();
             const tool = service.getRegistrySnapshot()[0];
-            expect(tool.jsonInputSchema).not.toHaveProperty('$schema');
+            expect(tool.wireJsonSchema).not.toHaveProperty('$schema');
         });
 
         it('drift-checks a Standard Schema outputSchema against its derived JSON, not via the author parse', async () => {
@@ -962,16 +961,17 @@ describe('McpToolRegistryService', () => {
             });
 
         it('injects sessionToken into the wire schema of a public shop tool, leaving the SSOT clean', () => {
-            const { service } = build([wrapper(cartTool())]);
+            const tool = cartTool();
+            const { service } = build([wrapper(tool)]);
             service.onApplicationBootstrap();
-            const tool = service.getRegistrySnapshot()[0];
-            expect(tool.wireJsonSchema.properties?.sessionToken).toMatchObject({ type: 'string' });
-            expect(tool.wireJsonSchema.properties?.sessionToken).toMatchObject({
+            const registered = service.getRegistrySnapshot()[0];
+            expect(registered.wireJsonSchema.properties?.sessionToken).toMatchObject({ type: 'string' });
+            expect(registered.wireJsonSchema.properties?.sessionToken).toMatchObject({
                 description:
                     'Session token returned by cart tools. To start a cart, call add_to_cart once without this field. ' +
                     'For later calls, including parallel calls, pass the latest returned token to use the same cart.',
             });
-            expect(tool.jsonInputSchema.properties?.sessionToken).toBeUndefined();
+            expect((tool.inputSchema as any).properties?.sessionToken).toBeUndefined();
         });
 
         it('leaves an unrelated public mutation sessionless', async () => {
@@ -1277,8 +1277,7 @@ describe('McpToolRegistryService', () => {
             expect(tools).toHaveLength(1);
             expect(tools[0].inputSchema.properties.confirm).toBeDefined();
 
-            const registered = service.getRegistrySnapshot().find(t => t.name === 'delete_thing');
-            expect(registered?.jsonInputSchema.properties?.confirm).toBeUndefined();
+            expect((destructiveTool.inputSchema as any).properties?.confirm).toBeUndefined();
         });
 
         it('matches author keywords in the search query', async () => {

@@ -15,17 +15,15 @@ import { type ListInput, listOptions } from './list-helpers';
 // Kept to the fields an operations user actually asks for, to keep the tool's input small.
 export const ORDER_SORT_FIELDS = ['orderPlacedAt', 'updatedAt', 'createdAt', 'total'] as const;
 
-export type OrderSortField = (typeof ORDER_SORT_FIELDS)[number];
+type OrderSortField = (typeof ORDER_SORT_FIELDS)[number];
 
 /** The two sort directions list_orders accepts; the tool adds its own description. */
 export const sortDirection = z.enum(['ASC', 'DESC']);
 
-interface OrderListInput extends ListInput {
-    sortBy?: OrderSortField;
-    sortDirection?: z.infer<typeof sortDirection>;
-}
-
-export function orderListOptions(input: OrderListInput, defaultSort: OrderSortField): OrderListOptions {
+export function orderListOptions(
+    input: ListInput & { sortBy?: OrderSortField; sortDirection?: z.infer<typeof sortDirection> },
+    defaultSort: OrderSortField,
+): OrderListOptions {
     const field = input.sortBy ?? defaultSort;
     const direction = input.sortDirection === 'ASC' ? SortOrder.ASC : SortOrder.DESC;
     return {

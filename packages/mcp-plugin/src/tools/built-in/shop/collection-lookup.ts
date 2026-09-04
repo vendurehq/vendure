@@ -10,7 +10,7 @@ import {
 
 import { type ListInput, listOptions } from '../list-helpers';
 
-export type CollectionLookup = { kind: 'id'; value: ID } | { kind: 'slug'; value: string };
+type CollectionLookup = { kind: 'id'; value: ID } | { kind: 'slug'; value: string };
 
 export function collectionLookup(id: ID | undefined, slug: string | undefined): CollectionLookup | undefined {
     if (id != null) {

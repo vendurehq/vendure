@@ -9,7 +9,7 @@ import {
 
 import { McpActorType, McpGrantUserType } from '../types';
 
-export interface McpActorIdentity {
+interface McpActorIdentity {
     name: string | null;
     customerId: ID | null;
 }

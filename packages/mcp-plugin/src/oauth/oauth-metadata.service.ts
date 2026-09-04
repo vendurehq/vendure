@@ -36,16 +36,15 @@ export class McpOauthMetadataService {
         if (toolsetParam !== 'shop' && toolsetParam !== 'admin') {
             throw new NotFoundException();
         }
-        const toolset: McpToolset = toolsetParam;
-        if (!this.availableToolsets().includes(toolset)) {
+        if (!this.availableToolsets().includes(toolsetParam)) {
             throw new NotFoundException();
         }
         const issuer = this.issuerOrigin();
         return {
-            resource: this.resourceForToolset(toolset),
+            resource: this.resourceForToolset(toolsetParam),
             authorization_servers: [issuer],
             bearer_methods_supported: ['header'],
-            resource_name: `Vendure ${toolset} MCP`,
+            resource_name: `Vendure ${toolsetParam} MCP`,
         };
     }
 

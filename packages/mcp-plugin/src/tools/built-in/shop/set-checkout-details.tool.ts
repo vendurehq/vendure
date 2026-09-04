@@ -165,7 +165,10 @@ export class SetCheckoutDetailsTool implements McpToolHandler<SetCheckoutDetails
         after: Order | undefined,
     ): { shippingMethodChanged: true; message: string } | undefined {
         const methodsAfter = shippingMethodIds(after);
-        if (methodsBefore.length === 0 || sameIds(methodsBefore, methodsAfter)) {
+        const sameIds =
+            methodsBefore.length === methodsAfter.length &&
+            methodsBefore.every((id, index) => id === methodsAfter[index]);
+        if (methodsBefore.length === 0 || sameIds) {
             return undefined;
         }
         const message =
@@ -185,10 +188,6 @@ const shippingMethodRemovedMessage =
 
 function shippingMethodIds(order: Order | undefined): string[] {
     return (order?.shippingLines ?? []).map(line => String(line.shippingMethodId)).sort();
-}
-
-function sameIds(a: string[], b: string[]): boolean {
-    return a.length === b.length && a.every((id, index) => id === b[index]);
 }
 
 function asBillingAddress(

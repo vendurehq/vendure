@@ -11,7 +11,7 @@ import { isLoopbackHostname } from './oauth/loopback';
  */
 export function checkMcpPluginOptions(options: ResolvedMcpPluginOptions): void {
     const logging = options.logging;
-    if (logging?.capture === 'full' && !logging.redact) {
+    if (logging.capture === 'full' && !logging.redact) {
         Logger.warn(
             'Full MCP logging is enabled without redaction. ' +
                 'This may store sensitive data. Add logging.redact to sanitize logs, ' +
@@ -71,7 +71,7 @@ function assertOauthShape(oauth: McpOauthOptionsWithDefaults): void {
     if (issuerUrl.pathname !== '/' || issuerUrl.search || issuerUrl.hash) {
         throw issuerError(issuer);
     }
-    if (oauth.adminConsentPath != null && !staysOnIssuer(oauth.adminConsentPath, issuerUrl)) {
+    if (!staysOnIssuer(oauth.adminConsentPath, issuerUrl)) {
         throw new Error(
             `McpPlugin: oauth.adminConsentPath "${oauth.adminConsentPath}" must be a path on ` +
                 `oauth.issuer, such as "/dashboard/mcp/authorize".`,

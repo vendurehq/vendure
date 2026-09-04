@@ -43,11 +43,6 @@ interface McpToolInfo {
 }
 
 // A `type`, not `interface`, because these get cached and CacheService only accepts plain JSON shapes.
-type McpTopTool = {
-    toolName: string;
-    count: number;
-};
-
 type McpStats = {
     totalCalls: number;
     successRate: number;
@@ -55,7 +50,7 @@ type McpStats = {
     p50LatencyMs: number | null;
     p95LatencyMs: number | null;
     callsPerHour: number;
-    topTools: McpTopTool[];
+    topTools: Array<{ toolName: string; count: number }>;
 };
 
 /** How this MCP server is configured, so the dashboard can show only what applies. */

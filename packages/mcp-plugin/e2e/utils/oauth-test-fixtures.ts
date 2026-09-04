@@ -76,7 +76,6 @@ export async function seedAuthorizationCode(
             redirectUri: DEFAULT_REDIRECT_URI,
             resource,
             codeChallenge: crypto.createHash('sha256').update(DEFAULT_VERIFIER).digest('base64url'),
-            codeChallengeMethod: 'S256',
             channelId: null,
             expiresAt: new Date(Date.now() + 5 * 60 * 1000),
         }),

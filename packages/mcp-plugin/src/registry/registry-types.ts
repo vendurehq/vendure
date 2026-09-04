@@ -17,10 +17,8 @@ export interface McpRegisteredTool extends McpToolMetadata {
     annotations: ToolAnnotations;
     /** Decided once at discovery, so the advertised schema and the call-time session exchange cannot disagree. */
     acceptsSessionToken: boolean;
-    /** Never modified after discovery; additional fields go on a separate copy for the wire schema. */
-    jsonInputSchema: McpJsonSchema;
     compiledInputSchema: StandardSchemaWithJSON;
-    /** Based on `jsonInputSchema`, with optional `confirm` or `sessionToken` fields added when required. */
+    /** The author's schema, with optional `confirm` or `sessionToken` fields added when required. */
     wireJsonSchema: McpJsonSchema;
     /** Compiled validator for the declared output schema, if any. */
     compiledOutputSchema?: StandardSchemaWithJSON;

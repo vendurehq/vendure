@@ -57,15 +57,6 @@ export class McpAuthorizationCode extends VendureEntity {
     @Column()
     codeChallenge: string;
 
-    /**
-     * @description
-     * PKCE method. Always `S256`
-     *
-     * @default 'S256'
-     */
-    @Column({ default: 'S256' })
-    codeChallengeMethod: string;
-
     @Index()
     @Column({ type: Date })
     expiresAt: Date;

@@ -260,7 +260,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     }
 
     private isToolHandler(instance: unknown): instance is McpToolHandler {
-        return typeof (instance as Partial<McpToolHandler>)?.execute === 'function';
+        return typeof (instance as Partial<McpToolHandler>).execute === 'function';
     }
 
     private buildRegisteredTool(
@@ -467,7 +467,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     }): Promise<CallToolResult> {
         const { error, callContext, tool, input, startedAt, sessionToken } = call;
         const message = error instanceof Error ? error.message : 'MCP tool failed';
-        const callerSafe = this.isCallerSafeError(error);
+        const callerSafe = CALLER_SAFE_ERROR_TYPES.some(ErrorType => error instanceof ErrorType);
         const callerMessage =
             callerSafe && error instanceof I18nError
                 ? callContext.ctx.translate(error.message, error.variables)
@@ -667,14 +667,13 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         for (const toolset of ALL_TOOLSETS) {
             const entries = [...this.tools.values()]
                 .filter(tool => tool.toolset === toolset)
-                .map(tool => ({ id: tool.name, text: this.searchDocText(tool) }));
+                .map(tool => ({
+                    id: tool.name,
+                    text: [tool.name, tool.title ?? '', tool.description, ...(tool.keywords ?? [])].join(' '),
+                }));
             indexes.set(toolset, new Bm25Index(entries));
         }
         return indexes;
-    }
-
-    private searchDocText(tool: McpRegisteredTool): string {
-        return [tool.name, tool.title ?? '', tool.description, ...(tool.keywords ?? [])].join(' ');
     }
 
     private buildDiscoveryMetaTools(): McpExposedTool[] {
@@ -780,10 +779,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         name?: string | symbol;
     }): string {
         return wrapper.host?.metatype?.name ?? String(wrapper.name ?? 'unknown');
-    }
-
-    private isCallerSafeError(e: unknown): boolean {
-        return CALLER_SAFE_ERROR_TYPES.some(ErrorType => e instanceof ErrorType);
     }
 
     // The tool path passes the `text` it already built to measure the result, so it is not serialized twice.

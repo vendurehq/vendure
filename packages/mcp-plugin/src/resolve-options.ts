@@ -92,8 +92,8 @@ function resolveRateLimits(rateLimits?: McpRateLimitOptions): Required<McpRateLi
 }
 
 /** `false` means the bucket is switched off; anything else must carry a usable rpm. */
-function assertRpm(name: string, option: { rpm: number } | false | undefined): void {
-    if (option === false || option === undefined) {
+function assertRpm(name: string, option: { rpm: number } | false): void {
+    if (option === false) {
         return;
     }
     assertNonNegativeNumber(`${name}.rpm`, option.rpm);

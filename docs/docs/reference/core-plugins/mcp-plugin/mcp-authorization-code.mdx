@@ -30,8 +30,6 @@ class McpAuthorizationCode extends VendureEntity {
     channelId: ID | null;
     @Column()
     codeChallenge: string;
-    @Column({ default: 'S256' })
-    codeChallengeMethod: string;
     @Index()
     @Column({ type: Date })
     expiresAt: Date;
@@ -89,11 +87,6 @@ Must match during token exchange.
 <MemberInfo kind="property" type={`string`}   />
 
 
-### codeChallengeMethod
-
-<MemberInfo kind="property" type={`string`} default={`'S256'`}   />
-
-PKCE method. Always `S256`
 ### expiresAt
 
 <MemberInfo kind="property" type={`Date`}   />

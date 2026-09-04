@@ -377,7 +377,8 @@ export class McpTransportController {
     private refusalPayload(body: unknown, error: JsonRpcError['error']): JsonRpcError | JsonRpcError[] {
         if (Array.isArray(body)) {
             const errors = body
-                .filter(message => this.hasRequestId(message))
+                // Only messages with an id JSON-RPC allows can be addressed by a reply.
+                .filter(message => this.usableId(message) !== undefined)
                 .map(message => ({
                     jsonrpc: '2.0' as const,
                     id: this.requestId(message),
@@ -388,11 +389,6 @@ export class McpTransportController {
             }
         }
         return { jsonrpc: '2.0', id: this.requestId(body), error };
-    }
-
-    /** True when a message carries an id JSON-RPC allows, so a reply can be addressed to it. */
-    private hasRequestId(message: unknown): boolean {
-        return this.usableId(message) !== undefined;
     }
 
     private requestId(message: unknown): string | number | null {

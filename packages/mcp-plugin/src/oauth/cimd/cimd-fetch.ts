@@ -81,19 +81,18 @@ function createGuardedLookup(allowLoopback: boolean, baseLookup: typeof dns.look
             if (error) {
                 return callback(error);
             }
-            const list = Array.isArray(addresses) ? addresses : [];
             const allAllowed =
-                list.length > 0 &&
-                list.every(entry => isAllowedCimdAddress(entry.address, entry.family, allowLoopback));
+                addresses.length > 0 &&
+                addresses.every(entry => isAllowedCimdAddress(entry.address, entry.family, allowLoopback));
             if (!allAllowed) {
                 return callback(new Error('client_id host does not resolve to a public address'));
             }
             // The socket may ask for one address or (with `all`, e.g. for happy-eyeballs
             // connection racing) the whole list — answer in the shape it asked for.
             if (callerOptions.all) {
-                return callback(null, list);
+                return callback(null, addresses);
             }
-            callback(null, list[0].address, list[0].family);
+            callback(null, addresses[0].address, addresses[0].family);
         });
     };
     return guarded as typeof dns.lookup;

@@ -24,8 +24,6 @@ class McpAuthorizationRequest extends VendureEntity {
     state: string | null;
     @Column()
     codeChallenge: string;
-    @Column({ default: 'S256' })
-    codeChallengeMethod: string;
     @Column({ type: 'varchar' })
     toolset: McpToolset;
     @Column()
@@ -71,11 +69,6 @@ Hash of the request token used by the consent page.
 <MemberInfo kind="property" type={`string`}   />
 
 
-### codeChallengeMethod
-
-<MemberInfo kind="property" type={`string`} default={`'S256'`}   />
-
-PKCE method. Always `S256`.
 ### toolset
 
 <MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-toolset#mcptoolset'>McpToolset</a>`}   />

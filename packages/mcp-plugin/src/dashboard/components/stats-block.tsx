@@ -138,10 +138,6 @@ function NoCallsRecorded() {
     );
 }
 
-function formatPercent(fraction: number): string {
-    return `${(fraction * 100).toFixed(1)}%`;
-}
-
 function formatLatency(ms: number | null): string {
     return ms == null ? '—' : `${ms} ms`;
 }
@@ -218,7 +214,7 @@ export function StatsBlock() {
                         <StatTile
                             icon={<CircleCheckIcon className="h-3.5 w-3.5" />}
                             label={<Trans>Success rate</Trans>}
-                            value={formatPercent(successRate)}
+                            value={`${(successRate * 100).toFixed(1)}%`}
                         >
                             <Progress className="pt-1" value={successRate * 100} />
                         </StatTile>

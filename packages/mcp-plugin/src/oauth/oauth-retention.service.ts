@@ -86,10 +86,7 @@ export class McpOauthRetentionService {
     /** Kept longer than other OAuth records for audit value; the default retention matches the tool-call log window so a retained log can still resolve its grant. */
     private deleteDeadGrants(ctx: RequestContext): Promise<number> {
         const oauth = this.options.oauth;
-        if (!oauth) {
-            return Promise.resolve(0);
-        }
-        if (oauth.grantRetentionDays === 0) {
+        if (!oauth || oauth.grantRetentionDays === 0) {
             return Promise.resolve(0);
         }
         const cutoff = new Date(Date.now() - oauth.grantRetentionDays * MS_PER_DAY);
