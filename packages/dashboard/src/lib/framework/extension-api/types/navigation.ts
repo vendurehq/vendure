@@ -1,6 +1,7 @@
 import { AnyRoute, RouteOptions } from '@tanstack/react-router';
 import { LucideIcon } from 'lucide-react';
 import type React from 'react';
+import type { DashboardUserContext } from '../../user-context/dashboard-user-context.js';
 
 import { DashboardExtensionNavigationShortcut, NavMenuItem } from '../../nav-menu/nav-menu-extensions.js';
 
@@ -116,4 +117,18 @@ export interface DashboardNavSectionDefinition {
      * Optional placement to control the position of this section in the sidebar.
      */
     placement?: 'top' | 'bottom';
+    /**
+     * @description
+     * A predicate evaluated on every nav render to decide whether this section is
+     * shown. When it returns false the section and all of its items are hidden.
+     *
+     * Note that section-level permission filtering is not applied: a section is kept
+     * as long as it still has at least one item. The `requiresPermission` of each
+     * individual item is still applied to the items inside the section.
+     *
+     * Presentation only, never authorization.
+     *
+     * @since 3.8.0
+     */
+    isVisible?: (ctx: DashboardUserContext) => boolean;
 }

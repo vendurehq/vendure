@@ -4,7 +4,7 @@ generated: true
 ---
 ## DashboardNavSectionDefinition
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/navigation.ts" sourceLine="87" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/navigation.ts" sourceLine="88" packageName="@vendure/dashboard" since="3.4.0" />
 
 Defines a custom navigation section in the dashboard sidebar.
 
@@ -18,6 +18,7 @@ interface DashboardNavSectionDefinition {
     icon?: LucideIcon;
     order?: number;
     placement?: 'top' | 'bottom';
+    isVisible?: (ctx: DashboardUserContext) => boolean;
 }
 ```
 
@@ -55,12 +56,24 @@ Optional order number to control the position of this section in the sidebar.
 <MemberInfo kind="property" type={`'top' | 'bottom'`}   />
 
 Optional placement to control the position of this section in the sidebar.
+### isVisible
+
+<MemberInfo kind="property" type={`(ctx: <a href='/reference/dashboard/extensions-api/navigation#dashboardusercontext'>DashboardUserContext</a>) => boolean`}  since="3.8.0"  />
+
+A predicate evaluated on every nav render to decide whether this section is
+shown. When it returns false the section and all of its items are hidden.
+
+Note that section-level permission filtering is not applied: a section is kept
+as long as it still has at least one item. The `requiresPermission` of each
+individual item is still applied to the items inside the section.
+
+Presentation only, never authorization.
 
 
 </div>
 ## NavMenuItem
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/nav-menu/nav-menu-extensions.ts" sourceLine="74" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/nav-menu/nav-menu-extensions.ts" sourceLine="75" packageName="@vendure/dashboard" since="3.4.0" />
 
 Defines an items in the navigation menu.
 
@@ -74,6 +87,7 @@ interface NavMenuItem {
     placement?: NavMenuSectionPlacement;
     requiresPermission?: string | string[];
     shortcut?: NavigationShortcut;
+    isVisible?: (ctx: DashboardUserContext) => boolean;
 }
 ```
 
@@ -118,12 +132,399 @@ A higher number appears further down the list.
 <MemberInfo kind="property" type={`string | string[]`}   />
 
 This can be used to restrict the menu item to the given
-permission or permissions.
+permission or permissions. The user needs ANY of the listed
+permissions on the active channel, not all of them.
+
+ANDed with `isVisible` when both are set: an item appears only if it
+passes both checks.
 ### shortcut
 
 <MemberInfo kind="property" type={`NavigationShortcut`}   />
 
 Optional second key for the global `G` navigation chord.
+### isVisible
+
+<MemberInfo kind="property" type={`(ctx: <a href='/reference/dashboard/extensions-api/navigation#dashboardusercontext'>DashboardUserContext</a>) => boolean`}  since="3.8.0"  />
+
+A predicate evaluated on every nav render to decide whether this item is shown.
+It is ANDed with `requiresPermission`: both must pass for the item to appear.
+
+Must be pure, synchronous and cheap. The framework makes no promise about how
+often it is called.
+
+This controls presentation only and is never an authorization mechanism.
 
 
 </div>
+## NavMenuTransform
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/nav-menu/nav-menu-extensions.ts" sourceLine="312" packageName="@vendure/dashboard" since="3.8.0" />
+
+Transforms the nav menu config on every render, with access to the logged-in user.
+Transforms compose by chaining: each receives the previous transform's output.
+
+Must be pure and synchronous. This controls presentation only and is never an
+authorization mechanism.
+
+```ts title="Signature"
+type NavMenuTransform = (config: NavMenuConfig, ctx: DashboardUserContext) => NavMenuConfig
+```
+## setNavVisibility
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/nav-menu/nav-menu-helpers.ts" sourceLine="37" packageName="@vendure/dashboard" since="3.8.0" />
+
+Returns a new config in which the entries with the given ids have `predicate` ANDed
+onto their existing `isVisible`. Matches both sections and nested items.
+
+Use this rather than spreading `isVisible` yourself: a plain spread silently
+discards a predicate that another plugin already set on the same entry.
+
+This controls presentation only and is never an authorization mechanism.
+
+*Example*
+
+```ts
+navMenuTransforms: [
+    (config, ctx) => setNavVisibility(config, ['products'], () => !isFloorStaff(ctx)),
+]
+```
+
+```ts title="Signature"
+function setNavVisibility(config: NavMenuConfig, ids: string[], predicate: Predicate): NavMenuConfig
+```
+Parameters
+
+### config
+
+<MemberInfo kind="parameter" type={`NavMenuConfig`} />
+
+### ids
+
+<MemberInfo kind="parameter" type={`string[]`} />
+
+### predicate
+
+<MemberInfo kind="parameter" type={`Predicate`} />
+
+## keepOnlyNavItems
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/nav-menu/nav-menu-helpers.ts" sourceLine="77" packageName="@vendure/dashboard" since="3.8.0" />
+
+Returns a new config in which every entry not named in `ids` is hidden. A section is
+left visible when it is named, or when one of its items is named. Naming a section
+directly also keeps all of its items, rather than hiding items that were not
+individually named.
+
+This controls presentation only and is never an authorization mechanism.
+
+*Example*
+
+```ts
+navMenuTransforms: [
+    (config, ctx) => (isFloorStaff(ctx) ? keepOnlyNavItems(config, ['pos-home']) : config),
+]
+```
+
+```ts title="Signature"
+function keepOnlyNavItems(config: NavMenuConfig, ids: string[]): NavMenuConfig
+```
+Parameters
+
+### config
+
+<MemberInfo kind="parameter" type={`NavMenuConfig`} />
+
+### ids
+
+<MemberInfo kind="parameter" type={`string[]`} />
+
+## DashboardUserRole
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/user-context/dashboard-user-context.ts" sourceLine="11" packageName="@vendure/dashboard" since="3.8.0" />
+
+A role held by the active administrator.
+
+```ts title="Signature"
+interface DashboardUserRole {
+    id: string;
+    code: string;
+    description: string;
+    channels: Array<{ id: string }>;
+}
+```
+
+<div className="members-wrapper">
+
+### id
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### code
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### description
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### channels
+
+<MemberInfo kind="property" type={`Array<{ id: string }>`}   />
+
+
+
+
+</div>
+## DashboardUserChannel
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/user-context/dashboard-user-context.ts" sourceLine="31" packageName="@vendure/dashboard" since="3.8.0" />
+
+A channel the active administrator can access.
+
+```ts title="Signature"
+interface DashboardUserChannel {
+    id: string;
+    token: string;
+    code: string;
+    permissions: string[];
+}
+```
+
+<div className="members-wrapper">
+
+### id
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### token
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### code
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### permissions
+
+<MemberInfo kind="property" type={`string[]`}   />
+
+
+
+
+</div>
+## AdministratorCustomFields
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/user-context/dashboard-user-context.ts" sourceLine="57" packageName="@vendure/dashboard" since="3.8.0" />
+
+Augment this interface in your own project to get typed Administrator custom fields
+on `DashboardUserContext.administrator.customFields`.
+
+*Example*
+
+```ts
+declare module '@vendure/dashboard' {
+    interface AdministratorCustomFields {
+        isFloorStaff?: boolean;
+    }
+}
+```
+
+```ts title="Signature"
+interface AdministratorCustomFields {
+
+}
+```
+## DashboardAdministrator
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/user-context/dashboard-user-context.ts" sourceLine="67" packageName="@vendure/dashboard" since="3.8.0" />
+
+The active administrator.
+
+```ts title="Signature"
+interface DashboardAdministrator {
+    id: string;
+    firstName: string;
+    lastName: string;
+    emailAddress: string;
+    user: { id: string; identifier: string; roles: DashboardUserRole[] };
+    customFields?: AdministratorCustomFields & Record<string, unknown>;
+}
+```
+
+<div className="members-wrapper">
+
+### id
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### firstName
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### lastName
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### emailAddress
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### user
+
+<MemberInfo kind="property" type={`{ id: string; identifier: string; roles: <a href='/reference/dashboard/extensions-api/navigation#dashboarduserrole'>DashboardUserRole</a>[] }`}   />
+
+
+### customFields
+
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/navigation#administratorcustomfields'>AdministratorCustomFields</a> &#38; Record<string, unknown>`}   />
+
+
+
+
+</div>
+## DashboardUserContext
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/user-context/dashboard-user-context.ts" sourceLine="94" packageName="@vendure/dashboard" since="3.8.0" />
+
+Describes the logged-in dashboard user. Passed to nav menu transforms and to
+`isVisible` predicates so they can decide what this user should see.
+
+This controls presentation only. It is never an authorization mechanism: a user who
+can call an operation on the Admin API can still call it regardless of what the
+dashboard renders.
+
+```ts title="Signature"
+interface DashboardUserContext {
+    administrator: DashboardAdministrator | undefined;
+    roles: DashboardUserRole[];
+    channels: DashboardUserChannel[];
+    activeChannel: DashboardUserChannel | undefined;
+    hasPermissions: (permissions: string[]) => boolean;
+    isSuperAdmin: boolean;
+}
+```
+
+<div className="members-wrapper">
+
+### administrator
+
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/navigation#dashboardadministrator'>DashboardAdministrator</a> | undefined`}   />
+
+
+### roles
+
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/navigation#dashboarduserrole'>DashboardUserRole</a>[]`}   />
+
+
+
+*Example*
+
+```ts
+const isSellerHere = (ctx: DashboardUserContext) =>
+    ctx.roles.some(
+        r => r.code === 'seller' && r.channels.some(c => c.id === ctx.activeChannel?.id),
+    );
+```
+### channels
+
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/navigation#dashboarduserchannel'>DashboardUserChannel</a>[]`}   />
+
+
+### activeChannel
+
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/navigation#dashboarduserchannel'>DashboardUserChannel</a> | undefined`}   />
+
+
+### hasPermissions
+
+<MemberInfo kind="property" type={`(permissions: string[]) => boolean`}   />
+
+
+### isSuperAdmin
+
+<MemberInfo kind="property" type={`boolean`}   />
+
+
+
+
+</div>
+## BuildDashboardUserContextInput
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/user-context/dashboard-user-context.ts" sourceLine="131" packageName="@vendure/dashboard" since="3.8.0" />
+
+The input shape for [buildDashboardUserContext](/reference/dashboard/extensions-api/navigation#builddashboardusercontext).
+
+```ts title="Signature"
+interface BuildDashboardUserContextInput {
+    administrator:
+        | {
+              id: string;
+              firstName: string;
+              lastName: string;
+              emailAddress: string;
+              user: { id: string; identifier: string; roles: readonly DashboardUserRole[] };
+          }
+        | undefined;
+    channels: readonly DashboardUserChannel[] | undefined;
+    activeChannel: DashboardUserChannel | undefined;
+    customFields: Record<string, unknown> | undefined;
+    hasPermissions: (permissions: string[]) => boolean;
+}
+```
+
+<div className="members-wrapper">
+
+### administrator
+
+<MemberInfo kind="property" type={`| {               id: string;               firstName: string;               lastName: string;               emailAddress: string;               user: { id: string; identifier: string; roles: readonly <a href='/reference/dashboard/extensions-api/navigation#dashboarduserrole'>DashboardUserRole</a>[] };           }         | undefined`}   />
+
+
+### channels
+
+<MemberInfo kind="property" type={`readonly <a href='/reference/dashboard/extensions-api/navigation#dashboarduserchannel'>DashboardUserChannel</a>[] | undefined`}   />
+
+
+### activeChannel
+
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/navigation#dashboarduserchannel'>DashboardUserChannel</a> | undefined`}   />
+
+
+### customFields
+
+<MemberInfo kind="property" type={`Record<string, unknown> | undefined`}   />
+
+
+### hasPermissions
+
+<MemberInfo kind="property" type={`(permissions: string[]) => boolean`}   />
+
+
+
+
+</div>
+## buildDashboardUserContext
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/user-context/dashboard-user-context.ts" sourceLine="156" packageName="@vendure/dashboard" since="3.8.0" />
+
+Assembles a [DashboardUserContext](/reference/dashboard/extensions-api/navigation#dashboardusercontext). Pure, so it can be unit tested and reused
+outside React (for example in a TanStack Router `beforeLoad`).
+
+```ts title="Signature"
+function buildDashboardUserContext(input: BuildDashboardUserContextInput): DashboardUserContext
+```
+Parameters
+
+### input
+
+<MemberInfo kind="parameter" type={`<a href='/reference/dashboard/extensions-api/navigation#builddashboardusercontextinput'>BuildDashboardUserContextInput</a>`} />
+

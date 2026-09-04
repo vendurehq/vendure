@@ -1,8 +1,10 @@
 import {
     addNavMenuItem,
     addNavMenuSection,
+    addNavMenuTransform,
     NavMenuConfig,
     NavMenuItem,
+    NavMenuTransform,
 } from '../../nav-menu/nav-menu-extensions.js';
 import { registerRoute } from '../../page/page-api.js';
 import { DashboardNavSectionDefinition, DashboardRouteDefinition } from '../types/navigation.js';
@@ -10,9 +12,13 @@ import { DashboardNavSectionDefinition, DashboardRouteDefinition } from '../type
 export function registerNavigationExtensions(
     navSections?: DashboardNavSectionDefinition[] | ((config: NavMenuConfig) => NavMenuConfig),
     routes?: DashboardRouteDefinition[],
+    navMenuTransforms?: NavMenuTransform[],
 ): ((config: NavMenuConfig) => NavMenuConfig) | undefined {
     const navMenuModifier = registerNavSections(navSections);
     registerRoutes(routes);
+    for (const transform of navMenuTransforms ?? []) {
+        addNavMenuTransform(transform);
+    }
     return navMenuModifier;
 }
 
@@ -41,17 +47,17 @@ function registerRoutes(routes?: DashboardRouteDefinition[]) {
     }
     for (const route of routes) {
         if (route.navMenuItem) {
+            const { sectionId, ...navMenuItemProps } = route.navMenuItem;
             const item: NavMenuItem = {
+                // Spread so that any field added to NavMenuItem passes through without
+                // needing a change here. Field-by-field construction silently dropped
+                // new optional fields such as isVisible.
+                ...navMenuItemProps,
                 url: route.navMenuItem.url ?? route.path,
                 id: route.navMenuItem.id ?? route.path,
                 title: route.navMenuItem.title ?? route.path,
-                order: route.navMenuItem.order,
-                requiresPermission: route.navMenuItem.requiresPermission,
-                icon: route.navMenuItem.icon,
-                placement: route.navMenuItem.placement,
-                shortcut: route.navMenuItem.shortcut,
             };
-            addNavMenuItem(item, route.navMenuItem.sectionId);
+            addNavMenuItem(item, sectionId);
         }
         if (route.path) {
             registerRoute(route);

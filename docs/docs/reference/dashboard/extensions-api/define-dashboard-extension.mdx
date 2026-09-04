@@ -73,6 +73,7 @@ Every type of customisation of the dashboard can be defined here, including:
 interface DashboardExtension {
     routes?: DashboardRouteDefinition[];
     navSections?: DashboardNavSectionDefinition[] | ((config: NavMenuConfig) => NavMenuConfig);
+    navMenuTransforms?: NavMenuTransform[];
     pageBlocks?: DashboardPageBlockDefinition[];
     actionBarItems?: DashboardActionBarItem[];
     alerts?: DashboardAlertDefinition[];
@@ -128,6 +129,32 @@ navSections: (config) => ({
 Note: modifier functions should return a **new** config object rather than
 mutating the input, to ensure predictable behavior when multiple modifiers
 are composed. The function form was introduced in version 3.6.0.
+### navMenuTransforms
+
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/navigation#navmenutransform'>NavMenuTransform</a>[]`}  since="3.8.0"  />
+
+Functions which transform the nav menu on every render, with access to the
+logged-in user via [DashboardUserContext](/reference/dashboard/extensions-api/navigation#dashboardusercontext). Use this to hide, reorder,
+retitle or otherwise adjust nav entries per user.
+
+Transforms compose by chaining: each receives the previous one's output, so
+multiple plugins can each adjust the menu without overwriting each other.
+
+Unlike the function form of `navSections`, which runs once at registration,
+these run on every nav render and must be pure, synchronous and cheap.
+
+This controls presentation only and is never an authorization mechanism.
+
+*Example*
+
+```ts
+navMenuTransforms: [
+    (config, ctx) =>
+        ctx.roles.some(r => r.code === 'floor-staff')
+            ? keepOnlyNavItems(config, ['pos'])
+            : config,
+]
+```
 ### pageBlocks
 
 <MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/page-blocks#dashboardpageblockdefinition'>DashboardPageBlockDefinition</a>[]`}   />

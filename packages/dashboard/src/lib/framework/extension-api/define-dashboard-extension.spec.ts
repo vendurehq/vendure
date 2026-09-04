@@ -12,7 +12,9 @@ import {
 import {
     addNavMenuSection,
     getNavMenuConfig,
+    getNavMenuTransforms,
     NavMenuConfig,
+    NavMenuTransform,
     setNavMenuConfig,
 } from '../nav-menu/nav-menu-extensions.js';
 import { globalRegistry } from '../registry/global-registry.js';
@@ -29,6 +31,7 @@ function resetNavState() {
     // Re-register fresh callback and modifier sets
     (globalRegistry as any).registry.set('registerDashboardExtensionCallbacks', new Set<() => void>());
     (globalRegistry as any).registry.set('navMenuModifiers', []);
+    (globalRegistry as any).registry.set('navMenuTransforms', []);
 }
 
 function resetWidgetRegistry() {
@@ -306,6 +309,54 @@ describe('defineDashboardExtension - navSections', () => {
             expect.objectContaining({ id: 'administrators' }),
             expect.objectContaining({ id: 'roles' }),
         ]);
+    });
+
+    it('preserves isVisible defined on a route navMenuItem', () => {
+        const isVisible = () => true;
+        defineDashboardExtension({
+            navSections: [{ id: 'my-section', title: 'My Section' }],
+            routes: [
+                {
+                    path: '/my-page',
+                    component: () => null,
+                    navMenuItem: { sectionId: 'my-section', title: 'My Page', isVisible },
+                },
+            ],
+        });
+        executeDashboardExtensionCallbacks();
+
+        const section = getNavMenuConfig().sections.find(s => s.id === 'my-section');
+        if (!section || !('items' in section)) {
+            throw new Error('Expected "my-section" to be registered as a section');
+        }
+        expect(section.items?.[0].isVisible).toBe(isVisible);
+    });
+
+    it('warns when a route navMenuItem targets an unknown sectionId', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        defineDashboardExtension({
+            routes: [
+                {
+                    path: '/orphan',
+                    component: () => null,
+                    navMenuItem: { sectionId: 'does-not-exist', title: 'Orphan' },
+                },
+            ],
+        });
+        executeDashboardExtensionCallbacks();
+
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining('does-not-exist'));
+        warn.mockRestore();
+    });
+
+    it('accumulates navMenuTransforms in registration order', () => {
+        const first: NavMenuTransform = config => config;
+        const second: NavMenuTransform = config => config;
+        defineDashboardExtension({ navMenuTransforms: [first] });
+        defineDashboardExtension({ navMenuTransforms: [second] });
+        executeDashboardExtensionCallbacks();
+
+        expect(getNavMenuTransforms()).toEqual([first, second]);
     });
 });
 

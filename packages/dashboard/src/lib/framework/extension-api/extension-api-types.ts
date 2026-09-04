@@ -1,5 +1,5 @@
 // Import types for the main interface
-import { NavMenuConfig } from '../nav-menu/nav-menu-extensions.js';
+import { NavMenuConfig, NavMenuTransform } from '../nav-menu/nav-menu-extensions.js';
 
 import { DashboardCustomProviderDefinition } from './custom-providers.js';
 import {
@@ -77,6 +77,33 @@ export interface DashboardExtension {
      * are composed. The function form was introduced in version 3.6.0.
      */
     navSections?: DashboardNavSectionDefinition[] | ((config: NavMenuConfig) => NavMenuConfig);
+    /**
+     * @description
+     * Functions which transform the nav menu on every render, with access to the
+     * logged-in user via {@link DashboardUserContext}. Use this to hide, reorder,
+     * retitle or otherwise adjust nav entries per user.
+     *
+     * Transforms compose by chaining: each receives the previous one's output, so
+     * multiple plugins can each adjust the menu without overwriting each other.
+     *
+     * Unlike the function form of `navSections`, which runs once at registration,
+     * these run on every nav render and must be pure, synchronous and cheap.
+     *
+     * This controls presentation only and is never an authorization mechanism.
+     *
+     * @example
+     * ```ts
+     * navMenuTransforms: [
+     *     (config, ctx) =>
+     *         ctx.roles.some(r => r.code === 'floor-staff')
+     *             ? keepOnlyNavItems(config, ['pos'])
+     *             : config,
+     * ]
+     * ```
+     *
+     * @since 3.8.0
+     */
+    navMenuTransforms?: NavMenuTransform[];
     /**
      * @description
      * Allows you to define custom page blocks for any page in the dashboard.

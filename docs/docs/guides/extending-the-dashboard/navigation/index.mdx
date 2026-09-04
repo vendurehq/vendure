@@ -169,7 +169,7 @@ If you don't specify a `placement`, sections default to `'top'` placement.
 
 ## Modifying Existing Navigation
 
-The `navSections` property can also be a function. Use this form when you need full control over the existing navigation structure, including moving, removing, renaming, or reordering built-in sections and items.
+The `navSections` property can also be a function. Use this form when you need full control over the existing navigation structure, including moving, removing, renaming, or reordering built-in sections and items. It runs once, at registration time, so it cannot depend on who is logged in. For changes that vary per user, see [User-Aware Navigation](#user-aware-navigation) below.
 
 The function receives the fully registered navigation config after all array-form `navSections` and route `navMenuItem` registrations have been applied. Return a new config object rather than mutating the input.
 
@@ -245,6 +245,92 @@ defineDashboardExtension({
 ```
 
 Use [Dev Mode](/extending-the-dashboard/extending-overview/#dev-mode) or the [Extension Targets reference](/extending-the-dashboard/customizing-pages/extension-targets/#navigation-section-ids) to find built-in navigation IDs.
+
+## User-Aware Navigation
+
+The `navSections` function form above runs once, when your extension is registered. It has no access to the logged-in administrator, so it cannot be used to show different navigation to different users. For that, use `navMenuTransforms` or the `isVisible` predicate. Both receive a [DashboardUserContext](/reference/dashboard/extensions-api/navigation#dashboardusercontext) describing the current administrator.
+
+### Per-user changes with navMenuTransforms
+
+A [NavMenuTransform](/reference/dashboard/extensions-api/navigation#navmenutransform) receives the whole nav config plus the user context and returns a new config. Transforms run on every nav render, and they compose: each one receives the previous one's output, so several plugins can adjust the same menu without overwriting each other.
+
+This example hides everything except a point-of-sale section from floor staff:
+
+```tsx title="src/plugins/pos/dashboard/index.tsx"
+import { defineDashboardExtension, keepOnlyNavItems } from '@vendure/dashboard';
+import type { DashboardUserContext } from '@vendure/dashboard';
+
+const isFloorStaff = (ctx: DashboardUserContext) => ctx.roles.some(role => role.code === 'floor-staff');
+
+defineDashboardExtension({
+    navMenuTransforms: [(config, ctx) => (isFloorStaff(ctx) ? keepOnlyNavItems(config, ['pos']) : config)],
+});
+```
+
+[keepOnlyNavItems](/reference/dashboard/extensions-api/navigation#keeponlynavitems) hides every entry not named in the list; naming a section keeps all of its items. Prefer it, and the related [setNavVisibility](/reference/dashboard/extensions-api/navigation#setnavvisibility), over spreading `isVisible` yourself, because a plain spread silently discards a predicate that another plugin already set on the same entry.
+
+### Conditioning your own entry with isVisible
+
+When you only need to condition an entry you own, `isVisible` is the shorthand. It is available on nav sections and on route `navMenuItem` entries. On an item, it is ANDed with `requiresPermission`: both must pass for the item to appear. Sections are different; see the note below.
+
+```tsx
+defineDashboardExtension({
+    navSections: [
+        {
+            id: 'reconciliation',
+            title: 'Reconciliation',
+            icon: BarChartIcon,
+            isVisible: ctx => ctx.isSuperAdmin,
+        },
+    ],
+});
+```
+
+On a section, returning `false` hides the section and all of its items. Note that section-level `requiresPermission` is not applied: a section is kept as long as it still has at least one visible item. Per-item `requiresPermission` still applies to the items inside.
+
+### Roles are not channel-scoped, permissions are
+
+`ctx.hasPermissions()` is evaluated against the active channel. `ctx.roles` is not: it lists every role the administrator holds, on any channel. If you need channel-scoped role logic, check the role's channels yourself:
+
+```ts
+const isSellerHere = (ctx: DashboardUserContext) =>
+    ctx.roles.some(
+        role => role.code === 'seller' && role.channels.some(c => c.id === ctx.activeChannel?.id),
+    );
+```
+
+Note also that `hasPermissions()` has OR semantics despite the plural name. It returns true when the administrator holds ANY of the listed permissions on the active channel, not all of them.
+
+### Predicates and transforms must be pure
+
+Both run on every nav render, and the framework makes no promise about how often. Keep them pure, synchronous and cheap: do not fetch data, do not mutate the config you are handed, and do not depend on how many times you are called. The framework hands your transform a fresh top-level `sections` array, so appending or removing entries cannot damage anything. The section objects inside it are the framework's own, though: mutating a section or its `items` array in place corrupts the menu for the rest of the session. Always return new objects, as the examples above do.
+
+### How several plugins compose
+
+More than one plugin can adjust the same menu, and the two extension points combine differently.
+
+`isVisible` predicates are ANDed. When `setNavVisibility` or `keepOnlyNavItems` add a predicate to an entry that already has one, both are kept and both must pass. The practical rule is that **any plugin can hide an entry and no plugin can force one to appear**. This is also why you should use those helpers rather than spreading `isVisible` yourself: a plain spread replaces whatever another plugin already set, and nothing warns you.
+
+`navMenuTransforms` are chained in registration order, which follows the order of the `plugins` array in your Vendure config. Each transform receives the previous one's output, so where two transforms genuinely disagree about the structure, for example because both rebuild `sections`, the later one wins.
+
+Registration and transforms happen at different times, and this trips people up. Every `navSections` entry and every route's `navMenuItem`, from every plugin, is collected before any transform runs. A transform therefore always sees the fully assembled menu, including entries contributed by plugins registered after it. Reordering the `plugins` array does not change which entries a transform can see.
+
+One consequence is worth stating plainly. `keepOnlyNavItems` is a whitelist, so it hides entries added by other plugins just as readily as built-in ones:
+
+```ts
+// Hides 'catalog', 'sales' and so on, but also any section another plugin added.
+navMenuTransforms: [(config, ctx) => (isFloorStaff(ctx) ? keepOnlyNavItems(config, ['pos']) : config)],
+```
+
+That is usually what you want for a locked-down role, since a plugin installed later cannot silently widen what the user sees. If you would rather stay open to other plugins, name their ids alongside your own, or hide the specific built-in sections with `setNavVisibility` instead of keeping only your own. The trade-off is that a section added by a future Vendure release would then be visible until you exclude it.
+
+### This is presentation only, not authorization
+
+None of this is an access control mechanism. Hiding a nav entry only changes what the dashboard renders. An administrator who can call an operation on the Admin API can still call it, whether or not the dashboard shows a link to it. Real access control belongs on the server, in the permissions attached to your GraphQL operations and resolvers.
+
+### Are the built-in nav ids stable API?
+
+The ids used throughout this guide (`catalog`, `sales`, `products`, `administrators` and the rest) are what transforms and predicates target, and in practice extensions do depend on them. They are not formally guaranteed. They are not covered by a stability policy, and a future release could rename or restructure one. Nothing will warn you when an id you targeted stops matching: the transform or predicate simply has no effect. If you rely on a built-in id, pin the dashboard version you tested against and re-check the ids after upgrading.
 
 ## Unauthenticated Routes
 
