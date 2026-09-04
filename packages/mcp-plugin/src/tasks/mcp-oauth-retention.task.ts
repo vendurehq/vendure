@@ -5,10 +5,9 @@ import { McpOauthRetentionService } from '../oauth/oauth-retention.service';
 /**
  * @description
  * A {@link ScheduledTask} that deletes MCP OAuth records which can no longer be used: the Vendure
- * session created for each expired grant, authorization requests and codes that have expired,
- * grants that have been dead longer than the `oauth.grantRetentionDays` window, and clients that
- * were created but never used and have no grant referencing them. The schedule defaults to daily
- * at 03:30AM.
+ * session for each expired grant, expired authorization requests and codes, grants dead longer
+ * than `oauth.grantRetentionDays`, and clients created but never used with no grant referencing
+ * them. Defaults to running daily at 03:30AM.
  */
 export const mcpOauthRetentionTask = new ScheduledTask({
     id: 'mcp-oauth-retention',

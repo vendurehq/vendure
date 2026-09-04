@@ -57,10 +57,9 @@ Any option you leave out falls back to its default.
 
 <MemberInfo kind="method" type={`() => void`}   />
 
-Runs at startup, and only does work on the main server process. Builds the MCP message
-schemas up front so the first request does not pay for it, then checks the configured
-options (see `checkMcpPluginOptions`), which throws when one is invalid or unsafe for a
-production server.
+Builds the MCP message schemas up front, so the cost lands on startup rather than the
+first request, then checks the configured options for anything invalid or unsafe for a
+production server. Runs at startup, main server process only.
 
 
 </div>

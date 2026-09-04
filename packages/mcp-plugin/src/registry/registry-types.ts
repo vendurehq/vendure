@@ -28,10 +28,10 @@ export interface McpRegisteredTool extends McpToolMetadata {
 
 /**
  * @description
- * A tool as handed to the per-request transport for registration with the MCP server: exactly the
- * fields the SDK registration call needs. Real tools satisfy it as-is; the discovery meta-tools
- * (`search_tools` / `execute_tool`) are built directly in this shape, since they have no handler
- * of their own (they are routed by name in `callTool`) and belong to no single toolset.
+ * A tool as handed to the per-request transport for registration: only the fields the SDK's
+ * registration call needs. Real tools satisfy it as-is. The discovery meta-tools (`search_tools` /
+ * `execute_tool`) share this shape too, since they have no handler of their own. They're routed
+ * by name in `callTool` and belong to no single toolset.
  */
 export type McpExposedTool = Pick<
     McpRegisteredTool,

@@ -7,8 +7,8 @@ generated: true
 Audit record of a single MCP tool call.
 
 A row exists only for a call that actually ran the tool. Calls turned away first, by a rate
-limit, a permission check, an unknown or switched-off tool, bad arguments, or because the
-tool asked for confirmation, leave no trace here.
+limit, a permission check, an unknown or switched-off tool, bad arguments, or a confirmation
+request, leave no trace here.
 
 ```ts title="Signature"
 class McpToolCallLog extends VendureEntity {
@@ -80,8 +80,8 @@ Id of the user the call ran as. Null when nobody was signed in.
 
 <MemberInfo kind="property" type={`string | null`}   />
 
-Null unless you switch on `logging.captureClientIp`, and null for calls that never came
-over HTTP. The Admin API also hides it from anyone without the `ReadCustomer` permission.
+Null unless `logging.captureClientIp` is on, and null for calls that never came over HTTP.
+The Admin API also hides it from anyone without the `ReadCustomer` permission.
 ### channelId
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a> | null`}   />

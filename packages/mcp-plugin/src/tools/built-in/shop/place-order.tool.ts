@@ -148,7 +148,7 @@ export class PlaceOrderTool implements McpToolHandler<PlaceOrderInput> {
                 throw e;
             }
             // The payment handler runs outside this transaction, so a rollback here can't undo a
-            // charge it already made — the caller is told to check the order rather than retry.
+            // charge it already made. The caller is told to check the order rather than retry.
             Logger.error(
                 `place_order payment failed for order ${orderId}: ${
                     e instanceof Error ? e.message : String(e)

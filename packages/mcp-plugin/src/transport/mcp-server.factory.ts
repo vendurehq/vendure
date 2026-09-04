@@ -9,10 +9,9 @@ const MCP_SERVER_VERSION = '1.0.0';
 
 /**
  * @description
- * Builds a fresh v2 `McpServer` for a single request, registering only the caller's permitted tool
- * subset from the registry. Each tool is registered with its cached compiled schema (compiled once
- * at bootstrap — the factory never calls `fromJsonSchema`) and a callback that delegates to the
- * registry's single execution entry.
+ * Builds a fresh v2 `McpServer` for a single request, registering only the tools the caller is
+ * permitted to see. Each tool is registered with its schema, compiled once at bootstrap, and a
+ * callback that delegates to the registry's execution entry point.
  *
  * @since 3.8.0
  */

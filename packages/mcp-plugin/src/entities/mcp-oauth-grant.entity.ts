@@ -51,8 +51,7 @@ export class McpOauthGrant extends VendureEntity {
     /**
      * @description
      * A hash of the refresh token the last refresh replaced. Null until the first refresh. If a
-     * client turns up with this old token, the server assumes it was stolen and revokes the
-     * grant.
+     * client presents this old token, the server assumes it was stolen and revokes the grant.
      */
     @Index()
     @Column({ type: 'varchar', nullable: true })

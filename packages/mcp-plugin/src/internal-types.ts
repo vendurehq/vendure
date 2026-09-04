@@ -3,7 +3,7 @@ import type { DEFAULT_OAUTH_OPTIONS } from './constants';
 import type { McpOauthGrant } from './entities/mcp-oauth-grant.entity';
 import type { McpLoggingOptions, McpOauthOptions, McpPluginOptions, McpRateLimitOptions } from './types';
 
-// Server-internal only — never exposed publicly. {@link McpToolRegistryService} maps this to the
+// Server-internal only. Never exposed publicly. {@link McpToolRegistryService} maps this to the
 // plain-data `McpCallerInfo` (from `@vendure/mcp-sdk`) at the point it invokes a tool's `execute`.
 export interface McpExecutionContext {
     ctx: RequestContext;

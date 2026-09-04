@@ -34,14 +34,13 @@ export type McpStandardSchemaResult<Output = unknown> =
 
 /**
  * @description
- * A schema object implementing the [Standard Schema](https://standardschema.dev/) interface
- * together with its JSON Schema conversion extension. Zod v4, ArkType, and Valibot schemas
- * all implement this shape. It is declared structurally so that `@vendure/mcp-sdk` does not
- * depend on any schema library.
+ * A schema object implementing the [Standard Schema](https://standardschema.dev/) interface plus
+ * its JSON Schema conversion extension. Zod v4, ArkType, and Valibot schemas all implement this
+ * shape; it's declared structurally so `@vendure/mcp-sdk` doesn't depend on any schema library.
  *
- * The MCP server converts the schema to JSON Schema once at startup (to advertise the tool)
- * and calls its `validate` function on every incoming tool call; the tool's `execute` method
- * receives the validated value, so library features like defaults apply.
+ * The MCP server converts the schema to JSON Schema once at startup, to advertise the tool, and
+ * calls `validate` on every incoming call. The tool's `execute` method receives the validated
+ * value, so library features like defaults apply.
  *
  * @docsCategory core plugins/McpPlugin
  * @since 3.8.0

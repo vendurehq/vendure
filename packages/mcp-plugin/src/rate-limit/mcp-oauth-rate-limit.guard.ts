@@ -29,12 +29,9 @@ export class McpOauthRateLimitExceededHttpException extends HttpException {
 
 /**
  * @description
- * Rate-limits OAuth endpoints by client IP.
- *
- * All routes in the OAuth controller share a single IP-based quota.
- * No authentication is available on these endpoints.
- *
- * Disabled when OAuth IP rate limiting is turned off.
+ * Rate-limits OAuth endpoints by client IP, since these endpoints have no authentication of their
+ * own. All routes on the OAuth controller share a single quota. Disabled when OAuth IP rate
+ * limiting is turned off.
  */
 @Injectable()
 export class McpOauthRateLimitGuard implements CanActivate {

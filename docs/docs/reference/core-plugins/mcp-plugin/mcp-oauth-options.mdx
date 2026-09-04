@@ -28,21 +28,20 @@ interface McpOauthOptions {
 
 <MemberInfo kind="property" type={`string`}   />
 
-Server secret used to HMAC-hash OAuth tokens at rest. Required to enable OAuth.
-Must be supplied via an environment variable. Generate it once via `openssl rand -base64 32`.
+Server secret used to HMAC-hash OAuth tokens at rest. Required to enable OAuth. Supply it via
+an environment variable, generated once with `openssl rand -base64 32`.
 
 Rotating this secret invalidates all active OAuth tokens, forcing clients to re-authorize.
-The Vendure sessions behind existing grants cannot be reached through the old tokens; the
-retention task deletes them once their grants expire.
+The Vendure sessions behind existing grants become unreachable; the retention task deletes
+them once their grants expire.
 ### issuer
 
 <MemberInfo kind="property" type={`string`} default={`'http://localhost:<apiOptions.port>'`}   />
 
-The public origin of this Vendure server, such as `https://shop.example.com`.
-OAuth clients read this server's login and token endpoints from `/.well-known/...`
-directly under it, so it must be a scheme and host with no path. A path makes the
-server refuse to start. If a proxy serves Vendure under a path, use a subdomain or
-forward `/.well-known/*` to Vendure.
+The public origin of this Vendure server, such as `https://shop.example.com`. OAuth clients
+read this server's login and token endpoints from `/.well-known/...` directly under it, so
+it must be a scheme and host with no path. The server refuses to start otherwise. If a
+proxy serves Vendure under a path, use a subdomain or forward `/.well-known/*` to Vendure.
 ### accessTokenTtlSeconds
 
 <MemberInfo kind="property" type={`number`} default={`900`}   />
@@ -83,34 +82,32 @@ clients; a deployment that uses the admin toolset alone does not need it.
 <MemberInfo kind="property" type={`boolean`} default={`false`}   />
 
 Allows a client to identify itself with a `client_id` URL that points at the local machine
-(`localhost`, `127.0.0.1` or `::1`), over plain HTTP, so that a metadata document served by
-your own development setup can be fetched.
+(`localhost`, `127.0.0.1` or `::1`) over plain HTTP, so a metadata document served by your
+own development setup can be fetched.
 
-Leave this off anywhere reachable by others. With it on, anyone who can reach the authorize
-endpoint can make the server open a connection to any port on the machine it runs on. No
-credentials are needed. The server refuses to start with this enabled when `NODE_ENV` is
+Leave this off anywhere reachable by others: with it on, anyone who can reach the authorize
+endpoint can make the server open a connection, with no credentials, to any port on the
+machine it runs on. The server refuses to start with this enabled when `NODE_ENV` is
 `production`.
 ### grantRetentionDays
 
 <MemberInfo kind="property" type={`number`} default={`30 (days)`}   />
 
-How long a dead grant, expired or revoked, is kept before the row is deleted. It sticks
-around this long because it is the only OAuth record worth auditing.
+How long a dead grant, expired or revoked, is kept before the row is deleted. It is the
+only OAuth record worth auditing, so it outlives the rest.
 
 Deleting a grant also clears the link from every tool-call log that points at it. Set this
 at or above `McpLoggingOptions.ttlDays` if your logs should keep that link.
 
-Must be non-negative. Set to `0` to retain dead grants.
+Must be non-negative. Set to `0` to retain dead grants forever.
 ### retentionSchedule
 
 <MemberInfo kind="property" type={`McpRetentionSchedule`} default={`cron => cron.everyDayAt(3, 30)`}   />
 
 When the cleanup job runs. It clears out expired authorization requests and codes, grants
 dead for longer than `grantRetentionDays`, and the Vendure session behind each expired
-grant.
-
-That session keeps working against the ordinary GraphQL APIs until the job deletes it, so
-running the job less often widens that gap. Revoking a grant kills its session at once.
+grant. That grant keeps working against the ordinary GraphQL APIs until then, so running
+the job less often widens that gap. Revoking a grant kills its session at once.
 
 
 </div>

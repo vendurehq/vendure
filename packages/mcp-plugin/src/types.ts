@@ -26,21 +26,20 @@ export type McpToolExposureMode = 'direct' | 'discovery';
 export interface McpOauthOptions {
     /**
      * @description
-     * Server secret used to HMAC-hash OAuth tokens at rest. Required to enable OAuth.
-     * Must be supplied via an environment variable. Generate it once via `openssl rand -base64 32`.
+     * Server secret used to HMAC-hash OAuth tokens at rest. Required to enable OAuth. Supply it via
+     * an environment variable, generated once with `openssl rand -base64 32`.
      *
      * Rotating this secret invalidates all active OAuth tokens, forcing clients to re-authorize.
-     * The Vendure sessions behind existing grants cannot be reached through the old tokens; the
-     * retention task deletes them once their grants expire.
+     * The Vendure sessions behind existing grants become unreachable; the retention task deletes
+     * them once their grants expire.
      */
     tokenSecret: string;
     /**
      * @description
-     * The public origin of this Vendure server, such as `https://shop.example.com`.
-     * OAuth clients read this server's login and token endpoints from `/.well-known/...`
-     * directly under it, so it must be a scheme and host with no path. A path makes the
-     * server refuse to start. If a proxy serves Vendure under a path, use a subdomain or
-     * forward `/.well-known/*` to Vendure.
+     * The public origin of this Vendure server, such as `https://shop.example.com`. OAuth clients
+     * read this server's login and token endpoints from `/.well-known/...` directly under it, so
+     * it must be a scheme and host with no path. The server refuses to start otherwise. If a
+     * proxy serves Vendure under a path, use a subdomain or forward `/.well-known/*` to Vendure.
      *
      * @default 'http://localhost:<apiOptions.port>'
      */
@@ -87,12 +86,12 @@ export interface McpOauthOptions {
     /**
      * @description
      * Allows a client to identify itself with a `client_id` URL that points at the local machine
-     * (`localhost`, `127.0.0.1` or `::1`), over plain HTTP, so that a metadata document served by
-     * your own development setup can be fetched.
+     * (`localhost`, `127.0.0.1` or `::1`) over plain HTTP, so a metadata document served by your
+     * own development setup can be fetched.
      *
-     * Leave this off anywhere reachable by others. With it on, anyone who can reach the authorize
-     * endpoint can make the server open a connection to any port on the machine it runs on. No
-     * credentials are needed. The server refuses to start with this enabled when `NODE_ENV` is
+     * Leave this off anywhere reachable by others: with it on, anyone who can reach the authorize
+     * endpoint can make the server open a connection, with no credentials, to any port on the
+     * machine it runs on. The server refuses to start with this enabled when `NODE_ENV` is
      * `production`.
      *
      * @default false
@@ -100,13 +99,13 @@ export interface McpOauthOptions {
     allowLoopbackCimdDocuments?: boolean;
     /**
      * @description
-     * How long a dead grant, expired or revoked, is kept before the row is deleted. It sticks
-     * around this long because it is the only OAuth record worth auditing.
+     * How long a dead grant, expired or revoked, is kept before the row is deleted. It is the
+     * only OAuth record worth auditing, so it outlives the rest.
      *
      * Deleting a grant also clears the link from every tool-call log that points at it. Set this
      * at or above {@link McpLoggingOptions.ttlDays} if your logs should keep that link.
      *
-     * Must be non-negative. Set to `0` to retain dead grants.
+     * Must be non-negative. Set to `0` to retain dead grants forever.
      *
      * @default 30 (days)
      */
@@ -115,10 +114,8 @@ export interface McpOauthOptions {
      * @description
      * When the cleanup job runs. It clears out expired authorization requests and codes, grants
      * dead for longer than `grantRetentionDays`, and the Vendure session behind each expired
-     * grant.
-     *
-     * That session keeps working against the ordinary GraphQL APIs until the job deletes it, so
-     * running the job less often widens that gap. Revoking a grant kills its session at once.
+     * grant. That grant keeps working against the ordinary GraphQL APIs until then, so running
+     * the job less often widens that gap. Revoking a grant kills its session at once.
      *
      * @default cron => cron.everyDayAt(3, 30)
      */
@@ -127,11 +124,11 @@ export interface McpOauthOptions {
 
 /**
  * @description
- * Per-scope request-rate limits for MCP calls, expressed in requests per minute (`rpm`).
- * A value of `0` means unlimited. Every limit except `oauthIp` is counted separately for
- * the admin and shop endpoints. The server refuses an over-limit request with HTTP `429`
- * and a `Retry-After` header. An over-limit tool call inside an open session returns an
- * `isError` tool result instead of an HTTP error.
+ * Per-scope request-rate limits for MCP calls, expressed in requests per minute (`rpm`). A value
+ * of `0` means unlimited. Every limit except `oauthIp` is counted separately for the admin and
+ * shop endpoints. An over-limit request is refused with HTTP `429` and a `Retry-After` header,
+ * except an over-limit tool call inside an open session, which returns an `isError` tool result
+ * instead.
  *
  * @docsCategory core plugins/McpPlugin
  * @since 3.8.0
@@ -147,35 +144,32 @@ export interface McpRateLimitOptions {
     perSession?: { rpm: number };
     /**
      * @description
-     * Requests per minute allowed per signed-in user, counted across every session and
-     * OAuth client acting for that user. Authorizing again starts a new session and can
-     * create a new client record. The user bucket keeps counting through both, because
-     * the user's id does not change. Anonymous callers have no user, so `anonymousIp`
-     * covers them instead.
+     * Requests per minute allowed per signed-in user, counted across every session and OAuth
+     * client acting for that user. Authorizing again can start a new session and client record,
+     * but the user bucket keeps counting through both, since the user's id does not change.
+     * Anonymous callers have no user, so `anonymousIp` covers them instead.
      *
      * @default { rpm: 120 }
      */
     perUser?: { rpm: number };
     /**
      * @description
-     * Requests per minute allowed per registered OAuth client, counted across every user
-     * of that client. One client record can serve all of a store's shoppers, so the
-     * default is sized for a whole application's traffic. `perUser` limits an individual.
-     * A client identified by a metadata document URL (CIMD) gets one record per URL.
-     * Requests that carry no OAuth grant, such as in-process or anonymous calls, have no
-     * client bucket.
+     * Requests per minute allowed per registered OAuth client, counted across every user of that
+     * client. One client record can serve all of a store's shoppers, so the default is sized for a
+     * whole application's traffic. `perUser` limits an individual instead. A client identified by
+     * a metadata document URL (CIMD) gets one record per URL. Requests with no OAuth grant, such as
+     * in-process or anonymous calls, have no client bucket.
      *
      * @default { rpm: 3000 }
      */
     perClient?: { rpm: number };
     /**
      * @description
-     * Requests per minute allowed per tool, keyed by tool name. `0` means unlimited.
-     * Each caller has its own bucket per tool: an OAuth caller is counted by client plus
-     * session, an anonymous caller by client IP. A new authorization creates a new
-     * session, so its per-tool counters start fresh. The `oauthIp` limit bounds how often
-     * one address can authorize again. The `perUser` limit keeps counting across
-     * authorizations.
+     * Requests per minute allowed per tool, keyed by tool name. `0` means unlimited. Each caller
+     * has its own bucket per tool: an OAuth caller is counted by client plus session, an anonymous
+     * caller by client IP. A new authorization creates a new session, so its per-tool counters
+     * start fresh. `oauthIp` bounds how often one address can re-authorize, while `perUser` keeps
+     * counting across authorizations.
      *
      * @default { place_order: { rpm: 5 }, create_product: { rpm: 10 }, refund_order: { rpm: 5 }, cancel_order: { rpm: 5 } }
      */
@@ -191,13 +185,12 @@ export interface McpRateLimitOptions {
     anonymousIp?: { rpm: number } | false;
     /**
      * @description
-     * Requests per minute allowed per client IP across the whole OAuth HTTP surface.
-     * Every route on the OAuth controller shares this one bucket, including the
-     * `.well-known` metadata documents. The same limit also caps failed bearer-token
-     * authentications on the MCP endpoints, in a separate bucket per IP. An address over
-     * that bucket's limit is refused before its token costs a database lookup. `false`
-     * disables the limit. Behind a reverse proxy, enable Vendure's `trustProxy` so
-     * `req.ip` reports the client address rather than the proxy's.
+     * Requests per minute allowed per client IP across the whole OAuth HTTP surface. Every route
+     * on the OAuth controller shares this one bucket, including the `.well-known` metadata
+     * documents. The same limit also caps failed bearer-token authentications on the MCP
+     * endpoints, in a separate per-IP bucket, so an address over its limit is refused before its
+     * token costs a database lookup. `false` disables the limit. Behind a reverse proxy, enable
+     * Vendure's `trustProxy` so `req.ip` reports the client address rather than the proxy's.
      *
      * @default { rpm: 60 }
      */
@@ -223,12 +216,12 @@ export interface McpDnsRebindingOptions {
     allowedHosts?: string[];
     /**
      * @description
-     * Hostnames the `Origin` header of an MCP request may name. Drop the scheme and the port,
-     * and bracket an IPv6 address, for example `[::1]`. A request naming any other origin is
-     * refused with HTTP `403` before the MCP handler runs.
+     * Hostnames the `Origin` header of an MCP request may name. Drop the scheme and the port, and
+     * bracket an IPv6 address, for example `[::1]`. A request naming any other origin is refused
+     * with HTTP `403` before the MCP handler runs.
      *
-     * A request that sends no `Origin` header passes, because non-browser MCP clients do not
-     * send one. This option therefore constrains browsers, not every caller.
+     * A request with no `Origin` header passes, since non-browser MCP clients don't send one, so
+     * this option constrains browsers only, not every caller.
      */
     allowedOrigins?: string[];
 }
@@ -252,10 +245,10 @@ export type McpLogRedactFn = (entry: { toolName: string; input: unknown; output:
 
 /**
  * @description
- * Controls how MCP tool calls are logged and retained. Every call that runs a tool is recorded
- * as an {@link McpToolCallLog} row and published as an `McpToolCallEvent`. Calls refused before
- * the tool runs (an unknown or switched-off tool, invalid arguments, a missing permission, a rate
- * limit) and the confirmation preview of a destructive tool leave no row and no event.
+ * Controls how MCP tool calls are logged and retained. Every call that runs a tool is recorded as
+ * an {@link McpToolCallLog} row and published as an `McpToolCallEvent`. Calls refused before the
+ * tool runs, such as an unknown or switched-off tool, invalid arguments, a missing permission, or
+ * a rate limit, leave no row and no event. So does the confirmation preview of a destructive tool.
  *
  * @docsCategory core plugins/McpPlugin
  * @since 3.8.0
@@ -271,10 +264,10 @@ export interface McpLoggingOptions {
 
     /**
      * @description
-     * How much of each tool call is stored on its log row. `metadata` stores the tool name,
-     * the actor, the status, the duration and the related IDs. `full` also stores the call's
-     * `input` and `output`, which may hold personal data. Supply `redact` to sanitize those
-     * two bodies, and see `maxBodyBytes` for the size cap applied to each.
+     * How much of each tool call is stored on its log row. `metadata` stores the tool name, the
+     * actor, the status, the duration and the related IDs. `full` also stores the call's `input`
+     * and `output`, which may hold personal data. Supply `redact` to sanitize those, and see
+     * `maxBodyBytes` for the size cap applied to each.
      *
      * @default 'metadata'
      */
@@ -298,11 +291,10 @@ export interface McpLoggingOptions {
 
     /**
      * @description
-     * The largest `input` or `output` body stored on a log row, in bytes, measured after
-     * redaction and JSON serialization. Applies only when `capture` is `'full'`. A larger
-     * body is replaced with a marker recording the reason and the real size, so the audit
-     * row is still written. The default fits within the 65,535-byte limit of a MySQL
-     * `TEXT` column.
+     * The largest `input` or `output` body stored on a log row, in bytes, measured after redaction
+     * and JSON serialization. Applies only when `capture` is `'full'`. A larger body is replaced
+     * with a marker recording the reason and the real size, so the audit row is still written. The
+     * default fits within the 65,535-byte limit of a MySQL `TEXT` column.
      *
      * @default 64000
      */

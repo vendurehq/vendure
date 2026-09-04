@@ -11,8 +11,8 @@ import { McpOauthGrant } from './mcp-oauth-grant.entity';
  * Audit record of a single MCP tool call.
  *
  * A row exists only for a call that actually ran the tool. Calls turned away first, by a rate
- * limit, a permission check, an unknown or switched-off tool, bad arguments, or because the
- * tool asked for confirmation, leave no trace here.
+ * limit, a permission check, an unknown or switched-off tool, bad arguments, or a confirmation
+ * request, leave no trace here.
  *
  * @docsCategory core plugins/McpPlugin
  * @since 3.8.0
@@ -48,8 +48,8 @@ export class McpToolCallLog extends VendureEntity {
 
     /**
      * @description
-     * Null unless you switch on `logging.captureClientIp`, and null for calls that never came
-     * over HTTP. The Admin API also hides it from anyone without the `ReadCustomer` permission.
+     * Null unless `logging.captureClientIp` is on, and null for calls that never came over HTTP.
+     * The Admin API also hides it from anyone without the `ReadCustomer` permission.
      */
     @Column({ type: 'varchar', nullable: true })
     clientIp: string | null;

@@ -84,10 +84,11 @@ export class McpChannelTokenExceptionFilter extends ExceptionLoggerFilter {
 
 /**
  * @description
- * HTTP transport for the MCP server. Owns authentication, anonymous shop context, the anonymous-IP
- * gate and the handshake rate-limit pre-check (both kept at controller altitude so the `-31029`
- * `error.data` survives), and the DNS-rebinding front guard. It then delegates JSON-RPC handling to the v2 SDK handler via
- * `toNodeHandler`, passing the resolved Vendure context through the SDK's pass-through `authInfo`.
+ * HTTP transport for the MCP server. Owns authentication, anonymous shop context, the DNS-rebinding
+ * front guard, and the anonymous-IP and handshake rate-limit checks (kept here, rather than in the
+ * SDK handler, so the `-31029` `error.data` survives). It then delegates JSON-RPC handling to the
+ * v2 SDK handler via `toNodeHandler`, passing the resolved Vendure context through the SDK's
+ * pass-through `authInfo`.
  */
 @UseFilters(McpChannelTokenExceptionFilter)
 @Controller('mcp')

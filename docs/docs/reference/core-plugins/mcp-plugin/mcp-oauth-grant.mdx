@@ -75,8 +75,7 @@ this hash.
 <MemberInfo kind="property" type={`string | null`}   />
 
 A hash of the refresh token the last refresh replaced. Null until the first refresh. If a
-client turns up with this old token, the server assumes it was stolen and revokes the
-grant.
+client presents this old token, the server assumes it was stolen and revokes the grant.
 ### oauthClient
 
 <MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-oauth-client#mcpoauthclient'>McpOauthClient</a>`}   />

@@ -61,7 +61,7 @@ export async function uploadAssetFromUrl(
     const created = await assetService.createFromFileStream(capped, url, ctx);
     if (isGraphQlErrorResult(created)) {
         // The error result's own message is just the untranslated code "MIME_TYPE_ERROR", so build
-        // a readable one here instead — an MCP tool call never passes through the GraphQL layer
+        // a readable one here instead. An MCP tool call never passes through the GraphQL layer
         // that would normally translate it.
         throw new UserInputError(
             `Unsupported asset file type for "${created.fileName}": ${created.mimeType}`,

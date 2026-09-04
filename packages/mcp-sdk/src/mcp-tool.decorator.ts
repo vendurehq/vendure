@@ -38,9 +38,8 @@ export type McpToolSchema = McpJsonSchema | McpStandardSchema;
 
 /**
  * @description
- * Describes a single MCP tool. You attach this to a class with the {@link McpTool}
- * decorator. The MCP server finds those classes on startup and exposes each one as a
- * callable tool.
+ * Describes a single MCP tool. Attach this to a class with the {@link McpTool} decorator; the MCP
+ * server finds those classes on startup and exposes each one to agents.
  *
  * @docsCategory core plugins/McpPlugin
  * @since 3.8.0
