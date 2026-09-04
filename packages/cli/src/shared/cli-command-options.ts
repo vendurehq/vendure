@@ -27,6 +27,8 @@ export interface ParsedCliOption {
     short?: string;
     /** The key the parsed value is stored under, e.g. `plugin`. */
     attributeName: string;
+    /** Whether a value follows the flag, required or optional. */
+    takesValue: boolean;
 }
 
 /**
@@ -39,6 +41,7 @@ export function parseOptionFlags(option: CliCommandOption): ParsedCliOption {
         long: parsed.long ?? undefined,
         short: parsed.short ?? undefined,
         attributeName: parsed.attributeName(),
+        takesValue: parsed.required || parsed.optional,
     };
 }
 

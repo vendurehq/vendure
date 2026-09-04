@@ -1,8 +1,8 @@
 import { Command } from 'commander';
 
 import {
+    CliCommandAction,
     CliCommandContext,
-    CliCommandDefinition,
     CliCommandNode,
     CliCommandOption,
     isCliCommandGroup,
@@ -77,15 +77,11 @@ function registerNode(
  * passes positional args first, then the options object and the Command
  * instance; the host appends the context.
  */
-async function runAction(
-    action: CliCommandDefinition['action'],
-    args: any[],
-    context: CliCommandContext,
-): Promise<number> {
+async function runAction(action: CliCommandAction, args: any[], context: CliCommandContext): Promise<number> {
     try {
         const result = await action(...args, context);
         return typeof result === 'number' ? result : 0;
-    } catch (e: any) {
+    } catch (e) {
         if (e instanceof CliCommandExit) {
             return e.exitCode;
         }
@@ -121,12 +117,26 @@ function addOption(command: Command, option: CliCommandOption): void {
     command.option(buildOptionFlags(option), option.description, option.defaultValue);
 }
 
+/**
+ * Reads the value of each shared option in scope. A value supplied on the
+ * command line always beats a default, whichever level declared it, so a group
+ * option carrying a `defaultValue` cannot discard what the user typed.
+ */
 function readSharedValues(sharedOptions: SharedOption[]): Record<string, any> {
     const values: Record<string, any> = {};
+    const supplied = new Set<string>();
     for (const { owner, attributeName } of sharedOptions) {
-        if (owner.getOptionValueSource(attributeName) !== undefined) {
-            values[attributeName] = owner.getOptionValue(attributeName);
+        const source = owner.getOptionValueSource(attributeName);
+        if (source === undefined) {
+            continue;
         }
+        if (source === 'default' && (supplied.has(attributeName) || attributeName in values)) {
+            continue;
+        }
+        if (source !== 'default') {
+            supplied.add(attributeName);
+        }
+        values[attributeName] = owner.getOptionValue(attributeName);
     }
     return values;
 }
@@ -136,6 +146,11 @@ function readSharedValues(sharedOptions: SharedOption[]): Record<string, any> {
  * example the built-in `vendure plugins --json` when a plugin also registers a
  * shared `--json`. Commander gives the value to the shared option, so copy it
  * onto the command to keep both readings of the flag in agreement.
+ *
+ * This relies on Commander's `opts()` handing back its own `_optionValues`
+ * rather than a copy, so writing here is visible in the options object it has
+ * already passed to the action. `registerCommands() shares one value between a
+ * shared option and a command option of the same name` pins that assumption.
  */
 function fillSharedValues(command: Command, sharedOptions: SharedOption[]): void {
     for (const { owner, attributeName } of sharedOptions) {

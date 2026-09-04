@@ -31,9 +31,11 @@ export interface CliCommandArgument {
  */
 export interface CliCommandContext<TInheritedOptions extends Record<string, any> = Record<string, any>> {
     /**
-     * Values of the shared options in scope, resolved with nearest-wins
-     * precedence: a value given on the command itself overrides the same option
-     * given on a parent group, which overrides the same option given at the root.
+     * Values of the shared options in scope. A shared option is declared at
+     * exactly one level — a flag declared on a group that an ancestor already
+     * shares is rejected at registration — so values do not compete. Where a
+     * command declares the same flag as a shared option, both read the same
+     * value. A value supplied on the command line always beats a default.
      * Options that were neither supplied nor given a default value are omitted.
      */
     inheritedOptions: TInheritedOptions;
@@ -140,6 +142,11 @@ export type CliCommandDecorator = (input: CliCommandDecoratorInput) => CliComman
  *
  * Extensions are applied in `vendure.cli.plugins` order, so the last listed
  * plugin wraps the others and its decorator runs first.
+ *
+ * An extension contributes options, a description and action decoration. It
+ * cannot add positional arguments: Commander passes one argument slot per
+ * declared positional, so an appended argument would shift the options,
+ * command and context an existing action receives.
  */
 export interface CliCommandExtension {
     /**
@@ -156,12 +163,6 @@ export interface CliCommandExtension {
      * Options added to the command, keeping the options already declared on it.
      */
     options?: CliCommandOption[];
-    /**
-     * Positional arguments appended after the existing ones. They must be
-     * optional: a required argument would change the arity of a command that
-     * other plugins and users already call.
-     */
-    arguments?: CliCommandArgument[];
     /**
      * Wraps the command's action.
      */

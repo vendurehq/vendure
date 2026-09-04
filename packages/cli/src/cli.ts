@@ -5,7 +5,7 @@ import pc from 'picocolors';
 
 import { builtinCommandDefs } from './commands/builtins';
 import { registerCommands } from './shared/command-registry';
-import { CommandRegistry } from './shared/command-registry-store';
+import { CommandRegistry, RESERVED_FLAGS } from './shared/command-registry-store';
 import {
     findInactivePluginProvidingCommand,
     listInactiveCliPluginPackages,
@@ -50,8 +50,6 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
         try {
             registry.applyPlugin(plugin);
         } catch (e) {
-            // A plugin whose commands or shared options collide with something
-            // already registered is skipped whole, rather than applied by halves.
             const reason = e instanceof Error ? e.message : String(e);
             writePluginSkipped(packageName, 'Failed to register CLI plugin', reason);
         }
@@ -91,14 +89,7 @@ function maybeWriteInactivePluginsHint(argv: string[]): void {
         return;
     }
     const primary = args.find(arg => !arg.startsWith('-'));
-    if (
-        primary === 'plugins' ||
-        primary === 'help' ||
-        args.includes('--help') ||
-        args.includes('-h') ||
-        args.includes('--version') ||
-        args.includes('-V')
-    ) {
+    if (primary === 'plugins' || primary === 'help' || args.some(arg => RESERVED_FLAGS.includes(arg))) {
         return;
     }
 

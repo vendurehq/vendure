@@ -8,20 +8,22 @@ import {
     CliCommandOption,
     isCliCommandGroup,
 } from './cli-command-definition';
-import { buildOptionFlags, describeOption, ParsedCliOption, parseOptionFlags } from './cli-command-options';
+import { describeOption, ParsedCliOption, parseOptionFlags } from './cli-command-options';
 import { CliPlugin, normalizeCommandPath } from './cli-plugin';
 
 /**
  * Flags the CLI host owns. A plugin that took one of these would break
  * `vendure --help`, which is how a user recovers from a bad plugin.
  */
-const RESERVED_FLAGS = ['--help', '-h', '--version', '-V'];
+export const RESERVED_FLAGS = ['--help', '-h', '--version', '-V'];
 
 /**
  * Commands the CLI host owns. `plugins` is how a user disables a plugin that
- * misbehaves, so no plugin may replace or extend it.
+ * misbehaves and `help` is how they find it, so no plugin may replace or
+ * extend either. Commander adds `help` implicitly, so the registry would not
+ * otherwise see a collision.
  */
-const RESERVED_COMMANDS = ['plugins'];
+const RESERVED_COMMANDS = ['plugins', 'help'];
 
 interface RegisteredCommand {
     node: CliCommandNode;
@@ -49,10 +51,7 @@ interface RegistryState {
  * plugin, so one plugin cannot make the rest of the CLI unusable.
  */
 export class CliPluginRegistrationError extends Error {
-    constructor(
-        readonly pluginId: string,
-        readonly conflicts: string[],
-    ) {
+    constructor(readonly conflicts: string[]) {
         super(
             `${conflicts.length === 1 ? 'Conflict' : 'Conflicts'}:\n${conflicts.map(c => `  - ${c}`).join('\n')}`,
         );
@@ -69,23 +68,17 @@ export class CommandRegistry {
     private state: RegistryState = { commands: new Map(), rootOptions: new Map() };
 
     /**
-     * Registers built-in or plugin commands. When a command name already
-     * exists, it is replaced and a short notice is written to stderr.
+     * Registers the built-in commands. Plugins go through {@link applyPlugin},
+     * which is the only path that enforces the collision rules.
      */
-    registerAll(commands: CliCommandNode[], source?: string): void {
+    registerAll(commands: CliCommandNode[]): void {
         for (const command of commands) {
-            this.register(command, source);
+            this.register(command);
         }
     }
 
-    register(command: CliCommandNode, source?: string): void {
-        if (this.state.commands.has(command.name) && source) {
-            // Not dim: this is the main signal that a built-in (or earlier
-            // plugin) command was overridden, and precedence follows
-            // vendure.cli.plugins order (last enabled plugin wins).
-            process.stderr.write(pc.yellow(`Replaced command "${command.name}" via ${source}\n`));
-        }
-        this.state.commands.set(command.name, { node: command, source, extendedBy: [] });
+    register(command: CliCommandNode): void {
+        this.state.commands.set(command.name, { node: command, extendedBy: [] });
     }
 
     /**
@@ -94,8 +87,8 @@ export class CommandRegistry {
      *
      * Everything is applied to a draft first. If any part of the plugin
      * collides with what is already registered, {@link CliPluginRegistrationError}
-     * is thrown and the draft is discarded, so a plugin is never applied by
-     * halves.
+     * is thrown and the draft is discarded, so a plugin's commands and options
+     * are either all registered or none are.
      */
     applyPlugin(plugin: CliPlugin): void {
         const draft: RegistryState = {
@@ -116,7 +109,7 @@ export class CommandRegistry {
         }
 
         if (conflicts.length > 0) {
-            throw new CliPluginRegistrationError(plugin.id, conflicts);
+            throw new CliPluginRegistrationError(conflicts);
         }
 
         this.state = draft;
@@ -225,8 +218,27 @@ function draftCommand(
     }
 
     for (const declared of listCommandOptions([node])) {
-        const shared = findRootOption(draft, parseOptionFlags(declared.option));
-        if (shared && !takesSameValue(shared.option, declared.option)) {
+        const parsed = parseOptionFlags(declared.option);
+        for (const flag of [parsed.long, parsed.short]) {
+            if (flag && RESERVED_FLAGS.includes(flag)) {
+                conflicts.push(
+                    `Option "${describeOption(declared.option)}" on "vendure ${declared.path.join(' ')}" ` +
+                        `uses "${flag}", which is reserved by the CLI.`,
+                );
+            }
+        }
+        const shared = findRootOption(draft, parsed);
+        if (!shared) {
+            continue;
+        }
+        if (declared.isGroupOption) {
+            conflicts.push(
+                `Option "${describeOption(declared.option)}" on the command group ` +
+                    `"vendure ${declared.path.join(' ')}" is already a shared option registered by ` +
+                    `${shared.source ?? 'the CLI'}. A group shares its options with everything below it, ` +
+                    `so the same flag cannot be shared at two levels.`,
+            );
+        } else if (!takesSameValue(shared.option, declared.option)) {
             conflicts.push(
                 `Option "${describeOption(declared.option)}" on "vendure ${declared.path.join(' ')}" is not ` +
                     `compatible with the shared option "${describeOption(shared.option)}" registered by ` +
@@ -279,11 +291,7 @@ function draftExtension(
                 `subcommands instead.`,
         );
     }
-    if (targetIsGroup && extension.arguments?.length) {
-        conflicts.push(`"vendure ${label}" is a command group and takes no positional arguments.`);
-    }
-
-    const contributors = [entry.source ?? 'the CLI', ...entry.extendedBy].join(', ');
+    const inheritedShared = ancestorSharedOptions(draft, path);
     for (const option of extension.options ?? []) {
         const parsed = parseOptionFlags(option);
         for (const flag of [parsed.long, parsed.short]) {
@@ -296,30 +304,26 @@ function draftExtension(
         }
         const clash = (target.options ?? []).find(existing => isSameOption(existing, parsed));
         if (clash) {
-            conflicts.push(
-                `Option "${describeOption(option)}" is already declared on "vendure ${label}" ` +
-                    `(contributed by ${contributors}).`,
-            );
+            conflicts.push(`Option "${describeOption(option)}" is already declared on "vendure ${label}".`);
         }
+        const inherited = inheritedShared.find(existing => isSameOption(existing, parsed));
         const shared = findRootOption(draft, parsed);
-        if (shared && !takesSameValue(shared.option, option)) {
+        const sharedOption = shared?.option ?? inherited;
+        if (!sharedOption) {
+            continue;
+        }
+        if (targetIsGroup) {
+            conflicts.push(
+                `Option "${describeOption(option)}" added to the command group "vendure ${label}" is ` +
+                    `already a shared option ("${describeOption(sharedOption)}"). A group shares its ` +
+                    `options with everything below it, so the same flag cannot be shared at two levels.`,
+            );
+        } else if (!takesSameValue(sharedOption, option)) {
             conflicts.push(
                 `Option "${describeOption(option)}" added to "vendure ${label}" is not compatible with ` +
-                    `the shared option "${describeOption(shared.option)}" registered by ` +
-                    `${shared.source ?? 'the CLI'}: one takes a value and the other does not.`,
+                    `the shared option "${describeOption(sharedOption)}": one takes a value and the ` +
+                    `other does not.`,
             );
-        }
-    }
-
-    if (!targetIsGroup) {
-        const existingArguments = target.arguments ?? [];
-        for (const argument of extension.arguments ?? []) {
-            if (existingArguments.some(existing => existing.name === argument.name)) {
-                conflicts.push(
-                    `Argument "${argument.name}" is already declared on "vendure ${label}" ` +
-                        `(contributed by ${contributors}).`,
-                );
-            }
         }
     }
 
@@ -363,12 +367,10 @@ function extendNode(target: CliCommandNode, extension: CliCommandExtension): Cli
         return { ...target, description, options: options.length > 0 ? options : undefined };
     }
 
-    const commandArguments = [...(target.arguments ?? []), ...(extension.arguments ?? [])];
     const command: CliCommandDefinition = {
         ...target,
         description,
         options: options.length > 0 ? options : undefined,
-        arguments: commandArguments.length > 0 ? commandArguments : undefined,
     };
 
     if (!extension.decorate) {
@@ -392,6 +394,11 @@ function findNodeAtPath(node: CliCommandNode, path: string[]): CliCommandNode | 
     return child && findNodeAtPath(child, path.slice(1));
 }
 
+/**
+ * Rebuilds the tree with the node at `path` replaced. The caller must have
+ * resolved `path` with {@link findNodeAtPath} first, which is what guarantees
+ * every node above the replacement is a group.
+ */
 function replaceNodeAtPath(
     node: CliCommandNode,
     path: string[],
@@ -415,21 +422,43 @@ function findRootOption(draft: RegistryState, parsed: ParsedCliOption): Register
     return Array.from(draft.rootOptions.values()).find(entry => isSameOption(entry.option, parsed));
 }
 
-function listCommandOptions(
-    nodes: CliCommandNode[],
-    path: string[] = [],
-): Array<{ path: string[]; option: CliCommandOption }> {
-    const declared: Array<{ path: string[]; option: CliCommandOption }> = [];
+interface DeclaredOption {
+    path: string[];
+    option: CliCommandOption;
+    /** Group options are shared with every command below them. */
+    isGroupOption: boolean;
+}
+
+function listCommandOptions(nodes: CliCommandNode[], path: string[] = []): DeclaredOption[] {
+    const declared: DeclaredOption[] = [];
     for (const node of nodes) {
         const commandPath = [...path, node.name];
+        const isGroupOption = isCliCommandGroup(node);
         for (const option of node.options ?? []) {
-            declared.push({ path: commandPath, option });
+            declared.push({ path: commandPath, option, isGroupOption });
         }
         if (isCliCommandGroup(node)) {
             declared.push(...listCommandOptions(node.subcommands, commandPath));
         }
     }
     return declared;
+}
+
+/**
+ * Options shared with the command at `path` by the groups above it. Together
+ * with the root options these are the shared options in scope there.
+ */
+function ancestorSharedOptions(draft: RegistryState, path: string[]): CliCommandOption[] {
+    const options: CliCommandOption[] = [];
+    let node = draft.commands.get(path[0])?.node;
+    for (let i = 0; i < path.length - 1 && node; i++) {
+        if (!isCliCommandGroup(node)) {
+            break;
+        }
+        options.push(...(node.options ?? []));
+        node = node.subcommands.find(subcommand => subcommand.name === path[i + 1]);
+    }
+    return options;
 }
 
 /**
@@ -452,5 +481,5 @@ function isSameOption(option: CliCommandOption, other: ParsedCliOption): boolean
  * the other command's value stranded as a stray argument.
  */
 function takesSameValue(a: CliCommandOption, b: CliCommandOption): boolean {
-    return /[<[]/.test(buildOptionFlags(a)) === /[<[]/.test(buildOptionFlags(b));
+    return parseOptionFlags(a).takesValue === parseOptionFlags(b).takesValue;
 }

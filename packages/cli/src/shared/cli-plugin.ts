@@ -108,36 +108,14 @@ function assertExtensions(
         if (extension.decorate !== undefined && typeof extension.decorate !== 'function') {
             throw new Error(`CLI plugin "${pluginId}" extension of "${label}" has a non-function decorate`);
         }
-        if (
-            extension.decorate === undefined &&
-            !extension.description &&
-            !extension.options?.length &&
-            !extension.arguments?.length
-        ) {
+        if (extension.decorate === undefined && !extension.description && !extension.options?.length) {
             throw new Error(
                 `CLI plugin "${pluginId}" extension of "${label}" adds nothing. Give it a decorate, ` +
-                    `description, options or arguments.`,
+                    `description or options.`,
             );
         }
 
-        const options = extension.options ?? [];
-        assertUniqueOptions(pluginId, options, `options added to "${label}"`);
-        assertDoesNotShadow(pluginId, label, options, rootOptions);
-
-        for (const argument of extension.arguments ?? []) {
-            if (!argument || typeof argument.name !== 'string' || argument.name.trim().length === 0) {
-                throw new Error(
-                    `CLI plugin "${pluginId}" extension of "${label}" has an argument without a name`,
-                );
-            }
-            if (argument.required === true) {
-                throw new Error(
-                    `CLI plugin "${pluginId}" extension of "${label}" adds a required argument ` +
-                        `"${argument.name}". An extension may only add optional arguments, because a ` +
-                        `required one would change the arity of a command that is already in use.`,
-                );
-            }
-        }
+        assertUniqueOptions(pluginId, extension.options ?? [], `options added to "${label}"`);
     }
 }
 
@@ -173,9 +151,8 @@ function assertNodes(
 
         const ownOptions = node.options ?? [];
         assertUniqueOptions(pluginId, ownOptions, `options of command "${label}"`);
-        assertDoesNotShadow(pluginId, label, ownOptions, inheritedOptions);
-
         if (isCliCommandGroup(node)) {
+            assertDoesNotShadow(pluginId, label, ownOptions, inheritedOptions);
             if (typeof (node as Partial<CliCommandDefinition>).action === 'function') {
                 throw new Error(
                     `CLI plugin "${pluginId}" command "${label}" declares both subcommands and an action. ` +
@@ -214,9 +191,9 @@ function assertUniqueOptions(pluginId: string, options: CliCommandOption[], cont
 }
 
 /**
- * A shared option is consumed by the command that declares it wherever it
- * appears on the command line, so a nested command redeclaring the same flag
- * would never receive a value. Reject it while the author can still see why.
+ * A group's options are shared with everything below it, so two levels sharing
+ * one flag would leave the value's owner ambiguous. A leaf may repeat a shared
+ * flag: the host copies the value onto it, so both readings agree.
  */
 function assertDoesNotShadow(
     pluginId: string,
@@ -243,7 +220,8 @@ function assertDoesNotShadow(
             if (shadowed) {
                 throw new Error(
                     `CLI plugin "${pluginId}" command "${label}" declares "${flag}", which is already a shared ` +
-                        `option ("${describeOption(shadowed)}"). Remove it and read the value from the command context.`,
+                        `option ("${describeOption(shadowed)}"). Declare it at one level only and read the ` +
+                        `value from the command context.`,
                 );
             }
         }
