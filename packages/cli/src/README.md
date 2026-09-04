@@ -487,7 +487,8 @@ written to stderr, when it declares:
 - a top-level command name that a built-in or an earlier plugin already
   provides, without `replaces: true`;
 - a shared option an earlier plugin already registered, or one of the CLI's own
-  flags (`-h`, `--help`, `-V`, `--version`);
+  flags (`-h`, `--help`, `-V`, `--version`). Options are compared by the name
+  they read back under, so `--api-token` and `--apiToken` collide;
 - a shared option that disagrees with an existing command option of the same
   flag about whether a value follows it.
 

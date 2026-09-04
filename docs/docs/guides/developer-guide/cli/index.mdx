@@ -651,6 +651,8 @@ given a `defaultValue` is left out.
 - A plugin cannot declare a shared option that another plugin already declares,
   and it cannot declare one that shadows a shared option of its own group. Both
   are reported as errors rather than one quietly overriding the other.
+- Two flags that read back under the same name count as the same option, so
+  `--api-token` and `--apiToken` collide: both are stored as `apiToken`.
 - A plugin cannot use `-h`, `--help`, `-V` or `--version`, which the CLI owns.
 - A command may declare an option with the same flag as a shared option — the
   built-in `vendure plugins --json` and a shared `--json` for example. The two
@@ -665,7 +667,8 @@ and the reason is written to stderr. This applies to:
 
 - a top-level command that a built-in or another plugin already provides, unless
   the definition sets `replaces: true`;
-- a shared option that another plugin already registered, or a flag the CLI owns.
+- a shared option that another plugin already registered, reads back under the
+  same name as one, or is a flag the CLI owns.
 
 The rest of the CLI keeps working, so `vendure plugins remove <package>` is
 always available to disable the plugin.
