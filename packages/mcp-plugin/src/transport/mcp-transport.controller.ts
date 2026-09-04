@@ -250,12 +250,35 @@ export class McpTransportController {
             throw new UnauthorizedException('Shop MCP endpoint requires a Bearer token');
         }
 
+        if (await this.refusedByPreAuthRateLimits(toolset, res, body, token, clientIp)) {
+            return undefined;
+        }
+
+        if (toolset === 'admin' && !token) {
+            this.setAuthChallenge(res, 'admin');
+            throw new UnauthorizedException('Admin MCP endpoint requires a Bearer token');
+        }
+
+        if (token) {
+            const authContext = await this.authenticateBearerToken(token, toolset, req, res, clientIp);
+            return { ...authContext, clientIp };
+        }
+        return this.anonymousShopExecutionContext(req, res, clientIp);
+    }
+
+    private async refusedByPreAuthRateLimits(
+        toolset: McpToolset,
+        res: Response,
+        body: unknown,
+        token: string | undefined,
+        clientIp: string | undefined,
+    ): Promise<boolean> {
         // Rate-limit anonymous shop requests by IP before accessing the database.
         if (toolset === 'shop' && !token) {
             const exceeded = await this.rateLimiter.checkAnonymousIpRateLimit(toolset, clientIp);
             if (exceeded) {
                 this.sendRateLimitError(res, body, exceeded);
-                return undefined;
+                return true;
             }
         }
 
@@ -265,40 +288,34 @@ export class McpTransportController {
             const exceeded = await this.rateLimiter.checkBearerAuthFailureRateLimit(clientIp);
             if (exceeded) {
                 this.sendRateLimitError(res, body, exceeded);
-                return undefined;
+                return true;
             }
         }
 
-        if (toolset === 'admin' && !token) {
-            this.setAuthChallenge(res, 'admin');
-            throw new UnauthorizedException('Admin MCP endpoint requires a Bearer token');
-        }
+        return false;
+    }
 
-        let executionContext: McpExecutionContext;
-        if (token) {
-            const authContext = await this.authenticateBearerToken(token, toolset, req, res, clientIp);
-            executionContext = { ...authContext, clientIp };
-        } else {
-            // A `vendure-auth-token` header can resume an anonymous session. Most MCP clients cannot
-            // persist headers, so the session token is usually passed as a tool argument instead.
-            try {
-                const ctx = await this.createAnonymousShopContext(
-                    req,
-                    this.getVendureSessionToken(req.headers),
-                    this.getChannelToken(req),
-                );
-                // Preserve the session token from the header in the response so the client can reuse it.
-                this.setVendureSessionToken(res, ctx.session?.token);
-                executionContext = { ctx, clientIp };
-            } catch (e) {
-                if (e instanceof UnauthorizedException) {
-                    this.setAuthChallenge(res, 'shop');
-                }
-                throw e;
+    // Most MCP clients cannot persist headers, so the session token usually arrives as a tool argument.
+    private async anonymousShopExecutionContext(
+        req: I18nRequest,
+        res: Response,
+        clientIp: string | undefined,
+    ): Promise<McpExecutionContext> {
+        try {
+            const ctx = await this.createAnonymousShopContext(
+                req,
+                this.getVendureSessionToken(req.headers),
+                this.getChannelToken(req),
+            );
+            // Preserve the session token from the header in the response so the client can reuse it.
+            this.setVendureSessionToken(res, ctx.session?.token);
+            return { ctx, clientIp };
+        } catch (e) {
+            if (e instanceof UnauthorizedException) {
+                this.setAuthChallenge(res, 'shop');
             }
+            throw e;
         }
-
-        return executionContext;
     }
 
     /** True when any message in the body asks to open a subscription stream. */

@@ -35,7 +35,7 @@ export interface RateLimitInput {
 @Injectable()
 export class McpRateLimiterService {
     /** Tail of the increment queue per bucket key; an entry is removed once its tail settles. */
-    private inFlightIncrements = new Map<string, Promise<void>>();
+    private readonly inFlightIncrements = new Map<string, Promise<void>>();
 
     constructor(
         private readonly cacheService: CacheService,

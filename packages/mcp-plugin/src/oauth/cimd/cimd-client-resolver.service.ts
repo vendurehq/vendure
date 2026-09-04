@@ -26,7 +26,7 @@ export class McpCimdClientResolverService {
      * Deduplicates concurrent fetches of the same client_id.
      * Each caller still persists its own result.
      */
-    private inFlight = new Map<string, Promise<CimdDocument>>();
+    private readonly inFlight = new Map<string, Promise<CimdDocument>>();
 
     constructor(
         private readonly connection: TransactionalConnection,
