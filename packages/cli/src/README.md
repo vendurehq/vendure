@@ -72,7 +72,7 @@ to forward them should read the tail with the exported `readCommandContext()`
 and `readCommandOptions()` rather than indexing:
 
 ```typescript
-interface CliCommandContext<TInheritedOptions = Record<string, any>> {
+interface CliCommandContext<TInheritedOptions extends Record<string, any> = Record<string, any>> {
     inheritedOptions: TInheritedOptions; // Values of the shared options in scope
     commandPath: string[]; // e.g. ['config', 'server', 'set']
 }
@@ -85,7 +85,8 @@ interface CliCommandOption {
     short?: string; // Short flag (e.g., '-p')
     long: string; // Long flag (e.g., '--plugin <name>')
     description: string; // Option description
-    required?: boolean; // Whether the option is required
+    required?: boolean; // Whether a value must follow the flag, not whether the flag is required
+    defaultValue?: any; // Value used when the flag is absent
     subOptions?: CliCommandOption[]; // Sub-options for complex commands
 }
 ```
@@ -432,7 +433,7 @@ External packages add commands, add to existing ones, or replace them by
 exporting a CLI plugin with `defineCliPlugin`.
 
 **The plugin API reference lives in the developer guide**, under
-[Extending the CLI](/guides/developer-guide/cli/#extending-the-cli): the
+[Extending the CLI](https://docs.vendure.io/guides/developer-guide/cli/#extending-the-cli): the
 `extendCommands` composition model, shared options and their precedence, the
 collision rules, and discovery and activation. That page is the source of truth
 for plugin authors; this file covers what a contributor to the CLI itself needs.
@@ -457,12 +458,12 @@ for plugin authors; this file covers what a contributor to the CLI itself needs.
   declaring it has been reached, so shared options are declared once on their
   owning command and never copied onto descendants. `registerCommands()` enables
   Commander's `showGlobalOptions` so subcommand help still lists them.
-- **The declaring command wins the parse.** When a command declares the same flag
-  as a shared option, Commander gives the value to the shared option, and
-  `fillSharedValues()` copies it onto the command so both readings agree. That
-  relies on Commander's `opts()` returning its own `_optionValues` rather than a
-  copy; the unit test named `shares one value between a shared option and a
-command option of the same name` pins the assumption.
+- **The ancestor that declared the shared option wins the parse.** When a
+  command declares the same flag as a shared option, Commander gives the value
+  to the ancestor, so `fillSharedValues()` writes it into the options object
+  Commander passed to the action, and onto the `Command`, so both readings
+  agree. Registration rejects the two declarations if they disagree about
+  whether a value follows the flag. Covered in `command-registry.spec.ts`.
 - **Extensions cannot add positional arguments.** Commander passes one argument
   slot per declared positional, so an appended argument would shift the options,
   `Command` and context that an existing action expects.

@@ -550,15 +550,20 @@ commands without loading the plugin.
 ### Nested commands
 
 A command entry that has `subcommands` instead of an `action` is a group. A
-group only exists to hold the commands below it, and running it without a
-subcommand prints its help. Groups can be nested to any depth.
+group only exists to hold the commands below it. Running it without a
+subcommand prints its help to stderr and exits 1. Groups can be nested to any
+depth.
 
 ```ts
-import { CliCommandContext, defineCliPlugin } from '@vendure/cli';
+import type { Command } from 'commander';
+
+import { defineCliPlugin } from '@vendure/cli';
+import type { CliCommandContext } from '@vendure/cli';
 
 interface CloudOptions {
     token?: string;
     project?: string;
+    profile?: string;
 }
 
 export default defineCliPlugin({
@@ -588,7 +593,7 @@ export default defineCliPlugin({
                                 key: string,
                                 value: string,
                                 options: Record<string, any>,
-                                command: unknown,
+                                command: Command,
                                 context: CliCommandContext<CloudOptions>,
                             ) => {
                                 console.log(context.commandPath); // ['config', 'server', 'set']
@@ -651,8 +656,7 @@ export default defineCliPlugin({
 
 A decorator that takes `...args` in order to forward them should read the tail
 with `readCommandContext()` and `readCommandOptions()` rather than indexing into
-the array, which is easy to get wrong and would break if the host ever appended
-anything else.
+the array. Both throw a named error if handed anything else.
 
 `decorate` is called once, when the plugin is registered, and is given:
 
@@ -726,16 +730,23 @@ they belong to:
 - `options` on a command group apply to every command inside that group.
 
 A shared option can be given anywhere on the command line once the command that
-declares it has been reached. These are all equivalent:
+declares it has been reached. These two are equivalent — same flag, same value,
+different position:
 
 ```bash
 npx vendure --token abc config server set apiPort 3001
 npx vendure config server set apiPort 3001 --token abc
-npx vendure config --profile ci server set apiPort 3001
 ```
 
-A group option is only accepted within its group, so
-`vendure project list --profile ci` fails with an unknown option error.
+A group's own options work the same way from the group onwards:
+
+```bash
+npx vendure config --profile ci server set apiPort 3001
+npx vendure config server set apiPort 3001 --profile ci
+```
+
+but only within that group, so `vendure project list --profile ci` fails with an
+unknown option error.
 
 Values reach the action through the `CliCommandContext` that the CLI appends
 after Commander's own arguments, which means a command never has to read or
@@ -751,6 +762,14 @@ action: async (options, command, context: CliCommandContext<CloudOptions>) => {
 `inheritedOptions` is keyed by the long flag without `--`, camel-cased, so
 `--api-token` is read as `apiToken`. An option that was neither supplied nor
 given a `defaultValue` is left out.
+
+:::note
+`required: true` on an **option** means a value must follow the flag, not that
+the flag has to be given. `--token <token>` with `required: true` may still be
+omitted entirely, and its value will be absent from `inheritedOptions`. Check
+for it in your action. On an **argument**, `required: true` does mean the
+argument is mandatory.
+:::
 
 #### Shared-option precedence
 
@@ -789,8 +808,9 @@ registered at all, and the reason is written to stderr. This applies to:
 - a shared option that another plugin already registered, reads back under the
   same name as one, or is a flag the CLI owns;
 - an option on any command that uses a flag the CLI owns;
-- any use of the `plugins` or `help` commands, which the CLI reserves because
-  they are how a plugin is found and disabled.
+- any use of the `plugins` command, which the CLI reserves because it is how a
+  plugin is disabled, or the `help` command, which is how a user finds their way
+  out of a broken one.
 
 Conflicts are collected and reported together where the CLI can carry on
 checking. The rest of the CLI keeps working either way, so
@@ -819,6 +839,26 @@ npx vendure plugins --json
 npx vendure plugins add @example/vendure-cli-plugin
 npx vendure plugins remove @example/vendure-cli-plugin
 ```
+
+The CLI finds the project root by walking up from the current directory to the
+nearest `package.json` that configures `vendure.cli` or depends on
+`@vendure/cli`, then scans the `dependencies`, `devDependencies` and
+`optionalDependencies` of every `package.json` between the two. In a monorepo
+that means a plugin installed in a workspace package is found even when
+`@vendure/cli` is hoisted to the workspace root.
+
+A package that declares a plugin but is not listed is reported by a one-line
+hint on stderr rather than being loaded:
+
+```text
+2 packages provide CLI commands. Run "vendure plugins" to review them.
+```
+
+`vendure plugins` lists each discovered package as `enabled`, `not-enabled` or
+`failed`. `failed` means the package is listed in `plugins` but could not be
+resolved or loaded — for example it is not a direct dependency, does not declare
+`vendure.cliPlugin`, or its entry file is missing because a workspace package has
+not been built. The reason is shown alongside it.
 
 A package named in `plugins` must also be a direct project dependency.
 Disabling a plugin is simply removing it from the list (`vendure plugins remove`).
