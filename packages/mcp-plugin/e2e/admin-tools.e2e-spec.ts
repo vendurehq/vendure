@@ -865,6 +865,21 @@ describe('MCP built-in admin tools (direct mode)', () => {
         expect(drafts.items.every(order => order.state === 'Draft')).toBe(true);
     });
 
+    it('list_orders leaves unplaced carts out by default and includes them when asked', async () => {
+        const cart = await createDraftOrder();
+        await connection.getRepository(adminCtx, Order).update(cart.id, { active: true });
+
+        const byDefault = await listFiltered<{ id: ID }>('list_orders', { limit: 100 });
+        expect(byDefault.items.map(order => String(order.id))).not.toContain(String(cart.id));
+
+        const carts = await listFiltered<{ id: ID; active: boolean }>('list_orders', {
+            limit: 100,
+            filter: { active: { eq: true } },
+        });
+        expect(carts.items.map(order => String(order.id))).toContain(String(cart.id));
+        expect(carts.items.every(order => order.active)).toBe(true);
+    });
+
     it('list_orders filters on the date an order was placed', async () => {
         const earlier = await createDraftOrder();
         const later = await createDraftOrder();

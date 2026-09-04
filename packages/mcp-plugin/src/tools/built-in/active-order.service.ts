@@ -21,6 +21,10 @@ export interface ActiveOrderRef {
     ctx: RequestContext;
 }
 
+export const NO_CART_MESSAGE =
+    'There is no cart for this session. Call add_to_cart first; it returns the sessionToken to ' +
+    'use on later calls.';
+
 const EDITABLE_ORDER_STATES: Array<Order['state']> = ['AddingItems', 'Draft'];
 
 function cartIsEditable(cart: ActiveOrderRef): boolean {

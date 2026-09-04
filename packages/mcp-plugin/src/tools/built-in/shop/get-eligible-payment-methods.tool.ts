@@ -3,7 +3,7 @@ import { OrderService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { McpActiveOrderService } from '../active-order.service';
+import { McpActiveOrderService, NO_CART_MESSAGE } from '../active-order.service';
 import { McpToolSerializerService } from '../serializer.service';
 
 const getEligiblePaymentMethodsInput = z.strictObject({});
@@ -35,7 +35,7 @@ export class GetEligiblePaymentMethodsTool implements McpToolHandler<Record<stri
 
     async execute(ctx: RequestContext) {
         const order = await this.activeOrder.find(ctx);
-        if (!order) return { methods: [] };
+        if (!order) return { methods: [], message: NO_CART_MESSAGE };
         const quotes = await this.orderService.getEligiblePaymentMethods(order.ctx, order.id);
         return { methods: quotes.map(quote => this.serializer.paymentQuote(quote)) };
     }

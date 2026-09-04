@@ -61,7 +61,9 @@ type ListOrdersInput = z.infer<typeof listOrdersInput>;
 @McpTool({
     name: 'list_orders',
     toolset: 'admin',
-    description: 'List and filter orders for operations users, most recently updated first by default.',
+    description:
+        'List and filter orders for operations users, most recently updated first by default. ' +
+        'Unplaced carts are excluded unless you pass filter.active.',
     keywords: [
         'show all orders',
         'recent orders in the store',
@@ -85,11 +87,11 @@ export class ListOrdersTool implements McpToolHandler<ListOrdersInput> {
     ) {}
 
     async execute(ctx: RequestContext, input: ListOrdersInput) {
-        const result = await this.orderService.findAll(
-            ctx,
-            orderListOptions(input, 'updatedAt'),
-            ORDER_LIST_RELATIONS,
-        );
+        const options = orderListOptions(input, 'updatedAt');
+        if (input.filter?.active === undefined) {
+            options.filter = { ...options.filter, active: { eq: false } };
+        }
+        const result = await this.orderService.findAll(ctx, options, ORDER_LIST_RELATIONS);
         translateLineVariants(result.items, this.translator, ctx);
         return page(
             result.items.map(order => this.serializer.order(order)),

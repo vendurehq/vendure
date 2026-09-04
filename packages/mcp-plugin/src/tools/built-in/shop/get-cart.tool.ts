@@ -3,7 +3,7 @@ import { Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { McpActiveOrderService } from '../active-order.service';
+import { McpActiveOrderService, NO_CART_MESSAGE } from '../active-order.service';
 import { McpToolSerializerService } from '../serializer.service';
 
 const getCartInput = z.strictObject({});
@@ -34,6 +34,7 @@ export class GetCartTool implements McpToolHandler<Record<string, never>> {
 
     async execute(ctx: RequestContext) {
         const order = await this.activeOrder.findOrderWithLines(ctx);
+        if (!order) return { order: null, message: NO_CART_MESSAGE };
         return { order: this.serializer.order(order) };
     }
 }

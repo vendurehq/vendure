@@ -1569,6 +1569,24 @@ describe('MCP built-in shop tools', () => {
         expect(refused.body.result.structuredContent).toEqual({ sessionToken });
     });
 
+    it('says there is no cart on the three reads that would otherwise look like real answers', async () => {
+        const noCart =
+            'There is no cart for this session. Call add_to_cart first; it returns the ' +
+            'sessionToken to use on later calls.';
+
+        const cart = await postMcp(baseUrl(), 'shop', callTool('get_cart', {}, 1));
+        expect(cart.body.result.isError).toBeUndefined();
+        expect(cart.body.result.structuredContent).toMatchObject({ order: null, message: noCart });
+
+        const payments = await postMcp(baseUrl(), 'shop', callTool('get_eligible_payment_methods', {}, 2));
+        expect(payments.body.result.isError).toBeUndefined();
+        expect(payments.body.result.structuredContent).toMatchObject({ methods: [], message: noCart });
+
+        const shipping = await postMcp(baseUrl(), 'shop', callTool('get_eligible_shipping_methods', {}, 3));
+        expect(shipping.body.result.isError).toBeUndefined();
+        expect(shipping.body.result.structuredContent).toMatchObject({ methods: [], message: noCart });
+    });
+
     describe('in-process execution via McpToolExecutionService', () => {
         async function customerShopContext(): Promise<RequestContext> {
             const customer = await connection.getRepository(adminCtx, Customer).findOneOrFail({
