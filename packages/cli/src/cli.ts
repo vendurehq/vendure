@@ -4,8 +4,8 @@ import { Command } from 'commander';
 import pc from 'picocolors';
 
 import { builtinCommandDefs } from './commands/builtins';
-import { CommandRegistry } from './shared/command-registry-store';
 import { registerCommands } from './shared/command-registry';
+import { CommandRegistry } from './shared/command-registry-store';
 import {
     findInactivePluginProvidingCommand,
     listInactiveCliPluginPackages,
@@ -19,8 +19,11 @@ async function main(): Promise<void> {
     const version = require('../package.json').version;
 
     program
+        // Commander otherwise names the program after the binary file
+        // (`cli.js`), which would make every subcommand's help say `cli ...`.
+        .name('vendure')
         .version(version)
-        .usage(`vendure <command>`)
+        .usage(`<command>`)
         .description(
             pc.blue(`
                                 888                          
@@ -41,16 +44,20 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
     // `plugins` command needed to disable it) stay available.
     const { loaded, failures } = resolveCliPlugins();
     for (const failure of failures) {
-        process.stderr.write(pc.red(`Failed to load CLI plugin "${failure.packageName}": ${failure.reason}\n`));
-        process.stderr.write(
-            `Skipping it. Fix the issue or disable it with: vendure plugins remove ${failure.packageName}\n`,
-        );
+        writePluginSkipped(failure.packageName, 'Failed to load CLI plugin', failure.reason);
     }
-    for (const { plugin } of loaded) {
-        registry.applyPlugin(plugin);
+    for (const { packageName, plugin } of loaded) {
+        try {
+            registry.applyPlugin(plugin);
+        } catch (e) {
+            // A plugin whose commands or shared options collide with something
+            // already registered is skipped whole, rather than applied by halves.
+            const reason = e instanceof Error ? e.message : String(e);
+            writePluginSkipped(packageName, 'Failed to register CLI plugin', reason);
+        }
     }
 
-    registerCommands(program, registry.toArray());
+    registerCommands(program, registry.toArray(), registry.getRootOptions());
 
     program.on('command:*', operands => {
         const unknown = operands[0] ?? '';
@@ -61,6 +68,17 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
     maybeWriteInactivePluginsHint(process.argv);
 
     await program.parseAsync(process.argv);
+}
+
+/**
+ * Reports a plugin the CLI could not use, and how to disable it. Built-ins stay
+ * registered either way, so `vendure plugins remove` remains reachable.
+ */
+function writePluginSkipped(packageName: string, headline: string, reason: string): void {
+    process.stderr.write(pc.red(`${headline} "${packageName}": ${reason}\n`));
+    process.stderr.write(
+        `Skipping it. Fix the issue or disable it with: vendure plugins remove ${packageName}\n`,
+    );
 }
 
 /**
@@ -90,9 +108,7 @@ function maybeWriteInactivePluginsHint(argv: string[]): void {
     }
 
     const noun = inactive.length === 1 ? 'package provides' : 'packages provide';
-    process.stderr.write(
-        `${inactive.length} ${noun} CLI commands. Run "vendure plugins" to review them.\n`,
-    );
+    process.stderr.write(`${inactive.length} ${noun} CLI commands. Run "vendure plugins" to review them.\n`);
 }
 
 function writeUnknownCommandHelp(commandName: string): void {
@@ -109,9 +125,7 @@ function writeUnknownCommandHelp(commandName: string): void {
 
     const inactive = listInactiveCliPluginPackages();
     if (inactive.length === 1) {
-        process.stderr.write(
-            `It may be provided by ${inactive[0]}, which is installed but not enabled.\n`,
-        );
+        process.stderr.write(`It may be provided by ${inactive[0]}, which is installed but not enabled.\n`);
         process.stderr.write(`Enable it with: vendure plugins add ${inactive[0]}\n`);
         return;
     }
@@ -122,7 +136,7 @@ function writeUnknownCommandHelp(commandName: string): void {
     }
 }
 
-void main().catch((e: any) => {
-    process.stderr.write(`${e?.message ?? String(e)}\n`);
+void main().catch((e: unknown) => {
+    process.stderr.write(`${e instanceof Error ? e.message : String(e)}\n`);
     process.exit(1);
 });

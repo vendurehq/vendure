@@ -1,4 +1,10 @@
-import { CliCommandDefinition } from './cli-command-definition';
+import {
+    CliCommandDefinition,
+    CliCommandNode,
+    CliCommandOption,
+    isCliCommandGroup,
+} from './cli-command-definition';
+import { describeOption, parseOptionFlags } from './cli-command-options';
 
 /**
  * A CLI plugin that can add new commands or replace existing ones.
@@ -19,10 +25,19 @@ export interface CliPlugin {
      */
     id: string;
     /**
-     * Commands to register. A command whose `name` matches a built-in
-     * (or previously registered) command replaces it.
+     * Commands to register. Each entry is either a command with an action, or a
+     * group of subcommands. A top-level name that matches a built-in (or a
+     * previously registered) command replaces it, which must be declared with
+     * `replaces: true`.
      */
-    commands: CliCommandDefinition[];
+    commands: CliCommandNode[];
+    /**
+     * Options registered on the `vendure` command itself, and therefore shared
+     * by every command. They can be given anywhere on the command line
+     * (`vendure --token X project list` and `vendure project list --token X`
+     * are equivalent) and reach actions via `CliCommandContext.inheritedOptions`.
+     */
+    rootOptions?: CliCommandOption[];
 }
 
 export function assertCliPlugin(value: unknown): asserts value is CliPlugin {
@@ -36,19 +51,12 @@ export function assertCliPlugin(value: unknown): asserts value is CliPlugin {
     if (!Array.isArray(plugin.commands)) {
         throw new Error(`CLI plugin "${plugin.id}" must provide a commands array`);
     }
-    for (const command of plugin.commands) {
-        if (!command || typeof command.name !== 'string' || command.name.trim().length === 0) {
-            throw new Error(`CLI plugin "${plugin.id}" has a command with an invalid name`);
-        }
-        if (typeof command.description !== 'string' || command.description.trim().length === 0) {
-            throw new Error(`CLI plugin "${plugin.id}" command "${command.name}" must provide a description`);
-        }
-        if (typeof command.action !== 'function') {
-            throw new Error(
-                `CLI plugin "${plugin.id}" command "${command.name}" must provide an action function`,
-            );
-        }
+    const rootOptions = plugin.rootOptions ?? [];
+    if (!Array.isArray(rootOptions)) {
+        throw new Error(`CLI plugin "${plugin.id}" rootOptions must be an array`);
     }
+    assertUniqueOptions(plugin.id, rootOptions, 'shared root options');
+    assertNodes(plugin.id, plugin.commands, [], rootOptions);
 }
 
 /**
@@ -57,4 +65,105 @@ export function assertCliPlugin(value: unknown): asserts value is CliPlugin {
 export function defineCliPlugin(plugin: CliPlugin): CliPlugin {
     assertCliPlugin(plugin);
     return plugin;
+}
+
+function assertNodes(
+    pluginId: string,
+    nodes: CliCommandNode[],
+    path: string[],
+    inheritedOptions: CliCommandOption[],
+): void {
+    const seenNames = new Set<string>();
+    for (const node of nodes) {
+        if (!node || typeof node.name !== 'string' || node.name.trim().length === 0) {
+            throw new Error(`CLI plugin "${pluginId}" has a command with an invalid name`);
+        }
+        const commandPath = [...path, node.name];
+        const label = commandPath.join(' ');
+        if (seenNames.has(node.name)) {
+            throw new Error(`CLI plugin "${pluginId}" declares the command "${label}" more than once`);
+        }
+        seenNames.add(node.name);
+
+        if (typeof node.description !== 'string' || node.description.trim().length === 0) {
+            throw new Error(`CLI plugin "${pluginId}" command "${label}" must provide a description`);
+        }
+
+        const ownOptions = node.options ?? [];
+        assertUniqueOptions(pluginId, ownOptions, `options of command "${label}"`);
+        assertDoesNotShadow(pluginId, label, ownOptions, inheritedOptions);
+
+        if (isCliCommandGroup(node)) {
+            if (typeof (node as Partial<CliCommandDefinition>).action === 'function') {
+                throw new Error(
+                    `CLI plugin "${pluginId}" command "${label}" declares both subcommands and an action. ` +
+                        `A command group has no action of its own: move it into a subcommand.`,
+                );
+            }
+            if (node.subcommands.length === 0) {
+                throw new Error(
+                    `CLI plugin "${pluginId}" command group "${label}" must provide at least one subcommand`,
+                );
+            }
+            assertNodes(pluginId, node.subcommands, commandPath, [...inheritedOptions, ...ownOptions]);
+        } else if (typeof node.action !== 'function') {
+            throw new Error(`CLI plugin "${pluginId}" command "${label}" must provide an action function`);
+        }
+    }
+}
+
+function assertUniqueOptions(pluginId: string, options: CliCommandOption[], context: string): void {
+    const seenFlags = new Set<string>();
+    for (const option of options) {
+        if (!option || typeof option.long !== 'string' || option.long.trim().length === 0) {
+            throw new Error(`CLI plugin "${pluginId}" has an option without a long flag in ${context}`);
+        }
+        const { long, short } = parseOptionFlags(option);
+        for (const flag of [long, short]) {
+            if (!flag) {
+                continue;
+            }
+            if (seenFlags.has(flag)) {
+                throw new Error(`CLI plugin "${pluginId}" declares "${flag}" twice in ${context}`);
+            }
+            seenFlags.add(flag);
+        }
+    }
+}
+
+/**
+ * A shared option is consumed by the command that declares it wherever it
+ * appears on the command line, so a nested command redeclaring the same flag
+ * would never receive a value. Reject it while the author can still see why.
+ */
+function assertDoesNotShadow(
+    pluginId: string,
+    label: string,
+    ownOptions: CliCommandOption[],
+    inheritedOptions: CliCommandOption[],
+): void {
+    const inheritedFlags = new Map<string, CliCommandOption>();
+    for (const option of inheritedOptions) {
+        const { long, short } = parseOptionFlags(option);
+        for (const flag of [long, short]) {
+            if (flag) {
+                inheritedFlags.set(flag, option);
+            }
+        }
+    }
+    for (const option of ownOptions) {
+        const { long, short } = parseOptionFlags(option);
+        for (const flag of [long, short]) {
+            if (!flag) {
+                continue;
+            }
+            const shadowed = inheritedFlags.get(flag);
+            if (shadowed) {
+                throw new Error(
+                    `CLI plugin "${pluginId}" command "${label}" declares "${flag}", which is already a shared ` +
+                        `option ("${describeOption(shadowed)}"). Remove it and read the value from the command context.`,
+                );
+            }
+        }
+    }
 }

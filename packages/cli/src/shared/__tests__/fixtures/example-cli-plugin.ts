@@ -10,10 +10,20 @@
  *   }
  * }
  */
-import { builtinCommands, defineCliPlugin } from '../../../index';
+import { builtinCommands, CliCommandContext, defineCliPlugin } from '../../../index';
+
+interface ExampleSharedOptions {
+    token?: string;
+    json?: boolean;
+}
 
 export default defineCliPlugin({
     id: '@vendure/cli-example-plugin',
+    // Shared by every command, and readable through `context.inheritedOptions`.
+    rootOptions: [
+        { long: '--token <token>', description: 'API token', required: true },
+        { long: '--json', description: 'Print machine-readable output' },
+    ],
     commands: [
         {
             name: 'example',
@@ -24,8 +34,31 @@ export default defineCliPlugin({
             },
         },
         {
+            name: 'project',
+            description: 'Example nested command group',
+            options: [{ long: '--profile <name>', description: 'Configuration profile', required: true }],
+            subcommands: [
+                {
+                    name: 'list',
+                    description: 'List projects',
+                    action: async (
+                        options: Record<string, any>,
+                        command: unknown,
+                        context: CliCommandContext<ExampleSharedOptions>,
+                    ) => {
+                        process.stdout.write(
+                            `Listing projects with token ${context.inheritedOptions.token ?? ''}\n`,
+                        );
+                        return 0;
+                    },
+                },
+            ],
+        },
+        {
             name: 'dev',
             description: 'Example wrap of the built-in dev command',
+            // Required to take over a command that already exists.
+            replaces: true,
             action: async (target, options) => {
                 process.stdout.write('Running wrapped vendure dev via plugin\n');
                 return builtinCommands.dev.action(target, options);
@@ -40,7 +73,7 @@ export default defineCliPlugin({
  * {
  *   "vendure": {
  *     "cliPlugin": "./dist/cli-plugin.js",
- *     "cliCommands": ["example", "dev"]
+ *     "cliCommands": ["example", "project", "dev"]
  *   }
  * }
  *
