@@ -5,6 +5,14 @@ import { describe, expect, it } from 'vitest';
 import { mcpBuiltInToolProviders } from './providers';
 import { metadataFor, toJsonInputSchema } from './spec-helpers';
 
+type StandardInputSchema = {
+    ['~standard']: {
+        validate: (
+            input: unknown,
+        ) => Promise<{ issues?: readonly unknown[] }> | { issues?: readonly unknown[] };
+    };
+};
+
 const allowedOpenObjectPaths = new Set([
     'set_checkout_details.shippingAddress.customFields',
     'set_checkout_details.billingAddress.customFields',
@@ -57,6 +65,15 @@ describe('built-in shop tool providers', () => {
     const providers = mcpBuiltInToolProviders.filter(provider => typeof provider === 'function');
     const shopProviders = providers.filter(provider => metadataFor(provider).toolset === 'shop');
 
+    async function accepts(toolName: string, input: unknown): Promise<boolean> {
+        const provider = providers.find(candidate => metadataFor(candidate).name === toolName);
+        if (!provider) {
+            throw new Error(`Unknown built-in tool: ${toolName}`);
+        }
+        const schema = metadataFor(provider).inputSchema as StandardInputSchema;
+        return !(await schema['~standard'].validate(input)).issues;
+    }
+
     it('declares schemas that compile and close every fixed object', () => {
         for (const provider of providers) {
             const metadata = metadataFor(provider);
@@ -78,6 +95,25 @@ describe('built-in shop tool providers', () => {
     it('declares collision-safe class names', () => {
         const classNames = providers.map(provider => (provider as { name: string }).name);
         expect(new Set(classNames).size).toBe(classNames.length);
+    });
+
+    it('accepts string and number entity IDs but refuses other types', async () => {
+        expect(await accepts('add_to_cart', { variantId: '1', quantity: 1 })).toBe(true);
+        expect(await accepts('add_to_cart', { variantId: 1, quantity: 1 })).toBe(true);
+        expect(await accepts('add_to_cart', { variantId: true, quantity: 1 })).toBe(false);
+    });
+
+    it('caps shared entity ID lists before they reach a mutation', async () => {
+        const input = (count: number) => ({ id: '1', input: { assetIds: Array(count).fill('1') } });
+        expect(await accepts('update_product', input(100))).toBe(true);
+        expect(await accepts('update_product', input(101))).toBe(false);
+    });
+
+    it('enforces the storage limits of shared short and long text fields', async () => {
+        expect(await accepts('get_product', { slug: 'a'.repeat(255) })).toBe(true);
+        expect(await accepts('get_product', { slug: 'a'.repeat(256) })).toBe(false);
+        expect(await accepts('add_note_to_order', { id: '1', note: 'a'.repeat(10000) })).toBe(true);
+        expect(await accepts('add_note_to_order', { id: '1', note: 'a'.repeat(10001) })).toBe(false);
     });
 
     it('declares permissions and behavior for account, order, and checkout tools', () => {

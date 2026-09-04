@@ -32,8 +32,21 @@ describe('McpPlugin bootstrap', () => {
             const response = await postMcp(baseUrl, 'shop', rpc('tools/list'));
 
             expect(response.status).toBe(200);
-            const names = (response.body.result.tools as Array<{ name: string }>).map(tool => tool.name);
+            const tools = response.body.result.tools as Array<{
+                name: string;
+                inputSchema: Record<string, unknown>;
+            }>;
+            const names = tools.map(tool => tool.name);
             expect(names).toContain('search_products');
+            expect(tools.find(tool => tool.name === 'search_products')?.inputSchema).toMatchObject({
+                type: 'object',
+                properties: {
+                    query: { type: 'string', maxLength: 200 },
+                    collectionId: { anyOf: [{ type: 'string' }, { type: 'number' }] },
+                    limit: { type: 'integer', minimum: 1, maximum: 100 },
+                },
+                additionalProperties: false,
+            });
         });
 
         it('runs a shop tool with no token', async () => {
