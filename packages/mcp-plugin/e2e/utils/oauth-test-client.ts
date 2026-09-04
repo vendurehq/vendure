@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import crypto, { randomUUID } from 'node:crypto';
 
 import { AUTHORIZE_MCP_CLIENT } from '../graphql/mcp-documents';
 
@@ -277,7 +277,7 @@ function adminFlowOptions(options: RunAuthorizationCodeFlowOptions): DriveAuthor
         baseUrl,
         issuer,
         superAdminToken,
-        clientName = `oauth-test-client-${Math.random().toString(36).slice(2)}`,
+        clientName = `oauth-test-client-${randomUUID()}`,
         redirectUri = 'https://example.com/cb',
         clientId,
         channelToken,
@@ -362,7 +362,7 @@ export async function runShopAuthorizationCodeFlow(
     options: RunShopAuthorizationCodeFlowOptions,
 ): Promise<AuthorizationCodeFlowResult> {
     const { baseUrl, issuer, vendureAuthToken, channelToken } = options;
-    const clientName = `oauth-shop-test-client-${Math.random().toString(36).slice(2)}`;
+    const clientName = `oauth-shop-test-client-${randomUUID()}`;
     const redirectUri = 'https://example.com/cb';
 
     const pending = await driveToAuthorizationCode({
