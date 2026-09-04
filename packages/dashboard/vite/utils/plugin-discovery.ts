@@ -78,7 +78,6 @@ export async function discoverPlugins({
                 sourceType: 'module',
             });
 
-            let hasVendurePlugin = false;
             let pluginName: string | undefined;
             let dashboardPath: string | undefined;
 
@@ -96,43 +95,24 @@ export async function discoverPlugins({
                             : undefined);
                     const nodeArgs = node.arguments;
                     const isDecoratorWithArgs = calleeName === '__decorate' && nodeArgs.length >= 2;
+                    if (!isDecoratorWithArgs) {
+                        return;
+                    }
 
-                    if (isDecoratorWithArgs) {
-                        // Check the decorators array (first argument)
-                        const decorators = nodeArgs[0];
-                        if (decorators.type === 'ArrayExpression') {
-                            for (const decorator of decorators.elements) {
-                                const props = getDecoratorObjectProps(decorator);
-                                for (const prop of props) {
-                                    if (prop.key.name === 'dashboard') {
-                                        if (prop.value.type === 'Literal') {
-                                            // Handle string format: dashboard: './path/to/dashboard'
-                                            dashboardPath = prop.value.value;
-                                            hasVendurePlugin = true;
-                                        } else if (prop.value.type === 'ObjectExpression') {
-                                            // Handle object format: dashboard: { location: './path/to/dashboard' }
-                                            const locationProp = prop.value.properties?.find(
-                                                (p: any) => p.key?.name === 'location',
-                                            );
-                                            if (locationProp?.value.type === 'Literal') {
-                                                dashboardPath = locationProp.value.value;
-                                                hasVendurePlugin = true;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        // Get the plugin class name (second argument)
-                        const targetClass = nodeArgs[1];
-                        if (targetClass.type === 'Identifier') {
-                            pluginName = targetClass.name;
-                        }
+                    // Check the decorators array (first argument)
+                    const declaredDashboardPath = getDashboardPathFromDecorateCall(nodeArgs[0]);
+                    if (declaredDashboardPath) {
+                        dashboardPath = declaredDashboardPath;
+                    }
+                    // Get the plugin class name (second argument)
+                    const targetClass = nodeArgs[1];
+                    if (targetClass.type === 'Identifier') {
+                        pluginName = targetClass.name;
                     }
                 },
             });
 
-            if (hasVendurePlugin && pluginName && dashboardPath) {
+            if (pluginName && dashboardPath) {
                 logger.debug(`[discoverPlugins] Found plugin "${pluginName}" in file: ${filePath}`);
                 const resolvedDashboardPath = dashboardPathRelativeToPlugin(filePath, dashboardPath);
 
@@ -192,6 +172,31 @@ function dashboardPathRelativeToPlugin(pluginFilePath: string, dashboardPath: st
     return dashboardPath.startsWith('.')
         ? dashboardPath
         : './' + path.relative(path.dirname(pluginFilePath), dashboardPath);
+}
+
+function getDashboardPathFromDecorateCall(decorators: any): string | undefined {
+    if (decorators.type !== 'ArrayExpression') {
+        return undefined;
+    }
+    let dashboardPath: string | undefined;
+    for (const decorator of decorators.elements) {
+        for (const prop of getDecoratorObjectProps(decorator)) {
+            if (prop.key.name !== 'dashboard') {
+                continue;
+            }
+            if (prop.value.type === 'Literal') {
+                // Handle string format: dashboard: './path/to/dashboard'
+                dashboardPath = prop.value.value;
+            } else if (prop.value.type === 'ObjectExpression') {
+                // Handle object format: dashboard: { location: './path/to/dashboard' }
+                const locationProp = prop.value.properties?.find((p: any) => p.key?.name === 'location');
+                if (locationProp?.value.type === 'Literal') {
+                    dashboardPath = locationProp.value.value;
+                }
+            }
+        }
+    }
+    return dashboardPath;
 }
 
 function getDecoratorObjectProps(decorator: any): any[] {
@@ -428,23 +433,24 @@ export async function analyzeSourceFiles(
  * as we have found a local Vendure plugin.
  */
 function getVendurePluginInfo(node: ts.Node): { name: string; dashboardPath?: string } | undefined {
-    if (ts.isClassDeclaration(node)) {
-        const decorators = ts.canHaveDecorators(node) ? ts.getDecorators(node) : undefined;
-        if (decorators?.length) {
-            for (const decorator of decorators) {
-                const decoratorName = getDecoratorName(decorator);
-                if (decoratorName === 'VendurePlugin') {
-                    const className = node.name?.text;
-                    if (className) {
-                        return {
-                            name: className,
-                            dashboardPath: getDashboardPathFromVendurePluginDecorator(decorator),
-                        };
-                    }
-                }
-            }
-        }
+    if (!ts.isClassDeclaration(node)) {
+        return undefined;
     }
+    const className = node.name?.text;
+    if (!className) {
+        return undefined;
+    }
+    const decorators = ts.canHaveDecorators(node) ? ts.getDecorators(node) : undefined;
+    for (const decorator of decorators ?? []) {
+        if (getDecoratorName(decorator) !== 'VendurePlugin') {
+            continue;
+        }
+        return {
+            name: className,
+            dashboardPath: getDashboardPathFromVendurePluginDecorator(decorator),
+        };
+    }
+    return undefined;
 }
 
 /**
@@ -471,16 +477,22 @@ function getDashboardPathFromVendurePluginDecorator(decorator: ts.Decorator): st
         }
         // Object form: dashboard: { location: './path/to/dashboard' }
         if (ts.isObjectLiteralExpression(prop.initializer)) {
-            for (const inner of prop.initializer.properties) {
-                if (
-                    ts.isPropertyAssignment(inner) &&
-                    ts.isIdentifier(inner.name) &&
-                    inner.name.text === 'location' &&
-                    ts.isStringLiteralLike(inner.initializer)
-                ) {
-                    return inner.initializer.text;
-                }
+            const location = getLocationFromDashboardObject(prop.initializer);
+            if (location !== undefined) {
+                return location;
             }
+        }
+    }
+    return undefined;
+}
+
+function getLocationFromDashboardObject(dashboardObject: ts.ObjectLiteralExpression): string | undefined {
+    for (const prop of dashboardObject.properties) {
+        if (!ts.isPropertyAssignment(prop) || !ts.isIdentifier(prop.name) || prop.name.text !== 'location') {
+            continue;
+        }
+        if (ts.isStringLiteralLike(prop.initializer)) {
+            return prop.initializer.text;
         }
     }
     return undefined;
