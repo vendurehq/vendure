@@ -249,15 +249,29 @@ function createStructFieldSchema(structFieldConfig: StructCustomFieldConfig): Zo
  *
  * @param zodType - The base Zod schema to modify
  * @param customField - Custom field config containing list/nullable flags
+ * @param isCreateForm - Whether the schema is for a create form (no entity yet)
  * @returns Modified Zod schema with list/nullable modifiers applied
  */
-function applyCustomFieldModifiers(zodType: ZodType, customField: CustomFieldConfig): ZodType {
+function applyCustomFieldModifiers(
+    zodType: ZodType,
+    customField: CustomFieldConfig,
+    isCreateForm: boolean,
+): ZodType {
     let modifiedType = zodType;
 
     if (customField.list) {
         modifiedType = z.array(modifiedType);
     }
     if (customField.nullable !== false || customField.readonly) {
+        modifiedType = modifiedType.optional().nullable();
+    } else if (isCreateForm) {
+        // Every custom field is nullable in the GraphQL input type, so a `nullable: false` custom
+        // field is seeded `null` on a create form (#5241). The server guarantees such a field has
+        // a `defaultValue`, which becomes the column's SQL DEFAULT, and the create submit path
+        // strips the `null` from the payload (`stripNullNullableFields`) — the database then
+        // supplies the configured default. So the create schema accepts an empty value. The
+        // update schema keeps requiring one: the column is NOT NULL, and clearing the input on an
+        // update must keep the form invalid, exactly as the server would reject that write.
         modifiedType = modifiedType.optional().nullable();
     }
     if (customField.readonly) {
@@ -273,11 +287,13 @@ function applyCustomFieldModifiers(zodType: ZodType, customField: CustomFieldCon
  *
  * @param customFieldConfigs - Array of all custom field configurations
  * @param isTranslationContext - Whether we're processing fields for translation forms
+ * @param isCreateForm - Whether the schema is for a create form (no entity yet)
  * @returns Zod schema shape for the entire customFields object
  */
 function processCustomFieldsSchema(
     customFieldConfigs: CustomFieldConfig[],
     isTranslationContext: boolean,
+    isCreateForm: boolean,
 ): ZodRawShape {
     const customFieldsSchema: ZodRawShape = {};
     const translatableTypes = ['localeString', 'localeText'];
@@ -299,7 +315,7 @@ function processCustomFieldsSchema(
             zodType = createCustomFieldValidationSchema(customField);
         }
 
-        zodType = applyCustomFieldModifiers(zodType, customField);
+        zodType = applyCustomFieldModifiers(zodType, customField, isCreateForm);
         const schemaPropertyName = getGraphQlInputName(customField);
         customFieldsSchema[schemaPropertyName] = zodType;
     }
@@ -311,6 +327,7 @@ export function createFormSchemaFromFields(
     fields: FieldInfo[],
     customFieldConfigs?: CustomFieldConfig[],
     isTranslationContext = false,
+    isCreateForm = false,
 ) {
     const schemaConfig: ZodRawShape = {};
 
@@ -323,7 +340,7 @@ export function createFormSchemaFromFields(
         } else if (field.name === 'customFields') {
             const customFieldsSchema =
                 customFieldConfigs && customFieldConfigs.length > 0
-                    ? processCustomFieldsSchema(customFieldConfigs, isTranslationContext)
+                    ? processCustomFieldsSchema(customFieldConfigs, isTranslationContext, isCreateForm)
                     : {};
             // Use .passthrough() to preserve custom field values that aren't in the schema
             // This is essential for nested entities (e.g., ProductVariantPrice) whose custom
@@ -335,6 +352,7 @@ export function createFormSchemaFromFields(
                 field.typeInfo,
                 customFieldConfigs,
                 isNestedTranslationContext,
+                isCreateForm,
             );
 
             if (field.nullable) {
