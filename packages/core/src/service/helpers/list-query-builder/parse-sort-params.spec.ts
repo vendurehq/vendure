@@ -116,6 +116,31 @@ describe('parseSortParams()', () => {
         });
     });
 
+    // #5199 — a localeText custom field must resolve to the same customFields path as localeString
+    it('works with localeText custom fields', () => {
+        const connection = new MockConnection();
+        connection.setColumns(Product, [{ propertyName: 'id' }]);
+        connection.setRelations(Product, [{ propertyName: 'translations', type: ProductTranslation }]);
+        connection.setColumns(ProductTranslation, [{ propertyName: 'id' }, { propertyName: 'summary' }]);
+
+        const sortParams: SortParameter<Product & { summary: any }> = {
+            summary: 'ASC',
+        };
+        const productCustomFields: CustomFieldConfig[] = [{ name: 'summary', type: 'localeText' }];
+
+        const result = parseSortParams(
+            connection as any,
+            Product,
+            sortParams,
+            {},
+            undefined,
+            productCustomFields,
+        );
+        expect(result).toEqual({
+            'product__translations.customFields.summary': 'ASC',
+        });
+    });
+
     it('throws if an invalid field is passed', () => {
         const connection = new MockConnection();
         connection.setColumns(Product, [{ propertyName: 'id' }, { propertyName: 'image' }]);
