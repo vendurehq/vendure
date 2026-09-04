@@ -89,3 +89,50 @@ describe('McpTransportController bearer authentication failures', () => {
         );
     });
 });
+
+describe('McpTransportController bearer header parsing', () => {
+    const parse = (header?: string) =>
+        (McpTransportController.prototype as any).getBearerToken.call(undefined, header);
+
+    it('returns undefined when there is no Authorization header', () => {
+        expect(parse(undefined)).toBeUndefined();
+    });
+
+    it('returns undefined for the bare scheme with nothing after it', () => {
+        expect(parse('Bearer')).toBeUndefined();
+    });
+
+    it('returns undefined when the scheme is not separated from what follows', () => {
+        expect(parse('Bearerabc')).toBeUndefined();
+    });
+
+    it('returns undefined for a non-bearer scheme', () => {
+        expect(parse('Basic abc')).toBeUndefined();
+    });
+
+    it('reads the token after the scheme', () => {
+        expect(parse('Bearer abc')).toBe('abc');
+    });
+
+    it('accepts the scheme name in any case', () => {
+        expect(parse('bearer abc')).toBe('abc');
+    });
+
+    it('accepts a tab between the scheme and the token', () => {
+        expect(parse('Bearer\tabc')).toBe('abc');
+    });
+
+    it('skips a run of whitespace but keeps whitespace at the end', () => {
+        expect(parse('Bearer  abc ')).toBe('abc ');
+    });
+
+    it('returns undefined when only whitespace follows the scheme', () => {
+        expect(parse('Bearer   ')).toBeUndefined();
+    });
+
+    it('answers immediately for a long run of whitespace and no token', () => {
+        const started = Date.now();
+        expect(parse('Bearer ' + ' '.repeat(50_000))).toBeUndefined();
+        expect(Date.now() - started).toBeLessThan(100);
+    });
+});

@@ -485,8 +485,22 @@ export class McpTransportController {
     }
 
     private getBearerToken(header?: string): string | undefined {
-        const match = /^Bearer\s+(.+)$/i.exec(header ?? '');
-        return match?.[1];
+        if (header === undefined) {
+            return undefined;
+        }
+        if (header.slice(0, 6).toLowerCase() !== 'bearer') {
+            return undefined;
+        }
+        const afterScheme = header.slice(6);
+        // "Bearerabc" is not a bearer header: the scheme has to be separated from the token.
+        if (!/^\s/.test(afterScheme)) {
+            return undefined;
+        }
+        const tokenStart = afterScheme.search(/\S/);
+        if (tokenStart === -1) {
+            return undefined;
+        }
+        return afterScheme.slice(tokenStart);
     }
 
     private async createAnonymousShopContext(
