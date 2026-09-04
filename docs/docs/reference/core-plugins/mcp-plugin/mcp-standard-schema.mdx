@@ -20,15 +20,15 @@ interface McpStandardSchema<Input = unknown, Output = Input> {
         readonly validate: (
             value: unknown,
         ) => McpStandardSchemaResult<Output> | Promise<McpStandardSchemaResult<Output>>;
-        readonly types?: { readonly input: Input; readonly output: Output } | undefined;
+        readonly types?: { readonly input: Input; readonly output: Output };
         readonly jsonSchema: {
             input(options: {
                 readonly target: string;
-                readonly libraryOptions?: Record<string, unknown> | undefined;
+                readonly libraryOptions?: Record<string, unknown>;
             }): Record<string, unknown>;
             output(options: {
                 readonly target: string;
-                readonly libraryOptions?: Record<string, unknown> | undefined;
+                readonly libraryOptions?: Record<string, unknown>;
             }): Record<string, unknown>;
         };
     };
@@ -39,7 +39,7 @@ interface McpStandardSchema<Input = unknown, Output = Input> {
 
 ### '~standard'
 
-<MemberInfo kind="property" type={`{         readonly version: 1;         readonly vendor: string;         readonly validate: (             value: unknown,         ) => <a href='/reference/core-plugins/mcp-plugin/mcp-standard-schema-result#mcpstandardschemaresult'>McpStandardSchemaResult</a><Output> | Promise<<a href='/reference/core-plugins/mcp-plugin/mcp-standard-schema-result#mcpstandardschemaresult'>McpStandardSchemaResult</a><Output>>;         readonly types?: { readonly input: Input; readonly output: Output } | undefined;         readonly jsonSchema: {             input(options: {                 readonly target: string;                 readonly libraryOptions?: Record<string, unknown> | undefined;             }): Record<string, unknown>;             output(options: {                 readonly target: string;                 readonly libraryOptions?: Record<string, unknown> | undefined;             }): Record<string, unknown>;         };     }`}   />
+<MemberInfo kind="property" type={`{         readonly version: 1;         readonly vendor: string;         readonly validate: (             value: unknown,         ) => <a href='/reference/core-plugins/mcp-plugin/mcp-standard-schema-result#mcpstandardschemaresult'>McpStandardSchemaResult</a><Output> | Promise<<a href='/reference/core-plugins/mcp-plugin/mcp-standard-schema-result#mcpstandardschemaresult'>McpStandardSchemaResult</a><Output>>;         readonly types?: { readonly input: Input; readonly output: Output };         readonly jsonSchema: {             input(options: {                 readonly target: string;                 readonly libraryOptions?: Record<string, unknown>;             }): Record<string, unknown>;             output(options: {                 readonly target: string;                 readonly libraryOptions?: Record<string, unknown>;             }): Record<string, unknown>;         };     }`}   />
 
 The Standard Schema properties that a schema library adds to each of its schemas. The MCP
 server reads `jsonSchema` once at startup, and calls `validate` on every tool call. The
