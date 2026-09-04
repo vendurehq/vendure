@@ -52,7 +52,6 @@ interface CliCommandExtension {
     command: string | string[]; // 'dev', or ['config', 'server', 'set']
     description?: string; // Replaces the description in help
     options?: CliCommandOption[]; // Appended to the command's options
-    arguments?: CliCommandArgument[]; // Appended; must be optional
     decorate?: CliCommandDecorator; // Wraps the command's action
 }
 
@@ -68,7 +67,9 @@ interface CliCommandDecoratorInput {
 
 Commander passes positional arguments first, then the parsed options object and
 the `Command` instance. The CLI host appends a `CliCommandContext`, so an action
-never has to read or reparse `process.argv`:
+never has to read or reparse `process.argv`. An action taking `...args` in order
+to forward them should read the tail with the exported `readCommandContext()`
+and `readCommandOptions()` rather than indexing:
 
 ```typescript
 interface CliCommandContext<TInheritedOptions = Record<string, any>> {

@@ -619,7 +619,7 @@ credential to `vendure dev`, and a Cloud package may need to add to it as well.
 their options are merged onto one command and their decorators are composed.
 
 ```ts
-import { CliCommandContext, defineCliPlugin } from '@vendure/cli';
+import { defineCliPlugin, readCommandContext, readCommandOptions } from '@vendure/cli';
 
 export default defineCliPlugin({
     id: '@example/platform-cli-plugin',
@@ -635,6 +635,11 @@ export default defineCliPlugin({
                     // `command` is the command as composed so far, so you can
                     // see what the built-in and any earlier plugin added.
                     console.log(command.options?.map(option => option.long));
+
+                    const options = readCommandOptions(args);
+                    const context = readCommandContext(args);
+                    console.log(options.rotateCredential, context.commandPath);
+
                     // Forward every argument, so anything you wrap still gets
                     // the options, Command and context the host parsed.
                     return next(...args);
@@ -643,6 +648,11 @@ export default defineCliPlugin({
     ],
 });
 ```
+
+A decorator that takes `...args` in order to forward them should read the tail
+with `readCommandContext()` and `readCommandOptions()` rather than indexing into
+the array, which is easy to get wrong and would break if the host ever appended
+anything else.
 
 `decorate` is called once, when the plugin is registered, and is given:
 
@@ -756,7 +766,8 @@ given a `defaultValue` is left out.
   `--api-token` and `--apiToken` collide: both are stored as `apiToken`.
 - No option may use `-h`, `--help`, `-V` or `--version`, which the CLI owns.
 - `subOptions` are registered on the same command as their parent, so every rule
-  above applies to them too.
+  above applies to them too. They nest one level only; anything deeper is
+  rejected, because the CLI would validate a flag it never registers.
 - A *command* may declare an option with the same flag as a shared option — the
   built-in `vendure plugins --json` and a shared `--json` for example. The two
   then refer to the same value: whatever is supplied on the command line is
