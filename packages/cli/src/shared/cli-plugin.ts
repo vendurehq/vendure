@@ -29,8 +29,8 @@ export interface CliPlugin {
     id: string;
     /**
      * Commands to register. Each entry is either a command with an action, or a
-     * group of subcommands. A top-level name that matches a built-in (or a
-     * previously registered) command replaces it, which must be declared with
+     * group of subcommands. A top-level name that a built-in or an earlier
+     * plugin already provides is rejected unless the command sets
      * `replaces: true`.
      */
     commands: CliCommandNode[];
@@ -180,6 +180,18 @@ function assertNodes(
 }
 
 function assertUniqueOptions(pluginId: string, options: CliCommandOption[], context: string): void {
+    for (const option of options) {
+        for (const subOption of option.subOptions ?? []) {
+            if (subOption.subOptions?.length) {
+                throw new Error(
+                    `CLI plugin "${pluginId}" nests sub-options more than one level deep under ` +
+                        `"${describeOption(option)}" in ${context}. The CLI registers one level, so a ` +
+                        `deeper option would be validated but never parsed.`,
+                );
+            }
+        }
+    }
+
     const seenFlags = new Set<string>();
     for (const option of withSubOptions(options)) {
         if (!option || typeof option.long !== 'string' || option.long.trim().length === 0) {

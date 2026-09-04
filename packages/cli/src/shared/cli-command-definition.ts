@@ -166,6 +166,33 @@ export interface CliCommandDecoratorInput {
 export type CliCommandDecorator = (input: CliCommandDecoratorInput) => CliCommandAction;
 
 /**
+ * Reads the {@link CliCommandContext} the host appends to a command action's
+ * arguments. Use it instead of indexing into the argument list, which a plugin
+ * has to do when it takes `...args` in order to forward them to `next`.
+ *
+ * @since 3.8.0
+ */
+export function readCommandContext<TInheritedOptions extends Record<string, any> = Record<string, any>>(
+    args: readonly unknown[],
+): CliCommandContext<TInheritedOptions> {
+    const context = args[args.length - 1] as CliCommandContext<TInheritedOptions> | undefined;
+    if (!context || !Array.isArray(context.commandPath)) {
+        throw new Error('No CliCommandContext found. Pass the full argument list a command action received.');
+    }
+    return context;
+}
+
+/**
+ * Reads the parsed options Commander passed to a command action. See
+ * {@link readCommandContext}.
+ *
+ * @since 3.8.0
+ */
+export function readCommandOptions(args: readonly unknown[]): Record<string, any> {
+    return (args[args.length - 3] as Record<string, any> | undefined) ?? {};
+}
+
+/**
  * Adds to a command that is already registered instead of replacing it, so
  * that several plugins can contribute to the same command.
  *
@@ -211,8 +238,10 @@ export interface CliCommandExtension {
  */
 export interface ProjectCliPluginConfig {
     /**
-     * Allowlist of packages to load as CLI plugins, in registration order
-     * (last listed wins when two plugins register the same command name).
+     * Allowlist of packages to load as CLI plugins, in registration order.
+     * A name that is already taken is rejected unless the command sets
+     * `replaces: true`; among plugins that do, the last listed wins. Command
+     * extensions are applied in the same order, and all of them are kept.
      * Each must be a direct dependency and declare `vendure.cliPlugin`.
      * When missing or empty, no plugins are loaded — disabling a plugin is
      * simply not listing it.

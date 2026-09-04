@@ -39,6 +39,7 @@
  * ```
  */
 export { builtinCommands } from './commands/builtins';
+export { readCommandContext, readCommandOptions } from './shared/cli-command-definition';
 export type {
     CliCommandAction,
     CliCommandArgument,

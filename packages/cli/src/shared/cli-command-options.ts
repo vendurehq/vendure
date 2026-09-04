@@ -46,12 +46,16 @@ export function parseOptionFlags(option: CliCommandOption): ParsedCliOption {
 }
 
 /**
- * An option together with every sub-option it declares. Sub-options are
+ * An option together with the sub-options it declares. Sub-options are
  * registered on the same Commander command as their parent, so every check
  * that applies to an option applies to them too.
+ *
+ * Sub-options nest one level only, matching what the host registers.
+ * `defineCliPlugin` rejects anything deeper, so validation and registration
+ * cannot disagree about which flags exist.
  */
 export function withSubOptions(options: CliCommandOption[]): CliCommandOption[] {
-    return options.flatMap(option => [option, ...withSubOptions(option.subOptions ?? [])]);
+    return options.flatMap(option => [option, ...(option.subOptions ?? [])]);
 }
 
 /**

@@ -5,7 +5,7 @@ import pc from 'picocolors';
 
 import { builtinCommandDefs } from './commands/builtins';
 import { registerCommands } from './shared/command-registry';
-import { CommandRegistry, RESERVED_FLAGS } from './shared/command-registry-store';
+import { CommandRegistry, RESERVED_COMMANDS } from './shared/command-registry-store';
 import {
     findInactivePluginProvidingCommand,
     listInactiveCliPluginPackages,
@@ -36,6 +36,11 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
   Y88P    "Y8888  888  888  "Y88888  "Y88888 888     "Y8888                             
 `),
         );
+
+    // Shared options are declared once on the command that owns them, so
+    // subcommand help needs Commander's "Global Options" section to be complete.
+    // Set before any subcommand is created, which copies the help configuration.
+    program.configureHelp({ showGlobalOptions: true });
 
     const registry = new CommandRegistry();
     registry.registerAll(builtinCommandDefs);
@@ -80,6 +85,14 @@ function writePluginSkipped(packageName: string, headline: string, reason: strin
 }
 
 /**
+ * Arguments that mean the user is orienting themselves rather than running a
+ * command, so the inactive-plugins hint would be noise. Deliberately its own
+ * list: it happens to match the reserved flags today, but they answer
+ * different questions.
+ */
+const HINT_SUPPRESSING_ARGS = ['--help', '-h', '--version', '-V'];
+
+/**
  * One-line hint when packages declare CLI plugins but are not enabled yet.
  * Skipped for `vendure plugins` itself and for `--help` / `--version`.
  */
@@ -89,7 +102,10 @@ function maybeWriteInactivePluginsHint(argv: string[]): void {
         return;
     }
     const primary = args.find(arg => !arg.startsWith('-'));
-    if (primary === 'plugins' || primary === 'help' || args.some(arg => RESERVED_FLAGS.includes(arg))) {
+    if (
+        (primary && RESERVED_COMMANDS.includes(primary)) ||
+        args.some(arg => HINT_SUPPRESSING_ARGS.includes(arg))
+    ) {
         return;
     }
 

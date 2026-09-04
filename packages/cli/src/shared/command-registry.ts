@@ -25,12 +25,6 @@ export function registerCommands(
     commands: CliCommandNode[],
     rootOptions: CliCommandOption[] = [],
 ): void {
-    // Commander accepts an option anywhere on the command line once the
-    // command that declares it has been reached, so `vendure --token X foo`
-    // and `vendure foo --token X` are equivalent. Listing those options as
-    // "Global Options" keeps subcommand help complete.
-    program.configureHelp({ showGlobalOptions: true });
-
     const sharedOptions = declareOptions(program, rootOptions);
     for (const node of commands) {
         registerNode(program, node, [], sharedOptions);
@@ -62,7 +56,7 @@ function registerNode(
     declareOptions(command, node.options ?? []);
 
     command.action(async (...args: any[]) => {
-        fillSharedValues(command, sharedOptions);
+        fillSharedValues(command, commanderOptions(args), sharedOptions);
         const context: CliCommandContext = {
             inheritedOptions: readSharedValues(sharedOptions),
             commandPath,
@@ -124,21 +118,25 @@ function addOption(command: Command, option: CliCommandOption): void {
  */
 function readSharedValues(sharedOptions: SharedOption[]): Record<string, any> {
     const values: Record<string, any> = {};
-    const supplied = new Set<string>();
     for (const { owner, attributeName } of sharedOptions) {
         const source = owner.getOptionValueSource(attributeName);
         if (source === undefined) {
             continue;
         }
-        if (source === 'default' && (supplied.has(attributeName) || attributeName in values)) {
+        if (source === 'default' && attributeName in values) {
             continue;
-        }
-        if (source !== 'default') {
-            supplied.add(attributeName);
         }
         values[attributeName] = owner.getOptionValue(attributeName);
     }
     return values;
+}
+
+/**
+ * Commander calls an action with the positional arguments, then the parsed
+ * options, then the Command.
+ */
+function commanderOptions(args: any[]): Record<string, any> {
+    return args[args.length - 2] ?? {};
 }
 
 /**
@@ -147,12 +145,15 @@ function readSharedValues(sharedOptions: SharedOption[]): Record<string, any> {
  * shared `--json`. Commander gives the value to the shared option, so copy it
  * onto the command to keep both readings of the flag in agreement.
  *
- * This relies on Commander's `opts()` handing back its own `_optionValues`
- * rather than a copy, so writing here is visible in the options object it has
- * already passed to the action. `registerCommands() shares one value between a
- * shared option and a command option of the same name` pins that assumption.
+ * The value is written into the options object Commander passed to the action,
+ * so this does not depend on `opts()` returning its internal store by
+ * reference. It is also set on the Command, for an action that reads it there.
  */
-function fillSharedValues(command: Command, sharedOptions: SharedOption[]): void {
+function fillSharedValues(
+    command: Command,
+    options: Record<string, any>,
+    sharedOptions: SharedOption[],
+): void {
     for (const { owner, attributeName } of sharedOptions) {
         const sharedSource = owner.getOptionValueSource(attributeName);
         if (sharedSource === undefined) {
@@ -165,6 +166,8 @@ function fillSharedValues(command: Command, sharedOptions: SharedOption[]): void
         if (localSource !== undefined && localSource !== 'default') {
             continue;
         }
-        command.setOptionValueWithSource(attributeName, owner.getOptionValue(attributeName), sharedSource);
+        const value = owner.getOptionValue(attributeName);
+        command.setOptionValueWithSource(attributeName, value, sharedSource);
+        options[attributeName] = value;
     }
 }
