@@ -72,71 +72,36 @@ export async function discoverPlugins({
             continue;
         }
 
-        try {
-            const ast = parse(content, {
-                ecmaVersion: 'latest',
-                sourceType: 'module',
+        const decorated = readCompiledPluginDecorator(content, filePath, logger);
+        if (decorated) {
+            logger.debug(`[discoverPlugins] Found plugin "${decorated.name}" in file: ${filePath}`);
+            const resolvedDashboardPath = dashboardPathRelativeToPlugin(filePath, decorated.dashboardPath);
+
+            // Check if this is a local plugin we found earlier
+            const sourcePluginPath = localPluginLocations.get(decorated.name)?.sourceFile;
+
+            plugins.push({
+                name: decorated.name,
+                pluginPath: filePath,
+                dashboardEntryPath: resolvedDashboardPath,
+                ...(sourcePluginPath && { sourcePluginPath }),
             });
-
-            let pluginName: string | undefined;
-            let dashboardPath: string | undefined;
-
-            // Walk the AST to find the plugin class and its decorator
-            walkSimple(ast, {
-                CallExpression(node: any) {
-                    // Look for __decorate calls — handles both direct calls (__decorate(...))
-                    // and tslib member expressions (tslib_1.__decorate(...)) which occur
-                    // when packages are compiled with TypeScript's importHelpers: true
-                    const callee = node.callee;
-                    const calleeName =
-                        callee.name ??
-                        (callee.type === 'MemberExpression' && callee.property?.name === '__decorate'
-                            ? '__decorate'
-                            : undefined);
-                    const nodeArgs = node.arguments;
-                    const isDecoratorWithArgs = calleeName === '__decorate' && nodeArgs.length >= 2;
-                    if (!isDecoratorWithArgs) {
-                        return;
-                    }
-
-                    // Check the decorators array (first argument)
-                    const declaredDashboardPath = getDashboardPathFromDecorateCall(nodeArgs[0]);
-                    if (declaredDashboardPath) {
-                        dashboardPath = declaredDashboardPath;
-                    }
-                    // Get the plugin class name (second argument)
-                    const targetClass = nodeArgs[1];
-                    if (targetClass.type === 'Identifier') {
-                        pluginName = targetClass.name;
-                    }
-                },
-            });
-
-            if (pluginName && dashboardPath) {
-                logger.debug(`[discoverPlugins] Found plugin "${pluginName}" in file: ${filePath}`);
-                const resolvedDashboardPath = dashboardPathRelativeToPlugin(filePath, dashboardPath);
-
-                // Check if this is a local plugin we found earlier
-                const sourcePluginPath = localPluginLocations.get(pluginName)?.sourceFile;
-
-                plugins.push({
-                    name: pluginName,
-                    pluginPath: filePath,
-                    dashboardEntryPath: resolvedDashboardPath,
-                    ...(sourcePluginPath && { sourcePluginPath }),
-                });
-            }
-        } catch (e) {
-            logger.error(`Failed to parse ${filePath}: ${e instanceof Error ? e.message : String(e)}`);
         }
     }
 
-    // Register dashboards for plugins linked in as workspace packages (a
-    // monorepo package symlinked into node_modules). The loop above only finds
-    // plugins by their compiled `.js`, which we never scan for these — so we
-    // register them here from the source we already walked, pointing at the
-    // editable `src/dashboard/...` instead of a possibly-stale compiled build.
-    const registeredNames = new Set(plugins.map(p => p.name));
+    plugins.push(...(await workspacePluginDashboards(plugins, localPluginLocations, logger)));
+
+    return plugins;
+}
+
+// Workspace plugins are symlinked into node_modules, so the compiled-file scan never sees them.
+async function workspacePluginDashboards(
+    alreadyRegistered: PluginInfo[],
+    localPluginLocations: Map<string, LocalPluginLocation>,
+    logger: Logger,
+): Promise<PluginInfo[]> {
+    const registeredNames = new Set(alreadyRegistered.map(p => p.name));
+    const plugins: PluginInfo[] = [];
     for (const [name, { sourceFile, dashboardPath }] of localPluginLocations) {
         if (!dashboardPath || registeredNames.has(name)) {
             continue;
@@ -159,8 +124,57 @@ export async function discoverPlugins({
             sourcePluginPath: sourceFile,
         });
     }
-
     return plugins;
+}
+
+function readCompiledPluginDecorator(
+    content: string,
+    filePath: string,
+    logger: Logger,
+): { name: string; dashboardPath: string } | undefined {
+    let pluginName: string | undefined;
+    let dashboardPath: string | undefined;
+    try {
+        const ast = parse(content, {
+            ecmaVersion: 'latest',
+            sourceType: 'module',
+        });
+
+        // Walk the AST to find the plugin class and its decorator
+        walkSimple(ast, {
+            CallExpression(node: any) {
+                // Look for __decorate calls — handles both direct calls (__decorate(...))
+                // and tslib member expressions (tslib_1.__decorate(...)) which occur
+                // when packages are compiled with TypeScript's importHelpers: true
+                const callee = node.callee;
+                const calleeName =
+                    callee.name ??
+                    (callee.type === 'MemberExpression' && callee.property?.name === '__decorate'
+                        ? '__decorate'
+                        : undefined);
+                const nodeArgs = node.arguments;
+                const isDecoratorWithArgs = calleeName === '__decorate' && nodeArgs.length >= 2;
+                if (!isDecoratorWithArgs) {
+                    return;
+                }
+
+                // Check the decorators array (first argument)
+                const declaredDashboardPath = getDashboardPathFromDecorateCall(nodeArgs[0]);
+                if (declaredDashboardPath) {
+                    dashboardPath = declaredDashboardPath;
+                }
+                // Get the plugin class name (second argument)
+                const targetClass = nodeArgs[1];
+                if (targetClass.type === 'Identifier') {
+                    pluginName = targetClass.name;
+                }
+            },
+        });
+    } catch (e) {
+        logger.error(`Failed to parse ${filePath}: ${e instanceof Error ? e.message : String(e)}`);
+        return undefined;
+    }
+    return pluginName && dashboardPath ? { name: pluginName, dashboardPath } : undefined;
 }
 
 /**
