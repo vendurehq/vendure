@@ -3,7 +3,7 @@
  *
  * @example
  * ```ts
- * import { builtinCommands, defineCliPlugin, CliCommandContext } from '@vendure/cli';
+ * import { defineCliPlugin, CliCommandContext } from '@vendure/cli';
  *
  * export default defineCliPlugin({
  *   id: '@example/vendure-cli-plugin',
@@ -23,13 +23,15 @@
  *         },
  *       ],
  *     },
+ *   ],
+ *   extendCommands: [
  *     {
- *       name: 'dev',
- *       description: 'Custom development command',
- *       replaces: true,
- *       action: async (target, options) => {
+ *       // Adds to the built-in dev command, so other plugins can wrap it too
+ *       command: 'dev',
+ *       options: [{ long: '--rotate-credential', description: 'Replace the credential' }],
+ *       decorate: ({ next }) => async (...args) => {
  *         // optional setup...
- *         return builtinCommands.dev.action(target, options);
+ *         return next(...args);
  *       },
  *     },
  *   ],
