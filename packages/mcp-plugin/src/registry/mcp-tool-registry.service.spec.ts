@@ -90,6 +90,11 @@ function build(
         ),
     };
     const configService = { authOptions: { customPermissions } };
+    // Stands in for TransactionalConnection: mutating tools are handed a transactional context,
+    // which here is just the context they were called with.
+    const connection = {
+        withTransaction: vi.fn((ctx: any, work: (txCtx: any) => Promise<unknown>) => work(ctx)),
+    };
     const service = new McpToolRegistryService(
         discoveryService as any,
         settingsStoreService as any,
@@ -98,9 +103,10 @@ function build(
         new McpToolSchemaService(),
         new McpShopSessionService(sessionService as any),
         configService as any,
+        connection as any,
         resolveMcpPluginOptions(options),
     );
-    return { service, rateLimiter, toolCallLog, settingsStoreService, sessionService, store };
+    return { service, rateLimiter, toolCallLog, settingsStoreService, sessionService, store, connection };
 }
 
 const shopTool = (over: Partial<McpToolMetadata> = {}): McpToolMetadata => ({
@@ -518,6 +524,48 @@ describe('McpToolRegistryService', () => {
             expect(
                 await service.getExposedTools({ ctx: makeCtx({ granted: [Permission.ReadOrder] }) }, 'shop'),
             ).toHaveLength(1);
+        });
+    });
+
+    describe('transactions', () => {
+        it('runs a mutating tool inside a transaction', async () => {
+            const { service, connection } = build([wrapper(shopTool({ behavior: 'mutating' }))]);
+            service.onApplicationBootstrap();
+            const ctx = makeCtx();
+
+            const result = await service.callTool({ ctx }, 'shop', 'get_thing', {});
+
+            expect(result.isError).toBeUndefined();
+            expect(connection.withTransaction).toHaveBeenCalledOnce();
+            expect(connection.withTransaction.mock.calls[0][0]).toBe(ctx);
+        });
+
+        it('runs a readonly tool without a transaction', async () => {
+            const { service, connection } = build([wrapper(shopTool())]);
+            service.onApplicationBootstrap();
+
+            const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'get_thing', {});
+
+            expect(result.isError).toBeUndefined();
+            expect(connection.withTransaction).not.toHaveBeenCalled();
+        });
+
+        // The log write is outside the transaction, so the row survives the rollback.
+        it('logs a mutating call whose handler throws', async () => {
+            const { service, toolCallLog, connection } = build([
+                wrapper(shopTool({ behavior: 'mutating' }), () => {
+                    throw new Error('handler exploded');
+                }),
+            ]);
+            service.onApplicationBootstrap();
+
+            const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'get_thing', {});
+
+            expect(result.isError).toBe(true);
+            expect(connection.withTransaction).toHaveBeenCalledOnce();
+            expect(toolCallLog.logToolCall).toHaveBeenCalledWith(
+                expect.objectContaining({ status: 'error' }),
+            );
         });
     });
 

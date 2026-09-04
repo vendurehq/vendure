@@ -1,5 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { Permission, PluginCommonModule, RequestContext, UserInputError, VendurePlugin } from '@vendure/core';
+import {
+    Customer,
+    Permission,
+    PluginCommonModule,
+    RequestContext,
+    TransactionalConnection,
+    UserInputError,
+    VendurePlugin,
+} from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 
 @Injectable()
@@ -91,6 +99,35 @@ export class ShopBadInputTool implements McpToolHandler {
 
 @Injectable()
 @McpTool({
+    name: 'shop_write_then_boom',
+    description: 'Saves a customer and then throws — used to verify a failed call writes nothing.',
+    toolset: 'shop',
+    behavior: 'mutating',
+    permissions: [Permission.Public],
+    inputSchema: {
+        type: 'object',
+        properties: { emailAddress: { type: 'string' } },
+        required: ['emailAddress'],
+        additionalProperties: false,
+    },
+})
+export class ShopWriteThenBoomTool implements McpToolHandler {
+    constructor(private connection: TransactionalConnection) {}
+
+    async execute(ctx: RequestContext, input: { emailAddress: string }): Promise<never> {
+        await this.connection.getRepository(ctx, Customer).save(
+            new Customer({
+                emailAddress: input.emailAddress,
+                firstName: 'Rolled',
+                lastName: 'Back',
+            }),
+        );
+        throw new Error('boom after write');
+    }
+}
+
+@Injectable()
+@McpTool({
     name: 'shop_delete',
     description: 'Deletes a thing. Destructive — requires confirmation.',
     toolset: 'shop',
@@ -131,6 +168,7 @@ export class AdminListTool implements McpToolHandler {
         ShopCartWriteTool,
         ShopBoomTool,
         ShopBadInputTool,
+        ShopWriteThenBoomTool,
         ShopDeleteTool,
         AdminListTool,
     ],

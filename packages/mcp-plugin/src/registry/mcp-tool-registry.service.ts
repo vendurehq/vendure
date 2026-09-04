@@ -14,6 +14,7 @@ import {
     Permission,
     RequestContext,
     SettingsStoreService,
+    TransactionalConnection,
     UnauthorizedError,
     UserInputError,
 } from '@vendure/core';
@@ -112,6 +113,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         private toolSchema: McpToolSchemaService,
         private shopSession: McpShopSessionService,
         private configService: ConfigService,
+        private connection: TransactionalConnection,
         @Inject(MCP_PLUGIN_OPTIONS) private options: ResolvedMcpPluginOptions,
     ) {}
 
@@ -414,11 +416,17 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         }
         const startedAt = Date.now();
         try {
-            const output = await tool.handler.execute(
-                callContext.ctx,
-                toolInput,
-                this.toCallerInfo(callContext),
-            );
+            // A writing tool runs in one transaction: a throw rolls back all its writes. The log
+            // row below uses the outer ctx, so a rolled-back call is still logged.
+            const output =
+                tool.resolvedBehavior === 'readonly'
+                    ? await tool.handler.execute(callContext.ctx, toolInput, this.toCallerInfo(callContext))
+                    : // withTransaction needs a promise; some handlers return a plain value.
+                      await this.connection.withTransaction(callContext.ctx, txCtx =>
+                          Promise.resolve(
+                              tool.handler.execute(txCtx, toolInput, this.toCallerInfo(callContext)),
+                          ),
+                      );
             return await this.buildToolCallResult({
                 callContext,
                 tool,

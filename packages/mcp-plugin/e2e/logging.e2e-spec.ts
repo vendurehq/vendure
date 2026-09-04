@@ -1,4 +1,5 @@
 import {
+    Customer,
     EventBus,
     mergeConfig,
     RequestContext,
@@ -110,6 +111,27 @@ describe('MCP tool-call logging', () => {
         expect(event.entry.status).toBe('error');
 
         const row = await logRow('shop_boom');
+        expect(row.status).toBe('error');
+    });
+
+    // A mutating tool runs inside one database transaction, so a handler that throws part-way
+    // leaves nothing behind. The log row is written outside that transaction, so the failed call
+    // is still recorded.
+    it('rolls back the writes of a mutating tool that throws, but still logs the call', async () => {
+        const emailAddress = 'rolled-back@example.com';
+        const response = await postMcp(
+            baseUrl(),
+            'shop',
+            callTool('shop_write_then_boom', { emailAddress }, 20),
+        );
+        expect(response.body.result.isError).toBe(true);
+
+        const customer = await connection
+            .getRepository(adminCtx, Customer)
+            .findOne({ where: { emailAddress } });
+        expect(customer).toBeNull();
+
+        const row = await logRow('shop_write_then_boom');
         expect(row.status).toBe('error');
     });
 
