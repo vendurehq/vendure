@@ -631,11 +631,13 @@ export default defineCliPlugin({
             options: [{ long: '--rotate-credential', description: 'Replace the stored credential' }],
             decorate:
                 ({ command, next }) =>
-                async (target, options, cliCommand, context: CliCommandContext) => {
-                    // `command` is the command as composed so far, so you can see
-                    // what the built-in and any earlier plugin already added.
-                    const credential = await resolveCredential({ rotate: options.rotateCredential });
-                    return withCredential(credential, () => next(target, options, cliCommand, context));
+                async (...args) => {
+                    // `command` is the command as composed so far, so you can
+                    // see what the built-in and any earlier plugin added.
+                    console.log(command.options?.map(option => option.long));
+                    // Forward every argument, so anything you wrap still gets
+                    // the options, Command and context the host parsed.
+                    return next(...args);
                 },
         },
     ],
@@ -684,18 +686,25 @@ its `command` argument; reverse the list and the roles swap.
 An extension may also add to what the command declares:
 
 - `options` are appended, keeping every option already on the command.
-- `arguments` are appended and must be optional. A required one would change the
-  arity of a command that other plugins and users already call.
 - `description` replaces the one shown in help. If two plugins set it, the last
   listed wins and the CLI writes a notice naming both.
+
+An extension cannot add positional arguments. Commander passes one argument slot
+per declared positional, so an appended argument would shift the options, the
+`Command` and the context that an action written before the extension expects.
 
 #### Extending or replacing
 
 `replaces: true` is still the way to take a command over completely, and it
-discards whatever was there. The two mechanisms interact in one direction only:
-a plugin cannot replace a command that another plugin has already extended,
-because that would throw away their contribution. Listing the replacing plugin
-first works, and later plugins then extend the replacement.
+discards whatever was there. A plugin cannot replace a command that another
+plugin has already extended, because that would throw away their contribution.
+Listing the replacing plugin first works, and later plugins then extend the
+replacement.
+
+An extension cannot add subcommands to a group. Two plugins contributing
+different subcommands to one group is not supported: the second registration of
+the group name is a collision, and `replaces: true` is refused once the group has
+been extended. A group and all its subcommands must come from one plugin.
 
 ### Shared options
 
@@ -737,13 +746,16 @@ given a `defaultValue` is left out.
 
 - A shared option is owned by the command that declares it. When it is repeated
   on one command line, the last value given wins.
-- A plugin cannot declare a shared option that another plugin already declares,
-  and it cannot declare one that shadows a shared option of its own group. Both
-  are reported as errors rather than one quietly overriding the other.
+- A shared option is declared at exactly one level. A plugin cannot declare one
+  another plugin already declares, and a group cannot share a flag that the root
+  or an outer group already shares. Both are errors rather than one quietly
+  overriding the other, so no two levels can disagree about a value.
+- A value supplied on the command line always beats a `defaultValue`, whichever
+  level declared it.
 - Two flags that read back under the same name count as the same option, so
   `--api-token` and `--apiToken` collide: both are stored as `apiToken`.
-- A plugin cannot use `-h`, `--help`, `-V` or `--version`, which the CLI owns.
-- A command may declare an option with the same flag as a shared option — the
+- No option may use `-h`, `--help`, `-V` or `--version`, which the CLI owns.
+- A *command* may declare an option with the same flag as a shared option — the
   built-in `vendure plugins --json` and a shared `--json` for example. The two
   then refer to the same value: whatever is supplied on the command line is
   visible both in the command's own options and in `inheritedOptions`. They must
@@ -761,14 +773,14 @@ registered at all, and the reason is written to stderr. This applies to:
   group;
 - an option added by an extension that the command already declares, whoever
   contributed it;
-- an argument added by an extension that is required, or whose name is taken;
 - a shared option that another plugin already registered, reads back under the
   same name as one, or is a flag the CLI owns;
-- any use of the `plugins` command, which the CLI reserves because it is how a
-  plugin is disabled.
+- an option on any command that uses a flag the CLI owns;
+- any use of the `plugins` or `help` commands, which the CLI reserves because
+  they are how a plugin is found and disabled.
 
-Every conflict a plugin causes is reported together, so one run tells you
-everything to fix. The rest of the CLI keeps working, so
+Conflicts are collected and reported together where the CLI can carry on
+checking. The rest of the CLI keeps working either way, so
 `vendure plugins remove <package>` is always available to disable the plugin.
 
 ### Explicit activation

@@ -427,198 +427,49 @@ Keep the lazy `import()` inside the action so heavy command modules are not load
 
 ## Extending the CLI with Plugins
 
-External packages can add new commands or replace built-in ones (for example a
-Cloud package overriding `vendure dev`).
+External packages add commands, add to existing ones, or replace them by
+exporting a CLI plugin with `defineCliPlugin`.
 
-### 1. Author a plugin package
+**The plugin API reference lives in the developer guide**, under
+[Extending the CLI](/guides/developer-guide/cli/#extending-the-cli): the
+`extendCommands` composition model, shared options and their precedence, the
+collision rules, and discovery and activation. That page is the source of truth
+for plugin authors; this file covers what a contributor to the CLI itself needs.
 
-```typescript
-import { CliCommandContext, defineCliPlugin } from '@vendure/cli';
+### How registration works
 
-export default defineCliPlugin({
-    id: '@example/vendure-cli-plugin',
-    // Options added to `vendure` itself, and so shared by every command
-    rootOptions: [{ long: '--token <token>', description: 'API token', required: true }],
-    commands: [
-        {
-            name: 'hello',
-            description: 'A new command',
-            action: async () => {
-                console.log('hello');
-                return 0;
-            },
-        },
-        {
-            // A group: `vendure project list`
-            name: 'project',
-            description: 'Manage projects',
-            options: [{ long: '--profile <name>', description: 'Profile', required: true }],
-            subcommands: [
-                {
-                    name: 'list',
-                    description: 'List projects',
-                    action: async (options, command, context: CliCommandContext) => {
-                        console.log(context.inheritedOptions.token, context.inheritedOptions.profile);
-                        return 0;
-                    },
-                },
-            ],
-        },
-    ],
-    extendCommands: [
-        {
-            // Add to the built-in `dev` rather than replacing it
-            command: 'dev',
-            options: [{ long: '--rotate-credential', description: 'Replace the stored credential' }],
-            decorate:
-                ({ next }) =>
-                async (...args) => {
-                    // optional setup...
-                    return next(...args);
-                },
-        },
-    ],
-});
-```
+1. `cli.ts` builds a `CommandRegistry` and calls `registerAll(builtinCommandDefs)`.
+2. `resolveCliPlugins()` loads the packages listed in `vendure.cli.plugins`,
+   returning failures rather than throwing.
+3. Each loaded plugin goes through `registry.applyPlugin()`, which is the only
+   path that enforces the collision rules. It applies the plugin's root options,
+   commands and extensions to a **draft** copy of the registry state and commits
+   the draft only if nothing conflicts, so a plugin's contributions are either
+   all registered or none are.
+4. A plugin that conflicts is reported on stderr and skipped. Built-ins stay
+   registered, which is what keeps `vendure plugins remove` reachable.
+5. `registerCommands()` walks the resulting tree onto Commander.
 
-Declare the entry in the plugin package's `package.json`:
+### Things worth knowing before changing this code
 
-```json
-{
-    "name": "@example/vendure-cli-plugin",
-    "vendure": {
-        "cliPlugin": "./dist/cli-plugin.js",
-        "cliCommands": ["hello", "project", "dev"]
-    }
-}
-```
-
-`cliCommands` is optional metadata used for actionable unknown-command hints
-without loading plugin code. Only top-level names belong in it.
-
-### 2. Extending an existing command
-
-`extendCommands` composes several plugins against the command currently
-registered at a path. Extensions are applied in `vendure.cli.plugins` order, so
-the last listed plugin is the outermost wrapper and its decorator runs first.
-Each wrapper runs once per invocation.
-
-`decorate` is called once, at registration, and receives `next` (the action of
-the command as composed so far) and `command` (that command's definition).
-Always call `next`; never import the original action, for example
-`builtinCommands.dev.action`, because that binds to the built-in and skips every
-other plugin's contribution.
-
-Options are appended keeping earlier ones, arguments are appended and must be
-optional, and a description replaces the one in help with a notice when two
-plugins set it. An extension may target a nested command with a path, and may
-add options and a description to a command group, which has no action to
-decorate.
-
-`replaces: true` remains the way to take a command over completely. A plugin
-cannot replace a command another plugin has already extended, because that would
-discard their contribution; listing the replacing plugin first works, and later
-plugins then extend the replacement.
-
-### 3. Shared options
-
-Shared options are declared once, at the scope they apply to: `rootOptions` on
-the plugin for every command, and `options` on a group for the commands inside
-it. Commander accepts them anywhere on the command line once the declaring
-command has been reached, so `vendure --token X project list` and
-`vendure project list --token X` are equivalent, and a repeated option takes its
-last value. Their values are passed to actions in `context.inheritedOptions`,
-keyed by the long flag without `--`, camel-cased.
-
-Help output at every level lists the options valid there: the host enables
-Commander's `showGlobalOptions`, so a subcommand's help shows its own options
-followed by the shared ones under `Global Options`.
-
-### 4. Collisions
-
-A plugin is registered whole or not at all: everything is applied to a draft
-first, and a single conflict discards the draft. Every conflict is reported
-together, with the reason written to stderr. A plugin is rejected when it
-declares:
-
-- a top-level command name that a built-in or an earlier plugin already
-  provides, without `replaces: true`;
-- a replacement of a command another plugin has extended;
-- an extension of a path where nothing is registered, or a `decorate` or
-  argument on a command group;
-- an option added by an extension that the command already declares, or an
-  argument that is required or whose name is taken;
-- a shared option an earlier plugin already registered, or one of the CLI's own
-  flags (`-h`, `--help`, `-V`, `--version`). Options are compared by the name
-  they read back under, so `--api-token` and `--apiToken` collide;
-- a shared option that disagrees with an existing command option of the same
-  flag about whether a value follows it;
-- any command named `plugins`, whether replaced or extended, which the CLI
-  reserves because it is how a plugin is disabled.
-
-A `decorate` that throws while it is being applied is reported the same way, so
-a broken decorator cannot leave the registry half-built.
-
-`defineCliPlugin` additionally rejects, at definition time, duplicate sibling
-command names, duplicate flags on one command, an empty group, a group that also
-declares an action, a nested command that shadows one of the plugin's own shared
-options, two extensions of the same command, an extension that adds nothing, and
-an extension that adds a required argument.
-
-A command may otherwise declare the same flag as a shared option — the built-in
-`vendure plugins --json` alongside a shared `--json`, for example. Commander
-gives the value to the shared option, and the host copies it onto the command so
-both readings agree.
-
-### 5. Discovery and explicit activation
-
-On startup the CLI:
-
-1. Resolves the project root (nearest `package.json` with `vendure.cli` or a
-   dependency on `@vendure/cli`).
-2. Scans **direct** `dependencies` / `devDependencies` / `optionalDependencies`
-   for packages that declare `vendure.cliPlugin`.
-3. **Loads only packages listed in `vendure.cli.plugins`** (explicit activation).
-4. Merges plugin commands into the registry in allowlist order (last enabled
-   plugin wins among those declaring `replaces: true`). A non-dim stderr notice
-   is printed when a command is replaced.
-
-Packages that declare a plugin but are not enabled are **not** executed. The CLI
-prints a one-line hint instead:
-
-```text
-2 packages provide CLI commands. Run "vendure plugins" to review them.
-```
-
-Manage activation with:
-
-```bash
-vendure plugins
-vendure plugins --json
-vendure plugins add @example/vendure-cli-plugin
-vendure plugins remove @example/vendure-cli-plugin
-```
-
-Project control in the **project** `package.json`:
-
-```json
-{
-    "vendure": {
-        "cli": {
-            "plugins": ["@example/vendure-cli-plugin"]
-        }
-    }
-}
-```
-
-- `plugins` is the allowlist (missing or empty = load nothing). Disabling a
-  plugin is simply removing it from the list.
-- In a monorepo, direct dependencies of every `package.json` from the current
-  directory up to the project root are scanned, so a plugin installed in a
-  workspace package is found even when `@vendure/cli` is hoisted.
-- Enabled packages that cannot be resolved, loaded or registered are **skipped
-  with an error on stderr** — the CLI (including `vendure plugins remove`) stays
-  usable. `vendure plugins` reports them as `failed` with the reason.
+- **Commander accepts an option anywhere on the command line** once the command
+  declaring it has been reached, so shared options are declared once on their
+  owning command and never copied onto descendants. `registerCommands()` enables
+  Commander's `showGlobalOptions` so subcommand help still lists them.
+- **The declaring command wins the parse.** When a command declares the same flag
+  as a shared option, Commander gives the value to the shared option, and
+  `fillSharedValues()` copies it onto the command so both readings agree. That
+  relies on Commander's `opts()` returning its own `_optionValues` rather than a
+  copy; the unit test named `shares one value between a shared option and a
+command option of the same name` pins the assumption.
+- **Extensions cannot add positional arguments.** Commander passes one argument
+  slot per declared positional, so an appended argument would shift the options,
+  `Command` and context that an existing action expects.
+- **Extension order is `vendure.cli.plugins` order**, so the last listed plugin
+  is the outermost wrapper and its decorator runs first.
+- **Nodes are never mutated.** `extendNode()` returns new objects, so
+  `builtinCommands.<name>` keeps pointing at the original definition and each
+  decorator wraps only what was registered before it.
 
 ## File Structure
 
