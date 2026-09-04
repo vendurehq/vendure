@@ -38,7 +38,7 @@ export class McpOauthRateLimitExceededHttpException extends HttpException {
  */
 @Injectable()
 export class McpOauthRateLimitGuard implements CanActivate {
-    constructor(private rateLimiter: McpRateLimiterService) {}
+    constructor(private readonly rateLimiter: McpRateLimiterService) {}
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
         const req = context.switchToHttp().getRequest<Request>();

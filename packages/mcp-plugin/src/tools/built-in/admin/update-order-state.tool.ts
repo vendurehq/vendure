@@ -39,8 +39,8 @@ type UpdateOrderStateInput = z.infer<typeof updateOrderStateInput>;
 @Injectable()
 export class UpdateOrderStateTool implements McpToolHandler<UpdateOrderStateInput> {
     constructor(
-        private orderService: OrderService,
-        private serializer: McpToolSerializerService,
+        private readonly orderService: OrderService,
+        private readonly serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: UpdateOrderStateInput) {

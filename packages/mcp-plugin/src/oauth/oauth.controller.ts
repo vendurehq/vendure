@@ -30,8 +30,8 @@ import { McpOauthService } from './oauth.service';
 @Controller()
 export class McpOauthController {
     constructor(
-        private oauthService: McpOauthService,
-        private oauthMetadata: McpOauthMetadataService,
+        private readonly oauthService: McpOauthService,
+        private readonly oauthMetadata: McpOauthMetadataService,
     ) {}
 
     @Get('.well-known/oauth-authorization-server')

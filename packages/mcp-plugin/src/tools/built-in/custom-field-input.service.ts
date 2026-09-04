@@ -21,8 +21,8 @@ import {
 @Injectable()
 export class McpCustomFieldInputService {
     constructor(
-        private configService: ConfigService,
-        private moduleRef: ModuleRef,
+        private readonly configService: ConfigService,
+        private readonly moduleRef: ModuleRef,
     ) {}
 
     /**

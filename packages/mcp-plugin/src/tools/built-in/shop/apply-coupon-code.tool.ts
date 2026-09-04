@@ -35,9 +35,9 @@ type ApplyCouponCodeInput = z.infer<typeof applyCouponCodeInput>;
 @Injectable()
 export class ApplyCouponCodeTool implements McpToolHandler<ApplyCouponCodeInput> {
     constructor(
-        private activeOrder: McpActiveOrderService,
-        private orderService: OrderService,
-        private serializer: McpToolSerializerService,
+        private readonly activeOrder: McpActiveOrderService,
+        private readonly orderService: OrderService,
+        private readonly serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: ApplyCouponCodeInput) {

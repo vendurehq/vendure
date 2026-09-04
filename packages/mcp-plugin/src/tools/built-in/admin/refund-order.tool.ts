@@ -69,8 +69,8 @@ function getRefundableAmount(payment: Payment): number {
 @Injectable()
 export class RefundOrderTool implements McpToolHandler<RefundOrderToolInput> {
     constructor(
-        private orderService: OrderService,
-        private serializer: McpToolSerializerService,
+        private readonly orderService: OrderService,
+        private readonly serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: RefundOrderToolInput) {

@@ -103,14 +103,14 @@ export class McpTransportController {
     private readonly originGuard?: ReturnType<typeof originValidation>;
 
     constructor(
-        private oauthService: McpOauthService,
-        private registry: McpToolRegistryService,
-        private rateLimiter: McpRateLimiterService,
-        private configService: ConfigService,
-        @Inject(MCP_PLUGIN_OPTIONS) private options: ResolvedMcpPluginOptions,
-        private shopSession: McpShopSessionService,
-        private channelService: ChannelService,
-        private oauthMetadata: McpOauthMetadataService,
+        private readonly oauthService: McpOauthService,
+        private readonly registry: McpToolRegistryService,
+        private readonly rateLimiter: McpRateLimiterService,
+        private readonly configService: ConfigService,
+        @Inject(MCP_PLUGIN_OPTIONS) private readonly options: ResolvedMcpPluginOptions,
+        private readonly shopSession: McpShopSessionService,
+        private readonly channelService: ChannelService,
+        private readonly oauthMetadata: McpOauthMetadataService,
     ) {
         const handler = createMcpHandler(
             async mcpCtx => {

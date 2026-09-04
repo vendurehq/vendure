@@ -112,7 +112,7 @@ export class ShopBadInputTool implements McpToolHandler {
     },
 })
 export class ShopWriteThenBoomTool implements McpToolHandler {
-    constructor(private connection: TransactionalConnection) {}
+    constructor(private readonly connection: TransactionalConnection) {}
 
     async execute(ctx: RequestContext, input: { emailAddress: string }): Promise<never> {
         await this.connection.getRepository(ctx, Customer).save(

@@ -38,8 +38,8 @@ export class McpRateLimiterService {
     private inFlightIncrements = new Map<string, Promise<void>>();
 
     constructor(
-        private cacheService: CacheService,
-        @Inject(MCP_PLUGIN_OPTIONS) private options: ResolvedMcpPluginOptions,
+        private readonly cacheService: CacheService,
+        @Inject(MCP_PLUGIN_OPTIONS) private readonly options: ResolvedMcpPluginOptions,
     ) {}
 
     /**

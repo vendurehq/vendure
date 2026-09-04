@@ -36,9 +36,9 @@ class GrantSessionAlreadyReplaced extends Error {}
 @Injectable()
 export class McpGrantSessionService {
     constructor(
-        private connection: TransactionalConnection,
-        private sessionService: SessionService,
-        private configService: ConfigService,
+        private readonly connection: TransactionalConnection,
+        private readonly sessionService: SessionService,
+        private readonly configService: ConfigService,
     ) {}
 
     /**

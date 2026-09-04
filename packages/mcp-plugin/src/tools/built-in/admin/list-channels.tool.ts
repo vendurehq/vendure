@@ -33,8 +33,8 @@ type ListChannelsInput = z.infer<typeof listChannelsInput>;
 @Injectable()
 export class ListChannelsTool implements McpToolHandler<ListChannelsInput> {
     constructor(
-        private channelService: ChannelService,
-        private serializer: McpToolSerializerService,
+        private readonly channelService: ChannelService,
+        private readonly serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: ListChannelsInput) {

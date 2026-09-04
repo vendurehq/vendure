@@ -20,11 +20,11 @@ import { FindOptionsWhere, In, IsNull, Raw } from 'typeorm';
 @Injectable()
 export class McpCatalogQueryService {
     constructor(
-        private connection: TransactionalConnection,
-        private configService: ConfigService,
-        private productVariantService: ProductVariantService,
-        private listQueryBuilder: ListQueryBuilder,
-        private translator: TranslatorService,
+        private readonly connection: TransactionalConnection,
+        private readonly configService: ConfigService,
+        private readonly productVariantService: ProductVariantService,
+        private readonly listQueryBuilder: ListQueryBuilder,
+        private readonly translator: TranslatorService,
     ) {}
 
     async variantsByProductId(

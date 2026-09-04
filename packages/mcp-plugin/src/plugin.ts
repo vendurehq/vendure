@@ -156,8 +156,8 @@ export class McpPlugin implements NestModule, OnApplicationBootstrap {
     static options: ResolvedMcpPluginOptions;
 
     constructor(
-        private processContext: ProcessContext,
-        private i18nService: I18nService,
+        private readonly processContext: ProcessContext,
+        private readonly i18nService: I18nService,
     ) {}
 
     /**

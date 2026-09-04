@@ -33,7 +33,7 @@ export type PreparedShopSessionCall =
  */
 @Injectable()
 export class McpShopSessionService {
-    constructor(private sessionService: SessionService) {}
+    constructor(private readonly sessionService: SessionService) {}
 
     /**
      * Removes the registry-owned sessionToken argument and resolves the context the handler uses.

@@ -14,8 +14,8 @@ import { ResolvedMcpPluginOptions } from '../internal-types';
 @Injectable()
 export class McpToolCallLogRetentionService {
     constructor(
-        private connection: TransactionalConnection,
-        @Inject(MCP_PLUGIN_OPTIONS) private options: ResolvedMcpPluginOptions,
+        private readonly connection: TransactionalConnection,
+        @Inject(MCP_PLUGIN_OPTIONS) private readonly options: ResolvedMcpPluginOptions,
     ) {}
 
     async deleteExpiredToolCallLogs(ctx: RequestContext, channelId?: ID | null): Promise<number> {

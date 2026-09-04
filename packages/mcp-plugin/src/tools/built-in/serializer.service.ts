@@ -37,7 +37,7 @@ const LIST_ITEM_DESCRIPTION_LENGTH = 200;
  */
 @Injectable()
 export class McpToolSerializerService {
-    constructor(private configService: ConfigService) {}
+    constructor(private readonly configService: ConfigService) {}
 
     /**
      * Vendure keeps money as a whole number in the currency's smallest unit — 25199 means 251.99

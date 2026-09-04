@@ -31,9 +31,9 @@ type UploadAssetInput = z.infer<typeof uploadAssetInput>;
 @Injectable()
 export class UploadAssetTool implements McpToolHandler<UploadAssetInput> {
     constructor(
-        private assetService: AssetService,
-        private configService: ConfigService,
-        private serializer: McpToolSerializerService,
+        private readonly assetService: AssetService,
+        private readonly configService: ConfigService,
+        private readonly serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: UploadAssetInput) {

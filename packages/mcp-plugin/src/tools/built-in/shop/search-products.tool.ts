@@ -66,9 +66,9 @@ type SearchProductsInput = z.infer<typeof searchProductsInput>;
 @Injectable()
 export class SearchProductsTool implements McpToolHandler<SearchProductsInput> {
     constructor(
-        private collectionService: CollectionService,
-        private catalog: McpCatalogQueryService,
-        private serializer: McpToolSerializerService,
+        private readonly collectionService: CollectionService,
+        private readonly catalog: McpCatalogQueryService,
+        private readonly serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: SearchProductsInput) {

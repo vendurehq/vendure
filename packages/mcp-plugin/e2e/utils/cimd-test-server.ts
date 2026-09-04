@@ -1,5 +1,5 @@
-import * as http from 'http';
-import { AddressInfo } from 'net';
+import * as http from 'node:http';
+import { AddressInfo } from 'node:net';
 
 // Loopback HTTP server that plays the role of a CIMD client's website: it hosts client
 // metadata documents for the authorization server to fetch. Plain HTTP on 127.0.0.1 is

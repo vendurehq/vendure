@@ -34,8 +34,8 @@ type CancelOrderToolInput = z.infer<typeof cancelOrderInput>;
 @Injectable()
 export class CancelOrderTool implements McpToolHandler<CancelOrderToolInput> {
     constructor(
-        private orderService: OrderService,
-        private serializer: McpToolSerializerService,
+        private readonly orderService: OrderService,
+        private readonly serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: CancelOrderToolInput) {

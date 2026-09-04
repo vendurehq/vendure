@@ -89,12 +89,12 @@ type SetCheckoutDetailsInput = z.infer<typeof setCheckoutDetailsInput>;
 @Injectable()
 export class SetCheckoutDetailsTool implements McpToolHandler<SetCheckoutDetailsInput> {
     constructor(
-        private activeOrder: McpActiveOrderService,
-        private orderService: OrderService,
-        private connection: TransactionalConnection,
-        private customFieldInput: McpCustomFieldInputService,
-        private serializer: McpToolSerializerService,
-        private configService: ConfigService,
+        private readonly activeOrder: McpActiveOrderService,
+        private readonly orderService: OrderService,
+        private readonly connection: TransactionalConnection,
+        private readonly customFieldInput: McpCustomFieldInputService,
+        private readonly serializer: McpToolSerializerService,
+        private readonly configService: ConfigService,
     ) {}
 
     async execute(ctx: RequestContext, input: SetCheckoutDetailsInput) {

@@ -35,8 +35,8 @@ type GetCollectionInput = z.infer<typeof getCollectionInput>;
 @Injectable()
 export class ShopGetCollectionTool implements McpToolHandler<GetCollectionInput> {
     constructor(
-        private collectionService: CollectionService,
-        private serializer: McpToolSerializerService,
+        private readonly collectionService: CollectionService,
+        private readonly serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: GetCollectionInput) {

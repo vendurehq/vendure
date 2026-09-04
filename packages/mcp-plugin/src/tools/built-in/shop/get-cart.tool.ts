@@ -28,8 +28,8 @@ const getCartInput = z.strictObject({});
 @Injectable()
 export class GetCartTool implements McpToolHandler<Record<string, never>> {
     constructor(
-        private activeOrder: McpActiveOrderService,
-        private serializer: McpToolSerializerService,
+        private readonly activeOrder: McpActiveOrderService,
+        private readonly serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext) {

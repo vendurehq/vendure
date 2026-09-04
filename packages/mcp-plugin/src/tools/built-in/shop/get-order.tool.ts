@@ -32,9 +32,9 @@ type GetOrderInput = z.infer<typeof getOrderInput>;
 @Injectable()
 export class ShopGetOrderTool implements McpToolHandler<GetOrderInput> {
     constructor(
-        private configService: ConfigService,
-        private orderService: OrderService,
-        private serializer: McpToolSerializerService,
+        private readonly configService: ConfigService,
+        private readonly orderService: OrderService,
+        private readonly serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: GetOrderInput) {

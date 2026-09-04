@@ -40,7 +40,7 @@ import { McpToolRegistryService } from './mcp-tool-registry.service';
  */
 @Injectable()
 export class McpToolExecutionService {
-    constructor(private registry: McpToolRegistryService) {}
+    constructor(private readonly registry: McpToolRegistryService) {}
 
     /**
      * Returns the tools in the given toolset that the caller is allowed to use.

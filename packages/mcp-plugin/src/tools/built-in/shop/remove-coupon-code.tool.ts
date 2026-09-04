@@ -33,9 +33,9 @@ type RemoveCouponCodeInput = z.infer<typeof removeCouponCodeInput>;
 @Injectable()
 export class RemoveCouponCodeTool implements McpToolHandler<RemoveCouponCodeInput> {
     constructor(
-        private activeOrder: McpActiveOrderService,
-        private orderService: OrderService,
-        private serializer: McpToolSerializerService,
+        private readonly activeOrder: McpActiveOrderService,
+        private readonly orderService: OrderService,
+        private readonly serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: RemoveCouponCodeInput) {

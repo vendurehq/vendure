@@ -1,6 +1,6 @@
 import { ConfigService, EntityIdStrategy } from '@vendure/core';
 import { TestServerOptions } from '@vendure/testing';
-import path from 'path';
+import path from 'node:path';
 
 import { initialData } from '../../../../e2e-common/e2e-initial-data';
 

@@ -45,10 +45,10 @@ type AdjustStockInput = z.infer<typeof adjustStockInput>;
 @Injectable()
 export class AdjustStockTool implements McpToolHandler<AdjustStockInput> {
     constructor(
-        private productVariantService: ProductVariantService,
-        private stockLevelService: StockLevelService,
-        private stockLocationService: StockLocationService,
-        private serializer: McpToolSerializerService,
+        private readonly productVariantService: ProductVariantService,
+        private readonly stockLevelService: StockLevelService,
+        private readonly stockLocationService: StockLocationService,
+        private readonly serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: AdjustStockInput) {

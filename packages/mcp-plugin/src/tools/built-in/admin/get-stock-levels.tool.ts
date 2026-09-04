@@ -37,9 +37,9 @@ type GetStockLevelsInput = z.infer<typeof getStockLevelsInput>;
 @Injectable()
 export class GetStockLevelsTool implements McpToolHandler<GetStockLevelsInput> {
     constructor(
-        private productVariantService: ProductVariantService,
-        private stockLevelService: StockLevelService,
-        private serializer: McpToolSerializerService,
+        private readonly productVariantService: ProductVariantService,
+        private readonly stockLevelService: StockLevelService,
+        private readonly serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: GetStockLevelsInput) {

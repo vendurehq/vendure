@@ -35,9 +35,9 @@ type UpdateCartLineInput = z.infer<typeof updateCartLineInput>;
 @Injectable()
 export class UpdateCartLineTool implements McpToolHandler<UpdateCartLineInput> {
     constructor(
-        private activeOrder: McpActiveOrderService,
-        private orderService: OrderService,
-        private serializer: McpToolSerializerService,
+        private readonly activeOrder: McpActiveOrderService,
+        private readonly orderService: OrderService,
+        private readonly serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: UpdateCartLineInput) {

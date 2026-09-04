@@ -29,8 +29,8 @@ export class McpCimdClientResolverService {
     private inFlight = new Map<string, Promise<CimdDocument>>();
 
     constructor(
-        private connection: TransactionalConnection,
-        @Inject(MCP_PLUGIN_OPTIONS) private options: ResolvedMcpPluginOptions,
+        private readonly connection: TransactionalConnection,
+        @Inject(MCP_PLUGIN_OPTIONS) private readonly options: ResolvedMcpPluginOptions,
     ) {}
 
     // Documents on the local machine are a development-only convenience (draft §8.6), so the

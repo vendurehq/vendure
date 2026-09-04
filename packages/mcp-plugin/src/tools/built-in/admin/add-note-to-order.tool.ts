@@ -39,9 +39,9 @@ type AddNoteToOrderToolInput = z.infer<typeof addNoteToOrderInput>;
 @Injectable()
 export class AddNoteToOrderTool implements McpToolHandler<AddNoteToOrderToolInput> {
     constructor(
-        private orderService: OrderService,
-        private historyService: HistoryService,
-        private serializer: McpToolSerializerService,
+        private readonly orderService: OrderService,
+        private readonly historyService: HistoryService,
+        private readonly serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: AddNoteToOrderToolInput) {

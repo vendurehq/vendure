@@ -79,13 +79,13 @@ const STATS_CACHE_TTL_MS = 60_000;
 @Resolver()
 export class McpAdminResolver {
     constructor(
-        private connection: TransactionalConnection,
-        private registry: McpToolRegistryService,
-        private oauthService: McpOauthService,
-        private cacheService: CacheService,
-        private listQueryBuilder: ListQueryBuilder,
-        @Inject(MCP_PLUGIN_OPTIONS) private options: ResolvedMcpPluginOptions,
-        private toolCallLogRetention: McpToolCallLogRetentionService,
+        private readonly connection: TransactionalConnection,
+        private readonly registry: McpToolRegistryService,
+        private readonly oauthService: McpOauthService,
+        private readonly cacheService: CacheService,
+        private readonly listQueryBuilder: ListQueryBuilder,
+        @Inject(MCP_PLUGIN_OPTIONS) private readonly options: ResolvedMcpPluginOptions,
+        private readonly toolCallLogRetention: McpToolCallLogRetentionService,
     ) {}
 
     @Query()
@@ -387,7 +387,7 @@ function filterUsesField(filter: unknown, field: string): boolean {
  */
 @Resolver('McpToolCallLog')
 export class McpToolCallLogEntityResolver {
-    constructor(private actorService: McpActorService) {}
+    constructor(private readonly actorService: McpActorService) {}
 
     // Not `@Allow`: that would error on every row, and the log should stay readable for admins without customer access.
     @ResolveField()
@@ -423,7 +423,7 @@ export class McpToolCallLogEntityResolver {
 /** Resolves the fields of an OAuth grant that are not stored as plain columns on the entity. */
 @Resolver('McpOauthGrant')
 export class McpOauthGrantEntityResolver {
-    constructor(private actorService: McpActorService) {}
+    constructor(private readonly actorService: McpActorService) {}
 
     // The client is loaded as a re lation by the list query; the schema exposes only its name.
     @ResolveField()

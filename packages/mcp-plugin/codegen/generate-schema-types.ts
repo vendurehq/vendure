@@ -8,9 +8,9 @@ import {
     VENDURE_ADMIN_API_TYPE_PATHS,
     VendureConfig,
 } from '@vendure/core';
-import { mkdirSync, writeFileSync } from 'fs';
-import { tmpdir } from 'os';
-import { join } from 'path';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 import { McpPlugin } from '../src/plugin';
 

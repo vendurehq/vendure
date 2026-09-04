@@ -28,9 +28,9 @@ export interface McpOauthRetentionResult {
 @Injectable()
 export class McpOauthRetentionService {
     constructor(
-        private connection: TransactionalConnection,
-        private configService: ConfigService,
-        @Inject(MCP_PLUGIN_OPTIONS) private options: ResolvedMcpPluginOptions,
+        private readonly connection: TransactionalConnection,
+        private readonly configService: ConfigService,
+        @Inject(MCP_PLUGIN_OPTIONS) private readonly options: ResolvedMcpPluginOptions,
     ) {}
 
     async deleteExpiredOauthRecords(ctx: RequestContext): Promise<McpOauthRetentionResult> {

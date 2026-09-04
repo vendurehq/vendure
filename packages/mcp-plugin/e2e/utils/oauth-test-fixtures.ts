@@ -1,5 +1,5 @@
 import { RequestContext, TransactionalConnection, User } from '@vendure/core';
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 
 import { McpAuthorizationCode } from '../../src/entities/mcp-authorization-code.entity';
 import { McpOauthClient } from '../../src/entities/mcp-oauth-client.entity';

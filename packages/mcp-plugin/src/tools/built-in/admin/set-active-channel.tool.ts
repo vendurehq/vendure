@@ -47,9 +47,9 @@ type SetActiveChannelInput = z.infer<typeof setActiveChannelInput>;
 @Injectable()
 export class SetActiveChannelTool implements McpToolHandler<SetActiveChannelInput> {
     constructor(
-        private channelService: ChannelService,
-        private connection: TransactionalConnection,
-        private serializer: McpToolSerializerService,
+        private readonly channelService: ChannelService,
+        private readonly connection: TransactionalConnection,
+        private readonly serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: SetActiveChannelInput, caller?: McpCallerInfo) {

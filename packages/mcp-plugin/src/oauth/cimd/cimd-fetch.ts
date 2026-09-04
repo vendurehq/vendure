@@ -1,9 +1,9 @@
 import { BadRequestException } from '@nestjs/common';
 import { Logger } from '@vendure/core';
-import * as dns from 'dns';
-import * as http from 'http';
-import * as https from 'https';
-import { BlockList } from 'net';
+import * as dns from 'node:dns';
+import * as http from 'node:http';
+import * as https from 'node:https';
+import { BlockList } from 'node:net';
 
 import { loggerCtx, MAX_CONCURRENT_CIMD_FETCHES } from '../../constants';
 

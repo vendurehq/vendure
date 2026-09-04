@@ -38,9 +38,9 @@ type CreateProductToolInput = z.infer<typeof createProductInput>;
 @Injectable()
 export class CreateProductTool implements McpToolHandler<CreateProductToolInput> {
     constructor(
-        private productService: ProductService,
-        private customFieldInput: McpCustomFieldInputService,
-        private serializer: McpToolSerializerService,
+        private readonly productService: ProductService,
+        private readonly customFieldInput: McpCustomFieldInputService,
+        private readonly serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: CreateProductToolInput) {

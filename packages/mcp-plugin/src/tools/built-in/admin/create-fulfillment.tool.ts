@@ -79,9 +79,9 @@ class RefusedTransition extends Error {
 @Injectable()
 export class CreateFulfillmentTool implements McpToolHandler<CreateFulfillmentInput> {
     constructor(
-        private orderService: OrderService,
-        private serializer: McpToolSerializerService,
-        private connection: TransactionalConnection,
+        private readonly orderService: OrderService,
+        private readonly serializer: McpToolSerializerService,
+        private readonly connection: TransactionalConnection,
     ) {}
 
     async execute(ctx: RequestContext, input: CreateFulfillmentInput) {

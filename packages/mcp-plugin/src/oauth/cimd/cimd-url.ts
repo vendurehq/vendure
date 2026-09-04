@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { isIP } from 'net';
+import { isIP } from 'node:net';
 
 import { CIMD_MAX_CLIENT_ID_LENGTH } from '../../constants';
 import { isLoopbackHostname } from '../loopback';

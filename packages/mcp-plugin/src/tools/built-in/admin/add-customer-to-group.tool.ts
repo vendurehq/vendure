@@ -38,9 +38,9 @@ type AddCustomerToGroupInput = z.infer<typeof addCustomerToGroupInput>;
 @Injectable()
 export class AddCustomerToGroupTool implements McpToolHandler<AddCustomerToGroupInput> {
     constructor(
-        private customerGroupService: CustomerGroupService,
-        private customerService: CustomerService,
-        private serializer: McpToolSerializerService,
+        private readonly customerGroupService: CustomerGroupService,
+        private readonly customerService: CustomerService,
+        private readonly serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: AddCustomerToGroupInput) {

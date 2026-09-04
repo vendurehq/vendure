@@ -27,9 +27,9 @@ function fullName(person: { firstName: string; lastName: string }): string {
 @Injectable()
 export class McpActorService {
     constructor(
-        private customerService: CustomerService,
-        private administratorService: AdministratorService,
-        private requestContextCache: RequestContextCacheService,
+        private readonly customerService: CustomerService,
+        private readonly administratorService: AdministratorService,
+        private readonly requestContextCache: RequestContextCacheService,
     ) {}
 
     /**

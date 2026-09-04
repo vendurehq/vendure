@@ -28,9 +28,9 @@ const getEligibleShippingMethodsInput = z.strictObject({});
 @Injectable()
 export class GetEligibleShippingMethodsTool implements McpToolHandler<Record<string, never>> {
     constructor(
-        private activeOrder: McpActiveOrderService,
-        private orderService: OrderService,
-        private serializer: McpToolSerializerService,
+        private readonly activeOrder: McpActiveOrderService,
+        private readonly orderService: OrderService,
+        private readonly serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext) {

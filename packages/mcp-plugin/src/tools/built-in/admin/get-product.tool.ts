@@ -45,11 +45,11 @@ type GetProductInput = z.infer<typeof getProductInput>;
 @Injectable()
 export class AdminGetProductTool implements McpToolHandler<GetProductInput> {
     constructor(
-        private productService: ProductService,
-        private productVariantService: ProductVariantService,
-        private productOptionGroupService: ProductOptionGroupService,
-        private catalog: McpCatalogQueryService,
-        private serializer: McpToolSerializerService,
+        private readonly productService: ProductService,
+        private readonly productVariantService: ProductVariantService,
+        private readonly productOptionGroupService: ProductOptionGroupService,
+        private readonly catalog: McpCatalogQueryService,
+        private readonly serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: GetProductInput) {

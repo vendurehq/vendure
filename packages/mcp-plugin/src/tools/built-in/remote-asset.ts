@@ -6,7 +6,7 @@ import {
     RequestContext,
     UserInputError,
 } from '@vendure/core';
-import { pipeline, Readable, Transform } from 'stream';
+import { pipeline, Readable, Transform } from 'node:stream';
 
 const DEFAULT_MAX_ASSET_BYTES = 20 * 1024 * 1024;
 

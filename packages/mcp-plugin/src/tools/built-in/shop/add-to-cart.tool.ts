@@ -55,10 +55,10 @@ type AddToCartInput = z.infer<typeof addToCartInput>;
 @Injectable()
 export class AddToCartTool implements McpToolHandler<AddToCartInput> {
     constructor(
-        private activeOrder: McpActiveOrderService,
-        private orderService: OrderService,
-        private productVariantService: ProductVariantService,
-        private serializer: McpToolSerializerService,
+        private readonly activeOrder: McpActiveOrderService,
+        private readonly orderService: OrderService,
+        private readonly productVariantService: ProductVariantService,
+        private readonly serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: AddToCartInput) {

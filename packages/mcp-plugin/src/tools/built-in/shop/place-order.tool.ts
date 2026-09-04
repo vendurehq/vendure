@@ -65,12 +65,12 @@ const CALLER_SAFE_ERRORS = [
 @Injectable()
 export class PlaceOrderTool implements McpToolHandler<PlaceOrderInput> {
     constructor(
-        private activeOrder: McpActiveOrderService,
-        private orderService: OrderService,
-        private serializer: McpToolSerializerService,
-        private connection: TransactionalConnection,
-        private customerService: CustomerService,
-        private sessionService: SessionService,
+        private readonly activeOrder: McpActiveOrderService,
+        private readonly orderService: OrderService,
+        private readonly serializer: McpToolSerializerService,
+        private readonly connection: TransactionalConnection,
+        private readonly customerService: CustomerService,
+        private readonly sessionService: SessionService,
     ) {}
 
     async execute(ctx: RequestContext, input: PlaceOrderInput) {

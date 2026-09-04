@@ -20,9 +20,9 @@ export interface LogToolCallInput {
 @Injectable()
 export class McpToolCallLogService {
     constructor(
-        private connection: TransactionalConnection,
-        private eventBus: EventBus,
-        @Inject(MCP_PLUGIN_OPTIONS) private options: ResolvedMcpPluginOptions,
+        private readonly connection: TransactionalConnection,
+        private readonly eventBus: EventBus,
+        @Inject(MCP_PLUGIN_OPTIONS) private readonly options: ResolvedMcpPluginOptions,
     ) {}
 
     async logToolCall(call: LogToolCallInput): Promise<void> {

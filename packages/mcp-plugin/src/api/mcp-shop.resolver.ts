@@ -14,7 +14,7 @@ interface McpCustomerOauthGrantInfo {
 
 @Resolver()
 export class McpShopResolver {
-    constructor(private oauthService: McpOauthService) {}
+    constructor(private readonly oauthService: McpOauthService) {}
 
     @Mutation()
     @Allow(Permission.Public)

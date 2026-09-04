@@ -33,9 +33,9 @@ type SetShippingMethodInput = z.infer<typeof setShippingMethodInput>;
 @Injectable()
 export class SetShippingMethodTool implements McpToolHandler<SetShippingMethodInput> {
     constructor(
-        private activeOrder: McpActiveOrderService,
-        private orderService: OrderService,
-        private serializer: McpToolSerializerService,
+        private readonly activeOrder: McpActiveOrderService,
+        private readonly orderService: OrderService,
+        private readonly serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: SetShippingMethodInput) {

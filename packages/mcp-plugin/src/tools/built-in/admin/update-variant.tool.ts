@@ -53,10 +53,10 @@ type UpdateVariantToolInput = z.infer<typeof updateVariantInput>;
 @Injectable()
 export class UpdateVariantTool implements McpToolHandler<UpdateVariantToolInput> {
     constructor(
-        private productVariantService: ProductVariantService,
-        private stockLevelService: StockLevelService,
-        private customFieldInput: McpCustomFieldInputService,
-        private serializer: McpToolSerializerService,
+        private readonly productVariantService: ProductVariantService,
+        private readonly stockLevelService: StockLevelService,
+        private readonly customFieldInput: McpCustomFieldInputService,
+        private readonly serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: UpdateVariantToolInput) {

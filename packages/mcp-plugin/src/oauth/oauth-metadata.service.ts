@@ -16,7 +16,7 @@ import { resolvedOauthOptions } from './oauth-utils';
  */
 @Injectable()
 export class McpOauthMetadataService {
-    constructor(@Inject(MCP_PLUGIN_OPTIONS) private options: ResolvedMcpPluginOptions) {}
+    constructor(@Inject(MCP_PLUGIN_OPTIONS) private readonly options: ResolvedMcpPluginOptions) {}
 
     metadata() {
         const issuer = this.issuerOrigin();
