@@ -1,0 +1,114 @@
+name: Floating dependency check
+
+# Builds the published packages against a fresh resolve of their declared dependency ranges,
+# with no lockfile.
+#
+# build_and_test.yml installs with --frozen-lockfile, so it verifies the one version combination
+# recorded in bun.lock. No consumer installs that combination. packages/dashboard, for one, sets
+# "main" and "module" to ./src/lib/index.ts, so consumers compile its TypeScript source against
+# their own resolution of the ranges it declares. This job checks the thing consumers actually do.
+#
+# It is deliberately not a required check, runs on a schedule rather than on pull requests, and
+# gates nothing. It fails whenever a third party ships a release inside a declared range that does
+# not compile, which is information rather than a reason to block other people's work.
+on:
+    schedule:
+        # Wednesday 04:00 UTC. Offset from the Monday Dependabot run so a failure here is not read
+        # as being caused by that morning's pull requests, and away from the 02:00 jobs.
+        - cron: '0 4 * * 3'
+    workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+    group: ${{ github.workflow }}
+    cancel-in-progress: false
+
+jobs:
+    resolve-and-build:
+        name: resolve declared ranges and build
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            issues: write
+        steps:
+            - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+              with:
+                  # No push credentials are left on disk. This job must never write to the
+                  # repository, and the throwaway resolve must never be committed.
+                  persist-credentials: false
+
+            # .github/actions/setup is not used here because it installs with --frozen-lockfile,
+            # which is the thing this job exists to avoid. The Node and Bun pins below are kept in
+            # step with that action.
+            - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+              with:
+                  node-version: '22.x'
+            - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+              with:
+                  bun-version: '1.3.10'
+
+            - name: Resolve declared ranges with no lockfile
+              shell: bash
+              run: |
+                  # Deleting the lockfile is what forces a fresh resolve. Without this, bun installs
+                  # the pinned versions and the job verifies the same thing build_and_test already
+                  # does.
+                  rm -f bun.lock
+
+                  # bunfig.toml sets install.minimumReleaseAge to seven days, so a resolve in this
+                  # repository skips anything published in the last week. A consumer installing
+                  # with npm, pnpm or yarn has no such gate and gets the newest matching version
+                  # straight away. Passing --minimum-release-age=0 on the command line overrides
+                  # the bunfig value for this run only, without editing the committed file. The
+                  # committed value stays at seven days for everyone else.
+                  #
+                  # --no-save stops bun writing a replacement bun.lock. A later step asserts that.
+                  bun install --minimum-release-age=0 --no-save 2>&1 | tee /tmp/floating-deps.log
+
+            - name: Record resolved versions
+              if: always()
+              shell: bash
+              run: node .github/workflows/scripts/floating-deps-report.js resolved | tee /tmp/resolved.md
+
+            - name: Build and type check
+              shell: bash
+              run: bun run build 2>&1 | tee -a /tmp/floating-deps.log
+
+            - name: Confirm no lockfile was written
+              if: always()
+              shell: bash
+              run: |
+                  if [ -f bun.lock ]; then
+                    echo "bun.lock was regenerated, so --no-save did not take effect."
+                    echo "The file is not committed from here, but the flag is meant to prevent it existing at all."
+                    exit 1
+                  fi
+                  echo "No lockfile was written."
+
+            # The issue body truncates both files to fit GitHub's 65536 character limit. Keeping
+            # them whole here means a truncated report still has somewhere to point.
+            - name: Upload the resolved versions and the build output
+              if: always()
+              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+              with:
+                  name: floating-deps-${{ github.run_id }}
+                  path: |
+                      /tmp/resolved.md
+                      /tmp/floating-deps.log
+                  if-no-files-found: warn
+                  retention-days: 30
+
+            - name: Open or update the failure issue
+              if: failure()
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  RESOLVED_FILE: /tmp/resolved.md
+                  LOG_FILE: /tmp/floating-deps.log
+              run: node .github/workflows/scripts/floating-deps-report.js report
+
+            - name: Close the failure issue
+              if: success()
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: node .github/workflows/scripts/floating-deps-report.js resolve-issue
