@@ -755,6 +755,8 @@ given a `defaultValue` is left out.
 - Two flags that read back under the same name count as the same option, so
   `--api-token` and `--apiToken` collide: both are stored as `apiToken`.
 - No option may use `-h`, `--help`, `-V` or `--version`, which the CLI owns.
+- `subOptions` are registered on the same command as their parent, so every rule
+  above applies to them too.
 - A *command* may declare an option with the same flag as a shared option — the
   built-in `vendure plugins --json` and a shared `--json` for example. The two
   then refer to the same value: whatever is supplied on the command line is
