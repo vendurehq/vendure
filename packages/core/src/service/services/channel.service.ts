@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnApplicationShutdown } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import {
     CreateChannelInput,
     CreateChannelResult,
@@ -29,10 +30,11 @@ import {
     UserInputError,
 } from '../../common/error/errors';
 import { LanguageNotAvailableError } from '../../common/error/generated-graphql-admin-errors';
+import { Injector } from '../../common/injector';
 import { Instrument } from '../../common/instrument-decorator';
-import { createSelfRefreshingCache, SelfRefreshingCache } from '../../common/self-refreshing-cache';
 import { ChannelAware, ListQueryOptions } from '../../common/types/common-types';
 import { assertFound, idsAreEqual } from '../../common/utils';
+import { ChannelCacheStrategy } from '../../config/channel-cache/channel-cache-strategy';
 import { ConfigService } from '../../config/config.service';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { VendureEntity } from '../../entity/base/base.entity';
@@ -61,8 +63,10 @@ import { GlobalSettingsService } from './global-settings.service';
  */
 @Injectable()
 @Instrument()
-export class ChannelService {
-    private allChannels: SelfRefreshingCache<Channel[], [RequestContext]>;
+export class ChannelService implements OnApplicationShutdown {
+    private readonly channelCacheStrategy: ChannelCacheStrategy;
+    private channelCacheStrategyInitialized = false;
+    private readonly pendingChannelLookups = new Map<string, Promise<Channel>>();
 
     constructor(
         private connection: TransactionalConnection,
@@ -71,50 +75,30 @@ export class ChannelService {
         private customFieldRelationService: CustomFieldRelationService,
         private eventBus: EventBus,
         private listQueryBuilder: ListQueryBuilder,
-    ) {}
+        private moduleRef: ModuleRef,
+    ) {
+        this.channelCacheStrategy = this.configService.entityOptions.channelCacheStrategy;
+    }
 
     /**
-     * When the app is bootstrapped, ensure a default Channel exists and populate the
-     * channel lookup array.
+     * Ensures that a default Channel exists and primes its configured cache strategy
+     * during application initialization.
      *
      * @internal
      */
     async initChannels() {
         await this.ensureDefaultChannelExists();
-        await this.ensureCacheExists();
+        await this.initChannelCacheStrategy();
+        await this.getDefaultChannel();
     }
 
     /**
-     * Creates a channels cache, that can be used to reduce number of channel queries to database
-     *
      * @internal
      */
-    async createCache(): Promise<SelfRefreshingCache<Channel[], [RequestContext]>> {
-        return createSelfRefreshingCache({
-            name: 'ChannelService.allChannels',
-            ttl: this.configService.entityOptions.channelCacheTtl,
-            refresh: {
-                fn: async ctx => {
-                    const result = await this.listQueryBuilder
-                        .build(
-                            Channel,
-                            {},
-                            {
-                                ctx,
-                                relations: ['defaultShippingZone', 'defaultTaxZone'],
-                                ignoreQueryLimits: true,
-                            },
-                        )
-                        .getManyAndCount()
-                        .then(([items, totalItems]) => ({
-                            items,
-                            totalItems,
-                        }));
-                    return result.items;
-                },
-                defaultArgs: [RequestContext.empty()],
-            },
-        });
+    async onApplicationShutdown() {
+        if (this.channelCacheStrategyInitialized && typeof this.channelCacheStrategy.destroy === 'function') {
+            await this.channelCacheStrategy.destroy();
+        }
     }
 
     /**
@@ -281,17 +265,32 @@ export class ChannelService {
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             ctxOrToken instanceof RequestContext ? [ctxOrToken, token!] : [undefined, ctxOrToken];
 
-        const allChannels = await this.allChannels.value(ctx);
-
-        if (allChannels.length === 1 || channelToken === '') {
-            // there is only the default channel, so return it
+        if (channelToken === '') {
             return this.getDefaultChannel(ctx);
         }
-        const channel = allChannels.find(c => c.token === channelToken);
-        if (!channel) {
+
+        return this.singleFlight(`token:${channelToken}`, async () => {
+            const cached = await this.channelCacheStrategy.getByToken(channelToken);
+            if (cached) {
+                return cached;
+            }
+
+            const channel = await this.findChannel(ctx, { token: channelToken });
+            if (channel) {
+                await this.channelCacheStrategy.set(channel);
+                return channel;
+            }
+
+            // In a single-Channel installation, any token resolves to the default Channel.
+            // This fallback is part of Channel token resolution semantics.
+            const channelCount = await this.connection
+                .getRepository(ctx ?? RequestContext.empty(), Channel)
+                .count();
+            if (channelCount === 1) {
+                return this.getDefaultChannel(ctx);
+            }
             throw new ChannelNotFoundError(channelToken);
-        }
-        return channel;
+        });
     }
 
     /**
@@ -299,13 +298,20 @@ export class ChannelService {
      * Returns the default Channel.
      */
     async getDefaultChannel(ctx?: RequestContext): Promise<Channel> {
-        const allChannels = await this.allChannels.value(ctx);
-        const defaultChannel = allChannels.find(channel => channel.code === DEFAULT_CHANNEL_CODE);
+        return this.singleFlight('default', async () => {
+            const cached = await this.channelCacheStrategy.getDefault();
+            if (cached) {
+                return cached;
+            }
 
-        if (!defaultChannel) {
-            throw new InternalServerError('error.default-channel-not-found');
-        }
-        return defaultChannel;
+            const defaultChannel = await this.findChannel(ctx, { code: DEFAULT_CHANNEL_CODE });
+
+            if (!defaultChannel) {
+                throw new InternalServerError('error.default-channel-not-found');
+            }
+            await this.channelCacheStrategy.set(defaultChannel);
+            return defaultChannel;
+        });
     }
 
     findAll(
@@ -399,8 +405,11 @@ export class ChannelService {
             }
             await this.assignToChannels(ctx, Role, role.id, [newChannel.id]);
         }
-        await this.allChannels.refresh(ctx);
         await this.assignDefaultRolesToChannel(ctx, newChannel.id);
+        const cachedChannel = await this.findOne(ctx, newChannel.id);
+        if (cachedChannel) {
+            await this.channelCacheStrategy.set(cachedChannel);
+        }
         await this.eventBus.publish(new ChannelEvent(ctx, newChannel, 'created', input));
         return newChannel;
     }
@@ -420,6 +429,7 @@ export class ChannelService {
         if (!channel) {
             throw new EntityNotFoundError('Channel', input.id);
         }
+        const previousChannel = new Channel(channel);
         const originalDefaultCurrencyCode = channel.defaultCurrencyCode;
         const defaultLanguageValidationResult = await this.validateDefaultLanguageCode(ctx, input);
         if (isGraphQlErrorResult(defaultLanguageValidationResult)) {
@@ -503,9 +513,11 @@ export class ChannelService {
         }
         await this.connection.getRepository(ctx, Channel).save(updatedChannel, { reload: false });
         await this.customFieldRelationService.updateRelations(ctx, Channel, input, updatedChannel);
-        await this.allChannels.refresh(ctx);
+        await this.channelCacheStrategy.delete(previousChannel);
+        const result = await assertFound(this.findOne(ctx, channel.id));
+        await this.channelCacheStrategy.set(result);
         await this.eventBus.publish(new ChannelEvent(ctx, channel, 'updated', input));
-        return assertFound(this.findOne(ctx, channel.id));
+        return result;
     }
 
     /**
@@ -529,6 +541,7 @@ export class ChannelService {
         await this.connection.getRepository(ctx, ProductVariantPrice).delete({
             channelId: id,
         });
+        await this.channelCacheStrategy.delete(deletedChannel);
         await this.eventBus.publish(new ChannelEvent(ctx, deletedChannel, 'deleted', id));
 
         return {
@@ -572,15 +585,41 @@ export class ChannelService {
         return isChannelAwareMetadata(this.connection.rawConnection.getMetadata(entityType));
     }
 
-    /**
-     * Ensures channel cache exists. If not, this method creates one.
-     */
-    private async ensureCacheExists() {
-        if (this.allChannels) {
+    private async initChannelCacheStrategy() {
+        if (this.channelCacheStrategyInitialized) {
             return;
         }
+        if (typeof this.channelCacheStrategy.init === 'function') {
+            await this.channelCacheStrategy.init(new Injector(this.moduleRef));
+        }
+        this.channelCacheStrategyInitialized = true;
+    }
 
-        this.allChannels = await this.createCache();
+    private findChannel(
+        ctx: RequestContext | undefined,
+        where: FindOptionsWhere<Channel>,
+    ): Promise<Channel | undefined> {
+        return this.connection
+            .getRepository(ctx ?? RequestContext.empty(), Channel)
+            .findOne({
+                where,
+                relations: { defaultShippingZone: true, defaultTaxZone: true },
+            })
+            .then(result => result ?? undefined);
+    }
+
+    private singleFlight(key: string, lookup: () => Promise<Channel>): Promise<Channel> {
+        const pending = this.pendingChannelLookups.get(key);
+        if (pending) {
+            return pending;
+        }
+        const result = lookup().finally(() => {
+            if (this.pendingChannelLookups.get(key) === result) {
+                this.pendingChannelLookups.delete(key);
+            }
+        });
+        this.pendingChannelLookups.set(key, result);
+        return result;
     }
 
     /**
