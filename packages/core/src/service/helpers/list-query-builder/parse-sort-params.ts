@@ -46,9 +46,10 @@ export function parseSortParams<T extends VendureEntity>(
             const translationsAlias = connection.namingStrategy.joinTableName(alias, 'translations', '', '');
 
             const pathParts = [translationsAlias];
-            const isLocaleStringCustomField =
-                customFields?.find(f => f.name === key)?.type === 'localeString';
-            if (isLocaleStringCustomField) {
+            const customFieldDef = customFields?.find(f => f.name === key);
+            const isLocalizedCustomField =
+                customFieldDef?.type === 'localeString' || customFieldDef?.type === 'localeText';
+            if (isLocalizedCustomField) {
                 pathParts.push('customFields');
             }
             pathParts.push(key);
