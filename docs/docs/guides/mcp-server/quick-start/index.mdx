@@ -1,0 +1,171 @@
+---
+title: 'MCP Server Quick Start'
+metaTitle: 'MCP Server Quick Start | Vendure'
+metaDescription: 'Install and configure the Vendure MCP plugin to expose your store to AI agents over the Model Context Protocol, connect a client, and debug with the MCP Inspector.'
+order: 1
+---
+
+The MCP plugin exposes your Vendure store to AI agents over the
+[Model Context Protocol](https://modelcontextprotocol.io/) (MCP). Agents such as Claude, Cursor and ChatGPT use
+that open standard to discover and call tools on a server.
+
+The plugin ships built-in shop tools for the catalog, the cart and checkout. It also ships admin tools for
+products, orders, customers and stock. Any Vendure plugin can add its own with the
+[`@McpTool`](/reference/core-plugins/mcp-plugin/mcp-tool/) decorator.
+
+## The two endpoints
+
+The plugin serves MCP over Streamable HTTP at two paths. Every MCP request is a POST.
+
+| Endpoint | Authentication | Tools |
+|---|---|---|
+| `POST /mcp/shop` | Anonymous by default, or a customer Bearer token | Browse the catalog, manage a cart, place an order |
+| `POST /mcp/admin` | Administrator Bearer token, always required | Manage products, orders, customers, stock |
+
+The shop endpoint needs no OAuth configuration, which makes it the quickest way to try the server. The admin
+endpoint and authenticated customer access both need OAuth. An MCP client discovers where that flow starts from
+the server's own response, described in the [OAuth Protocol Reference](/guides/mcp-server/oauth-reference/).
+
+To get a server running and confirm it works:
+
+1. Install the plugin.
+2. Run a database migration.
+3. Test the server with the MCP Inspector.
+4. Connect an AI client.
+
+## Install the plugin
+
+```sh
+npm install @vendure/mcp-plugin
+```
+
+The plugin requires Vendure 3.8.0 or later. On an older version the server refuses to boot with a compatibility
+error.
+
+Add the plugin to your Vendure config. It needs no configuration to start:
+
+```ts title="src/vendure-config.ts"
+import { McpPlugin } from '@vendure/mcp-plugin';
+
+export const config: VendureConfig = {
+    // ...
+    plugins: [McpPlugin.init()],
+};
+```
+
+That serves the anonymous shop endpoint. `shopAccess` controls who may call it: `anonymous` (default),
+`authenticated` or `disabled`. See
+[Production Hardening](/guides/mcp-server/production/#decide-who-may-call-the-shop-endpoint). Configure OAuth
+later, when you need the admin endpoint or authenticated customer access. [`McpPluginOptions`](/reference/core-plugins/mcp-plugin/mcp-plugin-options/) documents every
+option.
+
+## Database migration
+
+`McpPlugin` registers five entities, whether or not you configure OAuth:
+
+- `McpOauthClient`
+- `McpAuthorizationCode`
+- `McpAuthorizationRequest`
+- `McpOauthGrant`
+- `McpToolCallLog`
+
+If you run with `synchronize: false` (the recommended production setting), generate and run a migration so these
+tables are created. See [Migrations](/guides/developer-guide/migrations/) for the workflow.
+
+## Test & debug with the MCP Inspector
+
+Start your Vendure server. Then start the [MCP Inspector](https://github.com/modelcontextprotocol/inspector), a
+browser-based tool for exploring an MCP server, without installing it globally:
+
+```sh
+npx @modelcontextprotocol/inspector
+```
+
+Point it at `http://localhost:3000/mcp/shop` to browse and call shop tools anonymously. Point it at `/mcp/admin`
+with a Bearer token for the admin tools.
+
+The Inspector lists the live tool set, shows each tool's input schema, and runs calls so you can read the
+results. Seeing the shop tools listed confirms the server works, before any AI client is involved.
+
+## Connect an AI client
+
+MCP clients that support remote Streamable HTTP servers connect by URL. To try the server without configuring
+OAuth, point the client at the shop endpoint:
+
+```json title="Example MCP client configuration"
+{
+    "mcpServers": {
+        "vendure-shop": {
+            "url": "https://my-store.example.com/mcp/shop"
+        }
+    }
+}
+```
+
+The client now reaches the anonymous shop tools. For the admin endpoint or authenticated customer access,
+configure OAuth and point the client at that endpoint. The client runs the OAuth flow for you.
+
+:::tip
+The dashboard has an MCP Server section in its navigation with four pages: Overview, Tools, Grants and
+Activity. The Connect a client button on the Overview page shows copyable connection snippets for both
+endpoints. [OAuth & Consent](/guides/mcp-server/oauth-consent/) covers how admin sign-in works through the
+dashboard.
+:::
+
+## Optional: Configure OAuth
+
+Configure OAuth when you need the admin endpoint or authenticated customer access. Without it, every call that
+needs a token fails with `400 MCP OAuth is not configured`.
+
+```ts title="src/vendure-config.ts"
+// Generate once with: openssl rand -base64 32
+const tokenSecret = process.env.MCP_TOKEN_SECRET;
+if (!tokenSecret) {
+    throw new Error('MCP_TOKEN_SECRET is not set');
+}
+
+McpPlugin.init({
+    oauth: {
+        tokenSecret,
+        issuer: 'https://my-store.example.com',
+        storefrontConsentUrl: 'https://my-storefront.example.com/mcp/authorize',
+    },
+});
+```
+
+- `tokenSecret` (string, required) — The secret the server uses to hash OAuth tokens before storing them. Keep it
+  in an environment variable.
+- `issuer` (string, default: `http://localhost:<your API port>`) — The public base URL of this server. The default
+  suits local development only. With `NODE_ENV=production` the plugin refuses to start if the issuer is a
+  loopback URL.
+- `storefrontConsentUrl` (string, optional) — The storefront page that approves customer consent. Required only if
+  customers will authorize MCP clients. Must be an HTTPS URL in production.
+
+[`McpOauthOptions`](/reference/core-plugins/mcp-plugin/mcp-oauth-options/) documents every field and its default.
+
+## Optional: Change how tools are listed
+
+By default (`toolExposure: 'direct'`) the server lists every tool the caller is permitted to use and that an
+operator has not switched off. This suits almost all deployments, because modern agents and hosts run their own
+tool search.
+
+If your host has a low tool cap, or your model has no built-in tool search, set `toolExposure: 'discovery'`. That
+replaces the full list with two meta-tools, `search_tools` and `execute_tool`.
+[Built-in Tool Reference](/guides/mcp-server/built-in-tools/#tool-exposure-direct-vs-discovery) explains when to
+reach for it.
+
+## Troubleshooting
+
+| What you see | Cause | Fix |
+|---|---|---|
+| `400 MCP OAuth is not configured` | The call needs a token, and the config has no `oauth` block | Configure OAuth, or call the shop endpoint anonymously |
+| `405 Method Not Allowed` with an `Allow: POST` header | The request was a GET. Every MCP request here is a POST | Send a POST. MCP client libraries do this for you |
+| The MCP tables are missing after adding the plugin | The server runs with `synchronize: false` and no migration was generated | Generate and run a migration for the five entities |
+
+## Next steps
+
+- [OAuth & Consent](/guides/mcp-server/oauth-consent/) — approving clients, and the storefront consent page you need to build for shop OAuth.
+- [Registering Custom Tools](/guides/mcp-server/custom-tools/) — add your own `@McpTool` tools.
+- [Production Hardening](/guides/mcp-server/production/) — the go-live checklist and rate limits.
+- [Logging & Observability](/guides/mcp-server/observability/) — tool-call logging and telemetry.
+- [Built-in Tool Reference](/guides/mcp-server/built-in-tools/) — every tool the plugin ships.

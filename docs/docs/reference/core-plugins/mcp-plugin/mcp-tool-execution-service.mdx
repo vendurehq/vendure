@@ -1,0 +1,56 @@
+---
+title: "McpToolExecutionService"
+generated: true
+---
+<GenerationInfo sourceFile="packages/mcp-plugin/src/registry/mcp-tool-execution.service.ts" sourceLine="41" packageName="@vendure/mcp-plugin" since="3.8.0" />
+
+Lists and runs MCP tools from inside the Vendure process. Calls use the same pipeline as HTTP
+requests, including permissions, rate limits, validation, confirmations, and logging.
+
+Always pass the original `ctx` you received so the tool runs with the correct permissions and
+session. Anonymous shop tools can use a `sessionToken` to continue the same shopper session.
+
+*Example*
+
+```ts
+import { Injectable } from '@nestjs/common';
+import { RequestContext } from '@vendure/core';
+import { McpToolExecutionService } from '@vendure/mcp-plugin';
+
+@Injectable()
+export class AssistantService {
+    constructor(private mcpToolExecution: McpToolExecutionService) {}
+
+    async reply(ctx: RequestContext, message: string) {
+        const tools = await this.mcpToolExecution.listTools(ctx, 'shop');
+        // Hand `tools` to your model, then run whichever one it picks:
+        return this.mcpToolExecution.executeTool(ctx, 'shop', 'search_products', {
+            query: message,
+        });
+    }
+}
+```
+
+```ts title="Signature"
+class McpToolExecutionService {
+    constructor(registry: McpToolRegistryService)
+    listTools(ctx: RequestContext, toolset: McpToolset) => Promise<McpToolSummary[]>;
+    executeTool(ctx: RequestContext, toolset: McpToolset, toolName: string, input?: unknown) => Promise<CallToolResult>;
+}
+```
+
+<div className="members-wrapper">
+
+### listTools
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, toolset: <a href='/reference/core-plugins/mcp-plugin/mcp-toolset#mcptoolset'>McpToolset</a>) => Promise<<a href='/reference/core-plugins/mcp-plugin/mcp-tool-summary#mcptoolsummary'>McpToolSummary</a>[]>`}   />
+
+
+### executeTool
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, toolset: <a href='/reference/core-plugins/mcp-plugin/mcp-toolset#mcptoolset'>McpToolset</a>, toolName: string, input?: unknown) => Promise<CallToolResult>`}   />
+
+
+
+
+</div>

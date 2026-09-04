@@ -321,6 +321,7 @@ export function vendureDashboardPlugin(options: VitePluginVendureDashboardOption
             plugin: () =>
                 viteConfigPlugin({
                     packageRoot,
+                    gqlOutputPath: options.gqlOutputPath,
                     useExperimentalBundle: options.useExperimentalBundle,
                 }),
         },

@@ -1,0 +1,89 @@
+---
+title: "McpAuthorizationRequest"
+generated: true
+---
+<GenerationInfo sourceFile="packages/mcp-plugin/src/entities/mcp-authorization-request.entity.ts" sourceLine="15" packageName="@vendure/mcp-plugin" since="3.8.0" />
+
+Pending OAuth authorization request before user consent.
+Stores redirect info, PKCE challenge, and a hashed request token.
+
+```ts title="Signature"
+class McpAuthorizationRequest extends VendureEntity {
+    constructor(input?: DeepPartial<McpAuthorizationRequest>)
+    @Index({ unique: true })
+    @Column()
+    requestToken: string;
+    @Index()
+    @ManyToOne(() => McpOauthClient, { onDelete: 'CASCADE' })
+    oauthClient: McpOauthClient;
+    @EntityId()
+    oauthClientId: ID;
+    @Column()
+    redirectUri: string;
+    @Column({ type: 'varchar', nullable: true })
+    state: string | null;
+    @Column()
+    codeChallenge: string;
+    @Column({ type: 'varchar' })
+    toolset: McpToolset;
+    @Column()
+    resource: string;
+    @Index()
+    @Column({ type: Date })
+    expiresAt: Date;
+}
+```
+* Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
+
+
+
+<div className="members-wrapper">
+
+### requestToken
+
+<MemberInfo kind="property" type={`string`}   />
+
+Hash of the request token used by the consent page.
+### oauthClient
+
+<MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-oauth-client#mcpoauthclient'>McpOauthClient</a>`}   />
+
+
+### oauthClientId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
+
+
+### redirectUri
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### state
+
+<MemberInfo kind="property" type={`string | null`}   />
+
+
+### codeChallenge
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### toolset
+
+<MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-toolset#mcptoolset'>McpToolset</a>`}   />
+
+
+### resource
+
+<MemberInfo kind="property" type={`string`}   />
+
+Target endpoint (issuer + `/mcp/admin` or `/mcp/shop`).
+### expiresAt
+
+<MemberInfo kind="property" type={`Date`}   />
+
+
+
+
+</div>

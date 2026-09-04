@@ -1,0 +1,41 @@
+{
+    "name": "@vendure/mcp-plugin",
+    "version": "3.7.0",
+    "license": "GPL-3.0-or-later",
+    "main": "lib/index.js",
+    "types": "lib/index.d.ts",
+    "files": [
+        "lib/**/*",
+        "src/dashboard/**/*"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/vendurehq/vendure"
+    },
+    "scripts": {
+        "watch": "tsc -p ./tsconfig.build.json --watch",
+        "build": "rimraf lib && tsc -p ./tsconfig.build.json",
+        "codegen:dashboard": "ts-node codegen/generate-schema-types.ts",
+        "lint": "eslint --fix .",
+        "test": "vitest --config vitest.config.mts --run",
+        "e2e": "cross-env PACKAGE=mcp-plugin vitest --config ../../e2e-common/vitest.config.mts --run",
+        "e2e:watch": "cross-env PACKAGE=mcp-plugin vitest --config ../../e2e-common/vitest.config.mts"
+    },
+    "homepage": "https://www.vendure.io/",
+    "funding": "https://github.com/sponsors/michaelbromley",
+    "publishConfig": {
+        "access": "public"
+    },
+    "dependencies": {
+        "@modelcontextprotocol/node": "2.0.0",
+        "@modelcontextprotocol/server": "2.0.0",
+        "@vendure/mcp-sdk": "3.7.0",
+        "zod": "^4.2.0"
+    },
+    "devDependencies": {
+        "@modelcontextprotocol/client": "2.0.0",
+        "@types/express": "^5.0.1",
+        "@vendure/common": "3.7.0",
+        "@vendure/core": "3.7.0"
+    }
+}

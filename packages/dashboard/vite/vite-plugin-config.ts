@@ -4,6 +4,11 @@ import { ConfigEnv, Plugin, UserConfig } from 'vite';
 export interface ViteConfigPluginOptions {
     packageRoot: string;
     /**
+     * The directory that receives the generated GraphQL types, matching what the
+     * caller passes to `vendureDashboardPlugin`. Gives the `@/gql` import a target.
+     */
+    gqlOutputPath?: string;
+    /**
      * EXPERIMENTAL — see `vendureDashboardPlugin`'s `useExperimentalBundle` option.
      * When true, the consumer's Vite serves the pre-built dashboard bundle from
      * `<packageRoot>/dist/bundle/` instead of compiling the dashboard's
@@ -13,7 +18,11 @@ export interface ViteConfigPluginOptions {
     useExperimentalBundle?: boolean;
 }
 
-export function viteConfigPlugin({ packageRoot, useExperimentalBundle }: ViteConfigPluginOptions): Plugin {
+export function viteConfigPlugin({
+    packageRoot,
+    gqlOutputPath,
+    useExperimentalBundle,
+}: ViteConfigPluginOptions): Plugin {
     return {
         name: 'vendure:vite-config-plugin',
         config: (config: UserConfig, env: ConfigEnv) => {
@@ -51,6 +60,7 @@ export function viteConfigPlugin({ packageRoot, useExperimentalBundle }: ViteCon
 
             config.resolve = {
                 alias: {
+                    ...(gqlOutputPath ? { '@/gql': path.resolve(gqlOutputPath, 'graphql.ts') } : {}),
                     ...(config.resolve?.alias ?? {}),
                     // See the readme for an explanation of this alias.
                     '@/vdb': path.resolve(packageRoot, './src/lib'),
@@ -64,10 +74,7 @@ export function viteConfigPlugin({ packageRoot, useExperimentalBundle }: ViteCon
                     // module resolution at runtime.
                     ...(useExperimentalBundle
                         ? {
-                              '@vendure/dashboard': path.resolve(
-                                  packageRoot,
-                                  './dist/bundle/lib.js',
-                              ),
+                              '@vendure/dashboard': path.resolve(packageRoot, './dist/bundle/lib.js'),
                           }
                         : {}),
                 },

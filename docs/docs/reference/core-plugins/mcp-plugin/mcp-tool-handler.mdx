@@ -1,0 +1,29 @@
+---
+title: "McpToolHandler"
+generated: true
+---
+<GenerationInfo sourceFile="packages/mcp-sdk/src/mcp-tool.decorator.ts" sourceLine="186" packageName="@vendure/mcp-sdk" since="3.8.0" />
+
+The shape of an MCP tool class: an `execute` method that the server calls with the
+[RequestContext](/reference/typescript-api/request/request-context#requestcontext), the input, and, when a tool needs to know who is calling,
+[McpCallerInfo](/reference/core-plugins/mcp-plugin/mcp-caller-info#mcpcallerinfo).
+
+```ts title="Signature"
+interface McpToolHandler<I = unknown, O = unknown> {
+    execute(ctx: RequestContext, input: I, caller?: McpCallerInfo): Promise<O> | O;
+}
+```
+
+<div className="members-wrapper">
+
+### execute
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: I, caller?: <a href='/reference/core-plugins/mcp-plugin/mcp-caller-info#mcpcallerinfo'>McpCallerInfo</a>) => Promise<O> | O`}   />
+
+The tool's implementation. The server calls it with a [RequestContext](/reference/typescript-api/request/request-context#requestcontext) for the caller,
+the validated input, and [McpCallerInfo](/reference/core-plugins/mcp-plugin/mcp-caller-info#mcpcallerinfo). The caller info is always passed, though the
+parameter is optional so a tool that ignores it can leave it out. Whatever the method
+returns becomes the tool's result.
+
+
+</div>

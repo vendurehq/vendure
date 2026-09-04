@@ -1,0 +1,13 @@
+---
+title: "McpToolBehavior"
+generated: true
+---
+<GenerationInfo sourceFile="packages/mcp-sdk/src/types.ts" sourceLine="20" packageName="@vendure/mcp-sdk" since="3.8.0" />
+
+How a tool behaves, which tells the MCP server how to expose it: `readonly` tools
+only read data, `mutating` tools change it, and `destructive` tools ask for
+confirmation before running.
+
+```ts title="Signature"
+type McpToolBehavior = 'readonly' | 'mutating' | 'destructive'
+```

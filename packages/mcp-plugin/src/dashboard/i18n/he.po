@@ -1,0 +1,311 @@
+msgid ""
+msgstr ""
+"POT-Creation-Date: 2025-02-20 14:18+0100\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: @lingui/cli\n"
+"Language: he\n"
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Plural-Forms: \n"
+
+
+msgid "Actions"
+msgstr "פעולות"
+
+msgid "Actor"
+msgstr "מבצע"
+
+msgid "Actor type"
+msgstr "סוג מבצע"
+
+msgid "Approve"
+msgstr "אישור"
+
+msgid "Authorization request could not be loaded"
+msgstr "לא ניתן היה לטעון את בקשת ההרשאה"
+
+msgid "Calls per hour"
+msgstr "קריאות לשעה"
+
+msgid "Client"
+msgstr "לקוח"
+
+msgid "Connect an MCP client to your Vendure server using the endpoints below."
+msgstr "חבר לקוח MCP לשרת ה-Vendure שלך באמצעות נקודות הקצה שלמטה."
+
+msgid "Could not revoke grant"
+msgstr "לא ניתן היה לבטל את ההרשאה"
+
+msgid "Could not update tool"
+msgstr "לא ניתן היה לעדכן את הכלי"
+
+msgid "Deny"
+msgstr "דחייה"
+
+msgid "Description"
+msgstr "תיאור"
+
+msgid "Destructive"
+msgstr "הרסני"
+
+msgid "Duration"
+msgstr "משך"
+
+msgid "Enabled"
+msgstr "מופעל"
+
+
+msgid "Expires"
+msgstr "פג בתאריך"
+
+msgid "Grant revoked"
+msgstr "ההרשאה בוטלה"
+
+msgid "Health & usage"
+msgstr "תקינות ושימוש"
+
+msgid "Last activity"
+msgstr "פעילות אחרונה"
+
+msgid "Last hour"
+msgstr "השעה האחרונה"
+
+msgid "Last 24 hours"
+msgstr "24 השעות האחרונות"
+
+msgid "Last 7 days"
+msgstr "7 הימים האחרונים"
+
+msgid "Last 30 days"
+msgstr "30 הימים האחרונים"
+
+msgid "Loading authorization request…"
+msgstr "טוען את בקשת ההרשאה…"
+
+msgid "MCP Server"
+msgstr "MCP Server"
+
+msgid "Mutating"
+msgstr "משנה"
+
+msgid "Name"
+msgstr "שם"
+
+msgid "No calls recorded in this period."
+msgstr "לא נרשמו קריאות בתקופה זו."
+
+msgid "Read-only"
+msgstr "לקריאה בלבד"
+
+msgid "Revoke"
+msgstr "בטל"
+
+msgid "Revoke grant"
+msgstr "בטל הרשאה"
+
+msgid "Safety"
+msgstr "בטיחות"
+
+msgid "Status"
+msgstr "סטטוס"
+
+msgid "Success rate"
+msgstr "שיעור הצלחה"
+
+
+msgid "This destination is on the local machine. Any application running on that machine could receive the authorization code."
+msgstr "יעד זה נמצא במחשב המקומי. כל יישום שפועל על אותו מחשב עלול לקבל את קוד ההרשאה."
+
+msgid "This immediately revokes the client's access. The client will need to authorize again to reconnect."
+msgstr "פעולה זו מבטלת מיד את גישת הלקוח. הלקוח יצטרך לאשר שוב כדי להתחבר מחדש."
+
+msgid "Time"
+msgstr "שעה"
+
+msgid "Tool"
+msgstr "כלי"
+
+msgid "Tool updated"
+msgstr "הכלי עודכן"
+
+msgid "Tools"
+msgstr "כלים"
+
+msgid "Toolset"
+msgstr "ערכת כלים"
+
+msgid "Top tools"
+msgstr "הכלים המובילים"
+
+msgid "Total calls"
+msgstr "סך הקריאות"
+
+msgid "Usage over the selected period"
+msgstr "שימוש בתקופה שנבחרה"
+
+msgid "p50 latency"
+msgstr "השהיית p50"
+
+msgid "p95 latency"
+msgstr "השהיית p95"
+
+msgid "Authorize MCP Client"
+msgstr "אישור לקוח MCP"
+
+msgid "The grant could not be revoked; it may have already been removed"
+msgstr "לא ניתן היה לבטל את ההרשאה; ייתכן שהיא כבר הוסרה"
+
+msgid "Request failed ({0})"
+msgstr "הבקשה נכשלה ({0})"
+
+msgid "Authorize MCP access"
+msgstr "אישור גישת MCP"
+
+msgid "Plugin"
+msgstr "תוסף"
+
+msgid "Error loading MCP statistics: {0}"
+msgstr "שגיאה בטעינת הסטטיסטיקות של MCP: {0}"
+
+msgid "Error loading tools: {0}"
+msgstr "שגיאה בטעינת הכלים: {0}"
+
+msgid "The request could not be completed"
+msgstr "לא ניתן היה להשלים את הבקשה"
+
+msgid "Active"
+msgstr "פעיל"
+
+msgid "Revoked"
+msgstr "בוטל"
+
+msgid "Expired"
+msgstr "פג תוקף"
+
+msgid "No tool calls yet"
+msgstr ""
+
+msgid "Half of the calls in this period finished faster than this."
+msgstr ""
+
+msgid "95 out of 100 calls in this period finished faster than this. It shows how slow the worst calls are."
+msgstr ""
+
+msgid "This tool can delete data or make changes that cannot be undone."
+msgstr ""
+
+msgid "This tool only reads data. It never changes anything."
+msgstr ""
+
+msgid "This tool creates or updates data, but does not delete anything."
+msgstr ""
+
+msgid "No actions available for a revoked grant"
+msgstr ""
+
+msgid "Unnamed application"
+msgstr ""
+
+msgid "Hostname verified"
+msgstr ""
+
+msgid "Unverified"
+msgstr ""
+
+msgid "The client's details were fetched from this address, so the hostname is verified. The name above is still chosen by the client itself."
+msgstr ""
+
+msgid "This name and address are reported by the application itself and are not verified."
+msgstr ""
+
+msgid "wants to access the Admin API of your Vendure server"
+msgstr ""
+
+msgid "Full access to the Admin API as your administrator account."
+msgstr ""
+
+msgid "wants to access the Shop API of your Vendure server"
+msgstr ""
+
+msgid "Access to the Shop API as a customer."
+msgstr ""
+
+msgid "After approval, the authorization code is sent here. Only approve if you recognise this destination."
+msgstr ""
+
+msgid "Setup guide for connecting MCP clients"
+msgstr ""
+
+msgid "Anonymous"
+msgstr ""
+
+msgid "Failed calls"
+msgstr ""
+
+msgid "Average number of tool calls per hour over the selected period."
+msgstr ""
+
+msgid "What this number means"
+msgstr ""
+
+msgid "See all activity"
+msgstr ""
+
+msgid "Granted to"
+msgstr ""
+
+msgid "The link may have expired or already been used. Start the connection again from your MCP client."
+msgstr ""
+
+msgid "Full access to the Admin API as {name} ({emailAddress})."
+msgstr ""
+
+msgid "Connect a client"
+msgstr ""
+
+msgid "Admin API"
+msgstr ""
+
+msgid "Shop API"
+msgstr ""
+
+msgid "Test with MCP Inspector"
+msgstr ""
+
+msgid "Close"
+msgstr ""
+
+msgid "Overview"
+msgstr ""
+
+msgid "Activity"
+msgstr ""
+
+msgid "Grants"
+msgstr ""
+
+msgid "The client will act on this channel:"
+msgstr ""
+
+msgid "This destination is not on the application's own host ({clientHost}). Only approve if you expect the code to be sent there."
+msgstr ""
+
+msgid "Revoking needs the UpdateMcpServer permission"
+msgstr ""
+
+msgid "Tool exposure is set to discovery. Clients see only search_tools and execute_tool. The toggles below still decide which tools execute_tool may run."
+msgstr ""
+
+msgid "OAuth is not configured, so no client can be granted access. Add an oauth block to McpPlugin.init to use grants."
+msgstr ""
+
+msgid "The admin endpoint needs OAuth. Add an oauth block to McpPlugin.init to enable it."
+msgstr ""
+
+msgid "The shop endpoint is disabled (shopAccess: 'disabled')."
+msgstr ""

@@ -1,0 +1,132 @@
+---
+title: "McpToolCallLog"
+generated: true
+---
+<GenerationInfo sourceFile="packages/mcp-plugin/src/entities/mcp-tool-call-log.entity.ts" sourceLine="20" packageName="@vendure/mcp-plugin" since="3.8.0" />
+
+Audit record of a single MCP tool call.
+
+A row exists only for a call that actually ran the tool. Calls turned away first, by a rate
+limit, a permission check, an unknown or switched-off tool, bad arguments, or a confirmation
+request, leave no trace here.
+
+```ts title="Signature"
+class McpToolCallLog extends VendureEntity {
+    constructor(input?: DeepPartial<McpToolCallLog>)
+    @Index()
+    @ManyToOne(() => McpOauthGrant, { nullable: true, onDelete: 'SET NULL' })
+    grant: McpOauthGrant | null;
+    @EntityId({ nullable: true })
+    grantId: ID | null;
+    @Column({ type: 'varchar', nullable: true })
+    actor: string | null;
+    @Column({ type: 'varchar' })
+    actorType: McpActorType;
+    @Column({ type: 'varchar', nullable: true })
+    clientIp: string | null;
+    @Index()
+    @EntityId({ nullable: true })
+    channelId: ID | null;
+    @Index()
+    @Column()
+    toolName: string;
+    @Column({ type: 'varchar', nullable: true })
+    pluginSource: string | null;
+    @Column({ type: 'simple-json', nullable: true })
+    input: unknown;
+    @Column({ type: 'simple-json', nullable: true })
+    output: unknown;
+    @Index()
+    @Column({ type: 'int', nullable: true })
+    durationMs: number | null;
+    @Index()
+    @Column({ type: 'varchar' })
+    status: McpToolCallStatus;
+    @Index()
+    @ManyToOne(() => McpOauthClient, { nullable: true, onDelete: 'SET NULL' })
+    oauthClient: McpOauthClient | null;
+    @EntityId({ nullable: true })
+    oauthClientId: ID | null;
+}
+```
+* Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
+
+
+
+<div className="members-wrapper">
+
+### grant
+
+<MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-oauth-grant#mcpoauthgrant'>McpOauthGrant</a> | null`}   />
+
+Null when the call did not arrive over OAuth, and set back to null if the cleanup job
+later deletes the grant.
+### grantId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a> | null`}   />
+
+
+### actor
+
+<MemberInfo kind="property" type={`string | null`}   />
+
+Id of the user the call ran as. Null when nobody was signed in.
+### actorType
+
+<MemberInfo kind="property" type={`McpActorType`}   />
+
+
+### clientIp
+
+<MemberInfo kind="property" type={`string | null`}   />
+
+Null unless `logging.captureClientIp` is on, and null for calls that never came over HTTP.
+The Admin API also hides it from anyone without the `ReadCustomer` permission.
+### channelId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a> | null`}   />
+
+
+### toolName
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### pluginSource
+
+<MemberInfo kind="property" type={`string | null`}   />
+
+The plugin that registered the tool, or `unknown` if it could not be traced back to one.
+### input
+
+<MemberInfo kind="property" type={`unknown`}   />
+
+
+### output
+
+<MemberInfo kind="property" type={`unknown`}   />
+
+
+### durationMs
+
+<MemberInfo kind="property" type={`number | null`}   />
+
+
+### status
+
+<MemberInfo kind="property" type={`McpToolCallStatus`}   />
+
+
+### oauthClient
+
+<MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-oauth-client#mcpoauthclient'>McpOauthClient</a> | null`}   />
+
+
+### oauthClientId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a> | null`}   />
+
+
+
+
+</div>
