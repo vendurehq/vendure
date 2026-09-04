@@ -1,7 +1,7 @@
 /**
  * A second plugin extending the same command, standing in for @vendure/cloud.
  */
-const { defineCliPlugin } = require('@vendure/cli');
+const { defineCliPlugin, readCommandOptions } = require('@vendure/cli');
 
 module.exports = defineCliPlugin({
     id: '@vendure-e2e/cloud-dev-cli-plugin',
@@ -19,9 +19,7 @@ module.exports = defineCliPlugin({
             decorate:
                 ({ command, next }) =>
                 async (...args) => {
-                    // The host appends its context after Commander's options
-                    // and Command, so the last three slots are always these.
-                    const [options] = args.slice(-3);
+                    const options = readCommandOptions(args);
                     process.stdout.write(
                         `CLOUD_BEFORE ${JSON.stringify({
                             sawOptions: (command.options || []).map(option => option.long),

@@ -3,7 +3,7 @@
  * action. The wrapper calls the action it is handed, so another plugin can wrap
  * it in turn.
  */
-const { defineCliPlugin } = require('@vendure/cli');
+const { defineCliPlugin, readCommandContext, readCommandOptions } = require('@vendure/cli');
 
 module.exports = defineCliPlugin({
     id: '@vendure-e2e/platform-cli-plugin',
@@ -21,9 +21,8 @@ module.exports = defineCliPlugin({
             decorate:
                 ({ next }) =>
                 async (...args) => {
-                    // The host appends its context after Commander's options
-                    // and Command, so the last three slots are always these.
-                    const [options, , context] = args.slice(-3);
+                    const context = readCommandContext(args);
+                    const options = readCommandOptions(args);
                     process.stdout.write(
                         `PLATFORM_BEFORE ${JSON.stringify({
                             command: context.commandPath,

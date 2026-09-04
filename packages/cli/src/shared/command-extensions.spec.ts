@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { runCli } from './__tests__/run-cli';
-import { CliCommandDefinition, CliCommandGroupDefinition } from './cli-command-definition';
+import { CliCommandDefinition, CliCommandGroupDefinition, CliCommandOption } from './cli-command-definition';
 import { defineCliPlugin } from './cli-plugin';
 import { CliPluginRegistrationError, CommandRegistry } from './command-registry-store';
 
@@ -1133,5 +1133,172 @@ describe('Command extensions: sub-options and description ownership', () => {
         expect(written).toContain('Description of "vendure config server" set by @c/second');
         expect(written).toContain('@b/first');
         writeSpy.mockRestore();
+    });
+});
+
+describe('Command extensions: shared-option scope is order-independent', () => {
+    function groupPlugin() {
+        return defineCliPlugin({
+            id: '@a/group',
+            commands: [
+                {
+                    name: 'settings',
+                    description: 'Settings',
+                    options: [{ long: '--profile <n>', description: 'Profile', required: true }],
+                    subcommands: [{ name: 'set', description: 'Set', action: async () => 0 }],
+                },
+            ],
+        });
+    }
+
+    function rootPlugin() {
+        return defineCliPlugin({
+            id: '@b/root',
+            rootOptions: [{ long: '--profile <n>', description: 'Profile', required: true }],
+            commands: [{ name: 'other', description: 'Other', action: async () => 0 }],
+        });
+    }
+
+    it('rejects a root option that a group already shares', () => {
+        const registry = new CommandRegistry();
+        registry.applyPlugin(groupPlugin());
+
+        expect(() => registry.applyPlugin(rootPlugin())).toThrow(/cannot be shared at two levels/);
+        expect(registry.has('other')).toBe(false);
+    });
+
+    it('rejects a group option that the root already shares', () => {
+        const registry = new CommandRegistry();
+        registry.applyPlugin(rootPlugin());
+
+        expect(() => registry.applyPlugin(groupPlugin())).toThrow(/cannot be shared at two levels/);
+        expect(registry.has('settings')).toBe(false);
+    });
+
+    it('rejects an extension adding a flag a descendant group already shares', () => {
+        const registry = new CommandRegistry();
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: '@a/tree',
+                commands: [
+                    {
+                        name: 'settings',
+                        description: 'Settings',
+                        subcommands: [
+                            {
+                                name: 'nested',
+                                description: 'Nested',
+                                options: [{ long: '--profile <n>', description: 'Profile', required: true }],
+                                subcommands: [{ name: 'set', description: 'Set', action: async () => 0 }],
+                            },
+                        ],
+                    },
+                ],
+            }),
+        );
+
+        const shadow = defineCliPlugin({
+            id: '@b/ext',
+            commands: [],
+            extendCommands: [
+                {
+                    command: 'settings',
+                    options: [{ long: '--profile <n>', description: 'Mine', required: true }],
+                },
+            ],
+        });
+
+        expect(() => registry.applyPlugin(shadow)).toThrow(
+            /already shared by "vendure settings nested" below it/,
+        );
+    });
+});
+
+describe('Command extensions: sub-option depth', () => {
+    it('rejects sub-options nested more than one level', () => {
+        expect(() =>
+            defineCliPlugin({
+                id: '@example/deep',
+                commands: [
+                    {
+                        name: 'deep',
+                        description: 'Deep',
+                        options: [
+                            {
+                                long: '--a <v>',
+                                description: 'A',
+                                required: true,
+                                subOptions: [
+                                    {
+                                        long: '--b <v>',
+                                        description: 'B',
+                                        required: true,
+                                        subOptions: [{ long: '--c <v>', description: 'C', required: true }],
+                                    },
+                                ],
+                            },
+                        ],
+                        action: async () => 0,
+                    },
+                ],
+            }),
+        ).toThrow(/nests sub-options more than one level deep/);
+    });
+
+    it('registers a one-level sub-option so Commander can parse it', async () => {
+        let seen: Record<string, any> | undefined;
+        const registry = new CommandRegistry();
+        registry.registerAll([
+            {
+                name: 'deep',
+                description: 'Deep',
+                options: [
+                    {
+                        long: '--a <v>',
+                        description: 'A',
+                        required: true,
+                        subOptions: [{ long: '--b <v>', description: 'B', required: true }],
+                    },
+                ],
+                action: async (options: Record<string, any>) => {
+                    seen = options;
+                    return 0;
+                },
+            },
+        ]);
+
+        const run = await runCli(registry.toArray(), [], ['deep', '--a', '1', '--b', '2']);
+
+        expect(run.exitCode).toBe(0);
+        expect(seen).toMatchObject({ a: '1', b: '2' });
+    });
+});
+
+describe('Command extensions: the decorator cannot reach the registered command', () => {
+    it('rejects a decorator that mutates the command it is given', () => {
+        const original = coreDev();
+        const optionCount = original.options?.length ?? 0;
+        const registry = new CommandRegistry();
+        registry.registerAll([original]);
+
+        const naughty = defineCliPlugin({
+            id: '@example/naughty',
+            commands: [],
+            extendCommands: [
+                {
+                    command: 'dev',
+                    decorate: ({ command, next }) => {
+                        (command.options as CliCommandOption[]).push({
+                            long: '--injected',
+                            description: 'Injected',
+                        });
+                        return next;
+                    },
+                },
+            ],
+        });
+
+        expect(() => registry.applyPlugin(naughty)).toThrow(/Extending "vendure dev" failed/);
+        expect(original.options?.length).toBe(optionCount);
     });
 });

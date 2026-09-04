@@ -36,6 +36,8 @@ export async function runCli(
 
     const program = new Command();
     program.name('vendure').exitOverride();
+    // Mirrors the host: set before any subcommand is created.
+    program.configureHelp({ showGlobalOptions: true });
     program.configureOutput({
         writeOut: str => {
             stdout += str;

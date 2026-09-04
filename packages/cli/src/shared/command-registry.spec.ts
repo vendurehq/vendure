@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { runCli } from './__tests__/run-cli';
 import {
@@ -17,6 +17,10 @@ interface RecordedCall {
 }
 
 const calls: RecordedCall[] = [];
+
+beforeEach(() => {
+    calls.length = 0;
+});
 
 /**
  * A leaf that records what the host handed to it. The context is always the
@@ -101,10 +105,6 @@ function cloudCommands(): CliCommandNode[] {
 }
 
 describe('registerCommands() with nested commands', () => {
-    afterEach(() => {
-        calls.length = 0;
-    });
-
     it('executes a two-level command', async () => {
         const result = await runCli(cloudCommands(), rootOptions, ['project', 'list']);
 
@@ -317,10 +317,6 @@ describe('registerCommands() help output', () => {
 });
 
 describe('registerCommands() error handling', () => {
-    afterEach(() => {
-        calls.length = 0;
-    });
-
     it('fails on an unknown subcommand', async () => {
         const result = await runCli(cloudCommands(), rootOptions, ['project', 'destroy']);
 

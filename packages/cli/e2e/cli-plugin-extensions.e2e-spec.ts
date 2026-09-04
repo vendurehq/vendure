@@ -34,10 +34,6 @@ function traceOf(stdout: string): string[] {
         .map(line => line.split(' ')[0]);
 }
 
-function markerPayload(stdout: string, marker: string): any {
-    return readMarker(stdout, marker);
-}
-
 describe('Several plugins extending one command', () => {
     let project: CliTestProject;
 
@@ -72,18 +68,18 @@ describe('Several plugins extending one command', () => {
             { expectError: true },
         );
 
-        expect(markerPayload(result.stdout, 'PLATFORM_BEFORE')).toEqual({
+        expect(readMarker(result.stdout, 'PLATFORM_BEFORE')).toEqual({
             command: ['dev'],
             rotate: true,
         });
-        expect(markerPayload(result.stdout, 'CLOUD_BEFORE').cloudEnv).toBe('staging');
+        expect(readMarker(result.stdout, 'CLOUD_BEFORE').cloudEnv).toBe('staging');
     });
 
     it('hands the outer plugin the command the inner one already extended', async () => {
         const result = await project.runCliCommand(['dev', 'bogus'], { expectError: true });
 
         // The Cloud fixture is listed last, so it sees the option Platform added.
-        expect(markerPayload(result.stdout, 'CLOUD_BEFORE').sawOptions).toContain('--rotate-credential');
+        expect(readMarker(result.stdout, 'CLOUD_BEFORE').sawOptions).toContain('--rotate-credential');
     });
 
     it('shows every plugin option in dev help', async () => {
@@ -125,9 +121,7 @@ describe('Extension order follows the activation order', () => {
                 'CLOUD_AFTER',
                 'PLATFORM_AFTER',
             ]);
-            expect(markerPayload(result.stdout, 'CLOUD_BEFORE').sawOptions).not.toContain(
-                '--rotate-credential',
-            );
+            expect(readMarker(result.stdout, 'CLOUD_BEFORE').sawOptions).not.toContain('--rotate-credential');
         } finally {
             project.cleanup();
         }
