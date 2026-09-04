@@ -91,8 +91,8 @@ function writePluginSkipped(packageName: string, headline: string, reason: strin
  * Local to this file: they overlap the registry's reserved lists today, but
  * answer a different question and should not move when those change.
  */
-const HINT_SUPPRESSING_ARGS = ['--help', '-h', '--version', '-V'];
-const HINT_SUPPRESSING_COMMANDS = ['plugins', 'help'];
+const HINT_SUPPRESSING_ARGS = new Set(['--help', '-h', '--version', '-V']);
+const HINT_SUPPRESSING_COMMANDS = new Set(['plugins', 'help']);
 
 /**
  * One-line hint when packages declare CLI plugins but are not enabled yet.
@@ -105,8 +105,8 @@ function maybeWriteInactivePluginsHint(argv: string[]): void {
     }
     const primary = args.find(arg => !arg.startsWith('-'));
     if (
-        (primary && HINT_SUPPRESSING_COMMANDS.includes(primary)) ||
-        args.some(arg => HINT_SUPPRESSING_ARGS.includes(arg))
+        (primary && HINT_SUPPRESSING_COMMANDS.has(primary)) ||
+        args.some(arg => HINT_SUPPRESSING_ARGS.has(arg))
     ) {
         return;
     }

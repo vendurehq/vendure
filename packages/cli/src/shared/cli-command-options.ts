@@ -17,7 +17,9 @@ export function buildOptionFlags(option: CliCommandOption): string {
     parts.push(option.long);
 
     const flags = parts.join(', ');
-    return option.required ? flags : flags.replace(/<([^>]+)>/g, '[$1]');
+    // `[^<>]` rather than `[^>]`: a placeholder never contains `<`, and
+    // excluding it stops a run of unmatched `<` backtracking over the same text.
+    return option.required ? flags : flags.replace(/<([^<>]+)>/g, '[$1]');
 }
 
 export interface ParsedCliOption {

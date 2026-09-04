@@ -63,18 +63,18 @@ export function assertCliPlugin(value: unknown): asserts value is CliPlugin {
         throw new Error('CLI plugin id must be a non-empty string');
     }
     if (!Array.isArray(plugin.commands)) {
-        throw new Error(`CLI plugin "${plugin.id}" must provide a commands array`);
+        throw new TypeError(`CLI plugin "${plugin.id}" must provide a commands array`);
     }
     const rootOptions = plugin.rootOptions ?? [];
     if (!Array.isArray(rootOptions)) {
-        throw new Error(`CLI plugin "${plugin.id}" rootOptions must be an array`);
+        throw new TypeError(`CLI plugin "${plugin.id}" rootOptions must be an array`);
     }
     assertUniqueOptions(plugin.id, rootOptions, 'shared root options');
     assertNodes(plugin.id, plugin.commands, [], rootOptions);
 
     const extensions = plugin.extendCommands ?? [];
     if (!Array.isArray(extensions)) {
-        throw new Error(`CLI plugin "${plugin.id}" extendCommands must be an array`);
+        throw new TypeError(`CLI plugin "${plugin.id}" extendCommands must be an array`);
     }
     assertExtensions(plugin.id, extensions, rootOptions);
 }
@@ -143,57 +143,61 @@ function assertNodes(
 ): void {
     const seenNames = new Set<string>();
     for (const node of nodes) {
-        if (!node || typeof node.name !== 'string' || node.name.trim().length === 0) {
-            throw new Error(`CLI plugin "${pluginId}" has a command with an invalid name`);
-        }
-        const commandPath = [...path, node.name];
-        const label = commandPath.join(' ');
-        if (seenNames.has(node.name)) {
-            throw new Error(`CLI plugin "${pluginId}" declares the command "${label}" more than once`);
-        }
-        seenNames.add(node.name);
-
-        if (typeof node.description !== 'string' || node.description.trim().length === 0) {
-            throw new Error(`CLI plugin "${pluginId}" command "${label}" must provide a description`);
-        }
-
-        const ownOptions = node.options ?? [];
-        assertUniqueOptions(pluginId, ownOptions, `options of command "${label}"`);
-        if (!isCliCommandGroup(node)) {
-            assertMatchesInheritedShape(pluginId, label, ownOptions, inheritedOptions);
-        }
-        if (isCliCommandGroup(node)) {
-            assertDoesNotShadow(pluginId, label, ownOptions, inheritedOptions);
-            if (typeof (node as Partial<CliCommandDefinition>).action === 'function') {
-                throw new Error(
-                    `CLI plugin "${pluginId}" command "${label}" declares both subcommands and an action. ` +
-                        `A command group has no action of its own: move it into a subcommand.`,
-                );
-            }
-            if (node.subcommands.length === 0) {
-                throw new Error(
-                    `CLI plugin "${pluginId}" command group "${label}" must provide at least one subcommand`,
-                );
-            }
-            assertNodes(pluginId, node.subcommands, commandPath, [...inheritedOptions, ...ownOptions]);
-        } else if (typeof node.action !== 'function') {
-            throw new Error(`CLI plugin "${pluginId}" command "${label}" must provide an action function`);
-        }
+        assertNode(pluginId, node, path, inheritedOptions, seenNames);
     }
 }
 
-function assertUniqueOptions(pluginId: string, options: CliCommandOption[], context: string): void {
-    for (const option of options) {
-        for (const subOption of option.subOptions ?? []) {
-            if (subOption.subOptions?.length) {
-                throw new Error(
-                    `CLI plugin "${pluginId}" nests sub-options more than one level deep under ` +
-                        `"${describeOption(option)}" in ${context}. The CLI registers one level, so a ` +
-                        `deeper option would be validated but never parsed.`,
-                );
-            }
-        }
+function assertNode(
+    pluginId: string,
+    node: CliCommandNode,
+    path: string[],
+    inheritedOptions: CliCommandOption[],
+    seenNames: Set<string>,
+): void {
+    if (!node || typeof node.name !== 'string' || node.name.trim().length === 0) {
+        throw new Error(`CLI plugin "${pluginId}" has a command with an invalid name`);
     }
+    const commandPath = [...path, node.name];
+    const label = commandPath.join(' ');
+    if (seenNames.has(node.name)) {
+        throw new Error(`CLI plugin "${pluginId}" declares the command "${label}" more than once`);
+    }
+    seenNames.add(node.name);
+
+    if (typeof node.description !== 'string' || node.description.trim().length === 0) {
+        throw new Error(`CLI plugin "${pluginId}" command "${label}" must provide a description`);
+    }
+
+    const ownOptions = node.options ?? [];
+    assertUniqueOptions(pluginId, ownOptions, `options of command "${label}"`);
+
+    if (!isCliCommandGroup(node)) {
+        assertMatchesInheritedShape(pluginId, label, ownOptions, inheritedOptions);
+        if (typeof node.action !== 'function') {
+            throw new TypeError(
+                `CLI plugin "${pluginId}" command "${label}" must provide an action function`,
+            );
+        }
+        return;
+    }
+
+    assertDoesNotShadow(pluginId, label, ownOptions, inheritedOptions);
+    if (typeof (node as Partial<CliCommandDefinition>).action === 'function') {
+        throw new Error(
+            `CLI plugin "${pluginId}" command "${label}" declares both subcommands and an action. ` +
+                `A command group has no action of its own: move it into a subcommand.`,
+        );
+    }
+    if (node.subcommands.length === 0) {
+        throw new Error(
+            `CLI plugin "${pluginId}" command group "${label}" must provide at least one subcommand`,
+        );
+    }
+    assertNodes(pluginId, node.subcommands, commandPath, [...inheritedOptions, ...ownOptions]);
+}
+
+function assertUniqueOptions(pluginId: string, options: CliCommandOption[], context: string): void {
+    assertSubOptionDepth(pluginId, options, context);
 
     const seenFlags = new Set<string>();
     for (const option of withSubOptions(options)) {
@@ -209,6 +213,24 @@ function assertUniqueOptions(pluginId: string, options: CliCommandOption[], cont
                 throw new Error(`CLI plugin "${pluginId}" declares "${flag}" twice in ${context}`);
             }
             seenFlags.add(flag);
+        }
+    }
+}
+
+/**
+ * Sub-options nest one level, matching what the host registers. Anything
+ * deeper would be validated here and then never parsed.
+ */
+function assertSubOptionDepth(pluginId: string, options: CliCommandOption[], context: string): void {
+    for (const option of options) {
+        for (const subOption of option.subOptions ?? []) {
+            if (subOption.subOptions?.length) {
+                throw new Error(
+                    `CLI plugin "${pluginId}" nests sub-options more than one level deep under ` +
+                        `"${describeOption(option)}" in ${context}. The CLI registers one level, so a ` +
+                        `deeper option would be validated but never parsed.`,
+                );
+            }
         }
     }
 }

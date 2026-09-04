@@ -78,9 +78,9 @@ interface RegistryState {
  */
 export class CliPluginRegistrationError extends Error {
     constructor(readonly conflicts: string[]) {
-        super(
-            `${conflicts.length === 1 ? 'Conflict' : 'Conflicts'}:\n${conflicts.map(c => `  - ${c}`).join('\n')}`,
-        );
+        const heading = conflicts.length === 1 ? 'Conflict' : 'Conflicts';
+        const bullets = conflicts.map(conflict => `  - ${conflict}`).join('\n');
+        super(`${heading}:\n${bullets}`);
         this.name = 'CliPluginRegistrationError';
     }
 }
@@ -263,13 +263,31 @@ function draftCommand(
         return;
     }
 
+    conflicts.push(...commandOptionConflicts(draft, node));
+
+    if (conflicts.length > before) {
+        return;
+    }
+    if (existing) {
+        notices.push(`Replaced command "${node.name}" via ${source}\n`);
+    }
+    draft.commands.set(node.name, { node, source, extendedBy: [], describedBy: {} });
+}
+
+/**
+ * Checks every option a new command tree declares, at any depth, against the
+ * flags the CLI owns and the options already shared at the root.
+ */
+function commandOptionConflicts(draft: RegistryState, node: CliCommandNode): string[] {
+    const conflicts: string[] = [];
     for (const declared of listCommandOptions([node])) {
         const parsed = parseOptionFlags(declared.option);
+        const where = `"vendure ${declared.path.join(' ')}"`;
         for (const flag of [parsed.long, parsed.short]) {
             if (flag && RESERVED_FLAGS.includes(flag)) {
                 conflicts.push(
-                    `Option "${describeOption(declared.option)}" on "vendure ${declared.path.join(' ')}" ` +
-                        `uses "${flag}", which is reserved by the CLI.`,
+                    `Option "${describeOption(declared.option)}" on ${where} uses "${flag}", which is ` +
+                        `reserved by the CLI.`,
                 );
             }
         }
@@ -279,26 +297,19 @@ function draftCommand(
         }
         if (declared.isGroupOption) {
             conflicts.push(
-                `Option "${describeOption(declared.option)}" on the command group ` +
-                    `"vendure ${declared.path.join(' ')}" is already a shared option registered by ` +
-                    `${shared.source ?? 'the CLI'}. ${GROUP_SHARING_EXPLANATION}`,
+                `Option "${describeOption(declared.option)}" on the command group ${where} is already ` +
+                    `a shared option registered by ${shared.source ?? 'the CLI'}. ` +
+                    `${GROUP_SHARING_EXPLANATION}`,
             );
         } else if (!takesSameValue(shared.option, declared.option)) {
             conflicts.push(
-                `Option "${describeOption(declared.option)}" on "vendure ${declared.path.join(' ')}" is not ` +
-                    `compatible with the shared option "${describeOption(shared.option)}" registered by ` +
+                `Option "${describeOption(declared.option)}" on ${where} is not compatible with the ` +
+                    `shared option "${describeOption(shared.option)}" registered by ` +
                     `${shared.source ?? 'the CLI'}: one takes a value and the other does not.`,
             );
         }
     }
-
-    if (conflicts.length > before) {
-        return;
-    }
-    if (existing) {
-        notices.push(`Replaced command "${node.name}" via ${source}\n`);
-    }
-    draft.commands.set(node.name, { node, source, extendedBy: [], describedBy: {} });
+    return conflicts;
 }
 
 function draftExtension(
@@ -327,72 +338,13 @@ function draftExtension(
         return;
     }
 
-    const targetIsGroup = isCliCommandGroup(target);
-    if (targetIsGroup && extension.decorate) {
+    if (isCliCommandGroup(target) && extension.decorate) {
         conflicts.push(
             `"vendure ${label}" is a command group and has no action to decorate. Extend one of its ` +
                 `subcommands instead.`,
         );
     }
-    const inheritedShared = ancestorSharedOptions(draft, path);
-    // Extending a group shares the option with everything below it, so the
-    // subtree matters as much as the ancestors.
-    const descendantShared = targetIsGroup ? descendantGroupOptions(target, path) : [];
-    const descendantLeaf = targetIsGroup ? descendantLeafOptions(target, path) : [];
-    const targetOptions = withSubOptions(target.options ?? []);
-    for (const option of withSubOptions(extension.options ?? [])) {
-        const parsed = parseOptionFlags(option);
-        for (const flag of [parsed.long, parsed.short]) {
-            if (flag && RESERVED_FLAGS.includes(flag)) {
-                conflicts.push(
-                    `Option "${describeOption(option)}" added to "vendure ${label}" uses "${flag}", ` +
-                        `which is reserved by the CLI.`,
-                );
-            }
-        }
-        const clash = targetOptions.find(existing => isSameOption(existing, parsed));
-        if (clash) {
-            conflicts.push(`Option "${describeOption(option)}" is already declared on "vendure ${label}".`);
-        }
-        const descendant = descendantShared.find(existing => isSameOption(existing.option, parsed));
-        if (descendant) {
-            conflicts.push(
-                `Option "${describeOption(option)}" added to the command group "vendure ${label}" is ` +
-                    `already shared by "vendure ${descendant.path.join(' ')}" below it. ${GROUP_SHARING_EXPLANATION}`,
-            );
-            continue;
-        }
-        const leafBelow = descendantLeaf.find(
-            existing => isSameOption(existing.option, parsed) && !takesSameValue(existing.option, option),
-        );
-        if (leafBelow) {
-            conflicts.push(
-                `Option "${describeOption(option)}" added to the command group "vendure ${label}" is not ` +
-                    `compatible with "${describeOption(leafBelow.option)}" on ` +
-                    `"vendure ${leafBelow.path.join(' ')}" below it: one takes a value and the other ` +
-                    `does not.`,
-            );
-            continue;
-        }
-        const inherited = inheritedShared.find(existing => isSameOption(existing, parsed));
-        const shared = findRootOption(draft, parsed);
-        const sharedOption = shared?.option ?? inherited;
-        if (!sharedOption) {
-            continue;
-        }
-        if (targetIsGroup) {
-            conflicts.push(
-                `Option "${describeOption(option)}" added to the command group "vendure ${label}" is ` +
-                    `already a shared option ("${describeOption(sharedOption)}"). ${GROUP_SHARING_EXPLANATION}`,
-            );
-        } else if (!takesSameValue(sharedOption, option)) {
-            conflicts.push(
-                `Option "${describeOption(option)}" added to "vendure ${label}" is not compatible with ` +
-                    `the shared option "${describeOption(sharedOption)}": one takes a value and the ` +
-                    `other does not.`,
-            );
-        }
-    }
+    conflicts.push(...extensionOptionConflicts(draft, extension, target, path));
 
     if (conflicts.length > before) {
         return;
@@ -423,10 +375,89 @@ function draftExtension(
 }
 
 /**
- * Builds the extended command. The original definition is never mutated, so
- * `builtinCommands.<name>.action` keeps pointing at the original
- * implementation and each decorator wraps only what was registered before it.
+ * Checks each option an extension adds against the flags the CLI owns, the
+ * target's own options, and the options shared by the groups above and below
+ * it.
  */
+function extensionOptionConflicts(
+    draft: RegistryState,
+    extension: CliCommandExtension,
+    target: CliCommandNode,
+    path: string[],
+): string[] {
+    const label = path.join(' ');
+    const targetIsGroup = isCliCommandGroup(target);
+    const scope = {
+        // Extending a group shares the option with everything below it, so the
+        // subtree matters as much as the ancestors.
+        ancestors: ancestorSharedOptions(draft, path),
+        descendantGroups: targetIsGroup ? descendantGroupOptions(target, path) : [],
+        descendantLeaves: targetIsGroup ? descendantLeafOptions(target, path) : [],
+        own: withSubOptions(target.options ?? []),
+    };
+
+    const conflicts: string[] = [];
+    for (const option of withSubOptions(extension.options ?? [])) {
+        const parsed = parseOptionFlags(option);
+        const name = describeOption(option);
+        const group = `the command group "vendure ${label}"`;
+
+        for (const flag of [parsed.long, parsed.short]) {
+            if (flag && RESERVED_FLAGS.includes(flag)) {
+                conflicts.push(
+                    `Option "${name}" added to "vendure ${label}" uses "${flag}", which is reserved by ` +
+                        `the CLI.`,
+                );
+            }
+        }
+        if (scope.own.some(existing => isSameOption(existing, parsed))) {
+            conflicts.push(`Option "${name}" is already declared on "vendure ${label}".`);
+        }
+
+        const descendantGroup = scope.descendantGroups.find(existing =>
+            isSameOption(existing.option, parsed),
+        );
+        if (descendantGroup) {
+            conflicts.push(
+                `Option "${name}" added to ${group} is already shared by ` +
+                    `"vendure ${descendantGroup.path.join(' ')}" below it. ${GROUP_SHARING_EXPLANATION}`,
+            );
+            continue;
+        }
+
+        const leafBelow = scope.descendantLeaves.find(
+            existing => isSameOption(existing.option, parsed) && !takesSameValue(existing.option, option),
+        );
+        if (leafBelow) {
+            conflicts.push(
+                `Option "${name}" added to ${group} is not compatible with ` +
+                    `"${describeOption(leafBelow.option)}" on "vendure ${leafBelow.path.join(' ')}" ` +
+                    `below it: one takes a value and the other does not.`,
+            );
+            continue;
+        }
+
+        const sharedOption =
+            findRootOption(draft, parsed)?.option ??
+            scope.ancestors.find(existing => isSameOption(existing, parsed));
+        if (!sharedOption) {
+            continue;
+        }
+        if (targetIsGroup) {
+            conflicts.push(
+                `Option "${name}" added to ${group} is already a shared option ` +
+                    `("${describeOption(sharedOption)}"). ${GROUP_SHARING_EXPLANATION}`,
+            );
+        } else if (!takesSameValue(sharedOption, option)) {
+            conflicts.push(
+                `Option "${name}" added to "vendure ${label}" is not compatible with the shared option ` +
+                    `"${describeOption(sharedOption)}": one takes a value and the other does not.`,
+            );
+        }
+    }
+    return conflicts;
+}
+
 function extendNode(target: CliCommandNode, extension: CliCommandExtension): CliCommandNode {
     const options = [...(target.options ?? []), ...(extension.options ?? [])];
     const description = extension.description ?? target.description;
@@ -448,7 +479,7 @@ function extendNode(target: CliCommandNode, extension: CliCommandExtension): Cli
     // extension `target.options` is the array the built-in module exports.
     const action = extension.decorate({ command: freezeCommand(target), next: target.action });
     if (typeof action !== 'function') {
-        throw new Error('decorate must return an action function');
+        throw new TypeError('decorate must return an action function');
     }
     return { ...command, action };
 }
