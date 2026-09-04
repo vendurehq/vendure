@@ -19,8 +19,39 @@ contribute or replace commands via the CLI plugin API (`defineCliPlugin`).
 interface CliCommandDefinition {
     name: string;                    // The command name (e.g., 'add', 'migrate')
     description: string;             // Command description shown in help
+    arguments?: CliCommandArgument[]; // Optional positional arguments
     options?: CliCommandOption[];    // Optional array of command options
-    action: (options?: Record<string, any>) => Promise<void>; // Command implementation
+    replaces?: boolean;              // Deliberately replace a command of the same name
+    action: (...args: any[]) => Promise<void | number>; // Command implementation
+}
+```
+
+A command that groups further commands declares `subcommands` instead of an
+action. Groups can be nested to any depth, and running one without a subcommand
+prints its help.
+
+```typescript
+interface CliCommandGroupDefinition {
+    name: string;
+    description: string;
+    options?: CliCommandOption[];    // Shared by every command in the group
+    subcommands: CliCommandNode[];   // A command or a further group
+    replaces?: boolean;
+}
+
+type CliCommandNode = CliCommandDefinition | CliCommandGroupDefinition;
+```
+
+## Command Context
+
+Commander passes positional arguments first, then the parsed options object and
+the `Command` instance. The CLI host appends a `CliCommandContext`, so an action
+never has to read or reparse `process.argv`:
+
+```typescript
+interface CliCommandContext<TInheritedOptions = Record<string, any>> {
+    inheritedOptions: TInheritedOptions; // Values of the shared options in scope
+    commandPath: string[];               // e.g. ['config', 'server', 'set']
 }
 ```
 
@@ -375,10 +406,12 @@ Cloud package overriding `vendure dev`).
 ### 1. Author a plugin package
 
 ```typescript
-import { builtinCommands, defineCliPlugin } from '@vendure/cli';
+import { builtinCommands, CliCommandContext, defineCliPlugin } from '@vendure/cli';
 
 export default defineCliPlugin({
     id: '@example/vendure-cli-plugin',
+    // Options added to `vendure` itself, and so shared by every command
+    rootOptions: [{ long: '--token <token>', description: 'API token', required: true }],
     commands: [
         {
             name: 'hello',
@@ -389,8 +422,25 @@ export default defineCliPlugin({
             },
         },
         {
+            // A group: `vendure project list`
+            name: 'project',
+            description: 'Manage projects',
+            options: [{ long: '--profile <name>', description: 'Profile', required: true }],
+            subcommands: [
+                {
+                    name: 'list',
+                    description: 'List projects',
+                    action: async (options, command, context: CliCommandContext) => {
+                        console.log(context.inheritedOptions.token, context.inheritedOptions.profile);
+                        return 0;
+                    },
+                },
+            ],
+        },
+        {
             name: 'dev',
             description: 'Replaces the built-in dev command',
+            replaces: true,
             action: async (target, options) => {
                 // optional setup...
                 return builtinCommands.dev.action(target, options);
@@ -407,15 +457,50 @@ Declare the entry in the plugin package's `package.json`:
   "name": "@example/vendure-cli-plugin",
   "vendure": {
     "cliPlugin": "./dist/cli-plugin.js",
-    "cliCommands": ["hello", "dev"]
+    "cliCommands": ["hello", "project", "dev"]
   }
 }
 ```
 
 `cliCommands` is optional metadata used for actionable unknown-command hints
-without loading plugin code.
+without loading plugin code. Only top-level names belong in it.
 
-### 2. Discovery and explicit activation
+### 2. Shared options
+
+Shared options are declared once, at the scope they apply to: `rootOptions` on
+the plugin for every command, and `options` on a group for the commands inside
+it. Commander accepts them anywhere on the command line once the declaring
+command has been reached, so `vendure --token X project list` and
+`vendure project list --token X` are equivalent, and a repeated option takes its
+last value. Their values are passed to actions in `context.inheritedOptions`,
+keyed by the long flag without `--`, camel-cased.
+
+Help output at every level lists the options valid there: the host enables
+Commander's `showGlobalOptions`, so a subcommand's help shows its own options
+followed by the shared ones under `Global Options`.
+
+### 3. Collisions
+
+A plugin is registered whole or not at all. It is rejected, with the reason
+written to stderr, when it declares:
+
+- a top-level command name that a built-in or an earlier plugin already
+  provides, without `replaces: true`;
+- a shared option an earlier plugin already registered, or one of the CLI's own
+  flags (`-h`, `--help`, `-V`, `--version`);
+- a shared option that disagrees with an existing command option of the same
+  flag about whether a value follows it.
+
+`defineCliPlugin` additionally rejects, at definition time, duplicate sibling
+command names, duplicate flags on one command, an empty group, and a nested
+command that shadows one of the plugin's own shared options.
+
+A command may otherwise declare the same flag as a shared option — the built-in
+`vendure plugins --json` alongside a shared `--json`, for example. Commander
+gives the value to the shared option, and the host copies it onto the command so
+both readings agree.
+
+### 4. Discovery and explicit activation
 
 On startup the CLI:
 
@@ -424,9 +509,9 @@ On startup the CLI:
 2. Scans **direct** `dependencies` / `devDependencies` / `optionalDependencies`
    for packages that declare `vendure.cliPlugin`.
 3. **Loads only packages listed in `vendure.cli.plugins`** (explicit activation).
-4. Merges plugin commands into the registry in allowlist order (same name =
-   replace; last enabled plugin wins). A non-dim stderr notice is printed when
-   a command is replaced.
+4. Merges plugin commands into the registry in allowlist order (last enabled
+   plugin wins among those declaring `replaces: true`). A non-dim stderr notice
+   is printed when a command is replaced.
 
 Packages that declare a plugin but are not enabled are **not** executed. The CLI
 prints a one-line hint instead:
@@ -461,13 +546,14 @@ Project control in the **project** `package.json`:
 - In a monorepo, direct dependencies of every `package.json` from the current
   directory up to the project root are scanned, so a plugin installed in a
   workspace package is found even when `@vendure/cli` is hoisted.
-- Enabled packages that cannot be resolved or loaded are **skipped with an
-  error on stderr** — the CLI (including `vendure plugins remove`) stays
+- Enabled packages that cannot be resolved, loaded or registered are **skipped
+  with an error on stderr** — the CLI (including `vendure plugins remove`) stays
   usable. `vendure plugins` reports them as `failed` with the reason.
 
 ## File Structure
 
 - `packages/cli/src/shared/cli-command-definition.ts` - Interface definitions
+- `packages/cli/src/shared/cli-command-options.ts` - Option flag parsing shared by registration and collision checks
 - `packages/cli/src/shared/cli-plugin.ts` - `defineCliPlugin` / `CliPlugin`
 - `packages/cli/src/shared/cli-plugin-project-config.ts` - Read/write `vendure.cli` allowlist
 - `packages/cli/src/shared/command-registry-store.ts` - Command registry (add/replace)

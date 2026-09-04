@@ -497,7 +497,7 @@ The CLI automatically detects your monorepo structure. No additional configurati
 
 ## Extending the CLI
 
-Packages can add new top-level commands or replace built-in ones (for example overriding
+Packages can add new commands or replace built-in ones (for example overriding
 `vendure dev`) by exporting a CLI plugin.
 
 In the plugin package:
@@ -519,6 +519,8 @@ export default defineCliPlugin({
         {
             name: 'dev',
             description: 'Replace or wrap the built-in dev command',
+            // Required, because `dev` is already a built-in command
+            replaces: true,
             action: async (target, options) => {
                 // optional setup...
                 return builtinCommands.dev.action(target, options);
@@ -541,6 +543,132 @@ Declare the entry point in that package's `package.json`:
 
 The optional `cliCommands` list lets the CLI give actionable errors for unknown
 commands without loading the plugin.
+
+### Nested commands
+
+A command entry that has `subcommands` instead of an `action` is a group. A
+group only exists to hold the commands below it, and running it without a
+subcommand prints its help. Groups can be nested to any depth.
+
+```ts
+import { CliCommandContext, defineCliPlugin } from '@vendure/cli';
+
+interface CloudOptions {
+    token?: string;
+    project?: string;
+}
+
+export default defineCliPlugin({
+    id: '@example/cloud-cli-plugin',
+    rootOptions: [
+        { long: '--token <token>', description: 'API token', required: true },
+        { long: '--project <slug>', description: 'Target project', required: true },
+    ],
+    commands: [
+        {
+            name: 'config',
+            description: 'Manage configuration',
+            options: [{ long: '--profile <name>', description: 'Configuration profile', required: true }],
+            subcommands: [
+                {
+                    name: 'server',
+                    description: 'Server configuration',
+                    subcommands: [
+                        {
+                            name: 'set',
+                            description: 'Set a server configuration value',
+                            arguments: [
+                                { name: 'key', description: 'Configuration key', required: true },
+                                { name: 'value', description: 'Configuration value', required: true },
+                            ],
+                            action: async (
+                                key: string,
+                                value: string,
+                                options: Record<string, any>,
+                                command: unknown,
+                                context: CliCommandContext<CloudOptions>,
+                            ) => {
+                                console.log(context.commandPath); // ['config', 'server', 'set']
+                                console.log(context.inheritedOptions.token);
+                                return 0;
+                            },
+                        },
+                    ],
+                },
+            ],
+        },
+    ],
+});
+```
+
+That plugin adds `vendure config server set <key> <value>`. Help is generated
+by the CLI at every level, so `vendure --help` lists `config`,
+`vendure config --help` lists `server`, and `vendure config server set --help`
+lists the arguments and the options that are valid there. Unknown subcommands,
+unknown options and missing arguments fail through the CLI's normal error path
+with exit code 1.
+
+### Shared options
+
+Options that apply to more than one command are declared once, at the scope
+they belong to:
+
+- `rootOptions` on the plugin are added to `vendure` itself, so every command
+  can be given them.
+- `options` on a command group apply to every command inside that group.
+
+A shared option can be given anywhere on the command line once the command that
+declares it has been reached. These are all equivalent:
+
+```bash
+npx vendure --token abc config server set apiPort 3001
+npx vendure config server set apiPort 3001 --token abc
+npx vendure config --profile ci server set apiPort 3001
+```
+
+A group option is only accepted within its group, so
+`vendure project list --profile ci` fails with an unknown option error.
+
+Values reach the action through the `CliCommandContext` that the CLI appends
+after Commander's own arguments, which means a command never has to read or
+reparse `process.argv`:
+
+```ts
+action: async (options, command, context: CliCommandContext<CloudOptions>) => {
+    context.inheritedOptions.token; // value of the shared --token
+    context.commandPath; // e.g. ['project', 'list']
+};
+```
+
+`inheritedOptions` is keyed by the long flag without `--`, camel-cased, so
+`--api-token` is read as `apiToken`. An option that was neither supplied nor
+given a `defaultValue` is left out.
+
+#### Shared-option precedence
+
+- A shared option is owned by the command that declares it. When it is repeated
+  on one command line, the last value given wins.
+- A plugin cannot declare a shared option that another plugin already declares,
+  and it cannot declare one that shadows a shared option of its own group. Both
+  are reported as errors rather than one quietly overriding the other.
+- A plugin cannot use `-h`, `--help`, `-V` or `--version`, which the CLI owns.
+- A command may declare an option with the same flag as a shared option — the
+  built-in `vendure plugins --json` and a shared `--json` for example. The two
+  then refer to the same value: whatever is supplied on the command line is
+  visible both in the command's own options and in `inheritedOptions`. They must
+  agree on whether a value follows the flag, otherwise the plugin is rejected.
+
+### Collisions
+
+A plugin that would take over a name it does not own is not registered at all,
+and the reason is written to stderr. This applies to:
+
+- a top-level command that a built-in or another plugin already provides, unless
+  the definition sets `replaces: true`;
+- a shared option that another plugin already registered, or a flag the CLI owns.
+
+The rest of the CLI keeps working, so `vendure plugins remove <package>` is
+always available to disable the plugin.
 
 ### Explicit activation
 
@@ -568,11 +696,13 @@ npx vendure plugins remove @example/vendure-cli-plugin
 
 A package named in `plugins` must also be a direct project dependency.
 Disabling a plugin is simply removing it from the list (`vendure plugins remove`).
-Commands are registered in allowlist order (last listed wins when names collide).
+Commands are registered in allowlist order, so when two plugins both declare
+`replaces: true` for the same command, the last listed one wins.
 Plugins can still call the original via `builtinCommands.<name>.action(...)`.
 
-A listed plugin that cannot be resolved or loaded is skipped with an error on
-stderr — the rest of the CLI (including `vendure plugins remove`) stays usable.
+A listed plugin that cannot be resolved, loaded or registered is skipped with an
+error on stderr — the rest of the CLI (including `vendure plugins remove`) stays
+usable.
 
 ## Getting Help
 
