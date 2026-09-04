@@ -3,7 +3,8 @@
  *
  * @example
  * ```ts
- * import { defineCliPlugin, CliCommandContext } from '@vendure/cli';
+ * import { defineCliPlugin } from '@vendure/cli';
+ * import type { CliCommandContext } from '@vendure/cli';
  *
  * export default defineCliPlugin({
  *   id: '@example/vendure-cli-plugin',

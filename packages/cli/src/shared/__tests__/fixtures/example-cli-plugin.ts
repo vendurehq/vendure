@@ -46,9 +46,14 @@ export default defineCliPlugin({
                         command: unknown,
                         context: CliCommandContext<ExampleSharedOptions>,
                     ) => {
-                        process.stdout.write(
-                            `Listing projects with token ${context.inheritedOptions.token ?? ''}\n`,
-                        );
+                        // `required: true` on an option means a value must follow
+                        // the flag, not that the flag has to be given, so check.
+                        const token = context.inheritedOptions.token;
+                        if (!token) {
+                            process.stderr.write('Missing --token\n');
+                            return 1;
+                        }
+                        process.stdout.write(`Listing projects with token ${token}\n`);
                         return 0;
                     },
                 },
@@ -74,16 +79,8 @@ export default defineCliPlugin({
 });
 
 /**
- * Companion package.json fields for this plugin:
- *
- * {
- *   "vendure": {
- *     "cliPlugin": "./dist/cli-plugin.js",
- *     "cliCommands": ["example", "project"]
- *   }
- * }
- *
- * Consumers must also list the package in their project package.json:
+ * Consumers must also list the package in their own package.json for it to be
+ * loaded:
  *
  * {
  *   "vendure": {

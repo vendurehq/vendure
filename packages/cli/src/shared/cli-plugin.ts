@@ -159,6 +159,9 @@ function assertNodes(
 
         const ownOptions = node.options ?? [];
         assertUniqueOptions(pluginId, ownOptions, `options of command "${label}"`);
+        if (!isCliCommandGroup(node)) {
+            assertMatchesInheritedShape(pluginId, label, ownOptions, inheritedOptions);
+        }
         if (isCliCommandGroup(node)) {
             assertDoesNotShadow(pluginId, label, ownOptions, inheritedOptions);
             if (typeof (node as Partial<CliCommandDefinition>).action === 'function') {
@@ -206,6 +209,39 @@ function assertUniqueOptions(pluginId: string, options: CliCommandOption[], cont
                 throw new Error(`CLI plugin "${pluginId}" declares "${flag}" twice in ${context}`);
             }
             seenFlags.add(flag);
+        }
+    }
+}
+
+/**
+ * A command may repeat a flag one of its groups shares — the host copies the
+ * value onto it — but only if both agree on whether a value follows the flag.
+ * Otherwise the group consumes the flag and hands the command a value its own
+ * declaration says it will never see.
+ */
+function assertMatchesInheritedShape(
+    pluginId: string,
+    label: string,
+    ownOptions: CliCommandOption[],
+    inheritedOptions: CliCommandOption[],
+): void {
+    const inherited = withSubOptions(inheritedOptions);
+    for (const option of withSubOptions(ownOptions)) {
+        const parsed = parseOptionFlags(option);
+        const clash = inherited.find(existing => {
+            const other = parseOptionFlags(existing);
+            return (
+                other.long === parsed.long ||
+                (other.short != null && other.short === parsed.short) ||
+                other.attributeName === parsed.attributeName
+            );
+        });
+        if (clash && parseOptionFlags(clash).takesValue !== parsed.takesValue) {
+            throw new Error(
+                `CLI plugin "${pluginId}" command "${label}" declares "${describeOption(option)}", which ` +
+                    `is not compatible with the shared option "${describeOption(clash)}": one takes a ` +
+                    `value and the other does not.`,
+            );
         }
     }
 }

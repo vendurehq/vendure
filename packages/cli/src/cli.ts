@@ -5,7 +5,7 @@ import pc from 'picocolors';
 
 import { builtinCommandDefs } from './commands/builtins';
 import { registerCommands } from './shared/command-registry';
-import { CommandRegistry, RESERVED_COMMANDS } from './shared/command-registry-store';
+import { CommandRegistry } from './shared/command-registry-store';
 import {
     findInactivePluginProvidingCommand,
     listInactiveCliPluginPackages,
@@ -38,8 +38,9 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
         );
 
     // Shared options are declared once on the command that owns them, so
-    // subcommand help needs Commander's "Global Options" section to be complete.
-    // Set before any subcommand is created, which copies the help configuration.
+    // subcommand help needs Commander's "Global Options" section to be
+    // complete. Commander copies the help configuration into each subcommand as
+    // it is created, so this must be set first.
     program.configureHelp({ showGlobalOptions: true });
 
     const registry = new CommandRegistry();
@@ -85,12 +86,13 @@ function writePluginSkipped(packageName: string, headline: string, reason: strin
 }
 
 /**
- * Arguments that mean the user is orienting themselves rather than running a
- * command, so the inactive-plugins hint would be noise. Deliberately its own
- * list: it happens to match the reserved flags today, but they answer
- * different questions.
+ * Arguments and command names that mean the user is orienting themselves
+ * rather than running a command, so the inactive-plugins hint would be noise.
+ * Local to this file: they overlap the registry's reserved lists today, but
+ * answer a different question and should not move when those change.
  */
 const HINT_SUPPRESSING_ARGS = ['--help', '-h', '--version', '-V'];
+const HINT_SUPPRESSING_COMMANDS = ['plugins', 'help'];
 
 /**
  * One-line hint when packages declare CLI plugins but are not enabled yet.
@@ -103,7 +105,7 @@ function maybeWriteInactivePluginsHint(argv: string[]): void {
     }
     const primary = args.find(arg => !arg.startsWith('-'));
     if (
-        (primary && RESERVED_COMMANDS.includes(primary)) ||
+        (primary && HINT_SUPPRESSING_COMMANDS.includes(primary)) ||
         args.some(arg => HINT_SUPPRESSING_ARGS.includes(arg))
     ) {
         return;

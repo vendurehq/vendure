@@ -112,28 +112,27 @@ function addOption(command: Command, option: CliCommandOption): void {
 }
 
 /**
- * Reads the value of each shared option in scope. A value supplied on the
- * command line always beats a default, whichever level declared it, so a group
- * option carrying a `defaultValue` cannot discard what the user typed.
+ * Reads the value of each shared option in scope.
+ *
+ * No two entries can share a name: registration rejects a flag shared by both
+ * a group and the root, or by a group and one of its ancestors, whichever
+ * order the plugins load in. So there is nothing here to resolve — an option
+ * has one owner, and that owner holds its value.
  */
 function readSharedValues(sharedOptions: SharedOption[]): Record<string, any> {
     const values: Record<string, any> = {};
     for (const { owner, attributeName } of sharedOptions) {
-        const source = owner.getOptionValueSource(attributeName);
-        if (source === undefined) {
-            continue;
+        if (owner.getOptionValueSource(attributeName) !== undefined) {
+            values[attributeName] = owner.getOptionValue(attributeName);
         }
-        if (source === 'default' && attributeName in values) {
-            continue;
-        }
-        values[attributeName] = owner.getOptionValue(attributeName);
     }
     return values;
 }
 
 /**
  * Commander calls an action with the positional arguments, then the parsed
- * options, then the Command.
+ * options, then the Command. This runs before the host appends the context, so
+ * the offset is one less than the exported `readCommandOptions` uses.
  */
 function commanderOptions(args: any[]): Record<string, any> {
     return args[args.length - 2] ?? {};

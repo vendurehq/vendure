@@ -13,6 +13,12 @@ import { describeOption, ParsedCliOption, parseOptionFlags, withSubOptions } fro
 import { CliPlugin, normalizeCommandPath } from './cli-plugin';
 
 /**
+ * Why a flag cannot be shared by a group and by something above or below it.
+ */
+const GROUP_SHARING_EXPLANATION =
+    'A group shares its options with everything below it, so the same flag cannot be shared at two levels.';
+
+/**
  * Flags the CLI host owns. A plugin that took one of these would break
  * `vendure --help`, which is how a user recovers from a bad plugin.
  */
@@ -24,14 +30,15 @@ export const RESERVED_FLAGS = ['--help', '-h', '--version', '-V'];
  * extend either. Commander adds `help` implicitly, so the registry would not
  * otherwise see a collision.
  */
-export const RESERVED_COMMANDS = ['plugins', 'help'];
+const RESERVED_COMMAND_REASONS: Record<string, string> = {
+    plugins: 'it is how a plugin is disabled',
+    help: 'it is how a user finds their way out of a broken plugin',
+};
+
+export const RESERVED_COMMANDS = Object.keys(RESERVED_COMMAND_REASONS);
 
 function reservedCommandConflict(name: string): string {
-    const reason =
-        name === 'plugins'
-            ? 'it is how a plugin is disabled'
-            : 'it is how a user finds their way out of a broken plugin';
-    return `Command "${name}" is reserved by the CLI, because ${reason}.`;
+    return `Command "${name}" is reserved by the CLI, because ${RESERVED_COMMAND_REASONS[name]}.`;
 }
 
 interface RegisteredCommand {
@@ -51,6 +58,12 @@ interface RegisteredCommand {
 interface RegisteredOption {
     option: CliCommandOption;
     source?: string;
+    /**
+     * True for an entry that came from a parent's `subOptions`. Kept in the map
+     * so collision lookups see it, but left out of {@link CommandRegistry.getRootOptions}
+     * because the parent already carries it and the host expands it once.
+     */
+    isSubOption: boolean;
 }
 
 interface RegistryState {
@@ -111,8 +124,11 @@ export class CommandRegistry {
         const conflicts: string[] = [];
         const notices: string[] = [];
 
-        for (const option of withSubOptions(plugin.rootOptions ?? [])) {
-            this.draftRootOption(draft, option, plugin.id, conflicts);
+        for (const option of plugin.rootOptions ?? []) {
+            this.draftRootOption(draft, option, plugin.id, conflicts, false);
+            for (const subOption of option.subOptions ?? []) {
+                this.draftRootOption(draft, subOption, plugin.id, conflicts, true);
+            }
         }
         for (const node of plugin.commands) {
             draftCommand(draft, node, plugin.id, conflicts, notices);
@@ -147,16 +163,20 @@ export class CommandRegistry {
      * Options registered on the `vendure` command itself by plugins.
      */
     getRootOptions(): CliCommandOption[] {
-        return Array.from(this.state.rootOptions.values(), entry => entry.option);
+        // Sub-options are excluded: their parent still carries them, and the
+        // host expands each parent once when it registers the option.
+        return Array.from(this.state.rootOptions.values())
+            .filter(entry => !entry.isSubOption)
+            .map(entry => entry.option);
     }
 
     /**
      * Plugins that have extended anything in the tree under the top-level
      * command `name`, in the order they were applied.
      *
-     * Deliberately tree-scoped rather than per command path: it backs the
-     * refusal to replace a command another plugin has extended, and replacing
-     * a group does discard an extension of one of its subcommands.
+     * Tree-scoped rather than per command path, matching the state
+     * `draftCommand` reads when it refuses to replace an extended command.
+     * Exposed for tests and diagnostics; the CLI itself does not call it.
      */
     getExtendedBy(name: string): string[] {
         return [...(this.state.commands.get(name)?.extendedBy ?? [])];
@@ -167,6 +187,7 @@ export class CommandRegistry {
         option: CliCommandOption,
         source: string,
         conflicts: string[],
+        isSubOption: boolean,
     ): void {
         const before = conflicts.length;
         const parsed = parseOptionFlags(option);
@@ -193,8 +214,7 @@ export class CommandRegistry {
                 // would depend on which of the two plugins is listed first.
                 conflicts.push(
                     `Shared option "${describeOption(option)}" is already shared by the command group ` +
-                        `"vendure ${declared.path.join(' ')}". A group shares its options with everything ` +
-                        `below it, so the same flag cannot be shared at two levels.`,
+                        `"vendure ${declared.path.join(' ')}". ${GROUP_SHARING_EXPLANATION}`,
                 );
             } else if (!takesSameValue(declared.option, option)) {
                 conflicts.push(
@@ -205,7 +225,7 @@ export class CommandRegistry {
             }
         }
         if (conflicts.length === before) {
-            draft.rootOptions.set(parsed.attributeName, { option, source });
+            draft.rootOptions.set(parsed.attributeName, { option, source, isSubOption });
         }
     }
 }
@@ -261,8 +281,7 @@ function draftCommand(
             conflicts.push(
                 `Option "${describeOption(declared.option)}" on the command group ` +
                     `"vendure ${declared.path.join(' ')}" is already a shared option registered by ` +
-                    `${shared.source ?? 'the CLI'}. A group shares its options with everything below it, ` +
-                    `so the same flag cannot be shared at two levels.`,
+                    `${shared.source ?? 'the CLI'}. ${GROUP_SHARING_EXPLANATION}`,
             );
         } else if (!takesSameValue(shared.option, declared.option)) {
             conflicts.push(
@@ -319,6 +338,7 @@ function draftExtension(
     // Extending a group shares the option with everything below it, so the
     // subtree matters as much as the ancestors.
     const descendantShared = targetIsGroup ? descendantGroupOptions(target, path) : [];
+    const descendantLeaf = targetIsGroup ? descendantLeafOptions(target, path) : [];
     const targetOptions = withSubOptions(target.options ?? []);
     for (const option of withSubOptions(extension.options ?? [])) {
         const parsed = parseOptionFlags(option);
@@ -338,9 +358,19 @@ function draftExtension(
         if (descendant) {
             conflicts.push(
                 `Option "${describeOption(option)}" added to the command group "vendure ${label}" is ` +
-                    `already shared by "vendure ${descendant.path.join(' ')}" below it. A group shares ` +
-                    `its options with everything below it, so the same flag cannot be shared at two ` +
-                    `levels.`,
+                    `already shared by "vendure ${descendant.path.join(' ')}" below it. ${GROUP_SHARING_EXPLANATION}`,
+            );
+            continue;
+        }
+        const leafBelow = descendantLeaf.find(
+            existing => isSameOption(existing.option, parsed) && !takesSameValue(existing.option, option),
+        );
+        if (leafBelow) {
+            conflicts.push(
+                `Option "${describeOption(option)}" added to the command group "vendure ${label}" is not ` +
+                    `compatible with "${describeOption(leafBelow.option)}" on ` +
+                    `"vendure ${leafBelow.path.join(' ')}" below it: one takes a value and the other ` +
+                    `does not.`,
             );
             continue;
         }
@@ -353,8 +383,7 @@ function draftExtension(
         if (targetIsGroup) {
             conflicts.push(
                 `Option "${describeOption(option)}" added to the command group "vendure ${label}" is ` +
-                    `already a shared option ("${describeOption(sharedOption)}"). A group shares its ` +
-                    `options with everything below it, so the same flag cannot be shared at two levels.`,
+                    `already a shared option ("${describeOption(sharedOption)}"). ${GROUP_SHARING_EXPLANATION}`,
             );
         } else if (!takesSameValue(sharedOption, option)) {
             conflicts.push(
@@ -515,6 +544,32 @@ function descendantGroupOptions(
                 found.push({ path: subPath, option });
             }
             found.push(...descendantGroupOptions(subcommand, subPath));
+        }
+    }
+    return found;
+}
+
+/**
+ * Options declared by the commands below `node`. A group option is shared with
+ * all of them, so the shapes have to agree even though repeating the flag is
+ * allowed.
+ */
+function descendantLeafOptions(
+    node: CliCommandNode,
+    path: string[],
+): Array<{ path: string[]; option: CliCommandOption }> {
+    if (!isCliCommandGroup(node)) {
+        return [];
+    }
+    const found: Array<{ path: string[]; option: CliCommandOption }> = [];
+    for (const subcommand of node.subcommands) {
+        const subPath = [...path, subcommand.name];
+        if (isCliCommandGroup(subcommand)) {
+            found.push(...descendantLeafOptions(subcommand, subPath));
+        } else {
+            for (const option of withSubOptions(subcommand.options ?? [])) {
+                found.push({ path: subPath, option });
+            }
         }
     }
     return found;

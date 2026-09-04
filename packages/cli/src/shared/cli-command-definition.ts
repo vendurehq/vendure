@@ -166,6 +166,14 @@ export interface CliCommandDecoratorInput {
 export type CliCommandDecorator = (input: CliCommandDecoratorInput) => CliCommandAction;
 
 /**
+ * Where each value sits, counting back from the end of a command action's
+ * arguments. The host appends the context after the arguments Commander
+ * supplies, so code inside the host that reads the tail before that point uses
+ * offsets one smaller than these.
+ */
+const ACTION_TAIL_OFFSETS = { context: 1, command: 2, options: 3 } as const;
+
+/**
  * Reads the {@link CliCommandContext} the host appends to a command action's
  * arguments. Use it instead of indexing into the argument list, which a plugin
  * has to do when it takes `...args` in order to forward them to `next`.
@@ -175,7 +183,9 @@ export type CliCommandDecorator = (input: CliCommandDecoratorInput) => CliComman
 export function readCommandContext<TInheritedOptions extends Record<string, any> = Record<string, any>>(
     args: readonly unknown[],
 ): CliCommandContext<TInheritedOptions> {
-    const context = args[args.length - 1] as CliCommandContext<TInheritedOptions> | undefined;
+    const context = args[args.length - ACTION_TAIL_OFFSETS.context] as
+        | CliCommandContext<TInheritedOptions>
+        | undefined;
     if (!context || !Array.isArray(context.commandPath)) {
         throw new Error('No CliCommandContext found. Pass the full argument list a command action received.');
     }
@@ -188,8 +198,14 @@ export function readCommandContext<TInheritedOptions extends Record<string, any>
  *
  * @since 3.8.0
  */
-export function readCommandOptions(args: readonly unknown[]): Record<string, any> {
-    return (args[args.length - 3] as Record<string, any> | undefined) ?? {};
+export function readCommandOptions<TOptions extends Record<string, any> = Record<string, any>>(
+    args: readonly unknown[],
+): TOptions {
+    const options = args[args.length - ACTION_TAIL_OFFSETS.options];
+    if (!options || typeof options !== 'object' || Array.isArray(options)) {
+        throw new Error('No parsed options found. Pass the full argument list a command action received.');
+    }
+    return options as TOptions;
 }
 
 /**
