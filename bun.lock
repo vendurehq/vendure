@@ -538,7 +538,6 @@
         "@modelcontextprotocol/node": "2.0.0",
         "@modelcontextprotocol/server": "2.0.0",
         "@vendure/mcp-sdk": "3.7.0",
-        "hono": "^4.11.4",
         "zod": "^4.2.0",
       },
       "devDependencies": {
