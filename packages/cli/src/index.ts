@@ -38,9 +38,13 @@
  */
 export { builtinCommands } from './commands/builtins';
 export type {
+    CliCommandAction,
     CliCommandArgument,
     CliCommandContext,
+    CliCommandDecorator,
+    CliCommandDecoratorInput,
     CliCommandDefinition,
+    CliCommandExtension,
     CliCommandGroupDefinition,
     CliCommandNode,
     CliCommandOption,

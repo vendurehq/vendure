@@ -10,7 +10,7 @@
  *   }
  * }
  */
-import { builtinCommands, CliCommandContext, defineCliPlugin } from '../../../index';
+import { CliCommandContext, defineCliPlugin } from '../../../index';
 
 interface ExampleSharedOptions {
     token?: string;
@@ -54,15 +54,21 @@ export default defineCliPlugin({
                 },
             ],
         },
+    ],
+    extendCommands: [
         {
-            name: 'dev',
-            description: 'Example wrap of the built-in dev command',
-            // Required to take over a command that already exists.
-            replaces: true,
-            action: async (target, options) => {
-                process.stdout.write('Running wrapped vendure dev via plugin\n');
-                return builtinCommands.dev.action(target, options);
-            },
+            // Adds to the built-in dev command instead of replacing it, so
+            // other plugins can wrap it too.
+            command: 'dev',
+            options: [{ long: '--example-flag', description: 'An option added to dev' }],
+            decorate:
+                ({ next }) =>
+                async (...args) => {
+                    process.stdout.write('Running wrapped vendure dev via plugin\n');
+                    // Call the action handed to us, never builtinCommands.dev.action,
+                    // so any other plugin wrapping dev still runs.
+                    return next(...args);
+                },
         },
     ],
 });
@@ -73,7 +79,7 @@ export default defineCliPlugin({
  * {
  *   "vendure": {
  *     "cliPlugin": "./dist/cli-plugin.js",
- *     "cliCommands": ["example", "project", "dev"]
+ *     "cliCommands": ["example", "project"]
  *   }
  * }
  *

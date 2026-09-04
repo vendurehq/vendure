@@ -1,5 +1,6 @@
 import {
     CliCommandDefinition,
+    CliCommandExtension,
     CliCommandNode,
     CliCommandOption,
     isCliCommandGroup,
@@ -38,6 +39,13 @@ export interface CliPlugin {
      * are equivalent) and reach actions via `CliCommandContext.inheritedOptions`.
      */
     rootOptions?: CliCommandOption[];
+    /**
+     * Additions to commands that are already registered, whether built-in or
+     * contributed by another plugin. Unlike replacing a command, several
+     * plugins can extend the same one: their options are merged and their
+     * decorators are composed in `vendure.cli.plugins` order.
+     */
+    extendCommands?: CliCommandExtension[];
 }
 
 export function assertCliPlugin(value: unknown): asserts value is CliPlugin {
@@ -57,6 +65,80 @@ export function assertCliPlugin(value: unknown): asserts value is CliPlugin {
     }
     assertUniqueOptions(plugin.id, rootOptions, 'shared root options');
     assertNodes(plugin.id, plugin.commands, [], rootOptions);
+
+    const extensions = plugin.extendCommands ?? [];
+    if (!Array.isArray(extensions)) {
+        throw new Error(`CLI plugin "${plugin.id}" extendCommands must be an array`);
+    }
+    assertExtensions(plugin.id, extensions, rootOptions);
+}
+
+/**
+ * Normalises the `command` of an extension to a path, e.g. `'dev'` and
+ * `['config', 'server', 'set']`.
+ */
+export function normalizeCommandPath(command: string | string[]): string[] {
+    return (Array.isArray(command) ? command : command.split(' '))
+        .map(segment => segment.trim())
+        .filter(segment => segment.length > 0);
+}
+
+function assertExtensions(
+    pluginId: string,
+    extensions: CliCommandExtension[],
+    rootOptions: CliCommandOption[],
+): void {
+    const seenPaths = new Set<string>();
+    for (const extension of extensions) {
+        if (!extension || typeof extension !== 'object') {
+            throw new Error(`CLI plugin "${pluginId}" has a command extension that is not an object`);
+        }
+        const path = normalizeCommandPath(extension.command);
+        if (path.length === 0) {
+            throw new Error(`CLI plugin "${pluginId}" has a command extension without a command path`);
+        }
+        const label = path.join(' ');
+        if (seenPaths.has(label)) {
+            throw new Error(
+                `CLI plugin "${pluginId}" extends "${label}" more than once. Combine them into one extension.`,
+            );
+        }
+        seenPaths.add(label);
+
+        if (extension.decorate !== undefined && typeof extension.decorate !== 'function') {
+            throw new Error(`CLI plugin "${pluginId}" extension of "${label}" has a non-function decorate`);
+        }
+        if (
+            extension.decorate === undefined &&
+            !extension.description &&
+            !extension.options?.length &&
+            !extension.arguments?.length
+        ) {
+            throw new Error(
+                `CLI plugin "${pluginId}" extension of "${label}" adds nothing. Give it a decorate, ` +
+                    `description, options or arguments.`,
+            );
+        }
+
+        const options = extension.options ?? [];
+        assertUniqueOptions(pluginId, options, `options added to "${label}"`);
+        assertDoesNotShadow(pluginId, label, options, rootOptions);
+
+        for (const argument of extension.arguments ?? []) {
+            if (!argument || typeof argument.name !== 'string' || argument.name.trim().length === 0) {
+                throw new Error(
+                    `CLI plugin "${pluginId}" extension of "${label}" has an argument without a name`,
+                );
+            }
+            if (argument.required === true) {
+                throw new Error(
+                    `CLI plugin "${pluginId}" extension of "${label}" adds a required argument ` +
+                        `"${argument.name}". An extension may only add optional arguments, because a ` +
+                        `required one would change the arity of a command that is already in use.`,
+                );
+            }
+        }
+    }
 }
 
 /**

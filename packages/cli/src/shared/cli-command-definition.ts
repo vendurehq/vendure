@@ -68,8 +68,13 @@ export interface CliCommandDefinition {
      * `process.exit` after the action settles so plugins can wrap built-ins
      * without a premature exit.
      */
-    action: (...args: any[]) => Promise<void | number>;
+    action: CliCommandAction;
 }
+
+/**
+ * A command implementation, as the CLI host invokes it.
+ */
+export type CliCommandAction = (...args: any[]) => Promise<void | number>;
 
 /**
  * A command that exists only to group subcommands, e.g. the `config` in
@@ -102,6 +107,65 @@ export type CliCommandNode = CliCommandDefinition | CliCommandGroupDefinition;
 
 export function isCliCommandGroup(node: CliCommandNode): node is CliCommandGroupDefinition {
     return Array.isArray((node as CliCommandGroupDefinition).subcommands);
+}
+
+/**
+ * What the host hands a {@link CliCommandDecorator}.
+ */
+export interface CliCommandDecoratorInput {
+    /**
+     * The command as it stands before this decorator: the original definition
+     * plus every extension already applied to it. Read its `options`,
+     * `arguments` and `description` to see what other plugins have contributed.
+     */
+    command: Readonly<CliCommandDefinition>;
+    /**
+     * The action of that command. Call it to run everything beneath this
+     * decorator, ending in the original implementation. Never import the
+     * original action directly: `next` is what makes several plugins able to
+     * wrap the same command.
+     */
+    next: CliCommandAction;
+}
+
+/**
+ * Builds a replacement action that wraps the one it is given. The host calls it
+ * once, when the plugin is registered.
+ */
+export type CliCommandDecorator = (input: CliCommandDecoratorInput) => CliCommandAction;
+
+/**
+ * Adds to a command that is already registered instead of replacing it, so
+ * that several plugins can contribute to the same command.
+ *
+ * Extensions are applied in `vendure.cli.plugins` order, so the last listed
+ * plugin wraps the others and its decorator runs first.
+ */
+export interface CliCommandExtension {
+    /**
+     * The command to extend: `'dev'`, or `['config', 'server', 'set']` for a
+     * nested one.
+     */
+    command: string | string[];
+    /**
+     * Replaces the description shown in help. When more than one plugin sets
+     * it, the last listed plugin wins and the host writes a notice naming both.
+     */
+    description?: string;
+    /**
+     * Options added to the command, keeping the options already declared on it.
+     */
+    options?: CliCommandOption[];
+    /**
+     * Positional arguments appended after the existing ones. They must be
+     * optional: a required argument would change the arity of a command that
+     * other plugins and users already call.
+     */
+    arguments?: CliCommandArgument[];
+    /**
+     * Wraps the command's action.
+     */
+    decorate?: CliCommandDecorator;
 }
 
 /**
