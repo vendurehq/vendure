@@ -67,7 +67,9 @@ export const defaultMethodHooks = [
                 span.setAttribute('job.retries', options?.retries ?? 0);
             },
             post({ result, span }) {
-                span.setAttribute('job.buffered', result.id === 'buffered');
+                // `=== true` because @vendure/core is only a devDependency here: an older
+                // core at runtime has no `isBuffered`, and the attribute must stay a boolean.
+                span.setAttribute('job.buffered', result.isBuffered === true);
             },
         },
     }),
