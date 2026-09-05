@@ -47,7 +47,7 @@ jobs:
             contents: read
         steps:
             - name: Checkout
-              uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
             - name: Generate and validate docs
               uses: ./.github/actions/generate-docs
@@ -62,7 +62,7 @@ jobs:
         steps:
             - name: Generate CI Bot Token
               id: app-token
-              uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2.2.2
+              uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
               with:
                   app-id: ${{ secrets.CI_BOT_APP_ID }}
                   private-key: ${{ secrets.CI_BOT_APP_PRIVATE_KEY }}
@@ -70,7 +70,7 @@ jobs:
                   permission-contents: write
 
             - name: Checkout
-              uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   token: ${{ steps.app-token.outputs.token }}
                   # Check out the branch by name rather than the pushed SHA so the
@@ -103,7 +103,7 @@ jobs:
               if: steps.diff.outputs.changed == 'true'
               id: ai-message
               continue-on-error: true
-              uses: actions/ai-inference@b81b2afb8390ee6839b494a404766bef6493c7d9 # v1.2.8
+              uses: actions/ai-inference@a7805884c80886efc241e94a5351df715968a0ad # v2.1.1
               with:
                   model: openai/gpt-4o-mini
                   max-tokens: 100
