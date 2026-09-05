@@ -206,7 +206,12 @@ function ModifyOrderPage() {
                 </PageBlock>
 
                 <PageBlock column="main" blockId="add-surcharge" title={<Trans>Add surcharge</Trans>}>
-                    <AddSurchargeForm onAddSurcharge={addSurcharge} />
+                    <AddSurchargeForm
+                        onAddSurcharge={addSurcharge}
+                        taxDescriptions={Array.from(
+                            new Set(entity.taxSummary.map(taxLine => taxLine.description)),
+                        )}
+                    />
                 </PageBlock>
 
                 <PageBlock

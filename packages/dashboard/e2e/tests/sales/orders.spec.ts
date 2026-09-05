@@ -507,6 +507,45 @@ test.describe('Orders', () => {
         await expect(recalculateCheckbox).toBeChecked();
     });
 
+    // #3389 — existing tax descriptions should be available when adding a surcharge
+    test('should suggest existing tax descriptions when adding a surcharge', async ({ page }) => {
+        test.setTimeout(60_000);
+
+        const orderId = await createModifyingOrder(page);
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const { order } = await client.gql(
+            `
+            query ($id: ID!) {
+                order(id: $id) {
+                    taxSummary {
+                        description
+                    }
+                }
+            }
+        `,
+            { id: orderId },
+        );
+        const existingTaxDescription = order.taxSummary[0]?.description;
+        expect(existingTaxDescription).toBeTruthy();
+
+        await page.goto(`/orders/${orderId}/modify`);
+        await expect(page.getByRole('heading', { name: 'Modify order' })).toBeVisible({
+            timeout: 10_000,
+        });
+
+        const taxDescriptionInput = page.getByRole('combobox', { name: 'Tax description' });
+        await taxDescriptionInput.click();
+        await taxDescriptionInput.press('ArrowDown');
+        await expect(page.getByRole('option', { name: existingTaxDescription, exact: true })).toBeVisible();
+
+        await page.getByRole('option', { name: existingTaxDescription, exact: true }).click();
+        await expect(taxDescriptionInput).toHaveValue(existingTaxDescription);
+
+        await taxDescriptionInput.fill('Custom tax description');
+        await expect(taxDescriptionInput).toHaveValue('Custom tax description');
+    });
+
     test.describe('Order lifecycle', () => {
         test('should fulfill an order', async ({ page }) => {
             test.setTimeout(60_000);

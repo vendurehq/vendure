@@ -2,6 +2,14 @@ import { AffixedInput } from '@/vdb/components/data-input/affixed-input.js';
 import { MoneyInput } from '@/vdb/components/data-input/money-input.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
 import { Button } from '@/vdb/components/ui/button.js';
+import {
+    Combobox,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxInput,
+    ComboboxItem,
+    ComboboxList,
+} from '@/vdb/components/ui/combobox.js';
 import { Form } from '@/vdb/components/ui/form.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { Switch } from '@/vdb/components/ui/switch.js';
@@ -32,9 +40,10 @@ type SurchargeFormValues = z.infer<typeof surchargeFormSchema>;
 
 export interface AddSurchargeFormProps {
     onAddSurcharge: (surcharge: SurchargeInput) => void;
+    taxDescriptions: readonly string[];
 }
 
-export function AddSurchargeForm({ onAddSurcharge }: Readonly<AddSurchargeFormProps>) {
+export function AddSurchargeForm({ onAddSurcharge, taxDescriptions }: Readonly<AddSurchargeFormProps>) {
     const { activeChannel } = useChannel();
 
     const surchargeForm = useForm<SurchargeFormValues>({
@@ -121,7 +130,33 @@ export function AddSurchargeForm({ onAddSurcharge }: Readonly<AddSurchargeFormPr
                         control={surchargeForm.control}
                         name="taxDescription"
                         label={<Trans>Tax description</Trans>}
-                        render={({ field }) => <Input {...field} />}
+                        render={({ field }) => (
+                            <Combobox
+                                items={taxDescriptions}
+                                inputValue={field.value ?? ''}
+                                onInputValueChange={field.onChange}
+                                onValueChange={value => field.onChange(value ?? '')}
+                            >
+                                <ComboboxInput
+                                    ref={field.ref}
+                                    name={field.name}
+                                    onBlur={field.onBlur}
+                                    showClear
+                                />
+                                <ComboboxContent>
+                                    <ComboboxEmpty>
+                                        <Trans>No matching tax descriptions</Trans>
+                                    </ComboboxEmpty>
+                                    <ComboboxList>
+                                        {taxDescriptions.map(description => (
+                                            <ComboboxItem key={description} value={description}>
+                                                {description}
+                                            </ComboboxItem>
+                                        ))}
+                                    </ComboboxList>
+                                </ComboboxContent>
+                            </Combobox>
+                        )}
                     />
                 </DetailFormGrid>
                 <Button
