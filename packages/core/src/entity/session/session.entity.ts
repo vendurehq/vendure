@@ -17,6 +17,7 @@ import { Order } from '../order/order.entity';
  */
 @Entity()
 @TableInheritance({ column: { type: 'varchar', name: 'type' } })
+@Index(['type'])
 export abstract class Session extends VendureEntity implements HasCustomFields {
     @Index({ unique: true })
     @Column()
