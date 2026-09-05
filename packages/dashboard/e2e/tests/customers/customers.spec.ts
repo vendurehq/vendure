@@ -68,6 +68,7 @@ test.describe('Address form country dropdown', () => {
         customerId = '';
     });
 
+    // #5191 — saved address countries must display in the customer address form
     test('should pre-select an existing address country when editing', async ({ page }) => {
         const client = new VendureAdminClient(page);
         await client.login();

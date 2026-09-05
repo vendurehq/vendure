@@ -37,6 +37,7 @@ test.describe('Shipping Methods CRUD', () => {
         await lp.expectRowCountGreaterThan(0);
     });
 
+    // #5191 — saved address countries must display in the shipping test address form
     test('should display the saved country in the test address form', async ({ page }) => {
         await page.addInitScript(
             address => {
