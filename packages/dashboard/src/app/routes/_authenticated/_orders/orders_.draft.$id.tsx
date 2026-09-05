@@ -105,6 +105,10 @@ function DraftOrderPage() {
         queryKey: eligibleShippingMethodsQueryKey,
         queryFn: () => api.query(draftOrderEligibleShippingMethodsDocument, { orderId: entity?.id ?? '' }),
         enabled: !!entity?.shippingAddress?.streetLine1,
+        // The queryKey carries the order's identity, so keepPreviousData
+        // (the app-wide default) would show a previous draft order's
+        // shipping methods while switching between orders. Opt out.
+        placeholderData: undefined,
     });
 
     // Eligible shipping methods depend on the order's lines, customer, and

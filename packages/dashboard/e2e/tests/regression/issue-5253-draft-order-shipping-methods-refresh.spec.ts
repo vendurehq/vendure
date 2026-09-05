@@ -2,7 +2,7 @@ import { type Page, expect, test } from '@playwright/test';
 
 import { BaseListPage } from '../../page-objects/list-page.base.js';
 
-// Regression: https://github.com/vendurehq/vendure/issues/5253
+// #5253 — Refresh draft-order eligible shipping methods without a page reload
 //
 // The draft order page's eligible-shipping-methods query
 // (queryKey: ['eligibleShippingMethods', orderId]) was never invalidated
