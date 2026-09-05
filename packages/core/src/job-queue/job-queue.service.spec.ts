@@ -37,6 +37,23 @@ describe('JobQueueService', () => {
         return assertFound(testJobQueueStrategy.findOne(id));
     }
 
+    /**
+     * Polls the strategy until every given job is settled. ActiveQueue persists a settled
+     * job from its own `onFailOrComplete()` chain, which the test cannot await, so a fixed
+     * number of ticks would only line up with that chain by accident.
+     */
+    async function waitUntilSettled(...ids: string[]): Promise<void> {
+        const deadline = Date.now() + 2_000;
+        while (Date.now() < deadline) {
+            const jobs = await Promise.all(ids.map(id => getJob(id)));
+            if (jobs.every(job => job.isSettled)) {
+                return;
+            }
+            await tick(1);
+        }
+        throw new Error(`Timed out waiting for jobs to settle: ${ids.join(', ')}`);
+    }
+
     beforeEach(async () => {
         setProcessContext('server');
 
@@ -232,8 +249,8 @@ describe('JobQueueService', () => {
     });
 
     it('processes existing jobs on start', async () => {
-        // job-1 completes and job-2 is dispatched in the same poll cycle, which needs a
-        // second concurrency slot. ActiveQueue reads this when the queue is created below.
+        // Neither job settles until `subject` emits, so both occupy a concurrency slot at
+        // the same time. ActiveQueue reads this when the queue is created below.
         testJobQueueStrategy.concurrency = 2;
 
         await testJobQueueStrategy.prePopulate([
@@ -249,20 +266,34 @@ describe('JobQueueService', () => {
             }),
         ]);
 
+        const subject = new Subject<void>();
+        const processing = new Set<string>();
+        let onBothProcessing: () => void;
+        const bothProcessing = new Promise<void>(resolve => (onBothProcessing = resolve));
         const testQueue = await jobQueueService.createQueue<string>({
             name: 'test',
-            process: async job => {
-                return;
+            process: job => {
+                processing.add(job.id as string);
+                if (processing.size === 2) {
+                    onBothProcessing();
+                }
+                return subject.pipe(take(1)).toPromise();
             },
         });
 
-        const job1 = await getJob('job-1');
-        const job2 = await getJob('job-2');
-        expect(job1?.state).toBe(JobState.COMPLETED);
-        expect(job2?.state).toBe(JobState.RUNNING);
+        const getStates = async () => [(await getJob('job-1')).state, (await getJob('job-2')).state];
 
-        await tick(queuePollInterval);
-        expect((await getJob('job-2')).state).toBe(JobState.COMPLETED);
+        // ActiveQueue persists a job before it calls `process`, so once both jobs have
+        // entered `process` both must be RUNNING in the store. Neither has settled, so this
+        // can only hold if the queue dispatched the jobs which existed before it started.
+        await bothProcessing;
+        expect(await getStates()).toEqual([JobState.RUNNING, JobState.RUNNING]);
+
+        subject.next();
+        await waitUntilSettled('job-1', 'job-2');
+        expect(await getStates()).toEqual([JobState.COMPLETED, JobState.COMPLETED]);
+
+        subject.complete();
     });
 
     it('retries', async () => {
@@ -296,7 +327,9 @@ describe('JobQueueService', () => {
         await tick(queuePollInterval);
 
         expect(backoffStrategySpy).toHaveBeenCalledTimes(1);
-        expect(backoffStrategySpy.mock.calls[0]).toEqual(['test', 1, await getJob(testJob)]);
+        expect(backoffStrategySpy.mock.calls[0][0]).toBe('test');
+        expect(backoffStrategySpy.mock.calls[0][1]).toBe(1);
+        expect(backoffStrategySpy.mock.calls[0][2].id).toBe(testJob.id);
 
         subject.next(false);
         await tick();
@@ -306,7 +339,9 @@ describe('JobQueueService', () => {
         await tick(queuePollInterval);
 
         expect(backoffStrategySpy).toHaveBeenCalledTimes(2);
-        expect(backoffStrategySpy.mock.calls[1]).toEqual(['test', 2, await getJob(testJob)]);
+        expect(backoffStrategySpy.mock.calls[1][0]).toBe('test');
+        expect(backoffStrategySpy.mock.calls[1][1]).toBe(2);
+        expect(backoffStrategySpy.mock.calls[1][2].id).toBe(testJob.id);
 
         subject.next(false);
         await tick();
