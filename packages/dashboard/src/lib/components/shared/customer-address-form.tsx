@@ -169,13 +169,18 @@ export function CustomerAddressForm<T>({
                         render={({ field }) => (
                             <Select
                                 items={countriesData ? Object.fromEntries(countriesData.countries.items.map(c => [c.code, c.name])) : {}}
-                                onValueChange={field.onChange}
-                                defaultValue={field.value || undefined}
-                                value={field.value || undefined}
+                                onValueChange={value => value && field.onChange(value)}
+                                value={field.value ?? ''}
                                 disabled={isLoadingCountries}
                             >
                                 <SelectTrigger>
-                                    <SelectValue placeholder={t`Select a country`} />
+                                    <SelectValue placeholder={t`Select a country`}>
+                                        {(value: string) =>
+                                            countriesData?.countries.items.find(
+                                                country => country.code === value,
+                                            )?.name
+                                        }
+                                    </SelectValue>
                                 </SelectTrigger>
                                 <SelectContent>
                                     {countriesData?.countries.items.map(country => (
