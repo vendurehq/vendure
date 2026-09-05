@@ -201,6 +201,18 @@ const customConfig = mergeConfig(testConfig(), {
                 type: 'int',
                 readonly: true,
             },
+            {
+                // Public and writable, so it is added to RegisterCustomerInput by
+                // addRegisterCustomerCustomFieldsInput().
+                name: 'validateOnRegister',
+                type: 'string',
+                nullable: true,
+                validate: value => {
+                    if (typeof value === 'string' && value !== 'valid') {
+                        return `The value ['${value}'] is not valid`;
+                    }
+                },
+            },
         ],
         Collection: [
             { name: 'secretKey1', type: 'string', defaultValue: '', public: false, internal: true },
@@ -502,6 +514,30 @@ describe('Custom fields', () => {
             );
         }, 'The custom field "score" is readonly'),
     );
+
+    describe('validation of custom fields on RegisterCustomerInput', () => {
+        it(
+            'throws if a custom field value is invalid',
+            assertThrowsWithMessage(async () => {
+                await shopClient.query(registerWithCustomFieldsDocument, {
+                    emailAddress: 'register-validation-invalid@test.com',
+                    value: 'nope',
+                });
+            }, "The value ['nope'] is not valid"),
+        );
+
+        it('succeeds if the custom field value is valid', async () => {
+            const { registerCustomerAccount } = await shopClient.query(
+                registerWithCustomFieldsDocument,
+                {
+                    emailAddress: 'register-validation-valid@test.com',
+                    value: 'valid',
+                },
+            );
+
+            expect(registerCustomerAccount).toEqual({ success: true });
+        });
+    });
 
     it(
         'throws on attempt to create readonly field',
@@ -1553,6 +1589,20 @@ const getProductsFilterByIntListDocument = graphql(`
     query GetProductsFilterByIntList($value: Float!) {
         products(options: { filter: { intListWithValidation: { inList: $value } } }) {
             totalItems
+        }
+    }
+`);
+
+const registerWithCustomFieldsDocument = graphqlShop(`
+    mutation RegisterWithCustomFields($emailAddress: String!, $value: String!) {
+        registerCustomerAccount(input: { emailAddress: $emailAddress, customFields: { validateOnRegister: $value } }) {
+            ... on Success {
+                success
+            }
+            ... on ErrorResult {
+                errorCode
+                message
+            }
         }
     }
 `);
