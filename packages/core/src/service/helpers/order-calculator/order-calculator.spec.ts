@@ -20,6 +20,7 @@ import {
     CalculateTaxLinesArgs,
     TaxLineCalculationStrategy,
 } from '../../../config/tax/tax-line-calculation-strategy';
+import { TransactionalConnection } from '../../../connection';
 import { Promotion } from '../../../entity';
 import { OrderLine } from '../../../entity/order-line/order-line.entity';
 import { Order } from '../../../entity/order/order.entity';
@@ -2060,6 +2061,10 @@ function createTestModule() {
             { provide: ConfigService, useClass: MockConfigService },
             { provide: EventBus, useValue: { publish: () => ({}) } },
             { provide: ZoneService, useValue: { getAllWithMembers: () => [] } },
+            {
+                provide: TransactionalConnection,
+                useValue: { getRepository: () => ({ save: () => Promise.resolve() }) },
+            },
         ],
     }).compile();
 }
