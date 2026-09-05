@@ -1,3 +1,4 @@
+import { extendDetailFormQuery } from '@/vdb/framework/document-extension/extend-detail-form-query.js';
 import { addCustomFields } from '@/vdb/framework/document-introspection/add-custom-fields.js';
 import { getDetailQueryOptions } from '@/vdb/framework/page/use-detail-page.js';
 import { ResultOf } from '@/vdb/graphql/graphql.js';
@@ -11,11 +12,21 @@ async function ensureOrderWithIdExists(context: any, params: { id: string }): Pr
         throw new Error('ID param is required');
     }
 
+    const { extendedQuery, errorMessage } = extendDetailFormQuery(
+        addCustomFields(orderDetailDocument, { includeNestedFragments: ['OrderLine', 'Fulfillment'] }),
+        'order-detail',
+    );
+
+    if (errorMessage) {
+        console.warn(
+            'Query extension error:',
+            errorMessage,
+            'The page will continue with the default query.',
+        );
+    }
+
     const result: ResultOf<typeof orderDetailDocument> = await context.queryClient.ensureQueryData(
-        getDetailQueryOptions(
-            addCustomFields(orderDetailDocument, { includeNestedFragments: ['OrderLine', 'Fulfillment'] }),
-            { id: params.id },
-        ),
+        getDetailQueryOptions(extendedQuery, { id: params.id }),
     );
 
     if (!result.order) {
