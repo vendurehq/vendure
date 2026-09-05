@@ -4,7 +4,7 @@ generated: true
 ---
 ## ListPage
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/list-page.tsx" sourceLine="524" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/list-page.tsx" sourceLine="581" packageName="@vendure/dashboard" since="3.3.0" />
 
 Auto-generates a list page with columns generated based on the provided query document fields.
 
@@ -103,7 +103,7 @@ Parameters
 
 ## ListPageProps
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/list-page.tsx" sourceLine="37" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/list-page.tsx" sourceLine="38" packageName="@vendure/dashboard" since="3.3.0" />
 
 Props to configure the [ListPage](/reference/dashboard/list-views/list-page#listpage) component.
 
@@ -121,6 +121,7 @@ interface ListPageProps<T extends TypedDocumentNode<U, V>, U extends ListQuerySh
     additionalColumns?: AC;
     defaultColumnOrder?: (keyof ListQueryFields<T> | keyof AC | CustomFieldKeysOfItem<ListQueryFields<T>>)[];
     defaultSort?: SortingState;
+    defaultColumnFilters?: ColumnFiltersState;
     defaultVisibility?: Partial<
         Record<keyof ListQueryFields<T> | keyof AC | CustomFieldKeysOfItem<ListQueryFields<T>>, boolean>
     >;
@@ -377,6 +378,33 @@ Allows you to specify the default sorting applied to the table.
 
 ```tsx
 defaultSort={[{ id: 'updatedAt', desc: true }]}
+```
+### defaultColumnFilters
+
+<MemberInfo kind="property" type={`ColumnFiltersState`}  since="3.8.0"  />
+
+Allows you to specify column filters which are applied when the current user has not
+yet configured any filters for this page. They behave exactly as if the user had set
+them: they show up as active filter chips, and can be edited or removed.
+
+Once the user edits the filters, their choice is persisted and these defaults are no
+longer applied — including when the user removes every filter. Clearing the filters is
+persisted as a deliberate choice, so the defaults do not reappear on the next visit.
+
+Requires `pageId` to be set, since the persisted table settings are what distinguishes
+"not configured yet" from "cleared by the user". Without a `pageId` the filters live
+only in the URL, which cannot express that difference, and the defaults are ignored.
+
+*Example*
+
+```tsx
+ <ListPage
+   pageId="product-list"
+   listQuery={productListQuery}
+   title="Products"
+   // hide archived products until the user says otherwise
+   defaultColumnFilters={[{ id: 'isArchived', value: { eq: false } }]}
+ />
 ```
 ### defaultVisibility
 
