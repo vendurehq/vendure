@@ -5,6 +5,7 @@ import {
     getCatalogs,
 } from '@lingui/cli/api';
 import { getConfig, LinguiConfigNormalized } from '@lingui/conf';
+import { compileMessage, type CompiledMessage } from '@lingui/message-utils/compileMessage';
 import glob from 'fast-glob';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -102,7 +103,7 @@ export function translationsPlugin(options: TranslationsPluginOptions): Plugin {
                         ${[...mergedMessageMap.entries()]
                             .map(([locale, messages]) => {
                                 const safeLocale = locale.replace(/-/g, '_');
-                                return `${safeLocale}: ${JSON.stringify(messages)}`;
+                                return `${safeLocale}: ${JSON.stringify(compileMessages(messages))}`;
                             })
                             .join(',\n')}
                     };
@@ -266,4 +267,17 @@ async function createMergedMessageMap({
     }
 
     return mergedMessageMap;
+}
+
+/**
+ * Built-in catalogs are compiled by `@lingui/vite-plugin` when their `.po` files are imported;
+ * plugin catalogs are assembled here into `virtual:plugin-translations` and would otherwise reach
+ * `@lingui/core` as raw ICU source strings, which disables interpolation and plurals at runtime.
+ */
+function compileMessages(messages: Record<string, string>): Record<string, CompiledMessage> {
+    const compiled: Record<string, CompiledMessage> = {};
+    for (const [id, message] of Object.entries(messages)) {
+        compiled[id] = compileMessage(message);
+    }
+    return compiled;
 }
