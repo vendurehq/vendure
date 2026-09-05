@@ -52,3 +52,65 @@ test('should show new history entries after updating the customer', async ({ pag
 
     await expect(page.getByText('Customer details updated').first()).toBeVisible();
 });
+
+test.describe('Address form country dropdown', () => {
+    let customerId = '';
+
+    test.afterEach(async ({ page }) => {
+        if (!customerId) {
+            return;
+        }
+        const client = new VendureAdminClient(page);
+        await client.login();
+        await client.gql(`mutation DeleteCustomer($id: ID!) { deleteCustomer(id: $id) { result } }`, {
+            id: customerId,
+        });
+        customerId = '';
+    });
+
+    test('should pre-select an existing address country when editing', async ({ page }) => {
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const suffix = Date.now();
+        const customerResult = await client.gql(
+            `mutation CreateCustomer($input: CreateCustomerInput!) {
+                createCustomer(input: $input) {
+                    ... on Customer { id }
+                    ... on ErrorResult { errorCode message }
+                }
+            }`,
+            {
+                input: {
+                    firstName: 'Country',
+                    lastName: 'Preselection',
+                    emailAddress: `country-preselection-${suffix}@example.com`,
+                },
+            },
+        );
+        customerId = customerResult.createCustomer.id;
+        expect(customerId).toBeTruthy();
+
+        await client.gql(
+            `mutation CreateCustomerAddress($customerId: ID!, $input: CreateAddressInput!) {
+                createCustomerAddress(customerId: $customerId, input: $input) { id }
+            }`,
+            {
+                customerId,
+                input: {
+                    fullName: 'Country Preselection',
+                    streetLine1: '123 Main Street',
+                    city: 'New York',
+                    countryCode: 'US',
+                },
+            },
+        );
+
+        await page.goto(`/customers/${customerId}`);
+        await expect(page.getByRole('heading', { name: 'Country Preselection' })).toBeVisible();
+        const addressCard = page.getByText('123 Main Street').locator('..').locator('..');
+        await addressCard.getByRole('button').first().click();
+
+        const countrySelect = page.getByRole('dialog', { name: 'Edit Address' }).getByRole('combobox');
+        await expect(countrySelect).toContainText('United States of America');
+    });
+});

@@ -200,12 +200,18 @@ export function TestAddressForm({ onAddressChange }: Readonly<TestAddressFormPro
                                 render={({ field }) => (
                                     <Select
                                         items={countriesData ? Object.fromEntries(countriesData.countries.items.map(c => [c.code, c.name])) : {}}
-                                        onValueChange={field.onChange}
-                                        value={field.value}
+                                        onValueChange={value => value && field.onChange(value)}
+                                        value={field.value ?? ''}
                                         disabled={isLoadingCountries}
                                     >
                                         <SelectTrigger>
-                                            <SelectValue placeholder="Select a country" />
+                                            <SelectValue placeholder={<Trans>Select a country</Trans>}>
+                                                {(value: string) =>
+                                                    countriesData?.countries.items.find(
+                                                        country => country.code === value,
+                                                    )?.name
+                                                }
+                                            </SelectValue>
                                         </SelectTrigger>
                                         <SelectContent>
                                             {countriesData?.countries.items.map(country => (

@@ -37,6 +37,33 @@ test.describe('Shipping Methods CRUD', () => {
         await lp.expectRowCountGreaterThan(0);
     });
 
+    test('should display the saved country in the test address form', async ({ page }) => {
+        await page.addInitScript(
+            address => {
+                localStorage.setItem('vendure-shipping-test-address', JSON.stringify(address));
+            },
+            {
+                fullName: 'Test Customer',
+                streetLine1: '123 Main Street',
+                city: 'New York',
+                province: 'NY',
+                postalCode: '10001',
+                countryCode: 'US',
+            },
+        );
+
+        const lp = listPage(page);
+        await lp.goto();
+        await lp.expectLoaded();
+        await lp.search('Standard Shipping');
+        await lp.clickEntity('Standard Shipping');
+        await page.getByRole('button', { name: 'Test' }).click();
+
+        const testSheet = page.getByRole('dialog', { name: 'Test Shipping Method' });
+        const countryField = testSheet.locator('[data-slot="field"]').filter({ hasText: 'Country' });
+        await expect(countryField.getByRole('combobox')).toContainText('United States of America');
+    });
+
     test('should create a new shipping method', async ({ page }) => {
         const dp = detailPage(page);
         await dp.gotoNew();
