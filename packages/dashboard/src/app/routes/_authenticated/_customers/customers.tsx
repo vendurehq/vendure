@@ -24,19 +24,13 @@ function CustomerListPage() {
             onSearchTermChange={searchTerm => {
                 return searchTerm
                     ? {
-                          lastName: { contains: searchTerm },
-                          emailAddress: { contains: searchTerm },
-                          phoneNumber: { contains: searchTerm },
+                          _or: [
+                              { lastName: { contains: searchTerm } },
+                              { emailAddress: { contains: searchTerm } },
+                              { phoneNumber: { contains: searchTerm } },
+                          ],
                       }
                     : {};
-            }}
-            transformVariables={variables => {
-                return {
-                    options: {
-                        ...variables.options,
-                        filterOperator: 'OR',
-                    },
-                };
             }}
             route={Route}
             customizeColumns={{

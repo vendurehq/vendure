@@ -38,18 +38,9 @@ function PromotionListPage() {
             onSearchTermChange={searchTerm => {
                 return searchTerm
                     ? {
-                          name: { contains: searchTerm },
-                          couponCode: { contains: searchTerm },
+                          _or: [{ name: { contains: searchTerm } }, { couponCode: { contains: searchTerm } }],
                       }
                     : {};
-            }}
-            transformVariables={variables => {
-                return {
-                    options: {
-                        ...variables.options,
-                        filterOperator: 'OR' as const,
-                    },
-                };
             }}
             customizeColumns={{
                 name: {

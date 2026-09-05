@@ -353,6 +353,47 @@ test.describe('Product List', () => {
             ).toBeVisible();
         });
 
+        // #5272 — verifies that product search and column filters combine with AND semantics
+        test('should keep column filters applied when a search term is entered', async ({ page }) => {
+            const lp = listPage(page);
+            await lp.goto();
+            await lp.expectLoaded();
+
+            const initialCount = await lp.getRows().count();
+
+            // Filter down to the 3 products with "Camera" in the name
+            await lp.openAddFilterMenu();
+            const dropdown = page.locator('[data-slot="dropdown-menu-content"]');
+            await dropdown.getByRole('menuitem', { name: /name/i }).click();
+
+            const dialog = page.locator('[role="dialog"]');
+            await dialog.getByPlaceholder('Enter filter value...').fill('Camera');
+            const filterResponse = page.waitForResponse(
+                resp => resp.url().includes('/admin-api') && resp.status() === 200,
+            );
+            await dialog.getByRole('button', { name: 'Apply filter' }).click();
+            await filterResponse;
+            await lp.expectRowCount(3);
+
+            // Searching within that filter must AND the two, not OR them
+            await lp.search('Lens');
+            await lp.expectRowCount(1);
+            await expect(lp.getRows().filter({ hasText: 'Camera Lens' })).toHaveCount(1);
+            await expect(lp.getRows().filter({ hasText: 'Instant Camera' })).toHaveCount(0);
+
+            // Clearing the search must restore the filtered set
+            await lp.clearSearch();
+            await lp.expectRowCount(3);
+
+            // Clearing the filter must restore the initial set
+            const clearResponse = page.waitForResponse(
+                resp => resp.url().includes('/admin-api') && resp.status() === 200,
+            );
+            await page.getByRole('button', { name: 'Clear all' }).click();
+            await clearResponse;
+            await lp.expectRowCount(initialCount);
+        });
+
         test('should clear an applied filter via the clear all button', async ({ page }) => {
             const lp = listPage(page);
             await lp.goto();
