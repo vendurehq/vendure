@@ -1,4 +1,4 @@
-import { CollectionFilter, CustomFields, dummyPaymentHandler, LanguageCode } from '@vendure/core';
+import { Asset, CollectionFilter, CustomFields, dummyPaymentHandler, LanguageCode } from '@vendure/core';
 
 /**
  * Custom fields and payment handlers used by global-setup.ts to configure
@@ -59,6 +59,19 @@ export const e2eCustomFields: CustomFields = {
             nullable: true,
             label: [{ languageCode: LanguageCode.en, value: 'Feature Type' }],
             options: [{ value: 'standard' }, { value: 'premium' }],
+        },
+        // Readonly single relation with a custom form component — reproduces OSS-584 (#4902):
+        // the component must receive the related entity object as `value`. Seeded directly in
+        // global-setup.ts because readonly relations cannot be set via the Admin API.
+        {
+            name: 'relatedAsset',
+            type: 'relation',
+            entity: Asset,
+            list: false,
+            nullable: true,
+            readonly: true,
+            label: [{ languageCode: LanguageCode.en, value: 'Related Asset' }],
+            ui: { component: 'relation-cf.related-asset' },
         },
         // ── SEO tab ──
         {

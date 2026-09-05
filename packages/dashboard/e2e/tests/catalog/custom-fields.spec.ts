@@ -515,4 +515,29 @@ test.describe('Custom Fields', () => {
         await expect(popover).not.toBeVisible();
         await expect(triggerButton).not.toContainText('MM/DD/YYYY');
     });
+
+    // OSS-584 (#4902) — a custom form component registered for a readonly single `relation`
+    // custom field must receive the related entity *object* as `value` (previously `undefined`,
+    // because the form control binds to the scalar `<name>Id` which is absent for a readonly
+    // relation). `relatedAsset` is seeded on the first product in global-setup.ts.
+    test('readonly relation custom field exposes the relation object to its custom component', async ({
+        page,
+    }) => {
+        await goToFirstProduct(page);
+        const dp = detailPage(page);
+
+        // Read path: the component renders `asset:<id>` from the relation object, not `none`.
+        const badge = page.getByTestId('related-asset-cf');
+        await expect(badge).toBeVisible();
+        await expect(badge).toHaveText(/^asset:T_\d+$/);
+
+        // Write path: saving an unrelated change must still succeed — the readonly relation object
+        // must not leak into the update mutation input (it is not a writeable field).
+        await dp.formItem('Info URL').getByRole('textbox').fill('https://example.com/oss-584');
+        await dp.clickUpdate();
+        await dp.expectSuccessToast(/Successfully updated product/);
+
+        // The relation object is still exposed after the save.
+        await expect(badge).toHaveText(/^asset:T_\d+$/);
+    });
 });

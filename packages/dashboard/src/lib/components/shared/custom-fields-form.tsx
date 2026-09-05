@@ -219,6 +219,20 @@ function CustomFieldItem({ fieldDef, control, fieldName, disabled }: Readonly<Cu
     const containerClassName = shouldBeFullWidth ? 'col-span-2' : '';
     const isReadonly = (fieldDef as CustomFieldConfig).readonly ?? false;
 
+    // A single (non-list) `relation` custom field binds its form control to the scalar `<name>Id`
+    // (see `getCustomFieldBaseName`). For a `readonly` relation that key does not exist in the form
+    // values — readonly custom fields are excluded from the update/create input types (see
+    // graphql-custom-fields.ts) — so a custom form component bound to it receives `value ===
+    // undefined`. The related entity object is still present at `customFields.<name>` (the relation
+    // transform leaves it untouched when there is no matching input field), so surface that object
+    // to the component as `value`. The Controller binding is left unchanged, so the submit payload
+    // is unaffected. See OSS-584 / #4902.
+    const readonlyRelationObjectName =
+        fieldDef.type === 'relation' && isReadonly && !fieldDef.list
+            ? fieldName.replace(/Id$/, '')
+            : undefined;
+    const readonlyRelationValue = readonlyRelationObjectName ? watch(readonlyRelationObjectName) : undefined;
+
     const localeFallbackPlaceholder = useMemo(
         () =>
             isLocaleField
@@ -278,7 +292,13 @@ function CustomFieldItem({ fieldDef, control, fieldName, disabled }: Readonly<Cu
                             fieldName={field.name}
                             fieldState={fieldState}
                         >
-                            <CustomFormComponent fieldDef={fieldDef} {...field} />
+                            <CustomFormComponent
+                                fieldDef={fieldDef}
+                                {...field}
+                                {...(readonlyRelationObjectName !== undefined
+                                    ? { value: readonlyRelationValue }
+                                    : {})}
+                            />
                         </CustomFieldFormItem>
                     )}
                 />

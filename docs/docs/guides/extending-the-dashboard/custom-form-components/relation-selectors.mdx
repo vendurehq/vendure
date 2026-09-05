@@ -72,6 +72,17 @@ export function ProductSelectorComponent({ value, onChange, disabled }: Dashboar
 }
 ```
 
+:::info What `props.value` contains for a relation custom field
+For a **writable** single `relation` custom field, `props.value` is the related entity's **id** — the
+form binds to the scalar `<name>Id` field, which is what `SingleRelationInput` consumes via
+`value`/`onChange`.
+
+For a **readonly** single `relation` custom field there is no `<name>Id` in the form (readonly custom
+fields are excluded from the update/create input types), so `props.value` is instead the **related
+entity object**. Read it directly to render the relation (e.g. `value?.id`, `value?.name`); a readonly
+field exists only for display, so there is nothing to wire up to `onChange`.
+:::
+
 ### Multi Selection
 
 ```tsx title="src/plugins/my-plugin/dashboard/components/product-multi-selector.tsx"
