@@ -16,6 +16,7 @@ import {
     createCollectionIdCountMap,
     createFacetIdCountMap,
     createPlaceholderFromId,
+    hasSortParameter,
     mapToSearchResult,
 } from './search-strategy-utils';
 
@@ -99,7 +100,7 @@ export class SqliteSearchStrategy implements SearchStrategy {
 
         this.applyTermAndFilters(ctx, qb, input);
 
-        if (sort) {
+        if (hasSortParameter(sort)) {
             if (sort.name) {
                 // TODO: v3 - set the collation on the SearchIndexItem entity
                 qb.addOrderBy('si.productName COLLATE NOCASE', sort.name);
