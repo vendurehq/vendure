@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 
 import { Logger } from '../config/logger/vendure-logger';
 import { TransactionalConnection } from '../connection/transactional-connection';
@@ -24,7 +24,7 @@ import { ZoneService } from './services/zone.service';
  * @docsCategory services
  */
 @Injectable()
-export class InitializerService {
+export class InitializerService implements OnApplicationBootstrap {
     constructor(
         private connection: TransactionalConnection,
         private zoneService: ZoneService,
@@ -39,7 +39,7 @@ export class InitializerService {
         private stockLocationService: StockLocationService,
     ) {}
 
-    async onModuleInit() {
+    async onApplicationBootstrap() {
         await this.awaitDbSchemaGeneration();
         // IMPORTANT - why manually invoke these init methods rather than just relying on
         // Nest's "onModuleInit" lifecycle hook within each individual service class?
