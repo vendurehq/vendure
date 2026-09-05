@@ -196,6 +196,14 @@ export const config: VendureConfig = {
 };
 ```
 
+:::note
+Guards are the only enhancer applied to field resolvers (those declared with `@ResolveField()`) by default,
+so a globally-registered interceptor or exception filter will not fire when a field resolver runs. If you
+need it to, opt in with the
+[`apiOptions.fieldResolverEnhancers`](/reference/typescript-api/configuration/api-options#fieldresolverenhancers)
+config property.
+:::
+
 
 
 ### Apollo Server plugins

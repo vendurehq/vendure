@@ -101,6 +101,7 @@ export const defaultConfig: RuntimeVendureConfig = {
         middleware: [],
         introspection: true,
         apolloServerPlugins: [],
+        fieldResolverEnhancers: ['guards'],
         inputValidation: {
             requiredFieldValidation: true,
         },

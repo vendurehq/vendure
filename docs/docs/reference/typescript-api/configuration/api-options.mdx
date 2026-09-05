@@ -2,7 +2,7 @@
 title: "ApiOptions"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/config/vendure-config.ts" sourceLine="84" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/vendure-config.ts" sourceLine="85" packageName="@vendure/core" />
 
 The ApiOptions define how the Vendure GraphQL APIs are exposed, as well as allowing the API layer
 to be extended with middleware.
@@ -27,6 +27,7 @@ interface ApiOptions {
     middleware?: Middleware[];
     trustProxy?: TrustProxyOptions;
     apolloServerPlugins?: ApolloServerPlugin[];
+    fieldResolverEnhancers?: Enhancer[];
     introspection?: boolean;
     inputValidation?: {
         /**
@@ -217,6 +218,37 @@ allow the extension of the Apollo Server, which is the underlying GraphQL server
 
 Apollo plugins can be used e.g. to perform custom data transformations on incoming operations or outgoing
 data.
+### fieldResolverEnhancers
+
+<MemberInfo kind="property" type={`Enhancer[]`} default={`['guards']`}  since="3.8.0"  />
+
+Controls which NestJS enhancers are applied to GraphQL field resolvers, i.e. resolvers
+declared with `@ResolveField()`. The value is passed through to the `@nestjs/graphql`
+module option of the same name, and applies to both the Shop API and the Admin API.
+
+The default of `['guards']` is what makes the [Allow](/reference/typescript-api/request/allow-decorator#allow) decorator work on a field
+resolver. Interceptors and exception filters are left out because a field resolver runs
+once per resolved field rather than once per operation, so a list query which resolves the
+field on each of 100 items would run every global interceptor 100 extra times.
+
+The consequence of that default is easy to miss: an interceptor registered by a plugin
+with Nest's `APP_INTERCEPTOR` token (or an exception filter registered with `APP_FILTER`)
+runs for top-level queries and mutations only. On a `@ResolveField()` resolver it never
+fires, and nothing is logged to say so. Add `'interceptors'` if a plugin of yours depends
+on one seeing field resolution.
+
+Note that enabling an enhancer here also enables Vendure's own interceptors and exception
+filter on every resolved field, so measure the effect on your heaviest list queries.
+
+*Example*
+
+```ts
+const config: VendureConfig = {
+  apiOptions: {
+    fieldResolverEnhancers: ['guards', 'interceptors'],
+  },
+};
+```
 ### introspection
 
 <MemberInfo kind="property" type={`boolean`} default={`true`}  since="1.5.0"  />

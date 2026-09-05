@@ -2,6 +2,7 @@ import { ApolloServerPlugin, CSRFPreventionOptions } from '@apollo/server';
 import { RenderPageOptions } from '@apollographql/graphql-playground-html';
 import { DynamicModule, Type } from '@nestjs/common';
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
+import type { Enhancer } from '@nestjs/graphql';
 import { LanguageCode } from '@vendure/common/lib/generated-types';
 import { ValidationContext } from 'graphql';
 import { DataSourceOptions } from 'typeorm';
@@ -289,6 +290,39 @@ export interface ApiOptions {
      * @default []
      */
     apolloServerPlugins?: ApolloServerPlugin[];
+    /**
+     * @description
+     * Controls which NestJS enhancers are applied to GraphQL field resolvers, i.e. resolvers
+     * declared with `@ResolveField()`. The value is passed through to the `@nestjs/graphql`
+     * module option of the same name, and applies to both the Shop API and the Admin API.
+     *
+     * The default of `['guards']` is what makes the {@link Allow} decorator work on a field
+     * resolver. Interceptors and exception filters are left out because a field resolver runs
+     * once per resolved field rather than once per operation, so a list query which resolves the
+     * field on each of 100 items would run every global interceptor 100 extra times.
+     *
+     * The consequence of that default is easy to miss: an interceptor registered by a plugin
+     * with Nest's `APP_INTERCEPTOR` token (or an exception filter registered with `APP_FILTER`)
+     * runs for top-level queries and mutations only. On a `@ResolveField()` resolver it never
+     * fires, and nothing is logged to say so. Add `'interceptors'` if a plugin of yours depends
+     * on one seeing field resolution.
+     *
+     * Note that enabling an enhancer here also enables Vendure's own interceptors and exception
+     * filter on every resolved field, so measure the effect on your heaviest list queries.
+     *
+     * @example
+     * ```ts
+     * const config: VendureConfig = {
+     *   apiOptions: {
+     *     fieldResolverEnhancers: ['guards', 'interceptors'],
+     *   },
+     * };
+     * ```
+     *
+     * @default ['guards']
+     * @since 3.8.0
+     */
+    fieldResolverEnhancers?: Enhancer[];
     /**
      * @description
      * Controls whether introspection of the GraphQL APIs is enabled. For production, it is recommended to disable

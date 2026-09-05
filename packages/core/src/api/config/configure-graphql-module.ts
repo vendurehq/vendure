@@ -102,7 +102,7 @@ async function createGraphQLOptions(
         typeDefs: printSchema(builtSchema),
         include: [options.resolverModule],
         inheritResolversFromInterfaces: true,
-        fieldResolverEnhancers: ['guards'],
+        fieldResolverEnhancers: configService.apiOptions.fieldResolverEnhancers ?? ['guards'],
         resolvers,
         // We no longer rely on the upload facility bundled with Apollo Server, and instead
         // manually configure the graphql-upload package. See https://github.com/vendurehq/vendure/issues/396
