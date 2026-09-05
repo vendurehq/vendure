@@ -147,6 +147,18 @@ export class Promotion
      */
     @Column() priorityScore: number;
 
+    /**
+     * @description
+     * Whether any of this Promotion's actions define a side effect (`onActivate` / `onDeactivate`).
+     * Such a Promotion can benefit the Order without producing a price adjustment - the free gift
+     * action being the canonical example - so it counts as applied even when it discounts nothing.
+     *
+     * @internal
+     */
+    get hasSideEffects(): boolean {
+        return this.actions.some(action => this.allActions[action.code]?.hasSideEffects);
+    }
+
     async apply(
         ctx: RequestContext,
         args: ApplyOrderActionArgs | ApplyOrderItemActionArgs | ApplyShippingActionArgs,

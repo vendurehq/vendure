@@ -2218,6 +2218,93 @@ describe('Promotions applied to Orders', () => {
         });
     });
 
+    describe('promotion which applies no discount', () => {
+        const couponCode = 'NO_DISCOUNT_ON_THIS_CART';
+        let promotion: PromotionFragment;
+
+        beforeAll(async () => {
+            promotion = await createPromotion({
+                enabled: true,
+                name: '50% off item-5000 only',
+                couponCode,
+                perCustomerUsageLimit: 1,
+                conditions: [],
+                actions: [
+                    {
+                        code: productsPercentageDiscount.code,
+                        arguments: [
+                            { name: 'discount', value: '50' },
+                            {
+                                name: 'productVariantIds',
+                                value: `["${getVariantBySlug('item-5000').id}"]`,
+                            },
+                        ],
+                    },
+                ],
+            });
+        });
+
+        afterAll(async () => {
+            await deletePromotion(promotion.id);
+        });
+
+        function addGuestCustomerToOrder() {
+            return shopClient.query(setCustomerDocument, {
+                input: {
+                    emailAddress: 'no-discount-guest@test.com',
+                    firstName: 'No Discount',
+                    lastName: 'Customer',
+                },
+            });
+        }
+
+        it('is not added to the Order and does not consume a usage', async () => {
+            await shopClient.asAnonymousUser();
+            await shopClient.query(addItemToOrderDocument, {
+                // Not one of the Promotion's ProductVariants, so the action discounts nothing
+                productVariantId: getVariantBySlug('item-1000').id,
+                quantity: 1,
+            });
+            const { setCustomerForOrder } = await addGuestCustomerToOrder();
+            orderResultGuard.assertSuccess(setCustomerForOrder);
+
+            const { applyCouponCode } = await shopClient.query(applyCouponCodeDocument, { couponCode });
+            orderResultGuard.assertSuccess(applyCouponCode);
+
+            // The customer typed the code, so it stays on the Order even though it discounts nothing
+            expect(applyCouponCode.couponCodes).toEqual([couponCode]);
+            expect(applyCouponCode.discounts).toEqual([]);
+            const orderCode = applyCouponCode.code;
+
+            await proceedToArrangingPayment(shopClient);
+            const order = await addPaymentToOrder(shopClient, testSuccessfulPaymentMethod);
+            orderResultGuard.assertSuccess(order);
+            expect(order.state).toBe('PaymentSettled');
+
+            const { orderByCode } = await shopClient.query(getOrderPromotionsByCodeDocument, {
+                code: orderCode,
+            });
+            expect(orderByCode!.promotions).toEqual([]);
+
+            // The customer's single allowed usage is still available
+            await shopClient.asAnonymousUser();
+            await shopClient.query(addItemToOrderDocument, {
+                productVariantId: getVariantBySlug('item-5000').id,
+                quantity: 1,
+            });
+            const { setCustomerForOrder: setCustomerForSecondOrder } = await addGuestCustomerToOrder();
+            orderResultGuard.assertSuccess(setCustomerForSecondOrder);
+
+            const { applyCouponCode: secondUse } = await shopClient.query(applyCouponCodeDocument, {
+                couponCode,
+            });
+            orderResultGuard.assertSuccess(secondUse);
+
+            expect(secondUse.discounts.length).toBe(1);
+            expect(secondUse.totalWithTax).toBe(3000);
+        });
+    });
+
     // https://github.com/vendurehq/vendure/issues/710
     it('removes order-level discount made invalid by removing OrderLine', async () => {
         const promotion = await createPromotion({

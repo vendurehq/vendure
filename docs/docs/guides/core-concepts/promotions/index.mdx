@@ -260,6 +260,10 @@ function lineContainsIds(ids: ID[], line: OrderLine): boolean {
 export class FreeGiftPromotionPlugin {}
 ```
 
+:::note[Promotions which discount nothing are not recorded]
+A Promotion is only recorded on `Order.promotions` — and therefore only consumes its `usageLimit` and `perCustomerUsageLimit` — if it actually adjusted an OrderLine or a ShippingLine. The exception is a Promotion with at least one action defining `onActivate`/`onDeactivate`: the free gift action above returns `0` from `execute()` until its side effect has added the gift line, so such a Promotion is kept whatever it discounts. If you write a custom action which delivers its benefit by mutating the Order inside `execute()` and returns `0`, declare a no-op `onActivate` so that the Promotion continues to be recorded.
+:::
+
 ### Dependency relationships
 
 It is possible to establish dependency relationships between a PromotionAction and one or more PromotionConditions.
