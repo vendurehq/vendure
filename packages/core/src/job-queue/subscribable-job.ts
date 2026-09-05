@@ -2,8 +2,8 @@ import { JobState } from '@vendure/common/lib/generated-types';
 import { pick } from '@vendure/common/lib/pick';
 import { notNullOrUndefined } from '@vendure/common/lib/shared-utils';
 import ms from 'ms';
-import { interval, Observable, race, timer } from 'rxjs';
-import { distinctUntilChanged, filter, map, switchMap, takeWhile, tap } from 'rxjs/operators';
+import { concat, defer, EMPTY, interval, Observable, of, timer } from 'rxjs';
+import { distinctUntilChanged, filter, map, switchMap, takeUntil, takeWhile, tap } from 'rxjs/operators';
 
 import { InternalServerError } from '../common/error/errors';
 import { Logger } from '../config/index';
@@ -38,7 +38,9 @@ export type JobUpdateOptions = {
      */
     pollInterval?: number;
     /**
-     * Polling timeout in milliseconds. Defaults to 1 hour
+     * The maximum time in milliseconds to wait for the job to settle. Once this time has
+     * elapsed, the subscription is ended whether or not any updates have already been
+     * emitted. Defaults to 1 hour
      */
     timeoutMs?: number;
     /**
@@ -77,6 +79,9 @@ export class SubscribableJob<T extends JobData<T> = any> extends Job<T> {
      *
      * Polling interval, timeout and other options may be configured with an options arguments {@link JobUpdateOptions}.
      *
+     * The `timeoutMs` option bounds the whole subscription: if the job has not settled by then, polling
+     * stops, a final update with a `result` of "Job subscription timed out. The job may still be running"
+     * is emitted, and the stream completes.
      */
     updates(options?: JobUpdateOptions): Observable<JobUpdate<T>> {
         const pollInterval = Math.max(50, options?.pollInterval ?? 200);
@@ -112,31 +117,44 @@ export class SubscribableJob<T extends JobData<T> = any> extends Job<T> {
                 }),
                 map(job => pick(job, ['id', 'state', 'progress', 'result', 'error', 'data'])),
             );
-            const timeout$ = timer(timeoutMs).pipe(
-                tap(i => {
+            return defer(() => {
+                let jobSettled = false;
+                // `takeUntil` bounds the entire subscription by `timeoutMs` rather than just the
+                // wait for the first update, and unsubscribes from `updates$` at the deadline so
+                // that no polling interval is left running.
+                //
+                // The `tap` sits upstream of the `takeUntil`, so its `complete` callback fires only
+                // when the job itself reaches a terminal state. A `takeUntil` cut-off unsubscribes
+                // from the source rather than completing it, which is how the two cases are told
+                // apart: only a job that never settled gets the timeout update appended.
+                const boundedUpdates$ = updates$.pipe(
+                    tap({
+                        complete: () => {
+                            jobSettled = true;
+                        },
+                    }),
+                    takeUntil(timer(timeoutMs)),
+                );
+                const timedOut$ = defer(() => {
+                    if (jobSettled) {
+                        return EMPTY;
+                    }
                     Logger.error(
                         `Job ${
                             this.id ?? ''
                         } SubscribableJob update polling timed out after ${timeoutMs}ms. The job may still be running.`,
                     );
-                }),
-                map(
-                    () =>
-                        ({
-                            id: this.id,
-                            state: JobState.RUNNING,
-                            data: this.data,
-                            error: this.error,
-                            progress: this.progress,
-                            result: 'Job subscription timed out. The job may still be running',
-                        }) satisfies JobUpdate<any>,
-                ),
-            );
-
-            // Use race() to return whichever observable emits first and follow it to completion.
-            // - If updates$ emits first, it will continue emitting until the job settles
-            // - If timeout$ emits first, it will emit the timeout message and complete
-            return race(updates$, timeout$) as Observable<JobUpdate<T>>;
+                    return of({
+                        id: this.id,
+                        state: JobState.RUNNING,
+                        data: this.data,
+                        error: this.error,
+                        progress: this.progress,
+                        result: 'Job subscription timed out. The job may still be running',
+                    } satisfies JobUpdate<any>);
+                });
+                return concat(boundedUpdates$, timedOut$);
+            }) as Observable<JobUpdate<T>>;
         }
     }
 }
