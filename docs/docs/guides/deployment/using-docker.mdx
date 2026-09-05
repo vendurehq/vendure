@@ -174,22 +174,21 @@ REQUEST: GET http://localhost:3000/health
  
 ```json
 {
-  "status": "ok",
-  "info": {
-    "database": {
-      "status": "up"
-    }
-  },
-  "error": {},
-  "details": {
-    "database": {
-      "status": "up"
-    }
-  }
+  "status": "ok"
 }
 ```
 
-You can also add your own health checks by creating plugins that make use of the [HealthCheckRegistryService](/reference/typescript-api/health-check/health-check-registry-service/).
+The response is unconditional — it confirms the process is up and serving HTTP, and does not check the
+database or any other dependency. That makes it a good liveness probe, and a poor substitute for
+monitoring your dependencies. See the [health checks guide](/core-concepts/healthchecks/) for why the
+distinction matters and how to configure probes.
+
+:::note
+
+Before v3.6.0 this response also included the aggregated results of the strategies configured in
+`systemOptions.healthChecks`. Those strategies are no longer executed.
+
+:::
 
 ### Worker
 

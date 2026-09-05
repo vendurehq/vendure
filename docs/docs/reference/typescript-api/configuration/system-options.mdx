@@ -19,10 +19,14 @@ interface SystemOptions {
 
 ### healthChecks
 
-<MemberInfo kind="property" type={`<a href='/reference/typescript-api/health-check/health-check-strategy#healthcheckstrategy'>HealthCheckStrategy</a>[]`} default={`[<a href='/reference/typescript-api/health-check/type-ormhealth-check-strategy#typeormhealthcheckstrategy'>TypeORMHealthCheckStrategy</a>]`}  since="1.6.0"  />
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/health-check/health-check-strategy#healthcheckstrategy'>HealthCheckStrategy</a>[]`} default={`[]`}  since="1.6.0"  />
 
-Defines an array of [HealthCheckStrategy](/reference/typescript-api/health-check/health-check-strategy#healthcheckstrategy) instances which are used by the `/health` endpoint to verify
-that any critical systems which the Vendure server depends on are also healthy.
+Defines an array of [HealthCheckStrategy](/reference/typescript-api/health-check/health-check-strategy#healthcheckstrategy) instances which were used by the `/health` endpoint
+to verify that any critical systems which the Vendure server depends on are also healthy.
+
+Since v3.6.0 these strategies are no longer executed and the value of this option has no effect on
+the `/health` response, which is now an unconditional `{ "status": "ok" }`. Setting it to a non-empty
+array logs a deprecation warning on startup.
 ### errorHandlers
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/errors/error-handler-strategy#errorhandlerstrategy'>ErrorHandlerStrategy</a>[]`} default={`[]`}  since="2.2.0"  />

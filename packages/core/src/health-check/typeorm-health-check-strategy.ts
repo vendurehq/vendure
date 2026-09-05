@@ -14,9 +14,15 @@ export interface TypeORMHealthCheckOptions {
 
 /**
  * @description
- * A {@link HealthCheckStrategy} used to check the health of the database. This health
- * check is included by default, but can be customized by explicitly adding it to the
- * `systemOptions.healthChecks` array:
+ * A {@link HealthCheckStrategy} used to check the health of the database.
+ *
+ * :::warning
+ *
+ * Since v3.6.0 this strategy is never executed, so adding it to `systemOptions.healthChecks`
+ * has no effect on the `/health` response. To detect an unreachable database, probe it from
+ * your infrastructure rather than through the application.
+ *
+ * :::
  *
  * @example
  * ```ts

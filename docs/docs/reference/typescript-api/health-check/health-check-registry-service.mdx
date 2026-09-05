@@ -2,16 +2,20 @@
 title: "HealthCheckRegistryService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/health-check/health-check-registry.service.ts" sourceLine="42" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/health-check/health-check-registry.service.ts" sourceLine="46" packageName="@vendure/core" />
 
-This service is used to register health indicator functions to be included in the
-health check. Health checks can be used by automated services such as Kubernetes
-to determine the state of applications it is running. They are also useful for
-administrators to get an overview of the health of all the parts of the
-Vendure stack.
+This service was used to register health indicator functions to be included in the
+health check.
 
-Plugins which rely on external services (web services, databases etc.) can make use of this
-service to add a check for that dependency to the Vendure health check.
+:::warning
+
+Since v3.6.0 registered indicators are never executed — the `/health` endpoint no longer runs
+them — and the Admin UI "system status" view which displayed them has been removed. Calling
+this service has no observable effect, and it will be removed in v4.0.0. Monitor external
+dependencies from your infrastructure instead — see the
+[health check guide](/core-concepts/healthchecks/).
+
+:::
 
 
 Since v1.6.0, the preferred way to implement a custom health check is by creating a new [HealthCheckStrategy](/reference/typescript-api/health-check/health-check-strategy#healthcheckstrategy)
@@ -50,9 +54,8 @@ class HealthCheckRegistryService {
 
 <MemberInfo kind="method" type={`(fn: <a href='/reference/typescript-api/health-check/health-indicator-function#healthindicatorfunction'>HealthIndicatorFunction</a> | <a href='/reference/typescript-api/health-check/health-indicator-function#healthindicatorfunction'>HealthIndicatorFunction</a>[]) => `}   />
 
-Registers one or more [HealthIndicatorFunction](/reference/typescript-api/health-check/health-indicator-function#healthindicatorfunction)s to be added to the
-health check endpoint. The indicator will also appear in the Admin UI's
-"system status" view.
+Registers one or more [HealthIndicatorFunction](/reference/typescript-api/health-check/health-indicator-function#healthindicatorfunction)s. Since v3.6.0 the registered
+functions are never called.
 
 
 </div>

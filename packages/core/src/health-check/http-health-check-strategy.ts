@@ -23,6 +23,13 @@ export interface HttpHealthCheckOptions {
  * @description
  * A {@link HealthCheckStrategy} used to check health by pinging a url.
  *
+ * :::warning
+ *
+ * Since v3.6.0 this strategy is never executed, so adding it to `systemOptions.healthChecks`
+ * has no effect on the `/health` response.
+ *
+ * :::
+ *
  * @example
  * ```ts
  * import { HttpHealthCheckStrategy, TypeORMHealthCheckStrategy } from '\@vendure/core';

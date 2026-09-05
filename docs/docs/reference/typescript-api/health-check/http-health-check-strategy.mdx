@@ -2,9 +2,16 @@
 title: "HttpHealthCheckStrategy"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/health-check/http-health-check-strategy.ts" sourceLine="45" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/health-check/http-health-check-strategy.ts" sourceLine="52" packageName="@vendure/core" />
 
 A [HealthCheckStrategy](/reference/typescript-api/health-check/health-check-strategy#healthcheckstrategy) used to check health by pinging a url.
+
+:::warning
+
+Since v3.6.0 this strategy is never executed, so adding it to `systemOptions.healthChecks`
+has no effect on the `/health` response.
+
+:::
 
 *Example*
 

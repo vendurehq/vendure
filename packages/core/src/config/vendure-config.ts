@@ -1281,10 +1281,14 @@ export interface EntityOptions {
 export interface SystemOptions {
     /**
      * @description
-     * Defines an array of {@link HealthCheckStrategy} instances which are used by the `/health` endpoint to verify
-     * that any critical systems which the Vendure server depends on are also healthy.
+     * Defines an array of {@link HealthCheckStrategy} instances which were used by the `/health` endpoint
+     * to verify that any critical systems which the Vendure server depends on are also healthy.
      *
-     * @default [TypeORMHealthCheckStrategy]
+     * Since v3.6.0 these strategies are no longer executed and the value of this option has no effect on
+     * the `/health` response, which is now an unconditional `{ "status": "ok" }`. Setting it to a non-empty
+     * array logs a deprecation warning on startup.
+     *
+     * @default []
      * @since 1.6.0
      * @deprecated Use infrastructure-level health checks (e.g. Kubernetes probes, Docker healthchecks,
      * load balancer checks) instead of application-level health checks. The application should not

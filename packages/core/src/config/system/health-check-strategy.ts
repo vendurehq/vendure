@@ -3,21 +3,16 @@ import { InjectableStrategy } from '../../common/types/injectable-strategy';
 
 /**
  * @description
- * This strategy defines health checks which are included as part of the
- * `/health` endpoint. They should only be used to monitor _critical_ systems
- * on which proper functioning of the Vendure server depends.
+ * This strategy defines health checks which were included as part of the
+ * `/health` endpoint.
  *
- * Custom strategies should be added to the `systemOptions.healthChecks` array.
- * By default, Vendure includes the `TypeORMHealthCheckStrategy`, so if you set the value of the `healthChecks`
- * array, be sure to include it manually.
+ * :::warning
  *
- * Vendure also ships with the {@link HttpHealthCheckStrategy}, which is convenient
- * for adding a health check dependent on an HTTP ping.
- *
- * :::info
- *
- * This is configured via the `systemOptions.healthChecks` property of
- * your VendureConfig.
+ * Since v3.6.0 the strategies configured in `systemOptions.healthChecks` are **no longer
+ * executed**: the `/health` endpoint always responds with `{ "status": "ok" }` as soon as the
+ * server is accepting requests. Configuring a strategy has no effect on the response, and the
+ * whole mechanism will be removed in v4.0.0. Monitor critical dependencies from your
+ * infrastructure instead — see the [health check guide](/core-concepts/healthchecks/).
  *
  * :::
  *
@@ -46,8 +41,9 @@ import { InjectableStrategy } from '../../common/types/injectable-strategy';
 export interface HealthCheckStrategy extends InjectableStrategy {
     /**
      * @description
-     * Should return a {@link HealthIndicatorFunction} which performs the check
-     * and resolves to a status payload.
+     * Retained for backwards compatibility. Since v3.6.0 this method is never
+     * called: the `/health` endpoint does not execute the returned
+     * {@link HealthIndicatorFunction}.
      */
     getHealthIndicator(): HealthIndicatorFunction;
 }

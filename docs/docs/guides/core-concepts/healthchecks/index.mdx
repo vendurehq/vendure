@@ -1,60 +1,121 @@
 ---
-title: "Health Checks"
-metaTitle: "Health Check Endpoint for Monitoring Vendure"
-metaDescription: "How Vendure exposes a /health endpoint for monitoring system dependencies like the database and external services."
+title: 'Health Checks'
+metaTitle: 'Health Check Endpoint for Monitoring Vendure'
+metaDescription: 'What the Vendure /health endpoint reports, and how to configure liveness and readiness probes for your deployment.'
 ---
 
-Vendure exposes a **`/health`** endpoint that reports the status of critical system dependencies.
-This endpoint is essential for production deployments where load balancers, container orchestrators,
-and monitoring tools need to know whether the application is healthy and ready to serve traffic.
+Vendure exposes a **`/health`** endpoint on the server. It is a plain REST route (not GraphQL) which
+responds as soon as the application is running and accepting HTTP requests:
 
-## How it works
+```text
+REQUEST: GET http://localhost:3000/health
+```
 
-Each configured health check strategy probes a specific dependency and reports back with a status.
-The `/health` endpoint aggregates all strategy results into a single response.
+```json
+{
+    "status": "ok"
+}
+```
 
-A healthy response indicates that all dependencies are reachable and functioning correctly. If any
-strategy reports a failure, the endpoint returns an unhealthy status, signaling that the system
-may not be able to serve requests reliably.
+The response is unconditional. `/health` does not query the database, and it does not check any other
+dependency. It tells you one thing: this process is up and its HTTP server is responding.
 
-## Built-in strategies
+:::warning[Changed in v3.6.0]
 
-Vendure ships with two health check strategies out of the box:
+Earlier versions aggregated the results of the strategies in `systemOptions.healthChecks` into this
+response, so a failing database check would make `/health` return a 503. That behaviour was removed in
+v3.6.0. The strategies are no longer executed, `systemOptions.healthChecks` has no effect on the
+response, and the whole mechanism will be removed in v4.0.0. See
+[#4441](https://github.com/vendurehq/vendure/issues/4441) for the reasoning.
 
-- **`TypeORMHealthCheckStrategy`** — verifies that the database connection is alive by executing
-  a simple query. Since the database is the most critical dependency for any Vendure instance,
-  this strategy is enabled by default.
+:::
 
-- **`HttpHealthCheckStrategy`** — checks the availability of an external HTTP service. This is
-  useful when your Vendure instance depends on external APIs, such as a payment gateway or a
-  third-party inventory system.
+## Liveness and readiness are different questions
 
-## Configuration
+Container orchestrators ask two separate questions, and it is worth being deliberate about which one
+you are answering.
 
-Health checks are configured via the `systemOptions.healthChecks` property in the
-[`VendureConfig`](/reference/typescript-api/configuration/vendure-config/). You can enable or disable
-individual strategies and configure their parameters to match your infrastructure.
+A **liveness** probe asks "is this process wedged, and would restarting it help?" A **readiness** probe
+asks "should this instance receive traffic right now?" Answering both with the same dependency-aware
+check is the failure mode that motivated removing the built-in checks. Suppose `/health` had verified
+the database and you wired it to your load balancer's target-group check. The database gets slow for a
+minute. Every instance fails the check at the same moment, because they all share that database. The
+balancer takes them all out and starts replacements, which cold-boot for a minute or more into the same
+slow database and fail the same check. A brief database blip becomes a full outage, and the restarts
+never had any chance of fixing it — restarting an application process cannot repair a database.
 
-## Use cases
+So: probe the application for whether the application is stuck, and monitor the database as a database.
+Kubernetes' own
+[probe documentation](https://kubernetes.io/docs/tasks/configure-pods-containers/configure-liveness-readiness-startup-probes/)
+makes the same point — liveness probes should not check dependencies.
 
-The `/health` endpoint serves several important operational purposes:
+## Configuring probes
 
-- **Load balancer probes** — configure your load balancer to poll `/health` and route traffic
-  only to healthy instances.
-- **Container orchestration** — use the endpoint as a Kubernetes liveness or readiness probe
-  to automatically restart unhealthy pods or delay traffic until the application is ready.
-- **Monitoring dashboards** — integrate with monitoring tools to track uptime and get alerted
-  when dependencies become unreachable.
+`/health` is well suited to a liveness probe and to a load balancer's "is this target reachable" check.
 
-## Custom strategies
+```yaml
+livenessProbe:
+    httpGet:
+        path: /health
+        port: 3000
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    failureThreshold: 3
+```
 
-When your application has dependencies beyond the database and HTTP services, you can implement
-the `HealthCheckStrategy` interface to create custom checks. For example, a custom strategy might
-verify connectivity to a Redis cache, an Elasticsearch cluster, or a message broker.
+Vendure can take a while to bootstrap, so give it room. Prefer a `startupProbe` if your Kubernetes
+version supports it, which lets you be patient at boot without making the liveness probe slow to react
+later:
 
-Custom strategies are added to the same `systemOptions.healthChecks` configuration array alongside
-the built-in strategies, and their results are included in the aggregated `/health` response.
+```yaml
+startupProbe:
+    httpGet:
+        path: /health
+        port: 3000
+    periodSeconds: 5
+    failureThreshold: 30
+```
+
+For readiness, the same endpoint is a reasonable default. If you genuinely need traffic gated on the
+database being reachable, implement that check yourself in a plugin controller, point only the
+readiness probe at it, and leave the liveness probe on `/health`. Be aware that you are re-introducing
+the correlated-failure risk described above, so pair it with a generous `failureThreshold`.
+
+## The worker
+
+The worker does not serve the Vendure API, but it can start a minimal HTTP server for health checks.
+Call `startHealthCheckServer()` after bootstrapping:
+
+```ts
+bootstrapWorker(config)
+    .then(worker => worker.startJobQueue())
+    .then(worker => worker.startHealthCheckServer({ port: 3020 }))
+    .catch(err => {
+        console.log(err);
+    });
+```
+
+This serves `/health` on the given port, returning `{ "status": "ok" }`. Like the server endpoint it is
+unconditional — it tells you the worker process is alive, not that it is successfully processing jobs.
+The route can be changed via the `route` option of
+[`WorkerHealthCheckConfig`](/reference/typescript-api/worker/worker-health-check-config/).
+
+## Migrating from the built-in health checks
+
+If you have custom [`HealthCheckStrategy`](/reference/typescript-api/health-check/health-check-strategy/)
+implementations or plugins calling
+[`HealthCheckRegistryService`](/reference/typescript-api/health-check/health-check-registry-service/),
+they are already inert — remove them, and set `systemOptions.healthChecks` to `[]` to silence the
+startup deprecation warning.
+
+Move what those checks were doing to the layer that can act on the result:
+
+- Monitor the database with your database provider's own metrics and alerting.
+- Monitor external HTTP dependencies with an uptime checker that probes them directly, rather than
+  through Vendure.
+- Alert a human on those signals. Do not wire them to anything that restarts application containers.
 
 ## Further reading
 
-- [Production configuration guide](/deployment/production-configuration/) — deploying Vendure with proper health checks and monitoring
+- [Using Docker](/deployment/using-docker/) — health check configuration for containerised deployments
+- [Production configuration guide](/deployment/production-configuration/)
