@@ -122,11 +122,12 @@ export class DefaultSchedulerStrategy implements SchedulerStrategy {
             );
             Logger.verbose(`Scheduled task "${task.id}" completed successfully`);
         } catch (error) {
-            let errorMessage = 'Unknown error';
-            if (error instanceof Error) {
-                errorMessage = error.message;
-            }
-            Logger.error(`Scheduled task "${task.id}" failed with error: ${errorMessage}`);
+            const errorMessage = describeError(error);
+            Logger.error(
+                `Scheduled task "${task.id}" failed with error: ${errorMessage}`,
+                undefined,
+                error instanceof Error ? error.stack : undefined,
+            );
             await this.connection.rawConnection.getRepository(ScheduledTaskRecord).update(
                 { taskId: task.id },
                 {
@@ -356,4 +357,25 @@ export class DefaultSchedulerStrategy implements SchedulerStrategy {
             this.tasks.set(taskId, { task: task.task, isRegistered: true });
         }
     }
+}
+
+/**
+ * Describes an error in a way that is never empty: an Error thrown with an empty message
+ * falls back to its class name. Any `cause` chain is appended, since causes do not appear
+ * in the stack trace.
+ */
+function describeError(error: unknown): string {
+    if (!(error instanceof Error)) {
+        return 'Unknown error';
+    }
+    const parts: string[] = [];
+    const seen = new Set<unknown>();
+    let current: unknown = error;
+    while (current instanceof Error && !seen.has(current)) {
+        seen.add(current);
+        parts.push(current.message || current.constructor.name || 'Error');
+        // `Error.cause` is not in the `lib` used by this package, but is populated at runtime.
+        current = (current as Error & { cause?: unknown }).cause;
+    }
+    return parts.join(' caused by: ');
 }
