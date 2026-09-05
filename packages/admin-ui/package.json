@@ -50,7 +50,7 @@
         "@clr/icons": "^13.0.2",
         "@clr/ui": "^17.3.1",
         "@messageformat/core": "^3.2.0",
-        "@ng-select/ng-select": "^14.2.6",
+        "@ng-select/ng-select": "^24.0.2",
         "@ngx-translate/core": "^16.0.4",
         "@ngx-translate/http-loader": "^18.0.0",
         "@vendure/common": "3.7.3",
