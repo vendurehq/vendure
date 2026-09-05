@@ -5,16 +5,45 @@ import { useQuery } from '@tanstack/react-query';
 export const availableCountriesQueryKey = ['availableCountries'];
 
 const availableCountriesDocument = graphql(`
-    query GetAvailableCountries {
-        countries(options: { filter: { enabled: { eq: true } } }) {
+    query GetAvailableCountries($options: CountryListOptions) {
+        countries(options: $options) {
             items {
                 id
                 code
                 name
             }
+            totalItems
         }
     }
 `);
+
+/**
+ * Fetches all enabled countries across every server-limited page.
+ */
+export async function fetchAllAvailableCountries() {
+    const items: Array<{ id: string; code: string; name: string }> = [];
+    let totalItems = 0;
+
+    do {
+        // Omitting `take` lets the server apply its configured admin list query limit.
+        const result = await api.query(availableCountriesDocument, {
+            options: {
+                skip: items.length,
+                sort: { name: 'ASC' },
+                filter: { enabled: { eq: true } },
+            },
+        });
+        const page = result.countries.items;
+
+        if (page.length === 0) {
+            break;
+        }
+        items.push(...page);
+        totalItems = result.countries.totalItems;
+    } while (items.length < totalItems);
+
+    return { countries: { items, totalItems } };
+}
 
 /**
  * @description
@@ -28,7 +57,7 @@ const availableCountriesDocument = graphql(`
 export function useAvailableCountries() {
     return useQuery({
         queryKey: availableCountriesQueryKey,
-        queryFn: () => api.query(availableCountriesDocument),
+        queryFn: fetchAllAvailableCountries,
         staleTime: 1000 * 60 * 5, // 5 minutes
     });
 }
