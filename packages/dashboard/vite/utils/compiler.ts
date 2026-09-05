@@ -395,11 +395,13 @@ async function compileTypeScript({
 
     for (const filePath of sourceFiles) {
         const content = await fs.readFile(filePath, 'utf-8');
-        const result = ts.transpileModule(content, {
-            compilerOptions,
-            fileName: filePath,
-            transformers,
-        });
+        const result = filePath.endsWith('.json')
+            ? { outputText: content }
+            : ts.transpileModule(content, {
+                  compilerOptions,
+                  fileName: filePath,
+                  transformers,
+              });
 
         // Compute output path preserving directory structure relative to source root
         const relativePath = path.relative(sourceRoot, filePath);
@@ -455,7 +457,7 @@ async function collectLocalSourceFiles(
         // Skip declaration files and non-source files before adding to visited,
         // so they don't leak into the returned sourceFiles array.
         if (resolved.endsWith('.d.ts') || resolved.endsWith('.d.tsx')) return;
-        if (!/\.(ts|tsx|js|jsx)$/.test(resolved)) return;
+        if (!/\.(ts|tsx|js|jsx|json)$/.test(resolved)) return;
 
         if (visited.has(resolved)) return;
         visited.add(resolved);
