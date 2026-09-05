@@ -6,8 +6,10 @@ import {
     Asset,
     defaultShippingCalculator,
     defaultShippingEligibilityChecker,
+    EventBus,
     manualFulfillmentHandler,
     mergeConfig,
+    OrderEvent,
 } from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
 import { fail } from 'assert';
@@ -999,6 +1001,29 @@ describe('Shop orders', () => {
             expect(customer.lastName).toBe('Person');
             expect(customer.emailAddress).toBe('test@test.com');
             expect(customer.id).toBe(createdCustomerId);
+        });
+
+        it('setCustomerForOrder publishes exactly one OrderEvent', async () => {
+            const eventBus = server.app.get(EventBus);
+            const events: OrderEvent[] = [];
+            const subscription = eventBus.ofType(OrderEvent).subscribe(event => events.push(event));
+
+            const { setCustomerForOrder } = await shopClient.query(setCustomerDocument, {
+                input: {
+                    emailAddress: 'event-test@test.com',
+                    firstName: 'Event',
+                    lastName: 'Test',
+                },
+            });
+            orderResultGuard.assertSuccess(setCustomerForOrder);
+
+            // Allow any async event delivery to settle
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            expect(events).toHaveLength(1);
+            expect(events[0].type).toBe('updated');
+            expect(events[0].order.id).toBe(setCustomerForOrder.id);
+            subscription.unsubscribe();
         });
 
         describe('address handling', () => {

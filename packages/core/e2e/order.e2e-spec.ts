@@ -12,12 +12,14 @@ import {
 import { omit } from '@vendure/common/lib/omit';
 import { pick } from '@vendure/common/lib/pick';
 import {
+    EventBus,
     OrderService,
     RequestContextService,
     defaultShippingCalculator,
     defaultShippingEligibilityChecker,
     manualFulfillmentHandler,
     mergeConfig,
+    OrderEvent,
 } from '@vendure/core';
 import {
     ErrorResultGuard,
@@ -2142,6 +2144,28 @@ describe('Orders resolver', () => {
                     type: HistoryEntryType.ORDER_CUSTOMER_UPDATED,
                 },
             ]);
+        });
+
+        it('setOrderCustomer publishes exactly one OrderEvent', async () => {
+            const eventBus = server.app.get(EventBus);
+            const events: OrderEvent[] = [];
+            const subscription = eventBus.ofType(OrderEvent).subscribe(event => events.push(event));
+
+            const { setOrderCustomer } = await adminClient.query(setOrderCustomerDocument, {
+                input: {
+                    orderId,
+                    customerId: customers[2].id,
+                    note: 'Event test',
+                },
+            });
+
+            // Allow any async event delivery to settle
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            expect(events).toHaveLength(1);
+            expect(events[0].type).toBe('updated');
+            expect(events[0].order.id).toBe(orderId);
+            subscription.unsubscribe();
         });
     });
 
