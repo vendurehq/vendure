@@ -117,7 +117,7 @@ export class ConfigService implements VendureConfig {
         return this.activeConfig.jobQueueOptions;
     }
 
-    get schedulerOptions(): Required<SchedulerOptions> {
+    get schedulerOptions(): Required<Omit<SchedulerOptions, 'timezone'>> & SchedulerOptions {
         return this.activeConfig.schedulerOptions;
     }
 

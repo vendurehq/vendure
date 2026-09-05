@@ -4,8 +4,10 @@ import { Cron } from 'croner';
 
 import { Instrument } from '../../common/instrument-decorator';
 import { Logger } from '../../config';
+import { ConfigService } from '../../config/config.service';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { ScheduledTask } from '../../scheduler';
+import { getScheduleTimezone } from '../../scheduler/schedule-timezone';
 
 import { loggerCtx } from './constants';
 import { ScheduledTaskRecord } from './scheduled-task-record.entity';
@@ -24,7 +26,10 @@ export class StaleTaskService {
     // Cache the interval for each taskId
     private taskIntervalMap = new Map<string, number>();
 
-    constructor(private connection: TransactionalConnection) {}
+    constructor(
+        private connection: TransactionalConnection,
+        private configService: ConfigService,
+    ) {}
 
     /**
      * @description
@@ -70,7 +75,10 @@ export class StaleTaskService {
         }
         const schedule = task.options.schedule;
         const scheduleString = typeof schedule === 'function' ? schedule(CronTime) : schedule;
-        const cron = new Cron(scheduleString);
+        // Use the same timezone as the SchedulerService does when constructing the
+        // actual cron job, so that the computed interval matches the real job cadence.
+        const timezone = getScheduleTimezone(task, this.configService.schedulerOptions);
+        const cron = new Cron(scheduleString, { timezone });
         const nextFn: (d?: Date) => Date | null | undefined =
             typeof (cron as any).nextRun === 'function'
                 ? (cron as any).nextRun.bind(cron)
