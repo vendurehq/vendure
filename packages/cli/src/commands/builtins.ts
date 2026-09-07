@@ -29,8 +29,11 @@ export const builtinCommandDefs: CliCommandDefinition[] = [
 ];
 
 /**
- * Built-in command definitions keyed by name. Plugins that wrap a command
- * (e.g. Cloud overriding `dev`) can call `builtinCommands.dev.action(...)`.
+ * Built-in command definitions keyed by name, for reading a command's metadata.
+ *
+ * Do not call `builtinCommands.<name>.action(...)` to wrap a command: that
+ * binds to the built-in and skips whatever other plugins have added. Use
+ * `extendCommands` and call the `next` action the host hands the decorator.
  */
 export const builtinCommands: Readonly<Record<string, CliCommandDefinition>> = Object.freeze(
     Object.fromEntries(builtinCommandDefs.map(command => [command.name, command])),

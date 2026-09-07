@@ -667,6 +667,26 @@ describe('ProductOption resolver', () => {
             expect(option?.name).toBe('Cross Channel Option');
         });
 
+        // GHSA-gg28-cx38-jxxr — createProductOption must not link to a group from another channel
+        it('cannot create a ProductOption in a ProductOptionGroup belonging to another channel', async () => {
+            adminClient.setChannelToken(CHANNEL_B_TOKEN);
+            await expect(
+                adminClient.query(createProductOptionDocument, {
+                    input: {
+                        productOptionGroupId: targetGroupId,
+                        code: 'foreign-link',
+                        translations: [{ languageCode: LanguageCode.en, name: 'Foreign Link' }],
+                    },
+                }),
+            ).rejects.toThrow(/No ProductOptionGroup with the id .* could be found/);
+
+            adminClient.setChannelToken(CHANNEL_A_TOKEN);
+            const { productOptionGroup } = await adminClient.query(getProductOptionGroupDocument, {
+                id: targetGroupId,
+            });
+            expect(productOptionGroup?.options.map((o: any) => o.code)).toEqual(['cross-channel-opt']);
+        });
+
         it('cannot delete a ProductOption belonging to another channel', async () => {
             adminClient.setChannelToken(CHANNEL_B_TOKEN);
             await expect(

@@ -309,6 +309,27 @@ export interface ApiOptions {
      * @since 1.5.0
      */
     introspection?: boolean;
+    /**
+     * @description
+     * Controls input validation behaviour for mutation arguments.
+     *
+     * @since 3.8.0
+     */
+    inputValidation?: {
+        /**
+         * @description
+         * When enabled, blank (empty or whitespace-only) string values are rejected for
+         * business-required fields on top-level mutation inputs (e.g. product name, facet code,
+         * channel token). Returns a `UserInputError` with the `field-cannot-be-blank` i18n code.
+         *
+         * Disable this if your integration cannot change its clients overnight and
+         * still sends empty strings for required fields.
+         *
+         * @default true
+         * @since 3.8.0
+         */
+        requiredFieldValidation?: boolean;
+    };
 }
 
 /**

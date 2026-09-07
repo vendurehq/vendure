@@ -4,8 +4,8 @@ import { Command } from 'commander';
 import pc from 'picocolors';
 
 import { builtinCommandDefs } from './commands/builtins';
-import { CommandRegistry } from './shared/command-registry-store';
 import { registerCommands } from './shared/command-registry';
+import { CommandRegistry } from './shared/command-registry-store';
 import {
     findInactivePluginProvidingCommand,
     listInactiveCliPluginPackages,
@@ -19,8 +19,11 @@ async function main(): Promise<void> {
     const version = require('../package.json').version;
 
     program
+        // Commander otherwise names the program after the binary file
+        // (`cli.js`), which would make every subcommand's help say `cli ...`.
+        .name('vendure')
         .version(version)
-        .usage(`vendure <command>`)
+        .usage(`<command>`)
         .description(
             pc.blue(`
                                 888                          
@@ -34,6 +37,12 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
 `),
         );
 
+    // Shared options are declared once on the command that owns them, so
+    // subcommand help needs Commander's "Global Options" section to be
+    // complete. Commander copies the help configuration into each subcommand as
+    // it is created, so this must be set first.
+    program.configureHelp({ showGlobalOptions: true });
+
     const registry = new CommandRegistry();
     registry.registerAll(builtinCommandDefs);
 
@@ -41,16 +50,18 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
     // `plugins` command needed to disable it) stay available.
     const { loaded, failures } = resolveCliPlugins();
     for (const failure of failures) {
-        process.stderr.write(pc.red(`Failed to load CLI plugin "${failure.packageName}": ${failure.reason}\n`));
-        process.stderr.write(
-            `Skipping it. Fix the issue or disable it with: vendure plugins remove ${failure.packageName}\n`,
-        );
+        writePluginSkipped(failure.packageName, 'Failed to load CLI plugin', failure.reason);
     }
-    for (const { plugin } of loaded) {
-        registry.applyPlugin(plugin);
+    for (const { packageName, plugin } of loaded) {
+        try {
+            registry.applyPlugin(plugin);
+        } catch (e) {
+            const reason = e instanceof Error ? e.message : String(e);
+            writePluginSkipped(packageName, 'Failed to register CLI plugin', reason);
+        }
     }
 
-    registerCommands(program, registry.toArray());
+    registerCommands(program, registry.toArray(), registry.getRootOptions());
 
     program.on('command:*', operands => {
         const unknown = operands[0] ?? '';
@@ -64,6 +75,26 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
 }
 
 /**
+ * Reports a plugin the CLI could not use, and how to disable it. Built-ins stay
+ * registered either way, so `vendure plugins remove` remains reachable.
+ */
+function writePluginSkipped(packageName: string, headline: string, reason: string): void {
+    process.stderr.write(pc.red(`${headline} "${packageName}": ${reason}\n`));
+    process.stderr.write(
+        `Skipping it. Fix the issue or disable it with: vendure plugins remove ${packageName}\n`,
+    );
+}
+
+/**
+ * Arguments and command names that mean the user is orienting themselves
+ * rather than running a command, so the inactive-plugins hint would be noise.
+ * Local to this file: they overlap the registry's reserved lists today, but
+ * answer a different question and should not move when those change.
+ */
+const HINT_SUPPRESSING_ARGS = new Set(['--help', '-h', '--version', '-V']);
+const HINT_SUPPRESSING_COMMANDS = new Set(['plugins', 'help']);
+
+/**
  * One-line hint when packages declare CLI plugins but are not enabled yet.
  * Skipped for `vendure plugins` itself and for `--help` / `--version`.
  */
@@ -74,12 +105,8 @@ function maybeWriteInactivePluginsHint(argv: string[]): void {
     }
     const primary = args.find(arg => !arg.startsWith('-'));
     if (
-        primary === 'plugins' ||
-        primary === 'help' ||
-        args.includes('--help') ||
-        args.includes('-h') ||
-        args.includes('--version') ||
-        args.includes('-V')
+        (primary && HINT_SUPPRESSING_COMMANDS.has(primary)) ||
+        args.some(arg => HINT_SUPPRESSING_ARGS.has(arg))
     ) {
         return;
     }
@@ -90,9 +117,7 @@ function maybeWriteInactivePluginsHint(argv: string[]): void {
     }
 
     const noun = inactive.length === 1 ? 'package provides' : 'packages provide';
-    process.stderr.write(
-        `${inactive.length} ${noun} CLI commands. Run "vendure plugins" to review them.\n`,
-    );
+    process.stderr.write(`${inactive.length} ${noun} CLI commands. Run "vendure plugins" to review them.\n`);
 }
 
 function writeUnknownCommandHelp(commandName: string): void {
@@ -109,9 +134,7 @@ function writeUnknownCommandHelp(commandName: string): void {
 
     const inactive = listInactiveCliPluginPackages();
     if (inactive.length === 1) {
-        process.stderr.write(
-            `It may be provided by ${inactive[0]}, which is installed but not enabled.\n`,
-        );
+        process.stderr.write(`It may be provided by ${inactive[0]}, which is installed but not enabled.\n`);
         process.stderr.write(`Enable it with: vendure plugins add ${inactive[0]}\n`);
         return;
     }
@@ -122,7 +145,7 @@ function writeUnknownCommandHelp(commandName: string): void {
     }
 }
 
-void main().catch((e: any) => {
-    process.stderr.write(`${e?.message ?? String(e)}\n`);
+void main().catch((e: unknown) => {
+    process.stderr.write(`${e instanceof Error ? e.message : String(e)}\n`);
     process.exit(1);
 });

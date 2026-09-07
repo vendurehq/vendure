@@ -14,6 +14,7 @@ import { AuthGuard } from './middleware/auth-guard';
 import { CustomFieldProcessingInterceptor } from './middleware/custom-field-processing-interceptor';
 import { ExceptionLoggerFilter } from './middleware/exception-logger.filter';
 import { IdInterceptor } from './middleware/id-interceptor';
+import { InputValidationInterceptor } from './middleware/input-validation-interceptor';
 import { TranslateErrorResultInterceptor } from './middleware/translate-error-result-interceptor';
 
 /**
@@ -57,6 +58,10 @@ import { TranslateErrorResultInterceptor } from './middleware/translate-error-re
         {
             provide: APP_INTERCEPTOR,
             useClass: IdInterceptor,
+        },
+        {
+            provide: APP_INTERCEPTOR,
+            useClass: InputValidationInterceptor,
         },
         {
             provide: APP_INTERCEPTOR,

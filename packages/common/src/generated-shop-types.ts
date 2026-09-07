@@ -3247,6 +3247,7 @@ export type Role = Node & {
     channels: Array<Channel>;
     code: Scalars['String']['output'];
     createdAt: Scalars['DateTime']['output'];
+    customFields?: Maybe<Scalars['JSON']['output']>;
     description: Scalars['String']['output'];
     id: Scalars['ID']['output'];
     permissions: Array<Permission>;

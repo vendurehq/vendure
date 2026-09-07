@@ -10,10 +10,20 @@
  *   }
  * }
  */
-import { builtinCommands, defineCliPlugin } from '../../../index';
+import { CliCommandContext, defineCliPlugin } from '../../../index';
+
+interface ExampleSharedOptions {
+    token?: string;
+    json?: boolean;
+}
 
 export default defineCliPlugin({
     id: '@vendure/cli-example-plugin',
+    // Shared by every command, and readable through `context.inheritedOptions`.
+    rootOptions: [
+        { long: '--token <token>', description: 'API token', required: true },
+        { long: '--json', description: 'Print machine-readable output' },
+    ],
     commands: [
         {
             name: 'example',
@@ -24,27 +34,53 @@ export default defineCliPlugin({
             },
         },
         {
-            name: 'dev',
-            description: 'Example wrap of the built-in dev command',
-            action: async (target, options) => {
-                process.stdout.write('Running wrapped vendure dev via plugin\n');
-                return builtinCommands.dev.action(target, options);
-            },
+            name: 'project',
+            description: 'Example nested command group',
+            options: [{ long: '--profile <name>', description: 'Configuration profile', required: true }],
+            subcommands: [
+                {
+                    name: 'list',
+                    description: 'List projects',
+                    action: async (
+                        options: Record<string, any>,
+                        command: unknown,
+                        context: CliCommandContext<ExampleSharedOptions>,
+                    ) => {
+                        // `required: true` on an option means a value must follow
+                        // the flag, not that the flag has to be given, so check.
+                        const token = context.inheritedOptions.token;
+                        if (!token) {
+                            process.stderr.write('Missing --token\n');
+                            return 1;
+                        }
+                        process.stdout.write(`Listing projects with token ${token}\n`);
+                        return 0;
+                    },
+                },
+            ],
+        },
+    ],
+    extendCommands: [
+        {
+            // Adds to the built-in dev command instead of replacing it, so
+            // other plugins can wrap it too.
+            command: 'dev',
+            options: [{ long: '--example-flag', description: 'An option added to dev' }],
+            decorate:
+                ({ next }) =>
+                async (...args) => {
+                    process.stdout.write('Running wrapped vendure dev via plugin\n');
+                    // Call the action handed to us, never builtinCommands.dev.action,
+                    // so any other plugin wrapping dev still runs.
+                    return next(...args);
+                },
         },
     ],
 });
 
 /**
- * Companion package.json fields for this plugin:
- *
- * {
- *   "vendure": {
- *     "cliPlugin": "./dist/cli-plugin.js",
- *     "cliCommands": ["example", "dev"]
- *   }
- * }
- *
- * Consumers must also list the package in their project package.json:
+ * Consumers must also list the package in their own package.json for it to be
+ * loaded:
  *
  * {
  *   "vendure": {

@@ -1225,6 +1225,7 @@ type CustomFields {
   Promotion: [CustomFieldConfig!]!
   Refund: [CustomFieldConfig!]!
   Region: [CustomFieldConfig!]!
+  Role: [CustomFieldConfig!]!
   Seller: [CustomFieldConfig!]!
   Session: [CustomFieldConfig!]!
   ShippingLine: [CustomFieldConfig!]!
@@ -4416,6 +4417,7 @@ type RefundStateTransitionError {
     String: '/reference/graphql-api/admin/object-types#string',
     Permission: '/reference/graphql-api/admin/enums#permission',
     Channel: '/reference/graphql-api/admin/object-types#channel',
+    JSON: '/reference/graphql-api/admin/object-types#json',
   }}
 >
 {`type Role {
@@ -4426,6 +4428,7 @@ type RefundStateTransitionError {
   description: String!
   permissions: [Permission!]!
   channels: [Channel!]!
+  customFields: JSON
 }`}
 </GraphQLDoc>
 

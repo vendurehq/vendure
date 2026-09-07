@@ -25,6 +25,7 @@
     "entity-with-id-not-found": "No { entityName } with the id \"{ id }\" could be found",
     "items-cannot-be-removed-from-default-channel": "Items cannot be removed from the default Channel",
     "facetfilterinput-invalid-input": "A FacetValueFilterInput object may not specify the 'and' and 'or' fields simultaneously",
+    "field-cannot-be-blank": "The \"{ fieldName }\" field cannot be blank",
     "field-invalid-datetime-range-max": "The custom field \"{ name }\" value [{ value }] is greater than the maximum [{ max }]",
     "field-invalid-datetime-range-min": "The custom field \"{ name }\" value [{ value }] is less than the minimum [{ min }]",
     "field-invalid-non-nullable": "The custom field \"{ name }\" value cannot be set to null",

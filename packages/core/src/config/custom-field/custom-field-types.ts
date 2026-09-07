@@ -375,6 +375,7 @@ export type CustomFields = {
     Promotion?: CustomFieldConfig[];
     Refund?: CustomFieldConfig[];
     Region?: CustomFieldConfig[];
+    Role?: CustomFieldConfig[];
     Seller?: CustomFieldConfig[];
     Session?: CustomFieldConfig[];
     ShippingLine?: CustomFieldConfig[];

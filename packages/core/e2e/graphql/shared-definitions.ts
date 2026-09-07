@@ -310,6 +310,21 @@ export const createFacetDocument = graphql(
     [facetWithValuesFragment],
 );
 
+export const multiFieldMutationDocument = graphql(
+    `
+        mutation MultiFieldTest($facet: CreateFacetInput!, $channel: CreateChannelInput!) {
+            a: createFacet(input: $facet) {
+                id
+                code
+            }
+            b: createChannel(input: $channel) {
+                ...Channel
+            }
+        }
+    `,
+    [channelFragment],
+);
+
 export const updateFacetDocument = graphql(
     `
         mutation UpdateFacet($input: UpdateFacetInput!) {
