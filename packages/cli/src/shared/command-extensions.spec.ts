@@ -4,6 +4,7 @@ import { runCli } from './__tests__/run-cli';
 import {
     CliCommandDefinition,
     CliCommandGroupDefinition,
+    CliCommandNode,
     CliCommandOption,
     readCommandContext,
 } from './cli-command-definition';
@@ -1569,6 +1570,113 @@ describe('Command extensions: runnable parent commands', () => {
         expect(trace).toEqual(['core:plan']);
     });
 
+    it('shows a decorator that the command it wraps has subcommands', () => {
+        const registry = registryWithDeploy();
+        let seen: string[] | undefined;
+        let leafSeen: unknown = 'unset';
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: PLATFORM_ID,
+                commands: [],
+                extendCommands: [
+                    {
+                        command: 'deploy',
+                        decorate: ({ command, next }) => {
+                            seen = command.subcommands?.map(node => node.name);
+                            return next;
+                        },
+                    },
+                    {
+                        command: 'dev',
+                        decorate: ({ command, next }) => {
+                            leafSeen = command.subcommands;
+                            return next;
+                        },
+                    },
+                ],
+            }),
+        );
+
+        expect(seen).toEqual(['plan']);
+        // A command with no subcommands is distinguishable from one that has them.
+        expect(leafSeen).toBeUndefined();
+    });
+
+    it('does not let a decorator reach the registered subcommands', () => {
+        const registry = registryWithDeploy();
+        let received: Readonly<CliCommandDefinition> | undefined;
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: PLATFORM_ID,
+                commands: [],
+                extendCommands: [
+                    {
+                        command: 'deploy',
+                        decorate: ({ command, next }) => {
+                            received = command;
+                            return next;
+                        },
+                    },
+                ],
+            }),
+        );
+
+        const child = received?.subcommands?.[0] as CliCommandDefinition;
+        expect(() => {
+            child.description = 'hijacked';
+        }).toThrow();
+        expect(() => {
+            (received?.subcommands as CliCommandNode[]).push({
+                name: 'extra',
+                description: 'Extra',
+                action: async () => 0,
+            });
+        }).toThrow();
+
+        const registered = registry.get('deploy') as CliCommandDefinition;
+        expect(registered.subcommands?.map(node => node.name)).toEqual(['plan']);
+        expect(registered.subcommands?.[0].description).toBe('Show what a deploy would change');
+    });
+
+    it('replaces a runnable parent, subtree and all', async () => {
+        const registry = registryWithDeploy();
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: '@example/replacer',
+                commands: [
+                    {
+                        name: 'deploy',
+                        description: 'Deploy somewhere else',
+                        replaces: true,
+                        action: async () => {
+                            trace.push('replacement:deploy');
+                            return 0;
+                        },
+                        subcommands: [
+                            {
+                                name: 'verify',
+                                description: 'Verify the deployment',
+                                action: async () => {
+                                    trace.push('replacement:verify');
+                                    return 0;
+                                },
+                            },
+                        ],
+                    },
+                ],
+            }),
+        );
+
+        await runCli(registry.toArray(), registry.getRootOptions(), ['deploy']);
+        await runCli(registry.toArray(), registry.getRootOptions(), ['deploy', 'verify']);
+        // The subcommand the replaced command had is gone with it.
+        const stale = await runCli(registry.toArray(), registry.getRootOptions(), ['deploy', 'plan']);
+
+        expect(trace).toEqual(['replacement:deploy', 'replacement:verify']);
+        expect(stale.exitCode).toBe(1);
+        expect(stale.stderr).toContain("unknown command 'plan'");
+    });
+
     it('still rejects decorating a command group, which has no action', () => {
         const registry = registryWithDeploy();
         const plugin = defineCliPlugin({
@@ -1668,9 +1776,8 @@ describe('Command extensions: runnable parent commands', () => {
         // Named as a command rather than a command group: it runs an action of
         // its own, but shares its options in the same way.
         expect(() => registry.applyPlugin(plugin)).toThrow(
-            /added to the command "vendure deploy" is already a shared option/,
+            /added to the command "vendure deploy" is already a shared option[\s\S]+cannot be shared at two levels/,
         );
-        expect(() => registry.applyPlugin(plugin)).toThrow(/cannot be shared at two levels/);
     });
 
     it('rejects a runnable parent declaring a flag the root already shares', () => {

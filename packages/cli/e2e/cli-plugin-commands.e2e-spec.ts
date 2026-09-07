@@ -177,6 +177,8 @@ describe('CLI plugin commands that also have subcommands', () => {
 
         expect(result.exitCode).not.toBe(0);
         expect(result.stderr).toContain("unknown command 'plann'");
+        // The same suggestion a command group gives for the same mistake.
+        expect(result.stderr).toContain('(Did you mean plan?)');
         expect(result.stdout).not.toContain('CLOUD_RESULT');
     });
 
@@ -185,6 +187,20 @@ describe('CLI plugin commands that also have subcommands', () => {
 
         expect(result.stdout).toMatch(/^\s+plan\s+Show what a deploy would change$/m);
         expect(result.stdout).not.toContain('CLOUD_RESULT');
+    });
+
+    it('rejects a plugin whose command has both arguments and subcommands', async () => {
+        const broken = createTestProject('cli-plugin-ambiguous-parent');
+        try {
+            installCliPluginFixture(broken, 'ambiguous-parent-cli-plugin');
+            const result = await broken.runCliCommand(['--help']);
+
+            expect(result.stderr).toContain('declares both positional arguments and subcommands');
+            // The plugin is skipped rather than taking the CLI down with it.
+            expect(result.stdout).toContain('plugins');
+        } finally {
+            broken.cleanup();
+        }
     });
 
     it('lists the subcommands of a runnable parent nested inside a group', async () => {

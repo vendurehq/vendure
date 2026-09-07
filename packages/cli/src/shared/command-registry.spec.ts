@@ -24,10 +24,11 @@ beforeEach(() => {
 });
 
 /**
- * A leaf that records what the host handed to it. The context is always the
- * final argument, after Commander's positionals, options and Command.
+ * A command that records what the host handed to it, with or without
+ * subcommands of its own. The context is always the final argument, after
+ * Commander's positionals, options and Command.
  */
-function recordingLeaf(
+function recordingCommand(
     name: string,
     description: string,
     extra: Partial<CliCommandDefinition> = {},
@@ -62,7 +63,7 @@ function cloudCommands(): CliCommandNode[] {
         {
             name: 'project',
             description: 'Manage projects',
-            subcommands: [recordingLeaf('list', 'List projects')],
+            subcommands: [recordingCommand('list', 'List projects')],
         },
         {
             name: 'config',
@@ -73,7 +74,7 @@ function cloudCommands(): CliCommandNode[] {
                     name: 'server',
                     description: 'Server configuration',
                     subcommands: [
-                        recordingLeaf('set', 'Set a server config value', {
+                        recordingCommand('set', 'Set a server config value', {
                             arguments: [
                                 { name: 'key', description: 'Key', required: true },
                                 { name: 'value', description: 'Value', required: true },
@@ -90,7 +91,7 @@ function cloudCommands(): CliCommandNode[] {
                 {
                     name: 'db',
                     description: 'Database backups',
-                    subcommands: [recordingLeaf('list', 'List database backups')],
+                    subcommands: [recordingCommand('list', 'List database backups')],
                 },
             ],
         },
@@ -98,7 +99,7 @@ function cloudCommands(): CliCommandNode[] {
             name: 'restore',
             description: 'Restore from a backup',
             subcommands: [
-                recordingLeaf('db', 'Restore the database', {
+                recordingCommand('db', 'Restore the database', {
                     arguments: [{ name: 'backupId', description: 'Backup id', required: true }],
                 }),
             ],
@@ -238,7 +239,7 @@ describe('registerCommands() with nested commands', () => {
                 name: 'project',
                 description: 'Manage projects',
                 subcommands: [
-                    recordingLeaf('list', 'List projects', {
+                    recordingCommand('list', 'List projects', {
                         options: [{ long: '--limit <n>', description: 'Maximum results', required: true }],
                     }),
                 ],
@@ -252,7 +253,7 @@ describe('registerCommands() with nested commands', () => {
 
     it('gives a command its own value when it declares the same flag as a shared option', async () => {
         const commands: CliCommandNode[] = [
-            recordingLeaf('plugins', 'Manage CLI plugins', {
+            recordingCommand('plugins', 'Manage CLI plugins', {
                 options: [{ long: '--json', description: 'Output JSON' }],
             }),
         ];
@@ -266,7 +267,7 @@ describe('registerCommands() with nested commands', () => {
         // The flag written before the command is consumed by the shared option,
         // so only the host copying it onto the command keeps both in step.
         const commands: CliCommandNode[] = [
-            recordingLeaf('plugins', 'Manage CLI plugins', {
+            recordingCommand('plugins', 'Manage CLI plugins', {
                 options: [{ long: '--json', description: 'Output JSON' }],
             }),
         ];
@@ -284,21 +285,21 @@ describe('registerCommands() with nested commands', () => {
  */
 function runnableParentCommands(): CliCommandNode[] {
     return [
-        recordingLeaf('deploy', 'Deploy the application', {
+        recordingCommand('deploy', 'Deploy the application', {
             options: [{ long: '--env <name>', description: 'Target environment', required: true }],
             subcommands: [
-                recordingLeaf('plan', 'Show what a deploy would change'),
-                recordingLeaf('teardown', 'Tear the deployment down'),
+                recordingCommand('plan', 'Show what a deploy would change'),
+                recordingCommand('teardown', 'Tear the deployment down'),
             ],
         }),
         {
             name: 'backup',
             description: 'Manage backups',
             subcommands: [
-                recordingLeaf('db', 'Back the database up', {
+                recordingCommand('db', 'Back the database up', {
                     subcommands: [
-                        recordingLeaf('list', 'List database backups'),
-                        recordingLeaf('status', 'Show the status of a backup'),
+                        recordingCommand('list', 'List database backups'),
+                        recordingCommand('status', 'Show the status of a backup'),
                     ],
                 }),
             ],
@@ -379,7 +380,7 @@ describe('registerCommands() with runnable parent commands', () => {
         expect(result.stderr).toContain("unknown option '--env'");
     });
 
-    it('reports an argument that names no subcommand rather than running the parent', async () => {
+    it('reports a word that names no subcommand rather than running the parent', async () => {
         const result = await runCli(runnableParentCommands(), rootOptions, ['deploy', 'plann']);
 
         expect(result.exitCode).toBe(1);
@@ -387,53 +388,19 @@ describe('registerCommands() with runnable parent commands', () => {
         expect(calls).toHaveLength(0);
     });
 
-    it('gives a subcommand name precedence over a positional argument', async () => {
-        const commands: CliCommandNode[] = [
-            recordingLeaf('deploy', 'Deploy the application', {
-                arguments: [{ name: 'target', description: 'What to deploy' }],
-                subcommands: [recordingLeaf('plan', 'Show what a deploy would change')],
-            }),
-        ];
+    it('reports it the way a group does, through Commander and with a suggestion', async () => {
+        // The point of the shape is that it behaves like a group, so the two
+        // have to agree on the message, the channel and the exit code.
+        const parent = await runCli(runnableParentCommands(), rootOptions, ['deploy', 'plann']);
+        const group = await runCli(runnableParentCommands(), rootOptions, ['backup', 'dbb']);
 
-        await runCli(commands, [], ['deploy', 'api']);
-        await runCli(commands, [], ['deploy', 'plan']);
-
-        expect(calls[0].commandPath).toEqual(['deploy']);
-        expect(calls[0].positionals).toEqual(['api']);
-        expect(calls[1].commandPath).toEqual(['deploy', 'plan']);
-    });
-
-    it('cannot tell a mistyped subcommand from a value when a positional is declared', async () => {
-        // The operand fills `target` before it is ever spare, so the guard above
-        // has nothing to report. This is why the contract tells an author to
-        // prefer options to positional arguments on a command with subcommands.
-        const commands: CliCommandNode[] = [
-            recordingLeaf('deploy', 'Deploy the application', {
-                arguments: [{ name: 'target', description: 'What to deploy' }],
-                subcommands: [recordingLeaf('plan', 'Show what a deploy would change')],
-            }),
-        ];
-
-        const result = await runCli(commands, [], ['deploy', 'plann']);
-
-        expect(result.exitCode).toBe(0);
-        expect(calls[0].commandPath).toEqual(['deploy']);
-        expect(calls[0].positionals).toEqual(['plann']);
-    });
-
-    it('reports a second argument that names no subcommand', async () => {
-        const commands: CliCommandNode[] = [
-            recordingLeaf('deploy', 'Deploy the application', {
-                arguments: [{ name: 'target', description: 'What to deploy' }],
-                subcommands: [recordingLeaf('plan', 'Show what a deploy would change')],
-            }),
-        ];
-
-        const result = await runCli(commands, [], ['deploy', 'api', 'plann']);
-
-        expect(result.exitCode).toBe(1);
-        expect(result.stderr).toContain("unknown command 'plann'");
-        expect(calls).toHaveLength(0);
+        expect(parent.stderr).toContain('(Did you mean plan?)');
+        expect(group.stderr).toContain('(Did you mean db?)');
+        expect(parent.exitCode).toBe(group.exitCode);
+        // Written through the output Commander was configured with, not
+        // straight to the process, which is what `runCli` records separately.
+        expect(parent.commanderStderr).toContain("unknown command 'plann'");
+        expect(parent.processStderr).toBe('');
     });
 
     it('keeps the help subcommand that Commander omits once a command has an action', async () => {
@@ -443,13 +410,51 @@ describe('registerCommands() with runnable parent commands', () => {
         expect(result.stdout).toMatch(/^\s+plan\s+Show what a deploy would change$/m);
     });
 
+    it('does not list a second help when the plugin declares its own', async () => {
+        const commands: CliCommandNode[] = [
+            recordingCommand('deploy', 'Deploy the application', {
+                subcommands: [
+                    recordingCommand('plan', 'Show what a deploy would change'),
+                    recordingCommand('help', 'Explain how deploying works'),
+                ],
+            }),
+        ];
+
+        const result = await runCli(commands, [], ['deploy', '--help']);
+
+        expect(result.stdout).toMatch(/^\s+help\s+Explain how deploying works$/m);
+        expect(result.stdout).not.toContain('help [command]');
+    });
+
+    it('runs a pure group nested under a runnable parent', async () => {
+        const commands: CliCommandNode[] = [
+            recordingCommand('deploy', 'Deploy the application', {
+                subcommands: [
+                    {
+                        name: 'config',
+                        description: 'Deployment configuration',
+                        subcommands: [recordingCommand('show', 'Show the configuration')],
+                    },
+                ],
+            }),
+        ];
+
+        await runCli(commands, [], ['deploy']);
+        await runCli(commands, [], ['deploy', 'config', 'show']);
+        const group = await runCli(commands, [], ['deploy', 'config']);
+
+        expect(calls.map(call => call.commandPath)).toEqual([['deploy'], ['deploy', 'config', 'show']]);
+        expect(group.exitCode).toBe(1);
+        expect(group.stderr).toContain('Usage: vendure deploy config');
+    });
+
     it('uses the numeric result of a parent action as the exit code', async () => {
         const commands: CliCommandNode[] = [
             {
                 name: 'deploy',
                 description: 'Deploy the application',
                 action: async () => 3,
-                subcommands: [recordingLeaf('plan', 'Show what a deploy would change')],
+                subcommands: [recordingCommand('plan', 'Show what a deploy would change')],
             },
         ];
         const result = await runCli(commands, [], ['deploy']);

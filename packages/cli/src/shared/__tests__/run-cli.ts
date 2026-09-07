@@ -20,6 +20,15 @@ export interface CliRun {
     stdout: string;
     /** Commander's own errors plus anything the host or action wrote to stderr. */
     stderr: string;
+    /**
+     * Only what Commander wrote through the output it was configured with. Kept
+     * apart from {@link processStderr} so a test can tell an error reported
+     * through Commander from one written straight to the process, which look
+     * identical in {@link stderr}.
+     */
+    commanderStderr: string;
+    /** Only what was written straight to `process.stderr`, bypassing Commander. */
+    processStderr: string;
 }
 
 /**
@@ -32,7 +41,8 @@ export async function runCli(
     argv: string[],
 ): Promise<CliRun> {
     let stdout = '';
-    let stderr = '';
+    let commanderStderr = '';
+    let processStderr = '';
 
     const program = new Command();
     program.name('vendure').exitOverride();
@@ -43,7 +53,7 @@ export async function runCli(
             stdout += str;
         },
         writeErr: str => {
-            stderr += str;
+            commanderStderr += str;
         },
     });
     registerCommands(program, commands, sharedOptions);
@@ -52,7 +62,7 @@ export async function runCli(
         throw new ExitSignal(code ?? 0);
     }) as never);
     const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(str => {
-        stderr += String(str);
+        processStderr += String(str);
         return true;
     });
     const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(str => {
@@ -77,5 +87,11 @@ export async function runCli(
         stdoutSpy.mockRestore();
     }
 
-    return { exitCode, stdout, stderr };
+    return {
+        exitCode,
+        stdout,
+        stderr: commanderStderr + processStderr,
+        commanderStderr,
+        processStderr,
+    };
 }

@@ -651,16 +651,19 @@ Its `options` are shared with every command below it, the same as a group's, so
 `--env` above reaches `deploy plan` through `context.inheritedOptions`. The
 command itself reads `--env` from its own options argument.
 
-The CLI resolves the first operand against the subcommand names before it
-considers the action, so a subcommand always wins. An operand that names no
-subcommand is reported as an unknown command rather than reaching the action, so
-`vendure deploy plann` fails instead of deploying.
+A command that has subcommands cannot also declare `arguments`. The first word
+after the command name would be ambiguous, since it could equally name a
+subcommand or fill an argument, so declaring both is rejected when the plugin is
+registered. Take an option instead.
 
-That protection needs a spare operand to catch. A command that declares
-`arguments` as well as `subcommands` cannot tell a mistyped subcommand from a
-value — with `arguments: [{ name: 'target' }]`, `vendure deploy plann` deploys
-`plann`. Prefer options to positional arguments on a command that has
-subcommands.
+That means a word which names no subcommand is always a mistake, and it is
+reported as an unknown command rather than reaching the action:
+
+```bash
+$ npx vendure deploy plann
+error: unknown command 'plann'
+(Did you mean plan?)
+```
 
 ### Extending an existing command
 

@@ -195,6 +195,14 @@ function assertNode(
                 `Give it at least one subcommand, or drop the array.`,
         );
     }
+    if ((node as Partial<CliCommandDefinition>).arguments?.length) {
+        throw new Error(
+            `CLI plugin "${pluginId}" command "${label}" declares both positional arguments and ` +
+                `subcommands. The first word after "${label}" would be ambiguous, since it could name ` +
+                `a subcommand or fill an argument. Take an option instead, or move the arguments into ` +
+                `a subcommand.`,
+        );
+    }
     assertNodes(pluginId, node.subcommands, commandPath, [...inheritedOptions, ...ownOptions]);
 }
 

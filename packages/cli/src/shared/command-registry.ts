@@ -3,7 +3,6 @@ import { Command } from 'commander';
 import {
     CliCommandAction,
     CliCommandContext,
-    CliCommandDefinition,
     CliCommandNode,
     CliCommandOption,
     hasCliSubcommands,
@@ -57,11 +56,19 @@ function registerNode(
             registerNode(command, subcommand, commandPath, inheritedOptions);
         }
         if (runnable) {
-            // Commander leaves out its implicit `help` subcommand when a command
+            // A command with subcommands takes no positional arguments, so any
+            // operand left here is a mistyped subcommand for the action below to
+            // reject. Said explicitly because Commander's own default for this
+            // has changed between major versions.
+            command.allowExcessArguments(true);
+            // Commander leaves out its implicit `help` subcommand once a command
             // has an action, so without this `vendure deploy help` would not work
-            // the way `vendure config help` does. A `help` the plugin declared
-            // itself wins, and no second one is added.
-            command.addHelpCommand();
+            // the way `vendure config help` does. Skipped when the plugin
+            // declares its own `help`, which Commander would otherwise list
+            // twice.
+            if (!subcommands.some(subcommand => subcommand.name === 'help')) {
+                command.addHelpCommand();
+            }
         }
     }
 
@@ -72,13 +79,13 @@ function registerNode(
     }
 
     command.action(async (...args: any[]) => {
-        const unknownSubcommand = subcommands ? strayOperand(command, runnable) : undefined;
-        if (unknownSubcommand !== undefined) {
+        if (subcommands && command.args.length > 0) {
             // Commander tries the subcommand names before it falls back to this
-            // action, so an operand still spare here matched none of them.
-            // Reporting it is what stops `vendure deploy plann` deploying.
-            process.stderr.write(`error: unknown command '${unknownSubcommand}'\n`);
-            process.exit(1);
+            // action, and a command with subcommands declares no arguments, so a
+            // word still sitting here named no subcommand. Reporting it through
+            // Commander is what stops `vendure deploy plann` deploying, and gives
+            // the same message and "did you mean" hint that a group gives.
+            reportUnknownSubcommand(command);
         }
         fillSharedValues(command, commanderOptions(args), sharedOptions);
         const context: CliCommandContext = {
@@ -91,17 +98,24 @@ function registerNode(
 }
 
 /**
- * The first operand Commander has no home for: past the positional arguments the
- * command declares, and — because Commander resolves subcommands first — not the
- * name of one of its subcommands either.
+ * Reports a word that named no subcommand, the way Commander reports one on a
+ * command that has no action of its own.
  *
- * A command that declares both `arguments` and `subcommands` cannot tell a
- * mistyped subcommand from a value, because the operand fills a positional
- * before it is ever spare. Only a command with no positional left over is
- * protected.
+ * `unknownCommand` assembles the "did you mean" hint from the visible
+ * subcommands and routes through `Command#error`, so the message, the output
+ * channel configured by `configureOutput` and the exit code all match what a
+ * group produces. Commander calls it itself but has never declared it in its
+ * typings, hence the cast. The fallback keeps the channel and exit code right,
+ * losing only the hint, should a later version drop it.
  */
-function strayOperand(command: Command, node: CliCommandDefinition): string | undefined {
-    return command.args[node.arguments?.length ?? 0];
+function reportUnknownSubcommand(command: Command): never {
+    const commander = command as Command & { unknownCommand?: () => never };
+    if (typeof commander.unknownCommand === 'function') {
+        commander.unknownCommand();
+    }
+    return command.error(`error: unknown command '${command.args[0]}'`, {
+        code: 'commander.unknownCommand',
+    });
 }
 
 /**

@@ -98,17 +98,14 @@ export interface CliCommandDefinition {
      * printing help. Its `options` are shared with every command below it —
      * see {@link hasCliSubcommands}.
      *
-     * Commander resolves the first operand against the subcommand names before
-     * it considers the action, so a subcommand always wins over a positional
-     * argument that would have taken the same value. An operand that matched no
-     * subcommand is reported as an unknown command instead of reaching the
-     * action — but only while there is no positional argument left for it to
-     * fill.
+     * A command with subcommands cannot also declare `arguments`: the first word
+     * after the command name would be ambiguous, since it could equally name a
+     * subcommand or fill an argument. Declaring both is rejected when the plugin
+     * is registered. Take options instead, which are never ambiguous.
      *
-     * A command that declares `arguments` as well as `subcommands` therefore
-     * cannot tell a mistyped subcommand from a value: `vendure deploy plann`
-     * runs the deploy with `plann` as its argument. Prefer options to positional
-     * arguments on a command that has subcommands.
+     * A word that names no subcommand is therefore always a mistake, and is
+     * reported as an unknown command rather than reaching the action, exactly as
+     * it would be on a group.
      *
      * @since 3.8.0
      */
@@ -166,11 +163,9 @@ export type CliCommandParent = CliCommandNode & { subcommands: CliCommandNode[] 
  * Whether a node has commands nested under it.
  *
  * A node with subcommands shares its own `options` with every command below it,
- * whether or not it also runs an action. That is why `registerCommands` passes
- * them down as shared options, why `assertCliPlugin` applies the stricter
- * shadowing rule to such a node, and why the collision checks in
- * `CommandRegistry` treat its options as shared. Those all call this rather than
- * {@link isCliCommandGroup}, which answers a narrower question.
+ * whether or not it also runs an action. That is the distinction the option
+ * scoping and tree walking need, and it is wider than {@link isCliCommandGroup},
+ * which excludes a node that runs an action of its own.
  */
 export function hasCliSubcommands(node: CliCommandNode): node is CliCommandParent {
     return Array.isArray(node.subcommands);
@@ -203,6 +198,10 @@ export interface CliCommandDecoratorInput {
      * The command as it stands before this decorator: the original definition
      * plus every extension already applied to it. Read its `options`,
      * `arguments` and `description` to see what other plugins have contributed.
+     *
+     * This is a frozen deep copy, so `subcommands` tells a decorator whether the
+     * command it is wrapping has commands nested under it without handing over
+     * the nodes the registry goes on to use. Writing to any part of it throws.
      */
     command: Readonly<CliCommandDefinition>;
     /**
