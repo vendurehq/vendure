@@ -1473,3 +1473,196 @@ describe('Reserved short flags', () => {
         expect(() => registry.applyPlugin(rival)).toThrow(/already registered by @a\/first/);
     });
 });
+
+describe('Command extensions: runnable parent commands', () => {
+    /**
+     * The shape the hosted Cloud CLI registers: `deploy` runs an action of its
+     * own and also parents `plan`.
+     */
+    function cloudDeployPlugin() {
+        return defineCliPlugin({
+            id: CLOUD_ID,
+            commands: [
+                {
+                    name: 'deploy',
+                    description: 'Deploy the application',
+                    options: [{ long: '--env <name>', description: 'Target environment', required: true }],
+                    action: async () => {
+                        trace.push('core:deploy');
+                        return 0;
+                    },
+                    subcommands: [
+                        {
+                            name: 'plan',
+                            description: 'Show what a deploy would change',
+                            action: async () => {
+                                trace.push('core:plan');
+                                return 0;
+                            },
+                        },
+                    ],
+                },
+            ],
+        });
+    }
+
+    function registryWithDeploy(): CommandRegistry {
+        const registry = registryWithCore();
+        registry.applyPlugin(cloudDeployPlugin());
+        return registry;
+    }
+
+    it('decorates the action of a command that also has subcommands', async () => {
+        const registry = registryWithDeploy();
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: PLATFORM_ID,
+                commands: [],
+                extendCommands: [
+                    {
+                        command: 'deploy',
+                        decorate:
+                            ({ next }) =>
+                            async (...args: any[]) => {
+                                trace.push('platform:before');
+                                return next(...args);
+                            },
+                    },
+                ],
+            }),
+        );
+
+        await runCli(registry.toArray(), registry.getRootOptions(), ['deploy']);
+
+        expect(trace).toEqual(['platform:before', 'core:deploy']);
+    });
+
+    it('leaves the subcommands of a decorated command in place', async () => {
+        const registry = registryWithDeploy();
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: PLATFORM_ID,
+                commands: [],
+                extendCommands: [
+                    {
+                        command: 'deploy',
+                        decorate:
+                            ({ next }) =>
+                            async (...args: any[]) => {
+                                trace.push('platform:before');
+                                return next(...args);
+                            },
+                    },
+                ],
+            }),
+        );
+
+        await runCli(registry.toArray(), registry.getRootOptions(), ['deploy', 'plan']);
+
+        // The decorator wraps the parent action only, so running a subcommand
+        // does not go through it.
+        expect(trace).toEqual(['core:plan']);
+    });
+
+    it('still rejects decorating a command group, which has no action', () => {
+        const registry = registryWithDeploy();
+        const plugin = defineCliPlugin({
+            id: '@example/group',
+            commands: [],
+            extendCommands: [{ command: 'config', decorate: ({ next }) => next }],
+        });
+
+        expect(() => registry.applyPlugin(plugin)).toThrow(/is a command group and has no action/);
+    });
+
+    it('extends a command nested under a runnable parent', async () => {
+        const registry = registryWithDeploy();
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: PLATFORM_ID,
+                commands: [],
+                extendCommands: [
+                    {
+                        command: ['deploy', 'plan'],
+                        description: 'Show what a deploy would change, in detail',
+                        decorate:
+                            ({ next }) =>
+                            async (...args: any[]) => {
+                                trace.push('platform:plan');
+                                return next(...args);
+                            },
+                    },
+                ],
+            }),
+        );
+
+        await runCli(registry.toArray(), registry.getRootOptions(), ['deploy', 'plan']);
+
+        expect(trace).toEqual(['platform:plan', 'core:plan']);
+    });
+
+    it('shares an option added to a runnable parent with its subcommands', async () => {
+        const registry = registryWithDeploy();
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: PLATFORM_ID,
+                commands: [],
+                extendCommands: [
+                    {
+                        command: 'deploy',
+                        options: [{ long: '--dry-run', description: 'Do not apply anything' }],
+                    },
+                ],
+            }),
+        );
+
+        const help = await runCli(registry.toArray(), registry.getRootOptions(), [
+            'deploy',
+            'plan',
+            '--help',
+        ]);
+
+        expect(help.stdout).toContain('Global Options:');
+        expect(help.stdout).toMatch(/^\s+--dry-run /m);
+    });
+
+    it('rejects an option added to a runnable parent that is already shared at the root', () => {
+        const registry = registryWithDeploy();
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: '@a/root',
+                rootOptions: [{ long: '--dry-run', description: 'Do not apply anything' }],
+                commands: [],
+            }),
+        );
+
+        const plugin = defineCliPlugin({
+            id: '@b/parent',
+            commands: [],
+            extendCommands: [
+                {
+                    command: 'deploy',
+                    options: [{ long: '--dry-run', description: 'Do not apply anything' }],
+                },
+            ],
+        });
+
+        // Named as a command rather than a command group: it runs an action of
+        // its own, but shares its options in the same way.
+        expect(() => registry.applyPlugin(plugin)).toThrow(
+            /added to the command "vendure deploy" is already a shared option/,
+        );
+        expect(() => registry.applyPlugin(plugin)).toThrow(/cannot be shared at two levels/);
+    });
+
+    it('rejects a shared root option that a runnable parent already shares', () => {
+        const registry = registryWithDeploy();
+        const plugin = defineCliPlugin({
+            id: '@b/root',
+            rootOptions: [{ long: '--env <name>', description: 'Environment', required: true }],
+            commands: [],
+        });
+
+        expect(() => registry.applyPlugin(plugin)).toThrow(/already shared by the command "vendure deploy"/);
+    });
+});

@@ -412,20 +412,113 @@ describe('defineCliPlugin() with nested commands', () => {
         ).toThrow(/at least one subcommand/);
     });
 
-    it('rejects a command group that also declares an action', () => {
+    it('accepts a command that has both an action and subcommands', () => {
+        const plugin = defineCliPlugin({
+            id: '@vendure/cloud',
+            commands: [
+                {
+                    name: 'deploy',
+                    description: 'Deploy the application',
+                    options: [{ long: '--env <name>', description: 'Target environment', required: true }],
+                    action: async () => 0,
+                    subcommands: [
+                        {
+                            name: 'plan',
+                            description: 'Show what a deploy would change',
+                            action: async () => 0,
+                        },
+                        { name: 'teardown', description: 'Tear the deployment down', action: async () => 0 },
+                    ],
+                },
+            ],
+        });
+
+        expect(plugin.commands).toHaveLength(1);
+    });
+
+    it('accepts a runnable command with subcommands nested inside a group', () => {
+        const plugin = defineCliPlugin({
+            id: '@vendure/cloud',
+            commands: [
+                {
+                    name: 'backup',
+                    description: 'Manage backups',
+                    subcommands: [
+                        {
+                            name: 'db',
+                            description: 'Back the database up',
+                            action: async () => 0,
+                            subcommands: [
+                                { name: 'list', description: 'List database backups', action: async () => 0 },
+                                {
+                                    name: 'status',
+                                    description: 'Show the status of a backup',
+                                    action: async () => 0,
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        });
+
+        expect(plugin.commands).toHaveLength(1);
+    });
+
+    it('rejects a runnable parent that declares subcommands but provides none', () => {
         expect(() =>
             defineCliPlugin({
-                id: '@example/both',
+                id: '@example/empty',
                 commands: [
                     {
-                        name: 'project',
-                        description: 'Manage projects',
-                        subcommands: [{ name: 'list', description: 'List projects', action: async () => 0 }],
+                        name: 'deploy',
+                        description: 'Deploy the application',
                         action: async () => 0,
-                    } as any,
+                        subcommands: [],
+                    },
                 ],
             }),
-        ).toThrow(/declares both subcommands and an action/);
+        ).toThrow(/at least one subcommand/);
+    });
+
+    it('rejects an action that is not a function alongside subcommands', () => {
+        expect(() =>
+            defineCliPlugin({
+                id: '@example/broken',
+                commands: [
+                    {
+                        name: 'deploy',
+                        description: 'Deploy the application',
+                        action: 'run it' as any,
+                        subcommands: [
+                            { name: 'plan', description: 'Show what would change', action: async () => 0 },
+                        ],
+                    },
+                ],
+            }),
+        ).toThrow(/declares an action that is not a function/);
+    });
+
+    it('rejects a runnable parent that shares a flag an ancestor already shares', () => {
+        // Its options reach every command below it, so the rule that applies is
+        // the group's, not the leaf's.
+        expect(() =>
+            defineCliPlugin({
+                id: '@example/shadow',
+                rootOptions: [{ long: '--token <token>', description: 'API token', required: true }],
+                commands: [
+                    {
+                        name: 'deploy',
+                        description: 'Deploy the application',
+                        options: [{ long: '--token <token>', description: 'Deploy token', required: true }],
+                        action: async () => 0,
+                        subcommands: [
+                            { name: 'plan', description: 'Show what would change', action: async () => 0 },
+                        ],
+                    },
+                ],
+            }),
+        ).toThrow(/already a shared option/);
     });
 
     it('rejects a nested command without an action', () => {

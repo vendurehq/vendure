@@ -90,6 +90,25 @@ export interface CliCommandDefinition {
      * without a premature exit.
      */
     action: CliCommandAction;
+    /**
+     * Commands nested under this one, e.g. the `plan` in `vendure deploy plan`.
+     * Unlike a {@link CliCommandGroupDefinition}, the command keeps an action
+     * of its own: running it without a subcommand runs that action rather than
+     * printing help.
+     *
+     * Its `options` are shared with every command below it, exactly as a
+     * group's are, and reach their actions through
+     * {@link CliCommandContext.inheritedOptions}.
+     *
+     * The first argument is matched against the subcommand names before the
+     * action is considered, so a positional argument declared here can never
+     * take the value of a subcommand name. An argument beyond the declared
+     * positionals is rejected rather than passed to the action, so a mistyped
+     * subcommand cannot silently run the parent.
+     *
+     * @since 3.8.0
+     */
+    subcommands?: CliCommandNode[];
 }
 
 /**
@@ -102,7 +121,8 @@ export type CliCommandAction = (...args: any[]) => Promise<void | number>;
 /**
  * A command that exists only to group subcommands, e.g. the `config` in
  * `vendure config server set`. A group has no action of its own: running it
- * without a subcommand prints its help.
+ * without a subcommand prints its help. For a command that has subcommands
+ * *and* runs an action, see {@link CliCommandDefinition.subcommands}.
  *
  * @since 3.8.0
  */
@@ -125,15 +145,46 @@ export interface CliCommandGroupDefinition {
 }
 
 /**
- * A node in a CLI command tree: either a command that runs an action, or a
- * group of further commands.
+ * A node in a CLI command tree: a command that runs an action, a group of
+ * further commands, or a command that does both.
  *
  * @since 3.8.0
  */
 export type CliCommandNode = CliCommandDefinition | CliCommandGroupDefinition;
 
+/**
+ * A node that has commands nested under it, whether or not it also runs an
+ * action of its own.
+ *
+ * @since 3.8.0
+ */
+export type CliCommandParent = CliCommandNode & { subcommands: CliCommandNode[] };
+
+/**
+ * Whether a node has commands nested under it. A parent shares its options
+ * with every command below it whether or not it runs an action, so this rather
+ * than {@link isCliCommandGroup} is what the option and tree-walking rules key
+ * on.
+ */
+export function hasCliSubcommands(node: CliCommandNode): node is CliCommandParent {
+    return Array.isArray(node.subcommands);
+}
+
+/**
+ * Whether a node runs an action of its own. True of a plain command and of a
+ * command that also has subcommands; false of a pure group.
+ */
+export function isRunnableCliCommand(node: CliCommandNode): node is CliCommandDefinition {
+    return typeof (node as CliCommandDefinition).action === 'function';
+}
+
+/**
+ * Whether a node exists only to group subcommands. A command that has both an
+ * action and subcommands is not a group: see
+ * {@link CliCommandDefinition.subcommands}.
+ */
 export function isCliCommandGroup(node: CliCommandNode): node is CliCommandGroupDefinition {
-    return Array.isArray((node as CliCommandGroupDefinition).subcommands);
+    return hasCliSubcommands(node) && !isRunnableCliCommand(node);
 }
 
 /**

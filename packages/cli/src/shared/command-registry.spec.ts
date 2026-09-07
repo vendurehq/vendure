@@ -277,6 +277,158 @@ describe('registerCommands() with nested commands', () => {
     });
 });
 
+/**
+ * The two shapes the hosted Cloud CLI needs: `deploy`, which runs an action of
+ * its own and parents `plan` and `teardown`; and `backup db`, which does the
+ * same one level down, inside the pure `backup` group.
+ */
+function runnableParentCommands(): CliCommandNode[] {
+    return [
+        recordingLeaf('deploy', 'Deploy the application', {
+            options: [{ long: '--env <name>', description: 'Target environment', required: true }],
+            subcommands: [
+                recordingLeaf('plan', 'Show what a deploy would change'),
+                recordingLeaf('teardown', 'Tear the deployment down'),
+            ],
+        }),
+        {
+            name: 'backup',
+            description: 'Manage backups',
+            subcommands: [
+                recordingLeaf('db', 'Back the database up', {
+                    subcommands: [
+                        recordingLeaf('list', 'List database backups'),
+                        recordingLeaf('status', 'Show the status of a backup'),
+                    ],
+                }),
+            ],
+        },
+    ];
+}
+
+describe('registerCommands() with runnable parent commands', () => {
+    it('runs the parent action when no subcommand is given', async () => {
+        const result = await runCli(runnableParentCommands(), rootOptions, ['deploy']);
+
+        expect(result.exitCode).toBe(0);
+        expect(calls).toHaveLength(1);
+        expect(calls[0].commandPath).toEqual(['deploy']);
+    });
+
+    it('runs the subcommand rather than the parent action', async () => {
+        await runCli(runnableParentCommands(), rootOptions, ['deploy', 'plan']);
+        await runCli(runnableParentCommands(), rootOptions, ['deploy', 'teardown']);
+
+        expect(calls.map(call => call.commandPath)).toEqual([
+            ['deploy', 'plan'],
+            ['deploy', 'teardown'],
+        ]);
+    });
+
+    it('runs a runnable parent nested inside a group, and its subcommands', async () => {
+        await runCli(runnableParentCommands(), rootOptions, ['backup', 'db']);
+        await runCli(runnableParentCommands(), rootOptions, ['backup', 'db', 'list']);
+        await runCli(runnableParentCommands(), rootOptions, ['backup', 'db', 'status']);
+
+        expect(calls.map(call => call.commandPath)).toEqual([
+            ['backup', 'db'],
+            ['backup', 'db', 'list'],
+            ['backup', 'db', 'status'],
+        ]);
+    });
+
+    it('passes a runnable parent its own options', async () => {
+        await runCli(runnableParentCommands(), rootOptions, ['deploy', '--env', 'staging']);
+
+        expect(calls[0].options).toEqual({ env: 'staging' });
+    });
+
+    it('shares a runnable parent option with its subcommands, given before the subcommand', async () => {
+        await runCli(runnableParentCommands(), rootOptions, ['deploy', '--env', 'staging', 'plan']);
+
+        expect(calls[0].commandPath).toEqual(['deploy', 'plan']);
+        expect(calls[0].inheritedOptions.env).toBe('staging');
+        // The parent option is shared, not one of the subcommand's own.
+        expect(calls[0].options).toEqual({});
+    });
+
+    it('shares a runnable parent option with its subcommands, given after the subcommand', async () => {
+        await runCli(runnableParentCommands(), rootOptions, ['deploy', 'plan', '--env', 'staging']);
+
+        expect(calls[0].inheritedOptions.env).toBe('staging');
+    });
+
+    it('shares root options with a runnable parent and with its subcommands', async () => {
+        await runCli(runnableParentCommands(), rootOptions, ['deploy', '--token', 'tok']);
+        await runCli(runnableParentCommands(), rootOptions, ['backup', 'db', 'list', '--token', 'tok']);
+
+        expect(calls[0].inheritedOptions).toEqual({ token: 'tok' });
+        expect(calls[1].inheritedOptions).toEqual({ token: 'tok' });
+    });
+
+    it('does not offer a runnable parent option outside its subtree', async () => {
+        const result = await runCli(runnableParentCommands(), rootOptions, [
+            'backup',
+            'db',
+            'list',
+            '--env',
+            'staging',
+        ]);
+
+        expect(result.exitCode).toBe(1);
+        expect(result.stderr).toContain("unknown option '--env'");
+    });
+
+    it('rejects an argument that names no subcommand rather than running the parent', async () => {
+        const result = await runCli(runnableParentCommands(), rootOptions, ['deploy', 'plann']);
+
+        expect(result.exitCode).toBe(1);
+        expect(result.stderr).toContain('too many arguments');
+        expect(calls).toHaveLength(0);
+    });
+
+    it('gives a subcommand name precedence over a positional argument', async () => {
+        const commands: CliCommandNode[] = [
+            recordingLeaf('deploy', 'Deploy the application', {
+                arguments: [{ name: 'target', description: 'What to deploy' }],
+                subcommands: [recordingLeaf('plan', 'Show what a deploy would change')],
+            }),
+        ];
+
+        await runCli(commands, [], ['deploy', 'api']);
+        await runCli(commands, [], ['deploy', 'plan']);
+
+        expect(calls[0].commandPath).toEqual(['deploy']);
+        expect(calls[0].positionals).toEqual(['api']);
+        expect(calls[1].commandPath).toEqual(['deploy', 'plan']);
+    });
+
+    it('uses the numeric result of a parent action as the exit code', async () => {
+        const commands: CliCommandNode[] = [
+            {
+                name: 'deploy',
+                description: 'Deploy the application',
+                action: async () => 3,
+                subcommands: [recordingLeaf('plan', 'Show what a deploy would change')],
+            },
+        ];
+        const result = await runCli(commands, [], ['deploy']);
+
+        expect(result.exitCode).toBe(3);
+    });
+
+    it('lists a runnable parent subcommands and options in its help', async () => {
+        const result = await runCli(runnableParentCommands(), rootOptions, ['deploy', '--help']);
+
+        expect(result.stdout).toContain('Usage: vendure deploy [options] [command]');
+        expect(result.stdout).toMatch(/^\s+plan\s+Show what a deploy would change$/m);
+        expect(result.stdout).toMatch(/^\s+teardown\s+Tear the deployment down$/m);
+        expect(result.stdout).toMatch(/^\s+--env /m);
+        expect(result.stdout).toContain('Global Options:');
+        expect(result.stdout).toMatch(/^\s+--token /m);
+    });
+});
+
 describe('registerCommands() help output', () => {
     it('lists top-level commands and shared options in root help', async () => {
         const result = await runCli(cloudCommands(), rootOptions, ['--help']);

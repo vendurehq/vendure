@@ -5,7 +5,8 @@ import {
     CliCommandContext,
     CliCommandNode,
     CliCommandOption,
-    isCliCommandGroup,
+    hasCliSubcommands,
+    isRunnableCliCommand,
 } from './cli-command-definition';
 import { CliCommandExit } from './cli-command-exit';
 import { buildOptionFlags, parseOptionFlags } from './cli-command-options';
@@ -39,21 +40,35 @@ function registerNode(
 ): void {
     const command = parent.command(node.name).description(node.description);
     const commandPath = [...path, node.name];
+    // Narrowed up front: a node may both run an action and have subcommands.
+    const runnable = isRunnableCliCommand(node) ? node : undefined;
+    const subcommands = hasCliSubcommands(node) ? node.subcommands : undefined;
 
-    if (isCliCommandGroup(node)) {
-        const groupOptions = [...sharedOptions, ...declareOptions(command, node.options ?? [])];
-        for (const subcommand of node.subcommands) {
-            registerNode(command, subcommand, commandPath, groupOptions);
+    for (const arg of runnable?.arguments ?? []) {
+        command.argument(arg.required ? `<${arg.name}>` : `[${arg.name}]`, arg.description);
+    }
+    const ownOptions = declareOptions(command, node.options ?? []);
+
+    if (subcommands) {
+        // A parent shares its options with everything below it whether or not
+        // it runs an action of its own.
+        const inheritedOptions = [...sharedOptions, ...ownOptions];
+        for (const subcommand of subcommands) {
+            registerNode(command, subcommand, commandPath, inheritedOptions);
         }
+        if (runnable) {
+            // Commander looks for a subcommand and otherwise falls back to the
+            // action, so without this a mistyped subcommand would be taken as a
+            // stray operand and silently run the parent.
+            command.allowExcessArguments(false);
+        }
+    }
+
+    if (!runnable) {
         // A group has no action: Commander prints its help and exits non-zero
         // when it is run without a subcommand.
         return;
     }
-
-    for (const arg of node.arguments ?? []) {
-        command.argument(arg.required ? `<${arg.name}>` : `[${arg.name}]`, arg.description);
-    }
-    declareOptions(command, node.options ?? []);
 
     command.action(async (...args: any[]) => {
         fillSharedValues(command, commanderOptions(args), sharedOptions);
@@ -62,7 +77,7 @@ function registerNode(
             commandPath,
         };
         // Exit is owned by the host so plugins can wrap built-in actions.
-        process.exit(await runAction(node.action, args, context));
+        process.exit(await runAction(runnable.action, args, context));
     });
 }
 
@@ -86,7 +101,7 @@ async function runAction(action: CliCommandAction, args: any[], context: CliComm
 
 /**
  * Declares options on a command and describes them for any descendants, which
- * inherit them when the command is a group or the root program.
+ * inherit them when the command has subcommands or is the root program.
  */
 function declareOptions(command: Command, options: CliCommandOption[]): SharedOption[] {
     const declared: SharedOption[] = [];

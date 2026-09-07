@@ -3,7 +3,7 @@ import {
     CliCommandExtension,
     CliCommandNode,
     CliCommandOption,
-    isCliCommandGroup,
+    hasCliSubcommands,
 } from './cli-command-definition';
 import { describeOption, parseOptionFlags, withSubOptions } from './cli-command-options';
 
@@ -28,9 +28,9 @@ export interface CliPlugin {
      */
     id: string;
     /**
-     * Commands to register. Each entry is either a command with an action, or a
-     * group of subcommands. A top-level name that a built-in or an earlier
-     * plugin already provides is rejected unless the command sets
+     * Commands to register. Each entry is a command with an action, a group of
+     * subcommands, or a command that has both. A top-level name that a built-in
+     * or an earlier plugin already provides is rejected unless the command sets
      * `replaces: true`.
      */
     commands: CliCommandNode[];
@@ -171,7 +171,7 @@ function assertNode(
     const ownOptions = node.options ?? [];
     assertUniqueOptions(pluginId, ownOptions, `options of command "${label}"`);
 
-    if (!isCliCommandGroup(node)) {
+    if (!hasCliSubcommands(node)) {
         assertMatchesInheritedShape(pluginId, label, ownOptions, inheritedOptions);
         if (typeof node.action !== 'function') {
             throw new TypeError(
@@ -181,16 +181,20 @@ function assertNode(
         return;
     }
 
+    // A parent shares its options with every command below it whether or not it
+    // runs an action, so the shadowing rule applies to both shapes.
     assertDoesNotShadow(pluginId, label, ownOptions, inheritedOptions);
-    if (typeof (node as Partial<CliCommandDefinition>).action === 'function') {
-        throw new Error(
-            `CLI plugin "${pluginId}" command "${label}" declares both subcommands and an action. ` +
-                `A command group has no action of its own: move it into a subcommand.`,
+    const action = (node as Partial<CliCommandDefinition>).action;
+    if (action !== undefined && typeof action !== 'function') {
+        throw new TypeError(
+            `CLI plugin "${pluginId}" command "${label}" declares an action that is not a function. ` +
+                `Omit it to make "${label}" a command group.`,
         );
     }
     if (node.subcommands.length === 0) {
         throw new Error(
-            `CLI plugin "${pluginId}" command group "${label}" must provide at least one subcommand`,
+            `CLI plugin "${pluginId}" command "${label}" declares "subcommands" but provides none. ` +
+                `Give it at least one subcommand, or drop the array.`,
         );
     }
     assertNodes(pluginId, node.subcommands, commandPath, [...inheritedOptions, ...ownOptions]);
