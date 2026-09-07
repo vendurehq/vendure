@@ -9,7 +9,8 @@
             "project",
             "config",
             "backup",
-            "restore"
+            "restore",
+            "deploy"
         ]
     }
 }

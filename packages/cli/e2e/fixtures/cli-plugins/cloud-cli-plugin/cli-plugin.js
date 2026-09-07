@@ -1,7 +1,8 @@
 /**
  * A CLI plugin shaped like the Vendure Cloud command surface: nested command
- * trees plus options shared by every command. Each action prints what the host
- * handed it, so the e2e tests can assert on it.
+ * trees, commands that run an action and also parent subcommands, plus options
+ * shared by every command. Each action prints what the host handed it, so the
+ * e2e tests can assert on it.
  */
 const { defineCliPlugin } = require('@vendure/cli');
 
@@ -69,14 +70,41 @@ module.exports = defineCliPlugin({
             subcommands: [
                 {
                     name: 'db',
-                    description: 'Database backups',
+                    description: 'Back the database up',
+                    options: [
+                        { long: '--label <name>', description: 'Label for the backup', required: true },
+                    ],
+                    action: async (options, command, context) => report(context, options),
                     subcommands: [
                         {
                             name: 'list',
                             description: 'List database backups',
                             action: async (options, command, context) => report(context, options),
                         },
+                        {
+                            name: 'status',
+                            description: 'Show the status of a backup',
+                            action: async (options, command, context) => report(context, options),
+                        },
                     ],
+                },
+            ],
+        },
+        {
+            name: 'deploy',
+            description: 'Deploy the application',
+            options: [{ long: '--env <name>', description: 'Environment to deploy to', required: true }],
+            action: async (options, command, context) => report(context, options),
+            subcommands: [
+                {
+                    name: 'plan',
+                    description: 'Show what a deploy would change',
+                    action: async (options, command, context) => report(context, options),
+                },
+                {
+                    name: 'teardown',
+                    description: 'Tear the deployment down',
+                    action: async (options, command, context) => report(context, options),
                 },
             ],
         },
