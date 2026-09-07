@@ -27,7 +27,7 @@
     "devDependencies": {
         "@vendure/common": "3.7.3",
         "@vendure/core": "3.7.3",
-        "bullmq": "^5.67.1",
+        "bullmq": "^6.3.3",
         "ioredis": "5.9.3",
         "rimraf": "^5.0.5",
         "typescript": "5.8.2"
