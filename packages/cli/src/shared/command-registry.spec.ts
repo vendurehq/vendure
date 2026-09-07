@@ -379,11 +379,11 @@ describe('registerCommands() with runnable parent commands', () => {
         expect(result.stderr).toContain("unknown option '--env'");
     });
 
-    it('rejects an argument that names no subcommand rather than running the parent', async () => {
+    it('reports an argument that names no subcommand rather than running the parent', async () => {
         const result = await runCli(runnableParentCommands(), rootOptions, ['deploy', 'plann']);
 
         expect(result.exitCode).toBe(1);
-        expect(result.stderr).toContain('too many arguments');
+        expect(result.stderr).toContain("unknown command 'plann'");
         expect(calls).toHaveLength(0);
     });
 
@@ -403,6 +403,46 @@ describe('registerCommands() with runnable parent commands', () => {
         expect(calls[1].commandPath).toEqual(['deploy', 'plan']);
     });
 
+    it('cannot tell a mistyped subcommand from a value when a positional is declared', async () => {
+        // The operand fills `target` before it is ever spare, so the guard above
+        // has nothing to report. This is why the contract tells an author to
+        // prefer options to positional arguments on a command with subcommands.
+        const commands: CliCommandNode[] = [
+            recordingLeaf('deploy', 'Deploy the application', {
+                arguments: [{ name: 'target', description: 'What to deploy' }],
+                subcommands: [recordingLeaf('plan', 'Show what a deploy would change')],
+            }),
+        ];
+
+        const result = await runCli(commands, [], ['deploy', 'plann']);
+
+        expect(result.exitCode).toBe(0);
+        expect(calls[0].commandPath).toEqual(['deploy']);
+        expect(calls[0].positionals).toEqual(['plann']);
+    });
+
+    it('reports a second argument that names no subcommand', async () => {
+        const commands: CliCommandNode[] = [
+            recordingLeaf('deploy', 'Deploy the application', {
+                arguments: [{ name: 'target', description: 'What to deploy' }],
+                subcommands: [recordingLeaf('plan', 'Show what a deploy would change')],
+            }),
+        ];
+
+        const result = await runCli(commands, [], ['deploy', 'api', 'plann']);
+
+        expect(result.exitCode).toBe(1);
+        expect(result.stderr).toContain("unknown command 'plann'");
+        expect(calls).toHaveLength(0);
+    });
+
+    it('keeps the help subcommand that Commander omits once a command has an action', async () => {
+        const result = await runCli(runnableParentCommands(), rootOptions, ['deploy', 'help']);
+
+        expect(calls).toHaveLength(0);
+        expect(result.stdout).toMatch(/^\s+plan\s+Show what a deploy would change$/m);
+    });
+
     it('uses the numeric result of a parent action as the exit code', async () => {
         const commands: CliCommandNode[] = [
             {
@@ -417,7 +457,7 @@ describe('registerCommands() with runnable parent commands', () => {
         expect(result.exitCode).toBe(3);
     });
 
-    it('lists a runnable parent subcommands and options in its help', async () => {
+    it("lists a runnable parent's subcommands and options in its help", async () => {
         const result = await runCli(runnableParentCommands(), rootOptions, ['deploy', '--help']);
 
         expect(result.stdout).toContain('Usage: vendure deploy [options] [command]');
@@ -426,6 +466,14 @@ describe('registerCommands() with runnable parent commands', () => {
         expect(result.stdout).toMatch(/^\s+--env /m);
         expect(result.stdout).toContain('Global Options:');
         expect(result.stdout).toMatch(/^\s+--token /m);
+    });
+
+    it('lists the subcommands of a runnable parent nested inside a group', async () => {
+        const result = await runCli(runnableParentCommands(), rootOptions, ['backup', 'db', '--help']);
+
+        expect(result.stdout).toContain('Usage: vendure backup db');
+        expect(result.stdout).toMatch(/^\s+list\s+List database backups$/m);
+        expect(result.stdout).toMatch(/^\s+status\s+Show the status of a backup$/m);
     });
 });
 

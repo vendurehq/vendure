@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runCli } from './__tests__/run-cli';
-import { CliCommandDefinition, CliCommandGroupDefinition, CliCommandOption } from './cli-command-definition';
+import {
+    CliCommandDefinition,
+    CliCommandGroupDefinition,
+    CliCommandOption,
+    readCommandContext,
+} from './cli-command-definition';
 import { defineCliPlugin } from './cli-plugin';
 import { CliPluginRegistrationError, CommandRegistry } from './command-registry-store';
 
@@ -1603,11 +1608,21 @@ describe('Command extensions: runnable parent commands', () => {
 
     it('shares an option added to a runnable parent with its subcommands', async () => {
         const registry = registryWithDeploy();
+        let inherited: Record<string, any> | undefined;
         registry.applyPlugin(
             defineCliPlugin({
                 id: PLATFORM_ID,
                 commands: [],
                 extendCommands: [
+                    {
+                        command: ['deploy', 'plan'],
+                        decorate:
+                            ({ next }) =>
+                            async (...args: any[]) => {
+                                inherited = readCommandContext(args).inheritedOptions;
+                                return next(...args);
+                            },
+                    },
                     {
                         command: 'deploy',
                         options: [{ long: '--dry-run', description: 'Do not apply anything' }],
@@ -1616,12 +1631,15 @@ describe('Command extensions: runnable parent commands', () => {
             }),
         );
 
+        await runCli(registry.toArray(), registry.getRootOptions(), ['deploy', 'plan', '--dry-run']);
+
+        expect(inherited).toEqual({ dryRun: true });
+
         const help = await runCli(registry.toArray(), registry.getRootOptions(), [
             'deploy',
             'plan',
             '--help',
         ]);
-
         expect(help.stdout).toContain('Global Options:');
         expect(help.stdout).toMatch(/^\s+--dry-run /m);
     });
@@ -1653,6 +1671,21 @@ describe('Command extensions: runnable parent commands', () => {
             /added to the command "vendure deploy" is already a shared option/,
         );
         expect(() => registry.applyPlugin(plugin)).toThrow(/cannot be shared at two levels/);
+    });
+
+    it('rejects a runnable parent declaring a flag the root already shares', () => {
+        const registry = registryWithCore();
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: '@a/root',
+                rootOptions: [{ long: '--env <name>', description: 'Environment', required: true }],
+                commands: [],
+            }),
+        );
+
+        expect(() => registry.applyPlugin(cloudDeployPlugin())).toThrow(
+            /on the command "vendure deploy" is already a shared option/,
+        );
     });
 
     it('rejects a shared root option that a runnable parent already shares', () => {

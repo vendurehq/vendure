@@ -213,12 +213,13 @@ export class CommandRegistry {
             if (!isSameOption(declared.option, parsed)) {
                 continue;
             }
-            if (declared.sharedBy) {
+            if (hasCliSubcommands(declared.declaredBy)) {
                 // The mirror of the check in draftCommand. Without it the rule
                 // would depend on which of the two plugins is listed first.
                 conflicts.push(
                     `Shared option "${describeOption(option)}" is already shared by ` +
-                        `${declared.sharedBy}. ${SUBTREE_SHARING_EXPLANATION}`,
+                        `${describeCommand(declared.declaredBy, declared.path)}. ` +
+                        `${SUBTREE_SHARING_EXPLANATION}`,
                 );
             } else if (!takesSameValue(declared.option, option)) {
                 conflicts.push(
@@ -299,9 +300,10 @@ function commandOptionConflicts(draft: RegistryState, node: CliCommandNode): str
         if (!shared) {
             continue;
         }
-        if (declared.sharedBy) {
+        if (hasCliSubcommands(declared.declaredBy)) {
             conflicts.push(
-                `Option "${describeOption(declared.option)}" on ${declared.sharedBy} is already ` +
+                `Option "${describeOption(declared.option)}" on ` +
+                    `${describeCommand(declared.declaredBy, declared.path)} is already ` +
                     `a shared option registered by ${shared.source ?? 'the CLI'}. ` +
                     `${SUBTREE_SHARING_EXPLANATION}`,
             );
@@ -386,14 +388,15 @@ function draftExtension(
 interface ExtensionOptionScope {
     ancestors: CliCommandOption[];
     own: CliCommandOption[];
+    path: string[];
     label: string;
     /**
      * Set when the target has subcommands, and so shares an added option with
      * everything below it.
      */
     subtree?: {
-        /** How the target is named in an error message. */
-        describedAs: string;
+        /** The target itself, which the messages below name. */
+        target: CliCommandNode;
         /** Options that commands below the target share with their own subtrees. */
         parents: Array<{ path: string[]; option: CliCommandOption }>;
         /** Options declared by commands below the target that share nothing. */
@@ -414,12 +417,13 @@ function extensionOptionConflicts(
     const scope: ExtensionOptionScope = {
         ancestors: ancestorSharedOptions(draft, path),
         own: withSubOptions(target.options ?? []),
+        path,
         label: path.join(' '),
         // Extending a command that has subcommands shares the option with
         // everything below it, so the subtree matters as much as the ancestors.
         subtree: hasCliSubcommands(target)
             ? {
-                  describedAs: describeCommand(target, path),
+                  target,
                   parents: descendantParentOptions(target, path),
                   leaves: descendantLeafOptions(target, path),
               }
@@ -453,10 +457,11 @@ function addedOptionConflicts(
     }
 
     if (subtree) {
+        const targetName = describeCommand(subtree.target, scope.path);
         const parentBelow = subtree.parents.find(existing => isSameOption(existing.option, parsed));
         if (parentBelow) {
             conflicts.push(
-                `Option "${name}" added to ${subtree.describedAs} is already shared by ` +
+                `Option "${name}" added to ${targetName} is already shared by ` +
                     `"vendure ${parentBelow.path.join(' ')}" below it. ${SUBTREE_SHARING_EXPLANATION}`,
             );
             return conflicts;
@@ -467,7 +472,7 @@ function addedOptionConflicts(
         );
         if (leafBelow) {
             conflicts.push(
-                `Option "${name}" added to ${subtree.describedAs} is not compatible with ` +
+                `Option "${name}" added to ${targetName} is not compatible with ` +
                     `"${describeOption(leafBelow.option)}" on "vendure ${leafBelow.path.join(' ')}" below ` +
                     `it: one takes a value and the other does not.`,
             );
@@ -483,8 +488,8 @@ function addedOptionConflicts(
     }
     if (subtree) {
         conflicts.push(
-            `Option "${name}" added to ${subtree.describedAs} is already a shared option ` +
-                `("${describeOption(sharedOption)}"). ${SUBTREE_SHARING_EXPLANATION}`,
+            `Option "${name}" added to ${describeCommand(subtree.target, scope.path)} is already a ` +
+                `shared option ("${describeOption(sharedOption)}"). ${SUBTREE_SHARING_EXPLANATION}`,
         );
     } else if (!takesSameValue(sharedOption, option)) {
         conflicts.push(
@@ -503,8 +508,6 @@ function extendNode(target: CliCommandNode, extension: CliCommandExtension): Cli
         return { ...target, description, options: options.length > 0 ? options : undefined };
     }
 
-    // The spread carries any subcommands through, so extending a runnable
-    // parent leaves the tree below it as it was.
     const command: CliCommandDefinition = {
         ...target,
         description,
@@ -524,20 +527,16 @@ function extendNode(target: CliCommandNode, extension: CliCommandExtension): Cli
 }
 
 function freezeCommand(command: CliCommandDefinition): Readonly<CliCommandDefinition> {
+    // A decorator wraps an action, so it is not shown the commands nested under
+    // one. Passing them would hand it the live nodes the registry goes on to
+    // use, which no amount of freezing at this level would protect.
+    const { subcommands, ...rest } = command;
     // The arrays are copied as well as frozen: freezing makes a mutating
     // decorator fail loudly, and copying means it could not have reached the
     // registered definition even if it did not.
-    const frozenOptions = command.options && (Object.freeze([...command.options]) as CliCommandOption[]);
-    const frozenArguments =
-        command.arguments && (Object.freeze([...command.arguments]) as CliCommandArgument[]);
-    const frozenSubcommands =
-        command.subcommands && (Object.freeze([...command.subcommands]) as CliCommandNode[]);
-    return Object.freeze({
-        ...command,
-        options: frozenOptions,
-        arguments: frozenArguments,
-        subcommands: frozenSubcommands,
-    });
+    const frozenOptions = rest.options && (Object.freeze([...rest.options]) as CliCommandOption[]);
+    const frozenArguments = rest.arguments && (Object.freeze([...rest.arguments]) as CliCommandArgument[]);
+    return Object.freeze({ ...rest, options: frozenOptions, arguments: frozenArguments });
 }
 
 function findNodeAtPath(node: CliCommandNode, path: string[]): CliCommandNode | undefined {
@@ -582,20 +581,16 @@ function findRootOption(draft: RegistryState, parsed: ParsedCliOption): Register
 interface DeclaredOption {
     path: string[];
     option: CliCommandOption;
-    /**
-     * How the declaring command is named in an error message, when it has
-     * subcommands and so shares the option with all of them.
-     */
-    sharedBy?: string;
+    /** The command that declares it, which decides whether it is shared. */
+    declaredBy: CliCommandNode;
 }
 
 function listCommandOptions(nodes: CliCommandNode[], path: string[] = []): DeclaredOption[] {
     const declared: DeclaredOption[] = [];
     for (const node of nodes) {
         const commandPath = [...path, node.name];
-        const sharedBy = hasCliSubcommands(node) ? describeCommand(node, commandPath) : undefined;
         for (const option of withSubOptions(node.options ?? [])) {
-            declared.push({ path: commandPath, option, sharedBy });
+            declared.push({ path: commandPath, option, declaredBy: node });
         }
         if (hasCliSubcommands(node)) {
             declared.push(...listCommandOptions(node.subcommands, commandPath));

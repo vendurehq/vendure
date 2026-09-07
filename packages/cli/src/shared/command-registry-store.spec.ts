@@ -433,7 +433,9 @@ describe('defineCliPlugin() with nested commands', () => {
             ],
         });
 
-        expect(plugin.commands).toHaveLength(1);
+        const deploy = plugin.commands[0] as CliCommandDefinition;
+        expect(typeof deploy.action).toBe('function');
+        expect(deploy.subcommands?.map(node => node.name)).toEqual(['plan', 'teardown']);
     });
 
     it('accepts a runnable command with subcommands nested inside a group', () => {
@@ -462,7 +464,11 @@ describe('defineCliPlugin() with nested commands', () => {
             ],
         });
 
-        expect(plugin.commands).toHaveLength(1);
+        const backup = plugin.commands[0] as CliCommandGroupDefinition;
+        const db = backup.subcommands[0] as CliCommandDefinition;
+        expect(typeof backup.action).toBe('undefined');
+        expect(typeof db.action).toBe('function');
+        expect(db.subcommands?.map(node => node.name)).toEqual(['list', 'status']);
     });
 
     it('rejects a runnable parent that declares subcommands but provides none', () => {

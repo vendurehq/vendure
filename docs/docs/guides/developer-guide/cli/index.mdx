@@ -549,10 +549,9 @@ commands without loading the plugin.
 
 ### Nested commands
 
-A command entry that has `subcommands` instead of an `action` is a group. A
-group only exists to hold the commands below it. Running it without a
-subcommand prints its help to stderr and exits 1. Groups can be nested to any
-depth.
+A command entry that has `subcommands` and no `action` is a group. A group only
+exists to hold the commands below it. Running it without a subcommand prints its
+help to stderr and exits 1. Groups can be nested to any depth.
 
 ```ts
 import type { Command } from 'commander';
@@ -615,6 +614,53 @@ by the CLI at every level, so `vendure --help` lists `config`,
 lists the arguments and the options that are valid there. Unknown subcommands,
 unknown options and missing arguments fail through the CLI's normal error path
 with exit code 1.
+
+### Commands that run and also hold subcommands
+
+A command may declare an `action` and `subcommands` together. Running it on its
+own runs the action; naming one of its subcommands runs that instead. Use this
+where a command already exists and needs commands underneath it without changing
+what the bare command does.
+
+```ts
+commands: [
+    {
+        name: 'deploy',
+        description: 'Deploy the application',
+        options: [{ long: '--env <name>', description: 'Target environment', required: true }],
+        action: async (options, command, context) => {
+            // `vendure deploy --env staging`
+            return 0;
+        },
+        subcommands: [
+            {
+                name: 'plan',
+                description: 'Show what a deploy would change',
+                // `vendure deploy plan --env staging`
+                action: async (options, command, context) => {
+                    console.log(context.inheritedOptions.env); // 'staging'
+                    return 0;
+                },
+            },
+        ],
+    },
+],
+```
+
+Its `options` are shared with every command below it, the same as a group's, so
+`--env` above reaches `deploy plan` through `context.inheritedOptions`. The
+command itself reads `--env` from its own options argument.
+
+The CLI resolves the first operand against the subcommand names before it
+considers the action, so a subcommand always wins. An operand that names no
+subcommand is reported as an unknown command rather than reaching the action, so
+`vendure deploy plann` fails instead of deploying.
+
+That protection needs a spare operand to catch. A command that declares
+`arguments` as well as `subcommands` cannot tell a mistyped subcommand from a
+value — with `arguments: [{ name: 'target' }]`, `vendure deploy plann` deploys
+`plann`. Prefer options to positional arguments on a command that has
+subcommands.
 
 ### Extending an existing command
 
@@ -727,7 +773,8 @@ they belong to:
 
 - `rootOptions` on the plugin are added to `vendure` itself, so every command
   can be given them.
-- `options` on a command group apply to every command inside that group.
+- `options` on a command that has subcommands apply to every command below it,
+  whether that command is a group or runs an action of its own.
 
 A shared option can be given anywhere on the command line once the command that
 declares it has been reached. These two are equivalent — same flag, same value,

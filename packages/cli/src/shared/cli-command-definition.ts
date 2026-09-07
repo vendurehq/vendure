@@ -29,8 +29,8 @@ export interface CliCommandArgument {
 
 /**
  * Values of the shared options that are in scope for a command, i.e. the root
- * options registered by a CLI plugin plus the options of every command group
- * the command is nested in.
+ * options registered by a CLI plugin plus the options of every command the
+ * command is nested in.
  *
  * The CLI host builds this from the parsed command line and passes it to the
  * action as the final argument, so a command never has to read or reparse
@@ -44,8 +44,9 @@ export interface CliCommandArgument {
 export interface CliCommandContext<TInheritedOptions extends Record<string, any> = Record<string, any>> {
     /**
      * Values of the shared options in scope. A shared option is declared at
-     * exactly one level — a flag declared on a group that an ancestor already
-     * shares is rejected at registration — so values do not compete. Where a
+     * exactly one level — a flag declared on a command with subcommands that an
+     * ancestor already shares is rejected at registration — so values do not
+     * compete. Where a
      * command declares the same flag as a shared option, both read the same
      * value. A value supplied on the command line always beats a default.
      * Options that were neither supplied nor given a default value are omitted.
@@ -94,17 +95,20 @@ export interface CliCommandDefinition {
      * Commands nested under this one, e.g. the `plan` in `vendure deploy plan`.
      * Unlike a {@link CliCommandGroupDefinition}, the command keeps an action
      * of its own: running it without a subcommand runs that action rather than
-     * printing help.
+     * printing help. Its `options` are shared with every command below it —
+     * see {@link hasCliSubcommands}.
      *
-     * Its `options` are shared with every command below it, exactly as a
-     * group's are, and reach their actions through
-     * {@link CliCommandContext.inheritedOptions}.
+     * Commander resolves the first operand against the subcommand names before
+     * it considers the action, so a subcommand always wins over a positional
+     * argument that would have taken the same value. An operand that matched no
+     * subcommand is reported as an unknown command instead of reaching the
+     * action — but only while there is no positional argument left for it to
+     * fill.
      *
-     * The first argument is matched against the subcommand names before the
-     * action is considered, so a positional argument declared here can never
-     * take the value of a subcommand name. An argument beyond the declared
-     * positionals is rejected rather than passed to the action, so a mistyped
-     * subcommand cannot silently run the parent.
+     * A command that declares `arguments` as well as `subcommands` therefore
+     * cannot tell a mistyped subcommand from a value: `vendure deploy plann`
+     * runs the deploy with `plann` as its argument. Prefer options to positional
+     * arguments on a command that has subcommands.
      *
      * @since 3.8.0
      */
@@ -155,16 +159,18 @@ export type CliCommandNode = CliCommandDefinition | CliCommandGroupDefinition;
 /**
  * A node that has commands nested under it, whether or not it also runs an
  * action of its own.
- *
- * @since 3.8.0
  */
 export type CliCommandParent = CliCommandNode & { subcommands: CliCommandNode[] };
 
 /**
- * Whether a node has commands nested under it. A parent shares its options
- * with every command below it whether or not it runs an action, so this rather
- * than {@link isCliCommandGroup} is what the option and tree-walking rules key
- * on.
+ * Whether a node has commands nested under it.
+ *
+ * A node with subcommands shares its own `options` with every command below it,
+ * whether or not it also runs an action. That is why `registerCommands` passes
+ * them down as shared options, why `assertCliPlugin` applies the stricter
+ * shadowing rule to such a node, and why the collision checks in
+ * `CommandRegistry` treat its options as shared. Those all call this rather than
+ * {@link isCliCommandGroup}, which answers a narrower question.
  */
 export function hasCliSubcommands(node: CliCommandNode): node is CliCommandParent {
     return Array.isArray(node.subcommands);

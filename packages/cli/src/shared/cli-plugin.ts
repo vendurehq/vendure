@@ -181,14 +181,12 @@ function assertNode(
         return;
     }
 
-    // A parent shares its options with every command below it whether or not it
-    // runs an action, so the shadowing rule applies to both shapes.
     assertDoesNotShadow(pluginId, label, ownOptions, inheritedOptions);
     const action = (node as Partial<CliCommandDefinition>).action;
     if (action !== undefined && typeof action !== 'function') {
         throw new TypeError(
             `CLI plugin "${pluginId}" command "${label}" declares an action that is not a function. ` +
-                `Omit it to make "${label}" a command group.`,
+                `Give it one, or remove it so that "${label}" only groups the commands below it.`,
         );
     }
     if (node.subcommands.length === 0) {
@@ -240,10 +238,10 @@ function assertSubOptionDepth(pluginId: string, options: CliCommandOption[], con
 }
 
 /**
- * A command may repeat a flag one of its groups shares — the host copies the
- * value onto it — but only if both agree on whether a value follows the flag.
- * Otherwise the group consumes the flag and hands the command a value its own
- * declaration says it will never see.
+ * A command with no subcommands may repeat a flag one of its ancestors shares —
+ * the host copies the value onto it — but only if both agree on whether a value
+ * follows the flag. Otherwise the ancestor consumes the flag and hands the
+ * command a value its own declaration says it will never see.
  */
 function assertMatchesInheritedShape(
     pluginId: string,
@@ -273,8 +271,9 @@ function assertMatchesInheritedShape(
 }
 
 /**
- * A group's options are shared with everything below it, so two levels sharing
- * one flag would leave the value's owner ambiguous. A leaf may repeat a shared
+ * A node with subcommands shares its options with everything below it (see
+ * {@link hasCliSubcommands}), so two levels sharing one flag would leave the
+ * value's owner ambiguous. A command with no subcommands may repeat a shared
  * flag: the host copies the value onto it, so both readings agree.
  */
 function assertDoesNotShadow(

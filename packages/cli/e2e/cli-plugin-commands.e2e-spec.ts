@@ -169,18 +169,33 @@ describe('CLI plugin commands that also have subcommands', () => {
     it('keeps the shared root options in scope below a runnable parent', async () => {
         const result = await project.runCliCommand(['deploy', 'plan', '--token', 'tok', '--json']);
 
-        expect(parseCloudResult(result.stdout).inherited).toMatchObject({ token: 'tok', json: true });
+        expect(parseCloudResult(result.stdout).inherited).toEqual({ token: 'tok', json: true });
     });
 
-    it('rejects a mistyped subcommand rather than running the parent', async () => {
+    it('reports a mistyped subcommand rather than running the parent', async () => {
         const result = await project.runCliCommand(['deploy', 'plann'], { expectError: true });
 
         expect(result.exitCode).not.toBe(0);
-        expect(result.stderr).toContain('too many arguments');
+        expect(result.stderr).toContain("unknown command 'plann'");
         expect(result.stdout).not.toContain('CLOUD_RESULT');
     });
 
-    it('lists a runnable parent subcommands and its own options in help', async () => {
+    it('keeps a help subcommand on a command that has an action', async () => {
+        const result = await project.runCliCommand(['deploy', 'help']);
+
+        expect(result.stdout).toMatch(/^\s+plan\s+Show what a deploy would change$/m);
+        expect(result.stdout).not.toContain('CLOUD_RESULT');
+    });
+
+    it('lists the subcommands of a runnable parent nested inside a group', async () => {
+        const result = await project.runCliCommand(['backup', 'db', '--help']);
+
+        expect(result.stdout).toContain('Usage: vendure backup db');
+        expect(result.stdout).toMatch(/^\s+list\s+List database backups$/m);
+        expect(result.stdout).toMatch(/^\s+status\s+Show the status of a backup$/m);
+    });
+
+    it("lists a runnable parent's subcommands and its own options in help", async () => {
         const result = await project.runCliCommand(['deploy', '--help']);
 
         expect(result.stdout).toContain('Usage: vendure deploy [options] [command]');

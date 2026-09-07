@@ -3,6 +3,7 @@ import { Command } from 'commander';
 import {
     CliCommandAction,
     CliCommandContext,
+    CliCommandDefinition,
     CliCommandNode,
     CliCommandOption,
     hasCliSubcommands,
@@ -40,7 +41,6 @@ function registerNode(
 ): void {
     const command = parent.command(node.name).description(node.description);
     const commandPath = [...path, node.name];
-    // Narrowed up front: a node may both run an action and have subcommands.
     const runnable = isRunnableCliCommand(node) ? node : undefined;
     const subcommands = hasCliSubcommands(node) ? node.subcommands : undefined;
 
@@ -50,17 +50,18 @@ function registerNode(
     const ownOptions = declareOptions(command, node.options ?? []);
 
     if (subcommands) {
-        // A parent shares its options with everything below it whether or not
-        // it runs an action of its own.
+        // A node with subcommands shares its options with every command below
+        // it; hasCliSubcommands explains why.
         const inheritedOptions = [...sharedOptions, ...ownOptions];
         for (const subcommand of subcommands) {
             registerNode(command, subcommand, commandPath, inheritedOptions);
         }
         if (runnable) {
-            // Commander looks for a subcommand and otherwise falls back to the
-            // action, so without this a mistyped subcommand would be taken as a
-            // stray operand and silently run the parent.
-            command.allowExcessArguments(false);
+            // Commander leaves out its implicit `help` subcommand when a command
+            // has an action, so without this `vendure deploy help` would not work
+            // the way `vendure config help` does. A `help` the plugin declared
+            // itself wins, and no second one is added.
+            command.addHelpCommand();
         }
     }
 
@@ -71,6 +72,14 @@ function registerNode(
     }
 
     command.action(async (...args: any[]) => {
+        const unknownSubcommand = subcommands ? strayOperand(command, runnable) : undefined;
+        if (unknownSubcommand !== undefined) {
+            // Commander tries the subcommand names before it falls back to this
+            // action, so an operand still spare here matched none of them.
+            // Reporting it is what stops `vendure deploy plann` deploying.
+            process.stderr.write(`error: unknown command '${unknownSubcommand}'\n`);
+            process.exit(1);
+        }
         fillSharedValues(command, commanderOptions(args), sharedOptions);
         const context: CliCommandContext = {
             inheritedOptions: readSharedValues(sharedOptions),
@@ -79,6 +88,20 @@ function registerNode(
         // Exit is owned by the host so plugins can wrap built-in actions.
         process.exit(await runAction(runnable.action, args, context));
     });
+}
+
+/**
+ * The first operand Commander has no home for: past the positional arguments the
+ * command declares, and — because Commander resolves subcommands first — not the
+ * name of one of its subcommands either.
+ *
+ * A command that declares both `arguments` and `subcommands` cannot tell a
+ * mistyped subcommand from a value, because the operand fills a positional
+ * before it is ever spare. Only a command with no positional left over is
+ * protected.
+ */
+function strayOperand(command: Command, node: CliCommandDefinition): string | undefined {
+    return command.args[node.arguments?.length ?? 0];
 }
 
 /**
@@ -130,9 +153,9 @@ function addOption(command: Command, option: CliCommandOption): void {
  * Reads the value of each shared option in scope.
  *
  * No two entries can share a name: registration rejects a flag shared by both
- * a group and the root, or by a group and one of its ancestors, whichever
- * order the plugins load in. So there is nothing here to resolve — an option
- * has one owner, and that owner holds its value.
+ * the root and a command with subcommands, or by two such commands on the same
+ * branch, whichever order the plugins load in. So there is nothing here to
+ * resolve — an option has one owner, and that owner holds its value.
  */
 function readSharedValues(sharedOptions: SharedOption[]): Record<string, any> {
     const values: Record<string, any> = {};
