@@ -21,7 +21,8 @@ export interface HttpHealthCheckOptions {
 
 /**
  * @description
- * A {@link HealthCheckStrategy} used to check health by pinging a url.
+ * A {@link HealthCheckStrategy} used to check health by pinging a url. Since v3.6.0 it is not
+ * executed and will be removed in v4.0.0.
  *
  * @example
  * ```ts

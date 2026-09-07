@@ -1,26 +1,11 @@
-import { HealthIndicatorFunction } from '../../health-check/terminus-compat';
 import { InjectableStrategy } from '../../common/types/injectable-strategy';
+import { HealthIndicatorFunction } from '../../health-check/terminus-compat';
 
 /**
  * @description
- * This strategy defines health checks which are included as part of the
- * `/health` endpoint. They should only be used to monitor _critical_ systems
- * on which proper functioning of the Vendure server depends.
- *
- * Custom strategies should be added to the `systemOptions.healthChecks` array.
- * By default, Vendure includes the `TypeORMHealthCheckStrategy`, so if you set the value of the `healthChecks`
- * array, be sure to include it manually.
- *
- * Vendure also ships with the {@link HttpHealthCheckStrategy}, which is convenient
- * for adding a health check dependent on an HTTP ping.
- *
- * :::info
- *
- * This is configured via the `systemOptions.healthChecks` property of
- * your VendureConfig.
- *
- * :::
- *
+ * This strategy defines health checks which, before v3.6.0, were run by the `/health` endpoint.
+ * Since v3.6.0 the strategies configured in `systemOptions.healthChecks` are not executed, and this
+ * interface will be removed in v4.0.0. See the [health checks guide](/core-concepts/healthchecks/).
  *
  * @example
  * ```ts
@@ -40,7 +25,7 @@ import { InjectableStrategy } from '../../common/types/injectable-strategy';
  * ```
  *
  * @docsCategory health-check
- * @deprecated Use infrastructure-level health checks (e.g. Kubernetes probes, Docker healthchecks,
+ * @deprecated Not executed since v3.6.0. Use infrastructure-level health checks (e.g. Kubernetes probes, Docker healthchecks,
  * load balancer checks) instead of application-level health checks. This interface will be removed in v4.0.0.
  */
 export interface HealthCheckStrategy extends InjectableStrategy {

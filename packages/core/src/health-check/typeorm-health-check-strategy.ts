@@ -14,9 +14,8 @@ export interface TypeORMHealthCheckOptions {
 
 /**
  * @description
- * A {@link HealthCheckStrategy} used to check the health of the database. This health
- * check is included by default, but can be customized by explicitly adding it to the
- * `systemOptions.healthChecks` array:
+ * A {@link HealthCheckStrategy} used to check the health of the database. Since v3.6.0 it is not
+ * executed and will be removed in v4.0.0. It is added via the `systemOptions.healthChecks` array:
  *
  * @example
  * ```ts

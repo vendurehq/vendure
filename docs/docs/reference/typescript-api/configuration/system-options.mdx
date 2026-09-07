@@ -19,10 +19,11 @@ interface SystemOptions {
 
 ### healthChecks
 
-<MemberInfo kind="property" type={`<a href='/reference/typescript-api/health-check/health-check-strategy#healthcheckstrategy'>HealthCheckStrategy</a>[]`} default={`[<a href='/reference/typescript-api/health-check/type-ormhealth-check-strategy#typeormhealthcheckstrategy'>TypeORMHealthCheckStrategy</a>]`}  since="1.6.0"  />
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/health-check/health-check-strategy#healthcheckstrategy'>HealthCheckStrategy</a>[]`} default={`[]`}  since="1.6.0"  />
 
-Defines an array of [HealthCheckStrategy](/reference/typescript-api/health-check/health-check-strategy#healthcheckstrategy) instances which are used by the `/health` endpoint to verify
-that any critical systems which the Vendure server depends on are also healthy.
+Defines an array of [HealthCheckStrategy](/reference/typescript-api/health-check/health-check-strategy#healthcheckstrategy) instances. Before v3.6.0 the `/health` endpoint ran these
+strategies to verify that critical systems which the Vendure server depends on were healthy. Since v3.6.0
+the strategies are not executed and this option has no effect on the `/health` response.
 ### errorHandlers
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/errors/error-handler-strategy#errorhandlerstrategy'>ErrorHandlerStrategy</a>[]`} default={`[]`}  since="2.2.0"  />
