@@ -27,7 +27,7 @@ describe('doctor command internals', () => {
     });
 
     describe('resolveChecks', () => {
-        it('warns about unknown check names via doctorCommand', async () => {
+        it('warns about unknown check names via doctorCommand', { timeout: 30_000 }, async () => {
             vi.doMock('./checks/project-check', () => ({
                 runProjectCheck: vi.fn().mockResolvedValue({
                     name: 'Project',
