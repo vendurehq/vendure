@@ -1539,6 +1539,15 @@ describe('OrderCalculator', () => {
                 },
             });
 
+            const neverDiscountOrderAction = new PromotionOrderAction({
+                code: 'never_discount_order_action',
+                description: [{ languageCode: LanguageCode.en, value: '' }],
+                args: {},
+                execute() {
+                    return 0;
+                },
+            });
+
             const sideEffectAction = new PromotionItemAction({
                 code: 'side_effect_action',
                 description: [{ languageCode: LanguageCode.en, value: '' }],
@@ -1551,6 +1560,17 @@ describe('OrderCalculator', () => {
             });
 
             function createItemPromotion(action: PromotionItemAction, id = 1) {
+                return new Promotion({
+                    id,
+                    name: `Test promotion ${id}`,
+                    conditions: [{ code: alwaysTrueCondition.code, args: [] }],
+                    promotionConditions: [alwaysTrueCondition],
+                    actions: [{ code: action.code, args: [] }],
+                    promotionActions: [action],
+                });
+            }
+
+            function createOrderPromotion(action: PromotionOrderAction, id = 1) {
                 return new Promotion({
                     id,
                     name: `Test promotion ${id}`,
@@ -1576,6 +1596,27 @@ describe('OrderCalculator', () => {
 
                 await orderCalculator.applyPriceAdjustments(ctx, order, [
                     createItemPromotion(discountExpensiveItemsAction),
+                ]);
+
+                expect(order.discounts.length).toBe(0);
+                expect(order.promotions).toEqual([]);
+            });
+
+            it('is not added to the Order when its action is Order-level', async () => {
+                const ctx = createRequestContext({ pricesIncludeTax: false });
+                const order = createOrder({
+                    ctx,
+                    lines: [
+                        {
+                            listPrice: 100,
+                            taxCategory: taxCategoryStandard,
+                            quantity: 1,
+                        },
+                    ],
+                });
+
+                await orderCalculator.applyPriceAdjustments(ctx, order, [
+                    createOrderPromotion(neverDiscountOrderAction),
                 ]);
 
                 expect(order.discounts.length).toBe(0);
