@@ -39,6 +39,8 @@ export interface ConsoleCommandOptions {
     allowCustomConsole?: boolean;
     project?: string;
     force?: boolean;
+    /** Answers the repair confirmation in advance. See {@link confirmRepair}. */
+    yes?: boolean;
 }
 
 export type { ConsoleReporter };
@@ -335,17 +337,18 @@ async function repair(
     if (endpointApproval !== 'confirmed') {
         return endpointApproval === 'cancelled' ? 0 : 1;
     }
-    const confirmed = await confirmRepair(manifest, options, dependencies);
-    if (confirmed !== 'confirmed') {
-        return confirmed === 'cancelled' ? 0 : 1;
-    }
-    state.outcome = 'repaired';
-    state.manifestPath = manifestPath;
     dependencies.reporter.success(`Already linked to ${manifest.project.name} in ${manifest.account.name}.`);
     dependencies.reporter.info(
         `Kept ${manifestPath}. Run vendure console link --force to link this project to a different Console Project.`,
     );
+    // Before the question, because the rules are this path's own write and have
+    // nothing to do with whether a plugin runs.
     reportProjectLinkGitignore(projectRoot, dependencies.reporter);
+    if (!(await confirmRepair(manifest, options, dependencies))) {
+        return 0;
+    }
+    state.outcome = 'repaired';
+    state.manifestPath = manifestPath;
 
     return runConsoleLinkHooks(
         { projectRoot, manifest, manifestPath, endpoints, outcome: 'repaired' },
@@ -356,21 +359,25 @@ async function repair(
 }
 
 /**
- * Confirms running plugin setup against a manifest this run did not write.
+ * Whether to run plugin setup against a manifest this run did not write.
  *
  * Only asked when a plugin would actually do something, because with no hooks
- * registered a repair reports the link and changes nothing, and there is
- * nothing to approve. Non-interactive runs proceed: the backfill this command
- * exists to provide has to work in CI, where the manifest is part of the
- * checked-out source the operator chose to run and there is nobody to ask.
+ * registered a repair reports the link and changes nothing. Non-interactive
+ * runs proceed: the backfill this command exists to provide has to work in CI,
+ * where the manifest is part of the checked-out source the operator chose to
+ * run and there is nobody to ask. `--yes` is the answer given in advance, for
+ * repeating a repair in a project whose manifest the developer already trusts.
+ *
+ * `--force` is not that answer. It links to a different Project, so it never
+ * reaches here.
  */
 async function confirmRepair(
     manifest: ProjectLinkManifest,
     options: ConsoleCommandOptions,
     dependencies: ConsoleCommandDependencies,
-): Promise<'confirmed' | 'cancelled'> {
-    if (options.force || dependencies.hooks.length === 0 || dependencies.isNonInteractive()) {
-        return 'confirmed';
+): Promise<boolean> {
+    if (options.yes || dependencies.hooks.length === 0 || dependencies.isNonInteractive()) {
+        return true;
     }
     const result = await dependencies.prompt(
         `Run plugin setup for ${manifest.project.name} in ${manifest.account.name}?`,
@@ -380,9 +387,9 @@ async function confirmRepair(
     }
     if (result !== true) {
         dependencies.reporter.info('No plugin setup was run. The Project Link Manifest is unchanged.');
-        return 'cancelled';
+        return false;
     }
-    return 'confirmed';
+    return true;
 }
 
 /** What the command resolved, before it is shaped into a per-hook context. */
@@ -421,9 +428,11 @@ async function runConsoleLinkHooks(
                 throw new CommandInterruptedError();
             }
             // The host owns this one, and it carries the exit code with it.
-            // Still say what survived, or the exit code is all the reader gets.
             if (error instanceof CliCommandExit) {
-                dependencies.reporter.warn(linkUnfinished(inputs.outcome, inputs.manifestPath));
+                if (error.exitCode !== 0) {
+                    dependencies.reporter.error(`The ${pluginId} plugin stopped after linking.`);
+                    dependencies.reporter.warn(linkUnfinished(inputs.outcome, inputs.manifestPath));
+                }
                 throw error;
             }
             const detail = error instanceof Error ? error.message : String(error);
@@ -444,7 +453,6 @@ async function runConsoleLinkHooks(
  * plugin listed first decide what the plugin listed second sees.
  *
  * `reporter` and `signal` are deliberately the same objects in every context.
- * One output stream and one abort signal are the point of them.
  */
 function createConsoleLinkContext(
     inputs: ConsoleLinkHookInputs,

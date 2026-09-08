@@ -571,18 +571,91 @@ describe('console command', () => {
         fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
         fs.writeJsonSync(getProjectLinkManifestPath(root), manifest);
         const prompt = vi.fn(() => Promise.resolve(true));
+        const seen: Array<string | undefined> = [];
         const test = testDependencies(root, vi.fn() as unknown as typeof fetch, {
             env: {
                 VENDURE_CONSOLE_LINK_URL: 'https://staging.console.vendure.io',
                 VENDURE_CONSOLE_LINK_API_URL: 'https://staging.api.vendure.io',
             },
+            hooks: [
+                {
+                    pluginId: '@example/p',
+                    hook: async context => {
+                        seen.push(context.endpoints.official);
+                    },
+                },
+            ],
+            isNonInteractive: () => false,
+            prompt,
+        });
+
+        // `--yes` answers the repair question, leaving only the custom-endpoint
+        // prompt this test is about, which must not be asked.
+        expect(await consoleCommand('link', { yes: true }, test.dependencies)).toBe(0);
+        expect(prompt).not.toHaveBeenCalled();
+        expect(seen).toEqual(['staging']);
+    });
+
+    it('runs plugin setup on a repair once the prompt is accepted', async () => {
+        const root = vendureProject();
+        fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
+        fs.writeJsonSync(getProjectLinkManifestPath(root), manifest);
+        const outcomes: string[] = [];
+        const prompt = vi.fn(() => Promise.resolve(true));
+        const test = testDependencies(root, vi.fn() as unknown as typeof fetch, {
+            hooks: [
+                {
+                    pluginId: '@example/p',
+                    hook: async context => {
+                        outcomes.push(context.outcome);
+                    },
+                },
+            ],
             isNonInteractive: () => false,
             prompt,
         });
 
         expect(await consoleCommand('link', {}, test.dependencies)).toBe(0);
+        expect(prompt).toHaveBeenCalledTimes(1);
+        expect(outcomes).toEqual(['repaired']);
+    });
+
+    it('skips the repair prompt for --yes without linking to a different Project', async () => {
+        const root = vendureProject();
+        fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
+        fs.writeJsonSync(getProjectLinkManifestPath(root), manifest);
+        const hook = vi.fn(async () => undefined);
+        const prompt = vi.fn(() => Promise.resolve(true));
+        const fetchMock = vi.fn() as unknown as typeof fetch;
+        const test = testDependencies(root, fetchMock, {
+            hooks: [{ pluginId: '@example/p', hook }],
+            isNonInteractive: () => false,
+            prompt,
+        });
+
+        expect(await consoleCommand('link', { yes: true }, test.dependencies)).toBe(0);
         expect(prompt).not.toHaveBeenCalled();
-        expect(test.messages.join('\n')).not.toContain('custom Console');
+        expect(hook).toHaveBeenCalledTimes(1);
+        // `--yes` answers the question. It does not mint a second Project Link.
+        expect(fetchMock).not.toHaveBeenCalled();
+        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
+    });
+
+    it('applies the gitignore rules on a repair whose plugin setup is declined', async () => {
+        const root = vendureProject();
+        fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
+        fs.writeJsonSync(getProjectLinkManifestPath(root), manifest);
+        const hook = vi.fn(async () => undefined);
+        const test = testDependencies(root, vi.fn() as unknown as typeof fetch, {
+            hooks: [{ pluginId: '@example/p', hook }],
+            isNonInteractive: () => false,
+            prompt: () => Promise.resolve(false),
+        });
+
+        expect(await consoleCommand('link', {}, test.dependencies)).toBe(0);
+        expect(hook).not.toHaveBeenCalled();
+        // Declining plugin setup does not decline the rules this path writes.
+        expect(fs.existsSync(path.join(root, '.gitignore'))).toBe(true);
     });
 
     it('repairs rather than failing closed when a linked project repeats a link non-interactively', async () => {

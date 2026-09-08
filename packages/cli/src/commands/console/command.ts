@@ -27,6 +27,11 @@ export const consoleCommandDef: CliCommandDefinition = {
             description: 'Confirm replacement or unlink without an interactive prompt',
             required: false,
         },
+        {
+            long: '--yes',
+            description: 'Run plugin setup for an already-linked project without an interactive prompt',
+            required: false,
+        },
     ],
     action: async (action, options) => {
         return runCliCommand(async () => {

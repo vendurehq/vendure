@@ -10,8 +10,12 @@ import {
  * The literals the Platform sign-in validator uses
  * (`libs/console-auth/src/origins.ts`). They are repeated here rather than
  * imported, because that package is not public and `@vendure/cli` may not
- * depend on it. Repeating them is only safe if a change on either side fails a
- * test, which is what this file is for.
+ * depend on it.
+ *
+ * This is a second hand-maintained copy, not a guarantee. It catches a change
+ * made to `console-origins.ts` alone. It cannot see a change made to the
+ * Platform source, which is not in this repository. Adding an official origin
+ * means editing both repositories, and knowing to.
  */
 const PLATFORM_ORIGINS = {
     productionApp: 'https://console.vendure.io',
@@ -21,7 +25,7 @@ const PLATFORM_ORIGINS = {
 };
 
 describe('officialConsoleEnvironment()', () => {
-    it('uses the same literals as the Platform validator', () => {
+    it('matches the literals copied from the Platform validator', () => {
         expect(DEFAULT_CONSOLE_URL).toBe(PLATFORM_ORIGINS.productionApp);
         expect(DEFAULT_CONSOLE_API_URL).toBe(PLATFORM_ORIGINS.productionApi);
         expect(

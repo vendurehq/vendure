@@ -148,12 +148,15 @@ export class CommandRegistry {
             // Added to the draft like everything else, so a plugin rejected for
             // a command or option conflict contributes no hook either.
             //
-            // One hook per plugin id. A plugin that registers no command has no
-            // name to collide with, so nothing else stops the same id being
-            // applied twice and running its setup twice for one link.
+            // A second plugin under an id that already registered a hook is a
+            // conflict rather than a notice. `id` is author-chosen, so two
+            // packages can collide on it, and half-applying one of them would
+            // register its commands while dropping the setup they rely on.
             if (draft.consoleLinkHooks.some(entry => entry.pluginId === plugin.id)) {
-                // The write loop colours these; do not colour it twice.
-                notices.push(`Ignored a second afterConsoleLink hook from CLI plugin "${plugin.id}".\n`);
+                conflicts.push(
+                    `CLI plugin id "${plugin.id}" is already registered by a plugin with an ` +
+                        `afterConsoleLink hook. Plugin ids must be unique.`,
+                );
             } else {
                 draft.consoleLinkHooks.push({ pluginId: plugin.id, hook: plugin.afterConsoleLink });
             }

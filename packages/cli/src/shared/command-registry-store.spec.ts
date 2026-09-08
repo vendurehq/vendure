@@ -806,8 +806,9 @@ describe('resolveCliPlugins()', () => {
         expect(registry.getConsoleLinkHooks()).toHaveLength(1);
     });
 
-    // The allowlist is not the only way the same plugin reaches the registry.
-    it('registers one console link hook per plugin id however often it is applied', () => {
+    // The allowlist is not the only way an id reaches the registry twice, and
+    // `id` is author-chosen, so two packages can collide on it.
+    it('refuses a second plugin under an id that already registered a hook', () => {
         const registry = new CommandRegistry();
         const plugin = defineCliPlugin({
             id: '@example/a',
@@ -816,8 +817,9 @@ describe('resolveCliPlugins()', () => {
         });
 
         registry.applyPlugin(plugin);
-        registry.applyPlugin(plugin);
-
+        expect(() => registry.applyPlugin(plugin)).toThrow(/must be unique/);
+        // Rejected whole, like every other collision: one hook, and the second
+        // plugin's commands are not half-applied.
         expect(registry.getConsoleLinkHooks()).toHaveLength(1);
     });
 
