@@ -53,6 +53,20 @@ export function officialConsoleEnvironment(endpoints: {
     )?.environment;
 }
 
+export function assertOfficialConsoleOriginPair(endpoints: { consoleUrl: string; apiUrl: string }): void {
+    if (officialConsoleEnvironment(endpoints) !== undefined) {
+        return;
+    }
+    const includesOfficialOrigin = OFFICIAL_CONSOLE_ORIGINS.some(
+        pair =>
+            isOfficialOrigin(endpoints.consoleUrl, pair.consoleUrl) ||
+            isOfficialOrigin(endpoints.apiUrl, pair.apiUrl),
+    );
+    if (includesOfficialOrigin) {
+        throw new Error('Official Console app and API origins must be used as a matching pair.');
+    }
+}
+
 function isOfficialOrigin(value: string, official: string): boolean {
     let url: URL;
     try {

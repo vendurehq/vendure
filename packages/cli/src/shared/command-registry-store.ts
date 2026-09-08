@@ -1,5 +1,4 @@
 import pc from 'picocolors';
-import type { RegisteredConsoleLinkHook } from '../commands/console/console-link-hook';
 
 import {
     CliCommandArgument,
@@ -13,7 +12,8 @@ import {
     isRunnableCliCommand,
 } from './cli-command-definition';
 import { describeOption, ParsedCliOption, parseOptionFlags, withSubOptions } from './cli-command-options';
-import { CliPlugin, normalizeCommandPath } from './cli-plugin';
+import { CliPlugin, getCliPluginExtensionEntries, normalizeCommandPath } from './cli-plugin';
+import { RegisteredCliPluginExtension } from './cli-plugin-extension';
 
 /**
  * Why a flag cannot be shared by a command that has subcommands and by
@@ -76,8 +76,7 @@ interface RegistryState {
     rootOptions: Map<string, RegisteredOption>;
     /** Ids of the plugins applied so far. One plugin, one id. */
     pluginIds: Set<string>;
-    /** Console link hooks, in the order the plugins providing them were applied. */
-    consoleLinkHooks: RegisteredConsoleLinkHook[];
+    pluginExtensions: Map<string, RegisteredCliPluginExtension[]>;
 }
 
 /**
@@ -104,7 +103,7 @@ export class CommandRegistry {
         commands: new Map(),
         rootOptions: new Map(),
         pluginIds: new Set(),
-        consoleLinkHooks: [],
+        pluginExtensions: new Map(),
     };
 
     /**
@@ -135,7 +134,12 @@ export class CommandRegistry {
             commands: new Map(this.state.commands),
             rootOptions: new Map(this.state.rootOptions),
             pluginIds: new Set(this.state.pluginIds),
-            consoleLinkHooks: [...this.state.consoleLinkHooks],
+            pluginExtensions: new Map(
+                Array.from(this.state.pluginExtensions, ([extensionPoint, entries]) => [
+                    extensionPoint,
+                    [...entries],
+                ]),
+            ),
         };
         const conflicts: string[] = [];
         const notices: string[] = [];
@@ -160,10 +164,10 @@ export class CommandRegistry {
         for (const extension of plugin.extendCommands ?? []) {
             draftExtension(draft, extension, plugin.id, conflicts, notices);
         }
-        if (plugin.afterConsoleLink) {
-            // Added to the draft like everything else, so a plugin rejected for
-            // a command or option conflict contributes no hook either.
-            draft.consoleLinkHooks.push({ pluginId: plugin.id, hook: plugin.afterConsoleLink });
+        for (const { extensionPoint, extension } of getCliPluginExtensionEntries(plugin)) {
+            const entries = draft.pluginExtensions.get(extensionPoint) ?? [];
+            entries.push({ pluginId: plugin.id, extension });
+            draft.pluginExtensions.set(extensionPoint, entries);
         }
 
         if (conflicts.length > 0) {
@@ -211,12 +215,10 @@ export class CommandRegistry {
         return [...(this.state.commands.get(name)?.extendedBy ?? [])];
     }
 
-    /**
-     * Hooks to run after `vendure console link` writes a manifest, in the order
-     * the plugins providing them were applied.
-     */
-    getConsoleLinkHooks(): readonly RegisteredConsoleLinkHook[] {
-        return [...this.state.consoleLinkHooks];
+    getPluginExtensions<T = unknown>(extensionPoint: string): ReadonlyArray<RegisteredCliPluginExtension<T>> {
+        return [...(this.state.pluginExtensions.get(extensionPoint) ?? [])] as Array<
+            RegisteredCliPluginExtension<T>
+        >;
     }
 
     private draftRootOption(

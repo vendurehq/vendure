@@ -4,8 +4,8 @@ import { ChildProcess, spawn } from 'node:child_process';
 import { CliCommandExit } from '../../shared/cli-command-exit';
 import { isNonInteractiveEnvironment, withInteractiveTimeout } from '../../utilities/utils';
 
+import { ConsoleLinkContext, ConsoleLinkOutcome, RegisteredConsoleLinkHook } from './console-link-hook';
 import {
-    CLI_AUTH_CAPABILITY,
     CLI_TOKEN_PATH,
     ConsoleSession,
     LoopbackCallback,
@@ -17,13 +17,12 @@ import {
     startLoopbackCallback,
 } from './cli-auth';
 import {
-    ConsoleLinkContext,
-    ConsoleLinkOutcome,
-    ConsoleReporter,
-    RegisteredConsoleLinkHook,
-    getConsoleLinkHooks,
-} from './console-link-hook';
-import { DEFAULT_CONSOLE_API_URL, DEFAULT_CONSOLE_URL, officialConsoleEnvironment } from './console-origins';
+    DEFAULT_CONSOLE_API_URL,
+    DEFAULT_CONSOLE_URL,
+    assertOfficialConsoleOriginPair,
+    officialConsoleEnvironment,
+} from './console-origins';
+import { ConsoleReporter } from './console-reporter';
 import { ensureProjectLinkGitignore } from './project-link-gitignore';
 import {
     ManifestReadResult,
@@ -38,6 +37,7 @@ import {
 import { nonEmptyString, objectValue, uuid } from './project-link-validation';
 
 const PROJECT_LINKS_PATH = '/v1/project-links';
+const CLI_AUTH_CAPABILITY = 'cli-auth';
 const POLL_INTERVAL_MS = 2_000;
 const REQUEST_TIMEOUT_MS = 10_000;
 const MAX_RESPONSE_BYTES = 64 * 1024;
@@ -57,11 +57,9 @@ export interface ConsoleCommandOptions {
     allowCustomConsole?: boolean;
     project?: string;
     force?: boolean;
-    /** Answers the repair confirmation in advance. See {@link confirmRepair}. */
+    /** Answers every confirmation owned by the CLI. */
     yes?: boolean;
 }
-
-export type { ConsoleReporter };
 
 export interface ConsoleCommandDependencies {
     cwd: string;
@@ -138,7 +136,7 @@ function createDefaultDependencies(): ConsoleCommandDependencies {
         cwd: process.cwd(),
         env: process.env,
         fetch: globalThis.fetch,
-        hooks: getConsoleLinkHooks(),
+        hooks: [],
         isNonInteractive: () => isNonInteractiveEnvironment(),
         now: () => Date.now(),
         openUrl: openUrlInBrowser,
@@ -261,9 +259,7 @@ export function resolveConsoleEndpoints(env: NodeJS.ProcessEnv): ConsoleEndpoint
     }
     const consoleUrl = baseUrl(consoleOverride ?? DEFAULT_CONSOLE_URL, 'VENDURE_CONSOLE_LINK_URL');
     const apiUrl = baseUrl(apiOverride ?? DEFAULT_CONSOLE_API_URL, 'VENDURE_CONSOLE_LINK_API_URL');
-    if ((consoleUrl === DEFAULT_CONSOLE_URL) !== (apiUrl === DEFAULT_CONSOLE_API_URL)) {
-        throw new Error('The production Console and API origins must be used together.');
-    }
+    assertOfficialConsoleOriginPair({ consoleUrl, apiUrl });
     return { consoleUrl, apiUrl };
 }
 
@@ -277,13 +273,7 @@ async function link(
     const endpoints = resolveConsoleEndpoints(dependencies.env);
     const existing = readProjectLinkManifest(projectRoot);
     if (existing.kind === 'valid' && !options.force) {
-        // `vendure console link` establishes a link and repairs one, rather
-        // than establishing one and leaving repair to somewhere else. A repeat
-        // in a project that is already linked runs the setup again against the
-        // manifest on disk. Minting a second Project Link would abandon the
-        // first in Console for a problem that is local, and it would put the
-        // choice of Project back in front of someone who only wanted their
-        // credentials back.
+        // A repeated link reuses the manifest and reruns plugin setup.
         return repair(
             projectRoot,
             existing.manifest,
@@ -521,25 +511,7 @@ async function completeConsoleLogin(
     }
 }
 
-/**
- * Runs the setup that follows a link for a project that is already linked,
- * against the manifest already on disk.
- *
- * Nothing is asked of Console and the manifest is not rewritten: the Project
- * Link it names is still the one in force. The `.gitignore` rules are applied
- * as they are after a link, so a checkout that never had them gets them. That
- * is the one write this path makes, and it happens whether or not the plugin
- * setup below is approved.
- *
- * The custom-endpoint gate runs all the same, because a hook is given these
- * origins and may talk to them.
- *
- * A manifest is meant to be committed, so an already-linked project may be one
- * the developer has just cloned, naming an account and a project they have
- * never seen. Running hooks against it without asking would hand a plugin
- * somebody else's identifiers. So when there are hooks to run and a terminal
- * to ask, the project and account are named and confirmed first.
- */
+/** Reuses the manifest, reapplies its `.gitignore` rules, and reruns plugin setup. */
 async function repair(
     projectRoot: string,
     manifest: ProjectLinkManifest,
@@ -617,17 +589,7 @@ interface ConsoleLinkHookInputs {
     session?: ConsoleSession;
 }
 
-/**
- * Runs the plugin hooks, in the order the plugins were listed.
- *
- * The manifest is on disk by this point and is not removed by a hook that
- * fails, so a failure is reported as what it is: the link is in place and the
- * work after it did not finish. Rolling the manifest back would be worse,
- * because the Project Link exists in Console either way.
- *
- * The first failure stops the rest. A later hook would be setting up a project
- * whose earlier setup is known to be incomplete.
- */
+/** Runs plugin hooks in registration order and stops after the first failure. */
 async function runConsoleLinkHooks(
     inputs: ConsoleLinkHookInputs,
     options: ConsoleCommandOptions,
@@ -668,22 +630,14 @@ async function runConsoleLinkHooks(
     return 0;
 }
 
-/**
- * Builds a context for one hook.
- *
- * A fresh one each time, rather than one shared by all of them. Hooks run in a
- * configured order, and `endpoints.official` is the fact a hook holding a
- * credential checks before it sends anything. A shared object would let the
- * plugin listed first decide what the plugin listed second sees.
- *
- * `reporter` and `signal` are deliberately the same objects in every context.
- */
+/** Builds an isolated context for one hook. */
 function createConsoleLinkContext(
     inputs: ConsoleLinkHookInputs,
     options: ConsoleCommandOptions,
     dependencies: ConsoleCommandDependencies,
     signal: AbortSignal,
 ): ConsoleLinkContext {
+    const isNonInteractive = dependencies.isNonInteractive();
     return {
         projectRoot: inputs.projectRoot,
         manifest: structuredClone(inputs.manifest),
@@ -697,8 +651,8 @@ function createConsoleLinkContext(
         session: inputs.session,
         signal,
         reporter: dependencies.reporter,
-        confirm: message => confirmForHook(message, dependencies),
-        isNonInteractive: dependencies.isNonInteractive(),
+        confirm: message => confirmForHook(message, isNonInteractive, dependencies.prompt),
+        isNonInteractive,
         force: options.force === true,
     };
 }
@@ -712,9 +666,10 @@ function createConsoleLinkContext(
  */
 function confirmForHook(
     message: string,
-    dependencies: ConsoleCommandDependencies,
+    isNonInteractive: boolean,
+    prompt: ConsoleCommandDependencies['prompt'],
 ): Promise<boolean | undefined> {
-    if (dependencies.isNonInteractive()) {
+    if (isNonInteractive) {
         return Promise.reject(
             new Error(
                 'Cannot ask for confirmation in a non-interactive environment. ' +
@@ -722,7 +677,7 @@ function confirmForHook(
             ),
         );
     }
-    return dependencies.prompt(message);
+    return prompt(message);
 }
 
 function linkUnfinished(outcome: ConsoleLinkOutcome, manifestPath: string): string {
@@ -738,7 +693,7 @@ async function confirmCustomConsoleEndpoints(
     options: ConsoleCommandOptions,
     dependencies: ConsoleCommandDependencies,
 ): Promise<'confirmed' | 'cancelled' | 'required'> {
-    if (!usesCustomRemoteEndpoints(endpoints) || options.allowCustomConsole) {
+    if (!usesCustomRemoteEndpoints(endpoints) || options.allowCustomConsole || options.yes) {
         return 'confirmed';
     }
     if (dependencies.isNonInteractive()) {
@@ -843,7 +798,7 @@ async function confirmManifestChange(
     options: ConsoleCommandOptions,
     dependencies: ConsoleCommandDependencies,
 ): Promise<'confirmed' | 'cancelled' | 'required'> {
-    if (options.force) {
+    if (options.force || options.yes) {
         return 'confirmed';
     }
     if (dependencies.isNonInteractive()) {
@@ -1048,8 +1003,8 @@ async function requestJson(
     }
 }
 
-function isTransientHttpStatus(status: number): boolean {
-    return status >= 500 || status === 408 || status === 429;
+function isTransientHttpStatus(statusCode: number): boolean {
+    return statusCode >= 500 || statusCode === 408 || statusCode === 429;
 }
 
 async function readJsonBody(response: Response, signal: AbortSignal): Promise<unknown> {
@@ -1147,14 +1102,7 @@ function isLoopbackHostname(hostname: string): boolean {
     return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
 }
 
-/**
- * Whether these origins are a remote Console that is not Vendure's.
- *
- * Both official deployments pass, not only production. Calling the official
- * staging Console "custom" and then reporting it to a hook as official said
- * two different things about one pair, and the prompt was the one that was
- * wrong. A loopback pair still passes, for development and tests.
- */
+/** Whether these origins are a remote Console that Vendure does not operate. */
 function usesCustomRemoteEndpoints(endpoints: ConsoleEndpoints): boolean {
     if (officialConsoleEnvironment(endpoints) !== undefined) {
         return false;

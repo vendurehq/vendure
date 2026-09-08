@@ -2,6 +2,7 @@ import { Command, CommanderError } from 'commander';
 import { vi } from 'vitest';
 
 import { CliCommandNode, CliCommandOption } from '../cli-command-definition';
+import { CliPluginExtensionAccessor } from '../cli-plugin-extension';
 import { registerCommands } from '../command-registry';
 
 /**
@@ -39,6 +40,7 @@ export async function runCli(
     commands: CliCommandNode[],
     sharedOptions: CliCommandOption[],
     argv: string[],
+    getPluginExtensions?: CliPluginExtensionAccessor,
 ): Promise<CliRun> {
     let stdout = '';
     let commanderStderr = '';
@@ -56,7 +58,7 @@ export async function runCli(
             commanderStderr += str;
         },
     });
-    registerCommands(program, commands, sharedOptions);
+    registerCommands(program, commands, sharedOptions, getPluginExtensions);
 
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation(((code?: number) => {
         throw new ExitSignal(code ?? 0);
