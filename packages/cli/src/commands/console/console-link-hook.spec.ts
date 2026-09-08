@@ -11,7 +11,7 @@ import { CommandRegistry } from '../../shared/command-registry-store';
 import { builtinCommandDefs } from '../builtins';
 
 import { ConsoleCommandDependencies, consoleCommand } from './console';
-import { ConsoleLinkContext, ConsoleLinkHook } from './console-link-hook';
+import { ConsoleLinkContext, ConsoleLinkHook, ConsoleLinkHookRegistration } from './console-link-hook';
 import { ConsoleReporter } from './console-reporter';
 import { LINK_ID, POLLING_SECRET, manifest } from './console.fixtures';
 import { getProjectLinkManifestPath } from './project-link-manifest';
@@ -386,18 +386,29 @@ describe('console link hooks', () => {
         expect(isNonInteractive).toHaveBeenCalledTimes(1);
     });
 
-    it('rejects a plugin whose afterConsoleLink is not a function', () => {
+    it('preserves an explicit session request through registration', () => {
+        const hook = vi.fn<ConsoleLinkHook>(async () => undefined);
+        const registration = { hook, requiresSession: true } as const;
+        const registry = registryWith(plugin(FIRST_PLUGIN, registration));
+
+        expect(registry.getPluginExtensions('afterConsoleLink')).toEqual([
+            { pluginId: FIRST_PLUGIN, extension: registration },
+        ]);
+        expect(consoleLinkHooks(registry)).toEqual([{ pluginId: FIRST_PLUGIN, hook, requiresSession: true }]);
+    });
+
+    it('rejects an invalid afterConsoleLink registration', () => {
         expect(() =>
             defineCliPlugin({
                 id: FIRST_PLUGIN,
                 commands: [],
-                afterConsoleLink: 'not a function' as unknown as ConsoleLinkHook,
+                afterConsoleLink: { requiresSession: true } as unknown as ConsoleLinkHookRegistration,
             }),
-        ).toThrow('afterConsoleLink must be a function');
+        ).toThrow('afterConsoleLink must be a function or a session-requesting hook');
     });
 });
 
-function plugin(id: string, afterConsoleLink: ConsoleLinkHook) {
+function plugin(id: string, afterConsoleLink: ConsoleLinkHookRegistration) {
     return defineCliPlugin({ id, commands: [], afterConsoleLink });
 }
 
@@ -471,8 +482,12 @@ function recordingReporter(
 
 function consoleLinkHooks(registry: CommandRegistry) {
     return registry
-        .getPluginExtensions<ConsoleLinkHook>('afterConsoleLink')
-        .map(({ pluginId, extension: hook }) => ({ pluginId, hook }));
+        .getPluginExtensions<ConsoleLinkHookRegistration>('afterConsoleLink')
+        .map(({ pluginId, extension }) =>
+            typeof extension === 'function'
+                ? { pluginId, hook: extension, requiresSession: false }
+                : { pluginId, hook: extension.hook, requiresSession: true },
+        );
 }
 
 function offlineDependencies(root: string, messages: string[] = []): Partial<ConsoleCommandDependencies> {

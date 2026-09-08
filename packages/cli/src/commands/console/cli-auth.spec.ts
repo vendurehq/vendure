@@ -219,6 +219,16 @@ describe('parseConsoleSession()', () => {
             /token lifetime/,
         ],
         ['a response that is not an object', 'nope', /malformed token response/],
+        [
+            'an empty refresh token',
+            { access_token: 'a', token_type: 'Bearer', expires_in: 60, refresh_token: '' },
+            /invalid refresh token/,
+        ],
+        [
+            'a non-string refresh token',
+            { access_token: 'a', token_type: 'Bearer', expires_in: 60, refresh_token: 123 },
+            /invalid refresh token/,
+        ],
     ])('refuses a response with %s', (_label, value, message) => {
         expect(() => parseConsoleSession(value, now)).toThrow(message);
     });

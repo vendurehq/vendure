@@ -1,14 +1,20 @@
 import fs from 'fs-extra';
 import { createHash } from 'node:crypto';
-import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import * as cliAuth from './cli-auth';
-import { ConsoleSession } from './cli-auth';
+import { ConsoleSession, startLoopbackCallback } from './cli-auth';
 import { CALLBACK_GRACE_MS, ConsoleCommandDependencies, ConsoleReporter, consoleCommand } from './console';
 import { ConsoleLinkContext } from './console-link-hook';
-import { LINK_ID, NOW, POLLING_SECRET, manifest } from './console.fixtures';
+import {
+    ACCESS_TOKEN,
+    LINK_ID,
+    NOW,
+    REFRESH_TOKEN,
+    createConsoleFetch,
+    createVendureProject,
+    manifest,
+} from './console.fixtures';
 import { getProjectLinkManifestPath } from './project-link-manifest';
 
 /**
@@ -22,9 +28,6 @@ const OFFICIAL_ENV = {
     VENDURE_CONSOLE_LINK_API_URL: 'https://api.vendure.io',
 };
 
-const ACCESS_TOKEN = 'vcli_access-token';
-const REFRESH_TOKEN = 'vclr_refresh-token';
-
 const temporaryDirectories: string[] = [];
 
 afterEach(() => {
@@ -36,34 +39,34 @@ afterEach(() => {
 
 describe('console link command line login', () => {
     it('settles the link and the session from one browser approval', async () => {
-        const test = await runLink();
+        const run = await runLink();
 
-        expect(test.exitCode).toBe(0);
-        expect(fs.readJsonSync(getProjectLinkManifestPath(test.root))).toEqual(manifest);
+        expect(run.exitCode).toBe(0);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(run.root))).toEqual(manifest);
         // One approval. The browser was opened once and never sent to the
         // standalone sign-in page.
-        expect(test.openedUrls).toHaveLength(1);
-        expect(new URL(test.openedUrls[0]).pathname).not.toBe('/cli-auth');
+        expect(run.openedUrls).toHaveLength(1);
+        expect(new URL(run.openedUrls[0]).pathname).not.toBe('/cli-auth');
 
         // All five parameters, on the verification URL Console already returned.
-        const opened = new URL(test.openedUrls[0]);
+        const opened = new URL(run.openedUrls[0]);
         expect(opened.searchParams.get('client')).toBe('cli');
         expect(opened.searchParams.get('code_challenge_method')).toBe('S256');
         // The state on the URL is the one the listener accepted: the browser
         // stub only reaches the code path by echoing it back.
-        expect(opened.searchParams.get('state')).toBe(test.callbackState);
+        expect(opened.searchParams.get('state')).toBe(run.callbackState);
         const redirectUri = opened.searchParams.get('redirect_uri') ?? '';
         expect(new URL(redirectUri).hostname).toBe('127.0.0.1');
         expect(new URL(redirectUri).pathname).toBe('/auth/callback');
 
         // The exchange proved possession of the verifier behind the challenge.
-        expect(createHash('sha256').update(test.grant.code_verifier).digest('base64url')).toBe(
+        expect(createHash('sha256').update(run.grant.code_verifier).digest('base64url')).toBe(
             opened.searchParams.get('code_challenge'),
         );
-        expect(test.grant.grant_type).toBe('authorization_code');
-        expect(test.grant.redirect_uri).toBe(redirectUri);
+        expect(run.grant.grant_type).toBe('authorization_code');
+        expect(run.grant.redirect_uri).toBe(redirectUri);
 
-        expect(test.sessions).toEqual([
+        expect(run.sessions).toEqual([
             { accessToken: ACCESS_TOKEN, refreshToken: REFRESH_TOKEN, expiresAt: NOW + 3_600_000 },
         ]);
     });
@@ -73,7 +76,7 @@ describe('console link command line login', () => {
         const arrived = new Promise<void>(resolve => {
             releaseCallback = resolve;
         });
-        const test = await runLink({
+        const run = await runLink({
             // The browser has not answered by the time the poll returns, which
             // is the ordinary case: the poll runs on its own clock.
             openUrl: async url => {
@@ -93,86 +96,153 @@ describe('console link command line login', () => {
             },
         });
 
-        expect(test.delays).toContain(CALLBACK_GRACE_MS);
-        expect(test.sessions[0]?.accessToken).toBe(ACCESS_TOKEN);
+        expect(run.delays).toEqual([CALLBACK_GRACE_MS]);
+        expect(run.sessions[0]?.accessToken).toBe(ACCESS_TOKEN);
     });
 
     it('gives up on the callback once the grace period is spent', async () => {
-        const test = await runLink({ openUrl: () => Promise.resolve() });
+        const run = await runLink({ openUrl: () => Promise.resolve() });
 
-        // Waited, then stopped waiting. The link is what the command owed.
-        expect(test.delays).toContain(CALLBACK_GRACE_MS);
-        expect(test.sessions).toEqual([undefined]);
+        expect(run.delays).toEqual([CALLBACK_GRACE_MS]);
+        expect(run.sessions).toEqual([undefined]);
+    });
+
+    it('cancels the losing grace delay when the callback wins', async () => {
+        let graceSignal: AbortSignal | undefined;
+        const run = await runLink({
+            sleep: (milliseconds, signal) => {
+                expect(milliseconds).toBe(CALLBACK_GRACE_MS);
+                graceSignal = signal;
+                return new Promise((_resolve, reject) => {
+                    signal.addEventListener('abort', () => reject(new Error('grace cancelled')), {
+                        once: true,
+                    });
+                });
+            },
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(run.delays).toEqual([CALLBACK_GRACE_MS]);
+        expect(graceSignal?.aborted).toBe(true);
     });
 
     it('obtains no session when no plugin asked for one', async () => {
-        const test = await runLink({ hooks: [] });
+        const run = await runLink({ hooks: [] });
 
-        expect(test.exitCode).toBe(0);
+        expect(run.exitCode).toBe(0);
         // A token nobody consumes is still a live token, so none is minted and
         // no callback address is advertised.
-        expect(new URL(test.openedUrls[0]).searchParams.get('redirect_uri')).toBeNull();
-        expect(test.grants).toEqual([]);
+        expect(new URL(run.openedUrls[0]).searchParams.get('redirect_uri')).toBeNull();
+        expect(run.grants).toEqual([]);
+    });
+
+    it('does not obtain or expose a session for a hook that did not request one', async () => {
+        const sessions: Array<ConsoleSession | undefined> = [];
+        const run = await runLink({
+            hooks: [
+                {
+                    pluginId: '@example/config-only',
+                    hook: async context => {
+                        sessions.push(context.session);
+                    },
+                },
+            ],
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(new URL(run.openedUrls[0]).searchParams.get('redirect_uri')).toBeNull();
+        expect(run.grants).toEqual([]);
+        expect(sessions).toEqual([undefined]);
+    });
+
+    it('gives each requesting hook its own session copy', async () => {
+        const sessions: Array<ConsoleSession | undefined> = [];
+        const run = await runLink({
+            hooks: [
+                {
+                    pluginId: '@example/first',
+                    requiresSession: true,
+                    hook: async context => {
+                        sessions.push(context.session);
+                        if (context.session) {
+                            context.session.accessToken = 'changed-by-first';
+                        }
+                    },
+                },
+                {
+                    pluginId: '@example/second',
+                    requiresSession: true,
+                    hook: async context => {
+                        sessions.push(context.session);
+                    },
+                },
+            ],
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(sessions).toHaveLength(2);
+        expect(sessions[0]).not.toBe(sessions[1]);
+        expect(sessions[1]?.accessToken).toBe(ACCESS_TOKEN);
     });
 
     it('does not advertise a callback address over an SSH session', async () => {
-        const test = await runLink({ env: { ...OFFICIAL_ENV, SSH_CONNECTION: '10.0.0.1 22 10.0.0.2 22' } });
+        const run = await runLink({ env: { ...OFFICIAL_ENV, SSH_CONNECTION: '10.0.0.1 22 10.0.0.2 22' } });
 
-        expect(test.exitCode).toBe(0);
+        expect(run.exitCode).toBe(0);
         // The browser is somewhere else, so the callback could only reach a
         // process that happens to hold that port on the other machine.
-        expect(new URL(test.openedUrls[0]).searchParams.get('redirect_uri')).toBeNull();
-        expect(test.sessions).toEqual([undefined]);
-        const output = test.messages.join('\n');
+        expect(new URL(run.openedUrls[0]).searchParams.get('redirect_uri')).toBeNull();
+        expect(run.sessions).toEqual([undefined]);
+        const output = run.messages.join('\n');
         expect(output).toContain('remote shell');
         // Re-running hits the same gate, so it must not be offered as a cure.
         expect(output).not.toContain('vendure console link again');
     });
 
     it('keeps the link when the token response is malformed', async () => {
-        const test = await runLink({ tokenBody: { access_token: 'vcli_a', token_type: 'Bearer' } });
+        const run = await runLink({ tokenBody: { access_token: 'vcli_a', token_type: 'Bearer' } });
 
-        expect(test.exitCode).toBe(0);
-        expect(fs.readJsonSync(getProjectLinkManifestPath(test.root))).toEqual(manifest);
-        expect(test.sessions).toEqual([undefined]);
-        expect(test.messages.join('\n')).toContain('could not be obtained');
+        expect(run.exitCode).toBe(0);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(run.root))).toEqual(manifest);
+        expect(run.sessions).toEqual([undefined]);
+        expect(run.messages.join('\n')).toContain('could not be obtained');
     });
 
     it('links without a session when the Console does not settle a login, and says so', async () => {
-        const test = await runLink({ supports: [] });
+        const run = await runLink({ supports: [] });
 
-        expect(test.exitCode).toBe(0);
-        expect(fs.readJsonSync(getProjectLinkManifestPath(test.root))).toEqual(manifest);
+        expect(run.exitCode).toBe(0);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(run.root))).toEqual(manifest);
         // No login was requested, so the verification URL is the plain one.
-        expect(new URL(test.openedUrls[0]).searchParams.get('client')).toBeNull();
-        expect(test.sessions).toEqual([undefined]);
-        expect(test.messages.join('\n')).toContain('does not settle a command line login');
+        expect(new URL(run.openedUrls[0]).searchParams.get('client')).toBeNull();
+        expect(run.sessions).toEqual([undefined]);
+        expect(run.messages.join('\n')).toContain('does not settle a command line login');
     });
 
     it('asks for the link alone when no browser can be opened here', async () => {
-        const test = await runLink({ openUrl: () => Promise.reject(new Error('no browser')) });
+        const run = await runLink({ openUrl: () => Promise.reject(new Error('no browser')) });
 
-        expect(test.exitCode).toBe(0);
-        expect(fs.readJsonSync(getProjectLinkManifestPath(test.root))).toEqual(manifest);
+        expect(run.exitCode).toBe(0);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(run.root))).toEqual(manifest);
         // The URL offered for another machine carries no callback address,
         // because that address is only reachable from this one.
-        const printed = test.messages.find(message => message.startsWith('https://'));
+        const printed = run.messages.find(message => message.startsWith('https://'));
         expect(printed).toBeDefined();
         expect(new URL(printed ?? '').searchParams.get('redirect_uri')).toBeNull();
-        expect(test.sessions).toEqual([undefined]);
+        expect(run.sessions).toEqual([undefined]);
         // Said before the person approves, not after.
-        expect(test.messages.join('\n')).toContain('will not obtain a Console session');
+        expect(run.messages.join('\n')).toContain('will not obtain a Console session');
     });
 
     it('keeps the link when the browser approved somewhere the callback cannot reach', async () => {
         // The approval happens, so the poll completes, but nothing ever calls
         // the listener on this machine.
-        const test = await runLink({ openUrl: () => Promise.resolve() });
+        const run = await runLink({ openUrl: () => Promise.resolve() });
 
-        expect(test.exitCode).toBe(0);
-        expect(fs.readJsonSync(getProjectLinkManifestPath(test.root))).toEqual(manifest);
-        expect(test.sessions).toEqual([undefined]);
-        const output = test.messages.join('\n');
+        expect(run.exitCode).toBe(0);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(run.root))).toEqual(manifest);
+        expect(run.sessions).toEqual([undefined]);
+        const output = run.messages.join('\n');
         expect(output).toContain('The link is in place.');
         // Re-running runs the plugin setup again, which is where a plugin that
         // needs a session signs in. The command itself cannot mint one.
@@ -180,45 +250,58 @@ describe('console link command line login', () => {
     });
 
     it('keeps the link when the token exchange is refused', async () => {
-        const test = await runLink({ tokenStatus: 400 });
+        const run = await runLink({ tokenStatus: 400 });
 
-        expect(test.exitCode).toBe(0);
-        expect(fs.readJsonSync(getProjectLinkManifestPath(test.root))).toEqual(manifest);
-        expect(test.sessions).toEqual([undefined]);
-        expect(test.messages.join('\n')).toContain('could not be obtained');
+        expect(run.exitCode).toBe(0);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(run.root))).toEqual(manifest);
+        expect(run.sessions).toEqual([undefined]);
+        expect(run.messages.join('\n')).toContain('could not be obtained');
     });
 
-    // The first and largest claim of the correction: an interrupt between the
-    // approval and the manifest write used to leave an approved Project Link
-    // with nothing on disk, which the next run can only replace.
     it('has the manifest on disk before the login can be interrupted', async () => {
         const abort = new AbortController();
-        const test = await runLink({
+        const run = await runLink({
             // Approved in the browser, then Ctrl-C while the code is being
             // exchanged, which is the window the reorder is about.
             onTokenRequest: () => abort.abort(),
             signal: abort.signal,
         });
 
-        expect(test.exitCode).toBe(130);
-        expect(fs.readJsonSync(getProjectLinkManifestPath(test.root))).toEqual(manifest);
-        const output = test.messages.join('\n');
+        expect(run.exitCode).toBe(130);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(run.root))).toEqual(manifest);
+        const output = run.messages.join('\n');
         expect(output).toContain('The link succeeded');
         expect(output).not.toContain('No Project Link Manifest was changed');
     });
 
     it('links without a session when the callback port cannot be bound', async () => {
-        const failing = vi
-            .spyOn(cliAuth, 'startLoopbackCallback')
-            .mockRejectedValue(new Error('listen EACCES 127.0.0.1'));
-        const test = await runLink();
-        failing.mockRestore();
+        const run = await runLink({
+            startLoopbackCallback: vi.fn().mockRejectedValue(new Error('listen EACCES 127.0.0.1')),
+        });
 
-        // A port this process cannot bind has nothing to do with the link.
-        expect(test.exitCode).toBe(0);
-        expect(fs.readJsonSync(getProjectLinkManifestPath(test.root))).toEqual(manifest);
-        expect(test.sessions).toEqual([undefined]);
-        expect(test.messages.join('\n')).toContain('EACCES');
+        expect(run.exitCode).toBe(0);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(run.root))).toEqual(manifest);
+        expect(run.sessions).toEqual([undefined]);
+        expect(run.messages.join('\n')).toContain('EACCES');
+    });
+
+    it('releases the loopback port after link returns', async () => {
+        const run = await runLink();
+        const redirectUri = new URL(run.openedUrls[0]).searchParams.get('redirect_uri');
+
+        expect(redirectUri).not.toBeNull();
+        await expect(fetch(redirectUri ?? '')).rejects.toThrow();
+    });
+
+    it('does not overwrite reserved authentication query parameters', async () => {
+        const run = await runLink({ verificationPath: `/?link=${LINK_ID}&state=console-state` });
+
+        const opened = new URL(run.openedUrls[0]);
+        expect(opened.searchParams.get('state')).toBe('console-state');
+        expect(opened.searchParams.get('redirect_uri')).toBeNull();
+        expect(run.grants).toEqual([]);
+        expect(run.sessions).toEqual([undefined]);
+        expect(run.messages.join('\n')).toContain('reserved authentication parameter "state"');
     });
 
     it('never carries a session into a repair, which asks Console nothing', async () => {
@@ -238,6 +321,7 @@ describe('console link command line login', () => {
                 hooks: [
                     {
                         pluginId: '@example/p',
+                        requiresSession: true,
                         hook: async context => {
                             contexts.push(context);
                         },
@@ -268,10 +352,11 @@ describe('console link command line login', () => {
                     VENDURE_CONSOLE_LINK_URL: 'http://localhost:3000',
                     VENDURE_CONSOLE_LINK_API_URL: 'http://localhost:3001',
                 },
-                fetch: consoleFetch({}) as unknown as typeof fetch,
+                fetch: vi.fn(createConsoleFetch()) as unknown as typeof fetch,
                 hooks: [
                     {
                         pluginId: '@example/p',
+                        requiresSession: true,
                         hook: async context => {
                             contexts.push(context);
                         },
@@ -288,8 +373,9 @@ describe('console link command line login', () => {
         expect(contexts[0].session).toBeUndefined();
         // No callback address was ever advertised to a Console we do not know.
         expect(new URL(openedUrls[0]).searchParams.get('redirect_uri')).toBeNull();
-        // And no capability complaint, because the origin decided it first.
-        expect(messages.join('\n')).not.toContain('does not settle a command line login');
+        const output = messages.join('\n');
+        expect(output).toContain('not an official Vendure Console');
+        expect(output).not.toContain('does not settle a command line login');
     });
 });
 
@@ -302,8 +388,10 @@ interface RunOptions {
     openUrl?: (url: string) => Promise<void>;
     signal?: AbortSignal;
     onTokenRequest?: () => void;
+    startLoopbackCallback?: typeof startLoopbackCallback;
+    verificationPath?: string;
     /** Called with each requested delay, so the grace period is observable. */
-    sleep?: (milliseconds: number) => Promise<void>;
+    sleep?: (milliseconds: number, signal: AbortSignal) => Promise<void>;
 }
 
 /**
@@ -321,13 +409,16 @@ async function runLink(options: RunOptions = {}) {
     const grants: Array<Record<string, string>> = [];
     const callbackStates: string[] = [];
 
-    const fetchMock = consoleFetch({
-        supports: options.supports ?? ['cli-auth'],
-        tokenStatus: options.tokenStatus ?? 200,
-        tokenBody: options.tokenBody,
-        onTokenRequest: options.onTokenRequest,
-        grants,
-    });
+    const fetchMock = vi.fn(
+        createConsoleFetch({
+            supports: options.supports ?? ['cli-auth'],
+            tokenStatus: options.tokenStatus ?? 200,
+            tokenBody: options.tokenBody,
+            onTokenRequest: options.onTokenRequest,
+            grants,
+            verificationPath: options.verificationPath,
+        }),
+    );
 
     const delays: number[] = [];
     const exitCode = await consoleCommand(
@@ -339,13 +430,17 @@ async function runLink(options: RunOptions = {}) {
             fetch: fetchMock as unknown as typeof fetch,
             signal: options.signal,
             now: () => NOW,
-            sleep: async milliseconds => {
+            sleep: async (milliseconds, signal) => {
                 delays.push(milliseconds);
-                await (options.sleep?.(milliseconds) ?? Promise.resolve());
+                await (options.sleep?.(milliseconds, signal) ?? Promise.resolve());
             },
+            ...(options.startLoopbackCallback
+                ? { startLoopbackCallback: options.startLoopbackCallback }
+                : {}),
             hooks: options.hooks ?? [
                 {
                     pluginId: '@example/p',
+                    requiresSession: true,
                     hook: async context => {
                         sessions.push(context.session);
                     },
@@ -383,59 +478,6 @@ async function runLink(options: RunOptions = {}) {
     };
 }
 
-function consoleFetch(options: {
-    supports?: string[];
-    tokenStatus?: number;
-    tokenBody?: unknown;
-    onTokenRequest?: () => void;
-    grants?: Array<Record<string, string>>;
-}) {
-    return vi.fn(async (input: string, init?: RequestInit) => {
-        const url = new URL(input);
-        if (url.pathname === '/v1/project-links') {
-            return jsonResponse({
-                id: LINK_ID,
-                state: 'pending',
-                protocolVersion: 1,
-                expiresAt: new Date(Date.now() + 600_000).toISOString(),
-                pollingSecret: POLLING_SECRET,
-                verificationPath: `/?link=${LINK_ID}`,
-                ...(options.supports ? { supports: options.supports } : {}),
-            });
-        }
-        if (url.pathname.endsWith('/poll')) {
-            return jsonResponse({
-                state: 'approved',
-                expiresAt: new Date(Date.now() + 600_000).toISOString(),
-                manifest,
-            });
-        }
-        if (url.pathname === '/v1/auth/cli/token') {
-            options.onTokenRequest?.();
-            options.grants?.push(JSON.parse(String(init?.body ?? '{}')) as Record<string, string>);
-            if ((options.tokenStatus ?? 200) !== 200) {
-                return new Response('{}', { status: options.tokenStatus });
-            }
-            return jsonResponse(
-                options.tokenBody ?? {
-                    access_token: ACCESS_TOKEN,
-                    token_type: 'Bearer',
-                    expires_in: 3600,
-                    refresh_token: REFRESH_TOKEN,
-                },
-            );
-        }
-        throw new Error(`Unexpected request to ${input}`);
-    });
-}
-
-function jsonResponse(value: unknown): Response {
-    return new Response(JSON.stringify(value), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-    });
-}
-
 function baseDependencies(root: string, messages: string[] = []): Partial<ConsoleCommandDependencies> {
     const reporter: ConsoleReporter = {
         error: message => messages.push(message),
@@ -457,8 +499,5 @@ function baseDependencies(root: string, messages: string[] = []): Partial<Consol
 }
 
 function vendureProject(): string {
-    const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'vendure-console-login-')));
-    temporaryDirectories.push(root);
-    fs.writeJsonSync(path.join(root, 'package.json'), { dependencies: { '@vendure/core': '3.7.2' } });
-    return root;
+    return createVendureProject(temporaryDirectories, 'vendure-console-login-');
 }

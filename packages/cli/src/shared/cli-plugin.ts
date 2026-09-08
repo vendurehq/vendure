@@ -1,4 +1,4 @@
-import type { ConsoleLinkHook } from '../commands/console/console-link-hook';
+import type { ConsoleLinkHookRegistration } from '../commands/console/console-link-hook';
 
 import {
     CliCommandDefinition,
@@ -65,7 +65,7 @@ export interface CliPlugin {
      *
      * @since 3.8.0
      */
-    afterConsoleLink?: ConsoleLinkHook;
+    afterConsoleLink?: ConsoleLinkHookRegistration;
 }
 
 interface CliPluginExtensionEntry {
@@ -143,8 +143,17 @@ export function assertCliPlugin(value: unknown): asserts value is CliPlugin {
     }
     assertExtensions(plugin.id, extensions, rootOptions);
 
-    if (plugin.afterConsoleLink !== undefined && typeof plugin.afterConsoleLink !== 'function') {
-        throw new TypeError(`CLI plugin "${plugin.id}" afterConsoleLink must be a function`);
+    if (
+        plugin.afterConsoleLink !== undefined &&
+        typeof plugin.afterConsoleLink !== 'function' &&
+        (!plugin.afterConsoleLink ||
+            typeof plugin.afterConsoleLink !== 'object' ||
+            plugin.afterConsoleLink.requiresSession !== true ||
+            typeof plugin.afterConsoleLink.hook !== 'function')
+    ) {
+        throw new TypeError(
+            `CLI plugin "${plugin.id}" afterConsoleLink must be a function or a session-requesting hook`,
+        );
     }
 }
 

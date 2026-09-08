@@ -4,7 +4,6 @@ import { ChildProcess, spawn } from 'node:child_process';
 import { CliCommandExit } from '../../shared/cli-command-exit';
 import { isNonInteractiveEnvironment, withInteractiveTimeout } from '../../utilities/utils';
 
-import { ConsoleLinkContext, ConsoleLinkOutcome, RegisteredConsoleLinkHook } from './console-link-hook';
 import {
     CLI_TOKEN_PATH,
     ConsoleSession,
@@ -16,6 +15,7 @@ import {
     parseConsoleSession,
     startLoopbackCallback,
 } from './cli-auth';
+import { ConsoleLinkContext, ConsoleLinkOutcome, RegisteredConsoleLinkHook } from './console-link-hook';
 import {
     DEFAULT_CONSOLE_API_URL,
     DEFAULT_CONSOLE_URL,
@@ -51,7 +51,7 @@ const MAX_RETRY_DELAY_MS = 2_000;
  * moment the poll wins would lose a session that was on its way, and hand
  * somebody who did everything right the report meant for a remote approval.
  */
-export const CALLBACK_GRACE_MS = 2_000;
+export const CALLBACK_GRACE_MS = 2_500;
 
 export interface ConsoleCommandOptions {
     allowCustomConsole?: boolean;
@@ -77,6 +77,7 @@ export interface ConsoleCommandDependencies {
     reporter: ConsoleReporter;
     signal?: AbortSignal;
     sleep: (milliseconds: number, signal: AbortSignal) => Promise<void>;
+    startLoopbackCallback: typeof startLoopbackCallback;
 }
 
 interface ConsoleEndpoints {
@@ -153,6 +154,7 @@ function createDefaultDependencies(): ConsoleCommandDependencies {
         },
         reporter: defaultReporter,
         sleep: abortableSleep,
+        startLoopbackCallback,
     };
 }
 
@@ -320,10 +322,7 @@ async function link(
 
         const manifest = await waitForApproval(request, endpoints, dependencies, signal);
         throwIfAborted(signal);
-        // The manifest goes to disk before the login runs. A session is
-        // optional and takes seconds to obtain; the link is neither, and an
-        // interrupt in that window used to leave an approved Project Link with
-        // nothing recorded locally, which the next run cannot repair.
+        // Record the approved link before the optional session exchange.
         const manifestPath = await writeProjectLinkManifestAtomic(projectRoot, manifest);
         state.outcome = 'linked';
         state.manifestPath = manifestPath;
@@ -346,14 +345,6 @@ async function link(
     }
 }
 
-/**
- * What to say when the link will stand and no session comes with it.
- *
- * Re-running the command runs the plugin setup again, and a plugin that needs
- * a session signs in there. The command itself cannot: a repair asks Console
- * nothing and opens no browser, so it never mints one. Promising that it would
- * is how a person ends up running it twice and getting the same answer.
- */
 function noSessionFromThisLink(): string {
     return (
         'This link will not obtain a Console session. Run vendure console link again on this ' +
@@ -378,17 +369,13 @@ async function startConsoleLogin(
     endpoints: ConsoleEndpoints,
     dependencies: ConsoleCommandDependencies,
 ): Promise<ConsoleLogin | undefined> {
-    // Nobody asked for a session, so do not obtain one. The token is worth as
-    // much as the person's Console password across every project they own, and
-    // a link with no plugin behind it has nothing to do with it but drop it.
-    //
-    // Coarse on purpose for now: any registered hook causes one to be minted,
-    // and every hook then receives it. A plugin cannot yet say that it wants a
-    // session, so this narrows the case from "always" rather than closing it.
-    if (dependencies.hooks.length === 0) {
+    if (!dependencies.hooks.some(hook => hook.requiresSession)) {
         return undefined;
     }
     if (officialConsoleEnvironment(endpoints) === undefined) {
+        dependencies.reporter.warn(
+            'This link uses endpoints that are not an official Vendure Console, so it obtains no Console session.',
+        );
         return undefined;
     }
     if (!request.supports.includes(CLI_AUTH_CAPABILITY)) {
@@ -415,7 +402,7 @@ async function startConsoleLogin(
     const state = createLoginState();
     let callback;
     try {
-        callback = await startLoopbackCallback(state);
+        callback = await dependencies.startLoopbackCallback(state);
     } catch (error) {
         // A port this process cannot bind is a reason to skip the login, not a
         // reason to fail a link that has nothing to do with it.
@@ -430,10 +417,17 @@ async function startConsoleLogin(
 
     const { verifier, challenge } = createPkceChallenge();
     const url = new URL(request.verificationUrl);
-    for (const [name, value] of Object.entries(
-        cliAuthSearchParams({ redirectUri: callback.redirectUri, state, challenge }),
-    )) {
-        url.searchParams.set(name, value);
+    const searchParams = cliAuthSearchParams({ redirectUri: callback.redirectUri, state, challenge });
+    const reservedName = Object.keys(searchParams).find(name => url.searchParams.has(name));
+    if (reservedName) {
+        callback.close();
+        dependencies.reporter.warn(
+            `Console returned a verification URL with the reserved authentication parameter "${reservedName}", so this link obtains no Console session.`,
+        );
+        return undefined;
+    }
+    for (const [name, value] of Object.entries(searchParams)) {
+        url.searchParams.append(name, value);
     }
     return { ...callback, verifier, verificationUrl: url.toString() };
 }
@@ -441,13 +435,8 @@ async function startConsoleLogin(
 /**
  * Whether this shell is attached from another machine.
  *
- * `openUrl` resolves when the helper process starts, not when a browser opens,
- * so a URL carrying a callback address can still reach a browser that cannot
- * return to the port this process bound. An absent `DISPLAY` looks like the
- * same thing and is not: VS Code Remote, devcontainers and WSL all reach a
- * browser without one, and refusing them would turn the feature off for people
- * it works for. Being wrong the other way costs a code that PKCE already makes
- * useless without the verifier, which never leaves this process.
+ * An absent `DISPLAY` does not imply a remote browser. VS Code Remote,
+ * devcontainers and WSL can open a local browser without it.
  */
 function shellIsRemote(env: NodeJS.ProcessEnv): boolean {
     return Boolean(env.SSH_CONNECTION || env.SSH_TTY);
@@ -467,11 +456,15 @@ async function completeConsoleLogin(
     dependencies: ConsoleCommandDependencies,
     signal: AbortSignal,
 ): Promise<ConsoleSession | undefined> {
+    const graceController = new AbortController();
+    const abortGrace = () => graceController.abort();
+    signal.addEventListener('abort', abortGrace, { once: true });
     try {
         const code = await Promise.race([
             login.code(),
-            dependencies.sleep(CALLBACK_GRACE_MS, signal).then(() => undefined),
+            dependencies.sleep(CALLBACK_GRACE_MS, graceController.signal).then(() => undefined),
         ]);
+        throwIfAborted(signal);
         if (!code) {
             dependencies.reporter.warn(`The link is in place. ${noSessionFromThisLink()}`);
             return undefined;
@@ -507,6 +500,8 @@ async function completeConsoleLogin(
         dependencies.reporter.warn(`The link is in place. ${noSessionFromThisLink()}`);
         return undefined;
     } finally {
+        signal.removeEventListener('abort', abortGrace);
+        graceController.abort();
         login.close();
     }
 }
@@ -596,9 +591,16 @@ async function runConsoleLinkHooks(
     dependencies: ConsoleCommandDependencies,
     signal: AbortSignal,
 ): Promise<number> {
-    for (const { pluginId, hook } of dependencies.hooks) {
+    for (const { pluginId, hook, requiresSession } of dependencies.hooks) {
         try {
-            await hook(createConsoleLinkContext(inputs, options, dependencies, signal));
+            await hook(
+                createConsoleLinkContext(
+                    { ...inputs, session: requiresSession ? inputs.session : undefined },
+                    options,
+                    dependencies,
+                    signal,
+                ),
+            );
         } catch (error) {
             // Ctrl-C during a hook is an interrupt whatever the hook threw, so
             // it is reported by the one handler that knows the exit code.
@@ -648,7 +650,7 @@ function createConsoleLinkContext(
             official: officialConsoleEnvironment(inputs.endpoints),
         },
         outcome: inputs.outcome,
-        session: inputs.session,
+        session: inputs.session ? structuredClone(inputs.session) : undefined,
         signal,
         reporter: dependencies.reporter,
         confirm: message => confirmForHook(message, isNonInteractive, dependencies.prompt),

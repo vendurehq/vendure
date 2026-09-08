@@ -51,10 +51,20 @@ export interface ConsoleLinkContext {
  */
 export type ConsoleLinkHook = (context: ConsoleLinkContext) => Promise<void>;
 
+/** A hook that explicitly requests a Console session. @since 3.8.0 */
+export interface ConsoleLinkHookWithSession {
+    hook: ConsoleLinkHook;
+    requiresSession: true;
+}
+
+/** A hook registration, optionally with an explicit session request. @since 3.8.0 */
+export type ConsoleLinkHookRegistration = ConsoleLinkHook | ConsoleLinkHookWithSession;
+
 /**
  * A hook together with the plugin that registered it, so a failure can name it.
  */
 export interface RegisteredConsoleLinkHook {
     pluginId: string;
     hook: ConsoleLinkHook;
+    requiresSession?: boolean;
 }

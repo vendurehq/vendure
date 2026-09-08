@@ -804,8 +804,36 @@ export default defineCliPlugin({
 ```
 
 The context contains `projectRoot`, `manifest`, `manifestPath`, `endpoints`,
-`outcome`, `signal`, `reporter`, `confirm`, `isNonInteractive`, and `force`.
-Each hook gets its own manifest and endpoint objects.
+`outcome`, the optional `session`, `signal`, `reporter`, `confirm`,
+`isNonInteractive`, and `force`. Each hook gets its own manifest and endpoint
+objects. A session is also copied when the hook requested one and the login
+succeeded.
+
+A hook does not receive a Console session unless it requests one. Wrap a hook
+with `requiresSession: true` when it needs the session from the same browser
+approval:
+
+```ts
+export default defineCliPlugin({
+    id: '@example/credential-cli-plugin',
+    commands: [],
+    afterConsoleLink: {
+        requiresSession: true,
+        hook: async context => {
+            if (!context.session) {
+                context.reporter.warn('No Console session was obtained.');
+                return;
+            }
+            await storeCredential(context.session);
+        },
+    },
+});
+```
+
+The session is user-scoped and can authorize access across the user's Console
+projects. The CLI does not store it. If a plugin stores the session, use an OS
+credential store or a user-specific configuration directory outside the
+Vendure project. Never write it to the project directory or commit it.
 
 Do not replace the `console` command for post-link setup. Register the hook.
 

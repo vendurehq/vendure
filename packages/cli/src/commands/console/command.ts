@@ -1,7 +1,7 @@
 import { CliCommandContext, CliCommandDefinition } from '../../shared/cli-command-definition';
 import { runCliCommand } from '../../shared/cli-command-exit';
 
-import { ConsoleLinkHook } from './console-link-hook';
+import { ConsoleLinkHookRegistration } from './console-link-hook';
 
 export const consoleCommandDef: CliCommandDefinition = {
     name: 'console',
@@ -39,8 +39,12 @@ export const consoleCommandDef: CliCommandDefinition = {
         return runCliCommand(async () => {
             const { consoleCommand } = await import('./console');
             const hooks = context
-                .getPluginExtensions<ConsoleLinkHook>('afterConsoleLink')
-                .map(({ pluginId, extension: hook }) => ({ pluginId, hook }));
+                .getPluginExtensions<ConsoleLinkHookRegistration>('afterConsoleLink')
+                .map(({ pluginId, extension }) =>
+                    typeof extension === 'function'
+                        ? { pluginId, hook: extension, requiresSession: false }
+                        : { pluginId, hook: extension.hook, requiresSession: true },
+                );
             return consoleCommand(action, options, { hooks });
         });
     },

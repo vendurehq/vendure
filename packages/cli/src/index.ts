@@ -44,12 +44,13 @@
  * ```
  */
 export { builtinCommands } from './commands/builtins';
-export { CLI_AUTH_CAPABILITY } from './commands/console/cli-auth';
 export type { ConsoleSession } from './commands/console/cli-auth';
 export type {
     ConsoleLinkContext,
     ConsoleLinkEndpoints,
     ConsoleLinkHook,
+    ConsoleLinkHookRegistration,
+    ConsoleLinkHookWithSession,
     ConsoleLinkOutcome,
 } from './commands/console/console-link-hook';
 export type { ConsoleOriginEnvironment } from './commands/console/console-origins';

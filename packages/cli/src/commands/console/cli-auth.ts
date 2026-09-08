@@ -5,20 +5,6 @@ import { AddressInfo } from 'node:net';
 import { nonEmptyString, objectValue } from './project-link-validation';
 
 /**
- * The capability a Console advertises when a Project Link approval can also
- * settle a command line login. A Console that does not name it approves the
- * link only, and this CLI then asks for no login at all.
- */
-export const CLI_AUTH_CAPABILITY = 'cli-auth';
-
-/**
- * The tools Console names on the approval page, as Console defines them. This
- * CLI is always `cli`; `create` is the other value Console accepts, and is
- * spelled out here so one conformance test can drive both.
- */
-export type CliAuthClient = 'cli' | 'create';
-
-/**
  * Console's CLI session token route, where an authorization code is exchanged.
  *
  * The route, the grant types and the field names are Console's, so every
@@ -39,11 +25,7 @@ const CALLBACK_PATH = '/auth/callback';
  */
 const NO_STORE = { 'Cache-Control': 'no-store', 'Content-Type': 'text/plain' };
 
-/**
- * A lifetime past this is not a token this CLI will describe as valid. Console
- * issues an hour; anything near a year is a malformed response rather than a
- * generous one.
- */
+/** Console issues one-hour sessions. Refuse implausibly long token lifetimes. */
 const MAX_TOKEN_LIFETIME_SECONDS = 365 * 24 * 60 * 60;
 
 /**
@@ -51,6 +33,8 @@ const MAX_TOKEN_LIFETIME_SECONDS = 365 * 24 * 60 * 60;
  *
  * The CLI does not write this anywhere. It is handed to the plugin hook that
  * asked for it, and storing it is that plugin's to do, under its own rules.
+ *
+ * @since 3.8.0
  */
 export interface ConsoleSession {
     accessToken: string;
@@ -84,10 +68,9 @@ export function cliAuthSearchParams(input: {
     redirectUri: string;
     state: string;
     challenge: string;
-    client?: CliAuthClient;
 }): Record<string, string> {
     return {
-        client: input.client ?? 'cli',
+        client: 'cli',
         redirect_uri: input.redirectUri,
         state: input.state,
         code_challenge: input.challenge,
@@ -117,9 +100,9 @@ export interface LoopbackCallback {
  * request is already listening when Console redirects to it.
  */
 export async function startLoopbackCallback(expectedState: string): Promise<LoopbackCallback> {
-    let settle: ((code: string | undefined) => void) | undefined;
+    let resolveCode: ((code: string | undefined) => void) | undefined;
     const received = new Promise<string | undefined>(resolve => {
-        settle = resolve;
+        resolveCode = resolve;
     });
 
     const server: Server = createServer((request, response) => {
@@ -142,18 +125,16 @@ export async function startLoopbackCallback(expectedState: string): Promise<Loop
                     ? 'Signed in. You can close this tab and return to your terminal.\n'
                     : 'The command line login was refused. You can close this tab.\n',
             );
-        settle?.(code);
+        resolveCode?.(code);
     });
 
     await new Promise<void>((resolve, reject) => {
         server.once('error', reject);
         server.listen(0, '127.0.0.1', () => {
-            // The listen handler rejects a promise that is about to settle, so
-            // it cannot stay: a later error would be swallowed, and the one
-            // after that would have no listener at all and take the process
-            // down mid-link.
+            // Keep a listener after binding so a later server error does not
+            // terminate the process.
             server.removeListener('error', reject);
-            server.on('error', () => settle?.(undefined));
+            server.on('error', () => resolveCode?.(undefined));
             resolve();
         });
     });
@@ -168,9 +149,7 @@ export async function startLoopbackCallback(expectedState: string): Promise<Loop
                 return;
             }
             closed = true;
-            // Unblock anything waiting before the socket goes, so closing is
-            // never the reason a caller hangs.
-            settle?.(undefined);
+            resolveCode?.(undefined);
             server.closeAllConnections();
             server.close();
         },
@@ -220,8 +199,8 @@ export function parseConsoleSession(value: unknown, now: number): ConsoleSession
         throw new Error('Console returned an invalid token lifetime.');
     }
     const refreshToken =
-        typeof object.refresh_token === 'string' && object.refresh_token.length > 0
-            ? object.refresh_token
-            : undefined;
+        object.refresh_token === undefined
+            ? undefined
+            : nonEmptyString(object.refresh_token, 'Console returned an invalid refresh token.');
     return { accessToken, refreshToken, expiresAt: now + object.expires_in * 1000 };
 }
