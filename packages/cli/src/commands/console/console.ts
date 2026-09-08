@@ -6,6 +6,7 @@ import { isNonInteractiveEnvironment, withInteractiveTimeout } from '../../utili
 
 import {
     ConsoleLinkContext,
+    ConsoleLinkOutcome,
     ConsoleReporter,
     RegisteredConsoleLinkHook,
     getConsoleLinkHooks,
@@ -162,8 +163,8 @@ export async function consoleCommand(
                 // Once the manifest is written the link is done and cannot be
                 // taken back, so saying nothing changed would be untrue. An
                 // interrupt after that point stopped a hook, not the link.
-                state.manifestPath
-                    ? `Console command interrupted. ${linkedButUnfinished(state.manifestPath)}`
+                state.manifestPath && state.outcome
+                    ? `Console command interrupted. ${linkUnfinished(state.outcome, state.manifestPath)}`
                     : 'Console command interrupted. No Project Link Manifest was changed.',
             );
             return exitCode;
@@ -185,8 +186,9 @@ export async function consoleCommand(
  * how much an interrupt took back.
  */
 interface ConsoleCommandState {
-    /** Set once the Project Link Manifest is on disk. */
+    /** Set once the Project Link Manifest is on disk, written or reused. */
     manifestPath?: string;
+    outcome?: ConsoleLinkOutcome;
 }
 
 async function runConsoleCommand(
@@ -242,6 +244,25 @@ async function link(
 ): Promise<number> {
     const endpoints = resolveConsoleEndpoints(dependencies.env);
     const existing = readProjectLinkManifest(projectRoot);
+    if (existing.kind === 'valid' && !options.force) {
+        // `vendure console link` establishes a link and repairs one, rather
+        // than establishing one and leaving repair to somewhere else. A repeat
+        // in a project that is already linked runs the setup again against the
+        // manifest on disk. Minting a second Project Link would abandon the
+        // first in Console for a problem that is local, and it would put the
+        // choice of Project back in front of someone who only wanted their
+        // credentials back.
+        return repair(
+            projectRoot,
+            existing.manifest,
+            existing.path,
+            endpoints,
+            options,
+            dependencies,
+            signal,
+            state,
+        );
+    }
     if (existing.kind !== 'missing') {
         const confirmed = await confirmManifestChange('replace', existing, options, dependencies);
         if (confirmed !== 'confirmed') {
@@ -265,65 +286,167 @@ async function link(
     const manifest = await waitForApproval(request, endpoints, dependencies, signal);
     throwIfAborted(signal);
     const manifestPath = await writeProjectLinkManifestAtomic(projectRoot, manifest);
+    state.outcome = 'linked';
     state.manifestPath = manifestPath;
     dependencies.reporter.success(`Linked ${manifest.project.name} to ${manifest.account.name}.`);
     dependencies.reporter.info(`Wrote ${manifestPath}`);
     reportProjectLinkGitignore(projectRoot, dependencies.reporter);
 
     return runConsoleLinkHooks(
-        {
-            projectRoot,
-            manifest,
-            manifestPath,
-            endpoints: { ...endpoints, areDefault: usesDefaultEndpoints(endpoints) },
-            signal,
-            reporter: dependencies.reporter,
-            confirm: message => dependencies.prompt(message),
-            isNonInteractive: dependencies.isNonInteractive(),
-            force: options.force === true,
-        },
+        { projectRoot, manifest, manifestPath, endpoints, outcome: 'linked' },
+        options,
         dependencies,
         signal,
     );
 }
 
 /**
+ * Runs the setup that follows a link for a project that is already linked,
+ * against the manifest already on disk.
+ *
+ * Nothing is written and nothing is asked of Console: the Project Link this
+ * manifest names is still the one in force. The custom-endpoint gate runs all
+ * the same, because a hook is given these origins and may talk to them, and
+ * approving them is the decision this command exists to take.
+ */
+async function repair(
+    projectRoot: string,
+    manifest: ProjectLinkManifest,
+    manifestPath: string,
+    endpoints: ConsoleEndpoints,
+    options: ConsoleCommandOptions,
+    dependencies: ConsoleCommandDependencies,
+    signal: AbortSignal,
+    state: ConsoleCommandState,
+): Promise<number> {
+    const endpointApproval = await confirmCustomConsoleEndpoints(endpoints, options, dependencies);
+    if (endpointApproval !== 'confirmed') {
+        return endpointApproval === 'cancelled' ? 0 : 1;
+    }
+    state.outcome = 'repaired';
+    state.manifestPath = manifestPath;
+    dependencies.reporter.success(`Already linked to ${manifest.project.name} in ${manifest.account.name}.`);
+    dependencies.reporter.info(
+        `Kept ${manifestPath}. Run vendure console link --force to link this project to a different Console Project.`,
+    );
+    reportProjectLinkGitignore(projectRoot, dependencies.reporter);
+
+    return runConsoleLinkHooks(
+        { projectRoot, manifest, manifestPath, endpoints, outcome: 'repaired' },
+        options,
+        dependencies,
+        signal,
+    );
+}
+
+/** What the command resolved, before it is shaped into a per-hook context. */
+interface ConsoleLinkHookInputs {
+    projectRoot: string;
+    manifest: ProjectLinkManifest;
+    manifestPath: string;
+    endpoints: ConsoleEndpoints;
+    outcome: ConsoleLinkOutcome;
+}
+
+/**
  * Runs the plugin hooks, in the order the plugins were listed.
  *
- * The link is already written by this point and is not undone by a hook that
- * fails, so a failure is reported as what it is: the link succeeded and the
- * work after it did not. Rolling the manifest back would be worse, because the
- * Project Link exists in Console either way and a second `vendure console link`
- * creates another one rather than repairing this one.
+ * The manifest is on disk by this point and is not removed by a hook that
+ * fails, so a failure is reported as what it is: the link is in place and the
+ * work after it did not finish. Rolling the manifest back would be worse,
+ * because the Project Link exists in Console either way.
  *
  * The first failure stops the rest. A later hook would be setting up a project
  * whose earlier setup is known to be incomplete.
  */
 async function runConsoleLinkHooks(
-    context: ConsoleLinkContext,
+    inputs: ConsoleLinkHookInputs,
+    options: ConsoleCommandOptions,
     dependencies: ConsoleCommandDependencies,
     signal: AbortSignal,
 ): Promise<number> {
     for (const { pluginId, hook } of dependencies.hooks) {
         try {
-            await hook(context);
+            await hook(createConsoleLinkContext(inputs, options, dependencies, signal));
         } catch (error) {
             // Ctrl-C during a hook is an interrupt whatever the hook threw, so
             // it is reported by the one handler that knows the exit code.
             if (signal.aborted || error instanceof CommandInterruptedError) {
                 throw new CommandInterruptedError();
             }
+            // The host owns this one, and it carries the exit code with it.
+            if (error instanceof CliCommandExit) {
+                throw error;
+            }
             const detail = error instanceof Error ? error.message : String(error);
             dependencies.reporter.error(`The ${pluginId} plugin failed after linking: ${detail}`);
-            dependencies.reporter.warn(linkedButUnfinished(context.manifestPath));
+            dependencies.reporter.warn(linkUnfinished(inputs.outcome, inputs.manifestPath));
             return 1;
         }
     }
     return 0;
 }
 
-function linkedButUnfinished(manifestPath: string): string {
-    return `The link succeeded and ${manifestPath} is in place. The setup that runs after linking did not finish.`;
+/**
+ * Builds a context for one hook.
+ *
+ * A fresh one each time, rather than one shared by all of them. Hooks run in a
+ * configured order, and `endpoints.areDefault` is the fact a hook holding a
+ * credential checks before it sends anything. A shared object would let the
+ * plugin listed first decide what the plugin listed second sees.
+ */
+function createConsoleLinkContext(
+    inputs: ConsoleLinkHookInputs,
+    options: ConsoleCommandOptions,
+    dependencies: ConsoleCommandDependencies,
+    signal: AbortSignal,
+): ConsoleLinkContext {
+    return {
+        projectRoot: inputs.projectRoot,
+        manifest: structuredClone(inputs.manifest),
+        manifestPath: inputs.manifestPath,
+        endpoints: {
+            consoleUrl: inputs.endpoints.consoleUrl,
+            apiUrl: inputs.endpoints.apiUrl,
+            areDefault: usesDefaultEndpoints(inputs.endpoints),
+        },
+        outcome: inputs.outcome,
+        signal,
+        reporter: dependencies.reporter,
+        confirm: message => confirmForHook(message, dependencies),
+        isNonInteractive: dependencies.isNonInteractive(),
+        force: options.force === true,
+    };
+}
+
+/**
+ * Asks the hook's yes/no question, or refuses when there is nobody to answer.
+ *
+ * Without this the question goes into a pipe and the command waits for a reply
+ * that cannot come. `isNonInteractive` is on the context so that a hook takes
+ * the other path before it reaches here; this is what happens when one does not.
+ */
+function confirmForHook(
+    message: string,
+    dependencies: ConsoleCommandDependencies,
+): Promise<boolean | undefined> {
+    if (dependencies.isNonInteractive()) {
+        return Promise.reject(
+            new Error(
+                'Cannot ask for confirmation in a non-interactive environment. ' +
+                    'Check context.isNonInteractive before calling context.confirm.',
+            ),
+        );
+    }
+    return dependencies.prompt(message);
+}
+
+function linkUnfinished(outcome: ConsoleLinkOutcome, manifestPath: string): string {
+    const survived =
+        outcome === 'linked'
+            ? `The link succeeded and ${manifestPath} is in place.`
+            : `The existing link at ${manifestPath} was not changed.`;
+    return `${survived} The setup that runs after linking did not finish.`;
 }
 
 async function confirmCustomConsoleEndpoints(

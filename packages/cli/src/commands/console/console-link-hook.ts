@@ -45,6 +45,14 @@ export interface ConsoleLinkEndpoints {
 }
 
 /**
+ * Whether the run that called the hook established the link or repaired one
+ * that already existed.
+ *
+ * @since 3.8.0
+ */
+export type ConsoleLinkOutcome = 'linked' | 'repaired';
+
+/**
  * What `vendure console link` hands a {@link ConsoleLinkHook}.
  *
  * Everything the command already resolved is passed in so that a hook never
@@ -60,11 +68,29 @@ export interface ConsoleLinkContext {
      * and the search for the nearest `@vendure/core` dependency.
      */
     projectRoot: string;
-    /** The Project Link Manifest as it was written. */
+    /**
+     * The Project Link Manifest, as this run wrote it or as it already stood on
+     * disk. Each hook gets its own copy, so one hook cannot change what the
+     * next one reads.
+     */
     manifest: ProjectLinkManifest;
     /** Absolute path of the manifest file. */
     manifestPath: string;
     endpoints: ConsoleLinkEndpoints;
+    /**
+     * Which of the two things `vendure console link` does brought the hook here.
+     *
+     * `'linked'` means this run created the Project Link and wrote the manifest
+     * above. `'repaired'` means the project was already linked and the manifest
+     * on disk was reused unchanged, so the hook is being asked to redo its own
+     * setup for a link that has not moved.
+     *
+     * A hook that only writes files can ignore this. A hook that rotates a
+     * remote credential cannot: repairing is the case where a credential the
+     * developer no longer holds locally may still be live, and replacing it
+     * takes the old one away. Confirm that before doing it.
+     */
+    outcome: ConsoleLinkOutcome;
     /**
      * Aborts on SIGINT and SIGTERM, the same signal the link itself ran under.
      * Anything a hook does remotely should be passed this, so that Ctrl-C does
@@ -105,20 +131,24 @@ export interface ConsoleLinkContext {
  *
  * A hook never runs before the manifest is on disk, so it can rely on the link
  * being recorded. It equally cannot undo it: the manifest survives a hook that
- * fails, and the command says so rather than claiming nothing changed. Work
- * that has to be repeatable belongs in a command of its own, because running
- * `vendure console link` again creates a new Project Link rather than repairing
- * the existing one.
+ * fails, and the command says so rather than claiming nothing changed.
+ *
+ * A hook has to be repeatable, because `vendure console link` is the command
+ * that repairs a link as well as the one that makes it. Run in a project that
+ * is already linked, it reuses the manifest on disk and calls the hooks again
+ * with an {@link ConsoleLinkContext.outcome} of `'repaired'`, rather than
+ * minting a second Project Link in Console and leaving the first behind.
+ * `--force` is the way to link a checkout to a different Project.
  *
  * Hooks run in `vendure.cli.plugins` order, one after another, and the first
- * one to throw stops the rest.
+ * one to throw stops the rest. Each is given its own context, so a hook cannot
+ * change what a later one reads.
  *
  * Throwing is for work that failed, not for work that cannot be done here. A
- * hook that needs an answer it cannot get — no terminal, so no sign-in, so no
- * credential — should say what is missing through {@link ConsoleLinkContext.reporter}
- * and return. The command still exits 0, because linking is what it was asked
- * to do and it did it. Naming the command that finishes the job is the hook's
- * to do: the CLI does not suggest one, and never suggests linking again.
+ * hook that needs something it cannot get in this run should say what is
+ * missing through {@link ConsoleLinkContext.reporter} and return. The command
+ * still exits 0, because linking is what it was asked to do and it did it, and
+ * `vendure console link` is what the developer runs again to finish the job.
  *
  * @since 3.8.0
  */

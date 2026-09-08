@@ -443,13 +443,15 @@ describe('console command', () => {
     it('fails closed for replacement in non-interactive mode and allows --force', async () => {
         const root = vendureProject();
         fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
-        fs.writeJsonSync(getProjectLinkManifestPath(root), manifest);
+        // An invalid manifest is the case that still has to be replaced: there
+        // is no link in it to repair, so the command needs a decision.
+        fs.writeFileSync(getProjectLinkManifestPath(root), '{invalid');
         const blockedFetch = vi.fn() as unknown as typeof fetch;
         const blocked = testDependencies(root, blockedFetch);
 
         expect(await consoleCommand('link', {}, blocked.dependencies)).toBe(1);
         expect(blockedFetch).not.toHaveBeenCalled();
-        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
+        expect(fs.readFileSync(getProjectLinkManifestPath(root), 'utf-8')).toBe('{invalid');
 
         const replacement = { ...manifest, project: { ...manifest.project, name: 'Replacement' } };
         const allowed = testDependencies(
@@ -483,7 +485,7 @@ describe('console command', () => {
     it('rethrows CliCommandExit from the prompt so the CLI host owns the exit', async () => {
         const root = vendureProject();
         fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
-        fs.writeJsonSync(getProjectLinkManifestPath(root), manifest);
+        fs.writeFileSync(getProjectLinkManifestPath(root), '{invalid');
         const test = testDependencies(root, vi.fn() as unknown as typeof fetch, {
             isNonInteractive: () => false,
             prompt: () => Promise.reject(new CliCommandExit(1)),
@@ -491,10 +493,27 @@ describe('console command', () => {
 
         await expect(consoleCommand('link', {}, test.dependencies)).rejects.toBeInstanceOf(CliCommandExit);
         expect(test.messages.join('\n')).not.toContain('requested exit code');
-        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
+        expect(fs.readFileSync(getProjectLinkManifestPath(root), 'utf-8')).toBe('{invalid');
     });
 
-    it('leaves an existing manifest unchanged when interactive replacement is cancelled', async () => {
+    it('leaves an invalid manifest unchanged when interactive replacement is cancelled', async () => {
+        const root = vendureProject();
+        fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
+        fs.writeFileSync(getProjectLinkManifestPath(root), '{invalid');
+        const fetchMock = vi.fn() as unknown as typeof fetch;
+        const test = testDependencies(root, fetchMock, {
+            isNonInteractive: () => false,
+            prompt: () => Promise.resolve(false),
+        });
+
+        expect(await consoleCommand('link', {}, test.dependencies)).toBe(0);
+        expect(fetchMock).not.toHaveBeenCalled();
+        expect(fs.readFileSync(getProjectLinkManifestPath(root), 'utf-8')).toBe('{invalid');
+    });
+
+    // Repeating a link is how a project that is already linked gets its setup
+    // run again. Minting a second Project Link would abandon the first.
+    it('repeats a link without asking Console for another one, and names --force', async () => {
         const root = vendureProject();
         fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
         fs.writeJsonSync(getProjectLinkManifestPath(root), manifest);
@@ -507,6 +526,41 @@ describe('console command', () => {
         expect(await consoleCommand('link', {}, test.dependencies)).toBe(0);
         expect(fetchMock).not.toHaveBeenCalled();
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
+        const output = test.messages.join('\n');
+        expect(output).toContain('Already linked to');
+        expect(output).toContain('vendure console link --force');
+    });
+
+    it('repairs rather than failing closed when a linked project repeats a link non-interactively', async () => {
+        const root = vendureProject();
+        fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
+        fs.writeJsonSync(getProjectLinkManifestPath(root), manifest);
+        const fetchMock = vi.fn() as unknown as typeof fetch;
+        const test = testDependencies(root, fetchMock);
+
+        // The backfill path a linked project needs has to work in CI, where
+        // there is nobody to confirm anything and nothing to confirm.
+        expect(await consoleCommand('link', {}, test.dependencies)).toBe(0);
+        expect(fetchMock).not.toHaveBeenCalled();
+        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
+    });
+
+    it('still applies the custom endpoint policy when a link is repeated', async () => {
+        const root = vendureProject();
+        fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
+        fs.writeJsonSync(getProjectLinkManifestPath(root), manifest);
+        const fetchMock = vi.fn() as unknown as typeof fetch;
+        const test = testDependencies(root, fetchMock, {
+            env: {
+                VENDURE_CLI_NON_INTERACTIVE: 'true',
+                VENDURE_CONSOLE_LINK_URL: 'https://console.staging.example.com',
+                VENDURE_CONSOLE_LINK_API_URL: 'https://api.staging.example.com',
+            },
+        });
+
+        expect(await consoleCommand('link', {}, test.dependencies)).toBe(1);
+        expect(fetchMock).not.toHaveBeenCalled();
+        expect(test.messages.join('\n')).toContain('without explicit approval');
     });
 
     it('returns an interrupt exit code when the confirmation prompt is cancelled', async () => {

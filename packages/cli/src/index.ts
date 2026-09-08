@@ -48,6 +48,7 @@ export type {
     ConsoleLinkContext,
     ConsoleLinkEndpoints,
     ConsoleLinkHook,
+    ConsoleLinkOutcome,
     ConsoleReporter,
 } from './commands/console/console-link-hook';
 export type { ProjectLinkManifest } from './commands/console/project-link-manifest';

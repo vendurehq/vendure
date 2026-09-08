@@ -793,11 +793,12 @@ export default defineCliPlugin({
 });
 ```
 
-The hook receives the resolved `projectRoot`, the `manifest` as written and its
-`manifestPath`, the Console `endpoints` the link was made against, the
-`AbortSignal` the command runs under, the command's `reporter`, a `confirm`
-function for yes/no questions, `isNonInteractive`, and whether `--force` was
-given.
+The hook receives the resolved `projectRoot`, the `manifest` and its
+`manifestPath`, the Console `endpoints` the link was made against, whether this
+run linked or repaired (`outcome`), the `AbortSignal` the command runs under,
+the command's `reporter`, a `confirm` function for yes/no questions,
+`isNonInteractive`, and whether `--force` was given. Each hook gets its own
+context, so one hook cannot change what a later one reads.
 
 Do not replace the `console` command to do this. Linking stays one
 implementation, so every project links the same way whether or not a plugin is
@@ -812,16 +813,36 @@ it.
   command says so rather than reporting that nothing changed.
 - Hooks run in `vendure.cli.plugins` order, and the first to throw stops the
   rest.
-- Running `vendure console link` again creates a **new** Project Link rather than
-  repairing the existing one. Work that has to be repeatable, such as replacing
-  a credential a developer has lost, belongs in a command of the plugin's own
-  that reads the existing manifest. Do not send people back to `console link`
-  for it.
+- It has to be repeatable, because `vendure console link` repairs a link as well
+  as making one (see below).
 
 Throwing is for work that failed, not for work that cannot be done here. A hook
-that needs an answer it cannot get, such as a sign-in with no terminal attached,
-should say what is missing through `reporter` and return. The command still
-exits 0, because linking is what it was asked to do and it did it.
+that needs something it cannot get in this run should say what is missing
+through `reporter` and return. The command still exits 0, because linking is
+what it was asked to do and it did it.
+
+`context.confirm` asks a yes/no question and rejects when `isNonInteractive` is
+`true`, since there is nobody to answer. Check `isNonInteractive` first.
+Multi-choice questions belong in the plugin's own command, where it owns the
+whole screen.
+
+#### Repeating a link repairs it
+
+Run `vendure console link` in a project that is already linked and it reuses the
+manifest on disk and runs the hooks again, with `context.outcome` set to
+`'repaired'`. It does not create a second Project Link, which would abandon the
+first in Console over a problem that is local to the checkout.
+
+That makes `vendure console link` the command a developer runs to put back
+something the project needs and no longer has, such as a credential a hook
+writes. A plugin does not need a repair command of its own, and should send
+people here instead.
+
+`--force` is how a checkout is linked to a **different** Console Project: it
+skips the reuse, creates a new Project Link, and the hooks run with an `outcome`
+of `'linked'`. A hook that rotates a remote credential should treat `'repaired'`
+as the case that needs confirming, because the credential it is replacing may
+still be live for someone else.
 
 `context.endpoints.areDefault` is `false` when the link was made against
 endpoints set by `VENDURE_CONSOLE_LINK_URL` and `VENDURE_CONSOLE_LINK_API_URL`

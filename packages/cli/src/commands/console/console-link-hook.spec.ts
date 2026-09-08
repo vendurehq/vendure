@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { CliCommandExit } from '../../shared/cli-command-exit';
 import { CLI_PLUGIN_EXTENSION_POINTS, defineCliPlugin } from '../../shared/cli-plugin';
 import { CommandRegistry } from '../../shared/command-registry-store';
 import { builtinCommandDefs } from '../builtins';
@@ -55,6 +56,7 @@ describe('console link hooks', () => {
         expect(context.manifestPath).toBe(getProjectLinkManifestPath(root));
         expect(context.manifest).toEqual(manifest);
         expect(context.force).toBe(false);
+        expect(context.outcome).toBe('linked');
         expect(context.isNonInteractive).toBe(true);
         expect(context.signal.aborted).toBe(false);
         // A loopback Console is not the production pair, so a hook holding
@@ -225,6 +227,114 @@ describe('console link hooks', () => {
         expect(CLI_PLUGIN_EXTENSION_POINTS).toContain('afterConsoleLink');
         expect(CLI_PLUGIN_EXTENSION_POINTS).toContain('extendCommands');
         expect(Object.isFrozen(CLI_PLUGIN_EXTENSION_POINTS)).toBe(true);
+    });
+
+    it('runs the hooks again for a project that is already linked, without a second Project Link', async () => {
+        const contexts: ConsoleLinkContext[] = [];
+        const registry = registryWith(
+            plugin(PLATFORM_ID, async received => {
+                contexts.push(received);
+            }),
+        );
+        const root = vendureProject();
+        fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
+        fs.writeJsonSync(getProjectLinkManifestPath(root), manifest);
+        const fetchMock = vi.fn() as unknown as typeof fetch;
+
+        const exitCode = await consoleCommand(
+            'link',
+            {},
+            { ...offlineDependencies(root), fetch: fetchMock, hooks: registry.getConsoleLinkHooks() },
+        );
+
+        expect(exitCode).toBe(0);
+        // Repair is local. Nothing is asked of Console, so no second Project
+        // Link is minted and the first is not abandoned.
+        expect(fetchMock).not.toHaveBeenCalled();
+        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
+        expect(contexts).toHaveLength(1);
+        expect(contexts[0].outcome).toBe('repaired');
+        expect(contexts[0].manifest).toEqual(manifest);
+        expect(contexts[0].manifestPath).toBe(getProjectLinkManifestPath(root));
+    });
+
+    it('reports a repair that did not finish without claiming the link changed', async () => {
+        const registry = registryWith(
+            plugin(PLATFORM_ID, async () => {
+                throw new Error('Console rejected the credential request.');
+            }),
+        );
+        const root = vendureProject();
+        fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
+        fs.writeJsonSync(getProjectLinkManifestPath(root), manifest);
+        const messages: string[] = [];
+
+        const exitCode = await consoleCommand(
+            'link',
+            {},
+            { ...offlineDependencies(root, messages), hooks: registry.getConsoleLinkHooks() },
+        );
+
+        expect(exitCode).toBe(1);
+        const output = messages.join('\n');
+        expect(output).toContain('was not changed');
+        expect(output).not.toContain('The link succeeded');
+        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
+    });
+
+    it('gives each hook its own context, so one cannot decide what the next reads', async () => {
+        const seen: Array<{ areDefault: boolean; projectName: string }> = [];
+        const registry = registryWith(
+            plugin(PLATFORM_ID, async context => {
+                // `areDefault` is the fact a hook holding a credential checks
+                // before it sends anything, so the plugin listed first must not
+                // be able to answer it for the plugin listed second.
+                context.endpoints.areDefault = true;
+                context.manifest.project.name = 'Tampered';
+            }),
+            plugin(CLOUD_ID, async context => {
+                seen.push({
+                    areDefault: context.endpoints.areDefault,
+                    projectName: context.manifest.project.name,
+                });
+            }),
+        );
+        const root = vendureProject();
+        const test = await runLink(root, registry);
+
+        expect(test.exitCode).toBe(0);
+        expect(seen).toEqual([{ areDefault: false, projectName: manifest.project.name }]);
+    });
+
+    it('refuses a hook confirmation when there is nobody to answer it', async () => {
+        let refusal: string | undefined;
+        const registry = registryWith(
+            plugin(PLATFORM_ID, async context => {
+                // The hook ignored `isNonInteractive`. Prompting here would
+                // write a question into a pipe and then wait for an answer.
+                await context.confirm('Replace the stored credential?').catch((error: Error) => {
+                    refusal = error.message;
+                    throw error;
+                });
+            }),
+        );
+        const root = vendureProject();
+        const test = await runLink(root, registry);
+
+        expect(test.exitCode).toBe(1);
+        expect(refusal).toContain('non-interactive');
+        expect(test.messages.join('\n')).toContain('context.isNonInteractive');
+    });
+
+    it('lets the CLI host own an exit a hook asked for', async () => {
+        const registry = registryWith(
+            plugin(PLATFORM_ID, async () => {
+                throw new CliCommandExit(2);
+            }),
+        );
+        const root = vendureProject();
+
+        await expect(runLink(root, registry)).rejects.toBeInstanceOf(CliCommandExit);
     });
 
     it('rejects a plugin whose afterConsoleLink is not a function', () => {
