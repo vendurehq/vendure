@@ -68,6 +68,41 @@ export interface CliPlugin {
     afterConsoleLink?: ConsoleLinkHook;
 }
 
+/**
+ * The plugin extension points this build of the CLI understands.
+ *
+ * A plugin that resolves an older `@vendure/cli` than it was written against is
+ * not told so. {@link assertCliPlugin} ignores keys it does not know, so a
+ * plugin declaring `extendCommands` or `afterConsoleLink` loads cleanly on a
+ * build that has neither, and then quietly decorates nothing and runs no hook.
+ * A silent no-op is worse than a refusal, and this is how a plugin refuses:
+ *
+ * @example
+ * ```ts
+ * import * as cli from '@vendure/cli';
+ *
+ * // Older builds export no such constant, so `undefined` is itself the answer.
+ * const supported: readonly string[] = cli.CLI_PLUGIN_EXTENSION_POINTS ?? [];
+ * if (!supported.includes('afterConsoleLink')) {
+ *     throw new Error(
+ *         'This @vendure/cli is too old to run afterConsoleLink hooks. Upgrade it, ' +
+ *             'or the credentials this plugin sets up after linking are never written.',
+ *     );
+ * }
+ * ```
+ *
+ * Entries are only ever added, never removed or renamed, so a check written
+ * against one release keeps working.
+ *
+ * @since 3.8.0
+ */
+export const CLI_PLUGIN_EXTENSION_POINTS = Object.freeze([
+    'rootOptions',
+    'subcommands',
+    'extendCommands',
+    'afterConsoleLink',
+] as const);
+
 export function assertCliPlugin(value: unknown): asserts value is CliPlugin {
     if (!value || typeof value !== 'object') {
         throw new Error('CLI plugin must be an object');

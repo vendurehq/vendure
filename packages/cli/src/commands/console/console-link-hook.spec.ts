@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { defineCliPlugin } from '../../shared/cli-plugin';
+import { CLI_PLUGIN_EXTENSION_POINTS, defineCliPlugin } from '../../shared/cli-plugin';
 import { CommandRegistry } from '../../shared/command-registry-store';
 import { builtinCommandDefs } from '../builtins';
 
@@ -217,6 +217,14 @@ describe('console link hooks', () => {
 
         expect(test.exitCode).toBe(0);
         expect(trace).toEqual(['hook']);
+    });
+
+    it('names afterConsoleLink as a supported extension point at runtime', () => {
+        // A plugin resolving an older CLI gets `undefined` here, which is how
+        // it tells that its hook would be accepted and then never run.
+        expect(CLI_PLUGIN_EXTENSION_POINTS).toContain('afterConsoleLink');
+        expect(CLI_PLUGIN_EXTENSION_POINTS).toContain('extendCommands');
+        expect(Object.isFrozen(CLI_PLUGIN_EXTENSION_POINTS)).toBe(true);
     });
 
     it('rejects a plugin whose afterConsoleLink is not a function', () => {

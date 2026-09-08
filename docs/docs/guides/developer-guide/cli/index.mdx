@@ -830,6 +830,26 @@ permission: approving a custom endpoint approves it for creating a Project Link,
 not for receiving anything secret. A hook that holds credentials keeps its own
 list of the hosts it will talk to and refuses when the origins do not match it.
 
+### Checking what the installed CLI supports
+
+`defineCliPlugin` ignores keys it does not know. A plugin written against a newer
+CLI than the one it resolves therefore loads cleanly and then quietly decorates
+nothing and runs no hook, which is harder to spot than a refusal. Read
+`CLI_PLUGIN_EXTENSION_POINTS` to fail loudly instead:
+
+```ts
+import * as cli from '@vendure/cli';
+
+// Builds older than this constant export nothing, so `undefined` is the answer.
+const supported: readonly string[] = cli.CLI_PLUGIN_EXTENSION_POINTS ?? [];
+if (!supported.includes('afterConsoleLink')) {
+    throw new Error('This @vendure/cli is too old to run afterConsoleLink hooks.');
+}
+```
+
+Entries are only added, never removed or renamed, so a check written against one
+release keeps working.
+
 ### Shared options
 
 Options that apply to more than one command are declared once, at the scope

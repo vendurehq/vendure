@@ -65,5 +65,5 @@ export type {
     CliCommandOption,
     ProjectCliPluginConfig,
 } from './shared/cli-command-definition';
-export { defineCliPlugin } from './shared/cli-plugin';
+export { CLI_PLUGIN_EXTENSION_POINTS, defineCliPlugin } from './shared/cli-plugin';
 export type { CliPlugin } from './shared/cli-plugin';
