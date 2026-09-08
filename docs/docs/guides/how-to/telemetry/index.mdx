@@ -215,7 +215,7 @@ This restores the behaviour of `@vendure/telemetry-plugin` prior to v3.7, attach
 to any supported library it detects at runtime:
 
 ```bash
-npm install @opentelemetry/auto-instrumentations-node@0.77.0
+npm install @opentelemetry/auto-instrumentations-node@0.79.0
 ```
 
 ```ts title="src/preload.ts"
@@ -237,13 +237,13 @@ Install just the ones you want and pass them alongside the Vendure-default set:
 
 ```bash
 npm install @opentelemetry/instrumentation-http@0.221.0 \
-            @opentelemetry/instrumentation-express@0.67.0 \
-            @opentelemetry/instrumentation-nestjs-core@0.65.0 \
-            @opentelemetry/instrumentation-graphql@0.67.0 \
-            @opentelemetry/instrumentation-pg@0.71.0 \
-            @opentelemetry/instrumentation-mysql2@0.65.0 \
-            @opentelemetry/instrumentation-ioredis@0.67.0 \
-            @opentelemetry/instrumentation-kafkajs@0.28.0
+            @opentelemetry/instrumentation-express@0.69.0 \
+            @opentelemetry/instrumentation-nestjs-core@0.67.0 \
+            @opentelemetry/instrumentation-graphql@0.69.0 \
+            @opentelemetry/instrumentation-pg@0.73.0 \
+            @opentelemetry/instrumentation-mysql2@0.67.0 \
+            @opentelemetry/instrumentation-ioredis@0.69.0 \
+            @opentelemetry/instrumentation-kafkajs@0.30.0
 ```
 
 ```ts title="src/preload.ts"
@@ -275,13 +275,51 @@ const config = getSdkConfiguration({
 });
 ```
 
-:::warning
-Install these instrumentations at the versions shown, not at `latest`. From
-`@opentelemetry/instrumentation-http@0.221.0` onwards the HTTP instrumentation emits only the
-stable semantic conventions, with no opt-out: `http.method` becomes `http.request.method` and
-`net.peer.name` becomes `server.address`. Since your `instrumentations` array replaces the
-curated default rather than adding to it, a newer package silently renames the attributes on
-every HTTP span and breaks any dashboard or alert keyed on the old names.
+:::warning[Span attribute names have changed]
+This version renames the attributes on HTTP and database spans. Old names such as `http.method`
+and `db.statement` no longer exist, and there is no way to keep them. Any Grafana dashboard or
+alert that queries an old name will come back empty.
+
+This applies to everyone who upgrades, whether or not you customise `instrumentations`.
+
+| Old name | New name |
+|---|---|
+| `http.method` | `http.request.method` |
+| `http.status_code` | `http.response.status_code` |
+| `http.url` | `url.full` |
+| `http.target` | `url.path` and `url.query` |
+| `http.scheme` | `url.scheme` |
+| `http.host` | `server.address` |
+| `http.flavor` | `network.protocol.version` |
+| `http.user_agent` | `user_agent.original` |
+| `http.client_ip` | `client.address` |
+| `net.peer.name`, `net.host.name` | `server.address` |
+| `net.peer.port`, `net.host.port` | `server.port` |
+| `net.peer.ip` | `network.peer.address` |
+| `db.system` | `db.system.name` |
+| `db.statement` | `db.query.text` |
+| `db.name` | `db.namespace` |
+| `db.user`, `db.connection_string` | removed, no replacement |
+| `http.request_content_length`, `http.response_content_length` | removed, no replacement |
+
+Span names and `http.route` are unchanged.
+
+**Migrating your dashboards**
+
+1. **Find what breaks.** Search your dashboard and alert definitions for `http.`, `net.` and
+   `db.`, and list every panel and rule that matches. In Grafana you can read these from
+   **Dashboard settings > JSON Model**, or fetch them all through the HTTP API.
+2. **Rename the queries** using the table above. If you build metrics from spans, remember that
+   Prometheus turns dots into underscores, so `http_method` becomes `http_request_method`.
+3. **Query both names for now.** Traces recorded before the upgrade still carry the old names, so
+   a panel that asks only for the new name will show a gap. In TraceQL, write
+   `{span.http.method="GET" || span.http.request.method="GET"}`. Remove the old half once your
+   trace retention window has passed.
+4. **Check each panel** against a fresh request after deploying, before you delete anything.
+
+If you are not ready to change your dashboards, run an OpenTelemetry Collector between Vendure and
+your tracing backend and use a `transform` processor to copy each new attribute onto its old name.
+Every span then carries both, and you can migrate whenever it suits you.
 :::
 
 :::info
