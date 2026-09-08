@@ -36,10 +36,21 @@
  *       },
  *     },
  *   ],
+ *   // Runs once `vendure console link` has written the Project Link Manifest.
+ *   afterConsoleLink: async ({ projectRoot, manifest, reporter }) => {
+ *     reporter.info(`Set up ${manifest.project.name} in ${projectRoot}`);
+ *   },
  * });
  * ```
  */
 export { builtinCommands } from './commands/builtins';
+export type {
+    ConsoleLinkContext,
+    ConsoleLinkEndpoints,
+    ConsoleLinkHook,
+    ConsoleReporter,
+} from './commands/console/console-link-hook';
+export type { ProjectLinkManifest } from './commands/console/project-link-manifest';
 export { readCommandContext, readCommandOptions } from './shared/cli-command-definition';
 export type {
     CliCommandAction,

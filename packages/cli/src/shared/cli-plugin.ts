@@ -1,3 +1,5 @@
+import type { ConsoleLinkHook } from '../commands/console/console-link-hook';
+
 import {
     CliCommandDefinition,
     CliCommandExtension,
@@ -52,6 +54,18 @@ export interface CliPlugin {
      * @since 3.8.0
      */
     extendCommands?: CliCommandExtension[];
+    /**
+     * Runs after `vendure console link` has written the Project Link Manifest,
+     * for a plugin that has its own setup to do once a project is linked.
+     *
+     * This is not a way to take the command over. `vendure console link` stays
+     * the one implementation of linking, so every project links the same way
+     * whether or not a plugin is installed. Replacing the `console` command
+     * instead would fork the protocol.
+     *
+     * @since 3.8.0
+     */
+    afterConsoleLink?: ConsoleLinkHook;
 }
 
 export function assertCliPlugin(value: unknown): asserts value is CliPlugin {
@@ -77,6 +91,10 @@ export function assertCliPlugin(value: unknown): asserts value is CliPlugin {
         throw new TypeError(`CLI plugin "${plugin.id}" extendCommands must be an array`);
     }
     assertExtensions(plugin.id, extensions, rootOptions);
+
+    if (plugin.afterConsoleLink !== undefined && typeof plugin.afterConsoleLink !== 'function') {
+        throw new TypeError(`CLI plugin "${plugin.id}" afterConsoleLink must be a function`);
+    }
 }
 
 /**

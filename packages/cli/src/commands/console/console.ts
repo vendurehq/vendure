@@ -4,6 +4,12 @@ import { ChildProcess, spawn } from 'node:child_process';
 import { CliCommandExit } from '../../shared/cli-command-exit';
 import { isNonInteractiveEnvironment, withInteractiveTimeout } from '../../utilities/utils';
 
+import {
+    ConsoleLinkContext,
+    ConsoleReporter,
+    RegisteredConsoleLinkHook,
+    getConsoleLinkHooks,
+} from './console-link-hook';
 import { ensureProjectLinkGitignore } from './project-link-gitignore';
 import {
     ManifestReadResult,
@@ -31,18 +37,17 @@ export interface ConsoleCommandOptions {
     force?: boolean;
 }
 
-export interface ConsoleReporter {
-    error(message: string): void;
-    info(message: string): void;
-    success(message: string): void;
-    warn(message: string): void;
-    url(value: string): void;
-}
+export type { ConsoleReporter };
 
 export interface ConsoleCommandDependencies {
     cwd: string;
     env: NodeJS.ProcessEnv;
     fetch: typeof globalThis.fetch;
+    /**
+     * Plugin hooks to run once a link has been written. Defaults to the ones
+     * the host collected from the loaded plugins.
+     */
+    hooks: readonly RegisteredConsoleLinkHook[];
     isNonInteractive: () => boolean;
     now: () => number;
     openUrl: (url: string) => Promise<void>;
@@ -100,6 +105,7 @@ function createDefaultDependencies(): ConsoleCommandDependencies {
         cwd: process.cwd(),
         env: process.env,
         fetch: globalThis.fetch,
+        hooks: getConsoleLinkHooks(),
         isNonInteractive: () => isNonInteractiveEnvironment(),
         now: () => Date.now(),
         openUrl: openUrlInBrowser,
@@ -145,14 +151,20 @@ export async function consoleCommand(
         externalSignal?.addEventListener('abort', onExternalAbort, { once: true });
     }
 
+    const state: ConsoleCommandState = {};
     try {
-        return await runConsoleCommand(action, options, resolvedDependencies, abortController.signal);
+        return await runConsoleCommand(action, options, resolvedDependencies, abortController.signal, state);
     } catch (error) {
         if (interruptedExitCode !== undefined || error instanceof CommandInterruptedError) {
             // A process signal wins so SIGTERM retains exit code 143. Prompt cancellation and external aborts use 130.
             const exitCode = interruptedExitCode ?? 130;
             resolvedDependencies.reporter.warn(
-                'Console command interrupted. No Project Link Manifest was changed.',
+                // Once the manifest is written the link is done and cannot be
+                // taken back, so saying nothing changed would be untrue. An
+                // interrupt after that point stopped a hook, not the link.
+                state.manifestPath
+                    ? `Console command interrupted. ${linkedButUnfinished(state.manifestPath)}`
+                    : 'Console command interrupted. No Project Link Manifest was changed.',
             );
             return exitCode;
         }
@@ -168,11 +180,21 @@ export async function consoleCommand(
     }
 }
 
+/**
+ * What the run has already done, for messages that would otherwise overstate
+ * how much an interrupt took back.
+ */
+interface ConsoleCommandState {
+    /** Set once the Project Link Manifest is on disk. */
+    manifestPath?: string;
+}
+
 async function runConsoleCommand(
     action: string | undefined,
     options: ConsoleCommandOptions,
     dependencies: ConsoleCommandDependencies,
     signal: AbortSignal,
+    state: ConsoleCommandState,
 ): Promise<number> {
     const normalizedAction = action?.trim().toLowerCase();
     if (!normalizedAction || !['link', 'status', 'unlink'].includes(normalizedAction)) {
@@ -192,7 +214,7 @@ async function runConsoleCommand(
     if (normalizedAction === 'unlink') {
         return unlink(projectRoot, options, dependencies);
     }
-    return link(projectRoot, options, dependencies, signal);
+    return link(projectRoot, options, dependencies, signal, state);
 }
 
 export function resolveConsoleEndpoints(env: NodeJS.ProcessEnv): ConsoleEndpoints {
@@ -216,6 +238,7 @@ async function link(
     options: ConsoleCommandOptions,
     dependencies: ConsoleCommandDependencies,
     signal: AbortSignal,
+    state: ConsoleCommandState,
 ): Promise<number> {
     const endpoints = resolveConsoleEndpoints(dependencies.env);
     const existing = readProjectLinkManifest(projectRoot);
@@ -242,10 +265,65 @@ async function link(
     const manifest = await waitForApproval(request, endpoints, dependencies, signal);
     throwIfAborted(signal);
     const manifestPath = await writeProjectLinkManifestAtomic(projectRoot, manifest);
+    state.manifestPath = manifestPath;
     dependencies.reporter.success(`Linked ${manifest.project.name} to ${manifest.account.name}.`);
     dependencies.reporter.info(`Wrote ${manifestPath}`);
     reportProjectLinkGitignore(projectRoot, dependencies.reporter);
+
+    return runConsoleLinkHooks(
+        {
+            projectRoot,
+            manifest,
+            manifestPath,
+            endpoints: { ...endpoints, areDefault: usesDefaultEndpoints(endpoints) },
+            signal,
+            reporter: dependencies.reporter,
+            confirm: message => dependencies.prompt(message),
+            isNonInteractive: dependencies.isNonInteractive(),
+            force: options.force === true,
+        },
+        dependencies,
+        signal,
+    );
+}
+
+/**
+ * Runs the plugin hooks, in the order the plugins were listed.
+ *
+ * The link is already written by this point and is not undone by a hook that
+ * fails, so a failure is reported as what it is: the link succeeded and the
+ * work after it did not. Rolling the manifest back would be worse, because the
+ * Project Link exists in Console either way and a second `vendure console link`
+ * creates another one rather than repairing this one.
+ *
+ * The first failure stops the rest. A later hook would be setting up a project
+ * whose earlier setup is known to be incomplete.
+ */
+async function runConsoleLinkHooks(
+    context: ConsoleLinkContext,
+    dependencies: ConsoleCommandDependencies,
+    signal: AbortSignal,
+): Promise<number> {
+    for (const { pluginId, hook } of dependencies.hooks) {
+        try {
+            await hook(context);
+        } catch (error) {
+            // Ctrl-C during a hook is an interrupt whatever the hook threw, so
+            // it is reported by the one handler that knows the exit code.
+            if (signal.aborted || error instanceof CommandInterruptedError) {
+                throw new CommandInterruptedError();
+            }
+            const detail = error instanceof Error ? error.message : String(error);
+            dependencies.reporter.error(`The ${pluginId} plugin failed after linking: ${detail}`);
+            dependencies.reporter.warn(linkedButUnfinished(context.manifestPath));
+            return 1;
+        }
+    }
     return 0;
+}
+
+function linkedButUnfinished(manifestPath: string): string {
+    return `The link succeeded and ${manifestPath} is in place. The setup that runs after linking did not finish.`;
 }
 
 async function confirmCustomConsoleEndpoints(
@@ -657,6 +735,16 @@ function baseUrl(value: string, label: string): string {
 
 function isLoopbackHostname(hostname: string): boolean {
     return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
+}
+
+/**
+ * Whether the built-in production origins were used. Narrower than the negation
+ * of {@link usesCustomRemoteEndpoints}, which also passes a loopback pair: a
+ * hook holding credentials has no more reason to trust a local Console than a
+ * remote one it does not recognise.
+ */
+function usesDefaultEndpoints(endpoints: ConsoleEndpoints): boolean {
+    return endpoints.consoleUrl === DEFAULT_CONSOLE_URL && endpoints.apiUrl === DEFAULT_CONSOLE_API_URL;
 }
 
 function usesCustomRemoteEndpoints(endpoints: ConsoleEndpoints): boolean {

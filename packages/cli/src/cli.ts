@@ -4,6 +4,7 @@ import { Command } from 'commander';
 import pc from 'picocolors';
 
 import { builtinCommandDefs } from './commands/builtins';
+import { setConsoleLinkHooks } from './commands/console/console-link-hook';
 import { registerCommands } from './shared/command-registry';
 import { CommandRegistry } from './shared/command-registry-store';
 import {
@@ -60,6 +61,10 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
             writePluginSkipped(packageName, 'Failed to register CLI plugin', reason);
         }
     }
+
+    // The `console` command is a static definition, so the hooks reach it from
+    // here rather than it reaching into the registry.
+    setConsoleLinkHooks(registry.getConsoleLinkHooks());
 
     registerCommands(program, registry.toArray(), registry.getRootOptions());
 

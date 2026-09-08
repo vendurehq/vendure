@@ -1,3 +1,4 @@
+import type { RegisteredConsoleLinkHook } from '../commands/console/console-link-hook';
 import pc from 'picocolors';
 
 import {
@@ -73,6 +74,8 @@ interface RegisteredOption {
 interface RegistryState {
     commands: Map<string, RegisteredCommand>;
     rootOptions: Map<string, RegisteredOption>;
+    /** Console link hooks, in the order the plugins providing them were applied. */
+    consoleLinkHooks: RegisteredConsoleLinkHook[];
 }
 
 /**
@@ -95,7 +98,7 @@ export class CliPluginRegistrationError extends Error {
  * activation order.
  */
 export class CommandRegistry {
-    private state: RegistryState = { commands: new Map(), rootOptions: new Map() };
+    private state: RegistryState = { commands: new Map(), rootOptions: new Map(), consoleLinkHooks: [] };
 
     /**
      * Registers the built-in commands. Plugins go through {@link applyPlugin},
@@ -124,6 +127,7 @@ export class CommandRegistry {
         const draft: RegistryState = {
             commands: new Map(this.state.commands),
             rootOptions: new Map(this.state.rootOptions),
+            consoleLinkHooks: [...this.state.consoleLinkHooks],
         };
         const conflicts: string[] = [];
         const notices: string[] = [];
@@ -139,6 +143,11 @@ export class CommandRegistry {
         }
         for (const extension of plugin.extendCommands ?? []) {
             draftExtension(draft, extension, plugin.id, conflicts, notices);
+        }
+        if (plugin.afterConsoleLink) {
+            // Added to the draft like everything else, so a plugin rejected for
+            // a command or option conflict contributes no hook either.
+            draft.consoleLinkHooks.push({ pluginId: plugin.id, hook: plugin.afterConsoleLink });
         }
 
         if (conflicts.length > 0) {
@@ -184,6 +193,14 @@ export class CommandRegistry {
      */
     getExtendedBy(name: string): string[] {
         return [...(this.state.commands.get(name)?.extendedBy ?? [])];
+    }
+
+    /**
+     * Hooks to run after `vendure console link` writes a manifest, in the order
+     * the plugins providing them were applied.
+     */
+    getConsoleLinkHooks(): readonly RegisteredConsoleLinkHook[] {
+        return [...this.state.consoleLinkHooks];
     }
 
     private draftRootOption(

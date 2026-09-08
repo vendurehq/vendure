@@ -769,6 +769,67 @@ different subcommands to one group is not supported: the second registration of
 the group name is a collision, and `replaces: true` is refused once the group has
 been extended. A group and all its subcommands must come from one plugin.
 
+### Running after a project link
+
+`vendure console link` links a checkout to a Vendure Console Project and writes
+the Project Link Manifest. A plugin that has its own setup to do once a project
+is linked, such as obtaining the credentials that project then needs, registers
+an `afterConsoleLink` hook:
+
+```ts
+import { defineCliPlugin } from '@vendure/cli';
+
+export default defineCliPlugin({
+    id: '@example/platform-cli-plugin',
+    commands: [],
+    afterConsoleLink: async context => {
+        // Everything the command already worked out, so the hook never
+        // re-derives it and reaches a different answer.
+        context.reporter.info(`Setting up ${context.manifest.project.name}`);
+        await setUpProject(context.projectRoot, context.manifest.project.id, {
+            signal: context.signal,
+        });
+    },
+});
+```
+
+The hook receives the resolved `projectRoot`, the `manifest` as written and its
+`manifestPath`, the Console `endpoints` the link was made against, the
+`AbortSignal` the command runs under, the command's `reporter`, a `confirm`
+function for yes/no questions, `isNonInteractive`, and whether `--force` was
+given.
+
+Do not replace the `console` command to do this. Linking stays one
+implementation, so every project links the same way whether or not a plugin is
+installed; a second `console` command forks the protocol instead of adding to
+it.
+
+#### What a hook can rely on, and what it cannot
+
+- It never runs before the manifest is on disk, so the link is always recorded
+  by the time it starts.
+- It cannot undo the link. The manifest survives a hook that fails, and the
+  command says so rather than reporting that nothing changed.
+- Hooks run in `vendure.cli.plugins` order, and the first to throw stops the
+  rest.
+- Running `vendure console link` again creates a **new** Project Link rather than
+  repairing the existing one. Work that has to be repeatable, such as replacing
+  a credential a developer has lost, belongs in a command of the plugin's own
+  that reads the existing manifest. Do not send people back to `console link`
+  for it.
+
+Throwing is for work that failed, not for work that cannot be done here. A hook
+that needs an answer it cannot get, such as a sign-in with no terminal attached,
+should say what is missing through `reporter` and return. The command still
+exits 0, because linking is what it was asked to do and it did it.
+
+`context.endpoints.areDefault` is `false` when the link was made against
+endpoints set by `VENDURE_CONSOLE_LINK_URL` and `VENDURE_CONSOLE_LINK_API_URL`
+rather than Vendure's own. It is a fact about where the manifest came from, not a
+permission: approving a custom endpoint approves it for creating a Project Link,
+not for receiving anything secret. A hook that holds credentials keeps its own
+list of the hosts it will talk to and refuses when the origins do not match it.
+
 ### Shared options
 
 Options that apply to more than one command are declared once, at the scope

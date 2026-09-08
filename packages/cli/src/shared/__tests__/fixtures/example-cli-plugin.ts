@@ -76,6 +76,12 @@ export default defineCliPlugin({
                 },
         },
     ],
+    // Runs after `vendure console link` has written the Project Link Manifest.
+    // Adds to linking rather than replacing the console command, so every
+    // project still links the same way.
+    afterConsoleLink: async ({ projectRoot, manifest, reporter }) => {
+        reporter.info(`Setting up ${manifest.project.name} in ${projectRoot}`);
+    },
 });
 
 /**
