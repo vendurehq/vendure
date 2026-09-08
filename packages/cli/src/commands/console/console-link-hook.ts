@@ -1,3 +1,4 @@
+import { ConsoleSession } from './cli-auth';
 import { ConsoleOriginEnvironment } from './console-origins';
 import { ProjectLinkManifest } from './project-link-manifest';
 
@@ -102,6 +103,22 @@ export interface ConsoleLinkContext {
      * may have arrived with a clone. Its identifiers are unverified.
      */
     outcome: ConsoleLinkOutcome;
+    /**
+     * The Console CLI Session this run obtained, when it obtained one.
+     *
+     * Present only when the same browser approval that settled the link also
+     * settled a command line login. That needs an official Console that says
+     * it supports one, a browser on this machine, and an approval rather than
+     * a refusal, so a hook must handle its absence rather than depend on it.
+     * `outcome: 'repaired'` never carries one: a repair asks Console nothing
+     * and opens no browser.
+     *
+     * The CLI does not write this anywhere. A plugin that stores it owns that,
+     * and owns keeping it out of the project directory: this is user-scoped and
+     * worth as much as the person's Console password across every project they
+     * own.
+     */
+    session?: ConsoleSession;
     /**
      * Aborts on SIGINT and SIGTERM, the same signal the link itself ran under.
      * Anything a hook does remotely should be passed this, so that Ctrl-C does

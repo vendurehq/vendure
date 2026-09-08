@@ -11,6 +11,18 @@ import {
     RegisteredConsoleLinkHook,
     getConsoleLinkHooks,
 } from './console-link-hook';
+import {
+    CLI_AUTH_CAPABILITY,
+    CLI_TOKEN_PATH,
+    ConsoleSession,
+    LoopbackCallback,
+    authorizationCodeGrant,
+    cliAuthSearchParams,
+    createLoginState,
+    createPkceChallenge,
+    parseConsoleSession,
+    startLoopbackCallback,
+} from './cli-auth';
 import { DEFAULT_CONSOLE_API_URL, DEFAULT_CONSOLE_URL, officialConsoleEnvironment } from './console-origins';
 import { ensureProjectLinkGitignore } from './project-link-gitignore';
 import {
@@ -30,6 +42,16 @@ const POLL_INTERVAL_MS = 2_000;
 const REQUEST_TIMEOUT_MS = 10_000;
 const MAX_RESPONSE_BYTES = 64 * 1024;
 const MAX_RETRY_DELAY_MS = 2_000;
+/**
+ * How long the callback is still accepted after the poll has already returned
+ * the manifest.
+ *
+ * Approval mints the code and returns the redirect in one transaction, so the
+ * browser's navigation and the next poll run on unrelated clocks. Closing the
+ * moment the poll wins would lose a session that was on its way, and hand
+ * somebody who did everything right the report meant for a remote approval.
+ */
+const CALLBACK_GRACE_MS = 2_000;
 
 export interface ConsoleCommandOptions {
     allowCustomConsole?: boolean;
@@ -68,6 +90,15 @@ interface ProjectLinkRequest {
     id: string;
     expiresAt: number;
     pollingSecret: string;
+    verificationUrl: string;
+    /** What a decision on this link can also settle. Empty on an older Console. */
+    supports: string[];
+}
+
+/** A command line login waiting on its callback, alongside a Project Link. */
+interface ConsoleLogin extends LoopbackCallback {
+    verifier: string;
+    /** The verification URL carrying the login request. */
     verificationUrl: string;
 }
 
@@ -276,16 +307,35 @@ async function link(
         return endpointApproval === 'cancelled' ? 0 : 1;
     }
     const request = await createProjectLink(endpoints, dependencies, signal);
+    let login = await startConsoleLogin(request, endpoints, dependencies);
     dependencies.reporter.info('Approve the Project link in your browser.');
+    let opened = true;
     try {
-        await dependencies.openUrl(request.verificationUrl);
+        await dependencies.openUrl(login?.verificationUrl ?? request.verificationUrl);
     } catch {
+        opened = false;
+    }
+    if (!opened) {
+        if (login) {
+            // The callback address is on this machine, so a browser somewhere
+            // else can never reach it. Ask for the link alone rather than
+            // advertise a callback that cannot be called, and say now what that
+            // costs rather than after the person has approved.
+            login.close();
+            login = undefined;
+            dependencies.reporter.warn(
+                'No browser here, so this link will not obtain a Console session. Approving on ' +
+                    'another machine completes the link; run vendure console link again on this ' +
+                    'machine to finish the setup.',
+            );
+        }
         dependencies.reporter.warn('Could not open the browser automatically. Open this URL to continue:');
         dependencies.reporter.url(request.verificationUrl);
     }
 
     const manifest = await waitForApproval(request, endpoints, dependencies, signal);
     throwIfAborted(signal);
+    const session = login && (await completeConsoleLogin(login, endpoints, dependencies, signal));
     const manifestPath = await writeProjectLinkManifestAtomic(projectRoot, manifest);
     state.outcome = 'linked';
     state.manifestPath = manifestPath;
@@ -294,11 +344,105 @@ async function link(
     reportProjectLinkGitignore(projectRoot, dependencies.reporter);
 
     return runConsoleLinkHooks(
-        { projectRoot, manifest, manifestPath, endpoints, outcome: 'linked' },
+        { projectRoot, manifest, manifestPath, endpoints, outcome: 'linked', session: session || undefined },
         options,
         dependencies,
         signal,
     );
+}
+
+/**
+ * Starts a command line login alongside the Project Link, when both sides
+ * allow one.
+ *
+ * The origins have to be an official Console: approving a custom endpoint
+ * approves creating a Project Link, never receiving a credential, so the login
+ * is not offered there at all. The Console has to say it settles one, because
+ * an older Console ignores the request, redirects nowhere and would leave the
+ * listener waiting. Neither is a failure, and neither stops the link.
+ */
+async function startConsoleLogin(
+    request: ProjectLinkRequest,
+    endpoints: ConsoleEndpoints,
+    dependencies: ConsoleCommandDependencies,
+): Promise<ConsoleLogin | undefined> {
+    if (officialConsoleEnvironment(endpoints) === undefined) {
+        return undefined;
+    }
+    if (!request.supports.includes(CLI_AUTH_CAPABILITY)) {
+        // Said out loud, because the alternative is a link that quietly obtains
+        // no session and a plugin that later cannot say why.
+        dependencies.reporter.warn(
+            'This Console does not settle a command line login with a Project Link approval, so ' +
+                'this link obtains no Console session.',
+        );
+        return undefined;
+    }
+
+    const { verifier, challenge } = createPkceChallenge();
+    const state = createLoginState();
+    const callback = await startLoopbackCallback(state);
+    const url = new URL(request.verificationUrl);
+    for (const [name, value] of Object.entries(
+        cliAuthSearchParams({ redirectUri: callback.redirectUri, state, challenge }),
+    )) {
+        url.searchParams.set(name, value);
+    }
+    return { ...callback, verifier, verificationUrl: url.toString() };
+}
+
+/**
+ * Exchanges the authorization code, once the link itself is settled.
+ *
+ * The poll owns the link and this owns only the session, so nothing here fails
+ * the command. A refusal, a browser that approved on another machine, or an
+ * exchange that does not complete all end the same way: the link stands, no
+ * session was obtained, and the report says so.
+ */
+async function completeConsoleLogin(
+    login: ConsoleLogin,
+    endpoints: ConsoleEndpoints,
+    dependencies: ConsoleCommandDependencies,
+    signal: AbortSignal,
+): Promise<ConsoleSession | undefined> {
+    try {
+        const code = await Promise.race([
+            login.code(),
+            dependencies.sleep(CALLBACK_GRACE_MS, signal).then(() => undefined),
+        ]);
+        if (!code) {
+            dependencies.reporter.warn(
+                'The link is in place, and no Console session was obtained. Run vendure console ' +
+                    'link again on this machine to finish the setup.',
+            );
+            return undefined;
+        }
+        const value = await requestJson(
+            `${endpoints.apiUrl}${CLI_TOKEN_PATH}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(
+                    authorizationCodeGrant({ code, verifier: login.verifier, redirectUri: login.redirectUri }),
+                ),
+            },
+            dependencies,
+            signal,
+        );
+        return parseConsoleSession(value, dependencies.now());
+    } catch (error) {
+        if (error instanceof CommandInterruptedError) {
+            throw error;
+        }
+        dependencies.reporter.warn(
+            `The link is in place, and the Console session could not be obtained: ${
+                error instanceof Error ? error.message : String(error)
+            }`,
+        );
+        return undefined;
+    } finally {
+        login.close();
+    }
 }
 
 /**
@@ -394,6 +538,7 @@ interface ConsoleLinkHookInputs {
     manifestPath: string;
     endpoints: ConsoleEndpoints;
     outcome: ConsoleLinkOutcome;
+    session?: ConsoleSession;
 }
 
 /**
@@ -473,6 +618,7 @@ function createConsoleLinkContext(
             official: officialConsoleEnvironment(inputs.endpoints),
         },
         outcome: inputs.outcome,
+        session: inputs.session,
         signal,
         reporter: dependencies.reporter,
         confirm: message => confirmForHook(message, dependencies),
@@ -683,7 +829,10 @@ async function createProjectLink(
     if (verificationUrl.includes(pollingSecret)) {
         throw new Error('Console returned an unsafe verification URL.');
     }
-    return { id, expiresAt, pollingSecret, verificationUrl };
+    const supports = Array.isArray(object.supports)
+        ? object.supports.filter((entry): entry is string => typeof entry === 'string')
+        : [];
+    return { id, expiresAt, pollingSecret, verificationUrl, supports };
 }
 
 async function waitForApproval(
