@@ -196,6 +196,41 @@ export const config: VendureConfig = {
 };
 ```
 
+:::note
+Field resolvers — those declared with `@ResolveField()` — only get guards. A globally-registered interceptor or
+exception filter runs for queries and mutations, but never for a field resolver. This is deliberate: the other
+enhancers would then run once per resolved field, which for a list of products means once per field per product.
+
+If you need per-field behaviour such as timing or logging, use an
+[`apiOptions.apolloServerPlugins`](/reference/typescript-api/configuration/api-options#apolloserverplugins)
+plugin with the `willResolveField` hook, which _does_ fire for every field:
+
+```ts
+const perfPlugin: ApolloServerPlugin = {
+    async requestDidStart() {
+        return {
+            async executionDidStart() {
+                return {
+                    willResolveField({ info }) {
+                        const start = process.hrtime.bigint();
+                        return () => {
+                            const ms = Number(process.hrtime.bigint() - start) / 1e6;
+                            if (10 < ms) {
+                                Logger.info(`${info.parentType.name}.${info.fieldName}: ${ms}ms`);
+                            }
+                        };
+                    },
+                };
+            },
+        };
+    },
+};
+```
+
+If you want traces rather than log lines, the [`@vendure/telemetry-plugin`](/reference/core-plugins/telemetry-plugin/)
+package already emits a span per resolver, field resolvers included.
+:::
+
 
 
 ### Apollo Server plugins
