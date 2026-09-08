@@ -11,11 +11,7 @@ import {
     RegisteredConsoleLinkHook,
     getConsoleLinkHooks,
 } from './console-link-hook';
-import {
-    DEFAULT_CONSOLE_API_URL,
-    DEFAULT_CONSOLE_URL,
-    officialConsoleEnvironment,
-} from './console-origins';
+import { DEFAULT_CONSOLE_API_URL, DEFAULT_CONSOLE_URL, officialConsoleEnvironment } from './console-origins';
 import { ensureProjectLinkGitignore } from './project-link-gitignore';
 import {
     ManifestReadResult,
@@ -310,9 +306,10 @@ async function link(
  * against the manifest already on disk.
  *
  * Nothing is asked of Console and the manifest is not rewritten: the Project
- * Link it names is still the one in force. The `.gitignore` rules are still
- * applied, as they are after a link, so a checkout that never had them gets
- * them. That is the one write this path makes.
+ * Link it names is still the one in force. The `.gitignore` rules are applied
+ * as they are after a link, so a checkout that never had them gets them. That
+ * is the one write this path makes, and it happens whether or not the plugin
+ * setup below is approved.
  *
  * The custom-endpoint gate runs all the same, because a hook is given these
  * origins and may talk to them.
@@ -341,8 +338,6 @@ async function repair(
     dependencies.reporter.info(
         `Kept ${manifestPath}. Run vendure console link --force to link this project to a different Console Project.`,
     );
-    // Before the question, because the rules are this path's own write and have
-    // nothing to do with whether a plugin runs.
     reportProjectLinkGitignore(projectRoot, dependencies.reporter);
     if (!(await confirmRepair(manifest, options, dependencies))) {
         return 0;
@@ -428,11 +423,12 @@ async function runConsoleLinkHooks(
                 throw new CommandInterruptedError();
             }
             // The host owns this one, and it carries the exit code with it.
+            // Reported whatever the code, because a hook that stops the run at
+            // zero still stops every hook after it, and the exit code alone
+            // does not tell the reader that some setup never ran.
             if (error instanceof CliCommandExit) {
-                if (error.exitCode !== 0) {
-                    dependencies.reporter.error(`The ${pluginId} plugin stopped after linking.`);
-                    dependencies.reporter.warn(linkUnfinished(inputs.outcome, inputs.manifestPath));
-                }
+                dependencies.reporter.error(`The ${pluginId} plugin stopped the run after linking.`);
+                dependencies.reporter.warn(linkUnfinished(inputs.outcome, inputs.manifestPath));
                 throw error;
             }
             const detail = error instanceof Error ? error.message : String(error);

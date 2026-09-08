@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-    DEFAULT_CONSOLE_API_URL,
-    DEFAULT_CONSOLE_URL,
-    officialConsoleEnvironment,
-} from './console-origins';
+import { DEFAULT_CONSOLE_API_URL, DEFAULT_CONSOLE_URL, officialConsoleEnvironment } from './console-origins';
 
 /**
  * The literals the Platform sign-in validator uses

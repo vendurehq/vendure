@@ -367,6 +367,16 @@ npx vendure console unlink --force
 
 `--force` does not bypass ambiguous project selection or a manifest that belongs to another project root.
 
+Running `vendure console link` in a project that is already linked repairs it rather than replacing it: the manifest
+is reused and any plugin setup runs again. Where a plugin is registered, that is confirmed first, because the manifest
+may have arrived with a clone. Use `--yes` to answer that confirmation in advance:
+
+```bash
+npx vendure console link --yes
+```
+
+`--force` is different: it links this checkout to a **different** Console Project, which creates a new Project Link.
+
 ### Manifest and source control
 
 The v1 manifest contains identity metadata only:
@@ -857,13 +867,13 @@ The pair is matched as a pair, so a production app origin with a staging API is
 not official. A loopback pair is not official either; it is a development and
 test convenience.
 
-It says where this run will talk, not where the manifest came from. The manifest
-records no origin, so on a repair the Console that issued its project and
-account identifiers is unknown, and a `'production'` answer does not vouch for
-them. A hook that acts on the identifiers, rather than only on the origin,
+`official` says where this run will talk, not where the manifest came from. The
+manifest records no origin, so on a repair the Console that issued its project
+and account identifiers is unknown, and a `'production'` answer does not vouch
+for them. A hook that acts on the identifiers, rather than only on the origin,
 should treat a repair as unverified provenance.
 
-It is a fact, not a permission. Approving a custom endpoint approves it for
+`official` is a fact, not a permission. Approving a custom endpoint approves it for
 creating a Project Link, not for receiving anything secret. A hook that holds
 credentials checks `official` before it reads a credential file or sends a
 request, and refuses when it is `undefined`. Do not draw the same conclusion

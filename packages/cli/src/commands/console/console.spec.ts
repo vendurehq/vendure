@@ -20,6 +20,7 @@ import {
     expiry,
     manifest,
 } from './console.fixtures';
+import { PROJECT_LINK_KEEP_MANIFEST } from './project-link-gitignore';
 import { ProjectLinkManifest, getProjectLinkManifestPath } from './project-link-manifest';
 
 const UUID_V7_LINK_ID = '33333333-3333-7333-8333-333333333333';
@@ -149,9 +150,7 @@ describe('console command', () => {
         expect(fs.readFileSync(path.join(root, '.gitignore'), 'utf8')).toContain('!.vendure/project.json');
         expect(fetchMock).toHaveBeenCalledTimes(3);
         expect(fetchMock.mock.calls[0][0]).toBe('http://localhost:3001/v1/project-links');
-        expect(fetchMock.mock.calls[1][0]).toBe(
-            `http://localhost:3001/v1/project-links/${LINK_ID}/poll`,
-        );
+        expect(fetchMock.mock.calls[1][0]).toBe(`http://localhost:3001/v1/project-links/${LINK_ID}/poll`);
         expect(fetchMock.mock.calls[0][1]?.redirect).toBe('error');
         expect(fetchMock.mock.calls[1][1]?.redirect).toBe('error');
         expect(fetchMock.mock.calls[1][1]?.body).toBe(JSON.stringify({ pollingSecret: POLLING_SECRET }));
@@ -655,7 +654,9 @@ describe('console command', () => {
         expect(await consoleCommand('link', {}, test.dependencies)).toBe(0);
         expect(hook).not.toHaveBeenCalled();
         // Declining plugin setup does not decline the rules this path writes.
-        expect(fs.existsSync(path.join(root, '.gitignore'))).toBe(true);
+        expect(fs.readFileSync(path.join(root, '.gitignore'), 'utf-8')).toContain(PROJECT_LINK_KEEP_MANIFEST);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
+        expect(test.messages.join('\n')).toContain('No plugin setup was run');
     });
 
     it('repairs rather than failing closed when a linked project repeats a link non-interactively', async () => {

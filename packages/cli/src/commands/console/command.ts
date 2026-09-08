@@ -29,7 +29,9 @@ export const consoleCommandDef: CliCommandDefinition = {
         },
         {
             long: '--yes',
-            description: 'Run plugin setup for an already-linked project without an interactive prompt',
+            description:
+                "Answer the CLI's own confirmation before it runs plugin setup for an " +
+                'already-linked project. A plugin still asks its own questions.',
             required: false,
         },
     ],

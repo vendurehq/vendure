@@ -1,5 +1,5 @@
-import type { RegisteredConsoleLinkHook } from '../commands/console/console-link-hook';
 import pc from 'picocolors';
+import type { RegisteredConsoleLinkHook } from '../commands/console/console-link-hook';
 
 import {
     CliCommandArgument,
@@ -74,6 +74,8 @@ interface RegisteredOption {
 interface RegistryState {
     commands: Map<string, RegisteredCommand>;
     rootOptions: Map<string, RegisteredOption>;
+    /** Ids of the plugins applied so far. One plugin, one id. */
+    pluginIds: Set<string>;
     /** Console link hooks, in the order the plugins providing them were applied. */
     consoleLinkHooks: RegisteredConsoleLinkHook[];
 }
@@ -98,7 +100,12 @@ export class CliPluginRegistrationError extends Error {
  * activation order.
  */
 export class CommandRegistry {
-    private state: RegistryState = { commands: new Map(), rootOptions: new Map(), consoleLinkHooks: [] };
+    private state: RegistryState = {
+        commands: new Map(),
+        rootOptions: new Map(),
+        pluginIds: new Set(),
+        consoleLinkHooks: [],
+    };
 
     /**
      * Registers the built-in commands. Plugins go through {@link applyPlugin},
@@ -127,10 +134,19 @@ export class CommandRegistry {
         const draft: RegistryState = {
             commands: new Map(this.state.commands),
             rootOptions: new Map(this.state.rootOptions),
+            pluginIds: new Set(this.state.pluginIds),
             consoleLinkHooks: [...this.state.consoleLinkHooks],
         };
         const conflicts: string[] = [];
         const notices: string[] = [];
+
+        // Checked for every plugin, not only one contributing a hook. The id is
+        // what a conflict message names and what a hook is recorded against, so
+        // two plugins sharing one is ambiguous everywhere, not just here.
+        if (draft.pluginIds.has(plugin.id)) {
+            conflicts.push(`Another CLI plugin is already registered under the id "${plugin.id}".`);
+        }
+        draft.pluginIds.add(plugin.id);
 
         for (const option of plugin.rootOptions ?? []) {
             this.draftRootOption(draft, option, plugin.id, conflicts, false);
@@ -147,19 +163,7 @@ export class CommandRegistry {
         if (plugin.afterConsoleLink) {
             // Added to the draft like everything else, so a plugin rejected for
             // a command or option conflict contributes no hook either.
-            //
-            // A second plugin under an id that already registered a hook is a
-            // conflict rather than a notice. `id` is author-chosen, so two
-            // packages can collide on it, and half-applying one of them would
-            // register its commands while dropping the setup they rely on.
-            if (draft.consoleLinkHooks.some(entry => entry.pluginId === plugin.id)) {
-                conflicts.push(
-                    `CLI plugin id "${plugin.id}" is already registered by a plugin with an ` +
-                        `afterConsoleLink hook. Plugin ids must be unique.`,
-                );
-            } else {
-                draft.consoleLinkHooks.push({ pluginId: plugin.id, hook: plugin.afterConsoleLink });
-            }
+            draft.consoleLinkHooks.push({ pluginId: plugin.id, hook: plugin.afterConsoleLink });
         }
 
         if (conflicts.length > 0) {

@@ -326,15 +326,33 @@ describe('console link hooks', () => {
         expect(test.messages.join('\n')).toContain('context.isNonInteractive');
     });
 
-    it('lets the CLI host own an exit a hook asked for', async () => {
+    // Zero as well as non-zero: `exitCliCommand(0)` is how every built-in
+    // prompt reports a cancellation, so a hook driving one unwinds through here
+    // with a code that means "stopped", not "nothing happened".
+    it.each([0, 2])('says what survived when a hook exits with code %i', async exitCode => {
+        const trace: string[] = [];
+        const messages: string[] = [];
         const registry = registryWith(
             plugin(PLATFORM_ID, async () => {
-                throw new CliCommandExit(2);
+                trace.push(PLATFORM_ID);
+                throw new CliCommandExit(exitCode);
+            }),
+            plugin(CLOUD_ID, async () => {
+                trace.push(CLOUD_ID);
             }),
         );
         const root = vendureProject();
 
-        await expect(runLink(root, registry)).rejects.toBeInstanceOf(CliCommandExit);
+        await expect(
+            runLink(root, registry, { reporter: recordingReporter(messages) }),
+        ).rejects.toBeInstanceOf(CliCommandExit);
+        // The hooks after it did not run, and the reader is told so rather than
+        // being left with an exit code and a success message.
+        expect(trace).toEqual([PLATFORM_ID]);
+        const output = messages.join('\n');
+        expect(output).toContain(`The ${PLATFORM_ID} plugin stopped the run after linking`);
+        expect(output).toContain('The link succeeded');
+        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
     });
 
     it('rejects a plugin whose afterConsoleLink is not a function', () => {
@@ -402,14 +420,18 @@ async function runLink(
     return { exitCode, messages, requestPaths, apiUrl };
 }
 
-function offlineDependencies(root: string, messages: string[] = []): Partial<ConsoleCommandDependencies> {
-    const reporter: ConsoleReporter = {
+function recordingReporter(messages: string[]): ConsoleReporter {
+    return {
         error: message => messages.push(message),
         info: message => messages.push(message),
         success: message => messages.push(message),
         warn: message => messages.push(message),
         url: value => messages.push(value),
     };
+}
+
+function offlineDependencies(root: string, messages: string[] = []): Partial<ConsoleCommandDependencies> {
+    const reporter = recordingReporter(messages);
     return {
         cwd: root,
         env: { VENDURE_CLI_NON_INTERACTIVE: 'true' },

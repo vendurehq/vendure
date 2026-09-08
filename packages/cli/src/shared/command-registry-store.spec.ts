@@ -790,9 +790,7 @@ describe('resolveCliPlugins()', () => {
 
         const { loaded, failures } = resolveCliPlugins({
             cwd: fixture.root,
-            projectPackageJson: fs.readJsonSync(
-                path.join(fixture.root, 'package.json'),
-            ) as PackageJsonLike,
+            projectPackageJson: fs.readJsonSync(path.join(fixture.root, 'package.json')) as PackageJsonLike,
             resolvePackage: fixture.resolvePackage,
         });
 
@@ -808,19 +806,52 @@ describe('resolveCliPlugins()', () => {
 
     // The allowlist is not the only way an id reaches the registry twice, and
     // `id` is author-chosen, so two packages can collide on it.
-    it('refuses a second plugin under an id that already registered a hook', () => {
+    it('refuses a second plugin under an id that is already registered', () => {
         const registry = new CommandRegistry();
-        const plugin = defineCliPlugin({
-            id: '@example/a',
-            commands: [],
-            afterConsoleLink: async () => undefined,
-        });
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: '@example/a',
+                commands: [{ name: 'first', description: 'First', action: async () => 0 }],
+                afterConsoleLink: async () => undefined,
+            }),
+        );
 
-        registry.applyPlugin(plugin);
-        expect(() => registry.applyPlugin(plugin)).toThrow(/must be unique/);
-        // Rejected whole, like every other collision: one hook, and the second
-        // plugin's commands are not half-applied.
+        expect(() =>
+            registry.applyPlugin(
+                defineCliPlugin({
+                    id: '@example/a',
+                    commands: [{ name: 'second', description: 'Second', action: async () => 0 }],
+                    afterConsoleLink: async () => undefined,
+                }),
+            ),
+        ).toThrow(/already registered under the id/);
+        // Rejected whole, like every other collision: no second hook, and the
+        // command it would have added is not half-applied.
         expect(registry.getConsoleLinkHooks()).toHaveLength(1);
+        expect(registry.has('second')).toBe(false);
+        expect(registry.has('first')).toBe(true);
+    });
+
+    // The id rule is about the id, not about hooks. It held in one combination
+    // of four when it only fired alongside a hook.
+    it('refuses a duplicate id even when neither plugin registers a hook', () => {
+        const registry = new CommandRegistry();
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: '@example/a',
+                commands: [{ name: 'first', description: 'First', action: async () => 0 }],
+            }),
+        );
+
+        expect(() =>
+            registry.applyPlugin(
+                defineCliPlugin({
+                    id: '@example/a',
+                    commands: [{ name: 'second', description: 'Second', action: async () => 0 }],
+                }),
+            ),
+        ).toThrow(/already registered under the id/);
+        expect(registry.has('second')).toBe(false);
     });
 
     it('loads allowlisted plugins in declared order', () => {

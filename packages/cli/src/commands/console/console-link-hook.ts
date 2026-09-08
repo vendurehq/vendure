@@ -33,39 +33,21 @@ export interface ConsoleLinkEndpoints {
      * Which official Vendure Console this pair is, or `undefined` when it is
      * not an official one.
      *
-     * Both official deployments are named, production and staging, because
-     * refusing staging is as wrong as accepting an unknown host. Staging is
-     * reached by setting `VENDURE_CONSOLE_LINK_URL` and
-     * `VENDURE_CONSOLE_LINK_API_URL` to its pair, and that is deliberately not
-     * prompted for, so anything able to set two environment variables can send
-     * a hook to staging rather than production without anyone confirming it.
-     * Both are Vendure's, which is why this is a choice rather than a hole, but
-     * a hook that must not touch staging should compare against `'production'`
-     * rather than against `undefined`. The pair is
-     * matched as a pair: a production app origin with a staging API is not
-     * official, it points at two deployments at once. `undefined` also covers
-     * a loopback pair, which is a development and test convenience and never
-     * an official origin.
+     * Both deployments are named, production and staging, because refusing
+     * staging is as wrong as accepting an unknown host. The pair is matched as
+     * a pair: a production app origin with a staging API is not official.
+     * `undefined` also covers a loopback pair, which is a development and test
+     * convenience.
      *
-     * This is a fact, not a permission. A person answering the custom-endpoint
-     * prompt, or passing `--allow-custom-console`, approved those origins for
-     * creating a Project Link and writing identity metadata into this
-     * repository. They did not approve sending anything secret there, and
-     * Console itself does not treat a custom Project Link endpoint as one that
-     * may configure an authenticated client.
+     * This is a fact, not a permission. A hook that holds credentials checks it
+     * before it reads a credential file or sends a request, and refuses when
+     * the answer is `undefined`.
      *
-     * So a hook that holds credentials checks this before it reads a
-     * credential file or sends a request, and refuses when the answer is
-     * `undefined`. Do not derive the same conclusion from the absence of a
-     * custom-endpoint prompt: that permits loopback, and it is not this.
-     *
-     * It describes where this run will talk, not where the manifest came from.
-     * The manifest records no origin, so when
-     * {@link ConsoleLinkContext.outcome} is `'repaired'` the Console that
-     * issued these project and account identifiers is unknown, and a
-     * `'production'` answer here does not vouch for them. A hook that acts on
-     * the identifiers rather than only on the origin should treat a repair as
-     * unverified provenance.
+     * It says where this run will talk, not where the manifest came from, so a
+     * `'production'` answer does not vouch for the identifiers in a manifest
+     * this run did not write. The reasoning, and what a hook should do about
+     * staging and about a repair, is in the CLI guide under "Running after a
+     * project link".
      */
     official: ConsoleOriginEnvironment | undefined;
 }
