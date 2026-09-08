@@ -238,6 +238,12 @@ function startSupervisedDevProcess(
         closeWatcher();
         if (child) {
             stopChildWithGrace(child, signal, restartShutdownGraceMs);
+        } else {
+            // Nothing is running — the child already crashed on its own (see below) and the watcher
+            // was left up so the next relevant file change could respawn it. That will not happen
+            // now, so this process is done: report it closed or `waitForDevProcesses` waits forever
+            // for a child that no longer exists.
+            runningProcess.emitClose(0, null);
         }
     });
 
@@ -250,8 +256,24 @@ function startSupervisedDevProcess(
                 startChild();
                 return;
             }
-            closeWatcher();
-            runningProcess.emitClose(code, signal);
+            if (!isRecoverableChildExit(code, signal, stopping)) {
+                closeWatcher();
+                runningProcess.emitClose(code, signal);
+                return;
+            }
+            // The child exited on its own, with a plain non-zero exit code rather than a signal —
+            // most commonly ts-node failing to compile after an edit, or an uncaught exception at
+            // startup. Nobody asked it to stop, so treat it the way the edit-save-see-error loop
+            // this flag exists for expects: leave the other supervised processes running, and leave
+            // the watcher up so the next relevant file change (the fix) respawns this one. A signal
+            // (`kill`, an external process manager) still tears the whole run down, on the read that
+            // something outside decided this process should not be running at all.
+            child = undefined;
+            writeDevStatus(
+                processDefinition,
+                `${processDefinition.target} exited (code ${code}). Waiting for a file change to restart it.`,
+                options,
+            );
         });
     };
 
@@ -418,6 +440,18 @@ function stopChildWithGrace(child: ChildProcess, signal: NodeJS.Signals, graceMs
 
 function isChildRunning(child: ChildProcess): boolean {
     return child.exitCode === null && child.signalCode === null;
+}
+
+// Whether a supervised child that just closed should be left for the watcher to respawn, rather
+// than treated as the whole `dev` run ending. Only a plain, self-chosen non-zero exit qualifies — a
+// signal means something outside decided this process should stop, and a zero exit or a shutdown
+// already in progress are not something a later file change would fix.
+export function isRecoverableChildExit(
+    code: number | null,
+    signal: NodeJS.Signals | null,
+    stopping: boolean,
+): boolean {
+    return !stopping && signal === null && code !== 0;
 }
 
 export function shouldRestartOnFileChange(

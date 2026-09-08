@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
     discoverDashboardExtensionDirectories,
     getDevProcessDefinitions,
+    isRecoverableChildExit,
     ManagedDevProcess,
     normalizeDevTarget,
     resolveVendureProjectDirectory,
@@ -318,6 +319,24 @@ describe('dev command', () => {
             } finally {
                 rmSync(dir, { recursive: true, force: true });
             }
+        });
+    });
+
+    describe('isRecoverableChildExit()', () => {
+        it('is recoverable for a plain non-zero exit code (e.g. a TypeScript compile error)', () => {
+            expect(isRecoverableChildExit(1, null, false)).toBe(true);
+        });
+
+        it('is not recoverable for a signal, such as an external kill', () => {
+            expect(isRecoverableChildExit(null, 'SIGKILL', false)).toBe(false);
+        });
+
+        it('is not recoverable for a clean exit', () => {
+            expect(isRecoverableChildExit(0, null, false)).toBe(false);
+        });
+
+        it('is not recoverable once the run is already stopping', () => {
+            expect(isRecoverableChildExit(1, null, true)).toBe(false);
         });
     });
 
