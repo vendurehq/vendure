@@ -1,14 +1,10 @@
 /**
  * The official Vendure Console origins, and the check that recognises them.
  *
- * These literals and the rules below mirror the Platform sign-in validator
- * (`libs/console-auth/src/origins.ts`). They are copied rather than imported,
- * because that package is not public and `@vendure/cli` may not depend on it.
- *
- * The copies are maintained by hand. Nothing here can detect a change made on
- * the other side, because that source is not in this repository and the tests
- * compare these literals against a second copy of the same literals. Adding an
- * official origin means editing both, and knowing to.
+ * These are part of the Console contract, so they are written here as literals
+ * rather than discovered. A check on whether an origin is Vendure's cannot ask
+ * that origin, and it has to give the same answer before any request is made.
+ * Adding a Console deployment means adding it here.
  *
  * The checks past the host list matter as much as the list. A URL carrying a
  * path, a query, a fragment or credentials is a URL built to be appended to,
