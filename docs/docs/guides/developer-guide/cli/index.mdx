@@ -986,6 +986,9 @@ argument is mandatory.
 A plugin that would take over or discard something it does not own is not
 registered at all, and the reason is written to stderr. This applies to:
 
+- a plugin `id` that a plugin already applied uses, whatever either of them
+  registers, because the id is what a conflict names and what a hook is
+  recorded against;
 - a top-level command that a built-in or another plugin already provides, unless
   the definition sets `replaces: true`;
 - a replacement of a command that another plugin has extended;

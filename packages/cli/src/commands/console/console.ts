@@ -427,7 +427,14 @@ async function runConsoleLinkHooks(
             // zero still stops every hook after it, and the exit code alone
             // does not tell the reader that some setup never ran.
             if (error instanceof CliCommandExit) {
-                dependencies.reporter.error(`The ${pluginId} plugin stopped the run after linking.`);
+                const stopped = `The ${pluginId} plugin stopped the run after linking.`;
+                // The level follows the code the process will actually exit
+                // with, so a log that reads as a failure matches one.
+                if (error.exitCode === 0) {
+                    dependencies.reporter.warn(stopped);
+                } else {
+                    dependencies.reporter.error(stopped);
+                }
                 dependencies.reporter.warn(linkUnfinished(inputs.outcome, inputs.manifestPath));
                 throw error;
             }
