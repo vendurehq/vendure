@@ -59,9 +59,9 @@ describe('console link hooks', () => {
         expect(context.outcome).toBe('linked');
         expect(context.isNonInteractive).toBe(true);
         expect(context.signal.aborted).toBe(false);
-        // A loopback Console is not the production pair, so a hook holding
+        // A loopback Console is not an official origin, so a hook holding
         // credentials is told plainly that it is not talking to Vendure.
-        expect(context.endpoints.areDefault).toBe(false);
+        expect(context.endpoints.official).toBeUndefined();
         expect(context.endpoints.apiUrl).toBe(test.apiUrl);
     });
 
@@ -283,18 +283,18 @@ describe('console link hooks', () => {
     });
 
     it('gives each hook its own context, so one cannot decide what the next reads', async () => {
-        const seen: Array<{ areDefault: boolean; projectName: string }> = [];
+        const seen: Array<{ official: string | undefined; projectName: string }> = [];
         const registry = registryWith(
             plugin(PLATFORM_ID, async context => {
-                // `areDefault` is the fact a hook holding a credential checks
+                // `official` is the fact a hook holding a credential checks
                 // before it sends anything, so the plugin listed first must not
                 // be able to answer it for the plugin listed second.
-                context.endpoints.areDefault = true;
+                context.endpoints.official = 'production';
                 context.manifest.project.name = 'Tampered';
             }),
             plugin(CLOUD_ID, async context => {
                 seen.push({
-                    areDefault: context.endpoints.areDefault,
+                    official: context.endpoints.official,
                     projectName: context.manifest.project.name,
                 });
             }),
@@ -303,7 +303,7 @@ describe('console link hooks', () => {
         const test = await runLink(root, registry);
 
         expect(test.exitCode).toBe(0);
-        expect(seen).toEqual([{ areDefault: false, projectName: manifest.project.name }]);
+        expect(seen).toEqual([{ official: undefined, projectName: manifest.project.name }]);
     });
 
     it('refuses a hook confirmation when there is nobody to answer it', async () => {

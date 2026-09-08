@@ -844,12 +844,18 @@ of `'linked'`. A hook that rotates a remote credential should treat `'repaired'`
 as the case that needs confirming, because the credential it is replacing may
 still be live for someone else.
 
-`context.endpoints.areDefault` is `false` when the link was made against
-endpoints set by `VENDURE_CONSOLE_LINK_URL` and `VENDURE_CONSOLE_LINK_API_URL`
-rather than Vendure's own. It is a fact about where the manifest came from, not a
-permission: approving a custom endpoint approves it for creating a Project Link,
-not for receiving anything secret. A hook that holds credentials keeps its own
-list of the hosts it will talk to and refuses when the origins do not match it.
+`context.endpoints.official` names which official Vendure Console the link was
+made against, `'production'` or `'staging'`, and is `undefined` for anything
+else. The pair is matched as a pair, so a production app origin with a staging
+API is not official. A loopback pair is not official either; it is a development
+and test convenience.
+
+It is a fact about where the manifest came from, not a permission. Approving a
+custom endpoint approves it for creating a Project Link, not for receiving
+anything secret. A hook that holds credentials checks `official` before it reads
+a credential file or sends a request, and refuses when it is `undefined`. Do not
+draw the same conclusion from the absence of a custom-endpoint prompt: that
+permits loopback, and this does not.
 
 ### Checking what the installed CLI supports
 

@@ -11,6 +11,11 @@ import {
     RegisteredConsoleLinkHook,
     getConsoleLinkHooks,
 } from './console-link-hook';
+import {
+    DEFAULT_CONSOLE_API_URL,
+    DEFAULT_CONSOLE_URL,
+    officialConsoleEnvironment,
+} from './console-origins';
 import { ensureProjectLinkGitignore } from './project-link-gitignore';
 import {
     ManifestReadResult,
@@ -24,8 +29,6 @@ import {
 } from './project-link-manifest';
 import { nonEmptyString, objectValue, uuid } from './project-link-validation';
 
-const DEFAULT_CONSOLE_URL = 'https://console.vendure.io';
-const DEFAULT_CONSOLE_API_URL = 'https://api.vendure.io';
 const PROJECT_LINKS_PATH = '/v1/project-links';
 const POLL_INTERVAL_MS = 2_000;
 const REQUEST_TIMEOUT_MS = 10_000;
@@ -408,7 +411,7 @@ function createConsoleLinkContext(
         endpoints: {
             consoleUrl: inputs.endpoints.consoleUrl,
             apiUrl: inputs.endpoints.apiUrl,
-            areDefault: usesDefaultEndpoints(inputs.endpoints),
+            official: officialConsoleEnvironment(inputs.endpoints),
         },
         outcome: inputs.outcome,
         signal,
@@ -858,16 +861,6 @@ function baseUrl(value: string, label: string): string {
 
 function isLoopbackHostname(hostname: string): boolean {
     return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
-}
-
-/**
- * Whether the built-in production origins were used. Narrower than the negation
- * of {@link usesCustomRemoteEndpoints}, which also passes a loopback pair: a
- * hook holding credentials has no more reason to trust a local Console than a
- * remote one it does not recognise.
- */
-function usesDefaultEndpoints(endpoints: ConsoleEndpoints): boolean {
-    return endpoints.consoleUrl === DEFAULT_CONSOLE_URL && endpoints.apiUrl === DEFAULT_CONSOLE_API_URL;
 }
 
 function usesCustomRemoteEndpoints(endpoints: ConsoleEndpoints): boolean {
