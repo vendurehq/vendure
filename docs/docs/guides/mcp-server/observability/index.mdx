@@ -1,0 +1,154 @@
+---
+title: 'Logging & Observability'
+metaTitle: 'MCP Server Logging & Observability | Vendure'
+metaDescription: 'Record MCP tool calls with tiered capture, read them back in the dashboard and Admin API, grant operator permissions, and subscribe to events or export OpenTelemetry spans.'
+order: 7
+---
+
+MCP tool calls can be recorded and inspected through the dashboard and Admin API, or forwarded to external
+systems through events and OpenTelemetry.
+
+To monitor MCP tool calls:
+
+1. Configure tool-call logging.
+2. Optionally subscribe to tool-call events or export OpenTelemetry spans.
+
+Giving operators access to the recorded data is covered in
+[Administration](/guides/mcp-server/administration/).
+
+## Privacy
+
+By default, MCP logging stores metadata only and does not store tool inputs or outputs. Enable
+`capture: 'full'` only when needed, and use `redact` to remove sensitive data before it is persisted.
+IP address capture is also disabled by default.
+
+## Configure tool-call logging
+
+Every tool call can be recorded to the [`McpToolCallLog`](/reference/core-plugins/mcp-plugin/mcp-tool-call-log/)
+table. What gets stored is controlled by [`logging.capture`](/reference/core-plugins/mcp-plugin/mcp-logging-options/):
+
+| `capture` | What is stored |
+|---|---|
+| `'metadata'` (default) | Tool metadata only. `input` and `output` are `null`. |
+| `'full'` | The complete request and response bodies. You are responsible for redacting sensitive data. |
+
+Keep the default `metadata` mode unless you have a specific reason to store tool inputs and outputs. Full
+capture may contain customer or other sensitive data.
+
+With `capture: 'full'`, supply a `redact` function to apply your own policy:
+
+```ts
+McpPlugin.init({
+    logging: {
+        capture: 'full',
+        redact: ({ toolName, input, output }) => ({
+            input: stripPii(input),
+            output: stripPii(output),
+        }),
+    },
+});
+```
+
+If you enable `full` without a `redact` function, the plugin logs a one-time warning at bootstrap that you may
+be storing sensitive data.
+
+If `redact` throws, the tool call is not blocked. The call is still recorded, but `input` and `output` are
+stored as `null`.
+
+Each stored body is limited by `logging.maxBodyBytes` (64,000 bytes by default). If a body exceeds the limit,
+it is replaced with a marker containing its size.
+
+Logs are pruned automatically. `logging.ttlDays` (default 30) sets the retention window, and a scheduled task
+deletes expired rows daily at 02:30. Override the schedule with `logging.retentionSchedule`.
+
+`logging.captureClientIp` is disabled by default because IP addresses are personal data. Enable it only if you
+need to identify or distinguish anonymous callers.
+
+Captured IP addresses follow the same `ttlDays` retention period as the rest of the log. If Vendure runs behind
+a reverse proxy, enable
+[`trustProxy`](/guides/mcp-server/production/#configure-your-reverse-proxy) so the recorded IP is the actual
+client IP.
+
+Reading a log's `input`, `output`, and `clientIp` fields through the Admin API requires the `ReadCustomer`
+permission on top of `ReadMcpServer`. See [Administration](/guides/mcp-server/administration/).
+
+Logged calls are available in the **MCP Server** dashboard and through the Admin GraphQL API:
+
+- `mcpToolCallLogs` returns paginated call logs.
+- `mcpStats` returns aggregate statistics such as success/error rates, latency percentiles, calls per hour, and
+  top tools.
+
+The `McpToolCallLog` table is the durable source of these records.
+
+The event bus and OpenTelemetry integrations are independent of the database log. You can use either or both to
+integrate MCP activity with external monitoring and observability systems.
+
+## Optional: subscribe to tool-call events
+
+Use tool-call events to react to calls in real time: send alerts, forward audit records to another system, or
+update metrics.
+
+Every call that reaches a tool publishes an
+[`McpToolCallEvent`](/reference/core-plugins/mcp-plugin/mcp-tool-call-event/) carrying the persisted log entry,
+whether it succeeded or failed. Requests rejected before the tool runs (invalid arguments, missing permissions,
+or rate limits) do not create a log entry or event.
+
+```ts
+eventBus.ofType(McpToolCallEvent).subscribe(event => {
+    // event.entry is the McpToolCallLog row (bodies null under 'metadata')
+});
+```
+
+## Optional: export OpenTelemetry spans
+
+Each tool call emits a `McpToolRegistryService.callTool` span nested under the `/mcp` HTTP trace whenever the
+[`@vendure/telemetry-plugin`](/reference/core-plugins/telemetry-plugin/) is active. Follow that plugin's
+[Telemetry guide](/guides/developer-guide/telemetry/) for the collector, Jaeger/Loki/Grafana setup.
+
+To put tool metadata on that span, register a method hook on `McpToolRegistryService.callTool`. Set safe
+attributes only. Never copy the tool input or the result payload onto a span, because either may contain
+customer personal data.
+
+```ts
+import { McpToolRegistryService } from '@vendure/mcp-plugin';
+import { registerMethodHooks, TelemetryPlugin } from '@vendure/telemetry-plugin';
+
+TelemetryPlugin.init({
+    methodHooks: [
+        registerMethodHooks(McpToolRegistryService, {
+            callTool: {
+                pre: ({ args: [, toolset, name], span }) => {
+                    span.setAttribute('mcp.tool.name', name);
+                    span.setAttribute('mcp.tool.toolset', toolset);
+                },
+                post: ({ result, span }) => {
+                    span.setAttribute('mcp.tool.status', result.isError ? 'error' : 'success');
+                },
+            },
+        }),
+    ],
+});
+```
+
+The hook's `args` are the arguments `callTool` received, so `args[3]` is the tool input. Leave it alone.
+
+`methodHooks` is a developer preview option of the telemetry plugin and may change in a future release.
+
+Vendure exports OpenTelemetry spans, but does not provide a metrics read-back API equivalent to `mcpStats`. If
+you want MCP metrics in Grafana or another monitoring system, use the OpenTelemetry Collector's `spanmetrics`
+connector to derive metrics from the exported spans.
+
+## Troubleshooting
+
+| What you see | Cause | Fix |
+|---|---|---|
+| `input`/`output` are `null` on call-log rows | `logging.capture` is `'metadata'` (the default), or the reader lacks the `ReadCustomer` permission, or your `redact` function threw | Set `capture: 'full'`, grant `ReadCustomer`, or fix the `redact` function |
+| `clientIp` is missing or wrong on call-log rows | `captureClientIp` is off, the reader lacks `ReadCustomer`, or Vendure runs behind a proxy without `trustProxy` | Set `logging.captureClientIp: true`, grant `ReadCustomer`, or enable `trustProxy` |
+| Calls are missing from the logs | The request was rejected before the tool ran | Check authentication, permissions, argument validation, and rate limits |
+
+## See also
+
+- [Administration](/guides/mcp-server/administration/) — the permissions that gate these logs and stats.
+- [Production Hardening](/guides/mcp-server/production/) — the go-live checklist for the server these logs come from.
+- [`McpPluginOptions`](/reference/core-plugins/mcp-plugin/mcp-plugin-options/) — every option on this page, in full.
+- [Telemetry](/guides/developer-guide/telemetry/) — collector, Jaeger, Loki, and Grafana setup.

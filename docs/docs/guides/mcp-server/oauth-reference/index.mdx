@@ -1,0 +1,272 @@
+---
+title: 'OAuth Protocol Reference'
+metaTitle: 'MCP OAuth Protocol Reference | Vendure'
+metaDescription: "The Vendure MCP server's OAuth 2.1 surface: the authorization flow, endpoints, client_id metadata documents, token lifetimes, sessions, and why requests are refused."
+order: 10
+---
+
+Every endpoint, rule, and lifetime of the MCP server's OAuth 2.1 surface, for building
+or debugging a client integration. For the pages where a person approves a client, see
+[OAuth & Consent Integration](/guides/mcp-server/oauth-consent/).
+
+## The OAuth 2.1 flow
+
+A client outside your server authenticates with OAuth 2.1 and PKCE, and the client
+drives every step. The server side is configured through
+[`McpOauthOptions`](/reference/core-plugins/mcp-plugin/mcp-oauth-options/). An
+assistant built as a Vendure plugin skips this flow entirely: see
+[Assistant inside Vendure](/guides/mcp-server/assistant-inside-vendure/).
+
+1. **Discover.** A call to a protected endpoint returns `401` with a
+   `WWW-Authenticate: Bearer resource_metadata="…"` header. The client fetches that
+   protected-resource metadata, then the authorization-server metadata, to learn every
+   endpoint URL.
+2. **Identify.** Preferred: the client uses an HTTPS URL as its `client_id`. The server
+   fetches the JSON document at that URL to learn the client's name and
+   `redirect_uris`, then caches it. No registration call is made. Fallback: the client
+   `POST`s to `/mcp/oauth/register` with its `client_name` and `redirect_uris` and
+   receives a `client_id`. Clients are public either way, using PKCE and no secret.
+3. **Authorize.** The client sends the user to `GET /mcp/oauth/authorize`, with these
+   query parameters:
+   - `response_type=code`
+   - `client_id`
+   - `redirect_uri`
+   - `code_challenge`, a PKCE challenge
+   - `code_challenge_method`, which must be `S256`. Any other value redirects back to
+     `redirect_uri` with `error=invalid_request`.
+   - `resource`, naming what it wants access to
+
+   The server records a pending request. It then redirects to the consent page
+   carrying only `?request_token=<requestToken>`.
+4. **Consent.** A person approves: an administrator in the dashboard, a customer on
+   your storefront page. On approval the server issues a short-lived authorization
+   `code` and redirects back to the client's `redirect_uri`. Both consent pages are
+   covered in [OAuth & Consent Integration](/guides/mcp-server/oauth-consent/).
+5. **Exchange the code.** The client `POST`s to `/mcp/oauth/token` with these fields:
+   - `grant_type=authorization_code`
+   - `code`
+   - `code_verifier`
+   - `resource`
+
+   It receives an `access_token` and a `refresh_token`.
+6. **Call tools.** The client sends `Authorization: Bearer <access_token>` on every
+   MCP request.
+7. **Refresh.** When the access token expires, the client exchanges the refresh token
+   for a new pair.
+
+## Endpoints
+
+All URLs are built from your configured `issuer`. The `issuer` must therefore be the
+public base URL the client can reach.
+
+| Endpoint | Method | Purpose |
+|---|---|---|
+| `/.well-known/oauth-authorization-server` | GET | Authorization-server metadata (RFC 8414) |
+| `/.well-known/oauth-protected-resource/mcp/{shop\|admin}` | GET | Protected-resource metadata (RFC 9728) |
+| `/mcp/oauth/register` | POST | Dynamic Client Registration |
+| `/mcp/oauth/authorize` | GET | Start the authorization request, then redirect to consent |
+| `/mcp/oauth/token` | POST | Authorization-code exchange and refresh-token rotation |
+| `/mcp/oauth/revoke` | POST | Revoke a grant (RFC 7009) |
+| `/mcp/oauth/authorization-request` | GET | Consent-page lookup of pending-request details |
+
+Dynamic Client Registration is deprecated by the MCP specification as of 2026-07-28.
+The plugin still serves it for compatibility.
+
+Consent decisions are not endpoints in that table. Each one is an `authorizeMcpClient`
+mutation: an administrator's decision on the Admin API, a customer's on the Shop API.
+
+The token endpoint accepts an `application/x-www-form-urlencoded` body, as OAuth 2.1
+requires (RFC 6749). The `/register` and `/revoke` endpoints accept form-encoded
+bodies too.
+
+The authorization-server metadata advertises:
+
+- `S256` PKCE
+- the `authorization_code` and `refresh_token` grants
+- `token_endpoint_auth_methods_supported: ["none"]`, meaning public clients
+- `client_id_metadata_document_supported: true`, the flag MCP clients check before
+  sending a URL `client_id`
+
+## The `client_id` metadata document
+
+The server fetches exactly the address the client sends, then compares that address
+against the document character for character. Send a URL already in the form a URL
+parser produces.
+
+| Rule | Value |
+|---|---|
+| Scheme | `https` |
+| Path | Required |
+| Query or fragment | Not allowed |
+| Host | A hostname, not an IP address. Lowercase, with no default port |
+| Path segments | No `.`, `..`, or backslashes |
+| Length | 512 characters maximum |
+
+How the server fetches it:
+
+- Redirects are not followed.
+- Hosts that resolve to private or other special-use addresses are refused.
+- The response is capped at 5 KB.
+- The document is cached for one hour, then fetched again.
+- At most 8 document fetches run at once, and each one times out after 5 seconds.
+
+What the document must contain:
+
+- `client_id` (string) — Must equal the URL the client sent, exactly.
+- `client_name` (string, 255 characters maximum) — The client's name.
+- `redirect_uris` (array of strings, each 255 characters maximum) — The redirect URI
+  the client uses must appear here exactly. The same length limit applies to URIs sent
+  to `/mcp/oauth/register`.
+
+To develop against a metadata document served from your own machine, set
+`oauth.allowLoopbackCimdDocuments: true`. It permits a `client_id` URL pointing at
+`localhost`, `127.0.0.1`, or `::1` over plain HTTP.
+
+:::warning
+Leave `allowLoopbackCimdDocuments` off anywhere others can reach: it lets anyone who
+can reach the authorize endpoint make the server open a connection to any port on its
+own machine, with no credentials needed.
+:::
+
+The server refuses to start with the option enabled when `NODE_ENV` is `production`.
+
+## Resource and toolset
+
+Every authorization request names a `resource`, and the resource decides which toolset
+the grant is for.
+
+| `resource` | Toolset |
+|---|---|
+| `{issuer}/mcp/shop` | shop |
+| `{issuer}/mcp/admin` | admin |
+
+A resource that matches neither is rejected. So is one carrying a query string or a
+fragment. The token the client receives is scoped to that one toolset.
+
+## Token lifetimes and rotation
+
+Both values are tuned through
+[`McpOauthOptions`](/reference/core-plugins/mcp-plugin/mcp-oauth-options/).
+
+- `accessTokenTtlSeconds` (number, default: `900`) — How long an access token lasts,
+  which is 15 minutes.
+- `refreshTokenTtlSeconds` (number, default: `2592000`) — How long a refresh token
+  lasts, which is 30 days.
+
+Refresh rotates. Each refresh issues a new refresh token and invalidates the previous
+one. Reusing a refresh token that has already been rotated revokes the entire grant.
+OAuth 2.1 treats reuse as a sign the token was compromised.
+
+Revoking a grant keeps its database row and sets `revokedAt`, so the audit trail
+survives. The token stops working immediately.
+
+## Sessions, revocation, and expiry
+
+### The grant's session
+
+Exchanging the authorization code creates one internal Vendure session for the grant.
+That session carries an ordinary random token generated by Vendure. The token stays
+server-side and is never returned to the MCP client, which only ever holds the OAuth
+access and refresh tokens.
+
+The session's lifetime is Vendure's ordinary sliding expiry, the same as any other
+session. Using it extends it, because Vendure pushes the expiry out once it is more
+than halfway to expiring. An agent in regular use keeps its session for as long as it
+keeps working. There is no separate maximum age for MCP sessions.
+
+### What survives a refresh
+
+A refresh rotates the OAuth token pair and leaves the session untouched. Anything the
+session holds survives:
+
+- the active order
+- the active channel
+- custom fields
+
+The rotation is written in a single transaction. If the response is lost after the
+commit, the client still holds the old token. Its retry then presents a token the
+server has already rotated. The server treats that as reuse, revokes the whole grant
+and deletes its session. The user must authorize the client again.
+
+### What ends a session
+
+- **Revocation.** This deletes the session row and drops its cache entry, in the same
+  operation that marks the grant revoked. On a single instance the credential stops
+  working straight away. If you run several instances with the default in-memory
+  cache, the other instances keep accepting the cached session for up to 5 minutes,
+  the `sessionCacheTTL`. A shared cache fixes that. See the
+  [production guide](/guides/mcp-server/production/).
+- **The daily retention task.** This deletes the session of any grant that has passed
+  its own expiry. That is the case where a client stopped refreshing for longer than
+  `refreshTokenTtlSeconds`. The task runs once a day, at 03:30 by default, set through
+  `oauth.retentionSchedule`. Session deletion can therefore lag the grant's expiry by
+  up to a day.
+- **Natural expiry.** A session can lapse while its grant is still valid. The next MCP
+  request creates a replacement, so a lapsed session never breaks a working grant.
+
+### Rotating the secret or the issuer
+
+Rotating `oauth.tokenSecret` or changing `oauth.issuer` stops every existing token
+working at once. The grants live until their own expiry, and the retention task
+removes their sessions then, up to `refreshTokenTtlSeconds` plus a day. Revoking the
+grants removes their sessions right away. Nothing about those sessions can be derived
+from the old access tokens.
+
+## Why a request is refused
+
+| Cause | What the client sees |
+|---|---|
+| The `resource` matches neither toolset URL, or carries a query string or fragment | The authorization request is rejected |
+| The `client_id` URL or its metadata document breaks a rule in [The `client_id` metadata document](#the-client_id-metadata-document) | The authorization request is rejected |
+| The redirect URI is not listed in the metadata document exactly | The authorization request is rejected |
+| The request token is unknown, has timed out, or has already been decided | The lookup call returns no success response |
+| The per-IP limit on `/mcp/oauth/*` is exceeded (default 60 requests per minute, `rateLimits.oauthIp`) | `429` with a `Retry-After` header |
+
+Failed token requests return `400` with a standard OAuth error body:
+
+```json
+{ "error": "invalid_grant", "error_description": "Refresh token invalid or expired" }
+```
+
+Use the `error` field for handling, not the description.
+
+* `invalid_grant`: code or refresh token is invalid → start a new auth flow
+* `invalid_request`: missing or malformed parameter
+* `unsupported_grant_type`: grant type not supported
+* `invalid_target`: missing or invalid `resource` (must be a toolset URL)
+
+Client registration failures follow the same format, using:
+
+* `invalid_client_metadata`
+* `invalid_redirect_uri`
+
+Rate limits return `429` with `error: "rate_limit_exceeded"` and `retry_after_seconds` in the body. Prefer the `Retry-After` header.
+
+Refusals of the consent decision itself are covered in the
+[oauth-consent troubleshooting table](/guides/mcp-server/oauth-consent/#troubleshooting).
+That covers a mismatched `Origin` header, an unset consent URL, and a user holding an
+administrator record.
+
+## How refusals reach the client
+
+Handle a refusal rather than failing, and surface a "try again in a moment" message to
+the person chatting. A refusal arrives in one of two shapes:
+
+| When it arrives | What it looks like |
+|---|---|
+| Before a tool runs, during the client's own setup calls | A protocol error carrying `data.retryAfterSeconds` and `data.scope` |
+| Once a tool has started | An ordinary failed tool result, with a text message and no structured retry hint |
+
+Read the retry hint defensively, and treat a missing value as "wait a few seconds".
+Do not branch on the numeric error code or on the HTTP status. Every refusal is HTTP
+`429`, with the retry hint in the JSON-RPC error body.
+
+The limits behind these refusals are configured through `rateLimits`. See
+[Production Hardening](/guides/mcp-server/production/#set-rate-limits) for the
+scopes, defaults, and tuning advice.
+
+## See also
+
+- [OAuth & Consent Integration](/guides/mcp-server/oauth-consent/) — the admin and customer consent pages this flow redirects to
+- [Assistant outside Vendure](/guides/mcp-server/assistant-outside-vendure/) — a first-party client that runs this flow invisibly
+- [Production Hardening](/guides/mcp-server/production/) — the issuer guard, token secret rotation, and rate limits protecting these endpoints

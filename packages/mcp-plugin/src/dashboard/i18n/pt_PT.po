@@ -1,0 +1,311 @@
+msgid ""
+msgstr ""
+"POT-Creation-Date: 2025-02-20 14:18+0100\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: @lingui/cli\n"
+"Language: pt_PT\n"
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Plural-Forms: \n"
+
+
+msgid "Actions"
+msgstr "Ações"
+
+msgid "Actor"
+msgstr "Ator"
+
+msgid "Actor type"
+msgstr "Tipo de ator"
+
+msgid "Approve"
+msgstr "Aprovar"
+
+msgid "Authorization request could not be loaded"
+msgstr "Não foi possível carregar o pedido de autorização"
+
+msgid "Calls per hour"
+msgstr "Chamadas por hora"
+
+msgid "Client"
+msgstr "Cliente"
+
+msgid "Connect an MCP client to your Vendure server using the endpoints below."
+msgstr "Ligue um cliente MCP ao seu servidor Vendure utilizando os endpoints abaixo."
+
+msgid "Could not revoke grant"
+msgstr "Não foi possível revogar a concessão"
+
+msgid "Could not update tool"
+msgstr "Não foi possível atualizar a ferramenta"
+
+msgid "Deny"
+msgstr "Negar"
+
+msgid "Description"
+msgstr "Descrição"
+
+msgid "Destructive"
+msgstr "Destrutivo"
+
+msgid "Duration"
+msgstr "Duração"
+
+msgid "Enabled"
+msgstr "Ativado"
+
+
+msgid "Expires"
+msgstr "Expira"
+
+msgid "Grant revoked"
+msgstr "Concessão revogada"
+
+msgid "Health & usage"
+msgstr "Estado e utilização"
+
+msgid "Last activity"
+msgstr "Última atividade"
+
+msgid "Last hour"
+msgstr "Última hora"
+
+msgid "Last 24 hours"
+msgstr "Últimas 24 horas"
+
+msgid "Last 7 days"
+msgstr "Últimos 7 dias"
+
+msgid "Last 30 days"
+msgstr "Últimos 30 dias"
+
+msgid "Loading authorization request…"
+msgstr "A carregar o pedido de autorização…"
+
+msgid "MCP Server"
+msgstr "MCP Server"
+
+msgid "Mutating"
+msgstr "Modificador"
+
+msgid "Name"
+msgstr "Nome"
+
+msgid "No calls recorded in this period."
+msgstr "Nenhuma chamada registada neste período."
+
+msgid "Read-only"
+msgstr "Apenas leitura"
+
+msgid "Revoke"
+msgstr "Revogar"
+
+msgid "Revoke grant"
+msgstr "Revogar concessão"
+
+msgid "Safety"
+msgstr "Segurança"
+
+msgid "Status"
+msgstr "Estado"
+
+msgid "Success rate"
+msgstr "Taxa de sucesso"
+
+
+msgid "This destination is on the local machine. Any application running on that machine could receive the authorization code."
+msgstr "Este destino está na máquina local. Qualquer aplicação em execução nessa máquina poderia receber o código de autorização."
+
+msgid "This immediately revokes the client's access. The client will need to authorize again to reconnect."
+msgstr "Isto revoga imediatamente o acesso do cliente. O cliente terá de autorizar novamente para se voltar a ligar."
+
+msgid "Time"
+msgstr "Hora"
+
+msgid "Tool"
+msgstr "Ferramenta"
+
+msgid "Tool updated"
+msgstr "Ferramenta atualizada"
+
+msgid "Tools"
+msgstr "Ferramentas"
+
+msgid "Toolset"
+msgstr "Conjunto de ferramentas"
+
+msgid "Top tools"
+msgstr "Principais ferramentas"
+
+msgid "Total calls"
+msgstr "Total de chamadas"
+
+msgid "Usage over the selected period"
+msgstr "Utilização no período selecionado"
+
+msgid "p50 latency"
+msgstr "Latência p50"
+
+msgid "p95 latency"
+msgstr "Latência p95"
+
+msgid "Authorize MCP Client"
+msgstr "Autorizar cliente MCP"
+
+msgid "The grant could not be revoked; it may have already been removed"
+msgstr "Não foi possível revogar a concessão; poderá já ter sido removida"
+
+msgid "Request failed ({0})"
+msgstr "O pedido falhou ({0})"
+
+msgid "Authorize MCP access"
+msgstr "Autorizar acesso MCP"
+
+msgid "Plugin"
+msgstr "Plugin"
+
+msgid "Error loading MCP statistics: {0}"
+msgstr "Erro ao carregar as estatísticas do MCP: {0}"
+
+msgid "Error loading tools: {0}"
+msgstr "Erro ao carregar as ferramentas: {0}"
+
+msgid "The request could not be completed"
+msgstr "Não foi possível concluir o pedido"
+
+msgid "Active"
+msgstr "Ativo"
+
+msgid "Revoked"
+msgstr "Revogado"
+
+msgid "Expired"
+msgstr "Expirado"
+
+msgid "No tool calls yet"
+msgstr ""
+
+msgid "Half of the calls in this period finished faster than this."
+msgstr ""
+
+msgid "95 out of 100 calls in this period finished faster than this. It shows how slow the worst calls are."
+msgstr ""
+
+msgid "This tool can delete data or make changes that cannot be undone."
+msgstr ""
+
+msgid "This tool only reads data. It never changes anything."
+msgstr ""
+
+msgid "This tool creates or updates data, but does not delete anything."
+msgstr ""
+
+msgid "No actions available for a revoked grant"
+msgstr ""
+
+msgid "Unnamed application"
+msgstr ""
+
+msgid "Hostname verified"
+msgstr ""
+
+msgid "Unverified"
+msgstr ""
+
+msgid "The client's details were fetched from this address, so the hostname is verified. The name above is still chosen by the client itself."
+msgstr ""
+
+msgid "This name and address are reported by the application itself and are not verified."
+msgstr ""
+
+msgid "wants to access the Admin API of your Vendure server"
+msgstr ""
+
+msgid "Full access to the Admin API as your administrator account."
+msgstr ""
+
+msgid "wants to access the Shop API of your Vendure server"
+msgstr ""
+
+msgid "Access to the Shop API as a customer."
+msgstr ""
+
+msgid "After approval, the authorization code is sent here. Only approve if you recognise this destination."
+msgstr ""
+
+msgid "Setup guide for connecting MCP clients"
+msgstr ""
+
+msgid "Anonymous"
+msgstr ""
+
+msgid "Failed calls"
+msgstr ""
+
+msgid "Average number of tool calls per hour over the selected period."
+msgstr ""
+
+msgid "What this number means"
+msgstr ""
+
+msgid "See all activity"
+msgstr ""
+
+msgid "Granted to"
+msgstr ""
+
+msgid "The link may have expired or already been used. Start the connection again from your MCP client."
+msgstr ""
+
+msgid "Full access to the Admin API as {name} ({emailAddress})."
+msgstr ""
+
+msgid "Connect a client"
+msgstr ""
+
+msgid "Admin API"
+msgstr ""
+
+msgid "Shop API"
+msgstr ""
+
+msgid "Test with MCP Inspector"
+msgstr ""
+
+msgid "Close"
+msgstr ""
+
+msgid "Overview"
+msgstr ""
+
+msgid "Activity"
+msgstr ""
+
+msgid "Grants"
+msgstr ""
+
+msgid "The client will act on this channel:"
+msgstr ""
+
+msgid "This destination is not on the application's own host ({clientHost}). Only approve if you expect the code to be sent there."
+msgstr ""
+
+msgid "Revoking needs the UpdateMcpServer permission"
+msgstr ""
+
+msgid "Tool exposure is set to discovery. Clients see only search_tools and execute_tool. The toggles below still decide which tools execute_tool may run."
+msgstr ""
+
+msgid "OAuth is not configured, so no client can be granted access. Add an oauth block to McpPlugin.init to use grants."
+msgstr ""
+
+msgid "The admin endpoint needs OAuth. Add an oauth block to McpPlugin.init to enable it."
+msgstr ""
+
+msgid "The shop endpoint is disabled (shopAccess: 'disabled')."
+msgstr ""

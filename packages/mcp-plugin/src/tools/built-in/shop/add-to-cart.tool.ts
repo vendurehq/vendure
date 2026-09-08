@@ -1,0 +1,110 @@
+import { Injectable } from '@nestjs/common';
+import {
+    ID,
+    OrderService,
+    Permission,
+    ProductVariantService,
+    RequestContext,
+    UserInputError,
+} from '@vendure/core';
+import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
+
+import { McpActiveOrderService } from '../active-order.service';
+import { idSchema } from '../id-schema';
+import { int32Schema } from '../int32-schema';
+import { McpToolSerializerService } from '../serializer.service';
+
+const addToCartInput = z.strictObject({
+    variantId: idSchema
+        .describe(
+            'Product variant ID, taken from the variants listed by get_product. Give this or productId, not both.',
+        )
+        .optional(),
+    productId: idSchema
+        .describe(
+            'Product ID, as returned by search_products or get_product. Never pass a variant ID here. ' +
+                'Use this only when the product has a single variant; if it has several, the call is ' +
+                'refused and the variants are listed so you can pass one as variantId instead.',
+        )
+        .optional(),
+    quantity: int32Schema.min(1).describe('Quantity, a whole number of at least 1.'),
+});
+
+type AddToCartInput = z.infer<typeof addToCartInput>;
+
+@McpTool({
+    name: 'add_to_cart',
+    toolset: 'shop',
+    description:
+        'Add a product variant to the active cart. Pass exactly one of variantId or productId. ' +
+        'Product IDs and variant IDs are different things and are not interchangeable.',
+    keywords: [
+        'put in my basket',
+        'I want to buy this',
+        'add this item to my bag',
+        'grab this product',
+        'start an order with this',
+        'put this in my shopping bag',
+    ],
+    permissions: [Permission.Public],
+    behavior: 'mutating',
+    usesActiveOrder: true,
+    inputSchema: addToCartInput,
+})
+@Injectable()
+export class AddToCartTool implements McpToolHandler<AddToCartInput> {
+    constructor(
+        private readonly activeOrder: McpActiveOrderService,
+        private readonly orderService: OrderService,
+        private readonly productVariantService: ProductVariantService,
+        private readonly serializer: McpToolSerializerService,
+    ) {}
+
+    async execute(ctx: RequestContext, input: AddToCartInput) {
+        const variantId = await this.resolveVariantId(ctx, input);
+        const order = await this.activeOrder.findOrCreate(ctx);
+        return this.serializer.orderOrError(
+            await this.orderService.addItemToOrder(order.ctx, order.id, variantId, input.quantity),
+        );
+    }
+
+    // Product and variant IDs can collide, so a product ID passed as a variant ID can silently
+    // resolve to the wrong item. Requiring the caller to say which kind of ID it holds prevents that.
+    private async resolveVariantId(ctx: RequestContext, input: AddToCartInput): Promise<ID> {
+        const exactlyOneIdMessage = 'Pass exactly one of variantId or productId.';
+        if (input.variantId != null && input.productId != null) {
+            throw new UserInputError(exactlyOneIdMessage);
+        }
+        if (input.variantId != null) {
+            return input.variantId;
+        }
+        if (input.productId == null) {
+            throw new UserInputError(exactlyOneIdMessage);
+        }
+
+        const variants = await this.productVariantService.getVariantsByProductId(
+            ctx,
+            input.productId,
+            {},
+            [],
+        );
+        if (variants.items.length === 0) {
+            throw new UserInputError(
+                `Product ${String(input.productId)} has no variants that can be bought.`,
+            );
+        }
+        if (variants.items.length > 1) {
+            throw new UserInputError(
+                // totalItems, not items.length, so the count is right even when there are more
+                // variants than the lookup's page limit.
+                `Product ${String(input.productId)} has ${variants.totalItems} variants. ` +
+                    'Nothing was added. Call add_to_cart again with one of these as variantId: ' +
+                    variants.items
+                        .map(variant => `${String(variant.id)} (${variant.name}, ${variant.sku})`)
+                        .join('; '),
+            );
+        }
+        return variants.items[0].id;
+    }
+}

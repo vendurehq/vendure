@@ -1,0 +1,67 @@
+---
+title: "McpPluginOptions"
+generated: true
+---
+<GenerationInfo sourceFile="packages/mcp-plugin/src/types.ts" sourceLine="330" packageName="@vendure/mcp-plugin" since="3.8.0" />
+
+Options passed to `McpPlugin.init`.
+
+```ts title="Signature"
+interface McpPluginOptions {
+    toolExposure?: McpToolExposureMode;
+    shopAccess?: 'disabled' | 'authenticated' | 'anonymous';
+    oauth?: McpOauthOptions;
+    rateLimits?: McpRateLimitOptions;
+    dnsRebinding?: McpDnsRebindingOptions;
+    logging?: McpLoggingOptions;
+}
+```
+
+<div className="members-wrapper">
+
+### toolExposure
+
+<MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-tool-exposure-mode#mcptoolexposuremode'>McpToolExposureMode</a>`} default={`'direct'`}   />
+
+Which tools the MCP `tools/list` call returns. See [McpToolExposureMode](/reference/core-plugins/mcp-plugin/mcp-tool-exposure-mode#mcptoolexposuremode) for the
+available modes. In-process listing through [McpToolExecutionService](/reference/core-plugins/mcp-plugin/mcp-tool-execution-service#mcptoolexecutionservice) always lists
+the real tools and ignores this.
+### shopAccess
+
+<MemberInfo kind="property" type={`'disabled' | 'authenticated' | 'anonymous'`} default={`'anonymous'`}   />
+
+Controls HTTP access to the `/mcp/shop` endpoint and the shop toolset.
+
+- `'anonymous'` (default): the endpoint accepts anonymous callers as well as
+  OAuth-authenticated customers.
+- `'authenticated'`: the endpoint requires an OAuth Bearer token. Token-less
+  requests receive a 401 with the standard auth challenge.
+- `'disabled'`: the endpoint responds 404 and customer OAuth authorization
+  requests are refused.
+
+In-process tool execution via [McpToolExecutionService](/reference/core-plugins/mcp-plugin/mcp-tool-execution-service#mcptoolexecutionservice) is not affected.
+### oauth
+
+<MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-oauth-options#mcpoauthoptions'>McpOauthOptions</a>`}   />
+
+Leave this out and the anonymous shop endpoint still works, but anything needing a token
+fails with `400 MCP OAuth is not configured`. That covers the admin endpoint, the
+authenticated shop endpoint, and the OAuth endpoints themselves.
+### rateLimits
+
+<MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-rate-limit-options#mcpratelimitoptions'>McpRateLimitOptions</a>`}   />
+
+
+### dnsRebinding
+
+<MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-dns-rebinding-options#mcpdnsrebindingoptions'>McpDnsRebindingOptions</a>`}   />
+
+
+### logging
+
+<MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-logging-options#mcploggingoptions'>McpLoggingOptions</a>`}   />
+
+
+
+
+</div>

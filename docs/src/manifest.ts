@@ -854,6 +854,62 @@ const manifestInput: DocsPackageManifestInput = {
                 },
             ],
         },
+        {
+            title: 'MCP Server',
+            slug: 'mcp-server',
+            children: [
+                {
+                    title: 'Quick Start',
+                    slug: 'quick-start',
+                    file: file('docs/guides/mcp-server/quick-start/index.mdx'),
+                },
+                {
+                    title: 'OAuth & Consent',
+                    slug: 'oauth-consent',
+                    file: file('docs/guides/mcp-server/oauth-consent/index.mdx'),
+                },
+                {
+                    title: 'Assistant inside Vendure',
+                    slug: 'assistant-inside-vendure',
+                    file: file('docs/guides/mcp-server/assistant-inside-vendure/index.mdx'),
+                },
+                {
+                    title: 'Assistant outside Vendure',
+                    slug: 'assistant-outside-vendure',
+                    file: file('docs/guides/mcp-server/assistant-outside-vendure/index.mdx'),
+                },
+                {
+                    title: 'Registering Custom Tools',
+                    slug: 'custom-tools',
+                    file: file('docs/guides/mcp-server/custom-tools/index.mdx'),
+                },
+                {
+                    title: 'Production Hardening',
+                    slug: 'production',
+                    file: file('docs/guides/mcp-server/production/index.mdx'),
+                },
+                {
+                    title: 'Logging & Observability',
+                    slug: 'observability',
+                    file: file('docs/guides/mcp-server/observability/index.mdx'),
+                },
+                {
+                    title: 'Administration',
+                    slug: 'administration',
+                    file: file('docs/guides/mcp-server/administration/index.mdx'),
+                },
+                {
+                    title: 'Built-in Tool Reference',
+                    slug: 'built-in-tools',
+                    file: file('docs/guides/mcp-server/built-in-tools/index.mdx'),
+                },
+                {
+                    title: 'OAuth Protocol Reference',
+                    slug: 'oauth-reference',
+                    file: file('docs/guides/mcp-server/oauth-reference/index.mdx'),
+                },
+            ],
+        },
         // Reference Sidebar
         {
             title: 'Reference',
@@ -945,6 +1001,17 @@ const manifestInput: DocsPackageManifestInput = {
                             file: file('docs/reference/core-plugins/job-queue-plugin/index.mdx'),
                             children: createNestedNavigationFromFolder(
                                 folder('docs/reference/core-plugins/job-queue-plugin'),
+                                {
+                                    filter: (info: FileInfo) => info.filename !== 'index.mdx',
+                                },
+                            ),
+                        },
+                        {
+                            title: 'McpPlugin',
+                            slug: 'mcp-plugin',
+                            file: file('docs/reference/core-plugins/mcp-plugin/index.mdx'),
+                            children: createNestedNavigationFromFolder(
+                                folder('docs/reference/core-plugins/mcp-plugin'),
                                 {
                                     filter: (info: FileInfo) => info.filename !== 'index.mdx',
                                 },

@@ -1,0 +1,52 @@
+import { Injectable } from '@nestjs/common';
+import { isGraphQlErrorResult, OrderService, Permission, RequestContext } from '@vendure/core';
+import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
+
+import { McpActiveOrderService } from '../active-order.service';
+import { McpToolSerializerService } from '../serializer.service';
+import { shortText } from '../string-schemas';
+
+const removeCouponCodeInput = z.strictObject({
+    code: shortText.describe('Coupon code.'),
+});
+
+type RemoveCouponCodeInput = z.infer<typeof removeCouponCodeInput>;
+
+@McpTool({
+    name: 'remove_coupon_code',
+    toolset: 'shop',
+    description: 'Remove a coupon code from the active cart.',
+    keywords: [
+        'take off the discount',
+        'cancel my promo code',
+        'remove the voucher',
+        'get rid of the coupon',
+        'undo the discount code',
+        'clear the applied promo',
+    ],
+    permissions: [Permission.Public],
+    behavior: 'mutating',
+    usesActiveOrder: true,
+    inputSchema: removeCouponCodeInput,
+})
+@Injectable()
+export class RemoveCouponCodeTool implements McpToolHandler<RemoveCouponCodeInput> {
+    constructor(
+        private readonly activeOrder: McpActiveOrderService,
+        private readonly orderService: OrderService,
+        private readonly serializer: McpToolSerializerService,
+    ) {}
+
+    async execute(ctx: RequestContext, input: RemoveCouponCodeInput) {
+        const order = await this.activeOrder.findEditable(ctx);
+        if (isGraphQlErrorResult(order)) {
+            return this.serializer.orderOrError(order);
+        }
+        return {
+            order: this.serializer.order(
+                await this.orderService.removeCouponCode(order.ctx, order.id, input.code),
+            ),
+        };
+    }
+}

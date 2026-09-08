@@ -59,6 +59,7 @@ function getBasePort(): number {
         'asset-server-plugin': 3220,
         'graphiql-plugin': 3230,
         cli: 3240,
+        'mcp-plugin': 3260,
     };
     return offsets[packageName] ?? 3250;
 }

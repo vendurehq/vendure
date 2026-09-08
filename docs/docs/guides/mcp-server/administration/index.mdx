@@ -1,0 +1,49 @@
+---
+title: 'Administration'
+metaTitle: 'MCP Server Administration | Vendure'
+metaDescription: 'Give store operators access to manage the MCP server: the McpServer permissions, what each one gates, and where the management surfaces live.'
+order: 8
+---
+
+Give your operators access to manage the MCP server without giving them general store-settings access.
+
+Operators work in the dashboard's **MCP Server** section or through the Admin GraphQL API.
+
+## Grant the permissions
+
+The MCP dashboard and Admin API run under a dedicated `McpServer` permission pair. Grant it to the operators
+who manage the AI integration.
+
+| Task | Permission |
+|---|---|
+| View the tool registry and active grants | `ReadMcpServer` |
+| View [call logs and stats](/guides/mcp-server/observability/) | `ReadMcpServer` |
+| Turn a tool on or off | `UpdateMcpServer` |
+| Revoke a grant | `UpdateMcpServer` |
+| Prune expired call logs | `UpdateMcpServer` |
+| [Approve an admin consent request](/guides/mcp-server/oauth-consent/#approve-a-client-as-an-administrator) | `UpdateMcpServer` |
+
+:::info
+`ReadMcpServer` does not expose captured request or response bodies. Reading a call log's `input`, `output`, or
+`clientIp` also requires `ReadCustomer`.
+:::
+
+## Which channel the agent works on
+
+Approving an admin consent request binds the client to the channel the dashboard was on at the time. The
+agent then works on that channel only, and its grant and call logs show up on that channel. An operator
+looking at a different channel cannot see the grant, revoke it, or prune its log rows.
+
+So switch to the channel you want the agent to work on before you approve. A superadmin who wants the agent
+to cover the whole store approves while on the default channel.
+
+## Registry visibility
+
+The tool-registry query returns the full registry. It is not filtered per caller, so any holder of
+`ReadMcpServer` sees every tool.
+
+## See also
+
+- [Logging & Observability](/guides/mcp-server/observability/) — the call logs and stats these permissions gate.
+- [OAuth & Consent Integration](/guides/mcp-server/oauth-consent/) — the consent requests an operator approves.
+- [Production Hardening](/guides/mcp-server/production/) — the go-live checklist for the server itself.

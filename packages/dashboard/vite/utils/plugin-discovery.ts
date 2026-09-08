@@ -13,6 +13,13 @@ import { PackageScannerConfig } from './compiler.js';
 import { resolvePathAliasImports, resolveSourceFile } from './import-resolution.js';
 import { findTsConfigPaths } from './tsconfig-utils.js';
 
+/**
+ * Where a locally-discovered plugin's source lives, plus the dashboard entry
+ * path declared on its `@VendurePlugin` decorator (if any). Populated by the
+ * source walk in {@link analyzeSourceFiles}.
+ */
+type LocalPluginLocation = { sourceFile: string; dashboardPath?: string };
+
 export async function discoverPlugins({
     vendureConfigPath,
     transformTsConfigPathMappings,
@@ -65,89 +72,145 @@ export async function discoverPlugins({
             continue;
         }
 
-        try {
-            const ast = parse(content, {
-                ecmaVersion: 'latest',
-                sourceType: 'module',
+        const decorated = readCompiledPluginDecorator(content, filePath, logger);
+        if (decorated) {
+            logger.debug(`[discoverPlugins] Found plugin "${decorated.name}" in file: ${filePath}`);
+            const resolvedDashboardPath = dashboardPathRelativeToPlugin(filePath, decorated.dashboardPath);
+
+            // Check if this is a local plugin we found earlier
+            const sourcePluginPath = localPluginLocations.get(decorated.name)?.sourceFile;
+
+            plugins.push({
+                name: decorated.name,
+                pluginPath: filePath,
+                dashboardEntryPath: resolvedDashboardPath,
+                ...(sourcePluginPath && { sourcePluginPath }),
             });
-
-            let hasVendurePlugin = false;
-            let pluginName: string | undefined;
-            let dashboardPath: string | undefined;
-
-            // Walk the AST to find the plugin class and its decorator
-            walkSimple(ast, {
-                CallExpression(node: any) {
-                    // Look for __decorate calls — handles both direct calls (__decorate(...))
-                    // and tslib member expressions (tslib_1.__decorate(...)) which occur
-                    // when packages are compiled with TypeScript's importHelpers: true
-                    const callee = node.callee;
-                    const calleeName =
-                        callee.name ??
-                        (callee.type === 'MemberExpression' && callee.property?.name === '__decorate'
-                            ? '__decorate'
-                            : undefined);
-                    const nodeArgs = node.arguments;
-                    const isDecoratorWithArgs = calleeName === '__decorate' && nodeArgs.length >= 2;
-
-                    if (isDecoratorWithArgs) {
-                        // Check the decorators array (first argument)
-                        const decorators = nodeArgs[0];
-                        if (decorators.type === 'ArrayExpression') {
-                            for (const decorator of decorators.elements) {
-                                const props = getDecoratorObjectProps(decorator);
-                                for (const prop of props) {
-                                    if (prop.key.name === 'dashboard') {
-                                        if (prop.value.type === 'Literal') {
-                                            // Handle string format: dashboard: './path/to/dashboard'
-                                            dashboardPath = prop.value.value;
-                                            hasVendurePlugin = true;
-                                        } else if (prop.value.type === 'ObjectExpression') {
-                                            // Handle object format: dashboard: { location: './path/to/dashboard' }
-                                            const locationProp = prop.value.properties?.find(
-                                                (p: any) => p.key?.name === 'location',
-                                            );
-                                            if (locationProp?.value.type === 'Literal') {
-                                                dashboardPath = locationProp.value.value;
-                                                hasVendurePlugin = true;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        // Get the plugin class name (second argument)
-                        const targetClass = nodeArgs[1];
-                        if (targetClass.type === 'Identifier') {
-                            pluginName = targetClass.name;
-                        }
-                    }
-                },
-            });
-
-            if (hasVendurePlugin && pluginName && dashboardPath) {
-                logger.debug(`[discoverPlugins] Found plugin "${pluginName}" in file: ${filePath}`);
-                // Keep the dashboard path relative to the plugin file
-                const resolvedDashboardPath = dashboardPath.startsWith('.')
-                    ? dashboardPath // Keep the relative path as-is
-                    : './' + path.relative(path.dirname(filePath), dashboardPath); // Make absolute path relative
-
-                // Check if this is a local plugin we found earlier
-                const sourcePluginPath = localPluginLocations.get(pluginName);
-
-                plugins.push({
-                    name: pluginName,
-                    pluginPath: filePath,
-                    dashboardEntryPath: resolvedDashboardPath,
-                    ...(sourcePluginPath && { sourcePluginPath }),
-                });
-            }
-        } catch (e) {
-            logger.error(`Failed to parse ${filePath}: ${e instanceof Error ? e.message : String(e)}`);
         }
     }
 
+    plugins.push(...(await workspacePluginDashboards(plugins, localPluginLocations, logger)));
+
     return plugins;
+}
+
+// Workspace plugins are symlinked into node_modules, so the compiled-file scan never sees them.
+async function workspacePluginDashboards(
+    alreadyRegistered: PluginInfo[],
+    localPluginLocations: Map<string, LocalPluginLocation>,
+    logger: Logger,
+): Promise<PluginInfo[]> {
+    const registeredNames = new Set(alreadyRegistered.map(p => p.name));
+    const plugins: PluginInfo[] = [];
+    for (const [name, { sourceFile, dashboardPath }] of localPluginLocations) {
+        if (!dashboardPath || registeredNames.has(name)) {
+            continue;
+        }
+        const resolvedDashboardPath = dashboardPathRelativeToPlugin(sourceFile, dashboardPath);
+        const resolvedEntry = path.resolve(path.dirname(sourceFile), resolvedDashboardPath);
+        if (!(await fs.pathExists(resolvedEntry))) {
+            logger.warn(
+                `[discoverPlugins] Dashboard entry for workspace plugin "${name}" not found at ${resolvedEntry}; skipping dashboard registration.`,
+            );
+            continue;
+        }
+        logger.debug(
+            `[discoverPlugins] Registering dashboard for workspace-symlinked plugin "${name}" from source: ${sourceFile}`,
+        );
+        plugins.push({
+            name,
+            pluginPath: sourceFile,
+            dashboardEntryPath: resolvedDashboardPath,
+            sourcePluginPath: sourceFile,
+        });
+    }
+    return plugins;
+}
+
+function readCompiledPluginDecorator(
+    content: string,
+    filePath: string,
+    logger: Logger,
+): { name: string; dashboardPath: string } | undefined {
+    let pluginName: string | undefined;
+    let dashboardPath: string | undefined;
+    try {
+        const ast = parse(content, {
+            ecmaVersion: 'latest',
+            sourceType: 'module',
+        });
+
+        // Walk the AST to find the plugin class and its decorator
+        walkSimple(ast, {
+            CallExpression(node: any) {
+                // Look for __decorate calls — handles both direct calls (__decorate(...))
+                // and tslib member expressions (tslib_1.__decorate(...)) which occur
+                // when packages are compiled with TypeScript's importHelpers: true
+                const callee = node.callee;
+                const calleeName =
+                    callee.name ??
+                    (callee.type === 'MemberExpression' && callee.property?.name === '__decorate'
+                        ? '__decorate'
+                        : undefined);
+                const nodeArgs = node.arguments;
+                const isDecoratorWithArgs = calleeName === '__decorate' && nodeArgs.length >= 2;
+                if (!isDecoratorWithArgs) {
+                    return;
+                }
+
+                // Check the decorators array (first argument)
+                const declaredDashboardPath = getDashboardPathFromDecorateCall(nodeArgs[0]);
+                if (declaredDashboardPath) {
+                    dashboardPath = declaredDashboardPath;
+                }
+                // Get the plugin class name (second argument)
+                const targetClass = nodeArgs[1];
+                if (targetClass.type === 'Identifier') {
+                    pluginName = targetClass.name;
+                }
+            },
+        });
+    } catch (e) {
+        logger.error(`Failed to parse ${filePath}: ${e instanceof Error ? e.message : String(e)}`);
+        return undefined;
+    }
+    return pluginName && dashboardPath ? { name: pluginName, dashboardPath } : undefined;
+}
+
+/**
+ * Puts a declared dashboard entry path into the form the rest of the build
+ * expects: relative to the file that declares it. A path that already starts
+ * with `.` passes through unchanged; any other path becomes relative.
+ */
+function dashboardPathRelativeToPlugin(pluginFilePath: string, dashboardPath: string): string {
+    return dashboardPath.startsWith('.')
+        ? dashboardPath
+        : './' + path.relative(path.dirname(pluginFilePath), dashboardPath);
+}
+
+function getDashboardPathFromDecorateCall(decorators: any): string | undefined {
+    if (decorators.type !== 'ArrayExpression') {
+        return undefined;
+    }
+    let dashboardPath: string | undefined;
+    for (const decorator of decorators.elements) {
+        for (const prop of getDecoratorObjectProps(decorator)) {
+            if (prop.key.name !== 'dashboard') {
+                continue;
+            }
+            if (prop.value.type === 'Literal') {
+                // Handle string format: dashboard: './path/to/dashboard'
+                dashboardPath = prop.value.value;
+            } else if (prop.value.type === 'ObjectExpression') {
+                // Handle object format: dashboard: { location: './path/to/dashboard' }
+                const locationProp = prop.value.properties?.find((p: any) => p.key?.name === 'location');
+                if (locationProp?.value.type === 'Literal') {
+                    dashboardPath = locationProp.value.value;
+                }
+            }
+        }
+    }
+    return dashboardPath;
 }
 
 function getDecoratorObjectProps(decorator: any): any[] {
@@ -260,10 +323,10 @@ export async function analyzeSourceFiles(
     logger: Logger,
     transformTsConfigPathMappings: TransformTsConfigPathMappingsFn,
 ): Promise<{
-    localPluginLocations: Map<string, string>;
+    localPluginLocations: Map<string, LocalPluginLocation>;
     packageImports: string[];
 }> {
-    const localPluginLocations = new Map<string, string>();
+    const localPluginLocations = new Map<string, LocalPluginLocation>();
     const visitedFiles = new Set<string>();
     const packageImportsSet = new Set<string>();
 
@@ -301,10 +364,13 @@ export async function analyzeSourceFiles(
 
             async function visit(node: ts.Node) {
                 // Look for VendurePlugin decorator
-                const vendurePluginClassName = getVendurePluginClassName(node);
-                if (vendurePluginClassName) {
-                    localPluginLocations.set(vendurePluginClassName, filePath);
-                    logger.debug(`Found plugin "${vendurePluginClassName}" at ${filePath}`);
+                const vendurePlugin = getVendurePluginInfo(node);
+                if (vendurePlugin) {
+                    localPluginLocations.set(vendurePlugin.name, {
+                        sourceFile: filePath,
+                        dashboardPath: vendurePlugin.dashboardPath,
+                    });
+                    logger.debug(`Found plugin "${vendurePlugin.name}" at ${filePath}`);
                 }
 
                 // Handle both imports and exports
@@ -377,23 +443,73 @@ export async function analyzeSourceFiles(
 
 /**
  * If this is a class declaration that is decorated with the `VendurePlugin` decorator,
- * we want to return that class name, as we have found a local Vendure plugin.
+ * we want to return that class name (and its declared dashboard entry path, if any),
+ * as we have found a local Vendure plugin.
  */
-function getVendurePluginClassName(node: ts.Node): string | undefined {
-    if (ts.isClassDeclaration(node)) {
-        const decorators = ts.canHaveDecorators(node) ? ts.getDecorators(node) : undefined;
-        if (decorators?.length) {
-            for (const decorator of decorators) {
-                const decoratorName = getDecoratorName(decorator);
-                if (decoratorName === 'VendurePlugin') {
-                    const className = node.name?.text;
-                    if (className) {
-                        return className;
-                    }
-                }
+function getVendurePluginInfo(node: ts.Node): { name: string; dashboardPath?: string } | undefined {
+    if (!ts.isClassDeclaration(node)) {
+        return undefined;
+    }
+    const className = node.name?.text;
+    if (!className) {
+        return undefined;
+    }
+    const decorators = ts.canHaveDecorators(node) ? ts.getDecorators(node) : undefined;
+    for (const decorator of decorators ?? []) {
+        if (getDecoratorName(decorator) !== 'VendurePlugin') {
+            continue;
+        }
+        return {
+            name: className,
+            dashboardPath: getDashboardPathFromVendurePluginDecorator(decorator),
+        };
+    }
+    return undefined;
+}
+
+/**
+ * Reads the `dashboard` property off a `@VendurePlugin({ ... })` decorator in
+ * TypeScript source. Handles both the string form (`dashboard: './x.tsx'`) and
+ * the object form (`dashboard: { location: './x.tsx' }`), mirroring the
+ * equivalent extraction from compiled `__decorate` calls in `discoverPlugins`.
+ */
+function getDashboardPathFromVendurePluginDecorator(decorator: ts.Decorator): string | undefined {
+    if (!ts.isCallExpression(decorator.expression)) {
+        return undefined;
+    }
+    const configArg = decorator.expression.arguments[0];
+    if (!configArg || !ts.isObjectLiteralExpression(configArg)) {
+        return undefined;
+    }
+    for (const prop of configArg.properties) {
+        if (!ts.isPropertyAssignment(prop) || !ts.isIdentifier(prop.name) || prop.name.text !== 'dashboard') {
+            continue;
+        }
+        // String form: dashboard: './path/to/dashboard'
+        if (ts.isStringLiteralLike(prop.initializer)) {
+            return prop.initializer.text;
+        }
+        // Object form: dashboard: { location: './path/to/dashboard' }
+        if (ts.isObjectLiteralExpression(prop.initializer)) {
+            const location = getLocationFromDashboardObject(prop.initializer);
+            if (location !== undefined) {
+                return location;
             }
         }
     }
+    return undefined;
+}
+
+function getLocationFromDashboardObject(dashboardObject: ts.ObjectLiteralExpression): string | undefined {
+    for (const prop of dashboardObject.properties) {
+        if (!ts.isPropertyAssignment(prop) || !ts.isIdentifier(prop.name) || prop.name.text !== 'location') {
+            continue;
+        }
+        if (ts.isStringLiteralLike(prop.initializer)) {
+            return prop.initializer.text;
+        }
+    }
+    return undefined;
 }
 
 function getNpmPackageNameFromImport(importPath: string): string | undefined {
@@ -507,7 +623,6 @@ export async function findVendurePluginFiles({
 }
 
 function guessNodeModulesRoot(vendureConfigPath: string, logger: Logger): string {
-    let nodeModulesRoot: string;
     // If the node_modules root path has not been explicitly
     // specified, we will try to guess it by resolving the
     // `@vendure/core` package.
@@ -516,10 +631,45 @@ function guessNodeModulesRoot(vendureConfigPath: string, logger: Logger): string
         logger.debug(`Found core URL: ${coreUrl}`);
         const corePath = fileURLToPath(coreUrl);
         logger.debug(`Found core path: ${corePath}`);
-        nodeModulesRoot = path.join(path.dirname(corePath), '..', '..', '..');
+        const enclosingNodeModules = enclosingNodeModulesDir(corePath);
+        if (enclosingNodeModules) {
+            return enclosingNodeModules;
+        }
+        logger.debug(`@vendure/core resolved outside node_modules; searching for it instead`);
     } catch (e) {
         logger.warn(`Failed to resolve @vendure/core: ${e instanceof Error ? e.message : String(e)}`);
-        nodeModulesRoot = path.dirname(vendureConfigPath);
     }
-    return nodeModulesRoot;
+    const configDir = path.dirname(vendureConfigPath);
+    return findNodeModulesContaining(configDir, '@vendure/core') ?? configDir;
+}
+
+/**
+ * Returns the innermost `node_modules` directory that the given path sits inside,
+ * or undefined if the path is not inside one.
+ */
+function enclosingNodeModulesDir(filePath: string): string | undefined {
+    const marker = `${path.sep}node_modules${path.sep}`;
+    const index = filePath.lastIndexOf(marker);
+    return index === -1 ? undefined : filePath.slice(0, index) + path.sep + 'node_modules';
+}
+
+/**
+ * Walks up from `startDir` looking for a `node_modules` directory that contains
+ * `packageName`, and returns that directory. Call this when a package resolves to
+ * a source folder outside node_modules, where its own path cannot show where
+ * installed packages live.
+ */
+function findNodeModulesContaining(startDir: string, packageName: string): string | undefined {
+    let dir = startDir;
+    for (;;) {
+        const candidate = path.join(dir, 'node_modules');
+        if (fs.existsSync(path.join(candidate, packageName))) {
+            return candidate;
+        }
+        const parent = path.dirname(dir);
+        if (parent === dir) {
+            return undefined;
+        }
+        dir = parent;
+    }
 }

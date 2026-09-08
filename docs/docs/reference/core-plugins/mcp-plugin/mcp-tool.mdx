@@ -1,0 +1,36 @@
+---
+title: "McpTool"
+generated: true
+---
+<GenerationInfo sourceFile="packages/mcp-sdk/src/mcp-tool.decorator.ts" sourceLine="231" packageName="@vendure/mcp-sdk" since="3.8.0" />
+
+Marks a class as an MCP tool. The class must be a NestJS provider (can be injected via `@Injectable()`)
+so the MCP server can discover it and inject the services it depends on.
+It also needs an `execute` method (see [McpToolHandler](/reference/core-plugins/mcp-plugin/mcp-tool-handler#mcptoolhandler)), which the server checks for when registering the
+tool. The [McpToolMetadata](/reference/core-plugins/mcp-plugin/mcp-tool-metadata#mcptoolmetadata) you pass is read at runtime and used by the
+[MCP plugin](/reference/core-plugins/mcp-plugin/) to turn the class into a
+callable tool.
+
+*Example*
+
+```ts
+import { Injectable } from '@nestjs/common';
+import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { Permission, RequestContext } from '@vendure/core';
+
+@Injectable()
+@McpTool({
+    name: 'search_products',
+    description: 'Search the product catalog',
+    toolset: 'shop',
+    behavior: 'readonly',
+    permissions: [Permission.Public],
+})
+export class SearchProductsTool implements McpToolHandler {
+    execute(ctx: RequestContext, input: { term: string }) {
+        // ...
+        return { items: [] };
+    }
+}
+```
+

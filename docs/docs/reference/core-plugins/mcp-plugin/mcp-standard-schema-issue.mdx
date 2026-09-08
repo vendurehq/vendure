@@ -1,0 +1,32 @@
+---
+title: "McpStandardSchemaIssue"
+generated: true
+---
+<GenerationInfo sourceFile="packages/mcp-sdk/src/standard-schema.ts" sourceLine="8" packageName="@vendure/mcp-sdk" since="3.8.0" />
+
+One validation failure reported by an [McpStandardSchema](/reference/core-plugins/mcp-plugin/mcp-standard-schema#mcpstandardschema).
+
+```ts title="Signature"
+interface McpStandardSchemaIssue {
+    readonly message: string;
+    readonly path?: ReadonlyArray<PropertyKey | { readonly key: PropertyKey }>;
+}
+```
+
+<div className="members-wrapper">
+
+### message
+
+<MemberInfo kind="property" type={`string`}   />
+
+A human readable message describing why the value was rejected.
+### path
+
+<MemberInfo kind="property" type={`ReadonlyArray<PropertyKey | { readonly key: PropertyKey }>`}   />
+
+Where the rejected value sits inside the validated input. Each segment is a property key,
+an array index, or an object carrying that key. It is absent when the issue applies to the
+value as a whole.
+
+
+</div>
