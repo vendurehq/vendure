@@ -1,3 +1,5 @@
+import { CliPluginExtensionAccessor } from './cli-plugin-extension';
+
 /**
  * An option on a CLI command.
  *
@@ -57,6 +59,8 @@ export interface CliCommandContext<TInheritedOptions extends Record<string, any>
      * `['config', 'server', 'set']` for `vendure config server set`.
      */
     commandPath: string[];
+    /** Reads plugin contributions registered for a named extension point. */
+    getPluginExtensions: CliPluginExtensionAccessor;
 }
 
 /**

@@ -10,8 +10,9 @@ import { CLI_PLUGIN_EXTENSION_POINTS, defineCliPlugin } from '../../shared/cli-p
 import { CommandRegistry } from '../../shared/command-registry-store';
 import { builtinCommandDefs } from '../builtins';
 
-import { ConsoleCommandDependencies, ConsoleReporter, consoleCommand } from './console';
+import { ConsoleCommandDependencies, consoleCommand } from './console';
 import { ConsoleLinkContext, ConsoleLinkHook } from './console-link-hook';
+import { ConsoleReporter } from './console-reporter';
 import { LINK_ID, POLLING_SECRET, manifest } from './console.fixtures';
 import { getProjectLinkManifestPath } from './project-link-manifest';
 
@@ -59,7 +60,6 @@ describe('console link hooks', () => {
         expect(context.force).toBe(false);
         expect(context.outcome).toBe('linked');
         expect(context.isNonInteractive).toBe(true);
-        expect(context.signal.aborted).toBe(false);
         // A loopback Console is not an official origin, so a hook holding
         // credentials is told plainly that it is not talking to Vendure.
         expect(context.endpoints.official).toBeUndefined();
@@ -99,7 +99,7 @@ describe('console link hooks', () => {
         expect(output).toContain('Console rejected the credential request.');
         expect(output).toContain('The link succeeded');
         // Repairing a credential store must not be sold as another link, which
-        // would mint a second Project Link in Console.
+        // would create a second Project Link in Console.
         expect(output).not.toContain('vendure console link again');
     });
 
@@ -138,15 +138,12 @@ describe('console link hooks', () => {
         expect(output).not.toContain('No Project Link Manifest was changed');
     });
 
-    it('does not run hooks for status, unlink or an unknown action', async () => {
+    it.each(['status', 'unlink', 'nonsense'])('does not run hooks for %s', async action => {
         const hook = vi.fn<ConsoleLinkHook>(async () => undefined);
         const registry = registryWith(plugin(FIRST_PLUGIN, hook));
         const root = vendureProject();
-        const hooks = registry.getConsoleLinkHooks();
 
-        for (const action of ['status', 'unlink', 'nonsense']) {
-            await consoleCommand(action, {}, { ...offlineDependencies(root), hooks });
-        }
+        await consoleCommand(action, {}, { ...offlineDependencies(root), hooks: consoleLinkHooks(registry) });
 
         expect(hook).not.toHaveBeenCalled();
     });
@@ -170,7 +167,7 @@ describe('console link hooks', () => {
                     VENDURE_CONSOLE_LINK_API_URL: 'https://api.staging.example.com',
                 },
                 fetch: fetchMock,
-                hooks: registry.getConsoleLinkHooks(),
+                hooks: consoleLinkHooks(registry),
             },
         );
 
@@ -190,7 +187,7 @@ describe('console link hooks', () => {
         });
 
         expect(() => registry.applyPlugin(rejected)).toThrow();
-        expect(registry.getConsoleLinkHooks()).toEqual([]);
+        expect(registry.getPluginExtensions('afterConsoleLink')).toEqual([]);
     });
 
     it('lets one plugin both extend the console command and register a hook', async () => {
@@ -217,7 +214,9 @@ describe('console link hooks', () => {
             }),
         );
 
-        expect(registry.getConsoleLinkHooks().map(entry => entry.pluginId)).toEqual([FIRST_PLUGIN]);
+        expect(registry.getPluginExtensions('afterConsoleLink').map(entry => entry.pluginId)).toEqual([
+            FIRST_PLUGIN,
+        ]);
         const root = vendureProject();
         const test = await runLink(root, registry);
 
@@ -228,8 +227,13 @@ describe('console link hooks', () => {
     it('names afterConsoleLink as a supported extension point at runtime', () => {
         // A plugin resolving an older CLI gets `undefined` here, which is how
         // it tells that its hook would be accepted and then never run.
-        expect(CLI_PLUGIN_EXTENSION_POINTS).toContain('afterConsoleLink');
-        expect(CLI_PLUGIN_EXTENSION_POINTS).toContain('extendCommands');
+        expect(CLI_PLUGIN_EXTENSION_POINTS).toEqual([
+            'commands',
+            'rootOptions',
+            'subcommands',
+            'extendCommands',
+            'afterConsoleLink',
+        ]);
         expect(Object.isFrozen(CLI_PLUGIN_EXTENSION_POINTS)).toBe(true);
     });
 
@@ -248,12 +252,12 @@ describe('console link hooks', () => {
         const exitCode = await consoleCommand(
             'link',
             {},
-            { ...offlineDependencies(root), fetch: fetchMock, hooks: registry.getConsoleLinkHooks() },
+            { ...offlineDependencies(root), fetch: fetchMock, hooks: consoleLinkHooks(registry) },
         );
 
         expect(exitCode).toBe(0);
         // Repair is local. Nothing is asked of Console, so no second Project
-        // Link is minted and the first is not abandoned.
+        // Link is created and the first is not abandoned.
         expect(fetchMock).not.toHaveBeenCalled();
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
         expect(contexts).toHaveLength(1);
@@ -276,7 +280,7 @@ describe('console link hooks', () => {
         const exitCode = await consoleCommand(
             'link',
             {},
-            { ...offlineDependencies(root, messages), hooks: registry.getConsoleLinkHooks() },
+            { ...offlineDependencies(root, messages), hooks: consoleLinkHooks(registry) },
         );
 
         expect(exitCode).toBe(1);
@@ -333,9 +337,13 @@ describe('console link hooks', () => {
     // Zero as well as non-zero: `exitCliCommand(0)` is how every built-in
     // prompt reports a cancellation, so a hook driving one unwinds through here
     // with a code that means "stopped", not "nothing happened".
-    it.each([0, 2])('says what survived when a hook exits with code %i', async exitCode => {
+    it.each([
+        { exitCode: 0, level: 'warn' as const },
+        { exitCode: 2, level: 'error' as const },
+    ])('preserves exit code $exitCode and reports at $level level', async ({ exitCode, level }) => {
         const trace: string[] = [];
         const messages: string[] = [];
+        const reports: Array<{ level: keyof ConsoleReporter; message: string }> = [];
         const registry = registryWith(
             plugin(FIRST_PLUGIN, async () => {
                 trace.push(FIRST_PLUGIN);
@@ -348,15 +356,34 @@ describe('console link hooks', () => {
         const root = vendureProject();
 
         await expect(
-            runLink(root, registry, { reporter: recordingReporter(messages) }),
-        ).rejects.toBeInstanceOf(CliCommandExit);
+            runLink(root, registry, { reporter: recordingReporter(messages, reports) }),
+        ).rejects.toMatchObject({ exitCode });
         // The hooks after it did not run, and the reader is told so rather than
         // being left with an exit code and a success message.
         expect(trace).toEqual([FIRST_PLUGIN]);
         const output = messages.join('\n');
         expect(output).toContain(`The ${FIRST_PLUGIN} plugin stopped the run after linking`);
+        expect(reports).toContainEqual({
+            level,
+            message: `The ${FIRST_PLUGIN} plugin stopped the run after linking.`,
+        });
         expect(output).toContain('The link succeeded');
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
+    });
+
+    it('snapshots non-interactive mode once for a hook context and its confirm function', async () => {
+        const isNonInteractive = vi.fn().mockReturnValueOnce(true).mockReturnValue(false);
+        const registry = registryWith(
+            plugin(FIRST_PLUGIN, async context => {
+                expect(context.isNonInteractive).toBe(true);
+                await expect(context.confirm('Continue?')).rejects.toThrow('non-interactive');
+            }),
+        );
+
+        const test = await runLink(vendureProject(), registry, { isNonInteractive });
+
+        expect(test.exitCode).toBe(0);
+        expect(isNonInteractive).toHaveBeenCalledTimes(1);
     });
 
     it('rejects a plugin whose afterConsoleLink is not a function', () => {
@@ -416,7 +443,7 @@ async function runLink(
                 VENDURE_CONSOLE_LINK_API_URL: apiUrl,
             },
             fetch: globalThis.fetch,
-            hooks: registry.getConsoleLinkHooks(),
+            hooks: consoleLinkHooks(registry),
             ...overrides,
         },
     );
@@ -424,14 +451,28 @@ async function runLink(
     return { exitCode, messages, requestPaths, apiUrl };
 }
 
-function recordingReporter(messages: string[]): ConsoleReporter {
+function recordingReporter(
+    messages: string[],
+    reports?: Array<{ level: keyof ConsoleReporter; message: string }>,
+): ConsoleReporter {
     return {
-        error: message => messages.push(message),
-        info: message => messages.push(message),
-        success: message => messages.push(message),
-        warn: message => messages.push(message),
-        url: value => messages.push(value),
+        error: message => record('error', message),
+        info: message => record('info', message),
+        success: message => record('success', message),
+        warn: message => record('warn', message),
+        url: value => record('url', value),
     };
+
+    function record(level: keyof ConsoleReporter, message: string): void {
+        messages.push(message);
+        reports?.push({ level, message });
+    }
+}
+
+function consoleLinkHooks(registry: CommandRegistry) {
+    return registry
+        .getPluginExtensions<ConsoleLinkHook>('afterConsoleLink')
+        .map(({ pluginId, extension: hook }) => ({ pluginId, hook }));
 }
 
 function offlineDependencies(root: string, messages: string[] = []): Partial<ConsoleCommandDependencies> {

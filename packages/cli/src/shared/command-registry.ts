@@ -10,6 +10,7 @@ import {
 } from './cli-command-definition';
 import { CliCommandExit } from './cli-command-exit';
 import { buildOptionFlags, parseOptionFlags } from './cli-command-options';
+import { CliPluginExtensionAccessor } from './cli-plugin-extension';
 
 /**
  * An option declared on an ancestor of a command. Commander stores the parsed
@@ -25,10 +26,11 @@ export function registerCommands(
     program: Command,
     commands: CliCommandNode[],
     rootOptions: CliCommandOption[] = [],
+    getPluginExtensions: CliPluginExtensionAccessor = () => [],
 ): void {
     const sharedOptions = declareOptions(program, rootOptions);
     for (const node of commands) {
-        registerNode(program, node, [], sharedOptions);
+        registerNode(program, node, [], sharedOptions, getPluginExtensions);
     }
 }
 
@@ -37,6 +39,7 @@ function registerNode(
     node: CliCommandNode,
     path: string[],
     sharedOptions: SharedOption[],
+    getPluginExtensions: CliPluginExtensionAccessor,
 ): void {
     const command = parent.command(node.name).description(node.description);
     const commandPath = [...path, node.name];
@@ -53,7 +56,7 @@ function registerNode(
         // it; hasCliSubcommands explains why.
         const inheritedOptions = [...sharedOptions, ...ownOptions];
         for (const subcommand of subcommands) {
-            registerNode(command, subcommand, commandPath, inheritedOptions);
+            registerNode(command, subcommand, commandPath, inheritedOptions, getPluginExtensions);
         }
         if (runnable) {
             // A command with subcommands takes no positional arguments, so any
@@ -91,6 +94,7 @@ function registerNode(
         const context: CliCommandContext = {
             inheritedOptions: readSharedValues(sharedOptions),
             commandPath,
+            getPluginExtensions,
         };
         // Exit is owned by the host so plugins can wrap built-in actions.
         process.exit(await runAction(runnable.action, args, context));

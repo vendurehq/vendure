@@ -108,6 +108,26 @@ function cloudCommands(): CliCommandNode[] {
 }
 
 describe('registerCommands() with nested commands', () => {
+    it('passes opaque plugin extension values to command actions', async () => {
+        const extension = { requiresSession: true };
+        let received: unknown;
+        const command: CliCommandDefinition = {
+            name: 'inspect',
+            description: 'Inspect extensions',
+            action: async (...args: any[]) => {
+                received = readCommandContext(args).getPluginExtensions('example')[0];
+                return 0;
+            },
+        };
+
+        await runCli([command], [], ['inspect'], name =>
+            name === 'example' ? [{ pluginId: '@example/plugin', extension }] : [],
+        );
+
+        expect(received).toEqual({ pluginId: '@example/plugin', extension });
+        expect((received as { extension: unknown }).extension).toBe(extension);
+    });
+
     it('executes a two-level command', async () => {
         const result = await runCli(cloudCommands(), rootOptions, ['project', 'list']);
 

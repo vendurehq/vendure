@@ -4,6 +4,7 @@ import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { builtinCommands } from '../commands/builtins';
+
 import {
     CliCommandDefinition,
     CliCommandGroupDefinition,
@@ -801,7 +802,7 @@ describe('resolveCliPlugins()', () => {
         for (const entry of loaded) {
             registry.applyPlugin(entry.plugin);
         }
-        expect(registry.getConsoleLinkHooks()).toHaveLength(1);
+        expect(registry.getPluginExtensions('afterConsoleLink')).toHaveLength(1);
     });
 
     // The allowlist is not the only way an id reaches the registry twice, and
@@ -827,7 +828,7 @@ describe('resolveCliPlugins()', () => {
         ).toThrow(/already registered under the id/);
         // Rejected whole, like every other collision: no second hook, and the
         // command it would have added is not half-applied.
-        expect(registry.getConsoleLinkHooks()).toHaveLength(1);
+        expect(registry.getPluginExtensions('afterConsoleLink')).toHaveLength(1);
         expect(registry.has('second')).toBe(false);
         expect(registry.has('first')).toBe(true);
     });

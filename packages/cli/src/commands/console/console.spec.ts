@@ -5,16 +5,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { CliCommandExit } from '../../shared/cli-command-exit';
 
-import {
-    ConsoleCommandDependencies,
-    ConsoleReporter,
-    consoleCommand,
-    resolveConsoleEndpoints,
-} from './console';
+import { ConsoleCommandDependencies, consoleCommand, resolveConsoleEndpoints } from './console';
+import { ConsoleReporter } from './console-reporter';
 import {
     ACCOUNT_ID,
     LINK_ID,
     NOW,
+    OTHER_LINK_ID,
     POLLING_SECRET,
     createResponse,
     expiry,
@@ -90,7 +87,19 @@ describe('console command', () => {
                 VENDURE_CONSOLE_LINK_URL: 'https://console.example.com',
                 VENDURE_CONSOLE_LINK_API_URL: 'https://api.vendure.io',
             }),
-        ).toThrow('production Console and API origins must be used together');
+        ).toThrow('Official Console app and API origins must be used as a matching pair');
+        expect(() =>
+            resolveConsoleEndpoints({
+                VENDURE_CONSOLE_LINK_URL: 'https://staging.console.vendure.io',
+                VENDURE_CONSOLE_LINK_API_URL: 'https://api.example.com',
+            }),
+        ).toThrow('Official Console app and API origins must be used as a matching pair');
+        expect(() =>
+            resolveConsoleEndpoints({
+                VENDURE_CONSOLE_LINK_URL: 'https://console.vendure.io',
+                VENDURE_CONSOLE_LINK_API_URL: 'https://staging.api.vendure.io',
+            }),
+        ).toThrow('Official Console app and API origins must be used as a matching pair');
     });
 
     it('requires explicit approval for custom remote Console endpoints in non-interactive mode', async () => {
@@ -114,6 +123,31 @@ describe('console command', () => {
 
         expect(await consoleCommand('link', { allowCustomConsole: true }, allowed.dependencies)).toBe(0);
         expect(allowedFetch).toHaveBeenCalledTimes(2);
+    });
+
+    it('reports the official production environment to a link hook', async () => {
+        const seen: Array<string | undefined> = [];
+        const test = testDependencies(
+            vendureProject(),
+            sequenceFetch(
+                jsonResponse(createResponse()),
+                jsonResponse({ state: 'approved', expiresAt: expiry(), manifest }),
+            ),
+            {
+                env: {},
+                hooks: [
+                    {
+                        pluginId: '@example/p',
+                        hook: async context => {
+                            seen.push(context.endpoints.official);
+                        },
+                    },
+                ],
+            },
+        );
+
+        expect(await consoleCommand('link', {}, test.dependencies)).toBe(0);
+        expect(seen).toEqual(['production']);
     });
 
     it('shows custom remote Console origins before an interactive request', async () => {
@@ -464,6 +498,92 @@ describe('console command', () => {
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(replacement);
     });
 
+    it('uses --force to replace a valid manifest with a new Project Link', async () => {
+        const root = vendureProject();
+        const previous = {
+            ...manifest,
+            project: { ...manifest.project, name: 'Previous' },
+            link: { ...manifest.link, id: OTHER_LINK_ID },
+        };
+        fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
+        fs.writeJsonSync(getProjectLinkManifestPath(root), previous);
+        const contexts: Array<{ force: boolean; outcome: string }> = [];
+        const fetchMock = sequenceFetch(
+            jsonResponse(createResponse()),
+            jsonResponse({ state: 'approved', expiresAt: expiry(), manifest }),
+        );
+        const test = testDependencies(root, fetchMock, {
+            hooks: [
+                {
+                    pluginId: '@example/p',
+                    hook: async context => {
+                        contexts.push({ force: context.force, outcome: context.outcome });
+                    },
+                },
+            ],
+        });
+
+        expect(await consoleCommand('link', { force: true }, test.dependencies)).toBe(0);
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
+        expect(contexts).toEqual([{ force: true, outcome: 'linked' }]);
+    });
+
+    it('uses --yes for every CLI confirmation without forcing a new link', async () => {
+        const root = vendureProject();
+        fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
+        fs.writeJsonSync(getProjectLinkManifestPath(root), manifest);
+        const hook = vi.fn(async () => undefined);
+        const prompt = vi.fn(() => Promise.resolve(false));
+        const fetchMock = vi.fn() as unknown as typeof fetch;
+        const test = testDependencies(root, fetchMock, {
+            env: {
+                VENDURE_CONSOLE_LINK_URL: 'https://console.example.com',
+                VENDURE_CONSOLE_LINK_API_URL: 'https://api.example.com',
+            },
+            hooks: [{ pluginId: '@example/p', hook }],
+            isNonInteractive: () => false,
+            prompt,
+        });
+
+        expect(await consoleCommand('link', { yes: true }, test.dependencies)).toBe(0);
+        expect(prompt).not.toHaveBeenCalled();
+        expect(fetchMock).not.toHaveBeenCalled();
+        expect(hook).toHaveBeenCalledOnce();
+    });
+
+    it('uses --yes to approve manifest replacement and removal', async () => {
+        const replacementRoot = vendureProject();
+        fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(replacementRoot)));
+        fs.writeFileSync(getProjectLinkManifestPath(replacementRoot), '{invalid');
+        const replacementPrompt = vi.fn(() => Promise.resolve(false));
+        const replacement = testDependencies(
+            replacementRoot,
+            sequenceFetch(
+                jsonResponse(createResponse()),
+                jsonResponse({ state: 'approved', expiresAt: expiry(), manifest }),
+            ),
+            { isNonInteractive: () => false, prompt: replacementPrompt },
+        );
+
+        expect(await consoleCommand('link', { yes: true }, replacement.dependencies)).toBe(0);
+        expect(replacementPrompt).not.toHaveBeenCalled();
+        expect(fs.readJsonSync(getProjectLinkManifestPath(replacementRoot))).toEqual(manifest);
+
+        const unlinkRoot = vendureProject();
+        fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(unlinkRoot)));
+        fs.writeJsonSync(getProjectLinkManifestPath(unlinkRoot), manifest);
+        const unlinkPrompt = vi.fn(() => Promise.resolve(false));
+        const unlink = testDependencies(unlinkRoot, vi.fn() as unknown as typeof fetch, {
+            isNonInteractive: () => false,
+            prompt: unlinkPrompt,
+        });
+
+        expect(await consoleCommand('unlink', { yes: true }, unlink.dependencies)).toBe(0);
+        expect(unlinkPrompt).not.toHaveBeenCalled();
+        expect(fs.existsSync(getProjectLinkManifestPath(unlinkRoot))).toBe(false);
+    });
+
     it('validates Console endpoints before prompting to replace a manifest', async () => {
         const root = vendureProject();
         fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
@@ -563,8 +683,6 @@ describe('console command', () => {
         expect(prompt).not.toHaveBeenCalled();
     });
 
-    // Calling the official staging Console "custom" and then reporting it to a
-    // hook as official said two different things about one pair.
     it('does not treat the official staging Console as a custom endpoint', async () => {
         const root = vendureProject();
         fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
@@ -635,7 +753,7 @@ describe('console command', () => {
         expect(await consoleCommand('link', { yes: true }, test.dependencies)).toBe(0);
         expect(prompt).not.toHaveBeenCalled();
         expect(hook).toHaveBeenCalledTimes(1);
-        // `--yes` answers the question. It does not mint a second Project Link.
+        // `--yes` answers the question. It does not create a second Project Link.
         expect(fetchMock).not.toHaveBeenCalled();
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
     });

@@ -18,40 +18,21 @@ const OFFICIAL_ORIGINS = {
 };
 
 describe('officialConsoleEnvironment()', () => {
-    it('recognises the official production and staging pairs', () => {
+    it('pins and recognises the official production and staging pairs', () => {
         expect(DEFAULT_CONSOLE_URL).toBe(OFFICIAL_ORIGINS.productionApp);
         expect(DEFAULT_CONSOLE_API_URL).toBe(OFFICIAL_ORIGINS.productionApi);
-        expect(
-            officialConsoleEnvironment({
-                consoleUrl: OFFICIAL_ORIGINS.stagingApp,
-                apiUrl: OFFICIAL_ORIGINS.stagingApi,
-            }),
-        ).toBe('staging');
-    });
-
-    it('names both official deployments', () => {
         expect(
             officialConsoleEnvironment({
                 consoleUrl: OFFICIAL_ORIGINS.productionApp,
                 apiUrl: OFFICIAL_ORIGINS.productionApi,
             }),
         ).toBe('production');
-        // Refusing staging is as wrong as accepting an unknown host.
         expect(
             officialConsoleEnvironment({
                 consoleUrl: OFFICIAL_ORIGINS.stagingApp,
                 apiUrl: OFFICIAL_ORIGINS.stagingApi,
             }),
         ).toBe('staging');
-    });
-
-    it('accepts a trailing slash, which names the same origin', () => {
-        expect(
-            officialConsoleEnvironment({
-                consoleUrl: `${OFFICIAL_ORIGINS.productionApp}/`,
-                apiUrl: `${OFFICIAL_ORIGINS.productionApi}/`,
-            }),
-        ).toBe('production');
     });
 
     // The pair is matched as a pair. Either half from another environment

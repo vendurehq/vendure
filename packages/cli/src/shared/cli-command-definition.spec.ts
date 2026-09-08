@@ -7,7 +7,11 @@ import { CliCommandContext, readCommandContext, readCommandOptions } from './cli
  * parsed options, then the Command, then the context the host appends.
  */
 function actionArgs(positionals: unknown[], options: Record<string, any>): unknown[] {
-    const context: CliCommandContext = { inheritedOptions: { token: 'tok' }, commandPath: ['a', 'b'] };
+    const context: CliCommandContext = {
+        inheritedOptions: { token: 'tok' },
+        commandPath: ['a', 'b'],
+        getPluginExtensions: () => [],
+    };
     return [...positionals, options, { name: () => 'b' }, context];
 }
 

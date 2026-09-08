@@ -68,6 +68,17 @@ export interface CliPlugin {
     afterConsoleLink?: ConsoleLinkHook;
 }
 
+interface CliPluginExtensionEntry {
+    extensionPoint: string;
+    extension: unknown;
+}
+
+export function getCliPluginExtensionEntries(plugin: CliPlugin): CliPluginExtensionEntry[] {
+    return plugin.afterConsoleLink
+        ? [{ extensionPoint: 'afterConsoleLink', extension: plugin.afterConsoleLink }]
+        : [];
+}
+
 /**
  * The plugin capabilities this build of the CLI understands.
  *

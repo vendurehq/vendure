@@ -5,7 +5,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { ConsoleCommandDependencies, ConsoleReporter, consoleCommand } from './console';
+import { ConsoleCommandDependencies, consoleCommand } from './console';
+import { ConsoleReporter } from './console-reporter';
 import { LINK_ID, POLLING_SECRET, manifest } from './console.fixtures';
 import { getProjectLinkManifestPath } from './project-link-manifest';
 

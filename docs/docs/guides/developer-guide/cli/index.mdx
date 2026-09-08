@@ -357,25 +357,29 @@ Vendure project under `packages`, `apps`, `libs`, `services`, or `modules`. If m
 npx vendure console status --project ./apps/server
 ```
 
-Replacing or removing a manifest requires confirmation. In non-interactive environments, use `--force` to confirm the
-specific action:
+Use `--force` to create a different Project Link for an already-linked project, or to remove its current link without
+confirmation:
 
 ```bash
 npx vendure console link --force
 npx vendure console unlink --force
 ```
 
-`--force` does not bypass ambiguous project selection or a manifest that belongs to another project root.
+`--force` also permits replacement of an invalid manifest. It does not bypass ambiguous project selection or a manifest
+that belongs to another project root.
 
 Running `vendure console link` in a project that is already linked repairs it rather than replacing it: the manifest
 is reused and any plugin setup runs again. Where a plugin is registered, that is confirmed first, because the manifest
-may have arrived with a clone. Use `--yes` to answer that confirmation in advance:
+may have arrived with a clone.
+
+Use `--yes` to answer every confirmation owned by the CLI. This includes manifest changes, custom Console endpoints,
+and plugin setup on a repair. It does not answer questions asked by a plugin hook:
 
 ```bash
 npx vendure console link --yes
 ```
 
-`--force` is different: it links this checkout to a **different** Console Project, which creates a new Project Link.
+On an already-linked project, `--yes` keeps the repair behavior. Only `--force` creates a different Project Link.
 
 ### Manifest and source control
 
@@ -428,8 +432,8 @@ The variables apply only to the unauthenticated Project Link exchange. They do n
 Environment Credentials, Registry access, package downloads, or Vendure Cloud operations.
 
 The CLI rejects partial endpoint configuration and URLs that contain credentials, paths, queries, or fragments. It
-requires HTTPS except for `localhost`, `127.0.0.1`, and `::1`. The production Console and API origins must be used
-together.
+requires HTTPS except for `localhost`, `127.0.0.1`, and `::1`. An official Console app or API origin is accepted only
+with the matching official origin from the same environment.
 
 Before it contacts a custom remote environment, the CLI displays both origins and asks for confirmation. In a
 non-interactive environment, pass `--allow-custom-console` to confirm them explicitly:
@@ -781,10 +785,8 @@ been extended. A group and all its subcommands must come from one plugin.
 
 ### Running after a project link
 
-`vendure console link` links a checkout to a Vendure Console Project and writes
-the Project Link Manifest. A plugin that has its own setup to do once a project
-is linked, such as obtaining the credentials that project then needs, registers
-an `afterConsoleLink` hook:
+Register an `afterConsoleLink` hook when a plugin must run setup after
+`vendure console link` writes or reuses the Project Link Manifest:
 
 ```ts
 import { defineCliPlugin } from '@vendure/cli';
@@ -793,8 +795,6 @@ export default defineCliPlugin({
     id: '@example/setup-cli-plugin',
     commands: [],
     afterConsoleLink: async context => {
-        // Everything the command already worked out, so the hook never
-        // re-derives it and reaches a different answer.
         context.reporter.info(`Setting up ${context.manifest.project.name}`);
         await setUpProject(context.projectRoot, context.manifest.project.id, {
             signal: context.signal,
@@ -803,89 +803,48 @@ export default defineCliPlugin({
 });
 ```
 
-The hook receives the resolved `projectRoot`, the `manifest` and its
-`manifestPath`, the Console `endpoints` the link was made against, whether this
-run linked or repaired (`outcome`), the `AbortSignal` the command runs under,
-the command's `reporter`, a `confirm` function for yes/no questions,
-`isNonInteractive`, and whether `--force` was given. Each hook gets its own
-context, so one hook cannot change what a later one reads.
+The context contains `projectRoot`, `manifest`, `manifestPath`, `endpoints`,
+`outcome`, `signal`, `reporter`, `confirm`, `isNonInteractive`, and `force`.
+Each hook gets its own manifest and endpoint objects.
 
-Do not replace the `console` command to do this. Linking stays one
-implementation, so every project links the same way whether or not a plugin is
-installed; a second `console` command forks the protocol instead of adding to
-it.
+Do not replace the `console` command for post-link setup. Register the hook.
 
-#### What a hook can rely on, and what it cannot
+#### Hook behavior
 
-- It never runs before the manifest is on disk, so the link is always recorded
-  by the time it starts.
-- It cannot undo the link. The manifest survives a hook that fails, and the
-  command says so rather than reporting that nothing changed.
-- Hooks run in `vendure.cli.plugins` order, and the first to throw stops the
-  rest.
-- It has to be repeatable, because `vendure console link` repairs a link as well
-  as making one (see below).
+- Hooks run after the manifest is on disk.
+- Hooks run in `vendure.cli.plugins` order. The first thrown error stops the rest.
+- A hook failure does not remove the manifest.
+- Hooks must be repeatable because a repair runs them again.
 
-Throwing is for work that failed, not for work that cannot be done here. A hook
-that needs something it cannot get in this run should say what is missing
-through `reporter` and return. The command still exits 0, because linking is
-what it was asked to do and it did it.
+Throw when setup fails. If the hook cannot run in the current environment,
+report what the user must do and return.
 
-`context.confirm` asks a yes/no question and rejects when `isNonInteractive` is
-`true`, since there is nobody to answer. Check `isNonInteractive` first.
-Multi-choice questions belong in the plugin's own command, where it owns the
-whole screen.
+Check `context.isNonInteractive` before calling `context.confirm`. The confirm
+function rejects in a non-interactive run. Put multi-choice setup in a plugin
+command.
 
 #### Repeating a link repairs it
 
-Run `vendure console link` in a project that is already linked and it reuses the
-manifest on disk and runs the hooks again, with `context.outcome` set to
-`'repaired'`. It does not create a second Project Link, which would abandon the
-first in Console over a problem that is local to the checkout.
+In an already-linked project, `vendure console link` reuses the manifest and
+runs hooks with `context.outcome` set to `'repaired'`. The repair makes no
+Console request and does not open a browser.
 
-That makes `vendure console link` the command a developer runs to have the
-setup after a link done again. It repairs the setup, not a sign-in: it asks
-Console nothing and opens no browser, so a hook that needs a session it does
-not have still cannot obtain one here. A plugin does not need a repair command
-of its own, and should send people here instead.
+An interactive repair names the project and account before it runs hooks. Pass
+`--yes` to answer this CLI confirmation in advance. The CLI asks nothing when
+no hooks are registered or when the run is non-interactive.
 
-Because the manifest may have arrived with a clone, a repair that would run
-hooks names the project and account and asks first. With no hooks registered
-there is nothing to approve and nothing is asked. Non-interactive runs proceed,
-so the backfill works in CI, and `--yes` answers the question in advance for a
-project whose manifest the developer already trusts.
-
-`--force` is how a checkout is linked to a **different** Console Project: it
+`--force` links a checkout to a **different** Console Project. It
 skips the reuse, creates a new Project Link, and the hooks run with an `outcome`
-of `'linked'`. A hook that rotates a remote credential should treat `'repaired'`
-as the case that needs confirming, because the credential it is replacing may
-still be live for someone else.
+of `'linked'`.
 
-`context.endpoints.official` names which official Vendure Console this run will
-talk to, `'production'` or `'staging'`, and is `undefined` for anything else.
-The pair is matched as a pair, so a production app origin with a staging API is
-not official. A loopback pair is not official either; it is a development and
-test convenience.
+If a hook must run only against production, require
+`context.endpoints.official === 'production'`. The value is `'staging'` for the
+official staging pair and `undefined` for custom or loopback origins. A custom
+endpoint confirmation does not authorize a hook to send credentials there.
 
-`official` says where this run will talk, not where the manifest came from. The
-manifest records no origin, so on a repair the Console that issued its project
-and account identifiers is unknown, and a `'production'` answer does not vouch
-for them. A hook that acts on the identifiers, rather than only on the origin,
-should treat a repair as unverified provenance.
-
-`official` is a fact, not a permission. Approving a custom endpoint approves it for
-creating a Project Link, not for receiving anything secret. A hook that holds
-credentials checks `official` before it reads a credential file or sends a
-request, and refuses when it is `undefined`. Do not draw the same conclusion
-from the absence of a custom-endpoint prompt: that permits loopback, and this
-does not.
-
-Staging is reached by pointing `VENDURE_CONSOLE_LINK_URL` and
-`VENDURE_CONSOLE_LINK_API_URL` at its pair, and that is deliberately not
-prompted for, so anything able to set two environment variables can send a hook
-to staging rather than production with nobody confirming it. Both are Vendure's,
-which is why this is a choice and not a hole, but a hook that must not touch
-staging should compare against `'production'` rather than against `undefined`.
+The value describes the origins for the current run. The manifest does not
+record its source origin, so a repair cannot verify where its identifiers came
+from.
 
 ### Checking what the installed CLI supports
 

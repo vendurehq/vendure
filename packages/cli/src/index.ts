@@ -49,9 +49,9 @@ export type {
     ConsoleLinkEndpoints,
     ConsoleLinkHook,
     ConsoleLinkOutcome,
-    ConsoleReporter,
 } from './commands/console/console-link-hook';
 export type { ConsoleOriginEnvironment } from './commands/console/console-origins';
+export type { ConsoleReporter } from './commands/console/console-reporter';
 export type { ProjectLinkManifest } from './commands/console/project-link-manifest';
 export { readCommandContext, readCommandOptions } from './shared/cli-command-definition';
 export type {
@@ -69,3 +69,4 @@ export type {
 } from './shared/cli-command-definition';
 export { CLI_PLUGIN_EXTENSION_POINTS, defineCliPlugin } from './shared/cli-plugin';
 export type { CliPlugin } from './shared/cli-plugin';
+export type { CliPluginExtensionAccessor, RegisteredCliPluginExtension } from './shared/cli-plugin-extension';
