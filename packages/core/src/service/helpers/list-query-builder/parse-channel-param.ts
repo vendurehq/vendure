@@ -1,5 +1,5 @@
 import { ID, Type } from '@vendure/common/lib/shared-types';
-import { Connection } from 'typeorm';
+import { DataSource } from 'typeorm';
 
 import { VendureEntity } from '../../../entity/base/base.entity';
 
@@ -10,7 +10,7 @@ import { WhereCondition } from './parse-filter-params';
  * which are assigned to the channel specified by channelId,
  */
 export function parseChannelParam<T extends VendureEntity>(
-    connection: Connection,
+    connection: DataSource,
     entity: Type<T>,
     channelId: ID,
     entityAlias?: string,

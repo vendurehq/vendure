@@ -8,6 +8,7 @@ interface CustomField {
     internal: Boolean
     nullable: Boolean
     requiresPermission: [Permission!]
+    secret: Boolean
     deprecated: Boolean
     deprecationReason: String
     ui: JSON
@@ -24,6 +25,7 @@ type StringCustomFieldConfig implements CustomField {
     internal: Boolean
     nullable: Boolean
     requiresPermission: [Permission!]
+    secret: Boolean
     deprecated: Boolean
     deprecationReason: String
     pattern: String
@@ -47,6 +49,7 @@ type LocaleStringCustomFieldConfig implements CustomField {
     internal: Boolean
     nullable: Boolean
     requiresPermission: [Permission!]
+    secret: Boolean
     deprecated: Boolean
     deprecationReason: String
     pattern: String
@@ -62,6 +65,7 @@ type IntCustomFieldConfig implements CustomField {
     internal: Boolean
     nullable: Boolean
     requiresPermission: [Permission!]
+    secret: Boolean
     deprecated: Boolean
     deprecationReason: String
     min: Int
@@ -79,6 +83,7 @@ type FloatCustomFieldConfig implements CustomField {
     internal: Boolean
     nullable: Boolean
     requiresPermission: [Permission!]
+    secret: Boolean
     deprecated: Boolean
     deprecationReason: String
     min: Float
@@ -96,6 +101,7 @@ type BooleanCustomFieldConfig implements CustomField {
     internal: Boolean
     nullable: Boolean
     requiresPermission: [Permission!]
+    secret: Boolean
     deprecated: Boolean
     deprecationReason: String
     ui: JSON
@@ -114,6 +120,7 @@ type DateTimeCustomFieldConfig implements CustomField {
     internal: Boolean
     nullable: Boolean
     requiresPermission: [Permission!]
+    secret: Boolean
     deprecated: Boolean
     deprecationReason: String
     min: String
@@ -132,6 +139,7 @@ type RelationCustomFieldConfig implements CustomField {
     internal: Boolean
     nullable: Boolean
     requiresPermission: [Permission!]
+    secret: Boolean
     deprecated: Boolean
     deprecationReason: String
     entity: String!
@@ -149,6 +157,7 @@ type TextCustomFieldConfig implements CustomField {
     internal: Boolean
     nullable: Boolean
     requiresPermission: [Permission!]
+    secret: Boolean
     deprecated: Boolean
     deprecationReason: String
     ui: JSON
@@ -164,6 +173,7 @@ type LocaleTextCustomFieldConfig implements CustomField {
     internal: Boolean
     nullable: Boolean
     requiresPermission: [Permission!]
+    secret: Boolean
     deprecated: Boolean
     deprecationReason: String
     ui: JSON
@@ -264,6 +274,7 @@ type StructCustomFieldConfig implements CustomField {
     internal: Boolean
     nullable: Boolean
     requiresPermission: [Permission!]
+    secret: Boolean
     deprecated: Boolean
     deprecationReason: String
     ui: JSON

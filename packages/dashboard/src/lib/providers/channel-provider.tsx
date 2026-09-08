@@ -222,7 +222,19 @@ export function ChannelProvider({ children }: Readonly<{ children: React.ReactNo
             // If no selected channel is set, use the first available channel
             const defaultChannel = channels[0];
             setSelectedChannelId(defaultChannel.id);
-            setChannelTokenInLocalStorage(defaultChannel.token);
+            const currentToken = getChannelTokenFromLocalStorage();
+            if (currentToken !== defaultChannel.token) {
+                setChannelTokenInLocalStorage(defaultChannel.token);
+                // The active channel query may have been refetched (e.g. by
+                // refreshChannels() after deleting the current channel) while
+                // localStorage still held the now-deleted channel's token, and
+                // it is not retried (retry: false). Invalidate it now that the
+                // token points at a valid channel so the active channel
+                // recovers without requiring a full page reload.
+                queryClient.invalidateQueries({
+                    queryKey: ['activeChannel', isAuthenticated],
+                });
+            }
         }
     }, [selectedChannelId, channels, queryClient, isAuthenticated]);
 

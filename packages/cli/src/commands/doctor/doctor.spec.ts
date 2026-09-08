@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock @clack/prompts
 vi.mock('@clack/prompts', () => ({
@@ -13,17 +13,9 @@ vi.mock('@clack/prompts', () => ({
 import { log } from '@clack/prompts';
 
 describe('doctor command internals', () => {
-    let mockExit: ReturnType<typeof vi.spyOn>;
-
     beforeEach(() => {
         vi.clearAllMocks();
         vi.resetModules();
-        // Re-apply process.exit spy after resetModules
-        mockExit = vi.spyOn(process, 'exit').mockImplementation((() => {}) as any);
-    });
-
-    afterEach(() => {
-        vi.restoreAllMocks();
     });
 
     describe('resolveChecks', () => {
@@ -67,9 +59,9 @@ describe('doctor command internals', () => {
 
             const { doctorCommand } = await import('./doctor');
 
-            await doctorCommand({ check: ['project'], format: 'json' });
+            const exitCode = await doctorCommand({ check: ['project'], format: 'json' });
 
-            expect(mockExit).toHaveBeenCalledWith(1);
+            expect(exitCode).toBe(1);
         });
     });
 
@@ -88,9 +80,13 @@ describe('doctor command internals', () => {
 
             const { doctorCommand } = await import('./doctor');
 
-            await doctorCommand({ check: ['project'], format: 'json', strict: true });
+            const exitCode = await doctorCommand({
+                check: ['project'],
+                format: 'json',
+                strict: true,
+            });
 
-            expect(mockExit).toHaveBeenCalledWith(1);
+            expect(exitCode).toBe(1);
         });
     });
 

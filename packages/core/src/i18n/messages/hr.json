@@ -1,0 +1,199 @@
+{
+  "configurableOperation": {
+    "CollectionFilter": {
+      "facet-value-filter": {
+        "description": "Filtriraj prema vrijednostima svojstava",
+        "args": {
+          "facetValueIds": {
+            "label": "Vrijednosti svojstava"
+          },
+          "containsAny": {
+            "label": "Sadrži bilo koju",
+            "description": "Ako je označeno, varijante proizvoda moraju imati barem jednu od odabranih vrijednosti svojstava. Ako nije označeno, varijanta mora imati sve odabrane vrijednosti."
+          },
+          "combineWithAnd": {
+            "label": "Način kombiniranja",
+            "description": "Ako se ovaj filtar kombinira s drugim filtrima, moraju li biti ispunjeni svi uvjeti (AND) ili je dovoljan samo jedan od njih (OR)?"
+          }
+        }
+      },
+      "variant-name-filter": {
+        "description": "Filtriraj prema nazivu varijante proizvoda",
+        "args": {
+          "combineWithAnd": {
+            "label": "Način kombiniranja",
+            "description": "Ako se ovaj filtar kombinira s drugim filtrima, moraju li biti ispunjeni svi uvjeti (AND) ili je dovoljan samo jedan od njih (OR)?"
+          }
+        }
+      },
+      "variant-id-filter": {
+        "description": "Ručno odaberi varijante proizvoda",
+        "args": {
+          "variantIds": {
+            "label": "Varijante proizvoda"
+          },
+          "combineWithAnd": {
+            "label": "Način kombiniranja",
+            "description": "Ako se ovaj filtar kombinira s drugim filtrima, moraju li biti ispunjeni svi uvjeti (AND) ili je dovoljan samo jedan od njih (OR)?"
+          }
+        }
+      },
+      "product-id-filter": {
+        "description": "Ručno odaberi proizvode",
+        "args": {
+          "productIds": {
+            "label": "Proizvodi"
+          },
+          "combineWithAnd": {
+            "label": "Način kombiniranja",
+            "description": "Ako se ovaj filtar kombinira s drugim filtrima, moraju li biti ispunjeni svi uvjeti (AND) ili je dovoljan samo jedan od njih (OR)?"
+          }
+        }
+      }
+    },
+    "EntityDuplicator": {
+      "product-duplicator": {
+        "description": "Zadani duplikator za proizvode",
+        "args": {
+          "includeVariants": {
+            "label": "Uključi varijante"
+          }
+        }
+      },
+      "collection-duplicator": {
+        "description": "Zadani duplikator za kolekcije"
+      },
+      "facet-duplicator": {
+        "description": "Zadani duplikator za svojstva",
+        "args": {
+          "includeFacetValues": {
+            "label": "Uključi vrijednosti svojstava"
+          }
+        }
+      },
+      "promotion-duplicator": {
+        "description": "Zadani duplikator za promocije"
+      }
+    },
+    "FulfillmentHandler": {
+      "manual-fulfillment": {
+        "description": "Ručno unesi podatke o isporuci"
+      }
+    },
+    "PaymentMethodHandler": {
+      "dummy-payment-handler": {
+        "description": "Lažni pružatelj plaćanja namijenjen isključivo testiranju i razvoju.",
+        "args": {
+          "automaticSettle": {
+            "label": "Autoriziraj i podmiri u 1 koraku",
+            "description": "Ako je omogućeno, plaćanja će biti kreirana u stanju \"Settled\"."
+          }
+        }
+      },
+      "example-payment-provider": {
+        "description": "Primjer pružatelja plaćanja"
+      }
+    },
+    "PromotionAction": {
+      "order_fixed_discount": {
+        "description": "Popust na narudžbu u fiksnom iznosu"
+      },
+      "order_line_fixed_discount": {
+        "description": "Popust na orderLine u fiksnom iznosu"
+      },
+      "order_percentage_discount": {
+        "description": "Popust na narudžbu od { discount }%"
+      },
+      "facet_based_discount": {
+        "description": "Popust od { discount }% na proizvode s ovim svojstvima"
+      },
+      "products_percentage_discount": {
+        "description": "Popust od { discount }% na navedene proizvode",
+        "args": {
+          "productVariantIds": {
+            "label": "Varijante proizvoda"
+          }
+        }
+      },
+      "free_shipping": {
+        "description": "Besplatna dostava"
+      },
+      "buy_x_get_y_free": {
+        "description": "Kupiti X proizvoda, dobiti Y proizvoda besplatno"
+      }
+    },
+    "PromotionCondition": {
+      "minimum_order_amount": {
+        "description": "Ako je ukupan iznos narudžbe veći od { amount }"
+      },
+      "at_least_n_with_facets": {
+        "description": "Kupiti barem { minimum } proizvoda s navedenim svojstvima"
+      },
+      "contains_products": {
+        "description": "Kupiti barem { minimum } od navedenih proizvoda",
+        "args": {
+          "productVariantIds": {
+            "label": "Varijante proizvoda"
+          }
+        }
+      },
+      "customer_group": {
+        "description": "Kupac je član navedene grupe",
+        "args": {
+          "customerGroupId": {
+            "label": "Grupa kupaca"
+          }
+        }
+      },
+      "buy_x_get_y_free": {
+        "description": "Kupiti X proizvoda, dobiti Y proizvoda besplatno",
+        "args": {
+          "variantIdsX": {
+            "label": "Kupiti amountX ovih varijanti"
+          },
+          "variantIdsY": {
+            "label": "Dobiti amountY ovih varijanti besplatno"
+          }
+        }
+      }
+    },
+    "ShippingCalculator": {
+      "default-shipping-calculator": {
+        "description": "Zadani kalkulator dostave s fiksnom stopom",
+        "args": {
+          "rate": {
+            "label": "Cijena dostave"
+          },
+          "includesTax": {
+            "label": "Cijena uključuje porez",
+            "options": {
+              "include": {
+                "label": "Uključuje porez"
+              },
+              "exclude": {
+                "label": "Ne uključuje porez"
+              },
+              "auto": {
+                "label": "Automatski (na temelju kanala)"
+              }
+            }
+          },
+          "taxRate": {
+            "label": "Porezna stopa"
+          }
+        }
+      }
+    },
+    "ShippingEligibilityChecker": {
+      "default-shipping-eligibility-checker": {
+        "description": "Zadana provjera prihvatljivosti za dostavu",
+        "args": {
+          "orderMinimum": {
+            "label": "Minimalna vrijednost narudžbe",
+            "description": "Narudžba je prihvatljiva samo ako je njezin ukupan iznos veći ili jednak ovoj vrijednosti"
+          }
+        }
+      }
+    }
+  }
+}

@@ -6,8 +6,11 @@ import {
 } from '@/vdb/components/shared/paginated-list-data-table.js';
 import { StockLevelLabel } from '@/vdb/components/shared/stock-level-label.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
+import { usePage } from '@/vdb/hooks/use-page.js';
+import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
+import { useLingui } from '@lingui/react/macro';
 import { ColumnFiltersState, SortingState } from '@tanstack/react-table';
-import { useState } from 'react';
+import { ReactNode, useState } from 'react';
 import {
     AssignFacetValuesToProductVariantsBulkAction,
     AssignProductVariantsToChannelBulkAction,
@@ -15,20 +18,19 @@ import {
     RemoveProductVariantsFromChannelBulkAction,
 } from '../../_product-variants/components/product-variant-bulk-actions.js';
 import { productVariantListDocument } from '../products.graphql.js';
-import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
-import { usePage } from '@/vdb/hooks/use-page.js';
-import { useLingui } from '@lingui/react/macro';
 
 interface ProductVariantsTableProps {
     productId: string;
     registerRefresher?: PaginatedListRefresherRegisterFn;
-    fromProductDetailPage?: boolean;
+    title?: ReactNode;
+    actions?: ReactNode;
 }
 
 export function ProductVariantsTable({
     productId,
     registerRefresher,
-    fromProductDetailPage,
+    title,
+    actions,
 }: ProductVariantsTableProps) {
     const { pageId } = usePage();
     const { setTableSettings } = useUserSettings();
@@ -41,6 +43,8 @@ export function ProductVariantsTable({
 
     return (
         <PaginatedListDataTable
+            title={title}
+            actions={actions}
             registerRefresher={registerRefresher}
             listQuery={productVariantListDocument}
             transformVariables={variables => ({
@@ -83,7 +87,6 @@ export function ProductVariantsTable({
                         <DetailPageButton
                             href={`../../product-variants/${original.id}`}
                             label={original.name}
-                            search={fromProductDetailPage ? { from: 'product' } : undefined}
                         />
                     ),
                 },
@@ -92,7 +95,7 @@ export function ProductVariantsTable({
                 },
                 price: {
                     meta: {
-                        dependencies: ['currencyCode']
+                        dependencies: ['currencyCode'],
                     },
                     cell: ({ row: { original } }) => (
                         <Money value={original.price} currency={original.currencyCode} />
@@ -100,7 +103,7 @@ export function ProductVariantsTable({
                 },
                 priceWithTax: {
                     meta: {
-                        dependencies: ['currencyCode']
+                        dependencies: ['currencyCode'],
                     },
                     cell: ({ row: { original } }) => (
                         <Money value={original.priceWithTax} currency={original.currencyCode} />

@@ -28,7 +28,7 @@ export function HistoryNoteEntry(props: HistoryNoteEntryProps) {
                 </div>
                 {onEditNote && onDeleteNote && (
                     <div className="flex items-center gap-2">
-                        <Badge variant={entry.isPublic ? 'outline' : 'secondary'} className="text-xs">
+                        <Badge variant={entry.isPublic ? 'outline' : 'default'} className="text-xs">
                             {entry.isPublic ? 'Public' : 'Private'}
                         </Badge>
                         <DropdownMenu>

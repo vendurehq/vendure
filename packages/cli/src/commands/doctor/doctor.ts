@@ -49,12 +49,13 @@ export async function doctorCommand(options?: DoctorOptions) {
                     message: 'Skipped due to project check failure',
                 });
             }
-            outputReport(buildReport(results, options, { vendureVersion, packageManager }), options);
-            return;
+            return outputReport(buildReport(results, options, { vendureVersion, packageManager }), options);
         }
     }
 
-    // Check 2: Dependency version alignment, singleton duplication, DB driver
+    // Check 2: Dependency version alignment, singleton duplication, DB driver.
+    // Uses require.resolve for version alignment and DB driver (handles hoisting),
+    // and a tree scan for duplicate detection.
     if (checksToRun.includes('dependencies')) {
         results.push(await runDependencyCheck());
     }
@@ -83,8 +84,7 @@ export async function doctorCommand(options?: DoctorOptions) {
                     message: 'Skipped due to config check failure',
                 });
             }
-            outputReport(buildReport(results, options, { vendureVersion, packageManager }), options);
-            return;
+            return outputReport(buildReport(results, options, { vendureVersion, packageManager }), options);
         }
     }
 
@@ -127,7 +127,7 @@ export async function doctorCommand(options?: DoctorOptions) {
         }
     }
 
-    outputReport(buildReport(results, options, { vendureVersion, packageManager }), options);
+    return outputReport(buildReport(results, options, { vendureVersion, packageManager }), options);
 }
 
 function resolveChecks(checkFlags?: string[]): string[] {
@@ -166,16 +166,14 @@ function buildReport(
     };
 }
 
-function outputReport(report: DoctorReport, options?: DoctorOptions): void {
+function outputReport(report: DoctorReport, options?: DoctorOptions): number {
     if (options?.format === 'json') {
         formatJsonReport(report);
     } else {
         formatConsoleReport(report);
     }
 
-    if (report.overallStatus === 'failed') {
-        process.exit(1);
-    }
+    return report.overallStatus === 'failed' ? 1 : 0;
 }
 
 function capitalize(s: string): string {

@@ -4,11 +4,13 @@ import crypto from 'crypto';
 import ms, { type StringValue } from 'ms';
 import { Brackets, EntitySubscriberInterface, InsertEvent, RemoveEvent, UpdateEvent } from 'typeorm';
 
-import { RequestContext } from '../../api/common/request-context';
+import { ApiType } from '../../api/common/get-api-type';
+import { DeserializedCachedSession, RequestContext } from '../../api/common/request-context';
 import { Instrument } from '../../common/instrument-decorator';
 import { API_KEY_AUTH_STRATEGY_DEFAULT_DURATION_MS, API_KEY_AUTH_STRATEGY_NAME, Logger } from '../../config';
 import { ConfigService } from '../../config/config.service';
 import { CachedSession, SessionCacheStrategy } from '../../config/session-cache/session-cache-strategy';
+import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { ApiKey } from '../../entity/api-key/api-key.entity';
 import { Channel } from '../../entity/channel/channel.entity';
@@ -38,6 +40,15 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
     private cleanSessionsJobQueue: JobQueue<{ batchSize: number }>;
     private readonly sessionDurationInMs: number;
     private readonly sessionCacheTimeoutMs = 50;
+    /**
+     * `user` is declared on AuthenticatedSession, not the abstract Session queried here, so an
+     * object literal typed against Session does not compile.
+     */
+    private readonly userRelations = findOptionsArrayToObject<Session>([
+        'user',
+        'user.roles',
+        'user.roles.channels',
+    ]);
 
     constructor(
         private connection: TransactionalConnection,
@@ -104,14 +115,38 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
     /**
      * @description
      * Creates a new {@link AuthenticatedSession}. To be used after successful authentication.
+     *
+     * The `apiType` argument records the API the session belongs to. The AuthGuard refuses a session
+     * on the Admin API unless it records the Admin API, so this argument is a security control: pass
+     * it whenever the request context is not the API the caller authenticated against, for example a
+     * REST controller which completes an SSO callback for the Shop API.
+     *
+     * When it is omitted, the API is taken from `ctx.apiType` if the context carries a request, which
+     * covers every resolver and every REST route. A context with no request states nothing about the
+     * caller: `RequestContext.empty()` hardcodes `apiType: 'admin'`, `RequestContextService.create()`
+     * takes whatever the caller passed, and `RequestContext.deserialize()` drops the request, so a job
+     * queue worker has none either. A session created from such a context records `shop`, the
+     * lower-privilege API, so that omitting the argument fails closed rather than granting Admin API
+     * access.
      */
     async createNewAuthenticatedSession(
         ctx: RequestContext,
         user: User,
         authenticationStrategyName: string,
         sessionToken?: string,
+        apiType?: ApiType,
     ): Promise<AuthenticatedSession> {
         const token = sessionToken ?? (await this.generateSessionToken());
+        // See the API rule in this method's docs: a context which carries no request states nothing
+        // about the API the caller reached, so such a session belongs to the lower-privilege API.
+        const sessionApiType = ctx.req ? ctx.apiType : 'shop';
+        if (apiType == null && sessionApiType !== ctx.apiType) {
+            Logger.warn(
+                `Creating a session from a RequestContext with no request. Recording apiType ` +
+                    `'${sessionApiType}' rather than '${ctx.apiType}'. Pass the apiType argument of ` +
+                    `createNewAuthenticatedSession() to state which API the caller authenticated against.`,
+            );
+        }
         const guestOrder =
             ctx.session && ctx.session.activeOrderId
                 ? await this.orderService.findOne(ctx, ctx.session.activeOrderId)
@@ -133,6 +168,7 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
                 authenticationStrategy: authenticationStrategyName,
                 expires,
                 invalidated: false,
+                apiType: apiType ?? sessionApiType,
             }),
         );
         await this.withTimeout(this.sessionCacheStrategy.set(this.serializeSession(authenticatedSession)));
@@ -199,6 +235,7 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
         };
         if (this.isAuthenticatedSession(session)) {
             serializedSession.authenticationStrategy = session.authenticationStrategy;
+            serializedSession.apiType = session.apiType ?? undefined;
             const { user } = session;
             serializedSession.user = {
                 id: user.id,
@@ -246,15 +283,19 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
     /**
      * @description
      * Sets the `activeOrder` on the given cached session object and updates the cache.
+     *
+     * Accepts the session of a deserialized {@link RequestContext} too, which has no token. The
+     * returned session is re-read from the database, so it does have one, unless the session row
+     * no longer exists, in which case the input is returned as is.
      */
-    async setActiveOrder(
+    async setActiveOrder<T extends CachedSession | DeserializedCachedSession>(
         ctx: RequestContext,
-        serializedSession: CachedSession,
+        serializedSession: T,
         order: Order,
-    ): Promise<CachedSession> {
+    ): Promise<CachedSession | T> {
         const session = await this.connection.getRepository(ctx, Session).findOne({
             where: { id: serializedSession.id },
-            relations: ['user', 'user.roles', 'user.roles.channels'],
+            relations: this.userRelations,
         });
         if (session) {
             session.activeOrder = order;
@@ -269,12 +310,17 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
     /**
      * @description
      * Clears the `activeOrder` on the given cached session object and updates the cache.
+     *
+     * Accepts the session of a deserialized {@link RequestContext} too, see {@link setActiveOrder}.
      */
-    async unsetActiveOrder(ctx: RequestContext, serializedSession: CachedSession): Promise<CachedSession> {
+    async unsetActiveOrder<T extends CachedSession | DeserializedCachedSession>(
+        ctx: RequestContext,
+        serializedSession: T,
+    ): Promise<CachedSession | T> {
         if (serializedSession.activeOrderId) {
             const session = await this.connection.getRepository(ctx, Session).findOne({
                 where: { id: serializedSession.id },
-                relations: ['user', 'user.roles', 'user.roles.channels'],
+                relations: this.userRelations,
             });
             if (session) {
                 session.activeOrder = null;
@@ -294,7 +340,7 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
     async setActiveChannel(serializedSession: CachedSession, channel: Channel): Promise<CachedSession> {
         const session = await this.connection.rawConnection.getRepository(Session).findOne({
             where: { id: serializedSession.id },
-            relations: ['user', 'user.roles', 'user.roles.channels'],
+            relations: this.userRelations,
         });
         if (session) {
             session.activeChannel = channel;

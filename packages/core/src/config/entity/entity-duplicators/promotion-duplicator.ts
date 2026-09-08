@@ -35,7 +35,9 @@ export const promotionDuplicator = new EntityDuplicator({
         promotionService = injector.get(PromotionService);
     },
     async duplicate({ ctx, id }) {
-        const promotion = await connection.getEntityOrThrow(ctx, Promotion, id);
+        const promotion = await connection.getEntityOrThrow(ctx, Promotion, id, {
+            channelId: ctx.channelId,
+        });
         const translations: PromotionTranslationInput[] = promotion.translations.map(translation => {
             return {
                 name: translation.name + ' (copy)',

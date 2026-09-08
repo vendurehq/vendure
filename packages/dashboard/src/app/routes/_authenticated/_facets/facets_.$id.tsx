@@ -6,7 +6,9 @@ import { Button } from '@/vdb/components/ui/button.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { Switch } from '@/vdb/components/ui/switch.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
-import {    CustomFieldsPageBlock,
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
+import {
+    CustomFieldsPageBlock,
     DetailFormGrid,
     Page,
     PageActionBar,
@@ -14,7 +16,6 @@ import {    CustomFieldsPageBlock,
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
-import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { Trans, useLingui } from '@lingui/react/macro';
@@ -37,7 +38,7 @@ export const Route = createFileRoute('/_authenticated/_facets/facets_/$id')({
             ];
         },
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function FacetDetailPage() {
@@ -138,8 +139,8 @@ function FacetDetailPage() {
                 </PageBlock>
                 <CustomFieldsPageBlock column="main" entityType="Facet" control={form.control} />
                 {entity && (
-                    <PageBlock column="main" blockId="facet-values" title={<Trans>Facet values</Trans>}>
-                        <FacetValuesTable facetId={entity?.id} />
+                    <PageBlock column="main" blockId="facet-values" layout="bare">
+                        <FacetValuesTable facetId={entity?.id} title={<Trans>Facet values</Trans>} />
                     </PageBlock>
                 )}
             </PageLayout>

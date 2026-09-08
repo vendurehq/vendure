@@ -1,8 +1,9 @@
+import type { GlobalSettingsService } from '../../service/index';
 import { GlobalFlag } from '@vendure/common/lib/generated-types';
 import { ID } from '@vendure/common/lib/shared-types';
 import ms from 'ms';
 import { filter } from 'rxjs/operators';
-import type { GlobalSettingsService } from '../../service/index';
+import { LockNotSupportedOnGivenDriverError } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
 import { Cache, CacheService, RequestContextCacheService } from '../../cache/index';
@@ -113,7 +114,7 @@ export class MultiChannelStockLocationStrategy extends BaseStockLocationStrategy
         orderLine: OrderLine,
         quantity: number,
     ): Promise<LocationWithQuantity[]> {
-        const stockLevels = await this.getStockLevelsForVariant(ctx, orderLine.productVariantId);
+        const stockLevels = await this.getLockedStockLevelsForVariant(ctx, orderLine.productVariantId);
         const variant = await this.connection.getEntityOrThrow(
             ctx,
             ProductVariant,
@@ -157,22 +158,29 @@ export class MultiChannelStockLocationStrategy extends BaseStockLocationStrategy
         ctx: RequestContext,
         stockLevel: StockLevel,
     ): Promise<boolean> {
-        const channelIds = await this.channelIdCache.get(stockLevel.stockLocationId, async () => {
-            const stockLocation = await this.connection.getEntityOrThrow(
-                ctx,
-                StockLocation,
-                stockLevel.stockLocationId,
-                {
-                    relations: {
-                        channels: true,
-                    },
-                },
-            );
-            return stockLocation.channels.map(c => c.id);
-        });
+        const channelIds = await this.getChannelIdsForStockLocation(ctx, stockLevel.stockLocationId);
         return channelIds.includes(ctx.channelId);
     }
 
+    private getChannelIdsForStockLocation(ctx: RequestContext, stockLocationId: ID): Promise<ID[]> {
+        return this.requestContextCache.get(ctx, this.getCacheKey(stockLocationId), () =>
+            this.channelIdCache.get(stockLocationId, async () => {
+                const stockLocation = await this.connection.getEntityOrThrow(
+                    ctx,
+                    StockLocation,
+                    stockLocationId,
+                    {
+                        relations: {
+                            channels: true,
+                        },
+                    },
+                );
+                return stockLocation.channels.map(c => c.id);
+            }),
+        );
+    }
+
+    // Shared by both caches. They are separate stores, so the key does not collide in either.
     private getCacheKey(stockLocationId: ID) {
         return `MultiChannelStockLocationStrategy:StockLocationChannelIds:${stockLocationId}`;
     }
@@ -195,18 +203,40 @@ export class MultiChannelStockLocationStrategy extends BaseStockLocationStrategy
             );
     }
 
-    private getStockLevelsForVariant(ctx: RequestContext, productVariantId: ID): Promise<StockLevel[]> {
-        return this.requestContextCache.get(
-            ctx,
-            `MultiChannelStockLocationStrategy.stockLevels.${productVariantId}`,
-            () =>
-                this.connection.getRepository(ctx, StockLevel).find({
-                    where: {
-                        productVariantId,
-                    },
-                    loadEagerRelations: false,
-                }),
-        );
+    /**
+     * @description
+     * Reads the variant's StockLevel rows with a pessimistic write lock. This both serializes
+     * concurrent allocations for the same variant and — crucially on MySQL/MariaDB, whose default
+     * REPEATABLE READ isolation would otherwise serve a plain read from the transaction snapshot
+     * taken before the lock — returns the latest committed values. The lock is held until the
+     * surrounding allocation transaction commits (see `StockMovementService.createAllocationsForOrderLines`,
+     * which runs this in a transaction). The request-context cache is deliberately bypassed so that
+     * a second order line for the same variant re-reads the post-allocation values rather than a
+     * stale cached snapshot.
+     */
+    private async getLockedStockLevelsForVariant(
+        ctx: RequestContext,
+        productVariantId: ID,
+    ): Promise<StockLevel[]> {
+        try {
+            return await this.connection
+                .getRepository(ctx, StockLevel)
+                .createQueryBuilder('stockLevel')
+                .setLock('pessimistic_write')
+                .where('stockLevel.productVariantId = :productVariantId', { productVariantId })
+                .getMany();
+        } catch (e) {
+            if (!(e instanceof LockNotSupportedOnGivenDriverError)) {
+                throw e;
+            }
+            // SQLite does not support pessimistic locking. It is single-writer in practice, so a
+            // concurrent write surfaces as SQLITE_BUSY rather than a silent lost update; SQLite is
+            // not recommended for concurrent production use.
+            return this.connection.getRepository(ctx, StockLevel).find({
+                where: { productVariantId },
+                loadEagerRelations: false,
+            });
+        }
     }
 
     private async getVariantStockSettings(ctx: RequestContext, variant: ProductVariant) {

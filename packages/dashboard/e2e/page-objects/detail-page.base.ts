@@ -87,14 +87,28 @@ export class BaseDetailPage {
     /**
      * Select an option from a MultiSelect/Popover-based picker.
      * Unlike `selectOption` (which targets `role="option"` in a Select),
-     * this targets buttons inside a Popover — used by RoleSelector, etc.
+     * this targets options inside a Select/Popover — used by RoleSelector, etc.
      *
      * @param triggerLocator Locator for the combobox trigger button
      * @param optionText The visible text of the option to click
      */
     async selectPopoverOption(triggerLocator: Locator, optionText: string) {
         await triggerLocator.click();
-        await this.page.getByRole('button', { name: optionText, exact: true }).click();
+        await this.page.getByRole('option', { name: optionText, exact: true }).click();
+        // Multi-selects stay open after choosing an option (unless a filter is active). Close the
+        // popup so its modal backdrop does not intercept the next form interaction.
+        await this.closeDropdown();
+    }
+
+    /**
+     * Dismiss an open Base UI dropdown and wait until it can no longer swallow clicks.
+     * A closed popup stays mounted but hidden, and its inert backdrop outlives the listbox —
+     * most visibly after opening a dropdown that has no options at all.
+     */
+    async closeDropdown() {
+        await this.page.keyboard.press('Escape');
+        await expect(this.page.getByRole('listbox').filter({ visible: true })).toHaveCount(0);
+        await expect(this.page.locator('[data-base-ui-inert]')).toHaveCount(0);
     }
 
     /** Toggle a switch field identified by its label. */

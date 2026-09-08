@@ -5,6 +5,7 @@ import Handlebars from 'handlebars';
 import { execFile, execFileSync, execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { createWriteStream } from 'node:fs';
+import { createRequire } from 'node:module';
 import { Socket } from 'node:net';
 import { platform } from 'node:os';
 import path from 'node:path';
@@ -22,6 +23,7 @@ import {
     PG_READY_MAX_ATTEMPTS,
     PG_READY_POLL_INTERVAL_MS,
     SOCKET_TIMEOUT_MS,
+    TYPEORM_VERSION,
     TYPESCRIPT_VERSION,
     VITE_VERSION,
 } from './constants';
@@ -388,6 +390,9 @@ export function getMonorepoRootPackageJson(
     if (pmInfo.name === 'yarn') {
         pkg.dependenciesMeta = getYarnDependenciesMeta(dbType);
     }
+    if (pmInfo.name === 'bun') {
+        pkg.trustedDependencies = getNativeBuildDependencies(dbType);
+    }
     return pkg;
 }
 
@@ -408,16 +413,22 @@ export function getSingleProjectPackageJson(
     if (pmInfo.name === 'yarn') {
         pkg.dependenciesMeta = getYarnDependenciesMeta(dbType);
     }
+    if (pmInfo.name === 'bun') {
+        pkg.trustedDependencies = getNativeBuildDependencies(dbType);
+    }
     return pkg;
 }
 
 /**
  * Native dependencies whose install/build scripts must run for the scaffolded project to
  * work — otherwise e.g. better-sqlite3's native binding is never compiled and the server
- * crashes on startup. pnpm (v10+) and yarn (v4.14+) block dependency build scripts unless
- * allowlisted, so this list feeds their respective allowlist mechanisms.
+ * crashes on startup. pnpm (v10+), yarn (v4.14+) and bun block dependency build scripts
+ * unless allowlisted, so this list feeds their respective allowlist mechanisms
+ * (`onlyBuiltDependencies`, `dependenciesMeta.built`, `trustedDependencies`).
  * `bcrypt` (core), `sharp` (asset-server-plugin) and `esbuild` (vite) are always present;
- * SQLite adds `better-sqlite3`.
+ * SQLite adds `better-sqlite3` and `re2`. `re2` lets core evaluate `regex` list filters in
+ * guaranteed linear time; without its native binding those filters fall back to the built-in
+ * RegExp engine, which is vulnerable to ReDoS on SQLite backends (GHSA-jgm3-qmp2-c4p7).
  *
  * This list is derived from the scaffold's transitive native deps; re-check it against
  * `getDependencies()` whenever Vendure's direct native-dep surface changes.
@@ -425,7 +436,7 @@ export function getSingleProjectPackageJson(
 export function getNativeBuildDependencies(dbType: DbType): string[] {
     const deps = ['bcrypt', 'esbuild', 'sharp'];
     if (dbType === 'sqlite') {
-        deps.push('better-sqlite3');
+        deps.push('better-sqlite3', 're2');
     }
     return deps.sort((a, b) => a.localeCompare(b));
 }
@@ -558,6 +569,7 @@ export function installPackages(options: {
 export function getDependencies(
     dbType: DbType,
     vendurePkgVersion = '',
+    packageManager?: PackageManager,
 ): { dependencies: string[]; devDependencies: string[] } {
     const dependencies = [
         `@vendure/core${vendurePkgVersion}`,
@@ -566,6 +578,10 @@ export function getDependencies(
         `@vendure/graphiql-plugin${vendurePkgVersion}`,
         `@vendure/dashboard${vendurePkgVersion}`,
         'dotenv',
+        // Generated migrations import from `typeorm`. Only pnpm's strict node_modules fails to
+        // resolve it as a transitive dep (npm/yarn/bun hoist, and the scaffold forces yarn's
+        // node-modules linker), so declare it directly for pnpm only. See #4960.
+        ...(packageManager === 'pnpm' ? [`typeorm@${TYPEORM_VERSION}`] : []),
         dbDriverPackage(dbType),
     ];
     const devDependencies = [
@@ -984,10 +1000,27 @@ export function cleanUpDockerResources(name: string) {
     }
 }
 
+/**
+ * Returns a `require` anchored in the generated project rather than in this CLI.
+ *
+ * `yarn dlx` runs the CLI under Plug'n'Play, which resolves each request against the
+ * package that made it. A request from this CLI for a package that only the generated
+ * project declares is rejected. Passing `require.resolve(pkg, { paths })` does not help,
+ * because Plug'n'Play ignores `paths`. Anchoring at the generated project's package.json
+ * makes that project the requesting package, so its node_modules tree is used.
+ *
+ * Loading through this require also keeps the generated project's CommonJS graph on the
+ * CommonJS loader. A dynamic import enters that graph through the ESM loader instead, and
+ * on Node 22 its nested requires fail to link with ERR_VM_MODULE_LINK_FAILURE.
+ */
+export function createProjectRequire(rootDir: string) {
+    return createRequire(path.join(rootDir, 'package.json'));
+}
+
 export function resolvePackageRootDir(packageName: string, rootDir: string) {
     let packageEntryPath: string;
     try {
-        packageEntryPath = require.resolve(packageName, { paths: [rootDir] });
+        packageEntryPath = createProjectRequire(rootDir).resolve(packageName);
     } catch {
         log(`Falling back to direct node_modules lookup for ${packageName}`);
         const fallbackPath = path.join(process.cwd(), 'node_modules', packageName);

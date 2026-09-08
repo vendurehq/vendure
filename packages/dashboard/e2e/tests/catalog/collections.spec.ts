@@ -1,6 +1,7 @@
 import { type Page, expect, test } from '@playwright/test';
 
 import { BaseDetailPage } from '../../page-objects/detail-page.base.js';
+import { BaseListPage } from '../../page-objects/list-page.base.js';
 import { createCrudTestSuite } from '../../utils/crud-test-factory.js';
 import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
 
@@ -237,8 +238,8 @@ test.describe('Issue #4389: Collection form dirty state with filters', () => {
 
     async function goToCollection(page: Page) {
         await page.goto(`/collections/${collectionId}`);
-        // Wait for the filter card to render — confirms the detail page loaded
-        await expect(page.getByText('facet-value-filter')).toBeVisible({ timeout: 10_000 });
+        // Wait for the filter sentence to render — confirms the detail page loaded
+        await expect(page.getByText('Filter by facet values')).toBeVisible({ timeout: 10_000 });
     }
 
     test('should enable Update button when editing the Name field', async ({ page }) => {
@@ -289,7 +290,7 @@ test.describe('Issue #4389: Collection form dirty state with filters', () => {
 
         // Reload and verify the change persisted
         await page.reload();
-        await expect(page.getByText('facet-value-filter')).toBeVisible({ timeout: 10_000 });
+        await expect(page.getByText('Filter by facet values')).toBeVisible({ timeout: 10_000 });
         await expect(dp.formItem('Name').getByRole('textbox')).toHaveValue('E2E Filter Test Saved');
     });
 });
@@ -337,13 +338,24 @@ test.describe('Issue #3548: Collection facet filter boolean args', () => {
 
         await page.getByRole('button', { name: /Add collection filter/i }).click();
         await page.getByRole('menuitem', { name: /Filter by facet values/i }).click();
+
+        // The first empty argument opens automatically when the filter is added.
+        await expect(page.getByRole('button', { name: 'Facet values', exact: true })).toHaveAttribute(
+            'aria-expanded',
+            'true',
+        );
         await page.getByRole('button', { name: /Add facet values/i }).click();
         await page.getByPlaceholder('Search facet values...').fill(facetValueName);
         await page.getByRole('option', { name: facetValueName, exact: true }).click();
+        await page.keyboard.press('Escape');
+        await page.keyboard.press('Escape');
 
+        // Open the "Contains any" chip popover and verify the switch defaults to off
+        await page.getByRole('button', { name: 'Contains any' }).click();
         await expect(
             page.locator('[data-slot="field"]').filter({ hasText: 'Contains any' }).getByRole('switch'),
         ).not.toBeChecked();
+        await page.keyboard.press('Escape');
         await expect(dp.createButton).toBeEnabled({ timeout: 5_000 });
         await dp.clickCreate();
         await dp.expectNavigatedToExisting();
@@ -364,6 +376,243 @@ test.describe('Issue #3548: Collection facet filter boolean args', () => {
         );
         const facetFilter = collection.filters.find((filter: any) => filter.code === 'facet-value-filter');
         expect(facetFilter?.args).toEqual(expect.arrayContaining([{ name: 'containsAny', value: 'false' }]));
+    });
+});
+
+test.describe('Collection tree toggles, search subtitles & detail breadcrumb', () => {
+    test.describe.configure({ mode: 'serial' });
+
+    const PARENT_NAME = 'E2E Nav Parent';
+    const CHILD_NAME = 'E2E Nav Child';
+    let parentId = '';
+    let childId = '';
+    let filterCollectionId = '';
+
+    test.beforeAll(async ({ browser }) => {
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+
+        const { createCollection: parent } = await client.gql(
+            `mutation ($input: CreateCollectionInput!) { createCollection(input: $input) { id } }`,
+            {
+                input: {
+                    filters: [],
+                    translations: [
+                        { languageCode: 'en', name: PARENT_NAME, slug: 'e2e-nav-parent', description: '' },
+                    ],
+                },
+            },
+        );
+        parentId = parent.id as string;
+
+        const { createCollection: child } = await client.gql(
+            `mutation ($input: CreateCollectionInput!) { createCollection(input: $input) { id } }`,
+            {
+                input: {
+                    parentId,
+                    filters: [],
+                    translations: [
+                        { languageCode: 'en', name: CHILD_NAME, slug: 'e2e-nav-child', description: '' },
+                    ],
+                },
+            },
+        );
+        childId = child.id as string;
+
+        // A collection carrying a facet-value-filter, used to exercise the
+        // preview → applying → contents flow when a filter is edited and saved.
+        const { facetValues } = await client.gql(
+            `query { facetValues(options: { take: 1 }) { items { id } } }`,
+        );
+        const facetValueId = facetValues.items[0].id as string;
+        const { createCollection: filtered } = await client.gql(
+            `mutation ($input: CreateCollectionInput!) { createCollection(input: $input) { id } }`,
+            {
+                input: {
+                    translations: [
+                        {
+                            languageCode: 'en',
+                            name: 'E2E Filter Edit Test',
+                            slug: 'e2e-filter-edit-test',
+                            description: '',
+                        },
+                    ],
+                    filters: [
+                        {
+                            code: 'facet-value-filter',
+                            arguments: [
+                                { name: 'facetValueIds', value: `["${facetValueId}"]` },
+                                { name: 'containsAny', value: 'false' },
+                            ],
+                        },
+                    ],
+                },
+            },
+        );
+        filterCollectionId = filtered.id as string;
+        await page.close();
+    });
+
+    test.afterAll(async ({ browser }) => {
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        for (const id of [childId, parentId, filterCollectionId]) {
+            if (id) {
+                await client.gql(`mutation ($id: ID!) { deleteCollection(id: $id) { result } }`, { id });
+            }
+        }
+        await page.close();
+    });
+
+    // Parent rows expose a chevron toggle (aria-label Expand/Collapse); leaf rows
+    // render a blank spacer with no toggle. Expanded state is mirrored to ?expanded=.
+    test('parent rows toggle children via the chevron; leaf rows have no toggle', async ({ page }) => {
+        await page.goto('/collections');
+        await expect(page.getByRole('heading', { name: 'Collections' })).toBeVisible();
+
+        const parentRow = page.locator('tbody tr').filter({ has: page.getByText(PARENT_NAME) });
+        const parentNameCell = parentRow.locator('td').filter({ hasText: PARENT_NAME });
+        const toggle = parentNameCell.getByLabel(/Expand|Collapse/);
+        await expect(toggle).toBeEnabled({ timeout: 10_000 });
+
+        // Expand → child appears and the parent id is written to the URL.
+        await toggle.click();
+        await expect(page.getByText(CHILD_NAME, { exact: true })).toBeVisible({ timeout: 5_000 });
+        await expect
+            .poll(() => new URL(page.url()).searchParams.get('expanded')?.split(',') ?? [])
+            .toContain(parentId);
+
+        // The leaf child row has no expand/collapse toggle.
+        const childRow = page
+            .locator('tbody tr')
+            .filter({ has: page.getByText(CHILD_NAME, { exact: true }) });
+        const childNameCell = childRow.locator('td').filter({ hasText: CHILD_NAME });
+        await expect(childNameCell.getByLabel(/Expand|Collapse/)).toHaveCount(0);
+
+        // Collapse → child disappears and the URL param clears.
+        await toggle.click();
+        await expect(page.getByText(CHILD_NAME, { exact: true })).toBeHidden({ timeout: 5_000 });
+        await expect.poll(() => new URL(page.url()).searchParams.get('expanded')).toBeFalsy();
+    });
+
+    // While searching, matching rows show their ancestor path as a muted subtitle
+    // and are not indented; clearing the search restores the top-level tree.
+    test('search shows ancestor subtitle and no indentation, then restores on clear', async ({ page }) => {
+        await page.goto('/collections');
+        await expect(page.getByRole('heading', { name: 'Collections' })).toBeVisible();
+
+        const lp = new BaseListPage(page, {
+            path: '/collections',
+            title: 'Collections',
+            newButtonLabel: 'New Collection',
+        });
+        await lp.search(CHILD_NAME);
+
+        const childRow = page
+            .locator('tbody tr')
+            .filter({ has: page.getByText(CHILD_NAME, { exact: true }) });
+        await expect(childRow).toBeVisible({ timeout: 10_000 });
+        // Ancestor path rendered as a subtitle under the name.
+        await expect(childRow.getByText(PARENT_NAME, { exact: true })).toBeVisible();
+        // The row is not indented while searching (no left margin on the name wrapper).
+        const nameWrapper = childRow
+            .locator('td')
+            .filter({ hasText: CHILD_NAME })
+            .locator('div.flex.gap-2.items-center')
+            .first();
+        await expect(nameWrapper).toHaveCSS('margin-left', '0px');
+
+        // Clearing the search restores the tree: the child (a non-top-level
+        // collection) is no longer shown at the top level.
+        await lp.clearSearch();
+        await expect(page.getByText(PARENT_NAME, { exact: true })).toBeVisible({ timeout: 10_000 });
+        await expect(page.getByText(CHILD_NAME, { exact: true })).toHaveCount(0);
+    });
+
+    // A nested collection's detail page renders its ancestor(s) as links in the top
+    // breadcrumb; clicking an ancestor navigates to that ancestor's detail page.
+    test('nested collection detail links ancestors in the breadcrumb', async ({ page }) => {
+        await page.goto(`/collections/${childId}`);
+        await expect(page.getByRole('heading', { name: CHILD_NAME })).toBeVisible({ timeout: 10_000 });
+
+        // The parent is a navigable breadcrumb link (ancestors use breadcrumb-link;
+        // the current collection is a non-navigable breadcrumb-page).
+        const parentCrumb = page.locator('[data-slot="breadcrumb-link"]').filter({ hasText: PARENT_NAME });
+        await expect(parentCrumb).toBeVisible({ timeout: 10_000 });
+        await parentCrumb.click();
+        await expect(page).toHaveURL(new RegExp(`/collections/${parentId}$`));
+        await expect(page.getByRole('heading', { name: PARENT_NAME })).toBeVisible({ timeout: 10_000 });
+    });
+
+    // A top-level collection has no ancestors: its name shows in the breadcrumb, but
+    // the only collection-detail breadcrumb link is the current page itself. (Every
+    // crumb renders as a link; a nested collection would add one link per ancestor.)
+    test('top-level collection detail has no ancestor breadcrumb link', async ({ page }) => {
+        await page.goto(`/collections/${parentId}`);
+        await expect(page.getByRole('heading', { name: PARENT_NAME })).toBeVisible({ timeout: 10_000 });
+        // The collection name is shown in the breadcrumb…
+        await expect(
+            page.locator('[data-slot="breadcrumb-link"]').filter({ hasText: PARENT_NAME }),
+        ).toBeVisible();
+        // …and the only collection-detail crumb link is the current page (no ancestor).
+        // The "Collections" list link has href "/collections" (no trailing id) and is
+        // excluded by the trailing slash.
+        await expect(page.locator('[data-slot="breadcrumb-link"][href^="/collections/"]')).toHaveCount(1);
+    });
+
+    // The embedded contents table does not opt into saved views but keeps its own
+    // search control.
+    test('collection contents table omits saved-views tabs but keeps filtering', async ({ page }) => {
+        await page.goto(`/collections/${parentId}`);
+        await expect(page.getByRole('heading', { name: PARENT_NAME })).toBeVisible({ timeout: 10_000 });
+
+        await expect(page.getByText('Contents', { exact: true })).toBeVisible({ timeout: 10_000 });
+        await expect(page.getByTestId('dt-views-tabs')).toHaveCount(0);
+        await expect(page.getByRole('textbox', { name: /Search variants/i })).toBeVisible();
+    });
+
+    // Editing a saved collection filter shows the preview alert; saving clears the
+    // preview and the block eventually resolves to the real contents table.
+    // NOTE: the transient "Applying filters…" alert is deliberately NOT asserted — the
+    // apply-collection-filters job can settle before the poll flips the UI, so that
+    // window is too short to catch reliably (it made the test flaky). We assert the
+    // stable start (preview) and end (real contents) states instead.
+    test('editing a filter previews, then resolves to real contents on save', async ({ page }) => {
+        await page.goto(`/collections/${filterCollectionId}`);
+        await expect(page.getByText('Filter by facet values')).toBeVisible({ timeout: 10_000 });
+        const dp = new BaseDetailPage(page, {
+            newPath: '/collections/new',
+            pathPrefix: '/collections/',
+            newTitle: 'New collection',
+        });
+
+        // Edit the filter: flip the "Contains any" switch inside its chip popover.
+        await page.getByRole('button', { name: 'Contains any' }).click();
+        await page
+            .locator('[data-slot="field"]')
+            .filter({ hasText: 'Contains any' })
+            .getByRole('switch')
+            .click();
+        await page.keyboard.press('Escape');
+
+        // The preview alert appears while the filters are dirty. Scope to the alert
+        // title so the assertions never collide with the collection name in the
+        // breadcrumb/heading.
+        const previewAlert = page.locator('[data-slot="alert-title"]').filter({ hasText: 'Preview' });
+        const applyingAlert = page
+            .locator('[data-slot="alert-title"]')
+            .filter({ hasText: /Applying filters/i });
+        await expect(previewAlert).toBeVisible({ timeout: 10_000 });
+
+        // Save; the preview/applying alerts eventually clear and the real contents
+        // table (its own "Search variants" control) is shown.
+        await dp.clickUpdate();
+        await dp.expectSuccessToast(/updated/i);
+        await expect(previewAlert).toHaveCount(0, { timeout: 35_000 });
+        await expect(applyingAlert).toHaveCount(0, { timeout: 35_000 });
+        await expect(page.getByRole('textbox', { name: /Search variants/i })).toBeVisible();
     });
 });
 
@@ -428,6 +677,7 @@ test.describe('Issue #4987: String list filter args preserve numeric values', ()
 
         // Both values survive a reload.
         await page.reload();
+        await page.getByRole('button', { name: 'externalIds', exact: true }).click();
         await expect(page.getByLabel('Remove 3249')).toBeVisible({ timeout: 10_000 });
         await expect(page.getByLabel('Remove 5')).toBeVisible();
 
@@ -442,5 +692,91 @@ test.describe('Issue #4987: String list filter args preserve numeric values', ()
         expect(filter?.args).toEqual(
             expect.arrayContaining([{ name: 'externalIds', value: '["3249","5"]' }]),
         );
+    });
+});
+
+// OSS-567 — a structurally different page (configurable-operation `filters` array,
+// no update transform). Editing only the name must send just id + translations,
+// leaving the `filters` replace-array untouched so a concurrent filter change
+// can't be clobbered.
+test.describe('collection update sends only changed fields (OSS-567)', () => {
+    let collectionId: string;
+
+    test.beforeAll(async ({ browser }) => {
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const { facetValues } = await client.gql(
+            `query { facetValues(options: { take: 1 }) { items { id } } }`,
+        );
+        const facetValueId = facetValues.items[0].id as string;
+        const { createCollection } = await client.gql(
+            `mutation ($input: CreateCollectionInput!) { createCollection(input: $input) { id } }`,
+            {
+                input: {
+                    translations: [
+                        {
+                            languageCode: 'en',
+                            name: 'OSS567 Collection',
+                            slug: `oss567-collection-${Date.now()}`,
+                            description: '',
+                        },
+                    ],
+                    filters: [
+                        {
+                            code: 'facet-value-filter',
+                            arguments: [
+                                { name: 'facetValueIds', value: `["${facetValueId}"]` },
+                                { name: 'containsAny', value: 'false' },
+                            ],
+                        },
+                    ],
+                },
+            },
+        );
+        collectionId = createCollection.id;
+        await page.close();
+    });
+
+    test('editing only the name submits just id + translations, not filters', async ({ page }) => {
+        const dp = new BaseDetailPage(page, {
+            newPath: '/collections/new',
+            pathPrefix: '/collections/',
+            newTitle: 'New collection',
+        });
+        await page.goto(`/collections/${collectionId}`);
+        await expect(dp.formItem('Name').getByRole('textbox')).toBeVisible({ timeout: 10_000 });
+        const newName = `OSS567 Collection ${Date.now()}`;
+        await dp.fillInput('Name', newName);
+
+        const updateRequest = page.waitForRequest(
+            req => req.method() === 'POST' && (req.postData() ?? '').includes('mutation UpdateCollection('),
+            { timeout: 15_000 },
+        );
+        await dp.clickUpdate();
+        const input = (await updateRequest).postDataJSON()?.variables?.input;
+
+        // The exhaustive key assertion already proves filters/inheritFilters are omitted.
+        expect(input).toBeTruthy();
+        expect(Object.keys(input).sort()).toEqual(['id', 'translations']);
+        expect(input.translations?.[0]?.name).toBe(newName);
+
+        await expect(
+            page
+                .locator('[data-sonner-toast]')
+                .filter({ hasText: /updated/i })
+                .first(),
+        ).toBeVisible({ timeout: 10_000 });
+    });
+
+    test.afterAll(async ({ browser }) => {
+        if (!collectionId) return;
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        await client.gql(`mutation ($id: ID!) { deleteCollection(id: $id) { result } }`, {
+            id: collectionId,
+        });
+        await page.close();
     });
 });

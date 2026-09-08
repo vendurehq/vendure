@@ -1,19 +1,29 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
+import { isForeignSecretPlaceholder, REDACTED_SECRET_PLACEHOLDER } from '@vendure/common/lib/shared-constants';
 import { getGraphQlInputName } from '@vendure/common/lib/shared-utils';
 import {
     getNamedType,
+    getNullableType,
+    GraphQLInputType,
     GraphQLSchema,
+    isInputObjectType,
+    isListType,
     OperationDefinitionNode,
     TypeInfo,
     visit,
     visitWithTypeInfo,
 } from 'graphql';
 
+import { UserInputError } from '../../common/error/errors';
 import { Injector } from '../../common/injector';
 import { ConfigService } from '../../config/config.service';
-import { CustomFieldConfig, CustomFields } from '../../config/custom-field/custom-field-types';
+import {
+    CUSTOM_FIELDS_INPUT_TYPE_SUFFIX,
+    CustomFieldConfig,
+    CustomFields,
+} from '../../config/custom-field/custom-field-types';
 import { parseContext } from '../common/parse-context';
 import { internal_getRequestContext, RequestContext } from '../common/request-context';
 import { validateCustomFieldValue } from '../common/validate-custom-field-value';
@@ -25,13 +35,20 @@ import { validateCustomFieldValue } from '../common/validate-custom-field-value'
  * 1. Applying default values when fields are explicitly set to null (create operations only)
  * 2. Validating custom field values according to their constraints
  *
- * Uses native GraphQL utilities (visit, visitWithTypeInfo, getNamedType) for efficient
- * AST traversal and type analysis.
+ * Scoped to the field being resolved via info.fieldName, ensuring correct type
+ * resolution even when a single document contains multiple mutation fields.
  */
 @Injectable()
 export class CustomFieldProcessingInterceptor implements NestInterceptor {
     private readonly createInputsWithCustomFields = new Set<string>();
     private readonly updateInputsWithCustomFields = new Set<string>();
+    /**
+     * Per-schema cache mapping the name of each `*CustomFieldsInput` type to the set of its `secret`
+     * field input-names. Built lazily from the schema (see {@link getSecretFieldsByInputType}) so that
+     * secret redaction placeholders are stripped wherever custom fields appear in a mutation input,
+     * regardless of the (arbitrary) name of the enclosing input type.
+     */
+    private readonly secretFieldsByInputTypeCache = new WeakMap<GraphQLSchema, Map<string, Set<string>>>();
 
     constructor(
         private readonly configService: ConfigService,
@@ -52,9 +69,9 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
             return next.handle();
         }
 
-        const { operation, schema } = parsedContext.info;
+        const { operation, schema, fieldName } = parsedContext.info;
         if (operation.operation === 'mutation') {
-            await this.processMutationCustomFields(context, operation, schema);
+            await this.processMutationCustomFields(context, operation, schema, fieldName);
         }
 
         return next.handle();
@@ -64,19 +81,174 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
         context: ExecutionContext,
         operation: OperationDefinitionNode,
         schema: GraphQLSchema,
+        fieldName: string,
     ) {
         const gqlExecutionContext = GqlExecutionContext.create(context);
         const variables = gqlExecutionContext.getArgs();
         const ctx = internal_getRequestContext(parseContext(context).req);
         const injector = new Injector(this.moduleRef);
 
-        const inputTypeNames = this.getArgumentMap(operation, schema);
+        // Strip secret redaction placeholders anywhere custom fields appear in the mutation input,
+        // discovered from the schema so it does not depend on the enclosing input type's name.
+        this.stripSecretPlaceholders(operation, schema, variables);
 
-        for (const [inputName, typeName] of Object.entries(inputTypeNames)) {
-            if (this.hasCustomFields(typeName) && variables[inputName]) {
-                await this.processInputVariables(typeName, variables[inputName], ctx, injector, operation);
+        const mutationType = schema.getMutationType();
+        const fieldDef = mutationType?.getFields()[fieldName];
+        if (!fieldDef) {
+            return;
+        }
+
+        for (const arg of fieldDef.args) {
+            const typeName = getNamedType(arg.type).name;
+            if (this.hasCustomFields(typeName) && variables[arg.name]) {
+                await this.processInputVariables(typeName, variables[arg.name], ctx, injector, operation);
             }
         }
+    }
+
+    /**
+     * Removes `secret` custom-field redaction placeholders from the mutation input before it reaches
+     * the database. When the API redacts a secret on read, the placeholder is what an edit form
+     * submits back; if it were persisted, the encryption transformer would encrypt the literal
+     * placeholder and destroy the stored secret. Placeholders are therefore stripped (leaving the
+     * stored value untouched), and a placeholder from a different Vendure version is rejected.
+     *
+     * The locations of custom fields are discovered from the schema — any value sitting at a position
+     * typed as a `*CustomFieldsInput` type is a custom-fields object — so this works for every input
+     * that carries custom fields (e.g. `updateActiveAdministrator`, `modifyOrder`, the order-line
+     * inputs, and any future or plugin-defined mutation) without a hand-maintained list of input names.
+     */
+    private stripSecretPlaceholders(
+        operation: OperationDefinitionNode,
+        schema: GraphQLSchema,
+        variables: Record<string, any>,
+    ) {
+        const secretFieldsByInputType = this.getSecretFieldsByInputType(schema);
+        if (secretFieldsByInputType.size === 0) {
+            return;
+        }
+        const mutationType = schema.getMutationType();
+        if (!mutationType) {
+            return;
+        }
+        const mutationFields = mutationType.getFields();
+        for (const selection of operation.selectionSet.selections) {
+            if (selection.kind !== 'Field') {
+                continue;
+            }
+            const fieldDef = mutationFields[selection.name.value];
+            if (!fieldDef) {
+                continue;
+            }
+            for (const arg of fieldDef.args) {
+                if (arg.name in variables) {
+                    // On a create there is no stored value to preserve, so a placeholder is rejected
+                    // rather than stripped. This is best-effort (set membership against the generated
+                    // create inputs); when unknown it defaults to stripping, which is always safe.
+                    const isCreate = this.createInputsWithCustomFields.has(getNamedType(arg.type).name);
+                    this.walkAndStripSecrets(
+                        variables[arg.name],
+                        arg.type,
+                        secretFieldsByInputType,
+                        isCreate,
+                    );
+                }
+            }
+        }
+    }
+
+    /**
+     * Recursively descends a mutation input value against its GraphQL input type. Wherever the value
+     * sits at a position typed as a `*CustomFieldsInput` type, its `secret` fields have their redaction
+     * placeholders stripped.
+     */
+    private walkAndStripSecrets(
+        value: any,
+        type: GraphQLInputType,
+        secretFieldsByInputType: Map<string, Set<string>>,
+        isCreate: boolean,
+    ) {
+        if (value == null) {
+            return;
+        }
+        const nullableType = getNullableType(type);
+        if (isListType(nullableType)) {
+            if (Array.isArray(value)) {
+                for (const item of value) {
+                    this.walkAndStripSecrets(item, nullableType.ofType, secretFieldsByInputType, isCreate);
+                }
+            }
+            return;
+        }
+        if (isInputObjectType(nullableType) && typeof value === 'object') {
+            const secretFields = secretFieldsByInputType.get(nullableType.name);
+            if (secretFields) {
+                this.stripSecretPlaceholdersFromObject(value, secretFields, isCreate);
+            }
+            const fields = nullableType.getFields();
+            for (const [fieldName, field] of Object.entries(fields)) {
+                if (fieldName in value) {
+                    this.walkAndStripSecrets(value[fieldName], field.type, secretFieldsByInputType, isCreate);
+                }
+            }
+        }
+    }
+
+    private stripSecretPlaceholdersFromObject(
+        customFieldsObject: any,
+        secretFields: Set<string>,
+        isCreate: boolean,
+    ) {
+        for (const fieldName of secretFields) {
+            const fieldValue = customFieldsObject[fieldName];
+            if (fieldValue === REDACTED_SECRET_PLACEHOLDER) {
+                if (isCreate) {
+                    throw new UserInputError('error.secret-custom-field-value-required', { name: fieldName });
+                }
+                // Preserve the stored value by not submitting anything for this field.
+                delete customFieldsObject[fieldName];
+            } else if (isForeignSecretPlaceholder(fieldValue)) {
+                // A placeholder from a different version must not be stored as a real value.
+                throw new UserInputError('error.secret-custom-field-value-required', { name: fieldName });
+            }
+        }
+    }
+
+    /**
+     * Builds, per schema, a map from each `*CustomFieldsInput` type name to the set of its `secret`
+     * field input-names. The owning entity is resolved from the type name (e.g.
+     * `UpdateAdministratorCustomFieldsInput` → `Administrator`) by the longest matching custom-field
+     * entity name, which is unambiguous because these type names are generated as
+     * `<verb><Entity>CustomFieldsInput`.
+     */
+    private getSecretFieldsByInputType(schema: GraphQLSchema): Map<string, Set<string>> {
+        const cached = this.secretFieldsByInputTypeCache.get(schema);
+        if (cached) {
+            return cached;
+        }
+        const map = new Map<string, Set<string>>();
+        const suffix = CUSTOM_FIELDS_INPUT_TYPE_SUFFIX;
+        const entityNames = (Object.keys(this.configService.customFields) as Array<keyof CustomFields>).sort(
+            (a, b) => (b as string).length - (a as string).length,
+        );
+        for (const type of Object.values(schema.getTypeMap())) {
+            if (!isInputObjectType(type) || !type.name.endsWith(suffix)) {
+                continue;
+            }
+            const prefix = type.name.slice(0, -suffix.length);
+            const entityName = entityNames.find(name => prefix.endsWith(name as string));
+            if (!entityName) {
+                continue;
+            }
+            const secretFieldNames = (this.configService.customFields[entityName] ?? [])
+                .filter(config => config.secret === true)
+                .map(config => getGraphQlInputName(config));
+            if (secretFieldNames.length) {
+                map.set(type.name, new Set(secretFieldNames));
+            }
+        }
+        this.secretFieldsByInputTypeCache.set(schema, map);
+        return map;
     }
 
     private hasCustomFields(typeName: string): boolean {
@@ -124,43 +296,19 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
         // Check if any field in the operation is a "create/add" operation for order lines
         for (const selection of operation.selectionSet.selections) {
             if (selection.kind === 'Field') {
-                const fieldName = selection.name.value;
+                const name = selection.name.value;
                 // These mutations create new order lines, so should apply defaults
-                if (fieldName === 'addItemToOrder' || fieldName === 'addItemToDraftOrder') {
+                if (name === 'addItemToOrder' || name === 'addItemToDraftOrder') {
                     return true;
                 }
                 // These mutations modify existing order lines, so should NOT apply defaults
-                if (fieldName === 'adjustOrderLine' || fieldName === 'adjustDraftOrderLine') {
+                if (name === 'adjustOrderLine' || name === 'adjustDraftOrderLine') {
                     return false;
                 }
             }
         }
         // Default to false for safety (don't apply defaults unless we're sure it's a create)
         return false;
-    }
-
-    private getArgumentMap(
-        operation: OperationDefinitionNode,
-        schema: GraphQLSchema,
-    ): { [inputName: string]: string } {
-        const typeInfo = new TypeInfo(schema);
-        const map: { [inputName: string]: string } = {};
-
-        const visitor = {
-            enter(node: any) {
-                if (node.kind === 'Field') {
-                    const fieldDef = typeInfo.getFieldDef();
-                    if (fieldDef) {
-                        for (const arg of fieldDef.args) {
-                            map[arg.name] = getNamedType(arg.type).name;
-                        }
-                    }
-                }
-            },
-        };
-
-        visit(operation, visitWithTypeInfo(typeInfo, visitor));
-        return map;
     }
 
     private applyDefaultsToInput(typeName: string, variableValues: any) {
@@ -208,10 +356,10 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
 
     private applyDefaultsToCustomFieldsObject(customFieldConfig: any[], customFieldsObject: any) {
         for (const config of customFieldConfig) {
-            const fieldName = getGraphQlInputName(config);
+            const name = getGraphQlInputName(config);
             // Only apply default if the field is explicitly null and has a default value
-            if (customFieldsObject[fieldName] === null && config.defaultValue !== undefined) {
-                customFieldsObject[fieldName] = config.defaultValue;
+            if (customFieldsObject[name] === null && config.defaultValue !== undefined) {
+                customFieldsObject[name] = config.defaultValue;
             }
         }
     }

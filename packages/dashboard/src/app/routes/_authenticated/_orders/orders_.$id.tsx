@@ -9,7 +9,7 @@ import { loadRegularOrder } from './utils/order-detail-loaders.js';
 export const Route = createFileRoute('/_authenticated/_orders/orders_/$id')({
     component: OrderDetailPage,
     loader: ({ context, params }) => loadRegularOrder(context, params),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function OrderDetailPage() {

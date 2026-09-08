@@ -23,6 +23,15 @@ export const config: VendureConfig = {
         adminApiPath: 'admin-api',
         shopApiPath: 'shop-api',
         trustProxy: IS_DEV ? false : 1,
+        // Which browser origins may make credentialed requests to the Shop and Admin APIs.
+        // In dev any origin is reflected, so a storefront on any port works. In production set
+        // CORS_ORIGINS to a comma-separated list of the origins you serve, for example
+        // "https://example.com,https://admin.example.com". An unset value blocks all
+        // cross-origin browser requests, which is the safe default.
+        cors: {
+            origin: IS_DEV ? true : (process.env.CORS_ORIGINS?.split(',').map(o => o.trim()).filter(Boolean) ?? []),
+            credentials: true,
+        },
         // The following options are useful in development mode,
         // but are best turned off for production for security
         // reasons.
@@ -97,7 +106,9 @@ export const config: VendureConfig = {
                 fromAddress: '"example" <noreply@example.com>',
                 verifyEmailAddressUrl: 'http://localhost:8080/verify',
                 passwordResetUrl: 'http://localhost:8080/password-reset',
-                changeEmailAddressUrl: 'http://localhost:8080/verify-email-address-change'
+                changeEmailAddressUrl: 'http://localhost:8080/verify-email-address-change',
+                // The URL of the password reset page of the Vendure Dashboard.
+                adminPasswordResetUrl: `http://localhost:${serverPort}/dashboard/reset-password`
             },
         }),
         DashboardPlugin.init({

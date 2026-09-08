@@ -10,6 +10,7 @@ import { includeOnlySelectedListFields } from '@/vdb/framework/document-introspe
 import { BulkActionsInput } from '@/vdb/framework/extension-api/types/index.js';
 import { ResultOf } from '@/vdb/graphql/graphql.js';
 import { useExtendedListQuery } from '@/vdb/hooks/use-extended-list-query.js';
+import { useViewOptionDefaults } from '@/vdb/hooks/use-view-option-defaults.js';
 import { TypedDocumentNode } from '@graphql-typed-document-node/core';
 import { ColumnFiltersState, ColumnSort, SortingState, Table } from '@tanstack/react-table';
 import { ColumnDef, Row, TableOptions, VisibilityState } from '@tanstack/table-core';
@@ -17,7 +18,6 @@ import React from 'react';
 import { getColumnVisibility, getStandardizedDefaultColumnOrder } from '../data-table/data-table-utils.js';
 import { useGeneratedColumns } from '../data-table/use-generated-columns.js';
 import { PaginatedListContext } from './paginated-list-context.js';
-import { useViewOptionDefaults } from '@/vdb/hooks/use-view-option-defaults.js';
 
 // Type that identifies a paginated list structure (has items array and totalItems)
 type IsPaginatedList<T> = T extends { items: any[]; totalItems: number } ? true : false;
@@ -187,7 +187,7 @@ export interface PaginatedListDataTableProps<
     customizeColumns?: CustomizeColumnConfig<T>;
     additionalColumns?: AC;
     defaultColumnOrder?: (keyof ListQueryFields<T> | keyof AC | CustomFieldKeysOfItem<ListQueryFields<T>>)[];
-    defaultVisibility?: Partial<Record<AllItemFieldKeys<T>, boolean>>;
+    defaultVisibility?: Partial<Record<AllItemFieldKeys<T> | keyof AC, boolean>>;
     /**
      * @description
      * Called whenever the debounced search term changes (including when it
@@ -199,18 +199,56 @@ export interface PaginatedListDataTableProps<
      * still invoked on every change so pages can use it as a state-sync hook.
      */
     onSearchTermChange?: (searchTerm: string) => NonNullable<V['options']>['filter'];
+    /**
+     * @description
+     * Placeholder text for the search input. Should say what the search targets,
+     * e.g. "Search products...". Defaults to a generic "Search...".
+     *
+     * @since 3.8.0
+     */
+    searchPlaceholder?: string;
     page: number;
     itemsPerPage: number;
     sorting: SortingState;
     columnFilters?: ColumnFiltersState;
     onPageChange: (table: Table<any>, page: number, perPage: number) => void;
     onSortChange: (table: Table<any>, sorting: SortingState) => void;
-    onFilterChange: (table: Table<any>, filters: ColumnFiltersState) => void;
+    /**
+     * @description
+     * Called when the user changes the column filters. When omitted, the table is
+     * treated as read-only with respect to filtering: the saved-views tabs and the
+     * "Add filter" menu are not rendered. Useful for embedded tables (e.g. dashboard
+     * widgets) that apply preset filters via `transformVariables`.
+     */
+    onFilterChange?: (table: Table<any>, filters: ColumnFiltersState) => void;
     onColumnVisibilityChange?: (table: Table<any>, columnVisibility: VisibilityState) => void;
     facetedFilters?: FacetedFilterConfig<T>;
     rowActions?: RowAction<PaginatedListItemFields<T>>[];
-    bulkActions?: BulkActionsInput;
+    /**
+     * Bulk actions to render for selected rows. Set to `false` to suppress the
+     * bulk-action toolbar while retaining row selection.
+     */
+    bulkActions?: BulkActionsInput | false;
+    /**
+     * The selected items, used to synchronize table selection with an owning component.
+     */
+    selectedItems?: PaginatedListItemFields<T>[];
+    /**
+     * Called when row selection changes, including selections retained across pages.
+     */
+    onSelectionChange?: (selection: PaginatedListItemFields<T>[]) => void;
     disableViewOptions?: boolean;
+    /**
+     * @description
+     * Enables saved-view controls for this table. This should be used for tables
+     * which represent a whole data set, such as top-level list pages. It should
+     * not be enabled for embedded tables or tables whose query is already scoped
+     * by a predefined filter.
+     *
+     * @default false
+     * @since 3.8.0
+     */
+    enableViews?: boolean;
     transformData?: (data: PaginatedListItemFields<T>[]) => PaginatedListItemFields<T>[];
     setTableOptions?: (table: TableOptions<any>) => TableOptions<any>;
     /**
@@ -241,6 +279,48 @@ export interface PaginatedListDataTableProps<
      * @default true
      */
     includeSelectionColumn?: boolean;
+    /**
+     * @description
+     * An optional action rendered inside the first-run empty state (i.e. when the
+     * list has no items and no active filters/search). Typically a "create your
+     * first X" CTA. The page owns this because the table cannot know the create
+     * route or the permissions that gate it.
+     */
+    emptyStateAction?: React.ReactNode;
+    /**
+     * @description
+     * Render prop invoked when the underlying list query fails. Receives the
+     * error and a `retry` callback (re-runs the query) and should return the
+     * content to display in place of the table — typically an `ErrorState`.
+     * When omitted, a failed query renders as an empty table.
+     */
+    errorState?: (params: { error: Error; retry: () => void }) => React.ReactNode;
+    /**
+     * @description
+     * An optional title rendered in the table's header band. Intended for tables
+     * embedded in detail pages (e.g. "Product variants").
+     *
+     * @since 3.8.0
+     */
+    title?: React.ReactNode;
+    /**
+     * @description
+     * Optional action buttons (e.g. a "Manage variants" CTA) rendered in the
+     * table's header band, next to the view-options and refresh controls.
+     *
+     * @since 3.8.0
+     */
+    actions?: React.ReactNode;
+    /**
+     * @description
+     * The table's frame. `'card'` (default) renders the table on its own card;
+     * `'plain'` renders the same band structure without the card chrome, for a
+     * table embedded in an existing card (e.g. a dashboard widget).
+     *
+     * @default 'card'
+     * @since 3.8.0
+     */
+    frame?: 'card' | 'plain';
 }
 
 export const PaginatedListDataTableKey = 'PaginatedListDataTable';
@@ -370,6 +450,7 @@ export function PaginatedListDataTable<
     defaultVisibility: _defaultVisibility,
     defaultColumnOrder: _defaultColumnOrder,
     onSearchTermChange,
+    searchPlaceholder,
     page,
     itemsPerPage,
     sorting,
@@ -381,13 +462,21 @@ export function PaginatedListDataTable<
     facetedFilters,
     rowActions,
     bulkActions,
+    selectedItems,
+    onSelectionChange,
     disableViewOptions,
+    enableViews,
     setTableOptions,
     transformData,
     registerRefresher,
     onReorder,
     disableDragAndDrop = false,
     includeSelectionColumn,
+    emptyStateAction,
+    errorState,
+    title,
+    actions,
+    frame,
 }: Readonly<PaginatedListDataTableProps<T, U, V, AC>>) {
     const [searchTerm, setSearchTerm] = React.useState<string>('');
     const debouncedSearchTerm = useDebounce(searchTerm, 500);
@@ -416,13 +505,16 @@ export function PaginatedListDataTable<
     const paginatedListObjectPath = getObjectPathToPaginatedList(extendedListQuery);
 
     // Merge code-defined default view options with any view options configured via the Plugin Extension API
-    const { defaultColumnVisibility, defaultColumnOrder } = useViewOptionDefaults(_defaultVisibility, _defaultColumnOrder);
+    const { defaultColumnVisibility, defaultColumnOrder } = useViewOptionDefaults(
+        _defaultVisibility,
+        _defaultColumnOrder,
+    );
 
     const { columns, customFieldColumnNames } = useGeneratedColumns({
         fields,
         customizeColumns,
         rowActions,
-        bulkActions,
+        bulkActions: bulkActions === false ? undefined : bulkActions,
         deleteMutation,
         additionalColumns,
         defaultColumnOrder: getStandardizedDefaultColumnOrder(defaultColumnOrder),
@@ -464,7 +556,7 @@ export function PaginatedListDataTable<
     ];
     const queryKey = transformQueryKey ? transformQueryKey(defaultQueryKey) : defaultQueryKey;
 
-    const { data, isFetching } = useQuery({
+    const { data, isFetching, isError, error, refetch } = useQuery({
         queryFn: () => {
             // Always invoke onSearchTermChange so callers can use it as a
             // state-sync hook (e.g. collections.tsx gates drag-and-drop on the
@@ -500,29 +592,41 @@ export function PaginatedListDataTable<
         typeof transformData === 'function' ? transformData(listData?.items ?? []) : (listData?.items ?? []);
     return (
         <PaginatedListContext.Provider value={{ refetchPaginatedList }}>
-            <DataTable
-                columns={columns}
-                data={transformedData}
-                isLoading={isFetching}
-                page={page}
-                itemsPerPage={itemsPerPage}
-                sorting={sorting}
-                columnFilters={columnFilters}
-                totalItems={listData?.totalItems ?? 0}
-                onPageChange={onPageChange}
-                onSortChange={onSortChange}
-                onFilterChange={onFilterChange}
-                onColumnVisibilityChange={onColumnVisibilityChange}
-                onSearchTermChange={onSearchTermChange ? term => setSearchTerm(term) : undefined}
-                defaultColumnVisibility={columnVisibility}
-                facetedFilters={facetedFilters}
-                disableViewOptions={disableViewOptions}
-                bulkActions={bulkActions}
-                setTableOptions={setTableOptions}
-                onRefresh={refetchPaginatedList}
-                onReorder={onReorder}
-                disableDragAndDrop={disableDragAndDrop}
-            />
+            {isError && errorState ? (
+                errorState({ error: error as Error, retry: () => refetch() })
+            ) : (
+                <DataTable
+                    columns={columns}
+                    data={transformedData}
+                    isLoading={isFetching}
+                    page={page}
+                    itemsPerPage={itemsPerPage}
+                    sorting={sorting}
+                    columnFilters={columnFilters}
+                    totalItems={listData?.totalItems ?? 0}
+                    onPageChange={onPageChange}
+                    onSortChange={onSortChange}
+                    onFilterChange={onFilterChange}
+                    onColumnVisibilityChange={onColumnVisibilityChange}
+                    onSearchTermChange={onSearchTermChange ? term => setSearchTerm(term) : undefined}
+                    searchPlaceholder={searchPlaceholder}
+                    defaultColumnVisibility={columnVisibility}
+                    facetedFilters={facetedFilters}
+                    disableViewOptions={disableViewOptions}
+                    enableViews={enableViews}
+                    bulkActions={bulkActions}
+                    selectedItems={selectedItems}
+                    onSelectionChange={onSelectionChange}
+                    setTableOptions={setTableOptions}
+                    onRefresh={refetchPaginatedList}
+                    onReorder={onReorder}
+                    disableDragAndDrop={disableDragAndDrop}
+                    emptyStateAction={emptyStateAction}
+                    title={title}
+                    actions={actions}
+                    frame={frame}
+                />
+            )}
         </PaginatedListContext.Provider>
     );
 }

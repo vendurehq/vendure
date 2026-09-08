@@ -51,7 +51,6 @@ const routerOptions: RouterOptions<AnyRoute, any> = {
         </div>
     ),
     context: {
-        /* eslint-disable @typescript-eslint/no-non-null-assertion */
         auth: undefined!, // This will be set after we wrap the app in an AuthProvider
         queryClient,
     },

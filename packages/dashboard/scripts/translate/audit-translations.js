@@ -37,7 +37,6 @@ import {
     ALLOWED_SCRIPTS,
     REQUIRED_SCRIPTS,
     SCRIPT_RANGES,
-    entryId,
     looksTrivial,
     parsePOFile,
 } from './locale-profiles.js';

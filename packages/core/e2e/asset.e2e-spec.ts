@@ -1,10 +1,11 @@
 import { DeletionResult, LogicalOperator, SortOrder } from '@vendure/common/lib/generated-types';
 import { omit } from '@vendure/common/lib/omit';
 import { pick } from '@vendure/common/lib/pick';
-import { mergeConfig } from '@vendure/core';
+import { AssetService, mergeConfig } from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
 import fs from 'fs-extra';
 import path from 'node:path';
+import { Readable } from 'node:stream';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';

@@ -4,7 +4,7 @@ generated: true
 ---
 ## defineDashboardExtension
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/define-dashboard-extension.ts" sourceLine="98" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/define-dashboard-extension.ts" sourceLine="111" packageName="@vendure/dashboard" since="3.3.0" />
 
 The main entry point for extensions to the React-based dashboard. Every dashboard extension
 must contain a call to this function, usually in the entry point file that is referenced by
@@ -52,7 +52,7 @@ Parameters
 
 ## DashboardExtension
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/extension-api-types.ts" sourceLine="41" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/extension-api-types.ts" sourceLine="42" packageName="@vendure/dashboard" since="3.3.0" />
 
 This is the main interface for defining _all_ extensions to the dashboard.
 
@@ -77,6 +77,7 @@ interface DashboardExtension {
     actionBarItems?: DashboardActionBarItem[];
     alerts?: DashboardAlertDefinition[];
     widgets?: DashboardWidgetDefinition[];
+    insights?: DashboardInsightsExtensionDefinition;
     customFormComponents?: DashboardCustomFormComponents;
     dataTables?: DashboardDataTableExtensionDefinition[];
     detailForms?: DashboardDetailFormExtensionDefinition[];
@@ -147,6 +148,23 @@ Allows you to define custom alerts that can be displayed in the dashboard.
 <MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/widgets#dashboardwidgetdefinition'>DashboardWidgetDefinition</a>[]`}   />
 
 Allows you to define custom widgets for the Insights page.
+### insights
+
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/define-dashboard-extension#dashboardinsightsextensiondefinition'>DashboardInsightsExtensionDefinition</a>`}  since="3.8.0"  />
+
+Groups all Insights page extension options, such as custom widgets and
+code-level widget exclusions.
+
+*Example*
+
+```ts
+defineDashboardExtension({
+    insights: {
+        widgets: [myWidget],
+        excludeWidgets: ['latest-orders-widget'],
+    },
+});
+```
 ### customFormComponents
 
 <MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/form-components#dashboardcustomformcomponents'>DashboardCustomFormComponents</a>`}   />
@@ -185,6 +203,75 @@ and alerts icon.
 <MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/custom-providers#dashboardcustomproviderdefinition'>DashboardCustomProviderDefinition</a>[]`}  since="3.7.0"  />
 
 Allows you to add custom providers in different locations.
+
+
+</div>
+## DashboardInsightsExtensionDefinition
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/insights.ts" sourceLine="71" packageName="@vendure/dashboard" since="3.8.0" />
+
+Configuration for the Insights page, grouping all insights-related extension
+options such as widgets, code-level widget exclusions and global filters.
+
+```ts title="Signature"
+interface DashboardInsightsExtensionDefinition {
+    widgets?: DashboardWidgetDefinition[];
+    excludeWidgets?: string[];
+    filters?: DashboardWidgetFilterDefinition[];
+}
+```
+
+<div className="members-wrapper">
+
+### widgets
+
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/widgets#dashboardwidgetdefinition'>DashboardWidgetDefinition</a>[]`}   />
+
+Custom widgets to add to the Insights page.
+### excludeWidgets
+
+<MemberInfo kind="property" type={`string[]`}   />
+
+The ids of widgets that should be completely removed from the Insights page.
+Excluded widgets are never rendered, never appear in the user-facing widget
+picker, and cannot be re-enabled by a user setting. This works for both
+built-in widgets and widgets registered by other extensions, regardless of
+registration order.
+
+*Example*
+
+```ts
+defineDashboardExtension({
+    insights: {
+        excludeWidgets: ['latest-orders-widget'],
+    },
+});
+```
+### filters
+
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/insights-filters#dashboardwidgetfilterdefinition'>DashboardWidgetFilterDefinition</a>[]`}  since="3.8.0"  />
+
+Global filters whose components render in the Insights page action bar, next to
+the built-in date range picker. A filter's value is shared with every widget on
+the page, which reads it via `useWidgetFilters().filters[id]`. This lets several
+widgets filter on a common constraint (for example a selected warehouse). Filter
+state is session-only.
+
+*Example*
+
+```tsx
+defineDashboardExtension({
+    insights: {
+        filters: [
+            {
+                id: 'warehouse',
+                defaultValue: 'all',
+                component: WarehouseFilter,
+            },
+        ],
+    },
+});
+```
 
 
 </div>

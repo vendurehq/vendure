@@ -51,7 +51,7 @@ import { loadDraftOrder } from './utils/order-detail-loaders.js';
 export const Route = createFileRoute('/_authenticated/_orders/orders_/draft/$id')({
     component: DraftOrderPage,
     loader: ({ context, params }) => loadDraftOrder(context, params),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function DraftOrderPage() {
@@ -387,6 +387,7 @@ function DraftOrderPage() {
                     <ConfirmationDialog
                         title={t`Delete draft order`}
                         description={t`Are you sure you want to delete this draft order?`}
+                        destructive
                         onConfirm={() => {
                             deleteDraftOrder({ orderId: entity.id });
                         }}

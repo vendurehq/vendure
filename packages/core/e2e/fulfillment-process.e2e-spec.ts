@@ -40,7 +40,7 @@ describe('Fulfillment process', () => {
     const VALIDATION_ERROR_MESSAGE = 'Fulfillment must have a tracking code';
     const customOrderProcess: CustomFulfillmentProcess<'AwaitingPickup'> = {
         init(injector) {
-            initSpy(injector.get(TransactionalConnection).rawConnection.name);
+            initSpy(injector.get(TransactionalConnection).rawConnection.isInitialized);
         },
         transitions: {
             Pending: {
@@ -164,7 +164,7 @@ describe('Fulfillment process', () => {
     describe('CustomFulfillmentProcess', () => {
         it('is injectable', () => {
             expect(initSpy).toHaveBeenCalled();
-            expect(initSpy.mock.calls[0][0]).toBe('default');
+            expect(initSpy.mock.calls[0][0]).toBe(true);
         });
 
         it('replaced transition target', async () => {

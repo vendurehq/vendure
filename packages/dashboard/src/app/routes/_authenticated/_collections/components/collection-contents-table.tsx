@@ -2,9 +2,10 @@ import { PaginatedListDataTable } from '@/vdb/components/shared/paginated-list-d
 import { Button } from '@/vdb/components/ui/button.js';
 import { addCustomFields } from '@/vdb/framework/document-introspection/add-custom-fields.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
+import { useLingui } from '@lingui/react/macro';
 import { Link } from '@tanstack/react-router';
 import { ColumnFiltersState, SortingState } from '@tanstack/react-table';
-import { useState } from 'react';
+import { ReactNode, useState } from 'react';
 
 export const collectionContentsDocument = graphql(`
     query CollectionContentsList($collectionId: ID!, $options: ProductVariantListOptions) {
@@ -26,9 +27,11 @@ export const collectionContentsDocument = graphql(`
 
 export interface CollectionContentsTableProps {
     collectionId?: string;
+    title?: ReactNode;
 }
 
-export function CollectionContentsTable({ collectionId }: Readonly<CollectionContentsTableProps>) {
+export function CollectionContentsTable({ collectionId, title }: Readonly<CollectionContentsTableProps>) {
+    const { t } = useLingui();
     const [sorting, setSorting] = useState<SortingState>([]);
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
@@ -36,6 +39,7 @@ export function CollectionContentsTable({ collectionId }: Readonly<CollectionCon
 
     return (
         <PaginatedListDataTable
+            title={title}
             listQuery={addCustomFields(collectionContentsDocument)}
             transformVariables={variables => {
                 return {
@@ -48,7 +52,10 @@ export function CollectionContentsTable({ collectionId }: Readonly<CollectionCon
                     header: 'Variant name',
                     cell: ({ row }) => {
                         return (
-                            <Button render={<Link to={`../../product-variants/${row.original.id}`} />} variant="ghost">
+                            <Button
+                                render={<Link to={`../../product-variants/${row.original.id}`} />}
+                                variant="ghost"
+                            >
                                 {row.original.name}{' '}
                             </Button>
                         );
@@ -69,6 +76,7 @@ export function CollectionContentsTable({ collectionId }: Readonly<CollectionCon
             onFilterChange={(_, filters) => {
                 setFilters(filters);
             }}
+            searchPlaceholder={t`Search variants...`}
             onSearchTermChange={searchTerm => {
                 return {
                     name: {

@@ -114,5 +114,202 @@
     "payment-method-used-in-channels": "Вибраний Спосіб Оплати призначається наступним Каналам: { channelCodes }. Встановіть \"force: true\" для видалення з усіх каналів.",
     "zone-used-in-channels": "Вибрану Зону неможливо видалити, так як вона використана за замовчуванням в наступних Каналах: { channelCodes }",
     "zone-used-in-tax-rates": "Вибрану Зону неможливо видалити, так як вона використана в наступних Податкових Ставках: { taxRateNames }"
+  },
+  "configurableOperation": {
+    "CollectionFilter": {
+      "facet-value-filter": {
+        "description": "Фільтр за значеннями фасетів",
+        "args": {
+          "facetValueIds": {
+            "label": "Значення фасетів"
+          },
+          "containsAny": {
+            "label": "Містить будь-яке",
+            "description": "Якщо позначено, варіанти товару повинні мати щонайменше одне з обраних значень фасетів. Якщо не позначено, варіант повинен мати всі обрані значення."
+          },
+          "combineWithAnd": {
+            "label": "Режим комбінування",
+            "description": "Якщо цей фільтр поєднується з іншими фільтрами, чи мають виконуватися всі умови (AND), чи достатньо лише однієї з них (OR)?"
+          }
+        }
+      },
+      "variant-name-filter": {
+        "description": "Фільтр за назвою варіанта товару",
+        "args": {
+          "combineWithAnd": {
+            "label": "Режим комбінування",
+            "description": "Якщо цей фільтр поєднується з іншими фільтрами, чи мають виконуватися всі умови (AND), чи достатньо лише однієї з них (OR)?"
+          }
+        }
+      },
+      "variant-id-filter": {
+        "description": "Вибрати варіанти товару вручну",
+        "args": {
+          "variantIds": {
+            "label": "Варіанти товару"
+          },
+          "combineWithAnd": {
+            "label": "Режим комбінування",
+            "description": "Якщо цей фільтр поєднується з іншими фільтрами, чи мають виконуватися всі умови (AND), чи достатньо лише однієї з них (OR)?"
+          }
+        }
+      },
+      "product-id-filter": {
+        "description": "Вибрати товари вручну",
+        "args": {
+          "productIds": {
+            "label": "Товари"
+          },
+          "combineWithAnd": {
+            "label": "Режим комбінування",
+            "description": "Якщо цей фільтр поєднується з іншими фільтрами, чи мають виконуватися всі умови (AND), чи достатньо лише однієї з них (OR)?"
+          }
+        }
+      }
+    },
+    "EntityDuplicator": {
+      "product-duplicator": {
+        "description": "Стандартний дублікатор товарів",
+        "args": {
+          "includeVariants": {
+            "label": "Включити варіанти"
+          }
+        }
+      },
+      "collection-duplicator": {
+        "description": "Стандартний дублікатор колекцій"
+      },
+      "facet-duplicator": {
+        "description": "Стандартний дублікатор фасетів",
+        "args": {
+          "includeFacetValues": {
+            "label": "Включити значення фасетів"
+          }
+        }
+      },
+      "promotion-duplicator": {
+        "description": "Стандартний дублікатор акцій"
+      }
+    },
+    "FulfillmentHandler": {
+      "manual-fulfillment": {
+        "description": "Ввести дані про виконання замовлення вручну"
+      }
+    },
+    "PaymentMethodHandler": {
+      "dummy-payment-handler": {
+        "description": "Фіктивний платіжний провайдер, призначений лише для тестування та розробки.",
+        "args": {
+          "automaticSettle": {
+            "label": "Авторизувати та провести за 1 крок",
+            "description": "Якщо увімкнено, платежі створюватимуться у стані \"Settled\"."
+          }
+        }
+      },
+      "example-payment-provider": {
+        "description": "Приклад платіжного провайдера"
+      }
+    },
+    "PromotionAction": {
+      "order_fixed_discount": {
+        "description": "Знижка на замовлення на фіксовану суму"
+      },
+      "order_line_fixed_discount": {
+        "description": "Знижка на orderLine на фіксовану суму"
+      },
+      "order_percentage_discount": {
+        "description": "Знижка на замовлення { discount }%"
+      },
+      "facet_based_discount": {
+        "description": "Знижка { discount }% на товари з цими фасетами"
+      },
+      "products_percentage_discount": {
+        "description": "Знижка { discount }% на вказані товари",
+        "args": {
+          "productVariantIds": {
+            "label": "Варіанти товару"
+          }
+        }
+      },
+      "free_shipping": {
+        "description": "Безкоштовна доставка"
+      },
+      "buy_x_get_y_free": {
+        "description": "Купити X товарів, отримати Y товарів безкоштовно"
+      }
+    },
+    "PromotionCondition": {
+      "minimum_order_amount": {
+        "description": "Якщо сума замовлення більша за { amount }"
+      },
+      "at_least_n_with_facets": {
+        "description": "Купити щонайменше { minimum } товарів із вказаними фасетами"
+      },
+      "contains_products": {
+        "description": "Купити щонайменше { minimum } із вказаних товарів",
+        "args": {
+          "productVariantIds": {
+            "label": "Варіанти товару"
+          }
+        }
+      },
+      "customer_group": {
+        "description": "Клієнт є членом вказаної групи",
+        "args": {
+          "customerGroupId": {
+            "label": "Група клієнтів"
+          }
+        }
+      },
+      "buy_x_get_y_free": {
+        "description": "Купити X товарів, отримати Y товарів безкоштовно",
+        "args": {
+          "variantIdsX": {
+            "label": "Купити amountX цих варіантів"
+          },
+          "variantIdsY": {
+            "label": "Отримати amountY цих варіантів безкоштовно"
+          }
+        }
+      }
+    },
+    "ShippingCalculator": {
+      "default-shipping-calculator": {
+        "description": "Стандартний калькулятор доставки з фіксованою ставкою",
+        "args": {
+          "rate": {
+            "label": "Вартість доставки"
+          },
+          "includesTax": {
+            "label": "Ціна включає податок",
+            "options": {
+              "include": {
+                "label": "Включає податок"
+              },
+              "exclude": {
+                "label": "Не включає податок"
+              },
+              "auto": {
+                "label": "Автоматично (на основі каналу)"
+              }
+            }
+          },
+          "taxRate": {
+            "label": "Податкова ставка"
+          }
+        }
+      }
+    },
+    "ShippingEligibilityChecker": {
+      "default-shipping-eligibility-checker": {
+        "description": "Стандартна перевірка можливості доставки",
+        "args": {
+          "orderMinimum": {
+            "label": "Мінімальна сума замовлення",
+            "description": "Замовлення підходить, лише якщо його сума більша або дорівнює цьому значенню"
+          }
+        }
+      }
+    }
   }
 }

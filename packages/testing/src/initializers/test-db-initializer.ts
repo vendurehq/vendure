@@ -1,5 +1,14 @@
 import { DataSourceOptions } from 'typeorm';
-import { BaseConnectionOptions } from 'typeorm/connection/BaseConnectionOptions';
+
+/**
+ * @description
+ * The TypeORM options for a particular driver, selected from the `DataSourceOptions` union by
+ * the driver's `type`. Selecting from the union rather than importing the driver's own options
+ * module avoids depending on where TypeORM keeps that module.
+ *
+ * @docsCategory testing
+ */
+export type DriverOptions<T extends DataSourceOptions['type']> = Extract<DataSourceOptions, { type: T }>;
 
 /**
  * @description
@@ -20,7 +29,7 @@ import { BaseConnectionOptions } from 'typeorm/connection/BaseConnectionOptions'
  *
  * @docsCategory testing
  */
-export interface TestDbInitializer<T extends BaseConnectionOptions> {
+export interface TestDbInitializer<T extends DataSourceOptions> {
     /**
      * @description
      * Responsible for creating a database for the current test suite.

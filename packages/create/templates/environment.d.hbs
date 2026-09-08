@@ -11,6 +11,7 @@ declare global {
             COOKIE_SECRET: string;
             SUPERADMIN_USERNAME: string;
             SUPERADMIN_PASSWORD: string;
+            CORS_ORIGINS?: string;
             {{#if requiresConnection}}
             DB_HOST: string;
             DB_PORT: number;

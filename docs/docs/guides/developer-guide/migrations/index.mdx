@@ -28,6 +28,30 @@ export const config: VendureConfig = {
 };
 ```
 
+## The initial migration
+
+A fresh project created with `@vendure/create` ships with an **initial migration** that creates the entire database schema. This matters for production: the first time you deploy against a new, empty database the schema is created by running migrations, so you never need to enable `synchronize` — not even for the first deploy.
+
+:::info
+Without an initial migration, a fresh deployment against an empty database would start with no tables at all, because `synchronize` is (correctly) disabled. Shipping the initial migration is what makes the first deploy work.
+:::
+
+### Generating a baseline migration for an existing project
+
+`generateMigration` compares your configuration against the schema of the _currently configured_ database. Run it against a database that already contains the schema and it finds no differences, so it cannot produce an initial migration. This is a problem if you have an existing project with no initial migration and need to create one.
+
+For this case, use the `--from-empty` flag:
+
+:::cli
+Run `npx vendure migrate --generate initial --from-empty`
+:::
+
+Instead of diffing against your configured database, `--from-empty` diffs your configuration against a temporary, empty "shadow" database of the same type, producing a complete migration that recreates the whole schema from scratch. This is the same approach used by tools such as Prisma and Atlas.
+
+:::note
+For PostgreSQL and MySQL/MariaDB, `--from-empty` creates and drops a temporary database on the same server, so the configured database user must have permission to create databases. For SQLite an in-memory database is used.
+:::
+
 ## Migration workflow
 
 This section assumes a standard Vendure installation based on `@vendure/create`. 

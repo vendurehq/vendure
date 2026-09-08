@@ -1,0 +1,78 @@
+---
+title: "ConfigurableOperationSentence"
+generated: true
+---
+## OperationDescriptionSegment
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/configurable-operation-description.ts" sourceLine="15" packageName="@vendure/dashboard" since="3.6.0" />
+
+A segment of a parsed configurable operation description template.
+Text segments are rendered as-is; arg segments correspond to an argument
+of the operation and are rendered as interactive values.
+
+```ts title="Signature"
+type OperationDescriptionSegment = | { type: 'text'; text: string }
+    | { type: 'arg'; arg: ConfigurableOperationArgDef; referenced: boolean }
+```
+## parseOperationDescription
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/configurable-operation-description.ts" sourceLine="45" packageName="@vendure/dashboard" since="3.6.0" />
+
+Parses a configurable operation's description template (e.g.
+`"buy at least { minimum } of the specified products"`) into an ordered list
+of segments. Placeholders which match an argument of the operation become
+`arg` segments; args never referenced in the template are appended as
+trailing `arg` segments with `referenced: false` so that every argument is
+always representable in the rendered sentence.
+
+```ts title="Signature"
+function parseOperationDescription(operationDefinition: Pick<ConfigurableOperationDefFragment, 'description' | 'args'>): OperationDescriptionSegment[]
+```
+Parameters
+
+### operationDefinition
+
+<MemberInfo kind="parameter" type={`Pick<ConfigurableOperationDefFragment, 'description' | 'args'>`} />
+
+## formatScalarArgValue
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/configurable-operation-description.ts" sourceLine="91" packageName="@vendure/dashboard" since="3.6.0" />
+
+Formats a scalar configurable operation arg value for compact display,
+applying the same currency precision and date formatting rules as
+`interpolateDescription`. Returns `undefined` for empty values.
+
+```ts title="Signature"
+function formatScalarArgValue(arg: Pick<ConfigurableOperationArgDef, 'type' | 'ui'>, value: string | undefined, precisionFactor:  = 2): string | undefined
+```
+Parameters
+
+### arg
+
+<MemberInfo kind="parameter" type={`Pick<ConfigurableOperationArgDef, 'type' | 'ui'>`} />
+
+### value
+
+<MemberInfo kind="parameter" type={`string | undefined`} />
+
+### precisionFactor
+
+<MemberInfo kind="parameter" type={``} />
+
+## OperationSentence
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/configurable-operation-sentence.tsx" sourceLine="40" packageName="@vendure/dashboard" since="3.6.0" />
+
+Renders a configurable operation as an inline sentence based on its
+description template, where each argument is an interactive chip that opens
+a popover containing the arg's regular input component.
+
+```ts title="Signature"
+function OperationSentence(props: Readonly<OperationSentenceProps>): void
+```
+Parameters
+
+### props
+
+<MemberInfo kind="parameter" type={`Readonly<OperationSentenceProps>`} />
+

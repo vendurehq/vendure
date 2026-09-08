@@ -1,0 +1,22 @@
+---
+title: "ConfigurableOperationDefType"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/common/configurable-operation.ts" sourceLine="56" packageName="@vendure/core" since="3.8.0" />
+
+The registries into which a [ConfigurableOperationDef](/reference/typescript-api/configurable-operation-def/#configurableoperationdef) may be placed. A `code` is only
+unique within a single registry — `buy_x_get_y_free`, for instance, is used by both a
+PromotionCondition and a PromotionAction — so the registry name forms part of the key under
+which translated strings are looked up.
+
+```ts title="Signature"
+type ConfigurableOperationDefType = | 'CollectionFilter'
+    | 'EntityDuplicator'
+    | 'FulfillmentHandler'
+    | 'PaymentMethodEligibilityChecker'
+    | 'PaymentMethodHandler'
+    | 'PromotionAction'
+    | 'PromotionCondition'
+    | 'ShippingCalculator'
+    | 'ShippingEligibilityChecker'
+```

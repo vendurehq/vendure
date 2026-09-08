@@ -246,6 +246,77 @@ await this.entityHydrator.hydrate(ctx, customer, { relations: ['customFields.ava
 console.log(customer.avatar);
 ```
 
+### Relation ids
+
+From Vendure v3.8, single (non-list) relation custom fields also expose the id of the related entity directly
+on the entity, named `'<field name>Id'`. This means that when you only need the id of the related entity - for
+example to compare it against the active user id - no join is required:
+
+```ts
+const customer = await this.connection.getRepository(ctx, Customer).findOne({
+    where: { id: 1 },
+});
+// No join needed to access the id of the related Asset
+console.log(customer.customFields.avatarId);
+```
+
+The id property maps to the same database column which is used by the relation itself, so no
+migration is required.
+
+The id property can also be used to set the relation when writing to the database:
+
+```ts
+customer.customFields.avatarId = 42;
+await this.connection.getRepository(ctx, Customer).save(customer);
+```
+
+:::caution
+If the relation property itself (`customFields.avatar` in this example) is set to an entity object or `null`,
+it takes precedence over the id property when saving. To avoid surprises, do not set both properties
+to conflicting values on the same entity.
+:::
+
+The id is also exposed in the GraphQL APIs. Alongside the relation field itself, the generated
+`customFields` type contains a `'<field name>Id'` field, which can be selected without the cost of
+loading the full relation:
+
+```graphql
+query {
+    activeCustomer {
+        customFields {
+            avatar {
+                id
+                preview
+            }
+            # or, when only the id is needed:
+            avatarId
+        }
+    }
+}
+```
+
+The id field respects the same `public`, `internal` and `requiresPermission` settings as the
+relation field it belongs to.
+
+In list queries, the id field can also be used to filter and sort:
+
+```graphql
+query {
+    products(options: {
+        filter: {
+            ownerId: { eq: "42" }
+        }
+        sort: {
+            ownerId: ASC
+        }
+    }) {
+        items {
+            id
+        }
+    }
+}
+```
+
 ## Custom field config properties
 
 ### Common properties
@@ -263,6 +334,7 @@ All custom fields share some common properties:
 - [`defaultValue`](#defaultvalue)
 - [`nullable`](#nullable)
 - [`unique`](#unique)
+- [`index`](#index)
 - [`validate`](#validate)
 - [`requiresPermission`](#requirespermission)
 - [`deprecated`](#deprecated)
@@ -500,6 +572,34 @@ const config = {
                 name: 'externalId',
                 type: 'string',
                 unique: true, // [!code highlight]
+            },
+        ]
+    }
+};
+```
+
+#### index
+
+<CustomFieldProperty required={false} type="boolean" />
+
+Whether a database index should be created for the custom field. Use this option for fields which
+are frequently filtered or sorted in large data sets. It is supported for scalar and single relation
+fields, but not for list, struct, or secret fields. MySQL and MariaDB do not support this option for
+`text` or `localeText` fields because those values are stored as `longtext` without an index prefix
+length.
+
+Adding `index: true` to an existing custom field changes the database schema. Generate and run a
+[database migration](/guides/developer-guide/migrations/) after updating the configuration.
+
+```ts title="src/vendure-config.ts"
+const config = {
+    // ...
+    customFields: {
+        Product: [
+            {
+                name: 'externalReference',
+                type: 'string',
+                index: true, // [!code highlight]
             },
         ]
     }
@@ -988,6 +1088,9 @@ In addition to the common properties, the `relation` custom fields have some typ
 - [`eager`](#eager)
 - [`graphQLType`](#graphqltype)
 - [`inverseSide`](#inverseside)
+- [`cascade`](#cascade)
+- [`onDelete`](#ondelete)
+- [`onUpdate`](#onupdate)
 
 #### entity
 
@@ -1100,6 +1203,94 @@ const { productReviews } = await this.connection.getRepository(ProductReview).fi
     where: { id: 1 },
     relations: ['product'],
 });
+```
+
+#### cascade
+
+<CustomFieldProperty required={false} type="boolean | ('insert' | 'update' | 'remove' | 'soft-remove' | 'recover')[]" />
+
+Whether to [cascade](https://typeorm.io/docs/relations/relations#cascade-options) operations on the relation. Defaults to `false`.
+
+```ts title="src/vendure-config.ts"
+import { Product } from '\@vendure/core';
+import { ProductReview } from './entities/product-review.entity';
+
+const config = {
+    // ...
+    customFields: {
+        Product: [
+            {
+                name: 'reviews',
+                list: true,
+                type: 'relation',
+                entity: ProductReview,
+                cascade: ['insert', 'update'], // [!code highlight]
+            },
+        ]
+    }
+};
+```
+
+#### onDelete
+<CustomFieldProperty required={false} type="'RESTRICT' | 'CASCADE' | 'SET NULL' | 'NO ACTION' | 'SET DEFAULT'" />
+
+The [onDelete](https://typeorm.io/docs/relations/relations/) behavior for the relation. If not set, the database default (`NO ACTION`) applies.
+
+:::caution
+
+Setting `onDelete: 'CASCADE'` means that when the referenced entity is deleted, the database also deletes every row that references it through this custom field. For example, with a relation to `ProductVariant` and `onDelete: 'CASCADE'`, deleting a `ProductVariant` also deletes every row that references it. These deletions happen at the database level, so no Vendure events are published for the deleted rows.
+
+Setting `cascade: ['remove']` acts in the opposite direction: removing the owning entity with TypeORM's `remove()` also removes the related entity. The `cascade` setting has no effect when the referenced entity is deleted.
+
+:::
+
+Setting `onDelete` on a `ManyToMany` (`list: true`) relation applies to the foreign keys of the join table: deleting the related entity removes the join-table rows, and the rows of both entities are left untouched.
+
+```ts title="src/vendure-config.ts"
+import { Product } from '\@vendure/core';
+import { ProductReview } from './entities/product-review.entity';
+
+const config = {
+    // ...
+    customFields: {
+        Product: [
+            {
+                name: 'reviews',
+                list: false,
+                type: 'relation',
+                entity: ProductReview,
+                onDelete: 'SET NULL', // [!code highlight]
+            },
+        ]
+    }
+};
+```
+
+#### onUpdate
+<CustomFieldProperty required={false} type="'RESTRICT' | 'CASCADE' | 'SET NULL' | 'NO ACTION' | 'SET DEFAULT'" />
+
+The [onUpdate](https://typeorm.io/docs/relations/relations/) behavior for the relation. If not set, the database default (`NO ACTION`) applies.
+
+Setting `onUpdate` on a `ManyToMany` (`list: true`) relation applies to the foreign keys of the join table, not to the related entity.
+
+```ts title="src/vendure-config.ts"
+import { Product } from '\@vendure/core';
+import { ProductReview } from './entities/product-review.entity';
+
+const config = {
+    // ...
+    customFields: {
+        Product: [
+            {
+                name: 'reviews',
+                list: false,
+                type: 'relation',
+                entity: ProductReview,
+                onUpdate: 'CASCADE', // [!code highlight]
+            },
+        ]
+    }
+};
 ```
 
 ## Custom Field UI
@@ -1361,4 +1552,3 @@ When you define custom fields on the `Customer` entity, the following API change
 
 - Shop API: [registerCustomerAccount](/reference/graphql-api/shop/mutations#registercustomeraccount) will have have a `customFields` field on the input
   object.
-

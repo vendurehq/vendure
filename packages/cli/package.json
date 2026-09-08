@@ -18,6 +18,8 @@
     "private": false,
     "license": "GPL-3.0-or-later",
     "type": "commonjs",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
     "scripts": {
         "build": "rimraf dist && tsc -p ./tsconfig.cli.json && ts-node ./build.ts",
         "watch": "tsc -p ./tsconfig.cli.json --watch",

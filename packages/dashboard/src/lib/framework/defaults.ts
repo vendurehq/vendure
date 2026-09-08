@@ -3,9 +3,12 @@ import { searchIndexBufferAlert } from '@/vdb/framework/alert/search-index-buffe
 import { setNavMenuConfig } from '@/vdb/framework/nav-menu/nav-menu-extensions.js';
 import { ChartLine, Percent, Settings2, ShoppingBag, Tags, Terminal, Users } from 'lucide-react';
 
+import { LatestCustomersWidget } from './dashboard-widget/latest-customers-widget/index.js';
 import { LatestOrdersWidget } from './dashboard-widget/latest-orders-widget/index.js';
+import { LowStockWidget } from './dashboard-widget/low-stock-widget/index.js';
 import { MetricsWidget } from './dashboard-widget/metrics-widget/index.js';
 import { OrdersSummaryWidget } from './dashboard-widget/orders-summary/index.js';
+import { TopProductsWidget } from './dashboard-widget/top-products-widget/index.js';
 import { registerDashboardWidget } from './dashboard-widget/widget-extensions.js';
 
 export function registerDefaults() {
@@ -17,6 +20,7 @@ export function registerDefaults() {
                 placement: 'top',
                 icon: ChartLine,
                 url: '/',
+                shortcut: 'd',
                 order: 100,
             },
             {
@@ -30,6 +34,7 @@ export function registerDefaults() {
                         id: 'products',
                         title: /* i18n*/ 'Products',
                         url: '/products',
+                        shortcut: 'p',
                         order: 100,
                         requiresPermission: ['ReadProduct', 'ReadCatalog'],
                     },
@@ -65,6 +70,7 @@ export function registerDefaults() {
                         id: 'assets',
                         title: /* i18n*/ 'Assets',
                         url: '/assets',
+                        shortcut: 'a',
                         order: 500,
                         requiresPermission: ['ReadAsset', 'ReadCatalog'],
                     },
@@ -81,6 +87,7 @@ export function registerDefaults() {
                         id: 'orders',
                         title: /* i18n*/ 'Orders',
                         url: '/orders',
+                        shortcut: 'o',
                         order: 100,
                         requiresPermission: ['ReadOrder'],
                     },
@@ -97,6 +104,7 @@ export function registerDefaults() {
                         id: 'customers',
                         title: /* i18n*/ 'Customers',
                         url: '/customers',
+                        shortcut: 'c',
                         order: 100,
                         requiresPermission: ['ReadCustomer'],
                     },
@@ -120,6 +128,7 @@ export function registerDefaults() {
                         id: 'promotions',
                         title: /* i18n*/ 'Promotions',
                         url: '/promotions',
+                        shortcut: 'm',
                         order: 100,
                         requiresPermission: ['ReadPromotion'],
                     },
@@ -250,6 +259,7 @@ export function registerDefaults() {
                         id: 'global-settings',
                         title: /* i18n*/ 'Global Settings',
                         url: '/global-settings',
+                        shortcut: 's',
                         order: 1200,
                         requiresPermission: ['UpdateGlobalSettings'],
                     },
@@ -265,6 +275,8 @@ export function registerDefaults() {
         defaultSize: { w: 12, h: 6, x: 0, y: 0 },
         minSize: { w: 6, h: 4 },
         requiresPermissions: ['ReadOrder'],
+        // Matches DATA_TYPES.OrderTotal in the metrics widget component.
+        defaultConfig: { dataType: 'OrderTotal' },
     });
 
     registerDashboardWidget({
@@ -281,6 +293,37 @@ export function registerDefaults() {
         component: OrdersSummaryWidget,
         defaultSize: { w: 6, h: 3, x: 6, y: 0 },
         requiresPermissions: ['ReadOrder'],
+    });
+
+    registerDashboardWidget({
+        id: 'top-products-widget',
+        name: /* i18n*/ 'Top Products Widget',
+        component: TopProductsWidget,
+        defaultSize: { w: 4, h: 6, x: 0, y: 0 },
+        minSize: { w: 3, h: 4 },
+        requiresPermissions: ['ReadOrder'],
+        // Matches the TopProductsMetric union in the top products widget component.
+        defaultConfig: { metric: 'quantity' },
+    });
+
+    registerDashboardWidget({
+        id: 'low-stock-widget',
+        name: /* i18n*/ 'Low Stock Widget',
+        component: LowStockWidget,
+        defaultSize: { w: 4, h: 6, x: 4, y: 0 },
+        minSize: { w: 3, h: 4 },
+        requiresPermissions: ['ReadCatalog', 'ReadProduct'],
+        // Matches THRESHOLD_OPTIONS in the low stock widget component.
+        defaultConfig: { threshold: 10 },
+    });
+
+    registerDashboardWidget({
+        id: 'latest-customers-widget',
+        name: /* i18n*/ 'Latest Customers Widget',
+        component: LatestCustomersWidget,
+        defaultSize: { w: 4, h: 6, x: 8, y: 0 },
+        minSize: { w: 3, h: 4 },
+        requiresPermissions: ['ReadCustomer'],
     });
 
     registerAlert(searchIndexBufferAlert);

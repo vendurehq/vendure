@@ -4,7 +4,7 @@ import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { PlusIcon } from 'lucide-react';
 import { administratorListDocument } from './administrators.graphql.js';
@@ -16,12 +16,14 @@ export const Route = createFileRoute('/_authenticated/_administrators/administra
 });
 
 function AdministratorListPage() {
+    const { t } = useLingui();
     return (
         <ListPage
             pageId="administrator-list"
             title={<Trans>Administrators</Trans>}
             listQuery={administratorListDocument}
             route={Route}
+            searchPlaceholder={t`Search administrators...`}
             onSearchTermChange={searchTerm => {
                 return searchTerm
                     ? {
@@ -58,7 +60,7 @@ function AdministratorListPage() {
                             <div className="flex flex-wrap gap-2">
                                 {row.original.user?.roles.map(role => {
                                     return (
-                                        <Badge variant="secondary" key={role.id}>
+                                        <Badge variant="default" key={role.id}>
                                             <RoleCodeLabel code={role.code} />
                                         </Badge>
                                     );

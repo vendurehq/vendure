@@ -1,0 +1,199 @@
+{
+  "configurableOperation": {
+    "CollectionFilter": {
+      "facet-value-filter": {
+        "description": "Filtrera efter facettvärden",
+        "args": {
+          "facetValueIds": {
+            "label": "Facettvärden"
+          },
+          "containsAny": {
+            "label": "Innehåller något av värdena",
+            "description": "Om detta är markerat måste produktvarianter ha minst ett av de valda facettvärdena. Om det inte är markerat måste varianten ha alla valda värden."
+          },
+          "combineWithAnd": {
+            "label": "Kombinationsläge",
+            "description": "Om detta filter kombineras med andra filter, måste alla villkor uppfyllas (AND) eller räcker det med ett av dem (OR)?"
+          }
+        }
+      },
+      "variant-name-filter": {
+        "description": "Filtrera efter produktvariantnamn",
+        "args": {
+          "combineWithAnd": {
+            "label": "Kombinationsläge",
+            "description": "Om detta filter kombineras med andra filter, måste alla villkor uppfyllas (AND) eller räcker det med ett av dem (OR)?"
+          }
+        }
+      },
+      "variant-id-filter": {
+        "description": "Välj produktvarianter manuellt",
+        "args": {
+          "variantIds": {
+            "label": "Produktvarianter"
+          },
+          "combineWithAnd": {
+            "label": "Kombinationsläge",
+            "description": "Om detta filter kombineras med andra filter, måste alla villkor uppfyllas (AND) eller räcker det med ett av dem (OR)?"
+          }
+        }
+      },
+      "product-id-filter": {
+        "description": "Välj produkter manuellt",
+        "args": {
+          "productIds": {
+            "label": "Produkter"
+          },
+          "combineWithAnd": {
+            "label": "Kombinationsläge",
+            "description": "Om detta filter kombineras med andra filter, måste alla villkor uppfyllas (AND) eller räcker det med ett av dem (OR)?"
+          }
+        }
+      }
+    },
+    "EntityDuplicator": {
+      "product-duplicator": {
+        "description": "Standardduplicerare för produkter",
+        "args": {
+          "includeVariants": {
+            "label": "Inkludera varianter"
+          }
+        }
+      },
+      "collection-duplicator": {
+        "description": "Standardduplicerare för kollektioner"
+      },
+      "facet-duplicator": {
+        "description": "Standardduplicerare för facetter",
+        "args": {
+          "includeFacetValues": {
+            "label": "Inkludera facettvärden"
+          }
+        }
+      },
+      "promotion-duplicator": {
+        "description": "Standardduplicerare för kampanjer"
+      }
+    },
+    "FulfillmentHandler": {
+      "manual-fulfillment": {
+        "description": "Ange leveransuppgifter manuellt"
+      }
+    },
+    "PaymentMethodHandler": {
+      "dummy-payment-handler": {
+        "description": "En dummy-betalningsleverantör avsedd endast för test och utveckling.",
+        "args": {
+          "automaticSettle": {
+            "label": "Auktorisera och reglera i ett steg",
+            "description": "Om detta aktiveras skapas betalningar med statusen \"Settled\"."
+          }
+        }
+      },
+      "example-payment-provider": {
+        "description": "Exempel på betalningsleverantör"
+      }
+    },
+    "PromotionAction": {
+      "order_fixed_discount": {
+        "description": "Rabattera beställningen med ett fast belopp"
+      },
+      "order_line_fixed_discount": {
+        "description": "Rabattera orderLine med ett fast belopp"
+      },
+      "order_percentage_discount": {
+        "description": "Rabattera beställningen med { discount }%"
+      },
+      "facet_based_discount": {
+        "description": "Rabattera produkter med dessa facetter med { discount }%"
+      },
+      "products_percentage_discount": {
+        "description": "Rabattera angivna produkter med { discount }%",
+        "args": {
+          "productVariantIds": {
+            "label": "Produktvarianter"
+          }
+        }
+      },
+      "free_shipping": {
+        "description": "Fri frakt"
+      },
+      "buy_x_get_y_free": {
+        "description": "Köp X produkter, få Y produkter gratis"
+      }
+    },
+    "PromotionCondition": {
+      "minimum_order_amount": {
+        "description": "Om beställningens totalbelopp är större än { amount }"
+      },
+      "at_least_n_with_facets": {
+        "description": "Köp minst { minimum } produkter med de angivna facetterna"
+      },
+      "contains_products": {
+        "description": "Köp minst { minimum } av de angivna produkterna",
+        "args": {
+          "productVariantIds": {
+            "label": "Produktvarianter"
+          }
+        }
+      },
+      "customer_group": {
+        "description": "Kunden tillhör den angivna gruppen",
+        "args": {
+          "customerGroupId": {
+            "label": "Kundgrupp"
+          }
+        }
+      },
+      "buy_x_get_y_free": {
+        "description": "Köp X produkter, få Y produkter gratis",
+        "args": {
+          "variantIdsX": {
+            "label": "Köp amountX av dessa varianter"
+          },
+          "variantIdsY": {
+            "label": "Få amountY av dessa varianter gratis"
+          }
+        }
+      }
+    },
+    "ShippingCalculator": {
+      "default-shipping-calculator": {
+        "description": "Standardfraktberäknare med fast pris",
+        "args": {
+          "rate": {
+            "label": "Fraktpris"
+          },
+          "includesTax": {
+            "label": "Priset inkluderar skatt",
+            "options": {
+              "include": {
+                "label": "Inklusive skatt"
+              },
+              "exclude": {
+                "label": "Exklusive skatt"
+              },
+              "auto": {
+                "label": "Automatiskt (baserat på kanal)"
+              }
+            }
+          },
+          "taxRate": {
+            "label": "Skattesats"
+          }
+        }
+      }
+    },
+    "ShippingEligibilityChecker": {
+      "default-shipping-eligibility-checker": {
+        "description": "Standardkontroll av fraktberättigande",
+        "args": {
+          "orderMinimum": {
+            "label": "Minsta beställningsvärde",
+            "description": "Beställningen är endast berättigad om dess totalbelopp är större än eller lika med detta värde"
+          }
+        }
+      }
+    }
+  }
+}

@@ -35,6 +35,16 @@ will compile the TypeScript sources and build the Dashboard into the `/dist` dir
 For production, there are many possibilities which depend on your operational requirements as well as your production
 hosting environment.
 
+### CORS origins
+
+Set the `CORS_ORIGINS` environment variable to a comma-separated list of the origins your browsers call
+the API from, for example `https://example.com,https://admin.example.com`. If you leave it empty, the
+server sends no `Access-Control-Allow-Origin` header and a separately hosted storefront or dashboard
+gets a CORS error on every request. The dashboard served by the `DashboardPlugin` runs on the same
+origin as the API, so it is not affected.
+
+In development (`APP_ENV=dev`) any origin is allowed, so you do not need to set this locally.
+
 ### Running directly
 
 You can run the built files directly with the `start` script:

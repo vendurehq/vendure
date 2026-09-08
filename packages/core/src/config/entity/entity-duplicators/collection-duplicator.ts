@@ -35,6 +35,7 @@ export const collectionDuplicator = new EntityDuplicator({
     },
     async duplicate({ ctx, id }) {
         const collection = await connection.getEntityOrThrow(ctx, Collection, id, {
+            channelId: ctx.channelId,
             relations: {
                 featuredAsset: true,
                 assets: true,

@@ -2,6 +2,7 @@ import { cancel, intro, isCancel, log, outro, select } from '@clack/prompts';
 import pc from 'picocolors';
 import type { MigrationResult } from './migration-operations';
 
+import { exitCliCommand, rethrowCliCommandExit } from '../../shared/cli-command-exit';
 import { abortIfNonInteractive, withInteractiveTimeout } from '../../utilities/utils';
 
 import {
@@ -22,6 +23,8 @@ export interface MigrateOptions {
     run?: boolean;
     revert?: boolean;
     outputDir?: string;
+    /** Generate a baseline migration by diffing against an empty shadow database */
+    fromEmpty?: boolean;
     /** Specify the path to a custom Vendure config file */
     config?: string;
 }
@@ -53,7 +56,13 @@ async function handleNonInteractiveMode(options: MigrateOptions) {
         log.info(
             'Run one of: vendure migrate --generate <name>, vendure migrate --run, or vendure migrate --revert.',
         );
-        process.exit(1);
+        exitCliCommand(1);
+        return;
+    }
+
+    if (options.fromEmpty && !options.generate) {
+        log.error('The --from-empty flag can only be used together with --generate <name>.');
+        exitCliCommand(1);
         return;
     }
 
@@ -65,6 +74,7 @@ async function handleNonInteractiveMode(options: MigrateOptions) {
             result = await generateMigrationOperation({
                 name: options.generate,
                 outputDir: options.outputDir,
+                fromEmpty: options.fromEmpty,
                 config: options.config,
             });
         } else if (options.run) {
@@ -73,8 +83,9 @@ async function handleNonInteractiveMode(options: MigrateOptions) {
             result = await revertMigrationOperation(options.config);
         }
     } catch (e: unknown) {
+        rethrowCliCommandExit(e);
         logError(e);
-        process.exit(1);
+        exitCliCommand(1);
         return;
     } finally {
         delete process.env.VENDURE_RUNNING_IN_CLI;
@@ -87,7 +98,7 @@ async function handleNonInteractiveMode(options: MigrateOptions) {
         log.success(result.message);
     } else {
         log.error(result.message);
-        process.exit(1);
+        exitCliCommand(1);
     }
 }
 
@@ -113,7 +124,7 @@ async function handleInteractiveMode(configFile?: string) {
 
     if (isCancel(action)) {
         cancel(cancelledMessage);
-        process.exit(0);
+        exitCliCommand(0);
     }
     try {
         process.env.VENDURE_RUNNING_IN_CLI = 'true';
@@ -131,8 +142,9 @@ async function handleInteractiveMode(configFile?: string) {
         }
         outro('✅ Done!');
     } catch (e: unknown) {
+        rethrowCliCommandExit(e);
         logError(e);
-        process.exitCode = 1;
+        exitCliCommand(1);
     } finally {
         delete process.env.VENDURE_RUNNING_IN_CLI;
     }

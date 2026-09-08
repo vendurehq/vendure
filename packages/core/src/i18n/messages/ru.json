@@ -114,5 +114,202 @@
     "payment-method-used-in-channels": "Выбранный Способ Оплаты назначается следующим Каналам: { channelCodes }. Установите \"force: true\" для удаления со всех каналов.",
     "zone-used-in-channels": "Выбранную Зону невозможно удалить, так как она использована по умолчанию в следующих Каналах: { channelCodes }",
     "zone-used-in-tax-rates": "Выбранную Зону невозможно удалить, так как она использована в следующих Налоговых Ставках: { taxRateNames }"
+  },
+  "configurableOperation": {
+    "CollectionFilter": {
+      "facet-value-filter": {
+        "description": "Фильтр по значениям фасета",
+        "args": {
+          "facetValueIds": {
+            "label": "Значения фасета"
+          },
+          "containsAny": {
+            "label": "Содержит любое",
+            "description": "Если отмечено, варианты товара должны иметь хотя бы одно из выбранных значений фасета. Если не отмечено, вариант должен иметь все выбранные значения."
+          },
+          "combineWithAnd": {
+            "label": "Режим комбинирования",
+            "description": "Если этот фильтр объединяется с другими фильтрами, должны ли выполняться все условия (AND) или достаточно только одного из них (OR)?"
+          }
+        }
+      },
+      "variant-name-filter": {
+        "description": "Фильтр по названию варианта товара",
+        "args": {
+          "combineWithAnd": {
+            "label": "Режим комбинирования",
+            "description": "Если этот фильтр объединяется с другими фильтрами, должны ли выполняться все условия (AND) или достаточно только одного из них (OR)?"
+          }
+        }
+      },
+      "variant-id-filter": {
+        "description": "Выбрать варианты товара вручную",
+        "args": {
+          "variantIds": {
+            "label": "Варианты товара"
+          },
+          "combineWithAnd": {
+            "label": "Режим комбинирования",
+            "description": "Если этот фильтр объединяется с другими фильтрами, должны ли выполняться все условия (AND) или достаточно только одного из них (OR)?"
+          }
+        }
+      },
+      "product-id-filter": {
+        "description": "Выбрать товары вручную",
+        "args": {
+          "productIds": {
+            "label": "Товары"
+          },
+          "combineWithAnd": {
+            "label": "Режим комбинирования",
+            "description": "Если этот фильтр объединяется с другими фильтрами, должны ли выполняться все условия (AND) или достаточно только одного из них (OR)?"
+          }
+        }
+      }
+    },
+    "EntityDuplicator": {
+      "product-duplicator": {
+        "description": "Дубликатор товаров по умолчанию",
+        "args": {
+          "includeVariants": {
+            "label": "Включить варианты"
+          }
+        }
+      },
+      "collection-duplicator": {
+        "description": "Дубликатор коллекций по умолчанию"
+      },
+      "facet-duplicator": {
+        "description": "Дубликатор фасетов по умолчанию",
+        "args": {
+          "includeFacetValues": {
+            "label": "Включить значения фасета"
+          }
+        }
+      },
+      "promotion-duplicator": {
+        "description": "Дубликатор акций по умолчанию"
+      }
+    },
+    "FulfillmentHandler": {
+      "manual-fulfillment": {
+        "description": "Ввести данные о выполнении заказа вручную"
+      }
+    },
+    "PaymentMethodHandler": {
+      "dummy-payment-handler": {
+        "description": "Фиктивный платёжный провайдер, предназначенный только для тестирования и разработки.",
+        "args": {
+          "automaticSettle": {
+            "label": "Авторизовать и провести за 1 шаг",
+            "description": "Если включено, платежи будут создаваться в состоянии \"Settled\"."
+          }
+        }
+      },
+      "example-payment-provider": {
+        "description": "Пример платёжного провайдера"
+      }
+    },
+    "PromotionAction": {
+      "order_fixed_discount": {
+        "description": "Скидка на заказ на фиксированную сумму"
+      },
+      "order_line_fixed_discount": {
+        "description": "Скидка на orderLine на фиксированную сумму"
+      },
+      "order_percentage_discount": {
+        "description": "Скидка на заказ { discount }%"
+      },
+      "facet_based_discount": {
+        "description": "Скидка { discount }% на товары с этими фасетами"
+      },
+      "products_percentage_discount": {
+        "description": "Скидка { discount }% на указанные товары",
+        "args": {
+          "productVariantIds": {
+            "label": "Варианты товара"
+          }
+        }
+      },
+      "free_shipping": {
+        "description": "Бесплатная доставка"
+      },
+      "buy_x_get_y_free": {
+        "description": "Купить X товаров, получить Y товаров бесплатно"
+      }
+    },
+    "PromotionCondition": {
+      "minimum_order_amount": {
+        "description": "Если сумма заказа больше { amount }"
+      },
+      "at_least_n_with_facets": {
+        "description": "Купить не менее { minimum } товаров с указанными фасетами"
+      },
+      "contains_products": {
+        "description": "Купить не менее { minimum } из указанных товаров",
+        "args": {
+          "productVariantIds": {
+            "label": "Варианты товара"
+          }
+        }
+      },
+      "customer_group": {
+        "description": "Клиент является членом указанной группы",
+        "args": {
+          "customerGroupId": {
+            "label": "Группа клиентов"
+          }
+        }
+      },
+      "buy_x_get_y_free": {
+        "description": "Купить X товаров, получить Y товаров бесплатно",
+        "args": {
+          "variantIdsX": {
+            "label": "Купить amountX этих вариантов"
+          },
+          "variantIdsY": {
+            "label": "Получить amountY этих вариантов бесплатно"
+          }
+        }
+      }
+    },
+    "ShippingCalculator": {
+      "default-shipping-calculator": {
+        "description": "Стандартный калькулятор доставки с фиксированной ставкой",
+        "args": {
+          "rate": {
+            "label": "Стоимость доставки"
+          },
+          "includesTax": {
+            "label": "Цена включает налог",
+            "options": {
+              "include": {
+                "label": "Включает налог"
+              },
+              "exclude": {
+                "label": "Не включает налог"
+              },
+              "auto": {
+                "label": "Автоматически (на основе канала)"
+              }
+            }
+          },
+          "taxRate": {
+            "label": "Налоговая ставка"
+          }
+        }
+      }
+    },
+    "ShippingEligibilityChecker": {
+      "default-shipping-eligibility-checker": {
+        "description": "Стандартная проверка возможности доставки",
+        "args": {
+          "orderMinimum": {
+            "label": "Минимальная сумма заказа",
+            "description": "Заказ подходит, только если его сумма больше или равна этому значению"
+          }
+        }
+      }
+    }
   }
 }

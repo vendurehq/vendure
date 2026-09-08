@@ -1,7 +1,7 @@
-import { Button } from '@/vdb/components/ui/button.js';
 import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
+import { useLingui } from '@lingui/react/macro';
 import { ColumnDef, HeaderContext } from '@tanstack/table-core';
-import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
+import { DataTableColumnHeader as UiDataTableColumnHeader } from '@vendure-io/ui/components/molecules/data-table/data-table-column-header';
 import { useMemo } from 'react';
 import { ColumnHeaderWrapper } from './column-header-wrapper.js';
 
@@ -12,7 +12,7 @@ export interface DataTableColumnHeaderProps {
 
 export function DataTableColumnHeader({ headerContext, customConfig }: Readonly<DataTableColumnHeaderProps>) {
     const { column } = headerContext;
-    const isSortable = column.getCanSort();
+    const { t } = useLingui();
     const { getTranslatedFieldName } = useDynamicTranslations();
 
     const display = useMemo(() => {
@@ -26,25 +26,14 @@ export function DataTableColumnHeader({ headerContext, customConfig }: Readonly<
         return result;
     }, [customConfig.header, column.id, getTranslatedFieldName]);
 
-    const columSort = column.getIsSorted();
-    const nextSort = columSort === 'asc' ? true : columSort === 'desc' ? undefined : false;
-
     return (
         <ColumnHeaderWrapper columnId={column.id}>
-            <div className="flex items-center">
-                {isSortable && (
-                    <Button size="icon-sm" variant="ghost" onClick={() => column.toggleSorting(nextSort)}>
-                        {columSort === 'desc' ? (
-                            <ArrowUp />
-                        ) : columSort === 'asc' ? (
-                            <ArrowDown />
-                        ) : (
-                            <ArrowUpDown className="opacity-50" />
-                        )}
-                    </Button>
-                )}
-                <div>{display}</div>
-            </div>
+            <UiDataTableColumnHeader
+                column={column}
+                sortLabel={typeof display === 'string' ? t`Sort by ${display}` : undefined}
+            >
+                {display}
+            </UiDataTableColumnHeader>
         </ColumnHeaderWrapper>
     );
 }

@@ -1,0 +1,34 @@
+---
+title: "VendureFindOneOptions"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/connection/types.ts" sourceLine="32" packageName="@vendure/core" since="3.8.0" />
+
+The TypeORM `FindOneOptions`, with `relations` and `select` also accepting an array of
+paths.
+
+```ts title="Signature"
+interface VendureFindOneOptions<T = any> extends Omit<FindOneOptions<T>, 'relations' | 'select'> {
+    relations?: FindOptionsRelationsInput<T>;
+    select?: FindOptionsSelectInput<T>;
+}
+```
+* Extends: `Omit<FindOneOptions<T>, 'relations' | 'select'>`
+
+
+
+<div className="members-wrapper">
+
+### relations
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/data-access/find-options-relations-input#findoptionsrelationsinput'>FindOptionsRelationsInput</a><T>`}   />
+
+
+### select
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/data-access/find-options-select-input#findoptionsselectinput'>FindOptionsSelectInput</a><T>`}   />
+
+
+
+
+</div>

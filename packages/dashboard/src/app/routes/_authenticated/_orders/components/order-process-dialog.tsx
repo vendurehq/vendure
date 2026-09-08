@@ -13,32 +13,45 @@ import { cn } from '@/vdb/lib/utils.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { ArrowRight, Workflow } from 'lucide-react';
 import { useMemo } from 'react';
-import { getTypeForState, type StateType } from '@/vdb/utils/state-type.js';
+import { isDestructiveTransition, orderStateDictionary } from '@/vdb/utils/state-type.js';
+import type { Tone } from '@/vdb/components/ui/status-badge.js';
 
 interface OrderProcessDialogProps {
     currentState: string;
 }
 
-const stateColors: Record<StateType, { bg: string; border: string; text: string }> = {
-    default: {
-        bg: 'bg-muted/50',
-        border: 'border-border',
-        text: 'text-foreground',
+// Subtle tone slots, matching the StatusBadge treatment — a tinted background,
+// readable foreground and matching border per tone (no full-strength fills).
+const stateColors: Record<Tone, { bg: string; border: string; text: string }> = {
+    neutral: {
+        bg: 'bg-neutral-subtle',
+        border: 'border-neutral-border',
+        text: 'text-neutral-subtle-foreground',
+    },
+    info: {
+        bg: 'bg-info-subtle',
+        border: 'border-info-border',
+        text: 'text-info-subtle-foreground',
     },
     success: {
-        bg: 'bg-success/10',
-        border: 'border-success/30',
-        text: 'text-success',
+        bg: 'bg-success-subtle',
+        border: 'border-success-border',
+        text: 'text-success-subtle-foreground',
     },
     warning: {
-        bg: 'bg-warning/10',
-        border: 'border-warning/30',
-        text: 'text-warning',
+        bg: 'bg-warning-subtle',
+        border: 'border-warning-border',
+        text: 'text-warning-subtle-foreground',
     },
-    destructive: {
-        bg: 'bg-destructive/10',
-        border: 'border-destructive/30',
-        text: 'text-destructive',
+    critical: {
+        bg: 'bg-destructive-subtle',
+        border: 'border-destructive-border',
+        text: 'text-destructive-subtle-foreground',
+    },
+    progress: {
+        bg: 'bg-neutral-subtle',
+        border: 'border-neutral-border',
+        text: 'text-neutral-subtle-foreground',
     },
 };
 
@@ -91,8 +104,8 @@ export function OrderProcessDialog({ currentState }: Readonly<OrderProcessDialog
                 <div className="overflow-auto flex-1 -mx-6 px-6 pb-2">
                     <div className="space-y-2">
                         {orderProcess.map(state => {
-                            const type = getTypeForState(state.name);
-                            const colors = stateColors[type];
+                            const tone = orderStateDictionary.toneFor(state.name);
+                            const colors = stateColors[tone];
                             const isCurrent = state.name === currentState;
                             const isNext = nextStates.has(state.name);
 
@@ -107,8 +120,13 @@ export function OrderProcessDialog({ currentState }: Readonly<OrderProcessDialog
                                             isCurrent &&
                                                 'ring-2 ring-primary ring-offset-2 ring-offset-background',
                                             // Dashed border for reachable next states, excluding
-                                            // destructive states to avoid visually suggesting them
-                                            isNext && !isCurrent && type !== 'destructive' && 'border-dashed',
+                                            // hard-failure states and destructive (irreversible)
+                                            // transitions like cancel to avoid visually suggesting them
+                                            isNext &&
+                                                !isCurrent &&
+                                                tone !== 'critical' &&
+                                                !isDestructiveTransition(state.name) &&
+                                                'border-dashed',
                                         )}
                                     >
                                         {getTranslatedOrderState(state.name)}
@@ -118,8 +136,8 @@ export function OrderProcessDialog({ currentState }: Readonly<OrderProcessDialog
                                             <ArrowRight className="h-4 w-4 flex-shrink-0 text-muted-foreground mt-1.5" />
                                             <div className="flex flex-wrap gap-1 items-start">
                                                 {state.to.map(target => {
-                                                    const targetType = getTypeForState(target);
-                                                    const targetColors = stateColors[targetType];
+                                                    const targetTone = orderStateDictionary.toneFor(target);
+                                                    const targetColors = stateColors[targetTone];
                                                     const isTargetCurrent = target === currentState;
                                                     return (
                                                         <span

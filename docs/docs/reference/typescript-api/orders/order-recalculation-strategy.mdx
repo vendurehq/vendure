@@ -1,0 +1,155 @@
+---
+title: "OrderRecalculationStrategy"
+generated: true
+---
+## NoOrderRecalculationStrategy
+
+<GenerationInfo sourceFile="packages/core/src/config/order/no-order-recalculation-strategy.ts" sourceLine="13" packageName="@vendure/core" since="3.8.0" />
+
+The default [OrderRecalculationStrategy](/reference/typescript-api/orders/order-recalculation-strategy#orderrecalculationstrategy) which never triggers a read-time recalculation.
+This preserves the behaviour of Vendure prior to v3.8.0, where an active Order's prices are only
+re-calculated on write mutations.
+
+```ts title="Signature"
+class NoOrderRecalculationStrategy implements OrderRecalculationStrategy {
+    shouldRecalculate() => boolean;
+}
+```
+* Implements: [`OrderRecalculationStrategy`](/reference/typescript-api/orders/order-recalculation-strategy#orderrecalculationstrategy)
+
+
+
+<div className="members-wrapper">
+
+### shouldRecalculate
+
+<MemberInfo kind="method" type={`() => boolean`}   />
+
+
+
+
+</div>
+## OrderRecalculationStrategy
+
+<GenerationInfo sourceFile="packages/core/src/config/order/order-recalculation-strategy.ts" sourceLine="31" packageName="@vendure/core" since="3.8.0" />
+
+This strategy determines whether an active Order's prices, promotions, taxes and shipping
+promotions should be re-calculated when the Order is read (e.g. via the `activeOrder` query).
+Recalculation is only ever attempted for Orders in the `AddingItems` state.
+
+**Note:** the shipping *method* and *rate* are NOT re-evaluated on read, so a read never silently
+swaps the customer's chosen method — those are re-evaluated when the Order transitions to
+`ArrangingPayment` (checkout). Shipping *promotions* are re-tested, so a now-inactive shipping
+promotion's discount is cleared rather than surviving on the Order.
+
+The default [NoOrderRecalculationStrategy](/reference/typescript-api/orders/order-recalculation-strategy#noorderrecalculationstrategy) never triggers a recalculation, preserving the
+historical behaviour whereby an active Order's prices are only updated on write mutations. Use
+[TtlOrderRecalculationStrategy](/reference/typescript-api/orders/order-recalculation-strategy#ttlorderrecalculationstrategy) (or a custom implementation) to keep long-lived carts in
+sync with changing product prices and promotions.
+
+:::info
+
+This is configured via the `orderOptions.orderRecalculationStrategy` property of your VendureConfig.
+
+:::
+
+```ts title="Signature"
+interface OrderRecalculationStrategy extends InjectableStrategy {
+    shouldRecalculate(ctx: RequestContext, order: Order): boolean | Promise<boolean>;
+}
+```
+* Extends: [`InjectableStrategy`](/reference/typescript-api/common/injectable-strategy#injectablestrategy)
+
+
+
+<div className="members-wrapper">
+
+### shouldRecalculate
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => boolean | Promise<boolean>`}   />
+
+Return `true` to trigger a recalculation of the Order's prices, promotions and taxes before
+it is returned from the active-order read path.
+
+**Note:** Implementations should rely only on fields that are always present on the Order
+(e.g. `pricingUpdatedAt`, `state`, `active`). Deep relations (lines, promotions, etc.) may
+not be loaded on the Order passed to this method.
+
+
+</div>
+## TtlOrderRecalculationStrategy
+
+<GenerationInfo sourceFile="packages/core/src/config/order/ttl-order-recalculation-strategy.ts" sourceLine="29" packageName="@vendure/core" since="3.8.0" />
+
+An [OrderRecalculationStrategy](/reference/typescript-api/orders/order-recalculation-strategy#orderrecalculationstrategy) which recalculates an active Order when the time since its
+last recalculation exceeds the configured `ttlMs`. This mirrors the "price freeze period" model
+used by other e-commerce platforms: quoted prices remain stable for a period, then refresh on the
+next access.
+
+*Example*
+
+```ts
+import { TtlOrderRecalculationStrategy, VendureConfig } from '@vendure/core';
+
+export const config: VendureConfig = {
+  // ...
+  orderOptions: {
+    orderRecalculationStrategy: new TtlOrderRecalculationStrategy({ ttlMs: 5 * 60 * 1000 }),
+  },
+};
+```
+
+```ts title="Signature"
+class TtlOrderRecalculationStrategy implements OrderRecalculationStrategy {
+    constructor(options: { ttlMs: number })
+    shouldRecalculate(ctx: RequestContext, order: Order) => boolean;
+}
+```
+* Implements: [`OrderRecalculationStrategy`](/reference/typescript-api/orders/order-recalculation-strategy#orderrecalculationstrategy)
+
+
+
+<div className="members-wrapper">
+
+### shouldRecalculate
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => boolean`}   />
+
+
+
+
+</div>
+## ApplyPriceAdjustmentsOptions
+
+<GenerationInfo sourceFile="packages/core/src/service/helpers/order-calculator/order-calculator.ts" sourceLine="32" packageName="@vendure/core" since="3.8.0" />
+
+Options passed to `OrderService.applyPriceAdjustments` and `OrderCalculator.applyPriceAdjustments`.
+
+```ts title="Signature"
+interface ApplyPriceAdjustmentsOptions {
+    recalculateShipping?: boolean;
+    recalculateShippingPromotions?: boolean;
+}
+```
+
+<div className="members-wrapper">
+
+### recalculateShipping
+
+<MemberInfo kind="property" type={`boolean`}   />
+
+Whether the shipping method & rate should be re-evaluated — which may swap the Order's
+shipping method to a different eligible one. Defaults to `true`.
+### recalculateShippingPromotions
+
+<MemberInfo kind="property" type={`boolean`}   />
+
+When `recalculateShipping` is `false` (the chosen shipping method & rate are left
+untouched), this controls whether shipping *promotions* are still re-tested and their
+adjustments cleared/re-applied. Defaults to the value of `recalculateShipping`, so
+callers that freeze shipping entirely (e.g. order modification) are unaffected, while
+read-time recalculation can drop a now-inactive shipping promotion's discount without
+re-selecting the method.
+
+
+</div>

@@ -6,11 +6,17 @@ import { AssetServerOptions, ImageTransformFormat } from './types';
 export function getAssetUrlPrefixFn(options: AssetServerOptions) {
     const { assetUrlPrefix, route } = options;
     if (assetUrlPrefix == null) {
-        return (request: Request, identifier: string) => {
-            const protocol = request.headers['x-forwarded-proto'] ?? request.protocol;
-            return `${Array.isArray(protocol) ? protocol[0] : protocol}://${
-                request.get('host') ?? 'could-not-determine-host'
-            }/${route}/`;
+        // A RequestContext rebuilt on a worker has no request, see `RequestContext.serialize()`.
+        // The EmailPlugin passes `ctx.req` here when it builds absolute asset URLs, so the prefix
+        // degrades to the placeholder host on a worker, the same as when the host header is missing.
+        return (request: Request | undefined, identifier: string) => {
+            const protocol =
+                getFirstHeaderValue(request?.headers['x-forwarded-proto']) ?? request?.protocol ?? 'http';
+            const host =
+                getFirstHeaderValue(request?.headers['x-forwarded-host']) ??
+                request?.get('host') ??
+                'could-not-determine-host';
+            return `${protocol}://${host}/${route}/`;
         };
     }
     if (typeof assetUrlPrefix === 'string') {
@@ -23,6 +29,11 @@ export function getAssetUrlPrefixFn(options: AssetServerOptions) {
         };
     }
     throw new Error(`The assetUrlPrefix option was of an unexpected type: ${JSON.stringify(assetUrlPrefix)}`);
+}
+
+function getFirstHeaderValue(value: string | string[] | undefined): string | undefined {
+    const firstValue = Array.isArray(value) ? value[0] : value;
+    return firstValue?.split(',')[0]?.trim();
 }
 
 export function getValidFormat(format?: unknown): ImageTransformFormat | undefined {
@@ -39,4 +50,20 @@ export function getValidFormat(format?: unknown): ImageTransformFormat | undefin
         default:
             return undefined;
     }
+}
+
+/**
+ * Validates and normalizes a background color hex string.
+ * Accepts 3, 4, 6, or 8 character hex strings (with or without `#` prefix).
+ * Returns the normalized hex string with `#` prefix, or `undefined` if invalid.
+ */
+export function getValidBackgroundColor(input?: unknown): string | undefined {
+    if (typeof input !== 'string' || input.length === 0) {
+        return undefined;
+    }
+    const hex = input.startsWith('#') ? input.slice(1) : input;
+    if (/^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6}$|^[0-9a-fA-F]{8}$/.test(hex)) {
+        return `#${hex.toLowerCase()}`;
+    }
+    return undefined;
 }

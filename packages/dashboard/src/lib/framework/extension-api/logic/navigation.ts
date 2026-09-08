@@ -49,6 +49,7 @@ function registerRoutes(routes?: DashboardRouteDefinition[]) {
                 requiresPermission: route.navMenuItem.requiresPermission,
                 icon: route.navMenuItem.icon,
                 placement: route.navMenuItem.placement,
+                shortcut: route.navMenuItem.shortcut,
             };
             addNavMenuItem(item, route.navMenuItem.sectionId);
         }

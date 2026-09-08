@@ -3,6 +3,7 @@ import { ConfigService } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import gql from 'graphql-tag';
 import path from 'path';
+import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
@@ -10,6 +11,12 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 
 import { TestPluginWithAllLifecycleHooks } from './fixtures/test-plugins/with-all-lifecycle-hooks';
 import { TestAPIExtensionPlugin } from './fixtures/test-plugins/with-api-extensions';
+import {
+    CompositeTestEntity,
+    CompositeTestPlugin,
+    DeduplicatedDynamicPlugin,
+    deduplicatedDynamicPlugin,
+} from './fixtures/test-plugins/with-composed-plugins';
 import { TestPluginWithConfig } from './fixtures/test-plugins/with-config';
 import { PluginWithGlobalProviders } from './fixtures/test-plugins/with-global-providers';
 import { TestLazyExtensionPlugin } from './fixtures/test-plugins/with-lazy-api-extensions';
@@ -31,6 +38,8 @@ describe('Plugins', () => {
             TestRestPlugin,
             PluginWithGlobalProviders,
             WithNewConfigObjectReferencePlugin,
+            CompositeTestPlugin,
+            deduplicatedDynamicPlugin,
         ],
     });
 
@@ -51,6 +60,32 @@ describe('Plugins', () => {
         const configService = server.app.get(ConfigService);
         expect(configService instanceof ConfigService).toBe(true);
         expect(configService.defaultLanguageCode).toBe(LanguageCode.zh);
+    });
+
+    it('registers entities from composed plugins', () => {
+        expect(server.app.get(DataSource).hasMetadata(CompositeTestEntity)).toBe(true);
+    });
+
+    it('registers a composed plugin only once', () => {
+        expect(DeduplicatedDynamicPlugin.configurationInvocationCount).toBe(1);
+    });
+
+    it('runs configuration functions from composed plugins', () => {
+        const configService = server.app.get(ConfigService);
+        expect(configService.customFields.Product).toContainEqual({
+            name: 'composedPluginField',
+            type: 'string',
+            nullable: true,
+        });
+    });
+
+    it('registers API extensions and resolvers from composed plugins', async () => {
+        const result = await shopClient.query(gql`
+            query {
+                composedPluginQuery
+            }
+        `);
+        expect(result.composedPluginQuery).toBe('composed');
     });
 
     // https://github.com/vendurehq/vendure/issues/2906

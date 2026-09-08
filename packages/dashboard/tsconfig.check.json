@@ -3,6 +3,7 @@
   "exclude": [
     "e2e",
     "vite/tests",
+    "**/*.e2e-spec.ts",
     "**/*.spec.ts",
     "**/*.spec.tsx",
     "**/*.stories.ts",

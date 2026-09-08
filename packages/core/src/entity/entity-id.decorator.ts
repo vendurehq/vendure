@@ -53,12 +53,15 @@ export function EntityId(options?: IdColumnOptions) {
 /**
  * Returns any columns on the entity which have been decorated with the {@link EntityId}
  * decorator.
+ *
+ * Multiple registry entries can exist for a single entity type, since dynamically-registered
+ * columns (e.g. custom field relation id columns) are decorated on separate instances
+ * rather than on the class prototype.
  */
 export function getIdColumnsFor(entityType: Type<any>): IdColumnConfig[] {
-    const match = Array.from(idColumnRegistry.entries()).find(
-        ([entity, columns]) => entity.constructor === entityType,
-    );
-    return match ? match[1] : [];
+    return Array.from(idColumnRegistry.entries())
+        .filter(([entity]) => entity.constructor === entityType)
+        .flatMap(([, columns]) => columns);
 }
 
 /**

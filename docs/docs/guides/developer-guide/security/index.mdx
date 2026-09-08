@@ -35,6 +35,103 @@ export const config: VendureConfig = {
 };
 ```
 
+### Configure CORS
+
+The default `apiOptions.cors` setting is:
+
+```ts
+cors: {
+  origin: true,      // reflect the `Origin` header of any caller
+  credentials: true, // allow cookies and credentialed requests
+}
+```
+
+`origin: true` makes the server echo back whatever `Origin` the caller sent. Together with
+`credentials: true`, this permits any website to make cross-origin requests to your Shop and Admin
+APIs. The default exists so that a new project works with a storefront on any port or domain during
+development. Replace it with an explicit list before you deploy:
+
+```ts
+import { VendureConfig } from '@vendure/core';
+
+export const config: VendureConfig = {
+  apiOptions: {
+    cors: {
+      // e.g. CORS_ORIGINS="https://example.com,https://admin.example.com"
+      origin: process.env.CORS_ORIGINS?.split(',').map(o => o.trim()).filter(Boolean) ?? [], // [!code highlight]
+      credentials: true,
+    },
+  },
+  // ...
+};
+```
+
+Vendure logs a warning at startup when it finds `origin: true` together with `credentials: true`.
+
+#### What the default does and does not expose
+
+`cookieOptions.sameSite: 'lax'` blocks part of this, but not all of it. Browsers do not attach a
+`SameSite=Lax` cookie to a cross-site `fetch` or `XMLHttpRequest`, so an attacker's page cannot make
+authenticated API calls or read authenticated responses with the defaults in place.
+
+`SameSite` does not stop a cross-site HTML form POST from creating a session. A top-level navigation
+may store a cookie with any `SameSite` value, even when that cookie would not have been sent on the
+request (RFC 6265bis, section 5.5). A form that posts
+`query=mutation { login(...) }` as `application/x-www-form-urlencoded` needs no CORS permission and no
+JavaScript, and the response sets a session cookie in the victim's browser. That is Login CSRF: the
+victim ends up browsing your store logged in as the attacker, and anything they enter after that
+(addresses, saved payment details, order history) sits in the attacker's account.
+
+The control that stops this is Apollo Server's CSRF prevention, not `SameSite` and not CORS. Turn it
+on with `apiOptions.csrfPrevention`:
+
+```ts
+import { VendureConfig } from '@vendure/core';
+
+export const config: VendureConfig = {
+  apiOptions: {
+    csrfPrevention: true, // [!code highlight]
+    // ...
+  },
+  // ...
+};
+```
+
+It rejects any POST whose content type is one a browser lets a form send
+(`application/x-www-form-urlencoded`, `multipart/form-data`, `text/plain`) unless the caller also sends
+`Apollo-Require-Preflight` or `x-apollo-operation-name`. Requests sent as `application/json`, which is
+what Vendure clients use for normal operations, are unaffected. `GET` requests carry no content type at
+all, so they are rejected too unless they send the header.
+
+The default is `false` so that existing clients keep working. It is expected to change to `true` in a
+future major release.
+
+:::warning
+Before you enable it, check every client that uploads files to your API. Multipart uploads use one of
+the blocked content types, so the client must send `Apollo-Require-Preflight`. `@vendure/admin-ui`,
+`@vendure/dashboard` and `@vendure/testing` all send it. A custom admin client built on
+`apollo-upload-client` does not send it unless you add it. The same applies to any storefront that
+uses `GET` for cacheable queries. The storefront starters offered by `@vendure/create` live in separate
+repositories, so check the one you used before you turn this on.
+:::
+
+The CORS default is a separate problem on top of that, and it becomes serious in these cases:
+
+- **`cookieOptions.sameSite: 'none'`.** This is a common setting when the storefront is on a different
+  site to the server. The browser now does attach the session cookie to cross-site requests, so any
+  website can make fully authenticated calls as the logged-in user and read the responses. An origin
+  allowlist is the only control that stops this.
+- **`tokenMethod: 'bearer'`.** `sameSite` gives no protection here. The browser does not attach the
+  token by itself, so an attacker page still needs to obtain a token first, for example through an XSS
+  on your own origin. An origin allowlist removes the CORS step from that chain.
+- **One setting for both APIs.** `apiOptions.cors` applies to the Shop API and the Admin API together.
+  You cannot allow a storefront origin on `/shop-api` without allowing it on `/admin-api` as well, so
+  keep the list to the origins that need both, and put the Admin API behind a gateway if you need
+  tighter separation.
+
+Set an explicit origin list in every case. It costs nothing and it is the one control that works for
+every session transport.
+
 ### Use the HardenPlugin
 
 It is recommended that you install and configure the [HardenPlugin](/reference/core-plugins/harden-plugin/) for all production deployments. This plugin locks down your schema 
@@ -184,6 +281,7 @@ Out of the box:
 To consider:
 
 - Ensure the default superadmin credentials are not used in production
+- Replace the default `apiOptions.cors` setting of `{ origin: true, credentials: true }` with an explicit list of the origins you serve
 - Use environment variables to turn off development features such as the GraphQL playground
 - Use the HardenPlugin in production to automatically turn of development features and restrict system information leaking via API.
 - Use fine-grained permissions and roles for your administrator accounts to reduce the attack surface if an account is compromised.

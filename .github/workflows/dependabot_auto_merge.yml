@@ -1,0 +1,144 @@
+name: Dependabot auto-merge
+
+# Uses pull_request_target rather than pull_request. Workflows that Dependabot
+# triggers via pull_request get a read-only GITHUB_TOKEN and read secrets from
+# the Dependabot secrets store, so the CI bot credentials would resolve empty.
+# pull_request_target is exempt from both restrictions.
+#
+# SECURITY: pull_request_target runs the workflow definition from the base
+# branch with access to Actions secrets. This workflow must never check out,
+# build, or execute anything from the pull request head. It only reads
+# Dependabot metadata and calls the GitHub API.
+on:
+    pull_request_target:
+        types: [opened, reopened, synchronize]
+
+permissions: {}
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+    cancel-in-progress: true
+
+jobs:
+    metadata:
+        name: classify update
+        if: github.event.pull_request.user.login == 'dependabot[bot]'
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            pull-requests: read
+        outputs:
+            eligible: ${{ steps.check.outputs.eligible }}
+        steps:
+            - name: Fetch Dependabot metadata
+              id: meta
+              uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+              with:
+                  github-token: ${{ secrets.GITHUB_TOKEN }}
+
+            # Eligibility is an explicit allowlist of dependency names, not a
+            # dependency-type check.
+            #
+            # dependency-type looks like the natural gate, but it does not work
+            # here. fetch-metadata reports the highest-priority type across the
+            # whole pull request, ordered production, development, indirect. In
+            # this workspace every dependency family contains at least one
+            # production dependency of some published package — typescript is a
+            # production dependency of packages/cli, @types/express of
+            # asset-server-plugin, eslint of the root — so every grouped update
+            # reports direct:production and nothing would ever qualify.
+            #
+            # An allowlist says plainly what can merge without a human. These
+            # packages affect type checking and linting, both of which
+            # build_and_test verifies on every pull request, and a patch-level
+            # change to any of them cannot alter runtime behaviour.
+            #
+            # Excluded on purpose:
+            #   - github-actions updates touch .github/workflows/, which
+            #     CODEOWNERS requires a listed maintainer to approve.
+            #   - docs updates make detect-changes report no package changes,
+            #     which skips every job in build_and_test. all-passed then goes
+            #     green having verified nothing, and Docs CI is not a required
+            #     check, so auto-merge would not wait for it.
+            - name: Check auto-merge eligibility
+              id: check
+              env:
+                  ECOSYSTEM: ${{ steps.meta.outputs.package-ecosystem }}
+                  UPDATE_TYPE: ${{ steps.meta.outputs.update-type }}
+                  DEP_NAMES: ${{ steps.meta.outputs.dependency-names }}
+              run: |
+                  set -euo pipefail
+                  echo "ecosystem=$ECOSYSTEM update-type=$UPDATE_TYPE names=$DEP_NAMES"
+
+                  eligible=true
+                  reason=""
+
+                  if [ "$ECOSYSTEM" != "bun" ]; then
+                    eligible=false
+                    reason="ecosystem is not bun"
+                  elif [ "$UPDATE_TYPE" != "version-update:semver-patch" ]; then
+                    eligible=false
+                    reason="not a patch update"
+                  elif [ -z "$DEP_NAMES" ]; then
+                    # Fail closed: an empty list means the metadata could not be
+                    # read, not that there is nothing to check.
+                    eligible=false
+                    reason="no dependency names reported"
+                  else
+                    IFS=',' read -ra names <<< "$DEP_NAMES"
+                    for raw in "${names[@]}"; do
+                      name="$(echo "$raw" | xargs)"
+                      [ -z "$name" ] && continue
+                      case "$name" in
+                        @types/* | @typescript-eslint/* | eslint | eslint-* | prettier | prettier-*) ;;
+                        *)
+                          eligible=false
+                          reason="$name is not on the allowlist"
+                          ;;
+                      esac
+                    done
+                  fi
+
+                  if [ "$eligible" = "true" ]; then
+                    echo "eligible for auto-merge"
+                  else
+                    echo "not eligible: $reason"
+                  fi
+                  echo "eligible=$eligible" >> "$GITHUB_OUTPUT"
+
+    auto-merge:
+        name: approve and enable auto-merge
+        needs: metadata
+        # DEPENDABOT_AUTO_MERGE_DISABLED is a manual pause. Auto-merge is on
+        # by default; set the repository variable to 'true' to stop it without
+        # reverting this workflow.
+        if: needs.metadata.outputs.eligible == 'true' && vars.DEPENDABOT_AUTO_MERGE_DISABLED != 'true'
+        runs-on: ubuntu-latest
+        permissions: {}
+        steps:
+            # The default GITHUB_TOKEN cannot approve a pull request, so the
+            # approval comes from the CI bot app. The app needs contents:write
+            # and pull-requests:write on this repository.
+            - name: Mint CI bot token
+              id: app-token
+              uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+              with:
+                  app-id: ${{ secrets.CI_BOT_APP_ID }}
+                  private-key: ${{ secrets.CI_BOT_APP_PRIVATE_KEY }}
+
+            # Re-approving on every push is required, not redundant: the master
+            # ruleset sets require_last_push_approval, so an approval that
+            # predates Dependabot's latest rebase does not count.
+            - name: Approve
+              env:
+                  GH_TOKEN: ${{ steps.app-token.outputs.token }}
+                  PR_URL: ${{ github.event.pull_request.html_url }}
+              run: gh pr review --approve "$PR_URL" --body "Patch-level development dependency update. Approved automatically; merging once all-passed is green."
+
+            # --auto merges only after the required status checks pass, so
+            # all-passed remains the gate.
+            - name: Enable auto-merge
+              env:
+                  GH_TOKEN: ${{ steps.app-token.outputs.token }}
+                  PR_URL: ${{ github.event.pull_request.html_url }}
+              run: gh pr merge --auto --squash "$PR_URL"

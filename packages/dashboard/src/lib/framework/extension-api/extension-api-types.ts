@@ -9,6 +9,7 @@ import {
     DashboardDataTableExtensionDefinition,
     DashboardDetailFormExtensionDefinition,
     DashboardHistoryEntryComponent,
+    DashboardInsightsExtensionDefinition,
     DashboardLoginExtensions,
     DashboardNavSectionDefinition,
     DashboardPageBlockDefinition,
@@ -94,8 +95,29 @@ export interface DashboardExtension {
     /**
      * @description
      * Allows you to define custom widgets for the Insights page.
+     *
+     * @deprecated Use `insights.widgets` instead. This top-level option still works
+     * and is merged with `insights.widgets`, but will be removed in the next major version.
      */
     widgets?: DashboardWidgetDefinition[];
+    /**
+     * @description
+     * Groups all Insights page extension options, such as custom widgets and
+     * code-level widget exclusions.
+     *
+     * @example
+     * ```ts
+     * defineDashboardExtension({
+     *     insights: {
+     *         widgets: [myWidget],
+     *         excludeWidgets: ['latest-orders-widget'],
+     *     },
+     * });
+     * ```
+     *
+     * @since 3.8.0
+     */
+    insights?: DashboardInsightsExtensionDefinition;
     /**
      * @description
      * Registers custom input component IDs for custom fields and configurable operation arguments.

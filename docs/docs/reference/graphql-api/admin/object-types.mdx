@@ -109,6 +109,7 @@ generated: true
     ID: '/reference/graphql-api/admin/object-types#id',
     DateTime: '/reference/graphql-api/admin/object-types#datetime',
     String: '/reference/graphql-api/admin/object-types#string',
+    Asset: '/reference/graphql-api/admin/object-types#asset',
     User: '/reference/graphql-api/admin/object-types#user',
     JSON: '/reference/graphql-api/admin/object-types#json',
   }}
@@ -120,6 +121,7 @@ generated: true
   firstName: String!
   lastName: String!
   emailAddress: String!
+  avatar: Asset
   user: User!
   customFields: JSON
 }`}
@@ -448,6 +450,7 @@ scalar Boolean`}
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   ui: JSON
@@ -839,6 +842,7 @@ type CollectionResult {
   label: String
   description: String
   ui: JSON
+  secret: Boolean
 }`}
 </GraphQLDoc>
 
@@ -1221,6 +1225,7 @@ type CustomFields {
   Promotion: [CustomFieldConfig!]!
   Refund: [CustomFieldConfig!]!
   Region: [CustomFieldConfig!]!
+  Role: [CustomFieldConfig!]!
   Seller: [CustomFieldConfig!]!
   Session: [CustomFieldConfig!]!
   ShippingLine: [CustomFieldConfig!]!
@@ -1378,6 +1383,7 @@ type DateTimeCustomFieldConfig {
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   min: String
@@ -1819,6 +1825,7 @@ scalar Float`}
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   min: Float
@@ -2165,6 +2172,7 @@ scalar Int`}
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   min: Int
@@ -2409,6 +2417,7 @@ type LanguageNotAvailableError {
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   pattern: String
@@ -2441,6 +2450,7 @@ type LanguageNotAvailableError {
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   ui: JSON
@@ -3165,6 +3175,70 @@ type OrderTaxSummary {
   taxBase: Money!
   """The total tax being applied to the Order at this taxRate"""
   taxTotal: Money!
+}`}
+</GraphQLDoc>
+
+<a name="passwordresettokenexpirederror"></a>
+
+## PasswordResetTokenExpiredError
+
+<GraphQLDoc
+  type="type"
+  typeName="PasswordResetTokenExpiredError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/admin/enums#errorcode',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`"""
+Returned if the token used to reset an Administrator's password is valid, but has
+expired according to the \`verificationTokenDuration\` setting in the AuthOptions.
+"""
+type PasswordResetTokenExpiredError {
+  errorCode: ErrorCode!
+  message: String!
+}`}
+</GraphQLDoc>
+
+<a name="passwordresettokeninvaliderror"></a>
+
+## PasswordResetTokenInvalidError
+
+<GraphQLDoc
+  type="type"
+  typeName="PasswordResetTokenInvalidError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/admin/enums#errorcode',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`"""
+Returned if the token used to reset an Administrator's password is either
+invalid or does not match any expected tokens.
+"""
+type PasswordResetTokenInvalidError {
+  errorCode: ErrorCode!
+  message: String!
+}`}
+</GraphQLDoc>
+
+<a name="passwordvalidationerror"></a>
+
+## PasswordValidationError
+
+<GraphQLDoc
+  type="type"
+  typeName="PasswordValidationError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/admin/enums#errorcode',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`"""Returned when the given password fails password validation."""
+type PasswordValidationError {
+  errorCode: ErrorCode!
+  message: String!
+  validationErrorMessage: String!
 }`}
 </GraphQLDoc>
 
@@ -4173,6 +4247,7 @@ type RefundStateTransitionError {
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   entity: String!
@@ -4269,6 +4344,39 @@ type RefundStateTransitionError {
 {`union RemoveProductOptionGroupFromChannelResult = ProductOptionGroup | ProductOptionGroupInUseError`}
 </GraphQLDoc>
 
+<a name="requestpasswordresetresult"></a>
+
+## RequestPasswordResetResult
+
+<GraphQLDoc
+  type="union"
+  typeName="RequestPasswordResetResult"
+  typeLinks={{
+    Success: '/reference/graphql-api/admin/object-types#success',
+    NativeAuthStrategyError: '/reference/graphql-api/admin/object-types#nativeauthstrategyerror',
+  }}
+>
+{`union RequestPasswordResetResult = Success | NativeAuthStrategyError`}
+</GraphQLDoc>
+
+<a name="resetpasswordresult"></a>
+
+## ResetPasswordResult
+
+<GraphQLDoc
+  type="union"
+  typeName="ResetPasswordResult"
+  typeLinks={{
+    CurrentUser: '/reference/graphql-api/admin/object-types#currentuser',
+    PasswordResetTokenInvalidError: '/reference/graphql-api/admin/object-types#passwordresettokeninvaliderror',
+    PasswordResetTokenExpiredError: '/reference/graphql-api/admin/object-types#passwordresettokenexpirederror',
+    PasswordValidationError: '/reference/graphql-api/admin/object-types#passwordvalidationerror',
+    NativeAuthStrategyError: '/reference/graphql-api/admin/object-types#nativeauthstrategyerror',
+  }}
+>
+{`union ResetPasswordResult = CurrentUser | PasswordResetTokenInvalidError | PasswordResetTokenExpiredError | PasswordValidationError | NativeAuthStrategyError`}
+</GraphQLDoc>
+
 <a name="return"></a>
 
 ## Return
@@ -4309,6 +4417,7 @@ type RefundStateTransitionError {
     String: '/reference/graphql-api/admin/object-types#string',
     Permission: '/reference/graphql-api/admin/enums#permission',
     Channel: '/reference/graphql-api/admin/object-types#channel',
+    JSON: '/reference/graphql-api/admin/object-types#json',
   }}
 >
 {`type Role {
@@ -4319,6 +4428,7 @@ type RefundStateTransitionError {
   description: String!
   permissions: [Permission!]!
   channels: [Channel!]!
+  customFields: JSON
 }`}
 </GraphQLDoc>
 
@@ -5043,6 +5153,7 @@ scalar String`}
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   pattern: String
@@ -5125,6 +5236,7 @@ scalar String`}
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   ui: JSON
@@ -5409,6 +5521,7 @@ type Success {
   internal: Boolean
   nullable: Boolean
   requiresPermission: [Permission!]
+  secret: Boolean
   deprecated: Boolean
   deprecationReason: String
   ui: JSON

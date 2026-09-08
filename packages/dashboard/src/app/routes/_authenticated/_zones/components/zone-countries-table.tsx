@@ -2,21 +2,23 @@ import { DataTable } from '@/vdb/components/data-table/data-table.js';
 import { useGeneratedColumns } from '@/vdb/components/data-table/use-generated-columns.js';
 import { CountrySelector } from '@/vdb/components/shared/country-selector.js';
 import { api } from '@/vdb/graphql/api.js';
-import { useMutation, useQuery } from '@tanstack/react-query';
 import { Trans } from '@lingui/react/macro';
-import { useMemo, useState } from 'react';
-import {
-    addCountryToZoneMutation,
-    zoneMembersQuery,
-} from '../zones.graphql.js';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { ReactNode, useMemo, useState } from 'react';
+import { addCountryToZoneMutation, zoneMembersQuery } from '../zones.graphql.js';
 import { removeCountryFromZoneBulkAction } from './zone-bulk-actions.js';
 
 interface ZoneCountriesTableProps {
     zoneId: string;
     canAddCountries?: boolean;
+    title?: ReactNode;
 }
 
-export function ZoneCountriesTable({ zoneId, canAddCountries = false }: Readonly<ZoneCountriesTableProps>) {
+export function ZoneCountriesTable({
+    zoneId,
+    canAddCountries = false,
+    title,
+}: Readonly<ZoneCountriesTableProps>) {
     const { data, refetch } = useQuery({
         queryKey: ['zone', zoneId],
         queryFn: () => api.query(zoneMembersQuery, { zoneId }),
@@ -68,27 +70,28 @@ export function ZoneCountriesTable({ zoneId, canAddCountries = false }: Readonly
     });
 
     return (
-        <div>
-            <DataTable
-                columns={columns as any}
-                data={paginatedItems ?? []}
-                onPageChange={(table, page, itemsPerPage) => {
-                    setPage(page);
-                    setPageSize(itemsPerPage);
-                }}
-                totalItems={data?.zone?.members?.length ?? 0}
-                bulkActions={bulkActions}
-            />
-            {canAddCountries && (
-                <CountrySelector
-                    onSelect={country => {
-                        addCountryToZone({
-                            zoneId,
-                            memberIds: [country.id],
-                        });
-                    }}
-                />
-            )}
-        </div>
+        <DataTable
+            columns={columns as any}
+            data={paginatedItems ?? []}
+            onPageChange={(table, page, itemsPerPage) => {
+                setPage(page);
+                setPageSize(itemsPerPage);
+            }}
+            totalItems={data?.zone?.members?.length ?? 0}
+            bulkActions={bulkActions}
+            title={title}
+            actions={
+                canAddCountries ? (
+                    <CountrySelector
+                        onSelect={country => {
+                            addCountryToZone({
+                                zoneId,
+                                memberIds: [country.id],
+                            });
+                        }}
+                    />
+                ) : undefined
+            }
+        />
     );
 }

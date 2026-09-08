@@ -1,9 +1,10 @@
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
+import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { PlusIcon } from 'lucide-react';
 import { DeleteCustomersBulkAction } from './components/customer-bulk-actions.js';
@@ -16,11 +17,13 @@ export const Route = createFileRoute('/_authenticated/_customers/customers')({
 });
 
 function CustomerListPage() {
+    const { t } = useLingui();
     return (
         <ListPage
             title={<Trans>Customers</Trans>}
             pageId="customer-list"
             listQuery={customerListDocument}
+            searchPlaceholder={t`Search customers...`}
             onSearchTermChange={searchTerm => {
                 return searchTerm
                     ? {
@@ -52,7 +55,7 @@ function CustomerListPage() {
                         return (
                             <div className="flex flex-wrap gap-1">
                                 {row.original.groups?.map(g => (
-                                    <Badge variant="secondary" key={g.id}>
+                                    <Badge variant="default" key={g.id}>
                                         {g.name}
                                     </Badge>
                                 ))}
@@ -85,6 +88,14 @@ function CustomerListPage() {
                     component: DeleteCustomersBulkAction,
                 },
             ]}
+            emptyStateAction={
+                <PermissionGuard requires={['CreateCustomer']}>
+                    <Button render={<Link to="./new" />}>
+                        <PlusIcon />
+                        <Trans>Create your first customer</Trans>
+                    </Button>
+                </PermissionGuard>
+            }
         >
             <ActionBarItem itemId="create-button" requiresPermission={['CreateCustomer']}>
                 <Button render={<Link to="./new" />}>

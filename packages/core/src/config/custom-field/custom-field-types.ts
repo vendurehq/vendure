@@ -28,10 +28,19 @@ import {
     Type,
     UiComponentConfig,
 } from '@vendure/common/lib/shared-types';
+import { RelationOptions } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
 import { Injector } from '../../common/injector';
 import { VendureEntity } from '../../entity/base/base.entity';
+
+/**
+ * The suffix of every generated GraphQL input type that carries an entity's custom fields, e.g.
+ * `UpdateProductCustomFieldsInput`. It is the single source of this naming convention, shared by the
+ * schema generation (which produces these types) and the custom-field processing interceptor (which
+ * discovers them). If this changes, both sides change together.
+ */
+export const CUSTOM_FIELDS_INPUT_TYPE_SUFFIX = 'CustomFieldsInput';
 
 // prettier-ignore
 export type DefaultValueType<T extends CustomFieldType | StructFieldType> =
@@ -54,6 +63,33 @@ export type BaseTypedCustomFieldConfig<T extends CustomFieldType, C extends Cust
     public?: boolean;
     nullable?: boolean;
     unique?: boolean;
+    /**
+     * @description
+     * Creates a database index for this custom field. Use this for custom fields
+     * which are frequently used to filter or sort large data sets.
+     *
+     * Indexes are only supported for non-list, non-struct, non-secret fields. MySQL and
+     * MariaDB also do not support indexes on `text` or `localeText` custom fields
+     * because those values are stored as `longtext` without an index prefix length.
+     * Invalid combinations are rejected during bootstrap.
+     *
+     * @since 3.8.0
+     */
+    index?: boolean;
+    /**
+     * @description
+     * If set to `true`, the value of this field is encrypted at rest using the configured
+     * {@link EncryptionStrategy}, and is only returned in decrypted form via the API to users
+     * permitted by the {@link SecretAccessStrategy} (by default, those with the `ReadSecret`
+     * permission). Other users receive a redaction placeholder.
+     *
+     * Only supported on `string` and `text` fields, and cannot be combined with `unique` or an
+     * explicit `length`.
+     *
+     * @since 3.8.0
+     * @default false
+     */
+    secret?: boolean;
     /**
      * @description
      * The permission(s) required to read or write to this field.
@@ -149,8 +185,34 @@ export type RelationCustomFieldConfig = TypedCustomFieldConfig<
 > & {
     entity: Type<VendureEntity>;
     graphQLType?: string;
-    eager?: boolean;
     inverseSide?: string | ((object: any) => any);
+    /**
+     * @description
+     * The TypeORM [cascade options](https://typeorm.io/docs/relations/relations#cascade-options) for the relation.
+     * Cascaded operations act on the related entity when the owning entity is saved or removed.
+     *
+     * @since 3.7.0
+     */
+    cascade?: RelationOptions['cascade'];
+    /**
+     * @description
+     * The foreign key `ON DELETE` action for the relation. If not set, the database default (`NO ACTION`) applies.
+     *
+     * @since 3.7.0
+     */
+    onDelete?: RelationOptions['onDelete'];
+    /**
+     * @description
+     * The foreign key `ON UPDATE` action for the relation. If not set, the database default (`NO ACTION`) applies.
+     *
+     * @since 3.7.0
+     */
+    onUpdate?: RelationOptions['onUpdate'];
+    /**
+     * @description
+     * Whether the relation is always loaded together with the owning entity.
+     */
+    eager?: RelationOptions['eager'];
 };
 
 // Struct field definitions
@@ -313,6 +375,7 @@ export type CustomFields = {
     Promotion?: CustomFieldConfig[];
     Refund?: CustomFieldConfig[];
     Region?: CustomFieldConfig[];
+    Role?: CustomFieldConfig[];
     Seller?: CustomFieldConfig[];
     Session?: CustomFieldConfig[];
     ShippingLine?: CustomFieldConfig[];
@@ -332,4 +395,12 @@ export type CustomFields = {
  */
 export interface HasCustomFields {
     customFields: CustomFieldsObject;
+}
+
+/**
+ * Returns true for non-list relation custom fields, i.e. those which also expose a
+ * `<name>Id` property on the entity and in the GraphQL APIs.
+ */
+export function isNonListRelationCustomField(config: CustomFieldConfig): config is RelationCustomFieldConfig {
+    return config.type === 'relation' && config.list !== true;
 }

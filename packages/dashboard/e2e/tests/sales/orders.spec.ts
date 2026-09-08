@@ -539,7 +539,7 @@ test.describe('Orders', () => {
             ).toBeVisible({ timeout: 10_000 });
         });
 
-        test('should transition order state', async ({ page }) => {
+        test('should transition fulfillment and update order state', async ({ page }) => {
             test.setTimeout(60_000);
 
             const client = new VendureAdminClient(page);
@@ -548,37 +548,66 @@ test.describe('Orders', () => {
 
             await page.goto(`/orders/${orderId}`);
 
-            // The state transition control is a badge with a dropdown trigger
-            // Find the ellipsis button near the state badge
-            const stateSection = page
-                .locator('[data-slot="card"]')
-                .filter({ hasText: /Fulfilled/i })
-                .first();
-            await expect(stateSection).toBeVisible({ timeout: 10_000 });
+            const fulfillmentStateControl = page.getByTestId('fulfillment-state-control');
+            await expect(fulfillmentStateControl).toContainText(/Pending/i, { timeout: 10_000 });
 
-            // Click the ellipsis dropdown button next to the state badge
-            const dropdownTrigger = stateSection.getByTestId('state-transition-trigger');
+            const dropdownTrigger = fulfillmentStateControl.getByTestId('state-transition-trigger');
             await dropdownTrigger.click();
 
-            // Select "Transition to Shipped" from the dropdown
             const menu = page.locator('[data-slot="dropdown-menu-content"]');
             await expect(menu).toBeVisible();
-            await menu
-                .getByText(/Shipped/i)
-                .first()
-                .click();
+            await menu.getByRole('menuitem', { name: /Transition to Shipped/i }).click();
 
-            // Wait for the mutation and page to update
-            await page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
+            await expect(page.getByText(/Fulfillment state updated successfully/i)).toBeVisible({
+                timeout: 10_000,
+            });
 
-            // Reload to get a clean page state, then verify the order is now "Shipped"
             await page.reload();
-            await expect(
-                page
-                    .locator('[data-slot="card"]')
-                    .filter({ hasText: /Shipped/i })
-                    .first(),
-            ).toBeVisible({ timeout: 10_000 });
+            await expect(page.getByTestId('order-state-control')).toContainText(/Shipped/i, {
+                timeout: 10_000,
+            });
+        });
+
+        // #5027 — Dialog for new payment has Transaction ID set as optional
+        test('should transition order state after adding payment', async ({ page }) => {
+            test.setTimeout(60_000);
+
+            const client = new VendureAdminClient(page);
+            await client.login();
+            const orderId = await createNewOrder(client);
+
+            await page.goto(`/orders/${orderId}`);
+            await page.getByRole('button', { name: /Add payment/i }).click();
+
+            // The payment dialog should open
+            const dialog = page.locator('[role="dialog"]');
+            await expect(dialog).toBeVisible({ timeout: 5_000 });
+            await expect(dialog.getByText(/Add payment/i).first()).toBeVisible();
+
+            // the payment method options should open
+            const selectPaymentMethod = dialog.getByRole('button', { name: /Select item/ });
+            await expect(selectPaymentMethod).toBeVisible({ timeout: 10_000 });
+            await selectPaymentMethod.click();
+
+            // Options are labelled `${name} (${code})`. Match `test-payment` (created by
+            // `createNewOrder`) exactly: `payment-methods.spec.ts` creates "E2E Test Payment",
+            // and a substring match resolves to both until that spec renames or deletes it.
+            const standardPayment = dialog.getByRole('option', {
+                name: 'Test Payment (test-payment)',
+                exact: true,
+            });
+            await expect(standardPayment).toBeVisible({ timeout: 10_000 });
+            await standardPayment.click();
+
+            const request = page.waitForRequest(req => req.url().includes('/admin-api'));
+            await dialog.getByRole('button', { name: /Add payment/ }).click();
+            await request;
+
+            // Add fulfillment to the order
+            const { order } = await client.gql(`query ($id: ID!) { order(id: $id) { payments { id } } }`, {
+                id: orderId,
+            });
+            expect(order.payments).toHaveLength(1);
         });
 
         test('should open refund dialog and show order lines', async ({ page }) => {
@@ -788,12 +817,16 @@ async function createFulfilledOrder(client: VendureAdminClient): Promise<string>
 }
 
 /**
- * Creates a payment method (idempotent), builds a fully-paid order via the
- * Admin API, and returns the order ID in "PaymentSettled" state.
+ * Creates a payment method (idempotent), builds an order via the
+ * Admin API, and returns the order ID.
  */
-async function createPaidOrder(client: VendureAdminClient): Promise<string> {
-    // Ensure a payment method exists
-    const { paymentMethods } = await client.gql(`query { paymentMethods { items { id } } }`);
+async function createNewOrder(client: VendureAdminClient) {
+    // Ensure `test-payment` exists. Filter by code rather than checking for an empty
+    // list: `payment-methods.spec.ts` creates its own method, and specs run in parallel,
+    // so an unfiltered list can be non-empty without `test-payment` in it.
+    const { paymentMethods } = await client.gql(
+        `query { paymentMethods(options: { filter: { code: { eq: "test-payment" } } }) { items { id } } }`,
+    );
     if (paymentMethods.items.length === 0) {
         await client.gql(`
             mutation {
@@ -881,6 +914,16 @@ async function createPaidOrder(client: VendureAdminClient): Promise<string> {
     `,
         { id: orderId },
     );
+
+    return orderId;
+}
+
+/**
+ * Creates a payment method (idempotent), builds a fully-paid order via the
+ * Admin API, and returns the order ID in "PaymentSettled" state.
+ */
+async function createPaidOrder(client: VendureAdminClient): Promise<string> {
+    const orderId = await createNewOrder(client);
 
     await client.gql(
         `

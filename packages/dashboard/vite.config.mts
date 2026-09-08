@@ -32,7 +32,7 @@ export default ({ mode }: { mode: string }) => {
             ...sharedTestConfig,
             globals: true,
             environment: 'jsdom',
-            exclude: ['./e2e/**/*', './plugin/**/*', '**/node_modules/**/*'],
+            exclude: ['./dist/**/*', './e2e/**/*', './plugin/**/*', '**/node_modules/**/*'],
             environmentMatchGlobs: [
                 ['vite/tests/**', 'node'],
             ],

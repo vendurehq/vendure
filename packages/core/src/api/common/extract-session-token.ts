@@ -2,6 +2,8 @@ import { Request } from 'express';
 
 import { AuthOptions } from '../../config/vendure-config';
 
+import { tokenMethodIncludes } from './token-method-includes';
+
 // Helper that gives us the content of the tokenmethod array so we dont duplicate options
 type ExtractArrayElement<T> = T extends ReadonlyArray<infer U> ? U : T;
 
@@ -24,12 +26,12 @@ export function extractSessionToken(
     tokenMethod: Exclude<AuthOptions['tokenMethod'], undefined>,
     apiKeyHeaderKey: string,
 ): ExtractTokenResult | undefined {
-    if (req.session?.token && (tokenMethod === 'cookie' || tokenMethod.includes('cookie'))) {
+    if (req.session?.token && tokenMethodIncludes(tokenMethod, 'cookie')) {
         return { method: 'cookie', token: req.session.token as string };
     }
 
     const authHeader = req.get('Authorization')?.trim();
-    if (authHeader && (tokenMethod === 'bearer' || tokenMethod.includes('bearer'))) {
+    if (authHeader && tokenMethodIncludes(tokenMethod, 'bearer')) {
         const matchesBearer = authHeader.match(/^bearer\s(.+)$/i);
         if (matchesBearer) {
             return { method: 'bearer', token: matchesBearer[1] };

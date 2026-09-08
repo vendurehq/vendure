@@ -35,6 +35,7 @@ function OrderListPage() {
         <ListPage
             pageId="order-list"
             title={<Trans>Orders</Trans>}
+            searchPlaceholder={t`Search orders...`}
             onSearchTermChange={searchTerm => {
                 return {
                     _or: [

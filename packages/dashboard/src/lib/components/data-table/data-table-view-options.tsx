@@ -3,7 +3,7 @@ import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Table } from '@tanstack/react-table';
-import { GripVertical, Settings2 } from 'lucide-react';
+import { Eye, EyeOff, GripVertical, Settings2 } from 'lucide-react';
 
 import { Button } from '@/vdb/components/ui/button.js';
 import {
@@ -29,7 +29,15 @@ interface DataTableViewOptionsProps<TData> {
     table: Table<TData>;
 }
 
-function SortableItem({ id, children, disableSort }: { id: string; children: React.ReactNode; disableSort?: boolean }) {
+function SortableItem({
+    id,
+    children,
+    disableSort,
+}: {
+    id: string;
+    children: React.ReactNode;
+    disableSort?: boolean;
+}) {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
 
     const style = {
@@ -51,7 +59,14 @@ function SortableItem({ id, children, disableSort }: { id: string; children: Rea
     );
 }
 
-export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps<TData>) {
+/**
+ * The body of the column settings menu — the sortable visibility-checkbox list
+ * plus the Reset item — without any trigger or DropdownMenuContent wrapper, so
+ * it can be embedded in the merged table-settings menu as well as the
+ * standalone {@link DataTableViewOptions} dropdown. Expects a flex-column
+ * parent that constrains its height (the list scrolls, Reset stays pinned).
+ */
+export function DataTableColumnControls<TData>({ table }: DataTableViewOptionsProps<TData>) {
     const { setTableSettings } = useUserSettings();
     const { getTranslatedFieldName } = useDynamicTranslations();
     const page = usePage();
@@ -85,50 +100,77 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
     };
 
     return (
+        <>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+                <DndContext
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                    modifiers={[restrictToVerticalAxis]}
+                >
+                    <SortableContext
+                        items={columns.map(col => col.id)}
+                        strategy={verticalListSortingStrategy}
+                    >
+                        {columns.map(column => (
+                            <SortableItem
+                                key={column.id}
+                                id={column.id}
+                                disableSort={pinnedLeadingColumns.includes(column.id)}
+                            >
+                                {/* The default trailing checkmark indicator is hidden in
+                                    favour of right-aligned eye icons; the element keeps its
+                                    menuitemcheckbox role and aria-checked state. */}
+                                <DropdownMenuCheckboxItem
+                                    className="capitalize flex-1 pr-2 [&_[data-slot=dropdown-menu-checkbox-item-indicator]]:hidden"
+                                    checked={column.getIsVisible()}
+                                    onCheckedChange={value => column.toggleVisibility(value)}
+                                    closeOnClick={false}
+                                >
+                                    {getTranslatedFieldName(column.id)}
+                                    <span className="ml-auto text-muted-foreground">
+                                        {column.getIsVisible() ? <Eye /> : <EyeOff className="opacity-50" />}
+                                    </span>
+                                </DropdownMenuCheckboxItem>
+                            </SortableItem>
+                        ))}
+                    </SortableContext>
+                </DndContext>
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleReset}>
+                <Trans>Reset</Trans>
+            </DropdownMenuItem>
+        </>
+    );
+}
+
+export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps<TData>) {
+    return (
         <div className="flex items-center gap-2">
             <DropdownMenu modal={false}>
                 <Tooltip>
-                    <TooltipTrigger render={<DropdownMenuTrigger render={<Button variant="outline" size="icon-sm" className="ml-auto hidden lg:flex" data-testid="dt-column-settings-trigger" />} />}>
-                                <Settings2 />
+                    <TooltipTrigger
+                        render={
+                            <DropdownMenuTrigger
+                                render={
+                                    <Button
+                                        variant="outline"
+                                        size="icon-sm"
+                                        className="ml-auto hidden lg:flex"
+                                        data-testid="dt-column-settings-trigger"
+                                    />
+                                }
+                            />
+                        }
+                    >
+                        <Settings2 />
                     </TooltipTrigger>
                     <TooltipContent>
                         <Trans>Column settings</Trans>
                     </TooltipContent>
                 </Tooltip>
                 <DropdownMenuContent align="end" className="flex max-h-[70vh] w-max max-w-80 flex-col">
-                    <div className="min-h-0 flex-1 overflow-y-auto">
-                        <DndContext
-                            collisionDetection={closestCenter}
-                            onDragEnd={handleDragEnd}
-                            modifiers={[restrictToVerticalAxis]}
-                        >
-                            <SortableContext
-                                items={columns.map(col => col.id)}
-                                strategy={verticalListSortingStrategy}
-                            >
-                                {columns.map(column => (
-                                    <SortableItem
-                                        key={column.id}
-                                        id={column.id}
-                                        disableSort={pinnedLeadingColumns.includes(column.id)}
-                                    >
-                                        <DropdownMenuCheckboxItem
-                                            className="capitalize"
-                                            checked={column.getIsVisible()}
-                                            onCheckedChange={value => column.toggleVisibility(value)}
-                                            closeOnClick={false}
-                                        >
-                                            {getTranslatedFieldName(column.id)}
-                                        </DropdownMenuCheckboxItem>
-                                    </SortableItem>
-                                ))}
-                            </SortableContext>
-                        </DndContext>
-                    </div>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleReset}>
-                        <Trans>Reset</Trans>
-                    </DropdownMenuItem>
+                    <DataTableColumnControls table={table} />
                 </DropdownMenuContent>
             </DropdownMenu>
         </div>

@@ -132,9 +132,6 @@ export class MultivendorService {
         if (isGraphQlErrorResult(channel)) {
             throw new InternalServerError(channel.message);
         }
-        const superAdminRole = await this.roleService.getSuperAdminRole(ctx);
-        const customerRole = await this.roleService.getCustomerRole(ctx);
-        await this.roleService.assignRoleToChannel(ctx, superAdminRole.id, channel.id);
         const role = await this.roleService.create(ctx, {
             code: `${shopCode}-admin`,
             channelIds: [channel.id],

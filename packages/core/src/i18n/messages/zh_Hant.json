@@ -1,0 +1,199 @@
+{
+  "configurableOperation": {
+    "CollectionFilter": {
+      "facet-value-filter": {
+        "description": "依屬性值篩選",
+        "args": {
+          "facetValueIds": {
+            "label": "屬性值"
+          },
+          "containsAny": {
+            "label": "包含任一項",
+            "description": "勾選後，產品變體必須至少具有所選屬性值中的一項。未勾選時，變體必須具有所有所選的值。"
+          },
+          "combineWithAnd": {
+            "label": "組合模式",
+            "description": "當此篩選器與其他篩選器組合時，是需要滿足所有條件（AND），還是只需滿足其中之一（OR）？"
+          }
+        }
+      },
+      "variant-name-filter": {
+        "description": "依產品變體名稱篩選",
+        "args": {
+          "combineWithAnd": {
+            "label": "組合模式",
+            "description": "當此篩選器與其他篩選器組合時，是需要滿足所有條件（AND），還是只需滿足其中之一（OR）？"
+          }
+        }
+      },
+      "variant-id-filter": {
+        "description": "手動選取產品變體",
+        "args": {
+          "variantIds": {
+            "label": "產品變體"
+          },
+          "combineWithAnd": {
+            "label": "組合模式",
+            "description": "當此篩選器與其他篩選器組合時，是需要滿足所有條件（AND），還是只需滿足其中之一（OR）？"
+          }
+        }
+      },
+      "product-id-filter": {
+        "description": "手動選取商品",
+        "args": {
+          "productIds": {
+            "label": "商品"
+          },
+          "combineWithAnd": {
+            "label": "組合模式",
+            "description": "當此篩選器與其他篩選器組合時，是需要滿足所有條件（AND），還是只需滿足其中之一（OR）？"
+          }
+        }
+      }
+    },
+    "EntityDuplicator": {
+      "product-duplicator": {
+        "description": "商品的預設複製器",
+        "args": {
+          "includeVariants": {
+            "label": "包含變體"
+          }
+        }
+      },
+      "collection-duplicator": {
+        "description": "集合的預設複製器"
+      },
+      "facet-duplicator": {
+        "description": "屬性的預設複製器",
+        "args": {
+          "includeFacetValues": {
+            "label": "包含屬性值"
+          }
+        }
+      },
+      "promotion-duplicator": {
+        "description": "促銷的預設複製器"
+      }
+    },
+    "FulfillmentHandler": {
+      "manual-fulfillment": {
+        "description": "手動輸入履約詳細資料"
+      }
+    },
+    "PaymentMethodHandler": {
+      "dummy-payment-handler": {
+        "description": "僅供測試與開發使用的虛擬付款提供者。",
+        "args": {
+          "automaticSettle": {
+            "label": "一步完成授權與結算",
+            "description": "啟用後，付款將以 \"Settled\" 狀態建立。"
+          }
+        }
+      },
+      "example-payment-provider": {
+        "description": "範例付款提供者"
+      }
+    },
+    "PromotionAction": {
+      "order_fixed_discount": {
+        "description": "依固定金額為訂單折扣"
+      },
+      "order_line_fixed_discount": {
+        "description": "依固定金額為 orderLine 折扣"
+      },
+      "order_percentage_discount": {
+        "description": "為訂單提供 { discount }% 折扣"
+      },
+      "facet_based_discount": {
+        "description": "為具有這些屬性的商品提供 { discount }% 折扣"
+      },
+      "products_percentage_discount": {
+        "description": "為指定商品提供 { discount }% 折扣",
+        "args": {
+          "productVariantIds": {
+            "label": "產品變體"
+          }
+        }
+      },
+      "free_shipping": {
+        "description": "免運費"
+      },
+      "buy_x_get_y_free": {
+        "description": "購買 X 件商品，免費獲得 Y 件商品"
+      }
+    },
+    "PromotionCondition": {
+      "minimum_order_amount": {
+        "description": "如果訂單總額大於 { amount }"
+      },
+      "at_least_n_with_facets": {
+        "description": "購買至少 { minimum } 件具有指定屬性的商品"
+      },
+      "contains_products": {
+        "description": "購買至少 { minimum } 件指定商品",
+        "args": {
+          "productVariantIds": {
+            "label": "產品變體"
+          }
+        }
+      },
+      "customer_group": {
+        "description": "客戶屬於指定的客戶群組",
+        "args": {
+          "customerGroupId": {
+            "label": "客戶群組"
+          }
+        }
+      },
+      "buy_x_get_y_free": {
+        "description": "購買 X 件商品，免費獲得 Y 件商品",
+        "args": {
+          "variantIdsX": {
+            "label": "購買 amountX 件此類變體"
+          },
+          "variantIdsY": {
+            "label": "免費獲得 amountY 件此類變體"
+          }
+        }
+      }
+    },
+    "ShippingCalculator": {
+      "default-shipping-calculator": {
+        "description": "預設統一費率運費計算器",
+        "args": {
+          "rate": {
+            "label": "運費"
+          },
+          "includesTax": {
+            "label": "價格含稅",
+            "options": {
+              "include": {
+                "label": "含稅"
+              },
+              "exclude": {
+                "label": "不含稅"
+              },
+              "auto": {
+                "label": "自動（依通路）"
+              }
+            }
+          },
+          "taxRate": {
+            "label": "稅率"
+          }
+        }
+      }
+    },
+    "ShippingEligibilityChecker": {
+      "default-shipping-eligibility-checker": {
+        "description": "預設配送資格檢查器",
+        "args": {
+          "orderMinimum": {
+            "label": "最低訂單金額",
+            "description": "僅當訂單總額大於或等於此值時，訂單才符合條件"
+          }
+        }
+      }
+    }
+  }
+}

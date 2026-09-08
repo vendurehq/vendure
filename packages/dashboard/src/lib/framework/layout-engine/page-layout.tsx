@@ -28,6 +28,12 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/vdb/components/ui/dropdown-menu.js';
+import {
+    PageHeader,
+    PageHeaderActions,
+    PageHeaderContent,
+    PageHeaderTitle,
+} from '@/vdb/components/ui/page-header.js';
 import { PageBlockContext } from '@/vdb/framework/layout-engine/page-block-provider.js';
 import { PageContext, PageContextValue } from '@/vdb/framework/layout-engine/page-provider.js';
 import { Trans } from '@lingui/react/macro';
@@ -106,10 +112,10 @@ export function Page({ children, pageId, entity, form, submitHandler, ...props }
     );
 
     const pageHeader = (
-        <div className="flex items-center justify-between gap-2">
-            <div className="min-w-0 shrink">{pageTitle ?? <div />}</div>
-            <div className="shrink-0">{pageActionBar}</div>
-        </div>
+        <PageHeader className="items-center">
+            <PageHeaderContent>{pageTitle ?? <div />}</PageHeaderContent>
+            {pageActionBar && <PageHeaderActions>{pageActionBar}</PageHeaderActions>}
+        </PageHeader>
     );
 
     return (
@@ -310,6 +316,7 @@ export function PageLayout({ children, className }: Readonly<PageLayoutProps>) {
                             column={extensionBlock.location.column}
                             blockId={extensionBlock.id}
                             title={extensionBlock.title}
+                            description={extensionBlock.description}
                         >
                             <extensionBlock.component context={page} />
                         </BlockComponent>,
@@ -366,14 +373,10 @@ export function DetailFormGrid({ children }: Readonly<{ children: React.ReactNod
  * @since 3.3.0
  */
 export function PageTitle({ children }: Readonly<{ children: React.ReactNode }>) {
-    return (
-        <h1 data-testid="page-heading" className="text-2xl font-semibold font-heading">
-            {children}
-        </h1>
-    );
+    return <PageHeaderTitle data-testid="page-heading">{children}</PageHeaderTitle>;
 }
 
-type InlineDropdownItem = Omit<DashboardActionBarItem, 'type' | 'pageId'>;
+export type InlineDropdownItem = Omit<DashboardActionBarItem, 'type' | 'pageId'>;
 
 /**
  * @description
@@ -497,6 +500,13 @@ export function PageActionBar({
             primaryItemIndex >= 0 ? [mergedItems[primaryItemIndex]] : [mergedItems[mergedItems.length - 1]];
     }
 
+    // When the page provides its own actions, the primary slot is taken (e.g. Update/Save),
+    // so extension buttons are demoted and may not render as primary. Checks mergedItems
+    // rather than the raw children so that an extension which *replaces* the page action
+    // is allowed to take over its primary styling.
+    const hasPageProvidedActions =
+        mergedItems.some(mergedItem => mergedItem.type === 'inline') || plainChildren.length > 0;
+
     const renderMergedItem = (mergedItem: MergedActionBarItem, index: number) => {
         if (mergedItem.type === 'inline') {
             return React.cloneElement(mergedItem.element, {
@@ -506,7 +516,11 @@ export function PageActionBar({
             const extItem = mergedItem.item;
             const itemId = extItem.id ?? `extension-${extItem.component.name || index}`;
             return (
-                <ActionBarItemWrapper key={`ext-${extItem.id ?? extItem.pageId}-${index}`} itemId={itemId}>
+                <ActionBarItemWrapper
+                    key={`ext-${extItem.id ?? extItem.pageId}-${index}`}
+                    itemId={itemId}
+                    demotePrimary={hasPageProvidedActions}
+                >
                     <PageActionBarItem item={extItem} page={page} />
                 </ActionBarItemWrapper>
             );
@@ -822,6 +836,19 @@ function PageActionBarDropdown({
     items,
     page,
 }: Readonly<{ items: DashboardActionBarItem[]; page: PageContextValue }>) {
+    const { hasPermissions } = usePermissions();
+    // Filter by permission up front so an under-permissioned user never sees an
+    // empty overflow menu (or its ⋮ trigger). Items without a `requiresPermission`
+    // are always visible.
+    const visibleItems = items.filter(item => {
+        const required = item.requiresPermission ?? [];
+        return hasPermissions(Array.isArray(required) ? required : [required]);
+    });
+
+    if (visibleItems.length === 0) {
+        return null;
+    }
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger
@@ -830,10 +857,8 @@ function PageActionBarDropdown({
                 <EllipsisVerticalIcon className="w-4 h-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-                {items.map((item, index) => (
-                    <PermissionGuard key={item.pageId + index} requires={item.requiresPermission ?? []}>
-                        <item.component context={page} />
-                    </PermissionGuard>
+                {visibleItems.map((item, index) => (
+                    <item.component key={item.pageId + index} context={page} />
                 ))}
             </DropdownMenuContent>
         </DropdownMenu>
@@ -879,6 +904,17 @@ export type PageBlockProps = {
      * An optional set of CSS classes to apply to the block.
      */
     className?: string;
+    /**
+     * @description
+     * The visual treatment of the block. The default `'card'` wraps the content
+     * in a Card. Use `'bare'` for content that provides its own surface — such as
+     * a `DataTable` — to avoid a box-in-box appearance. In the bare layout the
+     * title and description are rendered as a heading above the content.
+     *
+     * @default 'card'
+     * @since 3.8.0
+     */
+    layout?: 'card' | 'bare';
 };
 
 /**
@@ -906,6 +942,7 @@ export function PageBlock({
     className,
     blockId,
     column,
+    layout = 'card',
 }: Readonly<PageBlockProps>) {
     const contextValue = useMemo(
         () => ({
@@ -919,15 +956,29 @@ export function PageBlock({
     return (
         <PageBlockContext.Provider value={contextValue}>
             <LocationWrapper>
-                <Card className={cn('@container  w-full', className, 'animate-in fade-in duration-300')}>
-                    {title || description ? (
-                        <CardHeader>
-                            {title && <CardTitle>{title}</CardTitle>}
-                            {description && <CardDescription>{description}</CardDescription>}
-                        </CardHeader>
-                    ) : null}
-                    <CardContent>{children}</CardContent>
-                </Card>
+                {layout === 'bare' ? (
+                    <div className={cn('@container w-full', className, 'animate-in fade-in duration-300')}>
+                        {title || description ? (
+                            <div className="mb-4 grid gap-1">
+                                {title && <div className="text-style-card-title">{title}</div>}
+                                {description && (
+                                    <div className="text-muted-foreground text-sm">{description}</div>
+                                )}
+                            </div>
+                        ) : null}
+                        {children}
+                    </div>
+                ) : (
+                    <Card className={cn('@container  w-full', className, 'animate-in fade-in duration-300')}>
+                        {title || description ? (
+                            <CardHeader>
+                                {title && <CardTitle>{title}</CardTitle>}
+                                {description && <CardDescription>{description}</CardDescription>}
+                            </CardHeader>
+                        ) : null}
+                        <CardContent>{children}</CardContent>
+                    </Card>
+                )}
             </LocationWrapper>
         </PageBlockContext.Provider>
     );

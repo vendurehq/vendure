@@ -38,7 +38,7 @@ export const Route = createFileRoute('/_authenticated/_stock-locations/stock-loc
             ];
         },
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function StockLocationDetailPage() {

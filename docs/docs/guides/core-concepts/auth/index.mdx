@@ -12,6 +12,8 @@ The term **auth** is shorthand for _both_ authentication and authorization.
 
 Auth in Vendure applies to both **administrators** and **customers**. Authentication is controlled by the configured `AuthenticationStrategies`, and authorization is controlled by the configured `Roles` and `Permissions`.
 
+Sessions belong to the API they were created for: a session created on the Shop API is refused on the Admin API.
+
 ## The three pillars
 
 Vendure's authentication and authorization system is built on three pillars:
@@ -79,6 +81,18 @@ export const config: VendureConfig = {
 In the above example, we define the strategies available for authenticating in the Shop API and the Admin API. The `NativeAuthenticationStrategy` is the only one actually provided by Vendure out-of-the-box, and this is the default username/email + password strategy.
 
 The other strategies would be custom-built (or provided by future npm packages) by creating classes that implement the [`AuthenticationStrategy` interface](/reference/typescript-api/auth/authentication-strategy).
+
+:::warning
+A strategy which is registered on both APIs must not resolve a Shop API request to a User who is an administrator. Since v3.8.0, Vendure records the API each session was created for. The Admin API accepts a session only if it was created for the Admin API. Keep the strategies which can resolve administrators on `adminAuthenticationStrategy` only.
+
+The check runs on the Admin API only. A REST route added by a plugin is not checked, because a REST request cannot say which API it belongs to. A REST route gated by an administrator permission therefore still accepts a session created on the Shop API. If you add such a route, check `ctx.session?.apiType === 'admin'` in the handler.
+
+If you create sessions yourself, for example from a REST controller which completes an SSO callback, pass the API the caller authenticated against as the `apiType` argument of `AuthService.authenticate()` or `SessionService.createNewAuthenticatedSession()`. The request context of a REST route has an `apiType` of `custom`, which is not accepted on the Admin API.
+
+A context built outside the request-response cycle carries no request, and `RequestContext.empty()` hardcodes `apiType: 'admin'`. A context in a job queue worker carries no request either, because `serialize()` deliberately drops it. A session created from such a context records the Shop API. Pass `apiType: 'admin'` if the session must work on the Admin API.
+
+An API key records the API it was created on. Rotating the key and recovering its session keep that value, so an Admin API key stays an Admin API key and a key created from the Shop API or from a REST route stays refused on the Admin API.
+:::
 
 ### Google authentication
 

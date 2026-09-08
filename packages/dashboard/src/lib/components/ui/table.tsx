@@ -7,4 +7,4 @@ export {
     TableHead,
     TableHeader,
     TableRow,
-} from '@vendure-io/ui/components/ui/table';
+} from '@vendure-io/ui/components/atoms/table';

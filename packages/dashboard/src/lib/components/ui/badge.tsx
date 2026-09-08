@@ -4,17 +4,20 @@ import { cn } from '@/vdb/lib/utils.js';
 
 import {
     Badge as BaseBadge,
-} from '@vendure-io/ui/components/ui/badge';
+} from '@vendure-io/ui/components/atoms/badge';
 
 type BaseBadgeProps = React.ComponentProps<typeof BaseBadge>;
 
 export type BadgeProps = Omit<BaseBadgeProps, 'variant'> & {
+    /**
+     * In addition to the base variants, "success" and "warning" are dashboard extensions.
+     */
     variant?: BaseBadgeProps['variant'] | 'success' | 'warning';
 };
 
 const customVariantStyles: Record<string, string> = {
-    success: 'bg-success/10 text-success dark:bg-success/20 [a]:hover:bg-success/20',
-    warning: 'bg-warning/10 text-warning dark:bg-warning/20 [a]:hover:bg-warning/20',
+    success: 'bg-success/10 text-success border-success-border dark:bg-success/20 [a]:hover:bg-success/20',
+    warning: 'bg-warning/10 text-warning border-warning-border dark:bg-warning/20 [a]:hover:bg-warning/20',
 };
 
 /**
@@ -26,8 +29,10 @@ function Badge({ className, variant, ...props }: BadgeProps) {
     if (custom) {
         return <BaseBadge className={cn(custom, className)} {...props} />;
     }
-    return <BaseBadge className={className} variant={variant as BaseBadgeProps['variant']} {...props} />;
+    return (
+        <BaseBadge className={className} variant={variant as BaseBadgeProps['variant']} {...props} />
+    );
 }
 
 export { Badge };
-export { badgeVariants } from '@vendure-io/ui/components/ui/badge';
+export { badgeVariants } from '@vendure-io/ui/components/atoms/badge';

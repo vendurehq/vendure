@@ -1,1 +1,1 @@
-export { AspectRatio } from '@vendure-io/ui/components/ui/aspect-ratio';
+export { AspectRatio } from '@vendure-io/ui/components/atoms/aspect-ratio';

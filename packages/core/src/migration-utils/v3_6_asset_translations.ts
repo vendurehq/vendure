@@ -5,6 +5,8 @@
 // once the migration has run.
 import { QueryRunner } from 'typeorm';
 
+import { getDataSource } from '../connection/get-data-source';
+
 /**
  * @description
  * Populates the new `asset_translation` table with data from the existing `name`
@@ -49,7 +51,7 @@ export async function migrateAssetTranslationData(queryRunner: QueryRunner): Pro
         return;
     }
 
-    const esc = (name: string) => queryRunner.connection.driver.escape(name);
+    const esc = (name: string) => getDataSource(queryRunner).driver.escape(name);
 
     // 1. If there is no asset data to migrate, skip entirely. This covers the
     // fresh-install case where migrations run against an empty database before

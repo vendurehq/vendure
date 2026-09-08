@@ -1,0 +1,199 @@
+{
+  "configurableOperation": {
+    "CollectionFilter": {
+      "facet-value-filter": {
+        "description": "فیلتر بر اساس مقادیر ویژگی",
+        "args": {
+          "facetValueIds": {
+            "label": "مقادیر ویژگی"
+          },
+          "containsAny": {
+            "label": "شامل هر کدام",
+            "description": "اگر انتخاب شود، گونه‌های محصول باید دست‌کم یکی از مقادیر ویژگی انتخاب‌شده را داشته باشند. اگر انتخاب نشود، گونه باید همه مقادیر انتخاب‌شده را داشته باشد."
+          },
+          "combineWithAnd": {
+            "label": "حالت ترکیب",
+            "description": "اگر این فیلتر با فیلترهای دیگر ترکیب شود، آیا همه شرط‌ها باید برآورده شوند (AND) یا تنها یکی از آنها کافی است (OR)؟"
+          }
+        }
+      },
+      "variant-name-filter": {
+        "description": "فیلتر بر اساس نام گونه محصول",
+        "args": {
+          "combineWithAnd": {
+            "label": "حالت ترکیب",
+            "description": "اگر این فیلتر با فیلترهای دیگر ترکیب شود، آیا همه شرط‌ها باید برآورده شوند (AND) یا تنها یکی از آنها کافی است (OR)؟"
+          }
+        }
+      },
+      "variant-id-filter": {
+        "description": "انتخاب دستی گونه‌های محصول",
+        "args": {
+          "variantIds": {
+            "label": "گونه‌های محصول"
+          },
+          "combineWithAnd": {
+            "label": "حالت ترکیب",
+            "description": "اگر این فیلتر با فیلترهای دیگر ترکیب شود، آیا همه شرط‌ها باید برآورده شوند (AND) یا تنها یکی از آنها کافی است (OR)؟"
+          }
+        }
+      },
+      "product-id-filter": {
+        "description": "انتخاب دستی محصولات",
+        "args": {
+          "productIds": {
+            "label": "محصولات"
+          },
+          "combineWithAnd": {
+            "label": "حالت ترکیب",
+            "description": "اگر این فیلتر با فیلترهای دیگر ترکیب شود، آیا همه شرط‌ها باید برآورده شوند (AND) یا تنها یکی از آنها کافی است (OR)؟"
+          }
+        }
+      }
+    },
+    "EntityDuplicator": {
+      "product-duplicator": {
+        "description": "تکثیرکننده پیش‌فرض برای محصولات",
+        "args": {
+          "includeVariants": {
+            "label": "شامل گونه‌ها"
+          }
+        }
+      },
+      "collection-duplicator": {
+        "description": "تکثیرکننده پیش‌فرض برای مجموعه‌ها"
+      },
+      "facet-duplicator": {
+        "description": "تکثیرکننده پیش‌فرض برای ویژگی‌ها",
+        "args": {
+          "includeFacetValues": {
+            "label": "شامل مقادیر ویژگی"
+          }
+        }
+      },
+      "promotion-duplicator": {
+        "description": "تکثیرکننده پیش‌فرض برای تبلیغات"
+      }
+    },
+    "FulfillmentHandler": {
+      "manual-fulfillment": {
+        "description": "ورود دستی جزئیات تحویل"
+      }
+    },
+    "PaymentMethodHandler": {
+      "dummy-payment-handler": {
+        "description": "یک ارائه‌دهنده پرداخت ساختگی که تنها برای آزمایش و توسعه در نظر گرفته شده است.",
+        "args": {
+          "automaticSettle": {
+            "label": "تأیید و تسویه در یک مرحله",
+            "description": "در صورت فعال بودن، پرداخت‌ها در وضعیت \"Settled\" ایجاد می‌شوند."
+          }
+        }
+      },
+      "example-payment-provider": {
+        "description": "ارائه‌دهنده پرداخت نمونه"
+      }
+    },
+    "PromotionAction": {
+      "order_fixed_discount": {
+        "description": "تخفیف مبلغ ثابت روی سفارش"
+      },
+      "order_line_fixed_discount": {
+        "description": "تخفیف مبلغ ثابت روی orderLine"
+      },
+      "order_percentage_discount": {
+        "description": "تخفیف { discount }% روی سفارش"
+      },
+      "facet_based_discount": {
+        "description": "تخفیف { discount }% روی محصولات دارای این ویژگی‌ها"
+      },
+      "products_percentage_discount": {
+        "description": "تخفیف { discount }% روی محصولات مشخص‌شده",
+        "args": {
+          "productVariantIds": {
+            "label": "گونه‌های محصول"
+          }
+        }
+      },
+      "free_shipping": {
+        "description": "ارسال رایگان"
+      },
+      "buy_x_get_y_free": {
+        "description": "خرید X محصول و دریافت Y محصول رایگان"
+      }
+    },
+    "PromotionCondition": {
+      "minimum_order_amount": {
+        "description": "اگر مجموع سفارش بیشتر از { amount } باشد"
+      },
+      "at_least_n_with_facets": {
+        "description": "خرید دست‌کم { minimum } محصول دارای ویژگی‌های مشخص‌شده"
+      },
+      "contains_products": {
+        "description": "خرید دست‌کم { minimum } از محصولات مشخص‌شده",
+        "args": {
+          "productVariantIds": {
+            "label": "گونه‌های محصول"
+          }
+        }
+      },
+      "customer_group": {
+        "description": "مشتری عضو گروه مشخص‌شده است",
+        "args": {
+          "customerGroupId": {
+            "label": "گروه مشتری"
+          }
+        }
+      },
+      "buy_x_get_y_free": {
+        "description": "خرید X محصول و دریافت Y محصول رایگان",
+        "args": {
+          "variantIdsX": {
+            "label": "خرید amountX از این گونه‌ها"
+          },
+          "variantIdsY": {
+            "label": "دریافت رایگان amountY از این گونه‌ها"
+          }
+        }
+      }
+    },
+    "ShippingCalculator": {
+      "default-shipping-calculator": {
+        "description": "محاسبه‌گر پیش‌فرض ارسال با نرخ ثابت",
+        "args": {
+          "rate": {
+            "label": "هزینه ارسال"
+          },
+          "includesTax": {
+            "label": "قیمت شامل مالیات است",
+            "options": {
+              "include": {
+                "label": "شامل مالیات"
+              },
+              "exclude": {
+                "label": "بدون مالیات"
+              },
+              "auto": {
+                "label": "خودکار (بر اساس کانال)"
+              }
+            }
+          },
+          "taxRate": {
+            "label": "نرخ مالیات"
+          }
+        }
+      }
+    },
+    "ShippingEligibilityChecker": {
+      "default-shipping-eligibility-checker": {
+        "description": "بررسی‌کننده پیش‌فرض واجد شرایط بودن ارسال",
+        "args": {
+          "orderMinimum": {
+            "label": "حداقل مبلغ سفارش",
+            "description": "سفارش تنها در صورتی واجد شرایط است که مجموع آن بیشتر یا مساوی این مقدار باشد"
+          }
+        }
+      }
+    }
+  }
+}

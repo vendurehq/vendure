@@ -63,7 +63,7 @@ export const Route = createFileRoute('/_authenticated/_customers/customers_/$id'
             isNew ? <Trans>New customer</Trans> : `${entity?.firstName} ${entity?.lastName}`,
         ],
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function CustomerDetailPage() {
@@ -248,8 +248,8 @@ function CustomerDetailPage() {
                             </Dialog>
                         </PageBlock>
 
-                        <PageBlock column="main" blockId="orders" title={<Trans>Orders</Trans>}>
-                            <CustomerOrderTable customerId={entity.id} />
+                        <PageBlock column="main" blockId="orders" layout="bare">
+                            <CustomerOrderTable customerId={entity.id} title={<Trans>Orders</Trans>} />
                         </PageBlock>
                         <PageBlock column="main" blockId="history" title={<Trans>Customer history</Trans>}>
                             <CustomerHistoryContainer customerId={entity.id} />

@@ -11,7 +11,7 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { ColumnFiltersState, SortingState } from '@tanstack/react-table';
-import { useMemo, useState } from 'react';
+import { ReactNode, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { addCustomerToGroupDocument } from '../../_customers/customers.graphql.js';
 import { createRemoveFromGroupBulkAction } from './customer-group-members-bulk-actions.js';
@@ -37,11 +37,13 @@ export const customerGroupMemberListDocument = graphql(`
 export interface CustomerGroupMembersTableProps {
     customerGroupId: string;
     canAddCustomers?: boolean;
+    title?: ReactNode;
 }
 
 export function CustomerGroupMembersTable({
     customerGroupId,
     canAddCustomers = true,
+    title,
 }: CustomerGroupMembersTableProps) {
     const [sorting, setSorting] = useState<SortingState>([]);
     const [page, setPage] = useState(1);
@@ -71,6 +73,20 @@ export function CustomerGroupMembersTable({
     return (
         <div>
             <PaginatedListDataTable
+                title={title}
+                actions={
+                    canAddCustomers ? (
+                        <CustomerSelector
+                            onSelect={customer => {
+                                addCustomerToGroup({
+                                    customerId: customer.id,
+                                    groupId: customerGroupId,
+                                });
+                            }}
+                            label={<Trans>Add customer</Trans>}
+                        />
+                    ) : undefined
+                }
                 listQuery={addCustomFields(customerGroupMemberListDocument)}
                 transformVariables={variables => ({
                     ...variables,
@@ -91,6 +107,7 @@ export function CustomerGroupMembersTable({
                 onFilterChange={(_, filters) => {
                     setFilters(filters);
                 }}
+                searchPlaceholder={t`Search customers...`}
                 onSearchTermChange={searchTerm => {
                     return {
                         lastName: {
@@ -126,17 +143,6 @@ export function CustomerGroupMembersTable({
                     lastName: false,
                 }}
             />
-            {canAddCustomers && (
-                <CustomerSelector
-                    onSelect={customer => {
-                        addCustomerToGroup({
-                            customerId: customer.id,
-                            groupId: customerGroupId,
-                        });
-                    }}
-                    label={<Trans>Add customer</Trans>}
-                />
-            )}
         </div>
     );
 }

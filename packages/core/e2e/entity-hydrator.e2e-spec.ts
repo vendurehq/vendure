@@ -525,6 +525,38 @@ describe('Entity hydration', () => {
         expect(child.image2).toBeDefined();
     });
 
+    /*
+     * Regression test for https://github.com/vendurehq/vendure/pull/5030
+     * TypeORM's query relation load strategy silently returns null for relations whose
+     * grouping key `<TargetEntity>_customFields_<fieldName>_id` exceeds the 63-char
+     * postgres/mysql alias limit. The long-named field below produces a 74-char key, while
+     * the short-named control field (49 chars) was never affected. SQLite imposes no alias
+     * limit, so only the postgres and mysql runs exercise the regression.
+     */
+    it('hydrates a relation custom field with a very long name', async () => {
+        await adminClient.query(updateChannelDocument, {
+            input: {
+                id: 'T_1',
+                customFields: {
+                    additionalConfigId: 'T_1',
+                    additionalConfigWithAVeryLongPropertyNameId: 'T_1',
+                },
+            },
+        });
+
+        const { hydrateChannelWithLongCustomFieldName } = await adminClient.query(
+            getHydratedChannelLongCustomFieldNameDocument,
+            {
+                id: 'T_1',
+            },
+        );
+
+        const customFields = hydrateChannelWithLongCustomFieldName.customFields;
+        expect(customFields.additionalConfig.id).toBe('T_1');
+        expect(customFields.additionalConfigWithAVeryLongPropertyName.id).toBe('T_1');
+        expect(customFields.additionalConfigWithAVeryLongPropertyName.backgroundImage).toBeDefined();
+    });
+
     // Follow-up to #4986: isTranslatable() decided from element [0] whether an entire relation
     // array was translatable. With a null featuredAsset at [0], nothing in the array was
     // translated (Asset.name is a LocaleString, so it stayed undefined); with the asset at [0],
@@ -543,7 +575,7 @@ describe('Entity hydration', () => {
         // Raw-connection queries take the numeric DB id; 'T_1' exists only at the API layer
         const laptop = await connection
             .getRepository(Product)
-            .findOne({ where: { id: 1 }, relations: ['variants'] });
+            .findOne({ where: { id: 1 }, relations: { variants: true } });
         const variantWithAssetId = laptop!.variants[laptop!.variants.length - 1].id;
         const nullAssetVariantCount = laptop!.variants.length - 1;
         // Give exactly one of the variants a featuredAsset; the others keep the
@@ -552,7 +584,7 @@ describe('Entity hydration', () => {
         try {
             const product = await connection
                 .getRepository(Product)
-                .findOne({ where: { id: 1 }, relations: ['variants'] });
+                .findOne({ where: { id: 1 }, relations: { variants: true } });
 
             await server.app.get(EntityHydrator).hydrate(ctx, product!, {
                 relations: ['variants.featuredAsset'],
@@ -626,5 +658,11 @@ const getHydratedChannelNestedDocument = graphql(`
 const getHydratedChannelLongAliasDocument = graphql(`
     query GetHydratedChannelNested($id: ID!) {
         hydrateChannelWithVeryLongPropertyName(id: $id)
+    }
+`);
+
+const getHydratedChannelLongCustomFieldNameDocument = graphql(`
+    query GetHydratedChannelLongCustomFieldName($id: ID!) {
+        hydrateChannelWithLongCustomFieldName(id: $id)
     }
 `);

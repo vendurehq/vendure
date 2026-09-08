@@ -3,11 +3,11 @@ import { Button } from '@/vdb/components/ui/button.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { PlusIcon } from 'lucide-react';
-import { DeleteApiKeysBulkAction } from './components/api-key-bulk-actions.js';
 import { apiKeyListQuery } from './api-keys.graphql.js';
+import { DeleteApiKeysBulkAction } from './components/api-key-bulk-actions.js';
 
 export const Route = createFileRoute('/_authenticated/_api-keys/api-keys')({
     component: ApiKeyListPage,
@@ -15,6 +15,7 @@ export const Route = createFileRoute('/_authenticated/_api-keys/api-keys')({
 });
 
 function ApiKeyListPage() {
+    const { t } = useLingui();
     const { formatRelativeDate } = useLocalFormat();
 
     return (
@@ -30,6 +31,7 @@ function ApiKeyListPage() {
                 lookupId: false,
                 owner: false,
             }}
+            searchPlaceholder={t`Search API keys...`}
             onSearchTermChange={searchTerm => {
                 if (searchTerm === '') {
                     return {};
@@ -47,7 +49,11 @@ function ApiKeyListPage() {
                     cell: ({ row }) => {
                         const lastUsed = row.original.lastUsedAt;
                         if (!lastUsed) {
-                            return <span className="text-muted-foreground"><Trans>Never</Trans></span>;
+                            return (
+                                <span className="text-muted-foreground">
+                                    <Trans>Never</Trans>
+                                </span>
+                            );
                         }
                         return (
                             <time title={new Date(lastUsed).toLocaleString()}>
@@ -58,9 +64,7 @@ function ApiKeyListPage() {
                 },
                 lookupId: {
                     header: () => <Trans>Lookup ID</Trans>,
-                    cell: ({ row }) => (
-                        <code className="font-mono text-xs">{row.original.lookupId}</code>
-                    ),
+                    cell: ({ row }) => <code className="font-mono text-xs">{row.original.lookupId}</code>,
                 },
                 owner: {
                     header: () => <Trans>Created by</Trans>,

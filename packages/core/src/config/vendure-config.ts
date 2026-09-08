@@ -1,4 +1,4 @@
-import { ApolloServerPlugin } from '@apollo/server';
+import { ApolloServerPlugin, CSRFPreventionOptions } from '@apollo/server';
 import { RenderPageOptions } from '@apollographql/graphql-playground-html';
 import { DynamicModule, Type } from '@nestjs/common';
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
@@ -50,6 +50,7 @@ import { OrderLineDiscountDistributionStrategy } from './order/order-line-discou
 import { OrderMergeStrategy } from './order/order-merge-strategy';
 import { OrderPlacedStrategy } from './order/order-placed-strategy';
 import { OrderProcess } from './order/order-process';
+import { OrderRecalculationStrategy } from './order/order-recalculation-strategy';
 import { OrderSellerStrategy } from './order/order-seller-strategy';
 import { StockAllocationStrategy } from './order/stock-allocation-strategy';
 import { PaymentMethodEligibilityChecker } from './payment/payment-method-eligibility-checker';
@@ -64,9 +65,11 @@ import { ShippingCalculator } from './shipping-method/shipping-calculator';
 import { ShippingEligibilityChecker } from './shipping-method/shipping-eligibility-checker';
 import { ShippingLineAssignmentStrategy } from './shipping-method/shipping-line-assignment-strategy';
 import { CacheStrategy } from './system/cache-strategy';
+import { EncryptionStrategy } from './system/encryption-strategy';
 import { ErrorHandlerStrategy } from './system/error-handler-strategy';
 import { HealthCheckStrategy } from './system/health-check-strategy';
 import { InstrumentationStrategy } from './system/instrumentation-strategy';
+import { SecretAccessStrategy } from './system/secret-access-strategy';
 import { OrderTaxCalculationStrategy } from './tax/order-tax-calculation-strategy';
 import { TaxLineCalculationStrategy } from './tax/tax-line-calculation-strategy';
 import { TaxZoneStrategy } from './tax/tax-zone-strategy';
@@ -186,9 +189,80 @@ export interface ApiOptions {
      * @description
      * Set the CORS handling for the server. See the [express CORS docs](https://github.com/expressjs/cors#configuration-options).
      *
+     * :::warning
+     * The default value reflects the `Origin` header of any caller back as `Access-Control-Allow-Origin`
+     * and sets `Access-Control-Allow-Credentials: true`. This means that any website can make cross-origin
+     * requests to your Shop and Admin APIs. It is kept as the default because it is what makes a new
+     * project work with any storefront during development.
+     *
+     * For production, replace `origin: true` with the list of origins you actually serve. If you set
+     * `authOptions.cookieOptions.sameSite` to `'none'` (needed when the storefront is on a different site
+     * to the server), an explicit origin list is the only thing preventing any website from acting as a
+     * logged-in user. Vendure logs a warning at startup when it detects `origin: true` together with
+     * `credentials: true`.
+     * :::
+     *
+     * @example
+     * ```ts
+     * const config: VendureConfig = {
+     *   apiOptions: {
+     *     cors: {
+     *       origin: ['https://storefront.example.com', 'https://admin.example.com'],
+     *       credentials: true,
+     *     },
+     *   },
+     * };
+     * ```
+     *
      * @default { origin: true, credentials: true }
      */
     cors?: boolean | CorsOptions;
+    /**
+     * @description
+     * Enables Apollo Server's built-in CSRF prevention on both the Shop API and the Admin API.
+     *
+     * When enabled, Apollo rejects any request whose `content-type` is one that a browser lets an
+     * HTML form or a simple `fetch` send without a preflight, namely
+     * `application/x-www-form-urlencoded`, `multipart/form-data` and `text/plain`, unless the request
+     * also carries an `Apollo-Require-Preflight` or `x-apollo-operation-name` header. Requests sent as
+     * `application/json`, which is what all Vendure clients use for normal operations, are unaffected.
+     *
+     * This blocks Login CSRF. Without it, a cross-site HTML form can POST
+     * `query=mutation { login(...) }` to your API as a top-level navigation. That is not a
+     * cross-origin request in the CORS sense, so `apiOptions.cors` does not stop it, and a
+     * `SameSite=Lax` cookie does not stop it either, because a top-level navigation is allowed to
+     * store a cookie with any `SameSite` value. The response sets a session cookie in the victim's
+     * browser, and the victim continues shopping while logged in as the attacker.
+     *
+     * Before enabling this, check that every client which uploads files to your API sends the
+     * `Apollo-Require-Preflight` header, since multipart uploads use one of the blocked content
+     * types. `@vendure/admin-ui`, `@vendure/dashboard` and `@vendure/testing` all send it. A custom
+     * admin client built on `apollo-upload-client` does not send it unless you add it.
+     *
+     * The same applies to `GET` requests, which carry no content type at all: a storefront that uses
+     * `GET` for cacheable queries must send the `Apollo-Require-Preflight` header as well.
+     *
+     * Passing an object instead of `true` replaces the list of headers which permit an operation,
+     * which by default is `x-apollo-operation-name` and `apollo-require-preflight`. Use this when a
+     * client cannot be changed to send either of those: name a header the client already sends, for
+     * example `{ requestHeaders: ['x-my-client-header'] }`, rather than turning the protection off.
+     *
+     * The default is `false` to preserve the behaviour of existing clients. It is expected to change
+     * to `true` in a future major release.
+     *
+     * @example
+     * ```ts
+     * const config: VendureConfig = {
+     *   apiOptions: {
+     *     csrfPrevention: true,
+     *   },
+     * };
+     * ```
+     *
+     * @default false
+     * @since 3.7.3
+     */
+    csrfPrevention?: boolean | CSRFPreventionOptions;
     /**
      * @description
      * Custom Express or NestJS middleware for the server. More information can be found in the {@link Middleware} docs.
@@ -235,6 +309,27 @@ export interface ApiOptions {
      * @since 1.5.0
      */
     introspection?: boolean;
+    /**
+     * @description
+     * Controls input validation behaviour for mutation arguments.
+     *
+     * @since 3.8.0
+     */
+    inputValidation?: {
+        /**
+         * @description
+         * When enabled, blank (empty or whitespace-only) string values are rejected for
+         * business-required fields on top-level mutation inputs (e.g. product name, facet code,
+         * channel token). Returns a `UserInputError` with the `field-cannot-be-blank` i18n code.
+         *
+         * Disable this if your integration cannot change its clients overnight and
+         * still sends empty strings for required fields.
+         *
+         * @default true
+         * @since 3.8.0
+         */
+        requiredFieldValidation?: boolean;
+    };
 }
 
 /**
@@ -565,6 +660,16 @@ export interface AuthOptions {
      * @since 3.7.0
      */
     customerChannelAssignmentStrategy?: CustomerChannelAssignmentStrategy;
+    /**
+     * @description
+     * When set to `true`, the `User.lastLogin` field is not updated when a user logs in.
+     * Each login otherwise writes to the `user` table, which can become a bottleneck for
+     * storefronts that authenticate on a large proportion of requests.
+     *
+     * @default false
+     * @since 3.8.0
+     */
+    disableLastLoginUpdate?: boolean;
 }
 
 /**
@@ -725,6 +830,19 @@ export interface OrderOptions {
      * @default []
      */
     orderInterceptors?: OrderInterceptor[];
+    /**
+     * @description
+     * Defines whether and when an active Order's prices, promotions and taxes are re-calculated
+     * when the Order is read (e.g. via the `activeOrder` query). By default no read-time
+     * recalculation occurs (prices only change on write mutations). Use
+     * {@link TtlOrderRecalculationStrategy} to keep long-lived carts in sync with changing prices
+     * and promotions. Shipping method eligibility and rates are NOT re-evaluated on read; they are
+     * re-evaluated when the order transitions to `ArrangingPayment`.
+     *
+     * @default NoOrderRecalculationStrategy
+     * @since 3.8.0
+     */
+    orderRecalculationStrategy?: OrderRecalculationStrategy;
 }
 
 /**
@@ -1239,6 +1357,24 @@ export interface SystemOptions {
      */
     cacheStrategy?: CacheStrategy;
     instrumentationStrategy?: InstrumentationStrategy;
+    /**
+     * @description
+     * Defines the strategy used to encrypt the values of `secret` custom fields and config args at
+     * rest.
+     *
+     * @since 3.8.0
+     * @default DefaultEncryptionStrategy
+     */
+    encryptionStrategy?: EncryptionStrategy;
+    /**
+     * @description
+     * Defines the strategy used to determine whether the current user may read the decrypted value
+     * of a `secret` custom field or config arg.
+     *
+     * @since 3.8.0
+     * @default PermissionSecretAccessStrategy
+     */
+    secretAccessStrategy?: SecretAccessStrategy;
 }
 
 /**

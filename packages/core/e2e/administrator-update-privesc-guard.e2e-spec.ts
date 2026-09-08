@@ -90,6 +90,8 @@ describe('AdministratorService.update privilege-escalation guard', () => {
         await server.destroy();
     });
 
+    // The lookup inside update() applies the visibility rule, so the manager is told the SuperAdmin
+    // does not exist.
     it(
         'blocks a non-SuperAdmin from resetting the SuperAdmin password',
         assertThrowsWithMessage(async () => {
@@ -97,7 +99,7 @@ describe('AdministratorService.update privilege-escalation guard', () => {
             await adminClient.query(updateAdministratorDocument, {
                 input: { id: superAdminId, password: 'pwned' },
             });
-        }, 'does not have sufficient permissions'),
+        }, 'could be found'),
     );
 
     it('leaves the SuperAdmin credentials intact after a blocked attempt', async () => {

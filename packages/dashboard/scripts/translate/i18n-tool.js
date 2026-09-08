@@ -438,13 +438,14 @@ function main() {
     const command = args[0];
 
     switch (command) {
-        case 'extract':
+        case 'extract': {
             const outputFile = args[1] || 'missing-translations.txt';
             const localesDir = args[2] || DEFAULT_LOCALES_DIR;
             extractMissingTranslations(localesDir, outputFile);
             break;
+        }
 
-        case 'apply':
+        case 'apply': {
             if (args.length < 2) {
                 console.error('Usage: node i18n-tool.js apply <translations-file> [locales-dir]');
                 console.error('Example: node i18n-tool.js apply translations.txt');
@@ -454,6 +455,7 @@ function main() {
             const targetLocalesDir = args[2] || DEFAULT_LOCALES_DIR;
             applyTranslations(translationsFile, targetLocalesDir);
             break;
+        }
 
         default:
             console.log('Vendure Dashboard i18n Tool');

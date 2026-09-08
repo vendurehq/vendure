@@ -108,7 +108,7 @@ async function createGraphQLOptions(
         // manually configure the graphql-upload package. See https://github.com/vendurehq/vendure/issues/396
         uploads: false,
         playground: options.playground,
-        csrfPrevention: false,
+        csrfPrevention: configService.apiOptions.csrfPrevention ?? false,
         debug: options.debug || false,
         context: (req: any) => req,
         // This is handled by the Express cors plugin

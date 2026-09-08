@@ -34,10 +34,6 @@ export function getColumnMetadata<T>(connection: DataSource, entity: Type<T>) {
     return { columns, translationColumns, alias };
 }
 
-export function getEntityAlias<T>(connection: DataSource, entity: Type<T>): string {
-    return connection.getMetadata(entity).name.toLowerCase();
-}
-
 /**
  * @description
  * Escapes identifiers in an expression according to the current database driver.

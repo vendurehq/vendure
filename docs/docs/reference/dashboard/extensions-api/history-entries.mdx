@@ -184,11 +184,13 @@ display if `isPrimary` is `true`.
 
 <MemberInfo kind="property" type={`string`}   />
 
-Optional tailwind classes to apply to the icon. For instance
+Optional tailwind classes to apply to the icon. Prefer the subtle tone
+slots so the timeline reads as a calm status surface rather than a row of
+full-strength fills. For instance
 
 ```ts
-const success = 'bg-success text-success-foreground';
-const destructive = 'bg-destructive text-destructive-foreground';
+const success = 'bg-success-subtle text-success-subtle-foreground';
+const destructive = 'bg-destructive-subtle text-destructive-subtle-foreground';
 ```
 ### actorName
 
@@ -222,7 +224,7 @@ be collapsible.
 </div>
 ## HistoryEntry
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/history-entry/history-entry.tsx" sourceLine="74" packageName="@vendure/dashboard" since="3.4.3" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/history-entry/history-entry.tsx" sourceLine="76" packageName="@vendure/dashboard" since="3.4.3" />
 
 A component which is used to display a history entry in the order/customer history timeline.
 

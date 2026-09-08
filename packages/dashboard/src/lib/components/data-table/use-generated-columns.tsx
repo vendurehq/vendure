@@ -1,4 +1,5 @@
 import { useAllBulkActions } from '@/vdb/components/data-table/use-all-bulk-actions.js';
+import { toast } from '@/vdb/components/ui/sonner.js';
 import { DisplayComponent } from '@/vdb/framework/component-registry/display-component.js';
 import {
     FieldInfo,
@@ -27,7 +28,6 @@ import {
 } from '@tanstack/react-table';
 import { EllipsisIcon, TrashIcon } from 'lucide-react';
 import { memo, useMemo } from 'react';
-import { toast } from '@/vdb/components/ui/sonner.js';
 import {
     AdditionalColumns,
     AllItemFieldKeys,
@@ -100,6 +100,7 @@ export function useGeneratedColumns<T extends TypedDocumentNode<any, any>>({
 } {
     const { pageId } = usePage();
     const pageBlock = usePageBlock();
+    const { t } = useLingui();
     const columnHelper = createColumnHelper<PaginatedListItemFields<T>>();
     const allBulkActions = useAllBulkActions(bulkActions ?? []);
 
@@ -206,17 +207,23 @@ export function useGeneratedColumns<T extends TypedDocumentNode<any, any>>({
         }
 
         if (includeSelectionColumn) {
-            // Add the row selection column
+            // Add the row selection column, following the v2 data-table molecule's
+            // selection treatment: the checkbox is floated over a zero-width cell
+            // and stays hidden until the row is hovered, keyboard-focused, or
+            // carries a checked/indeterminate state — so an idle table reads as
+            // content, not a selection grid. The gutter it needs is folded into
+            // the leading data column's left padding by the DataTable renderer, so
+            // an empty selection reserves no visible column.
             finalColumns.unshift({
                 id: 'selection',
                 accessorKey: 'selection',
                 header: ({ table }) => (
                     <Checkbox
-                        className="mx-1"
-                        checked={table.getIsAllRowsSelected()}
-                        onCheckedChange={checked =>
-                            table.toggleAllRowsSelected(checked)
-                        }
+                        className="absolute top-1/2 left-2 z-10 -translate-y-1/2 opacity-0 transition-opacity group-hover/header-row:opacity-100 focus-visible:opacity-100 data-checked:opacity-100 data-indeterminate:opacity-100"
+                        checked={table.getIsAllPageRowsSelected()}
+                        indeterminate={table.getIsSomePageRowsSelected() && !table.getIsAllPageRowsSelected()}
+                        onCheckedChange={checked => table.toggleAllPageRowsSelected(!!checked)}
+                        aria-label={t`Select all rows`}
                     />
                 ),
                 enableColumnFilter: false,
@@ -224,9 +231,11 @@ export function useGeneratedColumns<T extends TypedDocumentNode<any, any>>({
                 cell: ({ row }) => {
                     return (
                         <Checkbox
-                            className="mx-1"
+                            className="absolute top-1/2 left-2 z-10 -translate-y-1/2 opacity-0 transition-opacity group-hover/row:opacity-100 focus-visible:opacity-100 data-checked:opacity-100"
                             checked={row.getIsSelected()}
-                            onCheckedChange={(checked) => row.toggleSelected(!!checked)}
+                            disabled={!row.getCanSelect()}
+                            onCheckedChange={checked => row.toggleSelected(!!checked)}
+                            aria-label={t`Select row`}
                         />
                     );
                 },
@@ -256,8 +265,10 @@ function getRowActions(
         cell: ({ row, table }) => {
             return (
                 <DropdownMenu>
-                    <DropdownMenuTrigger render={<Button variant="ghost" size="icon" data-testid="dt-row-actions-trigger" />}>
-                            <EllipsisIcon />
+                    <DropdownMenuTrigger
+                        render={<Button variant="ghost" size="icon" data-testid="dt-row-actions-trigger" />}
+                    >
+                        <EllipsisIcon />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="min-w-56">
                         {hasRowActions && (
@@ -272,28 +283,29 @@ function getRowActions(
                                 ))}
                             </DropdownMenuGroup>
                         )}
-                        {hasBulkActions && bulkActionGroups?.map((group, groupIndex) => {
-                            if (group.actions.length === 0) return null;
-                            const showSeparator = hasRowActions || groupIndex > 0;
-                            return (
-                                <div key={`group-${groupIndex}`}>
-                                    {showSeparator && <DropdownMenuSeparator />}
-                                    <DropdownMenuGroup>
-                                        {group.label && <DropdownMenuLabel>{group.label}</DropdownMenuLabel>}
-                                        {group.actions.map((action, index) => (
-                                            <action.component
-                                                key={`bulk-action-${groupIndex}-${index}`}
-                                                selection={[row.original]}
-                                                table={table}
-                                            />
-                                        ))}
-                                    </DropdownMenuGroup>
-                                </div>
-                            );
-                        })}
-                        {deleteMutation && (hasRowActions || hasBulkActions) && (
-                            <DropdownMenuSeparator />
-                        )}
+                        {hasBulkActions &&
+                            bulkActionGroups?.map((group, groupIndex) => {
+                                if (group.actions.length === 0) return null;
+                                const showSeparator = hasRowActions || groupIndex > 0;
+                                return (
+                                    <div key={`group-${groupIndex}`}>
+                                        {showSeparator && <DropdownMenuSeparator />}
+                                        <DropdownMenuGroup>
+                                            {group.label && (
+                                                <DropdownMenuLabel>{group.label}</DropdownMenuLabel>
+                                            )}
+                                            {group.actions.map((action, index) => (
+                                                <action.component
+                                                    key={`bulk-action-${groupIndex}-${index}`}
+                                                    selection={[row.original]}
+                                                    table={table}
+                                                />
+                                            ))}
+                                        </DropdownMenuGroup>
+                                    </div>
+                                );
+                            })}
+                        {deleteMutation && (hasRowActions || hasBulkActions) && <DropdownMenuSeparator />}
                         {deleteMutation && (
                             <DropdownMenuGroup>
                                 <DeleteMutationRowAction deleteMutation={deleteMutation} row={row} />
@@ -317,7 +329,7 @@ function DefaultDisplayComponent({ value, fieldInfo }: { value: any; fieldInfo: 
         if (fieldInfo.name === 'enabled') {
             return <DisplayComponent id="vendure:booleanBadge" value={value} />;
         } else {
-            return <DisplayComponent id="vendure:booleanCheckbox" value={value} />;
+            return <DisplayComponent id="vendure:booleanYesNoBadge" value={value} />;
         }
     }
     if (fieldInfo.type === 'Asset') {
@@ -402,10 +414,10 @@ function DeleteMutationRowAction({
     return (
         <AlertDialog>
             <AlertDialogTrigger nativeButton={false} render={<DropdownMenuItem closeOnClick={false} />}>
-                    <div className="flex items-center gap-2">
-                        <TrashIcon className="w-4 h-4" />
-                        <Trans>Delete</Trans>
-                    </div>
+                <div className="flex items-center gap-2">
+                    <TrashIcon className="w-4 h-4" />
+                    <Trans>Delete</Trans>
+                </div>
             </AlertDialogTrigger>
             <AlertDialogContent>
                 <AlertDialogHeader>

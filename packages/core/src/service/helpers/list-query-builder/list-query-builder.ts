@@ -24,13 +24,17 @@ import {
 import { Instrument } from '../../../common/instrument-decorator';
 import { ConfigService, CustomFields, Logger } from '../../../config';
 import { TransactionalConnection } from '../../../connection';
+import { findOptionsArrayToObject } from '../../../connection/find-options-array-to-object';
+import { getDataSource } from '../../../connection/get-data-source';
 import { VendureEntity } from '../../../entity';
 import { joinTreeRelationsDynamically } from '../utils/tree-relations-qb-joiner';
 
-import { getColumnMetadata, getEntityAlias } from './connection-utils';
+import { resolveCalculatedColumnJoin } from './calculated-column-join';
+import { getColumnMetadata } from './connection-utils';
 import { getCalculatedColumns } from './get-calculated-columns';
 import { parseFilterParams, WhereCondition, WhereGroup } from './parse-filter-params';
 import { parseSortParams } from './parse-sort-params';
+import { createSqliteRegexpFunction } from './sqlite-regexp-function';
 
 /**
  * Counter for generating unique aliases in EXISTS subqueries.
@@ -286,7 +290,7 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         relations = relations.filter(relationPath => !processedRelations.has(relationPath));
 
         qb.setFindOptions({
-            relations,
+            relations: findOptionsArrayToObject<T>(relations),
             take,
             skip,
             where: extendedOptions.where || {},
@@ -307,9 +311,10 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
 
         const customFieldsForType = this.configService.customFields[entity.name as keyof CustomFields];
         const sortParams = Object.assign({}, options.sort, extendedOptions.orderBy);
-        this.applyTranslationConditions(qb, entity, sortParams, extendedOptions.ctx);
+        this.applyTranslationConditions(qb, entity, sortParams, options.filter, extendedOptions.ctx);
+        const dataSource = getDataSource(qb);
         const sort = parseSortParams(
-            qb.connection,
+            dataSource,
             entity,
             sortParams,
             customPropertyMap,
@@ -318,7 +323,7 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         );
 
         const filter = parseFilterParams({
-            connection: qb.connection,
+            connection: dataSource,
             entity,
             filterParams: options.filter,
             customPropertyMap,
@@ -478,9 +483,13 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         const newParamKey = `exists_${baseParamKey}`;
 
         // Helper to escape identifiers for the current database driver (handles PostgreSQL quoting)
-        const escapeId = (name: string) => mainQb.connection.driver.escape(name);
+        const { driver } = getDataSource(mainQb);
+        const escapeId = (name: string) => driver.escape(name);
         const escapeTablePath = (path: string) =>
-            path.split('.').map(segment => mainQb.connection.driver.escape(segment)).join('.');
+            path
+                .split('.')
+                .map(segment => driver.escape(segment))
+                .join('.');
 
         let existsQuery: string;
 
@@ -768,22 +777,27 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
     ) {
         const calculatedColumns = getCalculatedColumns(entity);
         const filterAndSortFields = this.getFilterAndSortFields(options);
-        const alias = getEntityAlias(this.connection.rawConnection, entity);
+        const alias = qb.alias;
         for (const field of filterAndSortFields) {
             const calculatedColumnDef = calculatedColumns.find(c => c.name === field);
             const instruction = calculatedColumnDef?.listQuery;
             if (instruction) {
                 const relations = instruction.relations || [];
                 for (const relation of relations) {
-                    const relationIsAlreadyJoined = qb.expressionMap.joinAttributes.find(
-                        ja => ja.entityOrProperty === `${alias}.${relation}`,
-                    );
-                    if (!relationIsAlreadyJoined) {
-                        const propertyPath = relation.includes('.') ? relation : `${alias}.${relation}`;
-                        const relationAlias = relation.includes('.')
-                            ? relation.split('.').reverse()[0]
-                            : relation;
-                        qb.innerJoinAndSelect(propertyPath, relationAlias);
+                    const {
+                        propertyPath,
+                        alias: relationAlias,
+                        joinType,
+                    } = resolveCalculatedColumnJoin(alias, relation, instruction.expression);
+                    // The check is on the alias rather than the relation property path, because
+                    // the expression references the alias by name. The same relation joined
+                    // under a different alias does not satisfy that reference.
+                    if (!this.isRelationAlreadyJoined(qb, relationAlias)) {
+                        if (joinType === 'left') {
+                            qb.leftJoinAndSelect(propertyPath, relationAlias);
+                        } else {
+                            qb.innerJoinAndSelect(propertyPath, relationAlias);
+                        }
                     }
                 }
                 if (typeof instruction.query === 'function') {
@@ -823,19 +837,22 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
 
     /**
      * @description
-     * If this entity is Translatable, and we are sorting on one of the translatable fields,
-     * then we need to apply appropriate WHERE clauses to limit
-     * the joined translation relations.
+     * If this entity is Translatable, and we are sorting or filtering on one of the translatable
+     * fields, we need to join the translations. When sorting, we additionally apply WHERE clauses
+     * to limit the joined translation relations to a single language, so that the row ordering
+     * is deterministic.
      */
     private applyTranslationConditions<T extends VendureEntity>(
         qb: SelectQueryBuilder<any>,
         entity: Type<T>,
         sortParams: NullOptionals<SortParameter<T>> & FindOneOptions<T>['order'],
+        filterParams?: NullOptionals<FilterParameter<T>> | null,
         ctx?: RequestContext,
     ) {
         const languageCode = ctx?.languageCode || this.configService.defaultLanguageCode;
 
-        const { translationColumns } = getColumnMetadata(qb.connection, entity);
+        const dataSource = getDataSource(qb);
+        const { translationColumns } = getColumnMetadata(dataSource, entity);
         const alias = qb.alias;
 
         const sortKeys = Object.keys(sortParams);
@@ -845,16 +862,16 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
                 sortingOnTranslatableKey = true;
             }
         }
+        const filterKeys = this.getFilterFields(filterParams);
+        const filteringOnTranslatableKey = translationColumns.some(c => filterKeys.includes(c.propertyName));
 
-        if (translationColumns.length && sortingOnTranslatableKey) {
-            const translationsAlias = qb.connection.namingStrategy.joinTableName(
-                alias,
-                'translations',
-                '',
-                '',
-            );
+        if (translationColumns.length && (sortingOnTranslatableKey || filteringOnTranslatableKey)) {
+            const translationsAlias = `${alias}__translations`;
             if (!this.isRelationAlreadyJoined(qb, translationsAlias)) {
                 qb.leftJoinAndSelect(`${alias}.translations`, translationsAlias);
+            }
+            if (!sortingOnTranslatableKey) {
+                return;
             }
 
             qb.andWhere(
@@ -915,18 +932,17 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
      * so that we can run regex filters on string fields.
      */
     private registerSQLiteRegexpFunction() {
-        const regexpFn = (pattern: string, value: string) => {
-            const result = new RegExp(`${pattern}`, 'i').test(value);
-            return result ? 1 : 0;
-        };
         const dbType = this.connection.rawConnection.options.type;
+        // Only the SQLite flavours evaluate regex filters via a JS function; other backends
+        // defer to the database's own engine, so the regexp function (and any re2 warning)
+        // must not be created for them.
         if (dbType === 'better-sqlite3') {
             const driver = this.connection.rawConnection.driver as BetterSqlite3Driver;
-            driver.databaseConnection.function('regexp', regexpFn);
+            driver.databaseConnection.function('regexp', createSqliteRegexpFunction());
         }
         if (dbType === 'sqljs') {
             const driver = this.connection.rawConnection.driver as SqljsDriver;
-            driver.databaseConnection.create_function('regexp', regexpFn);
+            driver.databaseConnection.create_function('regexp', createSqliteRegexpFunction());
         }
     }
 

@@ -2,7 +2,21 @@ import { AnyRoute, RouteOptions } from '@tanstack/react-router';
 import { LucideIcon } from 'lucide-react';
 import type React from 'react';
 
-import { NavMenuItem } from '../../nav-menu/nav-menu-extensions.js';
+import { DashboardExtensionNavigationShortcut, NavMenuItem } from '../../nav-menu/nav-menu-extensions.js';
+
+export type DashboardNavMenuItemDefinition = Omit<Partial<NavMenuItem>, 'shortcut'> & {
+    sectionId: string;
+    /**
+     * @description
+     * Optional second key for the global `G` navigation chord. For example, `r`
+     * makes this item available with `G` then `R`.
+     *
+     * Built-in Dashboard shortcuts and `g` are excluded at compile time. If two
+     * extensions use the same shortcut, the Dashboard reports the collision when
+     * the extensions are loaded and disables both conflicting shortcuts.
+     */
+    shortcut?: DashboardExtensionNavigationShortcut;
+};
 
 /**
  * @description
@@ -32,7 +46,7 @@ export interface DashboardRouteDefinition {
      * this item should appear in. It can also point to custom nav menu sections that
      * have been defined using the `navSections` extension property.
      */
-    navMenuItem?: Partial<NavMenuItem> & { sectionId: string };
+    navMenuItem?: DashboardNavMenuItemDefinition;
     /**
      * @description
      * Optional loader function to fetch data before the route renders.

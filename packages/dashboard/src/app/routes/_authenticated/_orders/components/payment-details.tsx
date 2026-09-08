@@ -1,13 +1,22 @@
+import { JsonViewer } from '@/vdb/components/data-display/json-viewer.js';
 import { LabeledData } from '@/vdb/components/labeled-data.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/vdb/components/ui/collapsible.js';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/vdb/components/ui/dialog.js';
 import { api } from '@/vdb/graphql/api.js';
 import { ResultOf } from '@/vdb/graphql/graphql.js';
 import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
+import { isDestructiveTransition, orderStateDictionary } from '@/vdb/utils/state-type.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation } from '@tanstack/react-query';
-import { JsonViewer } from '@/vdb/components/data-display/json-viewer.js';
 import { ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -19,11 +28,7 @@ import {
     transitionPaymentToStateDocument,
 } from '../orders.graphql.js';
 import { SettleRefundDialog } from './settle-refund-dialog.js';
-import {
-    getTypeForState,
-    StateTransitionAction,
-    StateTransitionControl,
-} from './state-transition-control.js';
+import { StateTransitionAction, StateTransitionControl } from './state-transition-control.js';
 
 type PaymentDetailsProps = {
     payment: ResultOf<typeof paymentWithRefundsFragment>;
@@ -141,7 +146,7 @@ export function PaymentDetails({ payment, currencyCode, onSuccess }: Readonly<Pa
             actions.push({
                 label: t`Settle payment`,
                 onClick: handleSettlePayment,
-                type: 'success',
+                tone: 'success',
                 disabled: settlePaymentMutation.isPending,
             });
         }
@@ -152,7 +157,8 @@ export function PaymentDetails({ payment, currencyCode, onSuccess }: Readonly<Pa
                     state === 'Cancelled'
                         ? t`Cancel payment`
                         : t`Transition to ${getTranslatedPaymentState(state)}`,
-                type: getTypeForState(state),
+                tone: orderStateDictionary.toneFor(state),
+                destructive: isDestructiveTransition(state),
                 onClick: () => handlePaymentStateTransition(state),
                 disabled: transitionPaymentMutation.isPending || cancelPaymentMutation.isPending,
             });
@@ -163,45 +169,73 @@ export function PaymentDetails({ payment, currencyCode, onSuccess }: Readonly<Pa
 
     return (
         <>
-            <div className="space-y-1 p-3 border rounded-md">
-                <div className="grid lg:grid-cols-2 gap-2">
-                    <LabeledData label={<Trans>Payment method</Trans>} value={payment.method} />
-                    <LabeledData
-                        label={<Trans>Amount</Trans>}
-                        value={formatCurrency(payment.amount, currencyCode)}
-                    />
-                    <LabeledData
-                        label={<Trans>Created at</Trans>}
-                        value={formatDate(payment.createdAt, { dateStyle: 'short', timeStyle: 'short' })}
-                    />
-                    {payment.transactionId && (
-                        <LabeledData label={<Trans>Transaction ID</Trans>} value={payment.transactionId} />
-                    )}
-                    {/* We need to check if there is errorMessage field in the Payment type */}
-                    {payment.errorMessage && (
+            <div>
+                <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
+                    <div className="sm:col-start-2 sm:row-start-1 sm:justify-self-end">
+                        <StateTransitionControl
+                            currentState={payment.state}
+                            statesTranslationFunction={getTranslatedPaymentState}
+                            actions={getPaymentActions()}
+                            isLoading={
+                                settlePaymentMutation.isPending ||
+                                transitionPaymentMutation.isPending ||
+                                cancelPaymentMutation.isPending
+                            }
+                        />
+                    </div>
+                    <div className="grid gap-2 md:grid-cols-2 sm:col-start-1 sm:row-start-1">
+                        <LabeledData label={<Trans>Payment method</Trans>} value={payment.method} />
                         <LabeledData
-                            label={<Trans>Error message</Trans>}
-                            value={payment.errorMessage}
-                            className="text-destructive"
+                            label={<Trans>Amount</Trans>}
+                            value={formatCurrency(payment.amount, currencyCode)}
                         />
-                    )}
+                        <LabeledData
+                            label={<Trans>Created at</Trans>}
+                            value={formatDate(payment.createdAt, { dateStyle: 'short', timeStyle: 'short' })}
+                        />
+                        {payment.transactionId && (
+                            <LabeledData
+                                label={<Trans>Transaction ID</Trans>}
+                                value={payment.transactionId}
+                            />
+                        )}
+                        {/* We need to check if there is errorMessage field in the Payment type */}
+                        {payment.errorMessage && (
+                            <LabeledData
+                                label={<Trans>Error message</Trans>}
+                                value={payment.errorMessage}
+                                className="text-destructive"
+                            />
+                        )}
+                    </div>
                 </div>
-                <Collapsible className="mt-2 border-t pt-2">
-                    <CollapsibleTrigger className="flex items-center justify-between w-full text-sm hover:underline text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md p-1 -m-1">
-                        <Trans>Payment metadata</Trans>
-                        <ChevronDown className="h-4 w-4 transition-transform duration-200 data-[state=open]:rotate-180" />
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="mt-2">
-                        <JsonViewer
-                            viewOnly
-                            rootFontSize={12}
-                            minWidth={100}
-                            rootName=""
-                            data={payment.metadata}
-                            collapse
-                        />
-                    </CollapsibleContent>
-                </Collapsible>
+                <div className="mt-4">
+                    <Dialog>
+                        <DialogTrigger render={<Button variant="outline" size="sm" />}>
+                            <Trans>View payment metadata</Trans>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+                            <DialogHeader>
+                                <DialogTitle>
+                                    <Trans>Payment metadata</Trans>
+                                </DialogTitle>
+                                <DialogDescription>
+                                    <Trans>Metadata returned by the payment handler.</Trans>
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="overflow-auto flex-1">
+                                <JsonViewer
+                                    viewOnly
+                                    rootFontSize={12}
+                                    minWidth={100}
+                                    rootName=""
+                                    data={payment.metadata}
+                                    collapse
+                                />
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                </div>
                 {payment.refunds && payment.refunds.length > 0 && (
                     <Collapsible className="mt-2 border-t pt-2">
                         <CollapsibleTrigger className="flex items-center justify-between w-full text-sm hover:underline text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md p-1 -m-1">
@@ -210,7 +244,7 @@ export function PaymentDetails({ payment, currencyCode, onSuccess }: Readonly<Pa
                         </CollapsibleTrigger>
                         <CollapsibleContent className="mt-2 space-y-3">
                             {payment.refunds.map(refund => (
-                                <div key={refund.id} className="p-3 border rounded-md bg-muted/50">
+                                <div key={refund.id} className="p-3 rounded-md bg-muted/50">
                                     <div className="space-y-1">
                                         <LabeledData label={<Trans>Refund ID</Trans>} value={refund.id} />
                                         <LabeledData
@@ -270,18 +304,6 @@ export function PaymentDetails({ payment, currencyCode, onSuccess }: Readonly<Pa
                         </CollapsibleContent>
                     </Collapsible>
                 )}
-                <div className="mt-3 pt-3 border-t">
-                    <StateTransitionControl
-                        currentState={payment.state}
-                        statesTranslationFunction={getTranslatedPaymentState}
-                        actions={getPaymentActions()}
-                        isLoading={
-                            settlePaymentMutation.isPending ||
-                            transitionPaymentMutation.isPending ||
-                            cancelPaymentMutation.isPending
-                        }
-                    />
-                </div>
             </div>
             <SettleRefundDialog
                 open={settleRefundDialogOpen}

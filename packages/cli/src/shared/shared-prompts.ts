@@ -8,6 +8,7 @@ import { Messages } from '../constants';
 import { getPluginClasses, getTsMorphProject, selectTsConfigFile } from '../utilities/ast-utils';
 import { pauseForPromptDisplay, withInteractiveTimeout } from '../utilities/utils';
 
+import { exitCliCommand } from './cli-command-exit';
 import { EntityRef } from './entity-ref';
 import { ServiceRef } from './service-ref';
 import { VendurePluginRef } from './vendure-plugin-ref';
@@ -97,7 +98,7 @@ export async function selectPlugin(project: Project, cancelledMessage: string): 
     const pluginClasses = getPluginClasses(project);
     if (pluginClasses.length === 0) {
         cancel(Messages.NoPluginsFound);
-        process.exit(0);
+        exitCliCommand(0);
     }
 
     const targetPlugin = await withInteractiveTimeout(async () => {
@@ -110,7 +111,7 @@ export async function selectPlugin(project: Project, cancelledMessage: string): 
 
     if (isCancel(targetPlugin)) {
         cancel(cancelledMessage);
-        process.exit(0);
+        exitCliCommand(0);
     }
     return new VendurePluginRef(targetPlugin as ClassDeclaration);
 }
@@ -136,7 +137,7 @@ export async function selectEntity(plugin: VendurePluginRef): Promise<EntityRef>
 
     if (isCancel(targetEntity)) {
         cancel('Cancelled');
-        process.exit(0);
+        exitCliCommand(0);
     }
     return targetEntity as EntityRef;
 }
@@ -148,7 +149,7 @@ export async function selectMultiplePluginClasses(
     const pluginClasses = getPluginClasses(project);
     if (pluginClasses.length === 0) {
         cancel(Messages.NoPluginsFound);
-        process.exit(0);
+        exitCliCommand(0);
     }
 
     const selectAll = await withInteractiveTimeout(async () => {
@@ -169,7 +170,7 @@ export async function selectMultiplePluginClasses(
 
     if (isCancel(selectAll)) {
         cancel(cancelledMessage);
-        process.exit(0);
+        exitCliCommand(0);
     }
     if (selectAll === 'all') {
         return pluginClasses.map(pluginClass => new VendurePluginRef(pluginClass));
@@ -184,7 +185,7 @@ export async function selectMultiplePluginClasses(
 
     if (isCancel(targetPlugins)) {
         cancel(cancelledMessage);
-        process.exit(0);
+        exitCliCommand(0);
     }
     return (targetPlugins as ClassDeclaration[]).map(pluginClass => new VendurePluginRef(pluginClass));
 }
@@ -234,7 +235,7 @@ export async function selectServiceRef(
 
     if (isCancel(result)) {
         cancel('Cancelled');
-        process.exit(0);
+        exitCliCommand(0);
     }
     if (result === 'new') {
         return addServiceCommand.run({ type: 'basic', plugin }).then(r => r.serviceRef);

@@ -175,14 +175,29 @@ export function ActionBarItem({ children, itemId, requiresPermission }: Readonly
 export function ActionBarItemWrapper({
     children,
     itemId,
+    demotePrimary,
 }: Readonly<{
     children: React.ReactNode;
     itemId: string;
+    demotePrimary?: boolean;
 }>) {
     const { settings } = useUserSettings();
 
+    // Extension buttons must not compete with the page's own primary action, so the
+    // primary/brand tokens are remapped to secondary within this slot. This relies on
+    // `@theme inline`, which makes utilities like `bg-primary` read the overridden
+    // custom property. `contents` keeps the wrapper out of the flex layout, and
+    // portalled content (dialogs etc.) is unaffected since the override is DOM-scoped.
+    const content = demotePrimary ? (
+        <div className="contents [--primary:var(--secondary)] [--primary-foreground:var(--secondary-foreground)] [--brand:var(--secondary)] [--brand-foreground:var(--secondary-foreground)]">
+            {children}
+        </div>
+    ) : (
+        children
+    );
+
     if (settings.devMode) {
-        return <DevModeActionBarWrapper itemId={itemId}>{children}</DevModeActionBarWrapper>;
+        return <DevModeActionBarWrapper itemId={itemId}>{content}</DevModeActionBarWrapper>;
     }
-    return <>{children}</>;
+    return <>{content}</>;
 }

@@ -37,6 +37,7 @@ import { Instrument } from '../../../common/instrument-decorator';
 import { idsAreEqual } from '../../../common/utils';
 import { ConfigService } from '../../../config/config.service';
 import { CustomFieldConfig } from '../../../config/custom-field/custom-field-types';
+import { findOptionsArrayToObject } from '../../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { VendureEntity } from '../../../entity/base/base.entity';
 import { FulfillmentLine } from '../../../entity/order-line-reference/fulfillment-line.entity';
@@ -808,7 +809,7 @@ export class OrderModifier {
 
     private getOrderPayments(ctx: RequestContext, orderId: ID): Promise<Payment[]> {
         return this.connection.getRepository(ctx, Payment).find({
-            relations: ['refunds'],
+            relations: { refunds: true },
             where: {
                 order: { id: orderId } as any,
             },
@@ -851,7 +852,9 @@ export class OrderModifier {
                 .getRepository(ctx, OrderLine)
                 .findOne({
                     where: { id: orderLine.id },
-                    relations: customFieldRelations.map(r => `customFields.${r.name}`),
+                    relations: findOptionsArrayToObject<OrderLine>(
+                        customFieldRelations.map(r => `customFields.${r.name}`),
+                    ),
                 })
                 .then(result => result ?? undefined);
         }

@@ -4,7 +4,7 @@ generated: true
 ---
 ## PaginatedListDataTable
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/paginated-list-data-table.tsx" sourceLine="358" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/paginated-list-data-table.tsx" sourceLine="438" packageName="@vendure/dashboard" since="3.4.0" />
 
 A wrapper around the [DataTable](/reference/dashboard/list-views/data-table#datatable) component, which automatically configures functionality common to
 list queries that implement the `PaginatedList` interface, which is the common way of representing lists
@@ -134,20 +134,24 @@ interface PaginatedListDataTableProps<T extends TypedDocumentNode<U, V>, U exten
     customizeColumns?: CustomizeColumnConfig<T>;
     additionalColumns?: AC;
     defaultColumnOrder?: (keyof ListQueryFields<T> | keyof AC | CustomFieldKeysOfItem<ListQueryFields<T>>)[];
-    defaultVisibility?: Partial<Record<AllItemFieldKeys<T>, boolean>>;
+    defaultVisibility?: Partial<Record<AllItemFieldKeys<T> | keyof AC, boolean>>;
     onSearchTermChange?: (searchTerm: string) => NonNullable<V['options']>['filter'];
+    searchPlaceholder?: string;
     page: number;
     itemsPerPage: number;
     sorting: SortingState;
     columnFilters?: ColumnFiltersState;
     onPageChange: (table: Table<any>, page: number, perPage: number) => void;
     onSortChange: (table: Table<any>, sorting: SortingState) => void;
-    onFilterChange: (table: Table<any>, filters: ColumnFiltersState) => void;
+    onFilterChange?: (table: Table<any>, filters: ColumnFiltersState) => void;
     onColumnVisibilityChange?: (table: Table<any>, columnVisibility: VisibilityState) => void;
     facetedFilters?: FacetedFilterConfig<T>;
     rowActions?: RowAction<PaginatedListItemFields<T>>[];
-    bulkActions?: BulkActionsInput;
+    bulkActions?: BulkActionsInput | false;
+    selectedItems?: PaginatedListItemFields<T>[];
+    onSelectionChange?: (selection: PaginatedListItemFields<T>[]) => void;
     disableViewOptions?: boolean;
+    enableViews?: boolean;
     transformData?: (data: PaginatedListItemFields<T>[]) => PaginatedListItemFields<T>[];
     setTableOptions?: (table: TableOptions<any>) => TableOptions<any>;
     registerRefresher?: PaginatedListRefresherRegisterFn;
@@ -158,6 +162,11 @@ interface PaginatedListDataTableProps<T extends TypedDocumentNode<U, V>, U exten
     ) => void | Promise<void>;
     disableDragAndDrop?: boolean;
     includeSelectionColumn?: boolean;
+    emptyStateAction?: React.ReactNode;
+    errorState?: (params: { error: Error; retry: () => void }) => React.ReactNode;
+    title?: React.ReactNode;
+    actions?: React.ReactNode;
+    frame?: 'card' | 'plain';
 }
 ```
 
@@ -200,7 +209,7 @@ interface PaginatedListDataTableProps<T extends TypedDocumentNode<U, V>, U exten
 
 ### defaultVisibility
 
-<MemberInfo kind="property" type={`Partial<Record<AllItemFieldKeys<T>, boolean>>`}   />
+<MemberInfo kind="property" type={`Partial<Record<AllItemFieldKeys<T> | keyof AC, boolean>>`}   />
 
 
 ### onSearchTermChange
@@ -214,6 +223,12 @@ non-empty — when the term is `''`, the returned value is discarded so
 that callers can write `{ field: { contains: searchTerm } }` without
 producing tautological `contains: ''` clauses. The callback itself is
 still invoked on every change so pages can use it as a state-sync hook.
+### searchPlaceholder
+
+<MemberInfo kind="property" type={`string`}  since="3.8.0"  />
+
+Placeholder text for the search input. Should say what the search targets,
+e.g. "Search products...". Defaults to a generic "Search...".
 ### page
 
 <MemberInfo kind="property" type={`number`}   />
@@ -248,7 +263,10 @@ still invoked on every change so pages can use it as a state-sync hook.
 
 <MemberInfo kind="property" type={`(table: Table<any>, filters: ColumnFiltersState) => void`}   />
 
-
+Called when the user changes the column filters. When omitted, the table is
+treated as read-only with respect to filtering: the saved-views tabs and the
+"Add filter" menu are not rendered. Useful for embedded tables (e.g. dashboard
+widgets) that apply preset filters via `transformVariables`.
 ### onColumnVisibilityChange
 
 <MemberInfo kind="property" type={`(table: Table<any>, columnVisibility: VisibilityState) => void`}   />
@@ -266,7 +284,17 @@ still invoked on every change so pages can use it as a state-sync hook.
 
 ### bulkActions
 
-<MemberInfo kind="property" type={`<a href='/reference/dashboard/list-views/bulk-actions#bulkactionsinput'>BulkActionsInput</a>`}   />
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/list-views/bulk-actions#bulkactionsinput'>BulkActionsInput</a> | false`}   />
+
+
+### selectedItems
+
+<MemberInfo kind="property" type={`PaginatedListItemFields<T>[]`}   />
+
+
+### onSelectionChange
+
+<MemberInfo kind="property" type={`(selection: PaginatedListItemFields<T>[]) => void`}   />
 
 
 ### disableViewOptions
@@ -274,6 +302,14 @@ still invoked on every change so pages can use it as a state-sync hook.
 <MemberInfo kind="property" type={`boolean`}   />
 
 
+### enableViews
+
+<MemberInfo kind="property" type={`boolean`} default={`false`}  since="3.8.0"  />
+
+Enables saved-view controls for this table. This should be used for tables
+which represent a whole data set, such as top-level list pages. It should
+not be enabled for embedded tables or tables whose query is already scoped
+by a predefined filter.
 ### transformData
 
 <MemberInfo kind="property" type={`(data: PaginatedListItemFields<T>[]) => PaginatedListItemFields<T>[]`}   />
@@ -305,6 +341,41 @@ When true, drag and drop will be disabled. This will only have an effect if the 
 <MemberInfo kind="property" type={`boolean`} default={`true`}   />
 
 When false, the row selection checkbox column will not be included.
+### emptyStateAction
+
+<MemberInfo kind="property" type={`React.ReactNode`}   />
+
+An optional action rendered inside the first-run empty state (i.e. when the
+list has no items and no active filters/search). Typically a "create your
+first X" CTA. The page owns this because the table cannot know the create
+route or the permissions that gate it.
+### errorState
+
+<MemberInfo kind="property" type={`(params: { error: Error; retry: () => void }) => React.ReactNode`}   />
+
+Render prop invoked when the underlying list query fails. Receives the
+error and a `retry` callback (re-runs the query) and should return the
+content to display in place of the table — typically an `ErrorState`.
+When omitted, a failed query renders as an empty table.
+### title
+
+<MemberInfo kind="property" type={`React.ReactNode`}  since="3.8.0"  />
+
+An optional title rendered in the table's header band. Intended for tables
+embedded in detail pages (e.g. "Product variants").
+### actions
+
+<MemberInfo kind="property" type={`React.ReactNode`}  since="3.8.0"  />
+
+Optional action buttons (e.g. a "Manage variants" CTA) rendered in the
+table's header band, next to the view-options and refresh controls.
+### frame
+
+<MemberInfo kind="property" type={`'card' | 'plain'`} default={`'card'`}  since="3.8.0"  />
+
+The table's frame. `'card'` (default) renders the table on its own card;
+`'plain'` renders the same band structure without the card chrome, for a
+table embedded in an existing card (e.g. a dashboard widget).
 
 
 </div>

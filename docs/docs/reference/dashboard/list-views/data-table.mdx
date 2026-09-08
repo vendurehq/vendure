@@ -4,7 +4,7 @@ generated: true
 ---
 ## DataTable
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/components/data-table/data-table.tsx" sourceLine="188" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/data-table/data-table.tsx" sourceLine="258" packageName="@vendure/dashboard" since="3.4.0" />
 
 A data table which includes sorting, filtering, pagination, bulk actions, column controls etc.
 
@@ -21,7 +21,7 @@ Parameters
 
 ## DataTableProps
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/components/data-table/data-table.tsx" sourceLine="137" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/data-table/data-table.tsx" sourceLine="129" packageName="@vendure/dashboard" since="3.4.0" />
 
 Props for configuring the [DataTable](/reference/dashboard/list-views/data-table#datatable).
 
@@ -41,14 +41,23 @@ interface DataTableProps<TData> {
     onFilterChange?: (table: TableType<TData>, columnFilters: ColumnFilter[]) => void;
     onColumnVisibilityChange?: (table: TableType<TData>, columnVisibility: VisibilityState) => void;
     onSearchTermChange?: (searchTerm: string) => void;
+    searchPlaceholder?: string;
     defaultColumnVisibility?: VisibilityState;
     facetedFilters?: { [key: string]: FacetedFilter | undefined };
     disableViewOptions?: boolean;
-    bulkActions?: BulkActionsInput;
+    bulkActions?: BulkActionsInput | false;
+    selectedItems?: TData[];
+    onSelectionChange?: (selection: TData[]) => void;
+    enableViews?: boolean;
     setTableOptions?: (table: TableOptions<TData>) => TableOptions<TData>;
     onRefresh?: () => void;
     onReorder?: (oldIndex: number, newIndex: number, item: TData, allItems?: TData[]) => void | Promise<void>;
     disableDragAndDrop?: boolean;
+    emptyStateAction?: React.ReactNode;
+    title?: React.ReactNode;
+    actions?: React.ReactNode;
+    frame?: 'card' | 'plain';
+    footerRows?: React.ReactNode | ((ctx: { columnCount: number }) => React.ReactNode);
 }
 ```
 
@@ -124,6 +133,12 @@ interface DataTableProps<TData> {
 <MemberInfo kind="property" type={`(searchTerm: string) => void`}   />
 
 
+### searchPlaceholder
+
+<MemberInfo kind="property" type={`string`}  since="3.8.0"  />
+
+Placeholder text for the search input. Should say what the search targets,
+e.g. "Search products...". Defaults to a generic "Search...".
 ### defaultColumnVisibility
 
 <MemberInfo kind="property" type={`VisibilityState`}   />
@@ -141,7 +156,22 @@ interface DataTableProps<TData> {
 
 ### bulkActions
 
-<MemberInfo kind="property" type={`<a href='/reference/dashboard/list-views/bulk-actions#bulkactionsinput'>BulkActionsInput</a>`}   />
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/list-views/bulk-actions#bulkactionsinput'>BulkActionsInput</a> | false`}   />
+
+
+### selectedItems
+
+<MemberInfo kind="property" type={`TData[]`}   />
+
+
+### onSelectionChange
+
+<MemberInfo kind="property" type={`(selection: TData[]) => void`}   />
+
+
+### enableViews
+
+<MemberInfo kind="property" type={`boolean`}   />
 
 
 ### setTableOptions
@@ -167,6 +197,44 @@ The fourth parameter provides all items for context-aware reordering.
 <MemberInfo kind="property" type={`boolean`}   />
 
 When true, drag and drop will be disabled. This will only have an effect if the onReorder prop is also set
+### emptyStateAction
+
+<MemberInfo kind="property" type={`React.ReactNode`}   />
+
+An optional action rendered inside the first-run empty state (no data and no
+active filters). Typically a "create your first X" CTA. Not shown in the
+"no results match your filters" empty state, which offers "Clear filters" instead.
+### title
+
+<MemberInfo kind="property" type={`React.ReactNode`}  since="3.8.0"  />
+
+An optional title rendered in the table's header band. Intended for tables
+embedded in detail pages (e.g. "Product variants"), where the surrounding
+page block no longer provides a card title of its own.
+### actions
+
+<MemberInfo kind="property" type={`React.ReactNode`}  since="3.8.0"  />
+
+Optional action buttons (e.g. a "Manage variants" CTA) rendered in the
+table's header band, next to the view-options and refresh controls.
+### frame
+
+<MemberInfo kind="property" type={`'card' | 'plain'`} default={`'card'`}  since="3.8.0"  />
+
+The table's frame. `'card'` (default) renders the table on its own card:
+a header band hosting the controls, the rows flush to the card edges, and
+a footer band for pagination. `'plain'` renders the same band structure
+without the card chrome, for a table embedded in an existing card (e.g. a
+dashboard widget) — the host card must be the direct frame.
+### footerRows
+
+<MemberInfo kind="property" type={`React.ReactNode | ((ctx: { columnCount: number }) => React.ReactNode)`}  since="3.8.0"  />
+
+Extra `<TableRow>`s appended after the data rows — e.g. the order table's
+subtotal/shipping/total rows. Use the function form to receive the current
+visible `columnCount` for `colSpan`s. Rendered only alongside real rows,
+never with the loading or empty states. Takes precedence over `children`,
+which remains supported for the same purpose.
 
 
 </div>

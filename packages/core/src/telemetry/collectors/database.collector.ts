@@ -3,6 +3,7 @@ import { OrderType } from '@vendure/common/lib/generated-types';
 import { IsNull, MoreThanOrEqual, Not, type Repository } from 'typeorm';
 
 import { ConfigService } from '../../config/config.service';
+import { getDatabaseType as getConfiguredDatabaseType } from '../../connection/database-type';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Channel } from '../../entity/channel/channel.entity';
 import { coreEntitiesMap } from '../../entity/entities';
@@ -163,12 +164,12 @@ export class DatabaseCollector {
                 return undefined;
             }
             const channels = await rawConnection.getRepository(Channel).find({
-                select: [
-                    'defaultLanguageCode',
-                    'availableLanguageCodes',
-                    'defaultCurrencyCode',
-                    'availableCurrencyCodes',
-                ],
+                select: {
+                    defaultLanguageCode: true,
+                    availableLanguageCodes: true,
+                    defaultCurrencyCode: true,
+                    availableCurrencyCodes: true,
+                },
             });
             const languages = new Set<string>();
             const currencies = new Set<string>();
@@ -201,7 +202,7 @@ export class DatabaseCollector {
     }
 
     private getDatabaseType(): SupportedDatabaseType {
-        const dbType = this.configService.dbConnectionOptions.type;
+        const dbType = getConfiguredDatabaseType(this.configService.dbConnectionOptions);
         if (dbType === 'better-sqlite3' || dbType === 'sqlite') {
             return 'sqlite';
         }

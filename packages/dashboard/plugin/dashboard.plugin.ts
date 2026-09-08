@@ -17,6 +17,7 @@ import * as path from 'node:path';
 
 import { adminApiExtensions } from './api/api-extensions.js';
 import { MetricsResolver } from './api/metrics.resolver.js';
+import { channelColorsSettingsStoreField } from './channel-colors.js';
 import { loggerCtx, manageDashboardGlobalViews } from './constants.js';
 import { MetricsService } from './service/metrics.service.js';
 import { createDashboardStaticServer, isStaticAssetRequest } from './static-server.js';
@@ -128,6 +129,7 @@ export interface DashboardPluginOptions {
         config.authOptions.customPermissions.push(manageDashboardGlobalViews);
 
         config.settingsStoreFields['vendure.dashboard'] = [
+            ...(config.settingsStoreFields['vendure.dashboard'] ?? []),
             {
                 name: 'userSettings',
                 scope: SettingsStoreScopes.user,
@@ -144,6 +146,7 @@ export interface DashboardPluginOptions {
                 name: 'userSavedViews',
                 scope: SettingsStoreScopes.user,
             },
+            channelColorsSettingsStoreField,
         ];
         return config;
     },

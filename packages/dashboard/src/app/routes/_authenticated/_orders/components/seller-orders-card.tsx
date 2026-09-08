@@ -1,9 +1,10 @@
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
 import { Badge } from '@/vdb/components/ui/badge.js';
+import { StatusBadge } from '@/vdb/components/ui/status-badge.js';
 import { api } from '@/vdb/graphql/api.js';
 import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
-import { getTypeForState, stateTypeToBadgeVariant } from '@/vdb/utils/state-type.js';
+import { orderStateDictionary } from '@/vdb/utils/state-type.js';
 import { useQuery } from '@tanstack/react-query';
 import { sellerOrdersDocument } from '../orders.graphql.js';
 import { getSeller } from '../utils/order-utils.js';
@@ -52,9 +53,11 @@ export function SellerOrdersCard({ orderId }: Readonly<SellerOrdersCardProps>) {
                         </div>
                         <div className="flex justify-between mt-1">
                             <div className="flex gap-2">
-                                {seller && <Badge variant={'secondary'}>{seller.name}</Badge>}
+                                {seller && <Badge variant="default">{seller.name}</Badge>}
                             </div>
-                            <Badge variant={stateTypeToBadgeVariant(getTypeForState(sellerOrder.state))}>{getTranslatedOrderState(sellerOrder.state)}</Badge>
+                            <StatusBadge tone={orderStateDictionary.toneFor(sellerOrder.state)}>
+                                {getTranslatedOrderState(sellerOrder.state)}
+                            </StatusBadge>
                         </div>
                     </div>
                 );

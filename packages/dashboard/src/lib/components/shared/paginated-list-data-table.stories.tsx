@@ -64,6 +64,7 @@ export const Playground: Story = {
                     <PageLayout>
                         <FullWidthPageBlock blockId="test-block">
                             <PaginatedListDataTable
+                                enableViews
                                 listQuery={productsListDocument}
                                 defaultVisibility={{
                                     id: false,
@@ -96,7 +97,7 @@ export const Playground: Story = {
                                         cell: ({ cell }) => {
                                             const value = cell.getValue() as boolean;
                                             return (
-                                                <Badge variant={value ? 'default' : 'secondary'}>
+                                                <Badge variant="default">
                                                     {value ? 'Enabled' : 'Disabled'}
                                                 </Badge>
                                             );

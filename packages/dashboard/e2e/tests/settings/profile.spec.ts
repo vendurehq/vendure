@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import path from 'node:path';
 
 import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
 
@@ -88,6 +89,28 @@ test.describe('Profile', () => {
 
         // Reset to original value (don't submit)
         await firstNameInput.fill(originalValue);
+    });
+
+    test('should upload, replace and remove the profile picture in the sidebar', async ({ page }) => {
+        await page.route('http://test-asset.local/**', async route => {
+            await route.fulfill({
+                contentType: 'image/jpeg',
+                path: path.resolve('../core/e2e/fixtures/assets/pps1.jpg'),
+            });
+        });
+        await page.goto('/profile');
+        await expect(page.getByText('Profile picture')).toBeVisible();
+        const input = page.locator('#administrator-avatar-upload');
+        const sidebarAvatar = page.locator('[data-slot="sidebar"] [data-slot="avatar-image"]');
+
+        await input.setInputFiles(path.resolve('../core/e2e/fixtures/assets/pps1.jpg'));
+        await expect(sidebarAvatar).toHaveAttribute('src', /pps1/);
+
+        await input.setInputFiles(path.resolve('../core/e2e/fixtures/assets/pps2.jpg'));
+        await expect(sidebarAvatar).toHaveAttribute('src', /pps2/);
+
+        await page.getByRole('button', { name: 'Remove' }).click();
+        await expect(sidebarAvatar).toHaveCount(0);
     });
 
     // #5037 — an admin without UpdateAdministrator permission must still be able to

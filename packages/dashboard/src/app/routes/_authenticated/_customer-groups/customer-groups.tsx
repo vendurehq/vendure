@@ -2,7 +2,7 @@ import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js'
 import { Button } from '@/vdb/components/ui/button.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { PlusIcon } from 'lucide-react';
 import { DeleteCustomerGroupsBulkAction } from './components/customer-group-bulk-actions.js';
@@ -15,6 +15,7 @@ export const Route = createFileRoute('/_authenticated/_customer-groups/customer-
 });
 
 function CustomerGroupListPage() {
+    const { t } = useLingui();
     return (
         <ListPage
             pageId="customer-group-list"
@@ -44,6 +45,7 @@ function CustomerGroupListPage() {
                     },
                 },
             }}
+            searchPlaceholder={t`Search customer groups...`}
             onSearchTermChange={searchTerm => {
                 return {
                     name: { contains: searchTerm },

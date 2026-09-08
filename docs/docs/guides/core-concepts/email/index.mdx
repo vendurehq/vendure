@@ -98,12 +98,19 @@ export const config: VendureConfig = {
                 fromAddress: '"MyShop" <noreply@myshop.com>', // [!code highlight]
                 verifyEmailAddressUrl: 'https://www.myshop.com/verify', // [!code highlight]
                 passwordResetUrl: 'https://www.myshop.com/password-reset', // [!code highlight]
-                changeEmailAddressUrl: 'https://www.myshop.com/verify-email-address-change' // [!code highlight]
+                changeEmailAddressUrl: 'https://www.myshop.com/verify-email-address-change', // [!code highlight]
+                adminPasswordResetUrl: 'https://my-server.com/dashboard/reset-password' // [!code highlight]
             }, // [!code highlight]
         }),
     ],
 };
 ```
+
+:::note
+The `adminPasswordResetUrl` variable is used by the `adminPasswordResetHandler` (one of the default email handlers since v3.8.0)
+and should point to the password reset page of your Dashboard. If it is not set, the reset link in the
+"admin-password-reset" email will not work.
+:::
 
 ### Email integrations
 

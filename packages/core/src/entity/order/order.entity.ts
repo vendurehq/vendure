@@ -91,6 +91,23 @@ export class Order extends VendureEntity implements ChannelAware, HasCustomField
     @Index()
     orderPlacedAt?: Date;
 
+    /**
+     * @description
+     * The date & time that the Order's prices, promotions and taxes were last recalculated via
+     * {@link OrderService.applyPriceAdjustments}. Used by the configured {@link OrderRecalculationStrategy}
+     * to determine whether an active Order is stale and should be recalculated on read.
+     * Shipping method eligibility and rates are NOT included in read-time recalculation.
+     *
+     * @since 3.8.0
+     */
+    // `precision: 6` stores fractional seconds. Without it, MySQL's `DATETIME` has
+    // second-level precision and *rounds* the stored value, which can push a freshly
+    // stamped timestamp into the future relative to `Date.now()` — making the
+    // OrderRecalculationStrategy staleness check (e.g. TTL 0) incorrectly report "not
+    // stale" and skip the read-time recalculation.
+    @Column({ nullable: true, precision: 6 })
+    pricingUpdatedAt?: Date;
+
     @Index()
     @ManyToOne(type => Customer, customer => customer.orders)
     customer?: Customer;

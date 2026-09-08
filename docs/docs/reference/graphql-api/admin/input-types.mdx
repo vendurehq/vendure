@@ -1591,6 +1591,7 @@ input CreateApiKeyInput {
     String: '/reference/graphql-api/admin/object-types#string',
     Permission: '/reference/graphql-api/admin/enums#permission',
     ID: '/reference/graphql-api/admin/object-types#id',
+    JSON: '/reference/graphql-api/admin/object-types#json',
   }}
 >
 {`input CreateRoleInput {
@@ -1598,6 +1599,7 @@ input CreateApiKeyInput {
   description: String!
   permissions: [Permission!]!
   channelIds: [ID!]
+  customFields: JSON
 }`}
 </GraphQLDoc>
 
@@ -5259,6 +5261,7 @@ input UpdateProductVariantPriceInput {
     ID: '/reference/graphql-api/admin/object-types#id',
     String: '/reference/graphql-api/admin/object-types#string',
     Permission: '/reference/graphql-api/admin/enums#permission',
+    JSON: '/reference/graphql-api/admin/object-types#json',
   }}
 >
 {`input UpdateRoleInput {
@@ -5267,6 +5270,7 @@ input UpdateProductVariantPriceInput {
   description: String
   permissions: [Permission!]
   channelIds: [ID!]
+  customFields: JSON
 }`}
 </GraphQLDoc>
 

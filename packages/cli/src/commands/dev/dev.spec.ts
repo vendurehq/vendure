@@ -303,16 +303,19 @@ describe('dev command', () => {
         it('resolves SIGINT shutdowns with the canonical signal exit code', async () => {
             const stopFirst = vi.fn();
             const stopSecond = vi.fn();
+            const onShutdownSignal = vi.fn();
             const firstChild = new ManagedDevProcess(stopFirst);
             const secondChild = new ManagedDevProcess(stopSecond);
             const sigintListenerCount = process.listenerCount('SIGINT');
             const sigtermListenerCount = process.listenerCount('SIGTERM');
-            const promise = waitForDevProcesses([firstChild, secondChild]);
+            const promise = waitForDevProcesses([firstChild, secondChild], { onShutdownSignal });
 
             process.emit('SIGINT');
 
             expect(stopFirst).toHaveBeenCalledWith('SIGINT');
             expect(stopSecond).toHaveBeenCalledWith('SIGINT');
+            expect(onShutdownSignal).toHaveBeenCalledOnce();
+            expect(onShutdownSignal).toHaveBeenCalledWith('SIGINT');
             firstChild.emitClose(null, 'SIGINT');
             secondChild.emitClose(0, null);
             await expect(promise).resolves.toBe(130);

@@ -17,7 +17,7 @@ export const adminApiExtensions = gql`
     }
     input DashboardMetricSummaryInput {
         types: [DashboardMetricType!]!
-        refresh: Boolean
+        refresh: Boolean @deprecated(reason: "Metrics are calculated on every request")
         startDate: DateTime!
         endDate: DateTime!
     }

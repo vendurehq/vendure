@@ -1,1 +1,1 @@
-export { Spinner } from '@vendure-io/ui/components/ui/spinner';
+export { Spinner } from '@vendure-io/ui/components/atoms/spinner';

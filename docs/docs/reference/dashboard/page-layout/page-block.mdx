@@ -4,7 +4,7 @@ generated: true
 ---
 ## PageBlock
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/layout-engine/page-layout.tsx" sourceLine="902" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/layout-engine/page-layout.tsx" sourceLine="938" packageName="@vendure/dashboard" since="3.3.0" />
 
 *
 A component for displaying a block of content on a page. This should be used inside the [PageLayout](/reference/dashboard/page-layout/#pagelayout) component.
@@ -30,7 +30,7 @@ Parameters
 
 ## PageBlockProps
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/layout-engine/page-layout.tsx" sourceLine="851" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/layout-engine/page-layout.tsx" sourceLine="876" packageName="@vendure/dashboard" since="3.3.0" />
 
 Props used to configure the [PageBlock](/reference/dashboard/page-layout/page-block#pageblock) component.
 
@@ -42,6 +42,7 @@ type PageBlockProps = {
     title?: React.ReactNode | string;
     description?: React.ReactNode | string;
     className?: string;
+    layout?: 'card' | 'bare';
 }
 ```
 
@@ -77,12 +78,20 @@ An optional description of the block.
 <MemberInfo kind="property" type={`string`}   />
 
 An optional set of CSS classes to apply to the block.
+### layout
+
+<MemberInfo kind="property" type={`'card' | 'bare'`} default={`'card'`}  since="3.8.0"  />
+
+The visual treatment of the block. The default `'card'` wraps the content
+in a Card. Use `'bare'` for content that provides its own surface — such as
+a `DataTable` — to avoid a box-in-box appearance. In the bare layout the
+title and description are rendered as a heading above the content.
 
 
 </div>
 ## FullWidthPageBlock
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/layout-engine/page-layout.tsx" sourceLine="947" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/layout-engine/page-layout.tsx" sourceLine="998" packageName="@vendure/dashboard" since="3.3.0" />
 
 **Status: Developer Preview**
 
@@ -100,7 +109,7 @@ Parameters
 
 ## CustomFieldsPageBlock
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/layout-engine/page-layout.tsx" sourceLine="977" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/layout-engine/page-layout.tsx" sourceLine="1028" packageName="@vendure/dashboard" since="3.3.0" />
 
 *
 A component for displaying an auto-generated form for custom fields on a page.

@@ -87,6 +87,7 @@ export enum AdjustmentType {
 
 export type Administrator = Node & {
   __typename?: 'Administrator';
+  avatar?: Maybe<Asset>;
   createdAt: Scalars['DateTime']['output'];
   customFields?: Maybe<Scalars['JSON']['output']>;
   emailAddress: Scalars['String']['output'];
@@ -431,6 +432,7 @@ export type BooleanCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -702,6 +704,7 @@ export type ConfigArgDefinition = {
   list: Scalars['Boolean']['output'];
   name: Scalars['String']['output'];
   required: Scalars['Boolean']['output'];
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -1092,6 +1095,7 @@ export type CreateProvinceInput = {
 export type CreateRoleInput = {
   channelIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   code: Scalars['String']['input'];
+  customFields?: InputMaybe<Scalars['JSON']['input']>;
   description: Scalars['String']['input'];
   permissions: Array<Permission>;
 };
@@ -1498,6 +1502,7 @@ export type CustomField = {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -1535,6 +1540,7 @@ export type CustomFields = {
   Promotion: Array<CustomFieldConfig>;
   Refund: Array<CustomFieldConfig>;
   Region: Array<CustomFieldConfig>;
+  Role: Array<CustomFieldConfig>;
   Seller: Array<CustomFieldConfig>;
   Session: Array<CustomFieldConfig>;
   ShippingLine: Array<CustomFieldConfig>;
@@ -1707,6 +1713,7 @@ export type DateTimeCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   step?: Maybe<Scalars['Int']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
@@ -1853,6 +1860,9 @@ export enum ErrorCode {
   ORDER_MODIFICATION_ERROR = 'ORDER_MODIFICATION_ERROR',
   ORDER_MODIFICATION_STATE_ERROR = 'ORDER_MODIFICATION_STATE_ERROR',
   ORDER_STATE_TRANSITION_ERROR = 'ORDER_STATE_TRANSITION_ERROR',
+  PASSWORD_RESET_TOKEN_EXPIRED_ERROR = 'PASSWORD_RESET_TOKEN_EXPIRED_ERROR',
+  PASSWORD_RESET_TOKEN_INVALID_ERROR = 'PASSWORD_RESET_TOKEN_INVALID_ERROR',
+  PASSWORD_VALIDATION_ERROR = 'PASSWORD_VALIDATION_ERROR',
   PAYMENT_METHOD_MISSING_ERROR = 'PAYMENT_METHOD_MISSING_ERROR',
   PAYMENT_ORDER_MISMATCH_ERROR = 'PAYMENT_ORDER_MISMATCH_ERROR',
   PAYMENT_STATE_TRANSITION_ERROR = 'PAYMENT_STATE_TRANSITION_ERROR',
@@ -2064,6 +2074,7 @@ export type FloatCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   step?: Maybe<Scalars['Float']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
@@ -2287,6 +2298,7 @@ export type IntCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   step?: Maybe<Scalars['Int']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
@@ -2767,6 +2779,7 @@ export type LocaleStringCustomFieldConfig = CustomField & {
   pattern?: Maybe<Scalars['String']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -2783,6 +2796,7 @@ export type LocaleTextCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -3165,7 +3179,19 @@ export type Mutation = {
   /** Removes StockLocations from the specified Channel */
   removeStockLocationsFromChannel: Array<StockLocation>;
   requestCompleted: Scalars['Int']['output'];
+  /**
+   * Requests a password reset email to be sent to the Administrator with the given email address. To
+   * prevent leaking information about which email addresses exist, the mutation resolves to `Success`
+   * even if no Administrator with that email address was found.
+   */
+  requestPasswordReset?: Maybe<RequestPasswordResetResult>;
   requestStarted: Scalars['Int']['output'];
+  /**
+   * Resets an Administrator's password based on the provided token, which is obtained via the email
+   * sent as a result of the `requestPasswordReset` mutation. Upon success, the Administrator will be
+   * signed in.
+   */
+  resetPassword: ResetPasswordResult;
   /**
    * Replaces the old with a new API-Key.
    * This is a convenience method to invalidate an API-Key without
@@ -3174,6 +3200,8 @@ export type Mutation = {
   rotateApiKey: RotateApiKeyResult;
   runPendingSearchIndexUpdates: Success;
   runScheduledTask: Success;
+  /** Upload, replace or remove the active Administrator's profile picture */
+  setActiveAdministratorAvatar: Administrator;
   setActiveChannel: UserStatus;
   setAsLoggedIn: UserStatus;
   setAsLoggedOut: UserStatus;
@@ -3915,6 +3943,17 @@ export type MutationRemoveStockLocationsFromChannelArgs = {
 };
 
 
+export type MutationRequestPasswordResetArgs = {
+  emailAddress: Scalars['String']['input'];
+};
+
+
+export type MutationResetPasswordArgs = {
+  password: Scalars['String']['input'];
+  token: Scalars['String']['input'];
+};
+
+
 export type MutationRotateApiKeyArgs = {
   id: Scalars['ID']['input'];
 };
@@ -3922,6 +3961,11 @@ export type MutationRotateApiKeyArgs = {
 
 export type MutationRunScheduledTaskArgs = {
   id: Scalars['String']['input'];
+};
+
+
+export type MutationSetActiveAdministratorAvatarArgs = {
+  file?: InputMaybe<Scalars['Upload']['input']>;
 };
 
 
@@ -4643,6 +4687,34 @@ export type PaginatedList = {
   totalItems: Scalars['Int']['output'];
 };
 
+/**
+ * Returned if the token used to reset an Administrator's password is valid, but has
+ * expired according to the `verificationTokenDuration` setting in the AuthOptions.
+ */
+export type PasswordResetTokenExpiredError = ErrorResult & {
+  __typename?: 'PasswordResetTokenExpiredError';
+  errorCode: ErrorCode;
+  message: Scalars['String']['output'];
+};
+
+/**
+ * Returned if the token used to reset an Administrator's password is either
+ * invalid or does not match any expected tokens.
+ */
+export type PasswordResetTokenInvalidError = ErrorResult & {
+  __typename?: 'PasswordResetTokenInvalidError';
+  errorCode: ErrorCode;
+  message: Scalars['String']['output'];
+};
+
+/** Returned when the given password fails password validation. */
+export type PasswordValidationError = ErrorResult & {
+  __typename?: 'PasswordValidationError';
+  errorCode: ErrorCode;
+  message: Scalars['String']['output'];
+  validationErrorMessage: Scalars['String']['output'];
+};
+
 export type Payment = Node & {
   __typename?: 'Payment';
   amount: Scalars['Money']['output'];
@@ -4930,6 +5002,8 @@ export enum Permission {
   ReadProduct = 'ReadProduct',
   /** Grants permission to read Promotion */
   ReadPromotion = 'ReadPromotion',
+  /** Grants permission to read the decrypted value of custom fields and config args marked as `secret` */
+  ReadSecret = 'ReadSecret',
   /** Grants permission to read Seller */
   ReadSeller = 'ReadSeller',
   /** Grants permission to read PaymentMethods, ShippingMethods, TaxCategories, TaxRates, Zones, Countries, System & GlobalSettings */
@@ -6106,6 +6180,7 @@ export type RelationCustomFieldConfig = CustomField & {
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
   scalarFields: Array<Scalars['String']['output']>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -6176,6 +6251,10 @@ export type RemoveStockLocationsFromChannelInput = {
   stockLocationIds: Array<Scalars['ID']['input']>;
 };
 
+export type RequestPasswordResetResult = NativeAuthStrategyError | Success;
+
+export type ResetPasswordResult = CurrentUser | NativeAuthStrategyError | PasswordResetTokenExpiredError | PasswordResetTokenInvalidError | PasswordValidationError;
+
 export type Return = Node & StockMovement & {
   __typename?: 'Return';
   createdAt: Scalars['DateTime']['output'];
@@ -6192,6 +6271,7 @@ export type Role = Node & {
   channels: Array<Channel>;
   code: Scalars['String']['output'];
   createdAt: Scalars['DateTime']['output'];
+  customFields?: Maybe<Scalars['JSON']['output']>;
   description: Scalars['String']['output'];
   id: Scalars['ID']['output'];
   permissions: Array<Permission>;
@@ -6689,6 +6769,7 @@ export type StringCustomFieldConfig = CustomField & {
   pattern?: Maybe<Scalars['String']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -6742,6 +6823,7 @@ export type StructCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -6976,6 +7058,7 @@ export type TextCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -7295,6 +7378,7 @@ export type UpdateProvinceInput = {
 export type UpdateRoleInput = {
   channelIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   code?: InputMaybe<Scalars['String']['input']>;
+  customFields?: InputMaybe<Scalars['JSON']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   id: Scalars['ID']['input'];
   permissions?: InputMaybe<Array<Permission>>;
@@ -9358,6 +9442,12 @@ type ErrorResult_OrderModificationStateError_Fragment = { __typename?: 'OrderMod
 
 type ErrorResult_OrderStateTransitionError_Fragment = { __typename?: 'OrderStateTransitionError', errorCode: ErrorCode, message: string };
 
+type ErrorResult_PasswordResetTokenExpiredError_Fragment = { __typename?: 'PasswordResetTokenExpiredError', errorCode: ErrorCode, message: string };
+
+type ErrorResult_PasswordResetTokenInvalidError_Fragment = { __typename?: 'PasswordResetTokenInvalidError', errorCode: ErrorCode, message: string };
+
+type ErrorResult_PasswordValidationError_Fragment = { __typename?: 'PasswordValidationError', errorCode: ErrorCode, message: string };
+
 type ErrorResult_PaymentMethodMissingError_Fragment = { __typename?: 'PaymentMethodMissingError', errorCode: ErrorCode, message: string };
 
 type ErrorResult_PaymentOrderMismatchError_Fragment = { __typename?: 'PaymentOrderMismatchError', errorCode: ErrorCode, message: string };
@@ -9416,6 +9506,9 @@ export type ErrorResultFragment =
   | ErrorResult_OrderModificationError_Fragment
   | ErrorResult_OrderModificationStateError_Fragment
   | ErrorResult_OrderStateTransitionError_Fragment
+  | ErrorResult_PasswordResetTokenExpiredError_Fragment
+  | ErrorResult_PasswordResetTokenInvalidError_Fragment
+  | ErrorResult_PasswordValidationError_Fragment
   | ErrorResult_PaymentMethodMissingError_Fragment
   | ErrorResult_PaymentOrderMismatchError_Fragment
   | ErrorResult_PaymentStateTransitionError_Fragment

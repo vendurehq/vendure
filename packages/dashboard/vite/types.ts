@@ -91,8 +91,11 @@ export interface PathAdapter {
      * `apps/server/src/vendure-config.ts` outputs to
      * `{outputPath}/apps/server/src/vendure-config.js`.
      *
-     * Defaults to the directory containing the `vendureConfigPath` file,
-     * which places the compiled config at the output root.
+     * Defaults to the deepest directory containing the `vendureConfigPath`
+     * file and every local file it imports. When every import sits at or
+     * below the config, that is the config's own directory and the compiled
+     * config lands at the output root; an import from above widens the root
+     * so nothing is emitted outside `outputPath`.
      *
      * @since 3.6.0
      */

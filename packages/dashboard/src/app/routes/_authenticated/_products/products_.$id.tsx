@@ -1,5 +1,7 @@
 import { RichTextInput } from '@/vdb/components/data-input/rich-text-input.js';
 import { SlugInput } from '@/vdb/components/data-input/slug-input.js';
+import { usePriceFactor } from '@/vdb/components/shared/assign-to-channel-dialog.js';
+import { AssignedChannels } from '@/vdb/components/shared/assigned-channels.js';
 import { AssignedFacetValues } from '@/vdb/components/shared/assigned-facet-values.js';
 import { EntityAssets } from '@/vdb/components/shared/entity-assets.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
@@ -10,7 +12,9 @@ import { Field } from '@/vdb/components/ui/field.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { Switch } from '@/vdb/components/ui/switch.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
-import {    CustomFieldsPageBlock,
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
+import {
+    CustomFieldsPageBlock,
     DetailFormGrid,
     Page,
     PageActionBar,
@@ -18,13 +22,15 @@ import {    CustomFieldsPageBlock,
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
-import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
+import { api } from '@/vdb/graphql/api.js';
+import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { Layers, Package, PlusIcon } from 'lucide-react';
 import { useRef, useState } from 'react';
+import { Controller } from 'react-hook-form';
 import { toast } from 'sonner';
 import { AddOptionGroupDialog } from './components/add-option-group-dialog.js';
 import { GenerateVariantsPanel } from './components/generate-variants-panel.js';
@@ -38,10 +44,6 @@ import {
     removeProductsFromChannelDocument,
     updateProductDocument,
 } from './products.graphql.js';
-import { api } from '@/vdb/graphql/api.js';
-import { AssignedChannels } from '@/vdb/components/shared/assigned-channels.js';
-import { usePriceFactor } from '@/vdb/components/shared/assign-to-channel-dialog.js';
-import { useChannel } from '@/vdb/hooks/use-channel.js';
 
 const pageId = 'product-detail';
 
@@ -57,7 +59,7 @@ export const Route = createFileRoute('/_authenticated/_products/products_/$id')(
             ];
         },
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function NoVariantsPrompt({
@@ -93,7 +95,9 @@ function NoVariantsPrompt({
                 className="flex flex-col items-center gap-2 rounded-md border border-dashed border-border p-6 text-center transition-colors hover:border-primary hover:bg-accent cursor-pointer"
             >
                 <Package className="h-8 w-8 text-muted-foreground" />
-                <span className="font-medium"><Trans>Simple product</Trans></span>
+                <span className="font-medium">
+                    <Trans>Simple product</Trans>
+                </span>
                 <span className="text-sm text-muted-foreground">
                     <Trans>Single variant, no options</Trans>
                 </span>
@@ -108,7 +112,9 @@ function NoVariantsPrompt({
                         className="flex w-full flex-col items-center gap-2 rounded-md border border-dashed border-border p-6 text-center transition-colors hover:border-primary hover:bg-accent cursor-pointer"
                     >
                         <Layers className="h-8 w-8 text-muted-foreground" />
-                        <span className="font-medium"><Trans>Product with options</Trans></span>
+                        <span className="font-medium">
+                            <Trans>Product with options</Trans>
+                        </span>
                         <span className="text-sm text-muted-foreground">
                             <Trans>Size, colour, etc.</Trans>
                         </span>
@@ -130,6 +136,9 @@ function ProductDetailPage() {
 
     const { form, submitHandler, entity, isPending, refreshEntity, resetForm } = useDetailPage({
         pageId,
+        // OSS-567: the Product update mutation is patch-style, so send only the fields the user
+        // changed and never clobber a concurrent edit to an untouched field.
+        sendOnlyChangedFields: true,
         entityName: 'Product',
         queryDocument: productDetailDocument,
         createDocument: createProductDocument,
@@ -205,26 +214,40 @@ function ProductDetailPage() {
             <PageTitle>{creatingNewEntity ? <Trans>New product</Trans> : (entity?.name ?? '')}</PageTitle>
             <PageActionBar>
                 <ActionBarItem itemId="save-button" requiresPermission={['UpdateProduct', 'UpdateCatalog']}>
-                    <Button
-                        type="submit"
-                        disabled={!form.formState.isDirty || !form.formState.isValid || isPending}
-                    >
-                        {creatingNewEntity ? <Trans>Create</Trans> : <Trans>Update</Trans>}
-                    </Button>
+                    <div className="flex items-center gap-4">
+                        <Controller
+                            control={form.control}
+                            name="enabled"
+                            render={({ field }) => (
+                                <div
+                                    className="flex items-center gap-2"
+                                    title={t`When enabled, a product is available in the shop`}
+                                    data-testid="product-enabled-switch"
+                                >
+                                    <label
+                                        htmlFor="product-enabled-switch-input"
+                                        className="text-sm font-medium"
+                                    >
+                                        <Trans>Enabled</Trans>
+                                    </label>
+                                    <Switch
+                                        id="product-enabled-switch-input"
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                    />
+                                </div>
+                            )}
+                        />
+                        <Button
+                            type="submit"
+                            disabled={!form.formState.isDirty || !form.formState.isValid || isPending}
+                        >
+                            {creatingNewEntity ? <Trans>Create</Trans> : <Trans>Update</Trans>}
+                        </Button>
+                    </div>
                 </ActionBarItem>
             </PageActionBar>
             <PageLayout>
-                <PageBlock column="side" blockId="enabled-toggle">
-                    <FormFieldWrapper
-                        control={form.control}
-                        name="enabled"
-                        label={<Trans>Enabled</Trans>}
-                        description={<Trans>When enabled, a product is available in the shop</Trans>}
-                        render={({ field }) => (
-                            <Switch checked={field.value} onCheckedChange={field.onChange} />
-                        )}
-                    />
-                </PageBlock>
                 <PageBlock column="main" blockId="main-form">
                     <DetailFormGrid>
                         <TranslatableFormFieldWrapper
@@ -258,20 +281,20 @@ function ProductDetailPage() {
                 </PageBlock>
                 <CustomFieldsPageBlock column="main" entityType="Product" control={form.control} />
                 {entity && entity.variantList.totalItems > 0 && (
-                    <PageBlock column="main" blockId="product-variants-table">
+                    <PageBlock column="main" blockId="product-variants-table" layout="bare">
                         <ProductVariantsTable
                             productId={params.id}
                             registerRefresher={refresher => {
                                 refreshRef.current = refresher;
                             }}
-                            fromProductDetailPage={true}
+                            title={<Trans>Product variants</Trans>}
+                            actions={
+                                <Button render={<Link to="./variants" />} variant="outline" size="sm">
+                                    <PlusIcon className="mr-2 h-4 w-4" />
+                                    <Trans>Manage variants</Trans>
+                                </Button>
+                            }
                         />
-                        <div className="mt-4 flex gap-2">
-                            <Button render={<Link to="./variants" />} variant="outline">
-                                <PlusIcon className="mr-2 h-4 w-4" />
-                                <Trans>Manage variants</Trans>
-                            </Button>
-                        </div>
                     </PageBlock>
                 )}
                 {entity && entity.variantList.totalItems === 0 && (

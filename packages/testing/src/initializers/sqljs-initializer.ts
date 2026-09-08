@@ -1,14 +1,13 @@
 import fs from 'fs';
 import path from 'path';
-import { SqljsConnectionOptions } from 'typeorm/driver/sqljs/SqljsConnectionOptions';
 
 import { Mutable } from '../types';
 
-import { TestDbInitializer } from './test-db-initializer';
+import { DriverOptions, TestDbInitializer } from './test-db-initializer';
 
-export class SqljsInitializer implements TestDbInitializer<SqljsConnectionOptions> {
+export class SqljsInitializer implements TestDbInitializer<DriverOptions<'sqljs'>> {
     private dbFilePath: string;
-    private connectionOptions: SqljsConnectionOptions;
+    private connectionOptions: DriverOptions<'sqljs'>;
 
     /**
      * @param dataDir
@@ -20,11 +19,11 @@ export class SqljsInitializer implements TestDbInitializer<SqljsConnectionOption
 
     async init(
         testFileName: string,
-        connectionOptions: SqljsConnectionOptions,
-    ): Promise<SqljsConnectionOptions> {
+        connectionOptions: DriverOptions<'sqljs'>,
+    ): Promise<DriverOptions<'sqljs'>> {
         this.dbFilePath = this.getDbFilePath(testFileName);
         this.connectionOptions = connectionOptions;
-        (connectionOptions as Mutable<SqljsConnectionOptions>).location = this.dbFilePath;
+        (connectionOptions as Mutable<DriverOptions<'sqljs'>>).location = this.dbFilePath;
         return connectionOptions;
     }
 
@@ -34,12 +33,12 @@ export class SqljsInitializer implements TestDbInitializer<SqljsConnectionOption
             if (!fs.existsSync(dirName)) {
                 fs.mkdirSync(dirName);
             }
-            (this.connectionOptions as Mutable<SqljsConnectionOptions>).autoSave = true;
-            (this.connectionOptions as Mutable<SqljsConnectionOptions>).synchronize = true;
+            (this.connectionOptions as Mutable<DriverOptions<'sqljs'>>).autoSave = true;
+            (this.connectionOptions as Mutable<DriverOptions<'sqljs'>>).synchronize = true;
             await populateFn();
             await new Promise(resolve => setTimeout(resolve, this.postPopulateTimeoutMs));
-            (this.connectionOptions as Mutable<SqljsConnectionOptions>).autoSave = false;
-            (this.connectionOptions as Mutable<SqljsConnectionOptions>).synchronize = false;
+            (this.connectionOptions as Mutable<DriverOptions<'sqljs'>>).autoSave = false;
+            (this.connectionOptions as Mutable<DriverOptions<'sqljs'>>).synchronize = false;
         }
     }
 

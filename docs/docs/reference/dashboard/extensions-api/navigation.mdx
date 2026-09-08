@@ -4,7 +4,7 @@ generated: true
 ---
 ## DashboardNavSectionDefinition
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/navigation.ts" sourceLine="73" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/navigation.ts" sourceLine="87" packageName="@vendure/dashboard" since="3.4.0" />
 
 Defines a custom navigation section in the dashboard sidebar.
 
@@ -60,7 +60,7 @@ Optional placement to control the position of this section in the sidebar.
 </div>
 ## NavMenuItem
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/nav-menu/nav-menu-extensions.ts" sourceLine="16" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/nav-menu/nav-menu-extensions.ts" sourceLine="74" packageName="@vendure/dashboard" since="3.4.0" />
 
 Defines an items in the navigation menu.
 
@@ -73,6 +73,7 @@ interface NavMenuItem {
     order?: number;
     placement?: NavMenuSectionPlacement;
     requiresPermission?: string | string[];
+    shortcut?: NavigationShortcut;
 }
 ```
 
@@ -118,6 +119,11 @@ A higher number appears further down the list.
 
 This can be used to restrict the menu item to the given
 permission or permissions.
+### shortcut
+
+<MemberInfo kind="property" type={`NavigationShortcut`}   />
+
+Optional second key for the global `G` navigation chord.
 
 
 </div>

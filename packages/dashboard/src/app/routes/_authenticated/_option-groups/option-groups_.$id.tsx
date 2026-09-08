@@ -1,11 +1,14 @@
 import { SlugInput } from '@/vdb/components/data-input/index.js';
+import { AssignedChannels } from '@/vdb/components/shared/assigned-channels.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
 import { TranslatableFormFieldWrapper } from '@/vdb/components/shared/translatable-form-field.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
-import { useChannel } from '@/vdb/hooks/use-channel.js';
+import { extendDetailFormQuery } from '@/vdb/framework/document-extension/extend-detail-form-query.js';
+import { addCustomFields } from '@/vdb/framework/document-introspection/add-custom-fields.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import {
     CustomFieldsPageBlock,
     DetailFormGrid,
@@ -15,33 +18,38 @@ import {
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
-import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
-import { extendDetailFormQuery } from '@/vdb/framework/document-extension/extend-detail-form-query.js';
-import { addCustomFields } from '@/vdb/framework/document-introspection/add-custom-fields.js';
 import { getDetailQueryOptions, useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
+import { api } from '@/vdb/graphql/api.js';
+import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, ParsedLocation, useLocation, useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
-import { AssignedChannels } from '@/vdb/components/shared/assigned-channels.js';
-import { api } from '@/vdb/graphql/api.js';
-import { OptionGroupProductsBlock } from './components/option-group-products-block.js';
 import { ProductOptionsTable } from '../_products/components/product-options-table.js';
-import {
-    assignOptionGroupsToChannelDocument,
-    removeOptionGroupsFromChannelDocument,
-} from './option-groups.graphql.js';
 import {
     createProductOptionGroupDocument,
     productIdNameDocument,
     productOptionGroupDetailDocument,
     updateProductOptionGroupDocument,
 } from '../_products/product-option-groups.graphql.js';
+import { OptionGroupProductsBlock } from './components/option-group-products-block.js';
+import {
+    assignOptionGroupsToChannelDocument,
+    removeOptionGroupsFromChannelDocument,
+} from './option-groups.graphql.js';
 
 const pageId = 'option-group-detail';
 
 export const Route = createFileRoute('/_authenticated/_option-groups/option-groups_/$id')({
     component: OptionGroupDetailPage,
-    loader: async ({ context, params, location }: { context: any; params: any; location: ParsedLocation }) => {
+    loader: async ({
+        context,
+        params,
+        location,
+    }: {
+        context: any;
+        params: any;
+        location: ParsedLocation;
+    }) => {
         if (!params.id) {
             throw new Error('ID param is required');
         }
@@ -83,7 +91,7 @@ export const Route = createFileRoute('/_authenticated/_option-groups/option-grou
             ],
         };
     },
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function OptionGroupDetailPage() {
@@ -133,9 +141,7 @@ function OptionGroupDetailPage() {
         },
         onError: err => {
             toast.error(
-                creatingNewEntity
-                    ? t`Failed to create option group`
-                    : t`Failed to update option group`,
+                creatingNewEntity ? t`Failed to create option group` : t`Failed to update option group`,
                 {
                     description: err instanceof Error ? err.message : 'Unknown error',
                 },
@@ -149,10 +155,7 @@ function OptionGroupDetailPage() {
                 {creatingNewEntity ? <Trans>New option group</Trans> : (entity?.name ?? '')}
             </PageTitle>
             <PageActionBar>
-                <ActionBarItem
-                    itemId="save-button"
-                    requiresPermission={['UpdateProduct', 'UpdateCatalog']}
-                >
+                <ActionBarItem itemId="save-button" requiresPermission={['UpdateProduct', 'UpdateCatalog']}>
                     <Button
                         type="submit"
                         disabled={!form.formState.isDirty || !form.formState.isValid || isPending}
@@ -186,22 +189,13 @@ function OptionGroupDetailPage() {
                         />
                     </DetailFormGrid>
                 </PageBlock>
-                <CustomFieldsPageBlock
-                    column="main"
-                    entityType="ProductOptionGroup"
-                    control={form.control}
-                />
+                <CustomFieldsPageBlock column="main" entityType="ProductOptionGroup" control={form.control} />
                 {entity && (
-                    <PageBlock
-                        column="main"
-                        blockId="product-options"
-                        title={<Trans>Product Options</Trans>}
-                    >
+                    <PageBlock column="main" blockId="product-options" layout="bare">
                         <ProductOptionsTable
+                            title={<Trans>Product Options</Trans>}
                             productOptionGroupId={entity.id}
-                            getOptionHref={optionId =>
-                                `/option-groups/${entity.id}/options/${optionId}`
-                            }
+                            getOptionHref={optionId => `/option-groups/${entity.id}/options/${optionId}`}
                             newOptionHref={`/option-groups/${entity.id}/options/new`}
                             linkSearch={search.from === 'product' ? search : undefined}
                         />

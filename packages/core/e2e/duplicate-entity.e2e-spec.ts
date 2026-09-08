@@ -15,7 +15,12 @@ import {
     TransactionalConnection,
     variantIdCollectionFilter,
 } from '@vendure/core';
-import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
+import {
+    createErrorResultGuard,
+    createTestEnvironment,
+    E2E_DEFAULT_CHANNEL_TOKEN,
+    ErrorResultGuard,
+} from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -741,6 +746,12 @@ describe('Duplicating entities', () => {
         describe('Facet duplicator', () => {
             let newFacetId: string;
 
+            beforeAll(() => {
+                // The Facet used here belongs to the default channel, and an earlier test in this
+                // file leaves the client pointing at "second-channel", so switch back explicitly.
+                adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            });
+
             it('duplicate facet', async () => {
                 const { duplicateEntity } = await adminClient.query(duplicateEntityDocument, {
                     input: {
@@ -908,6 +919,37 @@ describe('Duplicating entities', () => {
 
                 expect(promotion?.actions).toEqual(testPromotion.actions);
             });
+        });
+    });
+
+    // GHSA-f94w-2928-x43p: the EntityDuplicatorService guards ChannelAware source entities even
+    // when the duplicator itself does not scope its lookup. The custom duplicator defined at the
+    // top of this file deliberately loads the Collection without a channel filter.
+    describe('service-level channel guard', () => {
+        beforeAll(async () => {
+            await adminClient.asSuperAdmin();
+            // "second-channel" is created by the Product duplicator tests above.
+            adminClient.setChannelToken('second-channel');
+        });
+
+        afterAll(() => {
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+        });
+
+        it('an unscoped duplicator cannot read a Collection from another channel', async () => {
+            const { duplicateEntity } = await adminClient.query(duplicateEntityDocument, {
+                input: {
+                    entityName: 'Collection',
+                    entityId: 'T_2',
+                    duplicatorInput: {
+                        code: 'custom-collection-duplicator',
+                        arguments: [{ name: 'throwError', value: 'false' }],
+                    },
+                },
+            });
+
+            duplicateEntityGuard.assertErrorResult(duplicateEntity);
+            expect(duplicateEntity.duplicationError).toBe('error.entity-with-id-not-found');
         });
     });
 });

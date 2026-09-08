@@ -2,6 +2,7 @@ import { DeepPartial, ID } from '@vendure/common/lib/shared-types';
 import { Column, Entity, JoinTable, ManyToMany, ManyToOne, OneToMany } from 'typeorm';
 
 import { Channel } from '..';
+import { ApiType } from '../../api/common/get-api-type';
 import { ChannelAware, LocaleString, SoftDeletable, Translatable, Translation } from '../../common';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { VendureEntity } from '../base/base.entity';
@@ -46,6 +47,20 @@ export class ApiKey
 
     @Column({ type: Date, nullable: true })
     lastUsedAt: Date | null;
+
+    /**
+     * @description
+     * The API this key belongs to. The session created for the key records the same value, so a key
+     * created from a Shop API context stays refused on the Admin API however it is later presented or
+     * rotated.
+     *
+     * Null for keys created before this column existed. Core exposes `createApiKey` on the Admin API
+     * only, so those keys are treated as Admin API keys.
+     *
+     * @since 3.8.0
+     */
+    @Column({ type: 'varchar', nullable: true })
+    apiType: ApiType | null;
 
     @Column({ type: Date, nullable: true })
     deletedAt: Date | null;

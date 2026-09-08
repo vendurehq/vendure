@@ -9,11 +9,12 @@ import { VendureEntity } from '../base/base.entity';
 import { Channel } from '../channel/channel.entity';
 import { Collection } from '../collection/collection.entity';
 import { CustomAssetFields } from '../custom-entity-fields';
-import { ProductVariant } from '../product-variant/product-variant.entity';
 import { Product } from '../product/product.entity';
+import { ProductVariant } from '../product-variant/product-variant.entity';
 import { Tag } from '../tag/tag.entity';
 
 import { AssetTranslation } from './asset-translation.entity';
+import { AssetUsage } from './asset-usage';
 
 /**
  * @description
@@ -31,6 +32,16 @@ export class Asset extends VendureEntity implements Taggable, ChannelAware, HasC
     name: LocaleString;
 
     @Column('varchar') type: AssetType;
+
+    /**
+     * Describes whether this is a library Asset or an Asset used by an internal system feature.
+     * System Assets are managed through the operation which owns them and excluded from ordinary
+     * Asset queries. This does not control access to the underlying storage URL.
+     *
+     * @internal
+     */
+    @Column('varchar', { default: AssetUsage.LIBRARY })
+    usage: AssetUsage;
 
     @Column() mimeType: string;
 

@@ -1,4 +1,3 @@
-import { stitchSchemas, ValidationLevel } from '@graphql-tools/stitch';
 import { Mutation, Query } from '@vendure/common/lib/generated-shop-types';
 import {
     buildASTSchema,
@@ -10,6 +9,8 @@ import {
 
 import { InternalServerError } from '../../common/error/errors';
 import { ActiveOrderStrategy, ACTIVE_ORDER_INPUT_FIELD_NAME } from '../../config/order/active-order-strategy';
+
+import { mergeTypesIntoSchema } from './merge-types-into-schema';
 
 /**
  * This function is responsible for constructing the `ActiveOrderInput` GraphQL input type.
@@ -105,9 +106,5 @@ export function generateActiveOrderTypes(
         });
     }
 
-    return stitchSchemas({
-        subschemas: [schema, ...strategySchemas],
-        types: [activeOrderInput],
-        typeMergingOptions: { validationSettings: { validationLevel: ValidationLevel.Off } },
-    });
+    return mergeTypesIntoSchema(schema, [activeOrderInput], strategySchemas);
 }

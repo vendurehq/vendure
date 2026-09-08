@@ -1,1 +1,1 @@
-export { DirectionProvider, useDirection } from '@vendure-io/ui/components/ui/direction';
+export { DirectionProvider, useDirection } from '@vendure-io/ui/components/atoms/direction';
