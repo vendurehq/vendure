@@ -177,9 +177,9 @@ export async function startLoopbackCallback(expectedState: string): Promise<Loop
 }
 
 /**
- * The state is this flow's CSRF nonce and a page in the browser can time
- * requests to the port, so it is compared without leaking its length or the
- * position of the first difference.
+ * The state is this flow's CSRF nonce, so the comparison does not leak where
+ * two values first differ. It does return early on a length mismatch, which is
+ * harmless here because the expected value is a fixed-length local nonce.
  */
 function matchesState(received: string | null, expected: string): boolean {
     if (received === null) {

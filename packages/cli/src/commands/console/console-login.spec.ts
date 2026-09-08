@@ -4,8 +4,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import * as cliAuth from './cli-auth';
 import { ConsoleSession } from './cli-auth';
-import { ConsoleCommandDependencies, ConsoleReporter, consoleCommand } from './console';
+import { CALLBACK_GRACE_MS, ConsoleCommandDependencies, ConsoleReporter, consoleCommand } from './console';
 import { ConsoleLinkContext } from './console-link-hook';
 import { LINK_ID, NOW, POLLING_SECRET, manifest } from './console.fixtures';
 import { getProjectLinkManifestPath } from './project-link-manifest';
@@ -86,13 +87,13 @@ describe('console link command line login', () => {
             },
             // The grace period is where the callback lands.
             sleep: async milliseconds => {
-                if (milliseconds === 2_000) {
+                if (milliseconds === CALLBACK_GRACE_MS) {
                     await arrived;
                 }
             },
         });
 
-        expect(test.delays).toContain(2_000);
+        expect(test.delays).toContain(CALLBACK_GRACE_MS);
         expect(test.sessions[0]?.accessToken).toBe(ACCESS_TOKEN);
     });
 
@@ -100,7 +101,7 @@ describe('console link command line login', () => {
         const test = await runLink({ openUrl: () => Promise.resolve() });
 
         // Waited, then stopped waiting. The link is what the command owed.
-        expect(test.delays).toContain(2_000);
+        expect(test.delays).toContain(CALLBACK_GRACE_MS);
         expect(test.sessions).toEqual([undefined]);
     });
 
@@ -122,7 +123,10 @@ describe('console link command line login', () => {
         // process that happens to hold that port on the other machine.
         expect(new URL(test.openedUrls[0]).searchParams.get('redirect_uri')).toBeNull();
         expect(test.sessions).toEqual([undefined]);
-        expect(test.messages.join('\n')).toContain('will not obtain a Console session');
+        const output = test.messages.join('\n');
+        expect(output).toContain('remote shell');
+        // Re-running hits the same gate, so it must not be offered as a cure.
+        expect(output).not.toContain('vendure console link again');
     });
 
     it('keeps the link when the token response is malformed', async () => {
@@ -182,6 +186,39 @@ describe('console link command line login', () => {
         expect(fs.readJsonSync(getProjectLinkManifestPath(test.root))).toEqual(manifest);
         expect(test.sessions).toEqual([undefined]);
         expect(test.messages.join('\n')).toContain('could not be obtained');
+    });
+
+    // The first and largest claim of the correction: an interrupt between the
+    // approval and the manifest write used to leave an approved Project Link
+    // with nothing on disk, which the next run can only replace.
+    it('has the manifest on disk before the login can be interrupted', async () => {
+        const abort = new AbortController();
+        const test = await runLink({
+            // Approved in the browser, then Ctrl-C while the code is being
+            // exchanged, which is the window the reorder is about.
+            onTokenRequest: () => abort.abort(),
+            signal: abort.signal,
+        });
+
+        expect(test.exitCode).toBe(130);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(test.root))).toEqual(manifest);
+        const output = test.messages.join('\n');
+        expect(output).toContain('The link succeeded');
+        expect(output).not.toContain('No Project Link Manifest was changed');
+    });
+
+    it('links without a session when the callback port cannot be bound', async () => {
+        const failing = vi
+            .spyOn(cliAuth, 'startLoopbackCallback')
+            .mockRejectedValue(new Error('listen EACCES 127.0.0.1'));
+        const test = await runLink();
+        failing.mockRestore();
+
+        // A port this process cannot bind has nothing to do with the link.
+        expect(test.exitCode).toBe(0);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(test.root))).toEqual(manifest);
+        expect(test.sessions).toEqual([undefined]);
+        expect(test.messages.join('\n')).toContain('EACCES');
     });
 
     it('never carries a session into a repair, which asks Console nothing', async () => {
@@ -263,6 +300,8 @@ interface RunOptions {
     hooks?: ConsoleCommandDependencies['hooks'];
     env?: NodeJS.ProcessEnv;
     openUrl?: (url: string) => Promise<void>;
+    signal?: AbortSignal;
+    onTokenRequest?: () => void;
     /** Called with each requested delay, so the grace period is observable. */
     sleep?: (milliseconds: number) => Promise<void>;
 }
@@ -286,6 +325,7 @@ async function runLink(options: RunOptions = {}) {
         supports: options.supports ?? ['cli-auth'],
         tokenStatus: options.tokenStatus ?? 200,
         tokenBody: options.tokenBody,
+        onTokenRequest: options.onTokenRequest,
         grants,
     });
 
@@ -297,6 +337,7 @@ async function runLink(options: RunOptions = {}) {
             ...baseDependencies(root, messages),
             env: options.env ?? OFFICIAL_ENV,
             fetch: fetchMock as unknown as typeof fetch,
+            signal: options.signal,
             now: () => NOW,
             sleep: async milliseconds => {
                 delays.push(milliseconds);
@@ -346,6 +387,7 @@ function consoleFetch(options: {
     supports?: string[];
     tokenStatus?: number;
     tokenBody?: unknown;
+    onTokenRequest?: () => void;
     grants?: Array<Record<string, string>>;
 }) {
     return vi.fn(async (input: string, init?: RequestInit) => {
@@ -369,6 +411,7 @@ function consoleFetch(options: {
             });
         }
         if (url.pathname === '/v1/auth/cli/token') {
+            options.onTokenRequest?.();
             options.grants?.push(JSON.parse(String(init?.body ?? '{}')) as Record<string, string>);
             if ((options.tokenStatus ?? 200) !== 200) {
                 return new Response('{}', { status: options.tokenStatus });
@@ -405,7 +448,6 @@ function baseDependencies(root: string, messages: string[] = []): Partial<Consol
         cwd: root,
         hooks: [],
         isNonInteractive: () => true,
-        now: () => Date.now(),
         now: () => NOW,
         openUrl: () => Promise.resolve(),
         prompt: () => Promise.resolve(true),

@@ -178,24 +178,46 @@ describe('parseConsoleSession()', () => {
 
     it('accepts a response with no refresh token', () => {
         expect(
-            parseConsoleSession(
-                { access_token: 'vcli_access', token_type: 'Bearer', expires_in: 60 },
-                now,
-            ).refreshToken,
+            parseConsoleSession({ access_token: 'vcli_access', token_type: 'Bearer', expires_in: 60 }, now)
+                .refreshToken,
         ).toBeUndefined();
     });
 
     it.each([
         ['no access token', { token_type: 'Bearer', expires_in: 60 }, /invalid access token/],
-        ['an empty access token', { access_token: '', token_type: 'Bearer', expires_in: 60 }, /invalid access token/],
-        ['an unsupported token type', { access_token: 'a', token_type: 'Basic', expires_in: 60 }, /token type/],
+        [
+            'an empty access token',
+            { access_token: '', token_type: 'Bearer', expires_in: 60 },
+            /invalid access token/,
+        ],
+        [
+            'an unsupported token type',
+            { access_token: 'a', token_type: 'Basic', expires_in: 60 },
+            /token type/,
+        ],
         ['no lifetime', { access_token: 'a', token_type: 'Bearer' }, /token lifetime/],
-        ['a non-numeric lifetime', { access_token: 'a', token_type: 'Bearer', expires_in: '60' }, /token lifetime/],
+        [
+            'a non-numeric lifetime',
+            { access_token: 'a', token_type: 'Bearer', expires_in: '60' },
+            /token lifetime/,
+        ],
         // A lifetime at or before now is a dead token described as a live one.
         ['a zero lifetime', { access_token: 'a', token_type: 'Bearer', expires_in: 0 }, /token lifetime/],
-        ['a negative lifetime', { access_token: 'a', token_type: 'Bearer', expires_in: -3600 }, /token lifetime/],
-        ['an absurd lifetime', { access_token: 'a', token_type: 'Bearer', expires_in: 1e15 }, /token lifetime/],
-        ['a fractional lifetime', { access_token: 'a', token_type: 'Bearer', expires_in: 1.5 }, /token lifetime/],
+        [
+            'a negative lifetime',
+            { access_token: 'a', token_type: 'Bearer', expires_in: -3600 },
+            /token lifetime/,
+        ],
+        [
+            'an absurd lifetime',
+            { access_token: 'a', token_type: 'Bearer', expires_in: 1e15 },
+            /token lifetime/,
+        ],
+        [
+            'a fractional lifetime',
+            { access_token: 'a', token_type: 'Bearer', expires_in: 1.5 },
+            /token lifetime/,
+        ],
         ['a response that is not an object', 'nope', /malformed token response/],
     ])('refuses a response with %s', (_label, value, message) => {
         expect(() => parseConsoleSession(value, now)).toThrow(message);

@@ -5,13 +5,6 @@ import { CliCommandExit } from '../../shared/cli-command-exit';
 import { isNonInteractiveEnvironment, withInteractiveTimeout } from '../../utilities/utils';
 
 import {
-    ConsoleLinkContext,
-    ConsoleLinkOutcome,
-    ConsoleReporter,
-    RegisteredConsoleLinkHook,
-    getConsoleLinkHooks,
-} from './console-link-hook';
-import {
     CLI_AUTH_CAPABILITY,
     CLI_TOKEN_PATH,
     ConsoleSession,
@@ -23,6 +16,13 @@ import {
     parseConsoleSession,
     startLoopbackCallback,
 } from './cli-auth';
+import {
+    ConsoleLinkContext,
+    ConsoleLinkOutcome,
+    ConsoleReporter,
+    RegisteredConsoleLinkHook,
+    getConsoleLinkHooks,
+} from './console-link-hook';
 import { DEFAULT_CONSOLE_API_URL, DEFAULT_CONSOLE_URL, officialConsoleEnvironment } from './console-origins';
 import { ensureProjectLinkGitignore } from './project-link-gitignore';
 import {
@@ -51,7 +51,7 @@ const MAX_RETRY_DELAY_MS = 2_000;
  * moment the poll wins would lose a session that was on its way, and hand
  * somebody who did everything right the report meant for a remote approval.
  */
-const CALLBACK_GRACE_MS = 2_000;
+export const CALLBACK_GRACE_MS = 2_000;
 
 export interface ConsoleCommandOptions {
     allowCustomConsole?: boolean;
@@ -391,6 +391,10 @@ async function startConsoleLogin(
     // Nobody asked for a session, so do not obtain one. The token is worth as
     // much as the person's Console password across every project they own, and
     // a link with no plugin behind it has nothing to do with it but drop it.
+    //
+    // Coarse on purpose for now: any registered hook causes one to be minted,
+    // and every hook then receives it. A plugin cannot yet say that it wants a
+    // session, so this narrows the case from "always" rather than closing it.
     if (dependencies.hooks.length === 0) {
         return undefined;
     }
@@ -406,8 +410,15 @@ async function startConsoleLogin(
         );
         return undefined;
     }
-    if (browserIsElsewhere(dependencies.env)) {
-        dependencies.reporter.warn(noSessionFromThisLink());
+    if (shellIsRemote(dependencies.env)) {
+        // Not a failure and not something a rerun changes, so it does not get
+        // the "run it again" advice: the callback address only means anything
+        // on the machine that bound it, and that is not where the browser is.
+        dependencies.reporter.warn(
+            'This looks like a remote shell, so a browser cannot return an approval to this ' +
+                'machine. The link is made without a Console session, and a plugin that needs ' +
+                'one signs in itself.',
+        );
         return undefined;
     }
 
@@ -438,20 +449,18 @@ async function startConsoleLogin(
 }
 
 /**
- * Whether the browser this command can reach is likely on another machine.
+ * Whether this shell is attached from another machine.
  *
  * `openUrl` resolves when the helper process starts, not when a browser opens,
- * so `xdg-open` on a headless box succeeds and then fails unobserved. The
- * callback address only means anything on the machine that bound it, so a URL
- * carrying one is a URL that sends an authorization code to whatever happens to
- * hold that port wherever it is finally opened. These two signals are the ones
- * that are cheap and right far more often than not.
+ * so a URL carrying a callback address can still reach a browser that cannot
+ * return to the port this process bound. An absent `DISPLAY` looks like the
+ * same thing and is not: VS Code Remote, devcontainers and WSL all reach a
+ * browser without one, and refusing them would turn the feature off for people
+ * it works for. Being wrong the other way costs a code that PKCE already makes
+ * useless without the verifier, which never leaves this process.
  */
-function browserIsElsewhere(env: NodeJS.ProcessEnv): boolean {
-    if (env.SSH_CONNECTION || env.SSH_TTY) {
-        return true;
-    }
-    return process.platform === 'linux' && !env.DISPLAY && !env.WAYLAND_DISPLAY;
+function shellIsRemote(env: NodeJS.ProcessEnv): boolean {
+    return Boolean(env.SSH_CONNECTION || env.SSH_TTY);
 }
 
 /**
@@ -485,7 +494,11 @@ async function completeConsoleLogin(
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(
-                    authorizationCodeGrant({ code, verifier: login.verifier, redirectUri: login.redirectUri }),
+                    authorizationCodeGrant({
+                        code,
+                        verifier: login.verifier,
+                        redirectUri: login.redirectUri,
+                    }),
                 ),
             },
             dependencies,
