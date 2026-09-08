@@ -51,16 +51,8 @@ export type {
     ConsoleLinkOutcome,
     ConsoleReporter,
 } from './commands/console/console-link-hook';
-export {
-    CLI_AUTH_CAPABILITY,
-    CLI_TOKEN_PATH,
-    authorizationCodeGrant,
-    cliAuthSearchParams,
-    createLoginState,
-    createPkceChallenge,
-    startLoopbackCallback,
-} from './commands/console/cli-auth';
-export type { CliAuthClient, ConsoleSession, LoopbackCallback } from './commands/console/cli-auth';
+export { CLI_AUTH_CAPABILITY } from './commands/console/cli-auth';
+export type { ConsoleSession } from './commands/console/cli-auth';
 export type { ConsoleOriginEnvironment } from './commands/console/console-origins';
 export type { ProjectLinkManifest } from './commands/console/project-link-manifest';
 export { readCommandContext, readCommandOptions } from './shared/cli-command-definition';

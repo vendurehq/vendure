@@ -308,46 +308,66 @@ async function link(
     }
     const request = await createProjectLink(endpoints, dependencies, signal);
     let login = await startConsoleLogin(request, endpoints, dependencies);
-    dependencies.reporter.info('Approve the Project link in your browser.');
-    let opened = true;
     try {
-        await dependencies.openUrl(login?.verificationUrl ?? request.verificationUrl);
-    } catch {
-        opened = false;
-    }
-    if (!opened) {
-        if (login) {
-            // The callback address is on this machine, so a browser somewhere
-            // else can never reach it. Ask for the link alone rather than
-            // advertise a callback that cannot be called, and say now what that
-            // costs rather than after the person has approved.
-            login.close();
-            login = undefined;
+        dependencies.reporter.info('Approve the Project link in your browser.');
+        try {
+            await dependencies.openUrl(login?.verificationUrl ?? request.verificationUrl);
+        } catch {
+            if (login) {
+                // The callback address is on this machine, so a browser
+                // somewhere else can never reach it. Ask for the link alone
+                // rather than advertise a callback nothing will call, and say
+                // now what that costs rather than after the approval.
+                login.close();
+                login = undefined;
+                dependencies.reporter.warn(noSessionFromThisLink());
+            }
             dependencies.reporter.warn(
-                'No browser here, so this link will not obtain a Console session. Approving on ' +
-                    'another machine completes the link; run vendure console link again on this ' +
-                    'machine to finish the setup.',
+                'Could not open the browser automatically. Open this URL to continue:',
             );
+            dependencies.reporter.url(request.verificationUrl);
         }
-        dependencies.reporter.warn('Could not open the browser automatically. Open this URL to continue:');
-        dependencies.reporter.url(request.verificationUrl);
+
+        const manifest = await waitForApproval(request, endpoints, dependencies, signal);
+        throwIfAborted(signal);
+        // The manifest goes to disk before the login runs. A session is
+        // optional and takes seconds to obtain; the link is neither, and an
+        // interrupt in that window used to leave an approved Project Link with
+        // nothing recorded locally, which the next run cannot repair.
+        const manifestPath = await writeProjectLinkManifestAtomic(projectRoot, manifest);
+        state.outcome = 'linked';
+        state.manifestPath = manifestPath;
+        dependencies.reporter.success(`Linked ${manifest.project.name} to ${manifest.account.name}.`);
+        dependencies.reporter.info(`Wrote ${manifestPath}`);
+        reportProjectLinkGitignore(projectRoot, dependencies.reporter);
+
+        const session = login
+            ? await completeConsoleLogin(login, endpoints, dependencies, signal)
+            : undefined;
+
+        return runConsoleLinkHooks(
+            { projectRoot, manifest, manifestPath, endpoints, outcome: 'linked', session },
+            options,
+            dependencies,
+            signal,
+        );
+    } finally {
+        login?.close();
     }
+}
 
-    const manifest = await waitForApproval(request, endpoints, dependencies, signal);
-    throwIfAborted(signal);
-    const session = login && (await completeConsoleLogin(login, endpoints, dependencies, signal));
-    const manifestPath = await writeProjectLinkManifestAtomic(projectRoot, manifest);
-    state.outcome = 'linked';
-    state.manifestPath = manifestPath;
-    dependencies.reporter.success(`Linked ${manifest.project.name} to ${manifest.account.name}.`);
-    dependencies.reporter.info(`Wrote ${manifestPath}`);
-    reportProjectLinkGitignore(projectRoot, dependencies.reporter);
-
-    return runConsoleLinkHooks(
-        { projectRoot, manifest, manifestPath, endpoints, outcome: 'linked', session: session || undefined },
-        options,
-        dependencies,
-        signal,
+/**
+ * What to say when the link will stand and no session comes with it.
+ *
+ * Re-running the command runs the plugin setup again, and a plugin that needs
+ * a session signs in there. The command itself cannot: a repair asks Console
+ * nothing and opens no browser, so it never mints one. Promising that it would
+ * is how a person ends up running it twice and getting the same answer.
+ */
+function noSessionFromThisLink(): string {
+    return (
+        'This link will not obtain a Console session. Run vendure console link again on this ' +
+        'machine to run the plugin setup again, where a plugin that needs a session can sign in.'
     );
 }
 
@@ -355,17 +375,25 @@ async function link(
  * Starts a command line login alongside the Project Link, when both sides
  * allow one.
  *
- * The origins have to be an official Console: approving a custom endpoint
- * approves creating a Project Link, never receiving a credential, so the login
- * is not offered there at all. The Console has to say it settles one, because
- * an older Console ignores the request, redirects nowhere and would leave the
- * listener waiting. Neither is a failure, and neither stops the link.
+ * A plugin has to want one, because an unused token is still a live token. The
+ * origins have to be an official Console, since approving a custom endpoint
+ * approves creating a Project Link and never receiving a credential. The
+ * Console has to say it settles a login, because one that does not redirects
+ * nowhere and would leave the listener waiting.
+ *
+ * None of these stop the link, and neither does failing to bind the callback.
  */
 async function startConsoleLogin(
     request: ProjectLinkRequest,
     endpoints: ConsoleEndpoints,
     dependencies: ConsoleCommandDependencies,
 ): Promise<ConsoleLogin | undefined> {
+    // Nobody asked for a session, so do not obtain one. The token is worth as
+    // much as the person's Console password across every project they own, and
+    // a link with no plugin behind it has nothing to do with it but drop it.
+    if (dependencies.hooks.length === 0) {
+        return undefined;
+    }
     if (officialConsoleEnvironment(endpoints) === undefined) {
         return undefined;
     }
@@ -378,10 +406,28 @@ async function startConsoleLogin(
         );
         return undefined;
     }
+    if (browserIsElsewhere(dependencies.env)) {
+        dependencies.reporter.warn(noSessionFromThisLink());
+        return undefined;
+    }
+
+    const state = createLoginState();
+    let callback;
+    try {
+        callback = await startLoopbackCallback(state);
+    } catch (error) {
+        // A port this process cannot bind is a reason to skip the login, not a
+        // reason to fail a link that has nothing to do with it.
+        dependencies.reporter.warn(
+            `Could not listen for a Console sign-in: ${
+                error instanceof Error ? error.message : String(error)
+            }`,
+        );
+        dependencies.reporter.warn(noSessionFromThisLink());
+        return undefined;
+    }
 
     const { verifier, challenge } = createPkceChallenge();
-    const state = createLoginState();
-    const callback = await startLoopbackCallback(state);
     const url = new URL(request.verificationUrl);
     for (const [name, value] of Object.entries(
         cliAuthSearchParams({ redirectUri: callback.redirectUri, state, challenge }),
@@ -389,6 +435,23 @@ async function startConsoleLogin(
         url.searchParams.set(name, value);
     }
     return { ...callback, verifier, verificationUrl: url.toString() };
+}
+
+/**
+ * Whether the browser this command can reach is likely on another machine.
+ *
+ * `openUrl` resolves when the helper process starts, not when a browser opens,
+ * so `xdg-open` on a headless box succeeds and then fails unobserved. The
+ * callback address only means anything on the machine that bound it, so a URL
+ * carrying one is a URL that sends an authorization code to whatever happens to
+ * hold that port wherever it is finally opened. These two signals are the ones
+ * that are cheap and right far more often than not.
+ */
+function browserIsElsewhere(env: NodeJS.ProcessEnv): boolean {
+    if (env.SSH_CONNECTION || env.SSH_TTY) {
+        return true;
+    }
+    return process.platform === 'linux' && !env.DISPLAY && !env.WAYLAND_DISPLAY;
 }
 
 /**
@@ -411,12 +474,11 @@ async function completeConsoleLogin(
             dependencies.sleep(CALLBACK_GRACE_MS, signal).then(() => undefined),
         ]);
         if (!code) {
-            dependencies.reporter.warn(
-                'The link is in place, and no Console session was obtained. Run vendure console ' +
-                    'link again on this machine to finish the setup.',
-            );
+            dependencies.reporter.warn(`The link is in place. ${noSessionFromThisLink()}`);
             return undefined;
         }
+        // Sampled before the round trip, so the expiry is not overstated by it.
+        const issuedAt = dependencies.now();
         const value = await requestJson(
             `${endpoints.apiUrl}${CLI_TOKEN_PATH}`,
             {
@@ -429,16 +491,17 @@ async function completeConsoleLogin(
             dependencies,
             signal,
         );
-        return parseConsoleSession(value, dependencies.now());
+        return parseConsoleSession(value, issuedAt);
     } catch (error) {
         if (error instanceof CommandInterruptedError) {
             throw error;
         }
         dependencies.reporter.warn(
-            `The link is in place, and the Console session could not be obtained: ${
+            `The Console session could not be obtained: ${
                 error instanceof Error ? error.message : String(error)
             }`,
         );
+        dependencies.reporter.warn(`The link is in place. ${noSessionFromThisLink()}`);
         return undefined;
     } finally {
         login.close();

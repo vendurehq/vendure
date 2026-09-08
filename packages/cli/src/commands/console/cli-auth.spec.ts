@@ -126,6 +126,33 @@ describe('startLoopbackCallback()', () => {
         callback.close();
         await expect(pending).resolves.toBeUndefined();
     });
+
+    it('can be closed twice, because every path that ends a link closes it', async () => {
+        const callback = await startLoopbackCallback('state-value');
+        callback.close();
+        expect(() => callback.close()).not.toThrow();
+    });
+
+    it('keeps the first code when a second callback arrives', async () => {
+        const callback = await startLoopbackCallback('state-value');
+        try {
+            await fetch(`${callback.redirectUri}?code=first&state=state-value`);
+            await fetch(`${callback.redirectUri}?code=second&state=state-value`);
+            await expect(callback.code()).resolves.toBe('first');
+        } finally {
+            callback.close();
+        }
+    });
+
+    it('does not let the answer be stored anywhere the code outlives the tab', async () => {
+        const callback = await startLoopbackCallback('state-value');
+        try {
+            const response = await fetch(`${callback.redirectUri}?code=the-code&state=state-value`);
+            expect(response.headers.get('cache-control')).toBe('no-store');
+        } finally {
+            callback.close();
+        }
+    });
 });
 
 describe('parseConsoleSession()', () => {
@@ -159,12 +186,18 @@ describe('parseConsoleSession()', () => {
     });
 
     it.each([
-        ['no access token', { token_type: 'Bearer', expires_in: 60 }],
-        ['an empty access token', { access_token: '', token_type: 'Bearer', expires_in: 60 }],
-        ['an unsupported token type', { access_token: 'a', token_type: 'Basic', expires_in: 60 }],
-        ['no lifetime', { access_token: 'a', token_type: 'Bearer' }],
-        ['a non-numeric lifetime', { access_token: 'a', token_type: 'Bearer', expires_in: '60' }],
-    ])('refuses a response with %s', (_label, value) => {
-        expect(() => parseConsoleSession(value, now)).toThrow();
+        ['no access token', { token_type: 'Bearer', expires_in: 60 }, /invalid access token/],
+        ['an empty access token', { access_token: '', token_type: 'Bearer', expires_in: 60 }, /invalid access token/],
+        ['an unsupported token type', { access_token: 'a', token_type: 'Basic', expires_in: 60 }, /token type/],
+        ['no lifetime', { access_token: 'a', token_type: 'Bearer' }, /token lifetime/],
+        ['a non-numeric lifetime', { access_token: 'a', token_type: 'Bearer', expires_in: '60' }, /token lifetime/],
+        // A lifetime at or before now is a dead token described as a live one.
+        ['a zero lifetime', { access_token: 'a', token_type: 'Bearer', expires_in: 0 }, /token lifetime/],
+        ['a negative lifetime', { access_token: 'a', token_type: 'Bearer', expires_in: -3600 }, /token lifetime/],
+        ['an absurd lifetime', { access_token: 'a', token_type: 'Bearer', expires_in: 1e15 }, /token lifetime/],
+        ['a fractional lifetime', { access_token: 'a', token_type: 'Bearer', expires_in: 1.5 }, /token lifetime/],
+        ['a response that is not an object', 'nope', /malformed token response/],
+    ])('refuses a response with %s', (_label, value, message) => {
+        expect(() => parseConsoleSession(value, now)).toThrow(message);
     });
 });

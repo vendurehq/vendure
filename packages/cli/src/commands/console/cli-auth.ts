@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { Server, createServer } from 'node:http';
 import { AddressInfo } from 'node:net';
 
@@ -12,9 +12,9 @@ import { nonEmptyString, objectValue } from './project-link-validation';
 export const CLI_AUTH_CAPABILITY = 'cli-auth';
 
 /**
- * The tools Console names on the approval page. This CLI is always `cli`;
- * `create` is the same exchange driven by `@vendure-platform/create`, and is
- * named here so one conformance fixture can cover both halves of the contract.
+ * The tools Console names on the approval page. This CLI is always `cli`.
+ * `create` is the same exchange driven from elsewhere, and is accepted here so
+ * a cross-repository conformance test can drive both without a second client.
  */
 export type CliAuthClient = 'cli' | 'create';
 
@@ -31,6 +31,19 @@ export const CLI_TOKEN_PATH = '/v1/auth/cli/token';
  * but what Console appends.
  */
 const CALLBACK_PATH = '/auth/callback';
+
+/**
+ * The callback URL carries a live authorization code, so the answer to it must
+ * not be stored anywhere a later reader can find it.
+ */
+const NO_STORE = { 'Cache-Control': 'no-store', 'Content-Type': 'text/plain' };
+
+/**
+ * A lifetime past this is not a token this CLI will describe as valid. Console
+ * issues an hour; anything near a year is a malformed response rather than a
+ * generous one.
+ */
+const MAX_TOKEN_LIFETIME_SECONDS = 365 * 24 * 60 * 60;
 
 /**
  * A Console CLI Session, as the token route issued it.
@@ -97,11 +110,10 @@ export interface LoopbackCallback {
 /**
  * Binds a one-shot callback on this machine.
  *
- * `127.0.0.1` rather than `localhost`, because that is what Console's redirect
- * check is given today and a name that resolves elsewhere is not a loopback.
- * Port 0, so the operating system picks one that is free, and it is bound
- * before the browser opens so the address in the approval request is already
- * listening.
+ * The address is `127.0.0.1` rather than `localhost`, because a name can be
+ * made to resolve elsewhere. Port 0 lets the operating system pick a free one.
+ * The bind happens before the browser opens, so the address in the approval
+ * request is already listening when Console redirects to it.
  */
 export async function startLoopbackCallback(expectedState: string): Promise<LoopbackCallback> {
     let settle: ((code: string | undefined) => void) | undefined;
@@ -112,34 +124,49 @@ export async function startLoopbackCallback(expectedState: string): Promise<Loop
     const server: Server = createServer((request, response) => {
         const url = new URL(request.url ?? '/', 'http://127.0.0.1');
         if (url.pathname !== CALLBACK_PATH) {
-            response.writeHead(404).end();
+            response.writeHead(404, NO_STORE).end();
             return;
         }
         // Anything on this port that does not carry the state this run
         // generated is not the browser we sent. Answer it and keep waiting.
-        if (url.searchParams.get('state') !== expectedState) {
-            response.writeHead(400, { 'Content-Type': 'text/plain' }).end('Unexpected login callback.\n');
+        if (!matchesState(url.searchParams.get('state'), expectedState)) {
+            response.writeHead(400, NO_STORE).end('Unexpected login callback.\n');
             return;
         }
         const code = url.searchParams.get('code') ?? undefined;
-        response.writeHead(200, { 'Content-Type': 'text/plain' }).end(
-            code
-                ? 'Signed in. You can close this tab and return to your terminal.\n'
-                : 'The command line login was refused. You can close this tab.\n',
-        );
+        response
+            .writeHead(200, NO_STORE)
+            .end(
+                code
+                    ? 'Signed in. You can close this tab and return to your terminal.\n'
+                    : 'The command line login was refused. You can close this tab.\n',
+            );
         settle?.(code);
     });
 
     await new Promise<void>((resolve, reject) => {
         server.once('error', reject);
-        server.listen(0, '127.0.0.1', resolve);
+        server.listen(0, '127.0.0.1', () => {
+            // The listen handler rejects a promise that is about to settle, so
+            // it cannot stay: a later error would be swallowed, and the one
+            // after that would have no listener at all and take the process
+            // down mid-link.
+            server.removeListener('error', reject);
+            server.on('error', () => settle?.(undefined));
+            resolve();
+        });
     });
     const { port } = server.address() as AddressInfo;
 
+    let closed = false;
     return {
         redirectUri: `http://127.0.0.1:${port}${CALLBACK_PATH}`,
         code: () => received,
         close: () => {
+            if (closed) {
+                return;
+            }
+            closed = true;
             // Unblock anything waiting before the socket goes, so closing is
             // never the reason a caller hangs.
             settle?.(undefined);
@@ -147,6 +174,20 @@ export async function startLoopbackCallback(expectedState: string): Promise<Loop
             server.close();
         },
     };
+}
+
+/**
+ * The state is this flow's CSRF nonce and a page in the browser can time
+ * requests to the port, so it is compared without leaking its length or the
+ * position of the first difference.
+ */
+function matchesState(received: string | null, expected: string): boolean {
+    if (received === null) {
+        return false;
+    }
+    const a = Buffer.from(received);
+    const b = Buffer.from(expected);
+    return a.length === b.length && timingSafeEqual(a, b);
 }
 
 /** The body the token route takes for an authorization code. */
@@ -169,7 +210,12 @@ export function parseConsoleSession(value: unknown, now: number): ConsoleSession
     if (object.token_type !== 'Bearer') {
         throw new Error('Console returned an unsupported token type.');
     }
-    if (typeof object.expires_in !== 'number' || !Number.isFinite(object.expires_in)) {
+    if (
+        typeof object.expires_in !== 'number' ||
+        !Number.isInteger(object.expires_in) ||
+        object.expires_in <= 0 ||
+        object.expires_in > MAX_TOKEN_LIFETIME_SECONDS
+    ) {
         throw new Error('Console returned an invalid token lifetime.');
     }
     const refreshToken =
