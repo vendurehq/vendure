@@ -276,11 +276,11 @@ const config = getSdkConfiguration({
 ```
 
 :::warning[Span attribute names have changed]
-This version renames the attributes on HTTP and database spans. Old names such as `http.method`
-and `db.statement` no longer exist, and there is no way to keep them. Any Grafana dashboard or
-alert that queries an old name will come back empty.
+This version renames the attributes on HTTP and database spans. Names like `http.method` and
+`db.statement` are gone, and you cannot get them back. Grafana dashboards and alerts that query
+an old name will come back empty.
 
-This applies to everyone who upgrades, whether or not you customise `instrumentations`.
+This happens whether or not you customise `instrumentations`.
 
 | Old name | New name |
 |---|---|
@@ -306,20 +306,20 @@ Span names and `http.route` are unchanged.
 
 **Migrating your dashboards**
 
-1. **Find what breaks.** Search your dashboard and alert definitions for `http.`, `net.` and
-   `db.`, and list every panel and rule that matches. In Grafana you can read these from
-   **Dashboard settings > JSON Model**, or fetch them all through the HTTP API.
-2. **Rename the queries** using the table above. If you build metrics from spans, remember that
-   Prometheus turns dots into underscores, so `http_method` becomes `http_request_method`.
-3. **Query both names for now.** Traces recorded before the upgrade still carry the old names, so
-   a panel that asks only for the new name will show a gap. In TraceQL, write
-   `{span.http.method="GET" || span.http.request.method="GET"}`. Remove the old half once your
+1. Find what breaks. Search your dashboards and alert rules for `http.`, `net.` and `db.`. In
+   Grafana, read them from **Dashboard settings > JSON Model**, or fetch them all through the
+   HTTP API.
+2. Rename the queries using the table above. If you build metrics from spans, Prometheus turns
+   the dots into underscores, so `http_method` becomes `http_request_method`.
+3. Query both names for now. Traces recorded before the upgrade still carry the old names, so a
+   panel asking only for the new name will have a gap. In TraceQL:
+   `{span.http.method="GET" || span.http.request.method="GET"}`. Drop the old half once your
    trace retention window has passed.
-4. **Check each panel** against a fresh request after deploying, before you delete anything.
+4. Deploy, then send a request and check each panel before you delete the old queries.
 
-If you are not ready to change your dashboards, run an OpenTelemetry Collector between Vendure and
-your tracing backend and use a `transform` processor to copy each new attribute onto its old name.
-Every span then carries both, and you can migrate whenever it suits you.
+If you cannot change your dashboards yet, put an OpenTelemetry Collector between Vendure and your
+tracing backend. A `transform` processor can copy each new attribute onto its old name, so every
+span carries both and you can migrate later.
 :::
 
 :::info
