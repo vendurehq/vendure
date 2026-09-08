@@ -156,6 +156,55 @@ test.describe('Orders', () => {
         await expect(page).not.toHaveURL(/\/draft\//);
     });
 
+    // #5253 — eligible shipping methods must refresh without a page reload
+    // when a mutation changes shipping eligibility after the query has
+    // already run once (e.g. adding a line after the customer's default
+    // shipping address enabled the query). Setting the customer first
+    // enables the query with a zero-line order; adding the product after is
+    // the step that must invalidate the now-stale cached result.
+    test('should refresh eligible shipping methods after adding a line to an existing draft order', async ({
+        page,
+    }) => {
+        test.setTimeout(60_000);
+
+        const lp = listPage(page);
+        await lp.goto();
+        await lp.expectLoaded();
+        await lp.newButton.click();
+        await expect(page).toHaveURL(/\/orders\/draft\//, { timeout: 10_000 });
+
+        try {
+            // Set a customer with a default shipping address first — this
+            // enables the eligible-shipping-methods query for the first time
+            // (still a zero-line order).
+            await page.getByRole('button', { name: /Select customer/i }).click();
+            await page.getByPlaceholder('Search customers...').fill('hayden');
+            await expect(page.getByRole('option').first()).toBeVisible({ timeout: 5_000 });
+            await page.getByRole('option').first().click();
+            await page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
+
+            // Add a product line. Without the fix, the eligible-shipping-methods
+            // query was never re-run after this mutation, so the "No shipping
+            // methods available" placeholder from the zero-line query stuck
+            // around even though the seed data's "Standard Shipping" method is
+            // eligible once the order has a shippable line.
+            const addItemButton = page.locator('[role="combobox"]').filter({ hasText: 'Add item to order' });
+            await addItemButton.scrollIntoViewIfNeeded();
+            await addItemButton.click();
+            await page.getByPlaceholder('Add item to order...').fill('laptop');
+            await expect(page.getByRole('option').first()).toBeVisible({ timeout: 5_000 });
+            await page.getByRole('option').first().click();
+            await page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
+
+            const shippingLabel = page.getByText('Standard Shipping', { exact: true });
+            await shippingLabel.scrollIntoViewIfNeeded();
+            await expect(shippingLabel).toBeVisible({ timeout: 10_000 });
+            await expect(page.getByText('No shipping methods available')).toHaveCount(0);
+        } finally {
+            await deleteCurrentDraft(page);
+        }
+    });
+
     test('should show the completed order in the list', async ({ page }) => {
         const lp = listPage(page);
         await lp.goto();
@@ -827,6 +876,14 @@ async function createFulfilledOrder(client: VendureAdminClient): Promise<string>
     );
 
     return orderId;
+}
+
+/** Deletes the draft order currently open in the page, via the delete-draft dialog. */
+async function deleteCurrentDraft(page: Page) {
+    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: /Delete draft/i }).click();
+    await page.locator('[role="alertdialog"]').getByRole('button', { name: 'Continue' }).click();
+    await expect(page).not.toHaveURL(/\/draft\//, { timeout: 15_000 });
 }
 
 /**
