@@ -396,11 +396,11 @@ describe('dev command', () => {
             children[0].close(1, null);
             expect(spawnChild).toHaveBeenCalledTimes(1);
 
-            // The save is repeated rather than done once, because chokidar reports nothing for a
-            // file that appeared before it finished its initial scan of the directory. A single
-            // save that loses that race is invisible for the rest of the run, however long the
-            // test then waits. The interval is longer than `reloadDebounceMs` so that a save which
-            // did land has time to restart the process before the next one arrives.
+            // The save is repeated because chokidar reports nothing for a file that appeared
+            // before it finished its initial scan of the directory. A single save that loses that
+            // race is invisible for the rest of the run, however long the test then waits. The
+            // interval is longer than `reloadDebounceMs` so that a save which did land has time to
+            // restart the process before the next one arrives.
             await vi.waitFor(
                 () => {
                     writeFileSync(configPath, `export const config = { revision: ${Date.now()} };`);
@@ -421,7 +421,7 @@ describe('dev command', () => {
 
             children[0].close(1, null);
             // The Dashboard then exits cleanly on its own, which ends the run while the server is
-            // still sitting dead. The run must not claim success.
+            // still crashed. The run must not resolve 0.
             dashboard.emitClose(0, null);
 
             await expect(promise).resolves.toBe(1);

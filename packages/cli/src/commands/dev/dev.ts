@@ -219,7 +219,7 @@ function startPlainDevProcess(
 export interface SupervisedDevProcessOptions {
     prefixOutput: boolean;
     reloadIgnoredPaths: string[];
-    // Overridable so that tests can drive the supervisor with a fake child process.
+    // Tests pass a fake child process here, to drive the supervisor without spawning anything.
     spawnChild?: typeof spawnDevChild;
 }
 
@@ -254,10 +254,10 @@ export function startSupervisedDevProcess(
         if (child) {
             stopChildWithGrace(child, signal, restartShutdownGraceMs);
         } else {
-            // Nothing is running, because the child crashed and the crash path left the watcher open
-            // to respawn it on the next relevant file change. That respawn will not happen now, so
-            // report the process closed with the code it crashed with. Without this,
-            // `waitForDevProcesses` waits forever for a child that no longer exists.
+            // The child crashed, and the close handler left the watcher open so a later file change
+            // could respawn it. Nothing will respawn it now, so report the process closed, carrying
+            // the code the child crashed with. Without this, `waitForDevProcesses` waits forever for
+            // a child that no longer exists.
             runningProcess.emitClose(crashExitCode ?? 0, null);
         }
     });
@@ -278,8 +278,8 @@ export function startSupervisedDevProcess(
                 return;
             }
             // Leave the other supervised processes running, and leave the watcher open so that the
-            // next relevant file change respawns this one. Remember the exit code: the run still
-            // failed if it ends before anything respawns this process.
+            // next relevant file change respawns this one. Remember the exit code: if the run ends
+            // before the watcher respawns this process, the run failed.
             child = undefined;
             crashExitCode = code;
             writeDevStatus(
@@ -370,23 +370,23 @@ export function waitForDevProcesses(
             }
         };
         const runExitCode = (lastExitCode: number): number => {
-            // A signal delivered to the whole run decides the exit code, so Ctrl+C still reports 130
-            // even when a supervised process was sitting dead at the time.
+            // A signal delivered to the whole run decides the exit code, so Ctrl+C reports 130 even
+            // when a supervised process had crashed and not been respawned.
             if (shutdownExitCode) {
                 return shutdownExitCode;
             }
-            // Otherwise the first child to fail on its own decides it. This is how a supervised
-            // process that crashed earlier still fails the run, in the case where the run is ended
-            // by something that exited cleanly.
+            // Otherwise the first child to fail on its own decides the exit code. A supervised
+            // process that crashed earlier fails the run this way, when another process then exits
+            // cleanly and ends the run.
             if (firstNonZeroExitCode) {
                 return firstNonZeroExitCode;
             }
             return shutdownExitCode ?? lastExitCode;
         };
         // `isOwnFailure` marks an exit code that the child chose for itself, rather than one it was
-        // given by the shutdown. Such a code is recorded even once a shutdown is under way, because
-        // a supervised process that crashed earlier only reports that crash at the point something
-        // else brings the run to an end.
+        // given by the shutdown. Such a code is recorded even once a shutdown is under way. A
+        // supervised process that crashed earlier reports that crash only when another process ends
+        // the run, by which point the shutdown has already started.
         const completeChild = (child: ManagedDevProcess, exitCode: number, isOwnFailure: boolean) => {
             if (settledChildren.has(child)) {
                 return;
@@ -481,9 +481,9 @@ function isChildRunning(child: ChildProcess): boolean {
 
 // Whether a supervised child that just closed should be left for the watcher to respawn, rather
 // than treated as the whole `dev` run ending. Only a non-zero exit code the child chose for itself
-// qualifies, such as ts-node failing to compile after an edit. A signal means something outside
-// decided the process should stop; a zero exit, a close carrying neither a code nor a signal, and a
-// shutdown already in progress are none of them something a later file change would fix.
+// qualifies, such as ts-node failing to compile after an edit. A signal means `kill` or a process
+// manager decided the process should stop. A later file change fixes none of the other cases: a
+// zero exit, a close carrying neither a code nor a signal, or a shutdown in progress.
 export function isRecoverableChildExit(
     code: number | null,
     signal: NodeJS.Signals | null,
@@ -493,9 +493,9 @@ export function isRecoverableChildExit(
 }
 
 export interface ReloadPathScope {
-    // Dashboard extension directories, which Vite reloads on its own.
+    // Vite reloads these on its own.
     dashboardExtensionDirectories?: string[];
-    // Absolute paths declared by the caller via `DevOptions.reloadIgnoredPaths`.
+    // Already resolved to absolute paths by `devCommand`.
     reloadIgnoredPaths?: string[];
 }
 
