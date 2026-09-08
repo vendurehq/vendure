@@ -17,7 +17,12 @@ export interface ConsoleReporter {
 }
 
 /**
- * The Console origins the link was made against.
+ * The Console origins this run resolved, and will use.
+ *
+ * Not necessarily the origins the link was made against. The Project Link
+ * Manifest records no origin, so on a repair these come from the environment
+ * of the repairing run, not from whoever minted the manifest. See
+ * {@link ConsoleLinkEndpoints.official}.
  *
  * @since 3.8.0
  */
@@ -47,16 +52,19 @@ export interface ConsoleLinkEndpoints {
      * credential file or sends a request, and refuses when the answer is
      * `undefined`. Do not derive the same conclusion from the absence of a
      * custom-endpoint prompt: that permits loopback, and it is not this.
+     *
+     * This describes where this run will talk, not where the manifest came
+     * from. The manifest records no origin, so when
+     * {@link ConsoleLinkContext.outcome} is `'repaired'` the Console that
+     * issued these project and account identifiers is unknown, and a
+     * `'production'` answer here does not vouch for them. A hook that acts on
+     * the identifiers rather than only on the origin should treat a repair as
+     * unverified provenance.
      */
     official: ConsoleOriginEnvironment | undefined;
 }
 
-/**
- * Whether the run that called the hook established the link or repaired one
- * that already existed.
- *
- * @since 3.8.0
- */
+/** @since 3.8.0 */
 export type ConsoleLinkOutcome = 'linked' | 'repaired';
 
 /**
@@ -96,6 +104,9 @@ export interface ConsoleLinkContext {
      * remote credential cannot: repairing is the case where a credential the
      * developer no longer holds locally may still be live, and replacing it
      * takes the old one away. Confirm that before doing it.
+     *
+     * A repair also runs against a manifest this command did not write, which
+     * may have arrived with a clone. Its identifiers are unverified.
      */
     outcome: ConsoleLinkOutcome;
     /**

@@ -4,7 +4,11 @@
  * These literals and the rules below mirror the Platform sign-in validator
  * (`libs/console-auth/src/origins.ts`). They are copied rather than imported,
  * because that package is not public and `@vendure/cli` may not depend on it.
- * `console-origins.spec.ts` pins every rule so the two cannot drift quietly.
+ *
+ * The copies are maintained by hand. Nothing here can detect a change made on
+ * the other side, because that source is not in this repository and the tests
+ * compare these literals against a second copy of the same literals. Adding an
+ * official origin means editing both, and knowing to.
  *
  * The checks past the host list matter as much as the list. A URL carrying a
  * path, a query, a fragment or credentials is a URL built to be appended to,

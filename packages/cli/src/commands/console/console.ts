@@ -307,10 +307,19 @@ async function link(
  * Runs the setup that follows a link for a project that is already linked,
  * against the manifest already on disk.
  *
- * Nothing is written and nothing is asked of Console: the Project Link this
- * manifest names is still the one in force. The custom-endpoint gate runs all
- * the same, because a hook is given these origins and may talk to them, and
- * approving them is the decision this command exists to take.
+ * Nothing is asked of Console and the manifest is not rewritten: the Project
+ * Link it names is still the one in force. The `.gitignore` rules are still
+ * applied, as they are after a link, so a checkout that never had them gets
+ * them. That is the one write this path makes.
+ *
+ * The custom-endpoint gate runs all the same, because a hook is given these
+ * origins and may talk to them.
+ *
+ * A manifest is meant to be committed, so an already-linked project may be one
+ * the developer has just cloned, naming an account and a project they have
+ * never seen. Running hooks against it without asking would hand a plugin
+ * somebody else's identifiers. So when there are hooks to run and a terminal
+ * to ask, the project and account are named and confirmed first.
  */
 async function repair(
     projectRoot: string,
@@ -326,6 +335,10 @@ async function repair(
     if (endpointApproval !== 'confirmed') {
         return endpointApproval === 'cancelled' ? 0 : 1;
     }
+    const confirmed = await confirmRepair(manifest, options, dependencies);
+    if (confirmed !== 'confirmed') {
+        return confirmed === 'cancelled' ? 0 : 1;
+    }
     state.outcome = 'repaired';
     state.manifestPath = manifestPath;
     dependencies.reporter.success(`Already linked to ${manifest.project.name} in ${manifest.account.name}.`);
@@ -340,6 +353,36 @@ async function repair(
         dependencies,
         signal,
     );
+}
+
+/**
+ * Confirms running plugin setup against a manifest this run did not write.
+ *
+ * Only asked when a plugin would actually do something, because with no hooks
+ * registered a repair reports the link and changes nothing, and there is
+ * nothing to approve. Non-interactive runs proceed: the backfill this command
+ * exists to provide has to work in CI, where the manifest is part of the
+ * checked-out source the operator chose to run and there is nobody to ask.
+ */
+async function confirmRepair(
+    manifest: ProjectLinkManifest,
+    options: ConsoleCommandOptions,
+    dependencies: ConsoleCommandDependencies,
+): Promise<'confirmed' | 'cancelled'> {
+    if (options.force || dependencies.hooks.length === 0 || dependencies.isNonInteractive()) {
+        return 'confirmed';
+    }
+    const result = await dependencies.prompt(
+        `Run plugin setup for ${manifest.project.name} in ${manifest.account.name}?`,
+    );
+    if (result === undefined) {
+        throw new CommandInterruptedError();
+    }
+    if (result !== true) {
+        dependencies.reporter.info('No plugin setup was run. The Project Link Manifest is unchanged.');
+        return 'cancelled';
+    }
+    return 'confirmed';
 }
 
 /** What the command resolved, before it is shaped into a per-hook context. */
@@ -378,7 +421,9 @@ async function runConsoleLinkHooks(
                 throw new CommandInterruptedError();
             }
             // The host owns this one, and it carries the exit code with it.
+            // Still say what survived, or the exit code is all the reader gets.
             if (error instanceof CliCommandExit) {
+                dependencies.reporter.warn(linkUnfinished(inputs.outcome, inputs.manifestPath));
                 throw error;
             }
             const detail = error instanceof Error ? error.message : String(error);
@@ -394,9 +439,12 @@ async function runConsoleLinkHooks(
  * Builds a context for one hook.
  *
  * A fresh one each time, rather than one shared by all of them. Hooks run in a
- * configured order, and `endpoints.areDefault` is the fact a hook holding a
+ * configured order, and `endpoints.official` is the fact a hook holding a
  * credential checks before it sends anything. A shared object would let the
  * plugin listed first decide what the plugin listed second sees.
+ *
+ * `reporter` and `signal` are deliberately the same objects in every context.
+ * One output stream and one abort signal are the point of them.
  */
 function createConsoleLinkContext(
     inputs: ConsoleLinkHookInputs,
@@ -863,8 +911,16 @@ function isLoopbackHostname(hostname: string): boolean {
     return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
 }
 
+/**
+ * Whether these origins are a remote Console that is not Vendure's.
+ *
+ * Both official deployments pass, not only production. Calling the official
+ * staging Console "custom" and then reporting it to a hook as official said
+ * two different things about one pair, and the prompt was the one that was
+ * wrong. A loopback pair still passes, for development and tests.
+ */
 function usesCustomRemoteEndpoints(endpoints: ConsoleEndpoints): boolean {
-    if (endpoints.consoleUrl === DEFAULT_CONSOLE_URL && endpoints.apiUrl === DEFAULT_CONSOLE_API_URL) {
+    if (officialConsoleEnvironment(endpoints) !== undefined) {
         return false;
     }
     return ![endpoints.consoleUrl, endpoints.apiUrl].every(value =>

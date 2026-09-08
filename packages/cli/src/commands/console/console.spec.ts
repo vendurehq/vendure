@@ -518,10 +518,7 @@ describe('console command', () => {
         fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
         fs.writeJsonSync(getProjectLinkManifestPath(root), manifest);
         const fetchMock = vi.fn() as unknown as typeof fetch;
-        const test = testDependencies(root, fetchMock, {
-            isNonInteractive: () => false,
-            prompt: () => Promise.resolve(false),
-        });
+        const test = testDependencies(root, fetchMock);
 
         expect(await consoleCommand('link', {}, test.dependencies)).toBe(0);
         expect(fetchMock).not.toHaveBeenCalled();
@@ -529,6 +526,63 @@ describe('console command', () => {
         const output = test.messages.join('\n');
         expect(output).toContain('Already linked to');
         expect(output).toContain('vendure console link --force');
+    });
+
+    // A manifest is meant to be committed, so an already-linked project may be
+    // one the developer has just cloned.
+    it('names the project before running plugin setup against a manifest it did not write', async () => {
+        const root = vendureProject();
+        fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
+        fs.writeJsonSync(getProjectLinkManifestPath(root), manifest);
+        const hook = vi.fn(async () => undefined);
+        const prompt = vi.fn(() => Promise.resolve(false));
+        const test = testDependencies(root, vi.fn() as unknown as typeof fetch, {
+            hooks: [{ pluginId: '@example/p', hook }],
+            isNonInteractive: () => false,
+            prompt,
+        });
+
+        expect(await consoleCommand('link', {}, test.dependencies)).toBe(0);
+        expect(prompt).toHaveBeenCalledWith(expect.stringContaining(manifest.project.name));
+        expect(prompt).toHaveBeenCalledWith(expect.stringContaining(manifest.account.name));
+        expect(hook).not.toHaveBeenCalled();
+        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
+    });
+
+    it('does not ask before a repair that would run no plugin setup', async () => {
+        const root = vendureProject();
+        fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
+        fs.writeJsonSync(getProjectLinkManifestPath(root), manifest);
+        const prompt = vi.fn(() => Promise.resolve(true));
+        const test = testDependencies(root, vi.fn() as unknown as typeof fetch, {
+            isNonInteractive: () => false,
+            prompt,
+        });
+
+        // With no hooks registered there is nothing to approve.
+        expect(await consoleCommand('link', {}, test.dependencies)).toBe(0);
+        expect(prompt).not.toHaveBeenCalled();
+    });
+
+    // Calling the official staging Console "custom" and then reporting it to a
+    // hook as official said two different things about one pair.
+    it('does not treat the official staging Console as a custom endpoint', async () => {
+        const root = vendureProject();
+        fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
+        fs.writeJsonSync(getProjectLinkManifestPath(root), manifest);
+        const prompt = vi.fn(() => Promise.resolve(true));
+        const test = testDependencies(root, vi.fn() as unknown as typeof fetch, {
+            env: {
+                VENDURE_CONSOLE_LINK_URL: 'https://staging.console.vendure.io',
+                VENDURE_CONSOLE_LINK_API_URL: 'https://staging.api.vendure.io',
+            },
+            isNonInteractive: () => false,
+            prompt,
+        });
+
+        expect(await consoleCommand('link', {}, test.dependencies)).toBe(0);
+        expect(prompt).not.toHaveBeenCalled();
+        expect(test.messages.join('\n')).not.toContain('custom Console');
     });
 
     it('repairs rather than failing closed when a linked project repeats a link non-interactively', async () => {

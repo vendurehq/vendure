@@ -69,7 +69,11 @@ export interface CliPlugin {
 }
 
 /**
- * The plugin extension points this build of the CLI understands.
+ * The plugin capabilities this build of the CLI understands.
+ *
+ * Entries name capabilities, not only keys of {@link CliPlugin}. `subcommands`
+ * is the ability to nest commands, which a plugin declares inside `commands`
+ * rather than through a key of its own.
  *
  * A plugin that resolves an older `@vendure/cli` than it was written against is
  * not told so. {@link assertCliPlugin} ignores keys it does not know, so a
@@ -82,7 +86,7 @@ export interface CliPlugin {
  * import * as cli from '@vendure/cli';
  *
  * // Older builds export no such constant, so `undefined` is itself the answer.
- * const supported: readonly string[] = cli.CLI_PLUGIN_EXTENSION_POINTS ?? [];
+ * const supported = cli.CLI_PLUGIN_EXTENSION_POINTS ?? [];
  * if (!supported.includes('afterConsoleLink')) {
  *     throw new Error(
  *         'This @vendure/cli is too old to run afterConsoleLink hooks. Upgrade it, ' +
@@ -96,12 +100,13 @@ export interface CliPlugin {
  *
  * @since 3.8.0
  */
-export const CLI_PLUGIN_EXTENSION_POINTS = Object.freeze([
+export const CLI_PLUGIN_EXTENSION_POINTS: readonly string[] = Object.freeze([
+    'commands',
     'rootOptions',
     'subcommands',
     'extendCommands',
     'afterConsoleLink',
-] as const);
+]);
 
 export function assertCliPlugin(value: unknown): asserts value is CliPlugin {
     if (!value || typeof value !== 'object') {

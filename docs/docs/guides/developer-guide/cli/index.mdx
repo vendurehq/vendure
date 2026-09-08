@@ -833,10 +833,16 @@ manifest on disk and runs the hooks again, with `context.outcome` set to
 `'repaired'`. It does not create a second Project Link, which would abandon the
 first in Console over a problem that is local to the checkout.
 
-That makes `vendure console link` the command a developer runs to put back
-something the project needs and no longer has, such as a credential a hook
-writes. A plugin does not need a repair command of its own, and should send
-people here instead.
+That makes `vendure console link` the command a developer runs to have the
+setup after a link done again. It repairs the setup, not a sign-in: it asks
+Console nothing and opens no browser, so a hook that needs a session it does
+not have still cannot obtain one here. A plugin does not need a repair command
+of its own, and should send people here instead.
+
+Because the manifest may have arrived with a clone, a repair that would run
+hooks names the project and account and asks first. With no hooks registered
+there is nothing to approve and nothing is asked. Non-interactive runs proceed,
+so the backfill works in CI.
 
 `--force` is how a checkout is linked to a **different** Console Project: it
 skips the reuse, creates a new Project Link, and the hooks run with an `outcome`
@@ -844,9 +850,8 @@ of `'linked'`. A hook that rotates a remote credential should treat `'repaired'`
 as the case that needs confirming, because the credential it is replacing may
 still be live for someone else.
 
-`context.endpoints.official` names which official Vendure Console the link was
-made against, `'production'` or `'staging'`, and is `undefined` for anything
-else. The pair is matched as a pair, so a production app origin with a staging
+`context.endpoints.official` names which official Vendure Console this run will
+talk to, `'production'` or `'staging'`, and is `undefined` for anything else. The pair is matched as a pair, so a production app origin with a staging
 API is not official. A loopback pair is not official either; it is a development
 and test convenience.
 
@@ -856,6 +861,12 @@ anything secret. A hook that holds credentials checks `official` before it reads
 a credential file or sends a request, and refuses when it is `undefined`. Do not
 draw the same conclusion from the absence of a custom-endpoint prompt: that
 permits loopback, and this does not.
+
+It describes where this run will talk, not where the manifest came from. The
+manifest records no origin, so on a repair the Console that issued its project
+and account identifiers is unknown, and a `'production'` answer does not vouch
+for them. A hook that acts on the identifiers, rather than only on the origin,
+should treat a repair as unverified provenance.
 
 ### Checking what the installed CLI supports
 

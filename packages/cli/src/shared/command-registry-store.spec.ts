@@ -778,7 +778,11 @@ describe('resolveCliPlugins()', () => {
                         vendure: { cliPlugin: './cli-plugin.js' },
                     },
                     entrySource: `
-                        module.exports = { id: '@example/a', commands: [] };
+                        module.exports = {
+                            id: '@example/a',
+                            commands: [],
+                            afterConsoleLink: async () => undefined,
+                        };
                     `,
                 },
             ],
@@ -794,6 +798,27 @@ describe('resolveCliPlugins()', () => {
 
         expect(failures).toEqual([]);
         expect(loaded.map(plugin => plugin.packageName)).toEqual(['@example/a']);
+
+        const registry = new CommandRegistry();
+        for (const entry of loaded) {
+            registry.applyPlugin(entry.plugin);
+        }
+        expect(registry.getConsoleLinkHooks()).toHaveLength(1);
+    });
+
+    // The allowlist is not the only way the same plugin reaches the registry.
+    it('registers one console link hook per plugin id however often it is applied', () => {
+        const registry = new CommandRegistry();
+        const plugin = defineCliPlugin({
+            id: '@example/a',
+            commands: [],
+            afterConsoleLink: async () => undefined,
+        });
+
+        registry.applyPlugin(plugin);
+        registry.applyPlugin(plugin);
+
+        expect(registry.getConsoleLinkHooks()).toHaveLength(1);
     });
 
     it('loads allowlisted plugins in declared order', () => {
