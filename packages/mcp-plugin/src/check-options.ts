@@ -2,7 +2,7 @@ import { Logger } from '@vendure/core';
 
 import { loggerCtx } from './constants';
 import { McpOauthOptionsWithDefaults, ResolvedMcpPluginOptions } from './internal-types';
-import { isLoopbackHostname } from './oauth/loopback';
+import { isLoopbackHostname } from './shared/loopback';
 
 /**
  * @description

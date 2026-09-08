@@ -2,7 +2,7 @@ import { BadRequestException } from '@nestjs/common';
 import { isIP } from 'node:net';
 
 import { CIMD_MAX_CLIENT_ID_LENGTH } from '../../constants';
-import { isLoopbackHostname } from '../loopback';
+import { isLoopbackHostname } from '../../shared/loopback';
 
 // Client ID Metadata Documents (CIMD, draft-ietf-oauth-client-id-metadata-document-02):
 // a client_id that is an HTTPS URL pointing at a JSON document describing the client,

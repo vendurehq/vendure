@@ -3,8 +3,8 @@ import { createHash, randomBytes } from 'node:crypto';
 
 import { loggerCtx, MAX_CLIENT_METADATA_FIELD_LENGTH } from '../constants';
 import { McpOauthOptionsWithDefaults, ResolvedMcpPluginOptions } from '../internal-types';
+import { isLoopbackHostname } from '../shared/loopback';
 
-import { isLoopbackHostname } from './loopback';
 import { McpOauthError } from './oauth-error';
 
 export function randomToken(): string {
@@ -105,3 +105,4 @@ export function resolvedOauthOptions(options: ResolvedMcpPluginOptions): McpOaut
     // the time any request arrives it is always a string.
     return options.oauth as McpOauthOptionsWithIssuer;
 }
+

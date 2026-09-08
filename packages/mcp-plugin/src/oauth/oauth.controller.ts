@@ -18,8 +18,8 @@ import {
     McpOauthRateLimitExceptionFilter,
     McpOauthRateLimitGuard,
 } from '../rate-limit/mcp-oauth-rate-limit.guard';
+import { OAUTH_ENDPOINT_PATHS } from '../shared/endpoint-paths';
 
-import { OAUTH_ENDPOINT_PATHS } from './endpoint-paths';
 import { McpOauthExceptionFilter, parseOAuthInput } from './oauth-error';
 import { McpOauthMetadataService } from './oauth-metadata.service';
 import { authorizeInputSchema, registerClientInputSchema, tokenInputSchema } from './oauth-types';

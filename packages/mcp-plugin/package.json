@@ -6,7 +6,8 @@
     "types": "lib/index.d.ts",
     "files": [
         "lib/**/*",
-        "src/dashboard/**/*"
+        "src/dashboard/**/*",
+        "src/shared/**/*"
     ],
     "repository": {
         "type": "git",

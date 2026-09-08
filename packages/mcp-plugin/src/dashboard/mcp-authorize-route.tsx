@@ -25,8 +25,8 @@ import {
 } from '@vendure/dashboard';
 import { AlertTriangleIcon, ArrowRightIcon, ShieldCheckIcon } from 'lucide-react';
 
-import { OAUTH_ENDPOINT_PATHS } from '../oauth/endpoint-paths';
-import { isLoopbackHostname } from '../oauth/loopback';
+import { OAUTH_ENDPOINT_PATHS } from '../shared/endpoint-paths';
+import { isLoopbackHostname } from '../shared/loopback';
 
 import { TooltipButton } from './components/tooltip-button';
 import { authorizeMcpClientMutation } from './mcp.graphql';

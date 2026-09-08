@@ -4,8 +4,8 @@ import { McpToolset } from '@vendure/mcp-sdk';
 
 import { MCP_PLUGIN_OPTIONS, SUPPORTED_OAUTH_GRANT_TYPES } from '../constants';
 import { ResolvedMcpPluginOptions } from '../internal-types';
+import { OAUTH_ENDPOINT_PATHS } from '../shared/endpoint-paths';
 
-import { OAUTH_ENDPOINT_PATHS } from './endpoint-paths';
 import { McpOauthError } from './oauth-error';
 import { resolvedOauthOptions } from './oauth-utils';
 
