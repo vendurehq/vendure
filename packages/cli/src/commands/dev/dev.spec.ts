@@ -391,21 +391,28 @@ describe('dev command', () => {
         it('respawns a crashed supervised child on the next relevant file change', async () => {
             const { children, projectDir, spawnChild, supervised } = startSupervisor();
             const promise = waitForDevProcesses([supervised]);
+            const configPath = path.join(projectDir, 'src', 'vendure-config.ts');
 
             children[0].close(1, null);
             expect(spawnChild).toHaveBeenCalledTimes(1);
 
-            writeFileSync(path.join(projectDir, 'src', 'vendure-config.ts'), 'export const config = {};');
-
-            await vi.waitFor(() => expect(spawnChild).toHaveBeenCalledTimes(2), {
-                timeout: 10000,
-                interval: 25,
-            });
+            // The save is repeated rather than done once, because chokidar reports nothing for a
+            // file that appeared before it finished its initial scan of the directory. A single
+            // save that loses that race is invisible for the rest of the run, however long the
+            // test then waits. The interval is longer than `reloadDebounceMs` so that a save which
+            // did land has time to restart the process before the next one arrives.
+            await vi.waitFor(
+                () => {
+                    writeFileSync(configPath, `export const config = { revision: ${Date.now()} };`);
+                    expect(spawnChild.mock.calls.length).toBeGreaterThanOrEqual(2);
+                },
+                { timeout: 15000, interval: 300 },
+            );
             expect(supervised.hasClosed).toBe(false);
 
             process.emit('SIGINT');
             await expect(promise).resolves.toBe(130);
-        });
+        }, 20000);
 
         it('reports the crash exit code when something else ends the run', async () => {
             const { children, supervised } = startSupervisor();
