@@ -15,8 +15,9 @@ import { ConsoleLinkContext, ConsoleLinkHook } from './console-link-hook';
 import { LINK_ID, POLLING_SECRET, manifest } from './console.fixtures';
 import { getProjectLinkManifestPath } from './project-link-manifest';
 
-const PLATFORM_ID = '@vendure-platform/cli';
-const CLOUD_ID = '@vendure/cloud';
+// Two plugins, so the tests that care about order can name which is which.
+const FIRST_PLUGIN = '@example/first-cli-plugin';
+const SECOND_PLUGIN = '@example/second-cli-plugin';
 
 const temporaryDirectories: string[] = [];
 let server: Server | undefined;
@@ -38,7 +39,7 @@ describe('console link hooks', () => {
     it('runs a plugin hook once after a link, with what the command already resolved', async () => {
         const contexts: ConsoleLinkContext[] = [];
         const registry = registryWith(
-            plugin(PLATFORM_ID, async received => {
+            plugin(FIRST_PLUGIN, async received => {
                 contexts.push(received);
             }),
         );
@@ -77,24 +78,24 @@ describe('console link hooks', () => {
     it('runs hooks in plugin order and stops at the first failure', async () => {
         const trace: string[] = [];
         const registry = registryWith(
-            plugin(PLATFORM_ID, async () => {
-                trace.push(PLATFORM_ID);
+            plugin(FIRST_PLUGIN, async () => {
+                trace.push(FIRST_PLUGIN);
                 throw new Error('Console rejected the credential request.');
             }),
-            plugin(CLOUD_ID, async () => {
-                trace.push(CLOUD_ID);
+            plugin(SECOND_PLUGIN, async () => {
+                trace.push(SECOND_PLUGIN);
             }),
         );
         const root = vendureProject();
         const test = await runLink(root, registry);
 
-        expect(trace).toEqual([PLATFORM_ID]);
+        expect(trace).toEqual([FIRST_PLUGIN]);
         expect(test.exitCode).toBe(1);
         // The link is not rolled back, and the report says so rather than
         // leaving the reader to guess what survived.
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
         const output = test.messages.join('\n');
-        expect(output).toContain(`The ${PLATFORM_ID} plugin failed after linking`);
+        expect(output).toContain(`The ${FIRST_PLUGIN} plugin failed after linking`);
         expect(output).toContain('Console rejected the credential request.');
         expect(output).toContain('The link succeeded');
         // Repairing a credential store must not be sold as another link, which
@@ -104,8 +105,11 @@ describe('console link hooks', () => {
 
     it('keeps the exit code at 0 when a hook reports that it could not finish', async () => {
         const registry = registryWith(
-            plugin(PLATFORM_ID, async context => {
-                context.reporter.warn('No Console session on this machine. Run "vendure platform repair".');
+            plugin(FIRST_PLUGIN, async context => {
+                // A hook that cannot finish says so through the reporter and
+                // returns, rather than throwing. Naming what to run next is the
+                // plugin's own business, so this is the plugin's own command.
+                context.reporter.warn('Nothing to set up from here yet. Run "example-setup init".');
             }),
         );
         const root = vendureProject();
@@ -113,13 +117,13 @@ describe('console link hooks', () => {
 
         // Linking is what the command was asked to do, and it did it.
         expect(test.exitCode).toBe(0);
-        expect(test.messages.join('\n')).toContain('vendure platform repair');
+        expect(test.messages.join('\n')).toContain('example-setup init');
     });
 
     it('does not claim nothing changed when interrupted after the manifest is written', async () => {
         const abort = new AbortController();
         const registry = registryWith(
-            plugin(PLATFORM_ID, async () => {
+            plugin(FIRST_PLUGIN, async () => {
                 abort.abort();
                 throw new Error('aborted while issuing a credential');
             }),
@@ -136,7 +140,7 @@ describe('console link hooks', () => {
 
     it('does not run hooks for status, unlink or an unknown action', async () => {
         const hook = vi.fn<ConsoleLinkHook>(async () => undefined);
-        const registry = registryWith(plugin(PLATFORM_ID, hook));
+        const registry = registryWith(plugin(FIRST_PLUGIN, hook));
         const root = vendureProject();
         const hooks = registry.getConsoleLinkHooks();
 
@@ -149,7 +153,7 @@ describe('console link hooks', () => {
 
     it('does not run hooks when a link is refused before any request', async () => {
         const hook = vi.fn<ConsoleLinkHook>(async () => undefined);
-        const registry = registryWith(plugin(PLATFORM_ID, hook));
+        const registry = registryWith(plugin(FIRST_PLUGIN, hook));
         const fetchMock = vi.fn() as unknown as typeof fetch;
         const root = vendureProject();
 
@@ -178,7 +182,7 @@ describe('console link hooks', () => {
     it('registers no hook for a plugin the registry rejected', () => {
         const registry = registryWith();
         const rejected = defineCliPlugin({
-            id: PLATFORM_ID,
+            id: FIRST_PLUGIN,
             // `console` is already a built-in and this does not set
             // `replaces`, so the whole plugin is refused.
             commands: [{ name: 'console', description: 'Shadowed console', action: async () => 0 }],
@@ -194,7 +198,7 @@ describe('console link hooks', () => {
         const registry = registryWith();
         registry.applyPlugin(
             defineCliPlugin({
-                id: PLATFORM_ID,
+                id: FIRST_PLUGIN,
                 commands: [],
                 extendCommands: [
                     {
@@ -213,7 +217,7 @@ describe('console link hooks', () => {
             }),
         );
 
-        expect(registry.getConsoleLinkHooks().map(entry => entry.pluginId)).toEqual([PLATFORM_ID]);
+        expect(registry.getConsoleLinkHooks().map(entry => entry.pluginId)).toEqual([FIRST_PLUGIN]);
         const root = vendureProject();
         const test = await runLink(root, registry);
 
@@ -232,7 +236,7 @@ describe('console link hooks', () => {
     it('runs the hooks again for a project that is already linked, without a second Project Link', async () => {
         const contexts: ConsoleLinkContext[] = [];
         const registry = registryWith(
-            plugin(PLATFORM_ID, async received => {
+            plugin(FIRST_PLUGIN, async received => {
                 contexts.push(received);
             }),
         );
@@ -260,7 +264,7 @@ describe('console link hooks', () => {
 
     it('reports a repair that did not finish without claiming the link changed', async () => {
         const registry = registryWith(
-            plugin(PLATFORM_ID, async () => {
+            plugin(FIRST_PLUGIN, async () => {
                 throw new Error('Console rejected the credential request.');
             }),
         );
@@ -285,14 +289,14 @@ describe('console link hooks', () => {
     it('gives each hook its own context, so one cannot decide what the next reads', async () => {
         const seen: Array<{ official: string | undefined; projectName: string }> = [];
         const registry = registryWith(
-            plugin(PLATFORM_ID, async context => {
+            plugin(FIRST_PLUGIN, async context => {
                 // `official` is the fact a hook holding a credential checks
                 // before it sends anything, so the plugin listed first must not
                 // be able to answer it for the plugin listed second.
                 context.endpoints.official = 'production';
                 context.manifest.project.name = 'Tampered';
             }),
-            plugin(CLOUD_ID, async context => {
+            plugin(SECOND_PLUGIN, async context => {
                 seen.push({
                     official: context.endpoints.official,
                     projectName: context.manifest.project.name,
@@ -309,7 +313,7 @@ describe('console link hooks', () => {
     it('refuses a hook confirmation when there is nobody to answer it', async () => {
         let refusal: string | undefined;
         const registry = registryWith(
-            plugin(PLATFORM_ID, async context => {
+            plugin(FIRST_PLUGIN, async context => {
                 // The hook ignored `isNonInteractive`. Prompting here would
                 // write a question into a pipe and then wait for an answer.
                 await context.confirm('Replace the stored credential?').catch((error: Error) => {
@@ -333,12 +337,12 @@ describe('console link hooks', () => {
         const trace: string[] = [];
         const messages: string[] = [];
         const registry = registryWith(
-            plugin(PLATFORM_ID, async () => {
-                trace.push(PLATFORM_ID);
+            plugin(FIRST_PLUGIN, async () => {
+                trace.push(FIRST_PLUGIN);
                 throw new CliCommandExit(exitCode);
             }),
-            plugin(CLOUD_ID, async () => {
-                trace.push(CLOUD_ID);
+            plugin(SECOND_PLUGIN, async () => {
+                trace.push(SECOND_PLUGIN);
             }),
         );
         const root = vendureProject();
@@ -348,9 +352,9 @@ describe('console link hooks', () => {
         ).rejects.toBeInstanceOf(CliCommandExit);
         // The hooks after it did not run, and the reader is told so rather than
         // being left with an exit code and a success message.
-        expect(trace).toEqual([PLATFORM_ID]);
+        expect(trace).toEqual([FIRST_PLUGIN]);
         const output = messages.join('\n');
-        expect(output).toContain(`The ${PLATFORM_ID} plugin stopped the run after linking`);
+        expect(output).toContain(`The ${FIRST_PLUGIN} plugin stopped the run after linking`);
         expect(output).toContain('The link succeeded');
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
     });
@@ -358,7 +362,7 @@ describe('console link hooks', () => {
     it('rejects a plugin whose afterConsoleLink is not a function', () => {
         expect(() =>
             defineCliPlugin({
-                id: PLATFORM_ID,
+                id: FIRST_PLUGIN,
                 commands: [],
                 afterConsoleLink: 'not a function' as unknown as ConsoleLinkHook,
             }),
