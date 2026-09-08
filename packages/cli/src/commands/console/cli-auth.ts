@@ -12,16 +12,17 @@ import { nonEmptyString, objectValue } from './project-link-validation';
 export const CLI_AUTH_CAPABILITY = 'cli-auth';
 
 /**
- * The tools Console names on the approval page. This CLI is always `cli`.
- * `create` is the same exchange driven from elsewhere, and is accepted here so
- * a cross-repository conformance test can drive both without a second client.
+ * The tools Console names on the approval page, as Console defines them. This
+ * CLI is always `cli`; `create` is the other value Console accepts, and is
+ * spelled out here so one conformance test can drive both.
  */
 export type CliAuthClient = 'cli' | 'create';
 
 /**
- * Where the exchange happens. The same route `@vendure-platform/create`
- * already uses, with the same grants and the same field names: one exchange
- * with one spelling, rather than a second dialect against one Console.
+ * Console's CLI session token route, where an authorization code is exchanged.
+ *
+ * The route, the grant types and the field names are Console's, so every
+ * client of it speaks the same exchange rather than a dialect of its own.
  */
 export const CLI_TOKEN_PATH = '/v1/auth/cli/token';
 
