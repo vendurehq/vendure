@@ -58,6 +58,7 @@ import {
     appendOAuthParams,
     assertSafeRedirectUri,
     httpsUrlOrNull,
+    isRegisteredRedirectUri,
     McpOauthOptionsWithIssuer,
     randomToken,
     resolvedOauthOptions,
@@ -150,7 +151,7 @@ export class McpOauthService {
         }
         const ctx = await this.createAdminCtx();
         const client = await this.findClient(ctx, input.client_id);
-        if (!client.redirectUris.includes(input.redirect_uri)) {
+        if (!isRegisteredRedirectUri(client.redirectUris, input.redirect_uri)) {
             throw new BadRequestException('redirect_uri is not registered for client');
         }
         // Errors from here on are reported by redirecting to redirect_uri, since an HTTP error

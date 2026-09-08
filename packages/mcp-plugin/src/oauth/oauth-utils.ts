@@ -106,3 +106,17 @@ export function resolvedOauthOptions(options: ResolvedMcpPluginOptions): McpOaut
     return options.oauth as McpOauthOptionsWithIssuer;
 }
 
+/** RFC 8252 section 7.3: a loopback redirect URI matches whatever port the app picked at runtime. */
+export function isRegisteredRedirectUri(registeredUris: readonly string[], redirectUri: string): boolean {
+    let url: URL;
+    try {
+        url = new URL(redirectUri);
+    } catch {
+        return false;
+    }
+    if (url.protocol === 'http:' && isLoopbackHostname(url.hostname)) {
+        url.port = '';
+    }
+    // Registered URIs passed assertSafeRedirectUri, so they parse.
+    return registeredUris.some(registered => new URL(registered).href === url.href);
+}
