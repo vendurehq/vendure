@@ -22,7 +22,7 @@
         "access": "public"
     },
     "dependencies": {
-        "graphql-query-complexity": "^0.12.0"
+        "graphql-query-complexity": "^2.0.0"
     },
     "peerDependencies": {
         "@apollo/server": "^4.12.2"
