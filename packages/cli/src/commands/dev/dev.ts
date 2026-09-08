@@ -35,6 +35,10 @@ export interface DevOptions {
     inspect?: boolean | string;
     inspectBrk?: boolean | string;
     reload?: boolean;
+    // Absolute paths a caller composing this command knows are generated into the watched project
+    // directory as a side effect of something else reloading — a GraphQL codegen step run by a
+    // Dashboard Vite plugin, for example. Changes under these paths do not trigger their own restart.
+    reloadIgnorePaths?: string[];
 }
 
 const validTargets: DevTarget[] = ['all', 'server', 'worker', 'dashboard'];
@@ -77,6 +81,7 @@ export async function devCommand(targetArg?: string, options: DevOptions = {}): 
             startDevProcess(projectDir, processDefinition, {
                 prefixOutput,
                 reload: options.reload !== false && processDefinition.reloadOnChange,
+                reloadIgnorePaths: options.reloadIgnorePaths ?? [],
             }),
         );
         return await waitForDevProcesses(children, {
@@ -153,7 +158,7 @@ export function resolveVendureProjectDirectory(cwd: string): string {
 function startDevProcess(
     projectDir: string,
     processDefinition: DevProcessDefinition,
-    options: { prefixOutput: boolean; reload: boolean },
+    options: { prefixOutput: boolean; reload: boolean; reloadIgnorePaths: string[] },
 ): ManagedDevProcess {
     const binPath = resolvePackageBin(processDefinition.packageName, processDefinition.binName, projectDir);
     return options.reload
@@ -207,7 +212,7 @@ function startSupervisedDevProcess(
     projectDir: string,
     processDefinition: DevProcessDefinition,
     binPath: string,
-    options: { prefixOutput: boolean },
+    options: { prefixOutput: boolean; reloadIgnorePaths: string[] },
 ): ManagedDevProcess {
     let dashboardExtensionDirectories = discoverDashboardExtensionDirectories(projectDir);
     let child: ChildProcess | undefined;
@@ -217,7 +222,12 @@ function startSupervisedDevProcess(
     const watcher = chokidar.watch(projectDir, {
         ignoreInitial: true,
         ignored: (filePath: string) =>
-            isAlwaysIgnoredReloadPath(filePath, projectDir, dashboardExtensionDirectories),
+            isAlwaysIgnoredReloadPath(
+                filePath,
+                projectDir,
+                dashboardExtensionDirectories,
+                options.reloadIgnorePaths,
+            ),
     });
 
     const runningProcess = new ManagedDevProcess(signal => {
@@ -414,8 +424,11 @@ export function shouldRestartOnFileChange(
     filePath: string,
     projectDir: string,
     dashboardExtensionDirectories: string[] = [],
+    reloadIgnorePaths: string[] = [],
 ): boolean {
-    if (isAlwaysIgnoredReloadPath(filePath, projectDir, dashboardExtensionDirectories)) {
+    if (
+        isAlwaysIgnoredReloadPath(filePath, projectDir, dashboardExtensionDirectories, reloadIgnorePaths)
+    ) {
         return false;
     }
     const fileName = path.basename(filePath);
@@ -436,6 +449,7 @@ function isAlwaysIgnoredReloadPath(
     filePath: string,
     projectDir: string,
     dashboardExtensionDirectories: string[],
+    reloadIgnorePaths: string[] = [],
 ): boolean {
     const relativePath = path.relative(projectDir, filePath);
     if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
@@ -446,7 +460,10 @@ function isAlwaysIgnoredReloadPath(
     if (parts.some(part => reloadIgnoredDirectories.has(part) || part === '__data__')) {
         return true;
     }
-    return dashboardExtensionDirectories.some(dir => isPathInside(filePath, dir));
+    if (dashboardExtensionDirectories.some(dir => isPathInside(filePath, dir))) {
+        return true;
+    }
+    return reloadIgnorePaths.some(ignoredPath => isPathInside(filePath, ignoredPath));
 }
 
 export function discoverDashboardExtensionDirectories(projectDir: string): string[] {

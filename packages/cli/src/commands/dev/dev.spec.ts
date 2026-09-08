@@ -239,6 +239,28 @@ describe('dev command', () => {
             );
         });
 
+        it('does not restart server or worker processes for paths a caller declares as generated', () => {
+            const projectDir = path.resolve('/project');
+            const generatedDir = path.join(projectDir, 'src', 'gql');
+
+            expect(
+                shouldRestartOnFileChange(
+                    path.join(generatedDir, 'graphql.ts'),
+                    projectDir,
+                    [],
+                    [generatedDir],
+                ),
+            ).toBe(false);
+            expect(
+                shouldRestartOnFileChange(
+                    path.join(projectDir, 'src', 'vendure-config.ts'),
+                    projectDir,
+                    [],
+                    [generatedDir],
+                ),
+            ).toBe(true);
+        });
+
         it('restarts server or worker processes for TypeScript source files and env changes only', () => {
             const projectDir = path.resolve('/project');
 
