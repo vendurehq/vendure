@@ -312,8 +312,13 @@ function getProjectPluginContext(options: ResolveCliPluginsOptions): ProjectPlug
 
     // Explicit activation: only packages listed in plugins are loaded.
     // An empty or missing list means load nothing.
+    //
+    // Deduplicated because a package listed twice is applied twice, and a
+    // plugin that contributes no command has nothing to collide with the
+    // second time. Its `afterConsoleLink` hook would then run twice per link,
+    // repeating whatever setup that hook does.
     const allowlist = projectPackageJson.vendure?.cli?.plugins
-        ? [...projectPackageJson.vendure.cli.plugins]
+        ? [...new Set(projectPackageJson.vendure.cli.plugins)]
         : undefined;
 
     const resolvePackage =

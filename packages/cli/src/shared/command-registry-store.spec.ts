@@ -761,6 +761,41 @@ describe('resolveCliPlugins()', () => {
         expect(discovered.every(plugin => plugin.status === 'not-enabled')).toBe(true);
     });
 
+    // A plugin applied twice contributes its afterConsoleLink hook twice, and a
+    // plugin with no commands has nothing to collide with on the second pass.
+    it('loads a plugin listed twice only once', () => {
+        const fixture = makeTempProject({
+            project: {
+                name: 'demo',
+                dependencies: { '@example/a': '1.0.0' },
+                vendure: { cli: { plugins: ['@example/a', '@example/a'] } },
+            },
+            plugins: [
+                {
+                    name: '@example/a',
+                    packageJson: {
+                        name: '@example/a',
+                        vendure: { cliPlugin: './cli-plugin.js' },
+                    },
+                    entrySource: `
+                        module.exports = { id: '@example/a', commands: [] };
+                    `,
+                },
+            ],
+        });
+
+        const { loaded, failures } = resolveCliPlugins({
+            cwd: fixture.root,
+            projectPackageJson: fs.readJsonSync(
+                path.join(fixture.root, 'package.json'),
+            ) as PackageJsonLike,
+            resolvePackage: fixture.resolvePackage,
+        });
+
+        expect(failures).toEqual([]);
+        expect(loaded.map(plugin => plugin.packageName)).toEqual(['@example/a']);
+    });
+
     it('loads allowlisted plugins in declared order', () => {
         const fixture = makeTempProject({
             project: {
