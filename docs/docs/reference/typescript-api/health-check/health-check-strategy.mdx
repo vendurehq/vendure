@@ -2,11 +2,13 @@
 title: "HealthCheckStrategy"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/config/system/health-check-strategy.ts" sourceLine="31" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/system/health-check-strategy.ts" sourceLine="33" packageName="@vendure/core" />
 
 This strategy defines health checks which, before v3.6.0, were run by the `/health` endpoint.
 Since v3.6.0 the strategies configured in `systemOptions.healthChecks` are not executed, and this
 interface will be removed in v4.0.0. See the [health checks guide](/core-concepts/healthchecks/).
+
+The example below shows how strategies were configured before v3.6.0.
 
 *Example*
 

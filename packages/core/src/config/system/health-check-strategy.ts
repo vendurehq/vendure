@@ -7,6 +7,8 @@ import { HealthIndicatorFunction } from '../../health-check/terminus-compat';
  * Since v3.6.0 the strategies configured in `systemOptions.healthChecks` are not executed, and this
  * interface will be removed in v4.0.0. See the [health checks guide](/core-concepts/healthchecks/).
  *
+ * The example below shows how strategies were configured before v3.6.0.
+ *
  * @example
  * ```ts
  * import { HttpHealthCheckStrategy, TypeORMHealthCheckStrategy } from '\@vendure/core';
@@ -32,7 +34,7 @@ export interface HealthCheckStrategy extends InjectableStrategy {
     /**
      * @description
      * Should return a {@link HealthIndicatorFunction} which performs the check
-     * and resolves to a status payload.
+     * and resolves to a status payload. Since v3.6.0 this method is never called.
      */
     getHealthIndicator(): HealthIndicatorFunction;
 }

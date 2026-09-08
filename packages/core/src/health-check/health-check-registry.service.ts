@@ -6,12 +6,7 @@ import { HealthIndicatorFunction } from './terminus-compat';
  * `/health` endpoint. Since v3.6.0 registered indicators are not executed, and this service will be
  * removed in v4.0.0. See the [health checks guide](/core-concepts/healthchecks/).
  *
- * Since v1.6.0, the preferred way to implement a custom health check is by creating a new {@link HealthCheckStrategy}
- * and then passing it to the `systemOptions.healthChecks` array.
- * See the {@link HealthCheckStrategy} docs for an example configuration.
- *
- * The alternative way to register a health check is by injecting this service directly into your
- * plugin module. To use it in your plugin, you'll need to import the {@link PluginCommonModule}:
+ * The example below shows how a plugin registered an indicator before v3.6.0:
  *
  * @example
  * ```ts
