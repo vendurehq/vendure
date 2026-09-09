@@ -161,7 +161,7 @@ describe('Channels', () => {
         const { me } = await shopClient.query(MeDocument);
 
         // The customer is a member of the default channel only, so the new channel does
-        // not appear: creating a channel no longer grants every customer access to it.
+        // not appear: creating a channel does not grant every customer access to it.
         expect(me!.channels).toEqual([
             {
                 code: DEFAULT_CHANNEL_CODE,

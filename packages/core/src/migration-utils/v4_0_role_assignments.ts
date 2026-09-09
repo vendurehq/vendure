@@ -47,7 +47,8 @@ import { QueryRunner } from 'typeorm';
  *
  * Call this from your migration's `up()` method **after** the `role_assignment` table
  * has been created and **before** `user_roles_role` and `role_channels_channel` are
- * dropped.
+ * dropped. If it runs out of order, the queries reference a table which does not exist
+ * and the migration fails.
  *
  * The helper is idempotent: rows which already exist are left as-is, so it is safe to
  * re-run, e.g. after a partial failure on MySQL (where DDL is non-transactional) or as

@@ -275,9 +275,8 @@ describe('RoleAssignment', () => {
     // OSS-751 — the role-change event contract of the assignment model. RoleAssignmentEvent
     // (channel-scoped, keyed on the User) is emitted by every actor-made assignment write and
     // is the only role-change event: the legacy RoleChangeEvent was removed in v4.0.0.
-    // AdministratorEvent fires as before. System-mandated rows (the RoleEditor creation grant,
-    // the SuperAdmin rows materialized on Channel creation) are not reported, as in the
-    // legacy model.
+    // AdministratorEvent also fires. System-mandated rows (the SuperAdmin rows materialized
+    // on Channel creation) are not reported.
     describe('event contract', () => {
         interface RecordedEvent {
             kind: 'RoleAssignmentEvent' | 'AdministratorEvent';

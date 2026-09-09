@@ -121,7 +121,7 @@ export class ExternalAuthenticationService {
             }
             user = existingUser;
         } else {
-            // The Customer role's permissions derive from the Customer's channel
+            // Customer permissions derive from the Customer's channel
             // memberships at permission-resolution time — no role bookkeeping needed.
             user = new User({
                 identifier: config.emailAddress,
