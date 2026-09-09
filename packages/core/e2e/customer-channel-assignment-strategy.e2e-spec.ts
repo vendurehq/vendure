@@ -9,7 +9,7 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 
 import { ResultOf } from './graphql/graphql-admin';
 import { createChannelDocument, getCustomerListDocument, MeDocument } from './graphql/shared-definitions';
-import { getProductsTake3Document } from './graphql/shop-definitions';
+import { getActiveCustomerDocument, getProductsTake3Document } from './graphql/shop-definitions';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 
 const NO_AUTOJOIN_CHANNEL_CODE = 'no-autojoin-channel';
@@ -97,6 +97,22 @@ describe('CustomerChannelAssignmentStrategy', () => {
         expect(Array.isArray(products.items)).toBe(true);
 
         // And the Customer is not recorded as a member of the channel.
+        expect(await channelMembers(NO_AUTOJOIN_CHANNEL_TOKEN)).not.toContain(customer.emailAddress);
+    });
+
+    // The ForbiddenError covers operations gated on Permission.Authenticated only. Operations
+    // gated on Permission.Owner need a session and nothing else, so they still run on the
+    // declined channel, but the Customer record is resolved per channel and the session is
+    // treated as a guest there. This records the contract described on
+    // CustomerChannelAssignmentStrategy.
+    it('an Owner-gated operation treats the customer as a guest on a no-autojoin channel', async () => {
+        shopClient.setChannelToken(NO_AUTOJOIN_CHANNEL_TOKEN);
+        await shopClient.asUserWithCredentials(customer.emailAddress, 'test');
+        shopClient.setChannelToken(NO_AUTOJOIN_CHANNEL_TOKEN);
+
+        await assertThrowsWithMessage(() => shopClient.query(MeDocument), FORBIDDEN_MESSAGE)();
+        const { activeCustomer } = await shopClient.query(getActiveCustomerDocument);
+        expect(activeCustomer).toBeNull();
         expect(await channelMembers(NO_AUTOJOIN_CHANNEL_TOKEN)).not.toContain(customer.emailAddress);
     });
 
