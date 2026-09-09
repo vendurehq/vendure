@@ -1,4 +1,4 @@
-import { requiredSlugInput, SlugInput } from '@/vdb/components/data-input/index.js';
+import { requireGeneratedCode, SlugInput } from '@/vdb/components/data-input/index.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
 import { TranslatableFormFieldWrapper } from '@/vdb/components/shared/translatable-form-field.js';
@@ -17,7 +17,7 @@ import {
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
-import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
+import { toTranslationValues, useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
@@ -52,18 +52,13 @@ function FacetDetailPage() {
         queryDocument: facetDetailDocument,
         createDocument: createFacetDocument,
         updateDocument: updateFacetDocument,
-        extendSchema: schema => schema.extend({ code: requiredSlugInput() }),
+        extendSchema: requireGeneratedCode(creatingNewEntity),
         setValuesForUpdate: entity => {
             return {
                 id: entity.id,
                 isPrivate: entity.isPrivate,
                 code: entity.code,
-                translations: entity.translations.map(translation => ({
-                    id: translation.id,
-                    languageCode: translation.languageCode,
-                    name: translation.name,
-                    customFields: (translation as any).customFields,
-                })),
+                translations: toTranslationValues(entity.translations),
                 values: [],
                 customFields: entity.customFields,
             };

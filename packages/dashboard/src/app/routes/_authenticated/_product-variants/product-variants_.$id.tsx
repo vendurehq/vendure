@@ -26,7 +26,7 @@ import {
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
-import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
+import { toTranslationValues, useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { api } from '@/vdb/graphql/api.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { usePermissions } from '@/vdb/hooks/use-permissions.js';
@@ -149,12 +149,7 @@ function ProductVariantDetailPage() {
                     stockOnHand: stockLevel.stockOnHand,
                     stockLocationId: stockLevel.stockLocation.id,
                 })),
-                translations: entity.translations.map(translation => ({
-                    id: translation.id,
-                    languageCode: translation.languageCode,
-                    name: translation.name,
-                    customFields: (translation as any).customFields,
-                })),
+                translations: toTranslationValues(entity.translations),
                 customFields: entity.customFields,
             };
         },

@@ -59,27 +59,36 @@ function resolveWatchFieldPath(
     return watchFieldName;
 }
 
-// SlugInput fetches its value from the server, so the field is still '' for a moment after the
-// source field is typed. The server rejects a blank code or slug, so pages use these to keep the
-// form invalid (and Create disabled) until the value has arrived.
-export function requiredSlugInput() {
-    return z.string().min(1, { message: i18n._(msg`This field is required`) });
+// SlugInput only generates a value for a new record, and it arrives about half a second after the
+// source field is typed. Pages pass one of these to extendSchema so Create stays disabled until the
+// value lands. Nothing is generated for an existing record, so requiring the field there would only
+// block edits.
+export function requireGeneratedCode(creatingNewEntity: boolean) {
+    if (!creatingNewEntity) {
+        return undefined;
+    }
+    return (schema: ZodObject<any>) =>
+        schema.extend({ code: z.string().min(1, { message: i18n._(msg`This field is required`) }) });
 }
 
-// Translation rows without a name are seeded languages the user never touched and are stripped
-// on submit, so only rows with a name need a slug.
-export function requireSlugInTranslations(schema: ZodObject<any>) {
-    return schema.superRefine((values, ctx) => {
-        for (const [index, translation] of (values.translations ?? []).entries()) {
-            if (translation?.name?.trim() && !translation.slug?.trim()) {
-                ctx.addIssue({
-                    code: 'custom',
-                    path: ['translations', index, 'slug'],
-                    message: i18n._(msg`This field is required`),
-                });
+// The slug sits on the translation rows. Only a row the user has named needs one, so the empty rows
+// pre-seeded for the other enabled languages still pass.
+export function requireGeneratedSlug(creatingNewEntity: boolean) {
+    if (!creatingNewEntity) {
+        return undefined;
+    }
+    return (schema: ZodObject<any>) =>
+        schema.superRefine((values, ctx) => {
+            for (const [index, translation] of (values.translations ?? []).entries()) {
+                if (translation?.name?.trim() && !translation.slug?.trim()) {
+                    ctx.addIssue({
+                        code: 'custom',
+                        path: ['translations', index, 'slug'],
+                        message: i18n._(msg`This field is required`),
+                    });
+                }
             }
-        }
-    });
+        });
 }
 
 export interface SlugInputProps extends DashboardFormComponentProps {

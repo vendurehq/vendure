@@ -1,4 +1,4 @@
-import { requiredSlugInput, SlugInput } from '@/vdb/components/data-input/index.js';
+import { requireGeneratedCode, SlugInput } from '@/vdb/components/data-input/index.js';
 import { AssignedChannels } from '@/vdb/components/shared/assigned-channels.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
@@ -18,7 +18,11 @@ import {
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
-import { getDetailQueryOptions, useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
+import {
+    getDetailQueryOptions,
+    toTranslationValues,
+    useDetailPage,
+} from '@/vdb/framework/page/use-detail-page.js';
 import { api } from '@/vdb/graphql/api.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { Trans, useLingui } from '@lingui/react/macro';
@@ -108,17 +112,12 @@ function OptionGroupDetailPage() {
         queryDocument: productOptionGroupDetailDocument,
         createDocument: createProductOptionGroupDocument,
         updateDocument: updateProductOptionGroupDocument,
-        extendSchema: schema => schema.extend({ code: requiredSlugInput() }),
+        extendSchema: requireGeneratedCode(creatingNewEntity),
         setValuesForUpdate: entity => {
             return {
                 id: entity.id,
                 code: entity.code,
-                translations: entity.translations.map(translation => ({
-                    id: translation.id,
-                    languageCode: translation.languageCode,
-                    name: translation.name,
-                    customFields: (translation as any).customFields,
-                })),
+                translations: toTranslationValues(entity.translations),
                 customFields: entity.customFields,
             };
         },
