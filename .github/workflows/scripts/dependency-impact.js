@@ -47,11 +47,32 @@ async function main() {
     const manifests = changedFiles.filter(f => f === 'package.json' || f.endsWith('/package.json'));
     const lockfileChanged = changedFiles.includes('bun.lock');
 
+    // Run on every pull request synchronization so a push which removes the last dependency file
+    // can clear the classification left by an earlier run.
+    if (!manifests.length && !lockfileChanged) {
+        removeLabel(CONTRACT_LABEL);
+        removeLabel(LOCKFILE_LABEL);
+        deleteReportComment();
+        console.log('cleared dependency impact classification (no dependency files changed)');
+        return;
+    }
+
+    const mergeBaseSha = gh([
+        `repos/${repo}/compare/${baseSha}...${headSha}`,
+        '--jq',
+        '.merge_base_commit.sha',
+    ]).trim();
+    if (!mergeBaseSha) {
+        throw new Error(`could not determine merge base for ${baseSha}...${headSha}`);
+    }
+
     const contractChanges = [];
     const otherChanges = [];
 
     for (const path of manifests) {
-        const base = readManifest(path, baseSha);
+        // Compare the pull request head with its merge base, not the current base tip. Otherwise a
+        // change made only on the target branch can be misreported as a reversal by a stale head.
+        const base = readManifest(path, mergeBaseSha);
         const head = readManifest(path, headSha);
         // A manifest present at neither ref cannot be compared. This happens when a pull request
         // adds and then removes the same file across pushes.
@@ -151,17 +172,29 @@ function ensureLabels() {
         try {
             gh([`repos/${repo}/labels/${encodeURIComponent(label.name)}`]);
         } catch (e) {
-            gh([
-                `repos/${repo}/labels`,
-                '-X',
-                'POST',
-                '-f',
-                `name=${label.name}`,
-                '-f',
-                `color=${label.color}`,
-                '-f',
-                `description=${label.description}`,
-            ]);
+            if (!isHttpError(e, 404)) {
+                throw e;
+            }
+            try {
+                gh([
+                    `repos/${repo}/labels`,
+                    '-X',
+                    'POST',
+                    '-f',
+                    `name=${label.name}`,
+                    '-f',
+                    `color=${label.color}`,
+                    '-f',
+                    `description=${label.description}`,
+                ]);
+            } catch (createError) {
+                if (!isHttpError(createError, 422)) {
+                    throw createError;
+                }
+                // A concurrent run can create the label after our lookup. Confirm that this is the
+                // race we expected rather than suppressing an unrelated validation failure.
+                gh([`repos/${repo}/labels/${encodeURIComponent(label.name)}`]);
+            }
         }
     }
 }
@@ -170,10 +203,16 @@ function applyLabel(add, remove) {
     gh([`repos/${repo}/issues/${prNumber}/labels`, '-X', 'POST', '-f', `labels[]=${add}`]);
     // Removing the opposite label matters when a push changes the classification. Without it a
     // pull request that drops a manifest edit keeps both labels and reads as ambiguous.
+    removeLabel(remove);
+}
+
+function removeLabel(label) {
     try {
-        gh([`repos/${repo}/issues/${prNumber}/labels/${encodeURIComponent(remove)}`, '-X', 'DELETE']);
+        gh([`repos/${repo}/issues/${prNumber}/labels/${encodeURIComponent(label)}`, '-X', 'DELETE']);
     } catch (e) {
-        // Not present, which is the common case.
+        if (!isHttpError(e, 404)) {
+            throw e;
+        }
     }
 }
 
@@ -182,18 +221,29 @@ function applyLabel(add, remove) {
  * branch on every rebase, so posting a new comment each time would bury the pull request.
  */
 function upsertComment(body) {
-    const existing = gh([
-        `repos/${repo}/issues/${prNumber}/comments`,
-        '--paginate',
-        '--jq',
-        `[.[] | select(.body | contains("${MARKER}")) | .id] | first // empty`,
-    ]).trim();
+    const existing = findReportComment();
 
     if (existing) {
         gh([`repos/${repo}/issues/comments/${existing}`, '-X', 'PATCH', '-f', `body=${body}`]);
     } else {
         gh([`repos/${repo}/issues/${prNumber}/comments`, '-X', 'POST', '-f', `body=${body}`]);
     }
+}
+
+function deleteReportComment() {
+    const existing = findReportComment();
+    if (existing) {
+        gh([`repos/${repo}/issues/comments/${existing}`, '-X', 'DELETE']);
+    }
+}
+
+function findReportComment() {
+    return gh([
+        `repos/${repo}/issues/${prNumber}/comments`,
+        '--paginate',
+        '--jq',
+        `[.[] | select(.user.login == "github-actions[bot]") | select(.body | contains("${MARKER}")) | .id] | first // empty`,
+    ]).trim();
 }
 
 function buildComment({ label, contractChanges, otherChanges, lockfileChanged, manifests }) {
@@ -208,7 +258,9 @@ function buildComment({ label, contractChanges, otherChanges, lockfileChanged, m
             '| --- | --- | --- |',
         );
         for (const c of contractChanges) {
-            lines.push(`| \`${c.name}\` | ${packageOf(c.path)} / ${c.section} | ${formatRange(c)} |`);
+            lines.push(
+                `| \`${escapeMarkdown(c.name)}\` | ${escapeMarkdown(packageOf(c.path))} / ${escapeMarkdown(c.section)} | ${formatRange(c)} |`,
+            );
         }
         lines.push('');
     } else {
@@ -225,7 +277,9 @@ function buildComment({ label, contractChanges, otherChanges, lockfileChanged, m
         );
         lines.push('| package | section | range |', '| --- | --- | --- |');
         for (const c of otherChanges) {
-            lines.push(`| \`${c.name}\` | ${packageOf(c.path)} / ${c.section} | ${formatRange(c)} |`);
+            lines.push(
+                `| \`${escapeMarkdown(c.name)}\` | ${escapeMarkdown(packageOf(c.path))} / ${escapeMarkdown(c.section)} | ${formatRange(c)} |`,
+            );
         }
         lines.push('', '</details>', '');
     }
@@ -251,12 +305,26 @@ function packageOf(path) {
 
 function formatRange({ from, to }) {
     if (from === undefined) {
-        return `added \`${to}\``;
+        return `added \`${escapeMarkdown(to)}\``;
     }
     if (to === undefined) {
-        return `removed \`${from}\``;
+        return `removed \`${escapeMarkdown(from)}\``;
     }
-    return `\`${from}\` -> \`${to}\``;
+    return `\`${escapeMarkdown(from)}\` -> \`${escapeMarkdown(to)}\``;
+}
+
+function escapeMarkdown(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\|/g, '&#124;')
+        .replace(/`/g, '&#96;')
+        .replace(/\r?\n/g, '<br>');
+}
+
+function isHttpError(error, status) {
+    return `${String(error.stderr || '')}\n${String(error.stdout || '')}`.includes(`HTTP ${status}`);
 }
 
 function gh(args) {

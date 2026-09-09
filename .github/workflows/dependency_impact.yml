@@ -20,9 +20,6 @@ name: Dependency impact
 on:
     pull_request_target:
         types: [opened, reopened, synchronize]
-        paths:
-            - '**/package.json'
-            - 'bun.lock'
 
 permissions: {}
 
@@ -50,6 +47,9 @@ jobs:
                   # makes the intent auditable.
                   ref: ${{ github.event.pull_request.base.sha }}
                   persist-credentials: false
+
+            - name: Test classifier
+              run: node --test .github/workflows/scripts/dependency-impact.test.js
 
             - name: Classify and report
               env:
