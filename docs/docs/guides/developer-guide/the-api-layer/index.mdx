@@ -206,6 +206,9 @@ If you need per-field behaviour such as timing or logging, use an
 plugin with the `willResolveField` hook, which _does_ fire for every field:
 
 ```ts
+import { ApolloServerPlugin } from '@apollo/server';
+import { Logger, VendureConfig } from '@vendure/core';
+
 const perfPlugin: ApolloServerPlugin = {
     async requestDidStart() {
         return {
@@ -223,6 +226,13 @@ const perfPlugin: ApolloServerPlugin = {
                 };
             },
         };
+    },
+};
+
+export const config: VendureConfig = {
+    // ...
+    apiOptions: {
+        apolloServerPlugins: [perfPlugin],
     },
 };
 ```
