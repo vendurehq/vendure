@@ -6,6 +6,9 @@ import { api } from '@/vdb/graphql/api.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
 import { cn } from '@/vdb/lib/utils.js';
+import { z, ZodObject } from '@/vdb/lib/zod.js';
+import { i18n } from '@lingui/core';
+import { msg } from '@lingui/core/macro';
 import { useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from '@uidotdev/usehooks';
@@ -54,6 +57,29 @@ function resolveWatchFieldPath(
     }
 
     return watchFieldName;
+}
+
+// SlugInput fetches its value from the server, so the field is still '' for a moment after the
+// source field is typed. The server rejects a blank code or slug, so pages use these to keep the
+// form invalid (and Create disabled) until the value has arrived.
+export function requiredSlugInput() {
+    return z.string().min(1, { message: i18n._(msg`This field is required`) });
+}
+
+// Translation rows without a name are seeded languages the user never touched and are stripped
+// on submit, so only rows with a name need a slug.
+export function requireSlugInTranslations(schema: ZodObject<any>) {
+    return schema.superRefine((values, ctx) => {
+        for (const [index, translation] of (values.translations ?? []).entries()) {
+            if (translation?.name?.trim() && !translation.slug?.trim()) {
+                ctx.addIssue({
+                    code: 'custom',
+                    path: ['translations', index, 'slug'],
+                    message: i18n._(msg`This field is required`),
+                });
+            }
+        }
+    });
 }
 
 export interface SlugInputProps extends DashboardFormComponentProps {

@@ -1,5 +1,5 @@
 import { RichTextInput } from '@/vdb/components/data-input/rich-text-input.js';
-import { SlugInput } from '@/vdb/components/data-input/slug-input.js';
+import { requireSlugInTranslations, SlugInput } from '@/vdb/components/data-input/slug-input.js';
 import { usePriceFactor } from '@/vdb/components/shared/assign-to-channel-dialog.js';
 import { AssignedChannels } from '@/vdb/components/shared/assigned-channels.js';
 import { AssignedFacetValues } from '@/vdb/components/shared/assigned-facet-values.js';
@@ -143,6 +143,7 @@ function ProductDetailPage() {
         queryDocument: productDetailDocument,
         createDocument: createProductDocument,
         updateDocument: updateProductDocument,
+        extendSchema: requireSlugInTranslations,
         setValuesForUpdate: entity => {
             return {
                 id: entity.id,
