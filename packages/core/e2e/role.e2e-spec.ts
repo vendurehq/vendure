@@ -324,7 +324,7 @@ describe('Role resolver', () => {
         let orderReaderRole: ResultOf<typeof createRoleDocument>['createRole'];
         let adminCreatorRole: ResultOf<typeof createRoleDocument>['createRole'];
         let adminCreatorAdministrator: FragmentOf<typeof administratorFragment>;
-        let escalatedRole: ResultOf<typeof createRoleDocument>['createRole'];
+        let unheldRole: ResultOf<typeof createRoleDocument>['createRole'];
 
         beforeAll(async () => {
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
@@ -358,12 +358,18 @@ describe('Role resolver', () => {
             });
             adminManagerRole = createRole;
 
+            // RoleEditor is an explicit grant: the limited admin receives it on second-channel
+            // alongside the admin-manager role.
+            const roleEditorRole = defaultRoles.find(r => r.code === ROLE_EDITOR_ROLE_CODE)!;
             const { createAdministrator } = await adminClient.query(createAdministratorDocument, {
                 input: {
                     firstName: 'channel2',
                     lastName: 'admin manager',
                     emailAddress: 'channel2@test.com',
-                    roleAssignments: [{ roleId: createRole.id, channelId: secondChannel.id }],
+                    roleAssignments: [
+                        { roleId: createRole.id, channelId: secondChannel.id },
+                        { roleId: roleEditorRole.id, channelId: secondChannel.id },
+                    ],
                     password: 'test',
                 },
             });
@@ -388,8 +394,7 @@ describe('Role resolver', () => {
         it('limited admin sees Roles according to the assigned-channels gate', async () => {
             const result = await adminClient.query(getRolesDocument);
 
-            // The limited admin holds RoleEditor (auto-granted on creation) on
-            // second-channel only, so:
+            // The limited admin holds RoleEditor on second-channel only, so:
             // - second-channel-admin-manager: assigned on second-channel only -> visible
             // - second-channel-order-manager: zero assignments -> vacuously visible
             //   (accepted known issue, TODOs §7)
@@ -455,23 +460,21 @@ describe('Role resolver', () => {
             }, 'Active user does not have sufficient permissions'),
         );
 
-        // The permission-envelope check on role CRUD was removed in favor of the RoleEditor
-        // gate (ruling 2026-08-31): a RoleEditor holder can write permissions they do not
-        // themselves hold into a Role. Recorded self-escalation caveat: RoleEditor is
-        // high-trust.
-        it('limited admin can create a Role with permissions it does not itself hold', async () => {
-            const { createRole } = await adminClient.query(createRoleDocument, {
-                input: {
-                    code: 'escalated-order-manager',
-                    description: '',
-                    permissions: [Permission.ReadOrder],
-                },
-            });
-
-            expect(createRole.code).toBe('escalated-order-manager');
-            expect(createRole.permissions).toEqual([Permission.Authenticated, Permission.ReadOrder]);
-            escalatedRole = createRole;
-        });
+        // The permission-envelope rule: a Role may only carry permissions the actor holds.
+        // Without it a RoleEditor holder could write any permission into a Role they hold
+        // themselves and receive it on their next request.
+        it(
+            'limited admin cannot create a Role with permissions it does not itself hold',
+            assertThrowsWithMessage(async () => {
+                await adminClient.query(createRoleDocument, {
+                    input: {
+                        code: 'escalated-order-manager',
+                        description: '',
+                        permissions: [Permission.ReadOrder],
+                    },
+                });
+            }, 'Active user does not have sufficient permissions'),
+        );
 
         it(
             'limited admin cannot create Administrator with a Role with greater permissions than they themselves have',
@@ -516,21 +519,77 @@ describe('Role resolver', () => {
             adminCreatorAdministrator = createAdministrator;
         });
 
-        // Counterpart of the create case above: the envelope check is gone from updateRole
-        // too. The gate passes because escalated-order-manager has zero assignments.
-        it('limited admin can update a Role it manages with permissions it does not itself hold', async () => {
+        // The envelope rule on updateRole, for a Role the actor holds: second-channel-admin-manager
+        // is assigned only on second-channel, where the limited admin holds RoleEditor, so the
+        // RoleEditor gate passes. Adding a permission the actor does not hold is still refused.
+        it(
+            'limited admin cannot add permissions it does not hold to a Role it holds itself',
+            assertThrowsWithMessage(async () => {
+                await adminClient.query(updateRoleDocument, {
+                    input: {
+                        id: adminManagerRole.id,
+                        permissions: [
+                            Permission.CreateAdministrator,
+                            Permission.ReadAdministrator,
+                            Permission.UpdateAdministrator,
+                            Permission.DeleteAdministrator,
+                            Permission.ReadOrder,
+                        ],
+                    },
+                });
+            }, 'Active user does not have sufficient permissions'),
+        );
+
+        // The same rule for a Role with zero assignments, where the RoleEditor gate passes
+        // vacuously.
+        it(
+            'limited admin cannot update a Role with no assignments with permissions it does not hold',
+            assertThrowsWithMessage(async () => {
+                await adminClient.query(updateRoleDocument, {
+                    input: {
+                        id: orderReaderRole.id,
+                        permissions: [Permission.ReadOrder, Permission.ReadCustomer],
+                    },
+                });
+            }, 'Active user does not have sufficient permissions'),
+        );
+
+        it('limited admin can update a Role it manages with permissions it holds', async () => {
             const result = await adminClient.query(updateRoleDocument, {
                 input: {
-                    id: escalatedRole.id,
-                    permissions: [Permission.ReadOrder, Permission.ReadCustomer],
+                    id: adminCreatorRole.id,
+                    description: 'creates administrators',
+                    permissions: [Permission.CreateAdministrator, Permission.ReadAdministrator],
                 },
             });
 
+            expect(result.updateRole.description).toBe('creates administrators');
             expect(result.updateRole.permissions).toEqual([
                 Permission.Authenticated,
-                Permission.ReadOrder,
-                Permission.ReadCustomer,
+                Permission.CreateAdministrator,
+                Permission.ReadAdministrator,
             ]);
+        });
+
+        // assignRoleToAdministrator writes through the same guarded path as
+        // setRoleAssignmentsForUser: a Role the actor could not grant is refused even when
+        // it has no assignments and is therefore readable.
+        it('limited admin cannot grant a Role it does not hold via assignRoleToAdministrator', async () => {
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            await adminClient.asSuperAdmin();
+            const { createRole } = await adminClient.query(createRoleDocument, {
+                input: { code: 'unheld-role', description: '', permissions: [Permission.ReadOrder] },
+            });
+            unheldRole = createRole;
+
+            adminClient.setChannelToken(secondChannel.token);
+            await adminClient.asUserWithCredentials(limitedAdmin.emailAddress, 'test');
+            await assertThrowsWithMessage(async () => {
+                await adminClient.query(assignRoleToAdministratorDocument, {
+                    administratorId: limitedAdmin.id,
+                    roleId: unheldRole.id,
+                });
+            }, 'Active user does not have sufficient permissions')();
         });
 
         it(
@@ -582,32 +641,35 @@ describe('Role resolver', () => {
             });
         });
 
-        it('an administrator stripped of RoleEditor is denied role CRUD by the resolver', async () => {
-            // Every administrator receives RoleEditor on creation, but it is an ordinary
-            // assignment row: a replace-set write which omits it revokes it.
+        it('an administrator without RoleEditor is denied role CRUD but can list the Roles it could grant', async () => {
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
             await adminClient.asSuperAdmin();
-            const { createAdministrator } = await adminClient.query(createAdministratorDocument, {
+            await adminClient.query(createAdministratorDocument, {
                 input: {
-                    firstName: 'Stripped',
-                    lastName: 'Admin',
-                    emailAddress: 'stripped@test.com',
+                    firstName: 'No',
+                    lastName: 'RoleEditor',
+                    emailAddress: 'no-role-editor@test.com',
                     password: 'test',
-                    roleAssignments: [{ roleId: adminManagerRole.id, channelId: secondChannel.id }],
-                },
-            });
-            await adminClient.query(updateAdministratorDocument, {
-                input: {
-                    id: createAdministrator.id,
                     roleAssignments: [{ roleId: adminManagerRole.id, channelId: secondChannel.id }],
                 },
             });
 
             adminClient.setChannelToken(secondChannel.token);
-            await adminClient.asUserWithCredentials('stripped@test.com', 'test');
-            await assertThrowsWithMessage(async () => {
-                await adminClient.query(getRolesDocument);
-            }, 'You are not currently authorized to perform this action')();
+            await adminClient.asUserWithCredentials('no-role-editor@test.com', 'test');
+            // The roles query is open to ReadAdministrator holders so that an administrator
+            // who manages other administrators can pick the Roles to grant. Visible are the
+            // system roles and the Roles whose permission list the actor holds on every
+            // channel where they are assigned (or anywhere, for Roles with no assignments).
+            const { roles } = await adminClient.query(getRolesDocument);
+            expect(roles.items.map(r => r.code).sort()).toEqual(
+                [
+                    ROLE_EDITOR_ROLE_CODE,
+                    SUPER_ADMIN_ROLE_CODE,
+                    'good-admin-creator',
+                    'second-channel-admin-manager',
+                    'test',
+                ].sort(),
+            );
             await assertThrowsWithMessage(async () => {
                 await adminClient.query(createRoleDocument, {
                     input: { code: 'no-create-role', description: '', permissions: [] },
@@ -655,18 +717,8 @@ describe('Role resolver', () => {
                     ],
                 },
             });
-            // Strip the creation-granted RoleEditor from the default channel, keeping only
-            // the read-only role there: reader@test.com now holds ReadRole on both channels
-            // but UpdateRole only on second-channel.
-            await adminClient.query(updateAdministratorDocument, {
-                input: {
-                    id: createAdministrator.id,
-                    roleAssignments: [
-                        { roleId: createRole.id, channelId: DEFAULT_CHANNEL_ID },
-                        { roleId: roleEditorRole.id, channelId: secondChannel.id },
-                    ],
-                },
-            });
+            // reader@test.com holds ReadRole on both channels but UpdateRole only on
+            // second-channel.
 
             adminClient.setChannelToken(secondChannel.token);
             await adminClient.asUserWithCredentials('reader@test.com', 'test');
@@ -740,12 +792,16 @@ describe('Role resolver', () => {
                 },
             });
 
+            const roleEditorRole = defaultRoles.find(r => r.code === ROLE_EDITOR_ROLE_CODE)!;
             const { createAdministrator } = await adminClient.query(createAdministratorDocument, {
                 input: {
                     firstName: 'Limited',
                     lastName: 'Admin',
                     emailAddress: 'limited@test.com',
-                    roleIds: [visibleRole.createRole.id],
+                    roleAssignments: [
+                        { roleId: visibleRole.createRole.id, channelId: 'T_1' },
+                        { roleId: roleEditorRole.id, channelId: 'T_1' },
+                    ],
                     password: 'test',
                 },
             });
@@ -756,13 +812,11 @@ describe('Role resolver', () => {
             // Login as limited admin
             await adminClient.asUserWithCredentials(limitedChannelAdmin.emailAddress, 'test');
 
-            // limited@test.com holds ReadRole (via the creation-granted RoleEditor) on the
-            // default channel only. Visible = roles whose assigned channels are a subset of
-            // {default channel}:
+            // limited@test.com holds ReadRole (via RoleEditor) on the default channel only.
+            // Visible = roles whose assigned channels are a subset of {default channel}:
             // - visible-role: assigned to limited@test.com on the default channel
             // - role-reader: assigned to reader@test.com on the default channel (gate suite)
-            // - zero-assignment roles: test, test2, second-channel-order-manager,
-            //   escalated-order-manager
+            // - zero-assignment roles: test, test2, second-channel-order-manager, unheld-role
             // - system roles (SuperAdmin, RoleEditor): bypass the gate
             // Invisible: second-channel-admin-manager, good-admin-creator and hidden-role
             // (all assigned on second-channel only).
@@ -771,11 +825,11 @@ describe('Role resolver', () => {
                 [
                     ROLE_EDITOR_ROLE_CODE,
                     SUPER_ADMIN_ROLE_CODE,
-                    'escalated-order-manager',
                     'role-reader',
                     'second-channel-order-manager',
                     'test',
                     'test2',
+                    'unheld-role',
                     'visible-role',
                 ].sort(),
             );

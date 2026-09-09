@@ -6,7 +6,7 @@ import {
 } from '@vendure/common/lib/generated-types';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { unique } from '@vendure/common/lib/unique';
-import { In, IsNull } from 'typeorm';
+import { IsNull } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
@@ -147,23 +147,12 @@ export class AdministratorService {
         } else if (input.roleIds) {
             // Deprecated `roleIds` input (since 4.0.0): grants the Roles on the active Channel.
             // Remove this branch in v5.0.0.
-            await this.roleAssignmentService.replaceUserAssignmentsOnChannel(
+            await this.setRoleAssignmentsForUser(
                 ctx,
                 savedAdministrator.user.id,
-                input.roleIds,
-                ctx.channelId,
+                input.roleIds.map(roleId => ({ roleId, channelId: ctx.channelId })),
             );
         }
-        // Every Administrator is granted the RoleEditor role on the Channels of their
-        // initial Role grants (the active Channel when created without Roles), giving them
-        // the Role CRUD permissions there.
-        await this.grantRoleEditor(
-            ctx,
-            savedAdministrator.user.id,
-            input.roleAssignments?.length
-                ? input.roleAssignments.map(assignment => assignment.channelId)
-                : [ctx.channelId],
-        );
         const createdAdministrator = await assertFound(this.findOne(ctx, savedAdministrator.id));
         await this.customFieldRelationService.updateRelations(
             ctx,
@@ -212,13 +201,6 @@ export class AdministratorService {
         // Deprecated `roleIds` input (since 4.0.0): remove this whole branch in v5.0.0, leaving
         // `roleAssignments` as the only role input.
         if (input.roleIds) {
-            const isSoleSuperAdmin = await this.isSoleSuperadmin(ctx, input.id);
-            if (isSoleSuperAdmin) {
-                const superAdminRole = await this.roleService.getSuperAdminRole(ctx);
-                if (!input.roleIds.find(id => idsAreEqual(id, superAdminRole.id))) {
-                    throw new InternalServerError('error.superadmin-must-have-superadmin-role');
-                }
-            }
             // The deprecated `roleIds` input replaces the user's Role assignments on the
             // active Channel; assignments on other Channels are untouched. The write is
             // expressed as a full replace-set so that both role inputs share one write path
@@ -250,23 +232,20 @@ export class AdministratorService {
 
     /**
      * @description
-     * Assigns a Role to the Administrator's User on the active Channel.
+     * Assigns a Role to the Administrator's User on the active Channel. The write goes
+     * through {@link setRoleAssignmentsForUser}, so the active user must be permitted to
+     * grant the Role on the active Channel and a {@link RoleAssignmentEvent} is published.
      */
     async assignRole(ctx: RequestContext, administratorId: ID, roleId: ID): Promise<Administrator> {
         const administrator = await this.findOne(ctx, administratorId);
         if (!administrator) {
             throw new EntityNotFoundError('Administrator', administratorId);
         }
-        const role = await this.roleService.findOne(ctx, roleId);
-        if (!role) {
-            throw new EntityNotFoundError('Role', roleId);
-        }
-        await this.roleAssignmentService.assignRoleOnChannel(
-            ctx,
-            administrator.user.id,
-            roleId,
-            ctx.channelId,
-        );
+        const existing = await this.roleAssignmentService.getAssignmentsForUser(ctx, administrator.user.id);
+        await this.setRoleAssignmentsForUser(ctx, administrator.user.id, [
+            ...existing.map(assignment => ({ roleId: assignment.roleId, channelId: assignment.channelId })),
+            { roleId, channelId: ctx.channelId },
+        ]);
         return assertFound(this.findOne(ctx, administratorId));
     }
 
@@ -279,6 +258,11 @@ export class AdministratorService {
      * and removed pairs alike — on the Channel of that pair (see
      * {@link RoleService.assertActiveUserCanGrantRoles}). The sole SuperAdmin cannot have
      * the SuperAdmin Role taken away.
+     *
+     * The SuperAdmin Role has no channel scope: the {@link RolePermissionResolver} grants
+     * all permissions on every Channel to a User holding it on any Channel. A target which
+     * contains the SuperAdmin Role on some Channels is therefore expanded to every Channel,
+     * so that the stored assignments match the access they grant.
      *
      * This is the single write path behind the `roleAssignments` and the deprecated `roleIds`
      * inputs of the administrator mutations. The changed pairs are reported by the
@@ -296,20 +280,25 @@ export class AdministratorService {
         if (!user) {
             throw new EntityNotFoundError('User', userId);
         }
-        const target = assignments.filter(
+        const superAdminRole = await this.roleService.getSuperAdminRole(ctx);
+        const allChannels = await this.connection.getRepository(ctx, Channel).find();
+        const holdsSuperAdmin = assignments.some(pair => idsAreEqual(pair.roleId, superAdminRole.id));
+        const expanded: RoleChannelPair[] = holdsSuperAdmin
+            ? [
+                  ...assignments,
+                  ...allChannels.map(channel => ({ roleId: superAdminRole.id, channelId: channel.id })),
+              ]
+            : assignments;
+        const target = expanded.filter(
             (pair, index) =>
-                assignments.findIndex(
+                expanded.findIndex(
                     other =>
                         idsAreEqual(other.roleId, pair.roleId) &&
                         idsAreEqual(other.channelId, pair.channelId),
                 ) === index,
         );
-        const channelIds = unique(target.map(pair => pair.channelId));
-        const channels = await this.connection
-            .getRepository(ctx, Channel)
-            .find({ where: { id: In(channelIds) } });
-        for (const channelId of channelIds) {
-            if (!channels.some(channel => idsAreEqual(channel.id, channelId))) {
+        for (const channelId of unique(target.map(pair => pair.channelId))) {
+            if (!allChannels.some(channel => idsAreEqual(channel.id, channelId))) {
                 throw new EntityNotFoundError('Channel', channelId);
             }
         }
@@ -347,7 +336,6 @@ export class AdministratorService {
         if (administrator) {
             const isSoleSuperAdmin = await this.isSoleSuperadmin(ctx, administrator.id);
             if (isSoleSuperAdmin) {
-                const superAdminRole = await this.roleService.getSuperAdminRole(ctx);
                 if (!target.some(pair => idsAreEqual(pair.roleId, superAdminRole.id))) {
                     throw new InternalServerError('error.superadmin-must-have-superadmin-role');
                 }
@@ -376,19 +364,6 @@ export class AdministratorService {
         return {
             result: DeletionResult.DELETED,
         };
-    }
-
-    /**
-     * Grants the RoleEditor role to the given User on the given Channels. The grant is
-     * system-mandated rather than actor-made, so it deliberately bypasses
-     * assertActiveUserCanGrantRoles: the acting user may hold CreateAdministrator
-     * without the Role CRUD permissions.
-     */
-    private async grantRoleEditor(ctx: RequestContext, userId: ID, channelIds: ID[]): Promise<void> {
-        const roleEditorRole = await this.roleService.getRoleEditorRole(ctx);
-        for (const channelId of unique(channelIds)) {
-            await this.roleAssignmentService.assignRoleOnChannel(ctx, userId, roleEditorRole.id, channelId);
-        }
     }
 
     /**

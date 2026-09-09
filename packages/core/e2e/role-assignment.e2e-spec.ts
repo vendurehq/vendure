@@ -30,7 +30,7 @@ import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
  * built out in a dedicated stage; see the OSS-300 stage docs for the full recorded scope
  * (resolution semantics, fail-closed guards, the roleAssignments admin API surface).
  *
- * This first slice covers the channel-isolation property and the RoleEditor creation
+ * This first slice covers the channel-isolation property and the explicit RoleEditor
  * grant / replace-set revocation semantics (OSS-749).
  */
 describe('RoleAssignment', () => {
@@ -83,21 +83,28 @@ describe('RoleAssignment', () => {
         });
         adminManagerRole = createRole;
 
+        const { roles } = await adminClient.query(rolesDocument);
+        const roleEditorRole = roles.items.find(r => r.code === ROLE_EDITOR_ROLE_CODE);
+        if (!roleEditorRole) {
+            throw new Error('Expected the RoleEditor system role to exist');
+        }
+        roleEditorRoleId = roleEditorRole.id;
+
+        // RoleEditor is an explicit grant: the channel admin receives it on second-channel
+        // alongside the admin-manager role.
         const { createAdministrator } = await adminClient.query(createAdministratorDocument, {
             input: {
                 firstName: 'Channel',
                 lastName: 'Admin',
                 emailAddress: 'channeladmin@test.com',
                 password: 'test',
-                roleAssignments: [{ roleId: adminManagerRole.id, channelId: secondChannel.id }],
+                roleAssignments: [
+                    { roleId: adminManagerRole.id, channelId: secondChannel.id },
+                    { roleId: roleEditorRoleId, channelId: secondChannel.id },
+                ],
             },
         });
         channelAdmin = createAdministrator;
-        const roleEditorRole = createAdministrator.user.roles.find(r => r.code === ROLE_EDITOR_ROLE_CODE);
-        if (!roleEditorRole) {
-            throw new Error('Expected the created administrator to hold the RoleEditor role');
-        }
-        roleEditorRoleId = roleEditorRole.id;
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -106,7 +113,7 @@ describe('RoleAssignment', () => {
 
     // The channel-isolation property at the heart of the model: an assignment grants a
     // Role's permissions on its Channel and nothing else. Probed with createRole: the
-    // creation-granted RoleEditor supplies CreateRole on second-channel only.
+    // RoleEditor grant supplies CreateRole on second-channel only.
     it('role assignment grants permissions only on its channel', async () => {
         await adminClient.asUserWithCredentials(channelAdmin.emailAddress, 'test');
         // asUserWithCredentials switches to the user's single channel, so the
@@ -131,16 +138,15 @@ describe('RoleAssignment', () => {
         expect(createRole.code).toBe('created-on-second-channel');
     });
 
-    // Every Administrator is granted the RoleEditor role on creation (OSS-749). The grant
-    // is system-mandated: it bypasses the grant guard and lands on the channels of the
-    // initial role grants, or the active channel when created without roles.
-    describe('RoleEditor creation grant', () => {
+    // RoleEditor is an ordinary Role granted explicitly (OSS-749): creating an
+    // Administrator stores exactly the given assignments and nothing else.
+    describe('RoleEditor is an explicit grant', () => {
         beforeAll(async () => {
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
             await adminClient.asSuperAdmin();
         });
 
-        it('lands on the channels of the initial role assignments', async () => {
+        it('createAdministrator stores exactly the given assignments', async () => {
             const assignments = await getUserRoleAssignments(channelAdmin.id);
 
             expect(assignments.sort(byRoleCodeAndChannel)).toEqual(
@@ -151,7 +157,7 @@ describe('RoleAssignment', () => {
             );
         });
 
-        it('is granted on the active channel when created without roles', async () => {
+        it('an administrator created without roles holds no assignments', async () => {
             const { createAdministrator } = await adminClient.query(createAdministratorDocument, {
                 input: {
                     firstName: 'No',
@@ -162,12 +168,10 @@ describe('RoleAssignment', () => {
             });
 
             const assignments = await getUserRoleAssignments(createAdministrator.id);
-            expect(assignments).toEqual([
-                { roleCode: ROLE_EDITOR_ROLE_CODE, channelId: DEFAULT_CHANNEL_ID },
-            ]);
+            expect(assignments).toEqual([]);
         });
 
-        it('is granted on the active channel for the deprecated roleIds input', async () => {
+        it('the deprecated roleIds input grants only the given Roles on the active channel', async () => {
             const { createAdministrator } = await adminClient.query(createAdministratorDocument, {
                 input: {
                     firstName: 'Role',
@@ -179,12 +183,9 @@ describe('RoleAssignment', () => {
             });
 
             const assignments = await getUserRoleAssignments(createAdministrator.id);
-            expect(assignments.sort(byRoleCodeAndChannel)).toEqual(
-                [
-                    { roleCode: adminManagerRole.code, channelId: DEFAULT_CHANNEL_ID },
-                    { roleCode: ROLE_EDITOR_ROLE_CODE, channelId: DEFAULT_CHANNEL_ID },
-                ].sort(byRoleCodeAndChannel),
-            );
+            expect(assignments).toEqual([
+                { roleCode: adminManagerRole.code, channelId: DEFAULT_CHANNEL_ID },
+            ]);
         });
     });
 
@@ -370,7 +371,6 @@ describe('RoleAssignment', () => {
             expect(kindsOf(events)).toEqual(['RoleAssignmentEvent:assigned', 'AdministratorEvent:created']);
             const [assigned] = events;
             expect(assigned.userId).toBe(eventAdmin.user.id);
-            // the system-mandated RoleEditor grant is not reported
             expect(assigned.assignments?.sort(byRoleAndChannel)).toEqual(
                 [
                     { roleId: roleA.id, channelId: DEFAULT_CHANNEL_ID },
@@ -397,15 +397,11 @@ describe('RoleAssignment', () => {
         });
 
         it('a channel-only move emits RoleAssignmentEvent for the removed and the added pair', async () => {
-            // legacyAdmin holds role-a and RoleEditor on the default channel; move role-a to
-            // the second channel.
+            // legacyAdmin holds role-a on the default channel; move it to the second channel.
             await adminClient.query(updateAdministratorDocument, {
                 input: {
                     id: legacyAdmin.id,
-                    roleAssignments: [
-                        { roleId: roleA.id, channelId: secondChannel.id },
-                        { roleId: roleEditorRoleId, channelId: DEFAULT_CHANNEL_ID },
-                    ],
+                    roleAssignments: [{ roleId: roleA.id, channelId: secondChannel.id }],
                 },
             });
 
@@ -420,9 +416,9 @@ describe('RoleAssignment', () => {
         });
 
         it('the deprecated roleIds input reports only the pairs changed on the active channel', async () => {
-            // eventAdmin holds role-a and RoleEditor on both channels. Replacing the default
-            // channel's roles with role-b revokes role-a and RoleEditor there; the second
-            // channel's rows are untouched and must not be reported.
+            // eventAdmin holds role-a on both channels. Replacing the default channel's roles
+            // with role-b revokes role-a there; the second channel's rows are untouched and
+            // must not be reported.
             await adminClient.query(updateAdministratorDocument, {
                 input: { id: eventAdmin.id, roleIds: [roleB.id] },
             });
@@ -434,12 +430,7 @@ describe('RoleAssignment', () => {
                 'AdministratorEvent:updated',
             ]);
             expect(events[0].assignments).toEqual([{ roleId: roleB.id, channelId: DEFAULT_CHANNEL_ID }]);
-            expect(events[1].assignments?.sort(byRoleAndChannel)).toEqual(
-                [
-                    { roleId: roleA.id, channelId: DEFAULT_CHANNEL_ID },
-                    { roleId: roleEditorRoleId, channelId: DEFAULT_CHANNEL_ID },
-                ].sort(byRoleAndChannel),
-            );
+            expect(events[1].assignments).toEqual([{ roleId: roleA.id, channelId: DEFAULT_CHANNEL_ID }]);
             expect(events[0].userId).toBe(eventAdmin.user.id);
 
             const assignments = await getUserRoleAssignments(eventAdmin.id);
@@ -459,10 +450,7 @@ describe('RoleAssignment', () => {
             // drop role-b, the only role held on the default channel
             await adminClient.query(setRoleAssignmentsForUserDocument, {
                 userId: eventAdmin.user.id,
-                assignments: [
-                    { roleId: roleA.id, channelId: secondChannel.id },
-                    { roleId: roleEditorRoleId, channelId: secondChannel.id },
-                ],
+                assignments: [{ roleId: roleA.id, channelId: secondChannel.id }],
             });
 
             const events = await collectEvents();
@@ -510,6 +498,17 @@ describe('RoleAssignment', () => {
     ) {
         return a.roleCode.localeCompare(b.roleCode) || a.channelId.localeCompare(b.channelId);
     }
+
+    const rolesDocument = graphql(`
+        query RoleAssignmentSpecRoles {
+            roles {
+                items {
+                    id
+                    code
+                }
+            }
+        }
+    `);
 
     async function getUserRoleAssignments(
         administratorId: string,

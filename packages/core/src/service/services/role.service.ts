@@ -100,9 +100,7 @@ export class RoleService {
         const visibleRoleIds: ID[] = allRoles.filter(role => this.isSystemRole(role)).map(role => role.id);
         for (const role of gatedRoles) {
             const assignedChannelIds = assignedChannelIdsByRole.get(role.id.toString()) ?? [];
-            if (
-                await this.activeUserHoldsPermissionOnChannels(ctx, Permission.ReadRole, assignedChannelIds)
-            ) {
+            if (await this.activeUserCanReadRoleOnChannels(ctx, role, assignedChannelIds)) {
                 visibleRoleIds.push(role.id);
             }
         }
@@ -151,9 +149,9 @@ export class RoleService {
     /**
      * @description
      * Returns the special RoleEditor Role, which always exists in Vendure. It bundles the
-     * Role CRUD permissions (`CreateRole`, `ReadRole`, `UpdateRole`, `DeleteRole`) and is
-     * granted to every Administrator on creation. Unlike the SuperAdmin and Customer roles
-     * it is assigned and revoked like any ordinary Role.
+     * Role CRUD permissions (`CreateRole`, `ReadRole`, `UpdateRole`, `DeleteRole`). It is
+     * granted and revoked like any ordinary Role, by an actor who holds those permissions
+     * on the target Channel; no Administrator receives it automatically.
      *
      * @since 4.0.0
      */
@@ -210,13 +208,59 @@ export class RoleService {
         if (this.isSystemRole(role)) {
             return true;
         }
-        return this.activeUserCanManageRole(ctx, role, Permission.ReadRole);
+        const assignedChannelIds = await this.roleAssignmentService.getChannelIdsWithAssignments(
+            ctx,
+            role.id,
+        );
+        return this.activeUserCanReadRoleOnChannels(ctx, role, assignedChannelIds);
+    }
+
+    /**
+     * The read gate. A Role is visible to an actor who may edit it (ReadRole on every
+     * Channel where it is assigned) and to an actor who may grant it (the Role's full
+     * permission list on every Channel where it is assigned, or on at least one Channel
+     * when it has no assignments). The second clause lets an administrator who manages
+     * other administrators on their Channel list the Roles they may grant without holding
+     * the Role CRUD permissions.
+     */
+    private async activeUserCanReadRoleOnChannels(
+        ctx: RequestContext,
+        role: Role,
+        assignedChannelIds: ID[],
+    ): Promise<boolean> {
+        if (await this.activeUserHoldsPermissionOnChannels(ctx, Permission.ReadRole, assignedChannelIds)) {
+            return true;
+        }
+        return this.activeUserHoldsPermissionsOnAssignedChannels(ctx, role.permissions, assignedChannelIds);
+    }
+
+    /**
+     * The permission-envelope rule for writing a permission list into a Role: the actor
+     * must hold every permission in the list on every Channel where the Role is assigned,
+     * or on at least one Channel when it has no assignments. Without this rule an actor
+     * holding UpdateRole could add permissions they do not hold to a Role they hold
+     * themselves, and receive those permissions on their next request.
+     */
+    private async activeUserHoldsPermissionsOnAssignedChannels(
+        ctx: RequestContext,
+        permissions: Permission[],
+        assignedChannelIds: ID[],
+    ): Promise<boolean> {
+        if (assignedChannelIds.length === 0) {
+            return this.activeUserHoldsPermissionsOnAnyChannel(ctx, permissions);
+        }
+        for (const channelId of assignedChannelIds) {
+            if (!(await this.userHasAllPermissionsOnChannel(ctx, channelId, permissions))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
      * The role CRUD gate: the active user may read / update / delete a Role iff they hold
      * the corresponding Role permission on every Channel on which that Role currently has
-     * assignment rows. A Role with no assignments passes vacuously. System roles never
+     * assignment rows, or on at least one Channel for a Role with no assignments. System roles never
      * reach this gate: reads bypass it (activeUserCanReadRole) and writes are refused
      * earlier by the isSystemRole check.
      */
@@ -232,6 +276,12 @@ export class RoleService {
         return this.activeUserHoldsPermissionOnChannels(ctx, permission, assignedChannelIds);
     }
 
+    /**
+     * Whether the active user holds the permission on every one of the given Channels, or
+     * on at least one Channel when the list is empty. The second case is the gate for a Role
+     * with no assignments: it is open to any holder of the permission, and closed to an
+     * actor who holds it nowhere.
+     */
     private async activeUserHoldsPermissionOnChannels(
         ctx: RequestContext,
         permission: Permission,
@@ -240,6 +290,9 @@ export class RoleService {
         const { channels, globalPermissions } = await this.getActiveUserResolvedPermissions(ctx);
         if (globalPermissions.includes(permission)) {
             return true;
+        }
+        if (channelIds.length === 0) {
+            return channels.some(channel => channel.permissions.includes(permission));
         }
         return channelIds.every(channelId =>
             channels.some(
@@ -374,6 +427,10 @@ export class RoleService {
 
     async create(ctx: RequestContext, input: CreateRoleInput): Promise<Role> {
         this.checkPermissionsAreValid(input.permissions);
+        const permissions = unique([Permission.Authenticated, ...input.permissions]);
+        if (!(await this.activeUserHoldsPermissionsOnAssignedChannels(ctx, permissions, []))) {
+            throw new UserInputError('error.active-user-does-not-have-sufficient-permissions');
+        }
         const role = await this.createRoleEntity(ctx, input);
         await this.eventBus.publish(new RoleEvent(ctx, role, 'created', input));
         return role;
@@ -388,8 +445,26 @@ export class RoleService {
         if (this.isSystemRole(role)) {
             throw new InternalServerError('error.cannot-modify-role', { roleCode: role.code });
         }
-        if (!(await this.activeUserCanManageRole(ctx, role, Permission.UpdateRole))) {
+        const assignedChannelIds = await this.roleAssignmentService.getChannelIdsWithAssignments(
+            ctx,
+            role.id,
+        );
+        if (
+            !(await this.activeUserHoldsPermissionOnChannels(ctx, Permission.UpdateRole, assignedChannelIds))
+        ) {
             throw new UserInputError('error.active-user-cannot-manage-role', { roleCode: role.code });
+        }
+        if (input.permissions) {
+            const permissions = unique([Permission.Authenticated, ...input.permissions]);
+            if (
+                !(await this.activeUserHoldsPermissionsOnAssignedChannels(
+                    ctx,
+                    permissions,
+                    assignedChannelIds,
+                ))
+            ) {
+                throw new UserInputError('error.active-user-does-not-have-sufficient-permissions');
+            }
         }
         patchEntity(role, {
             code: input.code,

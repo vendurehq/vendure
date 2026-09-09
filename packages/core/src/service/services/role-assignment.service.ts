@@ -279,9 +279,8 @@ export class RoleAssignmentService {
     /**
      * Publishes one `assigned` and/or one `removed` {@link RoleAssignmentEvent} for the
      * pairs a write actually changed. Nothing is published for a no-op write. Deliberately
-     * not called by the system-mandated writes ({@link assignRoleOnChannel},
-     * {@link assignSuperAdminRoleHoldersToChannel}, {@link assignRoleOnAllChannels}), which
-     * stay silent as their legacy counterparts did.
+     * not called by the system-mandated writes ({@link assignSuperAdminRoleHoldersToChannel},
+     * {@link assignRoleOnAllChannels}), which stay silent as their legacy counterparts did.
      */
     private async publishAssignmentEvents(
         ctx: RequestContext,

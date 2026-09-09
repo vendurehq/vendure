@@ -24,7 +24,7 @@ export class RoleResolver {
     constructor(private roleService: RoleService) {}
 
     @Query()
-    @Allow(Permission.ReadRole)
+    @Allow(Permission.ReadAdministrator, Permission.ReadRole)
     roles(
         @Ctx() ctx: RequestContext,
         @Args() args: QueryRolesArgs,
@@ -34,7 +34,7 @@ export class RoleResolver {
     }
 
     @Query()
-    @Allow(Permission.ReadRole)
+    @Allow(Permission.ReadAdministrator, Permission.ReadRole)
     role(
         @Ctx() ctx: RequestContext,
         @Args() args: QueryRoleArgs,

@@ -15,8 +15,8 @@ import { VendureEvent } from '../vendure-event';
  * and Administrators created via external authentication. It is emitted for grants made by an
  * actor or an authentication strategy (the `roleIds` / `roleAssignments` inputs of the
  * administrator and API-key mutations, `setRoleAssignmentsForUser`, SSO administrator creation).
- * System-mandated rows are not reported: the RoleEditor grant on Administrator creation, the
- * SuperAdmin rows materialized on Channel creation and the bootstrap SuperAdmin seed.
+ * System-mandated rows are not reported: the SuperAdmin rows materialized on Channel creation
+ * and the bootstrap SuperAdmin seed.
  *
  * This event replaces the `RoleChangeEvent` removed in v4.0.0, which was keyed on the
  * Administrator and could not express the Channel a Role was granted on.

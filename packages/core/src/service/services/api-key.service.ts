@@ -107,6 +107,9 @@ export class ApiKeyService {
         userIdApiKeyUser?: ID,
     ): Promise<CreateApiKeyResult> {
         this.assertRoleInputsAreExclusive(input);
+        if (userIdApiKeyUser) {
+            this.assertNoRoleInputsForImpersonatedUser(input);
+        }
         // Deprecated `roleIds` input (since 4.0.0): remove this branch in v5.0.0.
         if (input.roleIds) {
             await this.roleService.assertActiveUserCanGrantRoles(ctx, input.roleIds, [ctx.channelId]);
@@ -130,11 +133,10 @@ export class ApiKeyService {
             } else if (input.roleIds) {
                 // Deprecated `roleIds` input (since 4.0.0): grants the Roles on the active
                 // Channel. Remove this branch in v5.0.0.
-                await this.roleAssignmentService.replaceUserAssignmentsOnChannel(
+                await this.administratorService.setRoleAssignmentsForUser(
                     ctx,
                     apiKeyUser.id,
-                    input.roleIds,
-                    ctx.channelId,
+                    input.roleIds.map(roleId => ({ roleId, channelId: ctx.channelId })),
                 );
             }
         }
@@ -193,6 +195,9 @@ export class ApiKeyService {
         });
 
         this.assertRoleInputsAreExclusive(input);
+        if (entity.user.identifier !== this.generateApiKeyUserIdentifier(entity.lookupId)) {
+            this.assertNoRoleInputsForImpersonatedUser(input);
+        }
         // Deprecated `roleIds` input (since 4.0.0): remove this branch in v5.0.0.
         if (input.roleIds) {
             await this.roleService.assertActiveUserCanGrantRoles(ctx, input.roleIds, [ctx.channelId]);
@@ -231,6 +236,19 @@ export class ApiKeyService {
         await this.eventBus.publish(new ApiKeyEvent(ctx, apiKey, 'updated', input));
 
         return assertFound(this.findOne(ctx, input.id, relations));
+    }
+
+    /**
+     * An ApiKey whose User is an existing User (impersonation, see `create`) takes that
+     * User's own assignments. Accepting role inputs for such a key would let a holder of
+     * the ApiKey permissions rewrite the assignments of an Administrator.
+     */
+    private assertNoRoleInputsForImpersonatedUser(
+        input: Pick<CreateApiKeyInput | UpdateApiKeyInput, 'roleAssignments'> & { roleIds?: ID[] | null },
+    ) {
+        if (input.roleIds || input.roleAssignments) {
+            throw new UserInputError('error.api-key-impersonated-user-cannot-receive-roles');
+        }
     }
 
     /**
