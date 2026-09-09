@@ -6,6 +6,16 @@ const path = require('node:path');
 const test = require('node:test');
 
 const classifierPath = path.join(__dirname, 'dependency-impact.js');
+const workflowPath = path.join(__dirname, '..', 'dependency_impact.yml');
+
+test('does not override the protected pull_request_target checkout', () => {
+    const workflow = fs.readFileSync(workflowPath, 'utf8');
+    const checkoutStep = workflow.match(/- name: Check out trusted workflow code[\s\S]*?(?=\n\s+- name:)/);
+
+    assert.ok(checkoutStep, 'trusted checkout step is missing');
+    assert.doesNotMatch(checkoutStep[0], /^\s+(?:ref|repository|allow-unsafe-pr-checkout):/m);
+    assert.match(checkoutStep[0], /^\s+persist-credentials: false$/m);
+});
 
 function runClassifier({ files, manifests = {}, comments = [], failures = {} }) {
     assert.ok(

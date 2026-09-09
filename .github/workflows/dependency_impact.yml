@@ -39,13 +39,12 @@ jobs:
             pull-requests: read
             issues: write
         steps:
-            - name: Check out base commit
+            - name: Check out trusted workflow code
               uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
               with:
-                  # Explicit, so that this can never be read as checking out the head. The default
-                  # for pull_request_target is already the base branch; naming the base commit
-                  # makes the intent auditable.
-                  ref: ${{ github.event.pull_request.base.sha }}
+                  # Do not override ref or repository here. For pull_request_target, checkout's
+                  # protected default resolves trusted code from the base repository, never the
+                  # pull request head or merge commit.
                   persist-credentials: false
 
             - name: Test classifier
