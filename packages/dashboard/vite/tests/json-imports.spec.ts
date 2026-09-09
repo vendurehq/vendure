@@ -54,6 +54,25 @@ describe('compiling a config which imports .json files', () => {
             JSON.parse(await readFile(join(tempDir, 'my-plugin', 'src', 'plugin-data.json'), 'utf-8')),
         ).toEqual({ sheetId: 'abc123' });
     });
+    // Skipping the package.json silently leaves the import in the emitted output, so
+    // the config fails to load with a bare "Cannot find module". Say so up front.
+    it('should warn when a package.json import is skipped', { timeout: 60_000 }, async () => {
+        const tempDir = join(__dirname, './__temp/json-pkg-warn');
+        await rm(tempDir, { recursive: true, force: true });
+        const warnings: string[] = [];
+
+        await compile({
+            outputPath: tempDir,
+            vendureConfigPath: join(__dirname, 'fixtures-json-pkg', 'vendure-config.ts'),
+            logger: { ...noopLogger, warn: (message: string) => warnings.push(message) },
+            module: 'commonjs',
+        }).catch(() => undefined);
+
+        const packageJsonWarning = warnings.find(w => w.includes('package.json'));
+        expect(packageJsonWarning).toBeDefined();
+        expect(packageJsonWarning).toContain(join('my-plugin', 'package.json'));
+    });
+
     // A package.json reached through the import graph must not be copied. In a
     // nested directory its "type" field decides how the compiled .js files beside
     // it are loaded, so copying it makes those files fail to load.
