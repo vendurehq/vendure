@@ -98,15 +98,13 @@ describe('migrateRoleAssignmentData()', () => {
 
         const insertedCount = await migrateRoleAssignmentData(queryRunner);
 
-        expect(insertedCount).toBe(6);
+        expect(insertedCount).toBe(5);
         expect(await getAssignments()).toEqual([
             { userId: 1, roleId: 1, channelId: 1 },
             { userId: 1, roleId: 1, channelId: 2 },
             // channel 3 comes from the SuperAdmin fan-out to all channels
             { userId: 1, roleId: 1, channelId: 3 },
             { userId: 2, roleId: 3, channelId: 2 },
-            // the RoleEditor backfill for the sales administrator
-            { userId: 2, roleId: ROLE_EDITOR_ROLE_ID, channelId: 2 },
             { userId: 4, roleId: 3, channelId: 2 },
         ]);
     });
@@ -118,9 +116,9 @@ describe('migrateRoleAssignmentData()', () => {
         const firstRun = await migrateRoleAssignmentData(queryRunner);
         const secondRun = await migrateRoleAssignmentData(queryRunner);
 
-        expect(firstRun).toBe(6);
+        expect(firstRun).toBe(5);
         expect(secondRun).toBe(0);
-        expect((await getAssignments()).length).toBe(6);
+        expect((await getAssignments()).length).toBe(5);
         const roleEditorRoles: Array<{ id: number }> = await queryRunner.query(
             `SELECT "id" FROM "role" WHERE "code" = '__role_editor_role__'`,
         );
@@ -162,10 +160,9 @@ describe('migrateRoleAssignmentData()', () => {
 
         const insertedCount = await migrateRoleAssignmentData(queryRunner);
 
-        expect(insertedCount).toBe(5);
+        expect(insertedCount).toBe(4);
         expect((await getAssignments()).filter(a => a.userId === 2)).toEqual([
             { userId: 2, roleId: 3, channelId: 2 },
-            { userId: 2, roleId: ROLE_EDITOR_ROLE_ID, channelId: 2 },
         ]);
     });
 
@@ -175,22 +172,17 @@ describe('migrateRoleAssignmentData()', () => {
 
         const insertedCount = await migrateRoleAssignmentData(queryRunner);
 
-        expect(insertedCount).toBe(6);
+        expect(insertedCount).toBe(5);
         const rows: Array<{ id: string }> = await queryRunner.query(`SELECT "id" FROM "role_assignment"`);
         for (const row of rows) {
             expect(row.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
         }
-        expect(new Set(rows.map(row => row.id)).size).toBe(6);
+        expect(new Set(rows.map(row => row.id)).size).toBe(5);
     });
 
-    it('backfills the RoleEditor role, skipping SuperAdmin holders and deleted administrators', async () => {
+    it('creates the RoleEditor role without granting it to anyone', async () => {
         await createSchema();
         await seedData();
-        // user 5: administrator with the sales role whose administrator row is soft-deleted
-        await queryRunner.query(`INSERT INTO "user_roles_role" ("userId", "roleId") VALUES (5, 3)`);
-        await queryRunner.query(
-            `INSERT INTO "administrator" ("id", "userId", "deletedAt") VALUES (3, 5, datetime('now'))`,
-        );
 
         await migrateRoleAssignmentData(queryRunner);
 
@@ -202,9 +194,7 @@ describe('migrateRoleAssignmentData()', () => {
             'Authenticated,CreateRole,ReadRole,UpdateRole,DeleteRole',
         );
         const roleEditorAssignments = (await getAssignments()).filter(a => a.roleId === ROLE_EDITOR_ROLE_ID);
-        // Only the sales administrator (user 2): the superadmin (user 1) is covered by the
-        // check-time bypass, users 3 & 4 are not administrators, and user 5 is deleted.
-        expect(roleEditorAssignments).toEqual([{ userId: 2, roleId: ROLE_EDITOR_ROLE_ID, channelId: 2 }]);
+        expect(roleEditorAssignments).toEqual([]);
     });
 
     it('reuses an existing RoleEditor role row', async () => {
@@ -221,9 +211,7 @@ describe('migrateRoleAssignmentData()', () => {
             `SELECT "id" FROM "role" WHERE "code" = '__role_editor_role__'`,
         );
         expect(roleEditorRoles).toEqual([{ id: 10 }]);
-        expect((await getAssignments()).filter(a => a.roleId === 10)).toEqual([
-            { userId: 2, roleId: 10, channelId: 2 },
-        ]);
+        expect((await getAssignments()).filter(a => a.roleId === 10)).toEqual([]);
     });
 
     it('deletes the Customer role row and its legacy join rows', async () => {

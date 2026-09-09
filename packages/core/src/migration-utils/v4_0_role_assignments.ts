@@ -33,12 +33,11 @@ import { QueryRunner } from 'typeorm';
  *   `ChannelService.create()` never had the SuperAdmin role auto-assigned (only the
  *   `createChannel` mutation did that), so the join-table data can be incomplete.
  *
- * Additionally, the RoleEditor role (which bundles the Role CRUD permissions introduced
- * in v4.0 and is granted to every Administrator on creation going forward) is backfilled:
- * the role row is created if absent, and every User with a non-deleted Administrator row
- * receives it on each distinct Channel of their migrated assignment rows. Holders of the
- * SuperAdmin role are skipped, since the SuperAdmin check-time bypass already grants them
- * the Role CRUD permissions everywhere.
+ * The RoleEditor system role (which bundles the Role CRUD permissions) is created if
+ * absent. It is not granted to anyone: an Administrator who held `CreateRole`, `ReadRole`,
+ * `UpdateRole` or `DeleteRole` through a pre-v4 Role keeps those permissions through the
+ * migrated assignment rows of that Role, and every other Administrator has to be granted
+ * RoleEditor explicitly by an actor who may grant it.
  *
  * The SuperAdmin role's stored permissions array also gains the new Role CRUD
  * permissions. Pre-v4 versions re-synced that array with all assignable permissions on
@@ -144,8 +143,8 @@ export async function migrateRoleAssignmentData(queryRunner: QueryRunner): Promi
          )`,
     );
 
-    // 3. Create the RoleEditor role if it does not yet exist. Normally RoleService.initRoles()
-    // seeds it on first boot of v4.0, but the backfill in step 4 needs the row now.
+    // 3. Create the RoleEditor role if it does not yet exist, so that a migrated instance
+    // presents the same system roles as a fresh one before RoleService.initRoles() runs.
     const roleIdInsert = await getExplicitIdClauses(queryRunner, 'role');
     const roleCrudPermissions = ['CreateRole', 'ReadRole', 'UpdateRole', 'DeleteRole'];
     const roleEditorPermissions = ['Authenticated', ...roleCrudPermissions];
@@ -164,35 +163,7 @@ export async function migrateRoleAssignmentData(queryRunner: QueryRunner): Promi
          )`,
     );
 
-    // 4. Grant the RoleEditor role to every User with a non-deleted Administrator row, on
-    // each distinct Channel of their post-backfill assignment rows. SuperAdmin role holders
-    // are skipped: their Role CRUD permissions come from the check-time bypass, so the rows
-    // would be pure noise.
-    await queryRunner.query(
-        `INSERT INTO ${esc('role_assignment')} (${idInsert.columns}${esc('userId')}, ${esc('roleId')}, ${esc('channelId')})
-         SELECT ${idInsert.select}t.${esc('userId')}, t.${esc('roleId')}, t.${esc('channelId')}
-         FROM (
-             SELECT DISTINCT ra.${esc('userId')} AS ${esc('userId')}, rer.${esc('id')} AS ${esc('roleId')}, ra.${esc('channelId')} AS ${esc('channelId')}
-             FROM ${esc('role_assignment')} ra
-             CROSS JOIN ${esc('role')} rer
-             INNER JOIN ${esc('administrator')} a ON a.${esc('userId')} = ra.${esc('userId')} AND a.${esc('deletedAt')} IS NULL
-             WHERE rer.${esc('code')} = '${ROLE_EDITOR_ROLE_CODE}'
-             AND NOT EXISTS (
-                 SELECT 1 FROM ${esc('role_assignment')} sa
-                 INNER JOIN ${esc('role')} sr ON sr.${esc('id')} = sa.${esc('roleId')}
-                 WHERE sa.${esc('userId')} = ra.${esc('userId')}
-                 AND sr.${esc('code')} = '${SUPER_ADMIN_ROLE_CODE}'
-             )
-             AND NOT EXISTS (
-                 SELECT 1 FROM ${esc('role_assignment')} ex
-                 WHERE ex.${esc('userId')} = ra.${esc('userId')}
-                 AND ex.${esc('roleId')} = rer.${esc('id')}
-                 AND ex.${esc('channelId')} = ra.${esc('channelId')}
-             )
-         ) AS t`,
-    );
-
-    // 5. Append the new Role CRUD permissions to the SuperAdmin role's stored permissions
+    // 4. Append the new Role CRUD permissions to the SuperAdmin role's stored permissions
     // array. SuperAdmin access is derived at check time from the SuperAdmin permission, so
     // this changes nothing about what SuperAdmins can do — but pre-v4 versions re-synced
     // the stored array with all assignable permissions on boot and v4 no longer does, so
@@ -216,7 +187,7 @@ export async function migrateRoleAssignmentData(queryRunner: QueryRunner): Promi
         }
     }
 
-    // 6. Delete the Customer role row — v4 removes the Customer role entirely (permissions
+    // 5. Delete the Customer role row — v4 removes the Customer role entirely (permissions
     // are membership-derived: Authenticated on every member Channel). The legacy join tables
     // still reference the role at this point, so their rows go first; both tables are
     // dropped by the surrounding migration right after this helper returns.
