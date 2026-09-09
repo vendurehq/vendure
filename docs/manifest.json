@@ -2332,7 +2332,7 @@
                   "title": "MigrateRoleAssignmentData",
                   "slug": "migrate-role-assignment-data",
                   "file": "docs/reference/typescript-api/migration/migrate-role-assignment-data.mdx",
-                  "lastModified": "2026-09-09T08:40:56Z"
+                  "lastModified": "2026-09-09T09:50:34Z"
                 },
                 {
                   "title": "MigrationOptions",
