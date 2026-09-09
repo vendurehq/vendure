@@ -25,7 +25,9 @@ describe('getCiConfiguration', () => {
     });
 
     afterEach(() => {
-        vi.clearAllMocks();
+        // resetAllMocks (not clearAllMocks) so a mockResolvedValue set in one test
+        // can't leak into the next if tests are reordered or a new one is added.
+        vi.resetAllMocks();
     });
 
     it('templates the real scanned storefront port into the generated vendure-config when a storefront is selected', async () => {

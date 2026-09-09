@@ -196,6 +196,24 @@ export async function createVendureApp(
             { newline: 'after' },
         );
     }
+    let configResult: Awaited<ReturnType<typeof getQuickStartConfiguration>>;
+    const configSpinner = spinner();
+    configSpinner.start(`Generating project configuration...`);
+    try {
+        configResult =
+            mode === 'ci'
+                ? await getCiConfiguration(root, packageManager, port, ciStorefront, ciDbType)
+                : mode === 'manual'
+                  ? await getManualConfiguration(root, packageManager, port)
+                  : await getQuickStartConfiguration(root, packageManager, port);
+        configSpinner.stop(`Generated project configuration`);
+    } catch (e: any) {
+        // Includes the storefront port scan, which used to have its own dedicated
+        // try/catch further down before generateSources() started performing it.
+        configSpinner.stop(pc.red('Could not generate project configuration'));
+        outro(e.message);
+        process.exit(1);
+    }
     const {
         dbType,
         configSource,
@@ -212,11 +230,7 @@ export async function createVendureApp(
         populateProducts,
         storefront: storefrontId,
         storefrontPort,
-    } = mode === 'ci'
-        ? await getCiConfiguration(root, packageManager, port, ciStorefront, ciDbType)
-        : mode === 'manual'
-          ? await getManualConfiguration(root, packageManager, port)
-          : await getQuickStartConfiguration(root, packageManager, port);
+    } = configResult;
     const storefront = storefrontId ? getStorefrontStarter(storefrontId) : undefined;
     const includeStorefront = storefront != null;
 
