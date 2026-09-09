@@ -546,8 +546,8 @@ export class RoleService {
     }
 
     /**
-     * The RoleEditor Role bundles the Role CRUD permissions and is granted to every
-     * Administrator on creation. It must always exist.
+     * The RoleEditor Role bundles the Role CRUD permissions. It is never granted
+     * automatically, but it must always exist so that it can be granted explicitly.
      */
     private async ensureRoleEditorRoleExists() {
         try {
