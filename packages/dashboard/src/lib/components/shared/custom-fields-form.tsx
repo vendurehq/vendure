@@ -249,7 +249,7 @@ function CustomFieldItem({ fieldDef, control, fieldName, disabled }: Readonly<Cu
                             <CustomFieldFormItem
                                 fieldDef={fieldDef}
                                 getTranslation={getTranslation}
-                                fieldName={field.name}
+                                fieldName={fieldDef.name}
                                 fieldState={fieldState}
                             >
                                 {localeFallbackPlaceholder
@@ -275,7 +275,7 @@ function CustomFieldItem({ fieldDef, control, fieldName, disabled }: Readonly<Cu
                         <CustomFieldFormItem
                             fieldDef={fieldDef}
                             getTranslation={getTranslation}
-                            fieldName={field.name}
+                            fieldName={fieldDef.name}
                             fieldState={fieldState}
                         >
                             <CustomFormComponent fieldDef={fieldDef} {...field} />
