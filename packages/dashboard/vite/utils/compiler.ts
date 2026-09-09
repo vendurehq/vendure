@@ -517,6 +517,7 @@ async function collectLocalSourceFiles(
 
         ts.forEachChild(sf, node => {
             if (!ts.isImportDeclaration(node) && !ts.isExportDeclaration(node)) return;
+            if (isTypeOnlyImportOrExport(node)) return;
             const moduleSpecifier = node.moduleSpecifier;
             if (!moduleSpecifier || !ts.isStringLiteral(moduleSpecifier)) return;
             const importPath = moduleSpecifier.text;
@@ -540,6 +541,36 @@ async function collectLocalSourceFiles(
 
     await processFile(entryFile);
     return { sourceFiles: [...visited], skippedPackageJsonFiles: [...skippedPackageJson] };
+}
+
+function isTypeOnlyImportOrExport(node: ts.ImportDeclaration | ts.ExportDeclaration) {
+    if (ts.isImportDeclaration(node)) {
+        const importClause = node.importClause;
+        if (!importClause) {
+            return false;
+        }
+        if (importClause.isTypeOnly) {
+            return true;
+        }
+        const namedBindings = importClause.namedBindings;
+        return (
+            !importClause.name &&
+            !!namedBindings &&
+            ts.isNamedImports(namedBindings) &&
+            namedBindings.elements.length > 0 &&
+            namedBindings.elements.every(element => element.isTypeOnly)
+        );
+    }
+
+    if (node.isTypeOnly) {
+        return true;
+    }
+    return (
+        !!node.exportClause &&
+        ts.isNamedExports(node.exportClause) &&
+        node.exportClause.elements.length > 0 &&
+        node.exportClause.elements.every(element => element.isTypeOnly)
+    );
 }
 
 async function registerTsConfigPaths(options: {

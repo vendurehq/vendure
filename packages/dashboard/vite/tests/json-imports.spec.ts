@@ -73,6 +73,21 @@ describe('compiling a config which imports .json files', () => {
         expect(packageJsonWarning).toContain(join('my-plugin', 'package.json'));
     });
 
+    it('should not warn when package.json is imported only for types', { timeout: 60_000 }, async () => {
+        const tempDir = join(__dirname, './__temp/json-pkg-types');
+        await rm(tempDir, { recursive: true, force: true });
+        const warnings: string[] = [];
+
+        await compile({
+            outputPath: tempDir,
+            vendureConfigPath: join(__dirname, 'fixtures-json-pkg', 'type-only-vendure-config.ts'),
+            logger: { ...noopLogger, warn: (message: string) => warnings.push(message) },
+            module: 'commonjs',
+        });
+
+        expect(warnings.some(warning => warning.includes('package.json cannot be copied'))).toBe(false);
+    });
+
     // A package.json reached through the import graph must not be copied. In a
     // nested directory its "type" field decides how the compiled .js files beside
     // it are loaded, so copying it makes those files fail to load.
