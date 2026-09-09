@@ -5,7 +5,8 @@ import fs from 'fs-extra';
 import Handlebars from 'handlebars';
 import path from 'path';
 
-import { checkCancel, isDockerAvailable, toComposeProjectName } from './helpers';
+import { PORT_SCAN_RANGE, STOREFRONT_PORT } from './constants';
+import { checkCancel, findAvailablePort, isDockerAvailable, toComposeProjectName } from './helpers';
 import { getStorefrontStarter, STOREFRONT_STARTERS, StorefrontId } from './storefront-starters';
 import { DbType, FileSources, PackageManager, UserResponses } from './types';
 
@@ -278,10 +279,18 @@ async function generateSources(
     answers: PromptAnswers,
     packageManager: PackageManager,
     port: number,
-): Promise<FileSources> {
+): Promise<FileSources & { storefrontPort: number }> {
     const assetPath = (fileName: string) => path.join(__dirname, '../assets', fileName);
 
     registerEscapeSingleHelper();
+
+    // Only scan for a real port when a storefront was actually selected - this is the
+    // same port that create-vendure-app.ts later hands to the storefront's own dev
+    // server, so the two must agree. When no storefront is selected there is no real
+    // port to point at, so STOREFRONT_PORT is just a placeholder default.
+    const storefrontPort = answers.storefront
+        ? await findAvailablePort(Math.max(STOREFRONT_PORT, port + 1), PORT_SCAN_RANGE)
+        : STOREFRONT_PORT;
 
     const templateContext = {
         ...answers,
@@ -292,6 +301,7 @@ async function generateSources(
         requiresConnection: answers.dbType !== 'sqlite',
         cookieSecret: randomBytes(16).toString('base64url'),
         port,
+        storefrontPort,
         isMonorepo: answers.storefront != null,
         storefrontName: answers.storefront
             ? getStorefrontStarter(answers.storefront).frameworkName
@@ -318,6 +328,7 @@ async function generateSources(
         tsconfigDashboardSource: await createSourceFile('tsconfig.dashboard.hbs'),
         viteConfigSource: await createSourceFile('vite.config.hbs'),
         agentsSource: await createSourceFile('agents.hbs'),
+        storefrontPort,
     };
 }
 
