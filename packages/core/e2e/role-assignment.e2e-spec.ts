@@ -1,4 +1,4 @@
-import { CurrencyCode, LanguageCode, Permission } from '@vendure/common/lib/generated-types';
+import { CurrencyCode, DeletionResult, LanguageCode, Permission } from '@vendure/common/lib/generated-types';
 import { ROLE_EDITOR_ROLE_CODE } from '@vendure/common/lib/shared-constants';
 import { ID } from '@vendure/common/lib/shared-types';
 import { AdministratorEvent, EventBus, RoleAssignmentEvent, VendureEvent } from '@vendure/core';
@@ -21,6 +21,7 @@ import {
     createAdministratorDocument,
     createChannelDocument,
     createRoleDocument,
+    deleteAdministratorDocument,
     updateAdministratorDocument,
 } from './graphql/shared-definitions';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
@@ -489,6 +490,29 @@ describe('RoleAssignment', () => {
             const events = await collectEvents();
             expect(events).toEqual([]);
         });
+
+        it('deleteAdministrator removes the assignments and emits RoleAssignmentEvent removed, then AdministratorEvent deleted', async () => {
+            // eventAdmin holds role-a on the second channel only at this point.
+            const { roleAssignments: before } = await adminClient.query(roleAssignmentsOfUserDocument, {
+                userId: eventAdmin.user.id,
+            });
+            expect(before.totalItems).toBe(1);
+
+            const { deleteAdministrator } = await adminClient.query(deleteAdministratorDocument, {
+                id: eventAdmin.id,
+            });
+            expect(deleteAdministrator.result).toBe(DeletionResult.DELETED);
+
+            const events = await collectEvents();
+            expect(kindsOf(events)).toEqual(['RoleAssignmentEvent:removed', 'AdministratorEvent:deleted']);
+            expect(events[0].userId).toBe(eventAdmin.user.id);
+            expect(events[0].assignments).toEqual([{ roleId: roleA.id, channelId: secondChannel.id }]);
+
+            const { roleAssignments: after } = await adminClient.query(roleAssignmentsOfUserDocument, {
+                userId: eventAdmin.user.id,
+            });
+            expect(after.totalItems).toBe(0);
+        });
     });
 
     function byRoleCodeAndChannel(
@@ -535,6 +559,14 @@ const administratorRoleAssignmentsDocument = graphql(`
                     channelId
                 }
             }
+        }
+    }
+`);
+
+const roleAssignmentsOfUserDocument = graphql(`
+    query RoleAssignmentsOfUser($userId: String!) {
+        roleAssignments(options: { filter: { userId: { eq: $userId } } }) {
+            totalItems
         }
     }
 `);
