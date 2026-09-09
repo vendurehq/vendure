@@ -348,6 +348,7 @@ type Mutation {
     Administrator: '/reference/graphql-api/admin/object-types#administrator',
     ID: '/reference/graphql-api/admin/object-types#id',
   }}
+  deprecated="Use setRoleAssignmentsForUser instead. assignRoleToAdministrator assigns the Role on the active Channel only."
 >
 {`"""Assign a Role to an Administrator"""
 type Mutation {
@@ -2476,6 +2477,30 @@ type Mutation {
 {`"""Allows a different Customer to be assigned to an Order. Added in v2.2.0."""
 type Mutation {
   setOrderCustomer(input: SetOrderCustomerInput!): Order
+}`}
+</GraphQLDoc>
+
+<a name="setroleassignmentsforuser"></a>
+
+## setRoleAssignmentsForUser
+
+<GraphQLDoc
+  type="mutation"
+  typeName="setRoleAssignmentsForUser"
+  typeLinks={{
+    User: '/reference/graphql-api/admin/object-types#user',
+    ID: '/reference/graphql-api/admin/object-types#id',
+    RoleAssignmentInput: '/reference/graphql-api/admin/input-types#roleassignmentinput',
+  }}
+>
+{`"""
+Atomically replaces the full set of RoleAssignments of the given User with the given
+\`(roleId, channelId)\` pairs, across all Channels: assignments not present in the new
+set are removed. The active user must be permitted to grant every Role involved in
+the change \u2014 added and removed pairs alike \u2014 on the Channel of that pair.
+"""
+type Mutation {
+  setRoleAssignmentsForUser(userId: ID!, assignments: [RoleAssignmentInput!]!): User!
 }`}
 </GraphQLDoc>
 

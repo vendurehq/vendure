@@ -1024,6 +1024,7 @@ input CreateAddressInput {
   typeLinks={{
     String: '/reference/graphql-api/admin/object-types#string',
     ID: '/reference/graphql-api/admin/object-types#id',
+    RoleAssignmentInput: '/reference/graphql-api/admin/input-types#roleassignmentinput',
     JSON: '/reference/graphql-api/admin/object-types#json',
   }}
 >
@@ -1032,7 +1033,10 @@ input CreateAddressInput {
   lastName: String!
   emailAddress: String!
   password: String!
-  roleIds: [ID!]!
+  """Grants the Roles on the active Channel. Cannot be combined with roleAssignments."""
+  roleIds: [ID!]
+  """The RoleAssignments to create for the new Administrator's User. Cannot be combined with roleIds."""
+  roleAssignments: [RoleAssignmentInput!]
   customFields: JSON
 }`}
 </GraphQLDoc>
@@ -1046,6 +1050,7 @@ input CreateAddressInput {
   typeName="CreateApiKeyInput"
   typeLinks={{
     ID: '/reference/graphql-api/admin/object-types#id',
+    RoleAssignmentInput: '/reference/graphql-api/admin/input-types#roleassignmentinput',
     CreateApiKeyTranslationInput: '/reference/graphql-api/admin/input-types#createapikeytranslationinput',
     JSON: '/reference/graphql-api/admin/object-types#json',
   }}
@@ -1056,10 +1061,17 @@ which gets determined by the User who does the request.
 """
 input CreateApiKeyInput {
   """
-  Which roles to attach to this ApiKey.
+  Which roles to attach to this ApiKey, granted on the active Channel.
   You may only grant roles which you, yourself have.
+  Cannot be combined with roleAssignments.
   """
-  roleIds: [ID!]!
+  roleIds: [ID!]
+  """
+  Which roles to attach to this ApiKey on which Channels.
+  You may only grant roles which you, yourself have on those Channels.
+  Cannot be combined with roleIds.
+  """
+  roleAssignments: [RoleAssignmentInput!]
   translations: [CreateApiKeyTranslationInput!]!
   customFields: JSON
 }`}
@@ -1575,14 +1587,12 @@ input CreateApiKeyInput {
   typeLinks={{
     String: '/reference/graphql-api/admin/object-types#string',
     Permission: '/reference/graphql-api/admin/enums#permission',
-    ID: '/reference/graphql-api/admin/object-types#id',
   }}
 >
 {`input CreateRoleInput {
   code: String!
   description: String!
   permissions: [Permission!]!
-  channelIds: [ID!]
 }`}
 </GraphQLDoc>
 
@@ -3694,6 +3704,98 @@ input NumberOperators {
 }`}
 </GraphQLDoc>
 
+<a name="roleassignmentfilterparameter"></a>
+
+## RoleAssignmentFilterParameter
+
+<GraphQLDoc
+  type="input"
+  typeName="RoleAssignmentFilterParameter"
+  typeLinks={{
+    IDOperators: '/reference/graphql-api/admin/input-types#idoperators',
+    DateOperators: '/reference/graphql-api/admin/input-types#dateoperators',
+    RoleAssignmentFilterParameter: '/reference/graphql-api/admin/input-types#roleassignmentfilterparameter',
+  }}
+>
+{`input RoleAssignmentFilterParameter {
+  id: IDOperators
+  createdAt: DateOperators
+  updatedAt: DateOperators
+  userId: IDOperators
+  roleId: IDOperators
+  channelId: IDOperators
+  _and: [RoleAssignmentFilterParameter!]
+  _or: [RoleAssignmentFilterParameter!]
+}`}
+</GraphQLDoc>
+
+<a name="roleassignmentinput"></a>
+
+## RoleAssignmentInput
+
+<GraphQLDoc
+  type="input"
+  typeName="RoleAssignmentInput"
+  typeLinks={{
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""The grant of a Role on a Channel"""
+input RoleAssignmentInput {
+  roleId: ID!
+  channelId: ID!
+}`}
+</GraphQLDoc>
+
+<a name="roleassignmentlistoptions"></a>
+
+## RoleAssignmentListOptions
+
+<GraphQLDoc
+  type="input"
+  typeName="RoleAssignmentListOptions"
+  typeLinks={{
+    Int: '/reference/graphql-api/admin/object-types#int',
+    RoleAssignmentSortParameter: '/reference/graphql-api/admin/input-types#roleassignmentsortparameter',
+    RoleAssignmentFilterParameter: '/reference/graphql-api/admin/input-types#roleassignmentfilterparameter',
+    LogicalOperator: '/reference/graphql-api/admin/enums#logicaloperator',
+  }}
+>
+{`input RoleAssignmentListOptions {
+  """Skips the first n results, for use in pagination"""
+  skip: Int
+  """Takes n results, for use in pagination"""
+  take: Int
+  """Specifies which properties to sort the results by"""
+  sort: RoleAssignmentSortParameter
+  """Allows the results to be filtered"""
+  filter: RoleAssignmentFilterParameter
+  """Specifies whether multiple top-level "filter" fields should be combined with a logical AND or OR operation. Defaults to AND."""
+  filterOperator: LogicalOperator
+}`}
+</GraphQLDoc>
+
+<a name="roleassignmentsortparameter"></a>
+
+## RoleAssignmentSortParameter
+
+<GraphQLDoc
+  type="input"
+  typeName="RoleAssignmentSortParameter"
+  typeLinks={{
+    SortOrder: '/reference/graphql-api/admin/enums#sortorder',
+  }}
+>
+{`input RoleAssignmentSortParameter {
+  id: SortOrder
+  createdAt: SortOrder
+  updatedAt: SortOrder
+  userId: SortOrder
+  roleId: SortOrder
+  channelId: SortOrder
+}`}
+</GraphQLDoc>
+
 <a name="rolefilterparameter"></a>
 
 ## RoleFilterParameter
@@ -4588,6 +4690,7 @@ input UpdateAddressInput {
   typeLinks={{
     ID: '/reference/graphql-api/admin/object-types#id',
     String: '/reference/graphql-api/admin/object-types#string',
+    RoleAssignmentInput: '/reference/graphql-api/admin/input-types#roleassignmentinput',
     JSON: '/reference/graphql-api/admin/object-types#json',
   }}
 >
@@ -4597,7 +4700,10 @@ input UpdateAddressInput {
   lastName: String
   emailAddress: String
   password: String
+  """Replaces the User's Roles on the active Channel. Cannot be combined with roleAssignments."""
   roleIds: [ID!]
+  """Replaces the full set of the User's RoleAssignments across all Channels. Cannot be combined with roleIds."""
+  roleAssignments: [RoleAssignmentInput!]
   customFields: JSON
 }`}
 </GraphQLDoc>
@@ -4611,6 +4717,7 @@ input UpdateAddressInput {
   typeName="UpdateApiKeyInput"
   typeLinks={{
     ID: '/reference/graphql-api/admin/object-types#id',
+    RoleAssignmentInput: '/reference/graphql-api/admin/input-types#roleassignmentinput',
     UpdateApiKeyTranslationInput: '/reference/graphql-api/admin/input-types#updateapikeytranslationinput',
     JSON: '/reference/graphql-api/admin/object-types#json',
   }}
@@ -4619,10 +4726,17 @@ input UpdateAddressInput {
   """ID of the ApiKey"""
   id: ID!
   """
-  Which roles to attach to this ApiKey.
+  Which roles to attach to this ApiKey, replacing its Roles on the active Channel.
   You may only grant roles which you, yourself have.
+  Cannot be combined with roleAssignments.
   """
   roleIds: [ID!]
+  """
+  Replaces the full set of the ApiKey's RoleAssignments across all Channels.
+  You may only grant roles which you, yourself have on those Channels.
+  Cannot be combined with roleIds.
+  """
+  roleAssignments: [RoleAssignmentInput!]
   translations: [UpdateApiKeyTranslationInput!]
   customFields: JSON
 }`}
@@ -5220,7 +5334,6 @@ input UpdateProductVariantPriceInput {
   code: String
   description: String
   permissions: [Permission!]
-  channelIds: [ID!]
 }`}
 </GraphQLDoc>
 

@@ -1,0 +1,82 @@
+---
+title: "MigrateRoleAssignmentData"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/migration-utils/v4_0_role_assignments.ts" sourceLine="85" packageName="@vendure/core" since="4.0.0" />
+
+Populates the new `role_assignment` table from the pre-v4 `user_roles_role` and
+`role_channels_channel` join tables. In the old model a User received each of their
+Roles' permissions on every Channel the Role was assigned to, so the effective grants
+are the cross product of the two join tables, which this helper writes out as explicit
+`(user, role, channel)` rows.
+
+Two Roles are treated specially:
+
+- **Customer role**: no rows are written, and the role row itself is **deleted** — v4
+  removes the Customer role entirely. Customer permissions are derived at check time
+  from the Customer's channel memberships (`Authenticated` on every member Channel), so
+  migrating the old rows (which granted every customer permissions on every Channel)
+  would both reintroduce that permission leak and write one row per customer per
+  channel. If your instance broadened the Customer role's permissions via a direct
+  repository write, be aware that this customization has no v4 equivalent: the row and
+  its permissions array are gone after migrating, and customers hold exactly
+  `Authenticated` on their member Channels.
+- **SuperAdmin role**: holders receive a row on *every* Channel, not just the Channels
+  recorded in `role_channels_channel`. Channels created programmatically via
+  `ChannelService.create()` never had the SuperAdmin role auto-assigned (only the
+  `createChannel` mutation did that), so the join-table data can be incomplete.
+
+The RoleEditor system role (which bundles the Role CRUD permissions) is created if
+absent. It is not granted to anyone: an Administrator who held `CreateRole`, `ReadRole`,
+`UpdateRole` or `DeleteRole` through a pre-v4 Role keeps those permissions through the
+migrated assignment rows of that Role, and every other Administrator has to be granted
+RoleEditor explicitly by an actor who may grant it.
+
+The SuperAdmin role's stored permissions array also gains the new Role CRUD
+permissions. Pre-v4 versions re-synced that array with all assignable permissions on
+boot; v4 derives SuperAdmin permissions at check time and no longer re-syncs, so
+without this step a migrated instance would present a stale permission list on the
+SuperAdmin role.
+
+Call this from your migration's `up()` method **after** the `role_assignment` table
+has been created and **before** `user_roles_role` and `role_channels_channel` are
+dropped.
+
+The helper is idempotent: rows which already exist are left as-is, so it is safe to
+re-run, e.g. after a partial failure on MySQL (where DDL is non-transactional) or as
+the delta pass of a staged rollout in which the bulk of the data was copied while the
+previous version was still serving traffic.
+
+```ts
+import { MigrationInterface, QueryRunner } from 'typeorm';
+import { migrateRoleAssignmentData } from '@vendure/core';
+
+export class RoleAssignments1234567890 implements MigrationInterface {
+    public async up(queryRunner: QueryRunner): Promise<any> {
+        // --- Auto-generated DDL starts here ---
+        // (Create role_assignment table and FK constraints)
+        // ...
+
+        // --- Populate new table with existing data ---
+        await migrateRoleAssignmentData(queryRunner);
+
+        // --- Auto-generated DDL continues ---
+        // (Drop user_roles_role and role_channels_channel tables)
+        // ...
+    }
+
+    public async down(queryRunner: QueryRunner): Promise<any> {
+        // Auto-generated reverse DDL
+    }
+}
+```
+
+```ts title="Signature"
+function migrateRoleAssignmentData(queryRunner: QueryRunner): Promise<number>
+```
+Parameters
+
+### queryRunner
+
+<MemberInfo kind="parameter" type={`QueryRunner`} />
+

@@ -8,13 +8,14 @@ Contains methods relating to [Administrator](/reference/typescript-api/entities/
 
 ```ts title="Signature"
 class AdministratorService {
-    constructor(connection: TransactionalConnection, configService: ConfigService, listQueryBuilder: ListQueryBuilder, passwordCipher: PasswordCipher, userService: UserService, roleService: RoleService, customFieldRelationService: CustomFieldRelationService, eventBus: EventBus, requestContextService: RequestContextService)
+    constructor(connection: TransactionalConnection, configService: ConfigService, listQueryBuilder: ListQueryBuilder, passwordCipher: PasswordCipher, userService: UserService, roleService: RoleService, roleAssignmentService: RoleAssignmentService, customFieldRelationService: CustomFieldRelationService, eventBus: EventBus, requestContextService: RequestContextService)
     findAll(ctx: RequestContext, options?: ListQueryOptions<Administrator>, relations?: RelationPaths<Administrator>) => Promise<PaginatedList<Administrator>>;
     findOne(ctx: RequestContext, administratorId: ID, relations?: RelationPaths<Administrator>) => Promise<Administrator | undefined>;
     findOneByUserId(ctx: RequestContext, userId: ID, relations?: RelationPaths<Administrator>) => Promise<Administrator | undefined>;
     create(ctx: RequestContext, input: CreateAdministratorInput) => Promise<Administrator>;
     update(ctx: RequestContext, input: UpdateAdministratorInput) => Promise<Administrator>;
     assignRole(ctx: RequestContext, administratorId: ID, roleId: ID) => Promise<Administrator>;
+    setRoleAssignmentsForUser(ctx: RequestContext, userId: ID, assignments: RoleChannelPair[]) => Promise<User>;
     softDelete(ctx: RequestContext, id: ID) => ;
 }
 ```
@@ -50,7 +51,30 @@ Update an existing Administrator.
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, administratorId: <a href='/reference/typescript-api/common/id#id'>ID</a>, roleId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a>>`}   />
 
-Assigns a Role to the Administrator's User entity.
+Assigns a Role to the Administrator's User on the active Channel. The write goes
+through `setRoleAssignmentsForUser`, so the active user must be permitted to
+grant the Role on the active Channel and a [RoleAssignmentEvent](/reference/typescript-api/events/event-types#roleassignmentevent) is published.
+### setRoleAssignmentsForUser
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>, assignments: <a href='/reference/typescript-api/services/role-assignment-service#rolechannelpair'>RoleChannelPair</a>[]) => Promise<<a href='/reference/typescript-api/entities/user#user'>User</a>>`}  since="4.0.0"  />
+
+Atomically replaces the full set of RoleAssignments of the given User with the given
+`(roleId, channelId)` pairs, across all Channels: pairs not in the new set are removed.
+
+The active user must be permitted to grant every Role involved in the change — added
+and removed pairs alike — on the Channel of that pair (see
+`RoleService.assertActiveUserCanGrantRoles`). The sole SuperAdmin cannot have
+the SuperAdmin Role taken away.
+
+The SuperAdmin Role has no channel scope: the [RolePermissionResolver](/reference/typescript-api/auth/role-permission-resolver#rolepermissionresolver) grants
+all permissions on every Channel to a User holding it on any Channel. A target which
+contains the SuperAdmin Role on some Channels is therefore expanded to every Channel,
+so that the stored assignments match the access they grant.
+
+This is the single write path behind the `roleAssignments` and the deprecated `roleIds`
+inputs of the administrator mutations. The changed pairs are reported by the
+[RoleAssignmentEvent](/reference/typescript-api/events/event-types#roleassignmentevent) published from [RoleAssignmentService](/reference/typescript-api/services/role-assignment-service#roleassignmentservice); there is no
+separate administrator-level role event.
 ### softDelete
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, id: <a href='/reference/typescript-api/common/id#id'>ID</a>) => `}   />
