@@ -36,7 +36,7 @@
         "rimraf": "^5.0.5",
         "ts-node": "^10.9.2",
         "typescript": "5.8.2",
-        "vitest": "^3.2.4"
+        "vitest": "^4.1.11"
     },
     "dependencies": {
         "@clack/prompts": "^0.11.0",
