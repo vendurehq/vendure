@@ -36,7 +36,7 @@ const customConfig = mergeConfig(testConfig(), {
             { name: 'notNullable', type: 'string', nullable: false, defaultValue: '' },
             { name: 'stringWithDefault', type: 'string', defaultValue: 'hello' },
             { name: 'localeStringWithDefault', type: 'localeString', defaultValue: 'hola' },
-            { name: 'localeTextWithDefault', type: 'localeText', defaultValue: 'hola' },
+            { name: 'localeTextField', type: 'localeText' },
             { name: 'intWithDefault', type: 'int', defaultValue: 5 },
             { name: 'floatWithDefault', type: 'float', defaultValue: 5.5678 },
             { name: 'booleanWithDefault', type: 'boolean', defaultValue: true },
@@ -276,7 +276,7 @@ describe('Custom fields', () => {
                 { name: 'notNullable', type: 'string', list: false },
                 { name: 'stringWithDefault', type: 'string', list: false },
                 { name: 'localeStringWithDefault', type: 'localeString', list: false },
-                { name: 'localeTextWithDefault', type: 'localeText', list: false },
+                { name: 'localeTextField', type: 'localeText', list: false },
                 { name: 'intWithDefault', type: 'int', list: false },
                 { name: 'floatWithDefault', type: 'float', list: false },
                 { name: 'booleanWithDefault', type: 'boolean', list: false },
@@ -344,7 +344,7 @@ describe('Custom fields', () => {
                 { name: 'notNullable', type: 'string', list: false },
                 { name: 'stringWithDefault', type: 'string', list: false },
                 { name: 'localeStringWithDefault', type: 'localeString', list: false },
-                { name: 'localeTextWithDefault', type: 'localeText', list: false },
+                { name: 'localeTextField', type: 'localeText', list: false },
                 { name: 'intWithDefault', type: 'int', list: false },
                 { name: 'floatWithDefault', type: 'float', list: false },
                 { name: 'booleanWithDefault', type: 'boolean', list: false },
@@ -1545,7 +1545,7 @@ const getProductsSortByLocaleStringDocument = graphql(`
 
 const getProductsSortByLocaleTextDocument = graphql(`
     query GetProductsSortByLocaleText {
-        products(options: { sort: { localeTextWithDefault: ASC } }) {
+        products(options: { sort: { localeTextField: ASC } }) {
             totalItems
         }
     }
