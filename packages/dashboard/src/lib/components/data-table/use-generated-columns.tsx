@@ -138,12 +138,20 @@ export function useGeneratedColumns<T extends TypedDocumentNode<any, any>>({
                 pageId && pageBlock?.blockId
                     ? generateDisplayComponentKey(pageId, pageBlock.blockId, fieldInfo.name)
                     : undefined;
+            // A component registered via addDisplayComponent() must take precedence over a
+            // core-supplied `cell` function (e.g. the Money cell on price columns), otherwise
+            // registering an override for such a column silently does nothing.
+            const hasRegisteredDisplayComponent = !!(
+                displayComponentId && getDisplayComponent(displayComponentId)
+            );
 
-            // If a custom cell function is provided, use it directly (like additionalColumns does).
-            // This preserves the same behavior and prevents cell unmounting issues.
-            // Only use CellWrapper for columns without custom cells.
+            // If a custom cell function is provided and no display component is registered for
+            // this column, use it directly (like additionalColumns does). This preserves the
+            // same behavior and prevents cell unmounting issues.
+            // Only use CellWrapper for columns without custom cells, or where a registered
+            // display component needs to take precedence over the custom cell function.
             const cellFn =
-                typeof customCell === 'function'
+                typeof customCell === 'function' && !hasRegisteredDisplayComponent
                     ? customCell
                     : (cellContext: CellContext<any, any>) => (
                           <CellWrapper
