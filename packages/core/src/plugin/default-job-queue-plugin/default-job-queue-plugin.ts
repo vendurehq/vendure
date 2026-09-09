@@ -7,6 +7,7 @@ import { cleanJobsTask } from './clean-jobs-task';
 import { DEFAULT_JOB_QUEUE_PLUGIN_OPTIONS } from './constants';
 import { JobRecordBuffer } from './job-record-buffer.entity';
 import { JobRecord } from './job-record.entity';
+import { PgNotifyJobQueueStrategy } from './pg-notify-job-queue-strategy';
 import { SqlJobBufferStorageStrategy } from './sql-job-buffer-storage-strategy';
 import { SqlJobQueueStrategy } from './sql-job-queue-strategy';
 import { DefaultJobQueueOptions } from './types';
@@ -131,15 +132,21 @@ import { DefaultJobQueueOptions } from './types';
             ? [JobRecord, JobRecordBuffer]
             : [JobRecord],
     configuration: config => {
-        const { pollInterval, concurrency, backoffStrategy, setRetries, gracefulShutdownTimeout } =
+        const { pollInterval, concurrency, backoffStrategy, setRetries, gracefulShutdownTimeout, useNotify } =
             DefaultJobQueuePlugin.options ?? {};
-        config.jobQueueOptions.jobQueueStrategy = new SqlJobQueueStrategy({
+        const strategyConfig = {
             concurrency,
             pollInterval,
             backoffStrategy,
             setRetries,
             gracefulShutdownTimeout,
-        });
+        };
+        config.jobQueueOptions.jobQueueStrategy = useNotify
+            ? new PgNotifyJobQueueStrategy({
+                  ...strategyConfig,
+                  ...(typeof useNotify === 'object' ? useNotify : {}),
+              })
+            : new SqlJobQueueStrategy(strategyConfig);
         if (DefaultJobQueuePlugin.options.useDatabaseForBuffer === true) {
             config.jobQueueOptions.jobBufferStorageStrategy = new SqlJobBufferStorageStrategy();
         }
