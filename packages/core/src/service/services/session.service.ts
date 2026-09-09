@@ -13,12 +13,14 @@ import { TransactionalConnection } from '../../connection/transactional-connecti
 import { ApiKey } from '../../entity/api-key/api-key.entity';
 import { Channel } from '../../entity/channel/channel.entity';
 import { Order } from '../../entity/order/order.entity';
-import { RoleAssignment } from '../../entity/role-assignment/role-assignment.entity';
 import { Role } from '../../entity/role/role.entity';
+import { RoleAssignment } from '../../entity/role-assignment/role-assignment.entity';
 import { AnonymousSession } from '../../entity/session/anonymous-session.entity';
 import { AuthenticatedSession } from '../../entity/session/authenticated-session.entity';
 import { Session } from '../../entity/session/session.entity';
 import { User } from '../../entity/user/user.entity';
+import { EventBus } from '../../event-bus/event-bus';
+import { RoleAssignmentEvent } from '../../event-bus/events/role-assignment-event';
 import { JobQueue } from '../../job-queue/job-queue';
 import { JobQueueService } from '../../job-queue/job-queue.service';
 import { RequestContextService } from '../helpers/request-context/request-context.service';
@@ -47,8 +49,18 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
         private jobQueueService: JobQueueService,
         private requestContextService: RequestContextService,
         private rolePermissionResolver: RolePermissionResolver,
+        private eventBus: EventBus,
     ) {
         this.sessionCacheStrategy = this.configService.authOptions.sessionCacheStrategy;
+
+        // The entity subscriber below evicts inside the transaction, before commit. A request
+        // from the affected user arriving between that eviction and the commit re-serializes
+        // the session from the old assignment rows, and the stale permissions then survive
+        // for the full sessionCacheTTL. The EventBus delivers RoleAssignmentEvent after the
+        // transaction has committed, so this second eviction removes such an entry.
+        this.eventBus.ofType(RoleAssignmentEvent).subscribe(event => {
+            void this.clearSessionCacheForUser(event.user.id);
+        });
 
         const { sessionDuration } = this.configService.authOptions;
         this.sessionDurationInMs =
