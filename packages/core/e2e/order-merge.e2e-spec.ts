@@ -1,9 +1,11 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import {
+    EventBus,
     mergeConfig,
     MergedOrderLine,
     MergeOrdersStrategy,
     Order,
+    OrderEvent,
     OrderMergeStrategy,
     Product,
     RequestContext,
@@ -454,5 +456,21 @@ describe('Order merging', () => {
         expect(result.lines[0].productVariant.id).toBe('T_1');
         expect(result.lines[0].quantity).toBe(3);
         expect(result.lines[0].customFields.relationField?.id).toBe('T_4');
+    });
+
+    // #5189 — login with an existing active cart and no guest cart must not publish OrderEvent
+    it('login with existing cart and no guest cart publishes zero OrderEvents', async () => {
+        const eventBus = server.app.get(EventBus);
+        const events: OrderEvent[] = [];
+        const subscription = eventBus.ofType(OrderEvent).subscribe(event => events.push(event));
+
+        // Log in as a customer who already has an active order, with no guest cart
+        await shopClient.asUserWithCredentials(customers[0].emailAddress, 'test');
+
+        // Allow any async event delivery to settle
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        expect(events).toHaveLength(0);
+        subscription.unsubscribe();
     });
 });

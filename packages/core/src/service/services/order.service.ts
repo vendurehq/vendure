@@ -574,7 +574,6 @@ export class OrderService implements OnApplicationBootstrap {
         }
 
         const updatedOrder = await this.addCustomerToOrder(ctx, order.id, targetCustomer);
-        await this.eventBus.publish(new OrderEvent(ctx, updatedOrder, 'updated', targetCustomer));
         await this.historyService.createHistoryEntryForOrder({
             ctx,
             orderId,
@@ -2032,7 +2031,13 @@ export class OrderService implements OnApplicationBootstrap {
 
     /**
      * @description
-     * Associates a Customer with the Order.
+     * Associates a Customer with the Order. If the customer is already assigned,
+     * the order is returned unchanged.
+     *
+     * Publishes an {@link OrderEvent} with type `'updated'` and the assigned Customer
+     * as the event input whenever a new customer association is made.
+     *
+     * @since 3.7.2
      */
     async addCustomerToOrder(
         ctx: RequestContext,
@@ -2043,6 +2048,9 @@ export class OrderService implements OnApplicationBootstrap {
             orderIdOrOrder instanceof Order
                 ? orderIdOrOrder
                 : await this.getOrderOrThrow(ctx, orderIdOrOrder);
+        if (idsAreEqual(order.customer?.id, customer.id)) {
+            return order;
+        }
         order.customer = customer;
         await this.connection.getRepository(ctx, Order).save(order, { reload: false });
         let updatedOrder = order;
@@ -2060,6 +2068,7 @@ export class OrderService implements OnApplicationBootstrap {
                 }
             }
         }
+        await this.eventBus.publish(new OrderEvent(ctx, updatedOrder, 'updated', customer));
         return updatedOrder;
     }
 
@@ -2270,8 +2279,7 @@ export class OrderService implements OnApplicationBootstrap {
                 }
                 const customer = await this.customerService.findOneByUserId(txCtx, user.id);
                 if (order && customer) {
-                    order.customer = customer;
-                    await this.connection.getRepository(txCtx, Order).save(order, { reload: false });
+                    order = await this.addCustomerToOrder(txCtx, order, customer);
                 }
                 return order;
             });
