@@ -88,8 +88,10 @@ test.describe('Address form country dropdown', () => {
                 },
             },
         );
+        if (!('id' in customerResult.createCustomer)) {
+            throw new Error(customerResult.createCustomer.message);
+        }
         customerId = customerResult.createCustomer.id;
-        expect(customerId).toBeTruthy();
 
         await client.gql(
             `mutation CreateCustomerAddress($customerId: ID!, $input: CreateAddressInput!) {
@@ -108,8 +110,7 @@ test.describe('Address form country dropdown', () => {
 
         await page.goto(`/customers/${customerId}`);
         await expect(page.getByRole('heading', { name: 'Country Preselection' })).toBeVisible();
-        const addressCard = page.getByText('123 Main Street').locator('..').locator('..');
-        await addressCard.getByRole('button').first().click();
+        await page.getByRole('button', { name: 'Edit Address' }).click();
 
         const countrySelect = page.getByRole('dialog', { name: 'Edit Address' }).getByRole('combobox');
         await expect(countrySelect).toContainText('United States of America');
