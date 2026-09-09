@@ -264,9 +264,19 @@ export function startSupervisedDevProcess(
 
     const startChild = () => {
         crashExitCode = undefined;
-        child = spawnChild(projectDir, processDefinition, binPath, options);
-        child.once('error', error => runningProcess.emit('error', error));
-        child.once('close', (code, signal) => {
+        const startedChild = spawnChild(projectDir, processDefinition, binPath, options);
+        child = startedChild;
+        startedChild.once('error', error => runningProcess.emit('error', error));
+        startedChild.once('close', (code, signal) => {
+            // Node fires `exit` (which is what `isChildRunning` reads) before `close`, so a file
+            // change between the two can already see this child as not running and start its
+            // replacement directly, ahead of this handler. `child` will have moved on to that
+            // replacement by the time this late `close` arrives; without this check, restarting
+            // below would take it right back off the current child and leave the replacement
+            // running unwatched, the two of them apparently competing for the same port.
+            if (child !== startedChild) {
+                return;
+            }
             if (restarting && !stopping) {
                 restarting = false;
                 startChild();
