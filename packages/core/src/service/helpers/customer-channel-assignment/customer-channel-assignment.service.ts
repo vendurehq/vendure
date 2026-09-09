@@ -27,8 +27,11 @@ export class CustomerChannelAssignmentService {
      * Assigns the active Customer to the active Channel where appropriate. Declining an
      * assignment does not itself block the request, but since customer permissions are
      * derived from channel membership, a Customer the strategy declines to assign holds no
-     * permissions on that Channel: customer-scoped operations there are denied, while
-     * public operations remain available.
+     * `Authenticated` permission on that Channel. Operations gated on
+     * `Permission.Authenticated` (the `me` query) fail with a `ForbiddenError`. Operations
+     * gated on `Permission.Owner` (`activeCustomer`, `activeOrder`, the checkout mutations)
+     * still run but treat the session as a guest on that Channel. Public operations are
+     * unaffected. See {@link CustomerChannelAssignmentStrategy} for the full contract.
      */
     async tryAssignToActiveChannel(ctx: RequestContext): Promise<void> {
         const userId = ctx.activeUserId;
