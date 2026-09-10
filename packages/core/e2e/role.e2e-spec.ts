@@ -16,6 +16,7 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 import { administratorFragment, channelFragment, roleFragment } from './graphql/fragments-admin';
 import { FragmentOf, graphql, ResultOf } from './graphql/graphql-admin';
 import {
+    assignRolesToUserDocument,
     createAdministratorDocument,
     createChannelDocument,
     createRoleDocument,
@@ -390,7 +391,8 @@ describe('Role resolver', () => {
         });
 
         // A Role is visible iff the actor holds ReadRole on every channel where the Role
-        // currently has assignment rows (the RoleEditor gate, OSS-749).
+        // currently has assignment rows (the RoleEditor gate, OSS-749), or may grant it,
+        // i.e. holds the Role's full permission list on at least one channel.
         it('limited admin sees Roles according to the assigned-channels gate', async () => {
             const result = await adminClient.query(getRolesDocument);
 
@@ -572,8 +574,8 @@ describe('Role resolver', () => {
         });
 
         // assignRoleToAdministrator writes through the same guarded path as
-        // setRoleAssignmentsForUser: a Role the actor could not grant is refused even when
-        // it has no assignments and is therefore readable.
+        // assignRolesToUser: a Role the actor could not grant is refused even when it has
+        // no assignments and is therefore readable.
         it('limited admin cannot grant a Role it does not hold via assignRoleToAdministrator', async () => {
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
             await adminClient.asSuperAdmin();
@@ -658,8 +660,8 @@ describe('Role resolver', () => {
             await adminClient.asUserWithCredentials('no-role-editor@test.com', 'test');
             // The roles query is open to ReadAdministrator holders so that an administrator
             // who manages other administrators can pick the Roles to grant. Visible are the
-            // system roles and the Roles whose permission list the actor holds on every
-            // channel where they are assigned (or anywhere, for Roles with no assignments).
+            // system roles and the Roles whose permission list the actor holds on at least
+            // one channel.
             const { roles } = await adminClient.query(getRolesDocument);
             expect(roles.items.map(r => r.code).sort()).toEqual(
                 [
@@ -753,6 +755,101 @@ describe('Role resolver', () => {
                 id: crossChannelRole.id,
             });
             expect(deleteRole.result).toBe(DeletionResult.DELETED);
+        });
+    });
+
+    // The grant clause of the read gate (OSS-800): a Role is visible to an actor who holds
+    // its full permission list on at least one channel, whatever channels it is assigned on,
+    // because that actor may grant it on their own channel. The envelope check itself is
+    // per channel, so the same actor cannot grant it where they lack the permissions.
+    describe('roles visible under the grant rule', () => {
+        const DEFAULT_CHANNEL_ID = 'T_1';
+        let spanningRole: ResultOf<typeof createRoleDocument>['createRole'];
+        let unheldSpanningRole: ResultOf<typeof createRoleDocument>['createRole'];
+        let holder: FragmentOf<typeof administratorFragment>;
+
+        beforeAll(async () => {
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            await adminClient.asSuperAdmin();
+            // Held by the actor (no-role-editor@test.com holds the admin-manager role on
+            // second-channel), assigned on both channels
+            const { createRole } = await adminClient.query(createRoleDocument, {
+                input: {
+                    code: 'spanning-admin-reader',
+                    description: '',
+                    permissions: [Permission.ReadAdministrator, Permission.UpdateAdministrator],
+                },
+            });
+            spanningRole = createRole;
+            // Held by the actor nowhere, assigned on both channels
+            const { createRole: createRole2 } = await adminClient.query(createRoleDocument, {
+                input: {
+                    code: 'spanning-order-reader',
+                    description: '',
+                    permissions: [Permission.ReadOrder],
+                },
+            });
+            unheldSpanningRole = createRole2;
+            const { createAdministrator } = await adminClient.query(createAdministratorDocument, {
+                input: {
+                    firstName: 'Spanning',
+                    lastName: 'Holder',
+                    emailAddress: 'spanning@test.com',
+                    password: 'test',
+                    roleAssignments: [
+                        { roleId: spanningRole.id, channelId: DEFAULT_CHANNEL_ID },
+                        { roleId: spanningRole.id, channelId: secondChannel.id },
+                        { roleId: unheldSpanningRole.id, channelId: DEFAULT_CHANNEL_ID },
+                        { roleId: unheldSpanningRole.id, channelId: secondChannel.id },
+                    ],
+                },
+            });
+            holder = createAdministrator;
+
+            adminClient.setChannelToken(secondChannel.token);
+            await adminClient.asUserWithCredentials('no-role-editor@test.com', 'test');
+        });
+
+        it('a Role assigned on another channel too is visible to an actor who may grant it on theirs', async () => {
+            const { roles } = await adminClient.query(getRolesDocument);
+            expect(roles.items.map(r => r.code)).toContain(spanningRole.code);
+
+            const { role } = await adminClient.query(getRoleDocument, { id: spanningRole.id });
+            expect(role?.code).toBe(spanningRole.code);
+        });
+
+        it('and the actor may grant it on their channel', async () => {
+            const { assignRolesToUser } = await adminClient.query(assignRolesToUserDocument, {
+                input: {
+                    userId: holder.user.id,
+                    assignments: [{ roleId: spanningRole.id, channelId: secondChannel.id }],
+                },
+            });
+            expect(
+                assignRolesToUser.roleAssignments.some(
+                    a => a.roleId === spanningRole.id && a.channelId === secondChannel.id,
+                ),
+            ).toBe(true);
+        });
+
+        it(
+            'but not on a channel where they lack its permissions',
+            assertThrowsWithMessage(async () => {
+                await adminClient.query(assignRolesToUserDocument, {
+                    input: {
+                        userId: holder.user.id,
+                        assignments: [{ roleId: spanningRole.id, channelId: DEFAULT_CHANNEL_ID }],
+                    },
+                });
+            }, 'Active user does not have sufficient permissions'),
+        );
+
+        it('a Role whose permissions the actor holds nowhere stays hidden', async () => {
+            const { roles } = await adminClient.query(getRolesDocument);
+            expect(roles.items.map(r => r.code)).not.toContain(unheldSpanningRole.code);
+
+            const { role } = await adminClient.query(getRoleDocument, { id: unheldSpanningRole.id });
+            expect(role).toBeNull();
         });
     });
 
