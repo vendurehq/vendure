@@ -44,23 +44,23 @@ updates:
           semver-patch-days: 7
           semver-minor-days: 7
           semver-major-days: 14
-      # Major updates are raised for development tooling only, the same rule
-      # the bun workspace applies further down. Here it can be written the
-      # short way, for two reasons that do not hold there. npm is one of the
-      # ecosystems where Dependabot supports `dependency-type`, and this
-      # project's manifest splits cleanly along that line:
-      # @vendure-io/docs-provider is the only production dependency, and
-      # @types/node, tsx and typescript are all development. The bun entry has
-      # to spell the same rule out as a list of dependency names instead; the
-      # comment there explains why.
+      # Major updates are raised for development tooling only. The bun
+      # workspace entry below applies the same rule and sets out the reasoning
+      # in full.
       #
-      # Nothing in this project is published, so a major held back here costs
-      # the docs build a version rather than reaching any downstream Vendure
-      # project. It is held back to keep it out of the review queue until
-      # someone chooses to take it deliberately.
+      # This entry states the rule as a `dependency-type`, which the bun entry
+      # cannot. npm is one of the ecosystems where Dependabot supports the key,
+      # and this project's manifest splits along it: @vendure-io/docs-provider
+      # is the only production dependency, and @types/node, tsx and typescript
+      # are all development.
+      #
+      # Nothing here is published, so a major blocked at this entry reaches no
+      # Vendure project downstream and holds back the docs build alone. The
+      # rule keeps majors out of the review queue until a maintainer picks one
+      # up.
       allow:
-          # An allow list replaces the default rather than narrowing it, so the
-          # first entry restates the default. `all` is the same set as `direct`
+          # The first entry restates Dependabot's default, which an allow list
+          # replaces rather than narrows. `all` and `direct` are the same set
           # for npm, which has no indirect updates.
           - dependency-type: all
             update-types:
@@ -109,39 +109,38 @@ updates:
       # strategy rewrites the manifest.
       versioning-strategy: increase-if-necessary
       # Major updates are raised for development tooling only. A major version
-      # of anything that ships to users is a migration for every Vendure
-      # project downstream, so it belongs in a deliberate release rather than
-      # arriving unannounced as a pull request in the queue.
+      # of a package that ships to users is a migration for every Vendure
+      # project downstream, so it belongs in a planned release.
       #
-      # This is written as an allow list of names rather than the more obvious
+      # The rule is written as a list of dependency names rather than
       # `dependency-type: development`, for two independent reasons.
       #
-      # First, dependency-type is not supported for the bun ecosystem. GitHub
-      # documents `production` and `development` for bundler, composer, mix,
-      # maven, npm, pip and uv only, so the key would be honoured by nothing
-      # here.
+      # First, GitHub documents the `dependency-type` values `production` and
+      # `development` for bundler, composer, mix, maven, npm, pip and uv. bun
+      # is absent. That list differs from the one above for
+      # versioning-strategy, because Dependabot documents support per option
+      # rather than per ecosystem.
       #
-      # Second, the manifests do not split along that line even where the key
-      # does work. typescript is a production dependency of packages/cli,
-      # eslint of the root manifest, ts-node and the @typescript-eslint family
-      # likewise, and @types/express of core and asset-server-plugin. Thirteen
-      # of the tooling packages named below are declared as a production
-      # dependency of some package, so a development-scoped rule would block
-      # exactly the major updates that are wanted. The same finding is recorded
-      # in dependabot_auto_merge.yml, which had to reject dependency-type as an
-      # auto-merge gate for the same reason.
+      # Second, the workspace manifests do not split along that line. All of
+      # these are production dependencies: typescript and ts-node of
+      # packages/cli, eslint, eslint-config-prettier and the
+      # @typescript-eslint packages of the root manifest, @types/express of
+      # core and asset-server-plugin, @types/react of dashboard. Thirteen of
+      # the tooling packages named below are a production dependency of some
+      # package, so a rule scoped to development dependencies would block the
+      # tooling majors this list exists to permit. dependabot_auto_merge.yml
+      # rejected dependency-type as an auto-merge gate for the same reason.
       #
-      # An allow list replaces the default rather than narrowing it, so the
-      # first entry has to restate the default: every dependency still gets
-      # minor and patch updates. Each entry after it adds majors back for one
-      # tooling family, and those families mirror the typescript, types,
-      # linting and dev-tooling groups below. The remaining groups — nestjs,
-      # graphql, typeorm, opentelemetry and dashboard — are runtime, and are
-      # deliberately absent.
+      # An allow list replaces the default set rather than narrowing it, so the
+      # first entry has to restate the default: every dependency gets minor and
+      # patch updates. Each entry after it adds majors back for one tooling
+      # family. Those families mirror the typescript, types, linting and
+      # dev-tooling groups below. The runtime groups — nestjs, graphql,
+      # typeorm, opentelemetry and dashboard — are absent on purpose.
       #
-      # Note that ignore beats allow: a dependency matched by both is ignored.
-      # The Angular families in the ignore block below therefore stay ignored
-      # at every level, and are not resurrected by the '*' entry here.
+      # ignore beats allow: a dependency matched by both is ignored. The
+      # Angular families in the ignore block below therefore stay ignored at
+      # every level, and the '*' entry here does not re-enable them.
       allow:
           - dependency-name: '*'
             update-types:
