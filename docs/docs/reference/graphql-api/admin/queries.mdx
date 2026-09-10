@@ -1025,7 +1025,12 @@ type Query {
     RoleAssignmentListOptions: '/reference/graphql-api/admin/input-types#roleassignmentlistoptions',
   }}
 >
-{`"""Get a paginated list of RoleAssignments"""
+{`"""
+Get a paginated list of RoleAssignments, filtered to those the active user may grant or
+remove: the active user must hold every permission of the assignment's Role on its
+Channel. For an actor who does not hold every permission on every Channel the list is
+partial, and \`totalItems\` counts only the visible assignments.
+"""
 type Query {
   roleAssignments(options: RoleAssignmentListOptions): RoleAssignmentList!
 }`}

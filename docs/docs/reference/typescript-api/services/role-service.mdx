@@ -2,13 +2,13 @@
 title: "RoleService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/role.service.ts" sourceLine="48" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/role.service.ts" sourceLine="50" packageName="@vendure/core" />
 
 Contains methods relating to [Role](/reference/typescript-api/entities/role#role) entities.
 
 ```ts title="Signature"
 class RoleService {
-    constructor(connection: TransactionalConnection, listQueryBuilder: ListQueryBuilder, configService: ConfigService, eventBus: EventBus, requestContextCache: RequestContextCacheService, cacheService: CacheService, rolePermissionResolver: RolePermissionResolver, roleAssignmentService: RoleAssignmentService)
+    constructor(connection: TransactionalConnection, listQueryBuilder: ListQueryBuilder, configService: ConfigService, eventBus: EventBus, requestContextCache: RequestContextCacheService, cacheService: CacheService, rolePermissionResolver: RolePermissionResolver)
     initRoles() => ;
     findAll(ctx: RequestContext, options?: ListQueryOptions<Role>, relations?: RelationPaths<Role>) => Promise<PaginatedList<Role>>;
     findOne(ctx: RequestContext, roleId: ID, relations?: RelationPaths<Role>) => Promise<Role | undefined>;
@@ -19,7 +19,9 @@ class RoleService {
     userHasAnyPermissionsOnChannel(ctx: RequestContext, channelId: ID, permissions: Permission[]) => Promise<boolean>;
     userHasAllPermissionsOnChannel(ctx: RequestContext, channelId: ID, permissions: Permission[]) => Promise<boolean>;
     activeUserHoldsPermissionsOnAnyChannel(ctx: RequestContext, permissions: Permission[]) => Promise<boolean>;
-    assertActiveUserCanGrantRoles(ctx: RequestContext, roleIds: ID[], channelIds?: ID[]) => Promise<Role[]>;
+    canGrant(ctx: RequestContext, roleId: ID, channelId: ID) => Promise<boolean>;
+    assertActiveUserCanGrantRoles(ctx: RequestContext, pairs: RoleChannelPair[]) => Promise<void>;
+    getGrantableChannelIdsByRole(ctx: RequestContext) => Promise<Array<{ roleId: ID; channelIds: ID[] }>>;
     create(ctx: RequestContext, input: CreateRoleInput) => Promise<Role>;
     update(ctx: RequestContext, input: UpdateRoleInput) => Promise<Role>;
     delete(ctx: RequestContext, id: ID) => Promise<DeletionResponse>;
@@ -83,19 +85,39 @@ Returns true if the User has all the specified permissions on that Channel
 Returns true if the active user holds all of the specified permissions on at least one
 Channel.
 
-This is the fail-closed floor beneath the permission guards: a Role is a
-channel-agnostic template carrying no channel scope of its own, so the only meaningful
-question a guard can ask about the actor is whether they could grant the Role's
-permissions somewhere. An actor with no permissions anywhere is always denied.
+This is the fail-closed floor beneath the Role permission guards: a Role is a
+channel-agnostic template carrying no channel scope of its own, so where no Channel
+is given the only meaningful question about the actor is whether they could grant the
+Role's permissions somewhere. An actor with no permissions anywhere is always denied.
+Where the Channel is known, `canGrant` is the rule.
+### canGrant
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, roleId: <a href='/reference/typescript-api/common/id#id'>ID</a>, channelId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<boolean>`}  since="4.0.0"  />
+
+The grant predicate: whether the active user may grant the Role on the Channel, or
+take it away again. True iff the active user holds every permission of the Role on
+that Channel. The Role's permission list is the ceiling, so an actor can only hand out
+what they hold themselves: a holder of `UpdateAdministrator` cannot grant themselves
+the strongest Role present on their Channel, and only a SuperAdmin can grant the
+SuperAdmin Role. An unknown Role is never grantable.
+
+The same predicate decides every assignment write (`RoleAssignmentService.assign`,
+`RoleAssignmentService.remove`) and filters every assignment read
+(`RoleAssignmentService.findAll`, `User.roleAssignments`), so the assignments an
+actor sees are exactly the ones they may change.
 ### assertActiveUserCanGrantRoles
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, roleIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[], channelIds?: <a href='/reference/typescript-api/common/id#id'>ID</a>[]) => Promise<<a href='/reference/typescript-api/entities/role#role'>Role</a>[]>`}  since="4.0.0"  />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, pairs: <a href='/reference/typescript-api/services/role-assignment-service#rolechannelpair'>RoleChannelPair</a>[]) => Promise<void>`}  since="4.0.0"  />
 
-Asserts that the active user may grant every one of the given Roles, and returns those
-Roles. The rule is that an administrator may only grant permissions which they
-themselves possess: on at least one Channel (the fail-closed floor for channel-agnostic
-Roles), and — when the Channels the grant applies to are known — on each of those
-Channels.
+Asserts `canGrant` for every one of the given `(roleId, channelId)` pairs.
+### getGrantableChannelIdsByRole
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => Promise<Array<{ roleId: <a href='/reference/typescript-api/common/id#id'>ID</a>; channelIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[] }>>`}  since="4.0.0"  />
+
+Evaluates `canGrant` over every Role and every Channel: for each Role the active
+user may grant somewhere, the ids of the Channels they may grant it on. Roles the
+active user may grant nowhere are absent. This is the batch form of `canGrant` behind
+the filtered assignment list (`RoleAssignmentService.findAll`).
 ### create
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: CreateRoleInput) => Promise<<a href='/reference/typescript-api/entities/role#role'>Role</a>>`}   />

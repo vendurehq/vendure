@@ -5661,7 +5661,10 @@ union UpdateOrderItemErrorResult = OrderModificationError | OrderLimitError | Ne
   }}
 >
 {`type User {
-  """The RoleAssignments granting this User Roles on specific Channels"""
+  """
+  The RoleAssignments of this User which the active user may grant or remove. An actor who
+  does not hold every permission on every Channel sees a partial list.
+  """
   roleAssignments: [RoleAssignment!]!
   id: ID!
   createdAt: DateTime!
