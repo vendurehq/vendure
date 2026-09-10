@@ -549,7 +549,7 @@
               "title": "Customizing List Pages",
               "slug": "customizing-list-pages",
               "file": "docs/guides/extending-the-dashboard/customizing-pages/customizing-list-pages.mdx",
-              "lastModified": "2026-06-24T13:43:54+02:00"
+              "lastModified": "2026-09-10T14:44:13+02:00"
             },
             {
               "title": "Customizing Detail Pages",
@@ -2290,7 +2290,7 @@
                   "title": "GenerateMigration",
                   "slug": "generate-migration",
                   "file": "docs/reference/typescript-api/migration/generate-migration.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-09-10T12:56:42+02:00"
                 },
                 {
                   "title": "MigrateAssetTranslationData",
@@ -2305,10 +2305,16 @@
                   "lastModified": "2026-07-10T09:53:10+02:00"
                 },
                 {
+                  "title": "MigrationDiagnostic",
+                  "slug": "migration-diagnostic",
+                  "file": "docs/reference/typescript-api/migration/migration-diagnostic.mdx",
+                  "lastModified": "2026-09-10T12:56:42+02:00"
+                },
+                {
                   "title": "MigrationOptions",
                   "slug": "migration-options",
                   "file": "docs/reference/typescript-api/migration/migration-options.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-09-10T12:56:42+02:00"
                 },
                 {
                   "title": "RescaleOrderLinePromotionAdjustments",
@@ -2320,13 +2326,19 @@
                   "title": "RevertLastMigration",
                   "slug": "revert-last-migration",
                   "file": "docs/reference/typescript-api/migration/revert-last-migration.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-09-10T12:56:42+02:00"
                 },
                 {
                   "title": "RunMigrations",
                   "slug": "run-migrations",
                   "file": "docs/reference/typescript-api/migration/run-migrations.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-09-10T12:56:42+02:00"
+                },
+                {
+                  "title": "RunMigrationsOptions",
+                  "slug": "run-migrations-options",
+                  "file": "docs/reference/typescript-api/migration/run-migrations-options.mdx",
+                  "lastModified": "2026-09-10T12:56:42+02:00"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"

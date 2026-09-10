@@ -1,0 +1,37 @@
+---
+title: "MigrationDiagnostic"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/migrate.ts" sourceLine="42" packageName="@vendure/core" since="3.7.4" />
+
+A condition detected while running migrations which cannot be inferred from the return value
+of [runMigrations](/reference/typescript-api/migration/run-migrations#runmigrations).
+
+```ts title="Signature"
+interface MigrationDiagnostic {
+    code: 'no-migrations-matched' | 'schema-out-of-sync';
+    lines: string[];
+}
+```
+
+<div className="members-wrapper">
+
+### code
+
+<MemberInfo kind="property" type={`'no-migrations-matched' | 'schema-out-of-sync'`}   />
+
+Identifies the condition:
+
+- `no-migrations-matched`: the configured `migrations` patterns matched no files, but the
+  database has migrations recorded as applied. The patterns must therefore have stopped
+  matching, for example because they point at compiled output which has not been built.
+- `schema-out-of-sync`: the database schema does not match the current entity
+  configuration, so a new migration needs to be generated.
+### lines
+
+<MemberInfo kind="property" type={`string[]`}   />
+
+The condition rendered as lines of human-readable text.
+
+
+</div>

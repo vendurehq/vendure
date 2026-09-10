@@ -138,12 +138,24 @@ export function useGeneratedColumns<T extends TypedDocumentNode<any, any>>({
                 pageId && pageBlock?.blockId
                     ? generateDisplayComponentKey(pageId, pageBlock.blockId, fieldInfo.name)
                     : undefined;
+            // A component registered via addDisplayComponent() takes precedence over a
+            // core-supplied `cell` function (e.g. the Money cell on price columns). Without
+            // this, registering an override for such a column silently does nothing.
+            //
+            // The registry is read here rather than at cell-render time, so a column keeps
+            // whichever renderer was chosen when this memo last ran. Extensions register
+            // during executeDashboardExtensionCallbacks(), which completes before any data
+            // table mounts, so the answer is settled by the time a column is generated.
+            const registeredDisplayComponent = displayComponentId
+                ? getDisplayComponent(displayComponentId)
+                : undefined;
 
-            // If a custom cell function is provided, use it directly (like additionalColumns does).
-            // This preserves the same behavior and prevents cell unmounting issues.
-            // Only use CellWrapper for columns without custom cells.
+            // Where nothing is registered, a custom cell function is used directly rather
+            // than through CellWrapper, which is what keeps the cell from unmounting on
+            // every table re-render. Everything else goes through CellWrapper, which is the
+            // only place the display component registry is consulted.
             const cellFn =
-                typeof customCell === 'function'
+                typeof customCell === 'function' && !registeredDisplayComponent
                     ? customCell
                     : (cellContext: CellContext<any, any>) => (
                           <CellWrapper
@@ -234,7 +246,19 @@ export function useGeneratedColumns<T extends TypedDocumentNode<any, any>>({
         }
 
         return { columns: finalColumns, customFieldColumnNames };
-    }, [fields, customizeColumns, rowActions, deleteMutation, additionalColumns, defaultColumnOrder]);
+        // `pageId` and `pageBlock?.blockId` are dependencies because they form the display
+        // component registry key, so a column generated under one page or block must not be
+        // reused under another.
+    }, [
+        fields,
+        customizeColumns,
+        rowActions,
+        deleteMutation,
+        additionalColumns,
+        defaultColumnOrder,
+        pageId,
+        pageBlock?.blockId,
+    ]);
 
     return { columns, customFieldColumnNames };
 }

@@ -2,13 +2,14 @@
 import fs from 'fs-extra';
 import path from 'path';
 import pc from 'picocolors';
-import { Connection, createConnection, DataSourceOptions } from 'typeorm';
+import { Connection, createConnection, DataSourceOptions, MigrationExecutor } from 'typeorm';
 import { MysqlDriver } from 'typeorm/driver/mysql/MysqlDriver';
 import { camelCase } from 'typeorm/util/StringUtils';
 
 import { preBootstrapConfig } from './bootstrap';
 import { resetConfig } from './config/config-helpers';
 import { VendureConfig } from './config/vendure-config';
+import { Product } from './entity/product/product.entity';
 
 /**
  * @description
@@ -32,16 +33,72 @@ export interface MigrationOptions {
 
 /**
  * @description
+ * A condition detected while running migrations which cannot be inferred from the return value
+ * of {@link runMigrations}.
+ *
+ * @docsCategory migration
+ * @since 3.7.4
+ */
+export interface MigrationDiagnostic {
+    /**
+     * @description
+     * Identifies the condition:
+     *
+     * - `no-migrations-matched`: the configured `migrations` patterns matched no files, but the
+     *   database has migrations recorded as applied. The patterns must therefore have stopped
+     *   matching, for example because they point at compiled output which has not been built.
+     * - `schema-out-of-sync`: the database schema does not match the current entity
+     *   configuration, so a new migration needs to be generated.
+     */
+    code: 'no-migrations-matched' | 'schema-out-of-sync';
+    /**
+     * @description
+     * The condition rendered as lines of human-readable text.
+     */
+    lines: string[];
+}
+
+/**
+ * @description
+ * Options for {@link runMigrations}.
+ *
+ * @docsCategory migration
+ * @since 3.7.4
+ */
+export interface RunMigrationsOptions {
+    /**
+     * @description
+     * Invoked for each {@link MigrationDiagnostic} detected during the run. These conditions are
+     * also printed to the console, unless the `VENDURE_RUNNING_IN_CLI` environment variable is
+     * set, which the Vendure CLI does so that it can render them itself. Passing this callback
+     * does not suppress that output.
+     */
+    onDiagnostic?: (diagnostic: MigrationDiagnostic) => void;
+}
+
+/**
+ * @description
  * Runs any pending database migrations. See [TypeORM migration docs](https://typeorm.io/#/migrations)
  * for more information about the underlying migration mechanism.
  *
  * @docsCategory migration
  */
-export async function runMigrations(userConfig: Partial<VendureConfig>): Promise<string[]> {
+export async function runMigrations(
+    userConfig: Partial<VendureConfig>,
+    options?: RunMigrationsOptions,
+): Promise<string[]> {
     const config = await preBootstrapConfig(userConfig);
     const connection = await createConnection(createConnectionOptions(config));
     const migrationsRan: string[] = [];
+    const report = (diagnostic: MigrationDiagnostic) => {
+        options?.onDiagnostic?.(diagnostic);
+        log(pc.yellow(diagnostic.lines.join('\n')));
+    };
     try {
+        const unmatched = await detectUnmatchedPatterns(connection);
+        if (unmatched) {
+            report(unmatched);
+        }
         const migrations = await disableForeignKeysForSqLite(connection, () =>
             connection.runMigrations({ transaction: 'each' }),
         );
@@ -58,25 +115,103 @@ export async function runMigrations(userConfig: Partial<VendureConfig>): Promise
             process.exitCode = 1;
         }
     } finally {
-        await checkMigrationStatus(connection);
-        await connection.close();
-        resetConfig();
+        try {
+            await checkMigrationStatus(connection, report);
+        } finally {
+            await connection.close();
+            resetConfig();
+        }
     }
     return migrationsRan;
 }
 
-async function checkMigrationStatus(connection: Connection) {
+async function checkMigrationStatus(connection: Connection, report: (d: MigrationDiagnostic) => void) {
+    // Against a database with no tables at all the schema builder reports the entire schema as
+    // pending, which is what a project looks like before it has been set up. That is not drift,
+    // so there is nothing useful to say about it.
+    //
+    // The `migrations` table is the wrong discriminator here: a schema built with
+    // `synchronize: true` has every table and no migration history, because TypeORM only writes
+    // that table when it runs a migration. Reporting drift is exactly what that developer needs
+    // when they switch to `synchronize: false` and change an entity.
+    if (!(await hasBeenSetUp(connection))) {
+        return;
+    }
     const builderLog = await connection.driver.createSchemaBuilder().log();
     if (builderLog.upQueries.length) {
-        log(
-            pc.yellow(
+        report({
+            code: 'schema-out-of-sync',
+            lines: [
                 'Your database schema does not match your current configuration. Generate a new migration for the following changes:',
-            ),
-        );
-        for (const query of builderLog.upQueries) {
-            log(' - ' + pc.yellow(query.query));
-        }
+                ...builderLog.upQueries.map(q => ' - ' + q.query),
+            ],
+        });
     }
+}
+
+/**
+ * Asking about one known table keeps this to a single statement. Loading every entity table
+ * would answer the same question, but `createSchemaBuilder().log()` already does that on its
+ * own query runner, so the work would be done twice on every run.
+ */
+async function hasBeenSetUp(connection: Connection): Promise<boolean> {
+    const queryRunner = connection.createQueryRunner();
+    try {
+        return await queryRunner.hasTable(connection.getMetadata(Product).tablePath);
+    } finally {
+        await queryRunner.release();
+    }
+}
+
+/**
+ * TypeORM resolves migration globs relative to `process.cwd()` and silently yields zero classes
+ * when nothing matches. That is indistinguishable from "every migration has already been
+ * applied" in the return value of `runMigrations()`, so the command reports success while
+ * leaving the database untouched.
+ *
+ * Zero loaded classes on its own is not evidence of a problem: it is also what a project looks
+ * like before its first migration is authored, which is how the `create` scaffold ships. The
+ * discriminator is the `migrations` table. If the database has migrations on record but nothing
+ * loaded, the patterns can only have stopped matching.
+ */
+async function detectUnmatchedPatterns(connection: Connection): Promise<MigrationDiagnostic | undefined> {
+    // Giving up as soon as any class loaded means a config which mixes a working pattern with a
+    // broken one will not warn. That is no worse than the current behaviour.
+    if (connection.migrations.length) {
+        return;
+    }
+    const patterns = getConfiguredPatterns(connection.options.migrations);
+    if (!patterns.length) {
+        return;
+    }
+    // Creates the `migrations` table as a side effect, which `runMigrations()` does anyway on
+    // the next line. Returns an empty array rather than throwing against a fresh database.
+    const executed = await new MigrationExecutor(connection).getExecutedMigrations();
+    if (!executed.length) {
+        return;
+    }
+    // The cwd only explains the failure for a relative pattern. The scaffolded config uses
+    // `path.join(__dirname, ...)`, where pointing at the working directory sends the user looking
+    // for a problem that is not there.
+    const anyRelative = patterns.some(pattern => !path.isAbsolute(pattern));
+    return {
+        code: 'no-migrations-matched',
+        lines: [
+            'No migration files matched the configured `migrations` patterns, but this database has migrations recorded as applied.',
+            'Nothing on disk matches these patterns. If they point at compiled output, check that it has been built:',
+            ...patterns.map(pattern => ' - ' + pattern),
+            ...(anyRelative
+                ? [`Relative patterns are resolved against the current directory (${process.cwd()}).`]
+                : []),
+        ],
+    };
+}
+
+function getConfiguredPatterns(configuredMigrations: DataSourceOptions['migrations']): string[] {
+    const entries = Array.isArray(configuredMigrations)
+        ? configuredMigrations
+        : Object.values(configuredMigrations ?? {});
+    return entries.filter((entry): entry is string => typeof entry === 'string');
 }
 
 /**
