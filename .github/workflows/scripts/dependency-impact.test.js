@@ -264,6 +264,28 @@ test('escapes untrusted dependency names and ranges in the report table', () => 
     assert.doesNotMatch(body, /\n\| forged \| row \|/);
 });
 
+test('counts a peerDependencies change in a published package as a contract change', () => {
+    const filePath = 'packages/core/package.json';
+    const { output, calls } = runClassifier({
+        files: [filePath],
+        manifests: {
+            [manifestEndpoint(filePath, 'merge-base')]: {
+                name: '@vendure/core',
+                peerDependencies: { graphql: '^16.0.0' },
+                optionalDependencies: { bufferutil: '^4.0.0' },
+            },
+            [manifestEndpoint(filePath, 'head')]: {
+                name: '@vendure/core',
+                peerDependencies: { graphql: '^17.0.0' },
+                optionalDependencies: { bufferutil: '^5.0.0' },
+            },
+        },
+    });
+
+    assert.deepEqual(appliedLabels(calls), ['deps: contract change']);
+    assert.match(output, /2 contract, 0 other/);
+});
+
 test('reads a dependency section that is not an object as absent', () => {
     const filePath = 'packages/core/package.json';
     const { output, calls } = runClassifier({

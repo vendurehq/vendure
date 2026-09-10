@@ -80,12 +80,10 @@ async function main() {
             continue;
         }
         const published = isPublished(path, head || base);
-        for (const section of [
-            'dependencies',
-            'peerDependencies',
-            'optionalDependencies',
-            'devDependencies',
-        ]) {
+        // devDependencies is reported but never counts as a contract change, so the scanned list
+        // is the contract sections plus that one. Restating the contract sections here instead
+        // would let the two lists drift, and the drift would be silent.
+        for (const section of [...CONTRACT_SECTIONS, 'devDependencies']) {
             for (const change of diffSection(base, head, section)) {
                 const entry = { ...change, path, section };
                 const isContract = published && CONTRACT_SECTIONS.includes(section);
