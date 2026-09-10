@@ -355,7 +355,10 @@ function formatRange({ from, to }) {
  */
 function codeCell(value) {
     const text = String(value).replace(/\r?\n/g, ' ');
-    if (text.includes('`')) {
+    // A backtick cannot be escaped inside a code span at all. A backslash cannot be escaped inside
+    // one either, so it would survive to sit in front of the pipe escape below and consume it,
+    // putting a bare pipe back into the row. Either character falls back to escaped plain text.
+    if (text.includes('`') || text.includes('\\')) {
         return escapeMarkdown(text);
     }
     return `\`${text.replace(/\|/g, '\\|')}\``;

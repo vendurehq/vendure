@@ -269,6 +269,31 @@ test('escapes untrusted dependency names and ranges in the report table', () => 
     assert.doesNotMatch(body, /\n\| forged \| row \|/);
 });
 
+test('takes a range carrying a backslash out of the code span', () => {
+    const filePath = 'packages/core/package.json';
+    const { calls } = runClassifier({
+        files: [filePath],
+        manifests: {
+            [manifestEndpoint(filePath, 'merge-base')]: {
+                name: '@vendure/core',
+                dependencies: { graphql: '^16.0.0' },
+            },
+            [manifestEndpoint(filePath, 'head')]: {
+                name: '@vendure/core',
+                dependencies: { graphql: '^17.0.0 \\| forged | row |' },
+            },
+        },
+    });
+    const body = calls
+        .find(args => args[1] === 'repos/vendurehq/vendure/issues/42/comments' && args.includes('POST'))
+        .find(arg => arg.startsWith('body='));
+
+    // Escaping only the pipe would leave the backslash in front of it, so the row would carry a
+    // bare pipe and split into extra cells. Plain text entity-escapes the pipe instead.
+    assert.match(body, /&#124; forged &#124; row &#124;/);
+    assert.doesNotMatch(body, /\\\\\|/);
+});
+
 test('renders a comparator range as written rather than as HTML entities', () => {
     const filePath = 'packages/dashboard/package.json';
     const { calls } = runClassifier({
