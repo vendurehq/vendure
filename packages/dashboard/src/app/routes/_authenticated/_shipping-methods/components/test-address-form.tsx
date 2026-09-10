@@ -1,9 +1,9 @@
+import { AddressCountrySelect } from '@/vdb/components/shared/address-country-select.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
 import { AccordionContent, AccordionItem, AccordionTrigger } from '@/vdb/components/ui/accordion.js';
 import { Form } from '@/vdb/components/ui/form.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { LS_KEY_SHIPPING_TEST_ADDRESS } from '@/vdb/constants.js';
-import { CountrySelect } from '@/vdb/hooks/use-available-countries.js';
 import { Trans } from '@lingui/react/macro';
 import { useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
@@ -194,7 +194,7 @@ export function TestAddressForm({ onAddressChange }: Readonly<TestAddressFormPro
                                 label={<Trans>Country</Trans>}
                                 renderFormControl={false}
                                 render={({ field }) => (
-                                    <CountrySelect value={field.value} onValueChange={field.onChange} />
+                                    <AddressCountrySelect value={field.value} onChange={field.onChange} />
                                 )}
                             />
                             <FormFieldWrapper

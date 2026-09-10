@@ -1,4 +1,3 @@
-import { CountrySelect } from '@/vdb/hooks/use-available-countries.js';
 import { z, zodResolver } from '@/vdb/lib/zod.js';
 import { Trans } from '@lingui/react/macro';
 import { Controller, useForm } from 'react-hook-form';
@@ -7,6 +6,7 @@ import { Checkbox } from '../ui/checkbox.js';
 import { FieldDescription, FieldLabel } from '../ui/field.js';
 import { Form } from '../ui/form.js';
 import { Input } from '../ui/input.js';
+import { AddressCountrySelect } from './address-country-select.js';
 import { FormFieldWrapper } from './form-field-wrapper.js';
 import { CustomFieldsForm } from './custom-fields-form.js';
 
@@ -161,7 +161,7 @@ export function CustomerAddressForm<T>({
                         label={<Trans>Country</Trans>}
                         renderFormControl={false}
                         render={({ field }) => (
-                            <CountrySelect value={field.value} onValueChange={field.onChange} />
+                            <AddressCountrySelect value={field.value} onChange={field.onChange} />
                         )}
                     />
 
