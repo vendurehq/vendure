@@ -38,14 +38,10 @@ import { VendureEntity } from '../../entity/base/base.entity';
  * Returns `true` if the given custom field type is a localized type, i.e. one whose values are
  * stored on the entity's translation entity rather than on the entity itself.
  *
- * Prefer this over comparing against `'localeString'` and `'localeText'` individually, so that
- * every site which needs to know about localized custom fields stays correct if further
- * localized types are added.
- *
  * @docsCategory custom-fields
  * @since 3.7.4
  */
-export function isLocalizedCustomFieldType(type: CustomFieldType | StructFieldType | undefined): boolean {
+export function isLocalizedCustomFieldType(type: CustomFieldType | undefined): boolean {
     return type === 'localeString' || type === 'localeText';
 }
 
