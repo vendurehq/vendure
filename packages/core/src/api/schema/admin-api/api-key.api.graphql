@@ -73,21 +73,14 @@ input UpdateApiKeyInput {
     "ID of the ApiKey"
     id: ID!
     """
-    Which roles to attach to this ApiKey, replacing its Roles on the active Channel.
-    You may only grant roles which you, yourself have.
-    Cannot be combined with roleAssignments.
+    Which roles to attach to this ApiKey, replacing its Roles on the active Channel: Roles held
+    there but absent from the list are removed, Roles in the list not yet held are assigned.
+    You may only make changes for roles which you, yourself have, including the removals.
     """
     roleIds: [ID!]
         @deprecated(
-            reason: "Use roleAssignments instead. roleIds replaces the Roles on the active Channel only."
+            reason: "Use assignRolesToUser / removeRolesFromUser instead. roleIds replaces the Roles on the active Channel only."
         )
-
-    """
-    Replaces the full set of the ApiKey's RoleAssignments across all Channels.
-    You may only grant roles which you, yourself have on those Channels.
-    Cannot be combined with roleIds.
-    """
-    roleAssignments: [RoleAssignmentInput!]
 
     translations: [UpdateApiKeyTranslationInput!]
 }

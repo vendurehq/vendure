@@ -32,9 +32,8 @@ import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-build
 import { TranslatableSaver } from '../helpers/translatable-saver/translatable-saver';
 import { TranslatorService } from '../helpers/translator/translator.service';
 
-import { AdministratorService } from './administrator.service';
 import { ChannelService } from './channel.service';
-import { RoleAssignmentService } from './role-assignment.service';
+import { RoleAssignmentService, RoleChannelPair } from './role-assignment.service';
 import { RoleService } from './role.service';
 import { SessionService } from './session.service';
 import { UserService } from './user.service';
@@ -43,7 +42,6 @@ import { UserService } from './user.service';
 @Instrument()
 export class ApiKeyService {
     constructor(
-        private administratorService: AdministratorService,
         private channelService: ChannelService,
         private configService: ConfigService,
         private connection: TransactionalConnection,
@@ -110,10 +108,15 @@ export class ApiKeyService {
         if (userIdApiKeyUser) {
             this.assertNoRoleInputsForImpersonatedUser(input);
         }
-        // Deprecated `roleIds` input (since 4.0.0): remove this branch in v5.0.0.
-        if (input.roleIds) {
-            await this.roleService.assertActiveUserCanGrantRoles(ctx, input.roleIds, [ctx.channelId]);
-        }
+        // Deprecated `roleIds` input (since 4.0.0): grants the Roles on the active Channel.
+        // Remove the roleIds alternative in v5.0.0.
+        const roleAssignments: RoleChannelPair[] =
+            input.roleAssignments ??
+            input.roleIds?.map(roleId => ({ roleId, channelId: ctx.channelId })) ??
+            [];
+        // Checked before anything is written, so a denied grant leaves no User or ApiKey
+        // behind even for callers outside a transaction. RoleAssignmentService.assign checks again.
+        await this.roleService.assertActiveUserCanGrantRoles(ctx, roleAssignments);
 
         const ownerUser = await this.connection.getEntityOrThrow(ctx, User, userIdOwner);
         const strategy = this.getApiKeyStrategyByApiType(ctx.apiType);
@@ -121,24 +124,10 @@ export class ApiKeyService {
         const apiKeyUser = userIdApiKeyUser
             ? await this.connection.getEntityOrThrow(ctx, User, userIdApiKeyUser)
             : await this.userService.createApiKeyUser(ctx, this.generateApiKeyUserIdentifier(lookupId));
-        if (!userIdApiKeyUser) {
-            // An impersonated existing User (userIdApiKeyUser) keeps their own assignments
-            // instead of being granted new ones.
-            if (input.roleAssignments) {
-                await this.administratorService.setRoleAssignmentsForUser(
-                    ctx,
-                    apiKeyUser.id,
-                    input.roleAssignments,
-                );
-            } else if (input.roleIds) {
-                // Deprecated `roleIds` input (since 4.0.0): grants the Roles on the active
-                // Channel. Remove this branch in v5.0.0.
-                await this.administratorService.setRoleAssignmentsForUser(
-                    ctx,
-                    apiKeyUser.id,
-                    input.roleIds.map(roleId => ({ roleId, channelId: ctx.channelId })),
-                );
-            }
+        // An impersonated existing User (userIdApiKeyUser) keeps their own assignments
+        // instead of being granted new ones.
+        if (!userIdApiKeyUser && roleAssignments.length) {
+            await this.roleAssignmentService.assign(ctx, apiKeyUser.id, roleAssignments);
         }
 
         const secret = await strategy.generateSecret(ctx);
@@ -194,13 +183,8 @@ export class ApiKeyService {
             relations: ['user'],
         });
 
-        this.assertRoleInputsAreExclusive(input);
         if (entity.user.identifier !== this.generateApiKeyUserIdentifier(entity.lookupId)) {
             this.assertNoRoleInputsForImpersonatedUser(input);
-        }
-        // Deprecated `roleIds` input (since 4.0.0): remove this branch in v5.0.0.
-        if (input.roleIds) {
-            await this.roleService.assertActiveUserCanGrantRoles(ctx, input.roleIds, [ctx.channelId]);
         }
 
         const apiKey = await this.translatableSaver.update({
@@ -209,19 +193,12 @@ export class ApiKeyService {
             entityType: ApiKey,
             translationType: ApiKeyTranslation,
             beforeSave: async () => {
-                // Keep in mind that if the user of the ApiKey is being impersonated,
-                // this would change the role assignments of the impersonated user!
-                if (input.roleAssignments) {
-                    // Replaces the full set of the user's assignments across all Channels.
-                    await this.administratorService.setRoleAssignmentsForUser(
-                        ctx,
-                        entity.user.id,
-                        input.roleAssignments,
-                    );
-                } else if (input.roleIds) {
-                    // Deprecated `roleIds` input (since 4.0.0): replaces the user's
-                    // assignments on the active Channel. Remove this branch in v5.0.0.
-                    await this.roleAssignmentService.replaceUserAssignmentsOnChannel(
+                // Deprecated `roleIds` input (since 4.0.0): replaces the user's Roles on the
+                // active Channel, as deltas through assign / remove. Role changes otherwise go
+                // through the assignRolesToUser / removeRolesFromUser mutations. Remove this
+                // branch in v5.0.0.
+                if (input.roleIds) {
+                    await this.roleAssignmentService.replaceRolesOnChannel(
                         ctx,
                         entity.user.id,
                         input.roleIds,
@@ -243,21 +220,20 @@ export class ApiKeyService {
      * User's own assignments. Accepting role inputs for such a key would let a holder of
      * the ApiKey permissions rewrite the assignments of an Administrator.
      */
-    private assertNoRoleInputsForImpersonatedUser(
-        input: Pick<CreateApiKeyInput | UpdateApiKeyInput, 'roleAssignments'> & { roleIds?: ID[] | null },
-    ) {
+    private assertNoRoleInputsForImpersonatedUser(input: {
+        roleIds?: ID[] | null;
+        roleAssignments?: RoleChannelPair[] | null;
+    }) {
         if (input.roleIds || input.roleAssignments) {
             throw new UserInputError('error.api-key-impersonated-user-cannot-receive-roles');
         }
     }
 
     /**
-     * Guards the overlap of the deprecated `roleIds` input (since 4.0.0) with `roleAssignments`.
-     * Remove in v5.0.0 together with the `roleIds` inputs.
+     * Guards the overlap of the deprecated `roleIds` input (since 4.0.0) with `roleAssignments`
+     * on creation. Remove in v5.0.0 together with the `roleIds` inputs.
      */
-    private assertRoleInputsAreExclusive(
-        input: Pick<CreateApiKeyInput | UpdateApiKeyInput, 'roleAssignments'> & { roleIds?: ID[] | null },
-    ) {
+    private assertRoleInputsAreExclusive(input: CreateApiKeyInput) {
         if (input.roleIds && input.roleAssignments) {
             throw new UserInputError('error.role-ids-and-role-assignments-are-mutually-exclusive');
         }
@@ -266,6 +242,10 @@ export class ApiKeyService {
     /**
      * @description
      * Soft-Deletes an API-Key and removes its session. Is Channel-Aware.
+     *
+     * When the API-Key's User exists solely to hold its permissions, that User is soft-deleted
+     * too and all of its RoleAssignments are removed, publishing a `removed`
+     * {@link RoleAssignmentEvent}. The rows go because a deleted User holds nothing.
      *
      * @throws {EntityNotFoundError} If API-Key cannot be found
      */
@@ -284,6 +264,7 @@ export class ApiKeyService {
         }
         // If this is an underlying user solely for holding permission, delete them
         else {
+            await this.roleAssignmentService.setAssignmentsForUser(ctx, apiKey.userId, []);
             // SoftDelete should also delete the related sessions & cache
             await this.userService.softDelete(ctx, apiKey.userId);
         }

@@ -382,6 +382,11 @@ export type AssignPromotionsToChannelInput = {
   promotionIds: Array<Scalars['ID']['input']>;
 };
 
+export type AssignRolesToUserInput = {
+  assignments: Array<RoleAssignmentInput>;
+  userId: Scalars['ID']['input'];
+};
+
 export type AssignShippingMethodsToChannelInput = {
   channelId: Scalars['ID']['input'];
   shippingMethodIds: Array<Scalars['ID']['input']>;
@@ -2936,9 +2941,15 @@ export type Mutation = {
   assignPromotionsToChannel: Array<Promotion>;
   /**
    * Assign a Role to an Administrator
-   * @deprecated Use setRoleAssignmentsForUser instead. assignRoleToAdministrator assigns the Role on the active Channel only.
+   * @deprecated Use assignRolesToUser instead. assignRoleToAdministrator assigns the Role on the active Channel only.
    */
   assignRoleToAdministrator: Administrator;
+  /**
+   * Grants the User each of the given `(roleId, channelId)` pairs. The active user must hold
+   * every permission of each Role on its Channel. Pairs the User already holds are left as-is.
+   * Granting the SuperAdmin Role on any Channel grants it on every Channel.
+   */
+  assignRolesToUser: User;
   /** Assigns ShippingMethods to the specified Channel */
   assignShippingMethodsToChannel: Array<ShippingMethod>;
   /** Assigns StockLocations to the specified Channel */
@@ -3151,6 +3162,13 @@ export type Mutation = {
   removeProductsFromChannel: Array<Product>;
   /** Removes Promotions from the specified Channel */
   removePromotionsFromChannel: Array<Promotion>;
+  /**
+   * Revokes each of the given `(roleId, channelId)` pairs from the User, under the same rule
+   * as `assignRolesToUser`: the active user must hold every permission of each Role on its
+   * Channel. Pairs the User does not hold are left as-is. Removing the SuperAdmin Role on any
+   * Channel removes it on every Channel; the sole SuperAdmin cannot lose it.
+   */
+  removeRolesFromUser: User;
   /** Remove all settled jobs in the given queues older than the given date. Returns the number of jobs deleted. */
   removeSettledJobs: Scalars['Int']['output'];
   /** Removes ShippingMethods from the specified Channel */
@@ -3177,13 +3195,6 @@ export type Mutation = {
   setOrderCustomFields?: Maybe<Order>;
   /** Allows a different Customer to be assigned to an Order. Added in v2.2.0. */
   setOrderCustomer?: Maybe<Order>;
-  /**
-   * Atomically replaces the full set of RoleAssignments of the given User with the given
-   * `(roleId, channelId)` pairs, across all Channels: assignments not present in the new
-   * set are removed. The active user must be permitted to grant every Role involved in
-   * the change — added and removed pairs alike — on the Channel of that pair.
-   */
-  setRoleAssignmentsForUser: User;
   /** Set a single key-value pair (automatically scoped based on field configuration) */
   setSettingsStoreValue: SetSettingsStoreValueResult;
   /** Set multiple key-value pairs in a transaction (each automatically scoped) */
@@ -3361,6 +3372,11 @@ export type MutationAssignPromotionsToChannelArgs = {
 export type MutationAssignRoleToAdministratorArgs = {
   administratorId: Scalars['ID']['input'];
   roleId: Scalars['ID']['input'];
+};
+
+
+export type MutationAssignRolesToUserArgs = {
+  input: AssignRolesToUserInput;
 };
 
 
@@ -3887,6 +3903,11 @@ export type MutationRemovePromotionsFromChannelArgs = {
 };
 
 
+export type MutationRemoveRolesFromUserArgs = {
+  input: RemoveRolesFromUserInput;
+};
+
+
 export type MutationRemoveSettledJobsArgs = {
   olderThan?: InputMaybe<Scalars['DateTime']['input']>;
   queueNames?: InputMaybe<Array<Scalars['String']['input']>>;
@@ -3951,12 +3972,6 @@ export type MutationSetOrderCustomFieldsArgs = {
 
 export type MutationSetOrderCustomerArgs = {
   input: SetOrderCustomerInput;
-};
-
-
-export type MutationSetRoleAssignmentsForUserArgs = {
-  assignments: Array<RoleAssignmentInput>;
-  userId: Scalars['ID']['input'];
 };
 
 
@@ -5547,7 +5562,12 @@ export type Query = {
   province?: Maybe<Province>;
   provinces: ProvinceList;
   role?: Maybe<Role>;
-  /** Get a paginated list of RoleAssignments */
+  /**
+   * Get a paginated list of RoleAssignments, filtered to those the active user may grant or
+   * remove: the active user must hold every permission of the assignment's Role on its
+   * Channel. For an actor who does not hold every permission on every Channel the list is
+   * partial, and `totalItems` counts only the visible assignments.
+   */
   roleAssignments: RoleAssignmentList;
   roles: RoleList;
   scheduledTasks: Array<ScheduledTask>;
@@ -6088,6 +6108,11 @@ export type RemoveProductsFromChannelInput = {
 export type RemovePromotionsFromChannelInput = {
   channelId: Scalars['ID']['input'];
   promotionIds: Array<Scalars['ID']['input']>;
+};
+
+export type RemoveRolesFromUserInput = {
+  assignments: Array<RoleAssignmentInput>;
+  userId: Scalars['ID']['input'];
 };
 
 export type RemoveShippingMethodsFromChannelInput = {
@@ -7019,11 +7044,11 @@ export type UpdateAdministratorInput = {
   id: Scalars['ID']['input'];
   lastName?: InputMaybe<Scalars['String']['input']>;
   password?: InputMaybe<Scalars['String']['input']>;
-  /** Replaces the full set of the User's RoleAssignments across all Channels. Cannot be combined with roleIds. */
-  roleAssignments?: InputMaybe<Array<RoleAssignmentInput>>;
   /**
-   * Replaces the User's Roles on the active Channel. Cannot be combined with roleAssignments.
-   * @deprecated Use roleAssignments instead. roleIds replaces the Roles on the active Channel only.
+   * Replaces the User's Roles on the active Channel: Roles held there but absent from the list
+   * are removed, Roles in the list not yet held are assigned. The active user must be permitted
+   * to make each of those changes, including the removals.
+   * @deprecated Use assignRolesToUser / removeRolesFromUser instead. roleIds replaces the Roles on the active Channel only.
    */
   roleIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 };
@@ -7033,16 +7058,10 @@ export type UpdateApiKeyInput = {
   /** ID of the ApiKey */
   id: Scalars['ID']['input'];
   /**
-   * Replaces the full set of the ApiKey's RoleAssignments across all Channels.
-   * You may only grant roles which you, yourself have on those Channels.
-   * Cannot be combined with roleIds.
-   */
-  roleAssignments?: InputMaybe<Array<RoleAssignmentInput>>;
-  /**
-   * Which roles to attach to this ApiKey, replacing its Roles on the active Channel.
-   * You may only grant roles which you, yourself have.
-   * Cannot be combined with roleAssignments.
-   * @deprecated Use roleAssignments instead. roleIds replaces the Roles on the active Channel only.
+   * Which roles to attach to this ApiKey, replacing its Roles on the active Channel: Roles held
+   * there but absent from the list are removed, Roles in the list not yet held are assigned.
+   * You may only make changes for roles which you, yourself have, including the removals.
+   * @deprecated Use assignRolesToUser / removeRolesFromUser instead. roleIds replaces the Roles on the active Channel only.
    */
   roleIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   translations?: InputMaybe<Array<UpdateApiKeyTranslationInput>>;
@@ -7353,7 +7372,10 @@ export type User = Node & {
   id: Scalars['ID']['output'];
   identifier: Scalars['String']['output'];
   lastLogin?: Maybe<Scalars['DateTime']['output']>;
-  /** The RoleAssignments granting this User Roles on specific Channels */
+  /**
+   * The RoleAssignments of this User which the active user may grant or remove. An actor who
+   * does not hold every permission on every Channel sees a partial list.
+   */
   roleAssignments: Array<RoleAssignment>;
   roles: Array<Role>;
   updatedAt: Scalars['DateTime']['output'];

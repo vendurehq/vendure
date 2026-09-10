@@ -18,7 +18,7 @@ type Mutation {
     "Assign a Role to an Administrator"
     assignRoleToAdministrator(administratorId: ID!, roleId: ID!): Administrator!
         @deprecated(
-            reason: "Use setRoleAssignmentsForUser instead. assignRoleToAdministrator assigns the Role on the active Channel only."
+            reason: "Use assignRolesToUser instead. assignRoleToAdministrator assigns the Role on the active Channel only."
         )
 }
 
@@ -45,13 +45,15 @@ input UpdateAdministratorInput {
     lastName: String
     emailAddress: String
     password: String
-    "Replaces the User's Roles on the active Channel. Cannot be combined with roleAssignments."
+    """
+    Replaces the User's Roles on the active Channel: Roles held there but absent from the list
+    are removed, Roles in the list not yet held are assigned. The active user must be permitted
+    to make each of those changes, including the removals.
+    """
     roleIds: [ID!]
         @deprecated(
-            reason: "Use roleAssignments instead. roleIds replaces the Roles on the active Channel only."
+            reason: "Use assignRolesToUser / removeRolesFromUser instead. roleIds replaces the Roles on the active Channel only."
         )
-    "Replaces the full set of the User's RoleAssignments across all Channels. Cannot be combined with roleIds."
-    roleAssignments: [RoleAssignmentInput!]
 }
 
 input UpdateActiveAdministratorInput {

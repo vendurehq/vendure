@@ -209,13 +209,14 @@ export class ExternalAuthenticationService {
 
         newUser.authenticationMethods = [authMethod];
         const savedUser = await this.connection.getRepository(ctx, User).save(newUser);
-        // The given Roles are granted on the active Channel.
-        // TODO(OSS-300): align with the final grant vocabulary once the `roleIds` decision lands.
-        await this.roleAssignmentService.replaceUserAssignmentsOnChannel(
+        // The strategy has already decided which Roles this User gets and there is no actor
+        // whose grant rights could apply, so the write goes through the unauthorized
+
+        // primitive. The Roles are granted on the active Channel.
+        await this.roleAssignmentService.setAssignmentsForUser(
             ctx,
             savedUser.id,
-            config.roles.map(role => role.id),
-            ctx.channelId,
+            config.roles.map(role => ({ roleId: role.id, channelId: ctx.channelId })),
         );
 
         const administrator = await this.connection.getRepository(ctx, Administrator).save(
