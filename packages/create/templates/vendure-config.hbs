@@ -102,6 +102,13 @@ export const config: VendureConfig = {
             templateLoader: new FileBasedTemplateLoader(path.join(__dirname, '../static/email/templates')),
             globalTemplateVars: {
                 // The following variables will change depending on your storefront implementation.
+{{#if isMonorepo}}
+                // These point at the storefront created alongside this server, on the port it
+                // was assigned. Change them if you move the storefront elsewhere.
+{{else}}
+                // No storefront was created, so port {{ storefrontPort }} is only a placeholder:
+                // nothing is listening on it until you point these at your own storefront.
+{{/if}}
                 fromAddress: '"example" <noreply@example.com>',
                 verifyEmailAddressUrl: 'http://localhost:{{ storefrontPort }}/verify',
                 passwordResetUrl: 'http://localhost:{{ storefrontPort }}/password-reset',
