@@ -17,7 +17,7 @@ import {
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
-import { toTranslationValues, useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
+import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
@@ -58,7 +58,12 @@ function FacetDetailPage() {
                 id: entity.id,
                 isPrivate: entity.isPrivate,
                 code: entity.code,
-                translations: toTranslationValues(entity.translations),
+                translations: entity.translations.map(translation => ({
+                    id: translation.id,
+                    languageCode: translation.languageCode,
+                    name: translation.name,
+                    customFields: (translation as any).customFields,
+                })),
                 values: [],
                 customFields: entity.customFields,
             };

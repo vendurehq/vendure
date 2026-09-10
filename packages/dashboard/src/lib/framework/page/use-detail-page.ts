@@ -179,35 +179,6 @@ export function getDetailQueryOptions<T, V extends { id: string }>(
 
 /**
  * @description
- * Maps translation rows to the shape an update input expects, for entities whose translations
- * carry only a name. Use it inside `setValuesForUpdate`. Pages whose translations also carry a
- * slug or description build their own row object.
- *
- * @example
- * ```ts
- * setValuesForUpdate: entity => ({
- *     id: entity.id,
- *     translations: toTranslationValues(entity.translations),
- * }),
- * ```
- *
- * @docsCategory detail-views
- * @docsPage useDetailPage
- * @since 3.8.0
- */
-export function toTranslationValues<T extends { id: string; languageCode: any; name: string }>(
-    translations: readonly T[],
-) {
-    return translations.map(translation => ({
-        id: translation.id,
-        languageCode: translation.languageCode,
-        name: translation.name,
-        customFields: (translation as any).customFields,
-    }));
-}
-
-/**
- * @description
  * Adds a "customFields" property to the translations if the entity has translations.
  */
 export type DetailPageTranslations<

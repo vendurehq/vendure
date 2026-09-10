@@ -18,11 +18,7 @@ import {
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
-import {
-    getDetailQueryOptions,
-    toTranslationValues,
-    useDetailPage,
-} from '@/vdb/framework/page/use-detail-page.js';
+import { getDetailQueryOptions, useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { api } from '@/vdb/graphql/api.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { Trans, useLingui } from '@lingui/react/macro';
@@ -117,7 +113,12 @@ function OptionGroupDetailPage() {
             return {
                 id: entity.id,
                 code: entity.code,
-                translations: toTranslationValues(entity.translations),
+                translations: entity.translations.map(translation => ({
+                    id: translation.id,
+                    languageCode: translation.languageCode,
+                    name: translation.name,
+                    customFields: (translation as any).customFields,
+                })),
                 customFields: entity.customFields,
             };
         },
