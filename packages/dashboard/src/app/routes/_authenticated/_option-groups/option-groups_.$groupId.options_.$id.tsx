@@ -111,7 +111,7 @@ function OptionGroupOptionDetailPage() {
         queryDocument: productOptionDetailDocument,
         createDocument: createProductOptionDocument,
         updateDocument: updateProductOptionDocument,
-        extendSchema: requireGeneratedCode(creatingNewEntity),
+        extendSchema: creatingNewEntity ? requireGeneratedCode : undefined,
         setValuesForUpdate: entity => {
             return {
                 id: entity.id,

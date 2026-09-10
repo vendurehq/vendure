@@ -96,7 +96,7 @@ function CollectionDetailPage() {
             };
         },
         updateDocument: updateCollectionDocument,
-        extendSchema: requireGeneratedSlug(creatingNewEntity),
+        extendSchema: creatingNewEntity ? requireGeneratedSlug : undefined,
         setValuesForUpdate: entity => {
             return {
                 id: entity.id,

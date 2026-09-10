@@ -59,7 +59,7 @@ function FacetValueDetailPage() {
         queryDocument: facetValueDetailDocument,
         createDocument: createFacetValueDocument,
         updateDocument: updateFacetValueDocument,
-        extendSchema: requireGeneratedCode(creatingNewEntity),
+        extendSchema: creatingNewEntity ? requireGeneratedCode : undefined,
         setValuesForUpdate: entity => {
             return {
                 id: entity.id,

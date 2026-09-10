@@ -143,7 +143,7 @@ function ProductDetailPage() {
         queryDocument: productDetailDocument,
         createDocument: createProductDocument,
         updateDocument: updateProductDocument,
-        extendSchema: requireGeneratedSlug(creatingNewEntity),
+        extendSchema: creatingNewEntity ? requireGeneratedSlug : undefined,
         setValuesForUpdate: entity => {
             return {
                 id: entity.id,
