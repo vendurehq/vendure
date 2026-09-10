@@ -3,4 +3,16 @@ type Seller implements Node {
     createdAt: DateTime!
     updatedAt: DateTime!
     name: String!
+    translations: [SellerTranslation!]!
+}
+
+"""
+Holds a Seller's localized custom field values for one language.
+The Seller's own fields, such as `name`, are not translated.
+"""
+type SellerTranslation {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    languageCode: LanguageCode!
 }

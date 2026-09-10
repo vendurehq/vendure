@@ -3,9 +3,12 @@ import { Column, Entity, OneToMany } from 'typeorm';
 
 import { Channel } from '..';
 import { SoftDeletable } from '../../common/types/common-types';
+import { Translatable, Translation } from '../../common/types/locale-types';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { VendureEntity } from '../base/base.entity';
 import { CustomSellerFields } from '../custom-entity-fields';
+
+import { SellerTranslation } from './seller-translation.entity';
 
 /**
  * @description
@@ -15,7 +18,7 @@ import { CustomSellerFields } from '../custom-entity-fields';
  * @docsCategory entities
  */
 @Entity()
-export class Seller extends VendureEntity implements SoftDeletable, HasCustomFields {
+export class Seller extends VendureEntity implements SoftDeletable, HasCustomFields, Translatable {
     constructor(input?: DeepPartial<Seller>) {
         super(input);
     }
@@ -24,6 +27,9 @@ export class Seller extends VendureEntity implements SoftDeletable, HasCustomFie
     deletedAt: Date | null;
 
     @Column() name: string;
+
+    @OneToMany(type => SellerTranslation, translation => translation.base, { eager: true })
+    translations: Array<Translation<Seller>>;
 
     @Column(type => CustomSellerFields)
     customFields: CustomSellerFields;

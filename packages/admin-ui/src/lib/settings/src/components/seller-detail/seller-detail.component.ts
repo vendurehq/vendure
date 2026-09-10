@@ -2,32 +2,30 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnIni
 import { FormBuilder, Validators } from '@angular/forms';
 import { marker as _ } from '@biesbjerg/ngx-translate-extract-marker';
 import {
-    CreateSellerInput,
+    createUpdatedTranslatable,
     DataService,
+    findTranslation,
     getCustomFieldsDefaults,
     GetSellerDetailDocument,
     LanguageCode,
     NotificationService,
     Permission,
+    SELLER_FRAGMENT,
     SellerFragment,
     TypedBaseDetailComponent,
     UpdateSellerInput,
 } from '@vendure/admin-ui/core';
 import { gql } from 'apollo-angular';
+import { combineLatest } from 'rxjs';
 import { mergeMap, take } from 'rxjs/operators';
 
 export const GET_SELLER_DETAIL = gql`
     query GetSellerDetail($id: ID!) {
         seller(id: $id) {
-            ...SellerDetail
+            ...Seller
         }
     }
-    fragment SellerDetail on Seller {
-        id
-        createdAt
-        updatedAt
-        name
-    }
+    ${SELLER_FRAGMENT}
 `;
 
 @Component({
@@ -77,10 +75,23 @@ export class SellerDetailComponent
         if (!formValue.name) {
             return;
         }
-        const input: CreateSellerInput = {
-            name: formValue.name,
-            customFields: formValue.customFields,
-        };
+        // Seller has no translated fields of its own, only localized custom fields, so the
+        // translation the input needs carries nothing but the language and those values.
+        const input = createUpdatedTranslatable({
+            translatable: {
+                id: '',
+                createdAt: '',
+                updatedAt: '',
+                name: '',
+                translations: [],
+            } as SellerFragment,
+            updatedFields: formValue,
+            languageCode: this.languageCode,
+            customFieldConfig: this.customFields,
+            defaultTranslation: {
+                languageCode: this.languageCode,
+            },
+        });
         this.dataService.settings.createSeller(input).subscribe(data => {
             switch (data.createSeller.__typename) {
                 case 'Seller':
@@ -99,16 +110,20 @@ export class SellerDetailComponent
         if (!this.detailForm.dirty) {
             return;
         }
-        const formValue = this.detailForm.value;
-        this.entity$
+        combineLatest(this.entity$, this.languageCode$)
             .pipe(
                 take(1),
-                mergeMap(seller => {
-                    const input = {
-                        id: seller.id,
-                        name: formValue.name,
-                        customFields: formValue.customFields,
-                    } as UpdateSellerInput;
+                mergeMap(([seller, languageCode]) => {
+                    const formValue = this.detailForm.value;
+                    const input: UpdateSellerInput = createUpdatedTranslatable({
+                        translatable: seller,
+                        updatedFields: formValue,
+                        customFieldConfig: this.customFields,
+                        languageCode,
+                        defaultTranslation: {
+                            languageCode,
+                        },
+                    });
                     return this.dataService.settings.updateSeller(input);
                 }),
             )
@@ -135,7 +150,12 @@ export class SellerDetailComponent
             name: entity.name,
         });
         if (this.customFields.length) {
-            this.setCustomFieldFormValues(this.customFields, this.detailForm.get(['customFields']), entity);
+            this.setCustomFieldFormValues(
+                this.customFields,
+                this.detailForm.get(['customFields']),
+                entity,
+                findTranslation(entity, languageCode),
+            );
         }
     }
 }
