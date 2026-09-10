@@ -55,7 +55,7 @@ test.describe('API keys', () => {
         await dialog.locator('button[data-slot="button"]', { hasText: 'Close' }).click();
     });
 
-    // OSS-300 — the saved (roleId, channelId) pair must load back into the editor
+    // OSS-800 — the saved (roleId, channelId) pair is listed in the role assignments table
     test('should show the assigned role when reopening the API key', async ({ page }) => {
         const lp = listPage(page);
         await lp.goto();
@@ -63,6 +63,6 @@ test.describe('API keys', () => {
         await lp.clickEntity(API_KEY_NAME);
         await expect(page).toHaveURL(/\/api-keys\/[^/]+$/);
 
-        await expect(page.getByRole('combobox').first()).toContainText('SuperAdmin');
+        await expect(page.getByRole('row').filter({ hasText: 'SuperAdmin' })).toBeVisible();
     });
 });

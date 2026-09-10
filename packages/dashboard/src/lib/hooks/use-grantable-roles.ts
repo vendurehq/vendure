@@ -4,11 +4,13 @@ import { useAuth } from './use-auth.js';
 import { useRoles } from './use-roles.js';
 
 /**
- * Determines which Roles the active user may grant on which Channels. The rule mirrors the
- * server-side guard in `RoleService.assertActiveUserCanGrantRoles`: a Role may be granted on
- * a Channel only if the active user holds every one of that Role's permissions on that
- * Channel. The `me.channels` permissions already have the active user's global permissions
- * folded in, so a SuperAdmin needs no special case here.
+ * Determines which Roles the active user may grant on which Channels, to populate the role
+ * and channel selectors for a new assignment. The rule mirrors the server's
+ * `RoleService.canGrant`: a Role may be granted on a Channel only if the active user holds
+ * every one of that Role's permissions on that Channel. The `me.channels` permissions
+ * already have the active user's global permissions folded in, so a SuperAdmin needs no
+ * special case here. Existing assignments need no client-side check: the server filters
+ * `User.roleAssignments` through the same rule.
  */
 export function useGrantableRoles() {
     const { channels } = useAuth();

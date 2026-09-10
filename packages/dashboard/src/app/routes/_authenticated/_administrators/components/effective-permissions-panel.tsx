@@ -5,11 +5,21 @@ import { useRoles } from '@/vdb/hooks/use-roles.js';
 import { Trans } from '@lingui/react/macro';
 import { ReactNode, useState } from 'react';
 
-import { RoleAssignmentPair, useRoleAssignmentLabels } from './role-assignments-editor.js';
 import { RolePermissionsDisplay } from './role-permissions-display.js';
 
+export interface EffectivePermissionsAssignment {
+    roleId: string;
+    channelId: string;
+    /**
+     * Rows loaded from the server carry the Channel identity, which labels a Channel the
+     * active user cannot read through the channels query. Pairs from the create form do not
+     * need it: only the active user's own Channels are offered there.
+     */
+    channel?: { code: string } | null;
+}
+
 export interface EffectivePermissionsPanelProps {
-    assignments: RoleAssignmentPair[];
+    assignments: EffectivePermissionsAssignment[];
     /**
      * Caption under the heading, naming whose permissions are shown. Owned by the calling
      * page, since the panel is shared between the administrator and API key detail pages.
@@ -28,10 +38,9 @@ export function EffectivePermissionsPanel({
 }: Readonly<EffectivePermissionsPanelProps>) {
     const { channels, activeChannel } = useChannel();
     const { roles } = useRoles();
-    const assignmentLabels = useRoleAssignmentLabels(assignments);
     const [pickedChannelId, setPickedChannelId] = useState<string | undefined>();
 
-    // The generated form can hold incomplete pairs (blank seed item, a row mid-edit).
+    // The create form can hold incomplete pairs (a row mid-edit).
     const completeAssignments = assignments.filter(
         assignment => !!assignment?.roleId && !!assignment?.channelId,
     );
@@ -65,7 +74,7 @@ export function EffectivePermissionsPanel({
         // Fallback for a Channel the active user cannot read through the channels query.
         const code =
             channels.find(channel => channel.id === channelId)?.code ??
-            assignmentLabels.channels.get(channelId) ??
+            completeAssignments.find(assignment => assignment.channelId === channelId)?.channel?.code ??
             channelId;
         return { value: channelId, label: code, display: <ChannelCodeLabel code={code} /> };
     });

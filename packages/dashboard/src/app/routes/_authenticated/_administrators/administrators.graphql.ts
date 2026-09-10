@@ -99,3 +99,19 @@ export const deleteAdministratorsDocument = graphql(`
         }
     }
 `);
+
+export const assignRolesToUserDocument = graphql(`
+    mutation AssignRolesToUser($input: AssignRolesToUserInput!) {
+        assignRolesToUser(input: $input) {
+            id
+        }
+    }
+`);
+
+export const removeRolesFromUserDocument = graphql(`
+    mutation RemoveRolesFromUser($input: RemoveRolesFromUserInput!) {
+        removeRolesFromUser(input: $input) {
+            id
+        }
+    }
+`);
