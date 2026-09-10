@@ -284,10 +284,9 @@ async function generateSources(
 
     registerEscapeSingleHelper();
 
-    // Only scan for a real port when a storefront was actually selected - this is the
-    // same port that create-vendure-app.ts later hands to the storefront's own dev
-    // server, so the two must agree. When no storefront is selected there is no real
-    // port to point at, so STOREFRONT_PORT is just a placeholder default.
+    // create-vendure-app.ts hands this same value to the storefront's dev server, so the
+    // URLs in the generated config and the running storefront resolve to one port. Without a
+    // storefront there is nothing to point at and STOREFRONT_PORT is only a placeholder.
     const storefrontPort = answers.storefront
         ? await findAvailablePort(Math.max(STOREFRONT_PORT, port + 1), PORT_SCAN_RANGE)
         : STOREFRONT_PORT;

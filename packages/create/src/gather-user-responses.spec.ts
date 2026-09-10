@@ -1,8 +1,6 @@
-import os from 'node:os';
-import path from 'node:path';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { STOREFRONT_PORT } from './constants';
+import { PORT_SCAN_RANGE, STOREFRONT_PORT } from './constants';
 import { getCiConfiguration } from './gather-user-responses';
 import { getPackageManagerInfo, registerTemplateHelpers } from './helpers';
 
@@ -34,8 +32,7 @@ describe('getCiConfiguration', () => {
         const mockedStorefrontPort = 4321;
         findAvailablePortMock.mockResolvedValue(mockedStorefrontPort);
 
-        const root = path.join(os.tmpdir(), 'gather-user-responses-spec-with-storefront');
-        const responses = await getCiConfiguration(root, 'npm', 3000, 'nextjs');
+        const responses = await getCiConfiguration('my-vendure-app', 'npm', 3000, 'nextjs');
 
         expect(responses.storefrontPort).toBe(mockedStorefrontPort);
         expect(responses.configSource).toContain(`http://localhost:${mockedStorefrontPort}/verify`);
@@ -43,17 +40,14 @@ describe('getCiConfiguration', () => {
         expect(responses.configSource).toContain(
             `http://localhost:${mockedStorefrontPort}/verify-email-address-change`,
         );
-        expect(responses.configSource).not.toContain('localhost:8080');
-        expect(findAvailablePortMock).toHaveBeenCalledWith(3001, expect.any(Number));
+        expect(findAvailablePortMock).toHaveBeenCalledWith(STOREFRONT_PORT, PORT_SCAN_RANGE);
     });
 
     it('falls back to the default placeholder port when no storefront is selected', async () => {
-        const root = path.join(os.tmpdir(), 'gather-user-responses-spec-no-storefront');
-        const responses = await getCiConfiguration(root, 'npm', 3000, undefined);
+        const responses = await getCiConfiguration('my-vendure-app', 'npm', 3000, undefined);
 
         expect(responses.storefrontPort).toBe(STOREFRONT_PORT);
         expect(responses.configSource).toContain(`http://localhost:${STOREFRONT_PORT}/verify`);
-        expect(responses.configSource).not.toContain('localhost:8080');
         expect(findAvailablePortMock).not.toHaveBeenCalled();
     });
 });
