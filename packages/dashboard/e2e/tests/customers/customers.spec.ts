@@ -154,8 +154,11 @@ test.describe('Address form country dropdown', () => {
         const countrySelect = await openAddressCountrySelect(page);
         await countrySelect.click();
 
+        // allInnerTexts() snapshots immediately rather than auto-waiting, so wait
+        // for the popup to render before reading the option order out of it.
+        await expect(page.getByRole('option', { name: 'Belgium' })).toBeVisible();
+
         const optionNames = await page.getByRole('option').allInnerTexts();
-        expect(optionNames).toContain('Belgium');
         expect(optionNames).toEqual([...optionNames].sort((a, b) => a.localeCompare(b)));
     });
 });
