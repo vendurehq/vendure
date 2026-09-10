@@ -30,7 +30,7 @@ async function openShippingTestCountrySelect(page: Page) {
     await page.getByRole('button', { name: 'Test' }).click();
 
     const testSheet = page.getByRole('dialog', { name: 'Test Shipping Method' });
-    return testSheet.locator('[data-slot="field"]').filter({ hasText: 'Country' }).getByRole('combobox');
+    return testSheet.getByRole('combobox', { name: 'Country' });
 }
 
 test.describe('Shipping Methods CRUD', () => {
