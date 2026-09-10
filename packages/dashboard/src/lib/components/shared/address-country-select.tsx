@@ -34,7 +34,14 @@ export function AddressCountrySelect({ value, onChange }: Readonly<AddressCountr
         <Select
             items={Object.fromEntries(countries.map(country => [country.code, country.name]))}
             value={value ?? ''}
-            onValueChange={newValue => newValue && onChange(newValue)}
+            onValueChange={newValue => {
+                // The Select has no clear affordance, so an empty value only arrives if Base
+                // UI emits one during teardown. Ignoring it keeps the saved country in the
+                // form rather than blanking a required field.
+                if (newValue) {
+                    onChange(newValue);
+                }
+            }}
         >
             <SelectTrigger aria-label={t`Country`}>
                 <SelectValue placeholder={<Trans>Select a country</Trans>} />
