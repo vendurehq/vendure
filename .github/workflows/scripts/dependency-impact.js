@@ -137,6 +137,15 @@ function readSection(manifest, section) {
 }
 
 /**
+ * Percent-encodes a repository path for use in a contents API URL. The path comes from the pull
+ * request's changed-file list, and git permits `?`, `#` and `%` in a filename. Left raw, such a
+ * name would change which endpoint and which ref the request asks for.
+ */
+function encodePath(path) {
+    return path.split('/').map(encodeURIComponent).join('/');
+}
+
+/**
  * Reads a manifest at a given commit and parses it. Returns null when the file does not exist at
  * that commit, which is the normal case for a manifest the pull request adds or deletes.
  */
@@ -146,7 +155,11 @@ function readManifest(path, ref) {
         // ref goes in the query string. Passing it with -f makes gh send it as a request body,
         // which the contents API ignores, and every lookup then resolves against the default
         // branch or 404s.
-        raw = gh([`repos/${repo}/contents/${path}?ref=${ref}`, '-H', 'Accept: application/vnd.github.raw']);
+        raw = gh([
+            `repos/${repo}/contents/${encodePath(path)}?ref=${ref}`,
+            '-H',
+            'Accept: application/vnd.github.raw',
+        ]);
     } catch (e) {
         const stderr = String(e.stderr || '');
         if (stderr.includes('HTTP 404')) {
