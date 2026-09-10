@@ -27,9 +27,15 @@ async function openShippingTestCountrySelect(page: Page) {
     await lp.expectLoaded();
     await lp.search('Standard Shipping');
     await lp.clickEntity('Standard Shipping');
-    await page.getByRole('button', { name: 'Test' }).click();
-
     const testSheet = page.getByRole('dialog', { name: 'Test Shipping Method' });
+    // The CRUD block runs against the same server in a parallel worker, and a list
+    // refetch landing mid-click leaves the sheet closed with the click consumed.
+    // Retry the click rather than the whole test.
+    await expect(async () => {
+        await page.getByRole('button', { name: 'Test' }).click();
+        await expect(testSheet).toBeVisible({ timeout: 2_000 });
+    }).toPass({ timeout: 15_000 });
+
     return testSheet.getByRole('combobox', { name: 'Country' });
 }
 
