@@ -32,6 +32,14 @@ import { coreEntitiesMap } from './entities';
 const MAX_STRING_LENGTH = 65535;
 
 /**
+ * The relation property by which a translatable entity points at its translation entity. This is
+ * the single signal used to detect translation entities — both to exclude them from custom-field
+ * auto-init ({@link getTranslationEntityNames}) and to locate the translation type when registering
+ * localized custom fields ({@link registerCustomEntityFields}).
+ */
+const TRANSLATIONS_RELATION_PROPERTY = 'translations';
+
+/**
  * @description
  * Returns the names of all registered entities that support custom fields (i.e.
  * implement `HasCustomFields`). An entity supports custom fields when it declares
@@ -56,22 +64,32 @@ export function getEntityNamesWithCustomFields(entities: Array<Type<any>>): stri
     // (a second server in the same process, or an imported-but-uninstalled plugin) — which would
     // otherwise seed phantom `config.customFields` keys.
     const registeredEntityNames = new Set(entities.map(entity => entity.name));
-    const metadataArgsStorage = getMetadataArgsStorage();
-    // The translation-entity exclusion set is intentionally built from the process-global metadata:
-    // it is only ever used to exclude, and the candidate names are already filtered to
-    // `registeredEntityNames` below, so a superset here is harmless.
-    const translationEntityNames = new Set(
-        metadataArgsStorage.relations
-            .filter(relation => relation.propertyName === 'translations')
-            .map(relation => getRelationTargetName(relation.type))
-            .filter((name): name is string => name != null),
-    );
-    const names = metadataArgsStorage.embeddeds
-        .filter(embedded => embedded.propertyName === 'customFields')
+    const translationEntityNames = getTranslationEntityNames();
+    const names = getMetadataArgsStorage()
+        .embeddeds.filter(embedded => embedded.propertyName === 'customFields')
         .map(embedded => (typeof embedded.target === 'string' ? embedded.target : embedded.target.name))
         .filter(name => registeredEntityNames.has(name))
         .filter(name => !translationEntityNames.has(name));
     return Array.from(new Set(names));
+}
+
+/**
+ * The relation-based definition of "is this a translation entity?", used internally by
+ * {@link getEntityNamesWithCustomFields} to build its exclusion set. A translation entity is the
+ * target of a `translations` relation; it carries its own `customFields` embedded (for localized
+ * field values) but is never a valid `config.customFields` key.
+ *
+ * Built from the process-global metadata storage, so it may contain names of entities not
+ * registered with this server. Callers filter their candidates to registered entities first, so a
+ * stray name here can only ever exclude, never include.
+ */
+function getTranslationEntityNames(): Set<string> {
+    return new Set(
+        getMetadataArgsStorage()
+            .relations.filter(relation => relation.propertyName === TRANSLATIONS_RELATION_PROPERTY)
+            .map(relation => getRelationTargetName(relation.type))
+            .filter((name): name is string => name != null),
+    );
 }
 
 /**
@@ -450,7 +468,7 @@ export function registerCustomEntityFields(config: VendureConfig) {
             }
             const translationsMetadata = metadataArgsStorage
                 .filterRelations(customFieldsMetadata.target)
-                .find(m => m.propertyName === 'translations');
+                .find(m => m.propertyName === TRANSLATIONS_RELATION_PROPERTY);
             if (translationsMetadata) {
                 // This entity is translatable, which means that we should
                 // also register any localized custom fields on the related

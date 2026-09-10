@@ -1,4 +1,4 @@
-import { SlugInput } from '@/vdb/components/data-input/index.js';
+import { requireGeneratedSlug, SlugInput } from '@/vdb/components/data-input/index.js';
 import { RichTextInput } from '@/vdb/components/data-input/rich-text-input.js';
 import { PageBreadcrumb } from '@/vdb/components/layout/generated-breadcrumbs.js';
 import { EntityAssets } from '@/vdb/components/shared/entity-assets.js';
@@ -96,6 +96,7 @@ function CollectionDetailPage() {
             };
         },
         updateDocument: updateCollectionDocument,
+        extendSchema: creatingNewEntity ? requireGeneratedSlug : undefined,
         setValuesForUpdate: entity => {
             return {
                 id: entity.id,

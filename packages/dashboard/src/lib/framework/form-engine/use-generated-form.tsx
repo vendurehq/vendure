@@ -169,10 +169,14 @@ export function useGeneratedForm<
     // Same reasoning as `setValues`: an inline `extendSchema` arrow would change
     // identity every render, replacing the resolver and re-validating the whole
     // form each time. Read it from a ref so the schema memo below stays stable.
+    //
+    // Assign during render rather than in an effect. The schema memo reads this ref in the same
+    // render pass, and it is rebuilt when `document` swaps from the create to the update operation
+    // — which happens on the `/new` -> `/:id` navigation after a create, while the route component
+    // stays mounted. An effect runs after that render, so the memo would rebuild from the previous
+    // extender and keep a create-only rule alive for the rest of the edit session.
     const extendSchemaRef = useRef(extendSchema);
-    useEffect(() => {
-        extendSchemaRef.current = extendSchema;
-    }, [extendSchema]);
+    extendSchemaRef.current = extendSchema;
 
     // Recomputing this on every render produces a new array identity which
     // ripples into the schema and default-values memos below, defeating any

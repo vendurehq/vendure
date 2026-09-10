@@ -1,3 +1,5 @@
+import { CliPluginExtensionAccessor } from './cli-plugin-extension';
+
 /**
  * An option on a CLI command.
  *
@@ -29,8 +31,8 @@ export interface CliCommandArgument {
 
 /**
  * Values of the shared options that are in scope for a command, i.e. the root
- * options registered by a CLI plugin plus the options of every command group
- * the command is nested in.
+ * options registered by a CLI plugin plus the options of every command the
+ * command is nested in.
  *
  * The CLI host builds this from the parsed command line and passes it to the
  * action as the final argument, so a command never has to read or reparse
@@ -44,8 +46,9 @@ export interface CliCommandArgument {
 export interface CliCommandContext<TInheritedOptions extends Record<string, any> = Record<string, any>> {
     /**
      * Values of the shared options in scope. A shared option is declared at
-     * exactly one level — a flag declared on a group that an ancestor already
-     * shares is rejected at registration — so values do not compete. Where a
+     * exactly one level — a flag declared on a command with subcommands that an
+     * ancestor already shares is rejected at registration — so values do not
+     * compete. Where a
      * command declares the same flag as a shared option, both read the same
      * value. A value supplied on the command line always beats a default.
      * Options that were neither supplied nor given a default value are omitted.
@@ -56,6 +59,8 @@ export interface CliCommandContext<TInheritedOptions extends Record<string, any>
      * `['config', 'server', 'set']` for `vendure config server set`.
      */
     commandPath: string[];
+    /** Reads plugin contributions registered for a named extension point. */
+    getPluginExtensions: CliPluginExtensionAccessor;
 }
 
 /**
@@ -90,6 +95,25 @@ export interface CliCommandDefinition {
      * without a premature exit.
      */
     action: CliCommandAction;
+    /**
+     * Commands nested under this one, e.g. the `plan` in `vendure deploy plan`.
+     * Unlike a {@link CliCommandGroupDefinition}, the command keeps an action
+     * of its own: running it without a subcommand runs that action rather than
+     * printing help. Its `options` are shared with every command below it —
+     * see {@link hasCliSubcommands}.
+     *
+     * A command with subcommands cannot also declare `arguments`: the first word
+     * after the command name would be ambiguous, since it could equally name a
+     * subcommand or fill an argument. Declaring both is rejected when the plugin
+     * is registered. Take options instead, which are never ambiguous.
+     *
+     * A word that names no subcommand is therefore always a mistake, and is
+     * reported as an unknown command rather than reaching the action, exactly as
+     * it would be on a group.
+     *
+     * @since 3.8.0
+     */
+    subcommands?: CliCommandNode[];
 }
 
 /**
@@ -102,7 +126,8 @@ export type CliCommandAction = (...args: any[]) => Promise<void | number>;
 /**
  * A command that exists only to group subcommands, e.g. the `config` in
  * `vendure config server set`. A group has no action of its own: running it
- * without a subcommand prints its help.
+ * without a subcommand prints its help. For a command that has subcommands
+ * *and* runs an action, see {@link CliCommandDefinition.subcommands}.
  *
  * @since 3.8.0
  */
@@ -125,15 +150,46 @@ export interface CliCommandGroupDefinition {
 }
 
 /**
- * A node in a CLI command tree: either a command that runs an action, or a
- * group of further commands.
+ * A node in a CLI command tree: a command that runs an action, a group of
+ * further commands, or a command that does both.
  *
  * @since 3.8.0
  */
 export type CliCommandNode = CliCommandDefinition | CliCommandGroupDefinition;
 
+/**
+ * A node that has commands nested under it, whether or not it also runs an
+ * action of its own.
+ */
+export type CliCommandParent = CliCommandNode & { subcommands: CliCommandNode[] };
+
+/**
+ * Whether a node has commands nested under it.
+ *
+ * A node with subcommands shares its own `options` with every command below it,
+ * whether or not it also runs an action. That is the distinction the option
+ * scoping and tree walking need, and it is wider than {@link isCliCommandGroup},
+ * which excludes a node that runs an action of its own.
+ */
+export function hasCliSubcommands(node: CliCommandNode): node is CliCommandParent {
+    return Array.isArray(node.subcommands);
+}
+
+/**
+ * Whether a node runs an action of its own. True of a plain command and of a
+ * command that also has subcommands; false of a pure group.
+ */
+export function isRunnableCliCommand(node: CliCommandNode): node is CliCommandDefinition {
+    return typeof (node as CliCommandDefinition).action === 'function';
+}
+
+/**
+ * Whether a node exists only to group subcommands. A command that has both an
+ * action and subcommands is not a group: see
+ * {@link CliCommandDefinition.subcommands}.
+ */
 export function isCliCommandGroup(node: CliCommandNode): node is CliCommandGroupDefinition {
-    return Array.isArray((node as CliCommandGroupDefinition).subcommands);
+    return hasCliSubcommands(node) && !isRunnableCliCommand(node);
 }
 
 /**
@@ -146,6 +202,10 @@ export interface CliCommandDecoratorInput {
      * The command as it stands before this decorator: the original definition
      * plus every extension already applied to it. Read its `options`,
      * `arguments` and `description` to see what other plugins have contributed.
+     *
+     * This is a frozen deep copy, so `subcommands` tells a decorator whether the
+     * command it is wrapping has commands nested under it without handing over
+     * the nodes the registry goes on to use. Writing to any part of it throws.
      */
     command: Readonly<CliCommandDefinition>;
     /**

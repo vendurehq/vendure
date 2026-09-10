@@ -4,19 +4,24 @@ import {
     CliCommandArgument,
     CliCommandDefinition,
     CliCommandExtension,
-    CliCommandGroupDefinition,
     CliCommandNode,
     CliCommandOption,
+    CliCommandParent,
+    hasCliSubcommands,
     isCliCommandGroup,
+    isRunnableCliCommand,
 } from './cli-command-definition';
 import { describeOption, ParsedCliOption, parseOptionFlags, withSubOptions } from './cli-command-options';
-import { CliPlugin, normalizeCommandPath } from './cli-plugin';
+import { CliPlugin, getCliPluginExtensionEntries, normalizeCommandPath } from './cli-plugin';
+import { RegisteredCliPluginExtension } from './cli-plugin-extension';
 
 /**
- * Why a flag cannot be shared by a group and by something above or below it.
+ * Why a flag cannot be shared by a command that has subcommands and by
+ * something above or below it.
  */
-const GROUP_SHARING_EXPLANATION =
-    'A group shares its options with everything below it, so the same flag cannot be shared at two levels.';
+const SUBTREE_SHARING_EXPLANATION =
+    'A command with subcommands shares its options with all of them, so the same flag cannot be ' +
+    'shared at two levels.';
 
 /**
  * Flags the CLI host owns. A plugin that took one of these would break
@@ -69,6 +74,9 @@ interface RegisteredOption {
 interface RegistryState {
     commands: Map<string, RegisteredCommand>;
     rootOptions: Map<string, RegisteredOption>;
+    /** Ids of the plugins applied so far. One plugin, one id. */
+    pluginIds: Set<string>;
+    pluginExtensions: Map<string, RegisteredCliPluginExtension[]>;
 }
 
 /**
@@ -91,7 +99,12 @@ export class CliPluginRegistrationError extends Error {
  * activation order.
  */
 export class CommandRegistry {
-    private state: RegistryState = { commands: new Map(), rootOptions: new Map() };
+    private state: RegistryState = {
+        commands: new Map(),
+        rootOptions: new Map(),
+        pluginIds: new Set(),
+        pluginExtensions: new Map(),
+    };
 
     /**
      * Registers the built-in commands. Plugins go through {@link applyPlugin},
@@ -120,9 +133,24 @@ export class CommandRegistry {
         const draft: RegistryState = {
             commands: new Map(this.state.commands),
             rootOptions: new Map(this.state.rootOptions),
+            pluginIds: new Set(this.state.pluginIds),
+            pluginExtensions: new Map(
+                Array.from(this.state.pluginExtensions, ([extensionPoint, entries]) => [
+                    extensionPoint,
+                    [...entries],
+                ]),
+            ),
         };
         const conflicts: string[] = [];
         const notices: string[] = [];
+
+        // Checked for every plugin, not only one contributing a hook. The id is
+        // what a conflict message names and what a hook is recorded against, so
+        // two plugins sharing one is ambiguous everywhere, not just here.
+        if (draft.pluginIds.has(plugin.id)) {
+            conflicts.push(`Another CLI plugin is already registered under the id "${plugin.id}".`);
+        }
+        draft.pluginIds.add(plugin.id);
 
         for (const option of plugin.rootOptions ?? []) {
             this.draftRootOption(draft, option, plugin.id, conflicts, false);
@@ -135,6 +163,11 @@ export class CommandRegistry {
         }
         for (const extension of plugin.extendCommands ?? []) {
             draftExtension(draft, extension, plugin.id, conflicts, notices);
+        }
+        for (const { extensionPoint, extension } of getCliPluginExtensionEntries(plugin)) {
+            const entries = draft.pluginExtensions.get(extensionPoint) ?? [];
+            entries.push({ pluginId: plugin.id, extension });
+            draft.pluginExtensions.set(extensionPoint, entries);
         }
 
         if (conflicts.length > 0) {
@@ -182,6 +215,12 @@ export class CommandRegistry {
         return [...(this.state.commands.get(name)?.extendedBy ?? [])];
     }
 
+    getPluginExtensions<T = unknown>(extensionPoint: string): ReadonlyArray<RegisteredCliPluginExtension<T>> {
+        return [...(this.state.pluginExtensions.get(extensionPoint) ?? [])] as Array<
+            RegisteredCliPluginExtension<T>
+        >;
+    }
+
     private draftRootOption(
         draft: RegistryState,
         option: CliCommandOption,
@@ -209,12 +248,13 @@ export class CommandRegistry {
             if (!isSameOption(declared.option, parsed)) {
                 continue;
             }
-            if (declared.isGroupOption) {
+            if (declared.sharedBy) {
                 // The mirror of the check in draftCommand. Without it the rule
                 // would depend on which of the two plugins is listed first.
                 conflicts.push(
-                    `Shared option "${describeOption(option)}" is already shared by the command group ` +
-                        `"vendure ${declared.path.join(' ')}". ${GROUP_SHARING_EXPLANATION}`,
+                    `Shared option "${describeOption(option)}" is already shared by ` +
+                        `${describeCommand(declared.sharedBy, declared.path)}. ` +
+                        `${SUBTREE_SHARING_EXPLANATION}`,
                 );
             } else if (!takesSameValue(declared.option, option)) {
                 conflicts.push(
@@ -295,11 +335,12 @@ function commandOptionConflicts(draft: RegistryState, node: CliCommandNode): str
         if (!shared) {
             continue;
         }
-        if (declared.isGroupOption) {
+        if (declared.sharedBy) {
             conflicts.push(
-                `Option "${describeOption(declared.option)}" on the command group ${where} is already ` +
+                `Option "${describeOption(declared.option)}" on ` +
+                    `${describeCommand(declared.sharedBy, declared.path)} is already ` +
                     `a shared option registered by ${shared.source ?? 'the CLI'}. ` +
-                    `${GROUP_SHARING_EXPLANATION}`,
+                    `${SUBTREE_SHARING_EXPLANATION}`,
             );
         } else if (!takesSameValue(shared.option, declared.option)) {
             conflicts.push(
@@ -338,7 +379,7 @@ function draftExtension(
         return;
     }
 
-    if (isCliCommandGroup(target) && extension.decorate) {
+    if (extension.decorate && !isRunnableCliCommand(target)) {
         conflicts.push(
             `"vendure ${label}" is a command group and has no action to decorate. Extend one of its ` +
                 `subcommands instead.`,
@@ -376,16 +417,25 @@ function draftExtension(
 
 /**
  * The options an added option has to agree with: the target's own, those
- * shared by the groups above it, and — when the target is a group — those
- * declared anywhere below it.
+ * shared by the commands above it, and — when the target has subcommands —
+ * those declared anywhere below it.
  */
 interface ExtensionOptionScope {
     ancestors: CliCommandOption[];
-    descendantGroups: Array<{ path: string[]; option: CliCommandOption }>;
-    descendantLeaves: Array<{ path: string[]; option: CliCommandOption }>;
     own: CliCommandOption[];
-    targetIsGroup: boolean;
-    label: string;
+    path: string[];
+    /**
+     * Set when the target has subcommands, and so shares an added option with
+     * everything below it.
+     */
+    subtree?: {
+        /** Which kind of command the target is, for the wording below. */
+        kind: SharingCommandKind;
+        /** Options that commands below the target share with their own subtrees. */
+        parents: Array<{ path: string[]; option: CliCommandOption }>;
+        /** Options declared by commands below the target that share nothing. */
+        leaves: Array<{ path: string[]; option: CliCommandOption }>;
+    };
 }
 
 /**
@@ -398,16 +448,20 @@ function extensionOptionConflicts(
     target: CliCommandNode,
     path: string[],
 ): string[] {
-    const targetIsGroup = isCliCommandGroup(target);
+    const kind = sharingKind(target);
     const scope: ExtensionOptionScope = {
-        // Extending a group shares the option with everything below it, so the
-        // subtree matters as much as the ancestors.
         ancestors: ancestorSharedOptions(draft, path),
-        descendantGroups: targetIsGroup ? descendantGroupOptions(target, path) : [],
-        descendantLeaves: targetIsGroup ? descendantLeafOptions(target, path) : [],
         own: withSubOptions(target.options ?? []),
-        targetIsGroup,
-        label: path.join(' '),
+        path,
+        // Extending a command that has subcommands shares the option with
+        // everything below it, so the subtree matters as much as the ancestors.
+        subtree: kind
+            ? {
+                  kind,
+                  parents: descendantParentOptions(target, path),
+                  leaves: descendantLeafOptions(target, path),
+              }
+            : undefined,
     };
 
     return withSubOptions(extension.options ?? []).flatMap(option =>
@@ -422,8 +476,8 @@ function addedOptionConflicts(
 ): string[] {
     const parsed = parseOptionFlags(option);
     const name = describeOption(option);
-    const { label } = scope;
-    const group = `the command group "vendure ${label}"`;
+    const { subtree } = scope;
+    const label = scope.path.join(' ');
     const conflicts: string[] = [];
 
     for (const flag of [parsed.long, parsed.short]) {
@@ -437,25 +491,28 @@ function addedOptionConflicts(
         conflicts.push(`Option "${name}" is already declared on "vendure ${label}".`);
     }
 
-    const descendantGroup = scope.descendantGroups.find(existing => isSameOption(existing.option, parsed));
-    if (descendantGroup) {
-        conflicts.push(
-            `Option "${name}" added to ${group} is already shared by ` +
-                `"vendure ${descendantGroup.path.join(' ')}" below it. ${GROUP_SHARING_EXPLANATION}`,
-        );
-        return conflicts;
-    }
+    if (subtree) {
+        const targetName = describeCommand(subtree.kind, scope.path);
+        const parentBelow = subtree.parents.find(existing => isSameOption(existing.option, parsed));
+        if (parentBelow) {
+            conflicts.push(
+                `Option "${name}" added to ${targetName} is already shared by ` +
+                    `"vendure ${parentBelow.path.join(' ')}" below it. ${SUBTREE_SHARING_EXPLANATION}`,
+            );
+            return conflicts;
+        }
 
-    const leafBelow = scope.descendantLeaves.find(
-        existing => isSameOption(existing.option, parsed) && !takesSameValue(existing.option, option),
-    );
-    if (leafBelow) {
-        conflicts.push(
-            `Option "${name}" added to ${group} is not compatible with ` +
-                `"${describeOption(leafBelow.option)}" on "vendure ${leafBelow.path.join(' ')}" below it: ` +
-                `one takes a value and the other does not.`,
+        const leafBelow = subtree.leaves.find(
+            existing => isSameOption(existing.option, parsed) && !takesSameValue(existing.option, option),
         );
-        return conflicts;
+        if (leafBelow) {
+            conflicts.push(
+                `Option "${name}" added to ${targetName} is not compatible with ` +
+                    `"${describeOption(leafBelow.option)}" on "vendure ${leafBelow.path.join(' ')}" below ` +
+                    `it: one takes a value and the other does not.`,
+            );
+            return conflicts;
+        }
     }
 
     const sharedOption =
@@ -464,10 +521,10 @@ function addedOptionConflicts(
     if (!sharedOption) {
         return conflicts;
     }
-    if (scope.targetIsGroup) {
+    if (subtree) {
         conflicts.push(
-            `Option "${name}" added to ${group} is already a shared option ` +
-                `("${describeOption(sharedOption)}"). ${GROUP_SHARING_EXPLANATION}`,
+            `Option "${name}" added to ${describeCommand(subtree.kind, scope.path)} is already a ` +
+                `shared option ("${describeOption(sharedOption)}"). ${SUBTREE_SHARING_EXPLANATION}`,
         );
     } else if (!takesSameValue(sharedOption, option)) {
         conflicts.push(
@@ -482,7 +539,7 @@ function extendNode(target: CliCommandNode, extension: CliCommandExtension): Cli
     const options = [...(target.options ?? []), ...(extension.options ?? [])];
     const description = extension.description ?? target.description;
 
-    if (isCliCommandGroup(target)) {
+    if (!isRunnableCliCommand(target)) {
         return { ...target, description, options: options.length > 0 ? options : undefined };
     }
 
@@ -505,20 +562,37 @@ function extendNode(target: CliCommandNode, extension: CliCommandExtension): Cli
 }
 
 function freezeCommand(command: CliCommandDefinition): Readonly<CliCommandDefinition> {
-    // The arrays are copied as well as frozen: freezing makes a mutating
-    // decorator fail loudly, and copying means it could not have reached the
-    // registered definition even if it did not.
-    const frozenOptions = command.options && (Object.freeze([...command.options]) as CliCommandOption[]);
-    const frozenArguments =
-        command.arguments && (Object.freeze([...command.arguments]) as CliCommandArgument[]);
-    return Object.freeze({ ...command, options: frozenOptions, arguments: frozenArguments });
+    return freezeNode(command) as Readonly<CliCommandDefinition>;
+}
+
+/**
+ * A frozen deep copy of a node, for handing to a decorator.
+ *
+ * Everything is copied as well as frozen: freezing makes a mutating decorator
+ * fail loudly, and copying means it could not have reached the registered
+ * definition even if it did not. Recursing is what lets `subcommands` be shown
+ * at all — a decorator can see that the command it wraps has commands nested
+ * under it without holding the nodes the registry goes on to use.
+ */
+function freezeNode(node: CliCommandNode): Readonly<CliCommandNode> {
+    const copy = { ...node } as CliCommandDefinition;
+    if (copy.options) {
+        copy.options = Object.freeze([...copy.options]) as CliCommandOption[];
+    }
+    if (copy.arguments) {
+        copy.arguments = Object.freeze([...copy.arguments]) as CliCommandArgument[];
+    }
+    if (hasCliSubcommands(node)) {
+        copy.subcommands = Object.freeze(node.subcommands.map(freezeNode)) as CliCommandNode[];
+    }
+    return Object.freeze(copy);
 }
 
 function findNodeAtPath(node: CliCommandNode, path: string[]): CliCommandNode | undefined {
     if (path.length === 0) {
         return node;
     }
-    if (!isCliCommandGroup(node)) {
+    if (!hasCliSubcommands(node)) {
         return undefined;
     }
     const child = node.subcommands.find(subcommand => subcommand.name === path[0]);
@@ -528,7 +602,7 @@ function findNodeAtPath(node: CliCommandNode, path: string[]): CliCommandNode | 
 /**
  * Rebuilds the tree with the node at `path` replaced. The caller must have
  * resolved `path` with {@link findNodeAtPath} first, which is what guarantees
- * every node above the replacement is a group.
+ * every node above the replacement has subcommands.
  */
 function replaceNodeAtPath(
     node: CliCommandNode,
@@ -538,10 +612,10 @@ function replaceNodeAtPath(
     if (path.length === 0) {
         return replacement;
     }
-    const group = node as CliCommandGroupDefinition;
+    const parent = node as CliCommandParent;
     return {
-        ...group,
-        subcommands: group.subcommands.map(subcommand =>
+        ...parent,
+        subcommands: parent.subcommands.map(subcommand =>
             subcommand.name === path[0]
                 ? replaceNodeAtPath(subcommand, path.slice(1), replacement)
                 : subcommand,
@@ -556,19 +630,22 @@ function findRootOption(draft: RegistryState, parsed: ParsedCliOption): Register
 interface DeclaredOption {
     path: string[];
     option: CliCommandOption;
-    /** Group options are shared with every command below them. */
-    isGroupOption: boolean;
+    /**
+     * Set when the declaring command has subcommands, and so shares the option
+     * with all of them. Which kind of command it is only affects the wording.
+     */
+    sharedBy?: SharingCommandKind;
 }
 
 function listCommandOptions(nodes: CliCommandNode[], path: string[] = []): DeclaredOption[] {
     const declared: DeclaredOption[] = [];
     for (const node of nodes) {
         const commandPath = [...path, node.name];
-        const isGroupOption = isCliCommandGroup(node);
+        const sharedBy = sharingKind(node);
         for (const option of withSubOptions(node.options ?? [])) {
-            declared.push({ path: commandPath, option, isGroupOption });
+            declared.push({ path: commandPath, option, sharedBy });
         }
-        if (isCliCommandGroup(node)) {
+        if (hasCliSubcommands(node)) {
             declared.push(...listCommandOptions(node.subcommands, commandPath));
         }
     }
@@ -576,46 +653,68 @@ function listCommandOptions(nodes: CliCommandNode[], path: string[] = []): Decla
 }
 
 /**
- * Options that groups below `node` share with their own subtrees. An option
+ * What a command that shares its options with its subtree is: a group, or a
+ * command that also runs an action. Undefined for one that shares nothing,
+ * which is any command with no subcommands.
+ */
+type SharingCommandKind = 'group' | 'command';
+
+function sharingKind(node: CliCommandNode): SharingCommandKind | undefined {
+    if (!hasCliSubcommands(node)) {
+        return undefined;
+    }
+    return isCliCommandGroup(node) ? 'group' : 'command';
+}
+
+/**
+ * How a command that shares its options is named in an error message. Only one
+ * with no action of its own is a group, but both share in the same way.
+ */
+function describeCommand(kind: SharingCommandKind, path: string[]): string {
+    return `the command ${kind === 'group' ? 'group ' : ''}"vendure ${path.join(' ')}"`;
+}
+
+/**
+ * Options that commands below `node` share with their own subtrees. An option
  * added to `node` would be shared with them, so the same flag cannot appear in
  * both places.
  */
-function descendantGroupOptions(
+function descendantParentOptions(
     node: CliCommandNode,
     path: string[],
 ): Array<{ path: string[]; option: CliCommandOption }> {
-    if (!isCliCommandGroup(node)) {
+    if (!hasCliSubcommands(node)) {
         return [];
     }
     const found: Array<{ path: string[]; option: CliCommandOption }> = [];
     for (const subcommand of node.subcommands) {
         const subPath = [...path, subcommand.name];
-        if (isCliCommandGroup(subcommand)) {
+        if (hasCliSubcommands(subcommand)) {
             for (const option of withSubOptions(subcommand.options ?? [])) {
                 found.push({ path: subPath, option });
             }
-            found.push(...descendantGroupOptions(subcommand, subPath));
+            found.push(...descendantParentOptions(subcommand, subPath));
         }
     }
     return found;
 }
 
 /**
- * Options declared by the commands below `node`. A group option is shared with
- * all of them, so the shapes have to agree even though repeating the flag is
- * allowed.
+ * Options declared by the commands below `node` that have no subcommands of
+ * their own. An option shared by `node` reaches all of them, so the shapes have
+ * to agree even though repeating the flag is allowed.
  */
 function descendantLeafOptions(
     node: CliCommandNode,
     path: string[],
 ): Array<{ path: string[]; option: CliCommandOption }> {
-    if (!isCliCommandGroup(node)) {
+    if (!hasCliSubcommands(node)) {
         return [];
     }
     const found: Array<{ path: string[]; option: CliCommandOption }> = [];
     for (const subcommand of node.subcommands) {
         const subPath = [...path, subcommand.name];
-        if (isCliCommandGroup(subcommand)) {
+        if (hasCliSubcommands(subcommand)) {
             found.push(...descendantLeafOptions(subcommand, subPath));
         } else {
             for (const option of withSubOptions(subcommand.options ?? [])) {
@@ -627,14 +726,14 @@ function descendantLeafOptions(
 }
 
 /**
- * Options shared with the command at `path` by the groups above it. Together
+ * Options shared with the command at `path` by the commands above it. Together
  * with the root options these are the shared options in scope there.
  */
 function ancestorSharedOptions(draft: RegistryState, path: string[]): CliCommandOption[] {
     const options: CliCommandOption[] = [];
     let node = draft.commands.get(path[0])?.node;
     for (let i = 0; i < path.length - 1 && node; i++) {
-        if (!isCliCommandGroup(node)) {
+        if (!hasCliSubcommands(node)) {
             break;
         }
         options.push(...withSubOptions(node.options ?? []));

@@ -1,6 +1,6 @@
 import { DynamicModule, Injectable, Type } from '@nestjs/common';
 import { LanguageCode } from '@vendure/common/lib/generated-types';
-import { DataSourceOptions, getMetadataArgsStorage } from 'typeorm';
+import { DataSourceOptions } from 'typeorm';
 
 import { getConfig } from './config-helpers';
 import { CustomFields } from './custom-field/custom-field-types';
@@ -28,7 +28,6 @@ import {
 @Injectable()
 export class ConfigService implements VendureConfig {
     private activeConfig: RuntimeVendureConfig;
-    private allCustomFieldsConfig: Required<CustomFields> | undefined;
 
     constructor() {
         this.activeConfig = getConfig();
@@ -99,10 +98,10 @@ export class ConfigService implements VendureConfig {
     }
 
     get customFields(): Required<CustomFields> {
-        if (!this.allCustomFieldsConfig) {
-            this.allCustomFieldsConfig = this.getCustomFieldsForAllEntities();
-        }
-        return this.allCustomFieldsConfig;
+        // Every entity that supports custom fields already has an entry here: `runPluginConfigurations`
+        // seeds one for each of them during `preBootstrapConfig`, which completes before the Nest app,
+        // and so before any `ConfigService`, exists.
+        return this.activeConfig.customFields;
     }
 
     get plugins(): Array<DynamicModule | Type<any>> {
@@ -127,34 +126,6 @@ export class ConfigService implements VendureConfig {
 
     get settingsStoreFields(): SettingsStoreFields {
         return this.activeConfig.settingsStoreFields ?? {};
-    }
-
-    private getCustomFieldsForAllEntities(): Required<CustomFields> {
-        const definedCustomFields = this.activeConfig.customFields;
-        const metadataArgsStorage = getMetadataArgsStorage();
-
-        // We need to check for any entities which have a "customFields" property but which are not
-        // explicitly defined in the customFields config. This is because the customFields object
-        // only includes the built-in entities. Any custom entities which have a "customFields"
-        // must be dynamically added to the customFields object.
-        if (Array.isArray(this.dbConnectionOptions.entities)) {
-            for (const entity of this.dbConnectionOptions.entities) {
-                if (typeof entity === 'function' && !definedCustomFields[entity.name]) {
-                    const hasCustomFields = !!metadataArgsStorage
-                        .filterEmbeddeds(entity)
-                        .find(c => c.propertyName === 'customFields');
-                    const isTranslationEntity =
-                        entity.name.endsWith('Translation') &&
-                        metadataArgsStorage
-                            .filterColumns(entity)
-                            .find(c => c.propertyName === 'languageCode');
-                    if (hasCustomFields && !isTranslationEntity) {
-                        definedCustomFields[entity.name] = [];
-                    }
-                }
-            }
-        }
-        return definedCustomFields;
     }
 
     /**

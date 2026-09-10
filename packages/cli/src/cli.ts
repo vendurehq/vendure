@@ -61,7 +61,9 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
         }
     }
 
-    registerCommands(program, registry.toArray(), registry.getRootOptions());
+    registerCommands(program, registry.toArray(), registry.getRootOptions(), extensionPoint =>
+        registry.getPluginExtensions(extensionPoint),
+    );
 
     program.on('command:*', operands => {
         const unknown = operands[0] ?? '';

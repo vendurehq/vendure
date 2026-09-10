@@ -218,7 +218,7 @@
           "title": "CLI",
           "slug": "cli",
           "file": "docs/guides/developer-guide/cli/index.mdx",
-          "lastModified": "2026-09-04T17:21:55+02:00"
+          "lastModified": "2026-09-08T14:28:11+02:00"
         },
         {
           "title": "AI-assisted Development",
@@ -344,7 +344,7 @@
           "title": "Translatable",
           "slug": "translatable",
           "file": "docs/guides/developer-guide/translatable/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-09-09T13:49:29+02:00"
         },
         {
           "title": "Has Custom Fields",
@@ -3036,7 +3036,7 @@
                   "title": "CollectionService",
                   "slug": "collection-service",
                   "file": "docs/reference/typescript-api/services/collection-service.mdx",
-                  "lastModified": "2026-09-01T12:18:16+02:00"
+                  "lastModified": "2026-09-09T20:54:44Z"
                 },
                 {
                   "title": "CountryService",
@@ -3714,7 +3714,7 @@
                   "title": "Email Plugin Types",
                   "slug": "email-plugin-types",
                   "file": "docs/reference/core-plugins/email-plugin/email-plugin-types.mdx",
-                  "lastModified": "2026-06-24T18:05:35+02:00"
+                  "lastModified": "2026-09-09T11:11:11Z"
                 },
                 {
                   "title": "Email Utils",
@@ -3726,13 +3726,13 @@
                   "title": "EmailEventHandler",
                   "slug": "email-event-handler",
                   "file": "docs/reference/core-plugins/email-plugin/email-event-handler.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-09-09T11:11:11Z"
                 },
                 {
                   "title": "EmailEventHandlerWithAsyncData",
                   "slug": "email-event-handler-with-async-data",
                   "file": "docs/reference/core-plugins/email-plugin/email-event-handler-with-async-data.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-09-09T11:11:11Z"
                 },
                 {
                   "title": "EmailEventListener",
@@ -3774,7 +3774,7 @@
                   "title": "Transport Options",
                   "slug": "transport-options",
                   "file": "docs/reference/core-plugins/email-plugin/transport-options.mdx",
-                  "lastModified": "2026-06-24T18:05:35+02:00"
+                  "lastModified": "2026-09-09T11:11:11Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -4215,7 +4215,7 @@
                   "title": "SlugInput",
                   "slug": "slug-input",
                   "file": "docs/reference/dashboard/form-components/slug-input.mdx",
-                  "lastModified": "2026-03-24T17:34:23+01:00"
+                  "lastModified": "2026-09-10T08:50:14Z"
                 },
                 {
                   "title": "TextareaInput",

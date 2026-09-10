@@ -1,7 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runCli } from './__tests__/run-cli';
-import { CliCommandDefinition, CliCommandGroupDefinition, CliCommandOption } from './cli-command-definition';
+import {
+    CliCommandDefinition,
+    CliCommandGroupDefinition,
+    CliCommandNode,
+    CliCommandOption,
+    readCommandContext,
+} from './cli-command-definition';
 import { defineCliPlugin } from './cli-plugin';
 import { CliPluginRegistrationError, CommandRegistry } from './command-registry-store';
 
@@ -15,8 +21,8 @@ beforeEach(() => {
     trace.length = 0;
 });
 
-const PLATFORM_ID = '@vendure-platform/cli';
-const CLOUD_ID = '@vendure/cloud';
+const CREDENTIALS_ID = '@example/credentials-cli-plugin';
+const TELEMETRY_ID = '@example/telemetry-cli-plugin';
 
 /**
  * Stands in for the built-in `dev` command.
@@ -49,25 +55,24 @@ function registryWithCore(): CommandRegistry {
 }
 
 /**
- * Mirrors what `@vendure-platform/cli` does today: add an option to `dev` and
- * wrap its action, calling the action it was handed rather than importing the
- * built-in one.
+ * A plugin that adds an option to `dev` and wraps its action, calling the
+ * action it was handed rather than importing the built-in one.
  */
-function platformPlugin() {
+function credentialsPlugin() {
     return defineCliPlugin({
-        id: PLATFORM_ID,
+        id: CREDENTIALS_ID,
         commands: [],
         extendCommands: [
             {
                 command: 'dev',
-                description: 'Run Vendure in development mode with linked Platform credentials',
+                description: 'Run Vendure in development mode with linked credentials',
                 options: [{ long: '--rotate-credential', description: 'Replace the active credential' }],
                 decorate:
                     ({ next }) =>
                     async (...args: any[]) => {
-                        trace.push('platform:before');
+                        trace.push('credentials:before');
                         const code = await next(...args);
-                        trace.push('platform:after');
+                        trace.push('credentials:after');
                         return code;
                     },
             },
@@ -75,9 +80,9 @@ function platformPlugin() {
     });
 }
 
-function cloudPlugin() {
+function telemetryPlugin() {
     return defineCliPlugin({
-        id: CLOUD_ID,
+        id: TELEMETRY_ID,
         commands: [],
         extendCommands: [
             {
@@ -86,9 +91,9 @@ function cloudPlugin() {
                 decorate:
                     ({ next }) =>
                     async (...args: any[]) => {
-                        trace.push('cloud:before');
+                        trace.push('telemetry:before');
                         const code = await next(...args);
-                        trace.push('cloud:after');
+                        trace.push('telemetry:after');
                         return code;
                     },
             },
@@ -103,48 +108,48 @@ function devCommand(registry: CommandRegistry): CliCommandDefinition {
 describe('Command extensions: composition', () => {
     it('runs every wrapper exactly once, outermost first', async () => {
         const registry = registryWithCore();
-        registry.applyPlugin(platformPlugin());
-        registry.applyPlugin(cloudPlugin());
+        registry.applyPlugin(credentialsPlugin());
+        registry.applyPlugin(telemetryPlugin());
 
         await devCommand(registry).action('server');
 
         expect(trace).toEqual([
-            'cloud:before',
-            'platform:before',
+            'telemetry:before',
+            'credentials:before',
             'core:server',
-            'platform:after',
-            'cloud:after',
+            'credentials:after',
+            'telemetry:after',
         ]);
     });
 
     it('follows vendure.cli.plugins order, so the last listed plugin is outermost', async () => {
         const registry = registryWithCore();
-        registry.applyPlugin(cloudPlugin());
-        registry.applyPlugin(platformPlugin());
+        registry.applyPlugin(telemetryPlugin());
+        registry.applyPlugin(credentialsPlugin());
 
         await devCommand(registry).action('server');
 
         expect(trace).toEqual([
-            'platform:before',
-            'cloud:before',
+            'credentials:before',
+            'telemetry:before',
             'core:server',
-            'cloud:after',
-            'platform:after',
+            'telemetry:after',
+            'credentials:after',
         ]);
     });
 
     it('records which plugins extended the command, in application order', () => {
         const registry = registryWithCore();
-        registry.applyPlugin(platformPlugin());
-        registry.applyPlugin(cloudPlugin());
+        registry.applyPlugin(credentialsPlugin());
+        registry.applyPlugin(telemetryPlugin());
 
-        expect(registry.getExtendedBy('dev')).toEqual([PLATFORM_ID, CLOUD_ID]);
+        expect(registry.getExtendedBy('dev')).toEqual([CREDENTIALS_ID, TELEMETRY_ID]);
     });
 
     it('keeps the options contributed by every plugin', () => {
         const registry = registryWithCore();
-        registry.applyPlugin(platformPlugin());
-        registry.applyPlugin(cloudPlugin());
+        registry.applyPlugin(credentialsPlugin());
+        registry.applyPlugin(telemetryPlugin());
 
         expect(devCommand(registry).options?.map(option => option.long)).toEqual([
             '--no-reload',
@@ -183,7 +188,7 @@ describe('Command extensions: composition', () => {
         const originalAction = original.action;
         const registry = new CommandRegistry();
         registry.registerAll([original]);
-        registry.applyPlugin(platformPlugin());
+        registry.applyPlugin(credentialsPlugin());
 
         expect(original.options?.map(option => option.long)).toEqual(['--no-reload']);
         expect(original.action).toBe(originalAction);
@@ -196,10 +201,10 @@ describe('Command extensions: composition', () => {
     it('takes the description from the last plugin that sets one, with a notice', () => {
         const writeSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
         const registry = registryWithCore();
-        registry.applyPlugin(platformPlugin());
+        registry.applyPlugin(credentialsPlugin());
         registry.applyPlugin(
             defineCliPlugin({
-                id: CLOUD_ID,
+                id: TELEMETRY_ID,
                 commands: [],
                 extendCommands: [{ command: 'dev', description: 'Run against Vendure Cloud' }],
             }),
@@ -207,8 +212,8 @@ describe('Command extensions: composition', () => {
 
         expect(devCommand(registry).description).toBe('Run against Vendure Cloud');
         const written = writeSpy.mock.calls.map(call => String(call[0])).join('');
-        expect(written).toContain(`Description of "vendure dev" set by ${CLOUD_ID}`);
-        expect(written).toContain(PLATFORM_ID);
+        expect(written).toContain(`Description of "vendure dev" set by ${TELEMETRY_ID}`);
+        expect(written).toContain(CREDENTIALS_ID);
         writeSpy.mockRestore();
     });
 
@@ -265,14 +270,14 @@ describe('Command extensions: composition', () => {
 describe('Command extensions: registration through Commander', () => {
     it('exposes every plugin option and runs the whole chain', async () => {
         const registry = registryWithCore();
-        registry.applyPlugin(platformPlugin());
-        registry.applyPlugin(cloudPlugin());
+        registry.applyPlugin(credentialsPlugin());
+        registry.applyPlugin(telemetryPlugin());
 
         const help = await runCli(registry.toArray(), registry.getRootOptions(), ['dev', '--help']);
         expect(help.stdout).toContain('--rotate-credential');
         expect(help.stdout).toContain('--cloud-env');
         expect(help.stdout).toContain('--no-reload');
-        expect(help.stdout).toContain('Run Vendure in development mode with linked Platform credentials');
+        expect(help.stdout).toContain('Run Vendure in development mode with linked credentials');
 
         const run = await runCli(registry.toArray(), registry.getRootOptions(), [
             'dev',
@@ -283,23 +288,23 @@ describe('Command extensions: registration through Commander', () => {
         ]);
         expect(run.exitCode).toBe(0);
         expect(trace).toEqual([
-            'cloud:before',
-            'platform:before',
+            'telemetry:before',
+            'credentials:before',
             'core:server',
-            'platform:after',
-            'cloud:after',
+            'credentials:after',
+            'telemetry:after',
         ]);
     });
 
     it('keeps the exit code of the innermost command', async () => {
         const registry = new CommandRegistry();
         registry.registerAll([{ name: 'dev', description: 'Dev', action: async () => 7 }]);
-        registry.applyPlugin(platformPlugin());
+        registry.applyPlugin(credentialsPlugin());
 
         const run = await runCli(registry.toArray(), [], ['dev']);
 
         expect(run.exitCode).toBe(7);
-        expect(trace).toEqual(['platform:before', 'platform:after']);
+        expect(trace).toEqual(['credentials:before', 'credentials:after']);
     });
 });
 
@@ -358,7 +363,7 @@ describe('Command extensions: collisions', () => {
 
     it('rejects an option that the target already declares', () => {
         const registry = registryWithCore();
-        registry.applyPlugin(platformPlugin());
+        registry.applyPlugin(credentialsPlugin());
 
         const rival = defineCliPlugin({
             id: '@example/rival',
@@ -371,7 +376,7 @@ describe('Command extensions: collisions', () => {
         expect(() => registry.applyPlugin(rival)).toThrow(
             /Option "--rotate-credential" is already declared on "vendure dev"/,
         );
-        expect(registry.getExtendedBy('dev')).toEqual([PLATFORM_ID]);
+        expect(registry.getExtendedBy('dev')).toEqual([CREDENTIALS_ID]);
     });
 
     it('rejects an added option that uses a flag reserved by the CLI', () => {
@@ -410,15 +415,15 @@ describe('Command extensions: collisions', () => {
 
     it('rejects replacing a command that another plugin has extended', () => {
         const registry = registryWithCore();
-        registry.applyPlugin(platformPlugin());
+        registry.applyPlugin(credentialsPlugin());
 
         const replacer = defineCliPlugin({
             id: '@example/replacer',
             commands: [{ name: 'dev', description: 'My dev', replaces: true, action: async () => 0 }],
         });
 
-        expect(() => registry.applyPlugin(replacer)).toThrow(/has been extended by @vendure-platform\/cli/);
-        expect(devCommand(registry).description).toContain('Platform credentials');
+        expect(() => registry.applyPlugin(replacer)).toThrow(/has been extended by @example\/credentials-cli-plugin/);
+        expect(devCommand(registry).description).toContain('linked credentials');
     });
 
     it('extends a replacement when the replacing plugin is listed first', async () => {
@@ -439,11 +444,11 @@ describe('Command extensions: collisions', () => {
                 ],
             }),
         );
-        registry.applyPlugin(platformPlugin());
+        registry.applyPlugin(credentialsPlugin());
 
         await devCommand(registry).action();
 
-        expect(trace).toEqual(['platform:before', 'replacement', 'platform:after']);
+        expect(trace).toEqual(['credentials:before', 'replacement', 'credentials:after']);
     });
 
     it('reports a decorator that throws while being applied, and applies nothing', () => {
@@ -480,7 +485,7 @@ describe('Command extensions: collisions', () => {
 
     it('keeps earlier plugins intact when a later one is rejected', async () => {
         const registry = registryWithCore();
-        registry.applyPlugin(platformPlugin());
+        registry.applyPlugin(credentialsPlugin());
         const broken = defineCliPlugin({
             id: '@example/broken',
             commands: [],
@@ -490,7 +495,7 @@ describe('Command extensions: collisions', () => {
         expect(() => registry.applyPlugin(broken)).toThrow(CliPluginRegistrationError);
 
         await devCommand(registry).action('server');
-        expect(trace).toEqual(['platform:before', 'core:server', 'platform:after']);
+        expect(trace).toEqual(['credentials:before', 'core:server', 'credentials:after']);
     });
 });
 
@@ -1471,5 +1476,332 @@ describe('Reserved short flags', () => {
         });
 
         expect(() => registry.applyPlugin(rival)).toThrow(/already registered by @a\/first/);
+    });
+});
+
+describe('Command extensions: runnable parent commands', () => {
+    /**
+     * The shape the hosted Cloud CLI registers: `deploy` runs an action of its
+     * own and also parents `plan`.
+     */
+    function cloudDeployPlugin() {
+        return defineCliPlugin({
+            id: TELEMETRY_ID,
+            commands: [
+                {
+                    name: 'deploy',
+                    description: 'Deploy the application',
+                    options: [{ long: '--env <name>', description: 'Target environment', required: true }],
+                    action: async () => {
+                        trace.push('core:deploy');
+                        return 0;
+                    },
+                    subcommands: [
+                        {
+                            name: 'plan',
+                            description: 'Show what a deploy would change',
+                            action: async () => {
+                                trace.push('core:plan');
+                                return 0;
+                            },
+                        },
+                    ],
+                },
+            ],
+        });
+    }
+
+    function registryWithDeploy(): CommandRegistry {
+        const registry = registryWithCore();
+        registry.applyPlugin(cloudDeployPlugin());
+        return registry;
+    }
+
+    it('decorates the action of a command that also has subcommands', async () => {
+        const registry = registryWithDeploy();
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: CREDENTIALS_ID,
+                commands: [],
+                extendCommands: [
+                    {
+                        command: 'deploy',
+                        decorate:
+                            ({ next }) =>
+                            async (...args: any[]) => {
+                                trace.push('credentials:before');
+                                return next(...args);
+                            },
+                    },
+                ],
+            }),
+        );
+
+        await runCli(registry.toArray(), registry.getRootOptions(), ['deploy']);
+
+        expect(trace).toEqual(['credentials:before', 'core:deploy']);
+    });
+
+    it('leaves the subcommands of a decorated command in place', async () => {
+        const registry = registryWithDeploy();
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: CREDENTIALS_ID,
+                commands: [],
+                extendCommands: [
+                    {
+                        command: 'deploy',
+                        decorate:
+                            ({ next }) =>
+                            async (...args: any[]) => {
+                                trace.push('credentials:before');
+                                return next(...args);
+                            },
+                    },
+                ],
+            }),
+        );
+
+        await runCli(registry.toArray(), registry.getRootOptions(), ['deploy', 'plan']);
+
+        // The decorator wraps the parent action only, so running a subcommand
+        // does not go through it.
+        expect(trace).toEqual(['core:plan']);
+    });
+
+    it('shows a decorator that the command it wraps has subcommands', () => {
+        const registry = registryWithDeploy();
+        let seen: string[] | undefined;
+        let leafSeen: unknown = 'unset';
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: CREDENTIALS_ID,
+                commands: [],
+                extendCommands: [
+                    {
+                        command: 'deploy',
+                        decorate: ({ command, next }) => {
+                            seen = command.subcommands?.map(node => node.name);
+                            return next;
+                        },
+                    },
+                    {
+                        command: 'dev',
+                        decorate: ({ command, next }) => {
+                            leafSeen = command.subcommands;
+                            return next;
+                        },
+                    },
+                ],
+            }),
+        );
+
+        expect(seen).toEqual(['plan']);
+        // A command with no subcommands is distinguishable from one that has them.
+        expect(leafSeen).toBeUndefined();
+    });
+
+    it('does not let a decorator reach the registered subcommands', () => {
+        const registry = registryWithDeploy();
+        let received: Readonly<CliCommandDefinition> | undefined;
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: CREDENTIALS_ID,
+                commands: [],
+                extendCommands: [
+                    {
+                        command: 'deploy',
+                        decorate: ({ command, next }) => {
+                            received = command;
+                            return next;
+                        },
+                    },
+                ],
+            }),
+        );
+
+        const child = received?.subcommands?.[0] as CliCommandDefinition;
+        expect(() => {
+            child.description = 'hijacked';
+        }).toThrow();
+        expect(() => {
+            (received?.subcommands as CliCommandNode[]).push({
+                name: 'extra',
+                description: 'Extra',
+                action: async () => 0,
+            });
+        }).toThrow();
+
+        const registered = registry.get('deploy') as CliCommandDefinition;
+        expect(registered.subcommands?.map(node => node.name)).toEqual(['plan']);
+        expect(registered.subcommands?.[0].description).toBe('Show what a deploy would change');
+    });
+
+    it('replaces a runnable parent, subtree and all', async () => {
+        const registry = registryWithDeploy();
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: '@example/replacer',
+                commands: [
+                    {
+                        name: 'deploy',
+                        description: 'Deploy somewhere else',
+                        replaces: true,
+                        action: async () => {
+                            trace.push('replacement:deploy');
+                            return 0;
+                        },
+                        subcommands: [
+                            {
+                                name: 'verify',
+                                description: 'Verify the deployment',
+                                action: async () => {
+                                    trace.push('replacement:verify');
+                                    return 0;
+                                },
+                            },
+                        ],
+                    },
+                ],
+            }),
+        );
+
+        await runCli(registry.toArray(), registry.getRootOptions(), ['deploy']);
+        await runCli(registry.toArray(), registry.getRootOptions(), ['deploy', 'verify']);
+        // The subcommand the replaced command had is gone with it.
+        const stale = await runCli(registry.toArray(), registry.getRootOptions(), ['deploy', 'plan']);
+
+        expect(trace).toEqual(['replacement:deploy', 'replacement:verify']);
+        expect(stale.exitCode).toBe(1);
+        expect(stale.stderr).toContain("unknown command 'plan'");
+    });
+
+    it('still rejects decorating a command group, which has no action', () => {
+        const registry = registryWithDeploy();
+        const plugin = defineCliPlugin({
+            id: '@example/group',
+            commands: [],
+            extendCommands: [{ command: 'config', decorate: ({ next }) => next }],
+        });
+
+        expect(() => registry.applyPlugin(plugin)).toThrow(/is a command group and has no action/);
+    });
+
+    it('extends a command nested under a runnable parent', async () => {
+        const registry = registryWithDeploy();
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: CREDENTIALS_ID,
+                commands: [],
+                extendCommands: [
+                    {
+                        command: ['deploy', 'plan'],
+                        description: 'Show what a deploy would change, in detail',
+                        decorate:
+                            ({ next }) =>
+                            async (...args: any[]) => {
+                                trace.push('credentials:plan');
+                                return next(...args);
+                            },
+                    },
+                ],
+            }),
+        );
+
+        await runCli(registry.toArray(), registry.getRootOptions(), ['deploy', 'plan']);
+
+        expect(trace).toEqual(['credentials:plan', 'core:plan']);
+    });
+
+    it('shares an option added to a runnable parent with its subcommands', async () => {
+        const registry = registryWithDeploy();
+        let inherited: Record<string, any> | undefined;
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: CREDENTIALS_ID,
+                commands: [],
+                extendCommands: [
+                    {
+                        command: ['deploy', 'plan'],
+                        decorate:
+                            ({ next }) =>
+                            async (...args: any[]) => {
+                                inherited = readCommandContext(args).inheritedOptions;
+                                return next(...args);
+                            },
+                    },
+                    {
+                        command: 'deploy',
+                        options: [{ long: '--dry-run', description: 'Do not apply anything' }],
+                    },
+                ],
+            }),
+        );
+
+        await runCli(registry.toArray(), registry.getRootOptions(), ['deploy', 'plan', '--dry-run']);
+
+        expect(inherited).toEqual({ dryRun: true });
+
+        const help = await runCli(registry.toArray(), registry.getRootOptions(), [
+            'deploy',
+            'plan',
+            '--help',
+        ]);
+        expect(help.stdout).toContain('Global Options:');
+        expect(help.stdout).toMatch(/^\s+--dry-run /m);
+    });
+
+    it('rejects an option added to a runnable parent that is already shared at the root', () => {
+        const registry = registryWithDeploy();
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: '@a/root',
+                rootOptions: [{ long: '--dry-run', description: 'Do not apply anything' }],
+                commands: [],
+            }),
+        );
+
+        const plugin = defineCliPlugin({
+            id: '@b/parent',
+            commands: [],
+            extendCommands: [
+                {
+                    command: 'deploy',
+                    options: [{ long: '--dry-run', description: 'Do not apply anything' }],
+                },
+            ],
+        });
+
+        // Named as a command rather than a command group: it runs an action of
+        // its own, but shares its options in the same way.
+        expect(() => registry.applyPlugin(plugin)).toThrow(
+            /added to the command "vendure deploy" is already a shared option[\s\S]+cannot be shared at two levels/,
+        );
+    });
+
+    it('rejects a runnable parent declaring a flag the root already shares', () => {
+        const registry = registryWithCore();
+        registry.applyPlugin(
+            defineCliPlugin({
+                id: '@a/root',
+                rootOptions: [{ long: '--env <name>', description: 'Environment', required: true }],
+                commands: [],
+            }),
+        );
+
+        expect(() => registry.applyPlugin(cloudDeployPlugin())).toThrow(
+            /on the command "vendure deploy" is already a shared option/,
+        );
+    });
+
+    it('rejects a shared root option that a runnable parent already shares', () => {
+        const registry = registryWithDeploy();
+        const plugin = defineCliPlugin({
+            id: '@b/root',
+            rootOptions: [{ long: '--env <name>', description: 'Environment', required: true }],
+            commands: [],
+        });
+
+        expect(() => registry.applyPlugin(plugin)).toThrow(/already shared by the command "vendure deploy"/);
     });
 });

@@ -116,6 +116,112 @@ describe('CLI plugin nested commands', () => {
     });
 });
 
+describe('CLI plugin commands that also have subcommands', () => {
+    let project: CliTestProject;
+
+    beforeAll(() => {
+        project = createTestProject('cli-plugin-runnable-parent');
+        installCliPluginFixture(project, 'cloud-cli-plugin');
+    });
+
+    afterAll(() => {
+        project?.cleanup();
+    });
+
+    it('runs the parent action when no subcommand is given', async () => {
+        const result = await project.runCliCommand(['deploy', '--env', 'staging']);
+
+        expect(result.exitCode).toBe(0);
+        const parsed = parseCloudResult(result.stdout);
+        expect(parsed.command).toEqual(['deploy']);
+        expect(parsed.options).toEqual({ env: 'staging' });
+    });
+
+    it('runs a subcommand of a runnable parent', async () => {
+        const plan = await project.runCliCommand(['deploy', 'plan']);
+        const teardown = await project.runCliCommand(['deploy', 'teardown']);
+
+        expect(parseCloudResult(plan.stdout).command).toEqual(['deploy', 'plan']);
+        expect(parseCloudResult(teardown.stdout).command).toEqual(['deploy', 'teardown']);
+    });
+
+    it('shares a parent option with its subcommands', async () => {
+        const result = await project.runCliCommand(['deploy', 'plan', '--env', 'staging']);
+
+        const parsed = parseCloudResult(result.stdout);
+        expect(parsed.inherited.env).toBe('staging');
+        // The parent owns the option, so it is not one of the subcommand's own.
+        expect(parsed.options).toEqual({});
+    });
+
+    it('runs a runnable parent nested inside a group, and its subcommands', async () => {
+        const db = await project.runCliCommand(['backup', 'db', '--label', 'nightly']);
+        const list = await project.runCliCommand(['backup', 'db', 'list']);
+        const status = await project.runCliCommand(['backup', 'db', 'status', '--label', 'nightly']);
+
+        expect(parseCloudResult(db.stdout).command).toEqual(['backup', 'db']);
+        expect(parseCloudResult(db.stdout).options).toEqual({ label: 'nightly' });
+        expect(parseCloudResult(list.stdout).command).toEqual(['backup', 'db', 'list']);
+        expect(parseCloudResult(status.stdout).command).toEqual(['backup', 'db', 'status']);
+        expect(parseCloudResult(status.stdout).inherited.label).toBe('nightly');
+    });
+
+    it('keeps the shared root options in scope below a runnable parent', async () => {
+        const result = await project.runCliCommand(['deploy', 'plan', '--token', 'tok', '--json']);
+
+        expect(parseCloudResult(result.stdout).inherited).toEqual({ token: 'tok', json: true });
+    });
+
+    it('reports a mistyped subcommand rather than running the parent', async () => {
+        const result = await project.runCliCommand(['deploy', 'plann'], { expectError: true });
+
+        expect(result.exitCode).not.toBe(0);
+        expect(result.stderr).toContain("unknown command 'plann'");
+        // The same suggestion a command group gives for the same mistake.
+        expect(result.stderr).toContain('(Did you mean plan?)');
+        expect(result.stdout).not.toContain('CLOUD_RESULT');
+    });
+
+    it('keeps a help subcommand on a command that has an action', async () => {
+        const result = await project.runCliCommand(['deploy', 'help']);
+
+        expect(result.stdout).toMatch(/^\s+plan\s+Show what a deploy would change$/m);
+        expect(result.stdout).not.toContain('CLOUD_RESULT');
+    });
+
+    it('rejects a plugin whose command has both arguments and subcommands', async () => {
+        const broken = createTestProject('cli-plugin-ambiguous-parent');
+        try {
+            installCliPluginFixture(broken, 'ambiguous-parent-cli-plugin');
+            const result = await broken.runCliCommand(['--help']);
+
+            expect(result.stderr).toContain('declares both positional arguments and subcommands');
+            // The plugin is skipped rather than taking the CLI down with it.
+            expect(result.stdout).toContain('plugins');
+        } finally {
+            broken.cleanup();
+        }
+    });
+
+    it('lists the subcommands of a runnable parent nested inside a group', async () => {
+        const result = await project.runCliCommand(['backup', 'db', '--help']);
+
+        expect(result.stdout).toContain('Usage: vendure backup db');
+        expect(result.stdout).toMatch(/^\s+list\s+List database backups$/m);
+        expect(result.stdout).toMatch(/^\s+status\s+Show the status of a backup$/m);
+    });
+
+    it("lists a runnable parent's subcommands and its own options in help", async () => {
+        const result = await project.runCliCommand(['deploy', '--help']);
+
+        expect(result.stdout).toContain('Usage: vendure deploy [options] [command]');
+        expect(result.stdout).toMatch(/^\s+plan\s+Show what a deploy would change$/m);
+        expect(result.stdout).toMatch(/^\s+teardown\s+Tear the deployment down$/m);
+        expect(result.stdout).toMatch(/^\s+--env /m);
+        expect(result.stdout).toContain('Global Options:');
+    });
+});
+
 describe('CLI plugin help output', () => {
     let project: CliTestProject;
 
@@ -137,6 +243,7 @@ describe('CLI plugin help output', () => {
         expect(result.stdout).toMatch(/^\s+config \[options\]\s+Manage Cloud configuration$/m);
         expect(result.stdout).toMatch(/^\s+backup\s+Manage backups$/m);
         expect(result.stdout).toMatch(/^\s+restore\s+Restore from a backup$/m);
+        expect(result.stdout).toMatch(/^\s+deploy \[options\]\s+Deploy the application$/m);
         for (const option of ['--token', '--project', '--environment', '--json']) {
             expect(result.stdout).toMatch(new RegExp(`^\\s+${option}`, 'm'));
         }

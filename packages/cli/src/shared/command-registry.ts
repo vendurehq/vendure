@@ -5,10 +5,12 @@ import {
     CliCommandContext,
     CliCommandNode,
     CliCommandOption,
-    isCliCommandGroup,
+    hasCliSubcommands,
+    isRunnableCliCommand,
 } from './cli-command-definition';
 import { CliCommandExit } from './cli-command-exit';
 import { buildOptionFlags, parseOptionFlags } from './cli-command-options';
+import { CliPluginExtensionAccessor } from './cli-plugin-extension';
 
 /**
  * An option declared on an ancestor of a command. Commander stores the parsed
@@ -24,10 +26,11 @@ export function registerCommands(
     program: Command,
     commands: CliCommandNode[],
     rootOptions: CliCommandOption[] = [],
+    getPluginExtensions: CliPluginExtensionAccessor = () => [],
 ): void {
     const sharedOptions = declareOptions(program, rootOptions);
     for (const node of commands) {
-        registerNode(program, node, [], sharedOptions);
+        registerNode(program, node, [], sharedOptions, getPluginExtensions);
     }
 }
 
@@ -36,33 +39,86 @@ function registerNode(
     node: CliCommandNode,
     path: string[],
     sharedOptions: SharedOption[],
+    getPluginExtensions: CliPluginExtensionAccessor,
 ): void {
     const command = parent.command(node.name).description(node.description);
     const commandPath = [...path, node.name];
+    const runnable = isRunnableCliCommand(node) ? node : undefined;
+    const subcommands = hasCliSubcommands(node) ? node.subcommands : undefined;
 
-    if (isCliCommandGroup(node)) {
-        const groupOptions = [...sharedOptions, ...declareOptions(command, node.options ?? [])];
-        for (const subcommand of node.subcommands) {
-            registerNode(command, subcommand, commandPath, groupOptions);
+    for (const arg of runnable?.arguments ?? []) {
+        command.argument(arg.required ? `<${arg.name}>` : `[${arg.name}]`, arg.description);
+    }
+    const ownOptions = declareOptions(command, node.options ?? []);
+
+    if (subcommands) {
+        // A node with subcommands shares its options with every command below
+        // it; hasCliSubcommands explains why.
+        const inheritedOptions = [...sharedOptions, ...ownOptions];
+        for (const subcommand of subcommands) {
+            registerNode(command, subcommand, commandPath, inheritedOptions, getPluginExtensions);
         }
+        if (runnable) {
+            // A command with subcommands takes no positional arguments, so any
+            // operand left here is a mistyped subcommand for the action below to
+            // reject. Said explicitly because Commander's own default for this
+            // has changed between major versions.
+            command.allowExcessArguments(true);
+            // Commander leaves out its implicit `help` subcommand once a command
+            // has an action, so without this `vendure deploy help` would not work
+            // the way `vendure config help` does. Skipped when the plugin
+            // declares its own `help`, which Commander would otherwise list
+            // twice.
+            if (!subcommands.some(subcommand => subcommand.name === 'help')) {
+                command.addHelpCommand();
+            }
+        }
+    }
+
+    if (!runnable) {
         // A group has no action: Commander prints its help and exits non-zero
         // when it is run without a subcommand.
         return;
     }
 
-    for (const arg of node.arguments ?? []) {
-        command.argument(arg.required ? `<${arg.name}>` : `[${arg.name}]`, arg.description);
-    }
-    declareOptions(command, node.options ?? []);
-
     command.action(async (...args: any[]) => {
+        if (subcommands && command.args.length > 0) {
+            // Commander tries the subcommand names before it falls back to this
+            // action, and a command with subcommands declares no arguments, so a
+            // word still sitting here named no subcommand. Reporting it through
+            // Commander is what stops `vendure deploy plann` deploying, and gives
+            // the same message and "did you mean" hint that a group gives.
+            reportUnknownSubcommand(command);
+        }
         fillSharedValues(command, commanderOptions(args), sharedOptions);
         const context: CliCommandContext = {
             inheritedOptions: readSharedValues(sharedOptions),
             commandPath,
+            getPluginExtensions,
         };
         // Exit is owned by the host so plugins can wrap built-in actions.
-        process.exit(await runAction(node.action, args, context));
+        process.exit(await runAction(runnable.action, args, context));
+    });
+}
+
+/**
+ * Reports a word that named no subcommand, the way Commander reports one on a
+ * command that has no action of its own.
+ *
+ * `unknownCommand` assembles the "did you mean" hint from the visible
+ * subcommands and routes through `Command#error`, so the message, the output
+ * channel configured by `configureOutput` and the exit code all match what a
+ * group produces. Commander calls it itself but has never declared it in its
+ * typings, hence the cast. The fallback keeps the channel and exit code right,
+ * losing only the hint, should a later version drop it.
+ */
+function reportUnknownSubcommand(command: Command): never {
+    const commander = command as Command & { unknownCommand?: () => never };
+    if (typeof commander.unknownCommand === 'function') {
+        commander.unknownCommand();
+    }
+    return command.error(`error: unknown command '${command.args[0]}'`, {
+        code: 'commander.unknownCommand',
     });
 }
 
@@ -86,7 +142,7 @@ async function runAction(action: CliCommandAction, args: any[], context: CliComm
 
 /**
  * Declares options on a command and describes them for any descendants, which
- * inherit them when the command is a group or the root program.
+ * inherit them when the command has subcommands or is the root program.
  */
 function declareOptions(command: Command, options: CliCommandOption[]): SharedOption[] {
     const declared: SharedOption[] = [];
@@ -115,9 +171,9 @@ function addOption(command: Command, option: CliCommandOption): void {
  * Reads the value of each shared option in scope.
  *
  * No two entries can share a name: registration rejects a flag shared by both
- * a group and the root, or by a group and one of its ancestors, whichever
- * order the plugins load in. So there is nothing here to resolve — an option
- * has one owner, and that owner holds its value.
+ * the root and a command with subcommands, or by two such commands on the same
+ * branch, whichever order the plugins load in. So there is nothing here to
+ * resolve — an option has one owner, and that owner holds its value.
  */
 function readSharedValues(sharedOptions: SharedOption[]): Record<string, any> {
     const values: Record<string, any> = {};

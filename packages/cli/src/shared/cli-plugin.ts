@@ -1,9 +1,11 @@
+import type { ConsoleLinkHookRegistration } from '../commands/console/console-link-hook';
+
 import {
     CliCommandDefinition,
     CliCommandExtension,
     CliCommandNode,
     CliCommandOption,
-    isCliCommandGroup,
+    hasCliSubcommands,
 } from './cli-command-definition';
 import { describeOption, parseOptionFlags, withSubOptions } from './cli-command-options';
 
@@ -28,9 +30,9 @@ export interface CliPlugin {
      */
     id: string;
     /**
-     * Commands to register. Each entry is either a command with an action, or a
-     * group of subcommands. A top-level name that a built-in or an earlier
-     * plugin already provides is rejected unless the command sets
+     * Commands to register. Each entry is a command with an action, a group of
+     * subcommands, or a command that has both. A top-level name that a built-in
+     * or an earlier plugin already provides is rejected unless the command sets
      * `replaces: true`.
      */
     commands: CliCommandNode[];
@@ -52,7 +54,70 @@ export interface CliPlugin {
      * @since 3.8.0
      */
     extendCommands?: CliCommandExtension[];
+    /**
+     * Runs after `vendure console link` has written the Project Link Manifest,
+     * for a plugin that has its own setup to do once a project is linked.
+     *
+     * This is not a way to take the command over. `vendure console link` stays
+     * the one implementation of linking, so every project links the same way
+     * whether or not a plugin is installed. Replacing the `console` command
+     * instead would fork the protocol.
+     *
+     * @since 3.8.0
+     */
+    afterConsoleLink?: ConsoleLinkHookRegistration;
 }
+
+interface CliPluginExtensionEntry {
+    extensionPoint: string;
+    extension: unknown;
+}
+
+export function getCliPluginExtensionEntries(plugin: CliPlugin): CliPluginExtensionEntry[] {
+    return plugin.afterConsoleLink
+        ? [{ extensionPoint: 'afterConsoleLink', extension: plugin.afterConsoleLink }]
+        : [];
+}
+
+/**
+ * The plugin capabilities this build of the CLI understands.
+ *
+ * Entries name capabilities, not only keys of {@link CliPlugin}. `subcommands`
+ * is the ability to nest commands, which a plugin declares inside `commands`
+ * rather than through a key of its own.
+ *
+ * A plugin that resolves an older `@vendure/cli` than it was written against is
+ * not told so. {@link assertCliPlugin} ignores keys it does not know, so a
+ * plugin declaring `extendCommands` or `afterConsoleLink` loads cleanly on a
+ * build that has neither, and then quietly decorates nothing and runs no hook.
+ * A silent no-op is worse than a refusal, and this is how a plugin refuses:
+ *
+ * @example
+ * ```ts
+ * import * as cli from '@vendure/cli';
+ *
+ * // Older builds export no such constant, so `undefined` is itself the answer.
+ * const supported = cli.CLI_PLUGIN_EXTENSION_POINTS ?? [];
+ * if (!supported.includes('afterConsoleLink')) {
+ *     throw new Error(
+ *         'This @vendure/cli is too old to run afterConsoleLink hooks. Upgrade it, ' +
+ *             'or the credentials this plugin sets up after linking are never written.',
+ *     );
+ * }
+ * ```
+ *
+ * Entries are only ever added, never removed or renamed, so a check written
+ * against one release keeps working.
+ *
+ * @since 3.8.0
+ */
+export const CLI_PLUGIN_EXTENSION_POINTS: readonly string[] = Object.freeze([
+    'commands',
+    'rootOptions',
+    'subcommands',
+    'extendCommands',
+    'afterConsoleLink',
+]);
 
 export function assertCliPlugin(value: unknown): asserts value is CliPlugin {
     if (!value || typeof value !== 'object') {
@@ -77,6 +142,19 @@ export function assertCliPlugin(value: unknown): asserts value is CliPlugin {
         throw new TypeError(`CLI plugin "${plugin.id}" extendCommands must be an array`);
     }
     assertExtensions(plugin.id, extensions, rootOptions);
+
+    if (
+        plugin.afterConsoleLink !== undefined &&
+        typeof plugin.afterConsoleLink !== 'function' &&
+        (!plugin.afterConsoleLink ||
+            typeof plugin.afterConsoleLink !== 'object' ||
+            plugin.afterConsoleLink.requiresSession !== true ||
+            typeof plugin.afterConsoleLink.hook !== 'function')
+    ) {
+        throw new TypeError(
+            `CLI plugin "${plugin.id}" afterConsoleLink must be a function or a session-requesting hook`,
+        );
+    }
 }
 
 /**
@@ -171,7 +249,7 @@ function assertNode(
     const ownOptions = node.options ?? [];
     assertUniqueOptions(pluginId, ownOptions, `options of command "${label}"`);
 
-    if (!isCliCommandGroup(node)) {
+    if (!hasCliSubcommands(node)) {
         assertMatchesInheritedShape(pluginId, label, ownOptions, inheritedOptions);
         if (typeof node.action !== 'function') {
             throw new TypeError(
@@ -182,15 +260,25 @@ function assertNode(
     }
 
     assertDoesNotShadow(pluginId, label, ownOptions, inheritedOptions);
-    if (typeof (node as Partial<CliCommandDefinition>).action === 'function') {
-        throw new Error(
-            `CLI plugin "${pluginId}" command "${label}" declares both subcommands and an action. ` +
-                `A command group has no action of its own: move it into a subcommand.`,
+    const action = (node as Partial<CliCommandDefinition>).action;
+    if (action !== undefined && typeof action !== 'function') {
+        throw new TypeError(
+            `CLI plugin "${pluginId}" command "${label}" declares an action that is not a function. ` +
+                `Give it one, or remove it so that "${label}" only groups the commands below it.`,
         );
     }
     if (node.subcommands.length === 0) {
         throw new Error(
-            `CLI plugin "${pluginId}" command group "${label}" must provide at least one subcommand`,
+            `CLI plugin "${pluginId}" command "${label}" declares "subcommands" but provides none. ` +
+                `Give it at least one subcommand, or drop the array.`,
+        );
+    }
+    if ((node as Partial<CliCommandDefinition>).arguments?.length) {
+        throw new Error(
+            `CLI plugin "${pluginId}" command "${label}" declares both positional arguments and ` +
+                `subcommands. The first word after "${label}" would be ambiguous, since it could name ` +
+                `a subcommand or fill an argument. Take an option instead, or move the arguments into ` +
+                `a subcommand.`,
         );
     }
     assertNodes(pluginId, node.subcommands, commandPath, [...inheritedOptions, ...ownOptions]);
@@ -236,10 +324,10 @@ function assertSubOptionDepth(pluginId: string, options: CliCommandOption[], con
 }
 
 /**
- * A command may repeat a flag one of its groups shares — the host copies the
- * value onto it — but only if both agree on whether a value follows the flag.
- * Otherwise the group consumes the flag and hands the command a value its own
- * declaration says it will never see.
+ * A command with no subcommands may repeat a flag one of its ancestors shares —
+ * the host copies the value onto it — but only if both agree on whether a value
+ * follows the flag. Otherwise the ancestor consumes the flag and hands the
+ * command a value its own declaration says it will never see.
  */
 function assertMatchesInheritedShape(
     pluginId: string,
@@ -269,8 +357,9 @@ function assertMatchesInheritedShape(
 }
 
 /**
- * A group's options are shared with everything below it, so two levels sharing
- * one flag would leave the value's owner ambiguous. A leaf may repeat a shared
+ * A node with subcommands shares its options with everything below it (see
+ * {@link hasCliSubcommands}), so two levels sharing one flag would leave the
+ * value's owner ambiguous. A command with no subcommands may repeat a shared
  * flag: the host copies the value onto it, so both readings agree.
  */
 function assertDoesNotShadow(

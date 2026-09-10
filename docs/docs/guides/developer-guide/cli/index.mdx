@@ -357,15 +357,29 @@ Vendure project under `packages`, `apps`, `libs`, `services`, or `modules`. If m
 npx vendure console status --project ./apps/server
 ```
 
-Replacing or removing a manifest requires confirmation. In non-interactive environments, use `--force` to confirm the
-specific action:
+Use `--force` to create a different Project Link for an already-linked project, or to remove its current link without
+confirmation:
 
 ```bash
 npx vendure console link --force
 npx vendure console unlink --force
 ```
 
-`--force` does not bypass ambiguous project selection or a manifest that belongs to another project root.
+`--force` also permits replacement of an invalid manifest. It does not bypass ambiguous project selection or a manifest
+that belongs to another project root.
+
+Running `vendure console link` in a project that is already linked repairs it rather than replacing it: the manifest
+is reused and any plugin setup runs again. Where a plugin is registered, that is confirmed first, because the manifest
+may have arrived with a clone.
+
+Use `--yes` to answer every confirmation owned by the CLI. This includes manifest changes, custom Console endpoints,
+and plugin setup on a repair. It does not answer questions asked by a plugin hook:
+
+```bash
+npx vendure console link --yes
+```
+
+On an already-linked project, `--yes` keeps the repair behavior. Only `--force` creates a different Project Link.
 
 ### Manifest and source control
 
@@ -418,8 +432,8 @@ The variables apply only to the unauthenticated Project Link exchange. They do n
 Environment Credentials, Registry access, package downloads, or Vendure Cloud operations.
 
 The CLI rejects partial endpoint configuration and URLs that contain credentials, paths, queries, or fragments. It
-requires HTTPS except for `localhost`, `127.0.0.1`, and `::1`. The production Console and API origins must be used
-together.
+requires HTTPS except for `localhost`, `127.0.0.1`, and `::1`. An official Console app or API origin is accepted only
+with the matching official origin from the same environment.
 
 Before it contacts a custom remote environment, the CLI displays both origins and asks for confirmation. In a
 non-interactive environment, pass `--allow-custom-console` to confirm them explicitly:
@@ -549,10 +563,9 @@ commands without loading the plugin.
 
 ### Nested commands
 
-A command entry that has `subcommands` instead of an `action` is a group. A
-group only exists to hold the commands below it. Running it without a
-subcommand prints its help to stderr and exits 1. Groups can be nested to any
-depth.
+A command entry that has `subcommands` and no `action` is a group. A group only
+exists to hold the commands below it. Running it without a subcommand prints its
+help to stderr and exits 1. Groups can be nested to any depth.
 
 ```ts
 import type { Command } from 'commander';
@@ -616,10 +629,60 @@ lists the arguments and the options that are valid there. Unknown subcommands,
 unknown options and missing arguments fail through the CLI's normal error path
 with exit code 1.
 
+### Commands that run and also hold subcommands
+
+A command may declare an `action` and `subcommands` together. Running it on its
+own runs the action; naming one of its subcommands runs that instead. Use this
+where a command already exists and needs commands underneath it without changing
+what the bare command does.
+
+```ts
+commands: [
+    {
+        name: 'deploy',
+        description: 'Deploy the application',
+        options: [{ long: '--env <name>', description: 'Target environment', required: true }],
+        action: async (options, command, context) => {
+            // `vendure deploy --env staging`
+            return 0;
+        },
+        subcommands: [
+            {
+                name: 'plan',
+                description: 'Show what a deploy would change',
+                // `vendure deploy plan --env staging`
+                action: async (options, command, context) => {
+                    console.log(context.inheritedOptions.env); // 'staging'
+                    return 0;
+                },
+            },
+        ],
+    },
+],
+```
+
+Its `options` are shared with every command below it, the same as a group's, so
+`--env` above reaches `deploy plan` through `context.inheritedOptions`. The
+command itself reads `--env` from its own options argument.
+
+A command that has subcommands cannot also declare `arguments`. The first word
+after the command name would be ambiguous, since it could equally name a
+subcommand or fill an argument, so declaring both is rejected when the plugin is
+registered. Take an option instead.
+
+That means a word which names no subcommand is always a mistake, and it is
+reported as an unknown command rather than reaching the action:
+
+```bash
+$ npx vendure deploy plann
+error: unknown command 'plann'
+(Did you mean plan?)
+```
+
 ### Extending an existing command
 
-More than one plugin may need the same command. Vendure Platform adds a
-credential to `vendure dev`, and a Cloud package may need to add to it as well.
+More than one plugin may need the same command. One plugin might add a
+credential to `vendure dev`, and another might need to add to it as well.
 `extendCommands` lets each of them contribute without discarding the others:
 their options are merged onto one command and their decorators are composed.
 
@@ -627,7 +690,7 @@ their options are merged onto one command and their decorators are composed.
 import { defineCliPlugin, readCommandContext, readCommandOptions } from '@vendure/cli';
 
 export default defineCliPlugin({
-    id: '@example/platform-cli-plugin',
+    id: '@example/credentials-cli-plugin',
     commands: [],
     extendCommands: [
         {
@@ -684,16 +747,16 @@ plugin is the outermost wrapper and its decorator runs first**. With:
 {
     "vendure": {
         "cli": {
-            "plugins": ["@example/platform-cli-plugin", "@example/cloud-cli-plugin"]
+            "plugins": ["@example/credentials-cli-plugin", "@example/telemetry-cli-plugin"]
         }
     }
 }
 ```
 
-running `vendure dev` calls the Cloud wrapper, which calls the Platform wrapper,
-which calls the built-in. Each wrapper runs once per invocation. The Cloud
-plugin, being applied last, also sees the option the Platform plugin added in
-its `command` argument; reverse the list and the roles swap.
+running `vendure dev` calls the telemetry wrapper, which calls the credentials
+wrapper, which calls the built-in. Each wrapper runs once per invocation. The
+telemetry plugin, being applied last, also sees the option the credentials
+plugin added in its `command` argument; reverse the list and the roles swap.
 
 #### Adding to a command
 
@@ -720,6 +783,117 @@ different subcommands to one group is not supported: the second registration of
 the group name is a collision, and `replaces: true` is refused once the group has
 been extended. A group and all its subcommands must come from one plugin.
 
+### Running after a project link
+
+Register an `afterConsoleLink` hook when a plugin must run setup after
+`vendure console link` writes or reuses the Project Link Manifest:
+
+```ts
+import { defineCliPlugin } from '@vendure/cli';
+
+export default defineCliPlugin({
+    id: '@example/setup-cli-plugin',
+    commands: [],
+    afterConsoleLink: async context => {
+        context.reporter.info(`Setting up ${context.manifest.project.name}`);
+        await setUpProject(context.projectRoot, context.manifest.project.id, {
+            signal: context.signal,
+        });
+    },
+});
+```
+
+The context contains `projectRoot`, `manifest`, `manifestPath`, `endpoints`,
+`outcome`, the optional `session`, `signal`, `reporter`, `confirm`,
+`isNonInteractive`, and `force`. Each hook gets its own manifest and endpoint
+objects. A session is also copied when the hook requested one and the login
+succeeded.
+
+A hook does not receive a Console session unless it requests one. Wrap a hook
+with `requiresSession: true` when it needs the session from the same browser
+approval:
+
+```ts
+export default defineCliPlugin({
+    id: '@example/credential-cli-plugin',
+    commands: [],
+    afterConsoleLink: {
+        requiresSession: true,
+        hook: async context => {
+            if (!context.session) {
+                context.reporter.warn('No Console session was obtained.');
+                return;
+            }
+            await storeCredential(context.session);
+        },
+    },
+});
+```
+
+The session is user-scoped and can authorize access across the user's Console
+projects. The CLI does not store it. If a plugin stores the session, use an OS
+credential store or a user-specific configuration directory outside the
+Vendure project. Never write it to the project directory or commit it.
+
+Do not replace the `console` command for post-link setup. Register the hook.
+
+#### Hook behavior
+
+- Hooks run after the manifest is on disk.
+- Hooks run in `vendure.cli.plugins` order. The first thrown error stops the rest.
+- A hook failure does not remove the manifest.
+- Hooks must be repeatable because a repair runs them again.
+
+Throw when setup fails. If the hook cannot run in the current environment,
+report what the user must do and return.
+
+Check `context.isNonInteractive` before calling `context.confirm`. The confirm
+function rejects in a non-interactive run. Put multi-choice setup in a plugin
+command.
+
+#### Repeating a link repairs it
+
+In an already-linked project, `vendure console link` reuses the manifest and
+runs hooks with `context.outcome` set to `'repaired'`. The repair makes no
+Console request and does not open a browser.
+
+An interactive repair names the project and account before it runs hooks. Pass
+`--yes` to answer this CLI confirmation in advance. The CLI asks nothing when
+no hooks are registered or when the run is non-interactive.
+
+`--force` links a checkout to a **different** Console Project. It
+skips the reuse, creates a new Project Link, and the hooks run with an `outcome`
+of `'linked'`.
+
+If a hook must run only against production, require
+`context.endpoints.official === 'production'`. The value is `'staging'` for the
+official staging pair and `undefined` for custom or loopback origins. A custom
+endpoint confirmation does not authorize a hook to send credentials there.
+
+The value describes the origins for the current run. The manifest does not
+record its source origin, so a repair cannot verify where its identifiers came
+from.
+
+### Checking what the installed CLI supports
+
+`defineCliPlugin` ignores keys it does not know. A plugin written against a newer
+CLI than the one it resolves therefore loads cleanly and then quietly decorates
+nothing and runs no hook, which is harder to spot than a refusal. Read
+`CLI_PLUGIN_EXTENSION_POINTS` to fail loudly instead:
+
+```ts
+import * as cli from '@vendure/cli';
+
+// Builds older than this constant export nothing, so `undefined` is the answer.
+const supported = cli.CLI_PLUGIN_EXTENSION_POINTS ?? [];
+if (!supported.includes('afterConsoleLink')) {
+    throw new Error('This @vendure/cli is too old to run afterConsoleLink hooks.');
+}
+```
+
+Entries are only added, never removed or renamed, so a check written against one
+release keeps working.
+
 ### Shared options
 
 Options that apply to more than one command are declared once, at the scope
@@ -727,7 +901,8 @@ they belong to:
 
 - `rootOptions` on the plugin are added to `vendure` itself, so every command
   can be given them.
-- `options` on a command group apply to every command inside that group.
+- `options` on a command that has subcommands apply to every command below it,
+  whether that command is a group or runs an action of its own.
 
 A shared option can be given anywhere on the command line once the command that
 declares it has been reached. These two are equivalent — same flag, same value,
@@ -798,6 +973,9 @@ argument is mandatory.
 A plugin that would take over or discard something it does not own is not
 registered at all, and the reason is written to stderr. This applies to:
 
+- a plugin `id` that a plugin already applied uses, whatever either of them
+  registers, because the id is what a conflict names and what a hook is
+  recorded against;
 - a top-level command that a built-in or another plugin already provides, unless
   the definition sets `replaces: true`;
 - a replacement of a command that another plugin has extended;

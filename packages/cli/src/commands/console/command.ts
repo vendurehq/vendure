@@ -1,5 +1,7 @@
-import { CliCommandDefinition } from '../../shared/cli-command-definition';
+import { CliCommandContext, CliCommandDefinition } from '../../shared/cli-command-definition';
 import { runCliCommand } from '../../shared/cli-command-exit';
+
+import { ConsoleLinkHookRegistration } from './console-link-hook';
 
 export const consoleCommandDef: CliCommandDefinition = {
     name: 'console',
@@ -24,14 +26,26 @@ export const consoleCommandDef: CliCommandDefinition = {
         },
         {
             long: '--force',
-            description: 'Confirm replacement or unlink without an interactive prompt',
+            description: 'Create a different Project Link or remove the current link without confirmation',
+            required: false,
+        },
+        {
+            long: '--yes',
+            description: 'Answer every CLI confirmation. Plugin hooks can still ask their own questions.',
             required: false,
         },
     ],
-    action: async (action, options) => {
+    action: async (action, options, _command, context: CliCommandContext) => {
         return runCliCommand(async () => {
             const { consoleCommand } = await import('./console');
-            return consoleCommand(action, options);
+            const hooks = context
+                .getPluginExtensions<ConsoleLinkHookRegistration>('afterConsoleLink')
+                .map(({ pluginId, extension }) =>
+                    typeof extension === 'function'
+                        ? { pluginId, hook: extension, requiresSession: false }
+                        : { pluginId, hook: extension.hook, requiresSession: true },
+                );
+            return consoleCommand(action, options, { hooks });
         });
     },
 };

@@ -23,12 +23,20 @@ interface CliCommandDefinition {
     options?: CliCommandOption[]; // Optional array of command options
     replaces?: boolean; // Deliberately replace a command of the same name
     action: (...args: any[]) => Promise<void | number>; // Command implementation
+    subcommands?: CliCommandNode[]; // Commands nested under this one
 }
 ```
 
-A command that groups further commands declares `subcommands` instead of an
-action. Groups can be nested to any depth, and running one without a subcommand
-prints its help.
+A command that groups further commands declares `subcommands` and no action.
+Groups can be nested to any depth, and running one without a subcommand prints
+its help.
+
+A command may also declare `subcommands` alongside its own action, for a command
+that both runs and holds commands below it, e.g. `vendure deploy` with
+`vendure deploy plan` under it. Running it without a subcommand runs its action.
+Either way its `options` are shared with every command below it, and it cannot
+declare positional `arguments`, since the first word after the command name
+would then be ambiguous.
 
 ```typescript
 interface CliCommandGroupDefinition {
