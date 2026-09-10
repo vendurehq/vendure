@@ -167,41 +167,105 @@ test.describe('Orders', () => {
     }) => {
         test.setTimeout(60_000);
 
-        const lp = listPage(page);
-        await lp.goto();
-        await lp.expectLoaded();
-        await lp.newButton.click();
-        await expect(page).toHaveURL(/\/orders\/draft\//, { timeout: 10_000 });
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const { countries } = await client.gql(
+            `query { countries(options: { take: 1 }) { items { code } } }`,
+        );
+        const customerSuffix = Date.now();
+        const customerName = `Shipping Refresh ${customerSuffix}`;
+        const { createCustomer } = await client.gql(
+            `mutation ($input: CreateCustomerInput!) {
+                createCustomer(input: $input) {
+                    ... on Customer { id }
+                    ... on ErrorResult { errorCode message }
+                }
+            }`,
+            {
+                input: {
+                    firstName: 'Shipping',
+                    lastName: `Refresh ${customerSuffix}`,
+                    emailAddress: `shipping.refresh.${customerSuffix}@test.com`,
+                },
+            },
+        );
+        await client.gql(
+            `mutation ($customerId: ID!, $input: CreateAddressInput!) {
+                createCustomerAddress(customerId: $customerId, input: $input) { id }
+            }`,
+            {
+                customerId: createCustomer.id,
+                input: {
+                    fullName: customerName,
+                    streetLine1: '5253 Shipping Lane',
+                    city: 'Testville',
+                    postalCode: 'T3 5ST',
+                    countryCode: countries.items[0].code,
+                    defaultShippingAddress: true,
+                },
+            },
+        );
+        const { shippingMethods } = await client.gql(`query {
+            shippingMethods(options: { filter: { code: { eq: "standard-shipping" } } }) {
+                items {
+                    id
+                    checker { code args { name value } }
+                    translations { id languageCode name description }
+                }
+            }
+        }`);
+        const standardShippingConfig = shippingMethods.items[0] as ShippingMethodConfig;
 
+        let draftCreated = false;
         try {
+            // Standard Shipping accepts empty orders by default, so require a non-zero subtotal here.
+            await setShippingMethodOrderMinimum(client, standardShippingConfig, '1');
+
+            const lp = listPage(page);
+            await lp.goto();
+            await lp.expectLoaded();
+            await lp.newButton.click();
+            await expect(page).toHaveURL(/\/orders\/draft\//, { timeout: 10_000 });
+            draftCreated = true;
+
             // Set a customer with a default shipping address first — this
             // enables the eligible-shipping-methods query for the first time
             // (still a zero-line order).
             await page.getByRole('button', { name: /Select customer/i }).click();
-            await page.getByPlaceholder('Search customers...').fill('hayden');
-            await expect(page.getByRole('option').first()).toBeVisible({ timeout: 5_000 });
-            await page.getByRole('option').first().click();
-            await page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
+            await page.getByPlaceholder('Search customers...').fill(String(customerSuffix));
+            const customerOption = page.getByRole('option').filter({ hasText: customerName });
+            await expect(customerOption).toBeVisible({ timeout: 5_000 });
+            const eligibilityResponse = page.waitForResponse(
+                response =>
+                    response.url().includes('/admin-api') &&
+                    response.status() === 200 &&
+                    (response.request().postData() ?? '').includes('DraftOrderEligibleShippingMethods'),
+            );
+            await customerOption.click();
+            await eligibilityResponse;
+            await expect(page.getByText('Express Shipping', { exact: true })).toBeVisible();
+            await expect(page.getByText('Standard Shipping', { exact: true })).toHaveCount(0);
 
-            // Add a product line. Without the fix, the eligible-shipping-methods
-            // query was never re-run after this mutation, so the "No shipping
-            // methods available" placeholder from the zero-line query stuck
-            // around even though the seed data's "Standard Shipping" method is
-            // eligible once the order has a shippable line.
+            // Adding a product changes Standard Shipping from ineligible to eligible.
             const addItemButton = page.locator('[role="combobox"]').filter({ hasText: 'Add item to order' });
             await addItemButton.scrollIntoViewIfNeeded();
             await addItemButton.click();
             await page.getByPlaceholder('Add item to order...').fill('laptop');
             await expect(page.getByRole('option').first()).toBeVisible({ timeout: 5_000 });
             await page.getByRole('option').first().click();
-            await page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
 
             const shippingLabel = page.getByText('Standard Shipping', { exact: true });
             await shippingLabel.scrollIntoViewIfNeeded();
             await expect(shippingLabel).toBeVisible({ timeout: 10_000 });
             await expect(page.getByText('No shipping methods available')).toHaveCount(0);
         } finally {
-            await deleteCurrentDraft(page);
+            try {
+                if (draftCreated) {
+                    await deleteCurrentDraft(page);
+                }
+            } finally {
+                await setShippingMethodOrderMinimum(client, standardShippingConfig);
+            }
         }
     });
 
@@ -834,6 +898,48 @@ test.describe('Orders', () => {
 });
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+
+interface ShippingMethodConfig {
+    id: string;
+    checker: {
+        code: string;
+        args: Array<{ name: string; value: string }>;
+    };
+    translations: Array<{
+        id: string;
+        languageCode: string;
+        name: string;
+        description: string | null;
+    }>;
+}
+
+async function setShippingMethodOrderMinimum(
+    client: VendureAdminClient,
+    shippingMethod: ShippingMethodConfig,
+    orderMinimum?: string,
+) {
+    await client.gql(
+        `mutation ($input: UpdateShippingMethodInput!) {
+            updateShippingMethod(input: $input) { id }
+        }`,
+        {
+            input: {
+                id: shippingMethod.id,
+                checker: {
+                    code: shippingMethod.checker.code,
+                    arguments: shippingMethod.checker.args.map(arg => ({
+                        name: arg.name,
+                        value:
+                            arg.name === 'orderMinimum' && orderMinimum !== undefined
+                                ? orderMinimum
+                                : arg.value,
+                    })),
+                },
+                translations: shippingMethod.translations,
+            },
+        },
+    );
+}
 
 /**
  * Creates a paid order and adds a fulfillment, returning the order ID

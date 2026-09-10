@@ -6,6 +6,7 @@ import { Button } from '@/vdb/components/ui/button.js';
 import { Form } from '@/vdb/components/ui/form.js';
 import { addCustomFields } from '@/vdb/framework/document-introspection/add-custom-fields.js';
 import { useGeneratedForm } from '@/vdb/framework/form-engine/use-generated-form.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import {
     Page,
     PageActionBar,
@@ -13,7 +14,6 @@ import {
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
-import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { api } from '@/vdb/graphql/api.js';
 import { Trans, useLingui } from '@lingui/react/macro';
@@ -21,12 +21,13 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { ResultOf } from 'gql.tada';
 import { User } from 'lucide-react';
+import { useState } from 'react';
 import { toast } from 'sonner';
+import { addressFragment } from '../_customers/customers.graphql.js';
 import { CustomerAddressSelector } from './components/customer-address-selector.js';
 import { DraftOrderStatus } from './components/draft-order-status.js';
 import { EditOrderTable } from './components/edit-order-table.js';
 import { OrderAddress } from './components/order-address.js';
-import { addressFragment } from '../_customers/customers.graphql.js';
 import {
     addItemToDraftOrderDocument,
     adjustDraftOrderLineDocument,
@@ -59,7 +60,11 @@ function DraftOrderPage() {
     const { t } = useLingui();
     const navigate = useNavigate();
 
-    const { entity, refreshEntity, form } = useDetailPage({
+    const {
+        entity,
+        refreshEntity: refreshOrderEntity,
+        form,
+    } = useDetailPage({
         queryDocument: addCustomFields(orderDetailDocument, {
             includeNestedFragments: ['OrderLine', 'Fulfillment'],
         }),
@@ -71,6 +76,11 @@ function DraftOrderPage() {
         },
         params: { id: params.id },
     });
+    const [shippingMethodsVersion, setShippingMethodsVersion] = useState(0);
+    const refreshEntity = () => {
+        refreshOrderEntity();
+        setShippingMethodsVersion(version => version + 1);
+    };
 
     const { form: orderCustomFieldsForm } = useGeneratedForm({
         document: setDraftOrderCustomFieldsDocument,
@@ -98,19 +108,13 @@ function DraftOrderPage() {
         },
     });
 
-    // Eligible shipping methods depend on the order's lines, customer, coupons,
-    // and shipping address -- any of which can change on any draft-order
-    // mutation, all of which already call refreshEntity(). Keying the query on
-    // entity.updatedAt (bumped by every such mutation) refetches automatically
-    // instead of maintaining a separate invalidation call per mutation, which
-    // previously missed coupon changes and left the list stale until reload (#5253).
+    // Eligibility is recomputed server-side from the full order. The local revision
+    // gives every successful mutation a distinct key even when updatedAt precision is coarse.
     const { data: eligibleShippingMethods } = useQuery({
-        queryKey: ['eligibleShippingMethods', entity?.id, entity?.updatedAt],
+        queryKey: ['eligibleShippingMethods', entity?.id, entity?.updatedAt, shippingMethodsVersion],
         queryFn: () => api.query(draftOrderEligibleShippingMethodsDocument, { orderId: entity?.id ?? '' }),
         enabled: !!entity?.shippingAddress?.streetLine1,
-        // The queryKey carries the order's identity and version, so
-        // keepPreviousData (the app-wide default) would show a stale or
-        // previous order's shipping methods while the new list loads. Opt out.
+        // Explicit undefined overrides the app-wide keepPreviousData default; omitting it does not.
         placeholderData: undefined,
     });
 
@@ -191,12 +195,8 @@ function DraftOrderPage() {
                         });
                         addresses = customer?.addresses ?? [];
                     }
-                    const defaultShippingAddress = addresses.find(
-                        address => address.defaultShippingAddress,
-                    );
-                    const defaultBillingAddress = addresses.find(
-                        address => address.defaultBillingAddress,
-                    );
+                    const defaultShippingAddress = addresses.find(address => address.defaultShippingAddress);
+                    const defaultBillingAddress = addresses.find(address => address.defaultBillingAddress);
                     // Sequence the address mutations: they all mutate the same
                     // version-tracked Order, so firing them concurrently makes
                     // the second read a stale version and fail with an
@@ -224,7 +224,9 @@ function DraftOrderPage() {
                             });
                         }
                     } catch (e) {
-                        toast.error(t`Failed to set address for order: ${e instanceof Error ? e.message : String(e)}`);
+                        toast.error(
+                            t`Failed to set address for order: ${e instanceof Error ? e.message : String(e)}`,
+                        );
                     }
                     refreshEntity();
                     break;
@@ -506,7 +508,11 @@ function DraftOrderPage() {
                 </PageBlock>
                 <PageBlock column="side" blockId="customer" title={<Trans>Customer</Trans>}>
                     {entity?.customer?.id ? (
-                        <Button variant="outline" render={<Link to={`/customers/${entity?.customer?.id}`} />} className="mb-4">
+                        <Button
+                            variant="outline"
+                            render={<Link to={`/customers/${entity?.customer?.id}`} />}
+                            className="mb-4"
+                        >
                             <User className="w-4 h-4" />
                             {entity?.customer?.firstName} {entity?.customer?.lastName}
                         </Button>
