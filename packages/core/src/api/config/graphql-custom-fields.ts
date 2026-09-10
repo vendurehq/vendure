@@ -13,6 +13,7 @@ import {
     BaseTypedCustomFieldConfig,
     CustomFieldConfig,
     CustomFields,
+    isLocalizedCustomFieldType,
     StructCustomFieldConfig,
     StructFieldConfig,
 } from '../../config/custom-field/custom-field-types';
@@ -84,11 +85,9 @@ export function addGraphQLCustomFields(
             }
         }
 
-        const localizedFields = customEntityFields.filter(
-            field => field.type === 'localeString' || field.type === 'localeText',
-        );
+        const localizedFields = customEntityFields.filter(field => isLocalizedCustomFieldType(field.type));
         const nonLocalizedFields = customEntityFields.filter(
-            field => field.type !== 'localeString' && field.type !== 'localeText',
+            field => !isLocalizedCustomFieldType(field.type),
         );
         const writeableLocalizedFields = localizedFields.filter(field => !field.readonly);
         const writeableNonLocalizedFields = nonLocalizedFields.filter(field => !field.readonly);
