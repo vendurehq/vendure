@@ -1216,7 +1216,7 @@
                   "title": "CurrencyCode",
                   "slug": "currency-code",
                   "file": "docs/reference/typescript-api/common/currency-code.mdx",
-                  "lastModified": "2026-09-09T08:40:56Z"
+                  "lastModified": "2026-09-10T15:41:07Z"
                 },
                 {
                   "title": "EntityRelationPaths",
@@ -1252,7 +1252,7 @@
                   "title": "JobState",
                   "slug": "job-state",
                   "file": "docs/reference/typescript-api/common/job-state.mdx",
-                  "lastModified": "2026-09-09T08:40:56Z"
+                  "lastModified": "2026-09-10T15:41:07Z"
                 },
                 {
                   "title": "JsonCompatible",
@@ -1264,7 +1264,7 @@
                   "title": "LanguageCode",
                   "slug": "language-code",
                   "file": "docs/reference/typescript-api/common/language-code.mdx",
-                  "lastModified": "2026-09-09T08:40:56Z"
+                  "lastModified": "2026-09-10T15:41:07Z"
                 },
                 {
                   "title": "Middleware",
@@ -1282,7 +1282,7 @@
                   "title": "Permission",
                   "slug": "permission",
                   "file": "docs/reference/typescript-api/common/permission.mdx",
-                  "lastModified": "2026-09-09T08:40:56Z"
+                  "lastModified": "2026-09-10T15:41:07Z"
                 },
                 {
                   "title": "PriceCalculationResult",
@@ -1990,7 +1990,7 @@
                   "title": "Event Types",
                   "slug": "event-types",
                   "file": "docs/reference/typescript-api/events/event-types.mdx",
-                  "lastModified": "2026-09-09T08:40:56Z"
+                  "lastModified": "2026-09-10T15:41:07Z"
                 },
                 {
                   "title": "EventBus",
@@ -2922,7 +2922,7 @@
                   "title": "AdministratorService",
                   "slug": "administrator-service",
                   "file": "docs/reference/typescript-api/services/administrator-service.mdx",
-                  "lastModified": "2026-09-09T14:41:22Z"
+                  "lastModified": "2026-09-10T15:41:07Z"
                 },
                 {
                   "title": "AssetService",
@@ -3078,13 +3078,13 @@
                   "title": "RoleAssignmentService",
                   "slug": "role-assignment-service",
                   "file": "docs/reference/typescript-api/services/role-assignment-service.mdx",
-                  "lastModified": "2026-09-09T08:40:56Z"
+                  "lastModified": "2026-09-10T15:41:07Z"
                 },
                 {
                   "title": "RoleService",
                   "slug": "role-service",
                   "file": "docs/reference/typescript-api/services/role-service.mdx",
-                  "lastModified": "2026-09-09T08:40:56Z"
+                  "lastModified": "2026-09-10T15:41:07Z"
                 },
                 {
                   "title": "SearchService",
@@ -3790,25 +3790,25 @@
                   "title": "Input Objects",
                   "slug": "input-types",
                   "file": "docs/reference/graphql-api/admin/input-types.mdx",
-                  "lastModified": "2026-09-09T08:40:56Z"
+                  "lastModified": "2026-09-10T15:41:07Z"
                 },
                 {
                   "title": "Mutations",
                   "slug": "mutations",
                   "file": "docs/reference/graphql-api/admin/mutations.mdx",
-                  "lastModified": "2026-09-09T08:40:56Z"
+                  "lastModified": "2026-09-10T15:41:07Z"
                 },
                 {
                   "title": "Queries",
                   "slug": "queries",
                   "file": "docs/reference/graphql-api/admin/queries.mdx",
-                  "lastModified": "2026-09-09T08:40:56Z"
+                  "lastModified": "2026-09-10T15:41:07Z"
                 },
                 {
                   "title": "Types",
                   "slug": "object-types",
                   "file": "docs/reference/graphql-api/admin/object-types.mdx",
-                  "lastModified": "2026-09-09T08:40:56Z"
+                  "lastModified": "2026-09-10T15:41:07Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
