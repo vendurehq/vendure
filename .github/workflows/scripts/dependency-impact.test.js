@@ -263,3 +263,45 @@ test('escapes untrusted dependency names and ranges in the report table', () => 
     assert.match(body, /\^2\.0\.0<br>&#124; forged &#124; row &#124;/);
     assert.doesNotMatch(body, /\n\| forged \| row \|/);
 });
+
+test('reads a dependency section that is not an object as absent', () => {
+    const filePath = 'packages/core/package.json';
+    const { output, calls } = runClassifier({
+        files: [filePath],
+        manifests: {
+            [manifestEndpoint(filePath, 'merge-base')]: {
+                name: '@vendure/core',
+                dependencies: { graphql: '^16.0.0' },
+            },
+            // Valid JSON, invalid npm. Object.keys on the string would report one change per
+            // character and flip the label on nonsense.
+            [manifestEndpoint(filePath, 'head')]: {
+                name: '@vendure/core',
+                dependencies: 'graphql',
+            },
+        },
+    });
+
+    assert.deepEqual(appliedLabels(calls), ['deps: contract change']);
+    assert.match(output, /1 contract, 0 other/);
+    const body = calls
+        .find(args => args[1] === 'repos/vendurehq/vendure/issues/42/comments' && args.includes('POST'))
+        .find(arg => arg.startsWith('body='));
+    assert.match(body, /`graphql` \| packages\/core \/ dependencies \| removed `\^16\.0\.0`/);
+    assert.doesNotMatch(body, /\| `0` \|/);
+});
+
+test('percent-encodes a manifest path before asking the contents API for it', () => {
+    const filePath = 'packages/core/we?ref=master#/package.json';
+    const encoded = 'packages/core/we%3Fref%3Dmaster%23/package.json';
+    const { calls } = runClassifier({
+        files: [filePath],
+        manifests: {
+            [manifestEndpoint(encoded, 'merge-base')]: { dependencies: { a: '^1.0.0' } },
+            [manifestEndpoint(encoded, 'head')]: { dependencies: { a: '^2.0.0' } },
+        },
+    });
+
+    assert.ok(calls.some(args => args[1] === manifestEndpoint(encoded, 'head')));
+    assert.ok(!calls.some(args => args[1] === manifestEndpoint(filePath, 'head')));
+});
