@@ -208,7 +208,8 @@ test('does not suppress a failure while removing the opposite label', () => {
                     'repos/vendurehq/vendure/issues/42/labels/deps%3A%20contract%20change': 500,
                 },
             }),
-        /classifier failed with status 1/,
+        // Naming the endpoint and the status, so an unrelated TypeError cannot satisfy this.
+        /issues\/42\/labels\/deps%3A%20contract%20change[\s\S]*HTTP 500/,
     );
 });
 
