@@ -156,16 +156,12 @@ test.describe('Orders', () => {
         await expect(page).not.toHaveURL(/\/draft\//);
     });
 
-    // #5253 — eligible shipping methods must refresh without a page reload
-    // when a mutation changes shipping eligibility after the query has
-    // already run once (e.g. adding a line after the customer's default
-    // shipping address enabled the query). Setting the customer first
-    // enables the query with a zero-line order; adding the product after is
-    // the step that must invalidate the now-stale cached result.
+    // #5253 — eligible shipping methods must refresh after a line is added, without
+    // a page reload.
     test('should refresh eligible shipping methods after adding a line to an existing draft order', async ({
         page,
     }) => {
-        test.setTimeout(60_000);
+        test.setTimeout(60_000); // Draft order flow involves multiple mutations
 
         const client = new VendureAdminClient(page);
         await client.login();
@@ -205,22 +201,37 @@ test.describe('Orders', () => {
                 },
             },
         );
-        const { shippingMethods } = await client.gql(`query {
-            shippingMethods(options: { filter: { code: { eq: "standard-shipping" } } }) {
-                items {
-                    id
-                    checker { code args { name value } }
-                    translations { id languageCode name description }
-                }
-            }
-        }`);
-        const standardShippingConfig = shippingMethods.items[0] as ShippingMethodConfig;
+        // Both seeded methods accept an empty order, so this test needs one that does
+        // not. It is created and deleted here rather than reconfiguring a seeded method,
+        // because spec files run in parallel against one shared server.
+        const conditionalMethodName = `Minimum Order Shipping ${customerSuffix}`;
+        const { createShippingMethod } = await client.gql(
+            `mutation ($input: CreateShippingMethodInput!) {
+                createShippingMethod(input: $input) { id }
+            }`,
+            {
+                input: {
+                    code: `minimum-order-shipping-${customerSuffix}`,
+                    fulfillmentHandler: 'manual-fulfillment',
+                    checker: {
+                        code: 'default-shipping-eligibility-checker',
+                        arguments: [{ name: 'orderMinimum', value: '1' }],
+                    },
+                    calculator: {
+                        code: 'default-shipping-calculator',
+                        arguments: [
+                            { name: 'rate', value: '750' },
+                            { name: 'taxRate', value: '0' },
+                            { name: 'includesTax', value: 'auto' },
+                        ],
+                    },
+                    translations: [{ languageCode: 'en', name: conditionalMethodName, description: '' }],
+                },
+            },
+        );
 
         let draftCreated = false;
         try {
-            // Standard Shipping accepts empty orders by default, so require a non-zero subtotal here.
-            await setShippingMethodOrderMinimum(client, standardShippingConfig, '1');
-
             const lp = listPage(page);
             await lp.goto();
             await lp.expectLoaded();
@@ -243,10 +254,10 @@ test.describe('Orders', () => {
             );
             await customerOption.click();
             await eligibilityResponse;
-            await expect(page.getByText('Express Shipping', { exact: true })).toBeVisible();
-            await expect(page.getByText('Standard Shipping', { exact: true })).toHaveCount(0);
+            await expect(page.getByText('Standard Shipping', { exact: true })).toBeVisible();
+            await expect(page.getByText(conditionalMethodName, { exact: true })).toHaveCount(0);
 
-            // Adding a product changes Standard Shipping from ineligible to eligible.
+            // Adding a product makes the minimum-order method eligible.
             const addItemButton = page.locator('[role="combobox"]').filter({ hasText: 'Add item to order' });
             await addItemButton.scrollIntoViewIfNeeded();
             await addItemButton.click();
@@ -254,8 +265,7 @@ test.describe('Orders', () => {
             await expect(page.getByRole('option').first()).toBeVisible({ timeout: 5_000 });
             await page.getByRole('option').first().click();
 
-            const shippingLabel = page.getByText('Standard Shipping', { exact: true });
-            await shippingLabel.scrollIntoViewIfNeeded();
+            const shippingLabel = page.getByText(conditionalMethodName, { exact: true });
             await expect(shippingLabel).toBeVisible({ timeout: 10_000 });
             await expect(page.getByText('No shipping methods available')).toHaveCount(0);
         } finally {
@@ -264,7 +274,9 @@ test.describe('Orders', () => {
                     await deleteCurrentDraft(page);
                 }
             } finally {
-                await setShippingMethodOrderMinimum(client, standardShippingConfig);
+                await client.gql(`mutation ($id: ID!) { deleteShippingMethod(id: $id) { result message } }`, {
+                    id: createShippingMethod.id,
+                });
             }
         }
     });
@@ -325,11 +337,7 @@ test.describe('Orders', () => {
         await expect(page).toHaveURL(/\/orders\/draft\//, { timeout: 10_000 });
 
         // Delete the draft without configuring it
-        await page.getByRole('button', { name: /Delete draft/i }).click();
-        // Confirm the deletion dialog — AlertDialog uses "Continue" as the action button
-        await page.locator('[role="alertdialog"]').getByRole('button', { name: 'Continue' }).click();
-        // Should navigate back to the orders list (URL may include query params)
-        await expect(page).not.toHaveURL(/\/draft\//, { timeout: 15_000 });
+        await deleteCurrentDraft(page);
         await expect(page.getByTestId('page-heading')).toBeVisible();
     });
 
@@ -899,48 +907,6 @@ test.describe('Orders', () => {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-interface ShippingMethodConfig {
-    id: string;
-    checker: {
-        code: string;
-        args: Array<{ name: string; value: string }>;
-    };
-    translations: Array<{
-        id: string;
-        languageCode: string;
-        name: string;
-        description: string | null;
-    }>;
-}
-
-async function setShippingMethodOrderMinimum(
-    client: VendureAdminClient,
-    shippingMethod: ShippingMethodConfig,
-    orderMinimum?: string,
-) {
-    await client.gql(
-        `mutation ($input: UpdateShippingMethodInput!) {
-            updateShippingMethod(input: $input) { id }
-        }`,
-        {
-            input: {
-                id: shippingMethod.id,
-                checker: {
-                    code: shippingMethod.checker.code,
-                    arguments: shippingMethod.checker.args.map(arg => ({
-                        name: arg.name,
-                        value:
-                            arg.name === 'orderMinimum' && orderMinimum !== undefined
-                                ? orderMinimum
-                                : arg.value,
-                    })),
-                },
-                translations: shippingMethod.translations,
-            },
-        },
-    );
-}
-
 /**
  * Creates a paid order and adds a fulfillment, returning the order ID
  * in "Fulfilled" state.
@@ -984,7 +950,10 @@ async function createFulfilledOrder(client: VendureAdminClient): Promise<string>
     return orderId;
 }
 
-/** Deletes the draft order currently open in the page, via the delete-draft dialog. */
+/**
+ * Deletes the draft order currently open in the page. A test may leave a popover or
+ * combobox open over the page, so dismiss that first or the delete button is not clickable.
+ */
 async function deleteCurrentDraft(page: Page) {
     await page.keyboard.press('Escape');
     await page.getByRole('button', { name: /Delete draft/i }).click();
