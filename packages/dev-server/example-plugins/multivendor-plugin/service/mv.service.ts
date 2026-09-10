@@ -12,7 +12,6 @@ import {
     manualFulfillmentHandler,
     RequestContext,
     RequestContextService,
-    RoleAssignmentService,
     RoleService,
     SellerService,
     ShippingMethod,
@@ -33,7 +32,6 @@ export class MultivendorService {
         private administratorService: AdministratorService,
         private sellerService: SellerService,
         private roleService: RoleService,
-        private roleAssignmentService: RoleAssignmentService,
         private channelService: ChannelService,
         private shippingMethodService: ShippingMethodService,
         private configService: ConfigService,
@@ -161,21 +159,13 @@ export class MultivendorService {
                 Permission.DeleteTag,
             ],
         });
-        const administrator = await this.administratorService.create(ctx, {
+        await this.administratorService.create(ctx, {
             firstName: input.seller.firstName,
             lastName: input.seller.lastName,
             emailAddress: input.seller.emailAddress,
             password: input.seller.password,
-            // `roleIds` grants roles on the active channel, but this administrator
-            // needs the role on the newly-created seller channel.
-            roleIds: [],
+            roleAssignments: [{ roleId: role.id, channelId: channel.id }],
         });
-        await this.roleAssignmentService.replaceUserAssignmentsOnChannel(
-            ctx,
-            administrator.user.id,
-            [role.id],
-            channel.id,
-        );
         return channel;
     }
 
