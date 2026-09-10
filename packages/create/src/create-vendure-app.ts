@@ -64,7 +64,7 @@ import {
     StorefrontId,
     StorefrontStarter,
 } from './storefront-starters';
-import { CliLogLevel, PackageManager } from './types';
+import { CliLogLevel, PackageManager, UserResponses } from './types';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJson = require('../package.json');
@@ -196,9 +196,9 @@ export async function createVendureApp(
             { newline: 'after' },
         );
     }
-    let configResult: Awaited<ReturnType<typeof getQuickStartConfiguration>>;
-    const configSpinner = spinner();
-    configSpinner.start(`Generating project configuration...`);
+    // No spinner around this call: the quick start and manual modes prompt from here, and a
+    // running spinner erases the prompt every 80ms and takes over Ctrl+C via clack's block().
+    let configResult: UserResponses;
     try {
         configResult =
             mode === 'ci'
@@ -206,12 +206,10 @@ export async function createVendureApp(
                 : mode === 'manual'
                   ? await getManualConfiguration(root, packageManager, port)
                   : await getQuickStartConfiguration(root, packageManager, port);
-        configSpinner.stop(`Generated project configuration`);
     } catch (e: any) {
-        // Includes the storefront port scan, which used to have its own dedicated
-        // try/catch further down before generateSources() started performing it.
-        configSpinner.stop(pc.red('Could not generate project configuration'));
-        outro(e.message);
+        // generateSources scans for the storefront port, so an exhausted port range surfaces
+        // here rather than at the scan's own call site.
+        outro(pc.red(e.message));
         process.exit(1);
     }
     const {
