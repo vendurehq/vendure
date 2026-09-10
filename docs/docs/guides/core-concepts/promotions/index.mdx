@@ -261,7 +261,7 @@ export class FreeGiftPromotionPlugin {}
 ```
 
 :::note[Promotions which discount nothing are not recorded]
-A Promotion is only recorded on `Order.promotions` — and therefore only consumes its `usageLimit` and `perCustomerUsageLimit` — if it actually adjusted an OrderLine or a ShippingLine. The exception is a Promotion with at least one action defining `onActivate`/`onDeactivate`: the free gift action above returns `0` from `execute()` until its side effect has added the gift line, so such a Promotion is kept whatever it discounts. The presence of a hook, not its body, is what does this: an action defining lifecycle hooks is assumed to deliver its benefit through them rather than through its discount. So if you write a custom action which delivers its benefit by mutating the Order inside `execute()` and returns `0`, an `onActivate` which does nothing is enough to keep the Promotion recorded — add a one-line comment saying it must stay, since it will otherwise read as dead code to the next person.
+A Promotion is only recorded on `Order.promotions` — and therefore only consumes its `usageLimit` and `perCustomerUsageLimit` — if it actually adjusted an OrderLine or a ShippingLine. The exception is a Promotion with at least one action defining `onActivate`/`onDeactivate`: the free gift action above returns `0` from `execute()` until its side effect has added the gift line, so such a Promotion is kept whatever it discounts. It is the presence of the hook that matters, not its body. So if a custom action delivers its benefit by mutating the Order inside `execute()` and returns `0`, an empty `onActivate` keeps the Promotion recorded — leave a comment saying why it must stay.
 :::
 
 ### Dependency relationships

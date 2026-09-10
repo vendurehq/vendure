@@ -11,6 +11,7 @@ import { ConfigService } from '../../../config/config.service';
 import { MockConfigService } from '../../../config/config.service.mock';
 import { DefaultOrderLineDiscountDistributionStrategy } from '../../../config/order/default-order-line-discount-distribution-strategy';
 import { OrderLineDiscountDistributionStrategy } from '../../../config/order/order-line-discount-distribution-strategy';
+import { PromotionAction } from '../../../config/promotion/promotion-action';
 import { PromotionCondition } from '../../../config/promotion/promotion-condition';
 import { DefaultOrderTaxCalculationStrategy } from '../../../config/tax/default-order-tax-calculation-strategy';
 import { DefaultTaxLineCalculationStrategy } from '../../../config/tax/default-tax-line-calculation-strategy';
@@ -1539,15 +1540,6 @@ describe('OrderCalculator', () => {
                 },
             });
 
-            const neverDiscountOrderAction = new PromotionOrderAction({
-                code: 'never_discount_order_action',
-                description: [{ languageCode: LanguageCode.en, value: '' }],
-                args: {},
-                execute() {
-                    return 0;
-                },
-            });
-
             const sideEffectAction = new PromotionItemAction({
                 code: 'side_effect_action',
                 description: [{ languageCode: LanguageCode.en, value: '' }],
@@ -1559,18 +1551,17 @@ describe('OrderCalculator', () => {
                 onActivate: () => undefined,
             });
 
-            function createItemPromotion(action: PromotionItemAction, id = 1) {
-                return new Promotion({
-                    id,
-                    name: `Test promotion ${id}`,
-                    conditions: [{ code: alwaysTrueCondition.code, args: [] }],
-                    promotionConditions: [alwaysTrueCondition],
-                    actions: [{ code: action.code, args: [] }],
-                    promotionActions: [action],
-                });
-            }
+            const sideEffectOrderAction = new PromotionOrderAction({
+                code: 'side_effect_order_action',
+                description: [{ languageCode: LanguageCode.en, value: '' }],
+                args: {},
+                execute() {
+                    return 0;
+                },
+                onActivate: () => undefined,
+            });
 
-            function createOrderPromotion(action: PromotionOrderAction, id = 1) {
+            function createPromotion(action: PromotionAction<any>, id = 1) {
                 return new Promotion({
                     id,
                     name: `Test promotion ${id}`,
@@ -1595,28 +1586,7 @@ describe('OrderCalculator', () => {
                 });
 
                 await orderCalculator.applyPriceAdjustments(ctx, order, [
-                    createItemPromotion(discountExpensiveItemsAction),
-                ]);
-
-                expect(order.discounts.length).toBe(0);
-                expect(order.promotions).toEqual([]);
-            });
-
-            it('is not added to the Order when its action is Order-level', async () => {
-                const ctx = createRequestContext({ pricesIncludeTax: false });
-                const order = createOrder({
-                    ctx,
-                    lines: [
-                        {
-                            listPrice: 100,
-                            taxCategory: taxCategoryStandard,
-                            quantity: 1,
-                        },
-                    ],
-                });
-
-                await orderCalculator.applyPriceAdjustments(ctx, order, [
-                    createOrderPromotion(neverDiscountOrderAction),
+                    createPromotion(discountExpensiveItemsAction),
                 ]);
 
                 expect(order.discounts.length).toBe(0);
@@ -1642,7 +1612,7 @@ describe('OrderCalculator', () => {
                 });
 
                 await orderCalculator.applyPriceAdjustments(ctx, order, [
-                    createItemPromotion(discountExpensiveItemsAction),
+                    createPromotion(discountExpensiveItemsAction),
                 ]);
 
                 expect(order.discounts.length).toBe(1);
@@ -1663,8 +1633,8 @@ describe('OrderCalculator', () => {
                 });
 
                 await orderCalculator.applyPriceAdjustments(ctx, order, [
-                    createItemPromotion(discountExpensiveItemsAction, 1),
-                    createItemPromotion(neverDiscountAction, 2),
+                    createPromotion(discountExpensiveItemsAction, 1),
+                    createPromotion(neverDiscountAction, 2),
                 ]);
 
                 expect(order.discounts.length).toBe(1);
@@ -1673,7 +1643,7 @@ describe('OrderCalculator', () => {
 
             it('is removed from the Order once it no longer discounts anything', async () => {
                 const ctx = createRequestContext({ pricesIncludeTax: false });
-                const promotion = createItemPromotion(discountExpensiveItemsAction);
+                const promotion = createPromotion(discountExpensiveItemsAction);
                 const order = createOrder({
                     ctx,
                     lines: [
@@ -1741,8 +1711,27 @@ describe('OrderCalculator', () => {
                     ],
                 });
 
+                await orderCalculator.applyPriceAdjustments(ctx, order, [createPromotion(sideEffectAction)]);
+
+                expect(order.discounts.length).toBe(0);
+                expect(order.promotions.map(p => p.id)).toEqual([1]);
+            });
+
+            it('is added to the Order when its Order-level action has a side effect', async () => {
+                const ctx = createRequestContext({ pricesIncludeTax: false });
+                const order = createOrder({
+                    ctx,
+                    lines: [
+                        {
+                            listPrice: 100,
+                            taxCategory: taxCategoryStandard,
+                            quantity: 1,
+                        },
+                    ],
+                });
+
                 await orderCalculator.applyPriceAdjustments(ctx, order, [
-                    createItemPromotion(sideEffectAction),
+                    createPromotion(sideEffectOrderAction),
                 ]);
 
                 expect(order.discounts.length).toBe(0);
