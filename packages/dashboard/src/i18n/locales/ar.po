@@ -294,7 +294,7 @@ msgstr "هل أنت متأكد من حذف هذا الشكل؟"
 #~ msgid "All resources are up and running"
 #~ msgstr "جميع الموارد تعمل بشكل جيد"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:108
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 msgid "Failed to create administrator"
 msgstr "فشل في إنشاء المسؤول"
 
@@ -322,7 +322,7 @@ msgstr "فشل تحديث البلد"
 msgid "Type at least 2 characters to search..."
 msgstr "اكتب حرفين على الأقل للبحث..."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:143
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:144
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:182
 #: src/app/routes/_authenticated/_profile/profile.tsx:108
 msgid "Last name"
@@ -498,7 +498,7 @@ msgstr "المنتج الأساسي"
 msgid "City"
 msgstr "المدينة"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:44
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:15
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:22
 msgid "Administrators"
@@ -512,7 +512,7 @@ msgstr "السعر الإجمالي: <0/>"
 msgid "Go to next page"
 msgstr "الانتقال إلى الصفحة التالية"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:349
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:210
 msgid "Add role"
 msgstr "إضافة دور"
 
@@ -601,9 +601,11 @@ msgstr "جارٍ الإضافة..."
 msgid "Move Collections"
 msgstr "نقل المجموعات"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:161
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:163
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:189
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:55
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:169
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:166
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:192
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:32
 #: src/app/routes/_authenticated/_roles/roles.tsx:16
 #: src/app/routes/_authenticated/_roles/roles.tsx:25
@@ -686,7 +688,7 @@ msgstr "المنطقة الضريبية الافتراضية"
 msgid "Order draft is ready to be completed"
 msgstr "طلب المسودة جاهز للإكمال"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:200
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:217
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:245
 msgid "Metadata"
 msgstr "البيانات الوصفية"
@@ -752,7 +754,7 @@ msgid "Complete draft"
 msgstr "إكمال المسودة"
 
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:45
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:164
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:160
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:169
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
@@ -943,8 +945,8 @@ msgstr "هذه هي قيم الخصائص للخاصية <0>{facetName}</0>."
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:174
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:182
-msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself. Assignments you cannot grant are shown locked and are preserved on save."
-msgstr "لا يمكنك منح دور على قناة إلا إذا كنت تملك بنفسك جميع صلاحيات ذلك الدور عليها. تظهر الإسنادات التي لا يمكنك منحها مقفلة ويتم الاحتفاظ بها عند الحفظ."
+#~ msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself. Assignments you cannot grant are shown locked and are preserved on save."
+#~ msgstr "لا يمكنك منح دور على قناة إلا إذا كنت تملك بنفسك جميع صلاحيات ذلك الدور عليها. تظهر الإسنادات التي لا يمكنك منحها مقفلة ويتم الاحتفاظ بها عند الحفظ."
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:49
 msgid "Successfully added payment to order"
@@ -958,7 +960,7 @@ msgstr "تم تعيين عنوان الفوترة للطلب"
 msgid "Failed to update zone"
 msgstr "فشل تحديث المنطقة"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:155
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:156
 #: src/app/routes/_authenticated/_profile/profile.tsx:120
 #: src/app/routes/_authenticated/_profile/profile.tsx:137
 #: src/lib/components/login/login-form.tsx:93
@@ -1175,8 +1177,8 @@ msgid "Off"
 msgstr "إيقاف"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:292
-msgid "You cannot change this assignment: you do not hold all of this role's permissions on this channel."
-msgstr "لا يمكنك تغيير هذا الإسناد: لا تملك جميع صلاحيات هذا الدور على هذه القناة."
+#~ msgid "You cannot change this assignment: you do not hold all of this role's permissions on this channel."
+#~ msgstr "لا يمكنك تغيير هذا الإسناد: لا تملك جميع صلاحيات هذا الدور على هذه القناة."
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:37
 #: src/app/routes/_authenticated/_system/settings-store.tsx:304
@@ -1561,7 +1563,7 @@ msgstr "جارٍ تحميل الإعدادات العامة..."
 msgid "Address updated successfully"
 msgstr "تم تحديث العنوان بنجاح"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:234
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:251
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:124
 #: src/lib/components/shared/asset/asset-gallery.tsx:747
 #: src/lib/framework/layout-engine/page-layout.tsx:733
@@ -1684,7 +1686,8 @@ msgstr "حذف المتغير"
 msgid "No modifications made"
 msgstr "لم يتم إجراء تعديلات"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:183
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:180
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:203
 msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
 msgstr "ما يمكن لهذا المسؤول فعله على القناة المحددة، مستمد من الأدوار المعيّنة أعلاه. عدّل الأدوار لتغييره."
 
@@ -1794,9 +1797,9 @@ msgstr "فشل تحديث الفئة الضريبية"
 msgid "Refund settled successfully"
 msgstr "تم تسوية الاسترداد بنجاح"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:127
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:128
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:70
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:154
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:150
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
@@ -2017,7 +2020,7 @@ msgstr "السمة"
 msgid "{0} customers"
 msgstr "{0} عميل"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:43
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:46
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:14
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:25
 msgid "API Keys"
@@ -2031,7 +2034,8 @@ msgstr "حدد لغة"
 msgid "Log out"
 msgstr "تسجيل الخروج"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:332
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:195
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:119
 msgid "Remove role"
 msgstr "إزالة الدور"
 
@@ -2514,8 +2518,8 @@ msgstr "عنوان الشحن"
 msgid "New zone"
 msgstr "منطقة جديدة"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:44
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:139
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:47
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:135
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:79
 msgid "New API Key"
 msgstr "مفتاح API جديد"
@@ -2528,7 +2532,8 @@ msgstr "حذف العمود"
 msgid "Assign existing"
 msgstr "تعيين موجود"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:229
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:159
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:91
 msgid "Role"
 msgstr "الدور"
 
@@ -2634,7 +2639,8 @@ msgstr "تم تطبيق العرض \"{viewName}\""
 msgid "Successfully removed {successCount} facets from channel"
 msgstr "تمت إزالة {successCount} خاصية من القناة بنجاح"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:191
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:183
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:206
 msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
 msgstr "ما يمكن لمفتاح API هذا فعله على القناة المحددة، مستمد من الأدوار المعيّنة أعلاه. عدّل الأدوار لتغييره."
 
@@ -2726,6 +2732,7 @@ msgstr "إضافة قيم الخصائص"
 msgid "after"
 msgstr "بعد"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:94
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:103
 msgid "Channel"
 msgstr "القناة"
@@ -2755,7 +2762,7 @@ msgstr "عميل جديد"
 msgid "Image"
 msgstr "الصورة"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:99
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:96
 msgid "Successfully created administrator"
 msgstr "تم إنشاء المسؤول بنجاح"
 
@@ -2827,9 +2834,9 @@ msgstr "إجمالي الاسترداد يتجاوز الحد الأقصى لل�
 msgid "Delete Global View"
 msgstr "حذف العرض العام"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:127
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:128
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:68
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:154
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:150
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
@@ -3058,7 +3065,7 @@ msgstr "استرداد"
 msgid "Modify"
 msgstr "تعديل"
 
-#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:77
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:86
 msgid "Effective permissions on"
 msgstr "الصلاحيات الفعلية على"
 
@@ -3114,7 +3121,7 @@ msgstr "عرض ترويجي جديد"
 msgid "Option value name"
 msgstr "اسم قيمة الخيار"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:218
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:235
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:46
 msgid "Last used"
 msgstr "آخر استخدام"
@@ -3190,9 +3197,10 @@ msgstr "يشمل ضريبة بنسبة {taxRate}%"
 msgid "Order metrics"
 msgstr "مقاييس الطلبات"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:184
-#~ msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
-#~ msgstr "يمكنك منح دور على قناة فقط إذا كنت تملك جميع صلاحيات ذلك الدور بنفسك."
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:172
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:175
+msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
+msgstr "يمكنك منح دور على قناة فقط إذا كنت تملك جميع صلاحيات ذلك الدور بنفسك."
 
 #: src/lib/components/layout/language-dialog.tsx:49
 msgid "Select display language"
@@ -3420,6 +3428,10 @@ msgstr "تحديث محتوى الملاحظة أو رؤيتها"
 msgid "Latest Orders Widget"
 msgstr "أداة أحدث الطلبات"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:79
+msgid "Failed to remove role"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/components/collection-contents-sheet.tsx:34
 msgid "Collection contents for {collectionName}"
 msgstr "محتويات المجموعة {collectionName}"
@@ -3453,7 +3465,7 @@ msgstr "لا يساوي"
 msgid "Settle payment"
 msgstr "تسوية الدفع"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:232
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:162
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:38
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
@@ -3499,6 +3511,10 @@ msgstr "العناصر المستردة"
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:325
 #~ msgid "Assign options to existing variant"
 #~ msgstr "تعيين خيارات إلى الشكل الموجود"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:75
+msgid "Role removed"
+msgstr ""
 
 #. placeholder {0}: entityName.toLowerCase()
 #: src/app/common/duplicate-entity-dialog.tsx:85
@@ -3748,7 +3764,7 @@ msgstr "تم إلغاء الدفع بنجاح"
 msgid "Global view duplicated successfully"
 msgstr "تم نسخ العرض العام بنجاح"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:212
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:229
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:66
 msgid "Created by"
 msgstr "أنشأه"
@@ -3761,7 +3777,7 @@ msgstr "تصفية المتغيرات..."
 msgid "Add a price in another currency"
 msgstr "إضافة سعر بعملة أخرى"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:149
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:150
 #: src/app/routes/_authenticated/_profile/profile.tsx:114
 msgid "Email Address or identifier"
 msgstr "عنوان البريد الإلكتروني أو المعرف"
@@ -3856,7 +3872,7 @@ msgstr "مستوى المخزون"
 msgid "Add item"
 msgstr "إضافة عنصر"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:111
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:103
 msgid "Successfully created API key"
 msgstr "تم إنشاء مفتاح API بنجاح"
 
@@ -3944,7 +3960,7 @@ msgstr "في"
 msgid "Email"
 msgstr "البريد الإلكتروني"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:108
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 msgid "Failed to update administrator"
 msgstr "فشل في تحديث المسؤول"
 
@@ -4034,7 +4050,7 @@ msgstr "منتج بخيارات"
 msgid "Showing all {0} results"
 msgstr "عرض جميع النتائج {0}"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:204
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:221
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:60
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx:95
 msgid "Lookup ID"
@@ -4260,7 +4276,7 @@ msgstr "فشل إنشاء المنطقة"
 msgid "Stock levels"
 msgstr "مستويات المخزون"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:123
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:115
 msgid "Failed to update API key"
 msgstr "فشل في تحديث مفتاح API"
 
@@ -4496,7 +4512,7 @@ msgstr "إدارة العلامات"
 msgid "Coupon code removed from order"
 msgstr "تم حذف رمز القسيمة من الطلب"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:227
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:244
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:50
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:142
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:152
@@ -4788,8 +4804,8 @@ msgid "Filter by {columnId}"
 msgstr "تصفية حسب {columnId}"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:260
-msgid "Locked role"
-msgstr "دور مقفل"
+#~ msgid "Locked role"
+#~ msgstr "دور مقفل"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:108
 msgid "ID"
@@ -5039,6 +5055,11 @@ msgstr "معاينة تعديلات الطلب"
 #~ msgid "Successfully updated product option group"
 #~ msgstr "تم تحديث مجموعة خيارات المنتج بنجاح"
 
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:195
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:198
+msgid "Changes to roles are saved immediately. You can only see and change assignments of roles whose permissions you hold yourself on that channel."
+msgstr ""
+
 #. js-lingui-explicit-id
 #: src/lib/hooks/use-extended-detail-query.ts:25
 #: src/lib/hooks/use-extended-list-query.ts:66
@@ -5102,6 +5123,10 @@ msgstr "جارٍ التنفيذ..."
 msgid "Add option group to product"
 msgstr "إضافة مجموعة خيارات إلى المنتج"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:66
+msgid "Failed to assign role"
+msgstr ""
+
 #. placeholder {0}: asset.name
 #: src/lib/components/shared/asset/asset-preview-dialog.tsx:37
 msgid "Preview of {0}"
@@ -5110,6 +5135,10 @@ msgstr "معاينة {0}"
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:56
 msgid "Successfully updated seller"
 msgstr "تم تحديث البائع بنجاح"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:179
+msgid "Assign role"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:130
 msgid "Failed to transition order to state"
@@ -5169,7 +5198,7 @@ msgstr "حفظ مجموعة الخيارات"
 msgid "Click \"Run Test\" to test this shipping method."
 msgstr "انقر على \"تشغيل الاختبار\" لاختبار طريقة الشحن هذه."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:100
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:97
 msgid "Successfully updated administrator"
 msgstr "تم تحديث المسؤول بنجاح"
 
@@ -5299,7 +5328,7 @@ msgstr "قيم خصائص جديدة للإضافة:"
 msgid "Failed to process refund"
 msgstr "فشل في معالجة الاسترداد"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:137
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:138
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:176
 #: src/app/routes/_authenticated/_profile/profile.tsx:102
 msgid "First name"
@@ -5498,8 +5527,8 @@ msgstr "تم تعيين {entityIdsLength} {entityType} إلى القناة بن�
 msgid "Global Languages"
 msgstr "اللغات العامة"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:39
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:119
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:45
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:120
 msgid "New administrator"
 msgstr "مسؤول جديد"
 
@@ -5657,6 +5686,10 @@ msgstr "معرف الاسترداد"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:93
 msgid "Order custom fields updated"
 msgstr "تم تحديث الحقول المخصصة للطلب"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:60
+msgid "Role assigned"
+msgstr ""
 
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:193
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:191
@@ -5992,7 +6025,7 @@ msgstr "حد نفاد المخزون"
 msgid "Failed to update value"
 msgstr "فشل في تحديث القيمة"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:123
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:115
 msgid "Failed to create API key"
 msgstr "فشل في إنشاء مفتاح API"
 
@@ -6045,7 +6078,8 @@ msgstr "الخيار"
 msgid "Order process"
 msgstr "عملية الطلب"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:343
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:204
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:103
 msgid "No roles assigned"
 msgstr "لا توجد أدوار معيّنة"
 
@@ -6066,7 +6100,7 @@ msgstr "الشكل"
 msgid "Successfully updated global settings"
 msgstr "تم تحديث الإعدادات العامة بنجاح"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:118
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:110
 msgid "Successfully updated API key"
 msgstr "تم تحديث مفتاح API بنجاح"
 

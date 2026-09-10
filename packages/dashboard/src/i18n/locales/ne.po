@@ -294,7 +294,7 @@ msgstr "के तपाईं निश्चित हुनुहुन्छ
 #~ msgid "All resources are up and running"
 #~ msgstr "सबै स्रोतहरू चलिरहेका छन्"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:108
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 msgid "Failed to create administrator"
 msgstr "प्रशासक सिर्जना गर्न असफल"
 
@@ -322,7 +322,7 @@ msgstr "देश अपडेट गर्न असफल"
 msgid "Type at least 2 characters to search..."
 msgstr "खोज्न कम्तिमा २ वर्णहरू टाइप गर्नुहोस्..."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:143
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:144
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:182
 #: src/app/routes/_authenticated/_profile/profile.tsx:108
 msgid "Last name"
@@ -498,7 +498,7 @@ msgstr "मुख्य उत्पादन"
 msgid "City"
 msgstr "शहर"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:44
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:15
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:22
 msgid "Administrators"
@@ -512,7 +512,7 @@ msgstr "सकल मूल्य: <0/>"
 msgid "Go to next page"
 msgstr "अर्को पृष्ठमा जानुहोस्"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:349
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:210
 msgid "Add role"
 msgstr "भूमिका थप्नुहोस्"
 
@@ -601,9 +601,11 @@ msgstr "थप्दै..."
 msgid "Move Collections"
 msgstr "संग्रहहरू सार्नुहोस्"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:161
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:163
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:189
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:55
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:169
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:166
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:192
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:32
 #: src/app/routes/_authenticated/_roles/roles.tsx:16
 #: src/app/routes/_authenticated/_roles/roles.tsx:25
@@ -686,7 +688,7 @@ msgstr "पूर्वनिर्धारित कर क्षेत्र"
 msgid "Order draft is ready to be completed"
 msgstr "अर्डर ड्राफ्ट पूरा गर्न तयार छ"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:200
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:217
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:245
 msgid "Metadata"
 msgstr "मेटाडेटा"
@@ -752,7 +754,7 @@ msgid "Complete draft"
 msgstr "मस्यौदा पूरा गर्नुहोस्"
 
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:45
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:164
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:160
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:169
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
@@ -943,8 +945,8 @@ msgstr "यी <0>{facetName}</0> विशेषताका विशेषत
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:174
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:182
-msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself. Assignments you cannot grant are shown locked and are preserved on save."
-msgstr "तपाईं आफैंसँग त्यस भूमिकाका सबै अनुमतिहरू भएको च्यानलमा मात्र भूमिका प्रदान गर्न सक्नुहुन्छ। तपाईंले प्रदान गर्न नसक्ने असाइनमेन्टहरू लक गरिएर देखाइन्छन् र सुरक्षित गर्दा जोगाइन्छन्।"
+#~ msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself. Assignments you cannot grant are shown locked and are preserved on save."
+#~ msgstr "तपाईं आफैंसँग त्यस भूमिकाका सबै अनुमतिहरू भएको च्यानलमा मात्र भूमिका प्रदान गर्न सक्नुहुन्छ। तपाईंले प्रदान गर्न नसक्ने असाइनमेन्टहरू लक गरिएर देखाइन्छन् र सुरक्षित गर्दा जोगाइन्छन्।"
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:49
 msgid "Successfully added payment to order"
@@ -958,7 +960,7 @@ msgstr "अर्डरको लागि बिलिङ ठेगाना �
 msgid "Failed to update zone"
 msgstr "क्षेत्र अपडेट गर्न असफल"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:155
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:156
 #: src/app/routes/_authenticated/_profile/profile.tsx:120
 #: src/app/routes/_authenticated/_profile/profile.tsx:137
 #: src/lib/components/login/login-form.tsx:93
@@ -1175,8 +1177,8 @@ msgid "Off"
 msgstr "बन्द"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:292
-msgid "You cannot change this assignment: you do not hold all of this role's permissions on this channel."
-msgstr "तपाईं यो असाइनमेन्ट परिवर्तन गर्न सक्नुहुन्न: यस च्यानलमा तपाईंसँग यस भूमिकाका सबै अनुमतिहरू छैनन्।"
+#~ msgid "You cannot change this assignment: you do not hold all of this role's permissions on this channel."
+#~ msgstr "तपाईं यो असाइनमेन्ट परिवर्तन गर्न सक्नुहुन्न: यस च्यानलमा तपाईंसँग यस भूमिकाका सबै अनुमतिहरू छैनन्।"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:37
 #: src/app/routes/_authenticated/_system/settings-store.tsx:304
@@ -1561,7 +1563,7 @@ msgstr "ग्लोबल सेटिङहरू लोड गर्दै...
 msgid "Address updated successfully"
 msgstr "ठेगाना सफलतापूर्वक अपडेट गरियो"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:234
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:251
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:124
 #: src/lib/components/shared/asset/asset-gallery.tsx:747
 #: src/lib/framework/layout-engine/page-layout.tsx:733
@@ -1684,7 +1686,8 @@ msgstr "भेरियन्ट मेटाउनुहोस्"
 msgid "No modifications made"
 msgstr "कुनै परिमार्जन गरिएको छैन"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:183
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:180
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:203
 msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
 msgstr "चयन गरिएको च्यानलमा यस प्रशासकले के गर्न सक्छ, माथि तोकिएका भूमिकाहरूबाट व्युत्पन्न। परिवर्तन गर्न भूमिकाहरू सम्पादन गर्नुहोस्।"
 
@@ -1794,9 +1797,9 @@ msgstr "कर वर्ग अपडेट गर्न असफल"
 msgid "Refund settled successfully"
 msgstr "रिफन्ड सफलतापूर्वक सम्पन्न भयो"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:127
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:128
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:70
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:154
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:150
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
@@ -2017,7 +2020,7 @@ msgstr "थीम"
 msgid "{0} customers"
 msgstr "{0} ग्राहकहरू"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:43
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:46
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:14
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:25
 msgid "API Keys"
@@ -2031,7 +2034,8 @@ msgstr "भाषा चयन गर्नुहोस्"
 msgid "Log out"
 msgstr "लग आउट"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:332
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:195
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:119
 msgid "Remove role"
 msgstr "भूमिका हटाउनुहोस्"
 
@@ -2514,8 +2518,8 @@ msgstr "ढुवानी ठेगाना"
 msgid "New zone"
 msgstr "नयाँ क्षेत्र"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:44
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:139
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:47
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:135
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:79
 msgid "New API Key"
 msgstr "नयाँ API Key"
@@ -2528,7 +2532,8 @@ msgstr "स्तम्भ मेट्नुहोस्"
 msgid "Assign existing"
 msgstr "अवस्थित तोक्नुहोस्"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:229
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:159
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:91
 msgid "Role"
 msgstr "भूमिका"
 
@@ -2634,7 +2639,8 @@ msgstr "दृश्य \"{viewName}\" लागू गरियो"
 msgid "Successfully removed {successCount} facets from channel"
 msgstr "च्यानलबाट {successCount} विशेषताहरू सफलतापूर्वक हटाइयो"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:191
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:183
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:206
 msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
 msgstr "चयन गरिएको च्यानलमा यस API कुञ्जीले के गर्न सक्छ, माथि तोकिएका भूमिकाहरूबाट व्युत्पन्न। परिवर्तन गर्न भूमिकाहरू सम्पादन गर्नुहोस्।"
 
@@ -2726,6 +2732,7 @@ msgstr "विशेषता मानहरू थप्नुहोस्"
 msgid "after"
 msgstr "पछि"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:94
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:103
 msgid "Channel"
 msgstr "च्यानल"
@@ -2755,7 +2762,7 @@ msgstr "नयाँ ग्राहक"
 msgid "Image"
 msgstr "छवि"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:99
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:96
 msgid "Successfully created administrator"
 msgstr "प्रशासक सफलतापूर्वक सिर्जना गरियो"
 
@@ -2827,9 +2834,9 @@ msgstr "फिर्ता कुल अधिकतम फिर्ता य�
 msgid "Delete Global View"
 msgstr "ग्लोबल दृश्य मेट्नुहोस्"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:127
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:128
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:68
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:154
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:150
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
@@ -3058,7 +3065,7 @@ msgstr "फिर्ता"
 msgid "Modify"
 msgstr "परिमार्जन गर्नुहोस्"
 
-#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:77
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:86
 msgid "Effective permissions on"
 msgstr "प्रभावकारी अनुमतिहरू:"
 
@@ -3114,7 +3121,7 @@ msgstr "नयाँ प्रमोशन"
 msgid "Option value name"
 msgstr "विकल्प मान नाम"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:218
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:235
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:46
 msgid "Last used"
 msgstr "अन्तिम पटक प्रयोग गरिएको"
@@ -3190,9 +3197,10 @@ msgstr "{taxRate}% कर समावेश"
 msgid "Order metrics"
 msgstr "अर्डर मेट्रिक्स"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:184
-#~ msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
-#~ msgstr "तपाईंले भूमिका त्यस्तो च्यानलमा मात्र प्रदान गर्न सक्नुहुन्छ जहाँ तपाईं आफैंसँग उक्त भूमिकाका सबै अनुमतिहरू छन्।"
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:172
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:175
+msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
+msgstr "तपाईंले भूमिका त्यस्तो च्यानलमा मात्र प्रदान गर्न सक्नुहुन्छ जहाँ तपाईं आफैंसँग उक्त भूमिकाका सबै अनुमतिहरू छन्।"
 
 #: src/lib/components/layout/language-dialog.tsx:49
 msgid "Select display language"
@@ -3420,6 +3428,10 @@ msgstr "टिप्पणी सामग्री वा दृश्यता
 msgid "Latest Orders Widget"
 msgstr "पछिल्लो अर्डरहरू विजेट"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:79
+msgid "Failed to remove role"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/components/collection-contents-sheet.tsx:34
 msgid "Collection contents for {collectionName}"
 msgstr "{collectionName} को संग्रह सामग्री"
@@ -3453,7 +3465,7 @@ msgstr "बराबर छैन"
 msgid "Settle payment"
 msgstr "भुक्तानी सम्पन्न गर्नुहोस्"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:232
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:162
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:38
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
@@ -3499,6 +3511,10 @@ msgstr "वस्तुहरू फिर्ता गरियो"
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:325
 #~ msgid "Assign options to existing variant"
 #~ msgstr "अवस्थित भेरियन्टमा विकल्पहरू असाइन गर्नुहोस्"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:75
+msgid "Role removed"
+msgstr ""
 
 #. placeholder {0}: entityName.toLowerCase()
 #: src/app/common/duplicate-entity-dialog.tsx:85
@@ -3748,7 +3764,7 @@ msgstr "भुक्तानी सफलतापूर्वक रद्द 
 msgid "Global view duplicated successfully"
 msgstr "ग्लोबल दृश्य सफलतापूर्वक नक्कल गरियो"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:212
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:229
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:66
 msgid "Created by"
 msgstr "द्वारा सिर्जित"
@@ -3761,7 +3777,7 @@ msgstr "भेरियन्टहरू फिल्टर गर्नुह�
 msgid "Add a price in another currency"
 msgstr "अर्को मुद्रामा मूल्य थप्नुहोस्"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:149
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:150
 #: src/app/routes/_authenticated/_profile/profile.tsx:114
 msgid "Email Address or identifier"
 msgstr "इमेल ठेगाना वा पहिचानकर्ता"
@@ -3856,7 +3872,7 @@ msgstr "स्टक स्तर"
 msgid "Add item"
 msgstr "वस्तु थप्नुहोस्"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:111
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:103
 msgid "Successfully created API key"
 msgstr "API Key सफलतापूर्वक सिर्जना गरियो"
 
@@ -3944,7 +3960,7 @@ msgstr "मा छ"
 msgid "Email"
 msgstr "इमेल"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:108
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 msgid "Failed to update administrator"
 msgstr "प्रशासक अपडेट गर्न असफल"
 
@@ -4034,7 +4050,7 @@ msgstr "विकल्पहरू सहितको उत्पादन"
 msgid "Showing all {0} results"
 msgstr "सबै {0} परिणामहरू देखाउँदै"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:204
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:221
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:60
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx:95
 msgid "Lookup ID"
@@ -4260,7 +4276,7 @@ msgstr "क्षेत्र सिर्जना गर्न असफल"
 msgid "Stock levels"
 msgstr "स्टक स्तरहरू"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:123
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:115
 msgid "Failed to update API key"
 msgstr "API Key अपडेट गर्न असफल भयो"
 
@@ -4496,7 +4512,7 @@ msgstr "ट्यागहरू व्यवस्थापन गर्नु�
 msgid "Coupon code removed from order"
 msgstr "अर्डरबाट कुपन कोड हटाइएको"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:227
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:244
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:50
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:142
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:152
@@ -4788,8 +4804,8 @@ msgid "Filter by {columnId}"
 msgstr "{columnId} द्वारा फिल्टर गर्नुहोस्"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:260
-msgid "Locked role"
-msgstr "लक गरिएको भूमिका"
+#~ msgid "Locked role"
+#~ msgstr "लक गरिएको भूमिका"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:108
 msgid "ID"
@@ -5039,6 +5055,11 @@ msgstr "अर्डर परिमार्जनहरू पूर्वा�
 #~ msgid "Successfully updated product option group"
 #~ msgstr "उत्पादन विकल्प समूह सफलतापूर्वक अद्यावधिक गरियो"
 
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:195
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:198
+msgid "Changes to roles are saved immediately. You can only see and change assignments of roles whose permissions you hold yourself on that channel."
+msgstr ""
+
 #. js-lingui-explicit-id
 #: src/lib/hooks/use-extended-detail-query.ts:25
 #: src/lib/hooks/use-extended-list-query.ts:66
@@ -5102,6 +5123,10 @@ msgstr "पूरा गर्दै..."
 msgid "Add option group to product"
 msgstr "उत्पादनमा विकल्प समूह थप्नुहोस्"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:66
+msgid "Failed to assign role"
+msgstr ""
+
 #. placeholder {0}: asset.name
 #: src/lib/components/shared/asset/asset-preview-dialog.tsx:37
 msgid "Preview of {0}"
@@ -5110,6 +5135,10 @@ msgstr "{0} को पूर्वावलोकन"
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:56
 msgid "Successfully updated seller"
 msgstr "विक्रेता सफलतापूर्वक अपडेट गरियो"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:179
+msgid "Assign role"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:130
 msgid "Failed to transition order to state"
@@ -5169,7 +5198,7 @@ msgstr "विकल्प समूह सुरक्षित गर्नु
 msgid "Click \"Run Test\" to test this shipping method."
 msgstr "यो ढुवानी विधि परीक्षण गर्न \"परीक्षण चलाउनुहोस्\" क्लिक गर्नुहोस्।"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:100
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:97
 msgid "Successfully updated administrator"
 msgstr "प्रशासक सफलतापूर्वक अपडेट गरियो"
 
@@ -5299,7 +5328,7 @@ msgstr "थप्नको लागि नयाँ विशेषता म�
 msgid "Failed to process refund"
 msgstr "फिर्ता प्रक्रिया गर्न असफल"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:137
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:138
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:176
 #: src/app/routes/_authenticated/_profile/profile.tsx:102
 msgid "First name"
@@ -5498,8 +5527,8 @@ msgstr "च्यानलमा {entityIdsLength} {entityType} सफलता�
 msgid "Global Languages"
 msgstr "ग्लोबल भाषाहरू"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:39
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:119
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:45
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:120
 msgid "New administrator"
 msgstr "नयाँ प्रशासक"
 
@@ -5657,6 +5686,10 @@ msgstr "रिफन्ड ID"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:93
 msgid "Order custom fields updated"
 msgstr "अर्डर अनुकूलन फिल्डहरू अद्यावधिक गरियो"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:60
+msgid "Role assigned"
+msgstr ""
 
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:193
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:191
@@ -5992,7 +6025,7 @@ msgstr "स्टक बाहिर थ्रेसहोल्ड"
 msgid "Failed to update value"
 msgstr "मान अपडेट गर्न असफल भयो"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:123
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:115
 msgid "Failed to create API key"
 msgstr "API Key सिर्जना गर्न असफल भयो"
 
@@ -6045,7 +6078,8 @@ msgstr "विकल्प"
 msgid "Order process"
 msgstr "अर्डर प्रक्रिया"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:343
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:204
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:103
 msgid "No roles assigned"
 msgstr "कुनै भूमिका तोकिएको छैन"
 
@@ -6066,7 +6100,7 @@ msgstr "भेरियन्ट"
 msgid "Successfully updated global settings"
 msgstr "ग्लोबल सेटिङहरू सफलतापूर्वक अपडेट गरियो"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:118
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:110
 msgid "Successfully updated API key"
 msgstr "API Key सफलतापूर्वक अपडेट गरियो"
 

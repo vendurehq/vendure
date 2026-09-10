@@ -294,7 +294,7 @@ msgstr "確定要刪除此變體嗎？"
 #~ msgid "All resources are up and running"
 #~ msgstr "所有資源正在執行"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:108
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 msgid "Failed to create administrator"
 msgstr "建立管理員失敗"
 
@@ -322,7 +322,7 @@ msgstr "更新國家失敗"
 msgid "Type at least 2 characters to search..."
 msgstr "至少輸入 2 個字元進行搜尋..."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:143
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:144
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:182
 #: src/app/routes/_authenticated/_profile/profile.tsx:108
 msgid "Last name"
@@ -498,7 +498,7 @@ msgstr "父級產品"
 msgid "City"
 msgstr "城市"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:44
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:15
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:22
 msgid "Administrators"
@@ -512,7 +512,7 @@ msgstr "總價：<0/>"
 msgid "Go to next page"
 msgstr "前往下一頁"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:349
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:210
 msgid "Add role"
 msgstr "新增角色"
 
@@ -601,9 +601,11 @@ msgstr "正在新增..."
 msgid "Move Collections"
 msgstr "移動集合"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:161
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:163
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:189
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:55
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:169
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:166
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:192
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:32
 #: src/app/routes/_authenticated/_roles/roles.tsx:16
 #: src/app/routes/_authenticated/_roles/roles.tsx:25
@@ -686,7 +688,7 @@ msgstr "預設稅務區域"
 msgid "Order draft is ready to be completed"
 msgstr "訂單草稿已準備就緒可以完成"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:200
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:217
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:245
 msgid "Metadata"
 msgstr "中繼資料"
@@ -752,7 +754,7 @@ msgid "Complete draft"
 msgstr "完成草稿"
 
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:45
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:164
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:160
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:169
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
@@ -943,8 +945,8 @@ msgstr "這些是 <0>{facetName}</0> 屬性的屬性值。"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:174
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:182
-msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself. Assignments you cannot grant are shown locked and are preserved on save."
-msgstr "只有當您自己在某個通路上持有該角色的所有權限時，才能在該通路上授予該角色。您無法授予的指派將顯示為已鎖定，並在儲存時保留。"
+#~ msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself. Assignments you cannot grant are shown locked and are preserved on save."
+#~ msgstr "只有當您自己在某個通路上持有該角色的所有權限時，才能在該通路上授予該角色。您無法授予的指派將顯示為已鎖定，並在儲存時保留。"
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:49
 msgid "Successfully added payment to order"
@@ -958,7 +960,7 @@ msgstr "已為訂單設定帳單地址"
 msgid "Failed to update zone"
 msgstr "更新區域失敗"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:155
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:156
 #: src/app/routes/_authenticated/_profile/profile.tsx:120
 #: src/app/routes/_authenticated/_profile/profile.tsx:137
 #: src/lib/components/login/login-form.tsx:93
@@ -1175,8 +1177,8 @@ msgid "Off"
 msgstr "關閉"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:292
-msgid "You cannot change this assignment: you do not hold all of this role's permissions on this channel."
-msgstr "您無法變更此指派：您在此通路上未持有該角色的所有權限。"
+#~ msgid "You cannot change this assignment: you do not hold all of this role's permissions on this channel."
+#~ msgstr "您無法變更此指派：您在此通路上未持有該角色的所有權限。"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:37
 #: src/app/routes/_authenticated/_system/settings-store.tsx:304
@@ -1561,7 +1563,7 @@ msgstr "正在載入全域設定..."
 msgid "Address updated successfully"
 msgstr "地址已成功更新"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:234
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:251
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:124
 #: src/lib/components/shared/asset/asset-gallery.tsx:747
 #: src/lib/framework/layout-engine/page-layout.tsx:733
@@ -1684,7 +1686,8 @@ msgstr "刪除變體"
 msgid "No modifications made"
 msgstr "未進行修改"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:183
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:180
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:203
 msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
 msgstr "此管理員在所選通路可執行的操作，由上方指派的角色決定。如需變更，請編輯角色。"
 
@@ -1794,9 +1797,9 @@ msgstr "更新稅務類別失敗"
 msgid "Refund settled successfully"
 msgstr "退款已成功完成"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:127
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:128
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:70
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:154
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:150
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
@@ -2017,7 +2020,7 @@ msgstr "佈景主題"
 msgid "{0} customers"
 msgstr "{0} 位客戶"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:43
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:46
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:14
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:25
 msgid "API Keys"
@@ -2031,7 +2034,8 @@ msgstr "選取一種語言"
 msgid "Log out"
 msgstr "登出"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:332
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:195
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:119
 msgid "Remove role"
 msgstr "移除角色"
 
@@ -2514,8 +2518,8 @@ msgstr "配送地址"
 msgid "New zone"
 msgstr "新增區域"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:44
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:139
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:47
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:135
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:79
 msgid "New API Key"
 msgstr "新建 API Key"
@@ -2528,7 +2532,8 @@ msgstr "刪除欄"
 msgid "Assign existing"
 msgstr "指派現有"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:229
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:159
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:91
 msgid "Role"
 msgstr "角色"
 
@@ -2634,7 +2639,8 @@ msgstr "已套用檢視「{viewName}」"
 msgid "Successfully removed {successCount} facets from channel"
 msgstr "已成功從通路中移除 {successCount} 個屬性"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:191
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:183
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:206
 msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
 msgstr "此 API 金鑰在所選通路可執行的操作，由上方指派的角色決定。如需變更，請編輯角色。"
 
@@ -2726,6 +2732,7 @@ msgstr "新增屬性值"
 msgid "after"
 msgstr "之後"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:94
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:103
 msgid "Channel"
 msgstr "通路"
@@ -2755,7 +2762,7 @@ msgstr "新增客戶"
 msgid "Image"
 msgstr "圖片"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:99
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:96
 msgid "Successfully created administrator"
 msgstr "成功建立管理員"
 
@@ -2827,9 +2834,9 @@ msgstr "退款總額超過最大可退款金額 {0}"
 msgid "Delete Global View"
 msgstr "刪除全域檢視"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:127
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:128
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:68
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:154
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:150
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
@@ -3058,7 +3065,7 @@ msgstr "退款"
 msgid "Modify"
 msgstr "修改"
 
-#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:77
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:86
 msgid "Effective permissions on"
 msgstr "有效權限："
 
@@ -3114,7 +3121,7 @@ msgstr "新增促銷"
 msgid "Option value name"
 msgstr "選項值名稱"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:218
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:235
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:46
 msgid "Last used"
 msgstr "最後使用時間"
@@ -3190,9 +3197,10 @@ msgstr "含 {taxRate}% 稅"
 msgid "Order metrics"
 msgstr "訂單指標"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:184
-#~ msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
-#~ msgstr "只有當您自己在某個通路擁有該角色的全部權限時，才能在該通路授予此角色。"
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:172
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:175
+msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
+msgstr "只有當您自己在某個通路擁有該角色的全部權限時，才能在該通路授予此角色。"
 
 #: src/lib/components/layout/language-dialog.tsx:49
 msgid "Select display language"
@@ -3420,6 +3428,10 @@ msgstr "更新備註內容或可見性"
 msgid "Latest Orders Widget"
 msgstr "最新訂單小工具"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:79
+msgid "Failed to remove role"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/components/collection-contents-sheet.tsx:34
 msgid "Collection contents for {collectionName}"
 msgstr "{collectionName} 的集合內容"
@@ -3453,7 +3465,7 @@ msgstr "不等於"
 msgid "Settle payment"
 msgstr "完成付款"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:232
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:162
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:38
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
@@ -3499,6 +3511,10 @@ msgstr "已退款商品"
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:325
 #~ msgid "Assign options to existing variant"
 #~ msgstr "將選項指派給現有變體"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:75
+msgid "Role removed"
+msgstr ""
 
 #. placeholder {0}: entityName.toLowerCase()
 #: src/app/common/duplicate-entity-dialog.tsx:85
@@ -3748,7 +3764,7 @@ msgstr "付款已成功取消"
 msgid "Global view duplicated successfully"
 msgstr "全域檢視已成功複製"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:212
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:229
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:66
 msgid "Created by"
 msgstr "建立者"
@@ -3761,7 +3777,7 @@ msgstr "篩選變體..."
 msgid "Add a price in another currency"
 msgstr "新增另一種貨幣的價格"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:149
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:150
 #: src/app/routes/_authenticated/_profile/profile.tsx:114
 msgid "Email Address or identifier"
 msgstr "電子郵件地址或識別碼"
@@ -3856,7 +3872,7 @@ msgstr "庫存水準"
 msgid "Add item"
 msgstr "新增項目"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:111
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:103
 msgid "Successfully created API key"
 msgstr "API Key 建立成功"
 
@@ -3944,7 +3960,7 @@ msgstr "在"
 msgid "Email"
 msgstr "電子郵件"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:108
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 msgid "Failed to update administrator"
 msgstr "更新管理員失敗"
 
@@ -4034,7 +4050,7 @@ msgstr "帶選項的產品"
 msgid "Showing all {0} results"
 msgstr "顯示所有 {0} 個結果"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:204
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:221
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:60
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx:95
 msgid "Lookup ID"
@@ -4260,7 +4276,7 @@ msgstr "建立區域失敗"
 msgid "Stock levels"
 msgstr "庫存水準"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:123
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:115
 msgid "Failed to update API key"
 msgstr "更新 API Key 失敗"
 
@@ -4496,7 +4512,7 @@ msgstr "管理標籤"
 msgid "Coupon code removed from order"
 msgstr "優惠券代碼已從訂單中移除"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:227
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:244
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:50
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:142
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:152
@@ -4788,8 +4804,8 @@ msgid "Filter by {columnId}"
 msgstr "按 {columnId} 篩選"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:260
-msgid "Locked role"
-msgstr "已鎖定的角色"
+#~ msgid "Locked role"
+#~ msgstr "已鎖定的角色"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:108
 msgid "ID"
@@ -5039,6 +5055,11 @@ msgstr "預覽訂單修改"
 #~ msgid "Successfully updated product option group"
 #~ msgstr "成功更新商品選項群組"
 
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:195
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:198
+msgid "Changes to roles are saved immediately. You can only see and change assignments of roles whose permissions you hold yourself on that channel."
+msgstr ""
+
 #. js-lingui-explicit-id
 #: src/lib/hooks/use-extended-detail-query.ts:25
 #: src/lib/hooks/use-extended-list-query.ts:66
@@ -5102,6 +5123,10 @@ msgstr "正在履行..."
 msgid "Add option group to product"
 msgstr "將選項群組新增至商品"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:66
+msgid "Failed to assign role"
+msgstr ""
+
 #. placeholder {0}: asset.name
 #: src/lib/components/shared/asset/asset-preview-dialog.tsx:37
 msgid "Preview of {0}"
@@ -5110,6 +5135,10 @@ msgstr "{0} 的預覽"
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:56
 msgid "Successfully updated seller"
 msgstr "已成功更新賣家"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:179
+msgid "Assign role"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:130
 msgid "Failed to transition order to state"
@@ -5169,7 +5198,7 @@ msgstr "儲存選項群組"
 msgid "Click \"Run Test\" to test this shipping method."
 msgstr "按一下「執行測試」以測試此配送方式。"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:100
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:97
 msgid "Successfully updated administrator"
 msgstr "成功更新管理員"
 
@@ -5299,7 +5328,7 @@ msgstr "要新增的屬性值："
 msgid "Failed to process refund"
 msgstr "處理退款失敗"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:137
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:138
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:176
 #: src/app/routes/_authenticated/_profile/profile.tsx:102
 msgid "First name"
@@ -5498,8 +5527,8 @@ msgstr "已成功將 {entityIdsLength} {entityType} 指派給通路"
 msgid "Global Languages"
 msgstr "全域語言"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:39
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:119
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:45
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:120
 msgid "New administrator"
 msgstr "新增管理員"
 
@@ -5657,6 +5686,10 @@ msgstr "退款 ID"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:93
 msgid "Order custom fields updated"
 msgstr "訂單自訂欄位已更新"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:60
+msgid "Role assigned"
+msgstr ""
 
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:193
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:191
@@ -5992,7 +6025,7 @@ msgstr "缺貨臨界值"
 msgid "Failed to update value"
 msgstr "更新值失敗"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:123
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:115
 msgid "Failed to create API key"
 msgstr "建立 API Key 失敗"
 
@@ -6045,7 +6078,8 @@ msgstr "選項"
 msgid "Order process"
 msgstr "訂單流程"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:343
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:204
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:103
 msgid "No roles assigned"
 msgstr "未指派角色"
 
@@ -6066,7 +6100,7 @@ msgstr "變體"
 msgid "Successfully updated global settings"
 msgstr "已成功更新全域設定"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:118
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:110
 msgid "Successfully updated API key"
 msgstr "API Key 更新成功"
 

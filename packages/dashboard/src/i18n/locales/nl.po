@@ -294,7 +294,7 @@ msgstr "Weet u zeker dat u deze variant wilt verwijderen?"
 #~ msgid "All resources are up and running"
 #~ msgstr "Alle resources zijn operationeel"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:108
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 msgid "Failed to create administrator"
 msgstr "Aanmaken van beheerder mislukt"
 
@@ -322,7 +322,7 @@ msgstr "Land bijwerken mislukt"
 msgid "Type at least 2 characters to search..."
 msgstr "Typ minstens 2 tekens om te zoeken..."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:143
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:144
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:182
 #: src/app/routes/_authenticated/_profile/profile.tsx:108
 msgid "Last name"
@@ -498,7 +498,7 @@ msgstr "Hoofdproduct"
 msgid "City"
 msgstr "Plaats"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:44
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:15
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:22
 msgid "Administrators"
@@ -512,7 +512,7 @@ msgstr "Brutoprijs: <0/>"
 msgid "Go to next page"
 msgstr "Ga naar volgende pagina"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:349
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:210
 msgid "Add role"
 msgstr "Rol toevoegen"
 
@@ -601,9 +601,11 @@ msgstr "Toevoegen..."
 msgid "Move Collections"
 msgstr "Collecties verplaatsen"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:161
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:163
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:189
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:55
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:169
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:166
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:192
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:32
 #: src/app/routes/_authenticated/_roles/roles.tsx:16
 #: src/app/routes/_authenticated/_roles/roles.tsx:25
@@ -686,7 +688,7 @@ msgstr "Standaard belastingzone"
 msgid "Order draft is ready to be completed"
 msgstr "Conceptbestelling is klaar om te worden voltooid"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:200
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:217
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:245
 msgid "Metadata"
 msgstr "Metadata"
@@ -752,7 +754,7 @@ msgid "Complete draft"
 msgstr "Concept voltooien"
 
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:45
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:164
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:160
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:169
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
@@ -947,8 +949,8 @@ msgstr "Dit zijn de facetwaarden voor het facet <0>{facetName}</0>."
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:174
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:182
-msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself. Assignments you cannot grant are shown locked and are preserved on save."
-msgstr "Je kunt een rol alleen toekennen op een kanaal waar je zelf alle rechten van die rol hebt. Toewijzingen die je niet kunt toekennen worden vergrendeld weergegeven en blijven behouden bij het opslaan."
+#~ msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself. Assignments you cannot grant are shown locked and are preserved on save."
+#~ msgstr "Je kunt een rol alleen toekennen op een kanaal waar je zelf alle rechten van die rol hebt. Toewijzingen die je niet kunt toekennen worden vergrendeld weergegeven en blijven behouden bij het opslaan."
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:49
 msgid "Successfully added payment to order"
@@ -962,7 +964,7 @@ msgstr "Factuuradres ingesteld voor bestelling"
 msgid "Failed to update zone"
 msgstr "Zone bijwerken mislukt"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:155
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:156
 #: src/app/routes/_authenticated/_profile/profile.tsx:120
 #: src/app/routes/_authenticated/_profile/profile.tsx:137
 #: src/lib/components/login/login-form.tsx:93
@@ -1179,8 +1181,8 @@ msgid "Off"
 msgstr "Uit"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:292
-msgid "You cannot change this assignment: you do not hold all of this role's permissions on this channel."
-msgstr "Je kunt deze toewijzing niet wijzigen: je beschikt niet over alle rechten van deze rol op dit kanaal."
+#~ msgid "You cannot change this assignment: you do not hold all of this role's permissions on this channel."
+#~ msgstr "Je kunt deze toewijzing niet wijzigen: je beschikt niet over alle rechten van deze rol op dit kanaal."
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:37
 #: src/app/routes/_authenticated/_system/settings-store.tsx:304
@@ -1565,7 +1567,7 @@ msgstr "Globale instellingen laden..."
 msgid "Address updated successfully"
 msgstr "Adres succesvol bijgewerkt"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:234
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:251
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:124
 #: src/lib/components/shared/asset/asset-gallery.tsx:747
 #: src/lib/framework/layout-engine/page-layout.tsx:733
@@ -1688,7 +1690,8 @@ msgstr "Variant verwijderen"
 msgid "No modifications made"
 msgstr "Geen wijzigingen aangebracht"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:183
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:180
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:203
 msgid "What this administrator can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
 msgstr "Wat deze beheerder kan doen op het geselecteerde kanaal, afgeleid van de hierboven toegewezen rollen. Bewerk de rollen om dit te wijzigen."
 
@@ -1798,9 +1801,9 @@ msgstr "Belastingcategorie bijwerken mislukt"
 msgid "Refund settled successfully"
 msgstr "Terugbetaling succesvol afgehandeld"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:127
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:128
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:70
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:154
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:150
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
@@ -2015,7 +2018,7 @@ msgstr "Thema"
 msgid "{0} customers"
 msgstr "{0} klanten"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:43
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:46
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:14
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:25
 msgid "API Keys"
@@ -2029,7 +2032,8 @@ msgstr "Selecteer een taal"
 msgid "Log out"
 msgstr "Uitloggen"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:332
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:195
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:119
 msgid "Remove role"
 msgstr "Rol verwijderen"
 
@@ -2512,8 +2516,8 @@ msgstr "Verzendadres"
 msgid "New zone"
 msgstr "Nieuwe zone"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:44
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:139
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:47
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:135
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:79
 msgid "New API Key"
 msgstr "Nieuwe API Key"
@@ -2526,7 +2530,8 @@ msgstr "Kolom verwijderen"
 msgid "Assign existing"
 msgstr "Bestaande toewijzen"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:229
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:159
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:91
 msgid "Role"
 msgstr "Rol"
 
@@ -2628,7 +2633,8 @@ msgstr "Weergave „{viewName}\" toegepast"
 msgid "Successfully removed {successCount} facets from channel"
 msgstr "{successCount} facetten succesvol verwijderd uit kanaal"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:191
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:183
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:206
 msgid "What this API key can do on the selected channel, derived from the roles assigned above. Edit the roles to change it."
 msgstr "Wat deze API-sleutel kan doen op het geselecteerde kanaal, afgeleid van de hierboven toegewezen rollen. Bewerk de rollen om dit te wijzigen."
 
@@ -2720,6 +2726,7 @@ msgstr "Facetwaarden toevoegen"
 msgid "after"
 msgstr "na"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:94
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:103
 msgid "Channel"
 msgstr "Kanaal"
@@ -2749,7 +2756,7 @@ msgstr "Nieuwe klant"
 msgid "Image"
 msgstr "Afbeelding"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:99
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:96
 msgid "Successfully created administrator"
 msgstr "Beheerder succesvol aangemaakt"
 
@@ -2821,9 +2828,9 @@ msgstr "Restitutietotaal overschrijdt het maximaal restitueerbare bedrag van {0}
 msgid "Delete Global View"
 msgstr "Globale weergave verwijderen"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:127
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:128
 #: src/app/routes/_authenticated/_administrators/components/role-permissions-display.tsx:68
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:154
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:150
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
@@ -3052,7 +3059,7 @@ msgstr "Restitutie"
 msgid "Modify"
 msgstr "Wijzigen"
 
-#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:77
+#: src/app/routes/_authenticated/_administrators/components/effective-permissions-panel.tsx:86
 msgid "Effective permissions on"
 msgstr "Effectieve rechten op"
 
@@ -3108,7 +3115,7 @@ msgstr "Nieuwe promotie"
 msgid "Option value name"
 msgstr "Naam optiewaarde"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:218
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:235
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:46
 msgid "Last used"
 msgstr "Laatst gebruikt"
@@ -3184,9 +3191,10 @@ msgstr "Inclusief {taxRate}% belasting"
 msgid "Order metrics"
 msgstr "Bestelstatistieken"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:184
-#~ msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
-#~ msgstr "U kunt een rol alleen verlenen op een kanaal waar u zelf alle rechten van die rol bezit."
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:172
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:175
+msgid "You can only grant a role on a channel where you hold all of that role's permissions yourself."
+msgstr "U kunt een rol alleen verlenen op een kanaal waar u zelf alle rechten van die rol bezit."
 
 #: src/lib/components/layout/language-dialog.tsx:49
 msgid "Select display language"
@@ -3414,6 +3422,10 @@ msgstr "Notitie-inhoud of zichtbaarheid bijwerken"
 msgid "Latest Orders Widget"
 msgstr "Widget nieuwste bestellingen"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:79
+msgid "Failed to remove role"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/components/collection-contents-sheet.tsx:34
 msgid "Collection contents for {collectionName}"
 msgstr "Collectie-inhoud voor {collectionName}"
@@ -3447,7 +3459,7 @@ msgstr "is niet gelijk aan"
 msgid "Settle payment"
 msgstr "Betaling afhandelen"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:232
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:162
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:38
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
@@ -3493,6 +3505,10 @@ msgstr "Artikelen gerestitueerd"
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:325
 #~ msgid "Assign options to existing variant"
 #~ msgstr "Opties toewijzen aan bestaande variant"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:75
+msgid "Role removed"
+msgstr ""
 
 #. placeholder {0}: entityName.toLowerCase()
 #: src/app/common/duplicate-entity-dialog.tsx:85
@@ -3739,7 +3755,7 @@ msgstr "Betaling succesvol geannuleerd"
 msgid "Global view duplicated successfully"
 msgstr "Globale weergave succesvol gedupliceerd"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:212
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:229
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:66
 msgid "Created by"
 msgstr "Aangemaakt door"
@@ -3752,7 +3768,7 @@ msgstr "Varianten filteren..."
 msgid "Add a price in another currency"
 msgstr "Prijs in een andere valuta toevoegen"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:149
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:150
 #: src/app/routes/_authenticated/_profile/profile.tsx:114
 msgid "Email Address or identifier"
 msgstr "E-mailadres of identificatie"
@@ -3847,7 +3863,7 @@ msgstr "Voorraadniveau"
 msgid "Add item"
 msgstr "Item toevoegen"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:111
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:103
 msgid "Successfully created API key"
 msgstr "API Key succesvol aangemaakt"
 
@@ -3935,7 +3951,7 @@ msgstr "is in"
 msgid "Email"
 msgstr "E-mail"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:108
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 msgid "Failed to update administrator"
 msgstr "Bijwerken van beheerder mislukt"
 
@@ -4025,7 +4041,7 @@ msgstr "Product met opties"
 msgid "Showing all {0} results"
 msgstr "Alle {0} resultaten weergeven"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:204
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:221
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:60
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx:95
 msgid "Lookup ID"
@@ -4251,7 +4267,7 @@ msgstr "Zone aanmaken mislukt"
 msgid "Stock levels"
 msgstr "Voorraadniveaus"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:123
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:115
 msgid "Failed to update API key"
 msgstr "Bijwerken van API Key mislukt"
 
@@ -4487,7 +4503,7 @@ msgstr "Tags beheren"
 msgid "Coupon code removed from order"
 msgstr "Couponcode verwijderd van bestelling"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:227
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:244
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:50
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:142
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:152
@@ -4783,8 +4799,8 @@ msgid "Filter by {columnId}"
 msgstr "Filteren op {columnId}"
 
 #: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:260
-msgid "Locked role"
-msgstr "Vergrendelde rol"
+#~ msgid "Locked role"
+#~ msgstr "Vergrendelde rol"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:108
 msgid "ID"
@@ -5034,6 +5050,11 @@ msgstr "Voorbeeld van bestelwijzigingen"
 #~ msgid "Successfully updated product option group"
 #~ msgstr "Productoptiegroep succesvol bijgewerkt"
 
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:195
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:198
+msgid "Changes to roles are saved immediately. You can only see and change assignments of roles whose permissions you hold yourself on that channel."
+msgstr ""
+
 #. js-lingui-explicit-id
 #: src/lib/hooks/use-extended-detail-query.ts:25
 #: src/lib/hooks/use-extended-list-query.ts:66
@@ -5097,6 +5118,10 @@ msgstr "Afhandelen..."
 msgid "Add option group to product"
 msgstr "Optiegroep toevoegen aan product"
 
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:66
+msgid "Failed to assign role"
+msgstr ""
+
 #. placeholder {0}: asset.name
 #: src/lib/components/shared/asset/asset-preview-dialog.tsx:37
 msgid "Preview of {0}"
@@ -5105,6 +5130,10 @@ msgstr "Voorbeeld van {0}"
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:56
 msgid "Successfully updated seller"
 msgstr "Verkoper succesvol bijgewerkt"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:179
+msgid "Assign role"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:130
 msgid "Failed to transition order to state"
@@ -5164,7 +5193,7 @@ msgstr "Optiegroep opslaan"
 msgid "Click \"Run Test\" to test this shipping method."
 msgstr "Klik op \"Test uitvoeren\" om deze verzendmethode te testen."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:100
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:97
 msgid "Successfully updated administrator"
 msgstr "Beheerder succesvol bijgewerkt"
 
@@ -5294,7 +5323,7 @@ msgstr "Nieuwe facetwaarden om toe te voegen:"
 msgid "Failed to process refund"
 msgstr "Verwerking van restitutie mislukt"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:137
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:138
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:176
 #: src/app/routes/_authenticated/_profile/profile.tsx:102
 msgid "First name"
@@ -5493,8 +5522,8 @@ msgstr "{entityIdsLength} {entityType} succesvol toegewezen aan kanaal"
 msgid "Global Languages"
 msgstr "Globale talen"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:39
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:119
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:45
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:120
 msgid "New administrator"
 msgstr "Nieuwe beheerder"
 
@@ -5652,6 +5681,10 @@ msgstr "Terugbetalings-ID"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:93
 msgid "Order custom fields updated"
 msgstr "Aangepaste velden van bestelling bijgewerkt"
+
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:60
+msgid "Role assigned"
+msgstr ""
 
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:193
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:191
@@ -5987,7 +6020,7 @@ msgstr "Uitverkocht-drempelwaarde"
 msgid "Failed to update value"
 msgstr "Bijwerken van waarde mislukt"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:123
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:115
 msgid "Failed to create API key"
 msgstr "Aanmaken van API Key mislukt"
 
@@ -6040,7 +6073,8 @@ msgstr "Optie"
 msgid "Order process"
 msgstr "Bestelproces"
 
-#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:343
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-editor.tsx:204
+#: src/app/routes/_authenticated/_administrators/components/role-assignments-table.tsx:103
 msgid "No roles assigned"
 msgstr "Geen rollen toegewezen"
 
@@ -6061,7 +6095,7 @@ msgstr "Variant"
 msgid "Successfully updated global settings"
 msgstr "Globale instellingen succesvol bijgewerkt"
 
-#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:118
+#: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:110
 msgid "Successfully updated API key"
 msgstr "API Key succesvol bijgewerkt"
 
