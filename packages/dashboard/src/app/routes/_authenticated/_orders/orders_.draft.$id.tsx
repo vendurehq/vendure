@@ -17,11 +17,10 @@ import {
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { api } from '@/vdb/graphql/api.js';
 import { Trans, useLingui } from '@lingui/react/macro';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { ResultOf } from 'gql.tada';
 import { User } from 'lucide-react';
-import { useState } from 'react';
 import { toast } from 'sonner';
 import { addressFragment } from '../_customers/customers.graphql.js';
 import { CustomerAddressSelector } from './components/customer-address-selector.js';
@@ -59,12 +58,9 @@ function DraftOrderPage() {
     const params = Route.useParams();
     const { t } = useLingui();
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
 
-    const {
-        entity,
-        refreshEntity: refreshOrderEntity,
-        form,
-    } = useDetailPage({
+    const { entity, refreshEntity, form } = useDetailPage({
         queryDocument: addCustomFields(orderDetailDocument, {
             includeNestedFragments: ['OrderLine', 'Fulfillment'],
         }),
@@ -76,10 +72,12 @@ function DraftOrderPage() {
         },
         params: { id: params.id },
     });
-    const [shippingMethodsVersion, setShippingMethodsVersion] = useState(0);
-    const refreshEntity = () => {
-        refreshOrderEntity();
-        setShippingMethodsVersion(version => version + 1);
+
+    // Shipping eligibility is recomputed server-side from the whole order, so any
+    // change to the order makes the cached quote list invalid.
+    const refreshOrderAndShippingMethods = () => {
+        refreshEntity();
+        void queryClient.invalidateQueries({ queryKey: ['eligibleShippingMethods', entity?.id] });
     };
 
     const { form: orderCustomFieldsForm } = useGeneratedForm({
@@ -101,20 +99,20 @@ function DraftOrderPage() {
         mutationFn: api.mutate(setDraftOrderCustomFieldsDocument),
         onSuccess: (result: ResultOf<typeof setDraftOrderCustomFieldsDocument>) => {
             toast.success(t`Order custom fields updated`);
-            refreshEntity();
+            refreshOrderAndShippingMethods();
         },
         onError: error => {
             toast.error(t`Failed to update order custom fields: ${error.message}`);
         },
     });
 
-    // Eligibility is recomputed server-side from the full order. The local revision
-    // gives every successful mutation a distinct key even when updatedAt precision is coarse.
     const { data: eligibleShippingMethods } = useQuery({
-        queryKey: ['eligibleShippingMethods', entity?.id, entity?.updatedAt, shippingMethodsVersion],
+        queryKey: ['eligibleShippingMethods', entity?.id],
         queryFn: () => api.query(draftOrderEligibleShippingMethodsDocument, { orderId: entity?.id ?? '' }),
         enabled: !!entity?.shippingAddress?.streetLine1,
-        // Explicit undefined overrides the app-wide keepPreviousData default; omitting it does not.
+        // The key carries the order id, so the app-wide keepPreviousData default would
+        // show one order's shipping methods on another. An explicit undefined is needed
+        // to override that default; omitting the option is not the same thing.
         placeholderData: undefined,
     });
 
@@ -125,7 +123,7 @@ function DraftOrderPage() {
             switch (order.__typename) {
                 case 'Order':
                     toast.success(t`Item added to order`);
-                    refreshEntity();
+                    refreshOrderAndShippingMethods();
                     break;
                 default:
                     toast.error(order.message);
@@ -146,7 +144,7 @@ function DraftOrderPage() {
             switch (order.__typename) {
                 case 'Order':
                     toast.success(t`Order line updated`);
-                    refreshEntity();
+                    refreshOrderAndShippingMethods();
                     break;
                 default:
                     toast.error(order.message);
@@ -165,7 +163,7 @@ function DraftOrderPage() {
             switch (order.__typename) {
                 case 'Order':
                     toast.success(t`Order line removed`);
-                    refreshEntity();
+                    refreshOrderAndShippingMethods();
                     break;
                 default:
                     toast.error(order.message);
@@ -228,7 +226,7 @@ function DraftOrderPage() {
                             t`Failed to set address for order: ${e instanceof Error ? e.message : String(e)}`,
                         );
                     }
-                    refreshEntity();
+                    refreshOrderAndShippingMethods();
                     break;
                 }
                 default:
@@ -245,7 +243,7 @@ function DraftOrderPage() {
         mutationFn: api.mutate(setShippingAddressForDraftOrderDocument),
         onSuccess: (result: ResultOf<typeof setShippingAddressForDraftOrderDocument>) => {
             toast.success(t`Shipping address set for order`);
-            refreshEntity();
+            refreshOrderAndShippingMethods();
         },
         onError: error => {
             toast.error(t`Failed to set shipping address for order: ${error.message}`);
@@ -256,7 +254,7 @@ function DraftOrderPage() {
         mutationFn: api.mutate(setBillingAddressForDraftOrderDocument),
         onSuccess: (result: ResultOf<typeof setBillingAddressForDraftOrderDocument>) => {
             toast.success(t`Billing address set for order`);
-            refreshEntity();
+            refreshOrderAndShippingMethods();
         },
         onError: error => {
             toast.error(t`Failed to set billing address for order: ${error.message}`);
@@ -267,7 +265,7 @@ function DraftOrderPage() {
         mutationFn: api.mutate(unsetShippingAddressForDraftOrderDocument),
         onSuccess: (result: ResultOf<typeof unsetShippingAddressForDraftOrderDocument>) => {
             toast.success(t`Shipping address unset for order`);
-            refreshEntity();
+            refreshOrderAndShippingMethods();
         },
         onError: error => {
             toast.error(t`Failed to unset shipping address for order: ${error.message}`);
@@ -278,7 +276,7 @@ function DraftOrderPage() {
         mutationFn: api.mutate(unsetBillingAddressForDraftOrderDocument),
         onSuccess: (result: ResultOf<typeof unsetBillingAddressForDraftOrderDocument>) => {
             toast.success(t`Billing address unset for order`);
-            refreshEntity();
+            refreshOrderAndShippingMethods();
         },
         onError: error => {
             toast.error(t`Failed to unset billing address for order: ${error.message}`);
@@ -292,7 +290,7 @@ function DraftOrderPage() {
             switch (order.__typename) {
                 case 'Order':
                     toast.success(t`Shipping method set for order`);
-                    refreshEntity();
+                    refreshOrderAndShippingMethods();
                     break;
                 default:
                     toast.error(order.message);
@@ -311,7 +309,7 @@ function DraftOrderPage() {
             switch (order.__typename) {
                 case 'Order':
                     toast.success(t`Coupon code set for order`);
-                    refreshEntity();
+                    refreshOrderAndShippingMethods();
                     break;
                 default:
                     toast.error(order.message);
@@ -327,7 +325,7 @@ function DraftOrderPage() {
         mutationFn: api.mutate(removeCouponCodeFromDraftOrderDocument),
         onSuccess: (result: ResultOf<typeof removeCouponCodeFromDraftOrderDocument>) => {
             toast.success(t`Coupon code removed from order`);
-            refreshEntity();
+            refreshOrderAndShippingMethods();
         },
         onError: error => {
             toast.error(t`Failed to remove coupon code from order: ${error.message}`);
@@ -341,7 +339,7 @@ function DraftOrderPage() {
             switch (order?.__typename) {
                 case 'Order':
                     toast.success(t`Draft order completed`);
-                    refreshEntity();
+                    refreshOrderAndShippingMethods();
                     setTimeout(() => {
                         navigate({ to: `/orders/$id`, params: { id: order.id } });
                     }, 500);
