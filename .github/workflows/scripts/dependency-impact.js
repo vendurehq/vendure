@@ -114,8 +114,8 @@ function isPublished(path, manifest) {
 }
 
 function diffSection(base, head, section) {
-    const before = (base && base[section]) || {};
-    const after = (head && head[section]) || {};
+    const before = readSection(base, section);
+    const after = readSection(head, section);
     const changes = [];
     for (const name of new Set([...Object.keys(before), ...Object.keys(after)])) {
         if (before[name] !== after[name]) {
@@ -123,6 +123,17 @@ function diffSection(base, head, section) {
         }
     }
     return changes.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Reads one dependency section from a manifest. A manifest is only valid JSON, not valid npm, so a
+ * section can be a string or an array. Object.keys would then read a string as one entry per
+ * character and report a row per character, so anything that is not a plain object is read as
+ * absent. The section's real entries at the other ref still show up, as removed or added.
+ */
+function readSection(manifest, section) {
+    const value = manifest && manifest[section];
+    return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 }
 
 /**
