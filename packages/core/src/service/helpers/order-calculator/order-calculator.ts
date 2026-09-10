@@ -46,6 +46,27 @@ export interface ApplyPriceAdjustmentsOptions {
      * re-selecting the method.
      */
     recalculateShippingPromotions?: boolean;
+    /**
+     * @description
+     * When `true`, the Promotions already applied to the Order are frozen: their conditions are
+     * not re-tested, the existing Adjustments on the OrderLines and ShippingLines are left in
+     * place, and `Order.promotions` is not re-built. Only taxes, prices and (unless
+     * `recalculateShipping` is `false`) the shipping rate are re-calculated.
+     *
+     * This is what an Order which the customer has already paid for needs: the discounts that
+     * were agreed at the point of payment must survive a later edit, even if the Promotion has
+     * since been disabled or its conditions now evaluate differently.
+     *
+     * The caller is responsible for the Order's `promotions` relation being loaded, since it is
+     * preserved rather than re-built.
+     *
+     * This freezes the shipping *discount*, not the shipping *cost*: a caller who wants the cost
+     * frozen as a whole should pass `recalculateShipping: false` as well.
+     *
+     * @default false
+     * @since 3.8.0
+     */
+    freezePromotions?: boolean;
 }
 
 /**
@@ -85,9 +106,12 @@ export class OrderCalculator {
         options?: ApplyPriceAdjustmentsOptions,
     ): Promise<Order> {
         const { taxZoneStrategy } = this.configService.taxOptions;
-        // We reset the promotions array as all promotions
-        // must be revalidated on any changes to an Order.
-        order.promotions = [];
+        const freezePromotions = options?.freezePromotions === true;
+        if (!freezePromotions) {
+            // We reset the promotions array as all promotions
+            // must be revalidated on any changes to an Order.
+            order.promotions = [];
+        }
         const zones = await this.zoneService.getAllWithMembers(ctx);
         const activeTaxZone = await this.requestContextCache.get(
             ctx,
@@ -118,14 +142,16 @@ export class OrderCalculator {
                 await this.applyTaxes(ctx, order, activeTaxZone);
             }
 
-            // Then test and apply promotions
-            const totalBeforePromotions = order.subTotal;
-            await this.applyPromotions(ctx, order, promotions);
+            if (!freezePromotions) {
+                // Then test and apply promotions
+                const totalBeforePromotions = order.subTotal;
+                await this.applyPromotions(ctx, order, promotions);
 
-            if (order.subTotal !== totalBeforePromotions) {
-                // Finally, re-calculate taxes because the promotions may have
-                // altered the unit prices, which in turn will alter the tax payable.
-                await this.applyTaxes(ctx, order, activeTaxZone);
+                if (order.subTotal !== totalBeforePromotions) {
+                    // Finally, re-calculate taxes because the promotions may have
+                    // altered the unit prices, which in turn will alter the tax payable.
+                    await this.applyTaxes(ctx, order, activeTaxZone);
+                }
             }
         }
         const recalculateShipping = options?.recalculateShipping !== false;
@@ -137,7 +163,7 @@ export class OrderCalculator {
         if (recalculateShipping) {
             await this.applyShipping(ctx, order);
         }
-        if (recalculateShippingPromotions) {
+        if (recalculateShippingPromotions && !freezePromotions) {
             await this.applyShippingPromotions(ctx, order, promotions);
         }
         this.calculateOrderTotals(order);

@@ -52,6 +52,7 @@ import { OrderPlacedStrategy } from './order/order-placed-strategy';
 import { OrderProcess } from './order/order-process';
 import { OrderRecalculationStrategy } from './order/order-recalculation-strategy';
 import { OrderSellerStrategy } from './order/order-seller-strategy';
+import { PromotionRevalidationStrategy } from './order/promotion-revalidation-strategy';
 import { StockAllocationStrategy } from './order/stock-allocation-strategy';
 import { PaymentMethodEligibilityChecker } from './payment/payment-method-eligibility-checker';
 import { PaymentMethodHandler } from './payment/payment-method-handler';
@@ -843,6 +844,17 @@ export interface OrderOptions {
      * @since 3.8.0
      */
     orderRecalculationStrategy?: OrderRecalculationStrategy;
+    /**
+     * @description
+     * Decides whether the Promotions on an Order are re-validated when the Order is modified via
+     * the `modifyOrder` mutation, or preserved as they were when the customer paid. The default
+     * {@link DefaultPromotionRevalidationStrategy} follows the mutation's `freezePromotions`
+     * option, so nothing changes for callers which do not pass it.
+     *
+     * @default DefaultPromotionRevalidationStrategy
+     * @since 3.8.0
+     */
+    promotionRevalidationStrategy?: PromotionRevalidationStrategy;
 }
 
 /**

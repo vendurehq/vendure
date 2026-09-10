@@ -1467,6 +1467,155 @@ describe('OrderCalculator', () => {
                 expect(order.subTotal).toBe(1350);
             });
         });
+
+        describe('freezePromotions', () => {
+            let conditionPasses = true;
+            const toggleableCondition = new PromotionCondition({
+                args: {},
+                code: 'toggleable_condition',
+                description: [{ languageCode: LanguageCode.en, value: '' }],
+                check() {
+                    return conditionPasses;
+                },
+            });
+            const tenPercentOffOrder = new Promotion({
+                id: 1,
+                name: '10% off order',
+                conditions: [{ code: toggleableCondition.code, args: [] }],
+                promotionConditions: [toggleableCondition],
+                actions: [
+                    {
+                        code: percentageOrderAction.code,
+                        args: [{ name: 'discount', value: '10' }],
+                    },
+                ],
+                promotionActions: [percentageOrderAction],
+            });
+
+            function createDiscountedOrder(ctx: RequestContext) {
+                return createOrder({
+                    ctx,
+                    lines: [
+                        {
+                            listPrice: 1000,
+                            taxCategory: taxCategoryStandard,
+                            quantity: 1,
+                        },
+                    ],
+                });
+            }
+
+            afterEach(() => {
+                conditionPasses = true;
+            });
+
+            it('re-tests the conditions by default', async () => {
+                const ctx = createRequestContext({ pricesIncludeTax: false });
+                const order = createDiscountedOrder(ctx);
+                await orderCalculator.applyPriceAdjustments(ctx, order, [tenPercentOffOrder]);
+
+                expect(order.subTotal).toBe(900);
+
+                conditionPasses = false;
+                await orderCalculator.applyPriceAdjustments(ctx, order, [tenPercentOffOrder]);
+
+                expect(order.subTotal).toBe(1000);
+                expect(order.discounts.length).toBe(0);
+                expect(order.promotions.length).toBe(0);
+            });
+
+            it('preserves the discount when a condition no longer passes', async () => {
+                const ctx = createRequestContext({ pricesIncludeTax: false });
+                const order = createDiscountedOrder(ctx);
+                await orderCalculator.applyPriceAdjustments(ctx, order, [tenPercentOffOrder]);
+
+                expect(order.subTotal).toBe(900);
+
+                conditionPasses = false;
+                await orderCalculator.applyPriceAdjustments(ctx, order, [tenPercentOffOrder], [], {
+                    freezePromotions: true,
+                });
+
+                expect(order.subTotal).toBe(900);
+                expect(order.discounts.length).toBe(1);
+                expect(order.discounts[0].description).toBe('10% off order');
+                expect(order.promotions.map(p => p.id)).toEqual([tenPercentOffOrder.id]);
+                assertOrderTotalsAddUp(order);
+            });
+
+            it('preserves the discount of a Promotion which is no longer passed in', async () => {
+                const ctx = createRequestContext({ pricesIncludeTax: false });
+                const order = createDiscountedOrder(ctx);
+                await orderCalculator.applyPriceAdjustments(ctx, order, [tenPercentOffOrder]);
+
+                expect(order.subTotal).toBe(900);
+
+                // A disabled Promotion is not returned by getActivePromotionsInChannel(), so it
+                // never reaches the OrderCalculator at all.
+                await orderCalculator.applyPriceAdjustments(ctx, order, [], [], {
+                    freezePromotions: true,
+                });
+
+                expect(order.subTotal).toBe(900);
+                expect(order.discounts.length).toBe(1);
+                expect(order.promotions.map(p => p.id)).toEqual([tenPercentOffOrder.id]);
+                assertOrderTotalsAddUp(order);
+            });
+
+            it('preserves a ShippingLine adjustment', async () => {
+                const couponCode = 'FREE_SHIPPING';
+                const freeShipping = new Promotion({
+                    id: 2,
+                    name: 'Free shipping',
+                    couponCode,
+                    conditions: [],
+                    promotionConditions: [],
+                    actions: [{ code: freeShippingAction.code, args: [] }],
+                    promotionActions: [freeShippingAction],
+                });
+                const ctx = createRequestContext({ pricesIncludeTax: false });
+                const order = createDiscountedOrder(ctx);
+                order.couponCodes = [couponCode];
+                order.shippingLines = [
+                    new ShippingLine({
+                        shippingMethodId: mockShippingMethodId,
+                        adjustments: [],
+                    }),
+                ];
+                await orderCalculator.applyPriceAdjustments(ctx, order, [freeShipping]);
+
+                expect(order.shipping).toBe(0);
+
+                order.couponCodes = [];
+                await orderCalculator.applyPriceAdjustments(ctx, order, [freeShipping], [], {
+                    freezePromotions: true,
+                });
+
+                expect(order.shipping).toBe(0);
+                expect(order.shippingLines[0].adjustments.length).toBe(1);
+                assertOrderTotalsAddUp(order);
+            });
+
+            it('still applies taxes and updated line prices', async () => {
+                const ctx = createRequestContext({ pricesIncludeTax: false });
+                const order = createDiscountedOrder(ctx);
+                await orderCalculator.applyPriceAdjustments(ctx, order, [tenPercentOffOrder]);
+
+                expect(order.subTotalWithTax).toBe(1080);
+
+                conditionPasses = false;
+                order.lines[0].listPrice = 2000;
+                await orderCalculator.applyPriceAdjustments(ctx, order, [tenPercentOffOrder], order.lines, {
+                    freezePromotions: true,
+                });
+
+                // The frozen discount of 100 is applied to the new list price, and the tax
+                // is re-calculated from the discounted price.
+                expect(order.subTotal).toBe(1900);
+                expect(order.subTotalWithTax).toBe(2280);
+                assertOrderTotalsAddUp(order);
+            });
+        });
     });
 
     describe('surcharges', () => {
