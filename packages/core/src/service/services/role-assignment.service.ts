@@ -48,8 +48,11 @@ export interface RoleChannelPair {
  * The actor-made writes are {@link assign} and {@link remove}. Both authorize every pair
  * through {@link RoleService.canGrant}, and the filtered reads ({@link findAll},
  * {@link getGrantableAssignmentsForUser}) apply the same predicate, so an actor sees exactly
- * the assignments they may change. {@link setAssignmentsForUser} is the unauthorized
- * primitive beneath them, for writes which have no actor to check against.
+ * the assignments they may change. Beneath them sit the unauthorized row primitives
+ * {@link createAssignments}, {@link deleteAssignments} and {@link removeAllAssignmentsForUser},
+ * for writes which have no actor to check against. Every one of these publishes a
+ * {@link RoleAssignmentEvent} for the pairs it actually changed. The system-mandated writes
+ * ({@link assignSuperAdminRoleHoldersToChannel}, {@link assignRoleOnAllChannels}) stay silent.
  *
  * All writes go through entity-based repository operations so that {@link SessionService}'s
  * entity subscriber observes them and evicts the affected User's cached sessions — permission
@@ -160,7 +163,7 @@ export class RoleAssignmentService {
     /**
      * @description
      * Returns the ids of all Users holding the given Role on any Channel. Soft-deleted Users
-     * hold no rows (see {@link setAssignmentsForUser}), so none are returned.
+     * hold no rows (see {@link removeAllAssignmentsForUser}), so none are returned.
      */
     async resolveUserIdsWithRole(ctx: RequestContext, roleId: ID): Promise<ID[]> {
         const assignments = await this.connection.getRepository(ctx, RoleAssignment).find({
@@ -219,7 +222,6 @@ export class RoleAssignmentService {
      * @since 4.0.0
      */
     async assign(ctx: RequestContext, userId: ID, pairs: RoleChannelPair[]): Promise<RoleAssignment[]> {
-        const user = await this.connection.getEntityOrThrow(ctx, User, userId);
         const superAdminRole = await this.roleService.getSuperAdminRole(ctx);
         const allChannels = await this.connection.getRepository(ctx, Channel).find();
         let target = this.dedupePairs(pairs);
@@ -235,16 +237,8 @@ export class RoleAssignmentService {
                 throw new EntityNotFoundError('Channel', channelId);
             }
         }
-        const repository = this.connection.getRepository(ctx, RoleAssignment);
-        const existing = await repository.find({ where: { userId } });
-        const toAdd = target.filter(pair => !existing.some(assignment => this.matches(assignment, pair)));
-        if (toAdd.length) {
-            await repository.save(
-                toAdd.map(({ roleId, channelId }) => new RoleAssignment({ userId, roleId, channelId })),
-            );
-            await this.eventBus.publish(new RoleAssignmentEvent(ctx, user, toAdd, 'assigned'));
-        }
-        return repository.find({ where: { userId } });
+        await this.createAssignments(ctx, userId, target);
+        return this.getAssignmentsForUser(ctx, userId);
     }
 
     /**
@@ -266,13 +260,11 @@ export class RoleAssignmentService {
      * @since 4.0.0
      */
     async remove(ctx: RequestContext, userId: ID, pairs: RoleChannelPair[]): Promise<RoleAssignment[]> {
-        const user = await this.connection.getEntityOrThrow(ctx, User, userId);
         const superAdminRole = await this.roleService.getSuperAdminRole(ctx);
-        const repository = this.connection.getRepository(ctx, RoleAssignment);
-        const existing = await repository.find({ where: { userId } });
         let target = this.dedupePairs(pairs);
         const removesSuperAdmin = target.some(pair => idsAreEqual(pair.roleId, superAdminRole.id));
         if (removesSuperAdmin) {
+            const existing = await this.getAssignmentsForUser(ctx, userId);
             target = this.dedupePairs([
                 ...target,
                 ...existing
@@ -284,22 +276,8 @@ export class RoleAssignmentService {
         if (removesSuperAdmin && (await this.isSoleSuperAdminHolder(ctx, userId))) {
             throw new InternalServerError('error.superadmin-must-have-superadmin-role');
         }
-        const toRemove = existing.filter(assignment => target.some(pair => this.matches(assignment, pair)));
-        if (toRemove.length) {
-            await repository.remove(toRemove);
-            await this.eventBus.publish(
-                new RoleAssignmentEvent(
-                    ctx,
-                    user,
-                    toRemove.map(assignment => ({
-                        roleId: assignment.roleId,
-                        channelId: assignment.channelId,
-                    })),
-                    'removed',
-                ),
-            );
-        }
-        return repository.find({ where: { userId } });
+        await this.deleteAssignments(ctx, userId, target);
+        return this.getAssignmentsForUser(ctx, userId);
     }
 
     /**
@@ -340,68 +318,87 @@ export class RoleAssignmentService {
 
     /**
      * @description
-     * Replaces the full set of the User's RoleAssignments across all Channels with the given
-     * `(roleId, channelId)` pairs: pairs not in the new set are removed, new pairs are added,
-     * unchanged pairs are left as-is.
+     * Creates a RoleAssignment for each of the given `(roleId, channelId)` pairs the User does
+     * not already hold, and publishes one `assigned` {@link RoleAssignmentEvent} for the pairs
+     * added. Nothing is published when nothing changes.
      *
-     * Performs no authorization and no SuperAdmin expansion: it is the primitive for writes
-     * which have no actor to check against, namely clearing the rows of a soft-deleted
-     * Administrator or API-Key User and granting a User created by an authentication strategy
-     * the Roles that strategy resolved. Actor-made changes go through {@link assign} and {@link remove}.
+     * Performs no authorization and no SuperAdmin expansion: this is the row primitive beneath
+     * {@link assign}, for writes which have no actor to check against, such as granting a User
+     * created by an authentication strategy the Roles that strategy resolved. Actor-made
+     * changes go through {@link assign}.
      *
-     * Publishes a {@link RoleAssignmentEvent} for the added and for the removed pairs.
-     *
+     * @throws {EntityNotFoundError} if the User does not exist
      * @since 4.0.0
      */
-    async setAssignmentsForUser(
-        ctx: RequestContext,
-        userId: ID,
-        assignments: RoleChannelPair[],
-    ): Promise<RoleAssignment[]> {
+    async createAssignments(ctx: RequestContext, userId: ID, pairs: RoleChannelPair[]): Promise<void> {
+        const user = await this.connection.getEntityOrThrow(ctx, User, userId);
         const repository = this.connection.getRepository(ctx, RoleAssignment);
         const existing = await repository.find({ where: { userId } });
-        const target = this.dedupePairs(assignments);
-        const toRemove = existing.filter(assignment => !target.some(pair => this.matches(assignment, pair)));
-        const toAdd = target.filter(pair => !existing.some(assignment => this.matches(assignment, pair)));
-        if (toRemove.length) {
-            await repository.remove(toRemove);
-        }
-        if (toAdd.length) {
-            await repository.save(
-                toAdd.map(({ roleId, channelId }) => new RoleAssignment({ userId, roleId, channelId })),
-            );
-        }
-        await this.publishAssignmentEvents(
-            ctx,
-            userId,
-            toAdd,
-            toRemove.map(assignment => ({ roleId: assignment.roleId, channelId: assignment.channelId })),
+        const toAdd = this.dedupePairs(pairs).filter(
+            pair => !existing.some(assignment => this.matches(assignment, pair)),
         );
-        return repository.find({ where: { userId } });
+        if (!toAdd.length) {
+            return;
+        }
+        await repository.save(
+            toAdd.map(({ roleId, channelId }) => new RoleAssignment({ userId, roleId, channelId })),
+        );
+        await this.eventBus.publish(new RoleAssignmentEvent(ctx, user, toAdd, 'assigned'));
     }
 
     /**
-     * Publishes one `assigned` and/or one `removed` {@link RoleAssignmentEvent} for the
-     * pairs a write actually changed. Nothing is published for a no-op write. Deliberately
-     * not called by the system-mandated writes ({@link assignSuperAdminRoleHoldersToChannel},
-     * {@link assignRoleOnAllChannels}), which stay silent as their legacy counterparts did.
+     * @description
+     * Deletes the User's RoleAssignments matching the given `(roleId, channelId)` pairs, and
+     * publishes one `removed` {@link RoleAssignmentEvent} for the pairs removed. Pairs the User
+     * does not hold are ignored, and nothing is published when nothing changes.
+     *
+     * Performs no authorization, no SuperAdmin expansion and no sole-SuperAdmin guard: this is
+     * the row primitive beneath {@link remove}. Actor-made changes go through {@link remove}.
+     *
+     * @throws {EntityNotFoundError} if the User does not exist
+     * @since 4.0.0
      */
-    private async publishAssignmentEvents(
-        ctx: RequestContext,
-        userId: ID,
-        added: RoleChannelPair[],
-        removed: RoleChannelPair[],
-    ): Promise<void> {
-        if (!added.length && !removed.length) {
+    async deleteAssignments(ctx: RequestContext, userId: ID, pairs: RoleChannelPair[]): Promise<void> {
+        const user = await this.connection.getEntityOrThrow(ctx, User, userId);
+        const existing = await this.getAssignmentsForUser(ctx, userId);
+        const target = this.dedupePairs(pairs);
+        const toRemove = existing.filter(assignment => target.some(pair => this.matches(assignment, pair)));
+        await this.removeRows(ctx, user, toRemove);
+    }
+
+    /**
+     * @description
+     * Deletes every RoleAssignment of the User across all Channels, and publishes one
+     * `removed` {@link RoleAssignmentEvent} for them. Nothing is published for a User
+     * holding no assignments.
+     *
+     * Performs no authorization and no sole-SuperAdmin guard: this is the primitive behind
+     * the Administrator and API-Key soft-deletes, which must clear the rows of the deleted
+     * User. Left in place, those rows would keep counting towards the Channels a Role is
+     * assigned on (see {@link RoleService}) and so keep gating the Role for live administrators.
+     *
+     * @throws {EntityNotFoundError} if the User does not exist
+     * @since 4.0.0
+     */
+    async removeAllAssignmentsForUser(ctx: RequestContext, userId: ID): Promise<void> {
+        const user = await this.connection.getEntityOrThrow(ctx, User, userId);
+        const existing = await this.getAssignmentsForUser(ctx, userId);
+        await this.removeRows(ctx, user, existing);
+    }
+
+    private async removeRows(ctx: RequestContext, user: User, rows: RoleAssignment[]): Promise<void> {
+        if (!rows.length) {
             return;
         }
-        const user = await this.connection.getEntityOrThrow(ctx, User, userId);
-        if (added.length) {
-            await this.eventBus.publish(new RoleAssignmentEvent(ctx, user, added, 'assigned'));
-        }
-        if (removed.length) {
-            await this.eventBus.publish(new RoleAssignmentEvent(ctx, user, removed, 'removed'));
-        }
+        await this.connection.getRepository(ctx, RoleAssignment).remove(rows);
+        await this.eventBus.publish(
+            new RoleAssignmentEvent(
+                ctx,
+                user,
+                rows.map(({ roleId, channelId }) => ({ roleId, channelId })),
+                'removed',
+            ),
+        );
     }
 
     private matches(assignment: RoleAssignment, pair: RoleChannelPair): boolean {
@@ -477,24 +474,6 @@ export class RoleAssignmentService {
             await repository.save(
                 toAdd.map(channel => new RoleAssignment({ userId, roleId, channelId: channel.id })),
             );
-        }
-    }
-
-    /**
-     * @description
-     * Assigns the Role to the User on the given Channel. Idempotent: an existing identical
-     * assignment is left as-is.
-     */
-    async assignRoleOnChannel(
-        ctx: RequestContext,
-        userId: ID,
-        roleId: ID,
-        channelId: ID = ctx.channelId,
-    ): Promise<void> {
-        const repository = this.connection.getRepository(ctx, RoleAssignment);
-        const existing = await repository.findOne({ where: { userId, roleId, channelId } });
-        if (!existing) {
-            await repository.save(new RoleAssignment({ userId, roleId, channelId }));
         }
     }
 }

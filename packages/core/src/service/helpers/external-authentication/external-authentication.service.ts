@@ -211,9 +211,8 @@ export class ExternalAuthenticationService {
         const savedUser = await this.connection.getRepository(ctx, User).save(newUser);
         // The strategy has already decided which Roles this User gets and there is no actor
         // whose grant rights could apply, so the write goes through the unauthorized
-
         // primitive. The Roles are granted on the active Channel.
-        await this.roleAssignmentService.setAssignmentsForUser(
+        await this.roleAssignmentService.createAssignments(
             ctx,
             savedUser.id,
             config.roles.map(role => ({ roleId: role.id, channelId: ctx.channelId })),

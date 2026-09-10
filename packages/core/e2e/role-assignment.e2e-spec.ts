@@ -863,6 +863,27 @@ describe('RoleAssignment', () => {
             });
             expect(after.totalItems).toBe(0);
         });
+
+        it('deleteAdministrator of an administrator holding no assignments emits AdministratorEvent deleted only', async () => {
+            const { createAdministrator } = await adminClient.query(createAdministratorDocument, {
+                input: {
+                    firstName: 'Roleless',
+                    lastName: 'Admin',
+                    emailAddress: 'roleless-admin@test.com',
+                    password: 'test',
+                    roleAssignments: [],
+                },
+            });
+            await collectEvents();
+
+            const { deleteAdministrator } = await adminClient.query(deleteAdministratorDocument, {
+                id: createAdministrator.id,
+            });
+            expect(deleteAdministrator.result).toBe(DeletionResult.DELETED);
+
+            const events = await collectEvents();
+            expect(kindsOf(events)).toEqual(['AdministratorEvent:deleted']);
+        });
     });
 
     function byRoleCodeAndChannel(

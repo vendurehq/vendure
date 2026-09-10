@@ -233,7 +233,8 @@ export class AdministratorService {
      * User's RoleAssignments. The rows go because a deleted Administrator holds nothing:
      * left in place they would keep counting towards the Channels a Role is assigned on
      * (see {@link RoleService}), and so keep gating the Role for live administrators. One
-     * `removed` {@link RoleAssignmentEvent} is published for each removed assignment.
+     * `removed` {@link RoleAssignmentEvent} listing the removed assignments is published
+     * ({@link RoleAssignmentService.removeAllAssignmentsForUser}).
      */
     async softDelete(ctx: RequestContext, id: ID) {
         const administrator = await this.connection.getEntityOrThrow(ctx, Administrator, id, {
@@ -243,7 +244,7 @@ export class AdministratorService {
             throw new InternalServerError('error.cannot-delete-sole-superadmin');
         }
         await this.connection.getRepository(ctx, Administrator).update({ id }, { deletedAt: new Date() });
-        await this.roleAssignmentService.setAssignmentsForUser(ctx, administrator.user.id, []);
+        await this.roleAssignmentService.removeAllAssignmentsForUser(ctx, administrator.user.id);
         await this.userService.softDelete(ctx, administrator.user.id);
         await this.eventBus.publish(new AdministratorEvent(ctx, administrator, 'deleted', id));
         return {

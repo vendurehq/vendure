@@ -479,7 +479,7 @@ export class RoleService {
      *
      * No filter on the User is needed: a soft-deleted User has no rows, because the
      * Administrator and API-Key soft-deletes remove them
-     * ({@link RoleAssignmentService.setAssignmentsForUser}).
+     * ({@link RoleAssignmentService.removeAllAssignmentsForUser}).
      */
     private async getChannelIdsWithAssignmentsForRoles(
         ctx: RequestContext,

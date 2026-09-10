@@ -264,7 +264,7 @@ export class ApiKeyService {
         }
         // If this is an underlying user solely for holding permission, delete them
         else {
-            await this.roleAssignmentService.setAssignmentsForUser(ctx, apiKey.userId, []);
+            await this.roleAssignmentService.removeAllAssignmentsForUser(ctx, apiKey.userId);
             // SoftDelete should also delete the related sessions & cache
             await this.userService.softDelete(ctx, apiKey.userId);
         }
