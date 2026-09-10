@@ -259,9 +259,37 @@ test('escapes untrusted dependency names and ranges in the report table', () => 
     );
     const body = commentCall.find(arg => arg.startsWith('body='));
 
+    // A backtick cannot be escaped inside a code span, so a name carrying one drops out of the
+    // span and is entity-escaped as plain text instead.
     assert.match(body, /unsafe&#124;&#96;name/);
-    assert.match(body, /\^2\.0\.0<br>&#124; forged &#124; row &#124;/);
+    // A range without a backtick keeps its code span, where a pipe escapes with a backslash and
+    // an entity would only render as itself.
+    assert.match(body, /`\^2\.0\.0 \\\| forged \\\| row \\\|`/);
     assert.doesNotMatch(body, /\n\| forged \| row \|/);
+});
+
+test('renders a comparator range as written rather than as HTML entities', () => {
+    const filePath = 'packages/dashboard/package.json';
+    const { calls } = runClassifier({
+        files: [filePath],
+        manifests: {
+            [manifestEndpoint(filePath, 'merge-base')]: {
+                name: '@vendure/dashboard',
+                dependencies: { zod: '^3.25.0 || ^4.0.0' },
+            },
+            [manifestEndpoint(filePath, 'head')]: {
+                name: '@vendure/dashboard',
+                dependencies: { zod: '>=3.25.0 <5' },
+            },
+        },
+    });
+    const body = calls
+        .find(args => args[1] === 'repos/vendurehq/vendure/issues/42/comments' && args.includes('POST'))
+        .find(arg => arg.startsWith('body='));
+
+    // GFM does not decode an entity inside a code span, so any of these would display verbatim.
+    assert.doesNotMatch(body, /&#124;|&gt;|&lt;|&#96;/);
+    assert.match(body, /`\^3\.25\.0 \\\|\\\| \^4\.0\.0` -> `>=3\.25\.0 <5`/);
 });
 
 test('counts a peerDependencies change in a published package as a contract change', () => {

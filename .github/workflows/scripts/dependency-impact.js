@@ -269,19 +269,26 @@ function findReportComment() {
 }
 
 function buildComment({ label, contractChanges, otherChanges, lockfileChanged, manifests }) {
-    const lines = [MARKER, '', `### Dependency impact: ${label}`, ''];
+    const lines = [
+        MARKER,
+        '',
+        contractChanges.length
+            ? '### This pull request changes the published dependency contract'
+            : '### This pull request leaves the published dependency contract unchanged',
+        '',
+    ];
 
     if (contractChanges.length) {
         lines.push(
             'This pull request changes a dependency range in a published package, so it changes what',
             'consumers resolve. Review the new range rather than the resolved version.',
             '',
-            '| package | section | range |',
+            '| dependency | declared in | range |',
             '| --- | --- | --- |',
         );
         for (const c of contractChanges) {
             lines.push(
-                `| \`${escapeMarkdown(c.name)}\` | ${escapeMarkdown(packageOf(c.path))} / ${escapeMarkdown(c.section)} | ${formatRange(c)} |`,
+                `| ${codeCell(c.name)} | ${escapeMarkdown(packageOf(c.path))} / ${c.section} | ${formatRange(c)} |`,
             );
         }
         lines.push('');
@@ -297,10 +304,10 @@ function buildComment({ label, contractChanges, otherChanges, lockfileChanged, m
             `<details><summary>${otherChanges.length} change(s) that do not affect the contract</summary>`,
             '',
         );
-        lines.push('| package | section | range |', '| --- | --- | --- |');
+        lines.push('| dependency | declared in | range |', '| --- | --- | --- |');
         for (const c of otherChanges) {
             lines.push(
-                `| \`${escapeMarkdown(c.name)}\` | ${escapeMarkdown(packageOf(c.path))} / ${escapeMarkdown(c.section)} | ${formatRange(c)} |`,
+                `| ${codeCell(c.name)} | ${escapeMarkdown(packageOf(c.path))} / ${c.section} | ${formatRange(c)} |`,
             );
         }
         lines.push('', '</details>', '');
@@ -327,12 +334,27 @@ function packageOf(path) {
 
 function formatRange({ from, to }) {
     if (from === undefined) {
-        return `added \`${escapeMarkdown(to)}\``;
+        return `added ${codeCell(to)}`;
     }
     if (to === undefined) {
-        return `removed \`${escapeMarkdown(from)}\``;
+        return `removed ${codeCell(from)}`;
     }
-    return `\`${escapeMarkdown(from)}\` -> \`${escapeMarkdown(to)}\``;
+    return `${codeCell(from)} -> ${codeCell(to)}`;
+}
+
+/**
+ * Renders one value inside a table cell code span. GFM treats an HTML entity inside a code span as
+ * literal text, so entity-escaping a range would display `&gt;=16.0.0 &#124;&#124; ^17.0.0` rather
+ * than `>=16.0.0 || ^17.0.0`, and `||` is ordinary in a peer range. Inside a code span the only
+ * hazards are the table's own pipe, which escapes with a backslash, and the span's own backtick,
+ * which cannot be escaped at all — a value carrying one falls back to escaped plain text.
+ */
+function codeCell(value) {
+    const text = String(value).replace(/\r?\n/g, ' ');
+    if (text.includes('`')) {
+        return escapeMarkdown(text);
+    }
+    return `\`${text.replace(/\|/g, '\\|')}\``;
 }
 
 function escapeMarkdown(value) {
