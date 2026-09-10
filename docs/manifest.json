@@ -248,7 +248,7 @@
           "title": "Events",
           "slug": "events",
           "file": "docs/guides/developer-guide/events/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-09-02T14:43:03+02:00"
         },
         {
           "title": "Migrations",
@@ -1023,10 +1023,16 @@
                   "lastModified": "2026-06-30T07:18:09+02:00"
                 },
                 {
+                  "title": "CUSTOMER_PERMISSIONS",
+                  "slug": "customer_permissions",
+                  "file": "docs/reference/typescript-api/auth/customer_permissions.mdx",
+                  "lastModified": "2026-09-09T08:40:56Z"
+                },
+                {
                   "title": "CustomerChannelAssignmentStrategy",
                   "slug": "customer-channel-assignment-strategy",
                   "file": "docs/reference/typescript-api/auth/customer-channel-assignment-strategy.mdx",
-                  "lastModified": "2026-06-24T09:45:17Z"
+                  "lastModified": "2026-09-09T08:40:56Z"
                 },
                 {
                   "title": "DefaultPasswordValidationStrategy",
@@ -1056,7 +1062,7 @@
                   "title": "ExternalAuthenticationService",
                   "slug": "external-authentication-service",
                   "file": "docs/reference/typescript-api/auth/external-authentication-service.mdx",
-                  "lastModified": "2026-06-26T15:49:47+02:00"
+                  "lastModified": "2026-09-09T08:40:56Z"
                 },
                 {
                   "title": "InMemorySessionCacheStrategy",
@@ -1095,10 +1101,22 @@
                   "lastModified": "2026-04-20T16:08:16+02:00"
                 },
                 {
+                  "title": "ResolvedUserPermissions",
+                  "slug": "resolved-user-permissions",
+                  "file": "docs/reference/typescript-api/auth/resolved-user-permissions.mdx",
+                  "lastModified": "2026-09-09T08:40:56Z"
+                },
+                {
+                  "title": "RolePermissionResolver",
+                  "slug": "role-permission-resolver",
+                  "file": "docs/reference/typescript-api/auth/role-permission-resolver.mdx",
+                  "lastModified": "2026-09-09T08:40:56Z"
+                },
+                {
                   "title": "SessionCacheStrategy",
                   "slug": "session-cache-strategy",
                   "file": "docs/reference/typescript-api/auth/session-cache-strategy.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-09-09T08:40:56Z"
                 },
                 {
                   "title": "SuperadminCredentials",
@@ -1198,7 +1216,7 @@
                   "title": "CurrencyCode",
                   "slug": "currency-code",
                   "file": "docs/reference/typescript-api/common/currency-code.mdx",
-                  "lastModified": "2026-03-06T09:35:25+01:00"
+                  "lastModified": "2026-09-10T15:41:07Z"
                 },
                 {
                   "title": "EntityRelationPaths",
@@ -1234,7 +1252,7 @@
                   "title": "JobState",
                   "slug": "job-state",
                   "file": "docs/reference/typescript-api/common/job-state.mdx",
-                  "lastModified": "2026-03-06T09:35:25+01:00"
+                  "lastModified": "2026-09-10T15:41:07Z"
                 },
                 {
                   "title": "JsonCompatible",
@@ -1246,7 +1264,7 @@
                   "title": "LanguageCode",
                   "slug": "language-code",
                   "file": "docs/reference/typescript-api/common/language-code.mdx",
-                  "lastModified": "2026-03-06T09:35:25+01:00"
+                  "lastModified": "2026-09-10T15:41:07Z"
                 },
                 {
                   "title": "Middleware",
@@ -1264,7 +1282,7 @@
                   "title": "Permission",
                   "slug": "permission",
                   "file": "docs/reference/typescript-api/common/permission.mdx",
-                  "lastModified": "2026-03-06T09:35:25+01:00"
+                  "lastModified": "2026-09-10T15:41:07Z"
                 },
                 {
                   "title": "PriceCalculationResult",
@@ -1644,7 +1662,7 @@
                   "title": "Channel",
                   "slug": "channel",
                   "file": "docs/reference/typescript-api/entities/channel.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-09-09T08:40:56Z"
                 },
                 {
                   "title": "Collection",
@@ -1818,7 +1836,13 @@
                   "title": "Role",
                   "slug": "role",
                   "file": "docs/reference/typescript-api/entities/role.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-09-09T08:40:56Z"
+                },
+                {
+                  "title": "RoleAssignment",
+                  "slug": "role-assignment",
+                  "file": "docs/reference/typescript-api/entities/role-assignment.mdx",
+                  "lastModified": "2026-09-09T08:40:56Z"
                 },
                 {
                   "title": "Seller",
@@ -1896,7 +1920,7 @@
                   "title": "User",
                   "slug": "user",
                   "file": "docs/reference/typescript-api/entities/user.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-09-09T08:40:56Z"
                 },
                 {
                   "title": "VendureEntity",
@@ -1966,7 +1990,7 @@
                   "title": "Event Types",
                   "slug": "event-types",
                   "file": "docs/reference/typescript-api/events/event-types.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-09-10T15:41:07Z"
                 },
                 {
                   "title": "EventBus",
@@ -2303,6 +2327,12 @@
                   "slug": "migrate-product-option-group-data",
                   "file": "docs/reference/typescript-api/migration/migrate-product-option-group-data.mdx",
                   "lastModified": "2026-03-06T09:35:25+01:00"
+                },
+                {
+                  "title": "MigrateRoleAssignmentData",
+                  "slug": "migrate-role-assignment-data",
+                  "file": "docs/reference/typescript-api/migration/migrate-role-assignment-data.mdx",
+                  "lastModified": "2026-09-09T09:50:34Z"
                 },
                 {
                   "title": "MigrationOptions",
@@ -2892,7 +2922,7 @@
                   "title": "AdministratorService",
                   "slug": "administrator-service",
                   "file": "docs/reference/typescript-api/services/administrator-service.mdx",
-                  "lastModified": "2026-06-30T07:18:09+02:00"
+                  "lastModified": "2026-09-10T15:41:07Z"
                 },
                 {
                   "title": "AssetService",
@@ -2910,7 +2940,7 @@
                   "title": "ChannelService",
                   "slug": "channel-service",
                   "file": "docs/reference/typescript-api/services/channel-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-09-09T08:40:56Z"
                 },
                 {
                   "title": "CollectionService",
@@ -2928,7 +2958,7 @@
                   "title": "CustomerChannelAssignmentService",
                   "slug": "customer-channel-assignment-service",
                   "file": "docs/reference/typescript-api/services/customer-channel-assignment-service.mdx",
-                  "lastModified": "2026-06-24T09:45:17Z"
+                  "lastModified": "2026-09-09T13:09:28Z"
                 },
                 {
                   "title": "CustomerGroupService",
@@ -2940,7 +2970,7 @@
                   "title": "CustomerService",
                   "slug": "customer-service",
                   "file": "docs/reference/typescript-api/services/customer-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-09-09T08:40:56Z"
                 },
                 {
                   "title": "EntitySlugService",
@@ -3045,10 +3075,16 @@
                   "lastModified": "2026-04-20T16:08:16+02:00"
                 },
                 {
+                  "title": "RoleAssignmentService",
+                  "slug": "role-assignment-service",
+                  "file": "docs/reference/typescript-api/services/role-assignment-service.mdx",
+                  "lastModified": "2026-09-10T15:41:07Z"
+                },
+                {
                   "title": "RoleService",
                   "slug": "role-service",
                   "file": "docs/reference/typescript-api/services/role-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-09-10T15:41:07Z"
                 },
                 {
                   "title": "SearchService",
@@ -3066,7 +3102,7 @@
                   "title": "SessionService",
                   "slug": "session-service",
                   "file": "docs/reference/typescript-api/services/session-service.mdx",
-                  "lastModified": "2026-04-28T19:36:30+02:00"
+                  "lastModified": "2026-09-09T08:40:56Z"
                 },
                 {
                   "title": "SettingsStoreService",
@@ -3126,7 +3162,7 @@
                   "title": "UserService",
                   "slug": "user-service",
                   "file": "docs/reference/typescript-api/services/user-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-09-09T08:40:56Z"
                 },
                 {
                   "title": "ZoneService",
@@ -3548,7 +3584,7 @@
                   "title": "S3AssetStorageStrategy",
                   "slug": "s3asset-storage-strategy",
                   "file": "docs/reference/core-plugins/asset-server-plugin/s3asset-storage-strategy.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-09-09T08:40:56Z"
                 },
                 {
                   "title": "SharpAssetPreviewStrategy",
@@ -3748,31 +3784,31 @@
                   "title": "Enums",
                   "slug": "enums",
                   "file": "docs/reference/graphql-api/admin/enums.mdx",
-                  "lastModified": "2026-03-06T13:07:42+01:00"
+                  "lastModified": "2026-09-09T08:40:56Z"
                 },
                 {
                   "title": "Input Objects",
                   "slug": "input-types",
                   "file": "docs/reference/graphql-api/admin/input-types.mdx",
-                  "lastModified": "2026-03-10T16:50:41+01:00"
+                  "lastModified": "2026-09-10T15:41:07Z"
                 },
                 {
                   "title": "Mutations",
                   "slug": "mutations",
                   "file": "docs/reference/graphql-api/admin/mutations.mdx",
-                  "lastModified": "2026-03-06T09:35:25+01:00"
+                  "lastModified": "2026-09-10T15:41:07Z"
                 },
                 {
                   "title": "Queries",
                   "slug": "queries",
                   "file": "docs/reference/graphql-api/admin/queries.mdx",
-                  "lastModified": "2026-03-06T13:07:42+01:00"
+                  "lastModified": "2026-09-10T15:41:07Z"
                 },
                 {
                   "title": "Types",
                   "slug": "object-types",
                   "file": "docs/reference/graphql-api/admin/object-types.mdx",
-                  "lastModified": "2026-03-10T16:50:41+01:00"
+                  "lastModified": "2026-09-10T15:41:07Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -3786,7 +3822,7 @@
                   "title": "Enums",
                   "slug": "enums",
                   "file": "docs/reference/graphql-api/shop/enums.mdx",
-                  "lastModified": "2026-04-29T16:04:40+02:00"
+                  "lastModified": "2026-09-09T08:40:56Z"
                 },
                 {
                   "title": "Input Objects",
@@ -3810,7 +3846,7 @@
                   "title": "Types",
                   "slug": "object-types",
                   "file": "docs/reference/graphql-api/shop/object-types.mdx",
-                  "lastModified": "2026-04-29T16:04:40+02:00"
+                  "lastModified": "2026-09-09T08:40:56Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"

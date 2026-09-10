@@ -5,7 +5,6 @@ type Role implements Node {
     code: String!
     description: String!
     permissions: [Permission!]!
-    channels: [Channel!]!
 }
 
 type RoleList implements PaginatedList {

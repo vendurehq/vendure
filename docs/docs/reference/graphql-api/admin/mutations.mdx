@@ -348,10 +348,33 @@ type Mutation {
     Administrator: '/reference/graphql-api/admin/object-types#administrator',
     ID: '/reference/graphql-api/admin/object-types#id',
   }}
+  deprecated="Use assignRolesToUser instead. assignRoleToAdministrator assigns the Role on the active Channel only."
 >
 {`"""Assign a Role to an Administrator"""
 type Mutation {
   assignRoleToAdministrator(administratorId: ID!, roleId: ID!): Administrator!
+}`}
+</GraphQLDoc>
+
+<a name="assignrolestouser"></a>
+
+## assignRolesToUser
+
+<GraphQLDoc
+  type="mutation"
+  typeName="assignRolesToUser"
+  typeLinks={{
+    User: '/reference/graphql-api/admin/object-types#user',
+    AssignRolesToUserInput: '/reference/graphql-api/admin/input-types#assignrolestouserinput',
+  }}
+>
+{`"""
+Grants the User each of the given \`(roleId, channelId)\` pairs. The active user must hold
+every permission of each Role on its Channel. Pairs the User already holds are left as-is.
+Granting the SuperAdmin Role on any Channel grants it on every Channel.
+"""
+type Mutation {
+  assignRolesToUser(input: AssignRolesToUserInput!): User!
 }`}
 </GraphQLDoc>
 
@@ -2238,6 +2261,29 @@ type Mutation {
 {`"""Removes Promotions from the specified Channel"""
 type Mutation {
   removePromotionsFromChannel(input: RemovePromotionsFromChannelInput!): [Promotion!]!
+}`}
+</GraphQLDoc>
+
+<a name="removerolesfromuser"></a>
+
+## removeRolesFromUser
+
+<GraphQLDoc
+  type="mutation"
+  typeName="removeRolesFromUser"
+  typeLinks={{
+    User: '/reference/graphql-api/admin/object-types#user',
+    RemoveRolesFromUserInput: '/reference/graphql-api/admin/input-types#removerolesfromuserinput',
+  }}
+>
+{`"""
+Revokes each of the given \`(roleId, channelId)\` pairs from the User, under the same rule
+as \`assignRolesToUser\`: the active user must hold every permission of each Role on its
+Channel. Pairs the User does not hold are left as-is. Removing the SuperAdmin Role on any
+Channel removes it on every Channel; the sole SuperAdmin cannot lose it.
+"""
+type Mutation {
+  removeRolesFromUser(input: RemoveRolesFromUserInput!): User!
 }`}
 </GraphQLDoc>
 

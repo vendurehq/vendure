@@ -1,12 +1,11 @@
 import { CopyableText } from '@/vdb/components/shared/copyable-text.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
-import { RoleSelector } from '@/vdb/components/shared/role-selector.js';
 import { TranslatableFormFieldWrapper } from '@/vdb/components/shared/translatable-form-field.js';
-import { MultiSelect } from '@/vdb/components/shared/multi-select.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import {
     CustomFieldsPageBlock,
     DetailFormGrid,
@@ -16,23 +15,22 @@ import {
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
-import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
-import { api } from '@/vdb/graphql/api.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
-import { usePermissions } from '@/vdb/hooks/use-permissions.js';
 import { Trans, useLingui } from '@lingui/react/macro';
-import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { toast } from 'sonner';
 import { useState } from 'react';
+import { UseFormReturn } from 'react-hook-form';
+import { toast } from 'sonner';
+import { EffectivePermissionsPanel } from '../_administrators/components/effective-permissions-panel.js';
 import {
-    activeAdministratorRolesDocument,
-    apiKeyDetailDocument,
-    createApiKeyDocument,
-    updateApiKeyDocument,
-} from './api-keys.graphql.js';
+    completeRoleAssignmentPairs,
+    RoleAssignmentPair,
+    RoleAssignmentsEditor,
+} from '../_administrators/components/role-assignments-editor.js';
+import { RoleAssignmentsTable } from '../_administrators/components/role-assignments-table.js';
+import { apiKeyDetailDocument, createApiKeyDocument, updateApiKeyDocument } from './api-keys.graphql.js';
 import { ApiKeySecretDialog } from './components/api-key-secret-dialog.js';
 import { RotateApiKeyButton } from './components/rotate-api-key-button.js';
 
@@ -60,27 +58,9 @@ function ApiKeyDetailPage() {
     const { t } = useLingui();
     const { formatDate, formatRelativeDate } = useLocalFormat();
 
-    const { hasPermissions } = usePermissions();
-    const isSuperAdmin = hasPermissions(['SuperAdmin']);
-
     const [secretDialogOpen, setSecretDialogOpen] = useState(false);
     const [generatedApiKey, setGeneratedApiKey] = useState('');
     const [generatedLookupId, setGeneratedLookupId] = useState<string | undefined>();
-
-    // Non-SuperAdmin users can only assign their own roles to API keys.
-    // SuperAdmin can assign any role, so we use the standard RoleSelector.
-    const { data: adminRoles } = useQuery({
-        queryKey: ['activeAdministratorRoles'],
-        queryFn: () => api.query(activeAdministratorRolesDocument, {}),
-        select: data => data.activeAdministrator?.user.roles ?? [],
-        enabled: !isSuperAdmin,
-    });
-
-    const availableRoles = (adminRoles ?? []).map(role => ({
-        value: role.id,
-        label: role.code,
-        display: role.description || role.code,
-    }));
 
     const { form, submitHandler, entity, isPending, resetForm } = useDetailPage({
         pageId,
@@ -89,7 +69,6 @@ function ApiKeyDetailPage() {
         updateDocument: updateApiKeyDocument,
         setValuesForUpdate: entity => ({
             id: entity.id,
-            roleIds: entity.user.roles.map(role => role.id),
             translations: entity.translations.map(t => ({
                 id: t.id,
                 languageCode: t.languageCode,
@@ -97,6 +76,22 @@ function ApiKeyDetailPage() {
             })),
             customFields: entity.customFields,
         }),
+        // The generated form seeds the deprecated roleIds list with []; sent as-is it would
+        // strip the roles on the active channel. roleIds is also mutually exclusive with
+        // roleAssignments on creation. Incomplete editor rows must not reach the input.
+        transformCreateInput: input => {
+            const transformed = {
+                ...input,
+                roleAssignments: completeRoleAssignmentPairs(input.roleAssignments),
+            };
+            delete transformed.roleIds;
+            return transformed;
+        },
+        transformUpdateInput: input => {
+            const transformed = { ...input };
+            delete transformed.roleIds;
+            return transformed;
+        },
         params: { id: params.id },
         onSuccess: async data => {
             if (creatingNewEntity) {
@@ -117,12 +112,17 @@ function ApiKeyDetailPage() {
             }
         },
         onError: err => {
-            toast.error(
-                creatingNewEntity ? t`Failed to create API key` : t`Failed to update API key`,
-                { description: err instanceof Error ? err.message : 'Unknown error' },
-            );
+            toast.error(creatingNewEntity ? t`Failed to create API key` : t`Failed to update API key`, {
+                description: err instanceof Error ? err.message : 'Unknown error',
+            });
         },
     });
+
+    // useDetailPage types the form on the update input, and roleAssignments is a creation
+    // input only: once the API key exists, assignments are edited through their own
+    // mutations (RoleAssignmentsTable), not through updateApiKey.
+    const createForm = form as unknown as UseFormReturn<{ roleAssignments: RoleAssignmentPair[] }>;
+    const formAssignments = creatingNewEntity ? createForm.watch('roleAssignments') : undefined;
 
     const handleRotateSuccess = (newApiKey: string) => {
         setGeneratedApiKey(newApiKey);
@@ -132,16 +132,11 @@ function ApiKeyDetailPage() {
 
     return (
         <Page pageId={pageId} form={form} submitHandler={submitHandler} entity={entity}>
-            <PageTitle>
-                {creatingNewEntity ? <Trans>New API Key</Trans> : (entity?.name ?? '')}
-            </PageTitle>
+            <PageTitle>{creatingNewEntity ? <Trans>New API Key</Trans> : (entity?.name ?? '')}</PageTitle>
             <PageActionBar>
                 {!creatingNewEntity && (
                     <ActionBarItem itemId="rotate-button" requiresPermission={['UpdateApiKey']}>
-                        <RotateApiKeyButton
-                            apiKeyId={params.id}
-                            onSuccess={handleRotateSuccess}
-                        />
+                        <RotateApiKeyButton apiKeyId={params.id} onSuccess={handleRotateSuccess} />
                     </ActionBarItem>
                 )}
                 <ActionBarItem
@@ -167,63 +162,94 @@ function ApiKeyDetailPage() {
                         />
                     </DetailFormGrid>
                 </PageBlock>
-                <PageBlock column="main" blockId="roles" title={<Trans>Roles</Trans>}>
-                    <FormFieldWrapper
-                        control={form.control}
-                        name="roleIds"
-                        render={({ field }) =>
-                            isSuperAdmin ? (
-                                <RoleSelector
-                                    value={field.value ?? []}
-                                    onChange={field.onChange}
-                                    multiple={true}
-                                />
-                            ) : (
-                                <MultiSelect
-                                    value={field.value ?? []}
-                                    onChange={field.onChange}
-                                    multiple={true}
-                                    items={availableRoles}
-                                    placeholder={t`Select roles`}
-                                    searchPlaceholder={t`Search roles...`}
-                                />
-                            )
-                        }
-                    />
-                    {!isSuperAdmin && (
+                {creatingNewEntity ? (
+                    <PageBlock column="main" blockId="roles" title={<Trans>Roles</Trans>}>
+                        <FormFieldWrapper
+                            control={createForm.control}
+                            name="roleAssignments"
+                            render={({ field }) => (
+                                <RoleAssignmentsEditor value={field.value ?? []} onChange={field.onChange} />
+                            )}
+                        />
                         <p className="text-xs text-muted-foreground mt-2">
-                            <Trans>Only roles assigned to your account are available.</Trans>
+                            <Trans>
+                                You can only grant a role on a channel where you hold all of that role's
+                                permissions yourself.
+                            </Trans>
                         </p>
-                    )}
-                </PageBlock>
+                        <EffectivePermissionsPanel
+                            assignments={formAssignments ?? []}
+                            description={
+                                <Trans>
+                                    What this API key can do on the selected channel, derived from the roles
+                                    assigned above. Edit the roles to change it.
+                                </Trans>
+                            }
+                        />
+                    </PageBlock>
+                ) : (
+                    entity && (
+                        <PageBlock column="main" blockId="roles" title={<Trans>Roles</Trans>}>
+                            <RoleAssignmentsTable
+                                userId={entity.user.id}
+                                assignments={entity.user.roleAssignments}
+                            />
+                            <p className="text-xs text-muted-foreground mt-2">
+                                <Trans>
+                                    Changes to roles are saved immediately. You can only see and change
+                                    assignments of roles whose permissions you hold yourself on that channel.
+                                </Trans>
+                            </p>
+                            <EffectivePermissionsPanel
+                                assignments={entity.user.roleAssignments}
+                                description={
+                                    <Trans>
+                                        What this API key can do on the selected channel, derived from the
+                                        roles assigned above. Edit the roles to change it.
+                                    </Trans>
+                                }
+                            />
+                        </PageBlock>
+                    )
+                )}
                 <CustomFieldsPageBlock column="main" entityType="ApiKey" control={form.control} />
                 {!creatingNewEntity && entity && (
                     <PageBlock column="side" blockId="metadata" title={<Trans>Metadata</Trans>}>
                         <div className="space-y-4 text-sm">
                             <div>
-                                <div className="text-muted-foreground mb-1"><Trans>Lookup ID</Trans></div>
+                                <div className="text-muted-foreground mb-1">
+                                    <Trans>Lookup ID</Trans>
+                                </div>
                                 <CopyableText value={entity.lookupId}>
                                     <code className="font-mono text-xs">{entity.lookupId}</code>
                                 </CopyableText>
                             </div>
                             <div>
-                                <div className="text-muted-foreground mb-1"><Trans>Created by</Trans></div>
+                                <div className="text-muted-foreground mb-1">
+                                    <Trans>Created by</Trans>
+                                </div>
                                 <div>{entity.owner?.identifier ?? '-'}</div>
                             </div>
                             <div>
-                                <div className="text-muted-foreground mb-1"><Trans>Last used</Trans></div>
+                                <div className="text-muted-foreground mb-1">
+                                    <Trans>Last used</Trans>
+                                </div>
                                 <div>
                                     {entity.lastUsedAt ? (
                                         <time title={formatDate(new Date(entity.lastUsedAt))}>
                                             {formatRelativeDate(new Date(entity.lastUsedAt))}
                                         </time>
                                     ) : (
-                                        <span className="text-muted-foreground"><Trans>Never</Trans></span>
+                                        <span className="text-muted-foreground">
+                                            <Trans>Never</Trans>
+                                        </span>
                                     )}
                                 </div>
                             </div>
                             <div>
-                                <div className="text-muted-foreground mb-1"><Trans>Created</Trans></div>
+                                <div className="text-muted-foreground mb-1">
+                                    <Trans>Created</Trans>
+                                </div>
                                 <div>{formatDate(new Date(entity.createdAt))}</div>
                             </div>
                         </div>

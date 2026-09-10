@@ -7,7 +7,7 @@ export const DeleteRolesBulkAction: BulkActionComponent<any> = ({ selection, tab
         <DeleteBulkAction
             mutationDocument={deleteRolesDocument}
             entityName="roles"
-            requiredPermissions={['DeleteAdministrator']}
+            requiredPermissions={['DeleteRole']}
             selection={selection}
             table={table}
         />

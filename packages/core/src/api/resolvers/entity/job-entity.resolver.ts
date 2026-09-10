@@ -3,7 +3,7 @@ import { omit } from '@vendure/common/lib/omit';
 import { pick } from '@vendure/common/lib/pick';
 
 import { Job } from '../../../job-queue/job';
-import { RequestContext, SerializedRequestContext } from '../../common/request-context';
+import { SerializedRequestContext } from '../../common/request-context';
 
 @Resolver('Job')
 export class JobEntityResolver {
@@ -32,7 +32,9 @@ export class JobEntityResolver {
                 _session: ctx._session
                     ? {
                           ...ctx._session,
-                          user: ctx._session.user ? omit(ctx._session.user, ['channelPermissions']) : {},
+                          user: ctx._session.user
+                              ? omit(ctx._session.user, ['channelPermissions', 'globalPermissions'])
+                              : {},
                       }
                     : {},
             };

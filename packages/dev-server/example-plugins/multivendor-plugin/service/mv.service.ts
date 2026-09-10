@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CreateAdministratorInput, Permission } from '@vendure/common/lib/generated-types';
+import { Permission } from '@vendure/common/lib/generated-types';
 import { normalizeString } from '@vendure/common/lib/normalize-string';
 import {
     AdministratorService,
@@ -132,12 +132,8 @@ export class MultivendorService {
         if (isGraphQlErrorResult(channel)) {
             throw new InternalServerError(channel.message);
         }
-        const superAdminRole = await this.roleService.getSuperAdminRole(ctx);
-        const customerRole = await this.roleService.getCustomerRole(ctx);
-        await this.roleService.assignRoleToChannel(ctx, superAdminRole.id, channel.id);
         const role = await this.roleService.create(ctx, {
             code: `${shopCode}-admin`,
-            channelIds: [channel.id],
             description: `Administrator of ${input.shopName}`,
             permissions: [
                 Permission.CreateCatalog,
@@ -163,12 +159,12 @@ export class MultivendorService {
                 Permission.DeleteTag,
             ],
         });
-        const administrator = await this.administratorService.create(ctx, {
+        await this.administratorService.create(ctx, {
             firstName: input.seller.firstName,
             lastName: input.seller.lastName,
             emailAddress: input.seller.emailAddress,
             password: input.seller.password,
-            roleIds: [role.id],
+            roleAssignments: [{ roleId: role.id, channelId: channel.id }],
         });
         return channel;
     }

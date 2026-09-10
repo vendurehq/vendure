@@ -1,0 +1,52 @@
+---
+title: "RolePermissionResolver"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/helpers/role-permission-resolver/role-permission-resolver.ts" sourceLine="74" packageName="@vendure/core" since="4.0.0" />
+
+Resolves a User's effective per-channel permissions from [RoleAssignment](/reference/typescript-api/entities/role-assignment#roleassignment) rows.
+This is the single source of truth for permission resolution, used by the session cache,
+`login`/`me`, [RequestContextService](/reference/typescript-api/request/request-context-service#requestcontextservice) and the permission guards.
+
+Two cases are special-cased rather than materialized per channel:
+
+- **SuperAdmin**: a User holding a Role which carries the `SuperAdmin` permission (only
+  the system SuperAdmin role can) receives all assignable permissions on every Channel,
+  resolved at check time. Access therefore never depends on per-channel assignment rows —
+  a new Channel is administrable the moment it exists — and the SuperAdmin role's own
+  permission array does not need re-syncing when custom permissions are added. Channel
+  creation nevertheless materializes SuperAdmin assignment rows (see
+  `RoleAssignmentService.assignSuperAdminRoleHoldersToChannel`) so that assignment
+  reads stay consistent with that access.
+- **Customers**: a User with a Customer record receives the fixed customer permissions
+  (`Authenticated`) on the Customer's member Channels, derived from the channel
+  membership itself. There is no Customer role and customers have no assignment rows —
+  rows would only duplicate the membership relation, at one row per customer per channel.
+
+```ts title="Signature"
+class RolePermissionResolver {
+    constructor(connection: TransactionalConnection, configService: ConfigService)
+    resolvePermissions(userId: ID) => Promise<ResolvedUserPermissions>;
+    expandGlobalPermissions(resolved: ResolvedUserPermissions) => Promise<UserChannelPermissions[]>;
+}
+```
+
+<div className="members-wrapper">
+
+### resolvePermissions
+
+<MemberInfo kind="method" type={`(userId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/auth/resolved-user-permissions#resolveduserpermissions'>ResolvedUserPermissions</a>>`}   />
+
+Resolves the effective permissions of the given User. Uses the raw connection since
+permissions are global truth, independent of any request-scoped transaction.
+### expandGlobalPermissions
+
+<MemberInfo kind="method" type={`(resolved: <a href='/reference/typescript-api/auth/resolved-user-permissions#resolveduserpermissions'>ResolvedUserPermissions</a>) => Promise<<a href='/reference/typescript-api/auth/session-cache-strategy#userchannelpermissions'>UserChannelPermissions</a>[]>`}   />
+
+Expands [ResolvedUserPermissions](/reference/typescript-api/auth/resolved-user-permissions#resolveduserpermissions) into a plain per-channel array covering every
+Channel the User has permissions on, with `globalPermissions` applied to all Channels.
+Used where an explicit channel list is part of the API contract (`me`/`login`'s
+`CurrentUser.channels`); the session cache stores the compact form instead.
+
+
+</div>

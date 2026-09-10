@@ -5,7 +5,7 @@ import {
     UpdateAdministratorInput,
 } from '@vendure/common/lib/generated-types';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
-import { In, IsNull } from 'typeorm';
+import { IsNull } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
@@ -17,19 +17,17 @@ import { ConfigService } from '../../config';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Administrator } from '../../entity/administrator/administrator.entity';
 import { NativeAuthenticationMethod } from '../../entity/authentication-method/native-authentication-method.entity';
-import { Role } from '../../entity/role/role.entity';
 import { User } from '../../entity/user/user.entity';
 import { EventBus } from '../../event-bus';
 import { AdministratorEvent } from '../../event-bus/events/administrator-event';
-import { RoleChangeEvent } from '../../event-bus/events/role-change-event';
 import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
 import { PasswordCipher } from '../helpers/password-cipher/password-cipher';
 import { RequestContextService } from '../helpers/request-context/request-context.service';
 import { checkSuperadminCredentials } from '../helpers/utils/check-superadmin-credentials';
-import { getChannelPermissions } from '../helpers/utils/get-user-channels-permissions';
 import { patchEntity } from '../helpers/utils/patch-entity';
 
+import { RoleAssignmentService, RoleChannelPair } from './role-assignment.service';
 import { RoleService } from './role.service';
 import { UserService } from './user.service';
 
@@ -49,6 +47,7 @@ export class AdministratorService {
         private passwordCipher: PasswordCipher,
         private userService: UserService,
         private roleService: RoleService,
+        private roleAssignmentService: RoleAssignmentService,
         private customFieldRelationService: CustomFieldRelationService,
         private eventBus: EventBus,
         private requestContextService: RequestContextService,
@@ -70,7 +69,7 @@ export class AdministratorService {
     ): Promise<PaginatedList<Administrator>> {
         return this.listQueryBuilder
             .build(Administrator, options, {
-                relations: relations ?? ['user', 'user.roles'],
+                relations: relations ?? ['user'],
                 where: { deletedAt: IsNull() },
                 ctx,
             })
@@ -93,7 +92,7 @@ export class AdministratorService {
         return this.connection
             .getRepository(ctx, Administrator)
             .findOne({
-                relations: relations ?? ['user', 'user.roles'],
+                relations: relations ?? ['user'],
                 where: {
                     id: administratorId,
                     deletedAt: IsNull(),
@@ -128,18 +127,28 @@ export class AdministratorService {
      * Create a new Administrator.
      */
     async create(ctx: RequestContext, input: CreateAdministratorInput): Promise<Administrator> {
-        await this.checkActiveUserCanGrantRoles(ctx, input.roleIds);
+        this.assertRoleInputsAreExclusive(input);
+        // Deprecated `roleIds` input (since 4.0.0): grants the Roles on the active Channel.
+        // Remove the roleIds alternative in v5.0.0.
+        const roleAssignments: RoleChannelPair[] =
+            input.roleAssignments ??
+            input.roleIds?.map(roleId => ({ roleId, channelId: ctx.channelId })) ??
+            [];
+        // Checked before anything is written, so a denied grant leaves no Administrator behind
+        // even for callers outside a transaction. RoleAssignmentService.assign checks again.
+        await this.roleService.assertActiveUserCanGrantRoles(ctx, roleAssignments);
         const normalizedEmail = normalizeEmailAddress(input.emailAddress);
         await this.checkForDuplicateEmailAddress(ctx, normalizedEmail);
         const administrator = new Administrator(input);
         administrator.emailAddress = normalizedEmail;
         administrator.user = await this.userService.createAdminUser(ctx, input.emailAddress, input.password);
-        let createdAdministrator = await this.connection
+        const savedAdministrator = await this.connection
             .getRepository(ctx, Administrator)
             .save(administrator);
-        for (const roleId of input.roleIds) {
-            createdAdministrator = await this.assignRole(ctx, createdAdministrator.id, roleId);
+        if (roleAssignments.length) {
+            await this.roleAssignmentService.assign(ctx, savedAdministrator.user.id, roleAssignments);
         }
+        const createdAdministrator = await assertFound(this.findOne(ctx, savedAdministrator.id));
         await this.customFieldRelationService.updateRelations(
             ctx,
             Administrator,
@@ -158,9 +167,6 @@ export class AdministratorService {
         const administrator = await this.findOne(ctx, input.id);
         if (!administrator) {
             throw new EntityNotFoundError('Administrator', input.id);
-        }
-        if (input.roleIds) {
-            await this.checkActiveUserCanGrantRoles(ctx, input.roleIds);
         }
         if (input.emailAddress) {
             const normalizedEmail = normalizeEmailAddress(input.emailAddress);
@@ -182,29 +188,17 @@ export class AdministratorService {
                 await this.connection.getRepository(ctx, NativeAuthenticationMethod).save(nativeAuthMethod);
             }
         }
+        // Deprecated `roleIds` input (since 4.0.0): replaces the user's Roles on the active
+        // Channel, as deltas through assign / remove. Role changes otherwise go through the
+        // assignRolesToUser / removeRolesFromUser mutations. Remove this branch in v5.0.0.
         if (input.roleIds) {
-            const isSoleSuperAdmin = await this.isSoleSuperadmin(ctx, input.id);
-            if (isSoleSuperAdmin) {
-                const superAdminRole = await this.roleService.getSuperAdminRole(ctx);
-                if (!input.roleIds.find(id => idsAreEqual(id, superAdminRole.id))) {
-                    throw new InternalServerError('error.superadmin-must-have-superadmin-role');
-                }
-            }
-            const removeIds = administrator.user.roles
-                .map(role => role.id)
-                .filter(roleId => (input.roleIds as ID[]).indexOf(roleId) === -1);
-
-            const addIds = (input.roleIds as ID[]).filter(
-                roleId => !administrator.user.roles.some(role => role.id === roleId),
+            await this.roleAssignmentService.replaceRolesOnChannel(
+                ctx,
+                administrator.user.id,
+                input.roleIds,
+                ctx.channelId,
             );
-
-            administrator.user.roles = [];
-            await this.connection.getRepository(ctx, User).save(administrator.user, { reload: false });
-            for (const roleId of input.roleIds) {
-                updatedAdministrator = await this.assignRole(ctx, administrator.id, roleId);
-            }
-            await this.eventBus.publish(new RoleChangeEvent(ctx, updatedAdministrator, addIds, 'assigned'));
-            await this.eventBus.publish(new RoleChangeEvent(ctx, updatedAdministrator, removeIds, 'removed'));
+            updatedAdministrator = await assertFound(this.findOne(ctx, administrator.id));
         }
         await this.customFieldRelationService.updateRelations(
             ctx,
@@ -218,64 +212,54 @@ export class AdministratorService {
 
     /**
      * @description
-     * Checks that the active user is allowed to grant the specified Roles when creating or
-     * updating an Administrator.
-     */
-    private async checkActiveUserCanGrantRoles(ctx: RequestContext, roleIds: ID[]) {
-        const roles = await this.connection.getRepository(ctx, Role).find({
-            where: { id: In(roleIds) },
-            relations: { channels: true },
-        });
-        const permissionsRequired = getChannelPermissions(roles);
-        for (const channelPermissions of permissionsRequired) {
-            const activeUserHasRequiredPermissions = await this.roleService.userHasAllPermissionsOnChannel(
-                ctx,
-                channelPermissions.id,
-                channelPermissions.permissions,
-            );
-            if (!activeUserHasRequiredPermissions) {
-                throw new UserInputError('error.active-user-does-not-have-sufficient-permissions');
-            }
-        }
-    }
-
-    /**
-     * @description
-     * Assigns a Role to the Administrator's User entity.
+     * Assigns a Role to the Administrator's User on the active Channel. The write goes
+     * through {@link RoleAssignmentService.assign}, so the active user must be permitted to
+     * grant the Role on the active Channel and a {@link RoleAssignmentEvent} is published.
      */
     async assignRole(ctx: RequestContext, administratorId: ID, roleId: ID): Promise<Administrator> {
         const administrator = await this.findOne(ctx, administratorId);
         if (!administrator) {
             throw new EntityNotFoundError('Administrator', administratorId);
         }
-        const role = await this.roleService.findOne(ctx, roleId);
-        if (!role) {
-            throw new EntityNotFoundError('Role', roleId);
-        }
-        administrator.user.roles.push(role);
-        await this.connection.getRepository(ctx, User).save(administrator.user, { reload: false });
-        return administrator;
+        await this.roleAssignmentService.assign(ctx, administrator.user.id, [
+            { roleId, channelId: ctx.channelId },
+        ]);
+        return assertFound(this.findOne(ctx, administratorId));
     }
 
     /**
      * @description
-     * Soft deletes an Administrator (sets the `deletedAt` field).
+     * Soft deletes an Administrator (sets the `deletedAt` field) and removes all of its
+     * User's RoleAssignments. The rows go because a deleted Administrator holds nothing:
+     * left in place they would keep counting towards the Channels a Role is assigned on
+     * (see {@link RoleService}), and so keep gating the Role for live administrators. One
+     * `removed` {@link RoleAssignmentEvent} listing the removed assignments is published
+     * ({@link RoleAssignmentService.removeAllAssignmentsForUser}).
      */
     async softDelete(ctx: RequestContext, id: ID) {
         const administrator = await this.connection.getEntityOrThrow(ctx, Administrator, id, {
             relations: ['user'],
         });
-        const isSoleSuperadmin = await this.isSoleSuperadmin(ctx, id);
-        if (isSoleSuperadmin) {
+        if (await this.roleAssignmentService.isSoleSuperAdminHolder(ctx, administrator.user.id)) {
             throw new InternalServerError('error.cannot-delete-sole-superadmin');
         }
         await this.connection.getRepository(ctx, Administrator).update({ id }, { deletedAt: new Date() });
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        await this.roleAssignmentService.removeAllAssignmentsForUser(ctx, administrator.user.id);
         await this.userService.softDelete(ctx, administrator.user.id);
         await this.eventBus.publish(new AdministratorEvent(ctx, administrator, 'deleted', id));
         return {
             result: DeletionResult.DELETED,
         };
+    }
+
+    /**
+     * Guards the overlap of the deprecated `roleIds` input (since 4.0.0) with `roleAssignments`
+     * on creation. Remove in v5.0.0 together with the `roleIds` inputs.
+     */
+    private assertRoleInputsAreExclusive(input: CreateAdministratorInput) {
+        if (input.roleIds && input.roleAssignments) {
+            throw new UserInputError('error.role-ids-and-role-assignments-are-mutually-exclusive');
+        }
     }
 
     private async checkForDuplicateEmailAddress(ctx: RequestContext, emailAddress: string, excludeId?: ID) {
@@ -288,29 +272,6 @@ export class AdministratorService {
         if (existing && (!excludeId || !idsAreEqual(existing.id, excludeId))) {
             throw new UserInputError('error.email-address-already-exists-for-administrator');
         }
-    }
-
-    /**
-     * @description
-     * Resolves to `true` if the administrator ID belongs to the only Administrator
-     * with SuperAdmin permissions.
-     */
-    private async isSoleSuperadmin(ctx: RequestContext, id: ID) {
-        const superAdminRole = await this.roleService.getSuperAdminRole(ctx);
-        const allAdmins = await this.connection.getRepository(ctx, Administrator).find({
-            relations: ['user', 'user.roles'],
-            where: { deletedAt: IsNull() },
-        });
-        const superAdmins = allAdmins.filter(
-            admin => !!admin.user.roles.find(r => idsAreEqual(r.id, superAdminRole.id)),
-        );
-        if (superAdmins.length === 0) {
-            return false;
-        }
-        if (superAdmins.length > 1) {
-            return false;
-        }
-        return idsAreEqual(superAdmins[0].id, id);
     }
 
     /**
@@ -344,10 +305,17 @@ export class AdministratorService {
                 superadminCredentials.identifier,
                 superadminCredentials.password,
             );
-            const { id } = await this.connection.getRepository(ctx, Administrator).save(administrator);
-            const createdAdministrator = await assertFound(this.findOne(ctx, id));
-            createdAdministrator.user.roles.push(superAdminRole);
-            await this.connection.getRepository(ctx, User).save(createdAdministrator.user, { reload: false });
+            await this.connection.getRepository(ctx, Administrator).save(administrator);
+            // Effective permissions are derived at check time from the SuperAdmin permission,
+            // so these rows are not what grants access — assigning on every Channel keeps
+            // assignment reads consistent with that access when the user is seeded on an
+            // instance which already has Channels beyond the default one (e.g. after
+            // superadminCredentials.identifier is changed in the config).
+            await this.roleAssignmentService.assignRoleOnAllChannels(
+                ctx,
+                administrator.user.id,
+                superAdminRole.id,
+            );
         } else {
             const superAdministrator = await this.connection.rawConnection
                 .getRepository(Administrator)

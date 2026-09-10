@@ -14,7 +14,7 @@ import { CachedSession, CachedSessionUser } from '../../../config/session-cache/
 import { Channel } from '../../../entity/channel/channel.entity';
 import { User } from '../../../entity/user/user.entity';
 import { ChannelService } from '../../services/channel.service';
-import { getUserChannelsPermissions } from '../utils/get-user-channels-permissions';
+import { RolePermissionResolver } from '../role-permission-resolver/role-permission-resolver';
 
 /**
  * @description
@@ -28,6 +28,7 @@ export class RequestContextService {
     constructor(
         private channelService: ChannelService,
         private configService: ConfigService,
+        private rolePermissionResolver: RolePermissionResolver,
     ) {}
 
     /**
@@ -58,13 +59,15 @@ export class RequestContextService {
         }
         let session: CachedSession | undefined;
         if (user) {
-            const channelPermissions = user.roles ? getUserChannelsPermissions(user) : [];
+            const { channels: channelPermissions, globalPermissions } =
+                await this.rolePermissionResolver.resolvePermissions(user.id);
             session = {
                 user: {
                     id: user.id,
                     identifier: user.identifier,
                     verified: user.verified,
                     channelPermissions,
+                    ...(globalPermissions.length ? { globalPermissions } : {}),
                 },
                 id: '__dummy_session_id__',
                 token: '__dummy_session_token__',
@@ -166,6 +169,9 @@ export class RequestContextService {
     ): boolean {
         if (!user || !channel) {
             return false;
+        }
+        if (user.globalPermissions && this.arraysIntersect(user.globalPermissions, permissions)) {
+            return true;
         }
         const permissionsOnChannel = user.channelPermissions.find(c => idsAreEqual(c.id, channel.id));
         if (permissionsOnChannel) {

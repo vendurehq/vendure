@@ -76,8 +76,6 @@ class Channel extends VendureEntity {
     shippingMethods: ShippingMethod[];
     @ManyToMany(type => Customer, customer => customer.channels, { onDelete: 'CASCADE' })
     customers: Customer[];
-    @ManyToMany(type => Role, role => role.channels, { onDelete: 'CASCADE' })
-    roles: Role[];
     @ManyToMany(type => StockLocation, stockLocation => stockLocation.channels, { onDelete: 'CASCADE' })
     stockLocations: StockLocation[];
     @ManyToMany(type => ApiKey, apiKey => apiKey.channels, { onDelete: 'CASCADE' })
@@ -222,11 +220,6 @@ out of stock.
 ### customers
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/customer#customer'>Customer</a>[]`}   />
-
-
-### roles
-
-<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/role#role'>Role</a>[]`}   />
 
 
 ### stockLocations

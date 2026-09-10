@@ -45,6 +45,7 @@ import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-build
 import { patchEntity } from '../helpers/utils/patch-entity';
 
 import { GlobalSettingsService } from './global-settings.service';
+import { RoleAssignmentService } from './role-assignment.service';
 /**
  * @description
  * Contains methods relating to {@link Channel} entities.
@@ -63,6 +64,7 @@ export class ChannelService {
         private customFieldRelationService: CustomFieldRelationService,
         private eventBus: EventBus,
         private listQueryBuilder: ListQueryBuilder,
+        private roleAssignmentService: RoleAssignmentService,
     ) {}
 
     /**
@@ -364,6 +366,10 @@ export class ChannelService {
             await this.connection.getRepository(ctx, Channel).save(newChannel);
         }
         await this.customFieldRelationService.updateRelations(ctx, Channel, input, newChannel);
+        // Materialize SuperAdmin assignments on the new Channel so that assignment reads
+        // reflect the access SuperAdmins already have (which is resolved at check time and
+        // does not depend on these rows).
+        await this.roleAssignmentService.assignSuperAdminRoleHoldersToChannel(ctx, newChannel.id);
         await this.allChannels.refresh(ctx);
         await this.eventBus.publish(new ChannelEvent(ctx, newChannel, 'created', input));
         return newChannel;

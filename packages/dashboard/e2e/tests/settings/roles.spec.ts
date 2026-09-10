@@ -3,9 +3,9 @@ import { type Page, expect, test } from '@playwright/test';
 import { BaseDetailPage } from '../../page-objects/detail-page.base.js';
 import { BaseListPage } from '../../page-objects/list-page.base.js';
 
-// Roles have a permissions grid and channel multi-select that don't fit
-// the standard CRUD factory. System roles (SuperAdmin, Customer) have
-// disabled detail links and cannot be edited.
+// Roles have a permissions grid that doesn't fit the standard CRUD factory.
+// System roles (SuperAdmin, RoleEditor) have disabled detail links and cannot
+// be edited.
 
 test.describe('Roles', () => {
     test.describe.configure({ mode: 'serial' });
@@ -45,10 +45,6 @@ test.describe('Roles', () => {
 
         await dp.fillInput('Description', 'E2E Test Role');
         await dp.fillInput('Code', 'e2e-test-role');
-
-        // Select the default channel via the Channels multi-select
-        const channelsCombobox = dp.formItem('Channels').getByRole('combobox');
-        await dp.selectPopoverOption(channelsCombobox, 'Default channel');
 
         // Toggle at least one permission group — find the first "Toggle all" button
         // in the permissions grid and click it to enable that group

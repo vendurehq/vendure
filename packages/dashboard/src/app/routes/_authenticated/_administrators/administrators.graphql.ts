@@ -18,10 +18,6 @@ export const administratorItemFragment = graphql(`
                 updatedAt
                 code
                 description
-                channels {
-                    id
-                    code
-                }
             }
         }
     }
@@ -46,6 +42,23 @@ export const administratorDetailDocument = graphql(
         query AdministratorDetail($id: ID!) {
             administrator(id: $id) {
                 ...AdministratorItem
+                user {
+                    id
+                    roleAssignments {
+                        id
+                        roleId
+                        channelId
+                        role {
+                            id
+                            code
+                            description
+                        }
+                        channel {
+                            id
+                            code
+                        }
+                    }
+                }
                 customFields
             }
         }
@@ -83,6 +96,22 @@ export const deleteAdministratorsDocument = graphql(`
         deleteAdministrators(ids: $ids) {
             result
             message
+        }
+    }
+`);
+
+export const assignRolesToUserDocument = graphql(`
+    mutation AssignRolesToUser($input: AssignRolesToUserInput!) {
+        assignRolesToUser(input: $input) {
+            id
+        }
+    }
+`);
+
+export const removeRolesFromUserDocument = graphql(`
+    mutation RemoveRolesFromUser($input: RemoveRolesFromUserInput!) {
+        removeRolesFromUser(input: $input) {
+            id
         }
     }
 `);

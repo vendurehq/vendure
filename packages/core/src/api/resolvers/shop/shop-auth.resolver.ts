@@ -35,6 +35,7 @@ import { NativeAuthStrategyError } from '../../../common/error/generated-graphql
 import { NATIVE_AUTH_STRATEGY_NAME } from '../../../config/auth/native-authentication-strategy';
 import { ConfigService } from '../../../config/config.service';
 import { Logger } from '../../../config/logger/vendure-logger';
+import { RolePermissionResolver } from '../../../service/helpers/role-permission-resolver/role-permission-resolver';
 import { AdministratorService } from '../../../service/services/administrator.service';
 import { ApiKeyService } from '../../../service/services/api-key.service';
 import { AuthService } from '../../../service/services/auth.service';
@@ -56,10 +57,18 @@ export class ShopAuthResolver extends BaseAuthResolver {
         administratorService: AdministratorService,
         configService: ConfigService,
         apiKeyService: ApiKeyService,
+        rolePermissionResolver: RolePermissionResolver,
         protected customerService: CustomerService,
         protected historyService: HistoryService,
     ) {
-        super(authService, userService, administratorService, configService, apiKeyService);
+        super(
+            authService,
+            userService,
+            administratorService,
+            configService,
+            apiKeyService,
+            rolePermissionResolver,
+        );
     }
 
     @Transaction()

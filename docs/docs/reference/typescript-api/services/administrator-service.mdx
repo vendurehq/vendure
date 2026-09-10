@@ -2,13 +2,13 @@
 title: "AdministratorService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/administrator.service.ts" sourceLine="42" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/administrator.service.ts" sourceLine="40" packageName="@vendure/core" />
 
 Contains methods relating to [Administrator](/reference/typescript-api/entities/administrator#administrator) entities.
 
 ```ts title="Signature"
 class AdministratorService {
-    constructor(connection: TransactionalConnection, configService: ConfigService, listQueryBuilder: ListQueryBuilder, passwordCipher: PasswordCipher, userService: UserService, roleService: RoleService, customFieldRelationService: CustomFieldRelationService, eventBus: EventBus, requestContextService: RequestContextService)
+    constructor(connection: TransactionalConnection, configService: ConfigService, listQueryBuilder: ListQueryBuilder, passwordCipher: PasswordCipher, userService: UserService, roleService: RoleService, roleAssignmentService: RoleAssignmentService, customFieldRelationService: CustomFieldRelationService, eventBus: EventBus, requestContextService: RequestContextService)
     findAll(ctx: RequestContext, options?: ListQueryOptions<Administrator>, relations?: RelationPaths<Administrator>) => Promise<PaginatedList<Administrator>>;
     findOne(ctx: RequestContext, administratorId: ID, relations?: RelationPaths<Administrator>) => Promise<Administrator | undefined>;
     findOneByUserId(ctx: RequestContext, userId: ID, relations?: RelationPaths<Administrator>) => Promise<Administrator | undefined>;
@@ -50,12 +50,19 @@ Update an existing Administrator.
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, administratorId: <a href='/reference/typescript-api/common/id#id'>ID</a>, roleId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a>>`}   />
 
-Assigns a Role to the Administrator's User entity.
+Assigns a Role to the Administrator's User on the active Channel. The write goes
+through `RoleAssignmentService.assign`, so the active user must be permitted to
+grant the Role on the active Channel and a [RoleAssignmentEvent](/reference/typescript-api/events/event-types#roleassignmentevent) is published.
 ### softDelete
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, id: <a href='/reference/typescript-api/common/id#id'>ID</a>) => `}   />
 
-Soft deletes an Administrator (sets the `deletedAt` field).
+Soft deletes an Administrator (sets the `deletedAt` field) and removes all of its
+User's RoleAssignments. The rows go because a deleted Administrator holds nothing:
+left in place they would keep counting towards the Channels a Role is assigned on
+(see [RoleService](/reference/typescript-api/services/role-service#roleservice)), and so keep gating the Role for live administrators. One
+`removed` [RoleAssignmentEvent](/reference/typescript-api/events/event-types#roleassignmentevent) listing the removed assignments is published
+(`RoleAssignmentService.removeAllAssignmentsForUser`).
 
 
 </div>
