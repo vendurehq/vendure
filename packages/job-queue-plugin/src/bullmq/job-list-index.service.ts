@@ -201,15 +201,29 @@ export class JobListIndexService {
                     continue;
                 }
                 try {
-                    const jobs = await this.queue.getJobs([state], 0, counts[state]);
-                    if (!jobs) {
-                        Logger.error(`getJobs returned undefined for state ${state}`, loggerCtx);
-                        continue;
+                    // Snapshot IDs, then read only the metadata needed for indexing. Loading full
+                    // jobs here deserializes every retained payload and can exhaust the worker heap.
+                    const queue = this.queue;
+                    const jobIds = await queue.getRanges([state], 0, counts[state]);
+                    const jobs: Array<Pick<Job, 'id' | 'name' | 'timestamp'>> = [];
+                    for (let i = 0; i < jobIds.length; i += this.BATCH_SIZE) {
+                        const batch = jobIds.slice(i, i + this.BATCH_SIZE);
+                        const metadata = await Promise.all(
+                            batch.map(id => this.redis.hmget(queue.toKey(id), 'name', 'timestamp')),
+                        );
+                        for (let j = 0; j < batch.length; j++) {
+                            const [name, timestamp] = metadata[j];
+                            // Jobs may have been removed since their IDs were read.
+                            if (name == null || timestamp == null || !Number.isFinite(Number(timestamp))) {
+                                continue;
+                            }
+                            jobs.push({ id: batch[j], name, timestamp: Number(timestamp) });
+                        }
                     }
                     Logger.debug(`Retrieved ${jobs.length} jobs for state ${state}`, loggerCtx);
 
                     // Group jobs by queue name
-                    const jobsByQueue = new Map<string, Job[]>();
+                    const jobsByQueue = new Map<string, Array<Pick<Job, 'id' | 'name' | 'timestamp'>>>();
                     for (const job of jobs) {
                         if (!job) {
                             Logger.error('Null job found in results', loggerCtx);
