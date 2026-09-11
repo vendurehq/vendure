@@ -140,6 +140,13 @@ test('labels a published dependency range edit as a contract change', () => {
 
     assert.deepEqual(appliedLabels(calls), ['deps: contract change']);
     assert.match(output, /1 contract, 0 other/);
+    const body = calls
+        .find(args => args[1] === 'repos/vendurehq/vendure/issues/42/comments' && args.includes('POST'))
+        .find(arg => arg.startsWith('body='));
+    assert.match(
+        body,
+        /\| `graphql` \| packages&#47;core \/ dependencies \| `\^16\.0\.0` -> `\^17\.0\.0` \|/,
+    );
 });
 
 test('labels lockfile and private manifest edits as having no contract change', () => {
@@ -265,12 +272,10 @@ test('escapes untrusted dependency names and ranges in the report table', () => 
     );
     const body = commentCall.find(arg => arg.startsWith('body='));
 
-    // A backtick cannot be escaped inside a code span, so a name carrying one drops out of the
-    // span and is entity-escaped as plain text instead.
-    assert.match(body, /unsafe&#124;&#96;name/);
-    // A range without a backtick keeps its code span, where a pipe escapes with a backslash and
-    // an entity would only render as itself.
-    assert.match(body, /`\^2\.0\.0 \\\| forged \\\| row \\\|`/);
+    // Pipes and backticks take the fully entity-escaped HTML route, preserving code styling
+    // without leaving any partial Markdown escaping.
+    assert.match(body, /<code>unsafe&#124;&#96;name<\/code>/);
+    assert.match(body, /<code>&#94;2&#46;0&#46;0 &#124; forged &#124; row &#124;<\/code>/);
     assert.doesNotMatch(body, /\n\| forged \| row \|/);
 });
 
@@ -305,10 +310,11 @@ test('takes a range carrying a backslash out of the code span', () => {
     assert.match(body, /&#91;maintainer&#93;&#40;https&#58;&#47;&#47;example&#46;com&#41;/);
     assert.match(body, /&#33;&#91;tracker&#93;&#40;https&#58;&#47;&#47;example&#46;com&#47;pixel&#46;png&#41;/);
     assert.match(body, /&#64;michaelbromley &#35;123/);
+    assert.match(body, /<code>.*<\/code>/);
     assert.doesNotMatch(body, /\[maintainer\]\(|!\[tracker\]\(|@michaelbromley|#123/);
 });
 
-test('renders a comparator range as written rather than as HTML entities', () => {
+test('renders a comparator range through fully escaped HTML code', () => {
     const filePath = 'packages/dashboard/package.json';
     const { calls } = runClassifier({
         files: [filePath],
@@ -327,9 +333,11 @@ test('renders a comparator range as written rather than as HTML entities', () =>
         .find(args => args[1] === 'repos/vendurehq/vendure/issues/42/comments' && args.includes('POST'))
         .find(arg => arg.startsWith('body='));
 
-    // GFM does not decode an entity inside a code span, so any of these would display verbatim.
-    assert.doesNotMatch(body, /&#124;|&gt;|&lt;|&#96;/);
-    assert.match(body, /`\^3\.25\.0 \\\|\\\| \^4\.0\.0` -> `>=3\.25\.0 <5`/);
+    assert.match(
+        body,
+        /<code>&#94;3&#46;25&#46;0 &#124;&#124; &#94;4&#46;0&#46;0<\/code> -> `>=3\.25\.0 <5`/,
+    );
+    assert.doesNotMatch(body, /\\\|/);
 });
 
 test('counts a peerDependencies change in a published package as a contract change', () => {

@@ -351,20 +351,18 @@ function formatRange({ from, to }) {
 /**
  * Renders one value inside a table cell code span. GFM treats an HTML entity inside a code span as
  * literal text, so entity-escaping a range would display `&gt;=16.0.0 &#124;&#124; ^17.0.0` rather
- * than `>=16.0.0 || ^17.0.0`, and `||` is ordinary in a peer range. Inside a code span the only
- * hazards are the table's own pipe, which escapes with a backslash, and the span's own backtick,
- * which cannot be escaped at all. A value carrying a backtick falls back to entity-escaped plain
- * text so it cannot create links, images, mentions or other active Markdown in the bot's report.
+ * than `>=16.0.0 || ^17.0.0`, and `||` is ordinary in a peer range. Values containing a pipe,
+ * backslash or backtick use an HTML code element with fully entity-escaped text. This avoids a
+ * partial Markdown-escaping path while preserving both the displayed value and code styling.
  */
 function codeCell(value) {
     const text = String(value).replace(/\r?\n/g, ' ');
-    // A backtick cannot be escaped inside a code span at all. A backslash cannot be escaped inside
-    // one either, so it would survive to sit in front of the pipe escape below and consume it,
-    // putting a bare pipe back into the row. Either character falls back to escaped plain text.
-    if (text.includes('`') || text.includes('\\')) {
-        return escapeMarkdown(text);
+    // A backtick cannot be escaped inside a code span. Pipes and backslashes interact with the
+    // table parser, so all three take the fully entity-escaped HTML route.
+    if (/[|`\\]/.test(text)) {
+        return `<code>${escapeMarkdown(text)}</code>`;
     }
-    return `\`${text.replace(/\|/g, '\\|')}\``;
+    return `\`${text}\``;
 }
 
 function escapeMarkdown(value) {
