@@ -61,8 +61,9 @@ const PLUGIN_HEADING = /^((?:Commands|Options) from )(.+)(:)$/;
  * heading's package name is cyan as well.
  *
  * Colour is decoration only: the heading names the package in words, so a
- * monochrome terminal loses nothing. Commander strips the escape codes when
- * the output is not a terminal or NO_COLOR is set.
+ * monochrome terminal loses nothing. Commander strips the escape codes when it
+ * detects no colour support, which covers a pipe or a file unless FORCE_COLOR
+ * is set, and covers NO_COLOR whatever the output is.
  */
 export function styleHelpTitle(title: string, colors: HeadingColors = pc): string {
     const match = PLUGIN_HEADING.exec(title);
@@ -71,13 +72,13 @@ export function styleHelpTitle(title: string, colors: HeadingColors = pc): strin
     }
     const [, label, packageName, colon] = match;
     // Nested, not concatenated: styling the parts separately closes the bold
-    // run before the tint opens, leaving the package name at normal weight.
+    // run before the cyan one opens, leaving the package name at normal weight.
     return colors.bold(label + colors.cyan(packageName) + colon);
 }
 
 /**
- * Defaults to picocolors, which emits nothing unless the terminal supports
- * colour, so a test passes `createColors(true)` to see the escape codes.
+ * Defaults to picocolors, which emits nothing unless it detects colour
+ * support, so a test passes `createColors(true)` to see the escape codes.
  */
 export type HeadingColors = Pick<typeof pc, 'bold' | 'cyan'>;
 
@@ -239,7 +240,6 @@ function declareOptions(command: Command, entries: RootOptionEntry[]): SharedOpt
     return declared;
 }
 
-/** Declares one option on a command and records it for descendants to read. */
 function declareOption(
     command: Command,
     option: CliCommandOption,

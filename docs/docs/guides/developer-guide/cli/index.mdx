@@ -558,10 +558,10 @@ Declare the entry point in that package's `package.json`:
 }
 ```
 
-The optional `cliCommands` list is what the CLI can read without loading the
-plugin. It uses it to give an actionable error for an unknown command, and to
-say what an installed but not yet enabled package would add when you run
-`vendure plugins`. Once a plugin is enabled the CLI reads its commands from the
+The CLI can read the optional `cliCommands` list without loading the plugin.
+It uses the list to give an actionable error for an unknown command, and to say
+what an installed but not yet enabled package would add when you run `vendure
+plugins`. Once a plugin is enabled the CLI reads its commands from the
 plugin itself, so this list only has to be right for a package that is not
 enabled yet.
 

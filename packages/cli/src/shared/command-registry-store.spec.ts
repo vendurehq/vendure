@@ -1125,8 +1125,9 @@ describe('resolveCliPlugins()', () => {
         expect(withValidation[0].reason).toMatch(/must provide an action function/);
     });
 
-    // `vendure.cliCommands` is hand-maintained, so it drifts. An enabled
-    // plugin is loaded anyway, and what it actually registers is the truth.
+    // `vendure.cliCommands` is hand-maintained, so it can disagree with what
+    // the plugin registers. An enabled plugin is loaded anyway, so the names
+    // are read from the plugin.
     it('reads the commands of an enabled plugin from the plugin itself', () => {
         const fixture = makeTempProject({
             project: {

@@ -213,9 +213,9 @@ export class CommandRegistry {
      * name-keyed map of sources, so the two cannot disagree about which
      * commands exist.
      *
-     * A source is only ever recorded against a top-level command, so a
-     * subcommand does not carry one: it is only shown in the help of the
-     * command it is nested under, which already says where that came from.
+     * A source is only ever recorded against a top-level command. A subcommand
+     * appears only in the help of the command it is nested under, and that
+     * command's heading already names the package.
      *
      * `extendCommands` does not set a source either, so a built-in that a
      * plugin has extended stays listed as a built-in. The command is still the

@@ -229,14 +229,14 @@ function statusHint(plugin: DiscoveredCliPlugin): string {
     }
 }
 
-/** A hint shares one line with the package name, so it cannot list 22 commands. */
+/** How many commands a hint can name beside the package on one line. */
 const MAX_COMMANDS_IN_HINT = 6;
 
 /**
  * The commands a package contributes, appended to its status so the picker
  * says what enabling or disabling it would change. Cut off at
- * {@link MAX_COMMANDS_IN_HINT}, unlike the full list `printTextList` writes,
- * which has a line of its own.
+ * {@link MAX_COMMANDS_IN_HINT}. `printTextList` writes the full list, which
+ * has a line of its own.
  */
 function withCommands(status: string, plugin: DiscoveredCliPlugin): string {
     const commands = cliPluginCommandNames(plugin);
@@ -259,8 +259,8 @@ function printTextList(plugins: DiscoveredCliPlugin[]): void {
         process.stdout.write(`${plugin.packageName}\t${plugin.status}${detail}\n`);
         const commands = cliPluginCommandNames(plugin);
         if (commands.length > 0) {
-            // Indented under its package, so the tab-separated first line of
-            // each plugin stays as it was for anything reading this output.
+            // Indented under its package, so each plugin's first line stays a
+            // single tab-separated record for anything parsing this output.
             process.stdout.write(`\tcommands: ${commands.join(', ')}\n`);
         }
     }

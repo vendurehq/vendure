@@ -483,9 +483,9 @@ for plugin authors; this file covers what a contributor to the CLI itself needs.
   in the `Global Options:` section, which Commander builds as one flat list
   whatever group the options are in, so it mixes the CLI's own with a plugin's.
   Grouping it would mean overriding `Help#formatHelp` and owning a copy of
-  Commander's layout. Top-level commands are grouped for the same reason in
-  reverse: a subcommand only ever appears in the help of the command it is
-  nested under, which already says where that came from.
+  Commander's layout. Only top-level commands need a group: a subcommand
+  appears only in the help of the command it is nested under, and that
+  command's heading already names the package.
 - **A sub-option is grouped with its parent**, since the help lists it indented
   under the parent. Splitting them would leave the indented line under nothing.
 - **Nothing validates the built-in command definitions at runtime.** A plugin

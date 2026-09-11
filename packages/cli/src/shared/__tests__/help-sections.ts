@@ -2,10 +2,10 @@
  * The body of one help section: everything from `heading` up to the blank line
  * that ends it.
  *
- * Lets a test say which section something is listed in, which neither
- * `toContain` over the whole screen nor comparing string offsets can do —
- * `indexOf` returns -1 for text that is absent, and -1 is less than every
- * offset, so an ordering assertion passes when the text is missing entirely.
+ * Lets a test say which section something is listed in. `toContain` over the
+ * whole screen cannot say that. Comparing string offsets passes when the text
+ * is absent, because `indexOf` returns -1 and -1 sorts below every real
+ * offset.
  *
  * Returns an empty string when the heading is absent, so an assertion about
  * the section's contents fails rather than passing by accident.

@@ -8,13 +8,16 @@ describe('builtinCommandDefs', () => {
     /**
      * Holds the built-ins to the rules every plugin is already held to.
      *
-     * A plugin is validated by `assertCliPlugin` when it loads, so a plugin
-     * that declares one flag twice is rejected by name. Nothing validates the
-     * built-ins, so the same mistake reached Commander instead — which accepted
-     * it until v11 and throws from v13 onwards, failing the whole CLI at
-     * startup rather than the one command. `vendure add` had exactly that: it
-     * declared `--selected-plugin` under both `-e` and `-s`, and
-     * `--selected-service` under both `-j` and `-a`.
+     * `assertCliPlugin` validates a plugin when it loads, so a plugin that
+     * declares one flag twice is rejected by name. Nothing validates the
+     * built-ins, so the same mistake reaches Commander instead. Commander
+     * accepts a repeated flag up to v11 and throws from v13. The throw happens
+     * while a built-in is registered, so every `vendure` command fails at
+     * startup, not just the one that declared the flag.
+     *
+     * One sub-option declared under two parent options is how a built-in gets
+     * there: every sub-option is flattened onto the same command, so the flag
+     * arrives twice.
      */
     it('satisfies the rules a CLI plugin is validated against', () => {
         expect(() => assertCliPlugin({ id: 'builtins', commands: builtinCommandDefs })).not.toThrow();

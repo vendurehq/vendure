@@ -738,20 +738,18 @@ describe('styleHelpTitle()', () => {
         const styled = style('Commands from @vendure/cloud:');
 
         expect(styled).toContain(`${CYAN_ON}@vendure/cloud`);
-        // The label and the colon are outside the tint, so only the package
-        // name carries the hue.
+        // The label and the colon are outside the cyan run, so only the
+        // package name is coloured.
         expect(styled).not.toContain(`${CYAN_ON}Commands from`);
     });
 
-    // The thing a reader notices first is a change in weight, so a heading
-    // that is bold in one part and not another reads as two things.
     it('keeps one weight across the whole plugin heading', () => {
         const styled = style('Options from @vendure/cloud:');
 
         expect(styled.startsWith(BOLD_ON)).toBe(true);
         expect(styled.endsWith(BOLD_OFF)).toBe(true);
-        // One bold span, not one per fragment: a `bold off` in the middle is
-        // exactly what makes the tinted part look thinner than the rest.
+        // One bold span, not one per fragment: a `bold off` in the middle
+        // leaves the rest of the heading at normal weight.
         expect(styled.split(BOLD_OFF)).toHaveLength(2);
         expect(styled.split(BOLD_ON)).toHaveLength(2);
     });

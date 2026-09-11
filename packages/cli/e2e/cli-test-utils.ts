@@ -31,10 +31,11 @@ export interface CliCommandResult {
  * Removes ANSI escape codes.
  *
  * Whether the CLI colours its output depends on the environment it is spawned
- * in, not on the command: Vitest exports FORCE_COLOR to child processes when
- * its own output is coloured, which it is when the suite runs through Lerna in
- * CI but not when it runs in the package directly. A test asserting on what the
- * CLI said should not pass or fail on that.
+ * in, not on the command. Vitest exports FORCE_COLOR to child processes when
+ * its own output is coloured. Its output is coloured when the suite runs
+ * through Lerna and plain when it runs in the package directly, so one command
+ * gives different bytes depending on how the suite was started. A test
+ * asserting on what the CLI said should not turn on that.
  */
 function stripAnsi(text: string): string {
     // eslint-disable-next-line no-control-regex
