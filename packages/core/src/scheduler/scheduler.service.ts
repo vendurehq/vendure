@@ -66,7 +66,7 @@ export class SchedulerService implements OnApplicationBootstrap, OnApplicationSh
             } else {
                 if (this.shouldRunTasks) {
                     const schedule = cronstrue.toString(pattern);
-                    const timezone = this.getTimezone(task);
+                    const timezone = getScheduleTimezone(task, this.configService.schedulerOptions);
                     Logger.info(
                         `Registered scheduled task: ${task.id} - ${schedule}${timezone ? ` (${timezone})` : ''}`,
                     );
@@ -147,17 +147,13 @@ export class SchedulerService implements OnApplicationBootstrap, OnApplicationSh
             description: task.options.description ?? '',
             schedule: pattern ?? 'unknown',
             scheduleDescription: pattern ? cronstrue.toString(pattern) : 'unknown',
-            timezone: this.getTimezone(task) ?? null,
+            timezone: job.options.timezone ?? null,
             lastExecutedAt: taskReport.lastExecutedAt,
             nextExecutionAt: job.nextRun(),
             isRunning: taskReport.isRunning,
             lastResult: taskReport.lastResult,
             enabled: taskReport.enabled,
         };
-    }
-
-    private getTimezone(task: ScheduledTask): string | undefined {
-        return getScheduleTimezone(task, this.configService.schedulerOptions);
     }
 
     private createCronJob(task: ScheduledTask) {
@@ -181,7 +177,7 @@ export class SchedulerService implements OnApplicationBootstrap, OnApplicationSh
             {
                 name: task.id,
                 protect: task.options.preventOverlap ? protectCallback : undefined,
-                timezone: this.getTimezone(task),
+                timezone: getScheduleTimezone(task, this.configService.schedulerOptions),
             },
             () => {
                 if (this.shouldRunTasks) {

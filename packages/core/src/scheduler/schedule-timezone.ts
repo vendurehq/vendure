@@ -34,7 +34,7 @@ function assertValidTimezone(timezone: string | undefined, source: string): void
     try {
         // Throws a RangeError for unknown timezone identifiers. croner resolves
         // timezones through Intl too, so it accepts exactly what this accepts.
-        Intl.DateTimeFormat('en-US', { timeZone: trimmed });
+        Intl.DateTimeFormat(undefined, { timeZone: trimmed });
     } catch {
         throw new Error(
             `Invalid timezone "${trimmed}" configured for ${source}. ` +

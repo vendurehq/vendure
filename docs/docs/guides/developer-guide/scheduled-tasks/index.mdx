@@ -261,12 +261,11 @@ export const config: VendureConfig = {
 };
 ```
 
-With a timezone configured, schedules follow local wall-clock time, including daylight saving time transitions,
-whatever the process timezone is. This lets the process run in UTC, which keeps database timestamps consistent,
-while tasks still run at a fixed local time.
+With a timezone configured, schedules follow wall-clock time in that timezone, including daylight saving time
+transitions. The process timezone no longer affects when a task runs. The process can therefore stay on `TZ=UTC`,
+which is what Vendure expects for correct timestamp persistence, while tasks run at a fixed local time.
 
-An identifier the runtime does not recognise fails at startup with an error naming the option or task that
-carries it.
+An invalid identifier throws at startup. The error names the option or task holding it.
 
 ## How scheduled tasks work
 

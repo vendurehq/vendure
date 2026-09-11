@@ -1,5 +1,7 @@
-// `ScheduledTask` imports DI tokens from the config module, so the config module must
-// be evaluated first, as it is by the package entry point.
+// Breaks a module cycle: `scheduled-task.ts` pulls in the service layer, which reaches
+// `default-config`, which constructs `cleanSessionsTask` from the still-initialising
+// `scheduled-task` module. Without this import first, that construction fails with
+// "ScheduledTask is not a constructor". The package entry point loads them in this order.
 import '../../config/default-config';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
