@@ -1,5 +1,3 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
 // `default-config` must be evaluated before the ScheduledTask module chain,
 // because it instantiates ScheduledTask at module scope and the ScheduledTask
 // module's own imports lead back into the config module. This mirrors the
@@ -7,20 +5,23 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // runtime, so a side-effect import is required.
 import '../../config/default-config';
 
-import type { ConfigService } from '../../config/config.service';
-import type { TransactionalConnection } from '../../connection/transactional-connection';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ScheduledTask } from '../../scheduler/scheduled-task';
 
 import { StaleTaskService } from './stale-task.service';
+
+// Derived from the constructor so the mocks stay in step with the real signatures.
+type ConnectionArg = ConstructorParameters<typeof StaleTaskService>[0];
+type ConfigServiceArg = ConstructorParameters<typeof StaleTaskService>[1];
 
 function createService(globalTimezone?: string) {
     const configService = {
         schedulerOptions: {
             timezone: globalTimezone,
         },
-    } as unknown as ConfigService;
-    return new StaleTaskService({} as TransactionalConnection, configService);
+    } as unknown as ConfigServiceArg;
+    return new StaleTaskService({} as ConnectionArg, configService);
 }
 
 function createTask(id: string, schedule: string, timezone?: string) {

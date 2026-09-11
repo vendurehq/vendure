@@ -4,7 +4,7 @@ generated: true
 ---
 ## ScheduledTask
 
-<GenerationInfo sourceFile="packages/core/src/scheduler/scheduled-task.ts" sourceLine="133" packageName="@vendure/core" since="3.3.0" />
+<GenerationInfo sourceFile="packages/core/src/scheduler/scheduled-task.ts" sourceLine="131" packageName="@vendure/core" since="3.3.0" />
 
 Use this class to define a scheduled task that will be executed at a given cron schedule.
 
@@ -28,9 +28,7 @@ class ScheduledTask<C extends Record<string, any> = Record<string, any>> {
     id: void
     options: void
     execute(injector: Injector) => ;
-    configure(additionalConfig: Partial<
-            Pick<ScheduledTaskConfig<C>, 'schedule' | 'timezone' | 'timeout' | 'params'>
-        >) => ;
+    configure(config: Partial<Pick<ScheduledTaskConfig<C>, 'schedule' | 'timezone' | 'timeout' | 'params'>>) => ;
 }
 ```
 
@@ -53,7 +51,7 @@ class ScheduledTask<C extends Record<string, any> = Record<string, any>> {
 
 ### configure
 
-<MemberInfo kind="method" type={`(additionalConfig: Partial<             Pick<<a href='/reference/typescript-api/scheduled-tasks/scheduled-task#scheduledtaskconfig'>ScheduledTaskConfig</a><C>, 'schedule' | 'timezone' | 'timeout' | 'params'>         >) => `}   />
+<MemberInfo kind="method" type={`(config: Partial<Pick<<a href='/reference/typescript-api/scheduled-tasks/scheduled-task#scheduledtaskconfig'>ScheduledTaskConfig</a><C>, 'schedule' | 'timezone' | 'timeout' | 'params'>>) => `}   />
 
 This method allows you to further configure existing scheduled tasks. For example, you may
 wish to change the schedule or timeout of a task, without having to define a new task.
@@ -172,10 +170,8 @@ expression.
 
 The IANA timezone identifier (e.g. `'Europe/Stockholm'`, `'America/New_York'`) in which
 the cron schedule of this task is evaluated. Takes precedence over the global
-`schedulerOptions.timezone` setting.
-
-When neither is set, the cron expression is evaluated in the timezone of the
-Node.js process.
+`schedulerOptions.timezone` setting. When neither is set, the cron expression is
+evaluated in the timezone of the Node.js process.
 ### timeout
 
 <MemberInfo kind="property" type={`number | string`} default={`60_000ms`}   />

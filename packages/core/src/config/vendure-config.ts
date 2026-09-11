@@ -1223,10 +1223,10 @@ export interface SchedulerOptions {
      * the cron schedules of all scheduled tasks are evaluated. Individual tasks can override
      * this via the `timezone` property of {@link ScheduledTaskConfig}.
      *
-     * When not set, cron expressions are evaluated in the timezone of the Node.js process
-     * (as determined by the `TZ` environment variable), which preserves the behaviour of
-     * prior versions. Setting this option allows the process to run in UTC while schedules
-     * still follow local wall-clock time, including daylight saving time transitions.
+     * When not set, cron expressions are evaluated in the timezone of the Node.js process,
+     * as determined by the `TZ` environment variable. Setting this option allows the process
+     * to run in UTC while schedules still follow local wall-clock time, including daylight
+     * saving time transitions.
      *
      * @since 3.8.0
      * @default undefined

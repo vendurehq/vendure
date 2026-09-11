@@ -18,6 +18,7 @@ export interface TaskInfo {
     description: string;
     schedule: string;
     scheduleDescription: string;
+    timezone: string | null;
     lastExecutedAt: Date | null;
     nextExecutionAt: Date | null;
     isRunning: boolean;
@@ -43,6 +44,13 @@ export class SchedulerService implements OnApplicationBootstrap, OnApplicationSh
     ) {}
 
     onApplicationBootstrap() {
+        const scheduledTasks = this.configService.schedulerOptions.tasks ?? [];
+        for (const task of scheduledTasks) {
+            const timezone = this.getTimezone(task);
+            if (timezone) {
+                assertValidTimezone(timezone, task.id);
+            }
+        }
         const schedulerStrategy = this.configService.schedulerOptions.schedulerStrategy;
         if (!schedulerStrategy || schedulerStrategy instanceof NoopSchedulerStrategy) {
             Logger.warn('No scheduler strategy is configured! Scheduled tasks will not be executed.');
@@ -54,7 +62,6 @@ export class SchedulerService implements OnApplicationBootstrap, OnApplicationSh
         this.shouldRunTasks =
             this.configService.schedulerOptions.runTasksInWorkerOnly === false ||
             this.processContext.isWorker;
-        const scheduledTasks = this.configService.schedulerOptions.tasks ?? [];
 
         for (const task of scheduledTasks) {
             const job = this.createCronJob(task);
@@ -64,7 +71,7 @@ export class SchedulerService implements OnApplicationBootstrap, OnApplicationSh
             } else {
                 if (this.shouldRunTasks) {
                     const schedule = cronstrue.toString(pattern);
-                    const timezone = getScheduleTimezone(task, this.configService.schedulerOptions);
+                    const timezone = this.getTimezone(task);
                     Logger.info(
                         `Registered scheduled task: ${task.id} - ${schedule}${timezone ? ` (${timezone})` : ''}`,
                     );
@@ -140,19 +147,22 @@ export class SchedulerService implements OnApplicationBootstrap, OnApplicationSh
         }
 
         const pattern = job.getPattern();
-        const timezone = getScheduleTimezone(task, this.configService.schedulerOptions);
-        const timezoneSuffix = timezone ? ` (${timezone})` : '';
         return {
             id: taskReport.id,
             description: task.options.description ?? '',
             schedule: pattern ?? 'unknown',
-            scheduleDescription: pattern ? `${cronstrue.toString(pattern)}${timezoneSuffix}` : 'unknown',
+            scheduleDescription: pattern ? cronstrue.toString(pattern) : 'unknown',
+            timezone: this.getTimezone(task) ?? null,
             lastExecutedAt: taskReport.lastExecutedAt,
             nextExecutionAt: job.nextRun(),
             isRunning: taskReport.isRunning,
             lastResult: taskReport.lastResult,
             enabled: taskReport.enabled,
         };
+    }
+
+    private getTimezone(task: ScheduledTask): string | undefined {
+        return getScheduleTimezone(task, this.configService.schedulerOptions);
     }
 
     private createCronJob(task: ScheduledTask) {
@@ -171,17 +181,12 @@ export class SchedulerService implements OnApplicationBootstrap, OnApplicationSh
                 ? task.options.schedule(CronTime)
                 : task.options.schedule;
 
-        const timezone = getScheduleTimezone(task, this.configService.schedulerOptions);
-        if (timezone != null) {
-            assertValidTimezone(timezone, task.id);
-        }
-
         const job = new Cron(
             schedule,
             {
                 name: task.id,
                 protect: task.options.preventOverlap ? protectCallback : undefined,
-                timezone,
+                timezone: this.getTimezone(task),
             },
             () => {
                 if (this.shouldRunTasks) {

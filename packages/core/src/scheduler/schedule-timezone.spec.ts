@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import type { ScheduledTask } from './scheduled-task';
 
 import { assertValidTimezone, getScheduleTimezone } from './schedule-timezone';
+
+type TaskArg = Parameters<typeof getScheduleTimezone>[0];
 
 function createTask(timezone?: string) {
     // A stub is used rather than a real ScheduledTask instance to keep this
     // spec free of the service imports that the ScheduledTask module pulls in.
-    return { id: 'test-task', options: { schedule: '0 2 * * *', timezone } } as unknown as ScheduledTask;
+    return { id: 'test-task', options: { schedule: '0 2 * * *', timezone } } as unknown as TaskArg;
 }
 
 describe('getScheduleTimezone()', () => {
@@ -37,6 +38,13 @@ describe('getScheduleTimezone()', () => {
     it('treats a blank global timezone as unset', () => {
         expect(getScheduleTimezone(createTask(), { timezone: '' })).toBeUndefined();
         expect(getScheduleTimezone(createTask('   '), { timezone: ' ' })).toBeUndefined();
+    });
+
+    it('trims surrounding whitespace', () => {
+        expect(getScheduleTimezone(createTask(' Europe/Stockholm '), {})).toBe('Europe/Stockholm');
+        expect(getScheduleTimezone(createTask(), { timezone: ' Europe/Stockholm ' })).toBe(
+            'Europe/Stockholm',
+        );
     });
 });
 

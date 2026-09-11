@@ -23,9 +23,6 @@ import { ScheduledTaskRecord } from './scheduled-task-record.entity';
 @Injectable()
 @Instrument()
 export class StaleTaskService {
-    // Cache the interval for each taskId
-    private taskIntervalMap = new Map<string, number>();
-
     constructor(
         private connection: TransactionalConnection,
         private configService: ConfigService,
@@ -69,14 +66,12 @@ export class StaleTaskService {
      * Returns the interval in ms between one run of the task, and the next.
      */
     getScheduleIntervalMs(task: ScheduledTask): number {
-        const cachedInterval = this.taskIntervalMap.get(task.id);
-        if (cachedInterval) {
-            return cachedInterval;
-        }
+        // Not cached: the interval between two runs varies across daylight saving
+        // transitions, so it is recomputed from the current time on each call.
         const schedule = task.options.schedule;
         const scheduleString = typeof schedule === 'function' ? schedule(CronTime) : schedule;
-        // Use the same timezone as the SchedulerService does when constructing the
-        // actual cron job, so that the computed interval matches the real job cadence.
+        // Same timezone as the SchedulerService uses for the actual cron job, so that
+        // the computed interval matches the real job cadence.
         const timezone = getScheduleTimezone(task, this.configService.schedulerOptions);
         const cron = new Cron(scheduleString, { timezone });
         const nextFn: (d?: Date) => Date | null | undefined =
@@ -91,9 +86,7 @@ export class StaleTaskService {
         if (!next2) {
             throw new Error('Could not compute next run times');
         }
-        const interval = next2.getTime() - next1.getTime();
-        this.taskIntervalMap.set(task.id, interval);
-        return interval;
+        return next2.getTime() - next1.getTime();
     }
 
     private isStale(task: ScheduledTaskRecord, now: Date, intervalMs: number): boolean {

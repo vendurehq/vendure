@@ -29,6 +29,7 @@ describe('Default scheduler plugin', () => {
                         id: 'test-job',
                         description: "A test job that doesn't do anything",
                         schedule: cron => cron.everySaturdayAt(0, 0),
+                        timezone: 'Europe/Stockholm',
                         async execute(injector) {
                             taskSpy();
                             return { success: true };
@@ -84,6 +85,8 @@ describe('Default scheduler plugin', () => {
         expect(testJob.description).toBe("A test job that doesn't do anything");
         expect(testJob.schedule).toBe('0 0 * * 6');
         expect(testJob.scheduleDescription).toBe('At 12:00 AM, only on Saturday');
+        expect(testJob.timezone).toBe('Europe/Stockholm');
+        expect(scheduledTasks.find(t => t.id === 'hold-test-job-manual')?.timezone).toBeNull();
         expect(testJob.enabled).toBe(true);
     });
 

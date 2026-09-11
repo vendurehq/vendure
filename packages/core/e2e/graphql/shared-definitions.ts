@@ -37,6 +37,7 @@ export const getTasksDocument = graphql(`
             description
             schedule
             scheduleDescription
+            timezone
             lastResult
             enabled
         }

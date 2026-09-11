@@ -1,5 +1,3 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
 // `default-config` must be evaluated before the ScheduledTask module chain,
 // because it instantiates ScheduledTask at module scope and the ScheduledTask
 // module's own imports lead back into the config module. This mirrors the
@@ -7,12 +5,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // runtime, so a side-effect import is required.
 import '../config/default-config';
 
-import type { ConfigService } from '../config/config.service';
-import type { ProcessContext } from '../process-context';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ScheduledTask } from './scheduled-task';
 import { SchedulerStrategy, TaskReport } from './scheduler-strategy';
 import { SchedulerService } from './scheduler.service';
+
+// Derived from the constructor so the mocks stay in step with the real signatures.
+type ConfigServiceArg = ConstructorParameters<typeof SchedulerService>[0];
+type ProcessContextArg = ConstructorParameters<typeof SchedulerService>[1];
 
 function createTask(config: { id: string; schedule: string; timezone?: string }) {
     return new ScheduledTask({
@@ -41,8 +42,8 @@ function bootstrapService(tasks: ScheduledTask[], timezone?: string) {
             runTasksInWorkerOnly: true,
             timezone,
         },
-    } as unknown as ConfigService;
-    const processContext = { isWorker: true } as ProcessContext;
+    } as unknown as ConfigServiceArg;
+    const processContext = { isWorker: true } as ProcessContextArg;
     const service = new SchedulerService(configService, processContext);
     service.onApplicationBootstrap();
     (strategy.getTasks as ReturnType<typeof vi.fn>).mockReturnValue(
@@ -107,6 +108,13 @@ describe('SchedulerService timezone handling', () => {
         );
     });
 
+    it('validates the timezone even when no scheduler strategy is configured', () => {
+        const task = createTask({ id: 'bad-tz-task', schedule: '0 2 * * *', timezone: 'Not/AZone' });
+        const configService = { schedulerOptions: { tasks: [task] } } as unknown as ConfigServiceArg;
+        const service = new SchedulerService(configService, { isWorker: true } as ProcessContextArg);
+        expect(() => service.onApplicationBootstrap()).toThrowError(/Invalid timezone "Not\/AZone"/);
+    });
+
     it('preserves process-local evaluation when no timezone is configured', async () => {
         const nextRun = await getNextExecution('0 2 * * *');
         // The exact instant depends on the timezone of the test process, so we
@@ -127,11 +135,20 @@ describe('SchedulerService timezone handling', () => {
         expect(taskInfo.nextExecutionAt?.toISOString()).toBe('2026-01-08T01:00:00.000Z');
     });
 
-    it('includes the effective timezone in the schedule description', async () => {
+    it('exposes the effective timezone as its own field', async () => {
         const task = createTask({ id: 'described-task', schedule: '0 2 * * *' });
         const service = bootstrapService([task], 'Europe/Stockholm');
         services.push(service);
         const [taskInfo] = await service.getTaskList();
-        expect(taskInfo.scheduleDescription).toBe('At 02:00 AM (Europe/Stockholm)');
+        expect(taskInfo.timezone).toBe('Europe/Stockholm');
+        expect(taskInfo.scheduleDescription).toBe('At 02:00 AM');
+    });
+
+    it('reports a null timezone when none is configured', async () => {
+        const task = createTask({ id: 'no-tz-task', schedule: '0 2 * * *' });
+        const service = bootstrapService([task]);
+        services.push(service);
+        const [taskInfo] = await service.getTaskList();
+        expect(taskInfo.timezone).toBeNull();
     });
 });
