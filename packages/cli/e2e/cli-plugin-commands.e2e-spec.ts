@@ -278,6 +278,27 @@ describe('CLI plugin help output', () => {
         expect(builtinSection).not.toContain('--token');
     });
 
+    // Whether the CLI colours its output depends on the environment it is
+    // spawned in, so both directions are pinned here: the suite itself runs
+    // both ways depending on whether it is invoked through Lerna.
+    it('colours the headings only when the environment allows colour', async () => {
+        const coloured = await project.runCliCommand(['--help'], { env: { FORCE_COLOR: '1' } });
+
+        // Bold heading, with the package name tinted inside the same bold run.
+        expect(coloured.rawStdout).toContain('\u001b[1mCommands from \u001b[36m');
+        // Assertions are made against the stripped output, whatever the colour.
+        expect(coloured.stdout).toContain('Commands from @vendure-e2e/cloud-cli-plugin:');
+    });
+
+    it('emits no colour when NO_COLOR is set', async () => {
+        const plain = await project.runCliCommand(['--help'], {
+            env: { NO_COLOR: '1', FORCE_COLOR: '1' },
+        });
+
+        expect(plain.rawStdout).not.toContain('\u001b[');
+        expect(plain.rawStdout).toContain('Commands from @vendure-e2e/cloud-cli-plugin:');
+    });
+
     it('names the commands a plugin provides in the plugins listing', async () => {
         const result = await project.runCliCommand(['plugins']);
 
