@@ -1,4 +1,4 @@
-import { Module, OnApplicationBootstrap, OnApplicationShutdown } from '@nestjs/common';
+import { Module, OnApplicationShutdown, OnModuleInit } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
 import { ConfigurableOperationDef } from '../common/configurable-operation';
@@ -12,13 +12,19 @@ import { ConfigService } from './config.service';
     providers: [ConfigService],
     exports: [ConfigService],
 })
-export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdown {
+export class ConfigModule implements OnModuleInit, OnApplicationShutdown {
     constructor(
         private configService: ConfigService,
         private moduleRef: ModuleRef,
     ) {}
 
-    async onApplicationBootstrap() {
+    /**
+     * Strategies are initialized at `onModuleInit` rather than `onApplicationBootstrap`
+     * so they are guaranteed to be ready before any other module's `onModuleInit` fires.
+     * This lets services that need configured strategies via the `Injector` use them
+     * during the module-init phase.
+     */
+    async onModuleInit() {
         await this.initInjectableStrategies();
         await this.initConfigurableOperations();
     }
