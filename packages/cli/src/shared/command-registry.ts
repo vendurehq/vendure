@@ -62,8 +62,8 @@ const PLUGIN_HEADING = /^((?:Commands|Options) from )(.+)(:)$/;
  *
  * Colour is decoration only: the heading names the package in words, so a
  * monochrome terminal loses nothing. Commander strips the escape codes when it
- * detects no colour support, which covers a pipe or a file unless FORCE_COLOR
- * is set, and covers NO_COLOR whatever the output is.
+ * detects no colour support. A pipe or a file counts as no support unless
+ * FORCE_COLOR is set. NO_COLOR counts as no support whatever the output is.
  */
 export function styleHelpTitle(title: string, colors: HeadingColors = pc): string {
     const match = PLUGIN_HEADING.exec(title);

@@ -15,9 +15,9 @@ describe('builtinCommandDefs', () => {
      * while a built-in is registered, so every `vendure` command fails at
      * startup, not just the one that declared the flag.
      *
-     * One sub-option declared under two parent options is how a built-in gets
-     * there: every sub-option is flattened onto the same command, so the flag
-     * arrives twice.
+     * A built-in repeats a flag when one sub-option is declared under two
+     * parent options: every sub-option is flattened onto the same command, so
+     * the flag arrives twice.
      */
     it('satisfies the rules a CLI plugin is validated against', () => {
         expect(() => assertCliPlugin({ id: 'builtins', commands: builtinCommandDefs })).not.toThrow();

@@ -198,8 +198,9 @@ export function discoverCliPlugins(options: DiscoverCliPluginsOptions = {}): Dis
             if (entry?.entryPath) {
                 try {
                     const plugin = loadCliPluginModule(entry.entryPath, packageName);
-                    // The module is already loaded here, so its real command
-                    // names cost nothing and beat whatever package.json claims.
+                    // The module is already loaded here, so reading its command
+                    // names adds no work, and they take precedence over
+                    // whatever `vendure.cliCommands` declares.
                     discovered.set(packageName, {
                         ...entry,
                         loadedCommands: plugin.commands.map(command => command.name),

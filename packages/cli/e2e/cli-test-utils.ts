@@ -35,7 +35,7 @@ export interface CliCommandResult {
  * its own output is coloured. Its output is coloured when the suite runs
  * through Lerna and plain when it runs in the package directly, so one command
  * gives different bytes depending on how the suite was started. A test
- * asserting on what the CLI said should not turn on that.
+ * asserting on what the CLI said should not depend on how it was started.
  */
 function stripAnsi(text: string): string {
     // eslint-disable-next-line no-control-regex
