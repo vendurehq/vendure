@@ -1080,9 +1080,10 @@ type CouponCodeLimitError {
   typeLinks={{
     Customer: '/reference/graphql-api/admin/object-types#customer',
     EmailAddressConflictError: '/reference/graphql-api/admin/object-types#emailaddressconflicterror',
+    PasswordValidationError: '/reference/graphql-api/admin/object-types#passwordvalidationerror',
   }}
 >
-{`union CreateCustomerResult = Customer | EmailAddressConflictError`}
+{`union CreateCustomerResult = Customer | EmailAddressConflictError | PasswordValidationError`}
 </GraphQLDoc>
 
 <a name="createfulfillmenterror"></a>
@@ -2576,6 +2577,25 @@ type MissingConditionsError {
 }`}
 </GraphQLDoc>
 
+<a name="missingpassworderror"></a>
+
+## MissingPasswordError
+
+<GraphQLDoc
+  type="type"
+  typeName="MissingPasswordError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/admin/enums#errorcode',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`"""Returned when attempting to register or verify a customer account without a password, when one is required."""
+type MissingPasswordError {
+  errorCode: ErrorCode!
+  message: String!
+}`}
+</GraphQLDoc>
+
 <a name="modifyorderresult"></a>
 
 ## ModifyOrderResult
@@ -3178,6 +3198,25 @@ type OrderTaxSummary {
 }`}
 </GraphQLDoc>
 
+<a name="passwordalreadyseterror"></a>
+
+## PasswordAlreadySetError
+
+<GraphQLDoc
+  type="type"
+  typeName="PasswordAlreadySetError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/admin/enums#errorcode',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`"""Returned when attempting to verify a customer account with a password, when a password has already been set."""
+type PasswordAlreadySetError {
+  errorCode: ErrorCode!
+  message: String!
+}`}
+</GraphQLDoc>
+
 <a name="passwordresettokenexpirederror"></a>
 
 ## PasswordResetTokenExpiredError
@@ -3234,7 +3273,7 @@ type PasswordResetTokenInvalidError {
     String: '/reference/graphql-api/admin/object-types#string',
   }}
 >
-{`"""Returned when the given password fails password validation."""
+{`"""Returned when attempting to register or verify a customer account where the given password fails password validation."""
 type PasswordValidationError {
   errorCode: ErrorCode!
   message: String!
@@ -5735,6 +5774,23 @@ union UpdateOrderItemErrorResult = OrderModificationError | OrderLimitError | Ne
   authenticationMethods: [AuthenticationMethod!]!
   customFields: JSON
 }`}
+</GraphQLDoc>
+
+<a name="verifycustomeraccountresult"></a>
+
+## VerifyCustomerAccountResult
+
+<GraphQLDoc
+  type="union"
+  typeName="VerifyCustomerAccountResult"
+  typeLinks={{
+    Customer: '/reference/graphql-api/admin/object-types#customer',
+    MissingPasswordError: '/reference/graphql-api/admin/object-types#missingpassworderror',
+    PasswordAlreadySetError: '/reference/graphql-api/admin/object-types#passwordalreadyseterror',
+    PasswordValidationError: '/reference/graphql-api/admin/object-types#passwordvalidationerror',
+  }}
+>
+{`union VerifyCustomerAccountResult = Customer | MissingPasswordError | PasswordAlreadySetError | PasswordValidationError`}
 </GraphQLDoc>
 
 <a name="zone"></a>

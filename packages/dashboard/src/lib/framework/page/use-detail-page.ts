@@ -107,6 +107,15 @@ export interface DetailPageOptions<
         entity: NonNullable<ResultOf<T>[EntityField]>,
     ) => WithLooseCustomFields<VariablesOf<U>[VarNameUpdate]>;
     transformCreateInput?: (input: VariablesOf<C>[VarNameCreate]) => VariablesOf<C>[VarNameCreate];
+    /**
+     * @description
+     * Adjusts the full set of variables sent to the create mutation, for a create mutation which
+     * takes more than the input object, such as `createCustomer(input:, password:)`. Runs after
+     * `transformCreateInput`, which has already shaped `variables.input`.
+     *
+     * @since 3.8.0
+     */
+    transformCreateVariables?: (variables: VariablesOf<C>) => VariablesOf<C>;
     transformUpdateInput?: (input: VariablesOf<U>[VarNameUpdate]) => VariablesOf<U>[VarNameUpdate];
     /**
      * @description
@@ -306,6 +315,7 @@ export function useDetailPage<
         updateDocument,
         setValuesForUpdate,
         transformCreateInput,
+        transformCreateVariables,
         transformUpdateInput,
         extendSchema,
         sendOnlyChangedFields,
@@ -376,7 +386,8 @@ export function useDetailPage<
 
             if (isNew) {
                 const finalInput = transformCreateInput?.(filteredValues) ?? filteredValues;
-                createMutation.mutate({ input: finalInput });
+                const variables = { input: finalInput } as VariablesOf<C>;
+                createMutation.mutate(transformCreateVariables?.(variables) ?? variables);
             } else {
                 // When the page opts in via `sendOnlyChangedFields`, send only the fields the user
                 // actually changed (plus non-nullable fields, which `changedFields` always

@@ -5,7 +5,7 @@ import { ID } from '@vendure/common/lib/shared-types';
 
 import { RequestContext } from '../../api/common/request-context';
 import { ErrorResultUnion, isGraphQlErrorResult } from '../../common/error/error-result';
-import { EntityNotFoundError, InternalServerError } from '../../common/error/errors';
+import { EntityNotFoundError, InternalServerError, UserInputError } from '../../common/error/errors';
 import {
     IdentifierChangeTokenExpiredError,
     IdentifierChangeTokenInvalidError,
@@ -249,13 +249,7 @@ export class UserService {
      * @internal
      */
     async nativeCredentialAwaitsActivation(ctx: RequestContext, userId: ID): Promise<boolean> {
-        const user = await this.connection
-            .getRepository(ctx, User)
-            .createQueryBuilder('user')
-            .leftJoinAndSelect('user.authenticationMethods', 'aums')
-            .addSelect('aums.passwordHash')
-            .where('user.id = :userId', { userId })
-            .getOne();
+        const user = await this.getUserWithPasswordHash(ctx, userId);
         const nativeAuthMethod = user?.getNativeAuthenticationMethod(false);
         if (!nativeAuthMethod) {
             return false;
@@ -354,19 +348,9 @@ export class UserService {
             );
             if (isTokenValid) {
                 const nativeAuthMethod = user.getNativeAuthenticationMethod();
-                if (!password) {
-                    if (!nativeAuthMethod.passwordHash) {
-                        return new MissingPasswordError();
-                    }
-                } else {
-                    if (!!nativeAuthMethod.passwordHash) {
-                        return new PasswordAlreadySetError();
-                    }
-                    const passwordValidationResult = await this.validatePassword(ctx, password);
-                    if (passwordValidationResult !== true) {
-                        return passwordValidationResult;
-                    }
-                    nativeAuthMethod.passwordHash = await this.passwordCipher.hash(password);
+                const passwordResult = await this.applyVerificationPassword(ctx, nativeAuthMethod, password);
+                if (passwordResult) {
+                    return passwordResult;
                 }
                 nativeAuthMethod.verificationToken = null;
                 user.verified = true;
@@ -378,6 +362,93 @@ export class UserService {
         } else {
             return new VerificationTokenInvalidError();
         }
+    }
+
+    /**
+     * @description
+     * Marks a User as `verified`. Unlike {@link UserService.verifyUserByToken}, no verification
+     * token is required, so this is the route for a verification an administrator performs on the
+     * account holder's behalf. Clears any pending `verificationToken`, so
+     * `refreshCustomerVerification` will no longer issue a new one.
+     *
+     * The `password` argument follows the same rules as in `verifyUserByToken`: a
+     * {@link NativeAuthenticationMethod} with no `passwordHash` requires one, and a credential
+     * which already has one rejects it. A User with no native credential at all is verified only
+     * without a `password`, since there is nothing to set it on.
+     *
+     * `verified` is not checked before the credential is written, so a User which is already
+     * verified but whose credential has no `passwordHash` gets one here. That is the state
+     * {@link UserService.addUnactivatedNativeAuthenticationMethod} leaves behind, and activating it
+     * is otherwise reserved for whoever controls the email address (GHSA-wr5h-x3x6-4h23). This
+     * route is therefore only safe behind the `UpdateCustomer` permission.
+     *
+     * @since 3.8.0
+     */
+    async verifyUserWithoutToken(
+        ctx: RequestContext,
+        userId: ID,
+        password?: string,
+    ): Promise<User | MissingPasswordError | PasswordAlreadySetError | PasswordValidationError> {
+        const user = await this.getUserWithPasswordHash(ctx, userId);
+        if (!user) {
+            throw new EntityNotFoundError('User', userId);
+        }
+        const nativeAuthMethod = user.getNativeAuthenticationMethod(false);
+        if (nativeAuthMethod) {
+            const passwordResult = await this.applyVerificationPassword(ctx, nativeAuthMethod, password);
+            if (passwordResult) {
+                return passwordResult;
+            }
+            nativeAuthMethod.verificationToken = null;
+            await this.connection.getRepository(ctx, NativeAuthenticationMethod).save(nativeAuthMethod);
+        } else if (password) {
+            throw new UserInputError('error.cannot-set-password-without-native-credential');
+        }
+        user.verified = true;
+        return this.connection.getRepository(ctx, User).save(user);
+    }
+
+    /**
+     * Writes the `password` argument of a verification flow onto the given native credential as a
+     * hash. The credential is mutated in place and left unsaved, so the caller saves it on success
+     * and discards it on the ErrorResult this returns.
+     *
+     * A credential with an empty `passwordHash` can never be used to log in, since
+     * `NativeAuthenticationStrategy` rejects an empty stored hash, so verifying one without a
+     * password leaves the account verified and unusable. A credential which already has a password
+     * rejects a new one, so that neither verification flow can overwrite it.
+     */
+    private async applyVerificationPassword(
+        ctx: RequestContext,
+        nativeAuthMethod: NativeAuthenticationMethod,
+        password?: string,
+    ): Promise<MissingPasswordError | PasswordAlreadySetError | PasswordValidationError | undefined> {
+        if (!password) {
+            return nativeAuthMethod.passwordHash ? undefined : new MissingPasswordError();
+        }
+        if (nativeAuthMethod.passwordHash) {
+            return new PasswordAlreadySetError();
+        }
+        const passwordValidationResult = await this.validatePassword(ctx, password);
+        if (passwordValidationResult !== true) {
+            return passwordValidationResult;
+        }
+        nativeAuthMethod.passwordHash = await this.passwordCipher.hash(password);
+        return undefined;
+    }
+
+    /**
+     * Loads a User with the `passwordHash` of its authentication methods. That column is
+     * `select: false`, so it takes a query of its own to read.
+     */
+    private getUserWithPasswordHash(ctx: RequestContext, userId: ID): Promise<User | null> {
+        return this.connection
+            .getRepository(ctx, User)
+            .createQueryBuilder('user')
+            .leftJoinAndSelect('user.authenticationMethods', 'aums')
+            .addSelect('aums.passwordHash')
+            .where('user.id = :userId', { userId })
+            .getOne();
     }
 
     /**

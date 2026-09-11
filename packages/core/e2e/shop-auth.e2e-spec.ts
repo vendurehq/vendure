@@ -413,7 +413,7 @@ describe('Shop auth & accounts', () => {
             });
             currentUserErrorGuard.assertErrorResult(verifyCustomerAccount);
 
-            expect(verifyCustomerAccount.message).toBe('A password has already been set during registration');
+            expect(verifyCustomerAccount.message).toBe('A password has already been set for this account');
             expect(verifyCustomerAccount.errorCode).toBe(ErrorCode.PASSWORD_ALREADY_SET_ERROR);
         });
 

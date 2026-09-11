@@ -4,7 +4,7 @@ generated: true
 ---
 ## useDetailPage
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/use-detail-page.ts" sourceLine="292" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/use-detail-page.ts" sourceLine="301" packageName="@vendure/dashboard" since="3.3.0" />
 
 **Status: Developer Preview**
 
@@ -99,6 +99,7 @@ interface DetailPageOptions<T extends TypedDocumentNode<any, any>, C extends Typ
         entity: NonNullable<ResultOf<T>[EntityField]>,
     ) => WithLooseCustomFields<VariablesOf<U>[VarNameUpdate]>;
     transformCreateInput?: (input: VariablesOf<C>[VarNameCreate]) => VariablesOf<C>[VarNameCreate];
+    transformCreateVariables?: (variables: VariablesOf<C>) => VariablesOf<C>;
     transformUpdateInput?: (input: VariablesOf<U>[VarNameUpdate]) => VariablesOf<U>[VarNameUpdate];
     extendSchema?: (schema: ZodObject<any>) => ZodTypeAny;
     sendOnlyChangedFields?: boolean;
@@ -157,6 +158,13 @@ The function to set the values for the update document.
 <MemberInfo kind="property" type={`(input: VariablesOf<C>[VarNameCreate]) => VariablesOf<C>[VarNameCreate]`}   />
 
 
+### transformCreateVariables
+
+<MemberInfo kind="property" type={`(variables: VariablesOf<C>) => VariablesOf<C>`}  since="3.8.0"  />
+
+Adjusts the full set of variables sent to the create mutation, for a create mutation which
+takes more than the input object, such as `createCustomer(input:, password:)`. Runs after
+`transformCreateInput`, which has already shaped `variables.input`.
 ### transformUpdateInput
 
 <MemberInfo kind="property" type={`(input: VariablesOf<U>[VarNameUpdate]) => VariablesOf<U>[VarNameUpdate]`}   />
@@ -217,7 +225,7 @@ The function to call when the update is successful.
 </div>
 ## UseDetailPageResult
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/use-detail-page.ts" sourceLine="210" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/use-detail-page.ts" sourceLine="219" packageName="@vendure/dashboard" since="3.3.0" />
 
 
 

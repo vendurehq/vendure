@@ -75,7 +75,7 @@
     "ORDER_MODIFICATION_ERROR": "Содержимое Заказа может быть изменено только в состоянии \"Добавление позиций\"",
     "ORDER_PAYMENT_STATE_ERROR": "Оплата может быть добавлена только когда Заказ в состоянии \"Организация оплаты\"",
     "ORDER_STATE_TRANSITION_ERROR": "Невозможно перевести Заказ из \"{ fromState }\" в \"{ toState }\"",
-    "PASSWORD_ALREADY_SET_ERROR": "Пароль уже был установлен при регистрации",
+    "PASSWORD_ALREADY_SET_ERROR": "Пароль для этой учётной записи уже установлен",
     "PASSWORD_RESET_TOKEN_EXPIRED_ERROR": "Срок действия токена сброса пароля закончился",
     "PASSWORD_RESET_TOKEN_INVALID_ERROR": "Токен сброса пароля не распознан",
     "PAYMENT_DECLINED_ERROR": "Оплата была отклонена",

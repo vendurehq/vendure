@@ -19,6 +19,7 @@ class UserService {
     softDelete(ctx: RequestContext, userId: ID) => ;
     setVerificationToken(ctx: RequestContext, user: User) => Promise<User>;
     verifyUserByToken(ctx: RequestContext, verificationToken: string, password?: string) => Promise<ErrorResultUnion<VerifyCustomerAccountResult, User>>;
+    verifyUserWithoutToken(ctx: RequestContext, userId: ID, password?: string) => Promise<User | MissingPasswordError | PasswordAlreadySetError | PasswordValidationError>;
     setPasswordResetToken(ctx: RequestContext, emailAddress: string) => Promise<User | undefined>;
     getUserByPasswordResetToken(ctx: RequestContext, passwordResetToken: string) => Promise<User | undefined>;
     resetPasswordByToken(ctx: RequestContext, passwordResetToken: string, password: string) => Promise<
@@ -114,6 +115,25 @@ Verifies a verificationToken by looking for a User which has previously had it s
 `setVerificationToken()` method, and checks that the token is valid and has not expired.
 
 If valid, the User will be set to `verified: true`.
+### verifyUserWithoutToken
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>, password?: string) => Promise<<a href='/reference/typescript-api/entities/user#user'>User</a> | MissingPasswordError | PasswordAlreadySetError | PasswordValidationError>`}  since="3.8.0"  />
+
+Marks a User as `verified`. Unlike `UserService.verifyUserByToken`, no verification
+token is required, so this is the route for a verification an administrator performs on the
+account holder's behalf. Clears any pending `verificationToken`, so
+`refreshCustomerVerification` will no longer issue a new one.
+
+The `password` argument follows the same rules as in `verifyUserByToken`: a
+[NativeAuthenticationMethod](/reference/typescript-api/entities/authentication-method#nativeauthenticationmethod) with no `passwordHash` requires one, and a credential
+which already has one rejects it. A User with no native credential at all is verified only
+without a `password`, since there is nothing to set it on.
+
+`verified` is not checked before the credential is written, so a User which is already
+verified but whose credential has no `passwordHash` gets one here. That is the state
+`UserService.addUnactivatedNativeAuthenticationMethod` leaves behind, and activating it
+is otherwise reserved for whoever controls the email address (GHSA-wr5h-x3x6-4h23). This
+route is therefore only safe behind the `UpdateCustomer` permission.
 ### setPasswordResetToken
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, emailAddress: string) => Promise<<a href='/reference/typescript-api/entities/user#user'>User</a> | undefined>`}   />

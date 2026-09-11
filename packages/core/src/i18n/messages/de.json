@@ -75,7 +75,7 @@
     "ORDER_MODIFICATION_ERROR": "Der Inhalt der Bestellung kann nur im Status \"AddingItems\" geändert werden",
     "ORDER_PAYMENT_STATE_ERROR": "Eine Zahlung kann nur im Status \"ArrangingPayment\" hinzugefügt werden",
     "ORDER_STATE_TRANSITION_ERROR": "Der Status der Bestellung kann nicht von \"{ fromState }\" zu \"{ toState }\" geändert werden",
-    "PASSWORD_ALREADY_SET_ERROR": "Ein Passwort wurde während der Registrierung bereits festgelegt",
+    "PASSWORD_ALREADY_SET_ERROR": "Für dieses Konto wurde bereits ein Passwort festgelegt",
     "PASSWORD_RESET_TOKEN_EXPIRED_ERROR": "Das Token zum Zurücksetzen des Passwortes ist leider abgelaufen",
     "PASSWORD_RESET_TOKEN_INVALID_ERROR": "Das Token zum Zurücksetzen des Passwortes ist leider falsch",
     "PAYMENT_DECLINED_ERROR": "Die Zahlung wurde abgelehnt",

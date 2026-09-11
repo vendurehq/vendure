@@ -75,7 +75,7 @@
     "ORDER_MODIFICATION_ERROR": "Зміст Замовлення може бути змінено лише у стані \"Додавання позицій\"",
     "ORDER_PAYMENT_STATE_ERROR": "Оплата може бути додана лише коли Замовлення у стані \"Організація оплати\"",
     "ORDER_STATE_TRANSITION_ERROR": "Неможливо перевести Замовлення з \"{ fromState }\" в \"{ toState }\"",
-    "PASSWORD_ALREADY_SET_ERROR": "Пароль вже був встановлений при реєстрації",
+    "PASSWORD_ALREADY_SET_ERROR": "Пароль для цього облікового запису вже встановлено",
     "PASSWORD_RESET_TOKEN_EXPIRED_ERROR": "Термін дії токена скидання пароля закінчився",
     "PASSWORD_RESET_TOKEN_INVALID_ERROR": "Токен скидання пароля не розпізнаний",
     "PAYMENT_DECLINED_ERROR": "Оплата була відхилена",

@@ -1240,7 +1240,7 @@
                   "title": "JobState",
                   "slug": "job-state",
                   "file": "docs/reference/typescript-api/common/job-state.mdx",
-                  "lastModified": "2026-09-03T13:25:27Z"
+                  "lastModified": "2026-09-10T13:34:01Z"
                 },
                 {
                   "title": "JsonCompatible",
@@ -1252,7 +1252,7 @@
                   "title": "LanguageCode",
                   "slug": "language-code",
                   "file": "docs/reference/typescript-api/common/language-code.mdx",
-                  "lastModified": "2026-09-03T13:25:27Z"
+                  "lastModified": "2026-09-10T13:34:01Z"
                 },
                 {
                   "title": "Middleware",
@@ -1270,7 +1270,7 @@
                   "title": "Permission",
                   "slug": "permission",
                   "file": "docs/reference/typescript-api/common/permission.mdx",
-                  "lastModified": "2026-09-03T13:25:27Z"
+                  "lastModified": "2026-09-10T13:34:01Z"
                 },
                 {
                   "title": "PriceCalculationResult",
@@ -3060,7 +3060,7 @@
                   "title": "CustomerService",
                   "slug": "customer-service",
                   "file": "docs/reference/typescript-api/services/customer-service.mdx",
-                  "lastModified": "2026-08-25T13:57:08Z"
+                  "lastModified": "2026-09-10T13:34:01Z"
                 },
                 {
                   "title": "EntitySlugService",
@@ -3246,7 +3246,7 @@
                   "title": "UserService",
                   "slug": "user-service",
                   "file": "docs/reference/typescript-api/services/user-service.mdx",
-                  "lastModified": "2026-09-01T13:17:25+02:00"
+                  "lastModified": "2026-09-10T13:34:01Z"
                 },
                 {
                   "title": "ZoneService",
@@ -3880,7 +3880,7 @@
                   "title": "Enums",
                   "slug": "enums",
                   "file": "docs/reference/graphql-api/admin/enums.mdx",
-                  "lastModified": "2026-09-01T11:19:25Z"
+                  "lastModified": "2026-09-10T13:34:01Z"
                 },
                 {
                   "title": "Input Objects",
@@ -3892,7 +3892,7 @@
                   "title": "Mutations",
                   "slug": "mutations",
                   "file": "docs/reference/graphql-api/admin/mutations.mdx",
-                  "lastModified": "2026-07-23T11:18:30+02:00"
+                  "lastModified": "2026-09-10T13:34:01Z"
                 },
                 {
                   "title": "Queries",
@@ -3904,7 +3904,7 @@
                   "title": "Types",
                   "slug": "object-types",
                   "file": "docs/reference/graphql-api/admin/object-types.mdx",
-                  "lastModified": "2026-09-03T13:25:27Z"
+                  "lastModified": "2026-09-10T13:34:01Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -4043,7 +4043,7 @@
                   "title": "UseDetailPage",
                   "slug": "use-detail-page",
                   "file": "docs/reference/dashboard/detail-views/use-detail-page.mdx",
-                  "lastModified": "2026-08-24T12:05:27Z"
+                  "lastModified": "2026-09-10T13:34:01Z"
                 },
                 {
                   "title": "UseGeneratedForm",
@@ -4215,7 +4215,7 @@
                   "title": "SlugInput",
                   "slug": "slug-input",
                   "file": "docs/reference/dashboard/form-components/slug-input.mdx",
-                  "lastModified": "2026-03-24T17:34:23+01:00"
+                  "lastModified": "2026-09-10T08:50:14Z"
                 },
                 {
                   "title": "TextareaInput",

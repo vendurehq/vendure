@@ -412,6 +412,7 @@ msgstr "Locația de stoc a fost creată cu succes"
 msgid "No widgets to add"
 msgstr "Niciun widget de adăugat"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
@@ -788,6 +789,10 @@ msgstr "Selectează un client pentru a continua"
 msgid "Successfully assigned option group"
 msgstr "Grupul de opțiuni a fost atribuit cu succes"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+msgid "Marks the account as verified without the customer having to use a verification email."
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx
 msgid "Run Test"
 msgstr "Rulează test"
@@ -1009,6 +1014,10 @@ msgstr "Introdu notă rambursare"
 msgid "Order line removed"
 msgstr "Linie comandă eliminată"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+msgid "Setting a password here verifies the account immediately. Left empty, the customer has no password and cannot log in until they set one."
+msgstr ""
+
 #: src/lib/components/layout/channel-switcher.tsx
 msgid "Content:"
 msgstr "Conținut:"
@@ -1132,6 +1141,8 @@ msgid "Failed to update zone"
 msgstr "Nu s-a putut actualiza zona"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_profile/profile.tsx
 #: src/app/routes/_authenticated/_profile/profile.tsx
 #: src/lib/components/login/login-form.tsx
@@ -1748,6 +1759,10 @@ msgstr "Țări"
 msgid "Loading metrics…"
 msgstr "Se încarcă metricile…"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+msgid "Customer account verified"
+msgstr ""
+
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "Failed to rename view"
 msgstr "Nu s-a putut redenumi vizualizarea"
@@ -1864,6 +1879,7 @@ msgstr "Inserează tabel de {row} pe {col}"
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
@@ -3678,6 +3694,10 @@ msgstr "Categorie"
 msgid "Moving..."
 msgstr "Se mută..."
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+msgid "Needed only for a customer who has no password yet, since that account cannot be logged into. Leave empty for a customer who already has one."
+msgstr ""
+
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 msgid "Assign"
 msgstr "Atribuie"
@@ -4410,6 +4430,11 @@ msgstr "Adaugă element"
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 msgid "Successfully created API key"
 msgstr "Cheia API a fost creată cu succes"
+
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+msgid "Verify account"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 msgid "Loading preview…"
@@ -6017,6 +6042,10 @@ msgstr "Urmărește inventarul implicit"
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
 msgid "{selected} of {total} selected"
 msgstr "{selected} din {total} selectate"
+
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+msgid "Verify"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
 msgid "Successfully created shipping method"

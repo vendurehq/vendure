@@ -1,4 +1,4 @@
-import { SlugInput } from '@/vdb/components/data-input/index.js';
+import { requireGeneratedCode, SlugInput } from '@/vdb/components/data-input/index.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
 import { TranslatableFormFieldWrapper } from '@/vdb/components/shared/translatable-form-field.js';
@@ -111,6 +111,7 @@ function OptionGroupOptionDetailPage() {
         queryDocument: productOptionDetailDocument,
         createDocument: createProductOptionDocument,
         updateDocument: updateProductOptionDocument,
+        extendSchema: creatingNewEntity ? requireGeneratedCode : undefined,
         setValuesForUpdate: entity => {
             return {
                 id: entity.id,

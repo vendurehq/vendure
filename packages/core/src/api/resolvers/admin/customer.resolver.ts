@@ -12,11 +12,13 @@ import {
     MutationUpdateCustomerAddressArgs,
     MutationUpdateCustomerArgs,
     MutationUpdateCustomerNoteArgs,
+    MutationVerifyCustomerAccountArgs,
     Permission,
     QueryCustomerArgs,
     QueryCustomersArgs,
     Success,
     UpdateCustomerResult,
+    VerifyCustomerAccountResult,
 } from '@vendure/common/lib/generated-types';
 import { PaginatedList } from '@vendure/common/lib/shared-types';
 
@@ -141,6 +143,16 @@ export class CustomerResolver {
         @Args() args: MutationDeleteCustomersArgs,
     ): Promise<DeletionResponse[]> {
         return Promise.all(args.ids.map(id => this.deleteCustomer(ctx, { id })));
+    }
+
+    @Transaction()
+    @Mutation()
+    @Allow(Permission.UpdateCustomer)
+    async verifyCustomerAccount(
+        @Ctx() ctx: RequestContext,
+        @Args() args: MutationVerifyCustomerAccountArgs,
+    ): Promise<ErrorResultUnion<VerifyCustomerAccountResult, Customer>> {
+        return this.customerService.verifyCustomerAccount(ctx, args.id, args.password ?? undefined);
     }
 
     @Transaction()
