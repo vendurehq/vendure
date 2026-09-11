@@ -267,6 +267,21 @@ query {
 In the example above, we are filtering for reviews of products with the word "phone" and a rating of 4 or more,
 or a rating of 0. The `_and` and `_or` operators can be nested to any depth, allowing for arbitrarily complex filters.
 
+## Cost of the `regex` operator
+
+`StringOperators` offers a `regex` operator as well as `contains`. Prefer `contains` where it will
+do. It becomes a `LIKE` query, or `ILIKE` on PostgreSQL, and costs about the same whatever the
+pattern.
+
+Where you need `regex`, the database decides what one pattern can cost. PostgreSQL evaluates any
+pattern quickly. SQLite and SQL.js match with the [RE2](https://github.com/google/re2) engine, which
+runs in linear time. Prefer one of those if your project exposes `regex` filters. MariaDB and MySQL
+match with a backtracking engine and repeat that work for every row they read, so a slow pattern
+there is slow once per row.
+
+RE2 supports neither lookaround nor backreferences. On SQLite and SQL.js a filter which uses either
+is rejected with an error rather than failing part-way through the query.
+
 ## Filtering by custom properties
 
 By default, the `ListQueryBuilder` will only allow filtering by properties which are defined on the entity itself.

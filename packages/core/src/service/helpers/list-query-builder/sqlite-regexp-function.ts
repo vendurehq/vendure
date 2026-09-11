@@ -1,8 +1,7 @@
-import { UserInputError } from '../../../common/error/errors';
-import { Logger } from '../../../config/logger/vendure-logger';
-import { VendureDatabaseType } from '../../../connection/database-type';
+import type { RE2JS } from 're2js';
 
-const loggerCtx = 'ListQueryBuilder';
+import { UserInputError } from '../../../common/error/errors';
+import { VendureDatabaseType } from '../../../connection/database-type';
 
 /**
  * A compiled regular expression able to test string values. Both the built-in `RegExp`
@@ -12,53 +11,81 @@ interface CompiledRegExp {
     test(value: string): boolean;
 }
 
-type RegExpEngine = new (pattern: string, flags: string) => CompiledRegExp;
+/**
+ * The flags this file requests. Narrowing to the one flag in use keeps a later caller from passing
+ * one the RE2 adapter would silently drop, and `RegExp` accepts any flag string, so the built-in
+ * engine stays assignable.
+ */
+type SupportedFlags = 'i';
+
+type RegExpEngine = new (pattern: string, flags: SupportedFlags) => CompiledRegExp;
 
 /**
  * The SQLite driver flavours whose `regexp` implementation is a JS function evaluated on the
- * Node.js event loop, and which are therefore exposed to ReDoS via the built-in `RegExp` engine.
+ * Node.js event loop, and which the built-in `RegExp` engine would therefore expose to ReDoS.
  */
 const SQLITE_REGEXP_DB_TYPES: VendureDatabaseType[] = ['better-sqlite3', 'sqljs'];
 
-// `undefined` = not yet attempted, `null` = re2 is not installed.
-let re2Engine: RegExpEngine | null | undefined;
+let re2js: typeof import('re2js') | undefined;
 
 /**
- * Lazily resolves the optional `re2` dependency. RE2 matches in guaranteed linear time and so
- * cannot be driven into catastrophic backtracking, unlike the built-in backtracking `RegExp`.
+ * Resolves `re2js` on first use rather than at import time. `parse-filter-params.ts` imports this
+ * module, and that file is on the path of every list query on every backend, so a top-level import
+ * would make a Postgres or MySQL deployment parse 246 kB of engine it can never reach.
  */
-function loadRe2Engine(): RegExpEngine | null {
-    if (re2Engine === undefined) {
-        try {
-            // eslint-disable-next-line @typescript-eslint/no-var-requires
-            re2Engine = require('re2') as RegExpEngine;
-        } catch {
-            re2Engine = null;
-        }
+function getRE2JS(): typeof RE2JS {
+    if (!re2js) {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        re2js = require('re2js') as typeof import('re2js');
     }
-    return re2Engine;
+    return re2js.RE2JS;
 }
 
 /**
- * Throws a {@link UserInputError} if a `regex` filter cannot be evaluated safely on the given
- * database. On SQLite backends the pattern runs through the {@link https://github.com/google/re2 | RE2}
- * engine, which does not support backtracking-only features such as lookaround and backreferences;
- * these are rejected up-front with a clear error rather than failing mid-query.
+ * Adapts `re2js` to the `RegExp` shape used by the rest of this file. `re2js` is a JavaScript port
+ * of RE2, so it needs no native build step, but its API is not the `RegExp` one: a pattern is
+ * compiled once and then matched through a matcher object.
  *
- * Has no effect when `re2` is not installed (the built-in engine, which supports those features,
- * is used as a fallback) or on non-SQLite backends, where the pattern is evaluated by the database.
+ * RE2 matches in guaranteed linear time, so no pattern can be driven into the catastrophic
+ * backtracking the built-in engine allows. It pays for that by supporting neither lookaround nor
+ * backreferences, which {@link assertRegexFilterEngineCompatible} rejects up-front.
+ *
+ * @internal
+ */
+export class Re2jsRegExp implements CompiledRegExp {
+    private readonly compiled: RE2JS;
+
+    /**
+     * `SupportedFlags` admits 'i' alone, so the compile is unconditionally case-insensitive. The
+     * parameter exists to keep the built-in `RegExp` assignable to {@link RegExpEngine}.
+     */
+    constructor(pattern: string, _flags: SupportedFlags) {
+        const RE2 = getRE2JS();
+        this.compiled = RE2.compile(pattern, RE2.CASE_INSENSITIVE);
+    }
+
+    /** `find()` searches anywhere in the value, which is what `RegExp.test()` does. */
+    test(value: string): boolean {
+        return this.compiled.matcher(value).find();
+    }
+}
+
+/**
+ * Throws a {@link UserInputError} if a `regex` filter cannot be evaluated on the given database.
+ * On SQLite backends the pattern runs through the {@link https://github.com/google/re2 | RE2}
+ * engine, which does not support backtracking-only features such as lookaround and backreferences;
+ * these are rejected here with a clear error rather than failing mid-query.
+ *
+ * Has no effect on other backends, where the database evaluates the pattern with an engine of its
+ * own which does support them.
  */
 export function assertRegexFilterEngineCompatible(pattern: string, dbType: VendureDatabaseType): void {
     if (!SQLITE_REGEXP_DB_TYPES.includes(dbType)) {
         return;
     }
-    const Engine = loadRe2Engine();
-    if (!Engine) {
-        return;
-    }
     try {
         // eslint-disable-next-line no-new
-        new Engine(pattern, 'i');
+        new Re2jsRegExp(pattern, 'i');
     } catch {
         throw new UserInputError('error.regex-filter-pattern-unsupported-syntax');
     }
@@ -68,10 +95,24 @@ export function assertRegexFilterEngineCompatible(pattern: string, dbType: Vendu
  * Builds the memoised tester used by the SQLite `regexp` user-defined function. Patterns are
  * compiled once per distinct value and cached, since a given query applies a single constant
  * pattern across every row.
+ *
+ * The engine is a parameter so the null and numeric coercion below can be asserted against both
+ * engines, which disagree on it.
+ *
+ * @internal
  */
-export function buildRegexpTester(Engine: RegExpEngine): (pattern: string, value: string) => number {
+export function buildRegexpTester(
+    Engine: RegExpEngine,
+): (pattern: string, value: string | number | null | undefined) => number {
     const cache = new Map<string, CompiledRegExp>();
-    return (pattern: string, value: string): number => {
+    return (pattern: string, value: string | number | null | undefined): number => {
+        // SQLite passes the raw column value, so a nullable column yields null and a numeric one
+        // yields a number. `NULL REGEXP x` is false in SQL, and RE2 only accepts strings: it throws
+        // on anything else, where the built-in RegExp coerced silently.
+        if (value == null) {
+            return 0;
+        }
+        const subject = typeof value === 'string' ? value : String(value);
         let compiled = cache.get(pattern);
         if (!compiled) {
             compiled = new Engine(pattern, 'i');
@@ -81,26 +122,18 @@ export function buildRegexpTester(Engine: RegExpEngine): (pattern: string, value
             }
             cache.set(pattern, compiled);
         }
-        return compiled.test(value) ? 1 : 0;
+        return compiled.test(subject) ? 1 : 0;
     };
 }
 
 /**
- * Creates the JS function registered as SQLite's `REGEXP` implementation. When the optional
- * `re2` dependency is installed, patterns are evaluated by RE2 in guaranteed linear time and so
- * cannot be exploited for ReDoS. Otherwise it falls back to the built-in `RegExp` engine — which
- * is vulnerable to catastrophic backtracking on adversarial patterns — and warns once at startup.
+ * Creates the JS function registered as SQLite's `REGEXP` implementation. Patterns are evaluated by
+ * RE2 in guaranteed linear time and so cannot be exploited for ReDoS, which matters here because
+ * these drivers match on the Node.js event loop rather than inside the database.
  */
-export function createSqliteRegexpFunction(): (pattern: string, value: string) => number {
-    const Engine = loadRe2Engine();
-    if (!Engine) {
-        Logger.warn(
-            'The optional "re2" package is not installed, so `regex` list filters fall back to the ' +
-                'built-in RegExp engine. On SQLite-based databases this evaluates untrusted patterns on ' +
-                'the Node.js event loop and is vulnerable to ReDoS. Install "re2" to evaluate regex ' +
-                'filters in guaranteed linear time.',
-            loggerCtx,
-        );
-    }
-    return buildRegexpTester(Engine ?? (RegExp as unknown as RegExpEngine));
+export function createSqliteRegexpFunction(): (
+    pattern: string,
+    value: string | number | null | undefined,
+) => number {
+    return buildRegexpTester(Re2jsRegExp);
 }

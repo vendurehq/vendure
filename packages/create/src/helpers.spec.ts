@@ -412,7 +412,6 @@ describe('getMonorepoRootPackageJson', () => {
             bcrypt: { built: true },
             'better-sqlite3': { built: true },
             esbuild: { built: true },
-            re2: { built: true },
             sharp: { built: true },
         });
         expect(
@@ -427,7 +426,7 @@ describe('getMonorepoRootPackageJson', () => {
     it('adds trustedDependencies only for bun, driver-aware', () => {
         expect(
             getMonorepoRootPackageJson('x', getPackageManagerInfo('bun'), 'sqlite').trustedDependencies,
-        ).toEqual(['bcrypt', 'better-sqlite3', 'esbuild', 're2', 'sharp']);
+        ).toEqual(['bcrypt', 'better-sqlite3', 'esbuild', 'sharp']);
         expect(
             getMonorepoRootPackageJson('x', getPackageManagerInfo('bun'), 'postgres').trustedDependencies,
         ).toEqual(['bcrypt', 'esbuild', 'sharp']);
@@ -472,12 +471,11 @@ describe('getNativeBuildDependencies', () => {
         }
     });
 
-    it('adds better-sqlite3 and re2 for the SQLite driver', () => {
+    it('adds better-sqlite3 for the SQLite driver', () => {
         expect(getNativeBuildDependencies('sqlite')).toEqual([
             'bcrypt',
             'better-sqlite3',
             'esbuild',
-            're2',
             'sharp',
         ]);
     });
@@ -491,10 +489,8 @@ describe('getPnpmWorkspaceYaml', () => {
         const yaml = getPnpmWorkspaceYaml('sqlite');
         expect(yaml).toContain('onlyBuiltDependencies:');
         expect(yaml).toContain('    - better-sqlite3');
-        expect(yaml).toContain('    - re2');
         expect(yaml).toContain('allowBuilds:');
         expect(yaml).toContain('    better-sqlite3: true');
-        expect(yaml).toContain('    re2: true');
         expect(yaml).not.toContain('packages:');
     });
 
@@ -518,7 +514,6 @@ describe('getYarnDependenciesMeta', () => {
             bcrypt: { built: true },
             'better-sqlite3': { built: true },
             esbuild: { built: true },
-            re2: { built: true },
             sharp: { built: true },
         });
     });
