@@ -61,11 +61,9 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
         }
     }
 
-    registerCommands(program, registry.toArray(), {
+    registerCommands(program, registry.getCommandTree(), {
         rootOptions: registry.getRootOptions(),
         getPluginExtensions: extensionPoint => registry.getPluginExtensions(extensionPoint),
-        commandSources: registry.getCommandSources(),
-        rootOptionSources: registry.getRootOptionSources(),
     });
 
     program.on('command:*', operands => {

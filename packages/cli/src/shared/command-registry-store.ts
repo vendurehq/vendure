@@ -46,6 +46,24 @@ function reservedCommandConflict(name: string): string {
     return `Command "${name}" is reserved by the CLI, because ${RESERVED_COMMAND_REASONS[name]}.`;
 }
 
+/**
+ * A top-level command and the plugin that registered it, as the CLI host
+ * receives them. `source` is undefined for a built-in.
+ */
+export interface CommandTreeEntry {
+    node: CliCommandNode;
+    source?: string;
+}
+
+/**
+ * A shared option and the plugin that registered it. `source` is undefined for
+ * one the CLI itself declares.
+ */
+export interface RootOptionEntry {
+    option: CliCommandOption;
+    source?: string;
+}
+
 interface RegisteredCommand {
     node: CliCommandNode;
     /** Plugin id, or undefined for a built-in. */
@@ -188,54 +206,38 @@ export class CommandRegistry {
         return this.state.commands.has(name);
     }
 
-    toArray(): CliCommandNode[] {
-        return Array.from(this.state.commands.values(), entry => entry.node);
-    }
-
     /**
-     * Top-level command name to the id of the plugin that registered it.
-     * Built-in commands are absent, having no plugin behind them.
+     * The top-level commands, each with the plugin that registered it.
      *
-     * Only top-level names are listed. A subcommand is only ever shown in the
-     * help of the command it is nested under, which already says which package
-     * that command came from.
-     */
-    getCommandSources(): Map<string, string> {
-        const sources = new Map<string, string>();
-        for (const [name, entry] of this.state.commands) {
-            if (entry.source) {
-                sources.set(name, entry.source);
-            }
-        }
-        return sources;
-    }
-
-    /**
-     * Root option attribute name to the id of the plugin that registered it.
+     * Kept together rather than handed out as a command list and a separate
+     * name-keyed map of sources, so the two cannot disagree about which
+     * commands exist.
      *
-     * Sub-options are left out, exactly as {@link getRootOptions} leaves them
-     * out: the parent carries them, and the help lists each one under its
-     * parent, so it belongs in whatever section the parent is in.
+     * A source is only ever recorded against a top-level command, so a
+     * subcommand does not carry one: it is only shown in the help of the
+     * command it is nested under, which already says where that came from.
+     *
+     * `extendCommands` does not set a source either, so a built-in that a
+     * plugin has extended stays listed as a built-in. The command is still the
+     * CLI's, and a plugin that only extends `dev` has not provided `dev`.
      */
-    getRootOptionSources(): Map<string, string> {
-        const sources = new Map<string, string>();
-        for (const [attributeName, entry] of this.state.rootOptions) {
-            if (entry.source && !entry.isSubOption) {
-                sources.set(attributeName, entry.source);
-            }
-        }
-        return sources;
+    getCommandTree(): CommandTreeEntry[] {
+        return Array.from(this.state.commands.values(), entry => ({
+            node: entry.node,
+            source: entry.source,
+        }));
     }
 
     /**
-     * Options registered on the `vendure` command itself by plugins.
+     * Options registered on the `vendure` command itself, each with the plugin
+     * that registered it. See {@link getCommandTree} for why they are paired.
      */
-    getRootOptions(): CliCommandOption[] {
+    getRootOptions(): RootOptionEntry[] {
         // Sub-options are excluded: their parent still carries them, and the
         // host expands each parent once when it registers the option.
         return Array.from(this.state.rootOptions.values())
             .filter(entry => !entry.isSubOption)
-            .map(entry => entry.option);
+            .map(entry => ({ option: entry.option, source: entry.source }));
     }
 
     /**

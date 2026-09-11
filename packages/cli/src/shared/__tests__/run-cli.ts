@@ -4,6 +4,20 @@ import { vi } from 'vitest';
 import { CliCommandNode, CliCommandOption } from '../cli-command-definition';
 import { CliPluginExtensionAccessor } from '../cli-plugin-extension';
 import { registerCommands } from '../command-registry';
+import { CommandTreeEntry, RootOptionEntry } from '../command-registry-store';
+
+/**
+ * Accepts either shape so a test can pass a bare fixture when it does not care
+ * where a command came from, or an entry when it does. A bare node never has a
+ * `node` property, which is what tells the two apart.
+ */
+function toCommandEntry(command: CliCommandNode | CommandTreeEntry): CommandTreeEntry {
+    return 'node' in command ? command : { node: command };
+}
+
+function toOptionEntry(option: CliCommandOption | RootOptionEntry): RootOptionEntry {
+    return 'option' in option ? option : { option };
+}
 
 /**
  * Thrown in place of `process.exit` so a test can observe the exit code the
@@ -37,14 +51,10 @@ export interface CliRun {
  * capturing everything the host would have written or exited with.
  */
 export async function runCli(
-    commands: CliCommandNode[],
-    sharedOptions: CliCommandOption[],
+    commands: Array<CliCommandNode | CommandTreeEntry>,
+    sharedOptions: Array<CliCommandOption | RootOptionEntry>,
     argv: string[],
     getPluginExtensions?: CliPluginExtensionAccessor,
-    sources: {
-        commands?: ReadonlyMap<string, string>;
-        rootOptions?: ReadonlyMap<string, string>;
-    } = {},
 ): Promise<CliRun> {
     let stdout = '';
     let commanderStderr = '';
@@ -62,11 +72,9 @@ export async function runCli(
             commanderStderr += str;
         },
     });
-    registerCommands(program, commands, {
-        rootOptions: sharedOptions,
+    registerCommands(program, commands.map(toCommandEntry), {
+        rootOptions: sharedOptions.map(toOptionEntry),
         getPluginExtensions,
-        commandSources: sources.commands,
-        rootOptionSources: sources.rootOptions,
     });
 
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation(((code?: number) => {

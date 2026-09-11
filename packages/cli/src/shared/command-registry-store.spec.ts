@@ -76,7 +76,7 @@ describe('CommandRegistry', () => {
             },
         ]);
         expect(registry.get('dev')?.description).toBe('Built-in dev');
-        expect(registry.toArray()).toHaveLength(1);
+        expect(registry.getCommandTree()).toHaveLength(1);
     });
 
     it('replaces an existing command and notifies on stderr', () => {
@@ -131,8 +131,8 @@ describe('CommandRegistry', () => {
         );
         expect(
             registry
-                .toArray()
-                .map(c => c.name)
+                .getCommandTree()
+                .map(entry => entry.node.name)
                 .sort(),
         ).toEqual(['cloud', 'dev']);
     });
@@ -224,7 +224,10 @@ describe('CommandRegistry nested commands and shared options', () => {
         const project = registry.get('project');
         expect(project && isCliCommandGroup(project)).toBe(true);
         expect((project as CliCommandGroupDefinition).subcommands.map(c => c.name)).toEqual(['list']);
-        expect(registry.getRootOptions().map(o => o.long)).toEqual(['--token <token>', '--json']);
+        expect(registry.getRootOptions().map(entry => entry.option.long)).toEqual([
+            '--token <token>',
+            '--json',
+        ]);
     });
 
     it('accepts a shared option that an existing command also declares', () => {
@@ -233,7 +236,10 @@ describe('CommandRegistry nested commands and shared options', () => {
         const registry = registryWithBuiltins();
         registry.applyPlugin(cloudPlugin());
 
-        expect(registry.getRootOptions().map(option => option.long)).toEqual(['--token <token>', '--json']);
+        expect(registry.getRootOptions().map(entry => entry.option.long)).toEqual([
+            '--token <token>',
+            '--json',
+        ]);
     });
 
     it('rejects a plugin that replaces a built-in without opting in', () => {

@@ -273,13 +273,13 @@ describe('Command extensions: registration through Commander', () => {
         registry.applyPlugin(credentialsPlugin());
         registry.applyPlugin(telemetryPlugin());
 
-        const help = await runCli(registry.toArray(), registry.getRootOptions(), ['dev', '--help']);
+        const help = await runCli(registry.getCommandTree(), registry.getRootOptions(), ['dev', '--help']);
         expect(help.stdout).toContain('--rotate-credential');
         expect(help.stdout).toContain('--cloud-env');
         expect(help.stdout).toContain('--no-reload');
         expect(help.stdout).toContain('Run Vendure in development mode with linked credentials');
 
-        const run = await runCli(registry.toArray(), registry.getRootOptions(), [
+        const run = await runCli(registry.getCommandTree(), registry.getRootOptions(), [
             'dev',
             'server',
             '--rotate-credential',
@@ -301,7 +301,7 @@ describe('Command extensions: registration through Commander', () => {
         registry.registerAll([{ name: 'dev', description: 'Dev', action: async () => 7 }]);
         registry.applyPlugin(credentialsPlugin());
 
-        const run = await runCli(registry.toArray(), [], ['dev']);
+        const run = await runCli(registry.getCommandTree(), [], ['dev']);
 
         expect(run.exitCode).toBe(7);
         expect(trace).toEqual(['credentials:before', 'credentials:after']);
@@ -422,7 +422,9 @@ describe('Command extensions: collisions', () => {
             commands: [{ name: 'dev', description: 'My dev', replaces: true, action: async () => 0 }],
         });
 
-        expect(() => registry.applyPlugin(replacer)).toThrow(/has been extended by @example\/credentials-cli-plugin/);
+        expect(() => registry.applyPlugin(replacer)).toThrow(
+            /has been extended by @example\/credentials-cli-plugin/,
+        );
         expect(devCommand(registry).description).toContain('linked credentials');
     });
 
@@ -803,7 +805,7 @@ describe('Command extensions: nested composition', () => {
         registry.applyPlugin(nestedExtender('@b/first', '--first'));
         registry.applyPlugin(nestedExtender('@c/second', '--second'));
 
-        const help = await runCli(registry.toArray(), registry.getRootOptions(), [
+        const help = await runCli(registry.getCommandTree(), registry.getRootOptions(), [
             'console',
             'link',
             '--help',
@@ -969,7 +971,7 @@ describe('Command extensions: reserved names and shared-option scope', () => {
             }),
         );
 
-        await runCli(registry.toArray(), registry.getRootOptions(), ['--env', 'staging', 'g', 'run']);
+        await runCli(registry.getCommandTree(), registry.getRootOptions(), ['--env', 'staging', 'g', 'run']);
 
         expect(inherited).toEqual({ env: 'staging' });
     });
@@ -1260,7 +1262,7 @@ describe('Command extensions: sub-option depth', () => {
             },
         ]);
 
-        const run = await runCli(registry.toArray(), [], ['deep', '--a', '1', '--b', '2']);
+        const run = await runCli(registry.getCommandTree(), [], ['deep', '--a', '1', '--b', '2']);
 
         expect(run.exitCode).toBe(0);
         expect(seen).toEqual({ a: '1', b: '2' });
@@ -1383,7 +1385,7 @@ describe('Command extensions: value shape across levels', () => {
             }),
         );
 
-        const run = await runCli(registry.toArray(), registry.getRootOptions(), [
+        const run = await runCli(registry.getCommandTree(), registry.getRootOptions(), [
             'config',
             '--dry-run',
             'server',
@@ -1413,9 +1415,9 @@ describe('Shared root options with sub-options', () => {
         );
 
         // The parent still carries its sub-option, so the host expands it once.
-        expect(registry.getRootOptions().map(option => option.long)).toEqual(['--auth <mode>']);
+        expect(registry.getRootOptions().map(entry => entry.option.long)).toEqual(['--auth <mode>']);
 
-        const help = await runCli(registry.toArray(), registry.getRootOptions(), ['--help']);
+        const help = await runCli(registry.getCommandTree(), registry.getRootOptions(), ['--help']);
         const authTokenLines = help.stdout.split('\n').filter(line => line.includes('--auth-token'));
         expect(authTokenLines).toHaveLength(1);
     });
@@ -1537,7 +1539,7 @@ describe('Command extensions: runnable parent commands', () => {
             }),
         );
 
-        await runCli(registry.toArray(), registry.getRootOptions(), ['deploy']);
+        await runCli(registry.getCommandTree(), registry.getRootOptions(), ['deploy']);
 
         expect(trace).toEqual(['credentials:before', 'core:deploy']);
     });
@@ -1562,7 +1564,7 @@ describe('Command extensions: runnable parent commands', () => {
             }),
         );
 
-        await runCli(registry.toArray(), registry.getRootOptions(), ['deploy', 'plan']);
+        await runCli(registry.getCommandTree(), registry.getRootOptions(), ['deploy', 'plan']);
 
         // The decorator wraps the parent action only, so running a subcommand
         // does not go through it.
@@ -1666,10 +1668,10 @@ describe('Command extensions: runnable parent commands', () => {
             }),
         );
 
-        await runCli(registry.toArray(), registry.getRootOptions(), ['deploy']);
-        await runCli(registry.toArray(), registry.getRootOptions(), ['deploy', 'verify']);
+        await runCli(registry.getCommandTree(), registry.getRootOptions(), ['deploy']);
+        await runCli(registry.getCommandTree(), registry.getRootOptions(), ['deploy', 'verify']);
         // The subcommand the replaced command had is gone with it.
-        const stale = await runCli(registry.toArray(), registry.getRootOptions(), ['deploy', 'plan']);
+        const stale = await runCli(registry.getCommandTree(), registry.getRootOptions(), ['deploy', 'plan']);
 
         expect(trace).toEqual(['replacement:deploy', 'replacement:verify']);
         expect(stale.exitCode).toBe(1);
@@ -1708,7 +1710,7 @@ describe('Command extensions: runnable parent commands', () => {
             }),
         );
 
-        await runCli(registry.toArray(), registry.getRootOptions(), ['deploy', 'plan']);
+        await runCli(registry.getCommandTree(), registry.getRootOptions(), ['deploy', 'plan']);
 
         expect(trace).toEqual(['credentials:plan', 'core:plan']);
     });
@@ -1738,11 +1740,11 @@ describe('Command extensions: runnable parent commands', () => {
             }),
         );
 
-        await runCli(registry.toArray(), registry.getRootOptions(), ['deploy', 'plan', '--dry-run']);
+        await runCli(registry.getCommandTree(), registry.getRootOptions(), ['deploy', 'plan', '--dry-run']);
 
         expect(inherited).toEqual({ dryRun: true });
 
-        const help = await runCli(registry.toArray(), registry.getRootOptions(), [
+        const help = await runCli(registry.getCommandTree(), registry.getRootOptions(), [
             'deploy',
             'plan',
             '--help',
