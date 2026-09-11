@@ -643,8 +643,26 @@ export class OrderModifier {
             orderLine.listPriceIncludesTax = priceResult.priceIncludesTax;
         }
 
+        const { promotionRevalidationStrategy } = this.configService.orderOptions;
+        const freezePromotions = !(await promotionRevalidationStrategy.shouldRevalidatePromotions(
+            ctx,
+            order,
+            input,
+        ));
+        if (freezePromotions) {
+            // The Promotions recorded on the Order are the ones the customer agreed to when they
+            // paid, so they are carried over verbatim rather than re-tested. These entities come
+            // from a QueryBuilder which does not join the translations, so the whole array is
+            // uniformly untranslated. That is deliberate: the Order entity resolver decides
+            // whether to translate in place or re-read from the database by inspecting the first
+            // element only, so mixing translated and untranslated Promotions here would make it
+            // translate an entity that has no translations, and a dry run would then fail on the
+            // non-nullable `Promotion.name`.
+            order.promotions = activePromotionsPre;
+        }
         await this.orderCalculator.applyPriceAdjustments(ctx, order, promotions, updatedOrderLines, {
             recalculateShipping: input.options?.recalculateShipping,
+            freezePromotions,
         });
         await this.promotionService.runPromotionSideEffects(ctx, order, activePromotionsPre);
         await this.connection.getRepository(ctx, OrderLine).save(order.lines, { reload: false });
