@@ -451,8 +451,9 @@ async function compileTypeScript({
 }
 
 /**
- * Adds `with { type: 'json' }` to import and export declarations of `.json`
- * specifiers that do not already carry import attributes.
+ * Adds `type: 'json'` to the import attributes of import and export declarations
+ * of `.json` specifiers that do not already carry a `type` attribute. Any other
+ * attributes, including an empty `with {}`, are kept and the entry is appended.
  *
  * Matching on the `.json` suffix is a superset of the rule `collectLocalSourceFiles`
  * uses to copy a JSON file. Bare specifiers such as `some-pkg/data.json` are never
@@ -461,17 +462,21 @@ async function compileTypeScript({
 function createJsonImportAttributeTransformer(): ts.TransformerFactory<ts.SourceFile> {
     return context => {
         const { factory } = context;
-        const jsonAttributes = () =>
-            factory.createImportAttributes(
-                factory.createNodeArray([
-                    factory.createImportAttribute(
-                        factory.createIdentifier('type'),
-                        factory.createStringLiteral('json'),
-                    ),
-                ]),
+        const withJsonAttribute = (attributes: ts.ImportAttributes | undefined) => {
+            const typeJson = factory.createImportAttribute(
+                factory.createIdentifier('type'),
+                factory.createStringLiteral('json'),
             );
+            return attributes
+                ? factory.updateImportAttributes(
+                      attributes,
+                      factory.createNodeArray([...attributes.elements, typeJson]),
+                      attributes.multiLine,
+                  )
+                : factory.createImportAttributes(factory.createNodeArray([typeJson]));
+        };
         const needsJsonAttributes = (node: ts.ImportDeclaration | ts.ExportDeclaration) =>
-            !node.attributes &&
+            !node.attributes?.elements.some(attribute => attribute.name.text === 'type') &&
             !!node.moduleSpecifier &&
             ts.isStringLiteral(node.moduleSpecifier) &&
             node.moduleSpecifier.text.endsWith('.json');
@@ -483,7 +488,7 @@ function createJsonImportAttributeTransformer(): ts.TransformerFactory<ts.Source
                     node.modifiers,
                     node.importClause,
                     node.moduleSpecifier,
-                    jsonAttributes(),
+                    withJsonAttribute(node.attributes),
                 );
             }
             if (ts.isExportDeclaration(node) && needsJsonAttributes(node)) {
@@ -493,7 +498,7 @@ function createJsonImportAttributeTransformer(): ts.TransformerFactory<ts.Source
                     node.isTypeOnly,
                     node.exportClause,
                     node.moduleSpecifier,
-                    jsonAttributes(),
+                    withJsonAttribute(node.attributes),
                 );
             }
             return node;

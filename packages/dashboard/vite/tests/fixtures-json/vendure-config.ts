@@ -4,12 +4,15 @@ import { VendureConfig } from '@vendure/core';
 // second one. TypeScript flags it here only because this fixture targets CommonJS.
 import attributedData from './attributed-data.json' with { type: 'json' };
 import configData from './config-data.json';
+// #5330 — an empty attribute list has no `type`, so the esm emit must still add one.
+import emptyAttributesData from './empty-attributes-data.json' with {};
 import { MyPlugin } from './my-plugin/src/my.plugin.js';
 
 // #5330 — a re-export of JSON needs the attribute in esm mode as much as an import does.
 export { default as reexportedData } from './reexported-data.json';
 
 export const attributedLabel = attributedData.label;
+export const emptyAttributesLabel = emptyAttributesData.label;
 
 export const config: VendureConfig = {
     apiOptions: { port: 3000 },

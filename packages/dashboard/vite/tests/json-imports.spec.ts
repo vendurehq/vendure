@@ -65,13 +65,15 @@ describe('compiling a config which imports .json files', () => {
         expect(attributedImport?.match(/type:/g)).toHaveLength(1);
 
         const script = [
-            'const { config, reexportedData, attributedLabel } = await import(process.argv[1]);',
+            'const { config, reexportedData, attributedLabel, emptyAttributesLabel } =',
+            '    await import(process.argv[1]);',
             'const [MyPlugin] = config.plugins;',
             'console.log(JSON.stringify([',
             '    config.customFields.Product[0].name,',
             '    MyPlugin.sheetId,',
             '    reexportedData.label,',
             '    attributedLabel,',
+            '    emptyAttributesLabel,',
             ']));',
         ].join('\n');
         const { stdout } = await execFileAsync(process.execPath, [
@@ -80,7 +82,7 @@ describe('compiling a config which imports .json files', () => {
             script,
             pathToFileURL(join(tempDir, 'vendure-config.js')).href,
         ]);
-        expect(JSON.parse(stdout)).toEqual(['bar', 'abc123', 'reexported', 'attributed']);
+        expect(JSON.parse(stdout)).toEqual(['bar', 'abc123', 'reexported', 'attributed', 'empty-attributes']);
     });
     // Skipping the package.json silently leaves the import in the emitted output, so
     // the config fails to load with a bare "Cannot find module". Say so up front.
