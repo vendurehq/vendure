@@ -18,7 +18,7 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import { administratorFragment, currentUserFragment } from './graphql/fragments-admin';
-import { FragmentOf } from './graphql/graphql-admin';
+import { FragmentOf, graphql } from './graphql/graphql-admin';
 import {
     attemptLoginDocument,
     createAdministratorDocument,
@@ -43,6 +43,24 @@ import {
     currentUserFragment as shopCurrentUserFragment,
 } from './graphql/shop-definitions';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
+
+const activeAdministratorRoleChannelsDocument = graphql(`
+    query ActiveAdministratorRoleChannels {
+        activeAdministrator {
+            id
+            user {
+                id
+                roles {
+                    id
+                    code
+                    channels {
+                        id
+                    }
+                }
+            }
+        }
+    }
+`);
 
 let sendEmailFn: Mock;
 
@@ -286,6 +304,18 @@ describe('Administrator resolver', () => {
 
         const { activeAdministrator: result2 } = await adminClient.query(getActiveAdministratorDocument);
         expect(result2?.emailAddress).toBe(SUPER_ADMIN_USER_IDENTIFIER);
+    });
+
+    // The dashboard selects user -> roles -> channels, the full depth the @Relations
+    // decorator resolves by default (DEFAULT_DEPTH = 3). Without the join the response is
+    // the same, fetched one query per role, so assert the deepest level explicitly.
+    it('activeAdministrator resolves nested role channels', async () => {
+        await adminClient.asSuperAdmin();
+
+        const { activeAdministrator } = await adminClient.query(activeAdministratorRoleChannelsDocument);
+
+        expect(activeAdministrator?.user.roles.length).toBeGreaterThan(0);
+        expect(activeAdministrator?.user.roles[0].channels.length).toBeGreaterThan(0);
     });
 
     it('updateActiveAdministrator', async () => {

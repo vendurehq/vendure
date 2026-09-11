@@ -70,6 +70,11 @@ export interface DashboardExtension {
      *             : s
      *     ),
      * })
+     *
+     * // Function form, deciding per user. The function itself still runs once, at
+     * // registration; the predicate it attaches is evaluated on every nav render.
+     * navSections: config =>
+     *     setNavVisibility(config, { sections: [BUILT_IN_NAV_SECTION_IDS.Catalog] }, ctx => !isFloorStaff(ctx)),
      * ```
      *
      * Note: modifier functions should return a **new** config object rather than

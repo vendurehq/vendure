@@ -41,17 +41,16 @@ function registerRoutes(routes?: DashboardRouteDefinition[]) {
     }
     for (const route of routes) {
         if (route.navMenuItem) {
+            const { sectionId, ...navMenuItemProps } = route.navMenuItem;
             const item: NavMenuItem = {
+                // Spread so that any field added to NavMenuItem passes through without
+                // needing a change here.
+                ...navMenuItemProps,
                 url: route.navMenuItem.url ?? route.path,
                 id: route.navMenuItem.id ?? route.path,
                 title: route.navMenuItem.title ?? route.path,
-                order: route.navMenuItem.order,
-                requiresPermission: route.navMenuItem.requiresPermission,
-                icon: route.navMenuItem.icon,
-                placement: route.navMenuItem.placement,
-                shortcut: route.navMenuItem.shortcut,
             };
-            addNavMenuItem(item, route.navMenuItem.sectionId);
+            addNavMenuItem(item, sectionId);
         }
         if (route.path) {
             registerRoute(route);

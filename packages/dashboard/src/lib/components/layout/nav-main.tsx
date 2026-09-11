@@ -11,12 +11,9 @@ import {
     SidebarMenuSubItem,
     useSidebar,
 } from '@/vdb/components/ui/sidebar.js';
-import {
-    NavMenuItem,
-    NavMenuSection,
-    NavMenuSectionPlacement,
-} from '@/vdb/framework/nav-menu/nav-menu-extensions.js';
-import { usePermissions } from '@/vdb/hooks/use-permissions.js';
+import { NavMenuItem, NavMenuSection } from '@/vdb/framework/nav-menu/nav-menu-extensions.js';
+import { resolveNavMenu } from '@/vdb/framework/nav-menu/resolve-nav-menu.js';
+import { useDashboardUserContext } from '@/vdb/hooks/use-dashboard-user-context.js';
 import { cn } from '@/vdb/lib/utils.js';
 import { useLingui } from '@lingui/react';
 import { Link, useRouter, useRouterState } from '@tanstack/react-router';
@@ -24,16 +21,6 @@ import { ChevronRight } from 'lucide-react';
 import * as React from 'react';
 import { NavItemWrapper } from './nav-item-wrapper.js';
 import { buildShortcutMap, isEditableTarget } from './navigation-shortcuts.js';
-
-// Utility to sort items & sections by the optional `order` prop (ascending) and then alphabetically by title
-function sortByOrder<T extends { order?: number; title: string }>(a: T, b: T) {
-    const orderA = a.order ?? Number.MAX_SAFE_INTEGER;
-    const orderB = b.order ?? Number.MAX_SAFE_INTEGER;
-    if (orderA === orderB) {
-        return a.title.localeCompare(b.title);
-    }
-    return orderA - orderB;
-}
 
 /**
  * Escapes special regex characters in a string to be used as a literal pattern
@@ -103,7 +90,19 @@ function CollapsedSectionMenu({
 export function NavMain({ items }: Readonly<{ items: Array<NavMenuSection | NavMenuItem> }>) {
     const router = useRouter();
     const routerState = useRouterState();
-    const { hasPermissions } = usePermissions();
+    // With no isVisible predicate anywhere, the resolved output cannot depend on
+    // administrator custom fields, so a vanilla install skips that request entirely.
+    const hasUserDependentRules = React.useMemo(
+        () =>
+            items.some(
+                entry =>
+                    entry.isVisible !== undefined ||
+                    ('items' in entry && (entry.items ?? []).some(i => i.isVisible !== undefined)),
+            ),
+        [items],
+    );
+
+    const { ctx, ready } = useDashboardUserContext({ includeCustomFields: hasUserDependentRules });
     const { i18n } = useLingui();
     const { state: sidebarState, isMobile, setOpenMobile, open, setOpen } = useSidebar();
     const isCollapsed = sidebarState === 'collapsed' && !isMobile;
@@ -158,62 +157,31 @@ export function NavMain({ items }: Readonly<{ items: Array<NavMenuSection | NavM
         [isPathActive],
     );
 
+    const resolved = React.useMemo(
+        () =>
+            resolveNavMenu({ sections: items }, ctx, {
+                // Withhold only the entries with a predicate until the context has
+                // loaded: a rule reading customFields would otherwise briefly see them
+                // absent. Everything else renders immediately.
+                userContextPending: hasUserDependentRules && !ready,
+            }),
+        [items, ctx, ready, hasUserDependentRules],
+    );
+
     // Initialize state with active sections on mount
     const [openBottomSectionId, setOpenBottomSectionId] = React.useState<string | null>(() => {
-        const { activeBottomSection } = findActiveSections(items);
+        const { activeBottomSection } = findActiveSections(resolved);
         return activeBottomSection;
     });
 
     const [openTopSectionIds, setOpenTopSectionIds] = React.useState<Set<string>>(() => {
-        const { activeTopSections } = findActiveSections(items);
+        const { activeTopSections } = findActiveSections(resolved);
         return activeTopSections;
     });
 
-    // Helper to check if an item is allowed based on permissions
-    const isItemAllowed = React.useCallback(
-        (item: NavMenuItem) => {
-            if (!item.requiresPermission) {
-                return true;
-            }
-            const permissions = Array.isArray(item.requiresPermission)
-                ? item.requiresPermission
-                : [item.requiresPermission];
-            return hasPermissions(permissions);
-        },
-        [hasPermissions],
-    );
+    const topSections = React.useMemo(() => resolved.filter(s => s.placement === 'top'), [resolved]);
+    const bottomSections = React.useMemo(() => resolved.filter(s => s.placement === 'bottom'), [resolved]);
 
-    // Helper to build a sorted list of sections for a given placement, memoized for stability
-    const getSortedSections = React.useCallback(
-        (placement: NavMenuSectionPlacement) => {
-            return items
-                .filter(item => item.placement === placement)
-                .slice()
-                .sort(sortByOrder)
-                .map(section => {
-                    if ('items' in section) {
-                        // Filter items based on permissions
-                        const allowedItems = (section.items ?? [])
-                            .filter(item => isItemAllowed(item))
-                            .sort(sortByOrder);
-                        return { ...section, items: allowedItems };
-                    }
-                    return section;
-                })
-                .filter(section => {
-                    // Drop sections that have no items after permission filtering
-                    if ('items' in section) {
-                        return section.items && section.items.length > 0;
-                    }
-                    // For single items, check if they're allowed
-                    return isItemAllowed(section as NavMenuItem);
-                });
-        },
-        [items, isItemAllowed],
-    );
-
-    const topSections = React.useMemo(() => getSortedSections('top'), [getSortedSections]);
-    const bottomSections = React.useMemo(() => getSortedSections('bottom'), [getSortedSections]);
     const shortcutMap = React.useMemo(
         () => buildShortcutMap([...topSections, ...bottomSections]),
         [topSections, bottomSections],
@@ -327,17 +295,29 @@ export function NavMain({ items }: Readonly<{ items: Array<NavMenuSection | NavM
         }
     };
 
-    // Update open sections when route changes (for client-side navigation)
-    React.useEffect(() => {
-        const { activeTopSections, activeBottomSection } = findActiveSections(items);
+    // Update open sections when the route changes, and when `resolved` gains the entries
+    // withheld while the user context loaded. useLayoutEffect, not useEffect: the entry
+    // holding the active route can arrive after mount, so the state initializers above
+    // cannot know the active section, and correcting it after paint would flash every
+    // section collapsed for one frame.
+    React.useLayoutEffect(() => {
+        const { activeTopSections, activeBottomSection } = findActiveSections(resolved);
 
-        // Replace open sections with only the active one
-        setOpenTopSectionIds(activeTopSections);
+        // Replace open sections with only the active one. Return the previous Set when
+        // the contents match so React bails out of the re-render: this effect is keyed
+        // on `resolved`, and an unconditional fresh Set would turn any future
+        // destabilisation of `ctx` from wasted work into an infinite render loop.
+        setOpenTopSectionIds(prev => {
+            if (prev.size === activeTopSections.size && [...activeTopSections].every(id => prev.has(id))) {
+                return prev;
+            }
+            return activeTopSections;
+        });
 
         if (activeBottomSection) {
             setOpenBottomSectionId(activeBottomSection);
         }
-    }, [currentPath, items, findActiveSections]);
+    }, [currentPath, resolved, findActiveSections]);
 
     // Close mobile sidebar on route change
     const prevPathRef = React.useRef(currentPath);

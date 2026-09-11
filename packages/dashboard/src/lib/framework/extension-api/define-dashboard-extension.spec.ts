@@ -15,7 +15,9 @@ import {
     NavMenuConfig,
     setNavMenuConfig,
 } from '../nav-menu/nav-menu-extensions.js';
+import { setNavVisibility } from '../nav-menu/nav-menu-helpers.js';
 import { globalRegistry } from '../registry/global-registry.js';
+import { buildDashboardUserContext } from '../user-context/dashboard-user-context.js';
 
 import { getDashboardCustomProvidersRegistry, renderProviders } from './custom-providers.js';
 import {
@@ -306,6 +308,65 @@ describe('defineDashboardExtension - navSections', () => {
             expect.objectContaining({ id: 'administrators' }),
             expect.objectContaining({ id: 'roles' }),
         ]);
+    });
+
+    it('preserves isVisible defined on a route navMenuItem', () => {
+        const isVisible = () => true;
+        defineDashboardExtension({
+            navSections: [{ id: 'my-section', title: 'My Section' }],
+            routes: [
+                {
+                    path: '/my-page',
+                    component: () => null,
+                    navMenuItem: { sectionId: 'my-section', title: 'My Page', isVisible },
+                },
+            ],
+        });
+        executeDashboardExtensionCallbacks();
+
+        const section = getNavMenuConfig().sections.find(s => s.id === 'my-section');
+        if (!section || !('items' in section)) {
+            throw new Error('Expected "my-section" to be registered as a section');
+        }
+        expect(section.items?.[0].isVisible).toBe(isVisible);
+    });
+
+    it('warns when a route navMenuItem targets an unknown sectionId', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        defineDashboardExtension({
+            routes: [
+                {
+                    path: '/orphan',
+                    component: () => null,
+                    navMenuItem: { sectionId: 'does-not-exist', title: 'Orphan' },
+                },
+            ],
+        });
+        executeDashboardExtensionCallbacks();
+
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining('does-not-exist'));
+        warn.mockRestore();
+    });
+
+    // The route by which a plugin controls an entry it did not declare: the function
+    // form runs after every array-form registration, so the predicate lands on the
+    // assembled config and is still in the registry for NavMain to find.
+    it('stores a predicate attached by the function form of navSections', () => {
+        const ctx = buildDashboardUserContext({
+            administrator: undefined,
+            channels: undefined,
+            activeChannel: undefined,
+            customFields: undefined,
+            hasPermissions: () => true,
+        });
+        defineDashboardExtension({ navSections: [{ id: 'reports', title: 'Reports' }] });
+        defineDashboardExtension({
+            navSections: config => setNavVisibility(config, { sections: ['reports'] }, () => false),
+        });
+        executeDashboardExtensionCallbacks();
+
+        const reports = getNavMenuConfig().sections.find(section => section.id === 'reports');
+        expect(reports?.isVisible?.(ctx)).toBe(false);
     });
 });
 
