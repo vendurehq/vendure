@@ -86,8 +86,14 @@ describe('Default scheduler plugin', () => {
         expect(testJob.schedule).toBe('0 0 * * 6');
         expect(testJob.scheduleDescription).toBe('At 12:00 AM, only on Saturday');
         expect(testJob.timezone).toBe('Europe/Stockholm');
-        expect(scheduledTasks.find(t => t.id === 'hold-test-job-manual')?.timezone).toBeNull();
         expect(testJob.enabled).toBe(true);
+    });
+
+    it('reports a null timezone for a task without one', async () => {
+        const { scheduledTasks } = await adminClient.query(getTasksDocument);
+        const holdJob = scheduledTasks.find(t => t.id === 'hold-test-job-manual');
+        if (!holdJob) throw new Error('hold-test-job-manual not found');
+        expect(holdJob.timezone).toBeNull();
     });
 
     it('disable task', async () => {

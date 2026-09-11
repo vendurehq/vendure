@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { assertValidTimezone, getScheduleTimezone } from './schedule-timezone';
+import { assertValidTimezones, getScheduleTimezone } from './schedule-timezone';
 
 type TaskArg = Parameters<typeof getScheduleTimezone>[0];
 
@@ -48,16 +48,34 @@ describe('getScheduleTimezone()', () => {
     });
 });
 
-describe('assertValidTimezone()', () => {
+describe('assertValidTimezones()', () => {
     it('accepts valid IANA timezone identifiers', () => {
-        expect(() => assertValidTimezone('UTC', 'test-task')).not.toThrow();
-        expect(() => assertValidTimezone('Europe/Stockholm', 'test-task')).not.toThrow();
-        expect(() => assertValidTimezone('America/New_York', 'test-task')).not.toThrow();
+        expect(() =>
+            assertValidTimezones({
+                timezone: 'UTC',
+                tasks: [createTask('Europe/Stockholm'), createTask('America/New_York')],
+            }),
+        ).not.toThrow();
     });
 
-    it('throws an error naming the task and the invalid value', () => {
-        expect(() => assertValidTimezone('Not/AZone', 'my-task')).toThrowError(
-            /Invalid timezone "Not\/AZone" configured for scheduled task "my-task"/,
+    it('accepts blank and absent identifiers', () => {
+        expect(() => assertValidTimezones({})).not.toThrow();
+        expect(() => assertValidTimezones({ timezone: '  ', tasks: [createTask('')] })).not.toThrow();
+    });
+
+    it('names the global option when the global timezone is invalid', () => {
+        expect(() => assertValidTimezones({ timezone: 'Not/AZone', tasks: [createTask()] })).toThrowError(
+            /Invalid timezone "Not\/AZone" configured for the `schedulerOptions.timezone` option/,
         );
+    });
+
+    it('validates the global timezone even when no tasks are configured', () => {
+        expect(() => assertValidTimezones({ timezone: 'Not/AZone' })).toThrowError(/Invalid timezone/);
+    });
+
+    it('names the task when a task timezone is invalid', () => {
+        expect(() =>
+            assertValidTimezones({ timezone: 'UTC', tasks: [createTask('Not/AZone')] }),
+        ).toThrowError(/Invalid timezone "Not\/AZone" configured for the scheduled task "test-task"/);
     });
 });

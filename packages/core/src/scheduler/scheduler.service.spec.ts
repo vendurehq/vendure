@@ -1,14 +1,11 @@
-// `default-config` must be evaluated before the ScheduledTask module chain,
-// because it instantiates ScheduledTask at module scope and the ScheduledTask
-// module's own imports lead back into the config module. This mirrors the
-// load order of the package entry point. Type-only imports are elided at
-// runtime, so a side-effect import is required.
+// `ScheduledTask` imports DI tokens from the config module, so the config module must
+// be evaluated first, as it is by the package entry point.
 import '../config/default-config';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ScheduledTask } from './scheduled-task';
-import { SchedulerStrategy, TaskReport } from './scheduler-strategy';
+import { TaskReport } from './scheduler-strategy';
 import { SchedulerService } from './scheduler.service';
 
 // Derived from the constructor so the mocks stay in step with the real signatures.
@@ -22,16 +19,20 @@ function createTask(config: { id: string; schedule: string; timezone?: string })
     });
 }
 
-function createMockStrategy(): SchedulerStrategy {
+function createMockStrategy() {
     return {
         registerTask: vi.fn(),
         executeTask: vi.fn(() => () => undefined),
-        getTasks: vi.fn((): Promise<TaskReport[]> => Promise.resolve([])),
+        getTasks: vi.fn<() => Promise<TaskReport[]>>(),
         getTask: vi.fn(() => Promise.resolve(undefined)),
         updateTask: vi.fn(),
         triggerTask: vi.fn(),
-    } as unknown as SchedulerStrategy;
+    };
 }
+
+// Bootstrapped services register named croner jobs, which stay registered until the
+// job is stopped, so every service must be shut down again after the test.
+const services: SchedulerService[] = [];
 
 function bootstrapService(tasks: ScheduledTask[], timezone?: string) {
     const strategy = createMockStrategy();
@@ -46,23 +47,20 @@ function bootstrapService(tasks: ScheduledTask[], timezone?: string) {
     const processContext = { isWorker: true } as ProcessContextArg;
     const service = new SchedulerService(configService, processContext);
     service.onApplicationBootstrap();
-    (strategy.getTasks as ReturnType<typeof vi.fn>).mockReturnValue(
-        Promise.resolve(
-            tasks.map(task => ({
-                id: task.id,
-                lastExecutedAt: null,
-                isRunning: false,
-                lastResult: null,
-                enabled: true,
-            })),
-        ),
+    services.push(service);
+    strategy.getTasks.mockResolvedValue(
+        tasks.map(task => ({
+            id: task.id,
+            lastExecutedAt: null,
+            isRunning: false,
+            lastResult: null,
+            enabled: true,
+        })),
     );
     return service;
 }
 
 describe('SchedulerService timezone handling', () => {
-    const services: SchedulerService[] = [];
-
     beforeEach(() => {
         vi.useFakeTimers();
         // A Wednesday in January, far from any DST transition: 12:00 UTC
@@ -79,7 +77,6 @@ describe('SchedulerService timezone handling', () => {
     async function getNextExecution(schedule: string, taskTimezone?: string, globalTimezone?: string) {
         const task = createTask({ id: 'test-task', schedule, timezone: taskTimezone });
         const service = bootstrapService([task], globalTimezone);
-        services.push(service);
         const [taskInfo] = await service.getTaskList();
         return taskInfo.nextExecutionAt;
     }
@@ -101,10 +98,17 @@ describe('SchedulerService timezone handling', () => {
         expect(nextRun?.toISOString()).toBe('2026-01-08T01:00:00.000Z');
     });
 
-    it('throws a descriptive error at bootstrap for an invalid timezone', () => {
+    it('throws a descriptive error at bootstrap for an invalid task timezone', () => {
         const task = createTask({ id: 'bad-tz-task', schedule: '0 2 * * *', timezone: 'Not/AZone' });
         expect(() => bootstrapService([task])).toThrowError(
-            /Invalid timezone "Not\/AZone" configured for scheduled task "bad-tz-task"/,
+            /Invalid timezone "Not\/AZone" configured for the scheduled task "bad-tz-task"/,
+        );
+    });
+
+    it('throws a descriptive error at bootstrap for an invalid global timezone', () => {
+        const task = createTask({ id: 'good-tz-task', schedule: '0 2 * * *' });
+        expect(() => bootstrapService([task], 'Not/AZone')).toThrowError(
+            /Invalid timezone "Not\/AZone" configured for the `schedulerOptions.timezone` option/,
         );
     });
 
@@ -130,7 +134,6 @@ describe('SchedulerService timezone handling', () => {
             timezone: 'Europe/Stockholm',
         });
         const service = bootstrapService([task]);
-        services.push(service);
         const [taskInfo] = await service.getTaskList();
         expect(taskInfo.nextExecutionAt?.toISOString()).toBe('2026-01-08T01:00:00.000Z');
     });
@@ -138,7 +141,6 @@ describe('SchedulerService timezone handling', () => {
     it('exposes the effective timezone as its own field', async () => {
         const task = createTask({ id: 'described-task', schedule: '0 2 * * *' });
         const service = bootstrapService([task], 'Europe/Stockholm');
-        services.push(service);
         const [taskInfo] = await service.getTaskList();
         expect(taskInfo.timezone).toBe('Europe/Stockholm');
         expect(taskInfo.scheduleDescription).toBe('At 02:00 AM');
@@ -147,7 +149,6 @@ describe('SchedulerService timezone handling', () => {
     it('reports a null timezone when none is configured', async () => {
         const task = createTask({ id: 'no-tz-task', schedule: '0 2 * * *' });
         const service = bootstrapService([task]);
-        services.push(service);
         const [taskInfo] = await service.getTaskList();
         expect(taskInfo.timezone).toBeNull();
     });

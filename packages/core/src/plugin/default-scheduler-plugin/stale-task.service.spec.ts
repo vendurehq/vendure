@@ -1,8 +1,5 @@
-// `default-config` must be evaluated before the ScheduledTask module chain,
-// because it instantiates ScheduledTask at module scope and the ScheduledTask
-// module's own imports lead back into the config module. This mirrors the
-// load order of the package entry point. Type-only imports are elided at
-// runtime, so a side-effect import is required.
+// `ScheduledTask` imports DI tokens from the config module, so the config module must
+// be evaluated first, as it is by the package entry point.
 import '../../config/default-config';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

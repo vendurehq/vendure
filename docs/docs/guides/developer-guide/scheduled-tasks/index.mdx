@@ -220,8 +220,8 @@ export const config: VendureConfig = {
 ## Timezones
 
 By default, cron expressions are evaluated in the timezone of the Node.js process, as determined by the `TZ`
-environment variable. A schedule of `0 3 * * *` therefore means "03:00 in whatever timezone the process happens
-to run in" - which for a process running in UTC is 03:00 UTC, not 03:00 local time.
+environment variable. A schedule of `0 3 * * *` means "03:00 in whatever timezone the process runs in". For a
+process running in UTC, that is 03:00 UTC rather than 03:00 local time.
 
 Since v3.8 you can specify an [IANA timezone identifier](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)
 in which schedules should be evaluated, either globally or per task:
@@ -249,17 +249,24 @@ export const config: VendureConfig = {
 };
 ```
 
-For tasks you do not construct yourself, such as the built-in `cleanSessionsTask`, the timezone can be set
-via the `configure()` method:
+For tasks you do not construct yourself, such as the built-in `cleanSessionsTask`, use the `configure()` method
+where the task is added to the config:
 
-```ts
-cleanSessionsTask.configure({ timezone: 'Europe/Stockholm' });
+```ts title="vendure-config.ts"
+export const config: VendureConfig = {
+    // ...
+    schedulerOptions: {
+        tasks: [cleanSessionsTask.configure({ timezone: 'Europe/Stockholm' })], // [!code highlight]
+    },
+};
 ```
 
-With a timezone configured, schedules follow local wall-clock time including daylight saving time transitions,
-independently of the process timezone. This is particularly useful when the process runs in UTC (which is
-generally recommended so that database timestamps are stored consistently), but tasks should still run at a
-fixed local time.
+With a timezone configured, schedules follow local wall-clock time, including daylight saving time transitions,
+whatever the process timezone is. This lets the process run in UTC, which keeps database timestamps consistent,
+while tasks still run at a fixed local time.
+
+An identifier the runtime does not recognise fails at startup with an error naming the option or task that
+carries it.
 
 ## How scheduled tasks work
 

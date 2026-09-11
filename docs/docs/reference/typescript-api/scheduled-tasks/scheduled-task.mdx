@@ -28,7 +28,7 @@ class ScheduledTask<C extends Record<string, any> = Record<string, any>> {
     id: void
     options: void
     execute(injector: Injector) => ;
-    configure(config: Partial<Pick<ScheduledTaskConfig<C>, 'schedule' | 'timezone' | 'timeout' | 'params'>>) => ;
+    configure(update: Partial<Pick<ScheduledTaskConfig<C>, 'schedule' | 'timezone' | 'timeout' | 'params'>>) => ;
 }
 ```
 
@@ -51,10 +51,11 @@ class ScheduledTask<C extends Record<string, any> = Record<string, any>> {
 
 ### configure
 
-<MemberInfo kind="method" type={`(config: Partial<Pick<<a href='/reference/typescript-api/scheduled-tasks/scheduled-task#scheduledtaskconfig'>ScheduledTaskConfig</a><C>, 'schedule' | 'timezone' | 'timeout' | 'params'>>) => `}   />
+<MemberInfo kind="method" type={`(update: Partial<Pick<<a href='/reference/typescript-api/scheduled-tasks/scheduled-task#scheduledtaskconfig'>ScheduledTaskConfig</a><C>, 'schedule' | 'timezone' | 'timeout' | 'params'>>) => `}   />
 
 This method allows you to further configure existing scheduled tasks. For example, you may
-wish to change the schedule or timeout of a task, without having to define a new task.
+wish to change the schedule, timezone or timeout of a task, without having to define a
+new task.
 
 *Example*
 

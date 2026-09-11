@@ -66,12 +66,10 @@ export class StaleTaskService {
      * Returns the interval in ms between one run of the task, and the next.
      */
     getScheduleIntervalMs(task: ScheduledTask): number {
-        // Not cached: the interval between two runs varies across daylight saving
-        // transitions, so it is recomputed from the current time on each call.
+        // The interval between two runs varies across daylight saving transitions,
+        // so it is recomputed on each call.
         const schedule = task.options.schedule;
         const scheduleString = typeof schedule === 'function' ? schedule(CronTime) : schedule;
-        // Same timezone as the SchedulerService uses for the actual cron job, so that
-        // the computed interval matches the real job cadence.
         const timezone = getScheduleTimezone(task, this.configService.schedulerOptions);
         const cron = new Cron(scheduleString, { timezone });
         const nextFn: (d?: Date) => Date | null | undefined =

@@ -9,7 +9,7 @@ import { Logger } from '../config/logger/vendure-logger';
 import { ProcessContext } from '../process-context';
 
 import { NoopSchedulerStrategy } from './noop-scheduler-strategy';
-import { assertValidTimezone, getScheduleTimezone } from './schedule-timezone';
+import { assertValidTimezones, getScheduleTimezone } from './schedule-timezone';
 import { ScheduledTask } from './scheduled-task';
 import { TaskReport } from './scheduler-strategy';
 
@@ -44,13 +44,8 @@ export class SchedulerService implements OnApplicationBootstrap, OnApplicationSh
     ) {}
 
     onApplicationBootstrap() {
+        assertValidTimezones(this.configService.schedulerOptions);
         const scheduledTasks = this.configService.schedulerOptions.tasks ?? [];
-        for (const task of scheduledTasks) {
-            const timezone = this.getTimezone(task);
-            if (timezone) {
-                assertValidTimezone(timezone, task.id);
-            }
-        }
         const schedulerStrategy = this.configService.schedulerOptions.schedulerStrategy;
         if (!schedulerStrategy || schedulerStrategy instanceof NoopSchedulerStrategy) {
             Logger.warn('No scheduler strategy is configured! Scheduled tasks will not be executed.');

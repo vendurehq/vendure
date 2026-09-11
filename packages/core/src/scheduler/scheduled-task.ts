@@ -159,7 +159,8 @@ export class ScheduledTask<C extends Record<string, any> = Record<string, any>> 
     /**
      * @description
      * This method allows you to further configure existing scheduled tasks. For example, you may
-     * wish to change the schedule or timeout of a task, without having to define a new task.
+     * wish to change the schedule, timezone or timeout of a task, without having to define a
+     * new task.
      *
      * @example
      * ```ts
@@ -177,18 +178,18 @@ export class ScheduledTask<C extends Record<string, any> = Record<string, any>> 
      * task.configure({ schedule: cron => cron.every(5).minutes() });
      * ```
      */
-    configure(config: Partial<Pick<ScheduledTaskConfig<C>, 'schedule' | 'timezone' | 'timeout' | 'params'>>) {
-        if (config.schedule) {
-            this.config.schedule = config.schedule;
+    configure(update: Partial<Pick<ScheduledTaskConfig<C>, 'schedule' | 'timezone' | 'timeout' | 'params'>>) {
+        if (update.schedule) {
+            this.config.schedule = update.schedule;
         }
-        if (config.timezone) {
-            this.config.timezone = config.timezone;
+        if (update.timezone) {
+            this.config.timezone = update.timezone;
         }
-        if (config.timeout) {
-            this.config.timeout = config.timeout;
+        if (update.timeout) {
+            this.config.timeout = update.timeout;
         }
-        if (config.params) {
-            this.config.params = config.params;
+        if (update.params) {
+            this.config.params = update.params;
         }
         return this;
     }

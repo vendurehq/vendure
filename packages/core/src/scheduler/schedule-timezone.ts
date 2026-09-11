@@ -5,10 +5,6 @@ import type { ScheduledTask } from './scheduled-task';
  * `timezone` takes precedence over the global `schedulerOptions.timezone`, and blank
  * values are treated as unset. Returning `undefined` makes croner evaluate the
  * schedule in the timezone of the Node.js process.
- *
- * This is the single source of truth for the resolution, used both when constructing
- * the cron job in the {@link SchedulerService} and when computing the schedule interval
- * in the `StaleTaskService`, so that the two cannot disagree about when a task is due.
  */
 export function getScheduleTimezone(
     task: ScheduledTask,
@@ -19,18 +15,29 @@ export function getScheduleTimezone(
 }
 
 /**
- * Asserts that the given string is a timezone identifier the runtime understands. croner
- * resolves timezones through `Intl`, so it accepts exactly what this check accepts. croner
- * rejects invalid values on its own, but its message cannot name the Vendure task that
- * carries the bad value, whereas this check can.
+ * Asserts that every configured timezone identifier is one the runtime understands,
+ * naming the option or task that carries a bad value. croner also rejects invalid
+ * values, but its error cannot say where the value came from.
  */
-export function assertValidTimezone(timezone: string, taskId: string): void {
+export function assertValidTimezones(schedulerOptions: { timezone?: string; tasks?: ScheduledTask[] }): void {
+    assertValidTimezone(schedulerOptions.timezone, 'the `schedulerOptions.timezone` option');
+    for (const task of schedulerOptions.tasks ?? []) {
+        assertValidTimezone(task.options.timezone, `the scheduled task "${task.id}"`);
+    }
+}
+
+function assertValidTimezone(timezone: string | undefined, source: string): void {
+    const trimmed = timezone?.trim();
+    if (!trimmed) {
+        return;
+    }
     try {
-        // Throws a RangeError for unknown timezone identifiers.
-        Intl.DateTimeFormat('en-US', { timeZone: timezone });
+        // Throws a RangeError for unknown timezone identifiers. croner resolves
+        // timezones through Intl too, so it accepts exactly what this accepts.
+        Intl.DateTimeFormat('en-US', { timeZone: trimmed });
     } catch {
         throw new Error(
-            `Invalid timezone "${timezone}" configured for scheduled task "${taskId}". ` +
+            `Invalid timezone "${trimmed}" configured for ${source}. ` +
                 `The value must be an IANA timezone identifier, e.g. "Europe/Stockholm" or "UTC".`,
         );
     }
