@@ -5,6 +5,7 @@ import {
     Permission,
     ProductTranslationInput,
 } from '@vendure/common/lib/generated-types';
+import { ID } from '@vendure/common/lib/shared-types';
 import { IsNull } from 'typeorm';
 
 import { idsAreEqual } from '../../../common';
@@ -12,6 +13,8 @@ import { Injector } from '../../../common/injector';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { ProductVariant } from '../../../entity/product-variant/product-variant.entity';
 import { Product } from '../../../entity/product/product.entity';
+import { ProductOptionGroupService } from '../../../service/services/product-option-group.service';
+import { ProductOptionService } from '../../../service/services/product-option.service';
 import { ProductVariantService } from '../../../service/services/product-variant.service';
 import { ProductService } from '../../../service/services/product.service';
 import { EntityDuplicator } from '../entity-duplicator';
@@ -19,6 +22,8 @@ import { EntityDuplicator } from '../entity-duplicator';
 let connection: TransactionalConnection;
 let productService: ProductService;
 let productVariantService: ProductVariantService;
+let productOptionGroupService: ProductOptionGroupService;
+let productOptionService: ProductOptionService;
 
 /**
  * @description
@@ -40,11 +45,24 @@ export const productDuplicator = new EntityDuplicator({
             defaultValue: true,
             label: [{ languageCode: LanguageCode.en, value: 'Include variants' }],
         },
+        duplicateOptions: {
+            type: 'boolean',
+            defaultValue: false,
+            label: [{ languageCode: LanguageCode.en, value: 'Duplicate options' }],
+            description: [
+                {
+                    languageCode: LanguageCode.en,
+                    value: 'If enabled, new option groups/options are created for the duplicate. Otherwise it shares the original’s option groups.',
+                },
+            ],
+        },
     },
     init(injector: Injector) {
         connection = injector.get(TransactionalConnection);
         productService = injector.get(ProductService);
         productVariantService = injector.get(ProductVariantService);
+        productOptionGroupService = injector.get(ProductOptionGroupService);
+        productOptionService = injector.get(ProductOptionService);
     },
     async duplicate({ ctx, id, args }) {
         const product = await connection.getEntityOrThrow(ctx, Product, id, {
@@ -103,13 +121,63 @@ export const productDuplicator = new EntityDuplicator({
                     taxCategory: true,
                 },
             });
+            const optionIdMap = new Map<ID, ID>();
             if (product.optionGroups?.length) {
                 for (const optionGroup of product.optionGroups) {
-                    await productService.addOptionGroupToProduct(ctx, duplicatedProduct.id, optionGroup.id);
+                    if (args.duplicateOptions) {
+                        // Create a new ProductOptionGroup
+                        const duplicatedGroup = await productOptionGroupService.create(ctx, {
+                            code: `${optionGroup.code}-copy`,
+                            translations: optionGroup.translations.map(translation => ({
+                                languageCode: translation.languageCode,
+                                name: translation.name,
+                                customFields: translation.customFields,
+                            })),
+                            customFields: optionGroup.customFields,
+                        });
+                        await productService.addOptionGroupToProduct(
+                            ctx,
+                            duplicatedProduct.id,
+                            duplicatedGroup.id,
+                        );
+                        // Duplicate every ProductOption
+                        for (const option of optionGroup.options) {
+                            const duplicatedOption = await productOptionService.create(
+                                ctx,
+                                duplicatedGroup.id,
+                                {
+                                    code: `${option.code}-copy`,
+                                    customFields: option.customFields,
+                                    translations: option.translations.map(translation => ({
+                                        languageCode: translation.languageCode,
+                                        name: translation.name,
+                                        customFields: translation.customFields,
+                                    })),
+                                },
+                            );
+                            optionIdMap.set(option.id, duplicatedOption.id);
+                        }
+                    } else {
+                        // Share the original ProductOptionGroup with the duplicate
+                        await productService.addOptionGroupToProduct(
+                            ctx,
+                            duplicatedProduct.id,
+                            optionGroup.id,
+                        );
+                    }
                 }
             }
             const variantInput: CreateProductVariantInput[] = productVariants.map((variant, i) => {
-                const optionIds = variant.options.map(o => o.id);
+                const optionIds = variant.options.map(o => {
+                    if (!args.duplicateOptions) {
+                        return o.id;
+                    }
+                    const duplicatedOptionId = optionIdMap.get(o.id);
+                    if (!duplicatedOptionId) {
+                        throw new Error(`Failed to locate duplicated ProductOption for option ${o.id}`);
+                    }
+                    return duplicatedOptionId;
+                });
                 const price =
                     variant.productVariantPrices.find(p => idsAreEqual(p.channelId, ctx.channelId))?.price ??
                     variant.productVariantPrices[0]?.price;
