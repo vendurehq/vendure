@@ -1796,6 +1796,55 @@ describe('Product resolver', () => {
                     expect(product2?.variantList.items.length).toBe(1);
                 });
             });
+
+            // #5325 — multiple option-less variants can be created for the same product
+            it('createProductVariants creates multiple variants for a product without option groups', async () => {
+                const { createProduct } = await adminClient.query(createProductDocument, {
+                    input: {
+                        translations: [
+                            {
+                                languageCode: LanguageCode.en,
+                                name: 'Product without options',
+                                slug: 'product-without-options',
+                            },
+                        ],
+                    },
+                });
+
+                const { createProductVariants: firstCreate } = await adminClient.query(
+                    createProductVariantsDocument,
+                    {
+                        input: [
+                            {
+                                productId: createProduct.id,
+                                sku: 'OPTIONLESS-1',
+                                optionIds: [],
+                                translations: [{ languageCode: LanguageCode.en, name: 'Option-less 1' }],
+                            },
+                        ],
+                    },
+                );
+                const { createProductVariants: secondCreate } = await adminClient.query(
+                    createProductVariantsDocument,
+                    {
+                        input: [
+                            {
+                                productId: createProduct.id,
+                                sku: 'OPTIONLESS-2',
+                                optionIds: [],
+                                translations: [{ languageCode: LanguageCode.en, name: 'Option-less 2' }],
+                            },
+                        ],
+                    },
+                );
+
+                const firstVariant = firstCreate[0];
+                const secondVariant = secondCreate[0];
+                variantGuard.assertSuccess(firstVariant);
+                variantGuard.assertSuccess(secondVariant);
+                expect(firstVariant.options).toEqual([]);
+                expect(secondVariant.options).toEqual([]);
+            });
         });
     });
 

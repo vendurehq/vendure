@@ -1117,7 +1117,7 @@ export class ProductVariantService {
             .filter(v => !v.deletedAt)
             .forEach(variant => {
                 const variantOptionIds = this.sortJoin(variant.options, ',', 'id');
-                if (isUpdateOperation) return;
+                if (isUpdateOperation || activeOptions.length === 0) return;
                 if (variantOptionIds === inputOptionIds) {
                     throw new UserInputError('error.product-variant-options-combination-already-exists', {
                         variantName: this.translator.translate(variant, ctx).name,
