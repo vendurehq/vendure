@@ -25,19 +25,13 @@ function AdministratorListPage() {
             onSearchTermChange={searchTerm => {
                 return searchTerm
                     ? {
-                          firstName: { contains: searchTerm },
-                          lastName: { contains: searchTerm },
-                          emailAddress: { contains: searchTerm },
+                          _or: [
+                              { firstName: { contains: searchTerm } },
+                              { lastName: { contains: searchTerm } },
+                              { emailAddress: { contains: searchTerm } },
+                          ],
                       }
                     : {};
-            }}
-            transformVariables={variables => {
-                return {
-                    options: {
-                        ...variables.options,
-                        filterOperator: 'OR',
-                    },
-                };
             }}
             additionalColumns={{
                 name: {

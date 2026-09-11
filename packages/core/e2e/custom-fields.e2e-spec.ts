@@ -36,6 +36,7 @@ const customConfig = mergeConfig(testConfig(), {
             { name: 'notNullable', type: 'string', nullable: false, defaultValue: '' },
             { name: 'stringWithDefault', type: 'string', defaultValue: 'hello' },
             { name: 'localeStringWithDefault', type: 'localeString', defaultValue: 'hola' },
+            { name: 'localeTextField', type: 'localeText' },
             { name: 'intWithDefault', type: 'int', defaultValue: 5 },
             { name: 'floatWithDefault', type: 'float', defaultValue: 5.5678 },
             { name: 'booleanWithDefault', type: 'boolean', defaultValue: true },
@@ -275,6 +276,7 @@ describe('Custom fields', () => {
                 { name: 'notNullable', type: 'string', list: false },
                 { name: 'stringWithDefault', type: 'string', list: false },
                 { name: 'localeStringWithDefault', type: 'localeString', list: false },
+                { name: 'localeTextField', type: 'localeText', list: false },
                 { name: 'intWithDefault', type: 'int', list: false },
                 { name: 'floatWithDefault', type: 'float', list: false },
                 { name: 'booleanWithDefault', type: 'boolean', list: false },
@@ -342,6 +344,7 @@ describe('Custom fields', () => {
                 { name: 'notNullable', type: 'string', list: false },
                 { name: 'stringWithDefault', type: 'string', list: false },
                 { name: 'localeStringWithDefault', type: 'localeString', list: false },
+                { name: 'localeTextField', type: 'localeText', list: false },
                 { name: 'intWithDefault', type: 'int', list: false },
                 { name: 'floatWithDefault', type: 'float', list: false },
                 { name: 'booleanWithDefault', type: 'boolean', list: false },
@@ -956,6 +959,13 @@ describe('Custom fields', () => {
             expect(products.totalItems).toBe(1);
         });
 
+        // https://github.com/vendurehq/vendure/issues/5199
+        it('can sort by localeText custom fields', async () => {
+            const { products } = await adminClient.query(getProductsSortByLocaleTextDocument);
+
+            expect(products.totalItems).toBe(1);
+        });
+
         it('can filter by custom fields', async () => {
             const { products } = await adminClient.query(getProductsFilterByStringDocument);
 
@@ -1528,6 +1538,14 @@ const getProductsSortByNullableDocument = graphql(`
 const getProductsSortByLocaleStringDocument = graphql(`
     query GetProductsSortByLocaleString {
         products(options: { sort: { localeStringWithDefault: ASC } }) {
+            totalItems
+        }
+    }
+`);
+
+const getProductsSortByLocaleTextDocument = graphql(`
+    query GetProductsSortByLocaleText {
+        products(options: { sort: { localeTextField: ASC } }) {
             totalItems
         }
     }

@@ -43,6 +43,10 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
         });
         // Note: OrderLineCustomFieldsInput is handled separately since it's used in both
         // create operations (addItemToOrder) and update operations (adjustOrderLine)
+
+        // RegisterCustomerInput carries Customer custom fields but is not named CreateCustomerInput.
+        // getEntityNameFromInputType() maps it back to Customer.
+        this.createInputsWithCustomFields.add('RegisterCustomerInput');
     }
 
     async intercept(context: ExecutionContext, next: CallHandler<any>) {
@@ -217,6 +221,10 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
     }
 
     private getEntityNameFromInputType(typeName: string): string {
+        if (typeName === 'RegisterCustomerInput') {
+            // Added to createInputsWithCustomFields in the constructor.
+            return 'Customer';
+        }
         // Remove "Create" or "Update" prefix and "Input" suffix
         // e.g., "CreateProductInput" -> "Product", "UpdateCustomerInput" -> "Customer"
         if (typeName.startsWith('Create')) {
@@ -235,7 +243,7 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
         variableValues?: { [key: string]: any },
     ) {
         if (variableValues) {
-            const entityName = typeName.replace(/(Create|Update)(.+)Input/, '$2');
+            const entityName = this.getEntityNameFromInputType(typeName);
             const customFieldConfig = this.configService.customFields[entityName as keyof CustomFields];
 
             if (typeName === 'OrderLineCustomFieldsInput') {

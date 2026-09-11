@@ -1,5 +1,5 @@
 import { ConfigService, DefaultSchedulerPlugin, mergeConfig, ScheduledTask } from '@vendure/core';
-import { createTestEnvironment } from '@vendure/testing';
+import { createTestEnvironment, TestingLogger } from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -15,8 +15,11 @@ const MAX_HOLD_MS = 5_000;
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+class EmptyMessageError extends Error {}
+
 describe('Default scheduler plugin', () => {
     const taskSpy = vi.fn();
+    const testingLogger = new TestingLogger(() => vi.fn());
     // One task per hold-window test so DB state can't leak between them.
     const holdSpyBlocking = vi.fn();
     const holdSpyManual = vi.fn();
@@ -32,6 +35,16 @@ describe('Default scheduler plugin', () => {
                         async execute(injector) {
                             taskSpy();
                             return { success: true };
+                        },
+                    }),
+                    new ScheduledTask({
+                        id: 'error-test-job',
+                        description: 'A test job which throws an error with an empty message',
+                        schedule: cron => cron.everySaturdayAt(0, 0),
+                        async execute(injector) {
+                            const error = new EmptyMessageError('');
+                            (error as Error & { cause?: unknown }).cause = 'ECONNRESET';
+                            throw error;
                         },
                     }),
                     new ScheduledTask({
@@ -56,6 +69,7 @@ describe('Default scheduler plugin', () => {
                 runTasksInWorkerOnly: false,
             },
             plugins: [DefaultSchedulerPlugin.init({ manualTriggerCheckInterval: 50 })],
+            logger: testingLogger,
         }),
     );
 
@@ -78,7 +92,7 @@ describe('Default scheduler plugin', () => {
 
     it('get tasks', async () => {
         const { scheduledTasks } = await adminClient.query(getTasksDocument);
-        expect(scheduledTasks.length).toBe(3);
+        expect(scheduledTasks.length).toBe(4);
         const testJob = scheduledTasks.find(t => t.id === 'test-job');
         if (!testJob) throw new Error('test-job not found');
         expect(testJob.description).toBe("A test job that doesn't do anything");
@@ -157,6 +171,29 @@ describe('Default scheduler plugin', () => {
         // Control: cron path inside the same window must still be blocked.
         await strategy.executeTask(task)();
         expect(holdSpyManual).toHaveBeenCalledTimes(2);
+    });
+
+    // #5276
+    it('logs the error class and cause when a task throws an empty-message error', async () => {
+        testingLogger.errorSpy.mockClear();
+
+        const { strategy, task } = getHoldTask(server, 'error-test-job');
+        await strategy.executeTask(task)();
+
+        const call = testingLogger.errorSpy.mock.calls.find((args: any[]) =>
+            String(args[0]).includes('Scheduled task "error-test-job" failed'),
+        );
+        expect(call).toBeDefined();
+
+        const [message, , trace] = call as [string, string | undefined, string | undefined];
+        expect(message).toContain('EmptyMessageError');
+        expect(message).toContain('ECONNRESET');
+        expect(message).toContain('at ');
+        expect(trace).toBeUndefined();
+
+        const { scheduledTasks } = await adminClient.query(getTasksDocument);
+        const errorTask = scheduledTasks.find(t => t.id === 'error-test-job');
+        expect(errorTask?.lastResult).toEqual({ error: 'EmptyMessageError' });
     });
 });
 

@@ -44,12 +44,6 @@ export function createProxyHandler(options: ProxyOptions): RequestHandler {
             [`^${route}`]: '/' + (options.basePath || ''),
         },
         logger: {
-            log(message: string) {
-                Logger.debug(message, options.label);
-            },
-            debug(message: string) {
-                Logger.debug(message, options.label);
-            },
             info(message: string) {
                 Logger.debug(message, options.label);
             },

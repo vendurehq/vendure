@@ -41,7 +41,9 @@
     ],
     "dependencies": {
         "@apollo/server": "^4.12.2",
+        "@apollographql/graphql-playground-html": "^1.6.29",
         "@graphql-tools/stitch": "^10.1.16",
+        "@graphql-tools/utils": "^11.0.0",
         "@nestjs/apollo": "~13.1.0",
         "@nestjs/common": "^11.0.12",
         "@nestjs/core": "^11.0.12",

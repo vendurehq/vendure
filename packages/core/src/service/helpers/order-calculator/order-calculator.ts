@@ -113,6 +113,7 @@ export class OrderCalculator {
             await this.applyShippingPromotions(ctx, order, promotions);
         }
         this.calculateOrderTotals(order);
+        this.removeIneffectivePromotions(order);
         return order;
     }
 
@@ -386,5 +387,36 @@ export class OrderCalculator {
         if (order.promotions && !order.promotions.find(p => idsAreEqual(p.id, promotion.id))) {
             order.promotions.push(promotion);
         }
+    }
+
+    /**
+     * Promotions are added to the Order as soon as their conditions pass, since a Promotion which
+     * discounts nothing on one OrderLine may still discount a later line, the Order total or the
+     * shipping. Once everything has been applied, any Promotion which ended up adjusting nothing
+     * at all is removed again: `Order.promotions` is what the usage limits are counted from, so a
+     * Promotion the customer got no benefit from must not consume a usage.
+     *
+     * Promotions whose actions define side effects are kept regardless, as their benefit (a free
+     * gift, say) is not expressed as an adjustment amount - and on the first pass the side effect
+     * has not run yet, so there is nothing to discount.
+     */
+    private removeIneffectivePromotions(order: Order) {
+        if (!order.promotions?.length) {
+            return;
+        }
+        const adjustmentSources = new Set<string>();
+        for (const line of order.lines) {
+            for (const adjustment of line.adjustments ?? []) {
+                adjustmentSources.add(adjustment.adjustmentSource);
+            }
+        }
+        for (const shippingLine of order.shippingLines ?? []) {
+            for (const adjustment of shippingLine.adjustments ?? []) {
+                adjustmentSources.add(adjustment.adjustmentSource);
+            }
+        }
+        order.promotions = order.promotions.filter(
+            promotion => adjustmentSources.has(promotion.getSourceId()) || promotion.hasSideEffects,
+        );
     }
 }

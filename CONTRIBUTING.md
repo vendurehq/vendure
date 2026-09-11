@@ -274,7 +274,7 @@ After implementing your changes, stage the changes and commit them. Refer to the
 
 ```
 git add .
-git commit -m "type(scope): Message in present tense"
+git commit -m "type(scope): message in present tense"
 ```
 
 ### Creating a pull request
@@ -354,8 +354,12 @@ myNewApi: number;
 This repo uses [Conventional Commits](https://www.conventionalcommits.org).
 
 ```
-type(scope): Message in present tense
+type(scope): message in present tense
 ```
+
+The subject must not start with a capital letter: `@commitlint/config-conventional` rejects sentence-case,
+start-case, pascal-case and upper-case subjects.
+
 `type` may be one of:
 * **feat** (new feature)
 * **fix** (bug fix)
@@ -380,7 +384,7 @@ type(scope): Message in present tense
 If a commit affects more than one package, separate them with a comma:
 
 ```
-fix(core,common): Fix the thing
+fix(core,common): fix the thing
 ```
 
 If a commit applies to no particular package (e.g. a tooling change in the root package.json), the scope can be omitted.
@@ -394,7 +398,7 @@ Please also make your pull request against the `major` branch rather than `maste
 Example:
 
 ```
-feat(core): Add new field to Customer
+feat(core): add new field to Customer
 
 Relates to #123. This commit adds the "foo" field to the Custom entity.
 

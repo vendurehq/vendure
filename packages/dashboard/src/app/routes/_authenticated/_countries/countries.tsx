@@ -28,19 +28,9 @@ function CountryListPage() {
             onSearchTermChange={searchTerm => {
                 return searchTerm
                     ? {
-                          name: { contains: searchTerm },
-                          code: { contains: searchTerm },
+                          _or: [{ name: { contains: searchTerm } }, { code: { contains: searchTerm } }],
                       }
                     : {};
-            }}
-            transformVariables={variables => {
-                return {
-                    ...variables,
-                    options: {
-                        ...variables.options,
-                        filterOperator: 'OR',
-                    },
-                };
             }}
             customizeColumns={{
                 name: {

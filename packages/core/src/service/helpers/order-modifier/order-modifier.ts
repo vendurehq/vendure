@@ -333,8 +333,13 @@ export class OrderModifier {
         for (const line of lineInputs) {
             const orderLine = fullOrder.lines.find(l => idsAreEqual(l.id, line.orderLineId));
             if (orderLine) {
+                // A partial cancellation bypasses `OrderCalculator` recalculation entirely, so the
+                // `PROMOTION` adjustments are rescaled here to preserve the invariant that they are
+                // stored scaled to the current quantity.
+                orderLine.setQuantityRescalingAdjustments(orderLine.quantity - line.quantity);
                 await this.connection.getRepository(ctx, OrderLine).update(line.orderLineId, {
-                    quantity: orderLine.quantity - line.quantity,
+                    quantity: orderLine.quantity,
+                    adjustments: orderLine.adjustments,
                 });
 
                 await this.eventBus.publish(new OrderLineEvent(ctx, order, orderLine, 'cancelled'));

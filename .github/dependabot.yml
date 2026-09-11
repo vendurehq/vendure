@@ -44,6 +44,26 @@ updates:
           semver-patch-days: 7
           semver-minor-days: 7
           semver-major-days: 14
+      # Major updates are held back for production dependencies, the same rule
+      # the bun workspace entry below applies across the workspace.
+      # @vendure-io/docs-provider is the only name this entry needs.
+      # @types/node, tsx and typescript are development dependencies and keep
+      # offering majors.
+      #
+      # This is an ignore rule where the bun entry uses an allow list, and the
+      # difference is deliberate. An allow list narrows security updates as
+      # well as version updates. npm is an ecosystem where Dependabot raises
+      # security updates, and the documented default covers every vulnerable
+      # dependency in the lock file, transitive ones included. No
+      # `dependency-type` names that set for npm — `all` stops at explicitly
+      # declared dependencies — so an allow list here would have dropped
+      # advisories for anything transitive under @vendure-io/docs-provider.
+      # `update-types` under ignore applies to version updates only, so this
+      # rule leaves security updates untouched.
+      ignore:
+          - dependency-name: '@vendure-io/docs-provider'
+            update-types:
+                - version-update:semver-major
       groups:
           docs:
               patterns:
@@ -83,6 +103,162 @@ updates:
       # range, so a patch update always falls inside the existing range and no
       # strategy rewrites the manifest.
       versioning-strategy: increase-if-necessary
+      # Major updates are raised for development tooling only. A major version
+      # of a package that ships to users is a migration for every Vendure
+      # project downstream, so it belongs in a planned release.
+      #
+      # The rule is written as a list of dependency names rather than
+      # `dependency-type: development`, for two independent reasons.
+      #
+      # First, GitHub documents the `dependency-type` values `production` and
+      # `development` for bundler, composer, mix, maven, npm, pip and uv. bun
+      # is absent. That list differs from the one above for
+      # versioning-strategy, because Dependabot documents support per option
+      # rather than per ecosystem.
+      #
+      # Second, the workspace manifests do not split along that line, in either
+      # direction. eslint, eslint-config-prettier and the @typescript-eslint
+      # packages are production dependencies of the root manifest, typescript
+      # and ts-node of packages/cli, @types/express of core and
+      # asset-server-plugin, so a rule scoped to development dependencies
+      # would block tooling majors. dependabot_auto_merge.yml rejected
+      # dependency-type as an auto-merge gate for the same reason.
+      #
+      # The reverse holds too, which is why this list names tooling rather
+      # than every development dependency. bullmq, ioredis, pg, mysql2 and
+      # better-sqlite3 are declared as development dependencies here, but
+      # plugins peer-depend on them, so a major is a downstream migration.
+      #
+      # An allow list replaces the default set rather than narrowing it, so the
+      # first entry has to restate the default: every dependency gets minor and
+      # patch updates. Each entry after it adds majors back for one tooling
+      # family. The runtime families — nestjs, graphql, typeorm, opentelemetry
+      # and the dashboard packages — are absent on purpose.
+      #
+      # A tooling package with no entry here stops offering majors, and the
+      # symptom is a pull request that never arrives, which nobody notices.
+      # When adding a development tool to any manifest, add it here too.
+      #
+      # ignore beats allow: a dependency matched by both is ignored. The
+      # Angular families in the ignore block below therefore stay ignored at
+      # every level, and the '*' entry here does not re-enable them.
+      #
+      # Narrowing the set costs nothing here, because Dependabot raises no
+      # security updates for bun at all, as noted above. That is not true of
+      # npm, which is why the /docs entry states its rule as an ignore.
+      allow:
+          - dependency-name: '*'
+            update-types:
+                - version-update:semver-minor
+                - version-update:semver-patch
+          - dependency-name: 'typescript'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: '@types/*'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: 'eslint'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: 'eslint-*'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: '@typescript-eslint/*'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: 'prettier'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: 'prettier-*'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: 'vitest'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: '@vitest/*'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: 'rimraf'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: 'concurrently'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: 'cross-env'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: 'ts-node'
+            update-types:
+                - version-update:semver-major
+          # Tooling that belongs to no group above, so a major arrives on its
+          # own. @eslint/js and globals are listed because the flat config
+          # requires them to move with an eslint major.
+          - dependency-name: '@eslint/js'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: 'globals'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: '@commitlint/*'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: 'husky'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: 'lint-staged'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: 'lerna'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: 'conventional-changelog-core'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: '@playwright/test'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: 'playwright'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: 'jsdom'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: 'tinybench'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: 'storybook'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: '@storybook/*'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: '@graphql-codegen/*'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: '@gql.tada/cli-utils'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: '@swc/core'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: 'unplugin-swc'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: 'rollup'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: '@rollup/*'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: 'rollup-plugin-typescript2'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: 'vite-plugin-dts'
+            update-types:
+                - version-update:semver-major
+          - dependency-name: '@typescript/native-preview'
+            update-types:
+                - version-update:semver-major
       ignore:
           # Workspace-internal packages are versioned by the release process.
           - dependency-name: '@vendure/*'

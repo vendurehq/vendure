@@ -7,7 +7,10 @@ import { Stream } from 'stream';
 
 import { InternalServerError } from '../../../common/error/errors';
 import { ConfigService } from '../../../config/config.service';
-import { CustomFieldConfig } from '../../../config/custom-field/custom-field-types';
+import {
+    CustomFieldConfig,
+    isLocalizedCustomFieldType,
+} from '../../../config/custom-field/custom-field-types';
 
 const baseTranslatableColumns = [
     'name',
@@ -316,7 +319,7 @@ export class ImportParser {
                     `Could not find custom field config for column header '${baseKey}'`,
                 );
             }
-            return customFieldConfig.type === 'localeString';
+            return isLocalizedCustomFieldType(customFieldConfig.type);
         }
         throw new InternalServerError(`Invalid column header '${baseKey}'`);
     }

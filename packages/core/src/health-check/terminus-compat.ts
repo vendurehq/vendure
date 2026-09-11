@@ -55,8 +55,8 @@ export type HealthIndicatorFunction = () =>
 
 /**
  * @description
- * Thrown from a health indicator to signal a failed check. The `causes`
- * payload is forwarded to the `/health` response so callers can inspect
+ * Thrown from a health indicator to signal a failed check. Before v3.6.0 the `causes`
+ * payload was forwarded to the `/health` response so callers could inspect
  * which indicator failed and why. `causes` is intentionally typed as
  * `any` (matching terminus) so handlers can pass through arbitrary
  * upstream error payloads (HTTP responses, DB driver errors, etc.)

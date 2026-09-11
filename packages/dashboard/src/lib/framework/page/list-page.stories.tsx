@@ -148,21 +148,7 @@ export const WithSearch: Story = {
         },
         onSearchTermChange: (searchTerm: string) => {
             return {
-                name: {
-                    contains: searchTerm,
-                },
-                code: {
-                    contains: searchTerm,
-                },
-            };
-        },
-        transformVariables: (variables: any) => {
-            return {
-                ...variables,
-                options: {
-                    ...variables.options,
-                    filterOperator: 'OR',
-                },
+                _or: [{ name: { contains: searchTerm } }, { code: { contains: searchTerm } }],
             };
         },
         customizeColumns: {
@@ -222,21 +208,7 @@ export const Complete: Story = {
         },
         onSearchTermChange: (searchTerm: string) => {
             return {
-                name: {
-                    contains: searchTerm,
-                },
-                code: {
-                    contains: searchTerm,
-                },
-            };
-        },
-        transformVariables: (variables: any) => {
-            return {
-                ...variables,
-                options: {
-                    ...variables.options,
-                    filterOperator: 'OR',
-                },
+                _or: [{ name: { contains: searchTerm } }, { code: { contains: searchTerm } }],
             };
         },
         customizeColumns: {

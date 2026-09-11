@@ -73,6 +73,13 @@ export const e2eCustomFields: CustomFields = {
             label: [{ languageCode: LanguageCode.en, value: 'SEO Description' }],
             ui: { tab: 'SEO', fullWidth: true },
         },
+        // Deliberately has no label, so the Dashboard has to fall back to the
+        // field's own name when rendering it (#5246).
+        {
+            name: 'seoKeywords',
+            type: 'localeString',
+            ui: { tab: 'SEO' },
+        },
         // ── Details tab ──
         {
             name: 'detailNotes',

@@ -35,6 +35,15 @@ export interface DevOptions {
     inspect?: boolean | string;
     inspectBrk?: boolean | string;
     reload?: boolean;
+    /**
+     * Paths that hold generated files, such as the `src/gql` directory a Dashboard Vite plugin
+     * writes GraphQL codegen output into. A change under one of these paths never restarts the
+     * server or the worker, so codegen triggered by an earlier source change does not cause a
+     * second restart of its own.
+     *
+     * A relative path is resolved against the project directory.
+     */
+    reloadIgnoredPaths?: string[];
 }
 
 const validTargets: DevTarget[] = ['all', 'server', 'worker', 'dashboard'];
@@ -70,6 +79,9 @@ export async function devCommand(targetArg?: string, options: DevOptions = {}): 
                 ? (['server', 'worker', 'dashboard'] as const).map(t => devProcessDefinitions[t])
                 : [devProcessDefinitions[target]];
         const prefixOutput = processes.length > 1;
+        const reloadIgnoredPaths = (options.reloadIgnoredPaths ?? []).map(ignoredPath =>
+            path.resolve(projectDir, ignoredPath),
+        );
 
         validateProjectFiles(projectDir, processes);
 
@@ -77,6 +89,7 @@ export async function devCommand(targetArg?: string, options: DevOptions = {}): 
             startDevProcess(projectDir, processDefinition, {
                 prefixOutput,
                 reload: options.reload !== false && processDefinition.reloadOnChange,
+                reloadIgnoredPaths,
             }),
         );
         return await waitForDevProcesses(children, {
@@ -153,7 +166,7 @@ export function resolveVendureProjectDirectory(cwd: string): string {
 function startDevProcess(
     projectDir: string,
     processDefinition: DevProcessDefinition,
-    options: { prefixOutput: boolean; reload: boolean },
+    options: { prefixOutput: boolean; reload: boolean; reloadIgnoredPaths: string[] },
 ): ManagedDevProcess {
     const binPath = resolvePackageBin(processDefinition.packageName, processDefinition.binName, projectDir);
     return options.reload
@@ -203,21 +216,33 @@ function startPlainDevProcess(
     return runningProcess;
 }
 
-function startSupervisedDevProcess(
+export interface SupervisedDevProcessOptions {
+    prefixOutput: boolean;
+    reloadIgnoredPaths: string[];
+    // Tests pass a fake child process here, to drive the supervisor without spawning anything.
+    spawnChild?: typeof spawnDevChild;
+}
+
+export function startSupervisedDevProcess(
     projectDir: string,
     processDefinition: DevProcessDefinition,
     binPath: string,
-    options: { prefixOutput: boolean },
+    options: SupervisedDevProcessOptions,
 ): ManagedDevProcess {
+    const spawnChild = options.spawnChild ?? spawnDevChild;
     let dashboardExtensionDirectories = discoverDashboardExtensionDirectories(projectDir);
     let child: ChildProcess | undefined;
+    let crashExitCode: number | undefined;
     let restartTimer: NodeJS.Timeout | undefined;
     let restarting = false;
     let stopping = false;
+    const reloadPathScope = (): ReloadPathScope => ({
+        dashboardExtensionDirectories,
+        reloadIgnoredPaths: options.reloadIgnoredPaths,
+    });
     const watcher = chokidar.watch(projectDir, {
         ignoreInitial: true,
-        ignored: (filePath: string) =>
-            isAlwaysIgnoredReloadPath(filePath, projectDir, dashboardExtensionDirectories),
+        ignored: (filePath: string) => isAlwaysIgnoredReloadPath(filePath, projectDir, reloadPathScope()),
     });
 
     const runningProcess = new ManagedDevProcess(signal => {
@@ -228,20 +253,50 @@ function startSupervisedDevProcess(
         closeWatcher();
         if (child) {
             stopChildWithGrace(child, signal, restartShutdownGraceMs);
+        } else {
+            // The child crashed, and the close handler left the watcher open so a later file change
+            // could respawn it. Nothing will respawn it now, so report the process closed, carrying
+            // the code the child crashed with. Without this, `waitForDevProcesses` waits forever for
+            // a child that no longer exists.
+            runningProcess.emitClose(crashExitCode ?? 0, null);
         }
     });
 
     const startChild = () => {
-        child = spawnDevChild(projectDir, processDefinition, binPath, options);
-        child.once('error', error => runningProcess.emit('error', error));
-        child.once('close', (code, signal) => {
+        crashExitCode = undefined;
+        const startedChild = spawnChild(projectDir, processDefinition, binPath, options);
+        child = startedChild;
+        startedChild.once('error', error => runningProcess.emit('error', error));
+        startedChild.once('close', (code, signal) => {
+            // Node fires `exit` (which is what `isChildRunning` reads) before `close`, so a file
+            // change between the two can already see this child as not running and start its
+            // replacement directly, ahead of this handler. `child` will have moved on to that
+            // replacement by the time this late `close` arrives; without this check, restarting
+            // below would take it right back off the current child and leave the replacement
+            // running unwatched, the two of them apparently competing for the same port.
+            if (child !== startedChild) {
+                return;
+            }
             if (restarting && !stopping) {
                 restarting = false;
                 startChild();
                 return;
             }
-            closeWatcher();
-            runningProcess.emitClose(code, signal);
+            if (!isRecoverableChildExit(code, signal, stopping)) {
+                closeWatcher();
+                runningProcess.emitClose(code, signal);
+                return;
+            }
+            // Leave the other supervised processes running, and leave the watcher open so that the
+            // next relevant file change respawns this one. Remember the exit code: if the run ends
+            // before the watcher respawns this process, the run failed.
+            child = undefined;
+            crashExitCode = code;
+            writeDevStatus(
+                processDefinition,
+                `The ${processDefinition.target} exited with code ${code}. Waiting for a file change to restart it.`,
+                options,
+            );
         });
     };
 
@@ -253,22 +308,24 @@ function startSupervisedDevProcess(
         if (stopping || runningProcess.hasClosed) {
             return;
         }
+        const runningChild = child && isChildRunning(child) ? child : undefined;
+        const action = runningChild ? 'Restarting' : 'Starting';
         writeDevStatus(
             processDefinition,
-            `Change detected in ${path.relative(projectDir, changedFile)}. Restarting ${processDefinition.target}...`,
+            `Change detected in ${path.relative(projectDir, changedFile)}. ${action} the ${processDefinition.target}...`,
             options,
         );
         dashboardExtensionDirectories = discoverDashboardExtensionDirectories(projectDir);
-        if (!child || !isChildRunning(child)) {
+        if (!runningChild) {
             startChild();
             return;
         }
         restarting = true;
-        stopChildWithGrace(child, 'SIGTERM', restartShutdownGraceMs);
+        stopChildWithGrace(runningChild, 'SIGTERM', restartShutdownGraceMs);
     };
 
     watcher.on('all', (_event, filePath) => {
-        if (!shouldRestartOnFileChange(filePath, projectDir, dashboardExtensionDirectories)) {
+        if (!shouldRestartOnFileChange(filePath, projectDir, reloadPathScope())) {
             return;
         }
         if (restartTimer) {
@@ -322,20 +379,38 @@ export function waitForDevProcesses(
                 }
             }
         };
-        const completeChild = (child: ManagedDevProcess, exitCode: number) => {
+        const runExitCode = (lastExitCode: number): number => {
+            // A signal delivered to the whole run decides the exit code, so Ctrl+C reports 130 even
+            // when a supervised process had crashed and not been respawned.
+            if (shutdownExitCode) {
+                return shutdownExitCode;
+            }
+            // Otherwise the first child to fail on its own decides the exit code. A supervised
+            // process that crashed earlier fails the run this way, when another process then exits
+            // cleanly and ends the run.
+            if (firstNonZeroExitCode) {
+                return firstNonZeroExitCode;
+            }
+            return shutdownExitCode ?? lastExitCode;
+        };
+        // `isOwnFailure` marks an exit code that the child chose for itself, rather than one it was
+        // given by the shutdown. Such a code is recorded even once a shutdown is under way. A
+        // supervised process that crashed earlier reports that crash only when another process ends
+        // the run, by which point the shutdown has already started.
+        const completeChild = (child: ManagedDevProcess, exitCode: number, isOwnFailure: boolean) => {
             if (settledChildren.has(child)) {
                 return;
             }
             settledChildren.add(child);
             remainingChildren--;
+            if (isOwnFailure && exitCode !== 0 && firstNonZeroExitCode === 0) {
+                firstNonZeroExitCode = exitCode;
+            }
             if (!shutdownRequested) {
-                if (exitCode !== 0) {
-                    firstNonZeroExitCode = exitCode;
-                }
                 stopChildren('SIGTERM', exitCode);
             }
             if (remainingChildren === 0) {
-                resolveOnce(firstNonZeroExitCode || (shutdownExitCode ?? exitCode));
+                resolveOnce(runExitCode(exitCode));
             }
         };
         const handleSigint = () => stopChildren('SIGINT', signalToExitCode('SIGINT'));
@@ -347,10 +422,14 @@ export function waitForDevProcesses(
         for (const child of children) {
             child.once('error', error => {
                 options.onError?.(error);
-                completeChild(child, 1);
+                completeChild(child, 1, !shutdownRequested);
             });
             child.once('close', (code, signal) => {
-                completeChild(child, code ?? signalToExitCode(signal) ?? (shutdownRequested ? 0 : 1));
+                completeChild(
+                    child,
+                    code ?? signalToExitCode(signal) ?? (shutdownRequested ? 0 : 1),
+                    signal === null,
+                );
             });
         }
     });
@@ -410,12 +489,32 @@ function isChildRunning(child: ChildProcess): boolean {
     return child.exitCode === null && child.signalCode === null;
 }
 
+// Whether a supervised child that just closed should be left for the watcher to respawn, rather
+// than treated as the whole `dev` run ending. Only a non-zero exit code the child chose for itself
+// qualifies, such as ts-node failing to compile after an edit. A signal means `kill` or a process
+// manager decided the process should stop. A later file change fixes none of the other cases: a
+// zero exit, a close carrying neither a code nor a signal, or a shutdown in progress.
+export function isRecoverableChildExit(
+    code: number | null,
+    signal: NodeJS.Signals | null,
+    stopping: boolean,
+): code is number {
+    return !stopping && signal === null && code !== null && code !== 0;
+}
+
+export interface ReloadPathScope {
+    // Vite reloads these on its own.
+    dashboardExtensionDirectories?: string[];
+    // Already resolved to absolute paths by `devCommand`.
+    reloadIgnoredPaths?: string[];
+}
+
 export function shouldRestartOnFileChange(
     filePath: string,
     projectDir: string,
-    dashboardExtensionDirectories: string[] = [],
+    scope: ReloadPathScope = {},
 ): boolean {
-    if (isAlwaysIgnoredReloadPath(filePath, projectDir, dashboardExtensionDirectories)) {
+    if (isAlwaysIgnoredReloadPath(filePath, projectDir, scope)) {
         return false;
     }
     const fileName = path.basename(filePath);
@@ -432,11 +531,7 @@ export function shouldRestartOnFileChange(
     return reloadFileExtensions.has(path.extname(fileName));
 }
 
-function isAlwaysIgnoredReloadPath(
-    filePath: string,
-    projectDir: string,
-    dashboardExtensionDirectories: string[],
-): boolean {
+function isAlwaysIgnoredReloadPath(filePath: string, projectDir: string, scope: ReloadPathScope): boolean {
     const relativePath = path.relative(projectDir, filePath);
     if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
         return true;
@@ -446,7 +541,10 @@ function isAlwaysIgnoredReloadPath(
     if (parts.some(part => reloadIgnoredDirectories.has(part) || part === '__data__')) {
         return true;
     }
-    return dashboardExtensionDirectories.some(dir => isPathInside(filePath, dir));
+    if (scope.dashboardExtensionDirectories?.some(dir => isPathInside(filePath, dir))) {
+        return true;
+    }
+    return scope.reloadIgnoredPaths?.some(ignoredPath => isPathInside(filePath, ignoredPath)) ?? false;
 }
 
 export function discoverDashboardExtensionDirectories(projectDir: string): string[] {
@@ -480,7 +578,7 @@ function findDashboardMetadataCandidateFiles(projectDir: string): string[] {
         }
         for (const entry of entries) {
             const filePath = path.join(dir, entry.name);
-            if (isAlwaysIgnoredReloadPath(filePath, projectDir, [])) {
+            if (isAlwaysIgnoredReloadPath(filePath, projectDir, {})) {
                 continue;
             }
             if (entry.isDirectory()) {

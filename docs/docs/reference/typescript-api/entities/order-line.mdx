@@ -84,6 +84,7 @@ class OrderLine extends VendureEntity implements HasCustomFields {
     proratedLinePriceWithTax: number
     proratedLineTax: number
     addAdjustment(adjustment: Adjustment) => ;
+    setQuantityRescalingAdjustments(newQuantity: number) => ;
     clearAdjustments(type?: AdjustmentType) => ;
 }
 ```
@@ -324,6 +325,18 @@ The `proratedLinePrice` including tax.
 <MemberInfo kind="method" type={`(adjustment: Adjustment) => `}   />
 
 
+### setQuantityRescalingAdjustments
+
+<MemberInfo kind="method" type={`(newQuantity: number) => `}   />
+
+Sets this line's quantity to `newQuantity`, rescaling its `PROMOTION`-type adjustments to
+match. Used where a quantity reduction bypasses `OrderCalculator` recalculation (see
+`OrderModifier.cancelOrderByOrderLines()`), to preserve the invariant that `PROMOTION`
+amounts are stored scaled to the current quantity.
+
+A `newQuantity` of 0 sets the quantity but leaves the adjustments untouched: the getters
+short-circuit on an empty line either way, so scaling them to zero would only erase the
+record of the discount that had applied, which plugins and accounting exports read back.
 ### clearAdjustments
 
 <MemberInfo kind="method" type={`(type?: AdjustmentType) => `}   />

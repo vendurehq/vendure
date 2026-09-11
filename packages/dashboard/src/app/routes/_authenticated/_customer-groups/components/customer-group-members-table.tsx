@@ -93,12 +93,10 @@ export function CustomerGroupMembersTable({
                 }}
                 onSearchTermChange={searchTerm => {
                     return {
-                        lastName: {
-                            contains: searchTerm,
-                        },
-                        emailAddress: {
-                            contains: searchTerm,
-                        },
+                        _or: [
+                            { lastName: { contains: searchTerm } },
+                            { emailAddress: { contains: searchTerm } },
+                        ],
                     };
                 }}
                 additionalColumns={{

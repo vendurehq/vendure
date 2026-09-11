@@ -140,6 +140,11 @@ export interface ListPageProps<
      * Allows you to customize how the search term is used in the list query options.
      * For instance, when you want the term to filter on specific fields.
      *
+     * The returned filter is merged with the column & faceted filters, so when the term should
+     * match any of several fields, group those fields in an `_or` block. Setting a page-level
+     * `filterOperator: 'OR'` would instead OR together _every_ top-level condition, including
+     * the column filters.
+     *
      * @example
      * ```tsx
      *  <ListPage
@@ -148,9 +153,11 @@ export interface ListPageProps<
      *    listQuery={administratorListDocument}
      *    onSearchTermChange={searchTerm => {
      *      return {
-     *        firstName: { contains: searchTerm },
-     *        lastName: { contains: searchTerm },
-     *        emailAddress: { contains: searchTerm },
+     *        _or: [
+     *          { firstName: { contains: searchTerm } },
+     *          { lastName: { contains: searchTerm } },
+     *          { emailAddress: { contains: searchTerm } },
+     *        ],
      *      };
      *    }}
      *  />
