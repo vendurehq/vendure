@@ -143,11 +143,11 @@ plugin. Pin them to the versions the plugin is built against, otherwise npm reso
 line and you end up with two copies of the SDK in your tree:
 
 ```bash
-npm install @opentelemetry/exporter-logs-otlp-proto@0.221.0 \
-            @opentelemetry/exporter-trace-otlp-http@0.221.0 \
-            @opentelemetry/sdk-logs@0.221.0 \
-            @opentelemetry/sdk-node@0.221.0 \
-            @opentelemetry/sdk-trace-base@2.10.0
+npm install @opentelemetry/exporter-logs-otlp-proto@0.222.0 \
+            @opentelemetry/exporter-trace-otlp-http@0.222.0 \
+            @opentelemetry/sdk-logs@0.222.0 \
+            @opentelemetry/sdk-node@0.222.0 \
+            @opentelemetry/sdk-trace-base@2.11.0
 ```
 
 Create a file called `preload.ts` in the src dir of your project with the following contents:
@@ -215,7 +215,7 @@ This restores the behaviour of `@vendure/telemetry-plugin` prior to v3.7, attach
 to any supported library it detects at runtime:
 
 ```bash
-npm install @opentelemetry/auto-instrumentations-node@0.79.0
+npm install @opentelemetry/auto-instrumentations-node@0.80.0
 ```
 
 ```ts title="src/preload.ts"
@@ -236,14 +236,14 @@ const config = getSdkConfiguration({
 Install just the ones you want and pass them alongside the Vendure-default set:
 
 ```bash
-npm install @opentelemetry/instrumentation-http@0.221.0 \
-            @opentelemetry/instrumentation-express@0.69.0 \
-            @opentelemetry/instrumentation-nestjs-core@0.67.0 \
-            @opentelemetry/instrumentation-graphql@0.69.0 \
-            @opentelemetry/instrumentation-pg@0.73.0 \
-            @opentelemetry/instrumentation-mysql2@0.67.0 \
-            @opentelemetry/instrumentation-ioredis@0.69.0 \
-            @opentelemetry/instrumentation-kafkajs@0.30.0
+npm install @opentelemetry/instrumentation-http@0.222.0 \
+            @opentelemetry/instrumentation-express@0.70.0 \
+            @opentelemetry/instrumentation-nestjs-core@0.68.0 \
+            @opentelemetry/instrumentation-graphql@0.70.0 \
+            @opentelemetry/instrumentation-pg@0.74.0 \
+            @opentelemetry/instrumentation-mysql2@0.68.0 \
+            @opentelemetry/instrumentation-ioredis@0.70.0 \
+            @opentelemetry/instrumentation-kafkajs@0.31.0
 ```
 
 ```ts title="src/preload.ts"
@@ -320,6 +320,19 @@ Span names and `http.route` are unchanged.
 If you cannot change your dashboards yet, put an OpenTelemetry Collector between Vendure and your
 tracing backend. A `transform` processor can copy each new attribute onto its old name, so every
 span carries both and you can migrate later.
+:::
+
+:::warning[Query parameters are now redacted on incoming spans]
+This version redacts sensitive query parameters on spans for incoming requests. Earlier versions
+only did this for outgoing requests.
+
+If the request URL carries any of `sig`, `Signature`, `AWSAccessKeyId`, `X-Goog-Signature`,
+`X-Amz-Signature`, `X-Amz-Credential` or `X-Amz-Security-Token`, the value is replaced with
+`REDACTED` in the `url.query` attribute. No other attribute on the span changes, and the request
+itself is untouched.
+
+To use a different list, set `redactedQueryParamsServer` on `HttpInstrumentation`. You need to
+pass your own `instrumentations` array to do this, as shown above.
 :::
 
 :::info
