@@ -33,10 +33,16 @@ jobs:
         runs-on: ubuntu-latest
         permissions:
             # contents: read is for checking out this repository's base commit.
-            # pull-requests: read is for listing the files the pull request changes.
-            # issues: write covers labels and the report comment, both of which are issue APIs.
+            #
+            # pull-requests: write is for listing the files the pull request changes, and for the
+            # label and the report comment. Those two go through the issue endpoints, but GitHub
+            # authorises a call against a pull request as a pull request whatever the endpoint is
+            # shaped like, so issues: write alone returns 403 on the label and the script exits 1.
+            #
+            # issues: write is for creating the two labels when they do not exist yet, which is a
+            # repository-level API and is the one call here that is not against the pull request.
             contents: read
-            pull-requests: read
+            pull-requests: write
             issues: write
         steps:
             - name: Check out trusted workflow code
