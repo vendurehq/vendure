@@ -55,6 +55,11 @@ if (failure) {
     }
     process.stdout.write(JSON.stringify(value));
 } else if (endpoint.includes('/comments') && args.includes('--paginate')) {
+    const methodIndex = args.indexOf('-X');
+    if (methodIndex === -1 || args[methodIndex + 1] !== 'GET') {
+        process.stderr.write('gh: paginated comment lookup must use GET\\n');
+        process.exit(1);
+    }
     const comments = JSON.parse(process.env.MOCK_COMMENTS);
     const botComment = comments.find(comment => comment.user.login === 'github-actions[bot]' && comment.body.includes('<!-- dependency-impact -->'));
     process.stdout.write(botComment ? String(botComment.id) : '');

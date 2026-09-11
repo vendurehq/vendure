@@ -268,6 +268,8 @@ function findReportComment() {
         '--paginate',
         // gh applies --jq per page, so an aggregating filter over a default 30-item page can
         // return one id per page, and a two-line result makes the PATCH URL unusable.
+        '-X',
+        'GET',
         '-F',
         'per_page=100',
         '--jq',
