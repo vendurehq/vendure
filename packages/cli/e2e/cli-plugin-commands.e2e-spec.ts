@@ -10,6 +10,8 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { sectionAfter } from '../src/shared/__tests__/help-sections';
+
 import {
     CliTestProject,
     createTestProject,
@@ -252,32 +254,28 @@ describe('CLI plugin help output', () => {
     it('lists the plugin commands under a heading naming the package', async () => {
         const result = await project.runCliCommand(['--help']);
 
-        const heading = 'Commands from @vendure-e2e/cloud-cli-plugin:';
-        expect(result.stdout).toContain(heading);
+        // Asserted by section, not by string offset: the section a command is
+        // listed in is what says where it came from.
+        const pluginSection = sectionAfter(result.stdout, 'Commands from @vendure-e2e/cloud-cli-plugin:');
+        expect(pluginSection).toMatch(/^\s+project\s+Manage Cloud projects$/m);
+        expect(pluginSection).toMatch(/^\s+deploy \[options\]\s+Deploy the application$/m);
 
-        // The built-ins keep Commander's own heading, and every plugin command
-        // sits below the plugin's, so the section a command is listed in is
-        // what actually says where it came from.
-        const builtinsAt = result.stdout.indexOf('\nCommands:');
-        const pluginAt = result.stdout.indexOf(heading);
-        expect(builtinsAt).toBeGreaterThan(-1);
-        expect(builtinsAt).toBeLessThan(pluginAt);
-        expect(result.stdout.indexOf('Manage Cloud projects')).toBeGreaterThan(pluginAt);
-        expect(result.stdout.indexOf('Add a feature to your Vendure project')).toBeLessThan(pluginAt);
+        const builtinSection = sectionAfter(result.stdout, 'Commands:');
+        expect(builtinSection).toMatch(/^\s+add \[options\]\s+Add a feature to your Vendure project$/m);
+        expect(builtinSection).not.toContain('Manage Cloud projects');
     });
 
     it('lists the plugin shared options under a heading naming the package', async () => {
         const result = await project.runCliCommand(['--help']);
 
-        const heading = 'Options from @vendure-e2e/cloud-cli-plugin:';
-        expect(result.stdout).toContain(heading);
+        const pluginSection = sectionAfter(result.stdout, 'Options from @vendure-e2e/cloud-cli-plugin:');
+        expect(pluginSection).toMatch(/^\s+--token /m);
+        expect(pluginSection).toMatch(/^\s+--project /m);
 
-        const optionsAt = result.stdout.indexOf('\nOptions:');
-        const pluginAt = result.stdout.indexOf(heading);
-        expect(optionsAt).toBeLessThan(pluginAt);
-        // --help is the CLI's own and stays put; --token came from the plugin.
-        expect(result.stdout.indexOf('--token')).toBeGreaterThan(pluginAt);
-        expect(result.stdout.indexOf('-h, --help')).toBeLessThan(pluginAt);
+        // --help is the CLI's own and stays under Commander's own heading.
+        const builtinSection = sectionAfter(result.stdout, 'Options:');
+        expect(builtinSection).toMatch(/^\s+-h, --help/m);
+        expect(builtinSection).not.toContain('--token');
     });
 
     it('names the commands a plugin provides in the plugins listing', async () => {

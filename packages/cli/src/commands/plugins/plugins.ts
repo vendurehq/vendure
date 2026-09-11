@@ -229,11 +229,14 @@ function statusHint(plugin: DiscoveredCliPlugin): string {
     }
 }
 
+/** A hint shares one line with the package name, so it cannot list 22 commands. */
+const MAX_COMMANDS_IN_HINT = 6;
+
 /**
  * The commands a package contributes, appended to its status so the picker
- * says what enabling or disabling it would change. Long lists are cut off:
- * the hint sits on one line next to the package name, and `vendure plugins
- * --json` is there for the whole list.
+ * says what enabling or disabling it would change. Cut off at
+ * {@link MAX_COMMANDS_IN_HINT}, unlike the full list `printTextList` writes,
+ * which has a line of its own.
  */
 function withCommands(status: string, plugin: DiscoveredCliPlugin): string {
     const commands = cliPluginCommandNames(plugin);
@@ -245,8 +248,6 @@ function withCommands(status: string, plugin: DiscoveredCliPlugin): string {
     const suffix = rest > 0 ? `, +${rest} more` : '';
     return `${status} — ${shown.join(', ')}${suffix}`;
 }
-
-const MAX_COMMANDS_IN_HINT = 6;
 
 function printTextList(plugins: DiscoveredCliPlugin[]): void {
     if (plugins.length === 0) {
@@ -276,7 +277,6 @@ function printJson(plugins: DiscoveredCliPlugin[]): void {
                     entryPath: plugin.entryPath,
                     declaredCommands: plugin.declaredCommands,
                     loadedCommands: plugin.loadedCommands,
-                    commands: cliPluginCommandNames(plugin),
                 })),
             },
             null,

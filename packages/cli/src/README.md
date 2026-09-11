@@ -473,14 +473,12 @@ for plugin authors; this file covers what a contributor to the CLI itself needs.
   Commander passed to the action, and onto the `Command`, so both readings
   agree. Registration rejects the two declarations if they disagree about
   whether a value follows the flag. Covered in `command-registry.spec.ts`.
-- **Help is grouped by the package things came from.** `vendure --help` lists
-  the CLI's own commands and options under Commander's `Commands:` and
-  `Options:` headings, and what a plugin registered under
-  `Commands from <package>:` and `Options from <package>:`. The registry
-  already tracks this as `RegisteredCommand.source` and `RegisteredOption.source`;
-  `getCommandSources()` and `getRootOptionSources()` hand it to
-  `registerCommands()`, which sets Commander's `helpGroup()`. Nothing about how
-  a command is invoked changes.
+- **Help is grouped by the package a command or option came from.**
+  `getCommandTree()` and `getRootOptions()` return each node paired with the
+  plugin that registered it, and `registerCommands()` turns that into
+  Commander's `helpGroup()`. They are returned paired rather than as a
+  separate name-keyed map so the two cannot disagree. Nothing about how a
+  command is invoked changes.
 - **Only the root help is grouped.** A subcommand's help shows shared options
   in the `Global Options:` section, which Commander builds as one flat list
   whatever group the options are in, so it mixes the CLI's own with a plugin's.
@@ -490,12 +488,11 @@ for plugin authors; this file covers what a contributor to the CLI itself needs.
   nested under, which already says where that came from.
 - **A sub-option is grouped with its parent**, since the help lists it indented
   under the parent. Splitting them would leave the indented line under nothing.
-- **A sub-option may belong to two parents.** `vendure add` takes
-  `--selected-plugin` with either `-e` or `-s`. Sub-options are flattened onto
-  the command, so the flag is declared twice; `declareOption()` keeps the first
-  and drops the rest. Commander 11 allowed the repeat and matched the first
-  when parsing, and Commander 13 onwards throws on it, which would fail at
-  startup and take the whole CLI down rather than one command.
+- **Nothing validates the built-in command definitions at runtime.** A plugin
+  goes through `assertCliPlugin()` when it loads, so a duplicate option flag is
+  rejected by name; the built-ins reach Commander unchecked, which throws from
+  v13 onwards and fails the whole CLI at startup. `builtins.spec.ts` holds them
+  to the same rule.
 - **Extensions cannot add positional arguments.** Commander passes one argument
   slot per declared positional, so an appended argument would shift the options,
   `Command` and context that an existing action expects.

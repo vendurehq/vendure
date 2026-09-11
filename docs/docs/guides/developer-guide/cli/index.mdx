@@ -558,8 +558,41 @@ Declare the entry point in that package's `package.json`:
 }
 ```
 
-The optional `cliCommands` list lets the CLI give actionable errors for unknown
-commands without loading the plugin.
+The optional `cliCommands` list is what the CLI can read without loading the
+plugin. It uses it to give an actionable error for an unknown command, and to
+say what an installed but not yet enabled package would add when you run
+`vendure plugins`. Once a plugin is enabled the CLI reads its commands from the
+plugin itself, so this list only has to be right for a package that is not
+enabled yet.
+
+### How plugin commands appear in the help
+
+`vendure --help` lists the commands and shared options a plugin registers under
+a heading naming the package, so it is clear where each one came from:
+
+```
+Options:
+  -V, --version             output the version number
+  -h, --help                display help for command
+
+Options from @example/vendure-cli-plugin:
+  --token <token>           API token
+
+Commands:
+  add [options]             Add a feature to your Vendure project
+  ...
+
+Commands from @example/vendure-cli-plugin:
+  hello [options]           Say hello
+```
+
+The heading uses the package name exactly as it is installed, so it names the
+thing to enable or remove. Nothing changes about how a command is run: `vendure
+hello` is still `vendure hello`.
+
+A command extended through `extendCommands` rather than registered outright
+stays under the heading it already had, because the command is still the one
+that declared it.
 
 ### Nested commands
 
