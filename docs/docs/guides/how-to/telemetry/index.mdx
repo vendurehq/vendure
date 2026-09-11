@@ -98,6 +98,10 @@ Once the images have downloaded and the containers are running, you can access:
 npm install @vendure/telemetry-plugin
 ```
 
+If you already have this plugin running, read [Upgrading from earlier
+versions](#upgrading-from-earlier-versions) before you deploy. Span attribute names have changed,
+which will break existing Grafana dashboards and alerts.
+
 Add the plugin to your Vendure config:
 
 ```ts
@@ -275,12 +279,23 @@ const config = getSdkConfiguration({
 });
 ```
 
+
+:::info
+Passing `instrumentations` in your config **replaces** the curated default — it does not merge
+with it. If you want to keep the Vendure-default tracing, you need to include those entries in
+your own array as shown above.
+:::
+
+## Upgrading from earlier versions
+
+The plugin now uses the OpenTelemetry 0.222 instrumentations, which emit only the stable semantic
+conventions. Two things change in the telemetry your server produces. Both apply whether or not
+you customise `instrumentations`.
+
 :::warning[Span attribute names have changed]
-This version renames the attributes on HTTP and database spans. Names like `http.method` and
+The attributes on HTTP and database spans are renamed. Names like `http.method` and
 `db.statement` are gone, and you cannot get them back. Grafana dashboards and alerts that query
 an old name will come back empty.
-
-This happens whether or not you customise `instrumentations`.
 
 | Old name | New name |
 |---|---|
@@ -323,8 +338,8 @@ span carries both and you can migrate later.
 :::
 
 :::warning[Query parameters are now redacted on incoming spans]
-This version redacts sensitive query parameters on spans for incoming requests. Earlier versions
-only did this for outgoing requests.
+Sensitive query parameters are redacted on spans for incoming requests. Earlier versions only
+did this for outgoing requests.
 
 If the request URL carries any of `sig`, `Signature`, `AWSAccessKeyId`, `X-Goog-Signature`,
 `X-Amz-Signature`, `X-Amz-Credential` or `X-Amz-Security-Token`, the value is replaced with
@@ -332,13 +347,8 @@ If the request URL carries any of `sig`, `Signature`, `AWSAccessKeyId`, `X-Goog-
 itself is untouched.
 
 To use a different list, set `redactedQueryParamsServer` on `HttpInstrumentation`. You need to
-pass your own `instrumentations` array to do this, as shown above.
-:::
-
-:::info
-Passing `instrumentations` in your config **replaces** the curated default — it does not merge
-with it. If you want to keep the Vendure-default tracing, you need to include those entries in
-your own array as shown above.
+pass your own `instrumentations` array to do this, as shown in
+[Customising instrumentation](#customising-instrumentation).
 :::
 
 ## Viewing Logs
