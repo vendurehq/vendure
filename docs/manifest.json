@@ -626,7 +626,7 @@
           "title": "Navigation",
           "slug": "navigation",
           "file": "docs/guides/extending-the-dashboard/navigation/index.mdx",
-          "lastModified": "2026-06-24T13:43:54+02:00"
+          "lastModified": "2026-09-11T20:02:59+02:00"
         },
         {
           "title": "Alerts",
@@ -4087,7 +4087,7 @@
                   "title": "DefineDashboardExtension",
                   "slug": "define-dashboard-extension",
                   "file": "docs/reference/dashboard/extensions-api/define-dashboard-extension.mdx",
-                  "lastModified": "2026-07-23T11:18:30+02:00"
+                  "lastModified": "2026-09-11T20:02:59+02:00"
                 },
                 {
                   "title": "DetailForms",
@@ -4123,7 +4123,7 @@
                   "title": "Navigation",
                   "slug": "navigation",
                   "file": "docs/reference/dashboard/extensions-api/navigation.mdx",
-                  "lastModified": "2026-07-23T11:18:30+02:00"
+                  "lastModified": "2026-09-11T20:02:59+02:00"
                 },
                 {
                   "title": "Page Blocks",
@@ -4135,7 +4135,7 @@
                   "title": "Routes",
                   "slug": "routes",
                   "file": "docs/reference/dashboard/extensions-api/routes.mdx",
-                  "lastModified": "2026-07-23T11:18:30+02:00"
+                  "lastModified": "2026-09-11T20:02:59+02:00"
                 },
                 {
                   "title": "Toolbar",
@@ -4266,6 +4266,12 @@
                   "slug": "use-custom-field-config",
                   "file": "docs/reference/dashboard/hooks/use-custom-field-config.mdx",
                   "lastModified": "2026-01-28T14:49:21+01:00"
+                },
+                {
+                  "title": "UseDashboardUserContext",
+                  "slug": "use-dashboard-user-context",
+                  "file": "docs/reference/dashboard/hooks/use-dashboard-user-context.mdx",
+                  "lastModified": "2026-09-11T20:02:59+02:00"
                 },
                 {
                   "title": "UseDisplayLocale",
