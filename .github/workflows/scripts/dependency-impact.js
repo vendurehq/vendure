@@ -353,7 +353,8 @@ function formatRange({ from, to }) {
  * literal text, so entity-escaping a range would display `&gt;=16.0.0 &#124;&#124; ^17.0.0` rather
  * than `>=16.0.0 || ^17.0.0`, and `||` is ordinary in a peer range. Inside a code span the only
  * hazards are the table's own pipe, which escapes with a backslash, and the span's own backtick,
- * which cannot be escaped at all. A value carrying a backtick falls back to escaped plain text.
+ * which cannot be escaped at all. A value carrying a backtick falls back to entity-escaped plain
+ * text so it cannot create links, images, mentions or other active Markdown in the bot's report.
  */
 function codeCell(value) {
     const text = String(value).replace(/\r?\n/g, ' ');
@@ -368,12 +369,10 @@ function codeCell(value) {
 
 function escapeMarkdown(value) {
     return String(value)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/\|/g, '&#124;')
-        .replace(/`/g, '&#96;')
-        .replace(/\r?\n/g, '<br>');
+        .replace(/\r?\n/g, ' ')
+        .replace(/[!"#$%&'()*+,./:;<=>?@[\\\]^_`{|}~-]/g, character => {
+            return `&#${character.codePointAt(0)};`;
+        });
 }
 
 function isHttpError(error, status) {

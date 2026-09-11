@@ -285,7 +285,10 @@ test('takes a range carrying a backslash out of the code span', () => {
             },
             [manifestEndpoint(filePath, 'head')]: {
                 name: '@vendure/core',
-                dependencies: { graphql: '^17.0.0 \\| forged | row |' },
+                dependencies: {
+                    graphql:
+                        '^17.0.0 \\| forged | row | [maintainer](https://example.com) ![tracker](https://example.com/pixel.png) @michaelbromley #123',
+                },
             },
         },
     });
@@ -294,9 +297,15 @@ test('takes a range carrying a backslash out of the code span', () => {
         .find(arg => arg.startsWith('body='));
 
     // Escaping only the pipe would leave the backslash in front of it, so the row would carry a
-    // bare pipe and split into extra cells. Plain text entity-escapes the pipe instead.
+    // bare pipe and split into extra cells. Entity-escaping every Markdown punctuation character
+    // also prevents an untrusted range from creating bot-authored links, images, mentions or issue
+    // references while preserving the rendered text.
     assert.match(body, /&#124; forged &#124; row &#124;/);
     assert.doesNotMatch(body, /\\\\\|/);
+    assert.match(body, /&#91;maintainer&#93;&#40;https&#58;&#47;&#47;example&#46;com&#41;/);
+    assert.match(body, /&#33;&#91;tracker&#93;&#40;https&#58;&#47;&#47;example&#46;com&#47;pixel&#46;png&#41;/);
+    assert.match(body, /&#64;michaelbromley &#35;123/);
+    assert.doesNotMatch(body, /\[maintainer\]\(|!\[tracker\]\(|@michaelbromley|#123/);
 });
 
 test('renders a comparator range as written rather than as HTML entities', () => {
@@ -368,7 +377,7 @@ test('reads a dependency section that is not an object as absent', () => {
     const body = calls
         .find(args => args[1] === 'repos/vendurehq/vendure/issues/42/comments' && args.includes('POST'))
         .find(arg => arg.startsWith('body='));
-    assert.match(body, /`graphql` \| packages\/core \/ dependencies \| removed `\^16\.0\.0`/);
+    assert.match(body, /`graphql` \| packages&#47;core \/ dependencies \| removed `\^16\.0\.0`/);
     assert.doesNotMatch(body, /\| `0` \|/);
 });
 
