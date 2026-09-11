@@ -57,6 +57,25 @@ export interface DiscoveredCliPlugin {
      * Command names from package.json `vendure.cliCommands` when declared.
      */
     declaredCommands?: string[];
+    /**
+     * Top-level command names read from the plugin module itself. Only known
+     * when the plugin was actually loaded, which `validate` does for enabled
+     * plugins. Read it through {@link cliPluginCommandNames}, which falls back
+     * to {@link declaredCommands} for a package that was not loaded.
+     */
+    loadedCommands?: string[];
+}
+
+/**
+ * The commands a package contributes, as accurately as is known.
+ *
+ * An enabled plugin is loaded, so its real command names are used. A package
+ * that is only installed is not executed, so what it declares in
+ * `vendure.cliCommands` is the best available answer, and an empty list means
+ * the package declared nothing rather than that it contributes nothing.
+ */
+export function cliPluginCommandNames(plugin: DiscoveredCliPlugin): string[] {
+    return plugin.loadedCommands ?? plugin.declaredCommands ?? [];
 }
 
 export interface ResolveCliPluginsOptions {
@@ -178,7 +197,14 @@ export function discoverCliPlugins(options: DiscoverCliPluginsOptions = {}): Dis
             const entry = discovered.get(packageName);
             if (entry?.entryPath) {
                 try {
-                    loadCliPluginModule(entry.entryPath, packageName);
+                    const plugin = loadCliPluginModule(entry.entryPath, packageName);
+                    // The module is already loaded here, so reading its command
+                    // names adds no work, and they take precedence over
+                    // whatever `vendure.cliCommands` declares.
+                    discovered.set(packageName, {
+                        ...entry,
+                        loadedCommands: plugin.commands.map(command => command.name),
+                    });
                 } catch (e: any) {
                     discovered.set(packageName, {
                         ...entry,

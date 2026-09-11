@@ -1,4 +1,5 @@
 import { Command } from 'commander';
+import pc from 'picocolors';
 
 import {
     CliCommandAction,
@@ -11,6 +12,7 @@ import {
 import { CliCommandExit } from './cli-command-exit';
 import { buildOptionFlags, parseOptionFlags } from './cli-command-options';
 import { CliPluginExtensionAccessor } from './cli-plugin-extension';
+import { CommandTreeEntry, RootOptionEntry } from './command-registry-store';
 
 /**
  * An option declared on an ancestor of a command. Commander stores the parsed
@@ -22,25 +24,94 @@ interface SharedOption {
     owner: Command;
 }
 
+export interface RegisterCommandsOptions {
+    /**
+     * Options declared on the program itself, and so shared by every command,
+     * each with the plugin that registered it.
+     */
+    rootOptions?: RootOptionEntry[];
+    /** Reads plugin contributions registered for a named extension point. */
+    getPluginExtensions?: CliPluginExtensionAccessor;
+}
+
+/**
+ * The help heading commands from `packageName` are listed under.
+ *
+ * The package name is used unchanged rather than a prettier display name, so
+ * the heading names the exact thing to install, enable or remove.
+ */
+function pluginCommandsHeading(packageName: string): string {
+    return `Commands from ${packageName}:`;
+}
+
+/** As {@link pluginCommandsHeading}, for the shared options of a package. */
+function pluginOptionsHeading(packageName: string): string {
+    return `Options from ${packageName}:`;
+}
+
+/**
+ * Splits a heading built above back into its parts. Kept beside the builders
+ * because it has to match what they produce: Commander's `styleTitle` hands
+ * back the finished string and nothing else.
+ */
+const PLUGIN_HEADING = /^((?:Commands|Options) from )(.+)(:)$/;
+
+/**
+ * Styles one help section heading. Every heading is bold, and a plugin
+ * heading's package name is cyan as well.
+ *
+ * Colour is decoration only: the heading names the package in words, so a
+ * monochrome terminal loses nothing. Commander strips the escape codes when it
+ * detects no colour support. A pipe or a file counts as no support unless
+ * FORCE_COLOR is set. NO_COLOR counts as no support whatever the output is.
+ */
+export function styleHelpTitle(title: string, colors: HeadingColors = pc): string {
+    const match = PLUGIN_HEADING.exec(title);
+    if (!match) {
+        return colors.bold(title);
+    }
+    const [, label, packageName, colon] = match;
+    // Nested, not concatenated: styling the parts separately closes the bold
+    // run before the cyan one opens, leaving the package name at normal weight.
+    return colors.bold(label + colors.cyan(packageName) + colon);
+}
+
+/**
+ * Defaults to picocolors, which emits nothing unless it detects colour
+ * support, so a test passes `createColors(true)` to see the escape codes.
+ */
+export type HeadingColors = Pick<typeof pc, 'bold' | 'cyan'>;
+
 export function registerCommands(
     program: Command,
-    commands: CliCommandNode[],
-    rootOptions: CliCommandOption[] = [],
-    getPluginExtensions: CliPluginExtensionAccessor = () => [],
+    tree: CommandTreeEntry[],
+    options: RegisterCommandsOptions = {},
 ): void {
+    const { rootOptions = [], getPluginExtensions = () => [] } = options;
     const sharedOptions = declareOptions(program, rootOptions);
-    for (const node of commands) {
-        registerNode(program, node, [], sharedOptions, getPluginExtensions);
+    for (const { node, source } of tree) {
+        const command = registerNode(program, node, [], sharedOptions, getPluginExtensions);
+        if (source) {
+            // Commander groups by the heading text itself, so every command
+            // from one package lands in one section without further
+            // bookkeeping. Commands left ungrouped keep Commander's own
+            // "Commands:" heading, which is where the built-ins stay.
+            command.helpGroup(pluginCommandsHeading(source));
+        }
     }
 }
 
+/**
+ * Registers a node and everything nested under it, returning the Commander
+ * command it created so the caller can group it in the help output.
+ */
 function registerNode(
     parent: Command,
     node: CliCommandNode,
     path: string[],
     sharedOptions: SharedOption[],
     getPluginExtensions: CliPluginExtensionAccessor,
-): void {
+): Command {
     const command = parent.command(node.name).description(node.description);
     const commandPath = [...path, node.name];
     const runnable = isRunnableCliCommand(node) ? node : undefined;
@@ -49,7 +120,10 @@ function registerNode(
     for (const arg of runnable?.arguments ?? []) {
         command.argument(arg.required ? `<${arg.name}>` : `[${arg.name}]`, arg.description);
     }
-    const ownOptions = declareOptions(command, node.options ?? []);
+    const ownOptions = declareOptions(
+        command,
+        (node.options ?? []).map(option => ({ option })),
+    );
 
     if (subcommands) {
         // A node with subcommands shares its options with every command below
@@ -78,7 +152,7 @@ function registerNode(
     if (!runnable) {
         // A group has no action: Commander prints its help and exits non-zero
         // when it is run without a subcommand.
-        return;
+        return command;
     }
 
     command.action(async (...args: any[]) => {
@@ -99,6 +173,8 @@ function registerNode(
         // Exit is owned by the host so plugins can wrap built-in actions.
         process.exit(await runAction(runnable.action, args, context));
     });
+
+    return command;
 }
 
 /**
@@ -144,27 +220,44 @@ async function runAction(action: CliCommandAction, args: any[], context: CliComm
  * Declares options on a command and describes them for any descendants, which
  * inherit them when the command has subcommands or is the root program.
  */
-function declareOptions(command: Command, options: CliCommandOption[]): SharedOption[] {
+function declareOptions(command: Command, entries: RootOptionEntry[]): SharedOption[] {
     const declared: SharedOption[] = [];
-    for (const option of options) {
-        addOption(command, option);
-        declared.push({ attributeName: parseOptionFlags(option).attributeName, owner: command });
+    for (const { option, source } of entries) {
+        const helpGroup = source === undefined ? undefined : pluginOptionsHeading(source);
+        declareOption(command, option, declared, helpGroup);
 
         for (const subOption of option.subOptions ?? []) {
             // Indent the description so the help output shows the nesting.
-            const indentedSubOption = { ...subOption, description: `  └─ ${subOption.description}` };
-            addOption(command, indentedSubOption);
-            declared.push({
-                attributeName: parseOptionFlags(indentedSubOption).attributeName,
-                owner: command,
-            });
+            // Grouped with its parent, which is the option it is indented under.
+            declareOption(
+                command,
+                { ...subOption, description: `  └─ ${subOption.description}` },
+                declared,
+                helpGroup,
+            );
         }
     }
     return declared;
 }
 
-function addOption(command: Command, option: CliCommandOption): void {
-    command.option(buildOptionFlags(option), option.description, option.defaultValue);
+function declareOption(
+    command: Command,
+    option: CliCommandOption,
+    declared: SharedOption[],
+    helpGroup?: string,
+): void {
+    addOption(command, option, helpGroup);
+    declared.push({ attributeName: parseOptionFlags(option).attributeName, owner: command });
+}
+
+/** Mirrors `Command#option`, which gives no way to set a help group. */
+function addOption(command: Command, option: CliCommandOption, helpGroup?: string): void {
+    const created = command.createOption(buildOptionFlags(option), option.description);
+    created.default(option.defaultValue);
+    if (helpGroup !== undefined) {
+        created.helpGroup(helpGroup);
+    }
+    command.addOption(created);
 }
 
 /**

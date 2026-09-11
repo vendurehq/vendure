@@ -11,8 +11,35 @@ export interface CliTestProject {
     fileExists: (relativePath: string) => boolean;
     runCliCommand: (
         args: string[],
-        options?: { expectError?: boolean },
-    ) => Promise<{ stdout: string; stderr: string; exitCode: number }>;
+        options?: { expectError?: boolean; env?: Record<string, string> },
+    ) => Promise<CliCommandResult>;
+}
+
+export interface CliCommandResult {
+    /** Output with any colour removed. Assert against this. */
+    stdout: string;
+    /** Errors with any colour removed. Assert against this. */
+    stderr: string;
+    exitCode: number;
+    /** Output as the CLI wrote it, for a test about colour itself. */
+    rawStdout: string;
+    /** Errors as the CLI wrote them, for a test about colour itself. */
+    rawStderr: string;
+}
+
+/**
+ * Removes ANSI escape codes.
+ *
+ * Whether the CLI colours its output depends on the environment it is spawned
+ * in, not on the command. Vitest exports FORCE_COLOR to child processes when
+ * its own output is coloured. Its output is coloured when the suite runs
+ * through Lerna and plain when it runs in the package directly, so one command
+ * gives different bytes depending on how the suite was started. A test
+ * asserting on what the CLI said should not depend on how it was started.
+ */
+function stripAnsi(text: string): string {
+    // eslint-disable-next-line no-control-regex
+    return text.replace(/\u001b\[[0-9;]*m/g, '');
 }
 
 /**
@@ -98,7 +125,10 @@ export const config: VendureConfig = {
         fileExists: (relativePath: string) => {
             return existsSync(join(projectDir, relativePath));
         },
-        runCliCommand: async (args: string[], options: { expectError?: boolean } = {}) => {
+        runCliCommand: async (
+            args: string[],
+            options: { expectError?: boolean; env?: Record<string, string> } = {},
+        ) => {
             return new Promise((resolve, reject) => {
                 // Use the built CLI from the dist directory
                 const cliPath = join(__dirname, '..', 'dist', 'cli.js');
@@ -109,6 +139,7 @@ export const config: VendureConfig = {
                         ...process.env,
                         // Ensure we don't inherit any CLI environment variables
                         VENDURE_RUNNING_IN_CLI: undefined,
+                        ...options.env,
                     },
                     stdio: ['pipe', 'pipe', 'pipe'],
                 });
@@ -130,7 +161,13 @@ export const config: VendureConfig = {
                     if (!options.expectError && exitCode !== 0) {
                         reject(new Error(`CLI command failed with exit code ${exitCode}. stderr: ${stderr}`));
                     } else {
-                        resolve({ stdout, stderr, exitCode });
+                        resolve({
+                            stdout: stripAnsi(stdout),
+                            stderr: stripAnsi(stderr),
+                            exitCode,
+                            rawStdout: stdout,
+                            rawStderr: stderr,
+                        });
                     }
                 });
 
