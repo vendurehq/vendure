@@ -1,4 +1,5 @@
 import { Command } from 'commander';
+import pc from 'picocolors';
 
 import {
     CliCommandAction,
@@ -22,25 +23,129 @@ interface SharedOption {
     owner: Command;
 }
 
+export interface RegisterCommandsOptions {
+    /** Options declared on the program itself, and so shared by every command. */
+    rootOptions?: CliCommandOption[];
+    /** Reads plugin contributions registered for a named extension point. */
+    getPluginExtensions?: CliPluginExtensionAccessor;
+    /**
+     * Top-level command name to the id of the plugin that registered it, as
+     * {@link CommandRegistry.getCommandSources} returns it. Commands absent
+     * from the map are built-ins.
+     *
+     * Used only to group the help output: a command behaves the same whether
+     * a plugin or the CLI itself provides it, and is typed the same way.
+     */
+    commandSources?: ReadonlyMap<string, string>;
+    /**
+     * Root option attribute name to the id of the plugin that registered it,
+     * as {@link CommandRegistry.getRootOptionSources} returns it. Options
+     * absent from the map belong to the CLI itself.
+     *
+     * Used only to group the help output, like {@link commandSources}. Note
+     * that only the root help groups them: the "Global Options" section a
+     * subcommand's help shows is one flat list in Commander, whatever group
+     * the options are in.
+     */
+    rootOptionSources?: ReadonlyMap<string, string>;
+}
+
+/**
+ * The help heading commands from `packageName` are listed under.
+ *
+ * The package name is used unchanged rather than a prettier display name, so
+ * the heading names the exact thing to install, enable or remove.
+ */
+function pluginCommandsHeading(packageName: string): string {
+    return `Commands from ${packageName}:`;
+}
+
+/**
+ * The help heading the shared options registered by `packageName` are listed
+ * under. Worded to match {@link pluginCommandsHeading}, so one package reads
+ * the same way wherever it appears.
+ */
+function pluginOptionsHeading(packageName: string): string {
+    return `Options from ${packageName}:`;
+}
+
+/**
+ * Splits a heading built by {@link pluginCommandsHeading} or
+ * {@link pluginOptionsHeading} back into its parts, so
+ * {@link styleHelpTitle} can pick the package name out of it. Kept beside the
+ * two builders: it has to match what they produce, and `styleTitle` hands
+ * Commander's help back nothing but the finished string.
+ */
+const PLUGIN_HEADING = /^((?:Commands|Options) from )(.+)(:)$/;
+
+/**
+ * Styles one help section heading.
+ *
+ * Every heading is bold, including the CLI's own `Commands:` and `Options:`,
+ * so the sections read as peers rather than a plugin's looking like an aside.
+ * Within a plugin's heading the package name is tinted as well, which is what
+ * visibly pairs its "Commands from" section with its "Options from" one. The
+ * tint is bold too, so the heading is one weight throughout.
+ *
+ * Nothing is said by colour alone — the heading names the package in words —
+ * so a monochrome terminal loses nothing. Commander strips the escape codes
+ * itself when the output is not a terminal, or when NO_COLOR is set.
+ */
+export function styleHelpTitle(title: string, colors: HeadingColors = pc): string {
+    const match = PLUGIN_HEADING.exec(title);
+    if (!match) {
+        return colors.bold(title);
+    }
+    const [, label, packageName, colon] = match;
+    // Nested rather than concatenated: styling the parts separately would
+    // close the bold run before the tint opens, leaving the package name at
+    // normal weight beside a bold label.
+    return colors.bold(label + colors.cyan(packageName) + colon);
+}
+
+/**
+ * The palette {@link styleHelpTitle} paints with. It defaults to picocolors,
+ * which emits nothing unless the terminal supports colour, so a test has to
+ * pass `createColors(true)` to see what a colour terminal would get.
+ */
+export type HeadingColors = Pick<typeof pc, 'bold' | 'cyan'>;
+
 export function registerCommands(
     program: Command,
     commands: CliCommandNode[],
-    rootOptions: CliCommandOption[] = [],
-    getPluginExtensions: CliPluginExtensionAccessor = () => [],
+    options: RegisterCommandsOptions = {},
 ): void {
-    const sharedOptions = declareOptions(program, rootOptions);
+    const {
+        rootOptions = [],
+        getPluginExtensions = () => [],
+        commandSources,
+        rootOptionSources,
+    } = options;
+    const sharedOptions = declareOptions(program, rootOptions, rootOptionSources);
     for (const node of commands) {
-        registerNode(program, node, [], sharedOptions, getPluginExtensions);
+        const command = registerNode(program, node, [], sharedOptions, getPluginExtensions);
+        const source = commandSources?.get(node.name);
+        if (source) {
+            // Commander groups by the heading text itself, so every command
+            // from one package lands in one section without further
+            // bookkeeping. Commands left ungrouped keep Commander's own
+            // "Commands:" heading, which is where the built-ins stay.
+            command.helpGroup(pluginCommandsHeading(source));
+        }
     }
 }
 
+/**
+ * Registers a node and everything nested under it, returning the Commander
+ * command it created so the caller can group it in the help output.
+ */
 function registerNode(
     parent: Command,
     node: CliCommandNode,
     path: string[],
     sharedOptions: SharedOption[],
     getPluginExtensions: CliPluginExtensionAccessor,
-): void {
+): Command {
     const command = parent.command(node.name).description(node.description);
     const commandPath = [...path, node.name];
     const runnable = isRunnableCliCommand(node) ? node : undefined;
@@ -78,7 +183,7 @@ function registerNode(
     if (!runnable) {
         // A group has no action: Commander prints its help and exits non-zero
         // when it is run without a subcommand.
-        return;
+        return command;
     }
 
     command.action(async (...args: any[]) => {
@@ -99,6 +204,8 @@ function registerNode(
         // Exit is owned by the host so plugins can wrap built-in actions.
         process.exit(await runAction(runnable.action, args, context));
     });
+
+    return command;
 }
 
 /**
@@ -144,14 +251,26 @@ async function runAction(action: CliCommandAction, args: any[], context: CliComm
  * Declares options on a command and describes them for any descendants, which
  * inherit them when the command has subcommands or is the root program.
  */
-function declareOptions(command: Command, options: CliCommandOption[]): SharedOption[] {
+function declareOptions(
+    command: Command,
+    options: CliCommandOption[],
+    sources?: ReadonlyMap<string, string>,
+): SharedOption[] {
     const declared: SharedOption[] = [];
     for (const option of options) {
-        declareOption(command, option, declared);
+        const source = sources?.get(parseOptionFlags(option).attributeName);
+        const helpGroup = source === undefined ? undefined : pluginOptionsHeading(source);
+        declareOption(command, option, declared, helpGroup);
 
         for (const subOption of option.subOptions ?? []) {
             // Indent the description so the help output shows the nesting.
-            declareOption(command, { ...subOption, description: `  └─ ${subOption.description}` }, declared);
+            // Grouped with its parent, which is the option it is indented under.
+            declareOption(
+                command,
+                { ...subOption, description: `  └─ ${subOption.description}` },
+                declared,
+                helpGroup,
+            );
         }
     }
     return declared;
@@ -163,15 +282,20 @@ function declareOptions(command: Command, options: CliCommandOption[]): SharedOp
  * One sub-option can belong to more than one parent — `vendure add` takes
  * `--selected-plugin` with either `-e` or `-s` — and every sub-option is
  * flattened onto the same command, so the flag arrives twice. Commander 11
- * accepts the repeat, lists it twice in help and matches the first declaration
- * when parsing. Commander 13 onwards throws instead, which would fail at
- * startup and take down the whole CLI rather than one command.
+ * accepted the repeat, listed it twice in help and matched the first
+ * declaration when parsing. Commander 13 onwards throws instead, which would
+ * fail at startup and take down the whole CLI rather than one command.
  *
- * Keeping the first declaration parses exactly as Commander 11 does, and drops
+ * Keeping the first declaration parses exactly as Commander 11 did, and drops
  * the duplicate help line. A plugin can hit this as readily as a built-in, so
  * it is handled here rather than in any one command's definition.
  */
-function declareOption(command: Command, option: CliCommandOption, declared: SharedOption[]): void {
+function declareOption(
+    command: Command,
+    option: CliCommandOption,
+    declared: SharedOption[],
+    helpGroup?: string,
+): void {
     const parsed = parseOptionFlags(option);
     const alreadyDeclared = command.options.some(
         existing =>
@@ -181,12 +305,22 @@ function declareOption(command: Command, option: CliCommandOption, declared: Sha
     if (alreadyDeclared) {
         return;
     }
-    addOption(command, option);
+    addOption(command, option, helpGroup);
     declared.push({ attributeName: parsed.attributeName, owner: command });
 }
 
-function addOption(command: Command, option: CliCommandOption): void {
-    command.option(buildOptionFlags(option), option.description, option.defaultValue);
+/**
+ * Builds the option the way `Command#option` does — create it, give it the
+ * default value, add it — with the chance to put it in a help group on the
+ * way, which `Command#option` gives no way to do.
+ */
+function addOption(command: Command, option: CliCommandOption, helpGroup?: string): void {
+    const created = command.createOption(buildOptionFlags(option), option.description);
+    created.default(option.defaultValue);
+    if (helpGroup !== undefined) {
+        created.helpGroup(helpGroup);
+    }
+    command.addOption(created);
 }
 
 /**

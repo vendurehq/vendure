@@ -4,7 +4,7 @@ import { Command } from 'commander';
 import pc from 'picocolors';
 
 import { builtinCommandDefs } from './commands/builtins';
-import { registerCommands } from './shared/command-registry';
+import { registerCommands, styleHelpTitle } from './shared/command-registry';
 import { CommandRegistry } from './shared/command-registry-store';
 import {
     findInactivePluginProvidingCommand,
@@ -41,7 +41,7 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
     // subcommand help needs Commander's "Global Options" section to be
     // complete. Commander copies the help configuration into each subcommand as
     // it is created, so this must be set first.
-    program.configureHelp({ showGlobalOptions: true });
+    program.configureHelp({ showGlobalOptions: true, styleTitle: styleHelpTitle });
 
     const registry = new CommandRegistry();
     registry.registerAll(builtinCommandDefs);
@@ -61,9 +61,12 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
         }
     }
 
-    registerCommands(program, registry.toArray(), registry.getRootOptions(), extensionPoint =>
-        registry.getPluginExtensions(extensionPoint),
-    );
+    registerCommands(program, registry.toArray(), {
+        rootOptions: registry.getRootOptions(),
+        getPluginExtensions: extensionPoint => registry.getPluginExtensions(extensionPoint),
+        commandSources: registry.getCommandSources(),
+        rootOptionSources: registry.getRootOptionSources(),
+    });
 
     program.on('command:*', operands => {
         const unknown = operands[0] ?? '';

@@ -249,6 +249,37 @@ describe('CLI plugin help output', () => {
         }
     });
 
+    it('lists the plugin commands under a heading naming the package', async () => {
+        const result = await project.runCliCommand(['--help']);
+
+        const heading = 'Commands from @vendure-e2e/cloud-cli-plugin:';
+        expect(result.stdout).toContain(heading);
+
+        // The built-ins keep Commander's own heading, and every plugin command
+        // sits below the plugin's, so the section a command is listed in is
+        // what actually says where it came from.
+        const builtinsAt = result.stdout.indexOf('\nCommands:');
+        const pluginAt = result.stdout.indexOf(heading);
+        expect(builtinsAt).toBeGreaterThan(-1);
+        expect(builtinsAt).toBeLessThan(pluginAt);
+        expect(result.stdout.indexOf('Manage Cloud projects')).toBeGreaterThan(pluginAt);
+        expect(result.stdout.indexOf('Add a feature to your Vendure project')).toBeLessThan(pluginAt);
+    });
+
+    it('lists the plugin shared options under a heading naming the package', async () => {
+        const result = await project.runCliCommand(['--help']);
+
+        const heading = 'Options from @vendure-e2e/cloud-cli-plugin:';
+        expect(result.stdout).toContain(heading);
+
+        const optionsAt = result.stdout.indexOf('\nOptions:');
+        const pluginAt = result.stdout.indexOf(heading);
+        expect(optionsAt).toBeLessThan(pluginAt);
+        // --help is the CLI's own and stays put; --token came from the plugin.
+        expect(result.stdout.indexOf('--token')).toBeGreaterThan(pluginAt);
+        expect(result.stdout.indexOf('-h, --help')).toBeLessThan(pluginAt);
+    });
+
     it('shows the options valid at every level in leaf help', async () => {
         const result = await project.runCliCommand(['config', 'server', 'set', '--help']);
 

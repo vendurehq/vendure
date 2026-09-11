@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { createColors } from 'picocolors';
+
 import { runCli } from './__tests__/run-cli';
+import { styleHelpTitle } from './command-registry';
 import {
     CliCommandDefinition,
     CliCommandNode,
@@ -105,6 +108,22 @@ function cloudCommands(): CliCommandNode[] {
             ],
         },
     ];
+}
+
+
+/**
+ * The lines of one help section: everything from `heading` up to the blank
+ * line that ends it. Lets a test say which section a command is listed in,
+ * which `toContain` on the whole screen cannot.
+ */
+function sectionAfter(help: string, heading: string): string {
+    const start = help.indexOf(`\n${heading}`);
+    if (start === -1) {
+        return '';
+    }
+    const body = help.slice(start + heading.length + 1);
+    const end = body.indexOf('\n\n');
+    return end === -1 ? body : body.slice(0, end);
 }
 
 describe('registerCommands() with nested commands', () => {
@@ -606,6 +625,225 @@ describe('registerCommands() with a sub-option shared by two parents', () => {
 
         expect(result.stdout).toMatch(/^\s+--translatable/m);
         expect(result.stdout).toMatch(/^\s+-s, --service/m);
+    });
+});
+
+/**
+ * A built-in alongside the plugin commands, so a test can tell the grouped
+ * section from the ungrouped one rather than just counting headings.
+ */
+function mixedCommands(): CliCommandNode[] {
+    return [recordingCommand('dev', 'Run Vendure in development mode'), ...cloudCommands()];
+}
+
+function sources(entries: Record<string, string>): ReadonlyMap<string, string> {
+    return new Map(Object.entries(entries));
+}
+
+describe('registerCommands() help grouping', () => {
+    it('lists a plugin command under a heading naming its package', async () => {
+        const result = await runCli(
+            mixedCommands(),
+            rootOptions,
+            ['--help'],
+            undefined,
+            { commands: sources({ project: '@vendure/cloud', config: '@vendure/cloud' }) },
+        );
+
+        expect(result.stdout).toContain('Commands from @vendure/cloud:');
+        expect(result.stdout).toMatch(/^\s+project\s+Manage projects$/m);
+        expect(result.stdout).toMatch(/^\s+config \[options\]\s+Manage configuration$/m);
+    });
+
+    it('leaves commands with no source under the default heading', async () => {
+        const result = await runCli(
+            mixedCommands(),
+            rootOptions,
+            ['--help'],
+            undefined,
+            { commands: sources({ project: '@vendure/cloud' }) },
+        );
+
+        const defaultSection = sectionAfter(result.stdout, 'Commands:');
+        expect(defaultSection).toMatch(/^\s+dev\s+Run Vendure in development mode$/m);
+        expect(defaultSection).toMatch(/^\s+backup\s+Manage backups$/m);
+        expect(defaultSection).not.toContain('Manage projects');
+    });
+
+    it('puts every command from one package in a single section', async () => {
+        const result = await runCli(
+            mixedCommands(),
+            rootOptions,
+            ['--help'],
+            undefined,
+            { commands: sources({ project: '@vendure/cloud', config: '@vendure/cloud', backup: '@vendure/cloud' }) },
+        );
+
+        const headings = result.stdout.match(/^Commands from @vendure\/cloud:$/gm) ?? [];
+        expect(headings).toHaveLength(1);
+
+        const pluginSection = sectionAfter(result.stdout, 'Commands from @vendure/cloud:');
+        expect(pluginSection).toMatch(/^\s+project\s+Manage projects$/m);
+        expect(pluginSection).toMatch(/^\s+backup\s+Manage backups$/m);
+    });
+
+    it('gives two packages a section each', async () => {
+        const result = await runCli(
+            mixedCommands(),
+            rootOptions,
+            ['--help'],
+            undefined,
+            { commands: sources({ project: '@vendure/cloud', backup: 'vendure-plugin-backups' }) },
+        );
+
+        expect(sectionAfter(result.stdout, 'Commands from @vendure/cloud:')).toMatch(
+            /^\s+project\s+Manage projects$/m,
+        );
+        expect(sectionAfter(result.stdout, 'Commands from vendure-plugin-backups:')).toMatch(
+            /^\s+backup\s+Manage backups$/m,
+        );
+    });
+
+    it('lists the built-ins first', async () => {
+        const result = await runCli(
+            mixedCommands(),
+            rootOptions,
+            ['--help'],
+            undefined,
+            { commands: sources({ project: '@vendure/cloud' }) },
+        );
+
+        expect(result.stdout.indexOf('\nCommands:')).toBeLessThan(
+            result.stdout.indexOf('Commands from @vendure/cloud:'),
+        );
+    });
+
+    it('lists a shared option under a heading naming its package', async () => {
+        const result = await runCli(mixedCommands(), rootOptions, ['--help'], undefined, {
+            rootOptions: sources({ token: '@vendure/cloud', json: '@vendure/cloud' }),
+        });
+
+        const pluginSection = sectionAfter(result.stdout, 'Options from @vendure/cloud:');
+        expect(pluginSection).toMatch(/^\s+--token /m);
+        expect(pluginSection).toMatch(/^\s+--json /m);
+    });
+
+    it("leaves the CLI's own options under the default heading", async () => {
+        const result = await runCli(mixedCommands(), rootOptions, ['--help'], undefined, {
+            rootOptions: sources({ token: '@vendure/cloud' }),
+        });
+
+        const defaultSection = sectionAfter(result.stdout, 'Options:');
+        expect(defaultSection).toMatch(/^\s+-h, --help/m);
+        expect(defaultSection).not.toContain('--token');
+        // Not every shared option came from the plugin, so the rest stay put.
+        expect(defaultSection).toMatch(/^\s+--project /m);
+    });
+
+    it('groups a sub-option with its parent', async () => {
+        const withSubOption: CliCommandOption[] = [
+            {
+                long: '--token <token>',
+                description: 'API token',
+                subOptions: [{ long: '--token-file <path>', description: 'Read the token from a file' }],
+            },
+        ];
+
+        const result = await runCli(mixedCommands(), withSubOption, ['--help'], undefined, {
+            rootOptions: sources({ token: '@vendure/cloud' }),
+        });
+
+        // The sub-option is listed indented under its parent, so splitting them
+        // into different sections would put the indented line under nothing.
+        const pluginSection = sectionAfter(result.stdout, 'Options from @vendure/cloud:');
+        expect(pluginSection).toMatch(/^\s+--token /m);
+        expect(pluginSection).toMatch(/^\s+--token-file /m);
+    });
+
+    it('groups no options when no option sources are given', async () => {
+        const result = await runCli(mixedCommands(), rootOptions, ['--help']);
+
+        expect(result.stdout).not.toContain('Options from');
+        expect(sectionAfter(result.stdout, 'Options:')).toMatch(/^\s+--token /m);
+    });
+
+    it('groups nothing when no sources are given', async () => {
+        const result = await runCli(mixedCommands(), rootOptions, ['--help']);
+
+        expect(result.stdout).not.toContain('Commands from');
+        expect(sectionAfter(result.stdout, 'Commands:')).toMatch(/^\s+project\s+Manage projects$/m);
+    });
+
+    it('does not group a subcommand of a plugin command', async () => {
+        const result = await runCli(
+            mixedCommands(),
+            rootOptions,
+            ['project', '--help'],
+            undefined,
+            { commands: sources({ project: '@vendure/cloud', list: '@vendure/cloud' }) },
+        );
+
+        // `list` is a subcommand of `project`, so the source map's top-level
+        // `list` entry must not reach it: its parent's help already says which
+        // package it came from.
+        expect(result.stdout).not.toContain('Commands from');
+        expect(result.stdout).toMatch(/^\s+list\s+List projects$/m);
+    });
+});
+
+describe('styleHelpTitle()', () => {
+    const BOLD_ON = '\u001b[1m';
+    const BOLD_OFF = '\u001b[22m';
+    const CYAN_ON = '\u001b[36m';
+    // picocolors emits nothing when stdout is not a terminal, which it is not
+    // under vitest, so colour has to be forced on to see the escape codes.
+    const colors = createColors(true);
+    const style = (title: string) => styleHelpTitle(title, colors);
+
+    it("bolds the CLI's own headings", () => {
+        expect(style('Commands:')).toBe(`${BOLD_ON}Commands:${BOLD_OFF}`);
+        expect(style('Options:')).toBe(`${BOLD_ON}Options:${BOLD_OFF}`);
+    });
+
+    it('tints the package name inside a plugin heading', () => {
+        const styled = style('Commands from @vendure/cloud:');
+
+        expect(styled).toContain(`${CYAN_ON}@vendure/cloud`);
+        // The label and the colon are outside the tint, so only the package
+        // name carries the hue.
+        expect(styled).not.toContain(`${CYAN_ON}Commands from`);
+    });
+
+    // The thing a reader notices first is a change in weight, so a heading
+    // that is bold in one part and not another reads as two things.
+    it('keeps one weight across the whole plugin heading', () => {
+        const styled = style('Options from @vendure/cloud:');
+
+        expect(styled.startsWith(BOLD_ON)).toBe(true);
+        expect(styled.endsWith(BOLD_OFF)).toBe(true);
+        // One bold span, not one per fragment: a `bold off` in the middle is
+        // exactly what makes the tinted part look thinner than the rest.
+        expect(styled.split(BOLD_OFF)).toHaveLength(2);
+        expect(styled.split(BOLD_ON)).toHaveLength(2);
+    });
+
+    // styleHelpTitle parses a string the heading builders produced, so a
+    // change to either format has to keep the other working.
+    it('recognises the headings the registry actually builds', async () => {
+        const result = await runCli(mixedCommands(), rootOptions, ['--help'], undefined, {
+            commands: sources({ project: '@vendure/cloud' }),
+            rootOptions: sources({ token: '@vendure/cloud' }),
+        });
+
+        for (const heading of ['Commands from @vendure/cloud:', 'Options from @vendure/cloud:']) {
+            expect(result.stdout).toContain(heading);
+            expect(style(heading)).toContain(CYAN_ON);
+        }
+    });
+
+    it('leaves a heading it does not recognise merely bold', () => {
+        expect(style('Global Options:')).toBe(`${BOLD_ON}Global Options:${BOLD_OFF}`);
+        expect(style('Arguments:')).toBe(`${BOLD_ON}Arguments:${BOLD_OFF}`);
     });
 });
 

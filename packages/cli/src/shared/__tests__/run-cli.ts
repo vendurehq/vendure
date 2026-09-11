@@ -41,6 +41,10 @@ export async function runCli(
     sharedOptions: CliCommandOption[],
     argv: string[],
     getPluginExtensions?: CliPluginExtensionAccessor,
+    sources: {
+        commands?: ReadonlyMap<string, string>;
+        rootOptions?: ReadonlyMap<string, string>;
+    } = {},
 ): Promise<CliRun> {
     let stdout = '';
     let commanderStderr = '';
@@ -58,7 +62,12 @@ export async function runCli(
             commanderStderr += str;
         },
     });
-    registerCommands(program, commands, sharedOptions, getPluginExtensions);
+    registerCommands(program, commands, {
+        rootOptions: sharedOptions,
+        getPluginExtensions,
+        commandSources: sources.commands,
+        rootOptionSources: sources.rootOptions,
+    });
 
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation(((code?: number) => {
         throw new ExitSignal(code ?? 0);

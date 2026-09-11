@@ -193,6 +193,41 @@ export class CommandRegistry {
     }
 
     /**
+     * Top-level command name to the id of the plugin that registered it.
+     * Built-in commands are absent, having no plugin behind them.
+     *
+     * Only top-level names are listed. A subcommand is only ever shown in the
+     * help of the command it is nested under, which already says which package
+     * that command came from.
+     */
+    getCommandSources(): Map<string, string> {
+        const sources = new Map<string, string>();
+        for (const [name, entry] of this.state.commands) {
+            if (entry.source) {
+                sources.set(name, entry.source);
+            }
+        }
+        return sources;
+    }
+
+    /**
+     * Root option attribute name to the id of the plugin that registered it.
+     *
+     * Sub-options are left out, exactly as {@link getRootOptions} leaves them
+     * out: the parent carries them, and the help lists each one under its
+     * parent, so it belongs in whatever section the parent is in.
+     */
+    getRootOptionSources(): Map<string, string> {
+        const sources = new Map<string, string>();
+        for (const [attributeName, entry] of this.state.rootOptions) {
+            if (entry.source && !entry.isSubOption) {
+                sources.set(attributeName, entry.source);
+            }
+        }
+        return sources;
+    }
+
+    /**
      * Options registered on the `vendure` command itself by plugins.
      */
     getRootOptions(): CliCommandOption[] {
