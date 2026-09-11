@@ -1,3 +1,4 @@
+import { extendDetailFormQuery } from '@/vdb/framework/document-extension/extend-detail-form-query.js';
 import { addCustomFields } from '@/vdb/framework/document-introspection/add-custom-fields.js';
 import { getDetailQueryOptions } from '@/vdb/framework/page/use-detail-page.js';
 import { ResultOf } from '@/vdb/graphql/graphql.js';
@@ -6,16 +7,22 @@ import { redirect } from '@tanstack/react-router';
 import { OrderDetail } from '../components/order-detail-shared.js';
 import { orderDetailDocument } from '../orders.graphql.js';
 
-async function ensureOrderWithIdExists(context: any, params: { id: string }): Promise<OrderDetail> {
+async function ensureOrderWithIdExists(
+    context: any,
+    params: { id: string },
+    pageId = 'order-detail',
+): Promise<OrderDetail> {
     if (!params.id) {
         throw new Error('ID param is required');
     }
 
+    const { extendedQuery } = extendDetailFormQuery(
+        addCustomFields(orderDetailDocument, { includeNestedFragments: ['OrderLine', 'Fulfillment'] }),
+        pageId,
+    );
+
     const result: ResultOf<typeof orderDetailDocument> = await context.queryClient.ensureQueryData(
-        getDetailQueryOptions(
-            addCustomFields(orderDetailDocument, { includeNestedFragments: ['OrderLine', 'Fulfillment'] }),
-            { id: params.id },
-        ),
+        getDetailQueryOptions(extendedQuery, { id: params.id }),
     );
 
     if (!result.order) {
@@ -24,10 +31,22 @@ async function ensureOrderWithIdExists(context: any, params: { id: string }): Pr
     return result.order;
 }
 
-export async function commonRegularOrderLoader(context: any, params: { id: string }): Promise<OrderDetail> {
-    const order = await ensureOrderWithIdExists(context, params);
+function clearPreloadedOrder(context: any, id: string) {
+    context.queryClient.removeQueries({
+        queryKey: getDetailQueryOptions(orderDetailDocument, { id }).queryKey,
+        exact: true,
+    });
+}
+
+export async function commonRegularOrderLoader(
+    context: any,
+    params: { id: string },
+    pageId = 'order-detail',
+): Promise<OrderDetail> {
+    const order = await ensureOrderWithIdExists(context, params, pageId);
 
     if (order.state === 'Draft') {
+        clearPreloadedOrder(context, params.id);
         throw redirect({
             to: `/orders/draft/${params.id}`,
         });
@@ -39,6 +58,7 @@ export async function loadRegularOrder(context: any, params: { id: string }) {
     const order = await commonRegularOrderLoader(context, params);
 
     if (order.state === 'Modifying') {
+        clearPreloadedOrder(context, params.id);
         throw redirect({
             to: `/orders/${params.id}/modify`,
         });
@@ -53,6 +73,7 @@ export async function loadDraftOrder(context: any, params: { id: string }) {
     const order = await ensureOrderWithIdExists(context, params);
 
     if (order.state !== 'Draft') {
+        clearPreloadedOrder(context, params.id);
         throw redirect({
             to: `/orders/${params.id}`,
         });
@@ -64,8 +85,9 @@ export async function loadDraftOrder(context: any, params: { id: string }) {
 }
 
 export async function loadModifyingOrder(context: any, params: { id: string }) {
-    const order = await commonRegularOrderLoader(context, params);
+    const order = await commonRegularOrderLoader(context, params, 'order-modify');
     if (order.state !== 'Modifying') {
+        clearPreloadedOrder(context, params.id);
         throw redirect({
             to: `/orders/${params.id}`,
         });
@@ -88,11 +110,13 @@ export async function loadSellerOrder(
         throw new Error('Both seller order ID and aggregate order ID params are required');
     }
 
+    const { extendedQuery } = extendDetailFormQuery(
+        addCustomFields(orderDetailDocument, { includeNestedFragments: ['OrderLine', 'Fulfillment'] }),
+        'seller-order-detail',
+    );
+
     const result: ResultOf<typeof orderDetailDocument> = await context.queryClient.ensureQueryData(
-        getDetailQueryOptions(
-            addCustomFields(orderDetailDocument, { includeNestedFragments: ['OrderLine', 'Fulfillment'] }),
-            { id: params.sellerOrderId },
-        ),
+        getDetailQueryOptions(extendedQuery, { id: params.sellerOrderId }),
     );
 
     if (!result.order) {
@@ -112,12 +136,14 @@ export async function loadSellerOrder(
     }
 
     if (result.order.state === 'Draft') {
+        clearPreloadedOrder(context, params.sellerOrderId);
         throw redirect({
             to: `/orders/draft/${params.sellerOrderId}`,
         });
     }
 
     if (result.order.state === 'Modifying') {
+        clearPreloadedOrder(context, params.sellerOrderId);
         throw redirect({
             to: `/orders/${params.sellerOrderId}/modify`,
         });

@@ -120,7 +120,7 @@ export function CustomerAddressCard({
                 <div className="flex gap-4 mt-3 pt-3 border-t border-border">
                     {editable && (
                         <Dialog open={open} onOpenChange={setOpen}>
-                            <DialogTrigger>
+                            <DialogTrigger aria-label={t`Edit Address`}>
                                 <EditIcon className="w-4 h-4" />
                             </DialogTrigger>
                             <DialogContent className="max-h-[90vh] overflow-y-auto">

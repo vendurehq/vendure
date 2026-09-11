@@ -9,5 +9,7 @@ export default defineConfig({
     test: {
         ...sharedTestConfig,
         include: ['src/**/*.spec.ts'],
+        // Materialises assets/ from templates/, which the config-generation specs read.
+        globalSetup: ['./vitest.global-setup.mts'],
     },
 });

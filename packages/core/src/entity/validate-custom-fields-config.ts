@@ -1,7 +1,11 @@
 import { Type } from '@vendure/common/lib/shared-types';
 import { getMetadataArgsStorage } from 'typeorm';
 
-import { CustomFieldConfig, CustomFields } from '../config/custom-field/custom-field-types';
+import {
+    CustomFieldConfig,
+    CustomFields,
+    isLocalizedCustomFieldType,
+} from '../config/custom-field/custom-field-types';
 
 import { VendureEntity } from './base/base.entity';
 
@@ -14,7 +18,7 @@ function validateCustomFieldsForEntity(
         ...assertNoNameConflictsWithEntity(entity, customFields),
         ...assertNoDuplicatedCustomFieldNames(entity.name, customFields),
         ...assetNonNullablesHaveDefaults(entity.name, customFields),
-        ...(isTranslatable(entity) ? [] : assertNoLocaleStringFields(entity.name, customFields)),
+        ...(isTranslatable(entity) ? [] : assertNoLocalizedFields(entity.name, customFields)),
     ];
 }
 
@@ -70,11 +74,12 @@ function assertNoDuplicatedCustomFieldNames(entityName: string, customFields: Cu
 
 /**
  * For entities which are not localized (Address, Customer), we assert that none of the custom fields
- * have a type "localeString".
+ * have a localized type, i.e. "localeString" or "localeText".
  */
-function assertNoLocaleStringFields(entityName: string, customFields: CustomFieldConfig[]): string[] {
-    if (!!customFields.find(f => f.type === 'localeString')) {
-        return [`${entityName} entity does not support custom fields of type "localeString"`];
+function assertNoLocalizedFields(entityName: string, customFields: CustomFieldConfig[]): string[] {
+    const localizedField = customFields.find(f => isLocalizedCustomFieldType(f.type));
+    if (localizedField) {
+        return [`${entityName} entity does not support custom fields of type "${localizedField.type}"`];
     }
     return [];
 }

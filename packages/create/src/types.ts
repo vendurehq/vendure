@@ -22,6 +22,7 @@ export interface UserResponses extends FileSources {
     superadminIdentifier: string;
     superadminPassword: string;
     storefront?: StorefrontId;
+    storefrontPort: number;
 }
 
 export type PackageManager = 'npm' | 'yarn' | 'pnpm' | 'bun';

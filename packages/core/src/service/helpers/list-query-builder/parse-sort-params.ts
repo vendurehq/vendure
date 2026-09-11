@@ -6,7 +6,10 @@ import { ColumnMetadata } from 'typeorm/metadata/ColumnMetadata';
 
 import { UserInputError } from '../../../common/error/errors';
 import { NullOptionals, SortParameter } from '../../../common/types/common-types';
-import { CustomFieldConfig } from '../../../config/custom-field/custom-field-types';
+import {
+    CustomFieldConfig,
+    isLocalizedCustomFieldType,
+} from '../../../config/custom-field/custom-field-types';
 import { VendureEntity } from '../../../entity/base/base.entity';
 
 import { escapeCalculatedColumnExpression, getColumnMetadata } from './connection-utils';
@@ -46,9 +49,8 @@ export function parseSortParams<T extends VendureEntity>(
             const translationsAlias = connection.namingStrategy.joinTableName(alias, 'translations', '', '');
 
             const pathParts = [translationsAlias];
-            const isLocaleStringCustomField =
-                customFields?.find(f => f.name === key)?.type === 'localeString';
-            if (isLocaleStringCustomField) {
+            const customFieldType = customFields?.find(f => f.name === key)?.type;
+            if (isLocalizedCustomFieldType(customFieldType)) {
                 pathParts.push('customFields');
             }
             pathParts.push(key);

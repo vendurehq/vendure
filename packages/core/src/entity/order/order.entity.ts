@@ -107,6 +107,11 @@ export class Order extends VendureEntity implements ChannelAware, HasCustomField
      * ProductVariants nor discounts resulting from applied Promotions. For example,
      * one-off discounts based on customer interaction, or surcharges based on payment
      * methods.
+     *
+     * Surcharges are attached and removed with {@link OrderService.addSurchargeToOrder} and
+     * {@link OrderService.removeSurchargeFromOrder}. Saving an Order does not detach a
+     * Surcharge which is missing from this array, and repricing the Order does not attach one
+     * which was saved without its `order` property set.
      */
     @OneToMany(type => Surcharge, surcharge => surcharge.order)
     surcharges: Surcharge[];

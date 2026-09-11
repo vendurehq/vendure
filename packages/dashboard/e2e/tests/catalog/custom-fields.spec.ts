@@ -159,6 +159,18 @@ test.describe('Custom Fields', () => {
         await expect(dp.formItem('Weight').getByRole('spinbutton')).toBeVisible();
     });
 
+    // #5246 — a localized custom field with no label falls back to the field's own
+    // name, not the internal form path (which also changes with the content language).
+    test('should label an unlabelled locale custom field with its field name', async ({ page }) => {
+        await goToFirstProduct(page);
+
+        await page.locator('[data-slot="tabs-trigger"]', { hasText: 'SEO' }).click();
+
+        const labels = page.locator('[data-slot="field-label"]');
+        await expect(labels.getByText('seoKeywords', { exact: true })).toBeVisible();
+        await expect(labels.filter({ hasText: 'customFields.seoKeywords' })).toHaveCount(0);
+    });
+
     test('should render locale fields with language selector', async ({ page }) => {
         await goToFirstProduct(page);
 
