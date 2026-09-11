@@ -147,20 +147,42 @@ async function runAction(action: CliCommandAction, args: any[], context: CliComm
 function declareOptions(command: Command, options: CliCommandOption[]): SharedOption[] {
     const declared: SharedOption[] = [];
     for (const option of options) {
-        addOption(command, option);
-        declared.push({ attributeName: parseOptionFlags(option).attributeName, owner: command });
+        declareOption(command, option, declared);
 
         for (const subOption of option.subOptions ?? []) {
             // Indent the description so the help output shows the nesting.
-            const indentedSubOption = { ...subOption, description: `  └─ ${subOption.description}` };
-            addOption(command, indentedSubOption);
-            declared.push({
-                attributeName: parseOptionFlags(indentedSubOption).attributeName,
-                owner: command,
-            });
+            declareOption(command, { ...subOption, description: `  └─ ${subOption.description}` }, declared);
         }
     }
     return declared;
+}
+
+/**
+ * Declares one option on a command, unless that flag is already declared there.
+ *
+ * One sub-option can belong to more than one parent — `vendure add` takes
+ * `--selected-plugin` with either `-e` or `-s` — and every sub-option is
+ * flattened onto the same command, so the flag arrives twice. Commander 11
+ * accepts the repeat, lists it twice in help and matches the first declaration
+ * when parsing. Commander 13 onwards throws instead, which would fail at
+ * startup and take down the whole CLI rather than one command.
+ *
+ * Keeping the first declaration parses exactly as Commander 11 does, and drops
+ * the duplicate help line. A plugin can hit this as readily as a built-in, so
+ * it is handled here rather than in any one command's definition.
+ */
+function declareOption(command: Command, option: CliCommandOption, declared: SharedOption[]): void {
+    const parsed = parseOptionFlags(option);
+    const alreadyDeclared = command.options.some(
+        existing =>
+            existing.attributeName() === parsed.attributeName ||
+            (parsed.short !== undefined && existing.short === parsed.short),
+    );
+    if (alreadyDeclared) {
+        return;
+    }
+    addOption(command, option);
+    declared.push({ attributeName: parsed.attributeName, owner: command });
 }
 
 function addOption(command: Command, option: CliCommandOption): void {

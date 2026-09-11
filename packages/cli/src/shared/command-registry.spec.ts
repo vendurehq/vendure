@@ -544,6 +544,71 @@ describe('registerCommands() help output', () => {
     });
 });
 
+describe('registerCommands() with a sub-option shared by two parents', () => {
+    /**
+     * The shape `vendure add` uses: `--selected-plugin` is valid with either
+     * `-e` or `-s`, so both parents declare it and both flatten onto the same
+     * command. Commander 13 onwards throws on the repeated flag, which would
+     * take down the whole CLI at startup rather than one command.
+     */
+    function sharedSubOptionCommands(): CliCommandNode[] {
+        return [
+            recordingCommand('add', 'Add a feature', {
+                options: [
+                    {
+                        short: '-e',
+                        long: '--entity <name>',
+                        description: 'Add an entity',
+                        subOptions: [
+                            { long: '--selected-plugin <name>', description: 'Target plugin' },
+                            { long: '--translatable', description: 'Make it translatable' },
+                        ],
+                    },
+                    {
+                        short: '-s',
+                        long: '--service <name>',
+                        description: 'Add a service',
+                        subOptions: [{ long: '--selected-plugin <name>', description: 'Target plugin' }],
+                    },
+                ],
+            }),
+        ];
+    }
+
+    it('registers the command instead of failing', async () => {
+        const result = await runCli(sharedSubOptionCommands(), [], ['add', '--help']);
+
+        expect(result.stdout).toContain('Usage: vendure add');
+    });
+
+    it('parses the shared flag', async () => {
+        const result = await runCli(sharedSubOptionCommands(), [], [
+            'add',
+            '-s',
+            'MyService',
+            '--selected-plugin',
+            'MyPlugin',
+        ]);
+
+        expect(result.exitCode).toBe(0);
+        expect(calls[0].options.selectedPlugin).toBe('MyPlugin');
+    });
+
+    it('lists the shared flag once', async () => {
+        const result = await runCli(sharedSubOptionCommands(), [], ['add', '--help']);
+
+        const listings = result.stdout.match(/^\s+--selected-plugin /gm) ?? [];
+        expect(listings).toHaveLength(1);
+    });
+
+    it('keeps the other sub-options of both parents', async () => {
+        const result = await runCli(sharedSubOptionCommands(), [], ['add', '--help']);
+
+        expect(result.stdout).toMatch(/^\s+--translatable/m);
+        expect(result.stdout).toMatch(/^\s+-s, --service/m);
+    });
+});
+
 describe('registerCommands() error handling', () => {
     it('fails on an unknown subcommand', async () => {
         const result = await runCli(cloudCommands(), rootOptions, ['project', 'destroy']);
