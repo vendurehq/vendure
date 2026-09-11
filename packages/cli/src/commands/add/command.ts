@@ -38,10 +38,8 @@ export const addCommandDef: CliCommandDefinition = {
             subOptions: [
                 {
                     long: '--selected-plugin <name>',
-                    // Declared once, but valid with -s too: every sub-option is
-                    // flattened onto `add`, so a second declaration under -s
-                    // would be the same flag and is dropped.
-                    description: 'Name of the plugin to add the entity or service to (required with -e or -s)',
+                    description:
+                        'Name of the plugin to add the entity or service to (required with -e or -s)',
                     required: false,
                 },
                 {
@@ -93,7 +91,6 @@ export const addCommandDef: CliCommandDefinition = {
                 },
                 {
                     long: '--selected-service <name>',
-                    // Valid with -a as well; see --selected-plugin above.
                     description:
                         'Name of the service to add the job queue or API extension to (required with -j or -a)',
                     required: false,
