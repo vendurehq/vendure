@@ -10,6 +10,7 @@ import {
     writeCliPluginProjectConfig,
 } from '../../shared/cli-plugin-project-config';
 import {
+    cliPluginCommandNames,
     DiscoveredCliPlugin,
     discoverCliPlugins,
     getCliPluginProjectContext,
@@ -218,15 +219,34 @@ async function runInteractiveManager(): Promise<void> {
 function statusHint(plugin: DiscoveredCliPlugin): string {
     switch (plugin.status) {
         case 'enabled':
-            return 'enabled';
+            return withCommands('enabled', plugin);
         case 'not-enabled':
-            return 'not enabled';
+            return withCommands('not enabled', plugin);
         case 'failed':
             return plugin.reason ?? 'failed';
         default:
             return plugin.status;
     }
 }
+
+/**
+ * The commands a package contributes, appended to its status so the picker
+ * says what enabling or disabling it would change. Long lists are cut off:
+ * the hint sits on one line next to the package name, and `vendure plugins
+ * --json` is there for the whole list.
+ */
+function withCommands(status: string, plugin: DiscoveredCliPlugin): string {
+    const commands = cliPluginCommandNames(plugin);
+    if (commands.length === 0) {
+        return status;
+    }
+    const shown = commands.slice(0, MAX_COMMANDS_IN_HINT);
+    const rest = commands.length - shown.length;
+    const suffix = rest > 0 ? `, +${rest} more` : '';
+    return `${status} — ${shown.join(', ')}${suffix}`;
+}
+
+const MAX_COMMANDS_IN_HINT = 6;
 
 function printTextList(plugins: DiscoveredCliPlugin[]): void {
     if (plugins.length === 0) {
@@ -236,6 +256,12 @@ function printTextList(plugins: DiscoveredCliPlugin[]): void {
     for (const plugin of plugins) {
         const detail = plugin.status === 'failed' && plugin.reason ? ` — ${plugin.reason}` : '';
         process.stdout.write(`${plugin.packageName}\t${plugin.status}${detail}\n`);
+        const commands = cliPluginCommandNames(plugin);
+        if (commands.length > 0) {
+            // Indented under its package, so the tab-separated first line of
+            // each plugin stays as it was for anything reading this output.
+            process.stdout.write(`\tcommands: ${commands.join(', ')}\n`);
+        }
     }
 }
 
@@ -249,6 +275,8 @@ function printJson(plugins: DiscoveredCliPlugin[]): void {
                     reason: plugin.reason,
                     entryPath: plugin.entryPath,
                     declaredCommands: plugin.declaredCommands,
+                    loadedCommands: plugin.loadedCommands,
+                    commands: cliPluginCommandNames(plugin),
                 })),
             },
             null,

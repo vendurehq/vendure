@@ -280,6 +280,14 @@ describe('CLI plugin help output', () => {
         expect(result.stdout.indexOf('-h, --help')).toBeLessThan(pluginAt);
     });
 
+    it('names the commands a plugin provides in the plugins listing', async () => {
+        const result = await project.runCliCommand(['plugins']);
+
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout).toContain('@vendure-e2e/cloud-cli-plugin');
+        expect(result.stdout).toMatch(/commands:.*\bdeploy\b/);
+    });
+
     it('shows the options valid at every level in leaf help', async () => {
         const result = await project.runCliCommand(['config', 'server', 'set', '--help']);
 

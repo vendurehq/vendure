@@ -16,6 +16,7 @@ import { defineCliPlugin } from './cli-plugin';
 import { CliPluginRegistrationError, CommandRegistry } from './command-registry-store';
 import {
     PackageJsonLike,
+    cliPluginCommandNames,
     discoverCliPlugins,
     findInactivePluginProvidingCommand,
     listDirectDependencyNames,
@@ -1116,6 +1117,108 @@ describe('resolveCliPlugins()', () => {
         });
         expect(withValidation[0].status).toBe('failed');
         expect(withValidation[0].reason).toMatch(/must provide an action function/);
+    });
+
+    // `vendure.cliCommands` is hand-maintained, so it drifts. An enabled
+    // plugin is loaded anyway, and what it actually registers is the truth.
+    it('reads the commands of an enabled plugin from the plugin itself', () => {
+        const fixture = makeTempProject({
+            project: {
+                name: 'demo',
+                dependencies: { '@example/a': '1.0.0' },
+                vendure: { cli: { plugins: ['@example/a'] } },
+            },
+            plugins: [
+                {
+                    name: '@example/a',
+                    packageJson: {
+                        name: '@example/a',
+                        vendure: { cliPlugin: './cli-plugin.js', cliCommands: ['stale'] },
+                    },
+                    entrySource: `
+                        module.exports = {
+                            id: '@example/a',
+                            commands: [
+                                { name: 'deploy', description: 'Deploy', action: async () => 0 },
+                                { name: 'status', description: 'Status', action: async () => 0 },
+                            ],
+                        };
+                    `,
+                },
+            ],
+        });
+        const projectPackageJson = fs.readJsonSync(
+            path.join(fixture.root, 'package.json'),
+        ) as PackageJsonLike;
+
+        const [plugin] = discoverCliPlugins({
+            cwd: fixture.root,
+            projectPackageJson,
+            resolvePackage: fixture.resolvePackage,
+            validate: true,
+        });
+
+        expect(plugin.loadedCommands).toEqual(['deploy', 'status']);
+        expect(cliPluginCommandNames(plugin)).toEqual(['deploy', 'status']);
+    });
+
+    // An installed but not-enabled package is never executed, so what it
+    // declares is the only thing there is to go on.
+    it('falls back to the declared commands of a package that is not enabled', () => {
+        const fixture = makeTempProject({
+            project: {
+                name: 'demo',
+                dependencies: { '@example/a': '1.0.0' },
+            },
+            plugins: [
+                {
+                    name: '@example/a',
+                    packageJson: {
+                        name: '@example/a',
+                        vendure: { cliPlugin: './cli-plugin.js', cliCommands: ['deploy'] },
+                    },
+                    entrySource: `throw new Error('must not be loaded');`,
+                },
+            ],
+        });
+        const projectPackageJson = fs.readJsonSync(
+            path.join(fixture.root, 'package.json'),
+        ) as PackageJsonLike;
+
+        const [plugin] = discoverCliPlugins({
+            cwd: fixture.root,
+            projectPackageJson,
+            resolvePackage: fixture.resolvePackage,
+            validate: true,
+        });
+
+        expect(plugin.status).toBe('not-enabled');
+        expect(plugin.loadedCommands).toBeUndefined();
+        expect(cliPluginCommandNames(plugin)).toEqual(['deploy']);
+    });
+
+    it('reports no commands for a package that declares none and is not loaded', () => {
+        const fixture = makeTempProject({
+            project: {
+                name: 'demo',
+                dependencies: { '@example/a': '1.0.0' },
+            },
+            plugins: [
+                {
+                    name: '@example/a',
+                    packageJson: { name: '@example/a', vendure: { cliPlugin: './cli-plugin.js' } },
+                    entrySource: `module.exports = { id: '@example/a', commands: [] };`,
+                },
+            ],
+        });
+
+        const [plugin] = discoverCliPlugins({
+            cwd: fixture.root,
+            projectPackageJson: fs.readJsonSync(path.join(fixture.root, 'package.json')) as PackageJsonLike,
+            resolvePackage: fixture.resolvePackage,
+        });
+
+        expect(cliPluginCommandNames(plugin)).toEqual([]);
     });
 
     it('lists direct dependency names from all dependency sections', () => {
