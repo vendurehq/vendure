@@ -1,7 +1,7 @@
-// Breaks a module cycle: `scheduled-task.ts` pulls in the service layer, which reaches
-// `default-config`, which constructs `cleanSessionsTask` from the still-initialising
-// `scheduled-task` module. Without this import first, that construction fails with
-// "ScheduledTask is not a constructor". The package entry point loads them in this order.
+// The module graph has a cycle: `scheduled-task.ts` reaches `default-config` through the
+// service layer, and `default-config` constructs `cleanSessionsTask` from the
+// still-initialising `scheduled-task` module. Importing `default-config` first, as the
+// package entry point does, avoids `ScheduledTask is not a constructor`.
 import '../../config/default-config';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -10,7 +10,6 @@ import { ScheduledTask } from '../../scheduler/scheduled-task';
 
 import { StaleTaskService } from './stale-task.service';
 
-// Derived from the constructor so the mocks stay in step with the real signatures.
 type ConnectionArg = ConstructorParameters<typeof StaleTaskService>[0];
 type ConfigServiceArg = ConstructorParameters<typeof StaleTaskService>[1];
 

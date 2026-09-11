@@ -67,8 +67,8 @@ export class StaleTaskService {
      */
     getScheduleIntervalMs(task: ScheduledTask): number {
         // The interval is not constant: around a daylight saving transition two
-        // consecutive runs are 23 or 25 hours apart, so it is computed from the
-        // next two runs from now on every call.
+        // consecutive runs are 23 or 25 hours apart. It is therefore computed from the
+        // next two runs on every call.
         const schedule = task.options.schedule;
         const scheduleString = typeof schedule === 'function' ? schedule(CronTime) : schedule;
         const timezone = getScheduleTimezone(task, this.configService.schedulerOptions);

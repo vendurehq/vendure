@@ -15,9 +15,9 @@ export function getScheduleTimezone(
 }
 
 /**
- * Asserts that every configured timezone identifier is one the runtime understands,
- * naming the option or task that carries a bad value. croner also rejects invalid
- * values, but its error cannot say where the value came from.
+ * Asserts that `Intl` accepts every configured timezone identifier, naming the option or
+ * task that carries a bad one. croner also rejects invalid values, but its error cannot
+ * say where the value came from.
  */
 export function assertValidTimezones(schedulerOptions: { timezone?: string; tasks?: ScheduledTask[] }): void {
     assertValidTimezone(schedulerOptions.timezone, 'the `schedulerOptions.timezone` option');
@@ -32,8 +32,9 @@ function assertValidTimezone(timezone: string | undefined, source: string): void
         return;
     }
     try {
-        // Throws a RangeError for unknown timezone identifiers. croner resolves
-        // timezones through Intl too, so it accepts exactly what this accepts.
+        // The formatter is discarded: the call is here for the RangeError that `Intl`
+        // throws on an unknown identifier. croner resolves timezones through `Intl` too,
+        // so it accepts exactly what this accepts.
         Intl.DateTimeFormat(undefined, { timeZone: trimmed });
     } catch {
         throw new Error(

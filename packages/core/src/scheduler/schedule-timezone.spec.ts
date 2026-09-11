@@ -5,8 +5,8 @@ import { assertValidTimezones, getScheduleTimezone } from './schedule-timezone';
 type TaskArg = Parameters<typeof getScheduleTimezone>[0];
 
 function createTask(timezone?: string) {
-    // A stub is used rather than a real ScheduledTask instance to keep this
-    // spec free of the service imports that the ScheduledTask module pulls in.
+    // A stub, not a real ScheduledTask: constructing one pulls the service layer
+    // that the ScheduledTask module imports into this spec.
     return { id: 'test-task', options: { schedule: '0 2 * * *', timezone } } as unknown as TaskArg;
 }
 

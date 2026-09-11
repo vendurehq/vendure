@@ -1,7 +1,7 @@
-// Breaks a module cycle: `scheduled-task.ts` pulls in the service layer, which reaches
-// `default-config`, which constructs `cleanSessionsTask` from the still-initialising
-// `scheduled-task` module. Without this import first, that construction fails with
-// "ScheduledTask is not a constructor". The package entry point loads them in this order.
+// The module graph has a cycle: `scheduled-task.ts` reaches `default-config` through the
+// service layer, and `default-config` constructs `cleanSessionsTask` from the
+// still-initialising `scheduled-task` module. Importing `default-config` first, as the
+// package entry point does, avoids `ScheduledTask is not a constructor`.
 import '../config/default-config';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -10,7 +10,6 @@ import { ScheduledTask } from './scheduled-task';
 import { TaskReport } from './scheduler-strategy';
 import { SchedulerService } from './scheduler.service';
 
-// Derived from the constructor so the mocks stay in step with the real signatures.
 type ConfigServiceArg = ConstructorParameters<typeof SchedulerService>[0];
 type ProcessContextArg = ConstructorParameters<typeof SchedulerService>[1];
 
@@ -32,8 +31,8 @@ function createMockStrategy() {
     };
 }
 
-// Bootstrapped services register named croner jobs, which stay registered until the
-// job is stopped, so every service must be shut down again after the test.
+// A bootstrapped service registers named croner jobs, and a name stays taken until the
+// job is stopped. The `afterEach` hook below shuts down everything collected here.
 const services: SchedulerService[] = [];
 
 function bootstrapService(tasks: ScheduledTask[], timezone?: string) {
@@ -123,9 +122,9 @@ describe('SchedulerService timezone handling', () => {
 
     it('preserves process-local evaluation when no timezone is configured', async () => {
         const nextRun = await getNextExecution('0 2 * * *');
-        // The exact instant depends on the timezone of the test process, so we
-        // assert on the local wall-clock time, which must be 02:00 in every
-        // process timezone (2026-01-08 has no DST transition anywhere).
+        // The exact instant depends on the process timezone. The local wall-clock time
+        // does not: 2026-01-08 has no DST transition anywhere, so it is 02:00 in every
+        // process timezone.
         expect(nextRun?.getHours()).toBe(2);
         expect(nextRun?.getMinutes()).toBe(0);
     });

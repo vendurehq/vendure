@@ -262,8 +262,8 @@ export const config: VendureConfig = {
 ```
 
 With a timezone configured, schedules follow wall-clock time in that timezone, including daylight saving time
-transitions. The process timezone no longer affects when a task runs. The process can therefore stay on `TZ=UTC`,
-which is what Vendure expects for correct timestamp persistence, while tasks run at a fixed local time.
+transitions. The process timezone does not affect when a task runs. The process can therefore stay on `TZ=UTC`,
+which Vendure needs for correct timestamp persistence, while tasks run at a fixed local time.
 
 An invalid identifier throws at startup. The error names the option or task holding it.
 
