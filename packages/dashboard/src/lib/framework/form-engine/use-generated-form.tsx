@@ -170,10 +170,17 @@ export function useGeneratedForm<
     // the parent route. When the schema changes identity, react-hook-form's
     // resolver is replaced and the form re-validates everything; when
     // defaultValues changes identity it can also reset uncontrolled inputs.
+    // A create form (no entity) validates `nullable: false` custom fields leniently: they are
+    // seeded `null` (every custom field is nullable in the GraphQL input type) and the null is
+    // stripped from the payload on submit, letting the column's configured DEFAULT apply — see
+    // `applyCustomFieldModifiers` (#5241). On a detail page `entity` arrives after the first
+    // render, so this flips once from the lenient create schema to the strict update schema;
+    // that single resolver replacement happens before the user can edit the loaded values.
+    const isCreateForm = !entity;
     const schema = useMemo(() => {
-        const generated = createFormSchemaFromFields(updateFields, customFieldConfig);
+        const generated = createFormSchemaFromFields(updateFields, customFieldConfig, false, isCreateForm);
         return extendSchemaRef.current?.(generated) ?? generated;
-    }, [updateFields, customFieldConfig]);
+    }, [updateFields, customFieldConfig, isCreateForm]);
     const defaultValues = useMemo(
         () => getDefaultValuesFromFields(updateFields, activeChannel?.defaultLanguageCode, customFieldConfig),
         [updateFields, activeChannel?.defaultLanguageCode, customFieldConfig],
