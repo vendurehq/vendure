@@ -1,5 +1,7 @@
 import { RichTextInput } from '@/vdb/components/data-input/rich-text-input.js';
 import { SlugInput } from '@/vdb/components/data-input/slug-input.js';
+import { usePriceFactor } from '@/vdb/components/shared/assign-to-channel-dialog.js';
+import { AssignedChannels } from '@/vdb/components/shared/assigned-channels.js';
 import { AssignedFacetValues } from '@/vdb/components/shared/assigned-facet-values.js';
 import { EntityAssets } from '@/vdb/components/shared/entity-assets.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
@@ -10,7 +12,9 @@ import { Field } from '@/vdb/components/ui/field.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { Switch } from '@/vdb/components/ui/switch.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
-import {    CustomFieldsPageBlock,
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
+import {
+    CustomFieldsPageBlock,
     DetailFormGrid,
     Page,
     PageActionBar,
@@ -18,9 +22,10 @@ import {    CustomFieldsPageBlock,
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
-import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
+import { api } from '@/vdb/graphql/api.js';
+import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { Layers, Package, PlusIcon } from 'lucide-react';
@@ -30,6 +35,7 @@ import { AddOptionGroupDialog } from './components/add-option-group-dialog.js';
 import { GenerateVariantsPanel } from './components/generate-variants-panel.js';
 import { ProductOptionGroupBadge } from './components/product-option-group-badge.js';
 import { ProductVariantsTable } from './components/product-variants-table.js';
+import { SharedOptionGroupWarning } from './components/shared-option-group-warning.js';
 import { useRemoveOptionGroup } from './hooks/use-remove-option-group.js';
 import {
     assignProductsToChannelDocument,
@@ -38,10 +44,6 @@ import {
     removeProductsFromChannelDocument,
     updateProductDocument,
 } from './products.graphql.js';
-import { api } from '@/vdb/graphql/api.js';
-import { AssignedChannels } from '@/vdb/components/shared/assigned-channels.js';
-import { usePriceFactor } from '@/vdb/components/shared/assign-to-channel-dialog.js';
-import { useChannel } from '@/vdb/hooks/use-channel.js';
 
 const pageId = 'product-detail';
 
@@ -93,7 +95,9 @@ function NoVariantsPrompt({
                 className="flex flex-col items-center gap-2 rounded-md border border-dashed border-border p-6 text-center transition-colors hover:border-primary hover:bg-accent cursor-pointer"
             >
                 <Package className="h-8 w-8 text-muted-foreground" />
-                <span className="font-medium"><Trans>Simple product</Trans></span>
+                <span className="font-medium">
+                    <Trans>Simple product</Trans>
+                </span>
                 <span className="text-sm text-muted-foreground">
                     <Trans>Single variant, no options</Trans>
                 </span>
@@ -108,7 +112,9 @@ function NoVariantsPrompt({
                         className="flex w-full flex-col items-center gap-2 rounded-md border border-dashed border-border p-6 text-center transition-colors hover:border-primary hover:bg-accent cursor-pointer"
                     >
                         <Layers className="h-8 w-8 text-muted-foreground" />
-                        <span className="font-medium"><Trans>Product with options</Trans></span>
+                        <span className="font-medium">
+                            <Trans>Product with options</Trans>
+                        </span>
                         <span className="text-sm text-muted-foreground">
                             <Trans>Size, colour, etc.</Trans>
                         </span>
@@ -306,15 +312,17 @@ function ProductDetailPage() {
                 )}
                 {entity && entity.optionGroups.length > 0 && (
                     <PageBlock column="side" blockId="option-groups" title={<Trans>Product Options</Trans>}>
-                        <div className="flex flex-wrap gap-1.5 mb-3">
+                        <div className="space-y-3 mb-3">
                             {entity.optionGroups.map(g => (
-                                <ProductOptionGroupBadge
-                                    key={g.id}
-                                    id={g.id}
-                                    name={g.name}
-                                    productId={entity.id}
-                                    onRemoved={() => refreshEntity()}
-                                />
+                                <div key={g.id} className="space-y-2">
+                                    <ProductOptionGroupBadge
+                                        id={g.id}
+                                        name={g.name}
+                                        productId={entity.id}
+                                        onRemoved={() => refreshEntity()}
+                                    />
+                                    <SharedOptionGroupWarning productCount={g.productCount} />
+                                </div>
                             ))}
                         </div>
                         <AddOptionGroupDialog

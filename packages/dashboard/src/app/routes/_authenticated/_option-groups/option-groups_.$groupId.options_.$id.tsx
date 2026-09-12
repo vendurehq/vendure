@@ -5,6 +5,9 @@ import { TranslatableFormFieldWrapper } from '@/vdb/components/shared/translatab
 import { Button } from '@/vdb/components/ui/button.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
+import { extendDetailFormQuery } from '@/vdb/framework/document-extension/extend-detail-form-query.js';
+import { addCustomFields } from '@/vdb/framework/document-introspection/add-custom-fields.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import {
     CustomFieldsPageBlock,
     DetailFormGrid,
@@ -14,14 +17,12 @@ import {
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
-import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
-import { extendDetailFormQuery } from '@/vdb/framework/document-extension/extend-detail-form-query.js';
-import { addCustomFields } from '@/vdb/framework/document-introspection/add-custom-fields.js';
 import { getDetailQueryOptions, useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { api } from '@/vdb/graphql/api.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, ParsedLocation, useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
+import { SharedOptionGroupWarning } from '../_products/components/shared-option-group-warning.js';
 import {
     createProductOptionDocument,
     productIdNameDocument,
@@ -32,11 +33,17 @@ import {
 
 const pageId = 'option-group-option-detail';
 
-export const Route = createFileRoute(
-    '/_authenticated/_option-groups/option-groups_/$groupId/options_/$id',
-)({
+export const Route = createFileRoute('/_authenticated/_option-groups/option-groups_/$groupId/options_/$id')({
     component: OptionGroupOptionDetailPage,
-    loader: async ({ context, params, location }: { context: any; params: any; location: ParsedLocation }) => {
+    loader: async ({
+        context,
+        params,
+        location,
+    }: {
+        context: any;
+        params: any;
+        location: ParsedLocation;
+    }) => {
         if (!params.id) {
             throw new Error('ID param is required');
         }
@@ -56,14 +63,17 @@ export const Route = createFileRoute(
         }
 
         let optionGroupName: string | undefined;
+        let productCount = 0;
         if (isNew) {
             const optionGroupResult = await context.queryClient.fetchQuery({
                 queryKey: [pageId, 'optionGroupIdName', params.groupId],
                 queryFn: () => api.query(productOptionGroupIdNameDocument, { id: params.groupId }),
             });
             optionGroupName = optionGroupResult.productOptionGroup?.name;
+            productCount = optionGroupResult.productOptionGroup?.productCount ?? 0;
         } else {
             optionGroupName = result.productOption.group.name;
+            productCount = result.productOption.group.productCount;
         }
 
         const search = location.search as Record<string, string>;
@@ -75,6 +85,7 @@ export const Route = createFileRoute(
                 queryFn: () => api.query(productIdNameDocument, { id: search.productId }),
             });
             return {
+                productCount,
                 breadcrumb: [
                     { path: '/products', label: <Trans>Products</Trans> },
                     { path: `/products/${search.productId}`, label: productResult.product.name },
@@ -86,6 +97,7 @@ export const Route = createFileRoute(
         }
 
         return {
+            productCount,
             breadcrumb: [
                 { path: '/option-groups', label: <Trans>Option Groups</Trans> },
                 ...(isNew
@@ -102,6 +114,7 @@ export const Route = createFileRoute(
 
 function OptionGroupOptionDetailPage() {
     const params = Route.useParams();
+    const { productCount } = Route.useLoaderData();
     const navigate = useNavigate();
     const creatingNewEntity = params.id === NEW_ENTITY_PATH;
     const { t } = useLingui();
@@ -146,9 +159,7 @@ function OptionGroupOptionDetailPage() {
         },
         onError: err => {
             toast.error(
-                creatingNewEntity
-                    ? t`Failed to create product option`
-                    : t`Failed to update product option`,
+                creatingNewEntity ? t`Failed to create product option` : t`Failed to update product option`,
                 {
                     description: err instanceof Error ? err.message : 'Unknown error',
                 },
@@ -159,17 +170,10 @@ function OptionGroupOptionDetailPage() {
     return (
         <Page pageId={pageId} form={form} submitHandler={submitHandler} entity={entity}>
             <PageTitle>
-                {creatingNewEntity ? (
-                    <Trans>New product option</Trans>
-                ) : (
-                    (entity as any)?.name ?? ''
-                )}
+                {creatingNewEntity ? <Trans>New product option</Trans> : ((entity as any)?.name ?? '')}
             </PageTitle>
             <PageActionBar>
-                <ActionBarItem
-                    itemId="save-button"
-                    requiresPermission={['UpdateProduct', 'UpdateCatalog']}
-                >
+                <ActionBarItem itemId="save-button" requiresPermission={['UpdateProduct', 'UpdateCatalog']}>
                     <Button
                         type="submit"
                         disabled={!form.formState.isDirty || !form.formState.isValid || isPending}
@@ -179,18 +183,19 @@ function OptionGroupOptionDetailPage() {
                 </ActionBarItem>
             </PageActionBar>
             <PageLayout>
+                {productCount > 1 && (
+                    <PageBlock column="main" blockId="shared-option-group-warning">
+                        <SharedOptionGroupWarning productCount={productCount} />
+                    </PageBlock>
+                )}
                 {entity?.group && (
                     <PageBlock column="side" blockId="option-group-info">
                         <div className="space-y-2">
                             <div className="text-sm font-medium">
                                 <Trans>Option Group</Trans>
                             </div>
-                            <div className="text-sm text-muted-foreground">
-                                {entity?.group.name}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                                {entity?.group.code}
-                            </div>
+                            <div className="text-sm text-muted-foreground">{entity?.group.name}</div>
+                            <div className="text-xs text-muted-foreground">{entity?.group.code}</div>
                         </div>
                     </PageBlock>
                 )}
@@ -218,11 +223,7 @@ function OptionGroupOptionDetailPage() {
                         />
                     </DetailFormGrid>
                 </PageBlock>
-                <CustomFieldsPageBlock
-                    column="main"
-                    entityType="ProductOption"
-                    control={form.control}
-                />
+                <CustomFieldsPageBlock column="main" entityType="ProductOption" control={form.control} />
             </PageLayout>
         </Page>
     );

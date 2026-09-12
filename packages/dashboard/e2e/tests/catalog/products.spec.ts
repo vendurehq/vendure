@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { createCrudTestSuite } from '../../utils/crud-test-factory.js';
+import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
 
 createCrudTestSuite({
     entityName: 'product',
@@ -120,3 +121,104 @@ test.describe('Product detail features', () => {
         // If no custom fields configured in the fixture, this test passes silently
     });
 });
+
+// #5348 — shared option edits affect every product using the same group.
+for (const productCount of [0, 1, 2]) {
+    test(`shared option warning with ${productCount} assigned products`, async ({ page }) => {
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const suffix = `${productCount}-${Date.now()}`;
+        const products: string[] = [];
+        let groupId: string | undefined;
+        try {
+            const group = await client.gql(
+                `mutation ($input: CreateProductOptionGroupInput!) {
+                    createProductOptionGroup(input: $input) { id options { id } }
+                }`,
+                {
+                    input: {
+                        code: `shared-warning-${suffix}`,
+                        translations: [{ languageCode: 'en', name: `Shared Size ${suffix}` }],
+                        options: [
+                            {
+                                code: `small-${suffix}`,
+                                translations: [{ languageCode: 'en', name: 'Small' }],
+                            },
+                        ],
+                    },
+                },
+            );
+            groupId = group.createProductOptionGroup.id;
+            const optionId = group.createProductOptionGroup.options[0].id;
+            for (let i = 0; i < productCount; i++) {
+                const product = await client.gql(
+                    `mutation ($input: CreateProductInput!) { createProduct(input: $input) { id } }`,
+                    {
+                        input: {
+                            translations: [
+                                {
+                                    languageCode: 'en',
+                                    name: `Shared product ${suffix}-${i}`,
+                                    slug: `shared-${suffix}-${i}`,
+                                    description: '',
+                                },
+                            ],
+                        },
+                    },
+                );
+                const productId = product.createProduct.id;
+                products.push(productId);
+                await client.gql(
+                    `mutation ($productId: ID!, $groupId: ID!) {
+                        addOptionGroupToProduct(productId: $productId, optionGroupId: $groupId) { id }
+                    }`,
+                    { productId, groupId },
+                );
+            }
+            const routes = [
+                ...products.map(id => `/products/${id}`),
+                `/option-groups/${groupId}`,
+                `/option-groups/${groupId}/options/${optionId}`,
+                `/option-groups/${groupId}/options/new`,
+            ];
+            for (const route of routes) {
+                await page.goto(route);
+                await expect(
+                    page.getByRole('button', {
+                        name: route.endsWith('/new') ? 'Create' : 'Update',
+                        exact: true,
+                    }),
+                ).toBeVisible();
+                const warning = page.getByText(
+                    'This option group is shared across 2 products. Changes will affect all of them.',
+                    { exact: true },
+                );
+                if (productCount > 1) {
+                    await expect(warning).toBeVisible();
+                } else {
+                    await expect(page.getByText(/This option group is (shared|used)/)).toHaveCount(0);
+                }
+            }
+        } finally {
+            const cleanupErrors: unknown[] = [];
+            for (const id of products) {
+                try {
+                    await client.gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, { id });
+                } catch (error) {
+                    cleanupErrors.push(error);
+                }
+            }
+            if (groupId) {
+                try {
+                    await client.gql(
+                        `mutation ($id: ID!) { deleteProductOptionGroup(id: $id, force: true) { result } }`,
+                        { id: groupId },
+                    );
+                } catch (error) {
+                    cleanupErrors.push(error);
+                }
+            }
+            expect(cleanupErrors, 'Fixture cleanup failures').toEqual([]);
+        }
+    });
+}
