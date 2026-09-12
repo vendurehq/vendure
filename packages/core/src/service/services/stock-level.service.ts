@@ -125,14 +125,21 @@ export class StockLevelService {
         stockLocationId: ID,
         change: number,
     ) {
-        const stockLevel = await this.connection.getRepository(ctx, StockLevel).findOne({
+        const repository = this.connection.getRepository(ctx, StockLevel);
+        const stockLevel = await repository.findOne({
             where: {
                 productVariantId,
                 stockLocationId,
             },
         });
-        if (!stockLevel) {
-            await this.connection.getRepository(ctx, StockLevel).save(
+        if (stockLevel) {
+            // The new value is computed by the database rather than in JS, so that two concurrent
+            // changes to the same stock level both apply instead of one overwriting the other.
+            await repository.increment({ id: stockLevel.id }, 'stockOnHand', change);
+            return;
+        }
+        try {
+            await repository.save(
                 new StockLevel({
                     productVariantId,
                     stockLocationId,
@@ -140,11 +147,17 @@ export class StockLevelService {
                     stockAllocated: 0,
                 }),
             );
-        }
-        if (stockLevel) {
-            await this.connection
-                .getRepository(ctx, StockLevel)
-                .update(stockLevel.id, { stockOnHand: stockLevel.stockOnHand + change });
+        } catch (e) {
+            // A concurrent request can insert the row between the read above and this insert. The
+            // unique index on (productVariantId, stockLocationId) rejects the second insert, and
+            // the change still has to land on the row which won.
+            const concurrentlyCreated = await repository.findOne({
+                where: { productVariantId, stockLocationId },
+            });
+            if (!concurrentlyCreated) {
+                throw e;
+            }
+            await repository.increment({ id: concurrentlyCreated.id }, 'stockOnHand', change);
         }
     }
 
@@ -158,16 +171,19 @@ export class StockLevelService {
         stockLocationId: ID,
         change: number,
     ) {
-        const stockLevel = await this.connection.getRepository(ctx, StockLevel).findOne({
+        const repository = this.connection.getRepository(ctx, StockLevel);
+        const stockLevel = await repository.findOne({
             where: {
                 productVariantId,
                 stockLocationId,
             },
         });
         if (stockLevel) {
-            await this.connection
-                .getRepository(ctx, StockLevel)
-                .update(stockLevel.id, { stockAllocated: stockLevel.stockAllocated + change });
+            // The new value is computed by the database rather than in JS. Two concurrent
+            // allocations of the same variant read the same stockAllocated a statement earlier,
+            // so computing the sum here would let one of them silently overwrite the other and
+            // oversell the variant.
+            await repository.increment({ id: stockLevel.id }, 'stockAllocated', change);
         }
     }
 }

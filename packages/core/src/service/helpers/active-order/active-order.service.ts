@@ -6,6 +6,8 @@ import { idsAreEqual } from '../../../common/utils';
 import { ConfigService } from '../../../config/config.service';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { Order } from '../../../entity/order/order.entity';
+import { Session } from '../../../entity/session/session.entity';
+import { User } from '../../../entity/user/user.entity';
 import { OrderService } from '../../services/order.service';
 import { SessionService } from '../../services/session.service';
 
@@ -39,6 +41,9 @@ export class ActiveOrderService {
     async getOrderFromContext(ctx: RequestContext, createIfNotExists = false): Promise<Order | undefined> {
         if (!ctx.session) {
             throw new InternalServerError('error.no-active-session');
+        }
+        if (createIfNotExists) {
+            await this.lockActiveOrderOwner(ctx);
         }
         let order = ctx.session.activeOrderId
             ? await this.connection
@@ -92,6 +97,9 @@ export class ActiveOrderService {
         createIfNotExists = false,
     ): Promise<Order | undefined> {
         let order: Order | undefined;
+        if (createIfNotExists) {
+            await this.lockActiveOrderOwner(ctx);
+        }
         if (!order) {
             const { activeOrderStrategy } = this.configService.orderOptions;
             const strategyArray = Array.isArray(activeOrderStrategy)
@@ -128,5 +136,47 @@ export class ActiveOrderService {
             }
         }
         return order || undefined;
+    }
+
+    /**
+     * Determining the active order is a check-then-act: a request which finds no active order goes
+     * on to create one. Two concurrent requests can both find nothing and both create, which is how
+     * a customer ends up with several active orders.
+     *
+     * Locking the row the lookup is keyed on serializes those requests, so the second one sees the
+     * order the first created. There is no order row to lock at this point, so the lock has to go on
+     * the owner: the Session, and the User as well when the request is authenticated, since the
+     * fallback lookup for a logged-in customer is by user rather than by session.
+     *
+     * Locks are taken in the order Session, User, Order. Every caller has to use that same order,
+     * or two requests can deadlock by taking the same pair the other way round.
+     *
+     * This is a no-op outside a transaction and on databases without row locking, see
+     * {@link TransactionalConnection.lockRow}.
+     */
+    private async lockActiveOrderOwner(ctx: RequestContext): Promise<void> {
+        if (ctx.session?.activeOrderId) {
+            // An active order is already known, so nothing is going to be created and there is
+            // nothing to serialize.
+            return;
+        }
+        if (ctx.session) {
+            await this.connection.lockRow(ctx, Session, ctx.session.id);
+        }
+        if (ctx.activeUserId) {
+            await this.connection.lockRow(ctx, User, ctx.activeUserId);
+        }
+        if (ctx.session) {
+            // ctx.session is a snapshot taken from the session cache when the request arrived,
+            // which is before the lock above was granted. A request which created an order for
+            // this session while we were waiting is not visible in that snapshot, so the stored
+            // session has to be re-read or we would go on to create a second order.
+            const storedSession = await this.connection.getRepository(ctx, Session).findOne({
+                where: { id: ctx.session.id },
+            });
+            if (storedSession?.activeOrderId) {
+                ctx.session.activeOrderId = storedSession.activeOrderId;
+            }
+        }
     }
 }
