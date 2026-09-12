@@ -432,6 +432,13 @@ describe('JobQueueService', () => {
 
             const bufferedJobs = testJobBufferStorageStrategy.getBufferedJobs(testJobBuffer.id);
             expect(bufferedJobs.map(j => j.data)).toEqual(['hello', 'world']);
+
+            // The placeholder returned for a buffered job is flagged as such, since it
+            // does not exist in the queue and therefore cannot be subscribed to.
+            expect(testJob1_1.isBuffered).toBe(true);
+            expect(testJob1_2.isBuffered).toBe(true);
+            expect(testJob2_1.isBuffered).toBe(false);
+            expect(testJob2_2.isBuffered).toBe(false);
         });
 
         it('flushes and reduces buffered jobs', async () => {
