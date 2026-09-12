@@ -75,7 +75,8 @@ export class InMemoryJobQueueStrategy extends PollingJobQueueStrategy implements
     }
 
     async findOne(id: ID): Promise<Job | undefined> {
-        return this.jobs.get(id);
+        const job = this.jobs.get(id);
+        return job && this.snapshot(job);
     }
 
     async findMany(options?: JobListOptions): Promise<PaginatedList<Job>> {
@@ -92,13 +93,16 @@ export class InMemoryJobQueueStrategy extends PollingJobQueueStrategy implements
             }
         }
         return {
-            items,
+            items: items.map(job => this.snapshot(job)),
             totalItems: items.length,
         };
     }
 
     async findManyById(ids: ID[]): Promise<Job[]> {
-        return ids.map(id => this.jobs.get(id)).filter(notNullOrUndefined);
+        return ids
+            .map(id => this.jobs.get(id))
+            .filter(notNullOrUndefined)
+            .map(job => this.snapshot(job));
     }
 
     async next(queueName: string, waitingJobs: Job[] = []): Promise<Job | undefined> {
@@ -123,11 +127,38 @@ export class InMemoryJobQueueStrategy extends PollingJobQueueStrategy implements
     }
 
     async update(job: Job): Promise<void> {
+        // Since `findOne()` etc. hand out snapshots, the job being updated is not necessarily
+        // the instance we are holding in `unsettledJobs`. Drop any existing entry for this job
+        // before deciding whether it should be queued, so that the queue never holds a stale
+        // instance alongside the updated one. Without this, cancelling a job which is still
+        // PENDING would leave the original PENDING instance queued, and `next()` would pick it
+        // up and run it despite the cancellation.
+        this.removeFromUnsettled(job);
         if (job.state === JobState.RETRYING || job.state === JobState.PENDING) {
             this.unsettledJobs[job.queueName].unshift({ job, updatedAt: new Date() });
         }
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         this.jobs.set(job.id!, job);
+    }
+
+    /**
+     * The base implementation cancels the job it gets back from `findOne()`, which is now a
+     * snapshot. That would leave the instance the processing loop is holding untouched, so the
+     * running job would never observe the cancellation, and the CANCELLED state written to the
+     * store would be overwritten by the next `update()` from that still-RUNNING instance (the
+     * `progress` listener registered by `ActiveQueue` writes it back on every `setProgress()`).
+     *
+     * Cancelling the stored instance directly keeps the pre-snapshot behaviour: the cancellation
+     * reaches the running job, and the store cannot be clobbered by a later progress update.
+     */
+    async cancelJob(jobId: ID): Promise<Job | undefined> {
+        const job = this.jobs.get(jobId);
+        if (!job) {
+            return;
+        }
+        job.cancel();
+        await this.update(job);
+        return this.snapshot(job);
     }
 
     async removeSettledJobs(queueNames: string[] = [], olderThan?: Date): Promise<number> {
@@ -151,6 +182,50 @@ export class InMemoryJobQueueStrategy extends PollingJobQueueStrategy implements
             }
         }
         return removed;
+    }
+
+    /**
+     * Returns a copy of the given Job. The jobs held in this strategy's store are mutated in
+     * place as they are processed (see `next()` and {@link Job} `start()`, `setProgress()`,
+     * `complete()` etc.), so returning the stored instance from the `findOne()`/`findMany()`
+     * family would hand out a reference whose state changes underneath the caller.
+     *
+     * This matches the behaviour of the database-backed strategies, which construct a new Job
+     * from the persisted record on every read.
+     *
+     * The copy is shallow: `result`, `error` and the date fields are shared references with the
+     * stored job, and only `data` is re-serialized (by the Job constructor). Mutating a
+     * snapshot's `result` object therefore also mutates the stored one. That is acceptable for a
+     * strategy explicitly documented as not for production, and it is no worse than the
+     * DB-backed strategies, whose reads deserialize into fresh objects only because they go via
+     * JSON.
+     */
+    private snapshot(job: Job): Job {
+        return new Job({
+            id: job.id ?? undefined,
+            queueName: job.queueName,
+            data: job.data,
+            retries: job.retries,
+            attempts: job.attempts,
+            state: job.state,
+            progress: job.progress,
+            result: job.result,
+            error: job.error,
+            createdAt: job.createdAt,
+            startedAt: job.startedAt,
+            settledAt: job.settledAt,
+        });
+    }
+
+    private removeFromUnsettled(job: Job): void {
+        const queued = this.unsettledJobs[job.queueName];
+        if (!queued) {
+            return;
+        }
+        const index = queued.findIndex(item => item.job.id === job.id);
+        if (index !== -1) {
+            queued.splice(index, 1);
+        }
     }
 
     private applySort(items: Job[], sort: JobSortParameter): Job[] {

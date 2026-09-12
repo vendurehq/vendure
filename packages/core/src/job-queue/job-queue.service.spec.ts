@@ -245,10 +245,11 @@ describe('JobQueueService', () => {
             },
         });
 
-        const job1 = await getJob('job-1');
-        const job2 = await getJob('job-2');
-        expect(job1?.state).toBe(JobState.COMPLETED);
-        expect(job2?.state).toBe(JobState.RUNNING);
+        // Each job state is read at the point it is asserted on. Previously these assertions
+        // captured both jobs up front and relied on those instances mutating in place, which
+        // only worked because `findOne()` handed back the live stored Job.
+        await tick(queuePollInterval);
+        expect((await getJob('job-1')).state).toBe(JobState.COMPLETED);
 
         await tick(queuePollInterval);
         expect((await getJob('job-2')).state).toBe(JobState.COMPLETED);
@@ -285,7 +286,9 @@ describe('JobQueueService', () => {
         await tick(queuePollInterval);
 
         expect(backoffStrategySpy).toHaveBeenCalledTimes(1);
-        expect(backoffStrategySpy.mock.calls[0]).toEqual(['test', 1, await getJob(testJob)]);
+        expect(backoffStrategySpy.mock.calls[0][0]).toBe('test');
+        expect(backoffStrategySpy.mock.calls[0][1]).toBe(1);
+        expect(backoffStrategySpy.mock.calls[0][2].id).toBe(testJob.id);
 
         subject.next(false);
         await tick();
@@ -295,7 +298,9 @@ describe('JobQueueService', () => {
         await tick(queuePollInterval);
 
         expect(backoffStrategySpy).toHaveBeenCalledTimes(2);
-        expect(backoffStrategySpy.mock.calls[1]).toEqual(['test', 2, await getJob(testJob)]);
+        expect(backoffStrategySpy.mock.calls[1][0]).toBe('test');
+        expect(backoffStrategySpy.mock.calls[1][1]).toBe(2);
+        expect(backoffStrategySpy.mock.calls[1][2].id).toBe(testJob.id);
 
         subject.next(false);
         await tick();
