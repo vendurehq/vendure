@@ -1,9 +1,14 @@
+import { execFile } from 'node:child_process';
 import { readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
 
 import { compile } from '../utils/compiler.js';
 import { debugLogger, noopLogger } from '../utils/logger.js';
+
+const execFileAsync = promisify(execFile);
 
 // #4807 — a config or plugin which imports a .json file must still compile. The
 // compiler copies the JSON into the output alongside the emitted .js files, so
@@ -38,13 +43,11 @@ describe('compiling a config which imports .json files', () => {
         expect(result.vendureConfig.customFields?.Product?.[0].name).toBe('bar');
     });
 
-    // ESM mode emits a bare `import data from './x.json'`, which Node rejects with
-    // ERR_IMPORT_ATTRIBUTE_MISSING because it wants `with { type: 'json' }`. Copying
-    // the file is therefore necessary but not sufficient there, so this asserts only
-    // the copying. Loading is not asserted: it succeeds under Vitest, whose loader
-    // resolves JSON without the attribute, and would pass here while still failing
-    // for a real `module: 'esm'` project.
-    it('should copy imported JSON into the output in esm mode', { timeout: 60_000 }, async () => {
+    // #5330 — Node refuses to load a JSON module in ESM without `with { type: 'json' }`,
+    // so the emitted imports must carry that attribute. The config is loaded in a
+    // plain Node process, because Vitest's loader resolves JSON without the
+    // attribute and would pass here while a real `module: 'esm'` project fails.
+    it('should load a config which imports JSON in esm mode', { timeout: 60_000 }, async () => {
         const { tempDir } = await compileFixture('esm');
 
         expect(JSON.parse(await readFile(join(tempDir, 'config-data.json'), 'utf-8'))).toEqual({
@@ -53,6 +56,33 @@ describe('compiling a config which imports .json files', () => {
         expect(
             JSON.parse(await readFile(join(tempDir, 'my-plugin', 'src', 'plugin-data.json'), 'utf-8')),
         ).toEqual({ sheetId: 'abc123' });
+
+        // An import which already has the attribute keeps exactly one.
+        const emittedConfig = await readFile(join(tempDir, 'vendure-config.js'), 'utf-8');
+        const attributedImport = emittedConfig
+            .split('\n')
+            .find(line => line.includes('attributed-data.json'));
+        expect(attributedImport?.match(/type:/g)).toHaveLength(1);
+
+        const script = [
+            'const { config, reexportedData, attributedLabel, emptyAttributesLabel } =',
+            '    await import(process.argv[1]);',
+            'const [MyPlugin] = config.plugins;',
+            'console.log(JSON.stringify([',
+            '    config.customFields.Product[0].name,',
+            '    MyPlugin.sheetId,',
+            '    reexportedData.label,',
+            '    attributedLabel,',
+            '    emptyAttributesLabel,',
+            ']));',
+        ].join('\n');
+        const { stdout } = await execFileAsync(process.execPath, [
+            '--input-type=module',
+            '-e',
+            script,
+            pathToFileURL(join(tempDir, 'vendure-config.js')).href,
+        ]);
+        expect(JSON.parse(stdout)).toEqual(['bar', 'abc123', 'reexported', 'attributed', 'empty-attributes']);
     });
     // Skipping the package.json silently leaves the import in the emitted output, so
     // the config fails to load with a bare "Cannot find module". Say so up front.

@@ -369,31 +369,27 @@ async function compileTypeScript({
 }): Promise<void> {
     await fs.ensureDir(outputPath);
 
-    // Copying the JSON is enough for CommonJS, whose require() reads it directly.
-    // ESM emits the import unchanged, and Node refuses to load a JSON module
-    // without an `with { type: 'json' }` attribute that TypeScript will not emit
-    // for a source file targeting CommonJS. Say so here, naming the files, so the
-    // ERR_IMPORT_ATTRIBUTE_MISSING that follows has an explanation above it.
-    if (module === 'esm') {
-        const jsonFiles = sourceFiles.filter(file => file.endsWith('.json'));
-        if (jsonFiles.length) {
-            logger.warn(
-                `Imported JSON is not yet supported with module: 'esm', so loading the config will fail on ` +
-                    `${jsonFiles.join(', ')}. Use module: 'commonjs', or read the file at runtime instead of importing it.`,
-            );
-        }
-    }
+    const afterTransformers: Array<ts.TransformerFactory<ts.SourceFile>> = [];
 
     // Build path transformer for ESM mode
     // This is necessary because tsconfig-paths.register() only works for CommonJS require(),
     // not for ESM import(). We need to transform the import paths during transpilation.
-    let pathTransformer: ts.TransformerFactory<ts.SourceFile> | undefined;
     if (module === 'esm' && tsConfigInfo) {
         logger.debug('Adding path transformer for ESM mode');
-        pathTransformer = createPathTransformer({
-            baseUrl: tsConfigInfo.baseUrl,
-            paths: tsConfigInfo.paths,
-        });
+        afterTransformers.push(
+            createPathTransformer({
+                baseUrl: tsConfigInfo.baseUrl,
+                paths: tsConfigInfo.paths,
+            }),
+        );
+    }
+
+    // Copying the JSON is enough for CommonJS, whose require() reads it directly.
+    // ESM emits the import unchanged, and Node refuses to load a JSON module
+    // without a `with { type: 'json' }` attribute, which the author cannot write
+    // in a source file that also targets CommonJS for the server build.
+    if (module === 'esm') {
+        afterTransformers.push(createJsonImportAttributeTransformer());
     }
 
     // Note: emitDecoratorMetadata with transpileModule emits `Object` for all
@@ -411,8 +407,8 @@ async function compileTypeScript({
         emitDecoratorMetadata: true,
         esModuleInterop: true,
     };
-    const transformers: ts.CustomTransformers | undefined = pathTransformer
-        ? { after: [pathTransformer] }
+    const transformers: ts.CustomTransformers | undefined = afterTransformers.length
+        ? { after: afterTransformers }
         : undefined;
 
     // Transpile first and validate every destination before writing anything,
@@ -452,6 +448,64 @@ async function compileTypeScript({
         await fs.ensureDir(path.dirname(emit.outputFilePath));
         await fs.writeFile(emit.outputFilePath, emit.outputText);
     }
+}
+
+/**
+ * Adds `type: 'json'` to the import attributes of import and export declarations
+ * of `.json` specifiers that do not already carry a `type` attribute. Any other
+ * attributes, including an empty `with {}`, are kept and the entry is appended.
+ *
+ * Matching on the `.json` suffix is a superset of the rule `collectLocalSourceFiles`
+ * uses to copy a JSON file. Bare specifiers such as `some-pkg/data.json` are never
+ * copied, but still get the attribute, because Node requires it for them too.
+ */
+function createJsonImportAttributeTransformer(): ts.TransformerFactory<ts.SourceFile> {
+    return context => {
+        const { factory } = context;
+        const withJsonAttribute = (attributes: ts.ImportAttributes | undefined) => {
+            const typeJson = factory.createImportAttribute(
+                factory.createIdentifier('type'),
+                factory.createStringLiteral('json'),
+            );
+            return attributes
+                ? factory.updateImportAttributes(
+                      attributes,
+                      factory.createNodeArray([...attributes.elements, typeJson]),
+                      attributes.multiLine,
+                  )
+                : factory.createImportAttributes(factory.createNodeArray([typeJson]));
+        };
+        const needsJsonAttributes = (node: ts.ImportDeclaration | ts.ExportDeclaration) =>
+            !node.attributes?.elements.some(attribute => attribute.name.text === 'type') &&
+            !!node.moduleSpecifier &&
+            ts.isStringLiteral(node.moduleSpecifier) &&
+            node.moduleSpecifier.text.endsWith('.json');
+
+        const visitor: ts.Visitor = node => {
+            if (ts.isImportDeclaration(node) && needsJsonAttributes(node)) {
+                return factory.updateImportDeclaration(
+                    node,
+                    node.modifiers,
+                    node.importClause,
+                    node.moduleSpecifier,
+                    withJsonAttribute(node.attributes),
+                );
+            }
+            if (ts.isExportDeclaration(node) && needsJsonAttributes(node)) {
+                return factory.updateExportDeclaration(
+                    node,
+                    node.modifiers,
+                    node.isTypeOnly,
+                    node.exportClause,
+                    node.moduleSpecifier,
+                    withJsonAttribute(node.attributes),
+                );
+            }
+            return node;
+        };
+
+        return sourceFile => ts.visitEachChild(sourceFile, visitor, context);
+    };
 }
 
 function assertWithinOutputPath(outputFilePath: string, outputPath: string): void {
