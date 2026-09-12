@@ -20,6 +20,7 @@ import { StockLocation } from '../stock-location/stock-location.entity';
  */
 @Entity()
 @TableInheritance({ column: { type: 'varchar', name: 'discriminator' } })
+@Index(['discriminator'])
 export abstract class StockMovement extends VendureEntity implements HasCustomFields {
     @Column({ nullable: false, type: 'varchar' })
     readonly type: StockMovementType;
