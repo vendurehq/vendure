@@ -28,6 +28,6 @@ export class CustomerGroup extends VendureEntity implements HasCustomFields {
     @Column(type => CustomCustomerGroupFields)
     customFields: CustomCustomerGroupFields;
 
-    @OneToMany(type => TaxRate, taxRate => taxRate.zone)
+    @OneToMany(type => TaxRate, taxRate => taxRate.customerGroup)
     taxRates: TaxRate[];
 }
