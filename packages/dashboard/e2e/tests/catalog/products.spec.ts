@@ -200,15 +200,25 @@ for (const productCount of [0, 1, 2]) {
                 }
             }
         } finally {
+            const cleanupErrors: unknown[] = [];
             for (const id of products) {
-                await client.gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, { id });
+                try {
+                    await client.gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, { id });
+                } catch (error) {
+                    cleanupErrors.push(error);
+                }
             }
             if (groupId) {
-                await client.gql(
-                    `mutation ($id: ID!) { deleteProductOptionGroup(id: $id, force: true) { result } }`,
-                    { id: groupId },
-                );
+                try {
+                    await client.gql(
+                        `mutation ($id: ID!) { deleteProductOptionGroup(id: $id, force: true) { result } }`,
+                        { id: groupId },
+                    );
+                } catch (error) {
+                    cleanupErrors.push(error);
+                }
             }
+            expect(cleanupErrors, 'Fixture cleanup failures').toEqual([]);
         }
     });
 }
