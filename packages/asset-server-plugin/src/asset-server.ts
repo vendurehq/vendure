@@ -98,10 +98,7 @@ export class AssetServer {
             const key = this.getFileNameFromParameters(req.path, params);
             try {
                 const file = await this.assetStorageStrategy.readFileToBuffer(key);
-                let mimeType = this.getMimeType(key);
-                if (!mimeType) {
-                    mimeType = (await getFileType(file))?.mime || 'application/octet-stream';
-                }
+                const mimeType = await this.resolveMimeType(file, key);
                 res.contentType(mimeType);
                 this.setAssetSecurityHeaders(res, mimeType);
                 res.setHeader('Cache-Control', this.cacheHeader);
@@ -141,10 +138,7 @@ export class AssetServer {
                             await this.assetStorageStrategy.writeFileFromBuffer(cachedFileName, imageBuffer);
                             Logger.debug(`Saved cached asset: ${cachedFileName}`, loggerCtx);
                         }
-                        let mimeType = this.getMimeType(cachedFileName);
-                        if (!mimeType) {
-                            mimeType = (await getFileType(imageBuffer))?.mime || 'image/jpeg';
-                        }
+                        const mimeType = await this.resolveMimeType(imageBuffer, cachedFileName);
                         res.set('Content-Type', mimeType);
                         this.setAssetSecurityHeaders(res, mimeType);
                         res.send(imageBuffer);
@@ -297,10 +291,19 @@ export class AssetServer {
     }
 
     /**
-     * Attempt to get the mime type from the file name.
+     * The mime type to declare for a file about to be served. The bytes win over the file name,
+     * because a transform is cached under the source asset's extension: an SVG rasterised by
+     * sharp is a PNG stored as `.svg`. Text-based formats have no signature, so they fall back
+     * to the name.
      */
-    private getMimeType(fileName: string): string | undefined {
-        return mime.lookup(fileName) || undefined;
+    private async resolveMimeType(buffer: Buffer, fileName: string): Promise<string> {
+        const fromFileName = mime.lookup(fileName) || undefined;
+        const detected = (await getFileType(buffer))?.mime;
+        // `file-type` reports any XML document as `application/xml`; the name is more specific.
+        if (detected === 'application/xml' && fromFileName?.endsWith('+xml')) {
+            return fromFileName;
+        }
+        return detected || fromFileName || 'application/octet-stream';
     }
 
     /**

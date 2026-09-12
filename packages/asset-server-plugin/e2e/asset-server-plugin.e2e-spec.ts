@@ -262,6 +262,21 @@ describe('AssetServerPlugin', () => {
             expect(res.headers.get('x-content-type-options')).toBe('nosniff');
             expect(res.headers.get('content-security-policy')).toBe(BASE_CSP);
         });
+
+        // A rasterised SVG used to be served as `image/svg+xml`, which sandboxed and
+        // force-downloaded it. Checked twice: once generated, once from cache.
+        it('serves a transformed SVG as the rasterised type, not as SVG', async () => {
+            const svgAsset = await uploadAsset('test.svg');
+
+            for (const pass of ['generated', 'from cache']) {
+                const res = await fetch(`${svgAsset.source}?w=100`);
+
+                expect(res.headers.get('content-type'), pass).toContain('image/png');
+                expect(res.headers.get('content-disposition'), pass).toBeNull();
+                expect(res.headers.get('x-content-type-options'), pass).toBe('nosniff');
+                expect(res.headers.get('content-security-policy'), pass).toBe(BASE_CSP);
+            }
+        });
     });
 
     describe('unexpected input', () => {
