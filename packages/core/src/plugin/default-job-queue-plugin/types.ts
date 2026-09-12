@@ -1,6 +1,8 @@
 import { BackoffStrategy, Job } from '../../job-queue';
 import { ScheduledTaskConfig } from '../../scheduler';
 
+import { PgNotifyJobQueueStrategyConfig } from './pg-notify-job-queue-strategy';
+
 /**
  * @description
  * Configuration options for the DefaultJobQueuePlugin. These values get passed into the
@@ -83,6 +85,25 @@ export interface DefaultJobQueueOptions {
      * @since 1.3.0
      */
     useDatabaseForBuffer?: boolean;
+    /**
+     * @description
+     * If set to `true`, the job queue is woken by Postgres `LISTEN`/`NOTIFY` instead of
+     * polling the `job_record` table, using the {@link PgNotifyJobQueueStrategy}.
+     *
+     * Polling is portable and costs nothing when the database is local, but an idle
+     * project still issues a transaction per queue every `pollInterval` ms forever. On a
+     * managed Postgres reached over the network that is a real and permanent expense, and
+     * one which grows with the number of queues rather than with traffic.
+     *
+     * Requires Postgres; on any other database this option logs a warning and is ignored.
+     *
+     * Pass an object instead of `true` to configure the listener - see
+     * {@link PgNotifyJobQueueStrategyConfig}.
+     *
+     * @default false
+     * @since 3.8.0
+     */
+    useNotify?: boolean | Pick<PgNotifyJobQueueStrategyConfig, 'listenerConnection' | 'safetyIntervalMs'>;
     /**
      * @description
      * The timeout in ms which the queue will use when attempting a graceful shutdown.
