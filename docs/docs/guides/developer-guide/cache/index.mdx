@@ -96,6 +96,21 @@ instances.
 This means that if one instance sets a cache entry, it will be available to all other instances. Likewise,
 if one instance deletes a cache entry, it will be deleted for all other instances.
 
+Channel data also uses the configured `CacheStrategy` through the
+[DefaultChannelCacheStrategy](/reference/typescript-api/cache/default-channel-cache-strategy). This keeps
+Channel lookups and invalidation consistent across server and worker instances. Channels are cached
+individually by token, with a dedicated key for the default Channel. A short-lived process-local L1
+keeps the request hot path in memory, while the configured `CacheStrategy` provides a longer-lived,
+shared L2. On an L1 miss, only the requested Channel is read from L2 and rehydrated. Concurrent misses
+for the same Channel are coalesced into a single lookup. A custom
+[ChannelCacheStrategy](/reference/typescript-api/cache/channel-cache-strategy) can be configured via
+`entityOptions.channelCacheStrategy` when domain-specific behavior is required.
+
+Zone lists use the same L1/L2 model through the
+[DefaultZoneCacheStrategy](/reference/typescript-api/cache/default-zone-cache-strategy). A custom
+[ZoneCacheStrategy](/reference/typescript-api/cache/zone-cache-strategy) can be configured via
+`entityOptions.zoneCacheStrategy` when domain-specific behavior is required.
+
 ### Usage
 
 The `CacheService` can be injected into any service, resolver, strategy or configurable operation.

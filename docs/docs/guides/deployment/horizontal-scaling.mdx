@@ -35,7 +35,7 @@ In order to run Vendure in a multi-instance configuration, there are some import
       }
     }
     ```
-* Channel and Zone data gets cached in-memory as this data is used in virtually every request. The cache time-to-live defaults to 30 seconds, which is probably fine for most cases, but it can be configured in the [EntityOptions](/reference/typescript-api/configuration/entity-options/#channelcachettl).
+- Individual Channels and Zone lists use short-lived process-local L1 caches backed by the global CacheStrategy as a shared L2. This avoids loading every Channel or accessing Redis or SQL on every request. L1 entries are eventually consistent between instances and live for 30 seconds by default, configurable via [EntityOptions](/reference/typescript-api/configuration/entity-options/).
 
 ## Using Docker or Kubernetes
 
