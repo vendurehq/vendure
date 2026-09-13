@@ -61,6 +61,11 @@ export const useExtendedRouter = (
                         (r: AnyRoute) => r.path === pathWithoutLeadingSlash,
                     ) > -1
                 ) {
+                    if (process.env.NODE_ENV !== 'production') {
+                        console.warn(
+                            `[Dashboard] Extension route "${path}" conflicts with an existing route and will not be registered.`,
+                        );
+                    }
                     // Skip if the route already exists
                     continue;
                 }
@@ -91,6 +96,11 @@ export const useExtendedRouter = (
                     );
 
                 if (routeExists) {
+                    if (process.env.NODE_ENV !== 'production') {
+                        console.warn(
+                            `[Dashboard] Extension route "${path}" conflicts with an existing route and will not be registered.`,
+                        );
+                    }
                     // Skip if the route already exists
                     continue;
                 }
