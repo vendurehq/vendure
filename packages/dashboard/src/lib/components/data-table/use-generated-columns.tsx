@@ -191,7 +191,31 @@ export function useGeneratedColumns<T extends TypedDocumentNode<any, any>>({
             if (!id) {
                 throw new Error('Column id is required');
             }
-            finalColumns.push(columnHelper.accessor(id as any, { enableColumnFilter: false, ...column, id }));
+            const displayComponentId =
+                pageId && pageBlock?.blockId
+                    ? generateDisplayComponentKey(pageId, pageBlock.blockId, id)
+                    : undefined;
+            const CustomDisplayComponent = displayComponentId
+                ? getDisplayComponent(displayComponentId)
+                : undefined;
+
+            finalColumns.push(
+                columnHelper.accessor(id as any, {
+                    enableColumnFilter: false,
+                    ...column,
+                    ...(CustomDisplayComponent
+                        ? {
+                              cell: (cellContext: CellContext<any, any>) => (
+                                  <CustomDisplayComponent
+                                      value={cellContext.cell.getValue()}
+                                      {...cellContext}
+                                  />
+                              ),
+                          }
+                        : {}),
+                    id,
+                }),
+            );
         }
 
         if (defaultColumnOrder) {
