@@ -39,13 +39,14 @@ const cellContext = {
  * `createElement` for any function cell, so a cell using hooks behaves here as it does in
  * a real table; calling `column.cell(context)` directly would not.
  */
-function renderColumnCell(pageId: string, columnId: string): string {
+function renderColumnCell(pageId: string, columnId: string, additionalColumns?: any): string {
     const captured: { columns?: Array<{ id?: string; cell?: any }> } = {};
 
     function Harness() {
         const { columns } = useGeneratedColumns({
             fields,
             customizeColumns,
+            additionalColumns,
             includeSelectionColumn: false,
             includeActionsColumn: false,
         });
@@ -133,5 +134,38 @@ describe('useGeneratedColumns display component precedence', () => {
         executeDashboardExtensionCallbacks();
 
         expect(renderColumnCell(pageId, 'price')).toBe('<span>via-extension-api</span>');
+    });
+});
+
+describe('useGeneratedColumns additional column display component precedence', () => {
+    const additionalColumns = {
+        inventoryStatus: { cell: () => <span>additional-column-cell</span> },
+    } as any;
+
+    it('gives precedence to a registered display component over an additional column cell', () => {
+        const pageId = 'test-page-additional-column-registered';
+
+        addDisplayComponent({
+            pageId,
+            blockId: BLOCK_ID,
+            field: 'inventoryStatus',
+            component: ({ value }) => (
+                <span>{`registered-additional-column-display-component:${value as number}`}</span>
+            ),
+        });
+
+        expect(renderColumnCell(pageId, 'inventoryStatus', additionalColumns)).toBe(
+            `<span>registered-additional-column-display-component:${PRICE}</span>`,
+        );
+    });
+
+    it('falls back to the additional column cell when no display component is registered', () => {
+        expect(
+            renderColumnCell(
+                'test-page-additional-column-unregistered',
+                'inventoryStatus',
+                additionalColumns,
+            ),
+        ).toBe('<span>additional-column-cell</span>');
     });
 });
