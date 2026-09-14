@@ -385,8 +385,8 @@ async function compileTypeScript({
     }
 
     // Copying the JSON is enough for CommonJS, whose require() reads it directly.
-    // ESM emits the import unchanged, and Node refuses to load a JSON module
-    // without a `with { type: 'json' }` attribute, which the author cannot write
+    // TypeScript emits the import without an attribute, and Node refuses to load a
+    // JSON module in ESM without `with { type: 'json' }`, which the author cannot write
     // in a source file that also targets CommonJS for the server build.
     if (module === 'esm') {
         afterTransformers.push(createJsonImportAttributeTransformer());
