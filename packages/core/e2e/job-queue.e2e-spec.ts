@@ -9,6 +9,7 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 
 import { PluginWithJobQueue } from './fixtures/test-plugins/with-job-queue';
 import { cancelJobDocument, getRunningJobsDocument } from './graphql/shared-definitions';
+import { pollUntil } from './utils/poll-until';
 
 describe('JobQueue', () => {
     const activeConfig = testConfig();
@@ -156,6 +157,11 @@ describe('JobQueue', () => {
 
         expect(result.status).toBe(200);
         expect(await result.text()).toBe('Job subscription timed out. The job may still be running');
+
+        // The subscription timeout (100ms) elapsing does not guarantee the worker has
+        // already picked the job up on a real database, only that it is queued. Poll
+        // rather than assert immediately, or this flakes under CI load (#5371).
+        await pollUntil(async () => (await getJobsInTestQueue(JobState.RUNNING)).items.length === 1);
         const jobs = await getJobsInTestQueue(JobState.RUNNING);
         expect(jobs.items.length).toBe(1);
     });
