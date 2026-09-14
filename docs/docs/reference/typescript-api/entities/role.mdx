@@ -2,26 +2,21 @@
 title: "Role"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/role/role.entity.ts" sourceLine="16" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/entity/role/role.entity.ts" sourceLine="15" packageName="@vendure/core" />
 
 A Role represents a collection of permissions which determine the authorization
-level of a [User](/reference/typescript-api/entities/user#user) on a given set of [Channel](/reference/typescript-api/entities/channel#channel)s.
+level of a [User](/reference/typescript-api/entities/user#user). A Role is a channel-agnostic template: the Channels on
+which its permissions apply are determined per-User by [RoleAssignment](/reference/typescript-api/entities/role-assignment#roleassignment)s.
 
 ```ts title="Signature"
-class Role extends VendureEntity implements ChannelAware {
+class Role extends VendureEntity {
     constructor(input?: DeepPartial<Role>)
     @Column() code: string;
     @Column() description: string;
     @Column('simple-array') permissions: Permission[];
-    @ManyToMany(type => Channel, channel => channel.roles)
-    @JoinTable()
-    channels: Channel[];
 }
 ```
 * Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
-
-
-* Implements: [`ChannelAware`](/reference/typescript-api/entities/interfaces#channelaware)
 
 
 
@@ -40,11 +35,6 @@ class Role extends VendureEntity implements ChannelAware {
 ### permissions
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/permission#permission'>Permission</a>[]`}   />
-
-
-### channels
-
-<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>[]`}   />
 
 
 

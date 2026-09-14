@@ -9,7 +9,7 @@ external [AuthenticationStrategy](/reference/typescript-api/auth/authentication-
 
 ```ts title="Signature"
 class ExternalAuthenticationService {
-    constructor(connection: TransactionalConnection, roleService: RoleService, historyService: HistoryService, customerService: CustomerService, administratorService: AdministratorService, channelService: ChannelService)
+    constructor(connection: TransactionalConnection, roleAssignmentService: RoleAssignmentService, historyService: HistoryService, customerService: CustomerService, administratorService: AdministratorService, channelService: ChannelService)
     findCustomerUser(ctx: RequestContext, strategy: string, externalIdentifier: string, checkCurrentChannelOnly:  = true) => Promise<User | undefined>;
     findAdministratorUser(ctx: RequestContext, strategy: string, externalIdentifier: string) => Promise<User | undefined>;
     createCustomerAndUser(ctx: RequestContext, config: {

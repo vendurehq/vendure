@@ -212,8 +212,12 @@ describe('ChannelAware Customers', () => {
 
     describe('Shop API', () => {
         it('assigns authenticated customers to the channels they visit', async () => {
-            shopClient.setChannelToken(SECOND_CHANNEL_TOKEN);
             await shopClient.asUserWithCredentials(secondCustomer.emailAddress, 'test');
+
+            // Visiting a channel as an authenticated customer assigns them to it, and the
+            // membership immediately grants Authenticated on the visited channel. The token
+            // is set after the login, which pins the client to the user's only channel.
+            shopClient.setChannelToken(SECOND_CHANNEL_TOKEN);
             await shopClient.query(MeDocument);
 
             adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
@@ -257,11 +261,9 @@ describe('ChannelAware Customers', () => {
             await shopClient.asUserWithCredentials(secondCustomer.emailAddress, 'test');
             shopClient.setChannelToken(THIRD_CHANNEL_TOKEN);
 
-            try {
-                await Promise.all([shopClient.query(MeDocument), shopClient.query(MeDocument)]);
-            } catch (e: any) {
-                fail('Threw: ' + (e.message as string));
-            }
+            // Concurrent requests from a customer not yet assigned to the channel must not
+            // throw (#834) — an unhandled rejection here fails the test with the real error.
+            await Promise.all([shopClient.query(MeDocument), shopClient.query(MeDocument)]);
 
             adminClient.setChannelToken(THIRD_CHANNEL_TOKEN);
             const { customers } = await adminClient.query(getCustomerListDocument);

@@ -2293,3 +2293,33 @@ export const deleteCustomerAddressDocument = graphql(`
         }
     }
 `);
+
+export const assignRolesToUserDocument = graphql(`
+    mutation AssignRolesToUser($input: AssignRolesToUserInput!) {
+        assignRolesToUser(input: $input) {
+            id
+            roleAssignments {
+                roleId
+                channelId
+                role {
+                    code
+                }
+            }
+        }
+    }
+`);
+
+export const removeRolesFromUserDocument = graphql(`
+    mutation RemoveRolesFromUser($input: RemoveRolesFromUserInput!) {
+        removeRolesFromUser(input: $input) {
+            id
+            roleAssignments {
+                roleId
+                channelId
+                role {
+                    code
+                }
+            }
+        }
+    }
+`);

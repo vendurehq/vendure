@@ -364,6 +364,8 @@ export class ChannelService {
             await this.connection.getRepository(ctx, Channel).save(newChannel);
         }
         await this.customFieldRelationService.updateRelations(ctx, Channel, input, newChannel);
+        // No SuperAdmin assignment rows are written for the new Channel: SuperAdmin access is
+        // resolved at check time from the single default-channel row (see RoleAssignment).
         await this.allChannels.refresh(ctx);
         await this.eventBus.publish(new ChannelEvent(ctx, newChannel, 'created', input));
         return newChannel;

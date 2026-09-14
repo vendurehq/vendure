@@ -8,11 +8,6 @@ export const roleItemFragment = graphql(`
         code
         description
         permissions
-        channels {
-            id
-            code
-            token
-        }
     }
 `);
 

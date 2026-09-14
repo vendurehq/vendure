@@ -1064,16 +1064,29 @@ class RefundStateTransitionEvent extends VendureEvent {
 
 
 </div>
-## RoleChangeEvent
+## RoleAssignmentEvent
 
-<GenerationInfo sourceFile="packages/core/src/event-bus/events/role-change-event.ts" sourceLine="16" packageName="@vendure/core" since="1.4" />
+<GenerationInfo sourceFile="packages/core/src/event-bus/events/role-assignment-event.ts" sourceLine="28" packageName="@vendure/core" since="4.0.0" />
 
-This event is fired whenever one [Role](/reference/typescript-api/entities/role#role) is assigned or removed from a user.
-The property `roleIds` only contains the removed or assigned role ids.
+This event is fired whenever [RoleAssignment](/reference/typescript-api/entities/role-assignment#roleassignment) rows of a [User](/reference/typescript-api/entities/user#user) change, i.e. when
+a Role is granted to or revoked from the User on a specific Channel. The `assignments` property
+contains only the `(roleId, channelId)` pairs which were added (`'assigned'`) or removed
+(`'removed'`) by the write; unchanged pairs are not included. A write which changes nothing
+emits no event.
+
+The event is keyed on the User rather than the Administrator, so it also covers API-key Users
+and Administrators created via external authentication. It is emitted for grants made by an
+actor or an authentication strategy (`assignRolesToUser` / `removeRolesFromUser`, the
+`roleAssignments` and deprecated `roleIds` inputs of the administrator and API-key mutations,
+SSO administrator creation). System-mandated rows are not reported: the SuperAdmin rows
+materialized on Channel creation and the bootstrap SuperAdmin seed.
+
+This event replaces the `RoleChangeEvent` removed in v4.0.0, which was keyed on the
+Administrator and could not express the Channel a Role was granted on.
 
 ```ts title="Signature"
-class RoleChangeEvent extends VendureEvent {
-    constructor(ctx: RequestContext, admin: Administrator, roleIds: ID[], type: 'assigned' | 'removed')
+class RoleAssignmentEvent extends VendureEvent {
+    constructor(ctx: RequestContext, user: User, assignments: RoleChannelPair[], type: 'assigned' | 'removed')
 }
 ```
 * Extends: [`VendureEvent`](/reference/typescript-api/events/vendure-event#vendureevent)

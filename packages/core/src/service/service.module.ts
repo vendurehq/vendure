@@ -29,6 +29,7 @@ import { PaymentStateMachine } from './helpers/payment-state-machine/payment-sta
 import { ProductPriceApplicator } from './helpers/product-price-applicator/product-price-applicator';
 import { RefundStateMachine } from './helpers/refund-state-machine/refund-state-machine';
 import { RequestContextService } from './helpers/request-context/request-context.service';
+import { RolePermissionResolver } from './helpers/role-permission-resolver/role-permission-resolver';
 import { SettingsStoreService } from './helpers/settings-store/settings-store.service';
 import { ShippingCalculator } from './helpers/shipping-calculator/shipping-calculator';
 import { SlugValidator } from './helpers/slug-validator/slug-validator';
@@ -61,6 +62,7 @@ import { ProductVariantService } from './services/product-variant.service';
 import { ProductService } from './services/product.service';
 import { PromotionService } from './services/promotion.service';
 import { ProvinceService } from './services/province.service';
+import { RoleAssignmentService } from './services/role-assignment.service';
 import { RoleService } from './services/role.service';
 import { SearchService } from './services/search.service';
 import { SellerService } from './services/seller.service';
@@ -101,6 +103,7 @@ const services = [
     ProductVariantService,
     PromotionService,
     ProvinceService,
+    RoleAssignmentService,
     RoleService,
     SearchService,
     SellerService,
@@ -140,6 +143,7 @@ const helpers = [
     ProductPriceApplicator,
     EntityHydrator,
     RequestContextService,
+    RolePermissionResolver,
     CustomerChannelAssignmentService,
     TranslatorService,
     EntityDuplicatorService,
