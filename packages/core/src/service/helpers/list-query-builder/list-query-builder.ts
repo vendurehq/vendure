@@ -662,11 +662,10 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
      * They are derived from `customPropertyMap`, and only for the properties which the
      * current `filter` or `sort` uses.
      *
-     * The `channels` relation does not belong here. `build()` scopes the query to a Channel with
-     * a dedicated `lqb__channel` join, so adding the relation joins the Channel table a second
-     * time and nothing reads the result. `Collection` is a tree entity, so
-     * `joinTreeRelationsDynamically()` turns that second join into a `leftJoinAndSelect`. Every
-     * row of a page of Collections is then repeated once per Channel it is assigned to.
+     * Channel scoping does not need a relation here, because `build()` applies it with a
+     * dedicated `lqb__channel` join. Adding `channels` joins the Channel table a second time,
+     * and on a tree entity that second join selects its rows, repeating every row of the page
+     * once per Channel. `collection.e2e-spec.ts` asserts that it does not.
      */
     private getMinimumRequiredRelations<T extends VendureEntity>(
         repository: Repository<T>,
