@@ -658,9 +658,15 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
 
     /**
      * @description
-     * As part of list optimization, we only join the minimum required relations which are needed to
-     * get the base list query. Other relations are then joined individually in the patched `getManyAndCount()`
-     * method.
+     * Returns the relations which `build()` adds on top of the ones the caller asked for.
+     * They are derived from `customPropertyMap`, and only for the properties which the
+     * current `filter` or `sort` uses.
+     *
+     * The `channels` relation does not belong here. `build()` scopes the query to a Channel with
+     * a dedicated `lqb__channel` join, so adding the relation joins the Channel table a second
+     * time and nothing reads the result. `Collection` is a tree entity, so
+     * `joinTreeRelationsDynamically()` turns that second join into a `leftJoinAndSelect`. Every
+     * row of a page of Collections is then repeated once per Channel it is assigned to.
      */
     private getMinimumRequiredRelations<T extends VendureEntity>(
         repository: Repository<T>,
@@ -668,9 +674,6 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         extendedOptions: ExtendedListQueryOptions<T>,
     ): string[] {
         const requiredRelations: string[] = [];
-        if (extendedOptions.channelId) {
-            requiredRelations.push('channels');
-        }
 
         if (extendedOptions.customPropertyMap) {
             const metadata = repository.metadata;
