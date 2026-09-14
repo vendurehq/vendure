@@ -122,6 +122,23 @@ export function useGeneratedColumns<T extends TypedDocumentNode<any, any>>({
             customFieldColumnNames.push(...customFieldFields.map(field => field.name));
         }
 
+        // The registry is read here rather than at cell-render time, so a column keeps
+        // whichever renderer was chosen when this memo last ran. Extensions register
+        // during executeDashboardExtensionCallbacks(), which completes before any data
+        // table mounts, so the answer is settled by the time a column is generated.
+        const resolveDisplayComponent = (columnId: string) => {
+            const displayComponentId =
+                pageId && pageBlock?.blockId
+                    ? generateDisplayComponentKey(pageId, pageBlock.blockId, columnId)
+                    : undefined;
+            return {
+                displayComponentId,
+                registeredDisplayComponent: displayComponentId
+                    ? getDisplayComponent(displayComponentId)
+                    : undefined,
+            };
+        };
+
         const queryBasedColumns = columnConfigs.map(({ fieldInfo, isCustomField }) => {
             const customConfig = customizeColumns?.[fieldInfo.name as unknown as AllItemFieldKeys<T>] ?? {};
 
@@ -134,26 +151,17 @@ export function useGeneratedColumns<T extends TypedDocumentNode<any, any>>({
             const { header, meta, cell: customCell, ...customConfigRest } = customConfig;
             const enableColumnFilter =
                 (fieldInfo.isScalar || isEnumType(fieldInfo.type)) && !facetedFilters?.[fieldInfo.name];
-            const displayComponentId =
-                pageId && pageBlock?.blockId
-                    ? generateDisplayComponentKey(pageId, pageBlock.blockId, fieldInfo.name)
-                    : undefined;
             // A component registered via addDisplayComponent() takes precedence over a
             // core-supplied `cell` function (e.g. the Money cell on price columns). Without
             // this, registering an override for such a column silently does nothing.
-            //
-            // The registry is read here rather than at cell-render time, so a column keeps
-            // whichever renderer was chosen when this memo last ran. Extensions register
-            // during executeDashboardExtensionCallbacks(), which completes before any data
-            // table mounts, so the answer is settled by the time a column is generated.
-            const registeredDisplayComponent = displayComponentId
-                ? getDisplayComponent(displayComponentId)
-                : undefined;
+            const { displayComponentId, registeredDisplayComponent } = resolveDisplayComponent(
+                fieldInfo.name,
+            );
 
             // Where nothing is registered, a custom cell function is used directly rather
             // than through CellWrapper, which is what keeps the cell from unmounting on
-            // every table re-render. Everything else goes through CellWrapper, which is the
-            // only place the display component registry is consulted.
+            // every table re-render. Everything else goes through CellWrapper, which renders
+            // the registered component or the default display for the field type.
             const cellFn =
                 typeof customCell === 'function' && !registeredDisplayComponent
                     ? customCell
@@ -191,22 +199,16 @@ export function useGeneratedColumns<T extends TypedDocumentNode<any, any>>({
             if (!id) {
                 throw new Error('Column id is required');
             }
-            const displayComponentId =
-                pageId && pageBlock?.blockId
-                    ? generateDisplayComponentKey(pageId, pageBlock.blockId, id)
-                    : undefined;
-            const CustomDisplayComponent = displayComponentId
-                ? getDisplayComponent(displayComponentId)
-                : undefined;
+            const RegisteredDisplayComponent = resolveDisplayComponent(id).registeredDisplayComponent;
 
             finalColumns.push(
                 columnHelper.accessor(id as any, {
                     enableColumnFilter: false,
                     ...column,
-                    ...(CustomDisplayComponent
+                    ...(RegisteredDisplayComponent
                         ? {
                               cell: (cellContext: CellContext<any, any>) => (
-                                  <CustomDisplayComponent
+                                  <RegisteredDisplayComponent
                                       value={cellContext.cell.getValue()}
                                       {...cellContext}
                                   />
