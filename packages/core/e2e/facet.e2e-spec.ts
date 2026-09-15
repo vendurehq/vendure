@@ -576,6 +576,16 @@ describe('Facet resolver', () => {
                 'channel-value-1',
                 'channel-value-2',
             ]);
+            shopClient.setChannelToken(SECOND_CHANNEL_TOKEN);
+            try {
+                const shopResult = await shopClient.query(getProductWithFacetValuesDocument, { id: 'T_1' });
+                expect(shopResult.product?.facetValues.map(fv => fv.code).sort()).toEqual([
+                    'channel-value-1',
+                    'channel-value-2',
+                ]);
+            } finally {
+                shopClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            }
         });
 
         it('ProductVariant.facetValues in channel', async () => {

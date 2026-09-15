@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { LanguageCode, LogicalOperator } from '@vendure/common/lib/generated-types';
-import { facetValueCollectionFilter } from '@vendure/core';
+import { facetValueCollectionFilter, TransactionalConnection } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
+import { parse } from 'graphql';
 import * as path from 'path';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
@@ -156,6 +157,32 @@ describe('Shop catalog', () => {
                     },
                 ],
             });
+        });
+
+        it('batches product facet lookups without exposing private values', async () => {
+            const connection = server.app.get(TransactionalConnection);
+            const log = vi.spyOn(connection.rawConnection.logger, 'logQuery');
+            const count = () =>
+                log.mock.calls.filter(([sql]) => /FROM ["`]?facet_value["`]? /i.test(sql)).length;
+            try {
+                const query = parse(`query ProductFacets($take: Int!) {
+                    products(options: { take: $take }) {
+                        items { id facetValues { id name } }
+                    }
+                }`);
+                await shopClient.query(query, { take: 2 });
+                const smallPageQueries = count();
+                log.mockClear();
+                const result = await shopClient.query(query, { take: 20 });
+                expect(result.products.items.length).toBeGreaterThan(2);
+                expect(result.products.items.find((p: { id: string }) => p.id === 'T_2').facetValues).toEqual(
+                    [],
+                );
+                expect(smallPageQueries).toBeGreaterThan(0);
+                expect(count()).toBe(smallPageQueries);
+            } finally {
+                log.mockRestore();
+            }
         });
 
         it('omits private Product.facetValues', async () => {

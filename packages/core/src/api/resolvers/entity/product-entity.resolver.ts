@@ -1,8 +1,10 @@
 import { Args, Info, Parent, ResolveField, Resolver } from '@nestjs/graphql';
 import { ProductVariantListOptions } from '@vendure/common/lib/generated-types';
 import { DEFAULT_CHANNEL_CODE } from '@vendure/common/lib/shared-constants';
-import { PaginatedList } from '@vendure/common/lib/shared-types';
+import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
+import DataLoader from 'dataloader';
 
+import { RequestContextCacheService } from '../../../cache/request-context-cache.service';
 import { Translated } from '../../../common/types/locale-types';
 import { idsAreEqual } from '../../../common/utils';
 import { Asset } from '../../../entity/asset/asset.entity';
@@ -35,6 +37,7 @@ export class ProductEntityResolver {
         private productService: ProductService,
         private facetValueService: FacetValueService,
         private localeStringHydrator: LocaleStringHydrator,
+        private requestCache: RequestContextCacheService,
     ) {}
 
     @ResolveField()
@@ -104,15 +107,36 @@ export class ProductEntityResolver {
             return [];
         }
         let facetValues: Array<Translated<FacetValue>>;
-        if (product.facetValues?.[0]?.channels) {
+        if (product.facetValues) {
             facetValues = product.facetValues as Array<Translated<FacetValue>>;
         } else {
             facetValues = await this.productService.getFacetValuesForProduct(ctx, product.id);
         }
-        const filteredFacetValues = await this.facetValueService.findByIds(
+        const loader = this.requestCache.get(
             ctx,
-            facetValues.map(facetValue => facetValue.id),
+            'ProductEntityResolver.facetValues',
+            () =>
+                new DataLoader<ID[], Array<Translated<FacetValue>>>(
+                    async groups => {
+                        const ids = [...new Map(groups.flat().map(id => [String(id), id])).values()];
+                        const values: Array<Translated<FacetValue>> = [];
+                        for (let offset = 0; offset < ids.length; offset += 500) {
+                            values.push(
+                                ...(await this.facetValueService.findByIds(
+                                    ctx,
+                                    ids.slice(offset, offset + 500),
+                                )),
+                            );
+                        }
+                        return groups.map(group => {
+                            const groupIds = new Set(group.map(String));
+                            return values.filter(value => groupIds.has(String(value.id)));
+                        });
+                    },
+                    { cache: false, maxBatchSize: 50 },
+                ),
         );
+        const filteredFacetValues = await loader.load(facetValues.map(value => value.id));
 
         if (apiType === 'shop') {
             return filteredFacetValues.filter(fv => !fv.facet.isPrivate);
