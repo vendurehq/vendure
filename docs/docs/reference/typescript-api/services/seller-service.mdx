@@ -2,18 +2,18 @@
 title: "SellerService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/seller.service.ts" sourceLine="26" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/seller.service.ts" sourceLine="30" packageName="@vendure/core" />
 
 Contains methods relating to [Seller](/reference/typescript-api/entities/seller#seller) entities.
 
 ```ts title="Signature"
 class SellerService {
-    constructor(connection: TransactionalConnection, listQueryBuilder: ListQueryBuilder, eventBus: EventBus, customFieldRelationService: CustomFieldRelationService)
+    constructor(connection: TransactionalConnection, listQueryBuilder: ListQueryBuilder, eventBus: EventBus, customFieldRelationService: CustomFieldRelationService, translatableSaver: TranslatableSaver, translator: TranslatorService)
     initSellers() => ;
-    findAll(ctx: RequestContext, options?: ListQueryOptions<Seller>) => Promise<PaginatedList<Seller>>;
-    findOne(ctx: RequestContext, sellerId: ID) => Promise<Seller | undefined>;
-    create(ctx: RequestContext, input: CreateSellerInput) => ;
-    update(ctx: RequestContext, input: UpdateSellerInput) => ;
+    findAll(ctx: RequestContext, options?: ListQueryOptions<Seller>) => Promise<PaginatedList<Translated<Seller>>>;
+    findOne(ctx: RequestContext, sellerId: ID) => Promise<Translated<Seller> | undefined>;
+    create(ctx: RequestContext, input: CreateSellerInput) => Promise<Translated<Seller>>;
+    update(ctx: RequestContext, input: UpdateSellerInput) => Promise<Translated<Seller>>;
     delete(ctx: RequestContext, id: ID) => Promise<DeletionResponse>;
 }
 ```
@@ -27,22 +27,22 @@ class SellerService {
 
 ### findAll
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options?: ListQueryOptions<<a href='/reference/typescript-api/entities/seller#seller'>Seller</a>>) => Promise<<a href='/reference/typescript-api/common/paginated-list#paginatedlist'>PaginatedList</a><<a href='/reference/typescript-api/entities/seller#seller'>Seller</a>>>`}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options?: ListQueryOptions<<a href='/reference/typescript-api/entities/seller#seller'>Seller</a>>) => Promise<<a href='/reference/typescript-api/common/paginated-list#paginatedlist'>PaginatedList</a><Translated<<a href='/reference/typescript-api/entities/seller#seller'>Seller</a>>>>`}   />
 
 
 ### findOne
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, sellerId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/seller#seller'>Seller</a> | undefined>`}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, sellerId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<Translated<<a href='/reference/typescript-api/entities/seller#seller'>Seller</a>> | undefined>`}   />
 
 
 ### create
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: CreateSellerInput) => `}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: CreateSellerInput) => Promise<Translated<<a href='/reference/typescript-api/entities/seller#seller'>Seller</a>>>`}   />
 
 
 ### update
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: UpdateSellerInput) => `}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: UpdateSellerInput) => Promise<Translated<<a href='/reference/typescript-api/entities/seller#seller'>Seller</a>>>`}   />
 
 
 ### delete
