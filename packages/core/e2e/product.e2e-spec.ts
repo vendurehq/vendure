@@ -2,9 +2,19 @@ import { DeletionResult, ErrorCode, LanguageCode, SortOrder } from '@vendure/com
 import { omit } from '@vendure/common/lib/omit';
 import { pick } from '@vendure/common/lib/pick';
 import { notNullOrUndefined } from '@vendure/common/lib/shared-utils';
+import {
+    Channel,
+    ConfigService,
+    ProductService,
+    ProductVariant,
+    ProductVariantService,
+    RequestContextService,
+    TransactionalConnection,
+} from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
+import gql from 'graphql-tag';
 import path from 'path';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type {
     productVariantFragment,
     productWithOptionsFragment,
@@ -78,6 +88,158 @@ describe('Product resolver', () => {
 
     afterAll(async () => {
         await server.destroy();
+    });
+
+    describe('batched product variants', () => {
+        it('does not add variant queries for every product in an Admin API list', async () => {
+            const query = gql`
+                query BatchedVariants($take: Int!) {
+                    products(options: { take: $take }) {
+                        items {
+                            id
+                            variants {
+                                id
+                                sku
+                                price
+                            }
+                        }
+                    }
+                }
+            `;
+            await adminClient.query(query, { take: 2 });
+            const connection = server.app.get(TransactionalConnection);
+            const log = vi.spyOn(connection.rawConnection.logger, 'logQuery');
+            try {
+                const small = await adminClient.query(query, { take: 2 });
+                const count = () =>
+                    log.mock.calls.filter(([sql]) => /FROM ["`]?product_variant["`]? /i.test(sql)).length;
+                const smallCount = count();
+                log.mockClear();
+                const large = await adminClient.query(query, { take: 20 });
+                expect(small.products.items).toHaveLength(2);
+                expect(large.products.items).toHaveLength(20);
+                expect(large.products.items.every((product: any) => product.variants.length > 0)).toBe(true);
+                expect(smallCount).toBeGreaterThan(0);
+                expect(count()).toBe(smallCount);
+                expect(count()).toBeLessThanOrEqual(4);
+            } finally {
+                log.mockRestore();
+            }
+        });
+
+        it('matches individual queries across pages, limits and Shop visibility', async () => {
+            const contexts = server.app.get(RequestContextService);
+            const variants = server.app.get(ProductVariantService);
+            const connection = server.app.get(TransactionalConnection);
+            const config = server.app.get(ConfigService);
+            const ctx = await contexts.create({ apiType: 'admin' });
+            const products = await server.app.get(ProductService).findAll(ctx, { take: 3 }, []);
+            const ids = [...products.items.map(product => product.id), products.items[0].id, 999999];
+            const first = (await variants.getVariantsByProductId(ctx, ids[0])).items[0];
+            const second = (await variants.getVariantsByProductId(ctx, ids[0])).items[1];
+            const adminLimit = config.apiOptions.adminListQueryLimit;
+            const shopLimit = config.apiOptions.shopListQueryLimit;
+            try {
+                await connection.getRepository(ctx, ProductVariant).update(first.id, { enabled: false });
+                await connection
+                    .getRepository(ctx, ProductVariant)
+                    .update(second.id, { deletedAt: new Date() });
+                config.apiOptions.adminListQueryLimit = 2;
+                config.apiOptions.shopListQueryLimit = 1;
+                for (const apiType of ['admin', 'shop'] as const) {
+                    const context = await contexts.create({ apiType });
+                    const relations = ['options', 'taxCategory'] as const;
+                    const expected = await Promise.all(
+                        ids.map(id =>
+                            variants
+                                .getVariantsByProductId(context, id, {}, [...relations])
+                                .then(result => result.items),
+                        ),
+                    );
+                    const actual = await Promise.all(
+                        ids.map(id => variants.getVariantsForProduct(context, id, [...relations])),
+                    );
+                    const summarize = (groups: any[][]) =>
+                        groups.map(group =>
+                            group.map(variant => ({
+                                id: variant.id,
+                                sku: variant.sku,
+                                price: variant.price,
+                                priceWithTax: variant.priceWithTax,
+                                currencyCode: variant.currencyCode,
+                                options: variant.options.map((option: any) => option.code),
+                                taxCategory: variant.taxCategory.id,
+                            })),
+                        );
+                    expect(summarize(actual)).toEqual(summarize(expected));
+                    expect(actual[actual.length - 1]).toEqual([]);
+                    const excluded = await contexts.create({
+                        apiType,
+                        channelOrToken: new Channel({ id: 999999 }),
+                    });
+                    expect(await variants.getVariantsForProduct(excluded, ids[0], [])).toEqual([]);
+                }
+            } finally {
+                config.apiOptions.adminListQueryLimit = adminLimit;
+                config.apiOptions.shopListQueryLimit = shopLimit;
+                await connection
+                    .getRepository(ctx, ProductVariant)
+                    .update(first.id, { enabled: first.enabled });
+                await connection
+                    .getRepository(ctx, ProductVariant)
+                    .update(second.id, { deletedAt: second.deletedAt });
+            }
+        });
+
+        it('keeps a product pricing failure isolated from other batch entries', async () => {
+            const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+            const variants = server.app.get(ProductVariantService);
+            const products = (await server.app.get(ProductService).findAll(ctx, { take: 2 }, [])).items;
+            const original = variants.applyChannelPriceAndTax.bind(variants);
+            const pricing = vi
+                .spyOn(variants, 'applyChannelPriceAndTax')
+                .mockImplementation((variant, ...args) => {
+                    if (variant.productId === products[0].id) {
+                        return Promise.reject(new Error('pricing failure'));
+                    }
+                    return original(variant, ...args);
+                });
+            try {
+                const results = await Promise.allSettled(
+                    products.map(product => variants.getVariantsForProduct(ctx, product.id, [])),
+                );
+                expect(results[0].status).toBe('rejected');
+                expect(results[1].status).toBe('fulfilled');
+                if (results[1].status === 'fulfilled') {
+                    expect(results[1].value.length).toBeGreaterThan(0);
+                }
+            } finally {
+                pricing.mockRestore();
+            }
+        });
+
+        it('does not cache results across writes and separates requested relations', async () => {
+            const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+            const variants = server.app.get(ProductVariantService);
+            const connection = server.app.get(TransactionalConnection);
+            const product = (await server.app.get(ProductService).findAll(ctx, { take: 1 }, [])).items[0];
+            const [plain, withOptions] = await Promise.all([
+                variants.getVariantsForProduct(ctx, product.id, []),
+                variants.getVariantsForProduct(ctx, product.id, ['options']),
+            ]);
+            expect(plain[0].options).toBeUndefined();
+            expect(withOptions[0].options).toBeDefined();
+            const originalSku = plain[0].sku;
+            try {
+                await connection
+                    .getRepository(ctx, ProductVariant)
+                    .update(plain[0].id, { sku: 'batch-after-write' });
+                const updated = await variants.getVariantsForProduct(ctx, product.id, []);
+                expect(updated[0].sku).toBe('batch-after-write');
+            } finally {
+                await connection.getRepository(ctx, ProductVariant).update(plain[0].id, { sku: originalSku });
+            }
+        });
     });
 
     describe('products list query', () => {

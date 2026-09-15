@@ -13,6 +13,7 @@ import {
 } from '@vendure/common/lib/generated-types';
 import { CustomFieldsObject, ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { unique } from '@vendure/common/lib/unique';
+import DataLoader from 'dataloader';
 import { In, IsNull } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
@@ -160,6 +161,106 @@ export class ProductVariantService {
                 ],
             })
             .then(variants => this.applyPricesAndTranslateVariants(ctx, variants));
+    }
+
+    /**
+     * @internal
+     * Batches the unpaginated Product.variants field within a request. Results are not
+     * memoized, so later mutations in the same request cannot leave stale variants.
+     */
+    getVariantsForProduct(
+        ctx: RequestContext,
+        productId: ID,
+        relations?: RelationPaths<ProductVariant>,
+    ): Promise<Array<Translated<ProductVariant>>> {
+        const effectiveRelations = unique([
+            ...(relations ?? ['options', 'facetValues', 'facetValues.facet', 'assets', 'featuredAsset']),
+            'taxCategory',
+        ]).sort() as RelationPaths<ProductVariant>;
+        const key = `ProductVariantService.variantsByProduct:${JSON.stringify(effectiveRelations)}`;
+        const loader = this.requestCache.get(
+            ctx,
+            key,
+            () =>
+                new DataLoader<ID, Array<Translated<ProductVariant>>>(
+                    ids => this.batchLoadVariantsByProduct(ctx, ids, effectiveRelations),
+                    { cache: false, maxBatchSize: 50 },
+                ),
+        );
+        return loader.load(productId);
+    }
+
+    private async batchLoadVariantsByProduct(
+        ctx: RequestContext,
+        ids: readonly ID[],
+        relations: RelationPaths<ProductVariant>,
+    ): Promise<Array<Array<Translated<ProductVariant>> | Error>> {
+        const limit =
+            ctx.apiType === 'admin'
+                ? this.configService.apiOptions.adminListQueryLimit
+                : this.configService.apiOptions.shopListQueryLimit;
+        if (!Number.isSafeInteger(limit) || limit <= 0) {
+            return Promise.all(
+                ids.map(id =>
+                    this.getVariantsByProductId(ctx, id, {}, relations)
+                        .then(r => r.items)
+                        .catch(error => (error instanceof Error ? error : new Error(String(error)))),
+                ),
+            );
+        }
+        const byProduct = new Map<string, ProductVariant[]>();
+        let remaining = [...new Map(ids.map(id => [String(id), id])).values()];
+        let cursor: ID | undefined;
+        while (remaining.length) {
+            const qb = this.listQueryBuilder
+                .build(
+                    ProductVariant,
+                    { take: limit },
+                    {
+                        relations,
+                        orderBy: { id: 'ASC' },
+                        where: { deletedAt: IsNull() },
+                        ctx,
+                    },
+                )
+                .innerJoinAndSelect('productvariant.channels', 'channel', 'channel.id = :channelId', {
+                    channelId: ctx.channelId,
+                })
+                .innerJoinAndSelect('productvariant.product', 'product', 'product.id IN (:...productIds)', {
+                    productIds: remaining,
+                });
+            if (ctx.apiType === 'shop') {
+                qb.andWhere('productvariant.enabled = :enabled', { enabled: true });
+            }
+            if (cursor !== undefined) {
+                qb.andWhere('productvariant.id > :variantCursor', { variantCursor: cursor });
+            }
+            const page = await qb.getMany();
+            for (const variant of page) {
+                const key = String(variant.productId);
+                const group = byProduct.get(key) ?? [];
+                if (group.length < limit) {
+                    group.push(variant);
+                    byProduct.set(key, group);
+                }
+            }
+            if (page.length < limit) {
+                break;
+            }
+            cursor = page[page.length - 1].id;
+            remaining = remaining.filter(id => (byProduct.get(String(id))?.length ?? 0) < limit);
+        }
+        const translated = new Map<string, Array<Translated<ProductVariant>> | Error>();
+        await Promise.all(
+            [...byProduct].map(async ([id, variants]) => {
+                try {
+                    translated.set(id, await this.applyPricesAndTranslateVariants(ctx, variants));
+                } catch (error) {
+                    translated.set(id, error instanceof Error ? error : new Error(String(error)));
+                }
+            }),
+        );
+        return ids.map(id => translated.get(String(id)) ?? []);
     }
 
     getVariantsByProductId(

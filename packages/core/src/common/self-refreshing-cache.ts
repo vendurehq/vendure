@@ -120,7 +120,8 @@ export async function createSelfRefreshingCache<V, RefreshArgs extends any[]>(
     const initialValue: V = await refresh.fn(...(refreshArgs ?? refresh.defaultArgs));
     let value = initialValue;
     let expires = getTimeNow() + ttl;
-    const memoCache = new Map<string, { expires: number; value: any }>();
+    type MemoEntry = { expires: number; value: any; generation: number };
+    const memoCache = new Map<string, MemoEntry>();
     let nextRefreshId = 0;
     let publishedRefreshId = 0;
     const refreshValue = (resetMemoCache = true, args: RefreshArgs): Promise<V> => {
@@ -174,15 +175,20 @@ export async function createSelfRefreshingCache<V, RefreshArgs extends any[]>(
         const key = JSON.stringify(args);
         const cached = memoCache.get(key);
         const now = getTimeNow();
-        if (cached && now < cached.expires) {
+        if (cached && now < cached.expires && cached.generation === publishedRefreshId) {
             return cached.value;
         }
-        const result = getValue(_refreshArgs, false).then(val => fn(val, ...args));
-        memoCache.set(key, {
+        const entry: MemoEntry = {
             expires: now + ttl,
-            value: result,
+            generation: publishedRefreshId,
+            value: undefined,
+        };
+        entry.value = getValue(_refreshArgs, false).then(val => {
+            entry.generation = Object.is(val, value) ? publishedRefreshId : -1;
+            return fn(val, ...args);
         });
-        return result;
+        memoCache.set(key, entry);
+        return entry.value;
     };
     return {
         value: (...args) =>
@@ -191,7 +197,11 @@ export async function createSelfRefreshingCache<V, RefreshArgs extends any[]>(
                     ? undefined
                     : (args as RefreshArgs),
             ),
-        refresh: (...args) => refreshValue(true, args),
+        refresh: async (...args) => {
+            const result = await refreshValue(true, args);
+            memoCache.clear();
+            return result;
+        },
         memoize,
     };
 }

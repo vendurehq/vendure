@@ -238,6 +238,90 @@ describe('concurrent context-free refreshes', () => {
         expect(await cache.value()).toBe(3);
     });
 
+    it('invalidates old memo entries when a forced refresh is superseded', async () => {
+        let now = 0;
+        const fetch = vi.fn(async (_context: string) => 1);
+        const cache = await createSelfRefreshingCache({
+            name: 'superseded',
+            ttl: 1000,
+            refresh: { fn: fetch, defaultArgs: ['default'] },
+            getTimeFn: () => now,
+        });
+        now = 500;
+        expect(await cache.memoize(['old'], ['default'], value => value * 10)).toBe(10);
+        now = 1001;
+        let resolveForced!: (value: number) => void;
+        fetch.mockImplementationOnce(() => new Promise<number>(resolve => (resolveForced = resolve)));
+        const forced = cache.refresh('forced');
+        fetch.mockResolvedValueOnce(3);
+        expect(await cache.memoize(['new'], ['newer'], value => value * 10)).toBe(30);
+        resolveForced(2);
+        await forced;
+        expect(await cache.value()).toBe(3);
+        expect(await cache.memoize(['old'], ['default'], value => value * 10)).toBe(30);
+    });
+
+    it('invalidates old memos when an automatic refresh is superseded', async () => {
+        let now = 0;
+        const fetch = vi.fn(async () => 1);
+        const cache = await createSelfRefreshingCache({
+            name: 'automatic-generation',
+            ttl: 1000,
+            refresh: { fn: fetch, defaultArgs: [] },
+            getTimeFn: () => now,
+        });
+        const derive = vi.fn((value: number) => value * 10);
+        now = 500;
+        expect(await cache.memoize(['old'], [], derive)).toBe(10);
+        now = 1001;
+        let resolveOld!: (value: number) => void;
+        fetch.mockImplementationOnce(() => new Promise<number>(resolve => (resolveOld = resolve)));
+        const automatic = cache.value();
+        fetch.mockResolvedValueOnce(3);
+        expect(await cache.memoize(['new'], [], value => value * 10)).toBe(30);
+        resolveOld(2);
+        await automatic;
+        expect(await cache.value()).toBe(3);
+        expect(await cache.memoize(['old'], [], derive)).toBe(30);
+        expect(await cache.memoize(['old'], [], derive)).toBe(30);
+        expect(derive).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not reuse a memo derived from a superseded refresh result', async () => {
+        const { cache, fetch } = await setup();
+        let resolveOld!: (value: number) => void;
+        fetch.mockImplementationOnce(() => new Promise<number>(resolve => (resolveOld = resolve)));
+        const oldMemo = cache.memoize(['old'], ['old-context'], value => value * 10);
+        fetch.mockResolvedValueOnce(3);
+        expect(await cache.memoize(['new'], ['new-context'], value => value * 10)).toBe(30);
+        resolveOld(2);
+        expect(await oldMemo).toBe(20);
+        expect(await cache.memoize(['old'], ['old-context'], value => value * 10)).toBe(30);
+    });
+
+    it('does not reuse a slow derived result after its source value changes', async () => {
+        let now = 0;
+        const fetch = vi.fn(async () => 1);
+        const cache = await createSelfRefreshingCache({
+            name: 'slow-derivation',
+            ttl: 1000,
+            refresh: { fn: fetch, defaultArgs: [] },
+            getTimeFn: () => now,
+        });
+        let resolveDerived!: (value: number) => void;
+        const derive = vi.fn(async (value: number) => value * 10);
+        derive.mockImplementationOnce(() => new Promise<number>(resolve => (resolveDerived = resolve)));
+        now = 500;
+        const oldMemo = cache.memoize(['old'], [], derive);
+        await Promise.resolve();
+        now = 1001;
+        fetch.mockResolvedValueOnce(3);
+        await cache.memoize(['new'], [], value => value * 10);
+        resolveDerived(10);
+        expect(await oldMemo).toBe(10);
+        expect(await cache.memoize(['old'], [], derive)).toBe(30);
+    });
+
     it('invalidates memoized results when a shared refresh completes', async () => {
         let now = 0;
         const fetch = vi.fn(async () => 1);
