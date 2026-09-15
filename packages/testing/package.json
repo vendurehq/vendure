@@ -40,7 +40,7 @@
         "@graphql-typed-document-node/core": "^3.2.0",
         "@vendure/common": "3.7.2",
         "faker": "^4.1.0",
-        "graphql": "^16.11.0",
+        "graphql": "^16.14.2",
         "graphql-tag": "^2.12.6",
         "mime-types": "^3.0.2",
         "sql.js": "1.14.2"
