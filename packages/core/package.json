@@ -42,15 +42,16 @@
         "cli/**/*"
     ],
     "dependencies": {
-        "@apollo/server": "^4.12.2",
+        "@apollo/server": "^5.5.1",
+        "@as-integrations/express5": "^1.1.2",
         "@graphql-tools/merge": "^9.1.7",
         "@graphql-tools/utils": "^10.11.0",
-        "@nestjs/apollo": "~13.1.0",
-        "@nestjs/common": "^11.0.12",
-        "@nestjs/core": "^11.0.12",
-        "@nestjs/graphql": "~13.1.0",
-        "@nestjs/platform-express": "^11.0.12",
-        "@nestjs/typeorm": "^11.0.1",
+        "@nestjs/apollo": "~14.0.0",
+        "@nestjs/common": "^12.0.1",
+        "@nestjs/core": "^12.0.1",
+        "@nestjs/graphql": "~14.0.0",
+        "@nestjs/platform-express": "^12.0.1",
+        "@nestjs/typeorm": "^12.0.1",
         "@types/express": "^5.0.1",
         "@vendure/common": "3.7.2",
         "bcrypt": "^6.0.0",
@@ -84,7 +85,7 @@
         "typeorm": "^0.3.21"
     },
     "devDependencies": {
-        "@nestjs/testing": "^11.0.12",
+        "@nestjs/testing": "^12.0.1",
         "@types/bcrypt": "^6.0.0",
         "@types/cookie-session": "^2.0.49",
         "@types/fs-extra": "^11.0.4",
