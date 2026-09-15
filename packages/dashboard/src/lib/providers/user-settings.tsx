@@ -12,7 +12,19 @@ import { Theme } from './theme-provider.js';
 export interface TableSettings {
     columnVisibility?: Record<string, boolean>;
     columnOrder?: string[];
-    columnFilters?: ColumnFiltersState;
+    /**
+     * @description
+     * The column filters the user has configured for this table. Three states are
+     * meaningful, which is what lets `ListPage`'s `defaultColumnFilters` apply only until
+     * the user has expressed a preference:
+     *
+     * - absent, or `[]`: no preference. An empty array is written by dashboard versions
+     *   before `defaultColumnFilters` existed, which saved the filter state on mount, so it
+     *   cannot be told apart from a deliberate clear made back then and means neither.
+     * - `null`: the user cleared every filter here. Written from that version on.
+     * - a non-empty array: the user's own filters.
+     */
+    columnFilters?: ColumnFiltersState | null;
     pageSize?: number;
 }
 

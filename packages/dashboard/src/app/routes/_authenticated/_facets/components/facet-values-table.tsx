@@ -53,7 +53,9 @@ export function FacetValuesTable({ facetId, registerRefresher, title }: Readonly
         ? (tableSettings?.columnVisibility ?? defaultVisibility)
         : defaultVisibility;
     const columnOrder = pageId ? (tableSettings?.columnOrder ?? []) : ['name', 'code'];
-    const columnFilters = pageId ? tableSettings?.columnFilters : [];
+    // `null` is the saved "user cleared every filter" state; this table declares no default
+    // filters, so it and an absent value both mean the same thing here.
+    const columnFilters = pageId ? (tableSettings?.columnFilters ?? []) : [];
 
     return (
         <PaginatedListDataTable
