@@ -60,7 +60,7 @@
         "chartist": "^1.3.0",
         "codejar": "^4.2.0",
         "dayjs": "^1.11.10",
-        "graphql": "^16.11.0",
+        "graphql": "^16.14.2",
         "just-extend": "^6.2.0",
         "messageformat": "2.3.0",
         "ngx-pagination": "^6.0.3",

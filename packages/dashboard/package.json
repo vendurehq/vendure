@@ -108,7 +108,7 @@
         "fast-glob": "^3.3.2",
         "fs-extra": "^11.3.4",
         "gql.tada": "^1.8.13",
-        "graphql": "^16.11.0",
+        "graphql": "^16.14.2",
         "input-otp": "^1.4.2",
         "json-edit-react": "^1.23.1",
         "lucide-react": "^0.575.0",
