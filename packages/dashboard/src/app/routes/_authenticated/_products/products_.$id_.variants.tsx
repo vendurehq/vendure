@@ -497,14 +497,14 @@ function ManageProductVariants() {
                         </Table>
                     </div>
 
-                    {productData.product.optionGroups.length > 0 && (
-                        <div className="flex items-center gap-2">
-                            <AddProductVariantDialog
-                                productId={id}
-                                onSuccess={() => {
-                                    refetch();
-                                }}
-                            />
+                    <div className="flex items-center gap-2">
+                        <AddProductVariantDialog
+                            productId={id}
+                            onSuccess={() => {
+                                refetch();
+                            }}
+                        />
+                        {productData.product.optionGroups.length > 0 && (
                             <GenerateMissingVariantsDialog
                                 productId={id}
                                 productName={productData.product.name}
@@ -514,8 +514,8 @@ function ManageProductVariants() {
                                 }))}
                                 onSuccess={() => refetch()}
                             />
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </PageBlock>
             </PageLayout>
             <ForceRemoveOptionGroupDialog
