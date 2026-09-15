@@ -47,6 +47,8 @@ let existsSubqueryCounter = 0;
  */
 export type ExtendedListQueryOptions<T extends VendureEntity> = {
     relations?: string[];
+    /** Defaults to separate relation queries. Use joins for small, bounded relations. */
+    relationLoadStrategy?: FindOneOptions<T>['relationLoadStrategy'];
     channelId?: ID;
     where?: FindOptionsWhere<T>;
     orderBy?: FindOneOptions<T>['order'];
@@ -290,7 +292,7 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
             take,
             skip,
             where: extendedOptions.where || {},
-            relationLoadStrategy: 'query',
+            relationLoadStrategy: extendedOptions.relationLoadStrategy ?? 'query',
         });
 
         // join the tables required by calculated columns
@@ -659,7 +661,7 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         extendedOptions: ExtendedListQueryOptions<T>,
     ): string[] {
         const requiredRelations: string[] = [];
-        if (extendedOptions.channelId) {
+        if (extendedOptions.channelId && extendedOptions.relations === undefined) {
             requiredRelations.push('channels');
         }
 

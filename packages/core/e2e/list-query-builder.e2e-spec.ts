@@ -1,5 +1,5 @@
 import { LanguageCode, LogicalOperator, SortOrder } from '@vendure/common/lib/generated-types';
-import { mergeConfig } from '@vendure/core';
+import { ListQueryBuilder, mergeConfig, Product, RequestContextService } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import gql from 'graphql-tag';
 import path from 'node:path';
@@ -42,6 +42,59 @@ describe('ListQueryBuilder', () => {
     function getItemLabels(items: any[]): string[] {
         return items.map((x: any) => x.label).sort();
     }
+
+    describe('channel filtering and relation selection', () => {
+        it('filters by channel without loading unrequested channel entities', async () => {
+            const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+            const builder = server.app.get(ListQueryBuilder);
+            const [products, total] = await builder
+                .build(
+                    Product,
+                    { take: 1 },
+                    {
+                        ctx,
+                        channelId: ctx.channelId,
+                        relations: [],
+                    },
+                )
+                .getManyAndCount();
+            expect(products).toHaveLength(1);
+            expect(total).toBe(1);
+            expect(products[0].channels).toBeUndefined();
+            const excluded = await builder
+                .build(
+                    Product,
+                    {},
+                    {
+                        ctx,
+                        channelId: 999999,
+                        relations: [],
+                    },
+                )
+                .getMany();
+            expect(excluded).toEqual([]);
+        });
+
+        it('retains explicit and default channel relation loading', async () => {
+            const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+            const builder = server.app.get(ListQueryBuilder);
+            for (const relations of [undefined, ['channels']]) {
+                const products = await builder
+                    .build(
+                        Product,
+                        { take: 1 },
+                        {
+                            ctx,
+                            channelId: ctx.channelId,
+                            relations,
+                        },
+                    )
+                    .getMany();
+                expect(products).toHaveLength(1);
+                expect(products[0].channels.map(channel => channel.id)).toContain(ctx.channelId);
+            }
+        });
+    });
 
     describe('pagination', () => {
         it('all en', async () => {

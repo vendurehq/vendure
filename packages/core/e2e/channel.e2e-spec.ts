@@ -5,6 +5,7 @@ import {
     ErrorCode,
     LanguageCode,
     Permission,
+    SortOrder,
 } from '@vendure/common/lib/generated-types';
 import { DEFAULT_CHANNEL_CODE } from '@vendure/common/lib/shared-constants';
 import { ChannelService, RequestContextService, TransactionalConnection } from '@vendure/core';
@@ -140,6 +141,37 @@ describe('Channels', () => {
         } finally {
             logQuery.mockRestore();
         }
+    });
+
+    it('paginates channel lists with joined default zones', async () => {
+        const channelService = server.app.get(ChannelService);
+        const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+        const connection = server.app.get(TransactionalConnection);
+        const logQuery = vi.spyOn(connection.rawConnection.logger, 'logQuery');
+        try {
+            const result = await channelService.findAll(ctx, {
+                take: 1,
+                skip: 1,
+                sort: { code: SortOrder.ASC },
+            });
+            expect(result.totalItems).toBe(2);
+            expect(result.items).toHaveLength(1);
+            expect(result.items[0].code).toBe('second-channel');
+            expect(result.items[0].defaultShippingZone.id).toBe(1);
+            expect(result.items[0].defaultTaxZone.id).toBe(1);
+            expect(logQuery.mock.calls.some(([sql]) => /FROM ["`]?zone["`]? /i.test(sql))).toBe(false);
+        } finally {
+            logQuery.mockRestore();
+        }
+        const explicit = await channelService.findAll(
+            ctx,
+            {
+                filter: { code: { eq: 'second-channel' } },
+            },
+            [],
+        );
+        expect(explicit.totalItems).toBe(1);
+        expect(explicit.items[0].defaultTaxZone).toBeUndefined();
     });
 
     // it('update currencyCode', async () => {

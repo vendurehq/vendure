@@ -303,6 +303,7 @@ export class ChannelService {
         return this.listQueryBuilder
             .build(Channel, options, {
                 relations: relations ?? ['defaultShippingZone', 'defaultTaxZone'],
+                relationLoadStrategy: 'join',
                 ctx,
             })
             .getManyAndCount()
