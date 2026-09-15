@@ -131,6 +131,11 @@ export class InMemoryJobQueueStrategy extends PollingJobQueueStrategy implements
         // instance held in `unsettledJobs`. Drop any existing entry for it first, otherwise
         // cancelling a job which is still PENDING would leave the original PENDING instance
         // queued, and `next()` would run it despite the cancellation.
+        //
+        // The store is last-write-wins: whichever instance is passed here becomes the stored one.
+        // A snapshot written back while a job is RUNNING therefore displaces the live instance
+        // until the processing loop writes it back on its next progress report or on settlement.
+        // Cancel a running job via `cancelJob()`, which reaches the stored instance directly.
         this.removeFromUnsettled(job);
         if (job.state === JobState.RETRYING || job.state === JobState.PENDING) {
             this.unsettledJobs[job.queueName].unshift({ job, updatedAt: new Date() });
