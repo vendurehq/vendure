@@ -32,6 +32,15 @@ export const e2eCustomFields: CustomFields = {
             type: 'int',
             label: [{ languageCode: LanguageCode.en, value: 'Review Rating' }],
         },
+        // A `nullable: false` custom field must declare a `defaultValue`, which becomes the
+        // column's SQL DEFAULT — the value a create form relies on when it is left empty (#5241).
+        {
+            name: 'warrantyMonths',
+            type: 'int',
+            nullable: false,
+            defaultValue: 12,
+            label: [{ languageCode: LanguageCode.en, value: 'Warranty Months' }],
+        },
         {
             name: 'isDownloadable',
             type: 'boolean',
