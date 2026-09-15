@@ -1,8 +1,22 @@
+import { createRequire } from 'module';
 import path from 'path';
 import swc from 'unplugin-swc';
 import { defineConfig } from 'vitest/config';
 
+const require = createRequire(import.meta.url);
+
 export default defineConfig({
+    resolve: {
+        /**
+         * graphql ships both a CommonJS and an ESM build. @vendure/core is CommonJS and loads
+         * the CommonJS one, but Vite prefers the `module` field when it resolves a dependency
+         * for a transformed test file, so a package such as graphql-query-complexity can pull
+         * in the ESM build. graphql-js compares constructor identity, so the two builds make it
+         * reject types built by the other with "Cannot use GraphQLNonNull from another module
+         * or realm". Pinning the specifier to the entry Node would pick keeps it to one copy.
+         */
+        alias: [{ find: /^graphql$/, replacement: require.resolve('graphql') }],
+    },
     test: {
         include: ['**/*.e2e-spec.ts'],
         /**
