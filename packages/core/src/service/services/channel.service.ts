@@ -94,24 +94,11 @@ export class ChannelService {
             name: 'ChannelService.allChannels',
             ttl: this.configService.entityOptions.channelCacheTtl,
             refresh: {
-                fn: async ctx => {
-                    const result = await this.listQueryBuilder
-                        .build(
-                            Channel,
-                            {},
-                            {
-                                ctx,
-                                relations: ['defaultShippingZone', 'defaultTaxZone'],
-                                ignoreQueryLimits: true,
-                            },
-                        )
-                        .getManyAndCount()
-                        .then(([items, totalItems]) => ({
-                            items,
-                            totalItems,
-                        }));
-                    return result.items;
-                },
+                fn: ctx =>
+                    this.connection.getRepository(ctx, Channel).find({
+                        relations: ['defaultShippingZone', 'defaultTaxZone'],
+                        relationLoadStrategy: 'join',
+                    }),
                 defaultArgs: [RequestContext.empty()],
             },
         });

@@ -7,7 +7,7 @@ import {
     Permission,
 } from '@vendure/common/lib/generated-types';
 import { DEFAULT_CHANNEL_CODE } from '@vendure/common/lib/shared-constants';
-import { ChannelService, RequestContextService } from '@vendure/core';
+import { ChannelService, RequestContextService, TransactionalConnection } from '@vendure/core';
 import {
     createErrorResultGuard,
     createTestEnvironment,
@@ -16,7 +16,7 @@ import {
 } from '@vendure/testing';
 import { ResultOf } from 'gql.tada';
 import path from 'path';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
@@ -121,6 +121,25 @@ describe('Channels', () => {
             },
             pricesIncludeTax: true,
         });
+    });
+
+    it('loads the channel cache and both default zones in one query', async () => {
+        const channelService = server.app.get(ChannelService);
+        const connection = server.app.get(TransactionalConnection);
+        const logQuery = vi.spyOn(connection.rawConnection.logger, 'logQuery');
+        try {
+            const cache = await channelService.createCache();
+            const channels = await cache.value();
+            expect(channels.map(channel => channel.code).sort()).toEqual(
+                [DEFAULT_CHANNEL_CODE, 'second-channel'].sort(),
+            );
+            const second = channels.find(channel => channel.token === SECOND_CHANNEL_TOKEN)!;
+            expect(second.defaultShippingZone.id).toBe(1);
+            expect(second.defaultTaxZone.id).toBe(1);
+            expect(logQuery).toHaveBeenCalledTimes(1);
+        } finally {
+            logQuery.mockRestore();
+        }
     });
 
     // it('update currencyCode', async () => {

@@ -121,16 +121,22 @@ export async function createSelfRefreshingCache<V, RefreshArgs extends any[]>(
     let value = initialValue;
     let expires = getTimeNow() + ttl;
     const memoCache = new Map<string, { expires: number; value: any }>();
+    let nextRefreshId = 0;
+    let publishedRefreshId = 0;
     const refreshValue = (resetMemoCache = true, args: RefreshArgs): Promise<V> => {
+        const refreshId = ++nextRefreshId;
         return refresh
             .fn(...args)
             .then(newValue => {
-                value = newValue;
-                expires = getTimeNow() + ttl;
-                if (resetMemoCache) {
-                    memoCache.clear();
+                if (refreshId > publishedRefreshId) {
+                    publishedRefreshId = refreshId;
+                    value = newValue;
+                    expires = getTimeNow() + ttl;
+                    if (resetMemoCache) {
+                        memoCache.clear();
+                    }
                 }
-                return value;
+                return newValue;
             })
             .catch((err: any) => {
                 const _message = err.message;
@@ -143,9 +149,19 @@ export async function createSelfRefreshingCache<V, RefreshArgs extends any[]>(
                 return value;
             });
     };
+    let pendingDefaultRefresh: Promise<V> | undefined;
     const getValue = async (_refreshArgs?: RefreshArgs, resetMemoCache = true): Promise<V> => {
         const now = getTimeNow();
         if (expires < now) {
+            // Only share context-free reads. Explicit arguments can refer to different transactions.
+            if (_refreshArgs === undefined && resetMemoCache) {
+                if (!pendingDefaultRefresh) {
+                    pendingDefaultRefresh = refreshValue(true, refresh.defaultArgs).finally(() => {
+                        pendingDefaultRefresh = undefined;
+                    });
+                }
+                return pendingDefaultRefresh;
+            }
             return refreshValue(resetMemoCache, _refreshArgs ?? refresh.defaultArgs);
         }
         return value;
