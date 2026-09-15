@@ -458,7 +458,8 @@ for plugin authors; this file covers what a contributor to the CLI itself needs.
    all registered or none are.
 4. A plugin that conflicts is reported on stderr and skipped. Built-ins stay
    registered, which is what keeps `vendure plugins remove` reachable.
-5. `registerCommands()` walks the resulting tree onto Commander.
+5. `registerCommands()` walks the resulting tree onto Commander, and groups
+   each top-level command under the package that registered it.
 
 ### Things worth knowing before changing this code
 
@@ -472,6 +473,26 @@ for plugin authors; this file covers what a contributor to the CLI itself needs.
   Commander passed to the action, and onto the `Command`, so both readings
   agree. Registration rejects the two declarations if they disagree about
   whether a value follows the flag. Covered in `command-registry.spec.ts`.
+- **Help is grouped by the package a command or option came from.**
+  `getCommandTree()` and `getRootOptions()` return each node paired with the
+  plugin that registered it, and `registerCommands()` turns that into
+  Commander's `helpGroup()`. They are returned paired rather than as a
+  separate name-keyed map so the two cannot disagree. Nothing about how a
+  command is invoked changes.
+- **Only the root help is grouped.** A subcommand's help shows shared options
+  in the `Global Options:` section, which Commander builds as one flat list
+  whatever group the options are in, so it mixes the CLI's own with a plugin's.
+  Grouping it would mean overriding `Help#formatHelp` and owning a copy of
+  Commander's layout. Only top-level commands need a group: a subcommand
+  appears only in the help of the command it is nested under, and that
+  command's heading already names the package.
+- **A sub-option is grouped with its parent**, since the help lists it indented
+  under the parent. Splitting them would leave the indented line under nothing.
+- **Nothing validates the built-in command definitions at runtime.** A plugin
+  goes through `assertCliPlugin()` when it loads, so a duplicate option flag is
+  rejected by name; the built-ins reach Commander unchecked, which throws from
+  v13 onwards and fails the whole CLI at startup. `builtins.spec.ts` holds them
+  to the same rule.
 - **Extensions cannot add positional arguments.** Commander passes one argument
   slot per declared positional, so an appended argument would shift the options,
   `Command` and context that an existing action expects.

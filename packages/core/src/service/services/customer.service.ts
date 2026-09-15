@@ -3,7 +3,8 @@ import {
     RegisterCustomerAccountResult,
     RegisterCustomerInput,
     UpdateCustomerInput as UpdateCustomerShopInput,
-    VerifyCustomerAccountResult,
+    // Both APIs declare a `VerifyCustomerAccountResult`, with different members.
+    VerifyCustomerAccountResult as VerifyCustomerAccountShopResult,
 } from '@vendure/common/lib/generated-shop-types';
 import {
     AddNoteToCustomerInput,
@@ -19,6 +20,7 @@ import {
     UpdateCustomerInput,
     UpdateCustomerNoteInput,
     UpdateCustomerResult,
+    VerifyCustomerAccountResult as VerifyCustomerAccountAdminResult,
 } from '@vendure/common/lib/generated-types';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { IsNull } from 'typeorm';
@@ -26,7 +28,7 @@ import { IsNull } from 'typeorm';
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
 import { ErrorResultUnion, isGraphQlErrorResult } from '../../common/error/error-result';
-import { EntityNotFoundError, InternalServerError } from '../../common/error/errors';
+import { EntityNotFoundError, InternalServerError, UserInputError } from '../../common/error/errors';
 import { EmailAddressConflictError as EmailAddressConflictAdminError } from '../../common/error/generated-graphql-admin-errors';
 import {
     EmailAddressConflictError,
@@ -252,7 +254,7 @@ export class CustomerService {
         }
         const customerUser = await this.userService.createCustomerUser(ctx, input.emailAddress, password);
         if (isGraphQlErrorResult(customerUser)) {
-            throw customerUser;
+            return customerUser;
         }
         customer.user = customerUser;
 
@@ -283,14 +285,7 @@ export class CustomerService {
         });
 
         if (customer.user?.verified) {
-            await this.historyService.createHistoryEntryForCustomer({
-                ctx,
-                customerId: createdCustomer.id,
-                type: HistoryEntryType.CUSTOMER_VERIFIED,
-                data: {
-                    strategy: NATIVE_AUTH_STRATEGY_NAME,
-                },
-            });
+            await this.createVerifiedHistoryEntry(ctx, createdCustomer.id);
         }
         await this.eventBus.publish(new CustomerEvent(ctx, createdCustomer, 'created', input));
         return createdCustomer;
@@ -513,14 +508,7 @@ export class CustomerService {
             // `requireVerification` setting).
             await this.eventBus.publish(new AccountRegistrationEvent(ctx, user));
         } else {
-            await this.historyService.createHistoryEntryForCustomer({
-                customerId: customer.id,
-                ctx,
-                type: HistoryEntryType.CUSTOMER_VERIFIED,
-                data: {
-                    strategy: NATIVE_AUTH_STRATEGY_NAME,
-                },
-            });
+            await this.createVerifiedHistoryEntry(ctx, customer.id);
         }
         return { success: true };
     }
@@ -547,7 +535,7 @@ export class CustomerService {
         ctx: RequestContext,
         verificationToken: string,
         password?: string,
-    ): Promise<ErrorResultUnion<VerifyCustomerAccountResult, Customer>> {
+    ): Promise<ErrorResultUnion<VerifyCustomerAccountShopResult, Customer>> {
         const result = await this.userService.verifyUserByToken(ctx, verificationToken, password);
         if (isGraphQlErrorResult(result)) {
             return result;
@@ -559,17 +547,60 @@ export class CustomerService {
         if (ctx.channelId) {
             await this.channelService.assignToChannels(ctx, Customer, customer.id, [ctx.channelId]);
         }
+        await this.createVerifiedHistoryEntry(ctx, customer.id);
+        const user = assertFound(this.findOneByUserId(ctx, result.id));
+        await this.eventBus.publish(new AccountVerifiedEvent(ctx, customer));
+        return user;
+    }
+
+    /**
+     * @description
+     * Manually marks a Customer's email address as verified, for use by an administrator when the
+     * customer has not received or cannot complete the verification email. See
+     * {@link UserService.verifyUserWithoutToken} for the rules the `password` argument follows.
+     *
+     * A Customer with no User (a guest checkout) has no account to verify, and is rejected.
+     *
+     * @since 3.8.0
+     */
+    async verifyCustomerAccount(
+        ctx: RequestContext,
+        customerId: ID,
+        password?: string,
+    ): Promise<ErrorResultUnion<VerifyCustomerAccountAdminResult, Customer>> {
+        const customer = await this.connection.getEntityOrThrow(ctx, Customer, customerId, {
+            channelId: ctx.channelId,
+            relations: ['user'],
+        });
+        if (!customer.user) {
+            throw new UserInputError('error.customer-has-no-user-account');
+        }
+        const wasVerified = customer.user.verified;
+        const result = await this.userService.verifyUserWithoutToken(ctx, customer.user.id, password);
+        if (isGraphQlErrorResult(result)) {
+            return result;
+        }
+        // `verifyUserWithoutToken` loads and saves a User of its own, so the relation loaded above
+        // still reads `verified: false`. Subscribers of the event below are handed this Customer, so
+        // it has to carry the saved User rather than the stale one.
+        customer.user = result;
+        // Re-running the mutation must not add a second history entry or publish a second event.
+        if (!wasVerified) {
+            await this.createVerifiedHistoryEntry(ctx, customer.id);
+            await this.eventBus.publish(new AccountVerifiedEvent(ctx, customer));
+        }
+        return assertFound(this.findOne(ctx, customer.id));
+    }
+
+    private async createVerifiedHistoryEntry(ctx: RequestContext, customerId: ID): Promise<void> {
         await this.historyService.createHistoryEntryForCustomer({
-            customerId: customer.id,
+            customerId,
             ctx,
             type: HistoryEntryType.CUSTOMER_VERIFIED,
             data: {
                 strategy: NATIVE_AUTH_STRATEGY_NAME,
             },
         });
-        const user = assertFound(this.findOneByUserId(ctx, result.id));
-        await this.eventBus.publish(new AccountVerifiedEvent(ctx, customer));
-        return user;
     }
 
     /**

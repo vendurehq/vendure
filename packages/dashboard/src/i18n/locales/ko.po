@@ -432,6 +432,7 @@ msgstr "재고 위치가 생성되었습니다"
 msgid "No widgets to add"
 msgstr ""
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
@@ -804,6 +805,10 @@ msgstr "계속하려면 고객을 선택하세요"
 msgid "Successfully assigned option group"
 msgstr "옵션 그룹이 할당되었습니다"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+msgid "Marks the account as verified without the customer having to use a verification email."
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx
 msgid "Run Test"
 msgstr "테스트 실행"
@@ -1025,6 +1030,10 @@ msgstr "환불 메모 입력"
 msgid "Order line removed"
 msgstr "주문 항목이 제거되었습니다"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+msgid "Setting a password here verifies the account immediately. Left empty, the customer has no password and cannot log in until they set one."
+msgstr ""
+
 #: src/lib/components/layout/channel-switcher.tsx
 msgid "Content:"
 msgstr "내용:"
@@ -1152,6 +1161,8 @@ msgid "Failed to update zone"
 msgstr "지역 업데이트 실패"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_profile/profile.tsx
 #: src/app/routes/_authenticated/_profile/profile.tsx
 #: src/lib/components/login/login-form.tsx
@@ -1788,6 +1799,10 @@ msgstr "국가"
 msgid "Loading metrics…"
 msgstr ""
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+msgid "Customer account verified"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #~ msgid "Failed to create product options"
@@ -1909,6 +1924,7 @@ msgstr ""
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
@@ -3748,6 +3764,10 @@ msgstr "카테고리"
 msgid "Moving..."
 msgstr "이동 중..."
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+msgid "Needed only for a customer who has no password yet, since that account cannot be logged into. Leave empty for a customer who already has one."
+msgstr ""
+
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 msgid "Assign"
 msgstr "할당"
@@ -4488,6 +4508,11 @@ msgstr "항목 추가"
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 msgid "Successfully created API key"
 msgstr "API 키가 생성되었습니다"
+
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+msgid "Verify account"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 msgid "Loading preview…"
@@ -6137,6 +6162,10 @@ msgstr "기본적으로 재고 추적"
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
 msgid "{selected} of {total} selected"
 msgstr "{total}개 중 {selected}개 선택됨"
+
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+msgid "Verify"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
 msgid "Successfully created shipping method"

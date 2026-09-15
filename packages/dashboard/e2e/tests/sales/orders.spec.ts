@@ -507,6 +507,92 @@ test.describe('Orders', () => {
         await expect(recalculateCheckbox).toBeChecked();
     });
 
+    // #3389 — existing tax descriptions should be available when adding a surcharge
+    test('should suggest existing tax descriptions when adding a surcharge', async ({ page }) => {
+        test.setTimeout(60_000);
+
+        const orderId = await createModifyingOrder(page);
+
+        await page.goto(`/orders/${orderId}/modify`);
+        await expect(page.getByRole('heading', { name: 'Modify order' })).toBeVisible({
+            timeout: 10_000,
+        });
+
+        // The order's only tax line comes from the seeded 20% rate, which
+        // e2e/fixtures/initial-data.ts names "Standard Tax" and the populator suffixes with
+        // the zone. Hardcoded, so a wrong field mapping in the form can't go unnoticed.
+        const seededTaxDescription = 'Standard Tax Europe';
+
+        const surchargeBlock = page
+            .locator('[data-slot="card"]')
+            .filter({ has: page.getByText('Add surcharge', { exact: true }) });
+        const taxDescriptionInput = surchargeBlock.getByRole('combobox', { name: 'Tax description' });
+        const taxRateInput = surchargeBlock.getByRole('spinbutton', { name: 'Tax rate' });
+        // The popup is portalled, so it sits outside the surcharge block.
+        const suggestions = page.getByRole('listbox');
+        const suggestion = (name: string) => suggestions.getByRole('option', { name, exact: true });
+
+        const addSurcharge = async (description: string) => {
+            await surchargeBlock.getByRole('textbox', { name: 'Description' }).fill(description);
+            await surchargeBlock.getByRole('textbox', { name: 'Price' }).fill('10.00');
+            await surchargeBlock.getByRole('button', { name: 'Add surcharge' }).click();
+            await expect(page.getByText(description)).toBeVisible();
+        };
+
+        const addSurchargeButton = surchargeBlock.getByRole('button', { name: 'Add surcharge' });
+        await surchargeBlock.getByRole('textbox', { name: 'Description' }).fill('Handling fee');
+        await surchargeBlock.getByRole('textbox', { name: 'Price' }).fill('10.00');
+        await taxRateInput.fill('101');
+        await expect(addSurchargeButton).toBeDisabled();
+        await taxDescriptionInput.click();
+        await suggestion(seededTaxDescription).click();
+        await expect(taxDescriptionInput).toHaveValue(seededTaxDescription);
+        // Picking a description adopts the rate it is charged at. The tax summary groups by
+        // description and rate, so leaving the form's rate would split the tax line anyway.
+        await expect(taxRateInput).toHaveValue('20');
+        // Selecting the valid rate must clear an existing validation error immediately.
+        await expect(addSurchargeButton).toBeEnabled();
+
+        // Free text wins over the selection: a custom description must survive the popup
+        // closing, instead of snapping back to the description that was picked.
+        await taxDescriptionInput.fill(' Custom tax description ');
+        await taxDescriptionInput.press('Escape');
+        await taxDescriptionInput.blur();
+        await expect(taxDescriptionInput).toHaveValue(' Custom tax description ');
+
+        await addSurcharge('Handling fee');
+
+        // The custom description is now suggested, which is only possible if it reached
+        // modifyOrderInput.surcharges — the duplicate-tax-line case, since the description
+        // is not yet on the order. Nothing on the page renders taxDescription directly.
+        await taxDescriptionInput.click();
+        await expect(suggestion('Custom tax description')).toBeVisible();
+        await suggestion('Custom tax description').click();
+        // Existing descriptions are exact grouping keys, including significant whitespace.
+        await expect(taxDescriptionInput).toHaveValue(' Custom tax description ');
+
+        // Reuse the seeded description on a second surcharge: it must not then be
+        // suggested twice, once from the tax summary and once from the pending surcharge.
+        await taxDescriptionInput.fill(seededTaxDescription);
+        await suggestion(seededTaxDescription).click();
+        // A picked description stays browsable: the list is not narrowed to the pick, so
+        // the admin can reopen and switch to another description.
+        await taxDescriptionInput.click();
+        await expect(suggestion('Custom tax description')).toBeVisible();
+        // Close the popup, which otherwise covers the fields below.
+        await taxDescriptionInput.press('Escape');
+        await addSurcharge('Gift wrap');
+        await taxDescriptionInput.click();
+        await expect(suggestion(seededTaxDescription)).toHaveCount(1);
+
+        // Typing narrows the suggestions, and a description matching nothing closes the popup.
+        await taxDescriptionInput.fill('Custom');
+        await expect(suggestion('Custom tax description')).toBeVisible();
+        await expect(suggestion(seededTaxDescription)).toBeHidden();
+        await taxDescriptionInput.fill('No such tax');
+        await expect(suggestions).toBeHidden();
+    });
+
     test.describe('Order lifecycle', () => {
         test('should fulfill an order', async ({ page }) => {
             test.setTimeout(60_000);

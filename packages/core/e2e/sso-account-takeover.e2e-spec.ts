@@ -21,7 +21,7 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import { TestSSOStrategyShop } from './fixtures/test-authentication-strategies';
-import { currentUserFragment } from './graphql/fragments-admin';
+import { currentUserFragment, customerFragment } from './graphql/fragments-admin';
 import { FragmentOf } from './graphql/graphql-admin';
 import {
     attemptLoginDocument,
@@ -30,6 +30,7 @@ import {
     getCustomerListDocument,
     getCustomersDocument,
     getCustomerUserAuthDocument,
+    verifyCustomerAccountDocument,
 } from './graphql/shared-definitions';
 import {
     registerAccountDocument,
@@ -51,6 +52,9 @@ import {
 type CurrentUserFragmentType = FragmentOf<typeof currentUserFragment>;
 const currentUserGuard: ErrorResultGuard<CurrentUserFragmentType> = createErrorResultGuard(
     input => input.identifier != null,
+);
+const customerErrorGuard: ErrorResultGuard<FragmentOf<typeof customerFragment>> = createErrorResultGuard(
+    input => !!input.emailAddress,
 );
 const successGuard: ErrorResultGuard<{ success: boolean }> = createErrorResultGuard(
     input => input.success != null,
@@ -763,6 +767,79 @@ function runSsoTakeoverSuite(requireVerification: boolean) {
         // The attacker's password never becomes valid.
         const { login: attackerLogin } = await shopClient.query(attemptLoginDocument, {
             username: resetEmail,
+            password: ATTACKER_PASSWORD,
+        });
+        currentUserGuard.assertErrorResult(attackerLogin);
+        expect(attackerLogin.errorCode).toBe(ErrorCode.INVALID_CREDENTIALS_ERROR);
+    });
+
+    async function createSsoAccount(emailAddress: string): Promise<string> {
+        await shopClient.asAnonymousUser();
+        const { authenticate } = await shopClient.query(authenticateDocument, {
+            input: { test_sso_strategy_shop: { email: emailAddress } },
+        });
+        currentUserGuard.assertSuccess(authenticate);
+        await shopClient.asAnonymousUser();
+        const { customers } = await adminClient.query(getCustomerListDocument, {
+            options: { filter: { emailAddress: { eq: emailAddress } } },
+        });
+        expect(customers.items.length).toBe(1);
+        return customers.items[0].id;
+    }
+
+    it('an admin verifying an SSO-only account cannot give it a password', async () => {
+        // The account has an external credential and no native one, so there is nothing for a
+        // password to be stored on. Accepting the argument and dropping it would report success
+        // while leaving the admin believing the customer can now log in natively.
+        const email = `sso-admin-verify-${suffix}@test.com`;
+        const customerId = await createSsoAccount(email);
+
+        await expect(
+            adminClient.query(verifyCustomerAccountDocument, {
+                id: customerId,
+                password: OWNER_PASSWORD,
+            }),
+        ).rejects.toThrow('A password cannot be set for a User with no native authentication method');
+
+        const { verifyCustomerAccount } = await adminClient.query(verifyCustomerAccountDocument, {
+            id: customerId,
+        });
+        customerErrorGuard.assertSuccess(verifyCustomerAccount);
+        expect(verifyCustomerAccount.user!.verified).toBe(true);
+    });
+
+    it('an admin can activate a credential registered against an SSO account, discarding the registered password', async () => {
+        // A registration against an SSO account leaves a credential which is verified and has an
+        // empty passwordHash, which nobody can log in with (GHSA-wr5h-x3x6-4h23). `verified` is
+        // already true, so verifyCustomerAccount must not short-circuit on it: the whole point of
+        // the call is to give that credential a usable password. The registering caller's password
+        // is not stored, so it must not survive the activation.
+        const email = `sso-admin-activate-${suffix}@test.com`;
+        const customerId = await createSsoAccount(email);
+
+        await shopClient.asAnonymousUser();
+        const { registerCustomerAccount } = await shopClient.query(registerAccountDocument, {
+            input: { emailAddress: email, password: ATTACKER_PASSWORD },
+        });
+        successGuard.assertSuccess(registerCustomerAccount);
+
+        const { verifyCustomerAccount } = await adminClient.query(verifyCustomerAccountDocument, {
+            id: customerId,
+            password: OWNER_PASSWORD,
+        });
+        customerErrorGuard.assertSuccess(verifyCustomerAccount);
+        expect(verifyCustomerAccount.user!.verified).toBe(true);
+
+        await shopClient.asAnonymousUser();
+        const { login: ownerLogin } = await shopClient.query(attemptLoginDocument, {
+            username: email,
+            password: OWNER_PASSWORD,
+        });
+        currentUserGuard.assertSuccess(ownerLogin);
+        await shopClient.asAnonymousUser();
+
+        const { login: attackerLogin } = await shopClient.query(attemptLoginDocument, {
+            username: email,
             password: ATTACKER_PASSWORD,
         });
         currentUserGuard.assertErrorResult(attackerLogin);

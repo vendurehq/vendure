@@ -35,7 +35,7 @@ const result: PossibleTypesResultData = {
         CancelPaymentResult: ['CancelPaymentError', 'Payment', 'PaymentStateTransitionError'],
         CreateAssetResult: ['Asset', 'MimeTypeError'],
         CreateChannelResult: ['Channel', 'LanguageNotAvailableError'],
-        CreateCustomerResult: ['Customer', 'EmailAddressConflictError'],
+        CreateCustomerResult: ['Customer', 'EmailAddressConflictError', 'PasswordValidationError'],
         CreatePromotionResult: ['MissingConditionsError', 'Promotion'],
         CustomField: [
             'BooleanCustomFieldConfig',
@@ -87,6 +87,7 @@ const result: PossibleTypesResultData = {
             'ManualPaymentStateError',
             'MimeTypeError',
             'MissingConditionsError',
+            'MissingPasswordError',
             'MultipleOrderError',
             'NativeAuthStrategyError',
             'NegativeQuantityError',
@@ -98,6 +99,7 @@ const result: PossibleTypesResultData = {
             'OrderModificationError',
             'OrderModificationStateError',
             'OrderStateTransitionError',
+            'PasswordAlreadySetError',
             'PasswordResetTokenExpiredError',
             'PasswordResetTokenInvalidError',
             'PasswordValidationError',
@@ -285,6 +287,12 @@ const result: PossibleTypesResultData = {
             'OrderModificationError',
         ],
         UpdatePromotionResult: ['MissingConditionsError', 'Promotion'],
+        VerifyCustomerAccountResult: [
+            'Customer',
+            'MissingPasswordError',
+            'PasswordAlreadySetError',
+            'PasswordValidationError',
+        ],
     },
 };
 export default result;

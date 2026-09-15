@@ -1,6 +1,9 @@
 import type { LucideIcon } from 'lucide-react';
+import type { DashboardUserContext } from '../user-context/dashboard-user-context.js';
 
 import { globalRegistry } from '../registry/global-registry.js';
+
+import { BUILT_IN_NAV_ITEM_IDS, BUILT_IN_NAV_SECTION_IDS } from './nav-menu-ids.js';
 
 // Define the placement options for navigation sections
 export type NavMenuSectionPlacement = 'top' | 'bottom';
@@ -48,13 +51,13 @@ export type NavigationShortcut =
 
 /** The shortcuts reserved by the Dashboard's built-in navigation items. */
 export const BUILT_IN_NAVIGATION_SHORTCUTS = {
-    a: 'assets',
-    c: 'customers',
-    d: 'insights',
-    m: 'promotions',
-    o: 'orders',
-    p: 'products',
-    s: 'global-settings',
+    a: BUILT_IN_NAV_ITEM_IDS.Assets,
+    c: BUILT_IN_NAV_ITEM_IDS.Customers,
+    d: BUILT_IN_NAV_SECTION_IDS.Insights,
+    m: BUILT_IN_NAV_ITEM_IDS.Promotions,
+    o: BUILT_IN_NAV_ITEM_IDS.Orders,
+    p: BUILT_IN_NAV_ITEM_IDS.Products,
+    s: BUILT_IN_NAV_ITEM_IDS.GlobalSettings,
 } as const satisfies Partial<Record<NavigationShortcut, string>>;
 
 /** A navigation shortcut which can be assigned by a Dashboard extension. */
@@ -109,7 +112,11 @@ export interface NavMenuItem {
     /**
      * @description
      * This can be used to restrict the menu item to the given
-     * permission or permissions.
+     * permission or permissions. The user needs ANY of the listed
+     * permissions on the active channel, not all of them.
+     *
+     * ANDed with `isVisible` when both are set: an item appears only if it
+     * passes both checks.
      */
     requiresPermission?: string | string[];
     /**
@@ -117,6 +124,19 @@ export interface NavMenuItem {
      * Optional second key for the global `G` navigation chord.
      */
     shortcut?: NavigationShortcut;
+    /**
+     * @description
+     * A predicate evaluated on every nav render to decide whether this item is shown.
+     * It is ANDed with `requiresPermission`: both must pass for the item to appear.
+     *
+     * Must be pure, synchronous and cheap. The framework makes no promise about how
+     * often it is called.
+     *
+     * This controls presentation only and is never an authorization mechanism.
+     *
+     * @since 3.8.0
+     */
+    isVisible?: (ctx: DashboardUserContext) => boolean;
 }
 
 export interface NavMenuSection extends Omit<NavMenuItem, 'url' | 'shortcut'> {
@@ -165,6 +185,14 @@ export function addNavMenuItem(item: NavMenuItem, sectionId: string) {
         } else {
             navMenuConfig.sections.splice(sectionIndex, 1, item);
         }
+    }
+    if (sectionIndex === -1 && process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.warn(
+            `[Dashboard] No nav menu section with id "${sectionId}" exists, so the nav item ` +
+                `"${item.id}" was not added. Declare the section with the array form of ` +
+                `\`navSections\` before referencing it from a route's \`navMenuItem.sectionId\`.`,
+        );
     }
 }
 

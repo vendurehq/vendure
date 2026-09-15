@@ -2,6 +2,8 @@ import { AffixedInput } from '@/vdb/components/data-input/affixed-input.js';
 import { MoneyInput } from '@/vdb/components/data-input/money-input.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
 import { Button } from '@/vdb/components/ui/button.js';
+import { filterComboboxFreeTextItems } from '@/vdb/components/ui/combobox-free-text-utils.js';
+import { ComboboxFreeText, ComboboxFreeTextItem } from '@/vdb/components/ui/combobox-free-text.js';
 import { Form } from '@/vdb/components/ui/form.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { Switch } from '@/vdb/components/ui/switch.js';
@@ -11,6 +13,7 @@ import { z, zodResolver } from '@/vdb/lib/zod.js';
 import { Trans } from '@lingui/react/macro';
 import { VariablesOf } from 'gql.tada';
 import { Plus } from 'lucide-react';
+import { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { modifyOrderDocument } from '../orders.graphql.js';
 
@@ -30,11 +33,25 @@ const surchargeFormSchema = z.object({
 
 type SurchargeFormValues = z.infer<typeof surchargeFormSchema>;
 
-export interface AddSurchargeFormProps {
-    onAddSurcharge: (surcharge: SurchargeInput) => void;
+/**
+ * @description
+ * An existing tax line, offered as a suggestion when filling in a surcharge's tax
+ * description. The rate travels with the description because the order's tax summary
+ * groups by both.
+ */
+export interface TaxDescriptionSuggestion {
+    description: string;
+    taxRate: number;
 }
 
-export function AddSurchargeForm({ onAddSurcharge }: Readonly<AddSurchargeFormProps>) {
+export interface AddSurchargeFormProps {
+    onAddSurcharge: (surcharge: SurchargeInput) => void;
+    taxDescriptions: readonly TaxDescriptionSuggestion[];
+}
+
+type TaxDescriptionItem = ComboboxFreeTextItem & { taxRate: number };
+
+export function AddSurchargeForm({ onAddSurcharge, taxDescriptions }: Readonly<AddSurchargeFormProps>) {
     const { activeChannel } = useChannel();
 
     const surchargeForm = useForm<SurchargeFormValues>({
@@ -51,6 +68,20 @@ export function AddSurchargeForm({ onAddSurcharge }: Readonly<AddSurchargeFormPr
     });
 
     const taxRate = surchargeForm.watch('taxRate') || 0;
+    const taxDescription = surchargeForm.watch('taxDescription') ?? '';
+
+    const taxDescriptionItems = useMemo(
+        () =>
+            filterComboboxFreeTextItems<TaxDescriptionItem>(
+                taxDescriptions.map(suggestion => ({
+                    value: suggestion.description,
+                    label: suggestion.description,
+                    taxRate: suggestion.taxRate,
+                })),
+                taxDescription,
+            ),
+        [taxDescriptions, taxDescription],
+    );
 
     const handleAddSurcharge = () => {
         surchargeForm.handleSubmit(values => {
@@ -121,7 +152,21 @@ export function AddSurchargeForm({ onAddSurcharge }: Readonly<AddSurchargeFormPr
                         control={surchargeForm.control}
                         name="taxDescription"
                         label={<Trans>Tax description</Trans>}
-                        render={({ field }) => <Input {...field} />}
+                        render={({ field }) => (
+                            <ComboboxFreeText<TaxDescriptionItem>
+                                value={field.value ?? ''}
+                                onValueChange={field.onChange}
+                                // Picking an existing description adopts its rate too. The
+                                // tax summary groups by description and rate, so keeping the
+                                // form's rate would still split the tax line in two.
+                                onSelectItem={item =>
+                                    surchargeForm.setValue('taxRate', item.taxRate, {
+                                        shouldValidate: true,
+                                    })
+                                }
+                                items={taxDescriptionItems}
+                            />
+                        )}
                     />
                 </DetailFormGrid>
                 <Button

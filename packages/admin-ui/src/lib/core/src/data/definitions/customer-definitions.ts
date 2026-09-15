@@ -83,6 +83,9 @@ export const CREATE_CUSTOMER = gql`
         createCustomer(input: $input, password: $password) {
             ...Customer
             ...ErrorResult
+            ... on PasswordValidationError {
+                validationErrorMessage
+            }
         }
     }
     ${CUSTOMER_FRAGMENT}

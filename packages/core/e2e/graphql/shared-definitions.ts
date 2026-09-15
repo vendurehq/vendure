@@ -37,6 +37,7 @@ export const getTasksDocument = graphql(`
             description
             schedule
             scheduleDescription
+            timezone
             lastResult
             enabled
         }
@@ -1187,6 +1188,24 @@ export const deleteCustomerNoteDocument = graphql(`
         }
     }
 `);
+
+export const verifyCustomerAccountDocument = graphql(
+    `
+        mutation VerifyCustomerAccount($id: ID!, $password: String) {
+            verifyCustomerAccount(id: $id, password: $password) {
+                ...Customer
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+                ... on PasswordValidationError {
+                    validationErrorMessage
+                }
+            }
+        }
+    `,
+    [customerFragment],
+);
 
 export const updateCustomerGroupDocument = graphql(
     `

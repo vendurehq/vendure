@@ -1,6 +1,7 @@
 import { registerAlert } from '@/vdb/framework/alert/alert-extensions.js';
 import { searchIndexBufferAlert } from '@/vdb/framework/alert/search-index-buffer-alert/search-index-buffer-alert.js';
 import { setNavMenuConfig } from '@/vdb/framework/nav-menu/nav-menu-extensions.js';
+import { BUILT_IN_NAV_ITEM_IDS, BUILT_IN_NAV_SECTION_IDS } from '@/vdb/framework/nav-menu/nav-menu-ids.js';
 import { ChartLine, Percent, Settings2, ShoppingBag, Tags, Terminal, Users } from 'lucide-react';
 
 import { LatestCustomersWidget } from './dashboard-widget/latest-customers-widget/index.js';
@@ -15,7 +16,7 @@ export function registerDefaults() {
     setNavMenuConfig({
         sections: [
             {
-                id: 'insights',
+                id: BUILT_IN_NAV_SECTION_IDS.Insights,
                 title: /* i18n*/ 'Insights',
                 placement: 'top',
                 icon: ChartLine,
@@ -24,14 +25,14 @@ export function registerDefaults() {
                 order: 100,
             },
             {
-                id: 'catalog',
+                id: BUILT_IN_NAV_SECTION_IDS.Catalog,
                 title: /* i18n*/ 'Catalog',
                 icon: Tags,
                 placement: 'top',
                 order: 200,
                 items: [
                     {
-                        id: 'products',
+                        id: BUILT_IN_NAV_ITEM_IDS.Products,
                         title: /* i18n*/ 'Products',
                         url: '/products',
                         shortcut: 'p',
@@ -39,35 +40,35 @@ export function registerDefaults() {
                         requiresPermission: ['ReadProduct', 'ReadCatalog'],
                     },
                     {
-                        id: 'product-variants',
+                        id: BUILT_IN_NAV_ITEM_IDS.ProductVariants,
                         title: /* i18n*/ 'Product Variants',
                         url: '/product-variants',
                         order: 200,
                         requiresPermission: ['ReadProduct', 'ReadCatalog'],
                     },
                     {
-                        id: 'option-groups',
+                        id: BUILT_IN_NAV_ITEM_IDS.OptionGroups,
                         title: /* i18n*/ 'Option Groups',
                         url: '/option-groups',
                         order: 250,
                         requiresPermission: ['ReadProduct', 'ReadCatalog'],
                     },
                     {
-                        id: 'facets',
+                        id: BUILT_IN_NAV_ITEM_IDS.Facets,
                         title: /* i18n*/ 'Facets',
                         url: '/facets',
                         order: 300,
                         requiresPermission: ['ReadProduct', 'ReadCatalog'],
                     },
                     {
-                        id: 'collections',
+                        id: BUILT_IN_NAV_ITEM_IDS.Collections,
                         title: /* i18n*/ 'Collections',
                         url: '/collections',
                         order: 400,
                         requiresPermission: ['ReadCollection', 'ReadCatalog'],
                     },
                     {
-                        id: 'assets',
+                        id: BUILT_IN_NAV_ITEM_IDS.Assets,
                         title: /* i18n*/ 'Assets',
                         url: '/assets',
                         shortcut: 'a',
@@ -77,14 +78,14 @@ export function registerDefaults() {
                 ],
             },
             {
-                id: 'sales',
+                id: BUILT_IN_NAV_SECTION_IDS.Sales,
                 title: /* i18n*/ 'Sales',
                 icon: ShoppingBag,
                 placement: 'top',
                 order: 300,
                 items: [
                     {
-                        id: 'orders',
+                        id: BUILT_IN_NAV_ITEM_IDS.Orders,
                         title: /* i18n*/ 'Orders',
                         url: '/orders',
                         shortcut: 'o',
@@ -94,14 +95,14 @@ export function registerDefaults() {
                 ],
             },
             {
-                id: 'customers',
+                id: BUILT_IN_NAV_SECTION_IDS.Customers,
                 title: /* i18n*/ 'Customers',
                 icon: Users,
                 placement: 'top',
                 order: 400,
                 items: [
                     {
-                        id: 'customers',
+                        id: BUILT_IN_NAV_ITEM_IDS.Customers,
                         title: /* i18n*/ 'Customers',
                         url: '/customers',
                         shortcut: 'c',
@@ -109,7 +110,7 @@ export function registerDefaults() {
                         requiresPermission: ['ReadCustomer'],
                     },
                     {
-                        id: 'customer-groups',
+                        id: BUILT_IN_NAV_ITEM_IDS.CustomerGroups,
                         title: /* i18n*/ 'Customer Groups',
                         url: '/customer-groups',
                         order: 200,
@@ -118,14 +119,14 @@ export function registerDefaults() {
                 ],
             },
             {
-                id: 'marketing',
+                id: BUILT_IN_NAV_SECTION_IDS.Marketing,
                 title: /* i18n*/ 'Marketing',
                 icon: Percent,
                 placement: 'top',
                 order: 500,
                 items: [
                     {
-                        id: 'promotions',
+                        id: BUILT_IN_NAV_ITEM_IDS.Promotions,
                         title: /* i18n*/ 'Promotions',
                         url: '/promotions',
                         shortcut: 'm',
@@ -135,35 +136,35 @@ export function registerDefaults() {
                 ],
             },
             {
-                id: 'system',
+                id: BUILT_IN_NAV_SECTION_IDS.System,
                 title: /* i18n*/ 'System',
                 icon: Terminal,
                 placement: 'bottom',
                 order: 200,
                 items: [
                     {
-                        id: 'job-queue',
+                        id: BUILT_IN_NAV_ITEM_IDS.JobQueue,
                         title: /* i18n*/ 'Job Queue',
                         url: '/job-queue',
                         order: 100,
                         requiresPermission: ['ReadSystem'],
                     },
                     {
-                        id: 'scheduled-tasks',
+                        id: BUILT_IN_NAV_ITEM_IDS.ScheduledTasks,
                         title: /* i18n*/ 'Scheduled Tasks',
                         url: '/scheduled-tasks',
                         order: 300,
                         requiresPermission: ['ReadSystem'],
                     },
                     {
-                        id: 'settings-store',
+                        id: BUILT_IN_NAV_ITEM_IDS.SettingsStore,
                         title: /* i18n*/ 'Settings Store',
                         url: '/settings-store',
                         order: 400,
                         requiresPermission: ['ReadSystem'],
                     },
                     {
-                        id: 'api-keys',
+                        id: BUILT_IN_NAV_ITEM_IDS.ApiKeys,
                         title: /* i18n*/ 'API Keys',
                         url: '/api-keys',
                         order: 550,
@@ -172,91 +173,91 @@ export function registerDefaults() {
                 ],
             },
             {
-                id: 'settings',
+                id: BUILT_IN_NAV_SECTION_IDS.Settings,
                 title: /* i18n*/ 'Settings',
                 icon: Settings2,
                 placement: 'bottom',
                 order: 100,
                 items: [
                     {
-                        id: 'sellers',
+                        id: BUILT_IN_NAV_ITEM_IDS.Sellers,
                         title: /* i18n*/ 'Sellers',
                         url: '/sellers',
                         order: 100,
                         requiresPermission: ['ReadSeller'],
                     },
                     {
-                        id: 'channels',
+                        id: BUILT_IN_NAV_ITEM_IDS.Channels,
                         title: /* i18n*/ 'Channels',
                         url: '/channels',
                         order: 200,
                         requiresPermission: ['ReadChannel'],
                     },
                     {
-                        id: 'stock-locations',
+                        id: BUILT_IN_NAV_ITEM_IDS.StockLocations,
                         title: /* i18n*/ 'Stock Locations',
                         url: '/stock-locations',
                         order: 300,
                         requiresPermission: ['ReadStockLocation'],
                     },
                     {
-                        id: 'administrators',
+                        id: BUILT_IN_NAV_ITEM_IDS.Administrators,
                         title: /* i18n*/ 'Administrators',
                         url: '/administrators',
                         order: 400,
                         requiresPermission: ['ReadAdministrator'],
                     },
                     {
-                        id: 'roles',
+                        id: BUILT_IN_NAV_ITEM_IDS.Roles,
                         title: /* i18n*/ 'Roles',
                         url: '/roles',
                         order: 500,
                         requiresPermission: ['ReadAdministrator'],
                     },
                     {
-                        id: 'shipping-methods',
+                        id: BUILT_IN_NAV_ITEM_IDS.ShippingMethods,
                         title: /* i18n*/ 'Shipping Methods',
                         url: '/shipping-methods',
                         order: 600,
                         requiresPermission: ['ReadShippingMethod'],
                     },
                     {
-                        id: 'payment-methods',
+                        id: BUILT_IN_NAV_ITEM_IDS.PaymentMethods,
                         title: /* i18n*/ 'Payment Methods',
                         url: '/payment-methods',
                         order: 700,
                         requiresPermission: ['ReadPaymentMethod'],
                     },
                     {
-                        id: 'tax-categories',
+                        id: BUILT_IN_NAV_ITEM_IDS.TaxCategories,
                         title: /* i18n*/ 'Tax Categories',
                         url: '/tax-categories',
                         order: 800,
                         requiresPermission: ['ReadTaxCategory'],
                     },
                     {
-                        id: 'tax-rates',
+                        id: BUILT_IN_NAV_ITEM_IDS.TaxRates,
                         title: /* i18n*/ 'Tax Rates',
                         url: '/tax-rates',
                         order: 900,
                         requiresPermission: ['ReadTaxRate'],
                     },
                     {
-                        id: 'countries',
+                        id: BUILT_IN_NAV_ITEM_IDS.Countries,
                         title: /* i18n*/ 'Countries',
                         url: '/countries',
                         order: 1000,
                         requiresPermission: ['ReadCountry'],
                     },
                     {
-                        id: 'zones',
+                        id: BUILT_IN_NAV_ITEM_IDS.Zones,
                         title: /* i18n*/ 'Zones',
                         url: '/zones',
                         order: 1100,
                         requiresPermission: ['ReadZone'],
                     },
                     {
-                        id: 'global-settings',
+                        id: BUILT_IN_NAV_ITEM_IDS.GlobalSettings,
                         title: /* i18n*/ 'Global Settings',
                         url: '/global-settings',
                         shortcut: 's',

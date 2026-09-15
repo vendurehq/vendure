@@ -75,7 +75,7 @@
     "ORDER_MODIFICATION_ERROR": "O conteúdo da encomenda só pode ser modificado no estado \"AddingItems\"",
     "ORDER_PAYMENT_STATE_ERROR": "Um pagamento só pode ser adicionado quando a encomenda estiver no estado \"ArrangingPayment\"",
     "ORDER_STATE_TRANSITION_ERROR": "Não é possível fazer a transição da encomenda do estado \"{fromState}\" para \"{toState}\"",
-    "PASSWORD_ALREADY_SET_ERROR": "Uma palavra-passe já foi definida durante o registo",
+    "PASSWORD_ALREADY_SET_ERROR": "Já foi definida uma palavra-passe para esta conta",
     "PASSWORD_RESET_TOKEN_EXPIRED_ERROR": "O token para a redefinição da palavra-passe expirou",
     "PASSWORD_RESET_TOKEN_INVALID_ERROR": "Token para a redefinição da palavra-passe invélido",
     "PAYMENT_DECLINED_ERROR": "O pagamento foi recusado",

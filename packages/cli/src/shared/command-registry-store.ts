@@ -46,6 +46,24 @@ function reservedCommandConflict(name: string): string {
     return `Command "${name}" is reserved by the CLI, because ${RESERVED_COMMAND_REASONS[name]}.`;
 }
 
+/**
+ * A top-level command and the plugin that registered it, as the CLI host
+ * receives them. `source` is undefined for a built-in.
+ */
+export interface CommandTreeEntry {
+    node: CliCommandNode;
+    source?: string;
+}
+
+/**
+ * A shared option and the plugin that registered it. `source` is undefined for
+ * one the CLI itself declares.
+ */
+export interface RootOptionEntry {
+    option: CliCommandOption;
+    source?: string;
+}
+
 interface RegisteredCommand {
     node: CliCommandNode;
     /** Plugin id, or undefined for a built-in. */
@@ -188,19 +206,38 @@ export class CommandRegistry {
         return this.state.commands.has(name);
     }
 
-    toArray(): CliCommandNode[] {
-        return Array.from(this.state.commands.values(), entry => entry.node);
+    /**
+     * The top-level commands, each with the plugin that registered it.
+     *
+     * Kept together rather than handed out as a command list and a separate
+     * name-keyed map of sources, so the two cannot disagree about which
+     * commands exist.
+     *
+     * A source is only ever recorded against a top-level command. A subcommand
+     * appears only in the help of the command it is nested under, and that
+     * command's heading already names the package.
+     *
+     * `extendCommands` does not set a source either, so a built-in that a
+     * plugin has extended stays listed as a built-in. The command is still the
+     * CLI's, and a plugin that only extends `dev` has not provided `dev`.
+     */
+    getCommandTree(): CommandTreeEntry[] {
+        return Array.from(this.state.commands.values(), entry => ({
+            node: entry.node,
+            source: entry.source,
+        }));
     }
 
     /**
-     * Options registered on the `vendure` command itself by plugins.
+     * Options registered on the `vendure` command itself, each with the plugin
+     * that registered it. See {@link getCommandTree} for why they are paired.
      */
-    getRootOptions(): CliCommandOption[] {
+    getRootOptions(): RootOptionEntry[] {
         // Sub-options are excluded: their parent still carries them, and the
         // host expands each parent once when it registers the option.
         return Array.from(this.state.rootOptions.values())
             .filter(entry => !entry.isSubOption)
-            .map(entry => entry.option);
+            .map(entry => ({ option: entry.option, source: entry.source }));
     }
 
     /**

@@ -10,6 +10,8 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { sectionAfter } from '../src/shared/__tests__/help-sections';
+
 import {
     CliTestProject,
     createTestProject,
@@ -247,6 +249,60 @@ describe('CLI plugin help output', () => {
         for (const option of ['--token', '--project', '--environment', '--json']) {
             expect(result.stdout).toMatch(new RegExp(`^\\s+${option}`, 'm'));
         }
+    });
+
+    it('lists the plugin commands under a heading naming the package', async () => {
+        const result = await project.runCliCommand(['--help']);
+
+        // Asserted by section, not by string offset: the section a command is
+        // listed in is what says where it came from.
+        const pluginSection = sectionAfter(result.stdout, 'Commands from @vendure-e2e/cloud-cli-plugin:');
+        expect(pluginSection).toMatch(/^\s+project\s+Manage Cloud projects$/m);
+        expect(pluginSection).toMatch(/^\s+deploy \[options\]\s+Deploy the application$/m);
+
+        const builtinSection = sectionAfter(result.stdout, 'Commands:');
+        expect(builtinSection).toMatch(/^\s+add \[options\]\s+Add a feature to your Vendure project$/m);
+        expect(builtinSection).not.toContain('Manage Cloud projects');
+    });
+
+    it('lists the plugin shared options under a heading naming the package', async () => {
+        const result = await project.runCliCommand(['--help']);
+
+        const pluginSection = sectionAfter(result.stdout, 'Options from @vendure-e2e/cloud-cli-plugin:');
+        expect(pluginSection).toMatch(/^\s+--token /m);
+        expect(pluginSection).toMatch(/^\s+--project /m);
+
+        // --help is the CLI's own and stays under Commander's own heading.
+        const builtinSection = sectionAfter(result.stdout, 'Options:');
+        expect(builtinSection).toMatch(/^\s+-h, --help/m);
+        expect(builtinSection).not.toContain('--token');
+    });
+
+    // The suite runs with colour when it is invoked through Lerna and without
+    // colour otherwise, so both outcomes are asserted.
+    it('colours the headings only when the environment allows colour', async () => {
+        const coloured = await project.runCliCommand(['--help'], { env: { FORCE_COLOR: '1' } });
+
+        // Bold heading, with the package name cyan inside the same bold run.
+        expect(coloured.rawStdout).toContain('\u001b[1mCommands from \u001b[36m');
+        expect(coloured.stdout).toContain('Commands from @vendure-e2e/cloud-cli-plugin:');
+    });
+
+    it('emits no colour when NO_COLOR is set', async () => {
+        const plain = await project.runCliCommand(['--help'], {
+            env: { NO_COLOR: '1', FORCE_COLOR: '1' },
+        });
+
+        expect(plain.rawStdout).not.toContain('\u001b[');
+        expect(plain.rawStdout).toContain('Commands from @vendure-e2e/cloud-cli-plugin:');
+    });
+
+    it('names the commands a plugin provides in the plugins listing', async () => {
+        const result = await project.runCliCommand(['plugins']);
+
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout).toContain('@vendure-e2e/cloud-cli-plugin');
+        expect(result.stdout).toMatch(/commands:.*\bdeploy\b/);
     });
 
     it('shows the options valid at every level in leaf help', async () => {

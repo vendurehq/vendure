@@ -20,6 +20,7 @@ export const GET_SCHEDULED_TASKS_LIST = gql`
             description
             schedule
             scheduleDescription
+            timezone
             lastExecutedAt
             nextExecutionAt
             isRunning

@@ -16,7 +16,7 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { User } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { AddSurchargeForm } from './components/add-surcharge-form.js';
 import { CustomerAddressSelector } from './components/customer-address-selector.js';
@@ -96,6 +96,28 @@ function ModifyOrderPage() {
         setRecalculateShipping,
         hasModifications,
     } = useModifyOrder(entity);
+
+    // Tax lines already in play. Includes the surcharges added earlier in this modification
+    // session, which are not yet on the order. Empty descriptions would render a blank
+    // suggestion row, so they are dropped.
+    const taxDescriptions = useMemo(() => {
+        const byDescription = new Map<string, number>();
+        const taxLines = [
+            ...(entity?.taxSummary ?? []),
+            ...(modifyOrderInput.surcharges ?? []).map(surcharge => ({
+                description: surcharge.taxDescription,
+                taxRate: surcharge.taxRate ?? 0,
+            })),
+        ];
+        for (const { description, taxRate } of taxLines) {
+            // One rate per description, first one wins. The same description at two rates is
+            // two tax lines, but a suggestion has to resolve to a single rate.
+            if (description && !byDescription.has(description)) {
+                byDescription.set(description, taxRate);
+            }
+        }
+        return Array.from(byDescription, ([description, taxRate]) => ({ description, taxRate }));
+    }, [entity?.taxSummary, modifyOrderInput.surcharges]);
 
     // --- Address editing state ---
     const [editingShippingAddress, setEditingShippingAddress] = useState(false);
@@ -206,7 +228,7 @@ function ModifyOrderPage() {
                 </PageBlock>
 
                 <PageBlock column="main" blockId="add-surcharge" title={<Trans>Add surcharge</Trans>}>
-                    <AddSurchargeForm onAddSurcharge={addSurcharge} />
+                    <AddSurchargeForm onAddSurcharge={addSurcharge} taxDescriptions={taxDescriptions} />
                 </PageBlock>
 
                 <PageBlock

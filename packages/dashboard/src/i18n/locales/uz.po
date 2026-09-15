@@ -412,6 +412,7 @@ msgstr "Zaxira joylashuvi yaratildi"
 msgid "No widgets to add"
 msgstr "Qo'shish uchun vidjetlar yo'q"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
@@ -788,6 +789,10 @@ msgstr "Davom etish uchun mijozni tanlang"
 msgid "Successfully assigned option group"
 msgstr "Optsiya guruhi tayinlandi"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+msgid "Marks the account as verified without the customer having to use a verification email."
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx
 msgid "Run Test"
 msgstr "Sinovni ishga tushirish"
@@ -1009,6 +1014,10 @@ msgstr "Pul qaytarish izohini kiriting"
 msgid "Order line removed"
 msgstr "Buyurtma qatori olib tashlandi"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+msgid "Setting a password here verifies the account immediately. Left empty, the customer has no password and cannot log in until they set one."
+msgstr ""
+
 #: src/lib/components/layout/channel-switcher.tsx
 msgid "Content:"
 msgstr "Tarkib:"
@@ -1132,6 +1141,8 @@ msgid "Failed to update zone"
 msgstr "Hududni yangilab bo'lmadi"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_profile/profile.tsx
 #: src/app/routes/_authenticated/_profile/profile.tsx
 #: src/lib/components/login/login-form.tsx
@@ -1748,6 +1759,10 @@ msgstr "Mamlakatlar"
 msgid "Loading metrics…"
 msgstr "Ko'rsatkichlar yuklanmoqda…"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+msgid "Customer account verified"
+msgstr ""
+
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "Failed to rename view"
 msgstr "Ko'rinish nomini o'zgartirib bo'lmadi"
@@ -1864,6 +1879,7 @@ msgstr "{row} x {col} jadval qo'shish"
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
@@ -3678,6 +3694,10 @@ msgstr "Toifa"
 msgid "Moving..."
 msgstr "Ko'chirilmoqda..."
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+msgid "Needed only for a customer who has no password yet, since that account cannot be logged into. Leave empty for a customer who already has one."
+msgstr ""
+
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 msgid "Assign"
 msgstr "Tayinlash"
@@ -4410,6 +4430,11 @@ msgstr "Element qo'shish"
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 msgid "Successfully created API key"
 msgstr "API kaliti yaratildi"
+
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+msgid "Verify account"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 msgid "Loading preview…"
@@ -6017,6 +6042,10 @@ msgstr "Standart bo'yicha omborni kuzatish"
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
 msgid "{selected} of {total} selected"
 msgstr "{total} tadan {selected} tasi tanlandi"
+
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+msgid "Verify"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
 msgid "Successfully created shipping method"
