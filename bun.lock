@@ -49,7 +49,7 @@
       },
       "optionalDependencies": {
         "@nx/nx-darwin-arm64": "17.2.8",
-        "@nx/nx-darwin-x64": "17.2.8",
+        "@nx/nx-darwin-x64": "17.3.2",
         "@nx/nx-linux-x64-gnu": "17.2.8",
         "@nx/nx-win32-x64-msvc": "17.2.8",
         "@rollup/rollup-linux-x64-gnu": "^4.13.0",
@@ -1679,7 +1679,7 @@
 
     "@nx/nx-darwin-arm64": ["@nx/nx-darwin-arm64@17.2.8", "", { "os": "darwin", "cpu": "arm64" }, "sha512-dMb0uxug4hM7tusISAU1TfkDK3ixYmzc1zhHSZwpR7yKJIyKLtUpBTbryt8nyso37AS1yH+dmfh2Fj2WxfBHTg=="],
 
-    "@nx/nx-darwin-x64": ["@nx/nx-darwin-x64@17.2.8", "", { "os": "darwin", "cpu": "x64" }, "sha512-0cXzp1tGr7/6lJel102QiLA4NkaLCkQJj6VzwbwuvmuCDxPbpmbz7HC1tUteijKBtOcdXit1/MEoEU007To8Bw=="],
+    "@nx/nx-darwin-x64": ["@nx/nx-darwin-x64@17.3.2", "", { "os": "darwin", "cpu": "x64" }, "sha512-5F28wrfE7yU60MzEXGjndy1sPJmNMIaV2W/g82kTXzxAbGHgSjwrGFmrJsrexzLp9oDlWkbc6YmInKV8gmmIaQ=="],
 
     "@nx/nx-freebsd-x64": ["@nx/nx-freebsd-x64@22.3.3", "", { "os": "freebsd", "cpu": "x64" }, "sha512-J/PP5pIOQtR7ZzrFwP6d6h0yfY7r9EravG2m940GsgzGbtZGYIDqnh5Wdt+4uBWPH8VpdNOwFqH0afELtJA3MA=="],
 
