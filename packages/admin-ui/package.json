@@ -42,7 +42,7 @@
         "@angular/platform-browser": "^19.2.4",
         "@angular/platform-browser-dynamic": "^19.2.4",
         "@angular/router": "^19.2.4",
-        "@apollo/client": "^3.9.6",
+        "@apollo/client": "^3.14.1",
         "@biesbjerg/ngx-translate-extract-marker": "^1.0.0",
         "@cds/core": "^6.15.1",
         "@clr/angular": "^17.3.1",

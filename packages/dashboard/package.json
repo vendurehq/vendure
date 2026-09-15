@@ -107,7 +107,7 @@
         "express-rate-limit": "^7.5.0",
         "fast-glob": "^3.3.2",
         "fs-extra": "^11.3.4",
-        "gql.tada": "^1.8.13",
+        "gql.tada": "^1.11.3",
         "graphql": "^16.14.2",
         "input-otp": "^1.4.2",
         "json-edit-react": "^1.23.1",
