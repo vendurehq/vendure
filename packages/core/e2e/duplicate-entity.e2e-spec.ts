@@ -34,6 +34,7 @@ import {
     createAdministratorDocument,
     createChannelDocument,
     createCollectionDocument,
+    createProductDocument,
     createPromotionDocument,
     createRoleDocument,
     duplicateEntityDocument,
@@ -43,6 +44,7 @@ import {
     getFacetWithValuesDocument,
     getProductWithVariantsDocument,
     getPromotionDocument,
+    updateProductOptionGroupDocument,
     updateProductVariantsDocument,
 } from './graphql/shared-definitions';
 
@@ -430,6 +432,182 @@ describe('Duplicating entities', () => {
                     'L2201508-copy',
                     'L2201516-copy',
                 ]);
+            });
+
+            it('by default (duplicateOptions unset), option groups are shared with the original', async () => {
+                const { product } = await adminClient.query(getProductWithVariantsDocument, {
+                    id: newProduct2Id,
+                });
+
+                expect(product?.optionGroups.map(g => g.id).sort()).toEqual(
+                    originalProduct.optionGroups.map(g => g.id).sort(),
+                );
+            });
+
+            it('duplicating without variants does not touch option groups regardless of duplicateOptions', async () => {
+                const { product } = await adminClient.query(getProductWithVariantsDocument, {
+                    id: newProduct1Id,
+                });
+
+                expect(product?.optionGroups.length).toBe(0);
+            });
+
+            describe('duplicateOptions arg enabled', () => {
+                let newProduct3Id: string;
+
+                it('duplicates the product with duplicateOptions enabled', async () => {
+                    const { duplicateEntity } = await adminClient.query(duplicateEntityDocument, {
+                        input: {
+                            entityName: 'Product',
+                            entityId: 'T_1',
+                            duplicatorInput: {
+                                code: 'product-duplicator',
+                                arguments: [
+                                    { name: 'includeVariants', value: 'true' },
+                                    { name: 'duplicateOptions', value: 'true' },
+                                ],
+                            },
+                        },
+                    });
+
+                    duplicateEntityGuard.assertSuccess(duplicateEntity);
+                    newProduct3Id = duplicateEntity.newEntityId;
+                });
+
+                it('option groups are duplicated as new entities', async () => {
+                    const { product } = await adminClient.query(getProductWithVariantsDocument, {
+                        id: newProduct3Id,
+                    });
+
+                    expect(product?.optionGroups.length).toBe(originalProduct.optionGroups.length);
+
+                    const originalGroupIds = originalProduct.optionGroups.map(g => g.id);
+                    for (const group of product!.optionGroups) {
+                        expect(originalGroupIds).not.toContain(group.id);
+                    }
+
+                    expect(product?.optionGroups.map(g => g.code).sort()).toEqual(
+                        originalProduct.optionGroups.map(g => `${g.code}-copy`).sort(),
+                    );
+                    expect(product?.optionGroups.map(g => g.name).sort()).toEqual(
+                        originalProduct.optionGroups.map(g => g.name).sort(),
+                    );
+                });
+
+                it('variants reference the duplicated options, not the originals', async () => {
+                    const { product } = await adminClient.query(getProductWithVariantsDocument, {
+                        id: newProduct3Id,
+                    });
+
+                    const newGroupIds = product!.optionGroups.map(g => g.id);
+                    const originalOptionIds = originalProduct.variants.flatMap(v =>
+                        v.options.map(o => o.id),
+                    );
+
+                    for (const variant of product!.variants) {
+                        for (const option of variant.options) {
+                            expect(newGroupIds).toContain(option.groupId);
+                            expect(originalOptionIds).not.toContain(option.id);
+                            expect(option.code.endsWith('-copy')).toBe(true);
+                        }
+                    }
+
+                    expect(product?.variants.flatMap(v => v.options.map(o => o.name)).sort()).toEqual(
+                        originalProduct.variants.flatMap(v => v.options.map(o => o.name)).sort(),
+                    );
+                });
+
+                it('editing a duplicated option group does not affect the original', async () => {
+                    const { product } = await adminClient.query(getProductWithVariantsDocument, {
+                        id: newProduct3Id,
+                    });
+                    const duplicatedGroup = product!.optionGroups[0];
+
+                    await adminClient.query(updateProductOptionGroupDocument, {
+                        input: {
+                            id: duplicatedGroup.id,
+                            translations: [{ languageCode: LanguageCode.en, name: 'Modified Name' }],
+                        },
+                    });
+
+                    const { product: originalReloaded } = await adminClient.query(
+                        getProductWithVariantsDocument,
+                        {
+                            id: 'T_1',
+                        },
+                    );
+
+                    expect(originalReloaded?.optionGroups.map(g => g.name)).not.toContain('Modified Name');
+                });
+
+                it('duplicating the same product twice creates independent option groups', async () => {
+                    const { duplicateEntity } = await adminClient.query(duplicateEntityDocument, {
+                        input: {
+                            entityName: 'Product',
+                            entityId: 'T_1',
+                            duplicatorInput: {
+                                code: 'product-duplicator',
+                                arguments: [
+                                    { name: 'includeVariants', value: 'true' },
+                                    { name: 'duplicateOptions', value: 'true' },
+                                ],
+                            },
+                        },
+                    });
+                    duplicateEntityGuard.assertSuccess(duplicateEntity);
+                    const anotherDuplicateId = duplicateEntity.newEntityId;
+
+                    const { product: firstDuplicate } = await adminClient.query(
+                        getProductWithVariantsDocument,
+                        { id: newProduct3Id },
+                    );
+                    const { product: secondDuplicate } = await adminClient.query(
+                        getProductWithVariantsDocument,
+                        { id: anotherDuplicateId },
+                    );
+
+                    const firstGroupIds = firstDuplicate!.optionGroups.map(g => g.id).sort();
+                    const secondGroupIds = secondDuplicate!.optionGroups.map(g => g.id).sort();
+
+                    expect(firstGroupIds).not.toEqual(secondGroupIds);
+                });
+
+                it('duplicating a product with no option groups succeeds without errors', async () => {
+                    const { createProduct } = await adminClient.query(createProductDocument, {
+                        input: {
+                            translations: [
+                                {
+                                    languageCode: LanguageCode.en,
+                                    name: 'Plain Product',
+                                    slug: 'plain-product',
+                                    description: 'A product with no option groups',
+                                },
+                            ],
+                        },
+                    });
+
+                    const { duplicateEntity } = await adminClient.query(duplicateEntityDocument, {
+                        input: {
+                            entityName: 'Product',
+                            entityId: createProduct.id,
+                            duplicatorInput: {
+                                code: 'product-duplicator',
+                                arguments: [
+                                    { name: 'includeVariants', value: 'true' },
+                                    { name: 'duplicateOptions', value: 'true' },
+                                ],
+                            },
+                        },
+                    });
+
+                    duplicateEntityGuard.assertSuccess(duplicateEntity);
+
+                    const { product } = await adminClient.query(getProductWithVariantsDocument, {
+                        id: duplicateEntity.newEntityId,
+                    });
+
+                    expect(product?.optionGroups.length).toBe(0);
+                });
             });
 
             it('variant assets are preserved', async () => {
