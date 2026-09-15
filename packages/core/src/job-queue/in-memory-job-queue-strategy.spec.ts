@@ -187,20 +187,27 @@ describe('InMemoryJobQueueStrategy', () => {
         });
 
         it('snapshot preserves all job fields', async () => {
-            const running = await strategy.next('test');
+            const createdAt = new Date('2021-03-04T05:06:07.000Z');
+            // A dedicated job, so that every field differs from the value the Job constructor
+            // would fall back to if `snapshot()` dropped it.
+            await strategy.add(
+                new Job({ id: 'job-2', queueName: 'other', data: { foo: 'bar' }, retries: 3, createdAt }),
+            );
+
+            const running = await strategy.next('other');
             running!.setProgress(25);
             await strategy.update(running!);
 
-            const snapshot = await strategy.findOne('job-1');
+            const snapshot = await strategy.findOne('job-2');
 
-            expect(snapshot?.id).toBe(running!.id);
-            expect(snapshot?.queueName).toBe(running!.queueName);
+            expect(snapshot?.id).toBe('job-2');
+            expect(snapshot?.queueName).toBe('other');
             expect(snapshot?.data).toEqual({ foo: 'bar' });
-            expect(snapshot?.retries).toBe(running!.retries);
-            expect(snapshot?.attempts).toBe(running!.attempts);
-            expect(snapshot?.state).toBe(running!.state);
+            expect(snapshot?.retries).toBe(3);
+            expect(snapshot?.attempts).toBe(1);
+            expect(snapshot?.state).toBe(JobState.RUNNING);
             expect(snapshot?.progress).toBe(25);
-            expect(snapshot?.createdAt).toEqual(running!.createdAt);
+            expect(snapshot?.createdAt).toEqual(createdAt);
             expect(snapshot?.startedAt).toEqual(running!.startedAt);
             expect(snapshot?.settledAt).toBeUndefined();
             expect(snapshot?.error).toBeUndefined();
@@ -286,9 +293,8 @@ describe('InMemoryJobQueueStrategy', () => {
 
             const cancelled = await strategy.cancelJob('job-1');
 
-            // `ActiveQueue` keeps the instance returned by `next()` and its `process()` function
-            // reads `job.state` to decide whether to abort. A cancellation which only reaches a
-            // snapshot never gets there, so the running job carries on to completion.
+            // `ActiveQueue` holds the instance returned by `next()` for the duration of the run,
+            // so the cancellation has to reach that instance and not just the store.
             expect(running!.state).toBe(JobState.CANCELLED);
             expect(cancelled?.state).toBe(JobState.CANCELLED);
             // The returned value is still a snapshot, not the live instance.

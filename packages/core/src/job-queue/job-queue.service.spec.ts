@@ -225,6 +225,10 @@ describe('JobQueueService', () => {
     });
 
     it('processes existing jobs on start', async () => {
+        // Both prepopulated jobs must be dispatched by the same poll cycle below, so set the
+        // concurrency explicitly rather than relying on whatever an earlier test left behind.
+        testJobQueueStrategy.concurrency = 2;
+
         await testJobQueueStrategy.prePopulate([
             new Job<any>({
                 queueName: 'test',
@@ -238,21 +242,26 @@ describe('JobQueueService', () => {
             }),
         ]);
 
+        const subject = new Subject<void>();
         const testQueue = await jobQueueService.createQueue<string>({
             name: 'test',
-            process: async job => {
-                return;
+            process: job => {
+                return subject.pipe(take(1)).toPromise();
             },
         });
 
-        // Each job state is read at the point it is asserted on. Previously these assertions
-        // captured both jobs up front and relied on those instances mutating in place, which
-        // only worked because `findOne()` handed back the live stored Job.
-        await tick(queuePollInterval);
-        expect((await getJob('job-1')).state).toBe(JobState.COMPLETED);
+        const getStates = async () => [(await getJob('job-1')).state, (await getJob('job-2')).state];
 
         await tick(queuePollInterval);
-        expect((await getJob('job-2')).state).toBe(JobState.COMPLETED);
+        // Both states are read in the same window, so a job which was only dispatched on a
+        // later poll cycle would not satisfy this.
+        expect(await getStates()).toEqual([JobState.RUNNING, JobState.RUNNING]);
+
+        subject.next();
+        await tick();
+        expect(await getStates()).toEqual([JobState.COMPLETED, JobState.COMPLETED]);
+
+        subject.complete();
     });
 
     it('retries', async () => {

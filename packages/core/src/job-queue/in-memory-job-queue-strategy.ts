@@ -127,12 +127,10 @@ export class InMemoryJobQueueStrategy extends PollingJobQueueStrategy implements
     }
 
     async update(job: Job): Promise<void> {
-        // Since `findOne()` etc. hand out snapshots, the job being updated is not necessarily
-        // the instance we are holding in `unsettledJobs`. Drop any existing entry for this job
-        // before deciding whether it should be queued, so that the queue never holds a stale
-        // instance alongside the updated one. Without this, cancelling a job which is still
-        // PENDING would leave the original PENDING instance queued, and `next()` would pick it
-        // up and run it despite the cancellation.
+        // `findOne()` etc. hand out snapshots, so the job being updated is not necessarily the
+        // instance held in `unsettledJobs`. Drop any existing entry for it first, otherwise
+        // cancelling a job which is still PENDING would leave the original PENDING instance
+        // queued, and `next()` would run it despite the cancellation.
         this.removeFromUnsettled(job);
         if (job.state === JobState.RETRYING || job.state === JobState.PENDING) {
             this.unsettledJobs[job.queueName].unshift({ job, updatedAt: new Date() });
@@ -142,14 +140,13 @@ export class InMemoryJobQueueStrategy extends PollingJobQueueStrategy implements
     }
 
     /**
-     * The base implementation cancels the job it gets back from `findOne()`, which is now a
-     * snapshot. That would leave the instance the processing loop is holding untouched, so the
-     * running job would never observe the cancellation, and the CANCELLED state written to the
-     * store would be overwritten by the next `update()` from that still-RUNNING instance (the
-     * `progress` listener registered by `ActiveQueue` writes it back on every `setProgress()`).
-     *
-     * Cancelling the stored instance directly keeps the pre-snapshot behaviour: the cancellation
-     * reaches the running job, and the store cannot be clobbered by a later progress update.
+     * The inherited implementation cancels the Job returned by `findOne()`, which is now a
+     * snapshot, so CANCELLED only reaches the store. `ActiveQueue` does poll the store and
+     * cancel the live job once it reads that state, but it also registers a `progress` listener
+     * which writes the live job back on every `setProgress()`: one progress report from a job
+     * which has not yet been polled reverts the store to RUNNING, the poll never sees the
+     * cancellation, and the job settles as COMPLETED. Cancelling the stored instance reaches the
+     * live job immediately, so no later progress update can revert it.
      */
     async cancelJob(jobId: ID): Promise<Job | undefined> {
         const job = this.jobs.get(jobId);
@@ -188,17 +185,13 @@ export class InMemoryJobQueueStrategy extends PollingJobQueueStrategy implements
      * Returns a copy of the given Job. The jobs held in this strategy's store are mutated in
      * place as they are processed (see `next()` and {@link Job} `start()`, `setProgress()`,
      * `complete()` etc.), so returning the stored instance from the `findOne()`/`findMany()`
-     * family would hand out a reference whose state changes underneath the caller.
+     * family would hand out a reference whose state changes underneath the caller. The
+     * database-backed strategies already build a fresh Job from the persisted record on every
+     * read; this brings the in-memory strategy in line with them.
      *
-     * This matches the behaviour of the database-backed strategies, which construct a new Job
-     * from the persisted record on every read.
-     *
-     * The copy is shallow: `result`, `error` and the date fields are shared references with the
-     * stored job, and only `data` is re-serialized (by the Job constructor). Mutating a
-     * snapshot's `result` object therefore also mutates the stored one. That is acceptable for a
-     * strategy explicitly documented as not for production, and it is no worse than the
-     * DB-backed strategies, whose reads deserialize into fresh objects only because they go via
-     * JSON.
+     * The copy is shallow: every field which changes as a job is processed is copied by value,
+     * but `result`, `error` and the Date fields are shared with the stored job, so mutating a
+     * snapshot's `result` object in place would also mutate the stored one.
      */
     private snapshot(job: Job): Job {
         return new Job({
