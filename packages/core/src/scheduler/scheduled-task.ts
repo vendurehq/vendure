@@ -76,7 +76,15 @@ export interface ScheduledTaskConfig<C extends Record<string, any> = Record<stri
     /**
      * @description
      * The timeout for the scheduled task. If the task takes longer than the timeout, the task
-     * will be considered to have failed with a timeout error.
+     * will be considered to have failed with a timeout error. That error is recorded as the
+     * task's last result.
+     *
+     * The execution itself is not cancelled. With the {@link DefaultSchedulerStrategy}, the task
+     * stays locked until the execution settles, so it will not start again in the meantime.
+     * The outcome of a timed-out execution is not recorded.
+     *
+     * An execution which never settles keeps the task locked until the worker process stops.
+     * While it holds the lock, a warning is logged about once a minute.
      *
      * @default 60_000ms
      */
