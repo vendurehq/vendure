@@ -1,4 +1,4 @@
-import { createRequire } from 'module';
+import { createRequire } from 'node:module';
 import path from 'path';
 import swc from 'unplugin-swc';
 import { defineConfig } from 'vitest/config';
