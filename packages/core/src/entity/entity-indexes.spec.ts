@@ -1,51 +1,61 @@
-import { getMetadataArgsStorage } from 'typeorm';
-import { describe, expect, it } from 'vitest';
+import { Type } from '@vendure/common/lib/shared-types';
+import { DataSource, Table } from 'typeorm';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { ensureConfigLoaded } from '../config/config-helpers';
+import { AutoIncrementIdStrategy } from '../config/entity/auto-increment-id-strategy';
 import { SearchIndexItem } from '../plugin/default-search-plugin/entities/search-index-item.entity';
 
-import { HistoryEntry } from './history-entry/history-entry.entity';
-import { Region } from './region/region.entity';
-import { Session } from './session/session.entity';
-import { StockMovement } from './stock-movement/stock-movement.entity';
+import { coreEntitiesMap } from './entities';
+import { setEntityIdStrategy } from './set-entity-id-strategy';
 
-function indicesFor(target: new (...args: any[]) => any) {
-    return getMetadataArgsStorage().indices.filter(index => index.target === target);
-}
+// Cast as in getAllEntities(): several core entities are abstract STI bases.
+const entities = [...Object.values(coreEntitiesMap), SearchIndexItem] as Array<Type<any>>;
 
-function hasIndexOn(target: new (...args: any[]) => any, columns: string[]) {
-    return indicesFor(target).some(
-        index => Array.isArray(index.columns) && index.columns.join() === columns.join(),
-    );
-}
+/**
+ * TypeORM's EntityMetadataBuilder creates an index for every STI discriminator, but
+ * computeEntityMetadataStep2() then rebuilds entityMetadata.indices from ownIndices and discards it
+ * again for any entity with an embedded column — which is every STI base carrying a `customFields`
+ * embed. An explicit `@Index` is recorded in ownIndices and survives, so the first five columns
+ * below depend on one. The last two are STI bases without that embed: they keep their automatic
+ * index with no `@Index` of their own, so their passing shows these assertions read the schema
+ * TypeORM emits rather than the decorator metadata.
+ */
+const singlyIndexedColumns = [
+    ['history_entry', 'discriminator'],
+    ['region', 'discriminator'],
+    ['session', 'type'],
+    ['stock_movement', 'discriminator'],
+    ['search_index_item', 'productId'],
+    ['authentication_method', 'type'],
+    ['order_line_reference', 'discriminator'],
+] as const;
 
-describe('entity index metadata', () => {
-    // These @Index decorators must not be removed. TypeORM's
-    // EntityMetadataBuilder.createKeysForTableInheritance() pushes an automatic index for an STI
-    // discriminator onto entityMetadata.indices, but computeEntityMetadataStep2() — re-run for
-    // every column with a generation strategy, which VendureEntity.id always has — rebuilds that
-    // array from ownIndices. For an entity with at least one embedded column (the customFields
-    // embed that all four of these have) the rebuild produces a new array, so the automatic index
-    // is silently discarded. An explicit @Index is stored in ownIndices and therefore survives.
-    it('indexes the HistoryEntry STI discriminator', () => {
-        expect(hasIndexOn(HistoryEntry, ['discriminator'])).toBe(true);
+describe('entity indexes', () => {
+    let dataSource: DataSource;
+    let tables: Table[];
+
+    beforeAll(async () => {
+        await ensureConfigLoaded();
+        setEntityIdStrategy(new AutoIncrementIdStrategy(), entities);
+        // sqljs stands in for the supported databases here: indices are resolved by
+        // EntityMetadataBuilder before any driver sees them, and none of the columns above is a
+        // relation, so no driver-specific foreign key indexes are in play.
+        dataSource = new DataSource({ type: 'sqljs', entities, synchronize: true });
+        await dataSource.initialize();
+        const queryRunner = dataSource.createQueryRunner();
+        tables = await queryRunner.getTables();
+        await queryRunner.release();
     });
 
-    it('indexes the Session STI discriminator', () => {
-        expect(hasIndexOn(Session, ['type'])).toBe(true);
+    afterAll(async () => {
+        await dataSource.destroy();
     });
 
-    it('indexes the Region STI discriminator', () => {
-        expect(hasIndexOn(Region, ['discriminator'])).toBe(true);
-    });
-
-    it('indexes the StockMovement STI discriminator', () => {
-        expect(hasIndexOn(StockMovement, ['discriminator'])).toBe(true);
-    });
-
-    // productId is filtered on directly by the default-search indexer and joined on by the
-    // search strategies, and it is not covered by the (productVariantId, languageCode, channelId)
-    // primary key or any other index prefix.
-    it('indexes SearchIndexItem.productId', () => {
-        expect(hasIndexOn(SearchIndexItem, ['productId'])).toBe(true);
+    // Only an index with the column in leading position can serve a predicate on that column, and a
+    // second such index would be redundant.
+    it.each(singlyIndexedColumns)('indexes %s.%s exactly once', (tableName, column) => {
+        const table = tables.find(t => t.name === tableName);
+        expect(table?.indices.filter(index => index.columnNames[0] === column)).toHaveLength(1);
     });
 });
