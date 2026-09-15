@@ -75,19 +75,7 @@ export const devConfig: VendureConfig = {
         port: Number(process.env.PORT) || Number(process.env.API_PORT) || API_PORT,
         trustProxy: process.env.VENDURE_TRUST_PROXY === 'true',
         adminApiPath: ADMIN_API_PATH,
-        adminApiPlayground: {
-            settings: {
-                'request.credentials': 'include',
-            },
-        },
-        adminApiDebug: true,
         shopApiPath: SHOP_API_PATH,
-        shopApiPlayground: {
-            settings: {
-                'request.credentials': 'include',
-            },
-        },
-        shopApiDebug: true,
     },
     authOptions: {
         disableAuth: false,

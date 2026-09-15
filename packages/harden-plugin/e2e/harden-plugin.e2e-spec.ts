@@ -1,4 +1,4 @@
-import { LanguageCode, mergeConfig } from '@vendure/core';
+import { ConfigService, LanguageCode, mergeConfig } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import gql from 'graphql-tag';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -21,6 +21,13 @@ async function getErrorMessages(client: { query: (q: any) => Promise<any> }, que
 describe('HardenPlugin', () => {
     const { server, shopClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
+            // Turned on so that there is something for `apiMode: 'prod'` to turn off; both
+            // default to false, so leaving them unset would prove nothing.
+            apiOptions: {
+                adminApiPlayground: true,
+                shopApiPlayground: true,
+                introspection: true,
+            },
             plugins: [HardenPlugin.init({ maxQueryComplexity: 100, apiMode: 'prod' })],
         }),
     );
@@ -78,6 +85,16 @@ describe('HardenPlugin', () => {
             expect(messages.length).toBe(1);
             expect(messages[0]).toContain('qqqqqqqqqqqq');
             expect(messages[0]).not.toContain('Did you mean');
+        });
+    });
+
+    describe("apiMode: 'prod'", () => {
+        it('turns off introspection and the GraphQL landing page', () => {
+            const configService = server.app.get(ConfigService);
+
+            expect(configService.apiOptions.introspection).toBe(false);
+            expect(configService.apiOptions.adminApiPlayground).toBe(false);
+            expect(configService.apiOptions.shopApiPlayground).toBe(false);
         });
     });
 

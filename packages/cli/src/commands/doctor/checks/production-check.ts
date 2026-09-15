@@ -65,15 +65,7 @@ export async function runProductionCheck(config: RuntimeVendureConfig): Promise<
         warn('Shop API playground is enabled');
     }
 
-    // 6. Debug mode enabled
-    if (config.apiOptions.adminApiDebug) {
-        warn('Admin API debug mode is enabled');
-    }
-    if (config.apiOptions.shopApiDebug) {
-        warn('Shop API debug mode is enabled');
-    }
-
-    // 7. Broad CORS with credentials
+    // 6. Broad CORS with credentials
     const cors = config.apiOptions.cors;
     if (cors && typeof cors === 'object' && 'origin' in cors && cors.credentials === true) {
         const origin = cors.origin;
@@ -86,37 +78,37 @@ export async function runProductionCheck(config: RuntimeVendureConfig): Promise<
         }
     }
 
-    // 8. In-memory job queue strategy
+    // 7. In-memory job queue strategy
     const jobQueueStrategy = config.jobQueueOptions?.jobQueueStrategy;
     if (jobQueueStrategy?.constructor?.name === 'InMemoryJobQueueStrategy') {
         warn('Using InMemoryJobQueueStrategy (not persistent across restarts)');
     }
 
-    // 9. In-memory cache strategy
+    // 8. In-memory cache strategy
     const cacheStrategy = config.systemOptions?.cacheStrategy;
     if (cacheStrategy?.constructor?.name === 'InMemoryCacheStrategy') {
         warn('Using InMemoryCacheStrategy (not shared across instances)');
     }
 
-    // 10. In-memory session cache strategy
+    // 9. In-memory session cache strategy
     const sessionCacheStrategy = config.authOptions?.sessionCacheStrategy;
     if (sessionCacheStrategy?.constructor?.name === 'DefaultSessionCacheStrategy') {
         warn('Using DefaultSessionCacheStrategy (in-memory, not shared across instances)');
     }
 
-    // 11. No asset storage configured
+    // 10. No asset storage configured
     const assetStorage = config.assetOptions?.assetStorageStrategy;
     if (assetStorage?.constructor?.name === 'NoAssetStorageStrategy') {
         warn('No asset storage strategy configured');
     }
 
-    // 12. No asset preview configured
+    // 11. No asset preview configured
     const assetPreview = config.assetOptions?.assetPreviewStrategy;
     if (assetPreview?.constructor?.name === 'NoAssetPreviewStrategy') {
         warn('No asset preview strategy configured');
     }
 
-    // 13. synchronize: true
+    // 12. synchronize: true
     if (config.dbConnectionOptions?.synchronize) {
         fail('dbConnectionOptions.synchronize is enabled (use migrations instead)');
     }
