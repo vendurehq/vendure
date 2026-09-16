@@ -1,6 +1,6 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useDebounce } from '@uidotdev/usehooks';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { Alert, AlertDescription } from '@/vdb/components/ui/alert.js';
@@ -19,6 +19,8 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { ChevronRight, Folder, FolderOpen, Search } from 'lucide-react';
 
 import { collectionListForMoveDocument, moveCollectionDocument } from '../collections.graphql.js';
+
+const CHILDREN_PAGE_SIZE = 20;
 
 type Collection = {
     id: string;
@@ -46,6 +48,8 @@ interface CollectionTreeNodeProps {
     selectedCollectionId?: string;
     collectionsToMove: Collection[];
     childCollectionsByParentId: Record<string, Collection[]>;
+    childTotalsByParentId: Record<string, number>;
+    onLoadMoreChildren: (parentId: string) => void;
 }
 
 interface TargetAlertProps {
@@ -120,6 +124,8 @@ function CollectionTreeNode({
     selectedCollectionId,
     collectionsToMove,
     childCollectionsByParentId,
+    childTotalsByParentId,
+    onLoadMoreChildren,
 }: Readonly<CollectionTreeNodeProps>) {
     const hasChildren = collection.children && collection.children.length > 0;
     const isExpanded = expanded[collection.id];
@@ -131,6 +137,7 @@ function CollectionTreeNode({
     const isSelectable = !isBeingMoved && !isChildOfBeingMoved;
 
     const childCollections = childCollectionsByParentId[collection.id] || [];
+    const hasMoreChildren = (childTotalsByParentId[collection.id] ?? 0) > childCollections.length;
 
     return (
         <div className="my-0.5">
@@ -197,8 +204,20 @@ function CollectionTreeNode({
                             selectedCollectionId={selectedCollectionId}
                             collectionsToMove={collectionsToMove}
                             childCollectionsByParentId={childCollectionsByParentId}
+                            childTotalsByParentId={childTotalsByParentId}
+                            onLoadMoreChildren={onLoadMoreChildren}
                         />
                     ))}
+                    {hasMoreChildren && (
+                        <button
+                            type="button"
+                            className="text-xs text-muted-foreground hover:text-foreground py-1.5 px-3"
+                            style={{ marginLeft: (depth + 1) * 20 }}
+                            onClick={() => onLoadMoreChildren(collection.id)}
+                        >
+                            <Trans>Load more</Trans>
+                        </button>
+                    )}
                 </div>
             )}
         </div>
@@ -220,8 +239,12 @@ export function MoveCollectionsDialog({
     const queryClient = useQueryClient();
     const { t } = useLingui();
     const collectionForMoveKey = ['collectionsForMove', debouncedSearchTerm];
-    const childCollectionsForMoveKey = (collectionId?: string) =>
-        collectionId ? ['childCollectionsForMove', collectionId] : ['childCollectionsForMove'];
+    const childCollectionsForMoveKey = (collectionId?: string, page = 0) =>
+        collectionId ? ['childCollectionsForMove', collectionId, 'page', page] : ['childCollectionsForMove'];
+    const [accumulatedChildren, setAccumulatedChildren] = useState<
+        Record<string, { items: Collection[]; totalItems: number }>
+    >({});
+    const [nextPageToFetch, setNextPageToFetch] = useState<Record<string, number>>({});
 
     const { data: collectionsData, isLoading } = useQuery({
         queryKey: collectionForMoveKey,
@@ -243,38 +266,126 @@ export function MoveCollectionsDialog({
     const topLevelCollectionId = collectionsData?.collections.items[0]?.parentId;
     const selectionHasTopLevelParent = collectionsToMove.some(c => c.parentId === topLevelCollectionId);
 
-    // Load child collections for expanded nodes
-    const childrenQueries = useQueries({
-        queries: Object.entries(expanded).map(([collectionId, isExpanded]) => {
-            return {
-                queryKey: childCollectionsForMoveKey(collectionId),
-                queryFn: () =>
-                    api.query(collectionListForMoveDocument, {
-                        options: {
-                            filter: {
-                                parentId: { eq: collectionId },
+    // Load the first page of child collections for expanded nodes, bounded to
+    // CHILDREN_PAGE_SIZE. Expanding a node with many children (common in deeply nested
+    // trees) would otherwise fetch every descendant - and compute breadcrumbs for each -
+    // in a single unbounded request.
+    const firstPageChildQueries = useQueries({
+        queries: Object.entries(expanded)
+            .filter(([collectionId, isExpanded]) => isExpanded && !accumulatedChildren[collectionId])
+            .map(([collectionId]) => {
+                return {
+                    queryKey: childCollectionsForMoveKey(collectionId, 0),
+                    queryFn: async () => {
+                        const result = await api.query(collectionListForMoveDocument, {
+                            options: {
+                                filter: {
+                                    parentId: { eq: collectionId },
+                                },
+                                take: CHILDREN_PAGE_SIZE,
+                                skip: 0,
                             },
-                        },
-                    }),
-            };
-        }),
+                        });
+                        return {
+                            collectionId,
+                            items: result.collections.items as Collection[],
+                            totalItems: result.collections.totalItems,
+                        };
+                    },
+                };
+            }),
     });
 
-    const childCollectionsByParentId = childrenQueries.reduce(
-        (acc, query, index) => {
-            const collectionId = Object.keys(expanded)[index];
-            if (query.data) {
-                const collections = query.data.collections.items as Collection[];
-                // Populate the name cache with these collections
-                collections.forEach(collection => {
-                    collectionNameCache.current.set(collection.id, collection.name);
-                });
-                acc[collectionId] = collections;
+    useEffect(() => {
+        const newChildren: Record<string, { items: Collection[]; totalItems: number }> = {};
+        let hasNew = false;
+        for (const query of firstPageChildQueries) {
+            if (query.data && !accumulatedChildren[query.data.collectionId]) {
+                newChildren[query.data.collectionId] = {
+                    items: query.data.items,
+                    totalItems: query.data.totalItems,
+                };
+                hasNew = true;
             }
-            return acc;
-        },
-        {} as Record<string, Collection[]>,
-    );
+        }
+        if (hasNew) {
+            setAccumulatedChildren(prev => ({ ...prev, ...newChildren }));
+        }
+    }, [firstPageChildQueries]);
+
+    const pagedChildQueries = useQueries({
+        queries: Object.entries(nextPageToFetch)
+            .filter(([_, page]) => page > 0)
+            .map(([collectionId, page]) => {
+                return {
+                    queryKey: childCollectionsForMoveKey(collectionId, page),
+                    queryFn: async () => {
+                        const result = await api.query(collectionListForMoveDocument, {
+                            options: {
+                                filter: {
+                                    parentId: { eq: collectionId },
+                                },
+                                take: CHILDREN_PAGE_SIZE,
+                                skip: page * CHILDREN_PAGE_SIZE,
+                            },
+                        });
+                        return {
+                            collectionId,
+                            items: result.collections.items as Collection[],
+                            totalItems: result.collections.totalItems,
+                        };
+                    },
+                };
+            }),
+    });
+
+    useEffect(() => {
+        let hasUpdates = false;
+        const childUpdates: Record<string, { items: Collection[]; totalItems: number }> = {};
+        const fetchedPages: string[] = [];
+        for (const query of pagedChildQueries) {
+            if (!query.data) continue;
+            const { collectionId, items, totalItems } = query.data;
+            if (accumulatedChildren[collectionId]) {
+                childUpdates[collectionId] = {
+                    items: [...accumulatedChildren[collectionId].items, ...items],
+                    totalItems,
+                };
+                fetchedPages.push(collectionId);
+                hasUpdates = true;
+            }
+        }
+        if (hasUpdates) {
+            setAccumulatedChildren(prev => ({ ...prev, ...childUpdates }));
+            setNextPageToFetch(prev => {
+                const next = { ...prev };
+                for (const id of fetchedPages) {
+                    delete next[id];
+                }
+                return next;
+            });
+        }
+    }, [pagedChildQueries]);
+
+    const handleLoadMoreChildren = (parentId: string) => {
+        const currentItems = accumulatedChildren[parentId]?.items.length ?? 0;
+        const nextPage = Math.floor(currentItems / CHILDREN_PAGE_SIZE);
+        setNextPageToFetch(prev => ({
+            ...prev,
+            [parentId]: nextPage,
+        }));
+    };
+
+    const childCollectionsByParentId: Record<string, Collection[]> = {};
+    const childTotalsByParentId: Record<string, number> = {};
+    for (const [collectionId, { items, totalItems }] of Object.entries(accumulatedChildren)) {
+        // Populate the name cache with these collections
+        items.forEach(collection => {
+            collectionNameCache.current.set(collection.id, collection.name);
+        });
+        childCollectionsByParentId[collectionId] = items;
+        childTotalsByParentId[collectionId] = totalItems;
+    }
 
     const moveCollectionsMutation = useMutation({
         mutationFn: api.mutate(moveCollectionDocument),
@@ -282,6 +393,8 @@ export function MoveCollectionsDialog({
             toast.success(t`Collections moved successfully`);
             queryClient.invalidateQueries({ queryKey: collectionForMoveKey });
             queryClient.invalidateQueries({ queryKey: childCollectionsForMoveKey() });
+            setAccumulatedChildren({});
+            setNextPageToFetch({});
             // Remove child caches BEFORE invalidating the main list to prevent
             // stale cached children from being synced back (same race as drag-reorder).
             onResetExpanded?.();
@@ -406,6 +519,8 @@ export function MoveCollectionsDialog({
                                             selectedCollectionId={selectedCollectionId}
                                             collectionsToMove={collectionsToMove}
                                             childCollectionsByParentId={childCollectionsByParentId}
+                                            childTotalsByParentId={childTotalsByParentId}
+                                            onLoadMoreChildren={handleLoadMoreChildren}
                                         />
                                     ))}
                                 </>
