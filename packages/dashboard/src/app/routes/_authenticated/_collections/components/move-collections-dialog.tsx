@@ -306,7 +306,7 @@ export function MoveCollectionsDialog({
         onSuccess: () => {
             toast.success(t`Collections moved successfully`);
             queryClient.invalidateQueries({ queryKey: collectionForMoveKey });
-            queryClient.invalidateQueries({ queryKey: ['childCollectionsForMove'] });
+            queryClient.removeQueries({ queryKey: ['childCollectionsForMove'] });
             resetChildren();
             // Remove child caches BEFORE invalidating the main list to prevent
             // stale cached children from being synced back (same race as drag-reorder).

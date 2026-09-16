@@ -46,6 +46,12 @@ export function usePaginatedChildCollections<T>({
             .filter(collectionId => !accumulatedChildren[collectionId])
             .map(collectionId => ({
                 queryKey: childQueryKey(collectionId, 0),
+                // The `queries` array is rebuilt from a dynamic, shifting set of
+                // collectionIds, so the same array slot can hold an entirely different
+                // collection's query across renders. Opt out of the global
+                // `keepPreviousData` so an unrelated collection's stale children are never
+                // shown as a placeholder while this one's first page is loading.
+                placeholderData: undefined,
                 queryFn: async () => {
                     const { items, totalItems } = await fetchChildren(collectionId, pageSize, 0);
                     return { collectionId, items, totalItems };
@@ -74,6 +80,8 @@ export function usePaginatedChildCollections<T>({
     const pagedChildQueries = useQueries({
         queries: pagedChildEntries.map(([collectionId, page]) => ({
             queryKey: childQueryKey(collectionId, page),
+            // See the matching comment on firstPageChildQueries above.
+            placeholderData: undefined,
             queryFn: async () => {
                 const { items, totalItems } = await fetchChildren(collectionId, pageSize, page * pageSize);
                 return { collectionId, items, totalItems };
