@@ -389,6 +389,41 @@ export class CollectionService implements OnModuleInit {
 
     /**
      * @description
+     * Returns a Map of collection IDs to their breadcrumb arrays. This performs a bounded
+     * number of bulk queries (one per tree level present in the batch, not one per collection),
+     * avoiding N+1 query issues when resolving breadcrumbs for multiple collections at once.
+     */
+    async getBreadcrumbsForMany(
+        ctx: RequestContext,
+        collections: Array<Translated<Collection> | Collection>,
+    ): Promise<Map<ID, Array<{ name: string; id: ID; slug: string }>>> {
+        const result = new Map<ID, Array<{ name: string; id: ID; slug: string }>>();
+        if (collections.length === 0) {
+            return result;
+        }
+        const rootCollection = await this.getRootCollection(ctx);
+        const pickProps = pick(['id', 'name', 'slug']);
+        const nonRootCollections = collections.filter(c => !idsAreEqual(c.id, rootCollection.id));
+        if (nonRootCollections.length < collections.length) {
+            result.set(rootCollection.id, [pickProps(rootCollection)]);
+        }
+        const ancestorsByCollectionId = await this.getAncestorsForMany(
+            ctx,
+            nonRootCollections.map(c => c.id),
+        );
+        for (const collection of nonRootCollections) {
+            const ancestors = ancestorsByCollectionId.get(collection.id) ?? [];
+            result.set(collection.id, [
+                pickProps(rootCollection),
+                ...ancestors.map(a => pickProps(a)).reverse(),
+                pickProps(collection),
+            ]);
+        }
+        return result;
+    }
+
+    /**
+     * @description
      * Returns all Collections which are associated with the given Product ID.
      */
     async getCollectionsByProductId(
@@ -487,6 +522,77 @@ export class CollectionService implements OnModuleInit {
                 });
                 return resultCategories;
             });
+    }
+
+    /**
+     * @description
+     * Batched version of the ancestor-walking logic used by `getAncestors`. Rather than
+     * recursing one query per level for each collection individually, this walks the whole
+     * set of collections up the tree one level at a time, so the number of queries is bounded
+     * by the deepest collection in the set rather than by (number of collections x depth).
+     */
+    private async getAncestorsForMany(
+        ctx: RequestContext,
+        collectionIds: ID[],
+    ): Promise<Map<ID, Array<Translated<Collection>>>> {
+        const ancestorIdsByCollectionId = new Map<ID, ID[]>();
+        collectionIds.forEach(id => ancestorIdsByCollectionId.set(id, []));
+
+        let frontier = new Map<ID, ID>(collectionIds.map(id => [id, id]));
+        while (frontier.size > 0) {
+            const idsToLoad = unique([...frontier.values()]);
+            const rows = await this.connection.getRepository(ctx, Collection).find({
+                select: ['id', 'parentId'],
+                where: { id: In(idsToLoad) },
+            });
+            const parentIdById = new Map(rows.map(r => [r.id, r.parentId] as const));
+
+            const candidateParentIds = unique(
+                [...parentIdById.values()].filter((id): id is ID => id != null),
+            );
+            const parentRows = candidateParentIds.length
+                ? await this.connection.getRepository(ctx, Collection).find({
+                      select: ['id', 'isRoot'],
+                      where: { id: In(candidateParentIds) },
+                  })
+                : [];
+            const isRootById = new Map(parentRows.map(r => [r.id, r.isRoot]));
+
+            const nextFrontier = new Map<ID, ID>();
+            for (const [collectionId, currentId] of frontier) {
+                const parentId = parentIdById.get(currentId);
+                if (parentId == null) {
+                    continue;
+                }
+                if (idsAreEqual(parentId, currentId)) {
+                    Logger.error(
+                        `Circular reference detected in Collection tree: Collection ${currentId} is its own parent`,
+                    );
+                    continue;
+                }
+                if (isRootById.get(parentId)) {
+                    continue;
+                }
+                ancestorIdsByCollectionId.get(collectionId)!.push(parentId);
+                nextFrontier.set(collectionId, parentId);
+            }
+            frontier = nextFrontier;
+        }
+
+        const allAncestorIds = unique([...ancestorIdsByCollectionId.values()].flat());
+        const ancestorEntities = allAncestorIds.length
+            ? await this.connection.getRepository(ctx, Collection).find({ where: { id: In(allAncestorIds) } })
+            : [];
+        const ancestorById = new Map(ancestorEntities.map(c => [c.id, this.translator.translate(c, ctx)]));
+
+        const result = new Map<ID, Array<Translated<Collection>>>();
+        for (const [collectionId, ancestorIds] of ancestorIdsByCollectionId) {
+            result.set(
+                collectionId,
+                ancestorIds.map(id => ancestorById.get(id)).filter((c): c is Translated<Collection> => !!c),
+            );
+        }
+        return result;
     }
 
     async previewCollectionVariants(

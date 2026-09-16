@@ -85,6 +85,7 @@ export const CacheKey = {
     ActiveTaxZone: (channelId: ID) => `ActiveTaxZone:${channelId}`,
     ActiveTaxZone_PPA: (channelId: ID) => `ActiveTaxZone_PPA:${channelId}`,
     CollectionVariantCounts: 'CollectionService.getProductVariantCounts',
+    CollectionBreadcrumbs: 'CollectionService.getBreadcrumbsForMany',
     ExhaustedPromotions: (channelId: ID, customerId: ID | undefined) =>
         `ExhaustedPromotions:${channelId}:${customerId ?? 'guest'}`,
 };
