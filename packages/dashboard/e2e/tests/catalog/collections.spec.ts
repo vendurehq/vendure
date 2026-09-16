@@ -444,3 +444,94 @@ test.describe('Issue #4987: String list filter args preserve numeric values', ()
         );
     });
 });
+
+// #5393 — the Move-collections dialog's filter input did not accept any keystrokes.
+test.describe('Issue #5393: Collections Move dialog filter input', () => {
+    let collectionAId: string;
+    let collectionBId: string;
+    const COLLECTION_A_NAME = 'E2E Move Filter Test A';
+    const COLLECTION_B_NAME = 'E2E Move Filter Test B';
+
+    test.beforeAll(async ({ browser }) => {
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+
+        const { createCollection: a } = await client.gql(
+            `mutation ($input: CreateCollectionInput!) { createCollection(input: $input) { id } }`,
+            {
+                input: {
+                    filters: [],
+                    translations: [
+                        { languageCode: 'en', name: COLLECTION_A_NAME, slug: 'e2e-move-filter-a', description: '' },
+                    ],
+                },
+            },
+        );
+        collectionAId = a.id as string;
+
+        const { createCollection: b } = await client.gql(
+            `mutation ($input: CreateCollectionInput!) { createCollection(input: $input) { id } }`,
+            {
+                input: {
+                    filters: [],
+                    translations: [
+                        { languageCode: 'en', name: COLLECTION_B_NAME, slug: 'e2e-move-filter-b', description: '' },
+                    ],
+                },
+            },
+        );
+        collectionBId = b.id as string;
+        await page.close();
+    });
+
+    test.afterAll(async ({ browser }) => {
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        if (collectionAId) {
+            await client.gql(`mutation ($id: ID!) { deleteCollection(id: $id) { result } }`, {
+                id: collectionAId,
+            });
+        }
+        if (collectionBId) {
+            await client.gql(`mutation ($id: ID!) { deleteCollection(id: $id) { result } }`, {
+                id: collectionBId,
+            });
+        }
+        await page.close();
+    });
+
+    test('should accept keystrokes and filter the destination tree', async ({ page }) => {
+        await page.goto('/collections');
+        await expect(page.getByRole('heading', { name: 'Collections' })).toBeVisible();
+
+        const row = page.locator('tbody tr').filter({ has: page.getByText(COLLECTION_A_NAME) });
+        await row.getByRole('checkbox').click();
+
+        await page.getByRole('button', { name: 'Actions' }).click();
+        await page.getByRole('menuitem', { name: 'Move' }).click();
+
+        const dialog = page.getByRole('dialog', { name: 'Move Collections' });
+        await expect(dialog).toBeVisible();
+
+        const filterInput = dialog.getByPlaceholder('Filter by collection name');
+        await filterInput.click();
+        await filterInput.pressSequentially(COLLECTION_B_NAME);
+
+        // The core regression: keystrokes must land in the controlled input's value.
+        await expect(filterInput).toHaveValue(COLLECTION_B_NAME);
+
+        // The debounced query then narrows the destination tree to the match.
+        // Collection A's name stays visible in the header strip listing the
+        // collections being moved, regardless of the filter, so scope these
+        // assertions to the tree's own row buttons rather than the whole dialog.
+        // Each row's accessible name is "{name} {name}": Vendure's breadcrumbs
+        // field always includes the collection itself as the last entry, and
+        // CollectionTreeNode renders that entry a second time as a subtitle. That
+        // duplication is harmless here, since neither fixture name is a substring
+        // of the other.
+        await expect(dialog.getByRole('button', { name: COLLECTION_B_NAME })).toBeVisible({ timeout: 5_000 });
+        await expect(dialog.getByRole('button', { name: COLLECTION_A_NAME })).not.toBeVisible();
+    });
+});
