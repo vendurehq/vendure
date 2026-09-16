@@ -557,9 +557,9 @@ test.describe('Orders', () => {
         // Free text wins over the selection: a custom description must survive the popup
         // closing, instead of snapping back to the description that was picked.
         await taxDescriptionInput.fill(' Custom tax description ');
-        // No existing description matches this, so the popup closes itself without an Escape.
-        // Wait for the field to say so, or its backdrop is still over the "Add surcharge"
-        // button below.
+        // Picking a suggestion above already closed the popup, and typing a description that
+        // matches no existing one does not reopen it. Pin that, because an open popup here
+        // would put a backdrop over the "Add surcharge" button below.
         await expectPopupClosed(taxDescriptionInput);
         await taxDescriptionInput.blur();
         await expect(taxDescriptionInput).toHaveValue(' Custom tax description ');

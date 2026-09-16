@@ -2,7 +2,7 @@ import { type Page, expect, test } from '@playwright/test';
 
 import { BaseDetailPage } from '../../page-objects/detail-page.base.js';
 import { BaseListPage } from '../../page-objects/list-page.base.js';
-import { closePopup, expectPopupOpen } from '../../utils/base-ui-popups.js';
+import { closePopup, expectPopupClosed, expectPopupOpen } from '../../utils/base-ui-popups.js';
 import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
 
 // Channels have dependent selectors: available languages/currencies must be set
@@ -416,7 +416,7 @@ test.describe('Channel required-field validation', () => {
         await expect(openSelect(page).getByRole('option')).toHaveCount(1);
         await openSelect(page).getByRole('option', { name: /Euro/ }).click();
         // A single-select closes itself once a value is picked.
-        await expect(page.getByRole('listbox').filter({ visible: true })).toHaveCount(0);
+        await expectPopupClosed(defaultCurrency);
         await expect(dp.formItem('Default currency').getByRole('combobox')).toContainText('Euro');
 
         await dp.selectOption('Default tax zone', 'Europe');

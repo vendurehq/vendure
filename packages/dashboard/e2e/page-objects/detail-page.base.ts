@@ -98,7 +98,8 @@ export class BaseDetailPage {
         await triggerLocator.click();
         await this.page.getByRole('option', { name: optionText, exact: true }).click();
         // Multi-selects stay open after choosing an option, and the popup's backdrop would
-        // intercept the next form interaction.
+        // intercept the next form interaction. A filtered picker closes itself instead, and
+        // closePopup requires an open popup, so this does not suit those.
         await closePopup(triggerLocator);
     }
 

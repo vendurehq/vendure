@@ -9,10 +9,15 @@ import { type Locator, expect } from '@playwright/test';
  * popup to be absent does not rule this out, because a popup that has not mounted yet is
  * absent too.
  *
- * So these helpers key off the trigger's `aria-expanded`, which Base UI sets for selects and
- * comboboxes alike, and which is scoped to the one popup. A document-wide check cannot be:
- * an open modal dialog marks everything outside itself with the same `data-base-ui-inert`
- * attribute a popup backdrop uses, so dismissing until those marks clear closes the dialog.
+ * So these helpers key off the trigger's `aria-expanded`, which is scoped to the one popup. A
+ * document-wide check does not work: an open modal dialog marks everything outside itself with
+ * the same `data-base-ui-inert` attribute a popup backdrop uses, so dismissing until those
+ * marks clear closes the dialog instead.
+ *
+ * Select and combobox triggers both carry `aria-expanded` whether open or closed. A combobox
+ * rendered with a custom trigger element is the exception — it only gets the attribute while
+ * open — so locate such a trigger while its popup is open, or these helpers will wait out
+ * their timeout against a missing attribute.
  */
 
 /** Assert that `trigger` has its popup open. */
@@ -24,8 +29,11 @@ export async function expectPopupOpen(trigger: Locator) {
  * Wait until `trigger` reports its popup closed, however it got there — typing a value that
  * matches no option closes the popup without an Escape, for instance.
  *
- * By this point the backdrop has gone and the fields underneath are clickable again. The
- * list itself may still be fading out, so assert on this rather than on the list being gone.
+ * By this point the fields underneath are usable again. Base UI ties the backdrop's inertness
+ * to the popup being closed, but its lifetime to a separate `mounted` flag that outlives the
+ * close transition, so the backdrop may still be in the DOM — inert, and no longer
+ * hit-testable. Do not wait for it to disappear. The list may also still be fading out, which
+ * is the other reason to assert on the trigger rather than on the popup being gone.
  */
 export async function expectPopupClosed(trigger: Locator) {
     await expect(trigger).toHaveAttribute('aria-expanded', 'false');
