@@ -1,6 +1,6 @@
-import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useDebounce } from '@uidotdev/usehooks';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { Alert, AlertDescription } from '@/vdb/components/ui/alert.js';
@@ -19,6 +19,7 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { ChevronRight, Folder, FolderOpen, Search } from 'lucide-react';
 
 import { collectionListForMoveDocument, moveCollectionDocument } from '../collections.graphql.js';
+import { usePaginatedChildCollections } from '../hooks/use-paginated-child-collections.js';
 
 const CHILDREN_PAGE_SIZE = 20;
 
@@ -239,12 +240,6 @@ export function MoveCollectionsDialog({
     const queryClient = useQueryClient();
     const { t } = useLingui();
     const collectionForMoveKey = ['collectionsForMove', debouncedSearchTerm];
-    const childCollectionsForMoveKey = (collectionId?: string, page = 0) =>
-        collectionId ? ['childCollectionsForMove', collectionId, 'page', page] : ['childCollectionsForMove'];
-    const [accumulatedChildren, setAccumulatedChildren] = useState<
-        Record<string, { items: Collection[]; totalItems: number }>
-    >({});
-    const [nextPageToFetch, setNextPageToFetch] = useState<Record<string, number>>({});
 
     const { data: collectionsData, isLoading } = useQuery({
         queryKey: collectionForMoveKey,
@@ -266,126 +261,34 @@ export function MoveCollectionsDialog({
     const topLevelCollectionId = collectionsData?.collections.items[0]?.parentId;
     const selectionHasTopLevelParent = collectionsToMove.some(c => c.parentId === topLevelCollectionId);
 
-    // Load the first page of child collections for expanded nodes, bounded to
-    // CHILDREN_PAGE_SIZE. Expanding a node with many children (common in deeply nested
-    // trees) would otherwise fetch every descendant - and compute breadcrumbs for each -
-    // in a single unbounded request.
-    const firstPageChildQueries = useQueries({
-        queries: Object.entries(expanded)
-            .filter(([collectionId, isExpanded]) => isExpanded && !accumulatedChildren[collectionId])
-            .map(([collectionId]) => {
-                return {
-                    queryKey: childCollectionsForMoveKey(collectionId, 0),
-                    queryFn: async () => {
-                        const result = await api.query(collectionListForMoveDocument, {
-                            options: {
-                                filter: {
-                                    parentId: { eq: collectionId },
-                                },
-                                take: CHILDREN_PAGE_SIZE,
-                                skip: 0,
-                            },
-                        });
-                        return {
-                            collectionId,
-                            items: result.collections.items as Collection[],
-                            totalItems: result.collections.totalItems,
-                        };
+    // Loads child collections for expanded nodes one page (CHILDREN_PAGE_SIZE) at a time.
+    // Expanding a node with many children (common in deeply nested trees) would otherwise
+    // fetch every descendant - and compute breadcrumbs for each - in a single unbounded
+    // request.
+    const { accumulatedChildren, handleLoadMoreChildren, resetChildren } = usePaginatedChildCollections<
+        Collection
+    >({
+        expandedIds: Object.entries(expanded)
+            .filter(([, isExpanded]) => isExpanded)
+            .map(([collectionId]) => collectionId),
+        pageSize: CHILDREN_PAGE_SIZE,
+        queryKeyPrefix: 'childCollectionsForMove',
+        fetchChildren: async (parentId, take, skip) => {
+            const result = await api.query(collectionListForMoveDocument, {
+                options: {
+                    filter: {
+                        parentId: { eq: parentId },
                     },
-                };
-            }),
-    });
-
-    useEffect(() => {
-        const newChildren: Record<string, { items: Collection[]; totalItems: number }> = {};
-        let hasNew = false;
-        for (const query of firstPageChildQueries) {
-            if (query.data && !accumulatedChildren[query.data.collectionId]) {
-                newChildren[query.data.collectionId] = {
-                    items: query.data.items,
-                    totalItems: query.data.totalItems,
-                };
-                hasNew = true;
-            }
-        }
-        if (hasNew) {
-            setAccumulatedChildren(prev => ({ ...prev, ...newChildren }));
-        }
-    }, [firstPageChildQueries]);
-
-    const pagedChildQueryEntries = Object.entries(nextPageToFetch).filter(([_, page]) => page > 0);
-    const pagedChildQueries = useQueries({
-        queries: pagedChildQueryEntries.map(([collectionId, page]) => {
-            return {
-                queryKey: childCollectionsForMoveKey(collectionId, page),
-                queryFn: async () => {
-                    const result = await api.query(collectionListForMoveDocument, {
-                        options: {
-                            filter: {
-                                parentId: { eq: collectionId },
-                            },
-                            take: CHILDREN_PAGE_SIZE,
-                            skip: page * CHILDREN_PAGE_SIZE,
-                        },
-                    });
-                    return {
-                        collectionId,
-                        items: result.collections.items as Collection[],
-                        totalItems: result.collections.totalItems,
-                    };
+                    take,
+                    skip,
                 },
-            };
-        }),
-    });
-    // Keyed by parent collection id so a failed page fetch (which exhausts react-query's
-    // retries and leaves `nextPageToFetch` pointing at the same page/queryKey) can be retried
-    // directly via `refetch()`, since re-requesting the same page number alone won't trigger
-    // a new fetch attempt.
-    const pagedQueryByParentId = new Map(
-        pagedChildQueryEntries.map(([collectionId], index) => [collectionId, pagedChildQueries[index]]),
-    );
-
-    useEffect(() => {
-        let hasUpdates = false;
-        const childUpdates: Record<string, { items: Collection[]; totalItems: number }> = {};
-        const fetchedPages: string[] = [];
-        for (const query of pagedChildQueries) {
-            if (!query.data) continue;
-            const { collectionId, items, totalItems } = query.data;
-            if (accumulatedChildren[collectionId]) {
-                childUpdates[collectionId] = {
-                    items: [...accumulatedChildren[collectionId].items, ...items],
-                    totalItems,
-                };
-                fetchedPages.push(collectionId);
-                hasUpdates = true;
-            }
-        }
-        if (hasUpdates) {
-            setAccumulatedChildren(prev => ({ ...prev, ...childUpdates }));
-            setNextPageToFetch(prev => {
-                const next = { ...prev };
-                for (const id of fetchedPages) {
-                    delete next[id];
-                }
-                return next;
             });
-        }
-    }, [pagedChildQueries]);
-
-    const handleLoadMoreChildren = (parentId: string) => {
-        const pendingQuery = pagedQueryByParentId.get(parentId);
-        if (pendingQuery?.isError) {
-            pendingQuery.refetch();
-            return;
-        }
-        const currentItems = accumulatedChildren[parentId]?.items.length ?? 0;
-        const nextPage = Math.floor(currentItems / CHILDREN_PAGE_SIZE);
-        setNextPageToFetch(prev => ({
-            ...prev,
-            [parentId]: nextPage,
-        }));
-    };
+            return {
+                items: result.collections.items as Collection[],
+                totalItems: result.collections.totalItems,
+            };
+        },
+    });
 
     const childCollectionsByParentId: Record<string, Collection[]> = {};
     const childTotalsByParentId: Record<string, number> = {};
@@ -403,9 +306,8 @@ export function MoveCollectionsDialog({
         onSuccess: () => {
             toast.success(t`Collections moved successfully`);
             queryClient.invalidateQueries({ queryKey: collectionForMoveKey });
-            queryClient.invalidateQueries({ queryKey: childCollectionsForMoveKey() });
-            setAccumulatedChildren({});
-            setNextPageToFetch({});
+            queryClient.invalidateQueries({ queryKey: ['childCollectionsForMove'] });
+            resetChildren();
             // Remove child caches BEFORE invalidating the main list to prevent
             // stale cached children from being synced back (same race as drag-reorder).
             onResetExpanded?.();
