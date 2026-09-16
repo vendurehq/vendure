@@ -236,7 +236,7 @@ async function runInteractiveManager(): Promise<void> {
                 // can be offered once per scope and the two toggle separately.
                 options: toggleable.map(plugin => ({
                     value: toggleKey(plugin),
-                    label: `${plugin.packageName} ${pc.dim(`(${scopeSuffix(plugin.scope)})`)}`,
+                    label: toggleLabel(plugin),
                     hint: statusHint(plugin),
                 })),
                 initialValues: toggleable
@@ -285,6 +285,12 @@ async function runInteractiveManager(): Promise<void> {
     }
 
     outro(written.length > 0 ? `Updated ${written.join(' and ')}` : 'No changes made.');
+}
+
+/** One row's label: the package, and which list it would be written to. */
+function toggleLabel(plugin: DiscoveredCliPlugin): string {
+    const scope = pc.dim(`(${scopeSuffix(plugin.scope)})`);
+    return `${plugin.packageName} ${scope}`;
 }
 
 /**

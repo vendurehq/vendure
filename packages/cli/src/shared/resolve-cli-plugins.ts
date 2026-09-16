@@ -226,88 +226,95 @@ export function discoverCliPlugins(options: DiscoverCliPluginsOptions = {}): Dis
  * above so that each scope answers only for itself.
  */
 function discoverInScope(scope: PluginScope, validate: boolean): DiscoveredCliPlugin[] {
-    const enabledSet = new Set(scope.allowlist);
+    const enabled = new Set(scope.allowlist);
     const discovered = new Map<string, DiscoveredCliPlugin>();
 
     for (const packageName of [...scope.listCandidates()].sort((a, b) => a.localeCompare(b))) {
-        const resolved = scope.resolvePackage(packageName);
-        if (!resolved) {
-            continue;
+        const entry = describePackage(scope, packageName, enabled.has(packageName));
+        if (entry) {
+            discovered.set(packageName, entry);
         }
-        const entryRel = resolved.packageJson.vendure?.cliPlugin;
-        if (!entryRel || typeof entryRel !== 'string') {
-            continue;
-        }
-        discovered.set(packageName, {
-            packageName,
-            scope: scope.kind,
-            status: enabledSet.has(packageName) ? 'enabled' : 'not-enabled',
-            reason: enabledSet.has(packageName) ? undefined : notEnabledReason(scope),
-            entryRel,
-            entryPath: path.resolve(resolved.dir, entryRel),
-            declaredCommands: normalizeDeclaredCommands(resolved.packageJson.vendure?.cliCommands),
-        });
     }
 
-    // Allowlisted packages that are missing or invalid surface as failed.
     for (const packageName of scope.allowlist) {
-        const failure = scope.check(packageName);
-        if (failure) {
-            const existing = discovered.get(packageName);
-            discovered.set(packageName, {
-                ...existing,
-                packageName,
-                scope: scope.kind,
-                status: 'failed',
-                reason: failure,
-            });
+        const entry = describeEnabledPackage(scope, packageName, discovered.get(packageName));
+        if (!entry) {
             continue;
         }
-        // An enabled package that scanning did not turn up is still enabled,
-        // and has just passed every check. This happens whenever the scope can
-        // resolve more than it can enumerate: a `pluginRoots` directory, or a
-        // CLI that is not installed inside a node_modules it could scan.
-        // Without this it would be loaded at startup and yet missing from
-        // `vendure plugins`.
-        if (!discovered.has(packageName)) {
-            const resolved = scope.resolvePackage(packageName);
-            const entryRel = resolved?.packageJson.vendure?.cliPlugin;
-            if (resolved && typeof entryRel === 'string') {
-                discovered.set(packageName, {
-                    packageName,
-                    scope: scope.kind,
-                    status: 'enabled',
-                    entryRel,
-                    entryPath: path.resolve(resolved.dir, entryRel),
-                    declaredCommands: normalizeDeclaredCommands(resolved.packageJson.vendure?.cliCommands),
-                });
-            }
-        }
-
-        if (validate) {
-            const entry = discovered.get(packageName);
-            if (entry?.entryPath) {
-                try {
-                    const plugin = loadCliPluginModule(entry.entryPath, packageName);
-                    // The module is already loaded here, so reading its command
-                    // names adds no work, and they take precedence over
-                    // whatever `vendure.cliCommands` declares.
-                    discovered.set(packageName, {
-                        ...entry,
-                        loadedCommands: plugin.commands.map(command => command.name),
-                    });
-                } catch (e: any) {
-                    discovered.set(packageName, {
-                        ...entry,
-                        status: 'failed',
-                        reason: e?.message ?? String(e),
-                    });
-                }
-            }
-        }
+        discovered.set(
+            packageName,
+            validate && entry.status !== 'failed' ? withLoadedCommands(entry, packageName) : entry,
+        );
     }
 
     return Array.from(discovered.values());
+}
+
+/**
+ * Describes a package the scope can resolve and which declares a plugin entry,
+ * or `undefined` for one that does neither — an ordinary dependency that has
+ * nothing to do with the CLI.
+ */
+function describePackage(
+    scope: PluginScope,
+    packageName: string,
+    isEnabled: boolean,
+): DiscoveredCliPlugin | undefined {
+    const resolved = scope.resolvePackage(packageName);
+    const entryRel = resolved?.packageJson.vendure?.cliPlugin;
+    if (!resolved || typeof entryRel !== 'string') {
+        return undefined;
+    }
+    return {
+        packageName,
+        scope: scope.kind,
+        status: isEnabled ? 'enabled' : 'not-enabled',
+        reason: isEnabled ? undefined : notEnabledReason(scope),
+        entryRel,
+        entryPath: path.resolve(resolved.dir, entryRel),
+        declaredCommands: normalizeDeclaredCommands(resolved.packageJson.vendure?.cliCommands),
+    };
+}
+
+/**
+ * Describes a package the scope lists as enabled, given whatever scanning
+ * already found for it.
+ *
+ * A package that fails its scope's checks is reported as `failed`, keeping
+ * whatever was known about it. One that passes but scanning never turned up is
+ * described from scratch, which happens whenever a scope can resolve more than
+ * it can enumerate: a `pluginRoots` directory, or a CLI that is not installed
+ * inside a `node_modules` it could scan. Without that it would load at startup
+ * and yet be missing from `vendure plugins`.
+ */
+function describeEnabledPackage(
+    scope: PluginScope,
+    packageName: string,
+    found: DiscoveredCliPlugin | undefined,
+): DiscoveredCliPlugin | undefined {
+    const failure = scope.check(packageName);
+    if (failure) {
+        return { ...found, packageName, scope: scope.kind, status: 'failed', reason: failure };
+    }
+    return found ?? describePackage(scope, packageName, true);
+}
+
+/**
+ * Adds the command names read from the plugin module itself, which are the real
+ * ones and so outrank whatever `vendure.cliCommands` declares. The module is
+ * loaded to read them, so a module that cannot be loaded is reported as failed
+ * here rather than at the next startup.
+ */
+function withLoadedCommands(entry: DiscoveredCliPlugin, packageName: string): DiscoveredCliPlugin {
+    if (!entry.entryPath) {
+        return entry;
+    }
+    try {
+        const plugin = loadCliPluginModule(entry.entryPath, packageName);
+        return { ...entry, loadedCommands: plugin.commands.map(command => command.name) };
+    } catch (e: any) {
+        return { ...entry, status: 'failed', reason: e?.message ?? String(e) };
+    }
 }
 
 function notEnabledReason(scope: PluginScope): string {
@@ -350,62 +357,71 @@ function checkDeclaresPlugin(
  */
 export function resolveCliPlugins(options: ResolveCliPluginsOptions = {}): CliPluginLoadResult {
     const scopes = getPluginScopes(options);
-    const loaded: ResolvedCliPlugin[] = [];
-    const failures: CliPluginLoadFailure[] = [];
-    const scopeErrors: CliPluginScopeError[] = [];
-
-    // A package enabled in more than one scope is loaded once. The later scope
-    // wins, which is the project, so the copy that is pinned alongside the
-    // project's code is the one that runs. Loading both would apply the plugin
-    // twice and run any `afterConsoleLink` hook twice per link.
-    const lastScopeFor = new Map<string, PluginScope>();
-    for (const scope of scopes) {
-        for (const packageName of scope.allowlist) {
-            lastScopeFor.set(packageName, scope);
-        }
-    }
+    const owner = owningScopes(scopes);
+    const result: CliPluginLoadResult = { loaded: [], failures: [], scopeErrors: [] };
 
     for (const scope of scopes) {
         if (scope.error) {
-            scopeErrors.push({ scope: scope.kind, origin: scope.origin, reason: scope.error });
+            result.scopeErrors.push({ scope: scope.kind, origin: scope.origin, reason: scope.error });
         }
         for (const packageName of scope.allowlist) {
-            if (lastScopeFor.get(packageName) !== scope) {
-                continue;
-            }
-            const staticFailure = scope.check(packageName);
-            if (staticFailure) {
-                failures.push({ packageName, reason: staticFailure, scope: scope.kind });
-                continue;
-            }
-            const resolved = scope.resolvePackage(packageName);
-            const entryRel = resolved?.packageJson.vendure?.cliPlugin;
-            if (!resolved || typeof entryRel !== 'string') {
-                // The checks above already passed, so this cannot happen.
-                // Reported rather than asserted away, so that a later change to
-                // those checks surfaces here instead of crashing the CLI.
-                failures.push({
-                    packageName,
-                    reason: 'Passed every check but no plugin entry could be resolved',
-                    scope: scope.kind,
-                });
-                continue;
-            }
-            const entryPath = path.resolve(resolved.dir, entryRel);
-            try {
-                loaded.push({
-                    packageName,
-                    plugin: loadCliPluginModule(entryPath, packageName),
-                    entryPath,
-                    scope: scope.kind,
-                });
-            } catch (e: any) {
-                failures.push({ packageName, reason: e?.message ?? String(e), scope: scope.kind });
+            if (owner.get(packageName) === scope) {
+                loadInto(result, scope, packageName);
             }
         }
     }
 
-    return { loaded, failures, scopeErrors };
+    return result;
+}
+
+/**
+ * The scope each enabled package is loaded from, when more than one enables it.
+ *
+ * The last scope wins, which is the project, so the copy pinned alongside the
+ * project's code is the one that runs. Loading both would apply the plugin
+ * twice and run any `afterConsoleLink` hook twice per link.
+ */
+function owningScopes(scopes: PluginScope[]): Map<string, PluginScope> {
+    const owner = new Map<string, PluginScope>();
+    for (const scope of scopes) {
+        for (const packageName of scope.allowlist) {
+            owner.set(packageName, scope);
+        }
+    }
+    return owner;
+}
+
+/** Loads one package, recording either the plugin or the reason it could not be. */
+function loadInto(result: CliPluginLoadResult, scope: PluginScope, packageName: string): void {
+    const fail = (reason: string) => result.failures.push({ packageName, reason, scope: scope.kind });
+
+    const ineligible = scope.check(packageName);
+    if (ineligible) {
+        fail(ineligible);
+        return;
+    }
+
+    const resolved = scope.resolvePackage(packageName);
+    const entryRel = resolved?.packageJson.vendure?.cliPlugin;
+    if (!resolved || typeof entryRel !== 'string') {
+        // The check above already passed, so this cannot happen. Reported
+        // rather than asserted away, so a later change to the checks surfaces
+        // here instead of crashing the CLI.
+        fail('Passed every check but no plugin entry could be resolved');
+        return;
+    }
+
+    const entryPath = path.resolve(resolved.dir, entryRel);
+    try {
+        result.loaded.push({
+            packageName,
+            plugin: loadCliPluginModule(entryPath, packageName),
+            entryPath,
+            scope: scope.kind,
+        });
+    } catch (e: any) {
+        fail(e?.message ?? String(e));
+    }
 }
 
 /**
@@ -601,32 +617,27 @@ function isGlobalNodeModules(nodeModulesDir: string): boolean {
  * its own, so the directory itself is the only record of what is there.
  */
 function listInstalledPackageNames(nodeModulesDir: string): string[] {
-    const names: string[] = [];
-    let entries: string[];
+    return readDirectory(nodeModulesDir)
+        .filter(entry => !entry.startsWith('.'))
+        .flatMap(entry =>
+            entry.startsWith('@') ? listScopedPackageNames(nodeModulesDir, entry) : [entry],
+        );
+}
+
+/** The packages inside one `@scope` directory, named `@scope/package`. */
+function listScopedPackageNames(nodeModulesDir: string, scopeDir: string): string[] {
+    return readDirectory(path.join(nodeModulesDir, scopeDir))
+        .filter(entry => !entry.startsWith('.'))
+        .map(entry => `${scopeDir}/${entry}`);
+}
+
+/** Directory entries, or none at all when the directory cannot be read. */
+function readDirectory(dir: string): string[] {
     try {
-        entries = fs.readdirSync(nodeModulesDir);
+        return fs.readdirSync(dir);
     } catch {
-        return names;
+        return [];
     }
-    for (const entry of entries) {
-        if (entry.startsWith('.')) {
-            continue;
-        }
-        if (entry.startsWith('@')) {
-            try {
-                for (const scoped of fs.readdirSync(path.join(nodeModulesDir, entry))) {
-                    if (!scoped.startsWith('.')) {
-                        names.push(`${entry}/${scoped}`);
-                    }
-                }
-            } catch {
-                // An unreadable scope directory contributes nothing.
-            }
-            continue;
-        }
-        names.push(entry);
-    }
-    return names;
 }
 
 /**

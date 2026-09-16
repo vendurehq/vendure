@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -49,7 +50,7 @@ export function createTestProject(projectName: string = 'test-project'): CliTest
     const projectDir = join(
         tmpdir(),
         'vendure-cli-e2e',
-        `${projectName}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        `${projectName}-${Date.now()}-${randomBytes(6).toString('hex')}`,
     );
 
     // Create project directory
@@ -133,7 +134,7 @@ export const config: VendureConfig = {
                 // Use the built CLI from the dist directory
                 const cliPath = join(__dirname, '..', 'dist', 'cli.js');
 
-                const child = spawn('node', [cliPath, ...args], {
+                const child = spawn(process.execPath, [cliPath, ...args], {
                     cwd: projectDir,
                     env: {
                         ...process.env,
@@ -349,7 +350,7 @@ export function createSimulatedGlobalInstall(fixtureNames: string[]): SimulatedG
     const prefix = join(
         tmpdir(),
         'vendure-cli-e2e',
-        `global-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        `global-${Date.now()}-${randomBytes(6).toString('hex')}`,
     );
     const globalNodeModules = join(prefix, 'lib', 'node_modules');
     const cliDir = join(globalNodeModules, '@vendure', 'cli');
@@ -386,7 +387,7 @@ export function createSimulatedGlobalInstall(fixtureNames: string[]): SimulatedG
         cleanup: () => rmSync(prefix, { recursive: true, force: true }),
         runCliCommand: (args, options = {}) =>
             new Promise((resolve, reject) => {
-                const child = spawn('node', [join(cliDir, 'dist', 'cli.js'), ...args], {
+                const child = spawn(process.execPath, [join(cliDir, 'dist', 'cli.js'), ...args], {
                     cwd: options.cwd ?? emptyDir,
                     env: {
                         ...process.env,
