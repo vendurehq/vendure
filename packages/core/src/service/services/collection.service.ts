@@ -395,7 +395,7 @@ export class CollectionService implements OnModuleInit {
      */
     async getBreadcrumbsForMany(
         ctx: RequestContext,
-        collections: Array<Translated<Collection> | Collection>,
+        collections: Array<Translated<Collection>>,
     ): Promise<Map<ID, Array<{ name: string; id: ID; slug: string }>>> {
         const result = new Map<ID, Array<{ name: string; id: ID; slug: string }>>();
         if (collections.length === 0) {
