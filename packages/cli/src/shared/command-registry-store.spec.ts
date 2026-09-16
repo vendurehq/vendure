@@ -756,13 +756,15 @@ describe('resolveCliPlugins()', () => {
             resolveCliPlugins({
                 cwd: fixture.root,
                 projectPackageJson,
+            scopes: ['project'],
                 resolvePackage: fixture.resolvePackage,
             }),
-        ).toEqual({ loaded: [], failures: [] });
+        ).toEqual({ loaded: [], failures: [], scopeErrors: [] });
 
         const discovered = discoverCliPlugins({
             cwd: fixture.root,
             projectPackageJson,
+            scopes: ['project'],
             resolvePackage: fixture.resolvePackage,
         });
         expect(discovered.map(plugin => plugin.packageName)).toEqual(['@example/a', '@example/b']);
@@ -926,6 +928,7 @@ describe('resolveCliPlugins()', () => {
         const result = resolveCliPlugins({
             cwd: fixture.root,
             projectPackageJson,
+            scopes: ['project'],
             resolvePackage: fixture.resolvePackage,
         });
 
@@ -1111,6 +1114,7 @@ describe('resolveCliPlugins()', () => {
         const withoutValidation = discoverCliPlugins({
             cwd: fixture.root,
             projectPackageJson,
+            scopes: ['project'],
             resolvePackage: fixture.resolvePackage,
         });
         expect(withoutValidation[0].status).toBe('enabled');
@@ -1118,6 +1122,7 @@ describe('resolveCliPlugins()', () => {
         const withValidation = discoverCliPlugins({
             cwd: fixture.root,
             projectPackageJson,
+            scopes: ['project'],
             resolvePackage: fixture.resolvePackage,
             validate: true,
         });
@@ -1161,6 +1166,7 @@ describe('resolveCliPlugins()', () => {
         const [plugin] = discoverCliPlugins({
             cwd: fixture.root,
             projectPackageJson,
+            scopes: ['project'],
             resolvePackage: fixture.resolvePackage,
             validate: true,
         });
@@ -1195,6 +1201,7 @@ describe('resolveCliPlugins()', () => {
         const [plugin] = discoverCliPlugins({
             cwd: fixture.root,
             projectPackageJson,
+            scopes: ['project'],
             resolvePackage: fixture.resolvePackage,
             validate: true,
         });
@@ -1270,6 +1277,7 @@ describe('resolveCliPlugins()', () => {
         const match = findInactivePluginProvidingCommand('cloud-deploy', {
             cwd: fixture.root,
             projectPackageJson,
+            scopes: ['project'],
             resolvePackage: fixture.resolvePackage,
         });
         expect(match?.packageName).toBe('@vendure/cloud');
@@ -1277,6 +1285,7 @@ describe('resolveCliPlugins()', () => {
             listInactiveCliPluginPackages({
                 cwd: fixture.root,
                 projectPackageJson,
+            scopes: ['project'],
                 resolvePackage: fixture.resolvePackage,
             }),
         ).toEqual(['@vendure/cloud']);

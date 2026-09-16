@@ -6,6 +6,7 @@ import {
     CliCommandContext,
     CliCommandNode,
     CliCommandOption,
+    effectiveRequiresProject,
     hasCliSubcommands,
     isRunnableCliCommand,
 } from './cli-command-definition';
@@ -136,13 +137,33 @@ interface ProjectScope {
 const PROJECT_MARKER = '*';
 
 /**
- * The line explaining {@link PROJECT_MARKER}, indented to sit under the list it
- * explains. It states where the user is, which the marker on each command
- * cannot: a command's description can only say what the command needs, never
- * that this particular directory fails to provide it.
+ * Colours the marker so it can be picked out of a list of commands, and dims
+ * the sentence explaining it so the legend stays subordinate to the list it
+ * annotates. The marker keeps its colour inside the legend, which is what ties
+ * the two together.
+ *
+ * Yellow rather than red: nothing has gone wrong, the commands simply need
+ * something this directory does not have.
+ *
+ * As with {@link styleHelpTitle}, colour is decoration only — the legend says
+ * the same thing in words — and picocolors emits nothing when it detects no
+ * colour support, so a pipe, a redirect or NO_COLOR all give plain text.
  */
-const PROJECT_LEGEND = `  ${PROJECT_MARKER} Requires a Vendure project. You are not in one.`;
+export function styleProjectMarker(colors: MarkerColors = pc): string {
+    return colors.yellow(PROJECT_MARKER);
+}
 
+export function styleProjectLegend(colors: MarkerColors = pc): string {
+    return `  ${colors.yellow(PROJECT_MARKER)} ${colors.dim(
+        'Requires a Vendure project. You are not in one.',
+    )}`;
+}
+
+/**
+ * Defaults to picocolors. A test passes `createColors(true)` to see the escape
+ * codes whatever terminal the suite is run in.
+ */
+export type MarkerColors = Pick<typeof pc, 'yellow' | 'dim'>;
 
 /**
  * The description shown in help, marked when the command needs a project that
@@ -163,7 +184,7 @@ function describeNode(
     if (!requiresProject || getProjectRoot()) {
         return node.description;
     }
-    return `${node.description} ${PROJECT_MARKER}`;
+    return `${node.description} ${styleProjectMarker()}`;
 }
 
 /**
@@ -192,10 +213,10 @@ function addProjectLegend(
 ): void {
     const { ownDescriptionMarked, subcommands, subcommandsInherit, getProjectRoot } = options;
     const anySubcommandMarked = subcommands.some(
-        subcommand => (subcommand.requiresProject ?? subcommandsInherit) && !getProjectRoot(),
+        subcommand => effectiveRequiresProject(subcommand, subcommandsInherit) && !getProjectRoot(),
     );
     if (ownDescriptionMarked || anySubcommandMarked) {
-        command.addHelpText('after', `\n${PROJECT_LEGEND}`);
+        command.addHelpText('after', `\n${styleProjectLegend()}`);
     }
 }
 
@@ -228,10 +249,7 @@ function registerNode(
     getPluginExtensions: CliPluginExtensionAccessor,
     projectScope: ProjectScope,
 ): Command {
-    // An explicit value on the node wins; otherwise the node inherits what the
-    // command it is nested in declared, so a group states it once for its
-    // subtree and a subcommand can opt back out with `false`.
-    const requiresProject = node.requiresProject ?? projectScope.requiresProject;
+    const requiresProject = effectiveRequiresProject(node, projectScope.requiresProject);
     const getProjectRoot = projectScope.getProjectRoot;
     const command = parent
         .command(node.name)

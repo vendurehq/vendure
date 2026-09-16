@@ -5,6 +5,7 @@ import path from 'node:path';
 import { ProjectCliPluginConfig } from './cli-command-definition';
 import { getGlobalPluginAllowlist, readGlobalCliConfig } from './cli-global-plugin-config';
 import { assertCliPlugin, CliPlugin } from './cli-plugin';
+import { findVendureProjectRoot } from './project-validation';
 
 export interface PackageJsonLike {
     name?: string;
@@ -38,13 +39,29 @@ export interface CliPluginLoadFailure {
 }
 
 /**
- * Result of loading enabled plugins. Failures are reported, not thrown, so a
- * broken plugin cannot take down the whole CLI (including the `plugins`
- * command needed to disable it).
+ * A problem with a scope itself rather than with any package in it, such as a
+ * config file that cannot be parsed.
+ *
+ * Kept apart from {@link CliPluginLoadFailure} because the two need different
+ * words: a package failure names a package and can be answered by disabling it,
+ * while this names a file and can only be answered by fixing or deleting it.
+ */
+export interface CliPluginScopeError {
+    scope: CliPluginScopeKind;
+    /** The file or directory the allowlist was read from. */
+    origin: string;
+    reason: string;
+}
+
+/**
+ * Result of loading enabled plugins. Problems are reported, not thrown, so a
+ * broken plugin or a broken config file cannot take down the whole CLI
+ * (including the `plugins` command needed to disable a plugin).
  */
 export interface CliPluginLoadResult {
     loaded: ResolvedCliPlugin[];
     failures: CliPluginLoadFailure[];
+    scopeErrors: CliPluginScopeError[];
 }
 
 export type CliPluginDiscoveryStatus = 'enabled' | 'not-enabled' | 'failed';
@@ -60,6 +77,23 @@ export type CliPluginDiscoveryStatus = 'enabled' | 'not-enabled' | 'failed';
  * `node_modules`.
  */
 export type CliPluginScopeKind = 'project' | 'global';
+
+/** Scope registration order: global first, so a project overrides the machine. */
+export const ALL_PLUGIN_SCOPES: readonly CliPluginScopeKind[] = Object.freeze(['global', 'project']);
+
+/**
+ * The `vendure plugins` command that acts on a given scope.
+ *
+ * One place spells the flag, so advice printed from the CLI host, from the
+ * `plugins` command and from an unknown-command hint cannot disagree about it.
+ */
+export function pluginsCommandFor(
+    action: 'add' | 'remove',
+    packageName: string,
+    scope: CliPluginScopeKind,
+): string {
+    return `vendure plugins ${action}${scope === 'global' ? ' --global' : ''} ${packageName}`;
+}
 
 export interface DiscoveredCliPlugin {
     packageName: string;
@@ -111,15 +145,25 @@ export interface ResolveCliPluginsOptions {
      */
     resolvePackage?: (packageName: string) => { dir: string; packageJson: PackageJsonLike } | null;
     /**
-     * Environment the global scope is read from. Defaults to `process.env`.
-     *
-     * Supplying `projectPackageJson` without this leaves the global scope out
-     * altogether: such a caller is describing one exact project, and whatever
-     * the machine running the test happens to have enabled globally is not
-     * part of it. Pass `env` with `VENDURE_CLI_CONFIG_DIR` pointing at a
-     * directory of your own to exercise the global scope.
+     * Environment the global scope reads its allowlist and config directory
+     * from. Defaults to `process.env`.
      */
     env?: NodeJS.ProcessEnv;
+    /**
+     * Which scopes to consider. Defaults to all of them.
+     *
+     * A test about project behaviour passes `['project']`, so that whatever the
+     * machine running it happens to have enabled globally cannot change the
+     * result.
+     */
+    scopes?: CliPluginScopeKind[];
+    /**
+     * Locates the CLI's own installation, which decides whether the global
+     * scope has an installation directory to work from. Overridden by tests, so
+     * that both a global and a project-local layout can be exercised without
+     * installing anything.
+     */
+    findCliInstall?: () => CliInstallLocation | undefined;
 }
 
 export interface DiscoverCliPluginsOptions extends ResolveCliPluginsOptions {
@@ -130,16 +174,6 @@ export interface DiscoverCliPluginsOptions extends ResolveCliPluginsOptions {
      * the `plugins` command (the same code runs at every normal startup).
      */
     validate?: boolean;
-}
-
-/**
- * Context exposed to the `plugins` command so its validation matches the
- * discovery/loading behaviour exactly.
- */
-export interface CliPluginProjectContext {
-    projectRoot: string;
-    directDependencyNames: Set<string>;
-    resolvePackage: (packageName: string) => { dir: string; packageJson: PackageJsonLike } | null;
 }
 
 /**
@@ -217,7 +251,7 @@ function discoverInScope(scope: PluginScope, validate: boolean): DiscoveredCliPl
 
     // Allowlisted packages that are missing or invalid surface as failed.
     for (const packageName of scope.allowlist) {
-        const failure = scope.checkEligible(packageName) ?? checkDeclaresPlugin(packageName, scope);
+        const failure = scope.check(packageName);
         if (failure) {
             const existing = discovered.get(packageName);
             discovered.set(packageName, {
@@ -286,10 +320,13 @@ function notEnabledReason(scope: PluginScope): string {
  * The one eligibility check both scopes share: a package can only be loaded as
  * a plugin if it says it is one.
  */
-function checkDeclaresPlugin(packageName: string, scope: PluginScope): string | undefined {
-    const resolved = scope.resolvePackage(packageName);
+function checkDeclaresPlugin(
+    packageName: string,
+    resolvePackage: PluginScope['resolvePackage'],
+): string | undefined {
+    const resolved = resolvePackage(packageName);
     if (!resolved) {
-        // checkEligible already reported this; nothing to add.
+        // The scope's own rule already reported this; nothing to add.
         return undefined;
     }
     const entryRel = resolved.packageJson.vendure?.cliPlugin;
@@ -315,6 +352,7 @@ export function resolveCliPlugins(options: ResolveCliPluginsOptions = {}): CliPl
     const scopes = getPluginScopes(options);
     const loaded: ResolvedCliPlugin[] = [];
     const failures: CliPluginLoadFailure[] = [];
+    const scopeErrors: CliPluginScopeError[] = [];
 
     // A package enabled in more than one scope is loaded once. The later scope
     // wins, which is the project, so the copy that is pinned alongside the
@@ -329,13 +367,13 @@ export function resolveCliPlugins(options: ResolveCliPluginsOptions = {}): CliPl
 
     for (const scope of scopes) {
         if (scope.error) {
-            failures.push({ packageName: scope.origin, reason: scope.error, scope: scope.kind });
+            scopeErrors.push({ scope: scope.kind, origin: scope.origin, reason: scope.error });
         }
         for (const packageName of scope.allowlist) {
             if (lastScopeFor.get(packageName) !== scope) {
                 continue;
             }
-            const staticFailure = scope.checkEligible(packageName) ?? checkDeclaresPlugin(packageName, scope);
+            const staticFailure = scope.check(packageName);
             if (staticFailure) {
                 failures.push({ packageName, reason: staticFailure, scope: scope.kind });
                 continue;
@@ -367,7 +405,7 @@ export function resolveCliPlugins(options: ResolveCliPluginsOptions = {}): CliPl
         }
     }
 
-    return { loaded, failures };
+    return { loaded, failures, scopeErrors };
 }
 
 /**
@@ -397,24 +435,6 @@ export function findInactivePluginProvidingCommand(
     return discoverCliPlugins(options).find(
         plugin => plugin.status === 'not-enabled' && plugin.declaredCommands?.includes(commandName),
     );
-}
-
-/**
- * Exposes project root, direct dependencies and package resolution to the
- * `plugins` command so its error messages match discovery behaviour.
- */
-export function getCliPluginProjectContext(
-    options: ResolveCliPluginsOptions = {},
-): CliPluginProjectContext | null {
-    const context = getProjectPluginContext(options);
-    if (!context) {
-        return null;
-    }
-    return {
-        projectRoot: context.projectRoot,
-        directDependencyNames: new Set(context.directDependencyOrigins.keys()),
-        resolvePackage: context.resolvePackage,
-    };
 }
 
 export function listDirectDependencyNames(pkg: PackageJsonLike): string[] {
@@ -447,12 +467,16 @@ export interface PluginScope {
     allowlist: string[];
     resolvePackage: (packageName: string) => { dir: string; packageJson: PackageJsonLike } | null;
     /**
-     * Why a listed package cannot be used in this scope, or `undefined` when it
-     * can. A project requires a direct dependency; the global scope has no
-     * manifest for anything to be a dependency of, so it requires only that the
-     * package resolves.
+     * Why a listed package cannot be loaded from this scope, or `undefined`
+     * when it can.
+     *
+     * Composed from the scope's own rule — a project requires a direct
+     * dependency, while the global scope has no manifest for anything to be a
+     * dependency of and so requires only that the package resolves — and the
+     * rule every scope shares, that the package declares a usable plugin entry.
+     * Composed here so the three callers cannot drift apart.
      */
-    checkEligible: (packageName: string) => string | undefined;
+    check: (packageName: string) => string | undefined;
     /**
      * Packages this scope can see, whether or not they are enabled. Used to
      * report a package that is installed but not enabled.
@@ -477,20 +501,53 @@ interface ProjectPluginContext {
 }
 
 /**
- * The directory `@vendure/cli` itself is installed in.
+ * Where `@vendure/cli` itself is installed, and whether that is a global
+ * installation.
+ */
+export interface CliInstallLocation {
+    /** The `@vendure/cli` package directory. */
+    packageDir: string;
+    /**
+     * The `node_modules` the CLI sits in, and only when that is a global one.
+     *
+     * Undefined for a project-local install. The CLI is most often a
+     * devDependency, and then the `node_modules` it sits in is the project's
+     * own. Treating that as the global install root would report every
+     * dependency of the project a second time as a machine-wide package, and
+     * offer to enable it machine-wide, which would write a project's package
+     * into the config of every other project on the machine.
+     */
+    globalNodeModules?: string;
+}
+
+/**
+ * Locates the CLI's own installation.
  *
  * Resolved through symlinks, because the installed CLI is often reached by
  * one: npm links its `bin`, and pnpm, Volta and asdf link the package
  * directory itself into a store. Resolving from the link rather than its
  * target would look for sibling packages in a directory that has none.
  */
-function findCliInstallDir(): string | undefined {
+export function findCliInstallLocation(fromDir?: string): CliInstallLocation | undefined {
     let current: string;
     try {
-        current = fs.realpathSync(__dirname);
+        current = fs.realpathSync(fromDir ?? __dirname);
     } catch {
         return undefined;
     }
+    const packageDir = findNearestPackageDir(current);
+    if (!packageDir) {
+        return undefined;
+    }
+    const nodeModules = findContainingNodeModules(packageDir);
+    return {
+        packageDir,
+        globalNodeModules: nodeModules && isGlobalNodeModules(nodeModules) ? nodeModules : undefined,
+    };
+}
+
+function findNearestPackageDir(startDir: string): string | undefined {
+    let current = startDir;
     while (true) {
         if (fs.existsSync(path.join(current, 'package.json'))) {
             return current;
@@ -504,9 +561,8 @@ function findCliInstallDir(): string | undefined {
 }
 
 /**
- * The `node_modules` the CLI is installed into, which for a global install is
- * where its sibling plugin packages are. Absent when the CLI is being run from
- * a source checkout, which has no global scope to scan.
+ * The `node_modules` a package directory sits in, if any. Absent when the CLI
+ * is being run from a source checkout, whose packages are not inside one.
  */
 function findContainingNodeModules(packageDir: string): string | undefined {
     let current = path.dirname(packageDir);
@@ -520,6 +576,20 @@ function findContainingNodeModules(packageDir: string): string | undefined {
         }
         current = parent;
     }
+}
+
+/**
+ * Whether a `node_modules` is a global installation root rather than a
+ * project's.
+ *
+ * A project's `node_modules` sits inside the project, so looking for a Vendure
+ * project from its parent finds one. A global root — `<prefix>/lib/node_modules`
+ * and its equivalents — has no Vendure project above it. The search starts at
+ * the parent rather than inside, because `@vendure/cli` depends on
+ * `@vendure/common` and so looks like a Vendure project to the check.
+ */
+function isGlobalNodeModules(nodeModulesDir: string): boolean {
+    return findVendureProjectRoot(path.dirname(nodeModulesDir)) === undefined;
 }
 
 /**
@@ -571,12 +641,20 @@ function listInstalledPackageNames(nodeModulesDir: string): string[] {
  * as `pluginRoots` gives somewhere to resolve from: that option exists for
  * exactly the install layouts this would otherwise fail on.
  */
-function getGlobalPluginScope(env: NodeJS.ProcessEnv): PluginScope {
+function getGlobalPluginScope(
+    env: NodeJS.ProcessEnv,
+    findInstall: () => CliInstallLocation | undefined,
+): PluginScope {
     const allowlist = getGlobalPluginAllowlist(env);
     const { config, path: configPath, error } = readGlobalCliConfig(env);
-    const cliInstallDir = findCliInstallDir();
+    const install = findInstall();
+    // Only a global installation contributes its own directory. The CLI is most
+    // often a devDependency, and then the node_modules it sits in is the
+    // project's own, which the project scope already covers. Lending those
+    // packages to this scope would report each of them a second time as
+    // machine-wide, and offer to enable one machine-wide from a single project.
     const roots = [
-        ...(cliInstallDir ? [cliInstallDir] : []),
+        ...(install?.globalNodeModules ? [install.packageDir] : []),
         ...(config.pluginRoots ?? []).map(root => path.resolve(root)),
     ];
 
@@ -590,29 +668,32 @@ function getGlobalPluginScope(env: NodeJS.ProcessEnv): PluginScope {
         return null;
     };
 
-    const nodeModulesDir = cliInstallDir ? findContainingNodeModules(cliInstallDir) : undefined;
+    const checkResolvable = (packageName: string): string | undefined => {
+        if (roots.length === 0) {
+            return (
+                `Listed in ${configPath} but there is nowhere to resolve it from: ` +
+                '@vendure/cli is not installed globally here. Install it globally too, or add a ' +
+                '"pluginRoots" entry naming the directory the package is installed in.'
+            );
+        }
+        if (!resolvePackage(packageName)) {
+            return (
+                `Listed in ${configPath} but could not be resolved from ${roots.join(', ')}. ` +
+                'Check that it is installed in the same place as @vendure/cli.'
+            );
+        }
+        return undefined;
+    };
 
     return {
         kind: 'global',
         origin: configPath,
         allowlist,
         resolvePackage,
-        checkEligible: packageName => {
-            if (roots.length === 0) {
-                return (
-                    `Listed in ${configPath} but the CLI could not locate its own installation ` +
-                    'directory to resolve it from. Add a "pluginRoots" entry pointing at the ' +
-                    'directory it is installed in.'
-                );
-            }
-            if (!resolvePackage(packageName)) {
-                return `Listed in ${configPath} but could not be resolved from ${roots.join(
-                    ', ',
-                )}. Check that it is installed in the same place as @vendure/cli.`;
-            }
-            return undefined;
-        },
-        listCandidates: () => (nodeModulesDir ? listInstalledPackageNames(nodeModulesDir) : []),
+        check: packageName =>
+            checkResolvable(packageName) ?? checkDeclaresPlugin(packageName, resolvePackage),
+        listCandidates: () =>
+            install?.globalNodeModules ? listInstalledPackageNames(install.globalNodeModules) : [],
         error: error ? `Could not read ${configPath}: ${error}` : undefined,
     };
 }
@@ -630,7 +711,9 @@ function getProjectPluginScope(options: ResolveCliPluginsOptions): PluginScope |
         origin: context.projectRoot,
         allowlist: context.allowlist ?? [],
         resolvePackage: context.resolvePackage,
-        checkEligible: packageName => checkEnabledPluginStatically(packageName, context),
+        check: packageName =>
+            checkEnabledPluginStatically(packageName, context) ??
+            checkDeclaresPlugin(packageName, context.resolvePackage),
         listCandidates: () => [...context.directDependencyOrigins.keys()],
     };
 }
@@ -645,15 +728,17 @@ function getProjectPluginScope(options: ResolveCliPluginsOptions): PluginScope |
  */
 function getPluginScopes(options: ResolveCliPluginsOptions): PluginScope[] {
     const scopes: PluginScope[] = [];
-    // See ResolveCliPluginsOptions.env for why a constructed project excludes
-    // the global scope.
-    const env = options.env ?? (options.projectPackageJson ? undefined : process.env);
-    if (env) {
-        scopes.push(getGlobalPluginScope(env));
+    const wanted = options.scopes ?? ALL_PLUGIN_SCOPES;
+    const findInstall = options.findCliInstall ?? (() => findCliInstallLocation());
+
+    if (wanted.includes('global')) {
+        scopes.push(getGlobalPluginScope(options.env ?? process.env, findInstall));
     }
-    const projectScope = getProjectPluginScope(options);
-    if (projectScope) {
-        scopes.push(projectScope);
+    if (wanted.includes('project')) {
+        const projectScope = getProjectPluginScope(options);
+        if (projectScope) {
+            scopes.push(projectScope);
+        }
     }
     return scopes;
 }
@@ -852,29 +937,6 @@ export function getCliPluginScope(
     kind: CliPluginScopeKind,
     options: ResolveCliPluginsOptions = {},
 ): PluginScope | undefined {
-    return getPluginScopes(options).find(scope => scope.kind === kind) ?? buildEmptyScope(kind, options);
+    return getPluginScopes(options).find(scope => scope.kind === kind);
 }
 
-/**
- * A scope the `plugins` command can act on before anything is enabled in it.
- *
- * {@link getPluginScopes} leaves the project scope out when there is no project
- * package.json. The global scope is always present, so only the project needs
- * rebuilding here.
- */
-function buildEmptyScope(
-    kind: CliPluginScopeKind,
-    options: ResolveCliPluginsOptions,
-): PluginScope | undefined {
-    return kind === 'project'
-        ? getProjectPluginScope(options)
-        : getGlobalPluginScope(options.env ?? process.env);
-}
-
-/**
- * The shared part of eligibility, for callers outside this module. See
- * {@link checkDeclaresPlugin}.
- */
-export function checkScopeDeclaresPlugin(packageName: string, scope: PluginScope): string | undefined {
-    return checkDeclaresPlugin(packageName, scope);
-}

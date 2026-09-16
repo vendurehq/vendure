@@ -16,12 +16,13 @@ import {
     writeCliPluginProjectConfig,
 } from '../../shared/cli-plugin-project-config';
 import {
-    checkScopeDeclaresPlugin,
     cliPluginCommandNames,
     CliPluginScopeKind,
     DiscoveredCliPlugin,
     discoverCliPlugins,
     getCliPluginScope,
+    PluginScope,
+    pluginsCommandFor,
 } from '../../shared/resolve-cli-plugins';
 import { abortIfNonInteractive, isNonInteractiveEnvironment, withInteractiveTimeout } from '../../utilities/utils';
 
@@ -39,11 +40,17 @@ export interface PluginsCommandOptions {
  * rather than reporting that no package.json was found — that is the whole
  * situation a globally installed CLI is run in.
  */
-function resolveTargetScope(options: PluginsCommandOptions): CliPluginScopeKind {
-    if (options.global) {
-        return 'global';
+function resolveTargetScope(options: PluginsCommandOptions): PluginScope {
+    const kind: CliPluginScopeKind =
+        options.global || !readCliProjectPackageJson() ? 'global' : 'project';
+    const scope = getCliPluginScope(kind);
+    if (!scope) {
+        // Only the project scope can be absent, and only when its package.json
+        // is gone — which the line above just read.
+        log.error('Could not find a project package.json.');
+        exitCliCommand(1);
     }
-    return readCliProjectPackageJson() ? 'project' : 'global';
+    return scope;
 }
 
 /**
@@ -110,10 +117,10 @@ function addPlugin(packageName: string, options: PluginsCommandOptions): void {
     const scope = resolveTargetScope(options);
     assertPackageCanBeEnabled(packageName, scope);
     const written =
-        scope === 'global'
+        scope.kind === 'global'
             ? addGlobalPlugin(packageName).path
             : addCliPluginToProjectConfig(packageName).packageJsonPath;
-    log.success(`Enabled CLI plugin ${pc.cyan(packageName)} ${scopeSuffix(scope)}`);
+    log.success(`Enabled CLI plugin ${pc.cyan(packageName)} ${scopeSuffix(scope.kind)}`);
     log.info(`Wrote ${written}`);
     if (options.json) {
         printJson(discoverCliPlugins({ validate: true }));
@@ -127,12 +134,12 @@ function scopeSuffix(scope: CliPluginScopeKind): string {
 
 function removePlugin(packageName: string, options: PluginsCommandOptions): void {
     const scope = resolveTargetScope(options);
-    const enabled = readEnabledPlugins(scope);
+    const enabled = readEnabledPlugins(scope.kind);
 
     if (!enabled.includes(packageName)) {
         log.error(
             `Package "${packageName}" is not an enabled CLI plugin ${scopeSuffix(
-                scope,
+                scope.kind,
             )}, so there is nothing to remove.`,
         );
         if (enabled.length > 0) {
@@ -142,26 +149,28 @@ function removePlugin(packageName: string, options: PluginsCommandOptions): void
         }
         // The other list is the usual reason for this, so say so rather than
         // leaving the user to guess which one they were looking at.
-        const other: CliPluginScopeKind = scope === 'global' ? 'project' : 'global';
+        const other: CliPluginScopeKind = scope.kind === 'global' ? 'project' : 'global';
         if (readEnabledPlugins(other).includes(packageName)) {
-            log.info(`It is enabled ${scopeSuffix(other)}. Remove it with: ${removeCommandFor(packageName, other)}`);
+            log.info(
+                `It is enabled ${scopeSuffix(other)}. Remove it with: ${pluginsCommandFor(
+                    'remove',
+                    packageName,
+                    other,
+                )}`,
+            );
         }
         exitCliCommand(1);
     }
 
     const written =
-        scope === 'global'
+        scope.kind === 'global'
             ? removeGlobalPlugin(packageName).path
             : removeCliPluginFromProjectConfig(packageName).packageJsonPath;
-    log.success(`Disabled CLI plugin ${pc.cyan(packageName)} ${scopeSuffix(scope)}`);
+    log.success(`Disabled CLI plugin ${pc.cyan(packageName)} ${scopeSuffix(scope.kind)}`);
     log.info(`Wrote ${written}`);
     if (options.json) {
         printJson(discoverCliPlugins({ validate: true }));
     }
-}
-
-function removeCommandFor(packageName: string, scope: CliPluginScopeKind): string {
-    return `vendure plugins remove${scope === 'global' ? ' --global' : ''} ${packageName}`;
 }
 
 /** The allowlist as it currently stands in one scope. */
@@ -177,16 +186,10 @@ function readEnabledPlugins(scope: CliPluginScopeKind): string[] {
  * that `plugins add` never writes an allowlist entry that startup would then
  * report as broken.
  */
-function assertPackageCanBeEnabled(packageName: string, scopeKind: CliPluginScopeKind): void {
-    const scope = getCliPluginScope(scopeKind);
-    if (!scope) {
-        log.error('Could not find a project package.json.');
-        exitCliCommand(1);
-    }
-
-    const ineligible = scope.checkEligible(packageName) ?? checkScopeDeclaresPlugin(packageName, scope);
+function assertPackageCanBeEnabled(packageName: string, scope: PluginScope): void {
+    const ineligible = scope.check(packageName);
     if (ineligible) {
-        log.error(`Package "${packageName}" cannot be enabled ${scopeSuffix(scopeKind)}: ${ineligible}`);
+        log.error(`Package "${packageName}" cannot be enabled ${scopeSuffix(scope.kind)}: ${ineligible}`);
         exitCliCommand(1);
     }
 }

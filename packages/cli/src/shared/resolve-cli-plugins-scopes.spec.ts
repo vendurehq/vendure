@@ -4,7 +4,13 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { CLI_PLUGINS_ENV_VAR } from './cli-global-plugin-config';
-import { discoverCliPlugins, PackageJsonLike, resolveCliPlugins } from './resolve-cli-plugins';
+import {
+    CliInstallLocation,
+    discoverCliPlugins,
+    findCliInstallLocation,
+    PackageJsonLike,
+    resolveCliPlugins,
+} from './resolve-cli-plugins';
 
 describe('CLI plugin scopes', () => {
     const tempDirs: string[] = [];
@@ -123,14 +129,21 @@ describe('CLI plugin scopes', () => {
         expect(failures[0].reason).toContain('could not be resolved');
     });
 
-    it('reports a malformed global config without failing the whole CLI', () => {
+    it('reports a malformed global config as a scope problem, not a broken package', () => {
         const configDir = makeTempDir('vendure-scope-config-');
-        fs.writeFileSync(path.join(configDir, 'cli.json'), '{ not json');
+        const configPath = path.join(configDir, 'cli.json');
+        fs.writeFileSync(configPath, '{ not json');
 
-        const { failures } = resolveCliPlugins({ env: { VENDURE_CLI_CONFIG_DIR: configDir } });
+        const { failures, scopeErrors } = resolveCliPlugins({
+            env: { VENDURE_CLI_CONFIG_DIR: configDir },
+        });
 
-        expect(failures).toHaveLength(1);
-        expect(failures[0].reason).toContain('Could not read');
+        // A file is not a package: reporting it as one produced advice to
+        // "remove" a plugin named after a path, which could never work.
+        expect(failures).toEqual([]);
+        expect(scopeErrors).toEqual([
+            { scope: 'global', origin: configPath, reason: expect.stringContaining(configPath) },
+        ]);
     });
 
     it('registers global plugins before project ones, so the project overrides', () => {
@@ -178,13 +191,17 @@ describe('CLI plugin scopes', () => {
         expect(loaded[0].plugin.commands.map(command => command.name)).toEqual(['project-cloud']);
     });
 
-    it('leaves the global scope out when a project package.json is supplied without an env', () => {
+    it('considers only the scopes it is asked for', () => {
+        const globalRoot = makeTempDir('vendure-scope-global-');
+        installPlugin(globalRoot, '@example/cloud', 'cloud');
+        const env = makeGlobalEnv({ plugins: ['@example/cloud'], roots: [globalRoot] });
         const project = makeProject({});
 
-        // No env, so whatever this machine has enabled globally is not read.
         const { loaded } = resolveCliPlugins({
+            env,
             cwd: project.root,
             projectPackageJson: project.packageJson,
+            scopes: ['project'],
         });
 
         expect(loaded).toEqual([]);
@@ -206,5 +223,121 @@ describe('CLI plugin scopes', () => {
             scope: 'global',
             status: 'enabled',
         });
+    });
+});
+
+describe('findCliInstallLocation()', () => {
+    const tempDirs: string[] = [];
+
+    afterEach(() => {
+        for (const dir of tempDirs.splice(0)) {
+            fs.removeSync(dir);
+        }
+    });
+
+    /**
+     * A CLI package installed at `<root>/node_modules/@vendure/cli`, returning
+     * the directory inside it that `__dirname` would be at runtime.
+     */
+    function installCli(root: string, projectPackageJson?: Record<string, unknown>): string {
+        const dir = path.join(root, 'node_modules', '@vendure', 'cli');
+        fs.ensureDirSync(path.join(dir, 'dist', 'shared'));
+        fs.writeJsonSync(path.join(dir, 'package.json'), {
+            name: '@vendure/cli',
+            version: '3.8.0',
+            dependencies: { '@vendure/common': '3.8.0' },
+        });
+        if (projectPackageJson) {
+            fs.writeJsonSync(path.join(root, 'package.json'), projectPackageJson);
+        }
+        return path.join(dir, 'dist', 'shared');
+    }
+
+    /**
+     * Returned as a real path, because the lookup resolves symlinks and the
+     * system temp directory is one on macOS.
+     */
+    function makeRoot(): string {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vendure-install-'));
+        tempDirs.push(dir);
+        return fs.realpathSync(dir);
+    }
+
+    it('treats a node_modules with no project above it as a global installation', () => {
+        // <prefix>/lib/node_modules/@vendure/cli, with nothing above claiming
+        // to be a Vendure project.
+        const prefix = path.join(makeRoot(), 'lib');
+        const fromDir = installCli(prefix);
+
+        const location = findCliInstallLocation(fromDir);
+
+        expect(location?.globalNodeModules).toBe(path.join(prefix, 'node_modules'));
+    });
+
+    /**
+     * The case the original implementation got wrong. `@vendure/cli` is most
+     * often a project devDependency, and then the node_modules it sits in is
+     * the project's own. Calling that global made every project dependency
+     * appear a second time as a machine-wide package, and offered to enable one
+     * machine-wide from inside a single project.
+     */
+    it('does not treat a project node_modules as a global installation', () => {
+        const project = makeRoot();
+        const fromDir = installCli(project, {
+            name: 'shop',
+            devDependencies: { '@vendure/cli': '3.8.0' },
+        });
+
+        const location = findCliInstallLocation(fromDir);
+
+        expect(location?.packageDir).toBe(path.join(project, 'node_modules', '@vendure', 'cli'));
+        expect(location?.globalNodeModules).toBeUndefined();
+    });
+
+    it('finds no global node_modules for a source checkout', () => {
+        const checkout = makeRoot();
+        const dir = path.join(checkout, 'packages', 'cli', 'src');
+        fs.ensureDirSync(dir);
+        fs.writeJsonSync(path.join(checkout, 'packages', 'cli', 'package.json'), { name: '@vendure/cli' });
+
+        expect(findCliInstallLocation(dir)?.globalNodeModules).toBeUndefined();
+    });
+});
+
+describe('the global scope with a project-local CLI', () => {
+    const tempDirs: string[] = [];
+
+    afterEach(() => {
+        for (const dir of tempDirs.splice(0)) {
+            fs.removeSync(dir);
+        }
+    });
+
+    it('offers nothing, so a project dependency is never reported as machine-wide', () => {
+        const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vendure-local-cli-'));
+        tempDirs.push(root);
+        const toolsDir = path.join(root, 'node_modules', '@example', 'tools');
+        fs.ensureDirSync(toolsDir);
+        fs.writeJsonSync(path.join(toolsDir, 'package.json'), {
+            name: '@example/tools',
+            vendure: { cliPlugin: './p.js', cliCommands: ['tools'] },
+        });
+        fs.writeFileSync(path.join(toolsDir, 'p.js'), 'module.exports={id:"t",commands:[]};\n');
+        const configDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vendure-local-cfg-'));
+        tempDirs.push(configDir);
+        fs.writeJsonSync(path.join(configDir, 'cli.json'), { plugins: [] });
+
+        // A project-local install: a package directory, but no global one.
+        const projectLocal: CliInstallLocation = {
+            packageDir: path.join(root, 'node_modules', '@vendure', 'cli'),
+        };
+
+        const discovered = discoverCliPlugins({
+            env: { VENDURE_CLI_CONFIG_DIR: configDir },
+            scopes: ['global'],
+            findCliInstall: () => projectLocal,
+        });
+
+        expect(discovered).toEqual([]);
     });
 });

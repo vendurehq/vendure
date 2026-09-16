@@ -74,7 +74,7 @@ describe('global CLI plugin config', () => {
 
         const result = readGlobalCliConfig(env);
 
-        expect(result.error).toBeDefined();
+        expect(result.error).toMatch(/JSON/);
         expect(result.config).toEqual({});
     });
 

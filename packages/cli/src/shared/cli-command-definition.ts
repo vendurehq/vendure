@@ -161,21 +161,8 @@ export interface CliCommandGroupDefinition {
     options?: CliCommandOption[];
     subcommands: CliCommandNode[];
     /**
-     * Set to `true` for a command that reads or writes a Vendure project, so
-     * the host refuses to run it outside one instead of letting it fail part
-     * way through — after a stack of prompts, or on a `require` of a package
-     * only a project installs.
-     *
-     * Declared on a node that has subcommands, it applies to every command
-     * below it, so a group of project commands states it once. A subcommand
-     * sets `requiresProject: false` to opt back out, which is how a group
-     * mixes commands that need a project with ones that do not.
-     *
-     * The host's check is deliberately loose: it looks for a package.json with
-     * a Vendure dependency at or above the current directory. A command whose
-     * needs are stricter still validates for itself.
-     *
-     * @since 3.8.0
+     * See {@link CliCommandDefinition.requiresProject}. Declared on a group it
+     * applies to every command in it.
      */
     requiresProject?: boolean;
     /**
@@ -359,4 +346,17 @@ export interface ProjectCliPluginConfig {
      * simply not listing it.
      */
     plugins?: string[];
+}
+
+/**
+ * Whether a node needs a project, given what the command it is nested in
+ * requires.
+ *
+ * An explicit value on the node wins; otherwise it inherits. One expression of
+ * the rule, because it is asked in two places — when a command is registered,
+ * and when its help decides whether to mark it — and two copies would be two
+ * things to change if the rule ever grows a third state.
+ */
+export function effectiveRequiresProject(node: CliCommandNode, inherited: boolean): boolean {
+    return node.requiresProject ?? inherited;
 }

@@ -4,7 +4,6 @@ import { runCli } from '../shared/__tests__/run-cli';
 import { assertCliPlugin } from '../shared/cli-plugin';
 
 import { builtinCommandDefs } from './builtins';
-import { doctorCommandDef } from './doctor/command';
 import { migrateCommandDef } from './migrate/command';
 
 describe('builtinCommandDefs', () => {
@@ -41,6 +40,10 @@ describe('builtinCommandDefs project gate', () => {
         expect(gated).toEqual(['add', 'build', 'console', 'dev', 'migrate', 'schema', 'start']);
     });
 
+    /**
+     * `doctor` is here deliberately: reporting that a directory is not a
+     * Vendure project is one of its checks, so it has to run where that is true.
+     */
     it('leaves the commands that work anywhere ungated', () => {
         const ungated = builtinCommandDefs
             .filter(command => !command.requiresProject)
@@ -62,14 +65,5 @@ describe('builtinCommandDefs project gate', () => {
         expect(result.processStderr).toContain(
             'vendure migrate must be run from a Vendure project directory.',
         );
-    });
-
-    /**
-     * Doctor is the exception, and deliberately so: reporting that a directory
-     * is not a Vendure project is one of its checks, so it has to be able to
-     * run where that is true.
-     */
-    it('does not refuse doctor outside a project', async () => {
-        expect(doctorCommandDef.requiresProject).toBeUndefined();
     });
 });

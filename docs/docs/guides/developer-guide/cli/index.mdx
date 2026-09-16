@@ -1226,11 +1226,10 @@ whatever `cli.json` lists:
 VENDURE_CLI_PLUGINS=@vendure/cloud vendure deploy
 ```
 
-This is for environments that have no project and no writable home directory —
-a container image, or an ephemeral sandbox given to an AI agent. The image
-installs the packages and sets the variable, with no setup step to run. Since
-it is read afresh at every invocation, `vendure plugins remove --global` cannot
-countermand it; unset the variable instead.
+The variable is read afresh at every invocation and is additive to `cli.json`,
+so it enables a plugin without writing anything to disk, and
+`vendure plugins remove --global` cannot countermand it — unset the variable
+instead.
 
 #### Version skew
 

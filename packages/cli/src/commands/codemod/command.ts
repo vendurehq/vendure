@@ -1,10 +1,11 @@
 import { CliCommandDefinition } from '../../shared/cli-command-definition';
 import { runCliCommand } from '../../shared/cli-command-exit';
 
-// No `requiresProject`: a codemod takes an explicit path, so transforming a
-// project from outside it is a legitimate way to run this. Given no path it
-// reads the current directory and reports finding nothing to transform, which
-// is already a clear enough answer.
+// No `requiresProject`: a codemod's path argument names the files it rewrites,
+// and nothing else, so running it on a project from outside that project works.
+// This is not the same as the `--config` option on `dev`, `build` and `migrate`,
+// which names one file inside a project the command still needs the whole of —
+// its node_modules, its tsconfig, its installed Vendure.
 export const codemodCommandDef: CliCommandDefinition = {
     name: 'codemod',
     description: 'Run codemods to update your Vendure project code',

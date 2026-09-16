@@ -319,3 +319,97 @@ export async function waitFor(
 
     throw new Error(`Condition not met within ${timeoutMs}ms`);
 }
+
+
+export interface SimulatedGlobalInstall {
+    /** Runs the globally installed CLI from `cwd`. */
+    runCliCommand: (
+        args: string[],
+        options?: { cwd?: string; env?: Record<string, string> },
+    ) => Promise<CliCommandResult>;
+    /** The machine-wide `cli.json` the CLI will read. */
+    configPath: string;
+    /** A directory with no project in it, to run from. */
+    emptyDir: string;
+    cleanup: () => void;
+}
+
+/**
+ * Builds a layout that looks to the CLI like a global npm installation:
+ * `<prefix>/lib/node_modules/@vendure/cli` with the named plugin fixtures as
+ * its siblings, and no project anywhere above it.
+ *
+ * The CLI is copied rather than symlinked, because it resolves its own location
+ * through `realpath` — a symlink would lead back to the repository, where the
+ * enclosing directory is not a global `node_modules` and the whole point of the
+ * test would be lost. Its dependencies are linked in, since only the package's
+ * own location matters here.
+ */
+export function createSimulatedGlobalInstall(fixtureNames: string[]): SimulatedGlobalInstall {
+    const prefix = join(
+        tmpdir(),
+        'vendure-cli-e2e',
+        `global-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    );
+    const globalNodeModules = join(prefix, 'lib', 'node_modules');
+    const cliDir = join(globalNodeModules, '@vendure', 'cli');
+    mkdirSync(cliDir, { recursive: true });
+
+    cpSync(join(CLI_PACKAGE_DIR, 'dist'), join(cliDir, 'dist'), { recursive: true });
+    cpSync(join(CLI_PACKAGE_DIR, 'package.json'), join(cliDir, 'package.json'));
+    // The repository's node_modules, so the copied CLI can load commander and
+    // friends. Only the CLI package's own path decides whether it counts as a
+    // global install, so borrowing dependencies does not affect what is tested.
+    symlinkSync(
+        join(CLI_PACKAGE_DIR, '..', '..', 'node_modules'),
+        join(cliDir, 'node_modules'),
+        process.platform === 'win32' ? 'junction' : 'dir',
+    );
+
+    for (const fixtureName of fixtureNames) {
+        const fixtureDir = join(CLI_PLUGIN_FIXTURES_DIR, fixtureName);
+        const packageName = JSON.parse(readFileSync(join(fixtureDir, 'package.json'), 'utf-8'))
+            .name as string;
+        cpSync(fixtureDir, join(globalNodeModules, ...packageName.split('/')), { recursive: true });
+    }
+    // Plugin fixtures require('@vendure/cli'), which resolves to the sibling
+    // copy, exactly as it would for a real global install.
+
+    const configDir = join(prefix, 'config');
+    const emptyDir = join(prefix, 'empty');
+    mkdirSync(configDir, { recursive: true });
+    mkdirSync(emptyDir, { recursive: true });
+
+    return {
+        configPath: join(configDir, 'cli.json'),
+        emptyDir,
+        cleanup: () => rmSync(prefix, { recursive: true, force: true }),
+        runCliCommand: (args, options = {}) =>
+            new Promise((resolve, reject) => {
+                const child = spawn('node', [join(cliDir, 'dist', 'cli.js'), ...args], {
+                    cwd: options.cwd ?? emptyDir,
+                    env: {
+                        ...process.env,
+                        VENDURE_RUNNING_IN_CLI: undefined,
+                        VENDURE_CLI_CONFIG_DIR: configDir,
+                        ...options.env,
+                    },
+                    stdio: ['pipe', 'pipe', 'pipe'],
+                });
+                let stdout = '';
+                let stderr = '';
+                child.stdout?.on('data', data => (stdout += data.toString()));
+                child.stderr?.on('data', data => (stderr += data.toString()));
+                child.on('close', code =>
+                    resolve({
+                        stdout: stripAnsi(stdout),
+                        stderr: stripAnsi(stderr),
+                        exitCode: code ?? 0,
+                        rawStdout: stdout,
+                        rawStderr: stderr,
+                    }),
+                );
+                child.on('error', reject);
+            }),
+    };
+}

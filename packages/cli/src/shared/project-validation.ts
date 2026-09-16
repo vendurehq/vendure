@@ -40,12 +40,8 @@ export function validateVendureProjectDirectory(): void {
     }
 }
 
-/**
- * Recognises a Vendure project by any dependency in the Vendure scope rather
- * than by one named package, because which Vendure packages a project installs
- * varies between a server, a monorepo workspace and a plugin repo.
- */
 const VENDURE_PACKAGE_SCOPE = '@vendure/';
+const VENDURE_PACKAGE_NAME = 'vendure';
 
 /**
  * Finds the nearest directory at or above `cwd` whose package.json depends on
@@ -78,6 +74,14 @@ export function findVendureProjectRoot(cwd: string = process.cwd()): string | un
     }
 }
 
+/**
+ * Whether a package.json depends on Vendure at all.
+ *
+ * Any dependency in the Vendure scope counts, rather than one named package,
+ * because which Vendure packages are installed varies between a server, a
+ * monorepo workspace and a plugin repo. The unscoped `vendure` name is the
+ * starter package, which a project created from the starter depends on.
+ */
 function hasVendureDependency(packageJsonPath: string): boolean {
     if (!fs.existsSync(packageJsonPath)) {
         return false;
@@ -85,7 +89,9 @@ function hasVendureDependency(packageJsonPath: string): boolean {
     try {
         const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
         const names = Object.keys({ ...packageJson.dependencies, ...packageJson.devDependencies });
-        return names.some(name => name === 'vendure' || name.startsWith(VENDURE_PACKAGE_SCOPE));
+        return names.some(
+            name => name === VENDURE_PACKAGE_NAME || name.startsWith(VENDURE_PACKAGE_SCOPE),
+        );
     } catch {
         return false;
     }

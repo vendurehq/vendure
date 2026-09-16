@@ -13,7 +13,7 @@ import {
 } from './cli-command-definition';
 import { exitCliCommand } from './cli-command-exit';
 import { parseOptionFlags } from './cli-command-options';
-import { styleHelpTitle } from './command-registry';
+import { styleHelpTitle, styleProjectLegend, styleProjectMarker } from './command-registry';
 import { CommandTreeEntry, RootOptionEntry } from './command-registry-store';
 
 interface RecordedCall {
@@ -843,6 +843,10 @@ describe('registerCommands() error handling', () => {
 const foundProject = () => '/projects/my-shop';
 const noProject = () => undefined;
 
+function countOccurrences(haystack: string, needle: string): number {
+    return haystack.split(needle).length - 1;
+}
+
 describe('registerCommands() project gate', () => {
     it('refuses a command that requires a project when there is none', async () => {
         const command = recordingCommand('doctor', 'Run diagnostics', { requiresProject: true });
@@ -958,7 +962,7 @@ describe('registerCommands() project gate', () => {
 
         const result = await runCli(commands, [], ['--help'], undefined, noProject);
 
-        expect(result.stdout.split('Requires a Vendure project')).toHaveLength(2);
+        expect(countOccurrences(result.stdout, 'Requires a Vendure project')).toBe(1);
     });
 
     it('explains the marker in the help of the marked command itself', async () => {
@@ -1033,5 +1037,30 @@ describe('registerCommands() project gate', () => {
 
         expect(result.stdout).toContain('Run diagnostics\n');
         expect(result.stdout).not.toContain('Requires a Vendure project');
+    });
+});
+
+describe('project marker colours', () => {
+    // Forced on, so the assertion does not depend on the terminal the suite is
+    // run in. Vitest colours its own output through Lerna and not in the
+    // package directly, which would otherwise change these results.
+    const colors = createColors(true);
+
+    it('colours the marker so it can be found in a list of commands', () => {
+        expect(styleProjectMarker(colors)).toBe(colors.yellow('*'));
+    });
+
+    it('keeps the marker coloured in the legend and dims the sentence', () => {
+        const legend = styleProjectLegend(colors);
+
+        expect(legend).toContain(colors.yellow('*'));
+        expect(legend).toContain(colors.dim('Requires a Vendure project. You are not in one.'));
+    });
+
+    it('emits no escape codes when there is no colour support', () => {
+        const plain = createColors(false);
+
+        expect(styleProjectMarker(plain)).toBe('*');
+        expect(styleProjectLegend(plain)).toBe('  * Requires a Vendure project. You are not in one.');
     });
 });

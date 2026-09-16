@@ -7,26 +7,18 @@ import { findVendureProjectRoot } from './project-validation';
  * Loads a package from the project the CLI is being run against, rather than
  * from the CLI's own installation.
  *
- * Two reasons, one correctness and one practical.
+ * `generateMigration`, `preBootstrapConfig` and `getFinalVendureSchema` behave
+ * differently between Vendure versions, and have to behave the way the
+ * project's version does: a migration generated against a different
+ * `@vendure/core` describes a schema the server does not have. Those functions
+ * also read and write a config singleton held inside the package, and the
+ * project's `vendure-config.ts` is compiled against the copy installed in the
+ * project, so the two must reach the same instance of it.
  *
- * The correctness one: `generateMigration`, `preBootstrapConfig` and
- * `getFinalVendureSchema` behave differently between Vendure versions, and they
- * have to behave the way the project's own version does. Generating a migration
- * with a different `@vendure/core` than the one the server boots with produces a
- * migration for a schema the server does not have. The same goes for the config
- * singleton those functions read and write: the CLI and the project's
- * `vendure-config.ts` must reach the same instance of it, which they only do
- * when both resolve to the same copy of the package.
- *
- * The practical one: `@vendure/core` is a devDependency of `@vendure/cli`, not
- * a dependency, so it is never installed alongside a globally installed CLI.
- * A plain `require` resolves from the file doing the requiring, which for a
- * global install is somewhere under the global `node_modules`, so it cannot
- * see the project's copy however valid the project is.
- *
- * Both were previously masked by npm hoisting happening to put one copy where
- * the CLI's own lookup lands. Asking the project directly says what is meant
- * and stops depending on a layout the package manager is free to change.
+ * `@vendure/core` is also a devDependency of `@vendure/cli` rather than a
+ * dependency, so it is not installed alongside a global CLI. A plain `require`
+ * resolves from the file requiring it, which for a global install can never
+ * see the project's copy.
  */
 export function requireFromProject<T = unknown>(packageName: string, cwd?: string): T {
     const projectRoot = findVendureProjectRoot(cwd) ?? path.resolve(cwd ?? process.cwd());
