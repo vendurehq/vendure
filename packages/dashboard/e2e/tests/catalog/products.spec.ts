@@ -48,9 +48,9 @@ test.describe('Product detail features', () => {
 
         // Enabled switch lives in the action bar, not in a sidebar field
         await expect(page.getByTestId('product-enabled-switch')).toBeVisible();
-        await expect(
-            page.locator('[data-slot="field-label"]').filter({ hasText: /^Enabled$/ }),
-        ).toHaveCount(0);
+        await expect(page.locator('[data-slot="field-label"]').filter({ hasText: /^Enabled$/ })).toHaveCount(
+            0,
+        );
 
         // Facet Values block
         await expect(
@@ -288,10 +288,9 @@ async function cleanupVariantEditorProduct(
     optionGroupId: string,
 ) {
     await client.gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, { id: productId });
-    await client.gql(
-        `mutation ($id: ID!) { deleteProductOptionGroup(id: $id, force: true) { result } }`,
-        { id: optionGroupId },
-    );
+    await client.gql(`mutation ($id: ID!) { deleteProductOptionGroup(id: $id, force: true) { result } }`, {
+        id: optionGroupId,
+    });
 }
 
 // The Manage variants page is now an inline editor: every option cell renders as an
@@ -304,10 +303,7 @@ test.describe('Manage variants inline editing', () => {
         const client = new VendureAdminClient(page);
         await client.login();
         const unique = Date.now();
-        const { productId, optionGroupId, smallOptionId } = await createVariantEditorProduct(
-            client,
-            unique,
-        );
+        const { productId, optionGroupId, smallOptionId } = await createVariantEditorProduct(client, unique);
 
         try {
             const variantId = await createVariantEditorVariant(
@@ -362,8 +358,10 @@ test.describe('Manage variants inline editing', () => {
         const client = new VendureAdminClient(page);
         await client.login();
         const unique = Date.now();
-        const { productId, optionGroupId, smallOptionId, largeOptionId } =
-            await createVariantEditorProduct(client, unique);
+        const { productId, optionGroupId, smallOptionId, largeOptionId } = await createVariantEditorProduct(
+            client,
+            unique,
+        );
 
         try {
             const smallVariantId = await createVariantEditorVariant(
@@ -458,8 +456,14 @@ test.describe('Manage variants inline editing', () => {
                         code: `size-${unique}`,
                         translations: [{ languageCode: 'en', name: 'Size' }],
                         options: [
-                            { code: `small-${unique}`, translations: [{ languageCode: 'en', name: 'Small' }] },
-                            { code: `large-${unique}`, translations: [{ languageCode: 'en', name: 'Large' }] },
+                            {
+                                code: `small-${unique}`,
+                                translations: [{ languageCode: 'en', name: 'Small' }],
+                            },
+                            {
+                                code: `large-${unique}`,
+                                translations: [{ languageCode: 'en', name: 'Large' }],
+                            },
                         ],
                     },
                 },
@@ -560,6 +564,64 @@ test.describe('Manage variants inline editing', () => {
                     { id: optionGroupId },
                 );
             }
+        }
+    });
+    test('adds a second variant to a product that has no option groups', async ({ page }) => {
+        // https://github.com/vendurehq/vendure/issues/5325
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const unique = Date.now();
+
+        const { createProduct } = await client.gql(
+            `mutation ($input: CreateProductInput!) { createProduct(input: $input) { id } }`,
+            {
+                input: {
+                    translations: [
+                        {
+                            languageCode: 'en',
+                            name: `E2E Optionless ${unique}`,
+                            slug: `e2e-optionless-${unique}`,
+                            description: '',
+                        },
+                    ],
+                },
+            },
+        );
+        const productId = createProduct.id as string;
+        const firstSku = `e2e-optionless-first-${unique}`;
+        const secondSku = `e2e-optionless-second-${unique}`;
+
+        try {
+            await createVariantEditorVariant(client, productId, `First ${unique}`, firstSku, []);
+
+            await page.goto(`/products/${productId}/variants`);
+            await expect(page.getByRole('cell', { name: firstSku })).toBeVisible({ timeout: 10_000 });
+
+            await page.getByRole('button', { name: 'Add variant' }).click();
+            const dialog = page.getByRole('dialog');
+            await expect(dialog).toBeVisible();
+            // No option groups, so the dialog offers no option selects.
+            await expect(dialog.getByText('Product options')).toBeHidden();
+
+            await dialog.getByLabel('Name', { exact: true }).fill(`Second ${unique}`);
+            await dialog.getByLabel('SKU', { exact: true }).fill(secondSku);
+            await Promise.all([
+                page.waitForResponse(
+                    resp =>
+                        resp.url().includes('/admin-api') &&
+                        resp.request().postData()?.includes('CreateProductVariants') === true &&
+                        resp.status() === 200,
+                ),
+                dialog.getByRole('button', { name: 'Create variant' }).click(),
+            ]);
+
+            // Both variants are now listed.
+            await expect(page.getByRole('cell', { name: secondSku })).toBeVisible({ timeout: 10_000 });
+            await expect(page.getByRole('cell', { name: firstSku })).toBeVisible();
+        } finally {
+            await client.gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, {
+                id: productId,
+            });
         }
     });
 });

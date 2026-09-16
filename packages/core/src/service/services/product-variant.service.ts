@@ -553,7 +553,7 @@ export class ProductVariantService {
             throw new UserInputError('error.stockonhand-cannot-be-negative');
         }
         if (input.optionIds) {
-            await this.validateVariantOptionIds(ctx, existingVariant.productId, input.optionIds, true);
+            await this.validateVariantOptionIds(ctx, existingVariant.productId, input.optionIds, input.id);
         }
         const inputWithoutPriceAndStockLevels = {
             ...input,
@@ -1083,7 +1083,7 @@ export class ProductVariantService {
         ctx: RequestContext,
         productId: ID,
         optionIds: ID[] = [],
-        isUpdateOperation?: boolean,
+        excludeVariantId?: ID,
     ) {
         // this could be done with fewer queries but depending on the data, node will crash
         // https://github.com/vendurehq/vendure/issues/328
@@ -1109,6 +1109,10 @@ export class ProductVariantService {
             this.throwIncompatibleOptionsError(optionGroups);
         }
 
+        // Without option groups every variant has the same empty option combination, so the
+        // duplicate-combination check below does not apply.
+        if (activeOptions.length === 0) return;
+
         const product = await this.connection.getEntityOrThrow(ctx, Product, productId, {
             channelId: ctx.channelId,
             relations: ['variants', 'variants.options'],
@@ -1120,8 +1124,10 @@ export class ProductVariantService {
         product.variants
             .filter(v => !v.deletedAt)
             .forEach(variant => {
+                if (excludeVariantId != null && idsAreEqual(variant.id, excludeVariantId)) {
+                    return;
+                }
                 const variantOptionIds = this.sortJoin(variant.options, ',', 'id');
-                if (isUpdateOperation) return;
                 if (variantOptionIds === inputOptionIds) {
                     throw new UserInputError('error.product-variant-options-combination-already-exists', {
                         variantName: this.translator.translate(variant, ctx).name,

@@ -36,7 +36,11 @@ type Mutation {
     """
     removeOptionGroupFromProduct(productId: ID!, optionGroupId: ID!, force: Boolean): RemoveOptionGroupFromProductResult!
 
-    "Create a set of ProductVariants based on the OptionGroups assigned to the given Product"
+    """
+    Create a set of ProductVariants for the given Product. Each input's options must match the
+    OptionGroups assigned to the Product, and no two variants of a Product may share the same
+    combination of options. A Product with no OptionGroups may hold any number of variants.
+    """
     createProductVariants(input: [CreateProductVariantInput!]!): [ProductVariant]!
 
     "Update existing ProductVariants"

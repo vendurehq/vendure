@@ -1867,6 +1867,148 @@ describe('Product resolver', () => {
                     expect(product2?.variantList.items.length).toBe(1);
                 });
             });
+
+            // https://github.com/vendurehq/vendure/issues/5325
+            describe('products without option groups', () => {
+                let optionlessProductId: string;
+
+                beforeAll(async () => {
+                    const { createProduct } = await adminClient.query(createProductDocument, {
+                        input: {
+                            translations: [
+                                {
+                                    languageCode: LanguageCode.en,
+                                    name: 'Gift Card',
+                                    slug: 'gift-card',
+                                    description: 'A gift card',
+                                },
+                            ],
+                        },
+                    });
+                    optionlessProductId = createProduct.id;
+                });
+
+                it('createProductVariants creates several variants in a single call', async () => {
+                    const { createProductVariants } = await adminClient.query(createProductVariantsDocument, {
+                        input: [
+                            {
+                                productId: optionlessProductId,
+                                sku: 'GC10',
+                                optionIds: [],
+                                translations: [{ languageCode: LanguageCode.en, name: 'Gift Card 10' }],
+                            },
+                            {
+                                productId: optionlessProductId,
+                                sku: 'GC20',
+                                optionIds: [],
+                                translations: [{ languageCode: LanguageCode.en, name: 'Gift Card 20' }],
+                            },
+                        ],
+                    });
+
+                    expect(createProductVariants.map(v => v?.name).sort()).toEqual([
+                        'Gift Card 10',
+                        'Gift Card 20',
+                    ]);
+                });
+
+                it('createProductVariants adds a further variant', async () => {
+                    const { createProductVariants } = await adminClient.query(createProductVariantsDocument, {
+                        input: [
+                            {
+                                productId: optionlessProductId,
+                                sku: 'GC50',
+                                optionIds: [],
+                                translations: [{ languageCode: LanguageCode.en, name: 'Gift Card 50' }],
+                            },
+                        ],
+                    });
+                    const createdVariant = createProductVariants[0];
+                    variantGuard.assertSuccess(createdVariant);
+                    expect(createdVariant.name).toBe('Gift Card 50');
+
+                    const { product } = await adminClient.query(getProductWithVariantListDocument, {
+                        id: optionlessProductId,
+                    });
+                    expect(product?.variantList.totalItems).toBe(3);
+                    expect(product?.variantList.items.every(v => v.options.length === 0)).toBe(true);
+                });
+            });
+
+            describe('updating the options of an existing variant', () => {
+                let optionGroup5: ResultOf<
+                    typeof createProductOptionGroupDocument
+                >['createProductOptionGroup'];
+                let firstVariantId: string;
+
+                beforeAll(async () => {
+                    const { createProduct } = await adminClient.query(createProductDocument, {
+                        input: {
+                            translations: [
+                                {
+                                    languageCode: LanguageCode.en,
+                                    name: 'Tee',
+                                    slug: 'tee',
+                                    description: 'A tee shirt',
+                                },
+                            ],
+                        },
+                    });
+                    optionGroup5 = await createOptionGroup('group-5', ['group5-option-1', 'group5-option-2']);
+                    await adminClient.query(addOptionGroupToProductDocument, {
+                        optionGroupId: optionGroup5.id,
+                        productId: createProduct.id,
+                    });
+                    const { createProductVariants } = await adminClient.query(createProductVariantsDocument, {
+                        input: [
+                            {
+                                productId: createProduct.id,
+                                sku: 'TEE1',
+                                optionIds: [optionGroup5.options[0].id],
+                                translations: [{ languageCode: LanguageCode.en, name: 'Tee 1' }],
+                            },
+                            {
+                                productId: createProduct.id,
+                                sku: 'TEE2',
+                                optionIds: [optionGroup5.options[1].id],
+                                translations: [{ languageCode: LanguageCode.en, name: 'Tee 2' }],
+                            },
+                        ],
+                    });
+                    const firstVariant = createProductVariants.find(v => v?.name === 'Tee 1');
+                    variantGuard.assertSuccess(firstVariant);
+                    firstVariantId = firstVariant.id;
+                });
+
+                it(
+                    'throws if the options are already used by another variant',
+                    assertThrowsWithMessage(async () => {
+                        await adminClient.query(updateProductVariantsDocument, {
+                            input: [
+                                {
+                                    id: firstVariantId,
+                                    optionIds: [optionGroup5.options[1].id],
+                                },
+                            ],
+                        });
+                    }, 'A ProductVariant with the selected options already exists: Tee 2'),
+                );
+
+                it('succeeds when the variant keeps its own options', async () => {
+                    const { updateProductVariants } = await adminClient.query(updateProductVariantsDocument, {
+                        input: [
+                            {
+                                id: firstVariantId,
+                                optionIds: [optionGroup5.options[0].id],
+                                sku: 'TEE1-B',
+                            },
+                        ],
+                    });
+                    const updatedVariant = updateProductVariants[0];
+                    updateVariantGuard.assertSuccess(updatedVariant);
+                    expect(updatedVariant.sku).toBe('TEE1-B');
+                });
+            });
         });
     });
 

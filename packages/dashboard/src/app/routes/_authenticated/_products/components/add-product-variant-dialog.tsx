@@ -98,6 +98,13 @@ export function AddProductVariantDialog({
         (values: FormValues) => {
             if (!productData?.product) return;
 
+            // Without option groups every variant has the same empty combination, so there is
+            // nothing to collide over.
+            if (productData.product.optionGroups.length === 0) {
+                setDuplicateVariantError(null);
+                return;
+            }
+
             const newOptionIds = Object.values(values.options).sort();
             if (newOptionIds.length !== productData.product.optionGroups.length) {
                 setDuplicateVariantError(null);
@@ -123,6 +130,7 @@ export function AddProductVariantDialog({
     const generateNameFromOptions = useCallback(
         (values: FormValues) => {
             if (!productData?.product?.name || nameTouched) return;
+            if (productData.product.optionGroups.length === 0) return;
 
             const selectedOptions = Object.entries(values.options)
                 .map(([groupId, optionId]) => {
@@ -213,11 +221,6 @@ export function AddProductVariantDialog({
         [createProductVariantMutation, productData?.product, duplicateVariantError, productId],
     );
 
-    // Don't show the "Add variant" button if there are no option groups
-    if (!productData?.product?.optionGroups.length) {
-        return null;
-    }
-
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger render={<Button variant="outline" />}>
@@ -241,7 +244,7 @@ export function AddProductVariantDialog({
                         }}
                         className="space-y-4"
                     >
-                        {productData?.product?.optionGroups.length && (
+                        {(productData?.product?.optionGroups.length ?? 0) > 0 && (
                             <div className="flex flex-col gap-2">
                                 <div className="flex justify-between items-center">
                                     <label className="text-sm font-medium">
