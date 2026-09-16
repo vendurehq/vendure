@@ -2,6 +2,7 @@ import { type Page, expect, test } from '@playwright/test';
 
 import { BaseDetailPage } from '../../page-objects/detail-page.base.js';
 import { BaseListPage } from '../../page-objects/list-page.base.js';
+import { closePopup, expectPopupOpen } from '../../utils/base-ui-popups.js';
 import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
 
 // Channels have dependent selectors: available languages/currencies must be set
@@ -393,19 +394,21 @@ test.describe('Channel required-field validation', () => {
         await dp.fillInput('Code', 'e2e-default-source-channel');
         await dp.fillInput('Token', 'e2e-default-source-token');
 
-        // Nothing is available, so there is nothing to make the default. Base UI does not mount
-        // the popup at all for an empty list, so anchor on the trigger still offering its
-        // placeholder — otherwise a field that failed to render would pass this just as happily.
+        // Nothing is available, so there is nothing to make the default. Wait for the popup to
+        // be open before asserting it holds no options: a popup that has not mounted yet has
+        // no options either, so the check would pass whether the field rendered or not.
         const defaultCurrency = dp.formItem('Default currency').getByRole('combobox');
         await defaultCurrency.click();
+        await expectPopupOpen(defaultCurrency);
         await expect(page.getByRole('option')).toHaveCount(0);
         await expect(defaultCurrency).toContainText('Select a currency');
-        await dp.closeDropdown();
+        await closePopup(defaultCurrency);
 
         // Marking one currency available makes it — and only it — a candidate default.
-        await dp.formItem('Available currencies').getByRole('combobox').click();
+        const availableCurrencies = dp.formItem('Available currencies').getByRole('combobox');
+        await availableCurrencies.click();
         await page.getByRole('option', { name: /Euro/ }).first().click();
-        await dp.closeDropdown();
+        await closePopup(availableCurrencies);
         await expect(currencyChip(dp, 'Euro')).toBeVisible();
 
         await defaultCurrency.click();
@@ -445,14 +448,15 @@ test.describe('Channel required-field validation', () => {
         // Two available currencies...
         // Pick both from one open list: a multi-select only closes on selection when a filter is
         // active, so selecting unfiltered keeps the dropdown open for the next one.
-        await dp.formItem('Available currencies').getByRole('combobox').click();
+        const currencySelect = dp.formItem('Available currencies').getByRole('combobox');
+        await currencySelect.click();
         for (const currency of ['US Dollar', 'Euro']) {
             await page
                 .getByRole('option', { name: new RegExp(currency) })
                 .first()
                 .click();
         }
-        await dp.closeDropdown();
+        await closePopup(currencySelect);
 
         // ...one of which becomes the default...
         await dp.formItem('Default currency').getByRole('combobox').click();
