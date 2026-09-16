@@ -313,31 +313,37 @@ export function MoveCollectionsDialog({
         }
     }, [firstPageChildQueries]);
 
+    const pagedChildQueryEntries = Object.entries(nextPageToFetch).filter(([_, page]) => page > 0);
     const pagedChildQueries = useQueries({
-        queries: Object.entries(nextPageToFetch)
-            .filter(([_, page]) => page > 0)
-            .map(([collectionId, page]) => {
-                return {
-                    queryKey: childCollectionsForMoveKey(collectionId, page),
-                    queryFn: async () => {
-                        const result = await api.query(collectionListForMoveDocument, {
-                            options: {
-                                filter: {
-                                    parentId: { eq: collectionId },
-                                },
-                                take: CHILDREN_PAGE_SIZE,
-                                skip: page * CHILDREN_PAGE_SIZE,
+        queries: pagedChildQueryEntries.map(([collectionId, page]) => {
+            return {
+                queryKey: childCollectionsForMoveKey(collectionId, page),
+                queryFn: async () => {
+                    const result = await api.query(collectionListForMoveDocument, {
+                        options: {
+                            filter: {
+                                parentId: { eq: collectionId },
                             },
-                        });
-                        return {
-                            collectionId,
-                            items: result.collections.items as Collection[],
-                            totalItems: result.collections.totalItems,
-                        };
-                    },
-                };
-            }),
+                            take: CHILDREN_PAGE_SIZE,
+                            skip: page * CHILDREN_PAGE_SIZE,
+                        },
+                    });
+                    return {
+                        collectionId,
+                        items: result.collections.items as Collection[],
+                        totalItems: result.collections.totalItems,
+                    };
+                },
+            };
+        }),
     });
+    // Keyed by parent collection id so a failed page fetch (which exhausts react-query's
+    // retries and leaves `nextPageToFetch` pointing at the same page/queryKey) can be retried
+    // directly via `refetch()`, since re-requesting the same page number alone won't trigger
+    // a new fetch attempt.
+    const pagedQueryByParentId = new Map(
+        pagedChildQueryEntries.map(([collectionId], index) => [collectionId, pagedChildQueries[index]]),
+    );
 
     useEffect(() => {
         let hasUpdates = false;
@@ -368,6 +374,11 @@ export function MoveCollectionsDialog({
     }, [pagedChildQueries]);
 
     const handleLoadMoreChildren = (parentId: string) => {
+        const pendingQuery = pagedQueryByParentId.get(parentId);
+        if (pendingQuery?.isError) {
+            pendingQuery.refetch();
+            return;
+        }
         const currentItems = accumulatedChildren[parentId]?.items.length ?? 0;
         const nextPage = Math.floor(currentItems / CHILDREN_PAGE_SIZE);
         setNextPageToFetch(prev => ({
