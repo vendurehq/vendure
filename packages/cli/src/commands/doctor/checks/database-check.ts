@@ -1,4 +1,4 @@
-import { RuntimeVendureConfig } from '@vendure/core';
+import type { RuntimeVendureConfig } from '@vendure/core';
 import { DataSource } from 'typeorm';
 
 import { CheckResult } from '../types';

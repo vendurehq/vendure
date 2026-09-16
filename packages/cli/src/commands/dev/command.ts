@@ -4,6 +4,7 @@ import { runCliCommand } from '../../shared/cli-command-exit';
 export const devCommandDef: CliCommandDefinition = {
     name: 'dev',
     description: 'Run Vendure in development mode',
+    requiresProject: true,
     arguments: [
         {
             name: 'target',

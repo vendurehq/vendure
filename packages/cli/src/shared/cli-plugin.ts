@@ -117,6 +117,7 @@ export const CLI_PLUGIN_EXTENSION_POINTS: readonly string[] = Object.freeze([
     'subcommands',
     'extendCommands',
     'afterConsoleLink',
+    'requiresProject',
 ]);
 
 export function assertCliPlugin(value: unknown): asserts value is CliPlugin {

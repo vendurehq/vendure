@@ -1,8 +1,9 @@
 import { log } from '@clack/prompts';
-import { generateMigration, revertLastMigration, runMigrations, VendureConfig } from '@vendure/core';
+import type { VendureConfig } from '@vendure/core';
 import path from 'node:path';
 
 import { loadVendureConfigFile } from '../../shared/load-vendure-config-file';
+import { requireProjectCore } from '../../shared/project-core';
 import { validateVendureProjectDirectory } from '../../shared/project-validation';
 import { analyzeProject } from '../../shared/shared-prompts';
 import { VendureConfigRef } from '../../shared/vendure-config-ref';
@@ -53,7 +54,7 @@ export async function generateMigrationOperation(options: MigrationOptions = {})
                 ? 'Generating baseline migration from an empty shadow database...'
                 : 'Generating migration...',
         );
-        const migrationName = await generateMigration(config, {
+        const migrationName = await requireProjectCore().generateMigration(config, {
             name,
             outputDir: migrationDir,
             fromEmpty: options.fromEmpty,
@@ -87,7 +88,7 @@ export async function runMigrationsOperation(configFile?: string): Promise<Migra
         const config = await loadVendureConfigFile(vendureConfig);
 
         log.info('Running migrations...');
-        const migrationsRan = await runMigrations(config);
+        const migrationsRan = await requireProjectCore().runMigrations(config);
 
         const report = migrationsRan.length
             ? `Successfully ran ${migrationsRan.length} migrations`
@@ -116,7 +117,7 @@ export async function revertMigrationOperation(configFile?: string): Promise<Mig
         const config = await loadVendureConfigFile(vendureConfig);
 
         log.info('Reverting last migration...');
-        await revertLastMigration(config);
+        await requireProjectCore().revertLastMigration(config);
 
         return {
             success: true,

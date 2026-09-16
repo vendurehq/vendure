@@ -7,8 +7,10 @@ import { builtinCommandDefs } from './commands/builtins';
 import { registerCommands, styleHelpTitle } from './shared/command-registry';
 import { CommandRegistry } from './shared/command-registry-store';
 import {
+    CliPluginScopeKind,
     findInactivePluginProvidingCommand,
     listInactiveCliPluginPackages,
+    listInactiveCliPlugins,
     resolveCliPlugins,
 } from './shared/resolve-cli-plugins';
 
@@ -50,14 +52,14 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
     // `plugins` command needed to disable it) stay available.
     const { loaded, failures } = resolveCliPlugins();
     for (const failure of failures) {
-        writePluginSkipped(failure.packageName, 'Failed to load CLI plugin', failure.reason);
+        writePluginSkipped(failure.packageName, 'Failed to load CLI plugin', failure.reason, failure.scope);
     }
-    for (const { packageName, plugin } of loaded) {
+    for (const { packageName, plugin, scope } of loaded) {
         try {
             registry.applyPlugin(plugin);
         } catch (e) {
             const reason = e instanceof Error ? e.message : String(e);
-            writePluginSkipped(packageName, 'Failed to register CLI plugin', reason);
+            writePluginSkipped(packageName, 'Failed to register CLI plugin', reason, scope);
         }
     }
 
@@ -80,11 +82,21 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
 /**
  * Reports a plugin the CLI could not use, and how to disable it. Built-ins stay
  * registered either way, so `vendure plugins remove` remains reachable.
+ *
+ * The suggested command names the scope the plugin was enabled in, because
+ * removing it from the other one would report that it was never enabled there
+ * and leave the broken plugin in place.
  */
-function writePluginSkipped(packageName: string, headline: string, reason: string): void {
+function writePluginSkipped(
+    packageName: string,
+    headline: string,
+    reason: string,
+    scope: CliPluginScopeKind,
+): void {
     process.stderr.write(pc.red(`${headline} "${packageName}": ${reason}\n`));
+    const scopeFlag = scope === 'global' ? ' --global' : '';
     process.stderr.write(
-        `Skipping it. Fix the issue or disable it with: vendure plugins remove ${packageName}\n`,
+        `Skipping it. Fix the issue or disable it with: vendure plugins remove${scopeFlag} ${packageName}\n`,
     );
 }
 
@@ -131,14 +143,17 @@ function writeUnknownCommandHelp(commandName: string): void {
         process.stderr.write(
             `It is provided by ${provider.packageName}, which is installed but not enabled.\n`,
         );
-        process.stderr.write(`Enable it with: vendure plugins add ${provider.packageName}\n`);
+        process.stderr.write(`Enable it with: ${enableCommandFor(provider.packageName, provider.scope)}\n`);
         return;
     }
 
-    const inactive = listInactiveCliPluginPackages();
+    const inactive = listInactiveCliPlugins();
     if (inactive.length === 1) {
-        process.stderr.write(`It may be provided by ${inactive[0]}, which is installed but not enabled.\n`);
-        process.stderr.write(`Enable it with: vendure plugins add ${inactive[0]}\n`);
+        const [only] = inactive;
+        process.stderr.write(
+            `It may be provided by ${only.packageName}, which is installed but not enabled.\n`,
+        );
+        process.stderr.write(`Enable it with: ${enableCommandFor(only.packageName, only.scope)}\n`);
         return;
     }
     if (inactive.length > 1) {
@@ -152,3 +167,10 @@ void main().catch((e: unknown) => {
     process.stderr.write(`${e instanceof Error ? e.message : String(e)}\n`);
     process.exit(1);
 });
+
+/**
+ * The command that enables a package, in the scope it was discovered in.
+ */
+function enableCommandFor(packageName: string, scope: CliPluginScopeKind): string {
+    return `vendure plugins add${scope === 'global' ? ' --global' : ''} ${packageName}`;
+}

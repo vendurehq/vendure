@@ -835,3 +835,203 @@ describe('registerCommands() error handling', () => {
         expect(result.exitCode).toBe(2);
     });
 });
+
+/**
+ * Stands in for a project lookup that found one. The value is only ever
+ * checked for being present, so the path need not exist.
+ */
+const foundProject = () => '/projects/my-shop';
+const noProject = () => undefined;
+
+describe('registerCommands() project gate', () => {
+    it('refuses a command that requires a project when there is none', async () => {
+        const command = recordingCommand('doctor', 'Run diagnostics', { requiresProject: true });
+
+        const result = await runCli([command], [], ['doctor'], undefined, noProject);
+
+        expect(result.exitCode).toBe(1);
+        expect(result.processStderr).toContain(
+            'vendure doctor must be run from a Vendure project directory.',
+        );
+        expect(calls).toEqual([]);
+    });
+
+    it('names the directory it searched, so the wrong place is told from a broken project', async () => {
+        const command = recordingCommand('doctor', 'Run diagnostics', { requiresProject: true });
+
+        const result = await runCli([command], [], ['doctor'], undefined, noProject);
+
+        expect(result.processStderr).toContain(process.cwd());
+        expect(result.processStderr).toContain('or any parent directory');
+    });
+
+    it('runs the command when a project is found', async () => {
+        const command = recordingCommand('doctor', 'Run diagnostics', { requiresProject: true });
+
+        const result = await runCli([command], [], ['doctor'], undefined, foundProject);
+
+        expect(result.exitCode).toBe(0);
+        expect(calls).toHaveLength(1);
+    });
+
+    it('leaves a command that does not require a project alone', async () => {
+        const command = recordingCommand('plugins', 'Manage CLI plugins');
+
+        const result = await runCli([command], [], ['plugins'], undefined, noProject);
+
+        expect(result.exitCode).toBe(0);
+        expect(calls).toHaveLength(1);
+    });
+
+    it('applies a parent requirement to a subcommand that declares nothing', async () => {
+        const group: CliCommandNode = {
+            name: 'cloud',
+            description: 'Cloud commands',
+            requiresProject: true,
+            subcommands: [recordingCommand('deploy', 'Deploy the project')],
+        };
+
+        const result = await runCli([group], [], ['cloud', 'deploy'], undefined, noProject);
+
+        expect(result.exitCode).toBe(1);
+        expect(result.processStderr).toContain('vendure cloud deploy must be run from a Vendure project');
+        expect(calls).toEqual([]);
+    });
+
+    it('lets a subcommand opt back out of a parent requirement', async () => {
+        const group: CliCommandNode = {
+            name: 'cloud',
+            description: 'Cloud commands',
+            requiresProject: true,
+            subcommands: [recordingCommand('whoami', 'Show the current user', { requiresProject: false })],
+        };
+
+        const result = await runCli([group], [], ['cloud', 'whoami'], undefined, noProject);
+
+        expect(result.exitCode).toBe(0);
+        expect(calls).toHaveLength(1);
+    });
+
+    it('gates a runnable parent on its own account', async () => {
+        const parent = recordingCommand('deploy', 'Deploy', {
+            requiresProject: true,
+            subcommands: [recordingCommand('plan', 'Plan the deployment')],
+        });
+
+        const result = await runCli([parent], [], ['deploy'], undefined, noProject);
+
+        expect(result.exitCode).toBe(1);
+        expect(calls).toEqual([]);
+    });
+
+    it('reports a mistyped subcommand as a typo rather than as a missing project', async () => {
+        const parent = recordingCommand('deploy', 'Deploy', {
+            requiresProject: true,
+            subcommands: [recordingCommand('plan', 'Plan the deployment')],
+        });
+
+        const result = await runCli([parent], [], ['deploy', 'plann'], undefined, noProject);
+
+        expect(result.commanderStderr).toContain("unknown command 'plann'");
+        expect(result.processStderr).not.toContain('must be run from a Vendure project');
+    });
+
+    it('marks a project command in help when there is no project', async () => {
+        const commands = [
+            recordingCommand('doctor', 'Run diagnostics', { requiresProject: true }),
+            recordingCommand('plugins', 'Manage CLI plugins'),
+        ];
+
+        const result = await runCli(commands, [], ['--help'], undefined, noProject);
+
+        expect(result.stdout).toContain('Run diagnostics *');
+        expect(result.stdout).toContain('Manage CLI plugins\n');
+        expect(result.stdout).toContain('* Requires a Vendure project. You are not in one.');
+    });
+
+    it('says once that the user is not in a project, however many commands are marked', async () => {
+        const commands = [
+            recordingCommand('doctor', 'Run diagnostics', { requiresProject: true }),
+            recordingCommand('migrate', 'Run migrations', { requiresProject: true }),
+            recordingCommand('dev', 'Run in dev mode', { requiresProject: true }),
+        ];
+
+        const result = await runCli(commands, [], ['--help'], undefined, noProject);
+
+        expect(result.stdout.split('Requires a Vendure project')).toHaveLength(2);
+    });
+
+    it('explains the marker in the help of the marked command itself', async () => {
+        const commands = [recordingCommand('doctor', 'Run diagnostics', { requiresProject: true })];
+
+        const result = await runCli(commands, [], ['doctor', '--help'], undefined, noProject);
+
+        expect(result.stdout).toContain('Run diagnostics *');
+        expect(result.stdout).toContain('* Requires a Vendure project. You are not in one.');
+    });
+
+    it('explains the marker in the help of a group that lists a marked subcommand', async () => {
+        const group: CliCommandNode = {
+            name: 'cloud',
+            description: 'Cloud commands',
+            subcommands: [
+                recordingCommand('deploy', 'Deploy the project', { requiresProject: true }),
+                recordingCommand('whoami', 'Show the current user'),
+            ],
+        };
+
+        const result = await runCli([group], [], ['cloud', '--help'], undefined, noProject);
+
+        expect(result.stdout).toContain('Deploy the project *');
+        expect(result.stdout).toContain('* Requires a Vendure project. You are not in one.');
+    });
+
+    it('marks a subcommand that inherits the requirement from its group', async () => {
+        const group: CliCommandNode = {
+            name: 'cloud',
+            description: 'Cloud commands',
+            requiresProject: true,
+            subcommands: [
+                recordingCommand('deploy', 'Deploy the project'),
+                recordingCommand('whoami', 'Show the current user', { requiresProject: false }),
+            ],
+        };
+
+        const result = await runCli([group], [], ['cloud', '--help'], undefined, noProject);
+
+        expect(result.stdout).toContain('Deploy the project *');
+        expect(result.stdout).toContain('Show the current user\n');
+    });
+
+    it('leaves help alone when nothing in it is marked', async () => {
+        const group: CliCommandNode = {
+            name: 'cloud',
+            description: 'Cloud commands',
+            subcommands: [recordingCommand('whoami', 'Show the current user')],
+        };
+
+        const result = await runCli([group], [], ['cloud', '--help'], undefined, noProject);
+
+        expect(result.stdout).not.toContain('Requires a Vendure project');
+        expect(result.stdout).not.toContain('user *');
+    });
+
+    it('still lists the command, so help does not change shape with the directory', async () => {
+        const commands = [recordingCommand('doctor', 'Run diagnostics', { requiresProject: true })];
+
+        const outside = await runCli(commands, [], ['--help'], undefined, noProject);
+        const inside = await runCli(commands, [], ['--help'], undefined, foundProject);
+
+        expect(outside.stdout).toContain('doctor');
+        expect(inside.stdout).toContain('doctor');
+    });
+
+    it('leaves the description alone inside a project, where the mark would say nothing', async () => {
+        const commands = [recordingCommand('doctor', 'Run diagnostics', { requiresProject: true })];
+
+        const result = await runCli(commands, [], ['--help'], undefined, foundProject);
+
+        expect(result.stdout).toContain('Run diagnostics\n');
+        expect(result.stdout).not.toContain('Requires a Vendure project');
+    });
+});

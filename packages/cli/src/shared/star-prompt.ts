@@ -1,7 +1,8 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { homedir } from 'node:os';
 import path from 'node:path';
 import pc from 'picocolors';
+
+import { getVendureCliConfigDir } from './cli-config-dir';
 
 const horizontalPadding = 5;
 const verticalPadding = 5;
@@ -40,19 +41,6 @@ export function showStarPromptOnce(options: ShowStarPromptOptions = {}): boolean
     const output = renderStarPrompt(options.color ?? pc.isColorSupported);
     (options.write ?? (message => process.stdout.write(message)))(output);
     return true;
-}
-
-export function getVendureCliConfigDir(env: NodeJS.ProcessEnv = process.env): string {
-    if (env.VENDURE_CLI_CONFIG_DIR) {
-        return env.VENDURE_CLI_CONFIG_DIR;
-    }
-    if (env.XDG_CONFIG_HOME) {
-        return path.join(env.XDG_CONFIG_HOME, 'vendure');
-    }
-    if (process.platform === 'win32' && env.APPDATA) {
-        return path.join(env.APPDATA, 'vendure');
-    }
-    return path.join(homedir(), '.config', 'vendure');
 }
 
 export function renderStarPrompt(color = pc.isColorSupported): string {

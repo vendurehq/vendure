@@ -4,6 +4,7 @@ import { runCliCommand } from '../../shared/cli-command-exit';
 export const schemaCommandDef: CliCommandDefinition = {
     name: 'schema',
     description: 'Generate a schema file from your GraphQL APIs',
+    requiresProject: true,
     options: [
         {
             short: '-a',

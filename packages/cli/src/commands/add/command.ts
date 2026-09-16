@@ -12,6 +12,7 @@ import { addService } from './service/add-service';
 export const addCommandDef: CliCommandDefinition = {
     name: 'add',
     description: 'Add a feature to your Vendure project',
+    requiresProject: true,
     options: [
         {
             long: '--config <path>',

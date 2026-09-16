@@ -2,7 +2,7 @@ import {
     SUPER_ADMIN_USER_IDENTIFIER,
     SUPER_ADMIN_USER_PASSWORD,
 } from '@vendure/common/lib/shared-constants';
-import { RuntimeVendureConfig } from '@vendure/core';
+import type { RuntimeVendureConfig } from '@vendure/core';
 
 import { CheckResult } from '../types';
 

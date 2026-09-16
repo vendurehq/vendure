@@ -6,6 +6,7 @@ import { ConsoleLinkHookRegistration } from './console-link-hook';
 export const consoleCommandDef: CliCommandDefinition = {
     name: 'console',
     description: 'Link this Vendure project to Vendure Console',
+    requiresProject: true,
     arguments: [
         {
             name: 'action',
