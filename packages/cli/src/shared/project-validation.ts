@@ -17,13 +17,7 @@ export function isVendureProjectDirectory(): boolean {
 
     if (hasPackageJson) {
         try {
-            const packageJson = JSON.parse(fs.readFileSync(path.join(cwd, 'package.json'), 'utf-8'));
-            const dependencies = { ...packageJson.dependencies, ...packageJson.devDependencies };
-            const hasVendureDeps = Object.keys(dependencies).some(
-                dep => dep.includes('@vendure/') || dep === 'vendure',
-            );
-
-            return hasVendureDeps && hasVendureConfig;
+            return hasVendureDependency(path.join(cwd, 'package.json')) && hasVendureConfig;
         } catch {
             return false;
         }
@@ -61,9 +55,22 @@ const VENDURE_PACKAGE_NAME = 'vendure';
  * where a developer often is.
  */
 export function findVendureProjectRoot(cwd: string = process.cwd()): string | undefined {
-    let current = path.resolve(cwd);
+    return walkUp(cwd, dir => hasVendureDependency(path.join(dir, 'package.json')));
+}
+
+/**
+ * Walks from `startDir` towards the filesystem root, returning the first
+ * directory the predicate accepts.
+ *
+ * Shared because the loop is easy to write and easy to write wrongly: the exit
+ * condition is `path.dirname` returning its own argument, which is how the root
+ * reports having no parent, and a `while (true)` that omits it does not
+ * terminate.
+ */
+export function walkUp(startDir: string, accept: (dir: string) => boolean): string | undefined {
+    let current = path.resolve(startDir);
     while (true) {
-        if (hasVendureDependency(path.join(current, 'package.json'))) {
+        if (accept(current)) {
             return current;
         }
         const parent = path.dirname(current);
@@ -89,9 +96,7 @@ function hasVendureDependency(packageJsonPath: string): boolean {
     try {
         const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
         const names = Object.keys({ ...packageJson.dependencies, ...packageJson.devDependencies });
-        return names.some(
-            name => name === VENDURE_PACKAGE_NAME || name.startsWith(VENDURE_PACKAGE_SCOPE),
-        );
+        return names.some(name => name === VENDURE_PACKAGE_NAME || name.startsWith(VENDURE_PACKAGE_SCOPE));
     } catch {
         return false;
     }
@@ -104,10 +109,7 @@ function hasVendureDependency(packageJsonPath: string): boolean {
  * the wrong place rather than a broken project, and the path is what tells the
  * two apart.
  */
-export function vendureProjectRequiredMessage(
-    commandPath: string[],
-    cwd: string = process.cwd(),
-): string {
+export function vendureProjectRequiredMessage(commandPath: string[], cwd: string = process.cwd()): string {
     return (
         `vendure ${commandPath.join(' ')} must be run from a Vendure project directory.\n` +
         `No package.json with a Vendure dependency was found in ${cwd} or any parent directory.\n`

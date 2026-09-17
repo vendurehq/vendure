@@ -92,8 +92,15 @@ export function readEnvPluginNames(env: NodeJS.ProcessEnv = process.env): string
  * naming a package in the environment is what decides.
  */
 export function getGlobalPluginAllowlist(env: NodeJS.ProcessEnv = process.env): string[] {
-    const { config } = readGlobalCliConfig(env);
-    const names = [...new Set(config.plugins ?? [])];
+    return mergeEnvPluginNames(readGlobalCliConfig(env).config.plugins ?? [], env);
+}
+
+/**
+ * As {@link getGlobalPluginAllowlist}, for a caller that has already read the
+ * config file and should not read it a second time.
+ */
+export function mergeEnvPluginNames(configured: string[], env: NodeJS.ProcessEnv = process.env): string[] {
+    const names = [...new Set(configured)];
     for (const name of readEnvPluginNames(env)) {
         if (!names.includes(name)) {
             names.push(name);

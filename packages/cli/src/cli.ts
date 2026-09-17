@@ -10,9 +10,9 @@ import {
     CliPluginScopeError,
     CliPluginScopeKind,
     findInactivePluginProvidingCommand,
-    pluginsCommandFor,
     listInactiveCliPluginPackages,
     listInactiveCliPlugins,
+    pluginsCommandFor,
     resolveCliPlugins,
 } from './shared/resolve-cli-plugins';
 
@@ -169,9 +169,7 @@ function writeUnknownCommandHelp(commandName: string): void {
         process.stderr.write(
             `It may be provided by ${only.packageName}, which is installed but not enabled.\n`,
         );
-        process.stderr.write(
-            `Enable it with: ${pluginsCommandFor('add', only.packageName, only.scope)}\n`,
-        );
+        process.stderr.write(`Enable it with: ${pluginsCommandFor('add', only.packageName, only.scope)}\n`);
         return;
     }
     if (inactive.length > 1) {

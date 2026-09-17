@@ -5,6 +5,7 @@ import { CliCommandNode, CliCommandOption } from '../cli-command-definition';
 import { CliPluginExtensionAccessor } from '../cli-plugin-extension';
 import { registerCommands } from '../command-registry';
 import { CommandTreeEntry, RootOptionEntry } from '../command-registry-store';
+import { stripAnsi } from '../strip-ansi';
 
 /**
  * Accepts either shape so a test can pass a bare fixture when it does not care
@@ -27,21 +28,6 @@ class ExitSignal extends Error {
     constructor(readonly code: number) {
         super(`exit ${code}`);
     }
-}
-
-/**
- * Removes ANSI escape codes.
- *
- * Whether the CLI colours what it writes depends on the environment the suite
- * runs in, not on the command: picocolors emits codes when it detects colour
- * support, and lerna's streaming output turns that on in CI while a plain local
- * run leaves it off. A test asserting on what the CLI said should not depend on
- * how the suite was started, so everything captured here is stripped. A test
- * about colour itself calls the styling function directly.
- */
-function stripAnsi(text: string): string {
-    // eslint-disable-next-line no-control-regex
-    return text.replace(/\u001b\[[0-9;]*m/g, '');
 }
 
 export interface CliRun {

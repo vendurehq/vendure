@@ -4,7 +4,9 @@ import pc from 'picocolors';
 import { exitCliCommand } from '../../shared/cli-command-exit';
 import {
     addGlobalPlugin,
+    CLI_PLUGINS_ENV_VAR,
     getGlobalPluginAllowlist,
+    readEnvPluginNames,
     removeGlobalPlugin,
     writeGlobalPluginAllowlist,
 } from '../../shared/cli-global-plugin-config';
@@ -15,16 +17,21 @@ import {
     removeCliPluginFromProjectConfig,
     writeCliPluginProjectConfig,
 } from '../../shared/cli-plugin-project-config';
+import { findVendureProjectRoot } from '../../shared/project-validation';
 import {
     cliPluginCommandNames,
     CliPluginScopeKind,
-    DiscoveredCliPlugin,
     discoverCliPlugins,
+    DiscoveredCliPlugin,
     getCliPluginScope,
-    PluginScope,
     pluginsCommandFor,
+    PluginScope,
 } from '../../shared/resolve-cli-plugins';
-import { abortIfNonInteractive, isNonInteractiveEnvironment, withInteractiveTimeout } from '../../utilities/utils';
+import {
+    abortIfNonInteractive,
+    isNonInteractiveEnvironment,
+    withInteractiveTimeout,
+} from '../../utilities/utils';
 
 export interface PluginsCommandOptions {
     json?: boolean;
@@ -41,8 +48,12 @@ export interface PluginsCommandOptions {
  * situation a globally installed CLI is run in.
  */
 function resolveTargetScope(options: PluginsCommandOptions): PluginScope {
-    const kind: CliPluginScopeKind =
-        options.global || !readCliProjectPackageJson() ? 'global' : 'project';
+    // findVendureProjectRoot, not the plugin-config root: the latter falls back
+    // to the nearest package.json whatever it contains, so in an unrelated npm
+    // package it would answer 'project' and write vendure.cli.plugins into a
+    // manifest that has nothing to do with Vendure. The rest of the CLI — the
+    // command gate, the help legend, the docs — all ask this same question.
+    const kind: CliPluginScopeKind = options.global || !findVendureProjectRoot() ? 'global' : 'project';
     const scope = getCliPluginScope(kind);
     if (!scope) {
         // Only the project scope can be absent, and only when its package.json
@@ -135,6 +146,18 @@ function scopeSuffix(scope: CliPluginScopeKind): string {
 function removePlugin(packageName: string, options: PluginsCommandOptions): void {
     const scope = resolveTargetScope(options);
     const enabled = readEnabledPlugins(scope.kind);
+
+    // The environment variable is read afresh at every invocation, so removing
+    // the name from the config file would change nothing and the command would
+    // report a success that the next invocation contradicts.
+    if (scope.kind === 'global' && readEnvPluginNames().includes(packageName)) {
+        log.error(
+            `Package "${packageName}" is enabled by the ${CLI_PLUGINS_ENV_VAR} environment variable, ` +
+                'which this command cannot change.',
+        );
+        log.info(`Unset ${CLI_PLUGINS_ENV_VAR}, or remove "${packageName}" from its value.`);
+        exitCliCommand(1);
+    }
 
     if (!enabled.includes(packageName)) {
         log.error(
@@ -273,9 +296,7 @@ async function runInteractiveManager(): Promise<void> {
         const plugins = mergeEnabledPluginSelection(
             readEnabledPlugins(scope),
             inScope.map(plugin => plugin.packageName),
-            inScope
-                .filter(plugin => selectedKeys.has(toggleKey(plugin)))
-                .map(plugin => plugin.packageName),
+            inScope.filter(plugin => selectedKeys.has(toggleKey(plugin))).map(plugin => plugin.packageName),
         );
         written.push(
             scope === 'global'

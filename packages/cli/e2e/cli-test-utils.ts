@@ -4,6 +4,8 @@ import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, write
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { stripAnsi } from '../src/shared/strip-ansi';
+
 export interface CliTestProject {
     projectDir: string;
     cleanup: () => void;
@@ -26,21 +28,6 @@ export interface CliCommandResult {
     rawStdout: string;
     /** Errors as the CLI wrote them, for a test about colour itself. */
     rawStderr: string;
-}
-
-/**
- * Removes ANSI escape codes.
- *
- * Whether the CLI colours its output depends on the environment it is spawned
- * in, not on the command. Vitest exports FORCE_COLOR to child processes when
- * its own output is coloured. Its output is coloured when the suite runs
- * through Lerna and plain when it runs in the package directly, so one command
- * gives different bytes depending on how the suite was started. A test
- * asserting on what the CLI said should not depend on how it was started.
- */
-function stripAnsi(text: string): string {
-    // eslint-disable-next-line no-control-regex
-    return text.replace(/\u001b\[[0-9;]*m/g, '');
 }
 
 /**
@@ -320,7 +307,6 @@ export async function waitFor(
 
     throw new Error(`Condition not met within ${timeoutMs}ms`);
 }
-
 
 export interface SimulatedGlobalInstall {
     /** Runs the globally installed CLI from `cwd`. */

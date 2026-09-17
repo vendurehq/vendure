@@ -349,13 +349,8 @@ export interface ProjectCliPluginConfig {
 }
 
 /**
- * Whether a node needs a project, given what the command it is nested in
- * requires.
- *
- * An explicit value on the node wins; otherwise it inherits. One expression of
- * the rule, because it is asked in two places — when a command is registered,
- * and when its help decides whether to mark it — and two copies would be two
- * things to change if the rule ever grows a third state.
+ * Whether a node needs a project: its own value if it declares one, otherwise
+ * the requirement of the command it is nested in.
  */
 export function effectiveRequiresProject(node: CliCommandNode, inherited: boolean): boolean {
     return node.requiresProject ?? inherited;

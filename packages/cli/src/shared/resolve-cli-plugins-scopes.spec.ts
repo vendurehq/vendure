@@ -69,10 +69,10 @@ describe('CLI plugin scopes', () => {
     }
 
     /** A project whose package.json the test supplies directly. */
-    function makeProject(options: {
-        dependencies?: Record<string, string>;
-        plugins?: string[];
-    }): { root: string; packageJson: PackageJsonLike } {
+    function makeProject(options: { dependencies?: Record<string, string>; plugins?: string[] }): {
+        root: string;
+        packageJson: PackageJsonLike;
+    } {
         const root = makeTempDir('vendure-scope-project-');
         const packageJson: PackageJsonLike = {
             name: 'shop',
@@ -275,11 +275,8 @@ describe('findCliInstallLocation()', () => {
     });
 
     /**
-     * The case the original implementation got wrong. `@vendure/cli` is most
-     * often a project devDependency, and then the node_modules it sits in is
-     * the project's own. Calling that global made every project dependency
-     * appear a second time as a machine-wide package, and offered to enable one
-     * machine-wide from inside a single project.
+     * `@vendure/cli` is most often a project devDependency, so the node_modules
+     * it sits in is the project's own and not a global root.
      */
     it('does not treat a project node_modules as a global installation', () => {
         const project = makeRoot();
@@ -292,6 +289,41 @@ describe('findCliInstallLocation()', () => {
 
         expect(location?.packageDir).toBe(path.join(project, 'node_modules', '@vendure', 'cli'));
         expect(location?.globalNodeModules).toBeUndefined();
+    });
+
+    /**
+     * A workspace root's manifest carries `workspaces` and shared tooling, with
+     * the Vendure dependency in a package below the hoisted node_modules.
+     */
+    it('does not treat a hoisted workspace node_modules as a global installation', () => {
+        const repo = makeRoot();
+        const fromDir = installCli(repo, {
+            name: 'repo',
+            workspaces: ['packages/*'],
+            devDependencies: { typescript: '5.8.2' },
+        });
+        fs.ensureDirSync(path.join(repo, 'packages', 'server'));
+        fs.writeJsonSync(path.join(repo, 'packages', 'server', 'package.json'), {
+            name: 'server',
+            dependencies: { '@vendure/core': '3.8.0' },
+        });
+
+        expect(findCliInstallLocation(fromDir)?.globalNodeModules).toBeUndefined();
+    });
+
+    /**
+     * nvm ships a package.json at the root of its own directory, so a global
+     * root cannot be recognised by the absence of a manifest in *every*
+     * ancestor — only in the directory that holds the node_modules.
+     */
+    it('treats a global root as global even when an ancestor has a package.json', () => {
+        const home = makeRoot();
+        const prefix = path.join(home, 'versions', 'node', 'v24.0.0', 'lib');
+        fs.ensureDirSync(home);
+        fs.writeJsonSync(path.join(home, 'package.json'), { name: 'nvm' });
+        const fromDir = installCli(prefix);
+
+        expect(findCliInstallLocation(fromDir)?.globalNodeModules).toBe(path.join(prefix, 'node_modules'));
     });
 
     it('finds no global node_modules for a source checkout', () => {

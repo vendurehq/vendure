@@ -15,6 +15,7 @@ import { exitCliCommand } from './cli-command-exit';
 import { parseOptionFlags } from './cli-command-options';
 import { styleHelpTitle, styleProjectLegend, styleProjectMarker } from './command-registry';
 import { CommandTreeEntry, RootOptionEntry } from './command-registry-store';
+import { ANSI } from './strip-ansi';
 
 interface RecordedCall {
     commandPath: string[];
@@ -1047,14 +1048,14 @@ describe('project marker colours', () => {
     const colors = createColors(true);
 
     it('colours the marker so it can be found in a list of commands', () => {
-        expect(styleProjectMarker(colors)).toBe(colors.yellow('*'));
+        expect(styleProjectMarker(colors)).toBe(`${ANSI.yellow}*${ANSI.colorReset}`);
     });
 
     it('keeps the marker coloured in the legend and dims the sentence', () => {
-        const legend = styleProjectLegend(colors);
-
-        expect(legend).toContain(colors.yellow('*'));
-        expect(legend).toContain(colors.dim('Requires a Vendure project. You are not in one.'));
+        expect(styleProjectLegend(colors)).toBe(
+            `  ${ANSI.yellow}*${ANSI.colorReset} ${ANSI.dim}Requires a Vendure project. ` +
+                `You are not in one.${ANSI.dimReset}`,
+        );
     });
 
     it('emits no escape codes when there is no colour support', () => {

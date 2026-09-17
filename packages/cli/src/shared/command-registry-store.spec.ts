@@ -756,7 +756,7 @@ describe('resolveCliPlugins()', () => {
             resolveCliPlugins({
                 cwd: fixture.root,
                 projectPackageJson,
-            scopes: ['project'],
+                scopes: ['project'],
                 resolvePackage: fixture.resolvePackage,
             }),
         ).toEqual({ loaded: [], failures: [], scopeErrors: [] });
@@ -1285,7 +1285,7 @@ describe('resolveCliPlugins()', () => {
             listInactiveCliPluginPackages({
                 cwd: fixture.root,
                 projectPackageJson,
-            scopes: ['project'],
+                scopes: ['project'],
                 resolvePackage: fixture.resolvePackage,
             }),
         ).toEqual(['@vendure/cloud']);

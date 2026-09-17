@@ -1057,10 +1057,9 @@ which can be run from any directory on the machine.
 
 The CLI looks for a `package.json` with a dependency in the `@vendure/` scope, in
 the current directory or any parent, so the check passes from a subdirectory of a
-project. It is deliberately loose: it separates "not in a project at all" from
-"in a project", and does not promise that a given command can succeed. A command
-with stricter needs — a config file in the current directory, a particular
-package installed — still checks for itself and reports its own error.
+project. It answers one question — is there a Vendure project here — and a
+command whose needs are narrower still checks for itself and reports its own
+error: `migrate` wants a config file it can resolve, `add` wants a tsconfig.
 
 Outside a project, `vendure --help` marks these commands rather than hiding
 them, so the command list is the same wherever the CLI is run. The legend is

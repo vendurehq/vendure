@@ -3,9 +3,9 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 
 import { ProjectCliPluginConfig } from './cli-command-definition';
-import { getGlobalPluginAllowlist, readGlobalCliConfig } from './cli-global-plugin-config';
+import { mergeEnvPluginNames, readGlobalCliConfig } from './cli-global-plugin-config';
 import { assertCliPlugin, CliPlugin } from './cli-plugin';
-import { findVendureProjectRoot } from './project-validation';
+import { walkUp } from './project-validation';
 
 export interface PackageJsonLike {
     name?: string;
@@ -318,9 +318,7 @@ function withLoadedCommands(entry: DiscoveredCliPlugin, packageName: string): Di
 }
 
 function notEnabledReason(scope: PluginScope): string {
-    return scope.kind === 'project'
-        ? 'Not listed in vendure.cli.plugins'
-        : `Not listed in ${scope.origin}`;
+    return scope.kind === 'project' ? 'Not listed in vendure.cli.plugins' : `Not listed in ${scope.origin}`;
 }
 
 /**
@@ -346,7 +344,6 @@ function checkDeclaresPlugin(
     }
     return undefined;
 }
-
 
 /**
  * Loads CLI plugins that have been explicitly enabled in `vendure.cli.plugins`.
@@ -380,6 +377,13 @@ export function resolveCliPlugins(options: ResolveCliPluginsOptions = {}): CliPl
  * The last scope wins, which is the project, so the copy pinned alongside the
  * project's code is the one that runs. Loading both would apply the plugin
  * twice and run any `afterConsoleLink` hook twice per link.
+ *
+ * The project's copy is used even when it turns out to be unusable — not a
+ * direct dependency, say — rather than falling back to the global one. A
+ * project that names a plugin has said which copy it wants, and quietly running
+ * a different version of it is worse than reporting that the named one cannot
+ * be loaded. The failure names the project, so the reader can see which of the
+ * two lists to change.
  */
 function owningScopes(scopes: PluginScope[]): Map<string, PluginScope> {
     const owner = new Map<string, PluginScope>();
@@ -404,9 +408,6 @@ function loadInto(result: CliPluginLoadResult, scope: PluginScope, packageName: 
     const resolved = scope.resolvePackage(packageName);
     const entryRel = resolved?.packageJson.vendure?.cliPlugin;
     if (!resolved || typeof entryRel !== 'string') {
-        // The check above already passed, so this cannot happen. Reported
-        // rather than asserted away, so a later change to the checks surfaces
-        // here instead of crashing the CLI.
         fail('Passed every check but no plugin entry could be resolved');
         return;
     }
@@ -563,17 +564,7 @@ export function findCliInstallLocation(fromDir?: string): CliInstallLocation | u
 }
 
 function findNearestPackageDir(startDir: string): string | undefined {
-    let current = startDir;
-    while (true) {
-        if (fs.existsSync(path.join(current, 'package.json'))) {
-            return current;
-        }
-        const parent = path.dirname(current);
-        if (parent === current) {
-            return undefined;
-        }
-        current = parent;
-    }
+    return walkUp(startDir, dir => fs.existsSync(path.join(dir, 'package.json')));
 }
 
 /**
@@ -581,31 +572,31 @@ function findNearestPackageDir(startDir: string): string | undefined {
  * is being run from a source checkout, whose packages are not inside one.
  */
 function findContainingNodeModules(packageDir: string): string | undefined {
-    let current = path.dirname(packageDir);
-    while (true) {
-        if (path.basename(current) === 'node_modules') {
-            return current;
-        }
-        const parent = path.dirname(current);
-        if (parent === current) {
-            return undefined;
-        }
-        current = parent;
-    }
+    return walkUp(path.dirname(packageDir), dir => path.basename(dir) === 'node_modules');
 }
 
 /**
- * Whether a `node_modules` is a global installation root rather than a
- * project's.
+ * Whether a `node_modules` is a global installation root rather than one
+ * belonging to a project.
  *
- * A project's `node_modules` sits inside the project, so looking for a Vendure
- * project from its parent finds one. A global root — `<prefix>/lib/node_modules`
- * and its equivalents — has no Vendure project above it. The search starts at
- * the parent rather than inside, because `@vendure/cli` depends on
- * `@vendure/common` and so looks like a Vendure project to the check.
+ * The test is whether the directory holding it has a `package.json`. Every
+ * package manager creates `node_modules` beside the manifest it installs for,
+ * so a project always has one there — including a workspace root, whose
+ * manifest carries `workspaces` and the shared tooling while the Vendure
+ * dependency sits in a package below. A global root has no manifest above it:
+ * `<prefix>/lib/node_modules` and the equivalents under nvm, Volta and asdf.
+ *
+ * Asking instead whether a Vendure project is above it reads a workspace root
+ * as global, because the Vendure dependency is below the hoisted
+ * `node_modules`, not above it. Asking whether *any* ancestor has a
+ * `package.json` reads a real nvm installation as not global, because nvm ships
+ * one at the root of its own directory.
+ *
+ * pnpm's global store does carry a manifest, so a pnpm global install is not
+ * recognised here and is reached through `pluginRoots` instead.
  */
 function isGlobalNodeModules(nodeModulesDir: string): boolean {
-    return findVendureProjectRoot(path.dirname(nodeModulesDir)) === undefined;
+    return !fs.existsSync(path.join(path.dirname(nodeModulesDir), 'package.json'));
 }
 
 /**
@@ -619,9 +610,7 @@ function isGlobalNodeModules(nodeModulesDir: string): boolean {
 function listInstalledPackageNames(nodeModulesDir: string): string[] {
     return readDirectory(nodeModulesDir)
         .filter(entry => !entry.startsWith('.'))
-        .flatMap(entry =>
-            entry.startsWith('@') ? listScopedPackageNames(nodeModulesDir, entry) : [entry],
-        );
+        .flatMap(entry => (entry.startsWith('@') ? listScopedPackageNames(nodeModulesDir, entry) : [entry]));
 }
 
 /** The packages inside one `@scope` directory, named `@scope/package`. */
@@ -656,14 +645,11 @@ function getGlobalPluginScope(
     env: NodeJS.ProcessEnv,
     findInstall: () => CliInstallLocation | undefined,
 ): PluginScope {
-    const allowlist = getGlobalPluginAllowlist(env);
     const { config, path: configPath, error } = readGlobalCliConfig(env);
+    const allowlist = mergeEnvPluginNames(config.plugins ?? [], env);
     const install = findInstall();
-    // Only a global installation contributes its own directory. The CLI is most
-    // often a devDependency, and then the node_modules it sits in is the
-    // project's own, which the project scope already covers. Lending those
-    // packages to this scope would report each of them a second time as
-    // machine-wide, and offer to enable one machine-wide from a single project.
+    // Only a global installation contributes its own directory. A project-local
+    // CLI resolves the project's packages, which the project scope covers.
     const roots = [
         ...(install?.globalNodeModules ? [install.packageDir] : []),
         ...(config.pluginRoots ?? []).map(root => path.resolve(root)),
@@ -907,12 +893,7 @@ function defaultResolvePackage(
     // tier 2 name check can never match.
     let current = path.resolve(baseDir);
     while (true) {
-        const packageJsonPath = path.join(
-            current,
-            'node_modules',
-            ...packageName.split('/'),
-            'package.json',
-        );
+        const packageJsonPath = path.join(current, 'node_modules', ...packageName.split('/'), 'package.json');
         const packageJson = readPackageJson(packageJsonPath);
         if (packageJson) {
             return { dir: path.dirname(packageJsonPath), packageJson };
@@ -950,4 +931,3 @@ export function getCliPluginScope(
 ): PluginScope | undefined {
     return getPluginScopes(options).find(scope => scope.kind === kind);
 }
-

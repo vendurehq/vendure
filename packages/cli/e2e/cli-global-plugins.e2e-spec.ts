@@ -3,9 +3,10 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
+    CliTestProject,
     createSimulatedGlobalInstall,
     createTestProject,
-    CliTestProject,
+    installCliPluginFixture,
     SimulatedGlobalInstall,
 } from './cli-test-utils';
 
@@ -96,15 +97,42 @@ describe('Globally installed CLI plugins E2E', () => {
         expect(result.stderr).not.toContain('plugins remove');
     });
 
+    it('refuses to remove a plugin the environment variable supplies, and says why', async () => {
+        globalInstall = createSimulatedGlobalInstall(['cloud-cli-plugin']);
+
+        const result = await globalInstall.runCliCommand(
+            ['plugins', 'remove', '--global', '@vendure-e2e/cloud-cli-plugin'],
+            { env: { VENDURE_CLI_PLUGINS: '@vendure-e2e/cloud-cli-plugin' } },
+        );
+
+        // Removing it from the file would change nothing, so reporting success
+        // would be a lie the next invocation contradicts.
+        expect(result.stdout).toContain('enabled by the VENDURE_CLI_PLUGINS environment variable');
+        expect(result.stdout).not.toContain('Disabled CLI plugin');
+        expect(result.exitCode).toBe(1);
+    });
+
+    it('writes to the machine-wide list when the directory is not a Vendure project', async () => {
+        globalInstall = createSimulatedGlobalInstall(['cloud-cli-plugin']);
+        // A directory that is an npm package but has nothing to do with Vendure.
+        writeFileSync(
+            join(globalInstall.emptyDir, 'package.json'),
+            JSON.stringify({ name: 'unrelated', dependencies: { express: '4.0.0' } }),
+        );
+
+        const result = await globalInstall.runCliCommand(['plugins', 'add', '@vendure-e2e/cloud-cli-plugin']);
+
+        expect(result.stdout).toContain('for this machine');
+        expect(result.stdout).toContain(globalInstall.configPath);
+    });
+
     /**
-     * The case that made the global scope wrong: with the CLI installed as a
-     * project devDependency, the `node_modules` it sits in is the project's
-     * own. Reporting those packages as machine-wide listed every project
-     * dependency twice and offered to enable one for the whole machine.
+     * With the CLI installed as a project devDependency, the node_modules it
+     * sits in is the project's own, and its packages belong to the project
+     * scope alone.
      */
     it('does not report a project dependency as a machine-wide plugin', async () => {
         project = createTestProject('global-scope-isolation');
-        const { installCliPluginFixture } = await import('./cli-test-utils');
         const packageName = installCliPluginFixture(project, 'cloud-cli-plugin');
 
         const result = await project.runCliCommand(['plugins', '--json']);
