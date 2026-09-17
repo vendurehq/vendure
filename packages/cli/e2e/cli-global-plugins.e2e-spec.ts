@@ -1,4 +1,4 @@
-import { writeFileSync } from 'node:fs';
+import { existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -82,6 +82,58 @@ describe('Globally installed CLI plugins E2E', () => {
                 status: 'not-enabled',
             }),
         ]);
+    });
+
+    /**
+     * Guards the fixture itself. If it ever gained the packages a project
+     * supplies, every test below would pass whether or not the CLI loads them
+     * from the project, which is the flaw that let two such imports through.
+     */
+    it('provides only the packages the CLI declares', () => {
+        const install = createSimulatedGlobalInstall([]);
+        globalInstall = install;
+        const beside = (name: string) => existsSync(join(install.cliDir, 'node_modules', name));
+
+        expect(beside('commander')).toBe(true);
+        for (const fromProject of ['typeorm', 'graphql', '@vendure/core']) {
+            expect(beside(fromProject)).toBe(false);
+        }
+    });
+
+    /**
+     * A globally installed CLI has only its own production dependencies, so any
+     * runtime import of a package it does not declare — `typeorm`, `graphql`,
+     * `@vendure/core` — fails before a command can report anything. These run
+     * the commands most exposed to that.
+     */
+    it('runs doctor from a global installation, without the packages only a project has', async () => {
+        globalInstall = createSimulatedGlobalInstall([]);
+
+        const result = await globalInstall.runCliCommand(['doctor']);
+
+        expect(result.stderr).not.toContain('Cannot find module');
+        expect(result.stdout).toContain('Vendure Doctor');
+        expect(result.stdout).toContain('Project');
+    });
+
+    it('reports a missing project dependency instead of failing to import', async () => {
+        globalInstall = createSimulatedGlobalInstall([]);
+
+        const result = await globalInstall.runCliCommand(['schema', '--api', 'admin']);
+
+        expect(result.stderr).not.toContain('Cannot find module');
+    });
+
+    it('reports an invalid machine-wide config without stopping the whole CLI', async () => {
+        globalInstall = createSimulatedGlobalInstall([]);
+        writeFileSync(globalInstall.configPath, JSON.stringify({ plugins: {} }));
+
+        const result = await globalInstall.runCliCommand(['--version']);
+
+        expect(result.stderr).toContain('Expected "plugins" to be an array of strings');
+        // The version still prints: a broken config must not take out the
+        // commands needed to fix it.
+        expect(result.stdout).toMatch(/\d+\.\d+\.\d+/);
     });
 
     it('reports an unreadable machine-wide config as a file, not as a package', async () => {

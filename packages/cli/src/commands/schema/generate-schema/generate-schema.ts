@@ -1,7 +1,6 @@
 import { log } from '@clack/prompts';
 import type { GraphQLTypesLoader as GraphQLTypesLoaderType } from '@nestjs/graphql';
 import { writeFileSync } from 'fs-extra';
-import { getIntrospectionQuery, graphqlSync, printSchema } from 'graphql';
 import path from 'node:path';
 
 import { exitCliCommand, rethrowCliCommandExit } from '../../../shared/cli-command-exit';
@@ -20,6 +19,13 @@ export async function generateSchema(options: SchemaOptions) {
     // different copy here would give the two of them separate singletons, so
     // the config written below would not be the config read back.
     const core = requireProjectCore();
+    // The project's GraphQL, for the same reason as core, and for one more: the
+    // schema these functions are given was built by the project's copy. Two
+    // physical copies of the same version do not recognise each other's types,
+    // so printing a project schema with the CLI's copy fails with "Cannot use
+    // GraphQLObjectType from another module or realm".
+    const { getIntrospectionQuery, graphqlSync, printSchema } =
+        requireFromProject<typeof import('graphql')>('graphql');
     core.resetConfig();
     try {
         const { project, vendureTsConfig } = await analyzeProject({ cancelledMessage });

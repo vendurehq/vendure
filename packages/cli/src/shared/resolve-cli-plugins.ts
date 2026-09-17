@@ -214,9 +214,16 @@ export function resolveCliProjectRoot(cwd: string = process.cwd()): string {
  * — see {@link resolveCliPlugins}.
  */
 export function discoverCliPlugins(options: DiscoverCliPluginsOptions = {}): DiscoveredCliPlugin[] {
+    const scopes = getPluginScopes(options);
+    const owner = owningScopes(scopes);
     const discovered: DiscoveredCliPlugin[] = [];
-    for (const scope of getPluginScopes(options)) {
-        discovered.push(...discoverInScope(scope, options.validate === true));
+    for (const scope of scopes) {
+        // Every scope is still listed, so `vendure plugins` can show that a
+        // package is enabled in both. Only the scope that startup would load
+        // from may import the module: validating the other would execute a copy
+        // the CLI has undertaken never to run.
+        const mayLoad = (packageName: string) => owner.get(packageName) === scope;
+        discovered.push(...discoverInScope(scope, options.validate === true, mayLoad));
     }
     return discovered;
 }
@@ -225,7 +232,11 @@ export function discoverCliPlugins(options: DiscoverCliPluginsOptions = {}): Dis
  * Discovers the packages one scope can see. Kept separate from the merging
  * above so that each scope answers only for itself.
  */
-function discoverInScope(scope: PluginScope, validate: boolean): DiscoveredCliPlugin[] {
+function discoverInScope(
+    scope: PluginScope,
+    validate: boolean,
+    mayLoad: (packageName: string) => boolean,
+): DiscoveredCliPlugin[] {
     const enabled = new Set(scope.allowlist);
     const discovered = new Map<string, DiscoveredCliPlugin>();
 
@@ -241,10 +252,8 @@ function discoverInScope(scope: PluginScope, validate: boolean): DiscoveredCliPl
         if (!entry) {
             continue;
         }
-        discovered.set(
-            packageName,
-            validate && entry.status !== 'failed' ? withLoadedCommands(entry, packageName) : entry,
-        );
+        const load = validate && entry.status !== 'failed' && mayLoad(packageName);
+        discovered.set(packageName, load ? withLoadedCommands(entry, packageName) : entry);
     }
 
     return Array.from(discovered.values());

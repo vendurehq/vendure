@@ -62,14 +62,44 @@ export function readGlobalCliConfig(env: NodeJS.ProcessEnv = process.env): {
         return { config: {}, path: configPath };
     }
     try {
-        const parsed = fs.readJsonSync(configPath) as GlobalCliConfig;
+        const parsed = fs.readJsonSync(configPath) as unknown;
         if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
             return { config: {}, path: configPath, error: 'Expected a JSON object' };
         }
-        return { config: parsed, path: configPath };
+        const invalid = firstInvalidField(parsed as Record<string, unknown>);
+        if (invalid) {
+            return { config: {}, path: configPath, error: invalid };
+        }
+        return { config: parsed as GlobalCliConfig, path: configPath };
     } catch (e) {
         return { config: {}, path: configPath, error: e instanceof Error ? e.message : String(e) };
     }
+}
+
+/**
+ * Describes the first field that is present but not an array of strings, or
+ * `undefined` when both are usable.
+ *
+ * Checked here rather than where the values are used, because a scope builder
+ * that spreads or maps them turns a wrong type into a thrown TypeError, and
+ * this runs before any command is registered — so the whole CLI stops, help
+ * and `vendure plugins` included, over a file the user needs those commands to
+ * fix.
+ */
+function firstInvalidField(config: Record<string, unknown>): string | undefined {
+    for (const field of ['plugins', 'pluginRoots'] as const) {
+        const value = config[field];
+        if (value === undefined) {
+            continue;
+        }
+        if (!Array.isArray(value)) {
+            return `Expected "${field}" to be an array of strings`;
+        }
+        if (value.some(entry => typeof entry !== 'string')) {
+            return `Expected every entry of "${field}" to be a string`;
+        }
+    }
+    return undefined;
 }
 
 /**

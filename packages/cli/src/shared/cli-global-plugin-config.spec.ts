@@ -78,6 +78,20 @@ describe('global CLI plugin config', () => {
         expect(result.config).toEqual({});
     });
 
+    it.each([
+        ['plugins', { plugins: {} }, 'Expected "plugins" to be an array of strings'],
+        ['pluginRoots', { pluginRoots: '/opt/p' }, 'Expected "pluginRoots" to be an array of strings'],
+        ['a non-string entry', { plugins: ['ok', 7] }, 'Expected every entry of "plugins" to be a string'],
+    ])('reports %s of the wrong shape rather than letting it throw later', (_name, contents, message) => {
+        // These values are spread and mapped while scopes are built, before any
+        // command is registered, so a TypeError there takes out the whole CLI.
+        expect(readGlobalCliConfig(makeEnv(contents)).error).toBe(message);
+    });
+
+    it('reads a config whose optional fields are absent', () => {
+        expect(readGlobalCliConfig(makeEnv({ plugins: ['@vendure/cloud'] })).error).toBeUndefined();
+    });
+
     it('reports a config file that is not an object', () => {
         const env = makeEnv(['@vendure/cloud']);
 

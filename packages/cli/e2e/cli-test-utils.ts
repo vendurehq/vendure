@@ -309,6 +309,8 @@ export async function waitFor(
 }
 
 export interface SimulatedGlobalInstall {
+    /** The installed `@vendure/cli` directory, for asserting what is beside it. */
+    cliDir: string;
     /** Runs the globally installed CLI from `cwd`. */
     runCliCommand: (
         args: string[],
@@ -344,14 +346,7 @@ export function createSimulatedGlobalInstall(fixtureNames: string[]): SimulatedG
 
     cpSync(join(CLI_PACKAGE_DIR, 'dist'), join(cliDir, 'dist'), { recursive: true });
     cpSync(join(CLI_PACKAGE_DIR, 'package.json'), join(cliDir, 'package.json'));
-    // The repository's node_modules, so the copied CLI can load commander and
-    // friends. Only the CLI package's own path decides whether it counts as a
-    // global install, so borrowing dependencies does not affect what is tested.
-    symlinkSync(
-        join(CLI_PACKAGE_DIR, '..', '..', 'node_modules'),
-        join(cliDir, 'node_modules'),
-        process.platform === 'win32' ? 'junction' : 'dir',
-    );
+    linkDeclaredDependencies(cliDir);
 
     for (const fixtureName of fixtureNames) {
         const fixtureDir = join(CLI_PLUGIN_FIXTURES_DIR, fixtureName);
@@ -368,6 +363,7 @@ export function createSimulatedGlobalInstall(fixtureNames: string[]): SimulatedG
     mkdirSync(emptyDir, { recursive: true });
 
     return {
+        cliDir,
         configPath: join(configDir, 'cli.json'),
         emptyDir,
         cleanup: () => rmSync(prefix, { recursive: true, force: true }),
@@ -399,4 +395,37 @@ export function createSimulatedGlobalInstall(fixtureNames: string[]): SimulatedG
                 child.on('error', reject);
             }),
     };
+}
+
+/**
+ * Links only the packages `@vendure/cli` declares as production dependencies,
+ * which is what `npm install -g @vendure/cli` would put beside it.
+ *
+ * Linking the repository's whole `node_modules` instead would let the CLI
+ * import anything the monorepo happens to have hoisted — `typeorm`, `graphql`,
+ * `@vendure/core` — and a global installation has none of those. The tests
+ * would then prove only that the CLI can find a package, never that a real
+ * installation ships it.
+ *
+ * Each link points at the package's real location, so its own transitive
+ * dependencies still resolve from there: Node resolves a symlink before
+ * looking for `node_modules`, so a linked package behaves exactly as an
+ * installed one, while the CLI's own lookups see only what is linked.
+ */
+function linkDeclaredDependencies(cliDir: string): void {
+    const { dependencies } = JSON.parse(readFileSync(join(CLI_PACKAGE_DIR, 'package.json'), 'utf-8')) as {
+        dependencies: Record<string, string>;
+    };
+    const repoModules = join(CLI_PACKAGE_DIR, '..', '..', 'node_modules');
+    const linkType = process.platform === 'win32' ? 'junction' : 'dir';
+
+    for (const packageName of Object.keys(dependencies)) {
+        const source = join(repoModules, ...packageName.split('/'));
+        if (!existsSync(source)) {
+            continue;
+        }
+        const target = join(cliDir, 'node_modules', ...packageName.split('/'));
+        mkdirSync(join(target, '..'), { recursive: true });
+        symlinkSync(source, target, linkType);
+    }
 }
