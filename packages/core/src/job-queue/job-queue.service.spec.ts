@@ -225,6 +225,10 @@ describe('JobQueueService', () => {
     });
 
     it('processes existing jobs on start', async () => {
+        // Both prepopulated jobs must be dispatched by the same poll cycle below, so set the
+        // concurrency explicitly rather than relying on whatever an earlier test left behind.
+        testJobQueueStrategy.concurrency = 2;
+
         await testJobQueueStrategy.prePopulate([
             new Job<any>({
                 queueName: 'test',
@@ -238,20 +242,26 @@ describe('JobQueueService', () => {
             }),
         ]);
 
+        const subject = new Subject<void>();
         const testQueue = await jobQueueService.createQueue<string>({
             name: 'test',
-            process: async job => {
-                return;
+            process: job => {
+                return subject.pipe(take(1)).toPromise();
             },
         });
 
-        const job1 = await getJob('job-1');
-        const job2 = await getJob('job-2');
-        expect(job1?.state).toBe(JobState.COMPLETED);
-        expect(job2?.state).toBe(JobState.RUNNING);
+        const getStates = async () => [(await getJob('job-1')).state, (await getJob('job-2')).state];
 
         await tick(queuePollInterval);
-        expect((await getJob('job-2')).state).toBe(JobState.COMPLETED);
+        // Both states are read in the same window, so a job which was only dispatched on a
+        // later poll cycle would not satisfy this.
+        expect(await getStates()).toEqual([JobState.RUNNING, JobState.RUNNING]);
+
+        subject.next();
+        await tick();
+        expect(await getStates()).toEqual([JobState.COMPLETED, JobState.COMPLETED]);
+
+        subject.complete();
     });
 
     it('retries', async () => {
@@ -285,7 +295,9 @@ describe('JobQueueService', () => {
         await tick(queuePollInterval);
 
         expect(backoffStrategySpy).toHaveBeenCalledTimes(1);
-        expect(backoffStrategySpy.mock.calls[0]).toEqual(['test', 1, await getJob(testJob)]);
+        expect(backoffStrategySpy.mock.calls[0][0]).toBe('test');
+        expect(backoffStrategySpy.mock.calls[0][1]).toBe(1);
+        expect(backoffStrategySpy.mock.calls[0][2].id).toBe(testJob.id);
 
         subject.next(false);
         await tick();
@@ -295,7 +307,9 @@ describe('JobQueueService', () => {
         await tick(queuePollInterval);
 
         expect(backoffStrategySpy).toHaveBeenCalledTimes(2);
-        expect(backoffStrategySpy.mock.calls[1]).toEqual(['test', 2, await getJob(testJob)]);
+        expect(backoffStrategySpy.mock.calls[1][0]).toBe('test');
+        expect(backoffStrategySpy.mock.calls[1][1]).toBe(2);
+        expect(backoffStrategySpy.mock.calls[1][2].id).toBe(testJob.id);
 
         subject.next(false);
         await tick();
