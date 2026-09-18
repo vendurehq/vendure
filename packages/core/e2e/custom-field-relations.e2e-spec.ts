@@ -57,6 +57,7 @@ const entitiesWithCustomFields: Array<keyof CustomFields> = [
     'ProductVariant',
     'Promotion',
     'Region',
+    'Role',
     'Seller',
     'ShippingMethod',
     'TaxCategory',
@@ -1313,6 +1314,75 @@ describe('Custom field relations', () => {
                 `);
                 expect(updateProductOption.customFields.single).toEqual({ id: 'T_3' });
                 expect(updateProductOption.customFields.primitive).toBe('test');
+            });
+        });
+
+        describe('Role entity', () => {
+            let roleId: string;
+            it('admin createRole', async () => {
+                const { createRole } = await adminClient.query(gql`
+                    mutation {
+                        createRole(
+                            input: {
+                                code: "test-role"
+                                description: "test role"
+                                permissions: [ReadCatalog]
+                                customFields: { singleId: "T_1", multiIds: ["T_1", "T_2"] }
+                            }
+                        ) {
+                            id
+                            ${customFieldsSelection}
+                        }
+                    }
+                `);
+
+                assertCustomFieldIds(createRole.customFields, 'T_1', ['T_1', 'T_2']);
+                roleId = createRole.id;
+            });
+
+            it('admin updateRole', async () => {
+                const { updateRole } = await adminClient.query(gql`
+                    mutation {
+                        updateRole(
+                            input: {
+                                id: "${roleId}"
+                                customFields: { singleId: "T_2", multiIds: ["T_3", "T_4"] }
+                            }
+                        ) {
+                            id
+                            ${customFieldsSelection}
+                        }
+                    }
+                `);
+
+                assertCustomFieldIds(updateRole.customFields, 'T_2', ['T_3', 'T_4']);
+            });
+
+            it('updating custom field relation on Role does not delete primitive values', async () => {
+                const { updateRole } = await adminClient.query(gql`
+                    mutation {
+                        updateRole(input: { id: "${roleId}", customFields: { singleId: "T_3" } }) {
+                            id
+                            ${customFieldsSelection}
+                        }
+                    }
+                `);
+
+                expect(updateRole.customFields.single).toEqual({ id: 'T_3' });
+                expect(updateRole.customFields.primitive).toBe('test');
+            });
+
+            it('setting the relation to null clears it', async () => {
+                const { updateRole } = await adminClient.query(gql`
+                    mutation {
+                        updateRole(input: { id: "${roleId}", customFields: { singleId: null } }) {
+                            id
+                            ${customFieldsSelection}
+                        }
+                    }
+                `);
+
+                expect(updateRole.customFields.single).toBeNull();
             });
         });
 

@@ -13,6 +13,7 @@ import {
     TestAuthenticationStrategy,
     TestAuthenticationStrategy2,
     TestSSOStrategyAdmin,
+    TestSSOStrategyAdminAvatarSync,
     TestSSOStrategyShop,
     TestUnverifiedEmailStrategy,
     VALID_AUTH_TOKEN,
@@ -54,7 +55,11 @@ describe('AuthenticationStrategy', () => {
                     new TestSSOStrategyShop(),
                     new TestUnverifiedEmailStrategy(),
                 ],
-                adminAuthenticationStrategy: [new NativeAuthenticationStrategy(), new TestSSOStrategyAdmin()],
+                adminAuthenticationStrategy: [
+                    new NativeAuthenticationStrategy(),
+                    new TestSSOStrategyAdmin(),
+                    new TestSSOStrategyAdminAvatarSync(),
+                ],
             },
         }),
     );
@@ -313,6 +318,48 @@ describe('AuthenticationStrategy', () => {
             currentUserGuard.assertSuccess(shopAuth);
 
             expect(adminAuth.id).not.toBe(shopAuth.id);
+        });
+
+        // A strategy runs while the request is still anonymous, so setAdministratorAvatar() cannot
+        // read the Administrator through a permission-scoped lookup.
+        it('a strategy can synchronize the Administrator avatar during authentication', async () => {
+            const emailAddress = 'avatar-sync@test-domain.com';
+            await adminClient.asAnonymousUser();
+            const { authenticate: firstLogin } = await adminClient.query(authenticateDocument, {
+                input: {
+                    test_sso_strategy_admin_avatar_sync: {
+                        email: emailAddress,
+                        avatarFilename: 'first-profile.png',
+                    },
+                },
+            });
+            currentUserGuard.assertSuccess(firstLogin);
+
+            const { activeAdministrator: afterFirstLogin } = await adminClient.query(
+                getActiveAdministratorAvatarDocument,
+            );
+            expect(afterFirstLogin?.avatar).toMatchObject({
+                mimeType: 'image/png',
+            });
+            expect(afterFirstLogin?.avatar?.source).toContain('first-profile.png');
+
+            // Logging in again syncs a new image, which replaces the one already stored.
+            await adminClient.asAnonymousUser();
+            const { authenticate: secondLogin } = await adminClient.query(authenticateDocument, {
+                input: {
+                    test_sso_strategy_admin_avatar_sync: {
+                        email: emailAddress,
+                        avatarFilename: 'second-profile.png',
+                    },
+                },
+            });
+            currentUserGuard.assertSuccess(secondLogin);
+
+            const { activeAdministrator: afterSecondLogin } = await adminClient.query(
+                getActiveAdministratorAvatarDocument,
+            );
+            expect(afterSecondLogin?.avatar?.source).toContain('second-profile.png');
+            expect(afterSecondLogin?.avatar?.id).not.toBe(afterFirstLogin?.avatar?.id);
         });
     });
 

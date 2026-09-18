@@ -1,25 +1,52 @@
 name: TypeORM v1 compatibility
 
-# Runs the database-backed suites against TypeORM v1 while support for it is being
-# built. These jobs are expected to fail until that work is finished, which is why
-# they are kept out of Build & Test: a job that is always red stops being read.
-# Once they all pass, move them into build_and_test.yml as a `typeorm` matrix axis
-# and delete this file.
+# Runs the database-backed suites against TypeORM v1. Build & Test gives the same
+# suites their v0.3 coverage across the full database matrix; this workflow is the
+# v1 half of that, kept separate so that adding the second TypeORM version does not
+# double the cost of every pull request.
 #
-# Add the `typeorm-v1` label to a pull request to run it against that PR.
+# One database per TypeORM dialect family is enough to expose a version difference,
+# so mysql is left out: it goes through the same TypeORM driver as mariadb. The
+# full four-database matrix stays on v0.3 in build_and_test.yml.
+#
+# Coverage comes from the push trigger, after a change has been merged. Pull
+# requests opt in with the `typeorm-v1` label, which is worth adding to anything
+# touching entities, repositories, migrations or query building.
+#
+# There is deliberately no `schedule` trigger. scripts/typeorm/profiles.json pins
+# exact versions, so a run with no repository change can only repeat the previous
+# result.
 
 on:
     workflow_dispatch:
-    schedule:
-        # Nightly, so regressions in either TypeORM v1 or Vendure surface without
-        # anyone having to remember to trigger a run.
-        - cron: '0 3 * * *'
+    push:
+        branches:
+            - master
+            - minor
+            - major
+        paths:
+            - 'packages/**'
+            - 'package.json'
+            - 'bun.lock'
+            - 'bunfig.toml'
+            # The harness these jobs run through. Without it a change to the version
+            # profiles or the test runner reaches a release branch untested, and the
+            # first run against it is whenever some unrelated change to packages/
+            # happens to land.
+            - 'scripts/typeorm/**'
+            - '.github/actions/setup/**'
+            - '.github/workflows/typeorm_v1.yml'
+    # `labeled` only. Actions has no workflow-level `if`, so the label gate below can
+    # only skip jobs once a run already exists, and any other type would put a skipped
+    # run in the checks list of every pull request in the repository. The cost is that
+    # pushing to an already-labelled pull request does not re-run these jobs; remove
+    # and re-add the label to get a result for the new commits.
     pull_request:
         branches:
             - master
             - major
             - minor
-        types: [opened, reopened, synchronize, labeled]
+        types: [labeled]
 
 env:
     CI: true
@@ -28,9 +55,9 @@ concurrency:
     group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
     cancel-in-progress: true
 
-# NOTE: As in build_and_test.yml, the service definitions are duplicated across
-# the e2e-* jobs because GitHub Actions supports neither YAML anchors nor
-# service reuse. Update all four copies together.
+# NOTE: As in build_and_test.yml, the Redis service definition is duplicated across
+# the e2e-* jobs because GitHub Actions supports neither YAML anchors nor service
+# reuse. Update all three copies together.
 jobs:
     build:
         name: build
@@ -116,38 +143,6 @@ jobs:
                   E2E_MARIADB_PORT: ${{ job.services.mariadb.ports['3306'] }}
                   E2E_REDIS_PORT: ${{ job.services.redis.ports['6379'] }}
                   DB: mariadb
-              run: node scripts/typeorm/run-db-tests.mjs --e2e-only
-
-    e2e-mysql:
-        name: e2e (mysql)
-        if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'typeorm-v1')
-        runs-on: ubuntu-latest
-        permissions:
-            contents: read
-        services:
-            mysql:
-                image: vendure/mysql-8-native-auth:latest
-                env:
-                    MYSQL_ROOT_PASSWORD: password
-                ports:
-                    - 3306
-                options: --health-cmd="mysqladmin ping --silent" --health-interval=10s --health-timeout=20s --health-retries=10
-            redis:
-                image: redis:7.4.1
-                ports:
-                    - 6379
-        steps:
-            - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
-            - uses: ./.github/actions/setup
-              with:
-                  typeorm: '1'
-            - name: Build (continues past type errors)
-              run: node scripts/typeorm/build-for-tests.mjs
-            - name: e2e tests
-              env:
-                  E2E_MYSQL_PORT: ${{ job.services.mysql.ports['3306'] }}
-                  E2E_REDIS_PORT: ${{ job.services.redis.ports['6379'] }}
-                  DB: mysql
               run: node scripts/typeorm/run-db-tests.mjs --e2e-only
 
     e2e-postgres:

@@ -30,6 +30,12 @@ concurrency:
 
 jobs:
     deploy:
+        # A pull request from a fork cannot read repository secrets, so VERCEL_TOKEN
+        # resolves empty and the first `vercel` command exits 1. Skipping is safe: the
+        # preview deployment is a convenience, and the push to master or minor after the
+        # merge still deploys. The PR comment step would fail on a fork too, since the
+        # GITHUB_TOKEN is read-only there.
+        if: github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork
         runs-on: ubuntu-latest
         permissions:
             contents: read

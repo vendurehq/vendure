@@ -1,4 +1,4 @@
-import { SlugInput } from '@/vdb/components/data-input/index.js';
+import { requireGeneratedSlug, SlugInput } from '@/vdb/components/data-input/index.js';
 import { RichTextInput } from '@/vdb/components/data-input/rich-text-input.js';
 import { PageBreadcrumb } from '@/vdb/components/layout/generated-breadcrumbs.js';
 import { EntityAssets } from '@/vdb/components/shared/entity-assets.js';
@@ -84,6 +84,9 @@ function CollectionDetailPage() {
 
     const { form, submitHandler, entity, isPending, resetForm } = useDetailPage({
         pageId,
+        // OSS-567: the Collection update mutation is patch-style, so send only the fields the user
+        // changed and never clobber a concurrent edit to an untouched field.
+        sendOnlyChangedFields: true,
         queryDocument: collectionDetailDocument,
         createDocument: createCollectionDocument,
         transformCreateInput: values => {
@@ -93,6 +96,7 @@ function CollectionDetailPage() {
             };
         },
         updateDocument: updateCollectionDocument,
+        extendSchema: creatingNewEntity ? requireGeneratedSlug : undefined,
         setValuesForUpdate: entity => {
             return {
                 id: entity.id,

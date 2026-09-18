@@ -68,6 +68,12 @@ export interface EntityDuplicatorConfig<T extends ConfigArgs> extends Configurab
  * An EntityDuplicator is used to define the logic for duplicating entities when the `duplicateEntity` mutation is called.
  * This allows you to add support for duplication of both core and custom entities.
  *
+ * For entities which implement {@link ChannelAware}, the EntityDuplicatorService checks that the source
+ * entity belongs to the active Channel before it calls `duplicate()`. The check keys on the entity class
+ * name: it runs only when the `entityName` of the input equals the name of a registered entity class. A
+ * duplicator registered under another name (for example `'Thing'` for a class `ThingEntity`) gets no
+ * check and no warning, and must scope its own lookup.
+ *
  * @example
  * ```ts title=src/config/custom-collection-duplicator.ts
  * import { Collection, LanguageCode, Permission
@@ -95,7 +101,10 @@ export interface EntityDuplicatorConfig<T extends ConfigArgs> extends Configurab
  *     duplicate: async input => {
  *         const { ctx, id, args } = input;
  *
+ *         // Scope the lookup to the active Channel, so that an Administrator cannot
+ *         // duplicate an entity belonging to a Channel they have no access to.
  *         const original = await connection.getEntityOrThrow(ctx, Collection, id, {
+ *             channelId: ctx.channelId,
  *             relations: {
  *                 assets: true,
  *                 featuredAsset: true,

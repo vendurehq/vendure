@@ -694,3 +694,89 @@ test.describe('Issue #4987: String list filter args preserve numeric values', ()
         );
     });
 });
+
+// OSS-567 — a structurally different page (configurable-operation `filters` array,
+// no update transform). Editing only the name must send just id + translations,
+// leaving the `filters` replace-array untouched so a concurrent filter change
+// can't be clobbered.
+test.describe('collection update sends only changed fields (OSS-567)', () => {
+    let collectionId: string;
+
+    test.beforeAll(async ({ browser }) => {
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const { facetValues } = await client.gql(
+            `query { facetValues(options: { take: 1 }) { items { id } } }`,
+        );
+        const facetValueId = facetValues.items[0].id as string;
+        const { createCollection } = await client.gql(
+            `mutation ($input: CreateCollectionInput!) { createCollection(input: $input) { id } }`,
+            {
+                input: {
+                    translations: [
+                        {
+                            languageCode: 'en',
+                            name: 'OSS567 Collection',
+                            slug: `oss567-collection-${Date.now()}`,
+                            description: '',
+                        },
+                    ],
+                    filters: [
+                        {
+                            code: 'facet-value-filter',
+                            arguments: [
+                                { name: 'facetValueIds', value: `["${facetValueId}"]` },
+                                { name: 'containsAny', value: 'false' },
+                            ],
+                        },
+                    ],
+                },
+            },
+        );
+        collectionId = createCollection.id;
+        await page.close();
+    });
+
+    test('editing only the name submits just id + translations, not filters', async ({ page }) => {
+        const dp = new BaseDetailPage(page, {
+            newPath: '/collections/new',
+            pathPrefix: '/collections/',
+            newTitle: 'New collection',
+        });
+        await page.goto(`/collections/${collectionId}`);
+        await expect(dp.formItem('Name').getByRole('textbox')).toBeVisible({ timeout: 10_000 });
+        const newName = `OSS567 Collection ${Date.now()}`;
+        await dp.fillInput('Name', newName);
+
+        const updateRequest = page.waitForRequest(
+            req => req.method() === 'POST' && (req.postData() ?? '').includes('mutation UpdateCollection('),
+            { timeout: 15_000 },
+        );
+        await dp.clickUpdate();
+        const input = (await updateRequest).postDataJSON()?.variables?.input;
+
+        // The exhaustive key assertion already proves filters/inheritFilters are omitted.
+        expect(input).toBeTruthy();
+        expect(Object.keys(input).sort()).toEqual(['id', 'translations']);
+        expect(input.translations?.[0]?.name).toBe(newName);
+
+        await expect(
+            page
+                .locator('[data-sonner-toast]')
+                .filter({ hasText: /updated/i })
+                .first(),
+        ).toBeVisible({ timeout: 10_000 });
+    });
+
+    test.afterAll(async ({ browser }) => {
+        if (!collectionId) return;
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        await client.gql(`mutation ($id: ID!) { deleteCollection(id: $id) { result } }`, {
+            id: collectionId,
+        });
+        await page.close();
+    });
+});

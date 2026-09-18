@@ -41,7 +41,6 @@ export function AssetTagsEditor({
     const { data: tagsData } = useQuery({
         queryKey: ['tags'],
         queryFn: () => api.query(tagListDocument, { options: { take: 100 } }),
-        staleTime: 1000 * 60 * 5, // 5 minutes
     });
 
     // Create new tag mutation

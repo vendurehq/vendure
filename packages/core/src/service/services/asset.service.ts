@@ -48,6 +48,7 @@ import { AssetChannelEvent } from '../../event-bus/events/asset-channel-event';
 import { AssetEvent } from '../../event-bus/events/asset-event';
 import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
+import { RequestContextService } from '../helpers/request-context/request-context.service';
 import { StoredMedia, StoredMediaService } from '../helpers/stored-media/stored-media.service';
 import { TranslatableSaver } from '../helpers/translatable-saver/translatable-saver';
 import { TranslatorService } from '../helpers/translator/translator.service';
@@ -103,6 +104,7 @@ export class AssetService {
         private customFieldRelationService: CustomFieldRelationService,
         private readonly translatableSaver: TranslatableSaver,
         private readonly translator: TranslatorService,
+        private readonly requestContextService: RequestContextService,
         private readonly storedMediaService: StoredMediaService,
     ) {}
 
@@ -558,7 +560,7 @@ export class AssetService {
                     ? maybeFilePathOrCtx
                     : maybeCtx instanceof RequestContext
                       ? maybeCtx
-                      : RequestContext.empty();
+                      : await this.requestContextService.create({ apiType: 'admin' });
             const storedMedia = await this.storedMediaService.storeStream(ctx, stream, filename, mimetype);
             if (isGraphQlErrorResult(storedMedia)) {
                 return storedMedia;
@@ -655,7 +657,7 @@ export class AssetService {
             // Create default translation using context language
             assetTranslations = [
                 new AssetTranslation({
-                    languageCode: ctx.languageCode,
+                    languageCode: ctx.languageCode ?? this.configService.defaultLanguageCode,
                     name: defaultName,
                     base: savedAsset,
                 }),

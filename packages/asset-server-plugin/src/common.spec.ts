@@ -18,4 +18,13 @@ describe('getAssetUrlPrefixFn', () => {
 
         expect(getPrefix(request, 'avatar.webp')).toBe('https://puebla.vendure.localhost/assets/');
     });
+
+    // A RequestContext deserialized on a job queue worker has no request.
+    it('falls back to the placeholder host when there is no request', () => {
+        const getPrefix = getAssetUrlPrefixFn({ route: 'assets' } as AssetServerOptions);
+
+        expect(getPrefix(undefined as unknown as Request, 'avatar.webp')).toBe(
+            'http://could-not-determine-host/assets/',
+        );
+    });
 });

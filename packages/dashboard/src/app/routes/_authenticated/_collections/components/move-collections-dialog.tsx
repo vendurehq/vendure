@@ -237,7 +237,6 @@ export function MoveCollectionsDialog({
                     }),
                 },
             }),
-        staleTime: 1000 * 60 * 5,
         enabled: open,
     });
 
@@ -257,7 +256,6 @@ export function MoveCollectionsDialog({
                             },
                         },
                     }),
-                staleTime: 1000 * 60 * 5,
             };
         }),
     });

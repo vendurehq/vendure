@@ -98,7 +98,9 @@ export class ProductOptionService {
         const productOptionGroup =
             group instanceof ProductOptionGroup
                 ? group
-                : await this.connection.getEntityOrThrow(ctx, ProductOptionGroup, group);
+                : await this.connection.getEntityOrThrow(ctx, ProductOptionGroup, group, {
+                      channelId: ctx.channelId,
+                  });
         const option = await this.translatableSaver.create({
             ctx,
             input,

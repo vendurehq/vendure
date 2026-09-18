@@ -154,12 +154,42 @@ export async function getOrdersFromLines(
             continue;
         }
         const order = line.order;
-        if (!order.channels.some(channel => channel.id === ctx.channelId)) {
-            throw new EntityNotFoundError('Order', order.id);
+        if (!order.channels.some(channel => idsAreEqual(channel.id, ctx.channelId))) {
+            // Name the line, not the Order: the caller supplied the line id, and naming the Order
+            // would confirm that an Order with that id exists in another Channel.
+            throw new EntityNotFoundError('OrderLine', line.id);
         }
         if (!orders.has(order.id)) {
             orders.set(order.id, order);
         }
     }
     return Array.from(orders.values());
+}
+
+/**
+ * Payment, Refund, Fulfillment and OrderHistoryEntry are not ChannelAware, so the parent Order is
+ * the only Channel boundary they have. Any operation which looks one of them up by id must check
+ * that the parent Order is visible in the active Channel before it mutates state or calls out to a
+ * payment gateway, otherwise a Channel-scoped administrator can act on another Channel's data.
+ *
+ * The error names the child entity rather than the Order, so that it cannot be used to work out
+ * which Order ids exist in other Channels.
+ */
+export async function assertOrderIsInChannel(
+    ctx: RequestContext,
+    connection: TransactionalConnection,
+    orderId: ID,
+    childEntityName: string,
+    childEntityId: ID,
+): Promise<void> {
+    const orderIsInChannel = await connection
+        .getRepository(ctx, Order)
+        .createQueryBuilder('order')
+        .innerJoin('order.channels', 'channel')
+        .where('order.id = :orderId', { orderId })
+        .andWhere('channel.id = :channelId', { channelId: ctx.channelId })
+        .getExists();
+    if (!orderIsInChannel) {
+        throw new EntityNotFoundError(childEntityName, childEntityId);
+    }
 }

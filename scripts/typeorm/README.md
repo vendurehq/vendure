@@ -1,8 +1,8 @@
 # TypeORM version test harness
 
-Vendure is moving towards supporting both TypeORM v0.3 and v1 from the same source, so that
-existing projects can stay on v0.3 while new ones adopt v1. These scripts run the
-database-backed test suites against either version.
+Vendure supports both TypeORM v0.3 and v1 from the same source, so that existing projects can
+stay on v0.3 while new ones adopt v1. These scripts run the database-backed test suites against
+either version.
 
 ## Why the version has to be forced
 
@@ -48,11 +48,11 @@ runs the same check on its own.
 bun run build:for-tests
 ```
 
-While the migration is in progress the packages do not typecheck against v1, and `bun run
-build` stops at the first error. `@vendure/core` builds in three stages joined by `&&` — the
-main compile, the CLI compile, and a copy of the static `.graphql` schema files — so one type
-error leaves `dist/` without the schema files and the server then fails to boot with "No type
-definitions were found", which tells you nothing about the actual incompatibility.
+When a package stops typechecking against a TypeORM version, `bun run build` stops at the first
+error. `@vendure/core` builds in three stages joined by `&&` — the main compile, the CLI
+compile, and a copy of the static `.graphql` schema files — so one type error leaves `dist/`
+without the schema files and the server then fails to boot with "No type definitions were
+found", which tells you nothing about the actual incompatibility.
 
 `build:for-tests` runs each stage separately and keeps going. `tsc` emits its output even when
 it reports errors, so everything needed to boot a server is produced. The `build` job in
@@ -65,11 +65,18 @@ The `.github/actions/setup` action takes a `typeorm` input naming a profile. Wit
 installs the committed lockfile, which is what `build_and_test.yml` does and what gives the
 project its v0.3 coverage.
 
-The v1 runs live in `typeorm_v1.yml`, separate from `build_and_test.yml`, because they are
-expected to fail until the migration is finished and a job that is always red stops being read.
-It runs nightly, on demand, and on any pull request labelled `typeorm-v1`. When every job in it
-passes, move them into `build_and_test.yml` as a `typeorm` matrix axis and delete the separate
-workflow.
+The v1 runs live in `typeorm_v1.yml`, kept separate from `build_and_test.yml` so that the
+second TypeORM version does not double the cost of every pull request. They run after a merge
+to `master`, `minor` or `major`, on demand, and when the `typeorm-v1` label is added to a pull
+request. Add that label to work touching entities, repositories, migrations or query building,
+where a version difference is most likely to show. Adding the label is the only pull request
+trigger, so pushing further commits does not produce a new result; remove and re-add the label
+when you want one.
+
+The v1 jobs cover one database per TypeORM dialect family — postgres, mariadb and sqljs. mysql
+is left out because it goes through the same TypeORM driver as mariadb, so it would repeat that
+coverage rather than add to it. The full four-database matrix stays on v0.3 in
+`build_and_test.yml`.
 
 ## Adding a version
 

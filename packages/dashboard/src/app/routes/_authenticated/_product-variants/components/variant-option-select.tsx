@@ -1,3 +1,4 @@
+import { filterComboboxFreeTextItems } from '@/vdb/components/ui/combobox-free-text-utils.js';
 import { ComboboxFreeText, ComboboxFreeTextItem } from '@/vdb/components/ui/combobox-free-text.js';
 import { Field, FieldLabel } from '@/vdb/components/ui/field.js';
 import { useLingui } from '@lingui/react/macro';
@@ -45,15 +46,10 @@ export function VariantOptionSelect({
 }: Readonly<VariantOptionSelectProps>) {
     const { t } = useLingui();
     const fieldId = `variant-option-${group.id}`;
-    const trimmed = value.trim();
-    const filter = trimmed.toLowerCase();
-    // The component does no client-side filtering, so pre-filter the group's options here.
-    // While the value is untouched (empty, or exactly an existing option name) show the
-    // full list so the admin can pick any option; only narrow once they start editing.
-    const isUntouched = filter === '' || group.options.some(o => o.name.trim().toLowerCase() === filter);
-    const items: OptionItem[] = group.options
-        .filter(option => isUntouched || option.name.toLowerCase().includes(filter))
-        .map(option => ({ value: option.name, label: option.name, id: option.id }));
+    const items = filterComboboxFreeTextItems<OptionItem>(
+        group.options.map(option => ({ value: option.name, label: option.name, id: option.id })),
+        value,
+    );
 
     return (
         <Field>

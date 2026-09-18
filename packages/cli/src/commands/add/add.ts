@@ -2,11 +2,11 @@ import { cancel, intro, isCancel, log, outro, select, spinner } from '@clack/pro
 import pc from 'picocolors';
 
 import { Messages } from '../../constants';
+import { exitCliCommand, rethrowCliCommandExit } from '../../shared/cli-command-exit';
 import { abortIfNonInteractive, pauseForPromptDisplay, withInteractiveTimeout } from '../../utilities/utils';
-import { cliCommands } from '../command-declarations';
-
 import { addApiExtension } from './api-extension/add-api-extension';
 import { addCodegen } from './codegen/add-codegen';
+import { addCommandDef } from './command';
 import { addDashboard } from './dashboard/add-dashboard';
 import { addEntity } from './entity/add-entity';
 import { addJobQueue } from './job-queue/add-job-queue';
@@ -238,9 +238,10 @@ async function handleNonInteractiveMode(options: AddOptions) {
             log.success('Dashboard extensions added successfully');
         } else {
             log.error('No valid add operation specified');
-            process.exit(1);
+            exitCliCommand(1);
         }
     } catch (e: any) {
+        rethrowCliCommandExit(e);
         // For validation errors, show the full error with stack trace
         if (e.message.includes('Plugin name is required')) {
             // Extract error message and stack trace
@@ -258,7 +259,7 @@ async function handleNonInteractiveMode(options: AddOptions) {
                 log.error(e.stack);
             }
         }
-        process.exit(1);
+        exitCliCommand(1);
     }
 }
 
@@ -278,9 +279,8 @@ async function handleInteractiveMode() {
     intro(pc.blue("✨ Let's add a new feature to your Vendure project!"));
 
     // Derive interactive options from command declarations (single source of truth)
-    const addCommandDef = cliCommands.find(cmd => cmd.name === 'add');
     const addOptions =
-        addCommandDef?.options
+        addCommandDef.options
             ?.filter(opt => opt.interactiveId && opt.interactiveFn)
             .map(opt => ({
                 value: opt.interactiveId as string,
@@ -300,7 +300,7 @@ async function handleInteractiveMode() {
 
     if (isCancel(featureType)) {
         cancel(cancelledMessage);
-        process.exit(0);
+        exitCliCommand(0);
     }
     try {
         const selectedOption = addOptions.find(opt => opt.value === featureType);
@@ -321,11 +321,13 @@ async function handleInteractiveMode() {
         }
         outro('✅ Done!');
     } catch (e: any) {
+        rethrowCliCommandExit(e);
         log.error(e.message as string);
         const isCliMessage = Object.values(Messages).includes(e.message);
         if (!isCliMessage && e.stack) {
             log.error(e.stack);
         }
         outro('❌ Error');
+        exitCliCommand(1);
     }
 }

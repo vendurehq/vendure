@@ -3,7 +3,7 @@ import { randomBytes } from 'crypto';
 import fs from 'fs-extra';
 import path from 'path';
 import pc from 'picocolors';
-import { DataSource, DataSourceOptions } from 'typeorm';
+import { DataSource, DataSourceOptions, EntityMetadata } from 'typeorm';
 import { MysqlDriver } from 'typeorm/driver/mysql/MysqlDriver';
 import { camelCase } from 'typeorm/util/StringUtils';
 
@@ -131,6 +131,12 @@ export async function revertLastMigration(userConfig: Partial<VendureConfig>) {
  * See [TypeORM migration docs](https://typeorm.io/#/migrations) for more information about the
  * underlying migration mechanism.
  *
+ * If the schema changes include adding the `(languageCode, baseId)` unique constraint to one or more
+ * translation tables (introduced in v3.7 to prevent duplicate translations, see
+ * [#4884](https://github.com/vendurehq/vendure/issues/4884)), the generated migration will begin
+ * with a call to {@link deduplicateTranslations} for exactly those tables, so that any duplicate rows
+ * already present in the database are removed before the constraint is created.
+ *
  * @docsCategory migration
  */
 export async function generateMigration(
@@ -154,13 +160,23 @@ export async function generateMigration(
         const downSqls = sqlInMemory.downQueries.map(q =>
             formatMigrationQuery(q.query, q.parameters, isMysql),
         );
+        const translationTablesToDeduplicate = getTranslationTablesGainingUniqueConstraint(
+            connection.entityMetadatas,
+            sqlInMemory.upQueries.map(q => q.query),
+        );
 
         if (upSqls.length) {
             if (options.name) {
                 const timestamp = new Date().getTime();
                 const filename = timestamp.toString() + '-' + options.name + '.ts';
                 const directory = options.outputDir;
-                const fileContent = getTemplate(options.name as any, timestamp, upSqls, downSqls.reverse());
+                const fileContent = getTemplate(
+                    options.name as any,
+                    timestamp,
+                    upSqls,
+                    downSqls.reverse(),
+                    translationTablesToDeduplicate,
+                );
                 const outputPath = directory
                     ? path.join(directory, filename)
                     : path.join(process.cwd(), filename);
@@ -403,16 +419,79 @@ function formatMigrationQuery(query: string, parameters: any[] | undefined, isMy
     return `        await queryRunner.query(${quote}${escaped}${quote}, ${JSON.stringify(parameters)});`;
 }
 
+const TRANSLATION_UNIQUE_COLUMNS = ['languageCode', 'baseId'];
+
+/**
+ * Returns the names of the translation tables (core or plugin-defined) to which the given
+ * schema-builder `up` queries add the `(languageCode, baseId)` unique constraint — i.e. the tables
+ * that need de-duplicating before this migration runs.
+ *
+ * Exported for testing.
+ */
+export function getTranslationTablesGainingUniqueConstraint(
+    entityMetadatas: EntityMetadata[],
+    upQueries: string[],
+): string[] {
+    return entityMetadatas
+        .filter(isTranslationEntity)
+        .map(metadata => metadata.tableName)
+        .filter(tableName => upQueries.some(query => addsTranslationUniqueConstraint(query, tableName)));
+}
+
+function isTranslationEntity(metadata: EntityMetadata): boolean {
+    const columnNames = metadata.columns.map(column => column.databaseName);
+    return TRANSLATION_UNIQUE_COLUMNS.every(name => columnNames.includes(name));
+}
+
+/**
+ * Whether a DDL statement creates a unique constraint or index over `(languageCode, baseId)` on the
+ * given table. Works across dialects by looking at the quoted identifiers in the statement: Postgres
+ * emits `ALTER TABLE "t" ADD CONSTRAINT "UQ_x" UNIQUE ("languageCode", "baseId")`, MySQL emits
+ * `` ALTER TABLE `t` ADD UNIQUE INDEX `IDX_x` (`languageCode`, `baseId`) ``, and SQLite recreates the
+ * whole table as `CREATE TABLE "temporary_t" (... CONSTRAINT "UQ_x" UNIQUE ("languageCode", "baseId"))`.
+ */
+function addsTranslationUniqueConstraint(query: string, tableName: string): boolean {
+    if (!/\bUNIQUE\b/i.test(query)) {
+        return false;
+    }
+    const identifiers = new Set(Array.from(query.matchAll(/["`]([^"`]+)["`]/g), match => match[1]));
+    return (
+        (identifiers.has(tableName) || identifiers.has(`temporary_${tableName}`)) &&
+        TRANSLATION_UNIQUE_COLUMNS.every(name => identifiers.has(name))
+    );
+}
+
 /**
  * Gets contents of the migration file.
+ *
+ * Exported for testing.
  */
-function getTemplate(name: string, timestamp: number, upSqls: string[], downSqls: string[]): string {
+export function getTemplate(
+    name: string,
+    timestamp: number,
+    upSqls: string[],
+    downSqls: string[],
+    translationTablesToDeduplicate: string[] = [],
+): string {
+    const deduplicateImport = translationTablesToDeduplicate.length
+        ? `import { deduplicateTranslations } from "@vendure/core";
+`
+        : '';
+    const deduplicateCall = translationTablesToDeduplicate.length
+        ? `        // Remove any duplicate (baseId, languageCode) translation rows left over from before the
+        // unique constraint existed, keeping the most recently updated row of each pair. This must
+        // run before the constraint is created below. See https://github.com/vendurehq/vendure/issues/4884
+        await deduplicateTranslations(queryRunner, [${translationTablesToDeduplicate
+            .map(table => `'${table}'`)
+            .join(', ')}]);
+`
+        : '';
     return `import {MigrationInterface, QueryRunner} from "typeorm";
-
+${deduplicateImport}
 export class ${camelCase(name, true)}${timestamp} implements MigrationInterface {
 
    public async up(queryRunner: QueryRunner): Promise<any> {
-${upSqls.join(`
+${deduplicateCall}${upSqls.join(`
 `)}
    }
 

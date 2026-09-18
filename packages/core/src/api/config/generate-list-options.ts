@@ -20,13 +20,9 @@ import {
     isListType,
     isNonNullType,
     isObjectType,
-    // Importing this from graphql/index.js is a workaround for the dual-package
-    // hazard issue when testing this file in vitest. See https://github.com/vitejs/vite/issues/7879
 } from 'graphql/index.js';
 
-// Using require here to prevent issues when running vitest tests also.
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { stitchSchemas, ValidationLevel } = require('@graphql-tools/stitch');
+import { mergeTypesIntoSchema } from './merge-types-into-schema';
 
 /**
  * Generates ListOptions inputs for queries which return PaginatedList types.
@@ -59,29 +55,32 @@ export function generateListOptions(typeDefsOrSchema: string | GraphQLSchema): G
             ) as GraphQLInputObjectType | null;
             const generatedListOptions = new GraphQLInputObjectType({
                 name: `${targetTypeName}ListOptions`,
-                fields: {
-                    skip: {
-                        type: GraphQLInt,
-                        description: 'Skips the first n results, for use in pagination',
+                fields: withExistingFieldsFirst(
+                    {
+                        skip: {
+                            type: GraphQLInt,
+                            description: 'Skips the first n results, for use in pagination',
+                        },
+                        take: { type: GraphQLInt, description: 'Takes n results, for use in pagination' },
+                        sort: {
+                            type: sortParameter,
+                            description: 'Specifies which properties to sort the results by',
+                        },
+                        filter: { type: filterParameter, description: 'Allows the results to be filtered' },
+                        ...(logicalOperatorEnum
+                            ? {
+                                  filterOperator: {
+                                      type: logicalOperatorEnum as GraphQLEnumType,
+                                      description:
+                                          'Specifies whether multiple top-level "filter" fields should be combined ' +
+                                          'with a logical AND or OR operation. Defaults to AND.',
+                                  },
+                              }
+                            : {}),
+                        ...(existingListOptions ? existingListOptions.getFields() : {}),
                     },
-                    take: { type: GraphQLInt, description: 'Takes n results, for use in pagination' },
-                    sort: {
-                        type: sortParameter,
-                        description: 'Specifies which properties to sort the results by',
-                    },
-                    filter: { type: filterParameter, description: 'Allows the results to be filtered' },
-                    ...(logicalOperatorEnum
-                        ? {
-                              filterOperator: {
-                                  type: logicalOperatorEnum as GraphQLEnumType,
-                                  description:
-                                      'Specifies whether multiple top-level "filter" fields should be combined ' +
-                                      'with a logical AND or OR operation. Defaults to AND.',
-                              },
-                          }
-                        : {}),
-                    ...(existingListOptions ? existingListOptions.getFields() : {}),
-                },
+                    existingListOptions,
+                ),
             });
 
             if (!query.args.find(a => a.type.toString() === `${targetTypeName}ListOptions`)) {
@@ -104,11 +103,33 @@ export function generateListOptions(typeDefsOrSchema: string | GraphQLSchema): G
             generatedTypes.push(generatedListOptions);
         }
     }
-    return stitchSchemas({
-        subschemas: [schema],
-        types: generatedTypes,
-        typeMergingOptions: { validationSettings: { validationLevel: ValidationLevel.Off } },
-    });
+    return mergeTypesIntoSchema(schema, generatedTypes);
+}
+
+/**
+ * Orders the given field config map so that fields declared on a pre-existing
+ * input type come first, in their declared order. Merged types were historically
+ * emitted in this order, and consumers such as codegen diff against it.
+ */
+function withExistingFieldsFirst(
+    fieldsConfig: GraphQLInputFieldConfigMap,
+    existingInput: GraphQLNamedType | null | undefined,
+): GraphQLInputFieldConfigMap {
+    if (!existingInput || !isInputObjectType(existingInput)) {
+        return fieldsConfig;
+    }
+    const ordered: GraphQLInputFieldConfigMap = {};
+    for (const name of Object.keys(existingInput.getFields())) {
+        if (fieldsConfig[name]) {
+            ordered[name] = fieldsConfig[name];
+        }
+    }
+    for (const [name, config] of Object.entries(fieldsConfig)) {
+        if (!ordered[name]) {
+            ordered[name] = config;
+        }
+    }
+    return ordered;
 }
 
 function isListQueryType(type: GraphQLOutputType): type is GraphQLObjectType {
@@ -128,30 +149,32 @@ function createSortParameter(schema: GraphQLSchema, targetType: GraphQLObjectTyp
     }
 
     const sortableTypes = ['ID', 'String', 'Int', 'Float', 'DateTime', 'Money'];
+    const fieldConfigMap = fields
+        .map(field => {
+            if (unwrapNonNullType(field.type) === SortOrder) {
+                return field;
+            } else {
+                const innerType = unwrapNonNullType(field.type);
+                if (isListType(innerType)) {
+                    return;
+                }
+                return sortableTypes.includes(innerType.name) ? field : undefined;
+            }
+        })
+        .filter(notNullOrUndefined)
+        .reduce((result, field) => {
+            const fieldConfig: GraphQLInputFieldConfig = {
+                type: SortOrder,
+                description: field.description,
+            };
+            return {
+                ...result,
+                [field.name]: fieldConfig,
+            };
+        }, {} as GraphQLInputFieldConfigMap);
     return new GraphQLInputObjectType({
         name: inputName,
-        fields: fields
-            .map(field => {
-                if (unwrapNonNullType(field.type) === SortOrder) {
-                    return field;
-                } else {
-                    const innerType = unwrapNonNullType(field.type);
-                    if (isListType(innerType)) {
-                        return;
-                    }
-                    return sortableTypes.includes(innerType.name) ? field : undefined;
-                }
-            })
-            .filter(notNullOrUndefined)
-            .reduce((result, field) => {
-                const fieldConfig: GraphQLInputFieldConfig = {
-                    type: SortOrder,
-                };
-                return {
-                    ...result,
-                    [field.name]: fieldConfig,
-                };
-            }, {} as GraphQLInputFieldConfigMap),
+        fields: withExistingFieldsFirst(fieldConfigMap, existingInput),
     });
 }
 
@@ -204,6 +227,7 @@ function createFilterParameter(schema: GraphQLSchema, targetType: GraphQLObjectT
                 }
                 const fieldConfig: GraphQLInputFieldConfig = {
                     type: filterType,
+                    description: field.description,
                 };
                 return {
                     ...result,
@@ -211,7 +235,7 @@ function createFilterParameter(schema: GraphQLSchema, targetType: GraphQLObjectT
                 };
             }, {} as GraphQLInputFieldConfigMap);
             return {
-                ...namedFields,
+                ...withExistingFieldsFirst(namedFields, existingInput),
                 _and: { type: new GraphQLList(new GraphQLNonNull(FilterInputType)) },
                 _or: { type: new GraphQLList(new GraphQLNonNull(FilterInputType)) },
             };

@@ -3,6 +3,8 @@ import ms from 'ms';
 
 import { AuthOptions } from '../../config/vendure-config';
 
+import { tokenMethodIncludes } from './token-method-includes';
+
 /**
  * Sets the authToken either as a cookie or as a response header, depending on the
  * config settings.
@@ -15,12 +17,8 @@ export function setSessionToken(options: {
     res: Response;
 }) {
     const { sessionToken, rememberMe, authOptions, req, res } = options;
-    const usingCookie =
-        authOptions.tokenMethod === 'cookie' ||
-        (Array.isArray(authOptions.tokenMethod) && authOptions.tokenMethod.includes('cookie'));
-    const usingBearer =
-        authOptions.tokenMethod === 'bearer' ||
-        (Array.isArray(authOptions.tokenMethod) && authOptions.tokenMethod.includes('bearer'));
+    const usingCookie = tokenMethodIncludes(authOptions.tokenMethod, 'cookie');
+    const usingBearer = tokenMethodIncludes(authOptions.tokenMethod, 'bearer');
 
     if (usingCookie) {
         if (req.session) {

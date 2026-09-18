@@ -6,11 +6,15 @@ import { AssetServerOptions, ImageTransformFormat } from './types';
 export function getAssetUrlPrefixFn(options: AssetServerOptions) {
     const { assetUrlPrefix, route } = options;
     if (assetUrlPrefix == null) {
-        return (request: Request, identifier: string) => {
-            const protocol = getFirstHeaderValue(request.headers['x-forwarded-proto']) ?? request.protocol;
+        // A RequestContext rebuilt on a worker has no request, see `RequestContext.serialize()`.
+        // The EmailPlugin passes `ctx.req` here when it builds absolute asset URLs, so the prefix
+        // degrades to the placeholder host on a worker, the same as when the host header is missing.
+        return (request: Request | undefined, identifier: string) => {
+            const protocol =
+                getFirstHeaderValue(request?.headers['x-forwarded-proto']) ?? request?.protocol ?? 'http';
             const host =
-                getFirstHeaderValue(request.headers['x-forwarded-host']) ??
-                request.get('host') ??
+                getFirstHeaderValue(request?.headers['x-forwarded-host']) ??
+                request?.get('host') ??
                 'could-not-determine-host';
             return `${protocol}://${host}/${route}/`;
         };

@@ -18,7 +18,7 @@ import { In, IsNull } from 'typeorm';
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
 import { RequestContextCacheService } from '../../cache/request-context-cache.service';
-import { ForbiddenError, UserInputError } from '../../common/error/errors';
+import { EntityNotFoundError, ForbiddenError, UserInputError } from '../../common/error/errors';
 import { Instrument } from '../../common/instrument-decorator';
 import { roundMoney } from '../../common/round-money';
 import { ListQueryOptions } from '../../common/types/common-types';
@@ -769,11 +769,37 @@ export class ProductVariantService {
         }
     }
 
-    async softDelete(ctx: RequestContext, id: ID | ID[]): Promise<DeletionResponse> {
+    /**
+     * @description
+     * Soft-deletes the ProductVariant(s) with the given id(s).
+     *
+     * The lookup is scoped to the active Channel, so an id which does not belong to
+     * `ctx.channelId` throws an {@link EntityNotFoundError}. Previously an unknown or
+     * out-of-channel id was silently reported as deleted.
+     *
+     * @param checkChannel - Set to `false` only for trusted internal cascades which have
+     * already verified the parent entity's Channel, such as `ProductService.softDelete`.
+     * A global Product deletion must reach every one of its variants, including any which
+     * were individually removed from the active Channel.
+     */
+    async softDelete(
+        ctx: RequestContext,
+        id: ID | ID[],
+        checkChannel: boolean = true,
+    ): Promise<DeletionResponse> {
         const ids = Array.isArray(id) ? id : [id];
-        const variants = await this.connection
-            .getRepository(ctx, ProductVariant)
-            .find({ where: { id: In(ids) } });
+        let variants: ProductVariant[];
+        if (checkChannel) {
+            variants = await this.connection.findByIdsInChannel(ctx, ProductVariant, ids, ctx.channelId, {});
+            const missingId = ids.find(candidate => !variants.some(v => idsAreEqual(v.id, candidate)));
+            if (missingId != null) {
+                throw new EntityNotFoundError('ProductVariant', missingId);
+            }
+        } else {
+            variants = await this.connection
+                .getRepository(ctx, ProductVariant)
+                .find({ where: { id: In(ids) } });
+        }
         for (const variant of variants) {
             variant.deletedAt = new Date();
         }
@@ -884,12 +910,16 @@ export class ProductVariantService {
         if (!hasPermission) {
             throw new ForbiddenError();
         }
-        const variants = await this.connection.getRepository(ctx, ProductVariant).find({
-            where: {
-                id: In(input.productVariantIds),
+        // Source entities must be visible in the active Channel (GHSA-422x-jq57-j238).
+        const variants = await this.connection.findByIdsInChannel(
+            ctx,
+            ProductVariant,
+            input.productVariantIds,
+            ctx.channelId,
+            {
+                relations: { taxCategory: true, assets: true },
             },
-            relations: { taxCategory: true, assets: true },
-        });
+        );
         const priceFactor = input.priceFactor != null ? input.priceFactor : 1;
         const targetChannel = await this.connection.getEntityOrThrow(ctx, Channel, input.channelId);
         const assignedVariantIds: ID[] = [];
@@ -984,17 +1014,42 @@ export class ProductVariantService {
         if (!hasPermission) {
             throw new ForbiddenError();
         }
+        // Source entities must be visible in the active Channel (GHSA-422x-jq57-j238).
+        const variants = await this.connection.findByIdsInChannel(
+            ctx,
+            ProductVariant,
+            input.productVariantIds,
+            ctx.channelId,
+            {},
+        );
+        return this.removeVariantsFromChannel(ctx, variants, input.channelId);
+    }
+
+    /**
+     * Removes the given ProductVariants from the Channel. The caller must have established that it may
+     * act on these variants: this method does not check permissions and does not scope the variants to
+     * the active Channel. `ProductService.removeProductsFromChannel()` calls it with the variants of a
+     * Product it has already loaded in the active Channel, so that the cascade removes every variant of
+     * that Product, including one which is no longer in the active Channel itself.
+     *
+     * The default-Channel guard lives here rather than in the public method, so that both callers keep
+     * it.
+     *
+     * @internal
+     */
+    async removeVariantsFromChannel(
+        ctx: RequestContext,
+        variants: ProductVariant[],
+        channelId: ID,
+    ): Promise<Array<Translated<ProductVariant>>> {
         const defaultChannel = await this.channelService.getDefaultChannel(ctx);
-        if (idsAreEqual(input.channelId, defaultChannel.id)) {
+        if (idsAreEqual(channelId, defaultChannel.id)) {
             throw new UserInputError('error.items-cannot-be-removed-from-default-channel');
         }
-        const variants = await this.connection
-            .getRepository(ctx, ProductVariant)
-            .find({ where: { id: In(input.productVariantIds) } });
         for (const variant of variants) {
-            await this.channelService.removeFromChannels(ctx, ProductVariant, variant.id, [input.channelId]);
+            await this.channelService.removeFromChannels(ctx, ProductVariant, variant.id, [channelId]);
             await this.connection.getRepository(ctx, ProductVariantPrice).delete({
-                channelId: input.channelId,
+                channelId,
                 variant: { id: variant.id },
             });
             // If none of the ProductVariants is assigned to the Channel, remove the Channel from Product
@@ -1007,10 +1062,8 @@ export class ProductVariantService {
             const productChannelsFromVariants = ([] as Channel[]).concat(
                 ...productVariants.map(pv => pv.channels),
             );
-            if (!productChannelsFromVariants.find(c => c.id === input.channelId)) {
-                await this.channelService.removeFromChannels(ctx, Product, variant.productId, [
-                    input.channelId,
-                ]);
+            if (!productChannelsFromVariants.find(c => c.id === channelId)) {
+                await this.channelService.removeFromChannels(ctx, Product, variant.productId, [channelId]);
             }
         }
         const result = await this.findByIds(
@@ -1021,9 +1074,7 @@ export class ProductVariantService {
         // whereby an event listener triggers a query which does not yet have access to the changes
         // within the current transaction.
         for (const variant of variants) {
-            await this.eventBus.publish(
-                new ProductVariantChannelEvent(ctx, variant, input.channelId, 'removed'),
-            );
+            await this.eventBus.publish(new ProductVariantChannelEvent(ctx, variant, channelId, 'removed'));
         }
         return result;
     }

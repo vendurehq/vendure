@@ -4,7 +4,7 @@ generated: true
 ---
 ## useGeneratedForm
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/form-engine/use-generated-form.tsx" sourceLine="130" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/form-engine/use-generated-form.tsx" sourceLine="151" packageName="@vendure/dashboard" since="3.3.0" />
 
 This hook is used to create a form from a document and an entity.
 It will create a form with the fields defined in the document's input type.
@@ -40,9 +40,34 @@ Parameters
 
 <MemberInfo kind="parameter" type={`<a href='/reference/dashboard/detail-views/use-generated-form#generatedformoptions'>GeneratedFormOptions</a><T, VarName, E>`} />
 
+## GeneratedFormSubmitMeta
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/form-engine/use-generated-form.tsx" sourceLine="32" packageName="@vendure/dashboard" since="3.8.0" />
+
+Metadata passed as the second argument to a [GeneratedFormOptions](/reference/dashboard/detail-views/use-generated-form#generatedformoptions) `onSubmit`
+handler, describing which fields the user changed relative to the loaded entity.
+
+```ts title="Signature"
+interface GeneratedFormSubmitMeta {
+    changedFields?: ReadonlySet<string>;
+}
+```
+
+<div className="members-wrapper">
+
+### changedFields
+
+<MemberInfo kind="property" type={`ReadonlySet<string>`}   />
+
+The set of top-level input field names the user actually changed relative to
+the loaded entity (plus non-nullable fields which are always included).
+`undefined` when creating a new entity (there is no baseline to diff against).
+
+
+</div>
 ## GeneratedFormOptions
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/form-engine/use-generated-form.tsx" sourceLine="39" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/form-engine/use-generated-form.tsx" sourceLine="59" packageName="@vendure/dashboard" since="3.3.0" />
 
 Options for the useGeneratedForm hook.
 
@@ -60,6 +85,7 @@ interface GeneratedFormOptions<T extends TypedDocumentNode<any, any>, VarName ex
     >;
     onSubmit?: (
         values: VarName extends keyof VariablesOf<T> ? VariablesOf<T>[VarName] : VariablesOf<T>,
+        meta?: GeneratedFormSubmitMeta,
     ) => void;
 }
 ```
@@ -121,7 +147,7 @@ extendSchema: schema =>
 
 ### onSubmit
 
-<MemberInfo kind="property" type={`(         values: VarName extends keyof VariablesOf<T> ? VariablesOf<T>[VarName] : VariablesOf<T>,     ) => void`}   />
+<MemberInfo kind="property" type={`(         values: VarName extends keyof VariablesOf<T> ? VariablesOf<T>[VarName] : VariablesOf<T>,         meta?: <a href='/reference/dashboard/detail-views/use-generated-form#generatedformsubmitmeta'>GeneratedFormSubmitMeta</a>,     ) => void`}   />
 
 
 

@@ -3,6 +3,7 @@ import fs from 'fs-extra';
 import path from 'node:path';
 import pc from 'picocolors';
 
+import { exitCliCommand, rethrowCliCommandExit } from '../../shared/cli-command-exit';
 import { abortIfNonInteractive, withInteractiveTimeout } from '../../utilities/utils';
 
 /**
@@ -30,17 +31,18 @@ export async function codemodCommand(transform?: string, targetPath?: string) {
         if (!codemod) {
             log.error(`Unknown codemod: "${transform}"`);
             log.info(`Available codemods:\n${formatCodemodList()}`);
-            process.exit(1);
+            exitCliCommand(1);
         }
         try {
             await codemod.run(resolvedPath);
         } catch (e: unknown) {
+            rethrowCliCommandExit(e);
             const message = e instanceof Error ? e.message : String(e);
             log.error(`Codemod "${transform}" failed: ${message}`);
             if (e instanceof Error && e.stack) {
                 log.error(e.stack);
             }
-            process.exit(1);
+            exitCliCommand(1);
         }
         return;
     }
@@ -67,25 +69,26 @@ export async function codemodCommand(transform?: string, targetPath?: string) {
 
     if (isCancel(selected)) {
         cancel('Codemod cancelled.');
-        process.exit(0);
+        exitCliCommand(0);
     }
 
     const selectedCodemod = CODEMODS[selected as string];
     if (!selectedCodemod) {
         log.error('Selected codemod not found.');
-        process.exit(1);
+        exitCliCommand(1);
     }
 
     try {
         await selectedCodemod.run(resolvedPath);
         outro('✅ Done!');
     } catch (e: unknown) {
+        rethrowCliCommandExit(e);
         const message = e instanceof Error ? e.message : String(e);
         log.error(`Codemod failed: ${message}`);
         if (e instanceof Error && e.stack) {
             log.error(e.stack);
         }
-        process.exit(1);
+        exitCliCommand(1);
     }
 }
 
@@ -97,11 +100,11 @@ function resolveAndValidatePath(targetPath: string): string {
     const resolved = path.resolve(targetPath);
     if (!fs.existsSync(resolved)) {
         log.error(`Path does not exist: ${resolved}`);
-        process.exit(1);
+        exitCliCommand(1);
     }
     if (!fs.statSync(resolved).isDirectory()) {
         log.error(`Path is not a directory: ${resolved}`);
-        process.exit(1);
+        exitCliCommand(1);
     }
     return resolved;
 }

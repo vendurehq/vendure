@@ -7,6 +7,7 @@ import { APIExtensionDefinition, DashboardExtension, PluginConfigurationFn } fro
 
 export const PLUGIN_METADATA = {
     CONFIGURATION: 'configuration',
+    PLUGINS: 'plugins',
     SHOP_API_EXTENSIONS: 'shopApiExtensions',
     ADMIN_API_EXTENSIONS: 'adminApiExtensions',
     ENTITIES: 'entities',
@@ -14,11 +15,43 @@ export const PLUGIN_METADATA = {
     DASHBOARD: 'dashboard',
 };
 
+/**
+ * @description
+ * Expands composed Vendure plugins into a depth-first list. Child plugins appear before their parent,
+ * declared order is preserved, and each plugin class appears once.
+ *
+ * @docsCategory plugin
+ * @docsPage Plugin Utilities
+ * @since 3.8.0
+ */
+export function flattenPlugins(plugins: Array<Type<any> | DynamicModule>): Array<Type<any> | DynamicModule> {
+    const flattened: Array<Type<any> | DynamicModule> = [];
+    const visited = new Set<Type<any>>();
+
+    const visit = (plugin: Type<any> | DynamicModule) => {
+        const pluginClass = isDynamicModule(plugin) ? plugin.module : plugin;
+        if (visited.has(pluginClass)) {
+            return;
+        }
+        visited.add(pluginClass);
+        const composedPlugins = reflectMetadata(plugin, PLUGIN_METADATA.PLUGINS) ?? [];
+        for (const composedPlugin of composedPlugins) {
+            visit(composedPlugin);
+        }
+        flattened.push(plugin);
+    };
+
+    for (const plugin of plugins) {
+        visit(plugin);
+    }
+    return flattened;
+}
+
 export function getEntitiesFromPlugins(plugins?: Array<Type<any> | DynamicModule>): Array<Type<any>> {
     if (!plugins) {
         return [];
     }
-    return plugins
+    return flattenPlugins(plugins)
         .map(p => reflectMetadata(p, PLUGIN_METADATA.ENTITIES))
         .reduce((all, entities) => {
             const resolvedEntities = typeof entities === 'function' ? entities() : (entities ?? []);

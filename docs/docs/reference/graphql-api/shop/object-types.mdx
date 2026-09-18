@@ -3136,6 +3136,7 @@ type PriceRange {
     String: '/reference/graphql-api/shop/object-types#string',
     Permission: '/reference/graphql-api/shop/enums#permission',
     Channel: '/reference/graphql-api/shop/object-types#channel',
+    JSON: '/reference/graphql-api/shop/object-types#json',
   }}
 >
 {`type Role {
@@ -3146,6 +3147,7 @@ type PriceRange {
   description: String!
   permissions: [Permission!]!
   channels: [Channel!]!
+  customFields: JSON
 }`}
 </GraphQLDoc>
 

@@ -49,6 +49,7 @@ const getScheduledTasksDocument = graphql(`
             description
             schedule
             scheduleDescription
+            timezone
             lastExecutedAt
             nextExecutionAt
             isRunning
@@ -146,6 +147,14 @@ function ScheduledTasksPage() {
         }),
         columnHelper.accessor('scheduleDescription', {
             header: t`Schedule`,
+            cell: ({ row }) => (
+                <div>
+                    {row.original.scheduleDescription}
+                    {row.original.timezone && (
+                        <span className="text-muted-foreground"> ({row.original.timezone})</span>
+                    )}
+                </div>
+            ),
         }),
         columnHelper.accessor('lastExecutedAt', {
             header: t`Last Executed`,

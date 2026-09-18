@@ -27,8 +27,8 @@ msgid "Select items"
 msgstr "Elementlarni tanlang"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
-msgid "Uploading assets..."
-msgstr ""
+#~ msgid "Uploading assets..."
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx
@@ -81,6 +81,13 @@ msgstr "Kvartira, ofis va h.k."
 #: src/lib/components/shared/facet-value-selector.tsx
 msgid "No more items"
 msgstr "Boshqa elementlar yo'q"
+
+#. placeholder {0}: fileUploads.length
+#. placeholder {1}: fileUploads.length
+#. placeholder {2}: fileUploads.length
+#: src/lib/components/shared/asset/asset-upload-modal.tsx
+msgid "{0, plural, one {Upload progress for {1} file} other {Upload progress for {2} files}}"
+msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/link-bubble-menu.tsx
 msgid "Edit link"
@@ -405,6 +412,7 @@ msgstr "Zaxira joylashuvi yaratildi"
 msgid "No widgets to add"
 msgstr "Qo'shish uchun vidjetlar yo'q"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
@@ -419,7 +427,7 @@ msgstr "Qo'shish uchun vidjetlar yo'q"
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 #: src/app/routes/_authenticated/_profile/profile.tsx
-#: src/lib/components/shared/asset/asset-gallery.tsx
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
 #: src/lib/components/shared/asset/asset-preview.tsx
 msgid "Unknown error"
 msgstr "Noma'lum xato"
@@ -549,7 +557,7 @@ msgstr "Yangi to'plam"
 msgid "Insights"
 msgstr "Tahlillar"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
 msgid "Failed to upload assets"
 msgstr ""
 
@@ -781,8 +789,8 @@ msgstr "Davom etish uchun mijozni tanlang"
 msgid "Successfully assigned option group"
 msgstr "Optsiya guruhi tayinlandi"
 
-#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "Allocated refund amounts must equal refund total"
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+msgid "Marks the account as verified without the customer having to use a verification email."
 msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx
@@ -1006,6 +1014,10 @@ msgstr "Pul qaytarish izohini kiriting"
 msgid "Order line removed"
 msgstr "Buyurtma qatori olib tashlandi"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+msgid "Setting a password here verifies the account immediately. Left empty, the customer has no password and cannot log in until they set one."
+msgstr ""
+
 #: src/lib/components/layout/channel-switcher.tsx
 msgid "Content:"
 msgstr "Tarkib:"
@@ -1129,6 +1141,8 @@ msgid "Failed to update zone"
 msgstr "Hududni yangilab bo'lmadi"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_profile/profile.tsx
 #: src/app/routes/_authenticated/_profile/profile.tsx
 #: src/lib/components/login/login-form.tsx
@@ -1202,7 +1216,6 @@ msgstr "Buyurtma elementlarini bekor qilib bo'lmadi"
 msgid "Transaction ID"
 msgstr "Tranzaksiya ID"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Allocated"
 msgstr "Ajratilgan"
@@ -1746,13 +1759,17 @@ msgstr "Mamlakatlar"
 msgid "Loading metrics…"
 msgstr "Ko'rsatkichlar yuklanmoqda…"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+msgid "Customer account verified"
+msgstr ""
+
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "Failed to rename view"
 msgstr "Ko'rinish nomini o'zgartirib bo'lmadi"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
-#~ msgid "Available"
-#~ msgstr "Mavjud"
+msgid "Available"
+msgstr "Mavjud"
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Normal"
@@ -1862,6 +1879,7 @@ msgstr "{row} x {col} jadval qo'shish"
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
@@ -1878,6 +1896,7 @@ msgstr "{row} x {col} jadval qo'shish"
 #: src/lib/components/data-table/views-sheet.tsx
 #: src/lib/components/layout/manage-languages-dialog.tsx
 #: src/lib/components/shared/asset/asset-focal-point-editor.tsx
+#: src/lib/components/shared/asset/asset-upload-modal.tsx
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 #: src/lib/components/shared/confirmation-dialog.tsx
 #: src/lib/components/shared/customer-address-form.tsx
@@ -2090,10 +2109,6 @@ msgstr "Pul qaytarish muvaffaqiyatli hisoblashildi"
 msgid "Update"
 msgstr "Yangilash"
 
-#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "{successfulRefundCount} refund(s) processed before failure. Check order history for details."
-msgstr ""
-
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Heading 2"
 msgstr "2-sarlavha"
@@ -2199,6 +2214,10 @@ msgstr "Hududdan olib tashlash"
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "Select from globally available languages for this channel"
 msgstr "Ushbu kanal uchun global mavjud tillardan tanlang"
+
+#: src/lib/components/shared/asset/asset-upload-modal.tsx
+msgid "Upload timed out"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 msgid "Are you sure you want to delete this address?"
@@ -2978,6 +2997,10 @@ msgstr "Yetkazib berishni qayta hisoblash"
 msgid "Assets"
 msgstr "Assetlar"
 
+#: src/lib/components/shared/asset/asset-upload-modal.tsx
+msgid "Uploading..."
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "This will remove all option groups from this product and return to the variant setup choice."
 msgstr "Bu mahsulotdagi barcha optsiya guruhlarini olib tashlaydi va variant sozlash tanloviga qaytaradi."
@@ -3142,6 +3165,10 @@ msgstr "Mijozni guruhdan olib tashlab boʻlmadi"
 msgid "1 property"
 msgstr ""
 
+#: src/lib/components/shared/asset/asset-upload-modal.tsx
+msgid "Upload failed (HTTP {detail})"
+msgstr ""
+
 #: src/lib/components/layout/nav-user.tsx
 msgctxt "theme"
 msgid "System"
@@ -3293,8 +3320,8 @@ msgid "Override"
 msgstr "Bekor qilish"
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
-msgid "Transaction ID is required"
-msgstr "Tranzaksiya ID talab qilinadi"
+#~ msgid "Transaction ID is required"
+#~ msgstr "Tranzaksiya ID talab qilinadi"
 
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "matches regex"
@@ -3667,6 +3694,10 @@ msgstr "Toifa"
 msgid "Moving..."
 msgstr "Ko'chirilmoqda..."
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+msgid "Needed only for a customer who has no password yet, since that account cannot be logged into. Leave empty for a customer who already has one."
+msgstr ""
+
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 msgid "Assign"
 msgstr "Tayinlash"
@@ -3946,8 +3977,8 @@ msgid "New Stock Location"
 msgstr "Yangi zaxira joylashuvi"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-#~ msgid "{successfulRefundCount} payment(s) refunded before failure. Check order history for details."
-#~ msgstr "Nosozlikdan oldin {successfulRefundCount} ta to'lov qaytarildi. Tafsilotlar uchun buyurtma tarixini tekshiring."
+msgid "{successfulRefundCount} payment(s) refunded before failure. Check order history for details."
+msgstr "Nosozlikdan oldin {successfulRefundCount} ta to'lov qaytarildi. Tafsilotlar uchun buyurtma tarixini tekshiring."
 
 #: src/lib/components/data-input/relation-selector.tsx
 msgid "Select item"
@@ -4209,10 +4240,6 @@ msgstr "Mijozlar guruhini yaratib bo'lmadi"
 msgid "Failed to create role"
 msgstr "Rolni yaratib bo'lmadi"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
-msgid "Payment methods"
-msgstr ""
-
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Product name"
 msgstr "Mahsulot nomi"
@@ -4254,7 +4281,7 @@ msgstr "Optsiya guruhi qo'shish"
 msgid "All"
 msgstr "Barchasi"
 
-#. placeholder {0}: formatCurrency(refund.refundTotal, order.currencyCode)
+#. placeholder {0}: formatCurrency(refund.amountToRefundTotal, order.currencyCode)
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Refund {0}"
 msgstr "{0} pul qaytarish"
@@ -4404,6 +4431,11 @@ msgstr "Element qo'shish"
 msgid "Successfully created API key"
 msgstr "API kaliti yaratildi"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+msgid "Verify account"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 msgid "Loading preview…"
 msgstr "Ko'rib chiqish yuklanmoqda…"
@@ -4536,6 +4568,10 @@ msgstr "ga teng"
 #: src/lib/components/shared/asset/asset-properties.tsx
 msgid "Source File"
 msgstr "Manba fayl"
+
+#: src/lib/components/shared/asset/asset-upload-modal.tsx
+msgid "Upload failed — check your connection"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx
@@ -4886,6 +4922,10 @@ msgstr ""
 msgid "A refund of {formattedDiff} is required. Select payment amounts and enter a note to proceed."
 msgstr "{formattedDiff} miqdorida pul qaytarish talab qilinadi. To'lov summalarini tanlang va davom etish uchun eslatma kiriting."
 
+#: src/lib/components/shared/asset/asset-upload-modal.tsx
+msgid "File exceeds the server upload size limit"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
@@ -5006,6 +5046,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
 msgid "Failed to create variants"
 msgstr "Variantlarni yaratib bo'lmadi"
+
+#: src/lib/components/shared/asset/asset-upload-modal.tsx
+#~ msgid "Upload progress for {0} files"
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
 msgid "Sets the stock level at which this a variant is considered to be out of stock. Using a negative value enables backorder support. Can be overridden by product variants."
@@ -5408,10 +5452,6 @@ msgstr "Bu standart Rol va uni o'zgartirib bo'lmaydi"
 msgid "My saved views"
 msgstr "Mening saqlangan ko'rinishlarim"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
-msgid "Other refund destinations"
-msgstr ""
-
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 msgid "State / Province"
 msgstr "Shtat / Viloyat"
@@ -5557,6 +5597,10 @@ msgstr "({maxRefundable} qaytarilishi mumkin)"
 msgid "Identifier"
 msgstr "Identifikator"
 
+#: src/lib/components/shared/asset/asset-upload-modal.tsx
+msgid "Uploading assets"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/fulfillment-handler-selector.tsx
 msgid "Select a fulfillment handler"
 msgstr "Buyurtmani bajarish ishlovchisini tanlang"
@@ -5599,8 +5643,8 @@ msgid "Password reset requested"
 msgstr "Parolni tiklash so'raldi"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-#~ msgid "Allocated payment amount must equal refund total"
-#~ msgstr "Ajratilgan to'lov summasi pul qaytarish jamiga teng bo'lishi kerak"
+msgid "Allocated payment amount must equal refund total"
+msgstr "Ajratilgan to'lov summasi pul qaytarish jamiga teng bo'lishi kerak"
 
 #. placeholder {0}: selection.length
 #: src/lib/components/shared/remove-from-channel-bulk-action.tsx
@@ -5716,7 +5760,7 @@ msgid "Failed to remove customers from group"
 msgstr "Mijozlarni guruhdan olib tashlab bolmadi"
 
 #. placeholder {0}: failedAssets.length
-#: src/lib/components/shared/asset/asset-gallery.tsx
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
 msgid "Failed to upload {0} assets"
 msgstr ""
 
@@ -5999,6 +6043,10 @@ msgstr "Standart bo'yicha omborni kuzatish"
 msgid "{selected} of {total} selected"
 msgstr "{total} tadan {selected} tasi tanlandi"
 
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+msgid "Verify"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
 msgid "Successfully created shipping method"
 msgstr "Yetkazib berish usuli muvaffaqiyatli yaratildi"
@@ -6006,6 +6054,11 @@ msgstr "Yetkazib berish usuli muvaffaqiyatli yaratildi"
 #: src/app/routes/_authenticated/_customer-groups/customer-groups.tsx
 msgid "New Customer Group"
 msgstr "Yangi mijozlar guruhi"
+
+#. placeholder {0}: fileUploads.length
+#: src/lib/components/shared/asset/asset-upload-modal.tsx
+msgid "{doneCount} of {0} done"
+msgstr ""
 
 #: src/lib/components/shared/history-timeline/history-note-checkbox.tsx
 msgid "Visible to customer"
@@ -6333,7 +6386,7 @@ msgid "Strikethrough"
 msgstr "Ustiga chizilgan"
 
 #. placeholder {0}: createdAssets.length
-#: src/lib/components/shared/asset/asset-gallery.tsx
+#: src/lib/components/shared/asset/asset-picker-dialog.tsx
 msgid "Uploaded {0} assets"
 msgstr ""
 
@@ -6593,6 +6646,10 @@ msgstr "Yangi sotuvchi"
 msgid "Search tax categories..."
 msgstr "Soliq toifalarini qidirish..."
 
+#: src/lib/components/shared/asset/asset-upload-modal.tsx
+msgid "Upload failed — invalid server response"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx
 msgid "Edit image"
 msgstr "Rasmni tahrirlash"
@@ -6616,6 +6673,10 @@ msgstr "dan katta yoki teng"
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Sets the stock level at which this variant is considered to be out of stock. Using a negative value enables backorder support."
 msgstr "Ushbu variant zaxirada tugagan deb hisoblanadigan zaxira darajasini belgilaydi. Manfiy qiymat oldindan buyurtmani yoqadi."
+
+#: src/lib/components/shared/asset/asset-upload-modal.tsx
+msgid "Upload cancelled"
+msgstr ""
 
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx
 #: src/lib/components/layout/manage-languages-dialog.tsx
@@ -6820,6 +6881,7 @@ msgid "Underline"
 msgstr "Tagiga chizilgan"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
+#: src/lib/components/shared/asset/asset-upload-modal.tsx
 msgid "Close"
 msgstr "Yopish"
 
@@ -6861,8 +6923,8 @@ msgid "Fulfillment ID"
 msgstr "Bajarish ID"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
-#~ msgid "Select payments to refund"
-#~ msgstr "Pul qaytarish uchun to'lovlarni tanlang"
+msgid "Select payments to refund"
+msgstr "Pul qaytarish uchun to'lovlarni tanlang"
 
 #: src/lib/components/shared/error-page.tsx
 msgid "The page you are looking for does not exist or may have been moved."
@@ -6915,10 +6977,6 @@ msgstr "\"{viewName}\" global ko'rinishi qo'llanildi"
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Customer registered"
 msgstr "Mijoz ro'yxatdan o'tdi"
-
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
-msgid "Remaining"
-msgstr ""
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts

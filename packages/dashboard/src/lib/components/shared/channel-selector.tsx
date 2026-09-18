@@ -29,7 +29,6 @@ export function ChannelSelector<T extends boolean>(props: ChannelSelectorProps<T
     const { data: channelsData } = useQuery({
         queryKey: ['channels'],
         queryFn: () => api.query(channelsDocument, {}),
-        staleTime: 1000 * 60 * 5,
     });
 
     const items = (channelsData?.channels.items ?? []).map(channel => ({

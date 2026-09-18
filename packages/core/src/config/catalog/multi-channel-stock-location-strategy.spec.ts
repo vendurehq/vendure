@@ -4,6 +4,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { RequestContext } from '../../api/common/request-context';
 import { Cache } from '../../cache/cache';
+import { RequestContextCacheService } from '../../cache/request-context-cache.service';
 import { Channel } from '../../entity/channel/channel.entity';
 import { Product } from '../../entity/product/product.entity';
 import { StockLevel } from '../../entity/stock-level/stock-level.entity';
@@ -52,11 +53,16 @@ const mockEventBus = {
 let channelsInDb: Channel[];
 const getEntityOrThrow = vi.fn(() => Promise.resolve(new StockLocation({ id: 1, channels: channelsInDb })));
 
+// The real service is used: the strategy relies on it storing the un-awaited promise to
+// collapse concurrent lookups, which a stub would not reproduce.
+let requestContextCache: RequestContextCacheService;
+
 const mockInjector = {
     get: (token: unknown) => {
         const name = (token as { name?: string })?.name;
         if (name === 'EventBus') return mockEventBus;
         if (name === 'CacheService') return mockCacheService;
+        if (name === 'RequestContextCacheService') return requestContextCache;
         if (name === 'TransactionalConnection') return { getEntityOrThrow };
         return {};
     },
@@ -75,8 +81,10 @@ function contextForChannel(channel: Channel): RequestContext {
     } as any);
 }
 
-const ctxChannel1 = contextForChannel(channel1);
-const ctxChannel2 = contextForChannel(channel2);
+// Re-created for each test: the strategy caches channel ids against the RequestContext
+// instance, so a shared context would carry a lookup from one test into the next.
+let ctxChannel1: RequestContext;
+let ctxChannel2: RequestContext;
 
 const stockLevel = new StockLevel({
     stockLocationId: 1,
@@ -105,6 +113,9 @@ describe('MultiChannelStockLocationStrategy', () => {
         eventStream = new Subject<any>();
         channelsInDb = [channel1];
         getEntityOrThrow.mockClear();
+        requestContextCache = new RequestContextCacheService();
+        ctxChannel1 = contextForChannel(channel1);
+        ctxChannel2 = contextForChannel(channel2);
         // Dynamic import to avoid vitest circular dependency issue
         const { MultiChannelStockLocationStrategy } =
             await import('./multi-channel-stock-location-strategy.js');
@@ -121,6 +132,34 @@ describe('MultiChannelStockLocationStrategy', () => {
         expect(getEntityOrThrow).toHaveBeenCalledTimes(1);
     });
 
+    it('loads a StockLocation once when its stock levels are resolved concurrently', async () => {
+        const stockLevels = [1, 2, 3, 4, 5].map(
+            productVariantId =>
+                new StockLevel({
+                    stockLocationId: 1,
+                    stockOnHand: 100,
+                    stockAllocated: 0,
+                    productVariantId,
+                }),
+        );
+
+        const results = await Promise.all(
+            stockLevels.map(level => strategy.getAvailableStock(ctxChannel1, level.productVariantId, [level])),
+        );
+
+        expect(results.map(r => r.stockOnHand)).toEqual([100, 100, 100, 100, 100]);
+        expect(getEntityOrThrow).toHaveBeenCalledTimes(1);
+    });
+
+    it('loads a StockLocation once per request, not once per request-scoped read', async () => {
+        await strategy.getAvailableStock(ctxChannel1, 1, [stockLevel]);
+        expect(getEntityOrThrow).toHaveBeenCalledTimes(1);
+
+        // A different RequestContext still finds the value in the cross-request cache
+        await strategy.getAvailableStock(contextForChannel(channel1), 1, [stockLevel]);
+        expect(getEntityOrThrow).toHaveBeenCalledTimes(1);
+    });
+
     it('invalidates the cache when a StockLocation is updated', async () => {
         // Cache the channel ids while the location belongs to channel1 only
         const stale = await strategy.getAvailableStock(ctxChannel2, 1, [stockLevel]);
@@ -130,7 +169,9 @@ describe('MultiChannelStockLocationStrategy', () => {
         eventStream.next(new StockLocationEvent(ctxChannel1, stockLocation, 'updated'));
         await flushEventHandlers();
 
-        const fresh = await strategy.getAvailableStock(ctxChannel2, 1, [stockLevel]);
+        // Invalidation clears the cross-request cache, so the read that observes it belongs
+        // to a later request and therefore a new RequestContext.
+        const fresh = await strategy.getAvailableStock(contextForChannel(channel2), 1, [stockLevel]);
         expect(fresh.stockOnHand).toBe(100);
     });
 
@@ -140,7 +181,10 @@ describe('MultiChannelStockLocationStrategy', () => {
         eventStream.next(new StockLocationEvent(ctxChannel1, stockLocation, 'created'));
         await flushEventHandlers();
 
-        await strategy.getAvailableStock(ctxChannel1, 1, [stockLevel]);
+        // Read through a new context, as the positive invalidation tests do: reusing
+        // ctxChannel1 would be answered by the request-scoped cache and never reach the
+        // cross-request cache this test is about.
+        await strategy.getAvailableStock(contextForChannel(channel1), 1, [stockLevel]);
         expect(getEntityOrThrow).toHaveBeenCalledTimes(1);
     });
 
@@ -153,7 +197,7 @@ describe('MultiChannelStockLocationStrategy', () => {
         eventStream.next(new ChangeChannelEvent(ctxChannel1, stockLocation, [2], 'assigned', StockLocation));
         await flushEventHandlers();
 
-        const fresh = await strategy.getAvailableStock(ctxChannel2, 1, [stockLevel]);
+        const fresh = await strategy.getAvailableStock(contextForChannel(channel2), 1, [stockLevel]);
         expect(fresh.stockOnHand).toBe(100);
     });
 
@@ -166,7 +210,7 @@ describe('MultiChannelStockLocationStrategy', () => {
         eventStream.next(new ChangeChannelEvent(ctxChannel1, stockLocation, [2], 'removed', StockLocation));
         await flushEventHandlers();
 
-        const fresh = await strategy.getAvailableStock(ctxChannel2, 1, [stockLevel]);
+        const fresh = await strategy.getAvailableStock(contextForChannel(channel2), 1, [stockLevel]);
         expect(fresh.stockOnHand).toBe(0);
     });
 
@@ -190,7 +234,7 @@ describe('MultiChannelStockLocationStrategy', () => {
         );
         await flushEventHandlers();
 
-        await strategy.getAvailableStock(ctxChannel1, 1, [stockLevel]);
+        await strategy.getAvailableStock(contextForChannel(channel1), 1, [stockLevel]);
         expect(getEntityOrThrow).toHaveBeenCalledTimes(1);
     });
 });

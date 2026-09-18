@@ -71,10 +71,6 @@ export async function discoverPlugins({
                 sourceType: 'module',
             });
 
-            let hasVendurePlugin = false;
-            let pluginName: string | undefined;
-            let dashboardPath: string | undefined;
-
             // Walk the AST to find the plugin class and its decorator
             walkSimple(ast, {
                 CallExpression(node: any) {
@@ -91,57 +87,31 @@ export async function discoverPlugins({
                     const isDecoratorWithArgs = calleeName === '__decorate' && nodeArgs.length >= 2;
 
                     if (isDecoratorWithArgs) {
-                        // Check the decorators array (first argument)
-                        const decorators = nodeArgs[0];
-                        if (decorators.type === 'ArrayExpression') {
-                            for (const decorator of decorators.elements) {
-                                const props = getDecoratorObjectProps(decorator);
-                                for (const prop of props) {
-                                    if (prop.key.name === 'dashboard') {
-                                        if (prop.value.type === 'Literal') {
-                                            // Handle string format: dashboard: './path/to/dashboard'
-                                            dashboardPath = prop.value.value;
-                                            hasVendurePlugin = true;
-                                        } else if (prop.value.type === 'ObjectExpression') {
-                                            // Handle object format: dashboard: { location: './path/to/dashboard' }
-                                            const locationProp = prop.value.properties?.find(
-                                                (p: any) => p.key?.name === 'location',
-                                            );
-                                            if (locationProp?.value.type === 'Literal') {
-                                                dashboardPath = locationProp.value.value;
-                                                hasVendurePlugin = true;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        // Get the plugin class name (second argument)
+                        const dashboardPath = getDashboardPath(nodeArgs[0]);
                         const targetClass = nodeArgs[1];
-                        if (targetClass.type === 'Identifier') {
-                            pluginName = targetClass.name;
+                        if (targetClass.type === 'Identifier' && dashboardPath) {
+                            const pluginName: string = targetClass.name;
+                            logger.debug(
+                                `[discoverPlugins] Found plugin "${pluginName}" in file: ${filePath}`,
+                            );
+                            // Keep the dashboard path relative to the plugin file
+                            const resolvedDashboardPath = dashboardPath.startsWith('.')
+                                ? dashboardPath // Keep the relative path as-is
+                                : './' + path.relative(path.dirname(filePath), dashboardPath); // Make absolute path relative
+
+                            // Check if this is a local plugin we found earlier
+                            const sourcePluginPath = localPluginLocations.get(pluginName);
+
+                            plugins.push({
+                                name: pluginName,
+                                pluginPath: filePath,
+                                dashboardEntryPath: resolvedDashboardPath,
+                                ...(sourcePluginPath && { sourcePluginPath }),
+                            });
                         }
                     }
                 },
             });
-
-            if (hasVendurePlugin && pluginName && dashboardPath) {
-                logger.debug(`[discoverPlugins] Found plugin "${pluginName}" in file: ${filePath}`);
-                // Keep the dashboard path relative to the plugin file
-                const resolvedDashboardPath = dashboardPath.startsWith('.')
-                    ? dashboardPath // Keep the relative path as-is
-                    : './' + path.relative(path.dirname(filePath), dashboardPath); // Make absolute path relative
-
-                // Check if this is a local plugin we found earlier
-                const sourcePluginPath = localPluginLocations.get(pluginName);
-
-                plugins.push({
-                    name: pluginName,
-                    pluginPath: filePath,
-                    dashboardEntryPath: resolvedDashboardPath,
-                    ...(sourcePluginPath && { sourcePluginPath }),
-                });
-            }
         } catch (e) {
             logger.error(`Failed to parse ${filePath}: ${e instanceof Error ? e.message : String(e)}`);
         }
@@ -153,6 +123,7 @@ export async function discoverPlugins({
 function getDecoratorObjectProps(decorator: any): any[] {
     if (
         decorator.type === 'CallExpression' &&
+        isVendurePluginDecoratorCall(decorator.callee) &&
         decorator.arguments.length === 1 &&
         decorator.arguments[0].type === 'ObjectExpression'
     ) {
@@ -160,6 +131,44 @@ function getDecoratorObjectProps(decorator: any): any[] {
         return decorator.arguments[0].properties ?? [];
     }
     return [];
+}
+
+function isVendurePluginDecoratorCall(callee: any): boolean {
+    if (callee.type === 'Identifier') {
+        return callee.name === 'VendurePlugin';
+    }
+    if (callee.type === 'SequenceExpression') {
+        const expression = callee.expressions.at(-1);
+        return expression?.type === 'MemberExpression' && expression.property?.name === 'VendurePlugin';
+    }
+    return false;
+}
+
+function getDashboardPath(decorators: any): string | undefined {
+    if (decorators.type !== 'ArrayExpression') {
+        return;
+    }
+    for (const decorator of decorators.elements) {
+        const props = getDecoratorObjectProps(decorator);
+        for (const prop of props) {
+            if (prop.key.name !== 'dashboard') {
+                continue;
+            }
+            if (prop.value.type === 'Literal') {
+                // Handle string format: dashboard: './path/to/dashboard'
+                return prop.value.value;
+            }
+            if (prop.value.type === 'ObjectExpression') {
+                // Handle object format: dashboard: { location: './path/to/dashboard' }
+                const locationProp = prop.value.properties?.find(
+                    (property: any) => property.key?.name === 'location',
+                );
+                if (locationProp?.value.type === 'Literal') {
+                    return locationProp.value.value;
+                }
+            }
+        }
+    }
 }
 
 /**

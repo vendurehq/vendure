@@ -22,8 +22,7 @@ export interface GraphQLApiOptions {
     apiType: 'shop' | 'admin';
     typePaths: string[];
     apiPath: string;
-    debug: boolean;
-    playground: boolean | any;
+    playground: boolean | Record<string, any>;
     // eslint-disable-next-line @typescript-eslint/ban-types
     resolverModule: Function;
     validationRules: Array<(context: ValidationContext) => any>;
@@ -107,9 +106,13 @@ async function createGraphQLOptions(
         // We no longer rely on the upload facility bundled with Apollo Server, and instead
         // manually configure the graphql-upload package. See https://github.com/vendurehq/vendure/issues/396
         uploads: false,
-        playground: options.playground,
-        csrfPrevention: false,
-        debug: options.debug || false,
+        // `playground` is a deprecated boolean alias for GraphiQL in @nestjs/apollo v14.
+        // The options it used to accept configured the GraphQL Playground, which Apollo
+        // Server 5 removed, so only the truthiness of the configured value still means
+        // anything. Coercing also keeps the value from ever being `undefined`, which the
+        // driver reads as "serve GraphiQL unless NODE_ENV is production".
+        playground: !!options.playground,
+        csrfPrevention: configService.apiOptions.csrfPrevention ?? false,
         context: (req: any) => req,
         // This is handled by the Express cors plugin
         cors: false,

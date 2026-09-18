@@ -7,6 +7,7 @@ import {
 
 import { Injector } from '../../../common/injector';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
+import { FacetValue } from '../../../entity/facet-value/facet-value.entity';
 import { Facet } from '../../../entity/facet/facet.entity';
 import { FacetValueService } from '../../../service/services/facet-value.service';
 import { FacetService } from '../../../service/services/facet.service';
@@ -44,9 +45,7 @@ export const facetDuplicator = new EntityDuplicator({
     },
     async duplicate({ ctx, id, args }) {
         const facet = await connection.getEntityOrThrow(ctx, Facet, id, {
-            relations: {
-                values: true,
-            },
+            channelId: ctx.channelId,
         });
         const translations: FacetTranslationInput[] = facet.translations.map(translation => {
             return {
@@ -64,20 +63,27 @@ export const facetDuplicator = new EntityDuplicator({
 
         const duplicatedFacet = await facetService.create(ctx, facetInput);
         if (args.includeFacetValues) {
-            if (facet.values.length) {
-                for (const value of facet.values) {
-                    const newValue = await facetValueService.create(ctx, duplicatedFacet, {
-                        code: value.code + '-copy',
-                        translations: value.translations.map(translation => ({
-                            name: translation.name + ' (copy)',
-                            languageCode: translation.languageCode,
-                            customFields: translation.customFields,
-                        })),
-                        facetId: duplicatedFacet.id,
-                        customFields: value.customFields,
-                    });
-                    duplicatedFacet.values.push(newValue);
-                }
+            // A Facet can be assigned to a channel without all of its FacetValues being
+            // assigned too, so the values are scoped to the active channel as well as
+            // to the parent Facet.
+            const facetValues = await connection.getRepository(ctx, FacetValue).find({
+                where: {
+                    facet: { id: facet.id },
+                    channels: { id: ctx.channelId },
+                },
+            });
+            for (const value of facetValues) {
+                const newValue = await facetValueService.create(ctx, duplicatedFacet, {
+                    code: value.code + '-copy',
+                    translations: value.translations.map(translation => ({
+                        name: translation.name + ' (copy)',
+                        languageCode: translation.languageCode,
+                        customFields: translation.customFields,
+                    })),
+                    facetId: duplicatedFacet.id,
+                    customFields: value.customFields,
+                });
+                duplicatedFacet.values.push(newValue);
             }
         }
         return duplicatedFacet;

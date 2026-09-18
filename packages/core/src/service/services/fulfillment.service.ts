@@ -7,12 +7,14 @@ import { In, Not } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
+import { EntityNotFoundError } from '../../common/error/errors';
 import {
     CreateFulfillmentError,
     FulfillmentStateTransitionError,
     InvalidFulfillmentHandlerError,
 } from '../../common/error/generated-graphql-admin-errors';
 import { Instrument } from '../../common/instrument-decorator';
+import { idsAreEqual } from '../../common/utils';
 import { ConfigService } from '../../config/config.service';
 import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../connection/transactional-connection';
@@ -122,6 +124,19 @@ export class FulfillmentService {
         return newFulfillment;
     }
 
+    /**
+     * @description
+     * Loads the FulfillmentLines of a Fulfillment by id with no Channel check. Fulfillment is not
+     * ChannelAware, so its only Channel boundary is the parent Order, and a caller must load that
+     * Order in the current Channel first.
+     *
+     * This is safe for the core callers, the `Fulfillment.lines` and `Fulfillment.summary` field
+     * resolvers, because neither takes an id from the client: a Fulfillment is reachable only
+     * through `Order.fulfillments` or `FulfillmentLine.fulfillment`, and neither API has a root
+     * Fulfillment query. Scoping the read was considered and rejected, because it adds a joined
+     * Order query per Fulfillment per request on both APIs to guard a path no client can reach.
+     * Add the check here if a root Fulfillment query is introduced.
+     */
     async getFulfillmentLines(ctx: RequestContext, id: ID): Promise<FulfillmentLine[]> {
         return this.connection
             .getEntityOrThrow(ctx, Fulfillment, id, {
@@ -177,8 +192,23 @@ export class FulfillmentService {
                 .getRepository(txCtx, Order)
                 .createQueryBuilder('order')
                 .leftJoinAndSelect('order.lines', 'line')
+                .leftJoinAndSelect('order.channels', 'orderChannel')
                 .where('line.id IN (:...lineIds)', { lineIds: orderLinesIds })
                 .getMany();
+            // Fulfillment is not ChannelAware, so the owning Orders are its only Channel boundary.
+            // A transition creates stock movements, so without this check an administrator scoped
+            // to one Channel can change another Channel's stock levels. The length check is not
+            // redundant: Array.every returns true for an empty array, so a Fulfillment with no
+            // owning Order would pass the Channel test. The Channels come from the join above, so
+            // this costs no extra query.
+            const ownedByActiveChannel =
+                0 < orders.length &&
+                orders.every(order =>
+                    order.channels.some(channel => idsAreEqual(channel.id, txCtx.channelId)),
+                );
+            if (!ownedByActiveChannel) {
+                throw new EntityNotFoundError('Fulfillment', fulfillmentId);
+            }
             const fromState = fulfillment.state;
             let finalize: () => Promise<any>;
             try {

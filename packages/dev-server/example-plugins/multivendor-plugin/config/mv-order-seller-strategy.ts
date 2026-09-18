@@ -110,7 +110,26 @@ export class MultivendorSellerStrategy implements OrderSellerStrategy {
                 );
             }
             sellerOrder.surcharges = [await this.createPlatformFeeSurcharge(ctx, sellerOrder)];
-            await this.orderService.applyPriceAdjustments(ctx, sellerOrder);
+            // Price adjustments must be applied in the seller Channel's context, otherwise
+            // Promotions are resolved from the aggregate Order's Channel and leak into this
+            // seller Order. `ctx` is copied so that everything else (including the current
+            // transaction) is carried over. The Channel on `sellerOrder.channels` is a stub
+            // carrying only an id, so it is re-fetched here to get the defaultTaxZone needed
+            // to calculate the Order.
+            const fullSellerChannel = await this.channelService.findOne(ctx, sellerChannel.id);
+            if (!fullSellerChannel) {
+                throw new InternalServerError(`Could not load Channel ${sellerChannel.id as string}`);
+            }
+            const sellerCtx = ctx.copy();
+            (sellerCtx as any)._channel = fullSellerChannel;
+            // ShippingLine prices are not recalculated: they were already calculated on the
+            // aggregate Order, and ShippingMethod resolution is Channel-scoped, so a method which
+            // is not assigned to the seller Channel would be dropped from the seller Order.
+            // Shipping Promotions are still re-applied in the seller Channel.
+            await this.orderService.applyPriceAdjustments(sellerCtx, sellerOrder, undefined, undefined, {
+                recalculateShipping: false,
+                recalculateShippingPromotions: true,
+            });
             await this.entityHydrator.hydrate(ctx, sellerChannel, { relations: ['seller'] });
             const result = await this.orderService.addPaymentToOrder(ctx, sellerOrder.id, {
                 method: paymentMethod.code,

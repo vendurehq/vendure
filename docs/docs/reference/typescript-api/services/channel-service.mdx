@@ -2,7 +2,7 @@
 title: "ChannelService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/channel.service.ts" sourceLine="59" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/channel.service.ts" sourceLine="62" packageName="@vendure/core" />
 
 Contains methods relating to [Channel](/reference/typescript-api/entities/channel#channel) entities.
 
@@ -90,12 +90,16 @@ roles themselves.
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: UpdateChannelInput) => Promise<<a href='/reference/typescript-api/errors/error-result-union#errorresultunion'>ErrorResultUnion</a><UpdateChannelResult, <a href='/reference/typescript-api/entities/channel#channel'>Channel</a>>>`}   />
 
-
+Updates a Channel. Throws a ForbiddenError if the active user does not hold the
+`UpdateChannel` permission on the target Channel. A SuperAdmin is exempt. A RequestContext
+with no session skips the check.
 ### delete
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, id: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<DeletionResponse>`}   />
 
-
+Deletes a Channel. Throws a ForbiddenError if the active user does not hold the
+`DeleteChannel` permission on the target Channel. A SuperAdmin is exempt. A RequestContext
+with no session skips the check.
 ### isChannelAware
 
 <MemberInfo kind="method" type={`(entity: <a href='/reference/typescript-api/entities/vendure-entity#vendureentity'>VendureEntity</a>) => entity is <a href='/reference/typescript-api/entities/vendure-entity#vendureentity'>VendureEntity</a> &#38; <a href='/reference/typescript-api/entities/interfaces#channelaware'>ChannelAware</a>`}   />

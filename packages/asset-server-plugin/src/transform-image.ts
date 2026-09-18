@@ -85,8 +85,22 @@ async function applyFormat(
     }
 }
 
-function isImageTransformFormat(input: keyof FormatEnum | undefined): input is ImageTransformFormat {
-    return !!input && ['jpg', 'jpeg', 'webp', 'avif'].includes(input);
+/**
+ * The formats `applyFormat` can re-encode into when a request sets a quality but
+ * no format. Values are what `metadata.format` reports for the detected input
+ * container.
+ *
+ * This set is narrower than {@link ImageTransformFormat}, which lists the formats
+ * a caller may request. `jpg` and `avif` are valid requests that
+ * `metadata.format` never returns: sharp reports `jpeg` for both JPEG spellings,
+ * and reports AVIF as `heif`.
+ */
+const REENCODABLE_INPUT_FORMATS = ['jpeg', 'webp'] as const satisfies ReadonlyArray<keyof FormatEnum>;
+
+function isImageTransformFormat(
+    input: keyof FormatEnum | undefined,
+): input is (typeof REENCODABLE_INPUT_FORMATS)[number] {
+    return !!input && (REENCODABLE_INPUT_FORMATS as readonly string[]).includes(input);
 }
 
 /**

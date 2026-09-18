@@ -2,10 +2,11 @@ import { Injectable } from '@nestjs/common';
 import {
     CreateAdministratorInput,
     DeletionResult,
+    Permission,
     UpdateAdministratorInput,
 } from '@vendure/common/lib/generated-types';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
-import { In, IsNull } from 'typeorm';
+import { IsNull, SelectQueryBuilder } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
@@ -25,7 +26,6 @@ import { TransactionalConnection } from '../../connection/transactional-connecti
 import { Administrator } from '../../entity/administrator/administrator.entity';
 import { ApiKey } from '../../entity/api-key/api-key.entity';
 import { NativeAuthenticationMethod } from '../../entity/authentication-method/native-authentication-method.entity';
-import { Role } from '../../entity/role/role.entity';
 import { User } from '../../entity/user/user.entity';
 import { EventBus } from '../../event-bus';
 import { AdministratorEvent } from '../../event-bus/events/administrator-event';
@@ -38,7 +38,6 @@ import { PasswordCipher } from '../helpers/password-cipher/password-cipher';
 import { RequestContextService } from '../helpers/request-context/request-context.service';
 import { StoredMediaUpload } from '../helpers/stored-media/stored-media.service';
 import { checkSuperadminCredentials } from '../helpers/utils/check-superadmin-credentials';
-import { getChannelPermissions } from '../helpers/utils/get-user-channels-permissions';
 import { patchEntity } from '../helpers/utils/patch-entity';
 
 import { AssetService } from './asset.service';
@@ -68,9 +67,10 @@ export class AdministratorService {
     ) {}
 
     /**
-     * Replaces or removes profile-owned media for an Administrator. The new files are
-     * persisted before the old files are deleted so a failed upload never destroys the
-     * currently-visible avatar.
+     * Replaces or removes profile-owned media for an Administrator.
+     *
+     * The Administrator is read through {@link AdministratorService.findOne}, so an Administrator
+     * which is not visible to the active user cannot have their avatar changed.
      */
     async setAvatar(
         ctx: RequestContext,
@@ -81,6 +81,51 @@ export class AdministratorService {
         if (!administrator) {
             throw new EntityNotFoundError('Administrator', administratorId);
         }
+        return this.writeAvatar(ctx, administrator, upload);
+    }
+
+    /**
+     * Replaces or removes profile-owned media for an Administrator without applying the visibility
+     * rule that {@link AdministratorService.setAvatar} applies.
+     *
+     * External authentication runs while the request is still anonymous: the session is minted only
+     * once the strategy has returned a User. An anonymous active user holds no permissions, so the
+     * visibility rule hides every Administrator from it, including the one the strategy has just
+     * created. A strategy which synchronizes a provider profile image therefore cannot go through
+     * the visibility-scoped read.
+     *
+     * The caller is responsible for establishing that it may write to this Administrator. Do not
+     * use this method to serve a request whose Administrator id comes from the client.
+     *
+     * @internal
+     */
+    async setAvatarWithoutVisibilityCheck(
+        ctx: RequestContext,
+        administratorId: ID,
+        upload: Promise<StoredMediaUpload> | StoredMediaUpload | null,
+    ): Promise<Administrator> {
+        const administrator = await this.connection.getRepository(ctx, Administrator).findOne({
+            relations: { avatar: true },
+            where: {
+                id: administratorId,
+                deletedAt: IsNull(),
+            },
+        });
+        if (!administrator) {
+            throw new EntityNotFoundError('Administrator', administratorId);
+        }
+        return this.writeAvatar(ctx, administrator, upload);
+    }
+
+    /**
+     * Writes the avatar of an already-loaded Administrator. The new files are persisted before the
+     * old files are deleted so a failed upload never destroys the currently-visible avatar.
+     */
+    private async writeAvatar(
+        ctx: RequestContext,
+        administrator: Administrator,
+        upload: Promise<StoredMediaUpload> | StoredMediaUpload | null,
+    ): Promise<Administrator> {
         const previousAvatar = administrator.avatar;
 
         if (upload == null) {
@@ -121,45 +166,92 @@ export class AdministratorService {
      * @description
      * Get a paginated list of Administrators.
      */
-    findAll(
+    async findAll(
         ctx: RequestContext,
         options?: ListQueryOptions<Administrator>,
         relations?: RelationPaths<Administrator>,
     ): Promise<PaginatedList<Administrator>> {
-        return this.listQueryBuilder
-            .build(Administrator, options, {
-                relations: relations ?? ['avatar', 'user', 'user.roles'],
-                where: { deletedAt: IsNull() },
-                ctx,
-            })
-            .getManyAndCount()
-            .then(([items, totalItems]) => ({
-                items,
-                totalItems,
-            }));
+        const qb = this.listQueryBuilder.build(Administrator, options, {
+            relations: relations ?? ['avatar', 'user', 'user.roles'],
+            where: { deletedAt: IsNull() },
+            ctx,
+        });
+        await this.restrictToVisibleAdministrators(ctx, qb);
+        const [items, totalItems] = await qb.getManyAndCount();
+        return { items, totalItems };
     }
 
     /**
      * @description
      * Get an Administrator by id.
+     *
+     * Resolves to `undefined` if the Administrator is not visible to the active user, so that a
+     * caller cannot confirm the existence of an Administrator they are not allowed to see.
      */
-    findOne(
+    async findOne(
         ctx: RequestContext,
         administratorId: ID,
         relations?: RelationPaths<Administrator>,
     ): Promise<Administrator | undefined> {
-        return this.connection
-            .getRepository(ctx, Administrator)
-            .findOne({
-                relations: findOptionsArrayToObject<Administrator>(
-                    relations ?? ['avatar', 'user', 'user.roles'],
-                ),
-                where: {
-                    id: administratorId,
-                    deletedAt: IsNull(),
-                },
-            })
-            .then(result => result ?? undefined);
+        const administrator = await this.connection.getRepository(ctx, Administrator).findOne({
+            // The Roles are always loaded, since they are what the visibility check is based on.
+            relations: findOptionsArrayToObject<Administrator>([
+                ...(relations ?? ['avatar']),
+                'user',
+                'user.roles',
+            ]),
+            where: {
+                id: administratorId,
+                deletedAt: IsNull(),
+            },
+        });
+        if (!administrator) {
+            return undefined;
+        }
+        // An Administrator is visible only to an active user who could be granted every one of the
+        // Administrator's Roles. This is the same rule that create() and update() apply, so the read
+        // and the write policy cannot drift apart.
+        const visible = await this.roleService.activeUserHasPermissionsOfRoles(
+            ctx,
+            administrator.user.roles.map(role => role.id),
+        );
+        return visible ? administrator : undefined;
+    }
+
+    /**
+     * Restricts a list query to the Administrators which are visible to the active user. The
+     * restriction is applied to the query rather than to its result, so that `totalItems`,
+     * sorting, filtering and pagination all operate over the visible Administrators only.
+     */
+    private async restrictToVisibleAdministrators(
+        ctx: RequestContext,
+        qb: SelectQueryBuilder<Administrator>,
+    ) {
+        // A SuperAdmin sees every Administrator. getVisibleRoleIds() returns every Role id for a
+        // SuperAdmin, so the sub-query below would exclude nobody. This early return only saves the query.
+        if (ctx.userHasPermissions([Permission.SuperAdmin])) {
+            return;
+        }
+        const visibleRoleIds = await this.roleService.getVisibleRoleIds(ctx);
+        // An Administrator is excluded as soon as they hold a single Role which the active user
+        // cannot read. A sub-query is used rather than a join on the main query, so that the
+        // Administrator rows are not duplicated by the Role and Channel relations.
+        qb.andWhere(outerQb => {
+            const hiddenAdministratorsQuery = outerQb
+                .subQuery()
+                .select('visibility_administrator.id')
+                .from(Administrator, 'visibility_administrator')
+                .innerJoin('visibility_administrator.user', 'visibility_user')
+                .innerJoin('visibility_user.roles', 'visibility_role');
+            // With no visible Roles, every Role is hidden, so no condition is needed on the Role.
+            if (visibleRoleIds.length) {
+                hiddenAdministratorsQuery.where('visibility_role.id NOT IN (:...visibleRoleIds)', {
+                    visibleRoleIds,
+                });
+            }
+            const administratorId = `${outerQb.escape(outerQb.alias)}.${outerQb.escape('id')}`;
+            return `${administratorId} NOT IN ${hiddenAdministratorsQuery.getQuery()}`;
+        });
     }
 
     /**
@@ -278,7 +370,6 @@ export class AdministratorService {
         if (!administrator) {
             throw new EntityNotFoundError('Administrator', input.id);
         }
-        await this.checkActiveUserCanManageAdministrator(ctx, administrator);
         if (input.roleIds) {
             await this.checkActiveUserCanGrantRoles(ctx, input.roleIds);
         }
@@ -412,32 +503,8 @@ export class AdministratorService {
      * updating an Administrator.
      */
     private async checkActiveUserCanGrantRoles(ctx: RequestContext, roleIds: ID[]) {
-        const roles = await this.connection.getRepository(ctx, Role).find({
-            where: { id: In(roleIds) },
-            relations: { channels: true },
-        });
-        const permissionsRequired = getChannelPermissions(roles);
-        for (const channelPermissions of permissionsRequired) {
-            const activeUserHasRequiredPermissions = await this.roleService.userHasAllPermissionsOnChannel(
-                ctx,
-                channelPermissions.id,
-                channelPermissions.permissions,
-            );
-            if (!activeUserHasRequiredPermissions) {
-                throw new UserInputError('error.active-user-does-not-have-sufficient-permissions');
-            }
-        }
-    }
-
-    /**
-     * Ensures the active user holds all of the target administrator's permissions on all of the target's
-     * channels before allowing the target to be modified, so a lower-privileged administrator cannot
-     * modify a higher-privileged one (including a SuperAdmin).
-     */
-    private async checkActiveUserCanManageAdministrator(ctx: RequestContext, administrator: Administrator) {
-        const targetRoleIds = administrator.user.roles.map(role => role.id);
-        if (targetRoleIds.length) {
-            await this.checkActiveUserCanGrantRoles(ctx, targetRoleIds);
+        if (!(await this.roleService.activeUserHasPermissionsOfRoles(ctx, roleIds))) {
+            throw new UserInputError('error.active-user-does-not-have-sufficient-permissions');
         }
     }
 
@@ -464,9 +531,10 @@ export class AdministratorService {
      * Soft deletes an Administrator (sets the `deletedAt` field).
      */
     async softDelete(ctx: RequestContext, id: ID) {
-        const administrator = await this.connection.getEntityOrThrow(ctx, Administrator, id, {
-            relations: ['user'],
-        });
+        const administrator = await this.findOne(ctx, id);
+        if (!administrator) {
+            throw new EntityNotFoundError('Administrator', id);
+        }
         const isSoleSuperadmin = await this.isSoleSuperadmin(ctx, id);
         if (isSoleSuperadmin) {
             throw new InternalServerError('error.cannot-delete-sole-superadmin');
@@ -547,7 +615,15 @@ export class AdministratorService {
                 superadminCredentials.password,
             );
             const { id } = await this.connection.getRepository(ctx, Administrator).save(administrator);
-            const createdAdministrator = await assertFound(this.findOne(ctx, id));
+            // The Administrator is read straight from the repository rather than through findOne(),
+            // so bootstrap does not depend on the visibility rule and a later change to that rule
+            // cannot stop the SuperAdmin being created.
+            const createdAdministrator = await assertFound(
+                this.connection.getRepository(ctx, Administrator).findOne({
+                    where: { id },
+                    relations: ['user', 'user.roles'],
+                }),
+            );
             createdAdministrator.user.roles.push(superAdminRole);
             await this.connection.getRepository(ctx, User).save(createdAdministrator.user, { reload: false });
         } else {

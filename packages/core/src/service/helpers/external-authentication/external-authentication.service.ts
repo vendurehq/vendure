@@ -225,7 +225,13 @@ export class ExternalAuthenticationService {
         );
 
         if (config.avatar) {
-            await this.administratorService.setAvatar(ctx, administrator.id, config.avatar);
+            // The request is still anonymous at this point, so the visibility-scoped setAvatar()
+            // would not find the Administrator which has just been created above.
+            await this.administratorService.setAvatarWithoutVisibilityCheck(
+                ctx,
+                administrator.id,
+                config.avatar,
+            );
         }
 
         return savedUser;
@@ -259,7 +265,9 @@ export class ExternalAuthenticationService {
         if (!administrator) {
             throw new EntityNotFoundError('Administrator', userId);
         }
-        return this.administratorService.setAvatar(ctx, administrator.id, avatar);
+        // An authentication strategy calls this while the request is still anonymous, which the
+        // visibility rule applied by setAvatar() would reject.
+        return this.administratorService.setAvatarWithoutVisibilityCheck(ctx, administrator.id, avatar);
     }
 
     async findUser(

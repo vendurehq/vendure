@@ -1,4 +1,4 @@
-import { VendureConfig } from '@vendure/core';
+import type { VendureConfig } from '@vendure/core';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { register } from 'ts-node';

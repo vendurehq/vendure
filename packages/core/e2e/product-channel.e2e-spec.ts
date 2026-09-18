@@ -1,4 +1,4 @@
-import { CurrencyCode, LanguageCode, Permission } from '@vendure/common/lib/generated-types';
+import { CurrencyCode, DeletionResult, LanguageCode, Permission } from '@vendure/common/lib/generated-types';
 import type { ErrorResultGuard } from '@vendure/testing';
 import { createErrorResultGuard, createTestEnvironment, E2E_DEFAULT_CHANNEL_TOKEN } from '@vendure/testing';
 import { fail } from 'assert';
@@ -23,6 +23,9 @@ import {
     createProductOptionGroupDocument,
     createProductVariantsDocument,
     createRoleDocument,
+    deleteProductDocument,
+    deleteProductVariantDocument,
+    deleteProductVariantsDocument,
     getChannelsDocument,
     getProductVariantListDocument,
     getProductWithVariantsDocument,
@@ -1026,6 +1029,285 @@ describe('ChannelAware Products and ProductVariants', () => {
             });
             expect(result2?.name).toBe('Channel 3 Product');
         });
+    });
+
+    // OSS-666 — ProductVariantService.softDelete must be channel-scoped. Without it, an admin
+    // scoped to one channel can soft-delete a ProductVariant that belongs only to another channel
+    // (a cross-channel data-integrity bypass — the delete-path analogue of the #5043 guards).
+    describe('cross-channel ProductVariant deletion protection', () => {
+        let defaultOnlyVariantId: string;
+
+        beforeAll(async () => {
+            await adminClient.asSuperAdmin();
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+
+            // A product — and therefore its variant — that lives only in the default channel (T_1).
+            const { createProduct } = await adminClient.query(createProductDocument, {
+                input: {
+                    translations: [
+                        {
+                            languageCode: LanguageCode.en,
+                            name: 'OSS-666 Default-only Product',
+                            slug: 'oss-666-default-only',
+                            description: '',
+                        },
+                    ],
+                },
+            });
+            const { createProductVariants } = await adminClient.query(createProductVariantsDocument, {
+                input: [
+                    {
+                        productId: createProduct.id,
+                        sku: 'OSS-666-VARIANT',
+                        optionIds: [],
+                        translations: [{ languageCode: LanguageCode.en, name: 'OSS-666 Variant' }],
+                    },
+                ],
+            });
+            const variant = createProductVariants[0];
+            productVariantGuard.assertSuccess(variant);
+            defaultOnlyVariantId = variant.id;
+
+            // An administrator scoped to the second channel (T_2) with delete permissions.
+            const { createRole } = await adminClient.query(createRoleDocument, {
+                input: {
+                    description: 'second channel deleter',
+                    code: 'second-channel-deleter',
+                    channelIds: ['T_2'],
+                    permissions: [
+                        Permission.ReadCatalog,
+                        Permission.DeleteCatalog,
+                        Permission.DeleteProduct,
+                    ],
+                },
+            });
+            await adminClient.query(createAdministratorDocument, {
+                input: {
+                    firstName: 'Deleter',
+                    lastName: 'Two',
+                    emailAddress: 'deleter2@test.com',
+                    password: 'test',
+                    roleIds: [createRole.id],
+                },
+            });
+        });
+
+        afterAll(async () => {
+            await adminClient.asSuperAdmin();
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+        });
+
+        it(
+            'a second-channel admin cannot delete a variant that lives only in the default channel',
+            assertThrowsWithMessage(async () => {
+                await adminClient.asUserWithCredentials('deleter2@test.com', 'test');
+                adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
+                await adminClient.query(deleteProductVariantDocument, { id: defaultOnlyVariantId });
+                // Deferred so `defaultOnlyVariantId` (set in beforeAll) is read at throw time, not
+                // at test-registration time when it is still undefined.
+            }, () => `No ProductVariant with the id "${defaultOnlyVariantId.replace(/^T_/, '')}" could be found`),
+        );
+
+        it('the variant still exists after the cross-channel delete attempt', async () => {
+            await adminClient.asSuperAdmin();
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            const { productVariants } = await adminClient.query(getProductVariantListDocument, {
+                options: { filter: { id: { eq: defaultOnlyVariantId } } },
+            });
+            expect(productVariants.items.map(v => v.id)).toEqual([defaultOnlyVariantId]);
+        });
+
+        it('the variant can still be deleted from its own (default) channel', async () => {
+            await adminClient.asSuperAdmin();
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            const { deleteProductVariant } = await adminClient.query(deleteProductVariantDocument, {
+                id: defaultOnlyVariantId,
+            });
+            expect(deleteProductVariant.result).toBe(DeletionResult.DELETED);
+        });
+
+        // The channel guard must not leak into the product-deletion cascade: deleting a Product is
+        // a global operation and must still soft-delete every one of its variants, including any
+        // that were individually removed from the deleting admin's channel.
+        it('a channel-scoped product delete still cascades to a variant removed from that channel', async () => {
+            await adminClient.asSuperAdmin();
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+
+            const { createProduct } = await adminClient.query(createProductDocument, {
+                input: {
+                    translations: [
+                        {
+                            languageCode: LanguageCode.en,
+                            name: 'OSS-666 Cascade Product',
+                            slug: 'oss-666-cascade',
+                            description: '',
+                        },
+                    ],
+                },
+            });
+            // Two variants (via an option group), so removing one from a channel leaves the other —
+            // and therefore the product — assigned to that channel.
+            const { createProductOptionGroup } = await adminClient.query(createProductOptionGroupDocument, {
+                input: {
+                    code: 'oss-666-size',
+                    translations: [{ languageCode: LanguageCode.en, name: 'Size' }],
+                    options: [
+                        { code: 'oss-666-s', translations: [{ languageCode: LanguageCode.en, name: 'S' }] },
+                        { code: 'oss-666-l', translations: [{ languageCode: LanguageCode.en, name: 'L' }] },
+                    ],
+                },
+            });
+            await adminClient.query(addOptionGroupToProductDocument, {
+                productId: createProduct.id,
+                optionGroupId: createProductOptionGroup.id,
+            });
+            const { createProductVariants } = await adminClient.query(createProductVariantsDocument, {
+                input: [
+                    {
+                        productId: createProduct.id,
+                        sku: 'OSS-666-CASCADE-S',
+                        price: 1000,
+                        optionIds: [createProductOptionGroup.options[0].id],
+                        translations: [{ languageCode: LanguageCode.en, name: 'Cascade S' }],
+                    },
+                    {
+                        productId: createProduct.id,
+                        sku: 'OSS-666-CASCADE-L',
+                        price: 1000,
+                        optionIds: [createProductOptionGroup.options[1].id],
+                        translations: [{ languageCode: LanguageCode.en, name: 'Cascade L' }],
+                    },
+                ],
+            });
+            productVariantGuard.assertSuccess(createProductVariants[0]);
+            productVariantGuard.assertSuccess(createProductVariants[1]);
+            const stayingVariantId = createProductVariants[0].id;
+            const removedVariantId = createProductVariants[1].id;
+
+            // Assign the product (and both variants) to the second channel, then remove only the
+            // second variant from it. The product stays in T_2 (via the first variant) while the
+            // second variant lives only in the default channel.
+            await adminClient.query(assignProductToChannelDocument, {
+                input: { channelId: 'T_2', productIds: [createProduct.id] },
+            });
+            await adminClient.query(removeProductVariantFromChannelDocument, {
+                input: { channelId: 'T_2', productVariantIds: [removedVariantId] },
+            });
+
+            // A second-channel admin deletes the product from T_2. The cascade must still soft-delete
+            // the out-of-channel variant rather than throwing.
+            await adminClient.asUserWithCredentials('deleter2@test.com', 'test');
+            adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
+            const { deleteProduct } = await adminClient.query(deleteProductDocument, {
+                id: createProduct.id,
+            });
+            expect(deleteProduct.result).toBe(DeletionResult.DELETED);
+
+            // Both variants — including the one removed from T_2 — were soft-deleted by the cascade.
+            await adminClient.asSuperAdmin();
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            const { productVariants } = await adminClient.query(getProductVariantListDocument, {
+                options: { filter: { id: { in: [stayingVariantId, removedVariantId] } } },
+            });
+            expect(productVariants.items).toEqual([]);
+        });
+
+        it(
+            'deleting an unknown variant id throws rather than reporting DELETED',
+            assertThrowsWithMessage(async () => {
+                await adminClient.asSuperAdmin();
+                adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+                await adminClient.query(deleteProductVariantDocument, { id: 'T_999999' });
+            }, 'No ProductVariant with the id "999999" could be found'),
+        );
+
+        // deleteProductVariants is @Transaction()-wrapped, so a batch containing an id outside the
+        // active channel is rejected in full rather than partially applied. Skipped on sqljs, whose
+        // transaction rollback is a no-op (see database-transactions.e2e-spec.ts), so a partial
+        // delete would persist and mask the guarantee this test asserts.
+        it.skipIf(!process.env.DB || process.env.DB === 'sqljs')(
+            'deleteProductVariants discards the whole batch when one id is not in the active channel',
+            async () => {
+                await adminClient.asSuperAdmin();
+                adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+
+                // A variant which lives only in the default channel, plus one assigned to T_2 as well.
+                const { createProduct } = await adminClient.query(createProductDocument, {
+                    input: {
+                        translations: [
+                            {
+                                languageCode: LanguageCode.en,
+                                name: 'OSS-666 Bulk Product',
+                                slug: 'oss-666-bulk',
+                                description: '',
+                            },
+                        ],
+                    },
+                });
+                const { createProductVariants } = await adminClient.query(createProductVariantsDocument, {
+                    input: [
+                        {
+                            productId: createProduct.id,
+                            sku: 'OSS-666-BULK',
+                            optionIds: [],
+                            translations: [{ languageCode: LanguageCode.en, name: 'OSS-666 Bulk Variant' }],
+                        },
+                    ],
+                });
+                productVariantGuard.assertSuccess(createProductVariants[0]);
+                const defaultOnlyId = createProductVariants[0].id;
+
+                const { createProduct: sharedProduct } = await adminClient.query(createProductDocument, {
+                    input: {
+                        translations: [
+                            {
+                                languageCode: LanguageCode.en,
+                                name: 'OSS-666 Bulk Shared Product',
+                                slug: 'oss-666-bulk-shared',
+                                description: '',
+                            },
+                        ],
+                    },
+                });
+                const { createProductVariants: sharedVariants } = await adminClient.query(
+                    createProductVariantsDocument,
+                    {
+                        input: [
+                            {
+                                productId: sharedProduct.id,
+                                sku: 'OSS-666-BULK-SHARED',
+                                optionIds: [],
+                                translations: [
+                                    { languageCode: LanguageCode.en, name: 'OSS-666 Bulk Shared Variant' },
+                                ],
+                            },
+                        ],
+                    },
+                );
+                productVariantGuard.assertSuccess(sharedVariants[0]);
+                const sharedId = sharedVariants[0].id;
+                await adminClient.query(assignProductToChannelDocument, {
+                    input: { channelId: 'T_2', productIds: [sharedProduct.id] },
+                });
+
+                // A T_2 admin deletes both in one call. Only one of them is in T_2.
+                await adminClient.asUserWithCredentials('deleter2@test.com', 'test');
+                adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
+                await expect(
+                    adminClient.query(deleteProductVariantsDocument, { ids: [sharedId, defaultOnlyId] }),
+                ).rejects.toThrow('No ProductVariant with the id');
+
+                // The batch was rejected in full: the variant the admin *could* have deleted survives.
+                await adminClient.asSuperAdmin();
+                adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+                const { productVariants } = await adminClient.query(getProductVariantListDocument, {
+                    options: { filter: { id: { in: [sharedId, defaultOnlyId] } } },
+                });
+                expect(productVariants.items.map(v => v.id).sort()).toEqual(
+                    [sharedId, defaultOnlyId].sort(),
+                );
+            },
+        );
     });
 });
 

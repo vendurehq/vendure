@@ -37,6 +37,7 @@ export const getTasksDocument = graphql(`
             description
             schedule
             scheduleDescription
+            timezone
             lastResult
             enabled
         }
@@ -308,6 +309,21 @@ export const createFacetDocument = graphql(
         }
     `,
     [facetWithValuesFragment],
+);
+
+export const multiFieldMutationDocument = graphql(
+    `
+        mutation MultiFieldTest($facet: CreateFacetInput!, $channel: CreateChannelInput!) {
+            a: createFacet(input: $facet) {
+                id
+                code
+            }
+            b: createChannel(input: $channel) {
+                ...Channel
+            }
+        }
+    `,
+    [channelFragment],
 );
 
 export const updateFacetDocument = graphql(
@@ -736,6 +752,15 @@ export const deleteProductVariantDocument = graphql(`
     }
 `);
 
+export const deleteProductVariantsDocument = graphql(`
+    mutation DeleteProductVariants($ids: [ID!]!) {
+        deleteProductVariants(ids: $ids) {
+            result
+            message
+        }
+    }
+`);
+
 export const assignProductToChannelDocument = graphql(
     `
         mutation AssignProductsToChannel($input: AssignProductsToChannelInput!) {
@@ -929,6 +954,24 @@ export const updateChannelDocument = graphql(
     `,
     [channelFragment],
 );
+
+export const deleteChannelDocument = graphql(`
+    mutation DeleteChannel($id: ID!) {
+        deleteChannel(id: $id) {
+            message
+            result
+        }
+    }
+`);
+
+export const deleteChannelsDocument = graphql(`
+    mutation DeleteChannels($ids: [ID!]!) {
+        deleteChannels(ids: $ids) {
+            message
+            result
+        }
+    }
+`);
 
 export const getCustomerHistoryDocument = graphql(`
     query GetCustomerHistory($id: ID!, $options: HistoryEntryListOptions) {
@@ -1145,6 +1188,24 @@ export const deleteCustomerNoteDocument = graphql(`
         }
     }
 `);
+
+export const verifyCustomerAccountDocument = graphql(
+    `
+        mutation VerifyCustomerAccount($id: ID!, $password: String) {
+            verifyCustomerAccount(id: $id, password: $password) {
+                ...Customer
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+                ... on PasswordValidationError {
+                    validationErrorMessage
+                }
+            }
+        }
+    `,
+    [customerFragment],
+);
 
 export const updateCustomerGroupDocument = graphql(
     `

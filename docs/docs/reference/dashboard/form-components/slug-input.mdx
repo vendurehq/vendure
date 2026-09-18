@@ -2,7 +2,59 @@
 title: "SlugInput"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/dashboard/src/lib/components/data-input/slug-input.tsx" sourceLine="137" packageName="@vendure/dashboard" />
+## requireGeneratedCode
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/data-input/slug-input.tsx" sourceLine="80" packageName="@vendure/dashboard" since="3.8.0" />
+
+Returns `schema` with the generated `code` field required.
+
+SlugInput only generates a value for a new record, and the value arrives after the debounced
+lookup returns. Pages pass this to `extendSchema` while creating, so the form stays invalid — and
+the Create button disabled — until the value arrives. Nothing is generated for an existing
+record, so pages pass `undefined` there rather than blocking edits.
+
+*Example*
+
+```ts
+extendSchema: creatingNewEntity ? requireGeneratedCode : undefined,
+```
+
+```ts title="Signature"
+function requireGeneratedCode(schema: ZodObject<any>): void
+```
+Parameters
+
+### schema
+
+<MemberInfo kind="parameter" type={`ZodObject<any>`} />
+
+## requireGeneratedSlug
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/data-input/slug-input.tsx" sourceLine="100" packageName="@vendure/dashboard" since="3.8.0" />
+
+Returns `schema` with the generated `slug` required on each translation row that has a name.
+The rows seeded for the channel's other languages have no name, so they still pass.
+
+Used the same way as [requireGeneratedCode](/reference/dashboard/form-components/slug-input#requiregeneratedcode), on pages whose slug lives on the translations.
+
+*Example*
+
+```ts
+extendSchema: creatingNewEntity ? requireGeneratedSlug : undefined,
+```
+
+```ts title="Signature"
+function requireGeneratedSlug(schema: ZodObject<any>): void
+```
+Parameters
+
+### schema
+
+<MemberInfo kind="parameter" type={`ZodObject<any>`} />
+
+## SlugInput
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/data-input/slug-input.tsx" sourceLine="192" packageName="@vendure/dashboard" />
 
 A component for generating and displaying slugs based on a watched field.
 The component watches a source field for changes, debounces the input,

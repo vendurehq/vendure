@@ -4,25 +4,10 @@ import { Form } from '@/vdb/components/ui/form.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/vdb/components/ui/select.js';
 import { LS_KEY_SHIPPING_TEST_ADDRESS } from '@/vdb/constants.js';
-import { api } from '@/vdb/graphql/api.js';
-import { graphql } from '@/vdb/graphql/graphql.js';
+import { useAvailableCountries } from '@/vdb/hooks/use-available-countries.js';
 import { Trans } from '@lingui/react/macro';
-import { useQuery } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
-
-// Query document to fetch available countries
-const getAvailableCountriesDocument = graphql(`
-    query GetAvailableCountries {
-        countries(options: { filter: { enabled: { eq: true } } }) {
-            items {
-                id
-                code
-                name
-            }
-        }
-    }
-`);
 
 export interface TestAddress {
     fullName: string;
@@ -75,11 +60,7 @@ export function TestAddressForm({ onAddressChange }: Readonly<TestAddressFormPro
     });
 
     // Fetch available countries
-    const { data: countriesData, isLoading: isLoadingCountries } = useQuery({
-        queryKey: ['availableCountries'],
-        queryFn: () => api.query(getAvailableCountriesDocument),
-        staleTime: 1000 * 60 * 60 * 24, // 24 hours
-    });
+    const { data: countriesData, isLoading: isLoadingCountries } = useAvailableCountries();
 
     const previousValuesRef = useRef<string>('');
 

@@ -5,6 +5,7 @@ import Handlebars from 'handlebars';
 import { execFile, execFileSync, execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { createWriteStream } from 'node:fs';
+import { createRequire } from 'node:module';
 import { Socket } from 'node:net';
 import { platform } from 'node:os';
 import path from 'node:path';
@@ -22,13 +23,12 @@ import {
     PG_READY_MAX_ATTEMPTS,
     PG_READY_POLL_INTERVAL_MS,
     SOCKET_TIMEOUT_MS,
-    STOREFRONT_BRANCH,
-    STOREFRONT_REPO,
     TYPEORM_VERSION,
     TYPESCRIPT_VERSION,
     VITE_VERSION,
 } from './constants';
 import { log } from './logger';
+import { StorefrontStarter } from './storefront-starters';
 import { CliLogLevel, DbType, PackageManager } from './types';
 
 /**
@@ -113,9 +113,9 @@ export function checkNodeVersion(requiredVersion: string, currentVersion: string
     if (!semver.satisfies(currentVersion, requiredVersion)) {
         log(
             pc.red(
-                `You are running Node ${currentVersion}.` +
-                    `Vendure requires Node ${requiredVersion} or higher.` +
-                    'Please update your version of Node.',
+                `You are running Node ${currentVersion}. ` +
+                    `Vendure requires Node ${requiredVersion}.` +
+                    ' Please update your version of Node.',
             ),
         );
         process.exit(1);
@@ -1000,10 +1000,27 @@ export function cleanUpDockerResources(name: string) {
     }
 }
 
+/**
+ * Returns a `require` anchored in the generated project rather than in this CLI.
+ *
+ * `yarn dlx` runs the CLI under Plug'n'Play, which resolves each request against the
+ * package that made it. A request from this CLI for a package that only the generated
+ * project declares is rejected. Passing `require.resolve(pkg, { paths })` does not help,
+ * because Plug'n'Play ignores `paths`. Anchoring at the generated project's package.json
+ * makes that project the requesting package, so its node_modules tree is used.
+ *
+ * Loading through this require also keeps the generated project's CommonJS graph on the
+ * CommonJS loader. A dynamic import enters that graph through the ESM loader instead, and
+ * on Node 22 its nested requires fail to link with ERR_VM_MODULE_LINK_FAILURE.
+ */
+export function createProjectRequire(rootDir: string) {
+    return createRequire(path.join(rootDir, 'package.json'));
+}
+
 export function resolvePackageRootDir(packageName: string, rootDir: string) {
     let packageEntryPath: string;
     try {
-        packageEntryPath = require.resolve(packageName, { paths: [rootDir] });
+        packageEntryPath = createProjectRequire(rootDir).resolve(packageName);
     } catch {
         log(`Falling back to direct node_modules lookup for ${packageName}`);
         const fallbackPath = path.join(process.cwd(), 'node_modules', packageName);
@@ -1030,11 +1047,15 @@ export function resolvePackageRootDir(packageName: string, rootDir: string) {
 }
 
 /**
- * Downloads the Next.js storefront starter from GitHub and extracts it to the target directory.
- * Uses the GitHub API tarball endpoint to avoid requiring git.
+ * Downloads a storefront starter from GitHub and extracts it to the target directory.
+ * Uses the starter's main branch intentionally, so improvements and fixes are available to newly
+ * scaffolded projects without requiring a matching @vendure/create release.
  */
-export async function downloadAndExtractStorefront(targetDir: string): Promise<void> {
-    const tarballUrl = `https://api.github.com/repos/${STOREFRONT_REPO}/tarball/${STOREFRONT_BRANCH}`;
+export async function downloadAndExtractStorefront(
+    targetDir: string,
+    storefront: StorefrontStarter,
+): Promise<void> {
+    const tarballUrl = `https://api.github.com/repos/${storefront.repository}/tarball/${storefront.ref}`;
     const tempTarPath = path.join(targetDir, '..', 'storefront-temp.tar.gz');
 
     try {

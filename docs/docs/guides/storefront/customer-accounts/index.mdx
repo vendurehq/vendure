@@ -146,7 +146,7 @@ If you are using alternative authentication strategies in your storefront, you w
 
 The [`registerCustomerAccount` mutation](/reference/graphql-api/shop/mutations/#registercustomeraccount) is used to register a new customer account.
 
-There are three possible registration flows:
+There are four possible registration flows.
 If [`authOptions.requireVerification`](/reference/typescript-api/auth/auth-options/#requireverification) is set to `true` (the default):
 
 1. **The Customer is registered _with_ a password**. A verificationToken will be created (and typically emailed to the Customer). That
@@ -159,6 +159,47 @@ verified and authenticated in one step.
 If `authOptions.requireVerification` is set to `false`:
 
 3. The Customer _must_ be registered _with_ a password. No further action is needed - the Customer is able to authenticate immediately.
+
+Whatever the setting, if an account already exists for that email address through another authentication
+strategy (for example an SSO provider) and has no password yet:
+
+4. **The supplied password is never stored.** A verificationToken is created and emailed to the address,
+and the mutation answers `{ success: true }` exactly as it does for a new account, so it does not reveal
+that the account exists. The password is set only when that token is passed to the verifyCustomerAccount
+mutation _with_ the chosen password, which proves the caller controls the mailbox. This holds even when
+`requireVerification` is `false`, so a storefront must not assume it can log the customer in straight
+after registering. Registering again sends the verification email with a fresh token, for as long as the
+credential still holds no password. Once it holds one, registering against the address does nothing, the
+same as for any fully registered account.
+
+The caller-supplied `firstName`, `lastName`, `phoneNumber` and custom fields are ignored whenever an account
+already exists for the address, since the caller has not proven they own it. That includes an account an
+administrator created earlier: such a customer registering for themselves keeps the details the administrator
+entered. A Customer left by a guest checkout has no account attached, so its details are still filled in.
+
+:::info
+This is how an existing SSO customer adds a password to their account: call registerCustomerAccount, then
+verifyCustomerAccount with the emailed token and the chosen password.
+
+requestPasswordReset is the fallback when that token has expired. It works from the moment any registration
+has touched the account, because the native credential exists from then on, even though it holds no password
+yet. Completing the reset proves the caller owns the mailbox, so it sets the password and clears the pending
+verification token in one step. It only does nothing for an account that has never been registered against
+at all, since there is no native credential to reset.
+:::
+
+:::warning
+Without this rule an unauthenticated caller could set a password on someone else's SSO account and then log
+in as them. See [GHSA-wr5h-x3x6-4h23](https://github.com/vendure-ecommerce/vendure/security/advisories/GHSA-wr5h-x3x6-4h23).
+:::
+
+:::note
+A native login on an unverified account is refused for as long as its credential carries a
+verificationToken, whatever `requireVerification` is set to. So if you switch `requireVerification` from
+`true` to `false`, customers who registered under the old setting and never verified do not become able to
+log in. They finish the flow with the token they were sent, or recover with requestPasswordReset, which
+clears the token.
+:::
 
 Here's a diagram of the second scenario, where the password is supplied during the _verification_ step.
 

@@ -1,6 +1,7 @@
 import { type Page, expect, test } from '@playwright/test';
 
 import { BaseListPage } from '../../page-objects/list-page.base.js';
+import { closePopup, expectPopupClosed } from '../../utils/base-ui-popups.js';
 import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
 
 // Orders use a multi-step draft flow rather than a single CRUD form.
@@ -507,6 +508,95 @@ test.describe('Orders', () => {
         await expect(recalculateCheckbox).toBeChecked();
     });
 
+    // #3389 — existing tax descriptions should be available when adding a surcharge
+    test('should suggest existing tax descriptions when adding a surcharge', async ({ page }) => {
+        test.setTimeout(60_000);
+
+        const orderId = await createModifyingOrder(page);
+
+        await page.goto(`/orders/${orderId}/modify`);
+        await expect(page.getByRole('heading', { name: 'Modify order' })).toBeVisible({
+            timeout: 10_000,
+        });
+
+        // The order's only tax line comes from the seeded 20% rate, which
+        // e2e/fixtures/initial-data.ts names "Standard Tax" and the populator suffixes with
+        // the zone. Hardcoded, so a wrong field mapping in the form can't go unnoticed.
+        const seededTaxDescription = 'Standard Tax Europe';
+
+        const surchargeBlock = page
+            .locator('[data-slot="card"]')
+            .filter({ has: page.getByText('Add surcharge', { exact: true }) });
+        const taxDescriptionInput = surchargeBlock.getByRole('combobox', { name: 'Tax description' });
+        const taxRateInput = surchargeBlock.getByRole('spinbutton', { name: 'Tax rate' });
+        // The popup is portalled, so it sits outside the surcharge block.
+        const suggestions = page.getByRole('listbox');
+        const suggestion = (name: string) => suggestions.getByRole('option', { name, exact: true });
+
+        const addSurcharge = async (description: string) => {
+            await surchargeBlock.getByRole('textbox', { name: 'Description' }).fill(description);
+            await surchargeBlock.getByRole('textbox', { name: 'Price' }).fill('10.00');
+            await surchargeBlock.getByRole('button', { name: 'Add surcharge' }).click();
+            await expect(page.getByText(description)).toBeVisible();
+        };
+
+        const addSurchargeButton = surchargeBlock.getByRole('button', { name: 'Add surcharge' });
+        await surchargeBlock.getByRole('textbox', { name: 'Description' }).fill('Handling fee');
+        await surchargeBlock.getByRole('textbox', { name: 'Price' }).fill('10.00');
+        await taxRateInput.fill('101');
+        await expect(addSurchargeButton).toBeDisabled();
+        await taxDescriptionInput.click();
+        await suggestion(seededTaxDescription).click();
+        await expect(taxDescriptionInput).toHaveValue(seededTaxDescription);
+        // Picking a description adopts the rate it is charged at. The tax summary groups by
+        // description and rate, so leaving the form's rate would split the tax line anyway.
+        await expect(taxRateInput).toHaveValue('20');
+        // Selecting the valid rate must clear an existing validation error immediately.
+        await expect(addSurchargeButton).toBeEnabled();
+
+        // Free text wins over the selection: a custom description must survive the popup
+        // closing, instead of snapping back to the description that was picked.
+        await taxDescriptionInput.fill(' Custom tax description ');
+        // Picking a suggestion above already closed the popup, and typing a description that
+        // matches no existing one does not reopen it. Pin that, because an open popup here
+        // would put a backdrop over the "Add surcharge" button below.
+        await expectPopupClosed(taxDescriptionInput);
+        await taxDescriptionInput.blur();
+        await expect(taxDescriptionInput).toHaveValue(' Custom tax description ');
+
+        await addSurcharge('Handling fee');
+
+        // The custom description is now suggested, which is only possible if it reached
+        // modifyOrderInput.surcharges — the duplicate-tax-line case, since the description
+        // is not yet on the order. Nothing on the page renders taxDescription directly.
+        await taxDescriptionInput.click();
+        await expect(suggestion('Custom tax description')).toBeVisible();
+        await suggestion('Custom tax description').click();
+        // Existing descriptions are exact grouping keys, including significant whitespace.
+        await expect(taxDescriptionInput).toHaveValue(' Custom tax description ');
+
+        // Reuse the seeded description on a second surcharge: it must not then be
+        // suggested twice, once from the tax summary and once from the pending surcharge.
+        await taxDescriptionInput.fill(seededTaxDescription);
+        await suggestion(seededTaxDescription).click();
+        // A picked description stays browsable: the list is not narrowed to the pick, so
+        // the admin can reopen and switch to another description.
+        await taxDescriptionInput.click();
+        await expect(suggestion('Custom tax description')).toBeVisible();
+        // Close the popup, which otherwise covers the fields below.
+        await closePopup(taxDescriptionInput);
+        await addSurcharge('Gift wrap');
+        await taxDescriptionInput.click();
+        await expect(suggestion(seededTaxDescription)).toHaveCount(1);
+
+        // Typing narrows the suggestions, and a description matching nothing closes the popup.
+        await taxDescriptionInput.fill('Custom');
+        await expect(suggestion('Custom tax description')).toBeVisible();
+        await expect(suggestion(seededTaxDescription)).toBeHidden();
+        await taxDescriptionInput.fill('No such tax');
+        await expect(suggestions).toBeHidden();
+    });
+
     test.describe('Order lifecycle', () => {
         test('should fulfill an order', async ({ page }) => {
             test.setTimeout(60_000);
@@ -566,6 +656,48 @@ test.describe('Orders', () => {
             await expect(page.getByTestId('order-state-control')).toContainText(/Shipped/i, {
                 timeout: 10_000,
             });
+        });
+
+        // #5027 — Dialog for new payment has Transaction ID set as optional
+        test('should transition order state after adding payment', async ({ page }) => {
+            test.setTimeout(60_000);
+
+            const client = new VendureAdminClient(page);
+            await client.login();
+            const orderId = await createNewOrder(client);
+
+            await page.goto(`/orders/${orderId}`);
+            await page.getByRole('button', { name: /Add payment/i }).click();
+
+            // The payment dialog should open
+            const dialog = page.locator('[role="dialog"]');
+            await expect(dialog).toBeVisible({ timeout: 5_000 });
+            await expect(dialog.getByText(/Add payment/i).first()).toBeVisible();
+
+            // the payment method options should open
+            const selectPaymentMethod = dialog.getByRole('button', { name: /Select item/ });
+            await expect(selectPaymentMethod).toBeVisible({ timeout: 10_000 });
+            await selectPaymentMethod.click();
+
+            // Options are labelled `${name} (${code})`. Match `test-payment` (created by
+            // `createNewOrder`) exactly: `payment-methods.spec.ts` creates "E2E Test Payment",
+            // and a substring match resolves to both until that spec renames or deletes it.
+            const standardPayment = dialog.getByRole('option', {
+                name: 'Test Payment (test-payment)',
+                exact: true,
+            });
+            await expect(standardPayment).toBeVisible({ timeout: 10_000 });
+            await standardPayment.click();
+
+            const request = page.waitForRequest(req => req.url().includes('/admin-api'));
+            await dialog.getByRole('button', { name: /Add payment/ }).click();
+            await request;
+
+            // Add fulfillment to the order
+            const { order } = await client.gql(`query ($id: ID!) { order(id: $id) { payments { id } } }`, {
+                id: orderId,
+            });
+            expect(order.payments).toHaveLength(1);
         });
 
         test('should open refund dialog and show order lines', async ({ page }) => {
@@ -990,12 +1122,16 @@ async function createFulfilledOrder(client: VendureAdminClient): Promise<string>
 }
 
 /**
- * Creates a payment method (idempotent), builds a fully-paid order via the
- * Admin API, and returns the order ID in "PaymentSettled" state.
+ * Creates a payment method (idempotent), builds an order via the
+ * Admin API, and returns the order ID.
  */
-async function createPaidOrder(client: VendureAdminClient): Promise<string> {
-    // Ensure a payment method exists
-    const { paymentMethods } = await client.gql(`query { paymentMethods { items { id } } }`);
+async function createNewOrder(client: VendureAdminClient) {
+    // Ensure `test-payment` exists. Filter by code rather than checking for an empty
+    // list: `payment-methods.spec.ts` creates its own method, and specs run in parallel,
+    // so an unfiltered list can be non-empty without `test-payment` in it.
+    const { paymentMethods } = await client.gql(
+        `query { paymentMethods(options: { filter: { code: { eq: "test-payment" } } }) { items { id } } }`,
+    );
     if (paymentMethods.items.length === 0) {
         await client.gql(`
             mutation {
@@ -1083,6 +1219,16 @@ async function createPaidOrder(client: VendureAdminClient): Promise<string> {
     `,
         { id: orderId },
     );
+
+    return orderId;
+}
+
+/**
+ * Creates a payment method (idempotent), builds a fully-paid order via the
+ * Admin API, and returns the order ID in "PaymentSettled" state.
+ */
+async function createPaidOrder(client: VendureAdminClient): Promise<string> {
+    const orderId = await createNewOrder(client);
 
     await client.gql(
         `

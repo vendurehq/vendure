@@ -2,6 +2,7 @@ import { type Page, expect, test } from '@playwright/test';
 
 import { BaseDetailPage } from '../../page-objects/detail-page.base.js';
 import { BaseListPage } from '../../page-objects/list-page.base.js';
+import { closePopup, expectPopupClosed, expectPopupOpen } from '../../utils/base-ui-popups.js';
 import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
 
 // Channels have dependent selectors: available languages/currencies must be set
@@ -198,6 +199,109 @@ test.describe('Channels CRUD', () => {
         await lp.expectSuccessToast();
 
         await expect(lp.getRows().filter({ hasText: 'e2e-test-channel' })).toHaveCount(0);
+
+        // #5179 — the deleted channel must also disappear from the channel
+        // switcher in the sidebar, not just the list. The switcher renders from
+        // the channel provider (me.channels), which the delete bulk action
+        // refreshes via refreshChannels(). Crucially there is no page.reload()
+        // here: a reload would repopulate the switcher from scratch and mask the
+        // bug this asserts.
+        const sidebar = page.locator('[data-slot="sidebar"]');
+        await sidebar.getByRole('button').first().click();
+        const switcherMenu = page.locator('[data-slot="dropdown-menu-content"]');
+        await expect(switcherMenu).toBeVisible();
+        await expect(switcherMenu.getByText('e2e-test-channel')).toHaveCount(0);
+    });
+
+    // #5179 — Follow-up: deleting the channel you are currently switched into
+    // must recover the active channel without a full page reload. refreshChannels()
+    // refetches ['activeChannel'] while localStorage still holds the deleted
+    // channel's token (retry: false, so it is not retried); the provider then
+    // picks the first available channel and must re-invalidate ['activeChannel']
+    // so it refetches under the corrected token. No page.reload() below the
+    // initial load: a reload recreates the QueryClient and masks the bug.
+    test('should recover the active channel after deleting the current one', async ({ page }) => {
+        test.setTimeout(30_000);
+        const channelCode = `e2e-active-del-${Date.now()}`;
+
+        // Create the channel via the Admin API so the test can focus on the
+        // switch/delete/recover flow rather than the long create form.
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const zones = await client.gql(
+            `query { zones(options: { filter: { name: { eq: "Europe" } } }) { items { id } } }`,
+        );
+        const zoneId = zones.zones.items[0]?.id as string;
+        expect(zoneId).toBeTruthy();
+        const created = await client.gql(
+            `mutation ($input: CreateChannelInput!) {
+                createChannel(input: $input) {
+                    ... on Channel { id }
+                    ... on ErrorResult { errorCode message }
+                }
+            }`,
+            {
+                input: {
+                    code: channelCode,
+                    token: channelCode,
+                    defaultLanguageCode: 'en',
+                    pricesIncludeTax: false,
+                    defaultCurrencyCode: 'USD',
+                    availableCurrencyCodes: ['USD'],
+                    defaultTaxZoneId: zoneId,
+                    defaultShippingZoneId: zoneId,
+                },
+            },
+        );
+        const createdChannelId = created.createChannel.id as string;
+
+        try {
+            // Initial (and only) full load.
+            await page.goto('/');
+            const sidebar = page.locator('[data-slot="sidebar"]');
+            const switcherTrigger = sidebar.getByRole('button').first();
+            await expect(switcherTrigger).toBeVisible({ timeout: 15_000 });
+
+            // Switch into the newly created channel.
+            await switcherTrigger.click();
+            const switcherMenu = page.locator('[data-slot="dropdown-menu-content"]');
+            await expect(switcherMenu).toBeVisible();
+            await switcherMenu.getByRole('menuitem').filter({ hasText: channelCode }).click();
+            await expect(switcherTrigger).toContainText(channelCode, { timeout: 10_000 });
+
+            // Delete the currently-active channel via the list (client-side nav).
+            // Channels lives under the Settings section, which may need expanding.
+            const channelsLink = sidebar.getByRole('link', { name: 'Channels', exact: true });
+            if (!(await channelsLink.isVisible().catch(() => false))) {
+                await sidebar.getByRole('button', { name: 'Settings' }).click();
+            }
+            await channelsLink.click();
+            const lp = listPage(page);
+            await lp.expectLoaded();
+            const row = lp.getRows().filter({ hasText: channelCode });
+            await row.getByRole('checkbox').click();
+            await page.getByRole('button', { name: /Actions/i }).click();
+            await page.locator('[role="menu"]').getByText('Delete', { exact: true }).click();
+            await page.locator('[role="alertdialog"]').getByRole('button', { name: 'Continue' }).click();
+            await lp.expectSuccessToast();
+            await expect(lp.getRows().filter({ hasText: channelCode })).toHaveCount(0);
+
+            // The active channel must recover to a valid channel on its own. This
+            // suite runs in serial mode and the default channel is the only one
+            // left at this point, so the switcher must land on it. Without the fix
+            // this stays stuck on the deleted channel until a hard refresh.
+            await expect(switcherTrigger).not.toContainText(channelCode, { timeout: 10_000 });
+            await expect(switcherTrigger).toContainText('Default channel', { timeout: 10_000 });
+        } finally {
+            // Ensure the channel is gone even if an assertion above failed. On the
+            // happy path the UI already deleted it, so this call is expected to
+            // fail with "not found" and the rejection is discarded.
+            await client
+                .gql(`mutation ($id: ID!) { deleteChannel(id: $id) { result } }`, {
+                    id: createdChannelId,
+                })
+                .catch(() => {});
+        }
     });
 });
 
@@ -290,19 +394,21 @@ test.describe('Channel required-field validation', () => {
         await dp.fillInput('Code', 'e2e-default-source-channel');
         await dp.fillInput('Token', 'e2e-default-source-token');
 
-        // Nothing is available, so there is nothing to make the default. Base UI does not mount
-        // the popup at all for an empty list, so anchor on the trigger still offering its
-        // placeholder — otherwise a field that failed to render would pass this just as happily.
+        // Nothing is available, so there is nothing to make the default. Wait for the popup to
+        // be open before asserting it holds no options: a popup that has not mounted yet has
+        // no options either, so the check would pass whether the field rendered or not.
         const defaultCurrency = dp.formItem('Default currency').getByRole('combobox');
         await defaultCurrency.click();
+        await expectPopupOpen(defaultCurrency);
         await expect(page.getByRole('option')).toHaveCount(0);
         await expect(defaultCurrency).toContainText('Select a currency');
-        await dp.closeDropdown();
+        await closePopup(defaultCurrency);
 
         // Marking one currency available makes it — and only it — a candidate default.
-        await dp.formItem('Available currencies').getByRole('combobox').click();
+        const availableCurrencies = dp.formItem('Available currencies').getByRole('combobox');
+        await availableCurrencies.click();
         await page.getByRole('option', { name: /Euro/ }).first().click();
-        await dp.closeDropdown();
+        await closePopup(availableCurrencies);
         await expect(currencyChip(dp, 'Euro')).toBeVisible();
 
         await defaultCurrency.click();
@@ -310,7 +416,7 @@ test.describe('Channel required-field validation', () => {
         await expect(openSelect(page).getByRole('option')).toHaveCount(1);
         await openSelect(page).getByRole('option', { name: /Euro/ }).click();
         // A single-select closes itself once a value is picked.
-        await expect(page.getByRole('listbox').filter({ visible: true })).toHaveCount(0);
+        await expectPopupClosed(defaultCurrency);
         await expect(dp.formItem('Default currency').getByRole('combobox')).toContainText('Euro');
 
         await dp.selectOption('Default tax zone', 'Europe');
@@ -342,14 +448,15 @@ test.describe('Channel required-field validation', () => {
         // Two available currencies...
         // Pick both from one open list: a multi-select only closes on selection when a filter is
         // active, so selecting unfiltered keeps the dropdown open for the next one.
-        await dp.formItem('Available currencies').getByRole('combobox').click();
+        const currencySelect = dp.formItem('Available currencies').getByRole('combobox');
+        await currencySelect.click();
         for (const currency of ['US Dollar', 'Euro']) {
             await page
                 .getByRole('option', { name: new RegExp(currency) })
                 .first()
                 .click();
         }
-        await dp.closeDropdown();
+        await closePopup(currencySelect);
 
         // ...one of which becomes the default...
         await dp.formItem('Default currency').getByRole('combobox').click();

@@ -5,6 +5,7 @@ import {
     DefaultJobQueuePlugin,
     facetValueCollectionFilter,
     productIdCollectionFilter,
+    TransactionalConnection,
     variantIdCollectionFilter,
     variantNameCollectionFilter,
 } from '@vendure/core';
@@ -2231,6 +2232,113 @@ describe('Collection resolver', () => {
         });
     });
 
+    describe('list query does not scale with Channel count', () => {
+        const scalingCollectionIds: string[] = [];
+
+        /**
+         * Runs the list query and reports how many rows the database returned for it. The
+         * statements are captured and re-run because the row count is what grows when an
+         * unwanted relation is joined, and it is not visible in the GraphQL response.
+         *
+         * Only the statements carrying the `lqb__channel` alias are counted. That alias is
+         * added by the Channel scoping join, so it selects the list query's own statements
+         * and leaves out session lookups and any job queue activity, whose number varies
+         * between runs. The test asserts a non-zero row count, so this narrowing fails
+         * loudly rather than silently measuring nothing if that alias is ever renamed.
+         */
+        async function countRowsForList(): Promise<{ items: number; rows: number }> {
+            const dataSource = server.app.get(TransactionalConnection).rawConnection;
+            const previousLogger = dataSource.logger;
+            const statements: Array<[string, any[]]> = [];
+            // Derive from the existing logger rather than spreading it. TypeORM's loggers keep
+            // `logQueryError` on the prototype, and a spread copies own properties only, so a
+            // failing query would call an undefined method and mask itself.
+            const capturingLogger = Object.create(previousLogger);
+            capturingLogger.logQuery = (query: string, parameters?: any[]) =>
+                statements.push([query, parameters ?? []]);
+            dataSource.logger = capturingLogger;
+            let items: number;
+            try {
+                const { collections } = await adminClient.query(collectionListForScalingDocument, {
+                    options: { take: 10, filter: { name: { contains: 'Scaling' } } },
+                });
+                items = collections.items.length;
+            } finally {
+                dataSource.logger = previousLogger;
+            }
+
+            let rows = 0;
+            for (const [sql, parameters] of statements) {
+                if (!/^SELECT/i.test(sql.trim()) || !sql.includes('lqb__channel')) {
+                    continue;
+                }
+                const result = await dataSource.query(sql, parameters);
+                if (Array.isArray(result)) {
+                    rows += result.length;
+                }
+            }
+            return { items, rows };
+        }
+
+        beforeAll(async () => {
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            for (let p = 0; p < 3; p++) {
+                const { createCollection: parent } = await adminClient.query(createCollectionDocument, {
+                    input: {
+                        filters: [],
+                        translations: [
+                            {
+                                languageCode: LanguageCode.en,
+                                name: `Scaling parent ${p}`,
+                                slug: `scaling-parent-${p}`,
+                                description: 'Long enough to be worth not repeating once per Channel.',
+                            },
+                        ],
+                    },
+                });
+                scalingCollectionIds.push(parent.id);
+                for (let c = 0; c < 2; c++) {
+                    const { createCollection: child } = await adminClient.query(createCollectionDocument, {
+                        input: {
+                            parentId: parent.id,
+                            filters: [],
+                            translations: [
+                                {
+                                    languageCode: LanguageCode.en,
+                                    name: `Scaling child ${p}-${c}`,
+                                    slug: `scaling-child-${p}-${c}`,
+                                    description: 'Long enough to be worth not repeating once per Channel.',
+                                },
+                            ],
+                        },
+                    });
+                    scalingCollectionIds.push(child.id);
+                }
+            }
+        });
+
+        // A list query is scoped to a Channel by a dedicated join, so the Channels a Collection
+        // is assigned to decide which Collections a page contains, and nothing else. Joining the
+        // `channels` relation on top of that scoping join breaks this: Collection is a tree
+        // entity, so the relation becomes a `leftJoinAndSelect` and each row of the page is
+        // repeated once per Channel the Collection is assigned to.
+        it('returns the same rows when the Collections are assigned to a second Channel', async () => {
+            const inOneChannel = await countRowsForList();
+            expect(inOneChannel.items).toBe(scalingCollectionIds.length);
+            expect(inOneChannel.rows).toBeGreaterThan(0);
+
+            await adminClient.query(assignCollectionsToChannelDocument, {
+                input: { collectionIds: scalingCollectionIds, channelId: secondChannel.id },
+            });
+            await awaitRunningJobs(adminClient);
+
+            // The counts are deterministic, so compare exactly.
+            const inTwoChannels = await countRowsForList();
+            expect(inTwoChannels.items).toBe(inOneChannel.items);
+            expect(inTwoChannels.rows).toBe(inOneChannel.rows);
+        });
+    });
+
     function getFacetValueId(code: string): string {
         const match = facetValues.find(fv => fv.code === code);
         if (!match) {
@@ -2441,6 +2549,27 @@ const deleteCollectionsBulkDocument = graphql(`
         deleteCollections(ids: $ids) {
             message
             result
+        }
+    }
+`);
+
+/** Mirrors the Dashboard collection list, which selects `children` but no `channels`. */
+const collectionListForScalingDocument = graphql(`
+    query CollectionListForScaling($options: CollectionListOptions) {
+        collections(options: $options) {
+            totalItems
+            items {
+                id
+                name
+                description
+                featuredAsset {
+                    id
+                }
+                children {
+                    id
+                    name
+                }
+            }
         }
     }
 `);

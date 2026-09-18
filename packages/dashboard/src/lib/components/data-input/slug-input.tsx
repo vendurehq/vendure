@@ -6,6 +6,9 @@ import { api } from '@/vdb/graphql/api.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
 import { cn } from '@/vdb/lib/utils.js';
+import { z, type ZodObject } from '@/vdb/lib/zod.js';
+import { i18n } from '@lingui/core';
+import { msg } from '@lingui/core/macro';
 import { useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from '@uidotdev/usehooks';
@@ -54,6 +57,58 @@ function resolveWatchFieldPath(
     }
 
     return watchFieldName;
+}
+
+/**
+ * @description
+ * Returns `schema` with the generated `code` field required.
+ *
+ * SlugInput only generates a value for a new record, and the value arrives after the debounced
+ * lookup returns. Pages pass this to `extendSchema` while creating, so the form stays invalid — and
+ * the Create button disabled — until the value arrives. Nothing is generated for an existing
+ * record, so pages pass `undefined` there rather than blocking edits.
+ *
+ * @example
+ * ```ts
+ * extendSchema: creatingNewEntity ? requireGeneratedCode : undefined,
+ * ```
+ *
+ * @docsCategory form-components
+ * @docsPage SlugInput
+ * @since 3.8.0
+ */
+export function requireGeneratedCode(schema: ZodObject<any>) {
+    return schema.extend({ code: z.string().min(1, { message: i18n._(msg`This field is required`) }) });
+}
+
+/**
+ * @description
+ * Returns `schema` with the generated `slug` required on each translation row that has a name.
+ * The rows seeded for the channel's other languages have no name, so they still pass.
+ *
+ * Used the same way as {@link requireGeneratedCode}, on pages whose slug lives on the translations.
+ *
+ * @example
+ * ```ts
+ * extendSchema: creatingNewEntity ? requireGeneratedSlug : undefined,
+ * ```
+ *
+ * @docsCategory form-components
+ * @docsPage SlugInput
+ * @since 3.8.0
+ */
+export function requireGeneratedSlug(schema: ZodObject<any>) {
+    return schema.superRefine((values, ctx) => {
+        for (const [index, translation] of (values.translations ?? []).entries()) {
+            if (translation?.name?.trim() && !translation.slug?.trim()) {
+                ctx.addIssue({
+                    code: 'custom',
+                    path: ['translations', index, 'slug'],
+                    message: i18n._(msg`This field is required`),
+                });
+            }
+        }
+    });
 }
 
 export interface SlugInputProps extends DashboardFormComponentProps {

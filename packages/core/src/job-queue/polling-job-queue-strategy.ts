@@ -120,8 +120,17 @@ class ActiveQueue<Data extends JobData<Data> = object> {
                 for (let i = runningJobsCount; i < this.concurrency; i++) {
                     const nextJob = await this.jobQueueStrategy.next(this.queueName);
                     if (nextJob) {
+                        // Track the job as active before awaiting the initial status update,
+                        // so it stays visible to awaitRunningJobsOrTimeout() during a shutdown
+                        // that races this update. If the update throws, remove it again so the
+                        // concurrency slot isn't wedged.
                         this.activeJobs.push(nextJob);
-                        await this.jobQueueStrategy.update(nextJob);
+                        try {
+                            await this.jobQueueStrategy.update(nextJob);
+                        } catch (err) {
+                            this.removeJobFromActive(nextJob);
+                            throw err;
+                        }
                         const onProgress = (job: Job) => this.jobQueueStrategy.update(job);
                         nextJob.on('progress', onProgress);
                         const cancellationSub = interval(this.pollInterval * 5)
@@ -161,7 +170,8 @@ class ActiveQueue<Data extends JobData<Data> = object> {
                                 return this.onFailOrComplete(nextJob);
                             })
                             .catch((err: any) => {
-                                Logger.warn(`Error updating job info: ${JSON.stringify(err)}`);
+                                Logger.warn(`Error updating job info: ${err?.message}`);
+                                Logger.debug(err?.stack);
                             });
                     }
                 }
@@ -238,8 +248,11 @@ class ActiveQueue<Data extends JobData<Data> = object> {
     }
 
     private async onFailOrComplete(job: Job<Data>) {
-        await this.jobQueueStrategy.update(job);
-        this.removeJobFromActive(job);
+        try {
+            await this.jobQueueStrategy.update(job);
+        } finally {
+            this.removeJobFromActive(job);
+        }
     }
 
     private removeJobFromActive(job: Job<Data>) {

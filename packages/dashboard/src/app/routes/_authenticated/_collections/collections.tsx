@@ -109,12 +109,13 @@ function CollectionListPage() {
         [navigate],
     );
 
-    // NOTE: queryFn must be pure (no setState side effects) because TanStack Query
-    // skips queryFn entirely when data is served from cache (staleTime: 5min). If we
-    // called setAccumulatedChildren inside queryFn, a re-mounted component would get
-    // cache hits but accumulatedChildren would never be populated, so children wouldn't
-    // render. Instead we sync via useEffect below, which fires for both cache hits and
-    // fresh fetches.
+    // NOTE: queryFn must be pure (no setState side effects). With the global
+    // `keepPreviousData`, a re-mounted component is served the cached data on its
+    // first render before the refetch lands, and TanStack Query skips the queryFn
+    // entirely for that cached render. If we called setAccumulatedChildren inside
+    // queryFn, those cache-hit renders would never populate accumulatedChildren,
+    // so children wouldn't render. Instead we sync via the useEffect below, which
+    // fires for both cache hits and fresh fetches.
     const firstPageChildQueries = useQueries({
         queries:
             expanded === true
@@ -140,7 +141,6 @@ function CollectionListPage() {
                                       totalItems: result.collections.totalItems,
                                   };
                               },
-                              staleTime: 1000 * 60 * 5,
                           } satisfies FetchQueryOptions;
                       }),
     });
@@ -184,7 +184,6 @@ function CollectionListPage() {
                             totalItems: result.collections.totalItems,
                         };
                     },
-                    staleTime: 1000 * 60 * 5,
                 } satisfies FetchQueryOptions;
             }),
     });

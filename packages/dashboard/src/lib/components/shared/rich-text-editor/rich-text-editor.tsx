@@ -10,7 +10,7 @@ import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { api } from '../../../graphql/api.js';
-import { createAssetsDocument } from '../asset/asset-gallery.js';
+import { createAssetsDocument } from '../asset/asset-documents.js';
 import { LinkBubbleMenu } from './link-bubble-menu.js';
 import { ResizableImage } from './resizable-image.js';
 import { ResponsiveToolbar } from './responsive-toolbar.js';

@@ -9,7 +9,14 @@ import path from 'path';
 import { getValidBackgroundColor, getValidFormat } from './common';
 import { ImageTransformParameters, ImageTransformStrategy } from './config/image-transform-strategy';
 import { S3AssetStorageStrategy } from './config/s3-asset-storage-strategy';
-import { ASSET_SERVER_PLUGIN_INIT_OPTIONS, DEFAULT_CACHE_HEADER, loggerCtx } from './constants';
+import {
+    ASSET_CSP_HEADER,
+    ASSET_MARKUP_CSP_HEADER,
+    ASSET_SERVER_PLUGIN_INIT_OPTIONS,
+    DEFAULT_CACHE_HEADER,
+    loggerCtx,
+    MARKUP_MIME_TYPES,
+} from './constants';
 import { transformImage } from './transform-image';
 import { AssetServerOptions, ImageTransformMode, ImageTransformPreset } from './types';
 
@@ -96,7 +103,7 @@ export class AssetServer {
                     mimeType = (await getFileType(file))?.mime || 'application/octet-stream';
                 }
                 res.contentType(mimeType);
-                res.setHeader('content-security-policy', "default-src 'self'");
+                this.setAssetSecurityHeaders(res, mimeType);
                 res.setHeader('Cache-Control', this.cacheHeader);
                 res.send(file);
             } catch (e: any) {
@@ -139,7 +146,7 @@ export class AssetServer {
                             mimeType = (await getFileType(imageBuffer))?.mime || 'image/jpeg';
                         }
                         res.set('Content-Type', mimeType);
-                        res.setHeader('content-security-policy', "default-src 'self'");
+                        this.setAssetSecurityHeaders(res, mimeType);
                         res.send(imageBuffer);
                         return;
                     } catch (e: any) {
@@ -300,5 +307,41 @@ export class AssetServer {
      */
     private getMimeType(fileName: string): string | undefined {
         return mime.lookup(fileName) || undefined;
+    }
+
+    /**
+     * Sets security-related response headers on a served asset. Some permitted asset types —
+     * notably SVG, but also XML and HTML — can carry embedded scripts which execute when the
+     * asset is opened as a top-level document or embedded via `<object>`/`<iframe>`. Served
+     * inline from the Vendure origin this is a stored-XSS vector (GHSA-f4r3-h6jf-4m29).
+     *
+     * - `X-Content-Type-Options: nosniff` stops the browser from re-interpreting a response as a
+     *   more dangerous type than its declared `Content-Type`.
+     * - The `Content-Security-Policy` denies scripts and subresources on every asset; for markup
+     *   types it additionally sandboxes the document, so even a markup asset rendered as a
+     *   top-level document cannot execute script (see `ASSET_MARKUP_CSP_HEADER` for why the
+     *   `sandbox` token is markup-only).
+     * - For markup types we additionally force `Content-Disposition: attachment`, so the browser
+     *   downloads rather than renders them. This does not affect `<img src>` previews (embedded
+     *   images ignore the header and never execute embedded scripts); the only visible change is
+     *   that opening such an asset's URL directly downloads it.
+     */
+    private setAssetSecurityHeaders(res: Response, mimeType: string) {
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        if (this.isMarkupMimeType(mimeType)) {
+            res.setHeader('Content-Security-Policy', ASSET_MARKUP_CSP_HEADER);
+            res.setHeader('Content-Disposition', 'attachment');
+        } else {
+            res.setHeader('Content-Security-Policy', ASSET_CSP_HEADER);
+        }
+    }
+
+    /**
+     * Whether a mime type denotes a markup document that a browser could execute script from
+     * (SVG, HTML, XHTML and generic XML). Ignores any `; charset=…` parameter.
+     */
+    private isMarkupMimeType(mimeType: string): boolean {
+        const normalized = mimeType.split(';')[0].trim().toLowerCase();
+        return MARKUP_MIME_TYPES.includes(normalized) || normalized.endsWith('+xml');
     }
 }

@@ -158,22 +158,29 @@ export class MultiChannelStockLocationStrategy extends BaseStockLocationStrategy
         ctx: RequestContext,
         stockLevel: StockLevel,
     ): Promise<boolean> {
-        const channelIds = await this.channelIdCache.get(stockLevel.stockLocationId, async () => {
-            const stockLocation = await this.connection.getEntityOrThrow(
-                ctx,
-                StockLocation,
-                stockLevel.stockLocationId,
-                {
-                    relations: {
-                        channels: true,
-                    },
-                },
-            );
-            return stockLocation.channels.map(c => c.id);
-        });
+        const channelIds = await this.getChannelIdsForStockLocation(ctx, stockLevel.stockLocationId);
         return channelIds.includes(ctx.channelId);
     }
 
+    private getChannelIdsForStockLocation(ctx: RequestContext, stockLocationId: ID): Promise<ID[]> {
+        return this.requestContextCache.get(ctx, this.getCacheKey(stockLocationId), () =>
+            this.channelIdCache.get(stockLocationId, async () => {
+                const stockLocation = await this.connection.getEntityOrThrow(
+                    ctx,
+                    StockLocation,
+                    stockLocationId,
+                    {
+                        relations: {
+                            channels: true,
+                        },
+                    },
+                );
+                return stockLocation.channels.map(c => c.id);
+            }),
+        );
+    }
+
+    // Shared by both caches. They are separate stores, so the key does not collide in either.
     private getCacheKey(stockLocationId: ID) {
         return `MultiChannelStockLocationStrategy:StockLocationChannelIds:${stockLocationId}`;
     }

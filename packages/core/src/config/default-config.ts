@@ -96,10 +96,14 @@ export const defaultConfig: RuntimeVendureConfig = {
             origin: true,
             credentials: true,
         },
+        csrfPrevention: false,
         trustProxy: false,
         middleware: [],
         introspection: true,
         apolloServerPlugins: [],
+        inputValidation: {
+            requiredFieldValidation: true,
+        },
     },
     entityIdStrategy: new AutoIncrementIdStrategy(),
     authOptions: {
@@ -116,6 +120,7 @@ export const defaultConfig: RuntimeVendureConfig = {
         sessionCacheStrategy: new DefaultSessionCacheStrategy(),
         sessionCacheTTL: 300,
         requireVerification: true,
+        disableLastLoginUpdate: false,
         verificationTokenDuration: '7d',
         superadminCredentials: {
             identifier: SUPER_ADMIN_USER_IDENTIFIER,
@@ -248,6 +253,7 @@ export const defaultConfig: RuntimeVendureConfig = {
         Promotion: [],
         Refund: [],
         Region: [],
+        Role: [],
         Seller: [],
         Session: [],
         ShippingLine: [],

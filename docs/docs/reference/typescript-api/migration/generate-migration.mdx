@@ -2,11 +2,17 @@
 title: "GenerateMigration"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/migrate.ts" sourceLine="136" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/migrate.ts" sourceLine="142" packageName="@vendure/core" />
 
 Generates a new migration file based on any schema changes (e.g. adding or removing CustomFields).
 See [TypeORM migration docs](https://typeorm.io/#/migrations) for more information about the
 underlying migration mechanism.
+
+If the schema changes include adding the `(languageCode, baseId)` unique constraint to one or more
+translation tables (introduced in v3.7 to prevent duplicate translations, see
+[#4884](https://github.com/vendurehq/vendure/issues/4884)), the generated migration will begin
+with a call to [deduplicateTranslations](/reference/typescript-api/migration/deduplicate-translations#deduplicatetranslations) for exactly those tables, so that any duplicate rows
+already present in the database are removed before the constraint is created.
 
 ```ts title="Signature"
 function generateMigration(userConfig: Partial<VendureConfig>, options: MigrationOptions): Promise<string | undefined>

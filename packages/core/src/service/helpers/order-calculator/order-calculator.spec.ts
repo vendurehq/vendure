@@ -936,6 +936,57 @@ describe('OrderCalculator', () => {
                     expect(order.total).toBe(order.subTotal);
                     assertOrderTotalsAddUp(order);
                 });
+
+                function createDiscountedOrder() {
+                    const ctx = createRequestContext({ pricesIncludeTax: false });
+                    const order = createOrder({
+                        ctx,
+                        lines: [
+                            {
+                                listPrice: 100,
+                                taxCategory: taxCategoryStandard,
+                                quantity: 1,
+                            },
+                        ],
+                    });
+                    order.couponCodes = [couponCode];
+                    order.shippingLines = [
+                        new ShippingLine({
+                            shippingMethodId: mockShippingMethodId,
+                            adjustments: [],
+                        }),
+                    ];
+                    return { ctx, order };
+                }
+
+                it('keeps existing adjustments when shipping is not recalculated', async () => {
+                    const { ctx, order } = createDiscountedOrder();
+                    await orderCalculator.applyPriceAdjustments(ctx, order, [promotion]);
+                    expect(order.shipping).toBe(0);
+
+                    // The Promotion is no longer active, but the caller asked for the existing
+                    // ShippingLines to be left alone, so the discount stands.
+                    await orderCalculator.applyPriceAdjustments(ctx, order, [], [], {
+                        recalculateShipping: false,
+                    });
+
+                    expect(order.shippingLines[0].adjustments.length).toBe(1);
+                    expect(order.shipping).toBe(0);
+                });
+
+                it('revalidates adjustments when recalculateShippingPromotions is set', async () => {
+                    const { ctx, order } = createDiscountedOrder();
+                    await orderCalculator.applyPriceAdjustments(ctx, order, [promotion]);
+                    expect(order.shipping).toBe(0);
+
+                    await orderCalculator.applyPriceAdjustments(ctx, order, [], [], {
+                        recalculateShipping: false,
+                        recalculateShippingPromotions: true,
+                    });
+
+                    expect(order.shippingLines[0].adjustments.length).toBe(0);
+                    expect(order.shipping).toBe(500);
+                });
             });
         });
 

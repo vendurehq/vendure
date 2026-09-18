@@ -87,7 +87,7 @@
     "ORDER_MODIFICATION_ERROR": "Le contenu de la Commande peut uniquement être modifié dans l'état \"AddingItems\"",
     "ORDER_PAYMENT_STATE_ERROR": "Un Paiement ne peut être ajouté que lorsque la Commande est dans l'état \"ArrangingPayment\"",
     "ORDER_STATE_TRANSITION_ERROR": "Impossible de changer l'état de la Commande de \"{ fromState }\" à \"{ toState }\"",
-    "PASSWORD_ALREADY_SET_ERROR": "Un mot de passe a déjà été défini lors de l'inscription",
+    "PASSWORD_ALREADY_SET_ERROR": "Un mot de passe a déjà été défini pour ce compte",
     "PASSWORD_RESET_TOKEN_EXPIRED_ERROR": "Le jeton de réinitialisation du mot de passe a expiré",
     "PASSWORD_RESET_TOKEN_INVALID_ERROR": "Le jeton de réinitialisation du mot de passe n'est pas reconnu",
     "PASSWORD_VALIDATION_ERROR": "Le mot de passe est invalide",

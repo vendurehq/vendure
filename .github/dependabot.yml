@@ -1,0 +1,207 @@
+version: 2
+
+# Scoping note: Dependabot security updates only raise pull requests for the
+# directories declared here. Test fixture manifests — packages/cli/e2e/fixtures
+# and packages/dashboard/vite/tests/**/fake_node_modules — are deliberately not
+# covered. They declare @vendure/core to exercise the CLI and Vite plugin, are
+# never installed, and are never published.
+updates:
+    # GitHub Actions are pinned by commit SHA. Dependabot updates the pin and
+    # the trailing version comment together.
+    #
+    # These pull requests modify .github/workflows/, which CODEOWNERS requires
+    # a listed maintainer to approve, so they are never auto-merged. They are
+    # grouped into a single weekly pull request to keep that review to one item.
+    - package-ecosystem: github-actions
+      directory: /
+      schedule:
+          interval: weekly
+          day: monday
+      # Wait a week before proposing a release. A compromised release is
+      # usually found and yanked within days, and this only delays version
+      # updates — security updates are never held back.
+      cooldown:
+          default-days: 7
+      groups:
+          github-actions:
+              patterns:
+                  - '*'
+      commit-message:
+          prefix: chore
+          include: scope
+      labels:
+          - 'type: chore 🧤'
+
+    # The docs site is a separate npm project with its own lockfile. It is not
+    # published to npm and is not part of the bun workspace.
+    - package-ecosystem: npm
+      directory: /docs
+      schedule:
+          interval: weekly
+          day: monday
+      open-pull-requests-limit: 3
+      cooldown:
+          semver-patch-days: 7
+          semver-minor-days: 7
+          semver-major-days: 14
+      groups:
+          docs:
+              patterns:
+                  - '*'
+              update-types:
+                  - minor
+                  - patch
+      commit-message:
+          prefix: chore
+          include: scope
+      labels:
+          - 'type: chore 🧤'
+          - 'docs 📖'
+
+    # The root bun workspace covers the published packages under packages/*.
+    #
+    # Note: Dependabot supports version updates for the bun ecosystem but NOT
+    # security updates. Vulnerabilities in these packages will not raise a pull
+    # request on their own — they are picked up by the weekly version update if
+    # the fix is within range, and otherwise need to be bumped deliberately.
+    - package-ecosystem: bun
+      directory: /
+      schedule:
+          interval: weekly
+          day: monday
+      open-pull-requests-limit: 10
+      cooldown:
+          default-days: 7
+      # These packages are published, so the declared range is part of the
+      # public contract. Only widen it when the new version falls outside.
+      #
+      # bun is not on the documented list of ecosystems supporting this option
+      # (bundler, cargo, composer, helm, mix, npm, pip, pub, uv). It is kept
+      # anyway: it is either honoured, or ignored, and being ignored leaves the
+      # same default behaviour as omitting it. The auto-merge lane does not rely
+      # on it either way — every allowlisted dependency is declared as a caret
+      # range, so a patch update always falls inside the existing range and no
+      # strategy rewrites the manifest.
+      versioning-strategy: increase-if-necessary
+      ignore:
+          # Workspace-internal packages are versioned by the release process.
+          - dependency-name: '@vendure/*'
+          # The Angular Admin UI is deprecated in favour of the React dashboard
+          # in packages/dashboard, so its toolchain is not worth the review
+          # cost. Updates to it are noise in the queue.
+          #
+          # This entry has to be written as dependency names rather than a
+          # path, because this bun entry uses `directory: /` and covers the
+          # whole workspace, and Dependabot matches `ignore` on dependency
+          # name only. Every family below was checked against every
+          # packages/*/package.json and the root manifest: all of them appear
+          # only in packages/admin-ui, except @angular/* and @angular-devkit/*,
+          # which also appear in packages/ui-devkit. Nothing outside those two
+          # packages depends on any of them, so ignoring them workspace-wide
+          # does not stop updates for anything that still matters.
+          #
+          # ui-devkit is covered deliberately. It exists to compile Angular
+          # Admin UI extensions, so it shares the Admin UI's deprecation, and
+          # scripts/check-angular-versions.ts requires @angular/cli,
+          # @angular/compiler and @angular/compiler-cli to match exactly
+          # between the two packages. A name-based ignore cannot cover one and
+          # not the other in any case.
+          - dependency-name: '@angular/*'
+          - dependency-name: '@angular-devkit/*'
+          - dependency-name: '@angular-eslint/*'
+          - dependency-name: '@ngx-translate/*'
+          - dependency-name: '@types/jasmine*'
+          - dependency-name: 'jasmine*'
+          - dependency-name: 'karma*'
+          - dependency-name: 'zone.js'
+      # Families that must move in lockstep are grouped so they land in one
+      # pull request. Groups cover minor and patch only; a major update arrives
+      # as its own pull request, because a major is a migration rather than a
+      # bump and should not hold a mergeable group hostage.
+      groups:
+          typescript:
+              patterns:
+                  - typescript
+              update-types:
+                  - minor
+                  - patch
+          types:
+              patterns:
+                  - '@types/*'
+              update-types:
+                  - minor
+                  - patch
+          # Kept separate from dev-tooling because these are the packages the
+          # auto-merge workflow allowlists. Grouping them on their own means a
+          # group pull request contains only allowlisted names.
+          linting:
+              patterns:
+                  - eslint
+                  - eslint-*
+                  - '@typescript-eslint/*'
+                  - prettier
+                  - prettier-*
+              update-types:
+                  - minor
+                  - patch
+          dev-tooling:
+              patterns:
+                  - vitest
+                  - '@vitest/*'
+                  - rimraf
+                  - concurrently
+                  - cross-env
+                  - ts-node
+              update-types:
+                  - minor
+                  - patch
+          nestjs:
+              patterns:
+                  - '@nestjs/*'
+              update-types:
+                  - minor
+                  - patch
+          graphql:
+              patterns:
+                  - graphql
+                  - graphql-*
+                  - '@graphql-tools/*'
+                  - '@apollo/*'
+                  - gql.tada
+              update-types:
+                  - minor
+                  - patch
+          typeorm:
+              patterns:
+                  - typeorm
+                  - mysql2
+                  - pg
+                  - better-sqlite3
+                  - sql.js
+              update-types:
+                  - minor
+                  - patch
+          opentelemetry:
+              patterns:
+                  - '@opentelemetry/*'
+              update-types:
+                  - minor
+                  - patch
+          dashboard:
+              patterns:
+                  - react
+                  - react-*
+                  - '@tanstack/*'
+                  - vite
+                  - '@vitejs/*'
+                  - tailwindcss
+                  - '@tailwindcss/*'
+                  - tailwind-merge
+              update-types:
+                  - minor
+                  - patch
+      commit-message:
+          prefix: chore
+          include: scope
+      labels:
+          - 'type: chore 🧤'

@@ -24,10 +24,20 @@ import { getDatabaseType, VendureDatabaseType } from '../connection/database-typ
 import { EntityId } from './entity-id.decorator';
 import { EncryptedFieldTransformer } from './value-transformers';
 
+import { coreEntitiesMap } from './entities';
+
 /**
  * The maximum length of the "length" argument of a MySQL varchar column.
  */
 const MAX_STRING_LENGTH = 65535;
+
+/**
+ * The relation property by which a translatable entity points at its translation entity. This is
+ * the single signal used to detect translation entities — both to exclude them from custom-field
+ * auto-init ({@link getTranslationEntityNames}) and to locate the translation type when registering
+ * localized custom fields ({@link registerCustomEntityFields}).
+ */
+const TRANSLATIONS_RELATION_PROPERTY = 'translations';
 
 /**
  * @description
@@ -54,22 +64,32 @@ export function getEntityNamesWithCustomFields(entities: Array<Type<any>>): stri
     // (a second server in the same process, or an imported-but-uninstalled plugin) — which would
     // otherwise seed phantom `config.customFields` keys.
     const registeredEntityNames = new Set(entities.map(entity => entity.name));
-    const metadataArgsStorage = getMetadataArgsStorage();
-    // The translation-entity exclusion set is intentionally built from the process-global metadata:
-    // it is only ever used to exclude, and the candidate names are already filtered to
-    // `registeredEntityNames` below, so a superset here is harmless.
-    const translationEntityNames = new Set(
-        metadataArgsStorage.relations
-            .filter(relation => relation.propertyName === 'translations')
-            .map(relation => getRelationTargetName(relation.type))
-            .filter((name): name is string => name != null),
-    );
-    const names = metadataArgsStorage.embeddeds
-        .filter(embedded => embedded.propertyName === 'customFields')
+    const translationEntityNames = getTranslationEntityNames();
+    const names = getMetadataArgsStorage()
+        .embeddeds.filter(embedded => embedded.propertyName === 'customFields')
         .map(embedded => (typeof embedded.target === 'string' ? embedded.target : embedded.target.name))
         .filter(name => registeredEntityNames.has(name))
         .filter(name => !translationEntityNames.has(name));
     return Array.from(new Set(names));
+}
+
+/**
+ * The relation-based definition of "is this a translation entity?", used internally by
+ * {@link getEntityNamesWithCustomFields} to build its exclusion set. A translation entity is the
+ * target of a `translations` relation; it carries its own `customFields` embedded (for localized
+ * field values) but is never a valid `config.customFields` key.
+ *
+ * Built from the process-global metadata storage, so it may contain names of entities not
+ * registered with this server. Callers filter their candidates to registered entities first, so a
+ * stray name here can only ever exclude, never include.
+ */
+function getTranslationEntityNames(): Set<string> {
+    return new Set(
+        getMetadataArgsStorage()
+            .relations.filter(relation => relation.propertyName === TRANSLATIONS_RELATION_PROPERTY)
+            .map(relation => getRelationTargetName(relation.type))
+            .filter((name): name is string => name != null),
+    );
 }
 
 /**
@@ -96,7 +116,7 @@ function getRelationTargetName(type: RelationMetadataArgs['type']): string | und
 /**
  * Dynamically add columns to the custom field entity based on the CustomFields config.
  */
-function registerCustomFieldsForEntity(
+export function registerCustomFieldsForEntity(
     config: VendureConfig,
     entityName: keyof CustomFields,
     // eslint-disable-next-line @typescript-eslint/prefer-function-type
@@ -108,6 +128,7 @@ function registerCustomFieldsForEntity(
     if (customFields) {
         for (const customField of customFields) {
             const { name, list, defaultValue, nullable } = customField;
+            const indexed = customField.index === true;
             if (customField.secret === true) {
                 // Validate secret-field constraints that apply regardless of the underlying storage,
                 // before branching on the field type. Otherwise an unsupported type such as
@@ -134,19 +155,59 @@ function registerCustomFieldsForEntity(
             const instance = new ctor();
             const registerColumn = () => {
                 if (customField.type === 'relation') {
+                    const { cascade, onDelete, onUpdate, eager } = customField;
+                    const relatedEntityName = customField.entity.name;
+
+                    if (onDelete === 'CASCADE' && relatedEntityName in coreEntitiesMap && list !== true) {
+                        Logger.warn(
+                            [
+                                `WARNING: You have set "onDelete: 'CASCADE'" on the custom field relation "${String(entityName)}.${name}" to the "${relatedEntityName}" entity.`,
+                                `Deleting "${relatedEntityName}" rows will also delete the "${String(entityName)}" rows that reference them.`,
+                                `"${relatedEntityName}" is a core Vendure entity, so make sure this is what you intend.`,
+                            ].join('\n'),
+                        );
+                    }
+                    if (
+                        (cascade === true ||
+                            (Array.isArray(cascade) &&
+                                (cascade.includes('remove') || cascade.includes('soft-remove')))) &&
+                        relatedEntityName in coreEntitiesMap &&
+                        list !== true
+                    ) {
+                        const cascadeSetting =
+                            cascade === true
+                                ? `cascade: true (which includes 'remove' and 'soft-remove')`
+                                : `cascade: ${JSON.stringify(cascade)}`;
+                        Logger.warn(
+                            [
+                                `WARNING: You have set "${cascadeSetting}" on the custom field relation "${String(entityName)}.${name}" to the "${relatedEntityName}" entity.`,
+                                `Removing "${String(entityName)}" rows with TypeORM's remove() or softRemove() will also remove the "${relatedEntityName}" rows they reference.`,
+                                `"${relatedEntityName}" is a core Vendure entity, so make sure this is what you intend.`,
+                            ].join('\n'),
+                        );
+                    }
                     if (customField.list) {
                         ManyToMany(type => customField.entity, customField.inverseSide, {
-                            eager: customField.eager,
+                            cascade,
+                            onDelete,
+                            onUpdate,
+                            eager,
                         })(instance, name);
                         JoinTable()(instance, name);
                     } else {
                         ManyToOne(type => customField.entity, customField.inverseSide, {
-                            eager: customField.eager,
+                            cascade,
+                            onDelete,
+                            onUpdate,
+                            eager,
                         })(instance, name);
                         JoinColumn()(instance, name);
                         // Expose the foreign key as an id property (e.g. "ownerId"), which maps
                         // to the same database column as the relation's join column.
                         EntityId({ nullable: true })(instance, `${name}Id`);
+                        if (indexed) {
+                            registerIndex(instance, name);
+                        }
                     }
                 } else {
                     const options: ColumnOptions = {
@@ -216,7 +277,9 @@ function registerCustomFieldsForEntity(
                         // The MySQL driver seems to work differently and will only apply a unique
                         // constraint if an index is defined on the column. For postgres/sqlite it is
                         // sufficient to add the `unique: true` property to the column options.
-                        Index({ unique: true })(instance, name);
+                        registerIndex(instance, name, true);
+                    } else if (indexed && customField.unique !== true) {
+                        registerIndex(instance, name);
                     }
                 }
             };
@@ -249,6 +312,30 @@ function registerCustomFieldsForEntity(
                         'A work-around needed when only relational custom fields are defined on an entity',
                 })(instance, '__fix_relational_custom_fields__');
             }
+        }
+    }
+}
+
+/**
+ * Custom-field metadata can be registered more than once when the test bootstrap lifecycle
+ * initializes and then bootstraps the same configuration. TypeORM stores decorator metadata
+ * globally, so avoid adding the same single-column index twice.
+ */
+function registerIndex(instance: object, propertyName: string, unique = false): void {
+    const target = instance.constructor;
+    const alreadyRegistered = getMetadataArgsStorage().indices.some(
+        index =>
+            index.target === target &&
+            Array.isArray(index.columns) &&
+            index.columns.length === 1 &&
+            index.columns[0] === propertyName &&
+            Boolean(index.unique) === unique,
+    );
+    if (!alreadyRegistered) {
+        if (unique) {
+            Index({ unique: true })(instance, propertyName);
+        } else {
+            Index()(instance, propertyName);
         }
     }
 }
@@ -381,7 +468,7 @@ export function registerCustomEntityFields(config: VendureConfig) {
             }
             const translationsMetadata = metadataArgsStorage
                 .filterRelations(customFieldsMetadata.target)
-                .find(m => m.propertyName === 'translations');
+                .find(m => m.propertyName === TRANSLATIONS_RELATION_PROPERTY);
             if (translationsMetadata) {
                 // This entity is translatable, which means that we should
                 // also register any localized custom fields on the related

@@ -53,9 +53,12 @@ export class AdministratorResolver {
 
     @Query()
     @Allow(Permission.Owner)
-    async activeAdministrator(@Ctx() ctx: RequestContext): Promise<Administrator | undefined> {
+    async activeAdministrator(
+        @Ctx() ctx: RequestContext,
+        @Relations(Administrator) relations: RelationPaths<Administrator>,
+    ): Promise<Administrator | undefined> {
         if (ctx.activeUserId) {
-            return this.administratorService.findOneByUserId(ctx, ctx.activeUserId);
+            return this.administratorService.findOneByUserId(ctx, ctx.activeUserId, relations);
         }
     }
 

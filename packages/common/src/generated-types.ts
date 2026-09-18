@@ -202,8 +202,14 @@ export type ApiKeyFilterParameter = {
   _or?: InputMaybe<Array<ApiKeyFilterParameter>>;
   createdAt?: InputMaybe<DateOperators>;
   id?: InputMaybe<IdOperators>;
+  /** Helps you identify unused keys */
   lastUsedAt?: InputMaybe<DateOperators>;
+  /**
+   * ID by which we can look up the API-Key.
+   * Also helps you identify keys without leaking the underlying secret API-Key.
+   */
   lookupId?: InputMaybe<StringOperators>;
+  /** A descriptive name so you can remind yourself where the API-Key gets used */
   name?: InputMaybe<StringOperators>;
   updatedAt?: InputMaybe<DateOperators>;
 };
@@ -230,8 +236,14 @@ export type ApiKeyListOptions = {
 export type ApiKeySortParameter = {
   createdAt?: InputMaybe<SortOrder>;
   id?: InputMaybe<SortOrder>;
+  /** Helps you identify unused keys */
   lastUsedAt?: InputMaybe<SortOrder>;
+  /**
+   * ID by which we can look up the API-Key.
+   * Also helps you identify keys without leaking the underlying secret API-Key.
+   */
   lookupId?: InputMaybe<SortOrder>;
+  /** A descriptive name so you can remind yourself where the API-Key gets used */
   name?: InputMaybe<SortOrder>;
   updatedAt?: InputMaybe<SortOrder>;
 };
@@ -532,9 +544,11 @@ export type ChannelFilterParameter = {
   defaultCurrencyCode?: InputMaybe<StringOperators>;
   defaultLanguageCode?: InputMaybe<StringOperators>;
   id?: InputMaybe<IdOperators>;
+  /** Not yet used - will be implemented in a future release. */
   outOfStockThreshold?: InputMaybe<NumberOperators>;
   pricesIncludeTax?: InputMaybe<BooleanOperators>;
   token?: InputMaybe<StringOperators>;
+  /** Not yet used - will be implemented in a future release. */
   trackInventory?: InputMaybe<BooleanOperators>;
   updatedAt?: InputMaybe<DateOperators>;
 };
@@ -562,6 +576,7 @@ export type ChannelSortParameter = {
   code?: InputMaybe<SortOrder>;
   createdAt?: InputMaybe<SortOrder>;
   id?: InputMaybe<SortOrder>;
+  /** Not yet used - will be implemented in a future release. */
   outOfStockThreshold?: InputMaybe<SortOrder>;
   token?: InputMaybe<SortOrder>;
   updatedAt?: InputMaybe<SortOrder>;
@@ -955,7 +970,7 @@ export type CreateCustomerInput = {
   title?: InputMaybe<Scalars['String']['input']>;
 };
 
-export type CreateCustomerResult = Customer | EmailAddressConflictError;
+export type CreateCustomerResult = Customer | EmailAddressConflictError | PasswordValidationError;
 
 export type CreateFacetInput = {
   code: Scalars['String']['input'];
@@ -1079,6 +1094,7 @@ export type CreateProvinceInput = {
 export type CreateRoleInput = {
   channelIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   code: Scalars['String']['input'];
+  customFields?: InputMaybe<Scalars['JSON']['input']>;
   description: Scalars['String']['input'];
   permissions: Array<Permission>;
 };
@@ -1516,6 +1532,7 @@ export type CustomFields = {
   Promotion: Array<CustomFieldConfig>;
   Refund: Array<CustomFieldConfig>;
   Region: Array<CustomFieldConfig>;
+  Role: Array<CustomFieldConfig>;
   Seller: Array<CustomFieldConfig>;
   Session: Array<CustomFieldConfig>;
   ShippingLine: Array<CustomFieldConfig>;
@@ -1824,6 +1841,7 @@ export enum ErrorCode {
   MANUAL_PAYMENT_STATE_ERROR = 'MANUAL_PAYMENT_STATE_ERROR',
   MIME_TYPE_ERROR = 'MIME_TYPE_ERROR',
   MISSING_CONDITIONS_ERROR = 'MISSING_CONDITIONS_ERROR',
+  MISSING_PASSWORD_ERROR = 'MISSING_PASSWORD_ERROR',
   MULTIPLE_ORDER_ERROR = 'MULTIPLE_ORDER_ERROR',
   NATIVE_AUTH_STRATEGY_ERROR = 'NATIVE_AUTH_STRATEGY_ERROR',
   NEGATIVE_QUANTITY_ERROR = 'NEGATIVE_QUANTITY_ERROR',
@@ -1835,6 +1853,7 @@ export enum ErrorCode {
   ORDER_MODIFICATION_ERROR = 'ORDER_MODIFICATION_ERROR',
   ORDER_MODIFICATION_STATE_ERROR = 'ORDER_MODIFICATION_STATE_ERROR',
   ORDER_STATE_TRANSITION_ERROR = 'ORDER_STATE_TRANSITION_ERROR',
+  PASSWORD_ALREADY_SET_ERROR = 'PASSWORD_ALREADY_SET_ERROR',
   PASSWORD_RESET_TOKEN_EXPIRED_ERROR = 'PASSWORD_RESET_TOKEN_EXPIRED_ERROR',
   PASSWORD_RESET_TOKEN_INVALID_ERROR = 'PASSWORD_RESET_TOKEN_INVALID_ERROR',
   PASSWORD_VALIDATION_ERROR = 'PASSWORD_VALIDATION_ERROR',
@@ -2849,6 +2868,13 @@ export type MissingConditionsError = ErrorResult & {
   message: Scalars['String']['output'];
 };
 
+/** Returned when attempting to register or verify a customer account without a password, when one is required. */
+export type MissingPasswordError = ErrorResult & {
+  __typename?: 'MissingPasswordError';
+  errorCode: ErrorCode;
+  message: Scalars['String']['output'];
+};
+
 export type ModifyOrderInput = {
   addItems?: InputMaybe<Array<AddItemInput>>;
   adjustOrderLines?: InputMaybe<Array<OrderLineInput>>;
@@ -3262,6 +3288,20 @@ export type Mutation = {
   updateTaxRate: TaxRate;
   /** Update an existing Zone */
   updateZone: Zone;
+  /**
+   * Manually mark a Customer's email address as verified, without the Customer having to use a
+   * verification email.
+   *
+   * A Customer with no password set (as created by `createCustomer` without one) cannot log in.
+   * Omitting `password` for such a Customer returns a `MissingPasswordError`. Passing one for a
+   * Customer who already has a password returns a `PasswordAlreadySetError`.
+   *
+   * Two failures are outside the result union, because they describe a Customer the caller should
+   * not have picked rather than a password they should correct: a Customer with no User at all (a
+   * guest checkout), and a User whose only credential is external, which a password cannot be
+   * stored on. Both throw.
+   */
+  verifyCustomerAccount: VerifyCustomerAccountResult;
 };
 
 
@@ -4190,6 +4230,12 @@ export type MutationUpdateZoneArgs = {
   input: UpdateZoneInput;
 };
 
+
+export type MutationVerifyCustomerAccountArgs = {
+  id: Scalars['ID']['input'];
+  password?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type NativeAuthInput = {
   password: Scalars['String']['input'];
   username: Scalars['String']['input'];
@@ -4347,21 +4393,36 @@ export type OrderAddress = {
 export type OrderFilterParameter = {
   _and?: InputMaybe<Array<OrderFilterParameter>>;
   _or?: InputMaybe<Array<OrderFilterParameter>>;
+  /** An order is active as long as the payment process has not been completed */
   active?: InputMaybe<BooleanOperators>;
   aggregateOrderId?: InputMaybe<IdOperators>;
+  /** A unique code for the Order */
   code?: InputMaybe<StringOperators>;
   createdAt?: InputMaybe<DateOperators>;
   currencyCode?: InputMaybe<StringOperators>;
   customerLastName?: InputMaybe<StringOperators>;
   id?: InputMaybe<IdOperators>;
+  /**
+   * The date & time that the Order was placed, i.e. the Customer
+   * completed the checkout and the Order is no longer "active"
+   */
   orderPlacedAt?: InputMaybe<DateOperators>;
   shipping?: InputMaybe<NumberOperators>;
   shippingWithTax?: InputMaybe<NumberOperators>;
   state?: InputMaybe<StringOperators>;
+  /**
+   * The subTotal is the total of all OrderLines in the Order. This figure also includes any Order-level
+   * discounts which have been prorated (proportionally distributed) amongst the items of each OrderLine.
+   * To get a total of all OrderLines which does not account for prorated discounts, use the
+   * sum of `OrderLine.discountedLinePrice` values.
+   */
   subTotal?: InputMaybe<NumberOperators>;
+  /** Same as subTotal, but inclusive of tax */
   subTotalWithTax?: InputMaybe<NumberOperators>;
+  /** Equal to subTotal plus shipping */
   total?: InputMaybe<NumberOperators>;
   totalQuantity?: InputMaybe<NumberOperators>;
+  /** The final payable amount. Equal to subTotalWithTax plus shippingWithTax */
   totalWithTax?: InputMaybe<NumberOperators>;
   transactionId?: InputMaybe<StringOperators>;
   type?: InputMaybe<StringOperators>;
@@ -4517,18 +4578,32 @@ export type OrderProcessState = {
 
 export type OrderSortParameter = {
   aggregateOrderId?: InputMaybe<SortOrder>;
+  /** A unique code for the Order */
   code?: InputMaybe<SortOrder>;
   createdAt?: InputMaybe<SortOrder>;
   customerLastName?: InputMaybe<SortOrder>;
   id?: InputMaybe<SortOrder>;
+  /**
+   * The date & time that the Order was placed, i.e. the Customer
+   * completed the checkout and the Order is no longer "active"
+   */
   orderPlacedAt?: InputMaybe<SortOrder>;
   shipping?: InputMaybe<SortOrder>;
   shippingWithTax?: InputMaybe<SortOrder>;
   state?: InputMaybe<SortOrder>;
+  /**
+   * The subTotal is the total of all OrderLines in the Order. This figure also includes any Order-level
+   * discounts which have been prorated (proportionally distributed) amongst the items of each OrderLine.
+   * To get a total of all OrderLines which does not account for prorated discounts, use the
+   * sum of `OrderLine.discountedLinePrice` values.
+   */
   subTotal?: InputMaybe<SortOrder>;
+  /** Same as subTotal, but inclusive of tax */
   subTotalWithTax?: InputMaybe<SortOrder>;
+  /** Equal to subTotal plus shipping */
   total?: InputMaybe<SortOrder>;
   totalQuantity?: InputMaybe<SortOrder>;
+  /** The final payable amount. Equal to subTotalWithTax plus shippingWithTax */
   totalWithTax?: InputMaybe<SortOrder>;
   transactionId?: InputMaybe<SortOrder>;
   updatedAt?: InputMaybe<SortOrder>;
@@ -4571,6 +4646,13 @@ export type PaginatedList = {
   totalItems: Scalars['Int']['output'];
 };
 
+/** Returned when attempting to verify a customer account with a password, when a password has already been set. */
+export type PasswordAlreadySetError = ErrorResult & {
+  __typename?: 'PasswordAlreadySetError';
+  errorCode: ErrorCode;
+  message: Scalars['String']['output'];
+};
+
 /**
  * Returned if the token used to reset an Administrator's password is valid, but has
  * expired according to the `verificationTokenDuration` setting in the AuthOptions.
@@ -4591,7 +4673,7 @@ export type PasswordResetTokenInvalidError = ErrorResult & {
   message: Scalars['String']['output'];
 };
 
-/** Returned when the given password fails password validation. */
+/** Returned when attempting to register or verify a customer account where the given password fails password validation. */
 export type PasswordValidationError = ErrorResult & {
   __typename?: 'PasswordValidationError';
   errorCode: ErrorCode;
@@ -5091,6 +5173,7 @@ export type ProductOptionGroupFilterParameter = {
   id?: InputMaybe<IdOperators>;
   languageCode?: InputMaybe<StringOperators>;
   name?: InputMaybe<StringOperators>;
+  /** The number of products that use this option group */
   productCount?: InputMaybe<NumberOperators>;
   updatedAt?: InputMaybe<DateOperators>;
 };
@@ -5128,6 +5211,7 @@ export type ProductOptionGroupSortParameter = {
   createdAt?: InputMaybe<SortOrder>;
   id?: InputMaybe<SortOrder>;
   name?: InputMaybe<SortOrder>;
+  /** The number of products that use this option group */
   productCount?: InputMaybe<SortOrder>;
   updatedAt?: InputMaybe<SortOrder>;
 };
@@ -6178,6 +6262,7 @@ export type Role = Node & {
   channels: Array<Channel>;
   code: Scalars['String']['output'];
   createdAt: Scalars['DateTime']['output'];
+  customFields?: Maybe<Scalars['JSON']['output']>;
   description: Scalars['String']['output'];
   id: Scalars['ID']['output'];
   permissions: Array<Permission>;
@@ -6249,6 +6334,7 @@ export type ScheduledTask = {
   nextExecutionAt?: Maybe<Scalars['DateTime']['output']>;
   schedule: Scalars['String']['output'];
   scheduleDescription: Scalars['String']['output'];
+  timezone?: Maybe<Scalars['String']['output']>;
 };
 
 export type SearchInput = {
@@ -7274,6 +7360,7 @@ export type UpdateProvinceInput = {
 export type UpdateRoleInput = {
   channelIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   code?: InputMaybe<Scalars['String']['input']>;
+  customFields?: InputMaybe<Scalars['JSON']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   id: Scalars['ID']['input'];
   permissions?: InputMaybe<Array<Permission>>;
@@ -7348,6 +7435,8 @@ export type User = Node & {
   updatedAt: Scalars['DateTime']['output'];
   verified: Scalars['Boolean']['output'];
 };
+
+export type VerifyCustomerAccountResult = Customer | MissingPasswordError | PasswordAlreadySetError | PasswordValidationError;
 
 export type Zone = Node & {
   __typename?: 'Zone';

@@ -1,4 +1,4 @@
-import { SlugInput } from '@/vdb/components/data-input/index.js';
+import { requireGeneratedCode, SlugInput } from '@/vdb/components/data-input/index.js';
 import { PageBreadcrumb } from '@/vdb/components/layout/generated-breadcrumbs.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
@@ -59,6 +59,7 @@ function FacetValueDetailPage() {
         queryDocument: facetValueDetailDocument,
         createDocument: createFacetValueDocument,
         updateDocument: updateFacetValueDocument,
+        extendSchema: creatingNewEntity ? requireGeneratedCode : undefined,
         setValuesForUpdate: entity => {
             return {
                 id: entity.id,

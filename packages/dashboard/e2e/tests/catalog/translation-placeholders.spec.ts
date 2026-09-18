@@ -266,15 +266,14 @@ test.describe('Translation fallback placeholders', () => {
         }
     });
 
-    // #4885 / OSS-579 — the update path (the #4962 review regression). On edit, react-hook-form
-    // resets the form from the entity, so *nothing* is dirty until the user types. Changing only a
-    // non-translation field (here the Enabled switch) must still submit just the persisted `en`
-    // translation — the seeded empty `de` row is dropped by its missing `id`, not by dirty state
-    // (which is blank here). The dirty-only version kept every row when nothing was dirty and
-    // re-created the empty `de` translation on the most common edit path.
-    test('updating a non-translation field submits only the existing translation, not a seeded empty one', async ({
-        page,
-    }) => {
+    // #4885 / OSS-579 — the update path (the #4962 review regression): changing only a
+    // non-translation field (here the Enabled switch) must never re-create the seeded empty `de`
+    // translation row. Since OSS-567 (#4916), the changed-fields-only update goes one better and
+    // omits the untouched `translations` array from the payload entirely — so no translation rows
+    // (empty or otherwise) are submitted on this edit path, and the server keeps the persisted ones
+    // untouched. This asserts that omission, which subsumes the original stripUntouchedTranslations
+    // guarantee for the non-translation-edit case.
+    test('updating a non-translation field omits the untouched translations array', async ({ page }) => {
         await goToLaptopProduct(page);
         const productId = new URL(page.url()).pathname.split('/').pop() as string;
 
@@ -300,11 +299,9 @@ test.describe('Translation fallback placeholders', () => {
         const input = (await updateRequest).postDataJSON()?.variables?.input;
 
         expect(input).toBeTruthy();
-        // The persisted English translation (carrying an id) is kept…
-        const en = input.translations.find((t: any) => t.languageCode === 'en');
-        expect(en?.id).toBeTruthy();
-        // …and no empty German row is submitted.
-        expect(input.translations.some((t: any) => t.languageCode === 'de')).toBe(false);
+        // `translations` was never touched, so the changed-fields-only update omits it — no empty
+        // `de` row (nor any other translation row) can be submitted on this edit path.
+        expect(input.translations).toBeUndefined();
 
         await dp.expectSuccessToast();
 

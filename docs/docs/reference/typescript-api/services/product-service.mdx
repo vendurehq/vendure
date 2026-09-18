@@ -2,13 +2,13 @@
 title: "ProductService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/product.service.ts" sourceLine="56" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/product.service.ts" sourceLine="58" packageName="@vendure/core" />
 
 Contains methods relating to [Product](/reference/typescript-api/entities/product#product) entities.
 
 ```ts title="Signature"
 class ProductService {
-    constructor(connection: TransactionalConnection, channelService: ChannelService, assetService: AssetService, productVariantService: ProductVariantService, facetValueService: FacetValueService, listQueryBuilder: ListQueryBuilder, translatableSaver: TranslatableSaver, eventBus: EventBus, slugValidator: SlugValidator, customFieldRelationService: CustomFieldRelationService, translator: TranslatorService, productOptionGroupService: ProductOptionGroupService)
+    constructor(connection: TransactionalConnection, channelService: ChannelService, assetService: AssetService, productVariantService: ProductVariantService, facetValueService: FacetValueService, listQueryBuilder: ListQueryBuilder, translatableSaver: TranslatableSaver, eventBus: EventBus, slugValidator: SlugValidator, customFieldRelationService: CustomFieldRelationService, translator: TranslatorService, productOptionGroupService: ProductOptionGroupService, roleService: RoleService)
     findAll(ctx: RequestContext, options?: ListQueryOptions<Product>, relations?: RelationPaths<Product>) => Promise<PaginatedList<Translated<Product>>>;
     findOne(ctx: RequestContext, productId: ID, relations?: RelationPaths<Product>) => Promise<Translated<Product> | undefined>;
     findByIds(ctx: RequestContext, productIds: ID[], relations?: RelationPaths<Product>) => Promise<Array<Translated<Product>>>;

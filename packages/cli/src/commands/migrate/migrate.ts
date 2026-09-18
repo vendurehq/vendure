@@ -2,6 +2,7 @@ import { cancel, intro, isCancel, log, outro, select } from '@clack/prompts';
 import pc from 'picocolors';
 import type { MigrationResult } from './migration-operations';
 
+import { exitCliCommand, rethrowCliCommandExit } from '../../shared/cli-command-exit';
 import { abortIfNonInteractive, withInteractiveTimeout } from '../../utilities/utils';
 
 import {
@@ -55,13 +56,13 @@ async function handleNonInteractiveMode(options: MigrateOptions) {
         log.info(
             'Run one of: vendure migrate --generate <name>, vendure migrate --run, or vendure migrate --revert.',
         );
-        process.exit(1);
+        exitCliCommand(1);
         return;
     }
 
     if (options.fromEmpty && !options.generate) {
         log.error('The --from-empty flag can only be used together with --generate <name>.');
-        process.exit(1);
+        exitCliCommand(1);
         return;
     }
 
@@ -82,8 +83,9 @@ async function handleNonInteractiveMode(options: MigrateOptions) {
             result = await revertMigrationOperation(options.config);
         }
     } catch (e: unknown) {
+        rethrowCliCommandExit(e);
         logError(e);
-        process.exit(1);
+        exitCliCommand(1);
         return;
     } finally {
         delete process.env.VENDURE_RUNNING_IN_CLI;
@@ -96,7 +98,7 @@ async function handleNonInteractiveMode(options: MigrateOptions) {
         log.success(result.message);
     } else {
         log.error(result.message);
-        process.exit(1);
+        exitCliCommand(1);
     }
 }
 
@@ -122,7 +124,7 @@ async function handleInteractiveMode(configFile?: string) {
 
     if (isCancel(action)) {
         cancel(cancelledMessage);
-        process.exit(0);
+        exitCliCommand(0);
     }
     try {
         process.env.VENDURE_RUNNING_IN_CLI = 'true';
@@ -140,8 +142,9 @@ async function handleInteractiveMode(configFile?: string) {
         }
         outro('✅ Done!');
     } catch (e: unknown) {
+        rethrowCliCommandExit(e);
         logError(e);
-        process.exitCode = 1;
+        exitCliCommand(1);
     } finally {
         delete process.env.VENDURE_RUNNING_IN_CLI;
     }

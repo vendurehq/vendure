@@ -32,6 +32,7 @@ export * from './helpers/utils/patch-entity';
 export * from './helpers/utils/translate-entity';
 export * from './helpers/verification-token-generator/verification-token-generator';
 export * from './services/administrator.service';
+export * from './services/api-key.service';
 export * from './services/asset.service';
 export * from './services/auth.service';
 export * from './services/channel.service';

@@ -1,8 +1,8 @@
 import { log, spinner } from '@clack/prompts';
-import { runMigrations } from '@vendure/core';
 
 import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command';
 import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file';
+import { requireProjectCore } from '../../../shared/project-core';
 import { analyzeProject } from '../../../shared/shared-prompts';
 import { VendureConfigRef } from '../../../shared/vendure-config-ref';
 
@@ -23,7 +23,7 @@ async function runRunMigration(configFile?: string): Promise<CliCommandReturnVal
 
     const runSpinner = spinner();
     runSpinner.start('Running migrations...');
-    const migrationsRan = await runMigrations(config);
+    const migrationsRan = await requireProjectCore().runMigrations(config);
     const report = migrationsRan.length
         ? `Successfully ran ${migrationsRan.length} migrations`
         : 'No pending migrations found';

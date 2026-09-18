@@ -24,18 +24,18 @@ import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wra
 import { PageActionBar } from '@/vdb/framework/layout-engine/page-layout.js';
 import { api } from '@/vdb/graphql/api.js';
 import { assetFragment, AssetFragment } from '@/vdb/graphql/fragments.js';
-import { graphql, ResultOf } from '@/vdb/graphql/graphql.js';
+import { graphql } from '@/vdb/graphql/graphql.js';
 import { formatFileSize } from '@/vdb/lib/utils.js';
 import { Plural, Trans, useLingui } from '@lingui/react/macro';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ColumnFiltersState, SortingState } from '@tanstack/react-table';
 import { Link } from '@tanstack/react-router';
 import { useDebounce } from '@uidotdev/usehooks';
-import { ChevronRight, LayoutGrid, LayoutList, Loader2, Search, Upload, X } from 'lucide-react';
+import { ChevronRight, LayoutGrid, LayoutList, Search, Upload, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { DragEvent, memo, useCallback, useMemo, useRef, useState } from 'react';
+import { AssetUploadModal } from './asset-upload-modal.js';
 import { useDropzone } from 'react-dropzone';
-import { toast } from 'sonner';
 import {
     AssetGridTagFilter,
     AssetTagFacetedFilter,
@@ -55,28 +55,6 @@ const getAssetListDocument = graphql(
                     ...Asset
                 }
                 totalItems
-            }
-        }
-    `,
-    [assetFragment],
-);
-
-export const createAssetsDocument = graphql(
-    `
-        mutation CreateAssets($input: [CreateAssetInput!]!) {
-            createAssets(input: $input) {
-                ...Asset
-                ... on Asset {
-                    tags {
-                        id
-                        createdAt
-                        updatedAt
-                        value
-                    }
-                }
-                ... on ErrorResult {
-                    message
-                }
             }
         }
     `,
@@ -264,6 +242,19 @@ export function AssetGallery({
         void queryClient.invalidateQueries({ queryKey: ['AssetGallery'] });
         void queryClient.invalidateQueries({ queryKey: [PaginatedListDataTableKey] });
     }, [clearSelection, queryClient]);
+
+    // Invalidated by prefix (not the fully-parameterised queryKey above) so this
+    // stays correct even if page/search/sort changed while the upload was running.
+    // Skipped entirely when nothing succeeded, since there's nothing new to show.
+    const handleUploadComplete = useCallback(
+        (summary: { succeededCount: number; failedCount: number }) => {
+            if (summary.succeededCount > 0) {
+                void queryClient.invalidateQueries({ queryKey: ['AssetGallery'] });
+                void queryClient.invalidateQueries({ queryKey: [PaginatedListDataTableKey] });
+            }
+        },
+        [queryClient],
+    );
     const adaptedBulkActions = useMemo(
         () => adaptAssetBulkActions(bulkActions, refetchAssets),
         [bulkActions, refetchAssets],
@@ -312,31 +303,9 @@ export function AssetGallery({
 
     const assets = (data?.assets.items ?? []) as Asset[];
 
-    const { mutate: createAssets, isPending: isUploading } = useMutation({
-        mutationFn: api.mutate(createAssetsDocument),
-        onSuccess: (result: ResultOf<typeof createAssetsDocument>) => {
-            const createdAssets = result.createAssets.filter(asset => 'id' in asset);
-            const failedAssets = result.createAssets.filter(asset => 'message' in asset);
+    const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+    const [uploadModalOpen, setUploadModalOpen] = useState(false);
 
-            if (createdAssets.length > 0) {
-                toast.success(t`Uploaded ${createdAssets.length} assets`);
-            }
-            if (failedAssets.length > 0) {
-                toast.error(t`Failed to upload ${failedAssets.length} assets`, {
-                    description: failedAssets.map(asset => ('message' in asset ? asset.message : '')).join(', '),
-                });
-            }
-            queryClient.invalidateQueries({ queryKey: ['AssetGallery'] });
-            queryClient.invalidateQueries({ queryKey: [PaginatedListDataTableKey] });
-        },
-        onError: error => {
-            toast.error(t`Failed to upload assets`, {
-                description: error instanceof Error ? error.message : t`Unknown error`,
-            });
-        },
-    });
-
-    // Setup dropzone
     const onDrop = useCallback(
         (acceptedFiles: File[]) => {
             if (acceptedFiles.length === 0) {
@@ -346,9 +315,10 @@ export function AssetGallery({
                 onFilesDropped(acceptedFiles);
                 return;
             }
-            createAssets({ input: acceptedFiles.map(file => ({ file })) });
+            setPendingFiles(acceptedFiles);
+            setUploadModalOpen(true);
         },
-        [createAssets, onFilesDropped],
+        [onFilesDropped],
     );
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, noClick: true });
@@ -452,15 +422,15 @@ export function AssetGallery({
         fileInput.addEventListener('change', event => {
             const target = event.target as HTMLInputElement;
             if (target.files) {
-                const filesList = Array.from(target.files);
-                onDrop(filesList);
+                onDrop(Array.from(target.files));
             }
         });
         fileInput.click();
     };
 
     return (
-        <div className={`relative flex flex-col w-full ${fixedHeight ? 'h-[600px]' : 'h-full'} ${className}`}>
+        <>
+            <div className={`relative flex flex-col w-full ${fixedHeight ? 'h-[600px]' : 'h-full'} ${className}`}>
             {showHeader && (
                 <div className="space-y-4 mb-4 flex-shrink-0">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
@@ -575,17 +545,8 @@ export function AssetGallery({
                             )}
                             <PageActionBar>
                                 <ActionBarItem itemId="upload-assets-button">
-                                    <Button
-                                        type="button"
-                                        onClick={openFileDialog}
-                                        disabled={isUploading}
-                                        className="whitespace-nowrap"
-                                    >
-                                        {isUploading ? (
-                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                        ) : (
-                                            <Upload className="h-4 w-4 mr-2" />
-                                        )}
+                                    <Button type="button" onClick={openFileDialog} className="whitespace-nowrap">
+                                        <Upload className="h-4 w-4 mr-2" />
                                         <Trans>Upload</Trans>
                                     </Button>
                                 </ActionBarItem>
@@ -627,13 +588,6 @@ export function AssetGallery({
                     <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center rounded-md">
                         <Upload className="h-12 w-12 text-primary mb-2" />
                         <p className="text-center font-medium"><Trans>Drop files here to upload</Trans></p>
-                    </div>
-                )}
-
-                {isUploading && (
-                    <div className="absolute inset-0 bg-background/70 backdrop-blur-sm z-10 flex flex-col items-center justify-center rounded-md">
-                        <Loader2 className="h-10 w-10 text-primary animate-spin mb-3" />
-                        <p className="text-center font-medium"><Trans>Uploading assets...</Trans></p>
                     </div>
                 )}
 
@@ -831,6 +785,14 @@ export function AssetGallery({
                 </div>
             )}
         </div>
+
+        <AssetUploadModal
+            files={pendingFiles}
+            open={uploadModalOpen}
+            onComplete={handleUploadComplete}
+            onClose={() => setUploadModalOpen(false)}
+        />
+        </>
     );
 }
 

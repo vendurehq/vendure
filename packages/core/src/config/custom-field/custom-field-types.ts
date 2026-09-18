@@ -28,6 +28,7 @@ import {
     Type,
     UiComponentConfig,
 } from '@vendure/common/lib/shared-types';
+import { RelationOptions } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
 import { Injector } from '../../common/injector';
@@ -62,6 +63,19 @@ export type BaseTypedCustomFieldConfig<T extends CustomFieldType, C extends Cust
     public?: boolean;
     nullable?: boolean;
     unique?: boolean;
+    /**
+     * @description
+     * Creates a database index for this custom field. Use this for custom fields
+     * which are frequently used to filter or sort large data sets.
+     *
+     * Indexes are only supported for non-list, non-struct, non-secret fields. MySQL and
+     * MariaDB also do not support indexes on `text` or `localeText` custom fields
+     * because those values are stored as `longtext` without an index prefix length.
+     * Invalid combinations are rejected during bootstrap.
+     *
+     * @since 3.8.0
+     */
+    index?: boolean;
     /**
      * @description
      * If set to `true`, the value of this field is encrypted at rest using the configured
@@ -171,8 +185,34 @@ export type RelationCustomFieldConfig = TypedCustomFieldConfig<
 > & {
     entity: Type<VendureEntity>;
     graphQLType?: string;
-    eager?: boolean;
     inverseSide?: string | ((object: any) => any);
+    /**
+     * @description
+     * The TypeORM [cascade options](https://typeorm.io/docs/relations/relations#cascade-options) for the relation.
+     * Cascaded operations act on the related entity when the owning entity is saved or removed.
+     *
+     * @since 3.7.0
+     */
+    cascade?: RelationOptions['cascade'];
+    /**
+     * @description
+     * The foreign key `ON DELETE` action for the relation. If not set, the database default (`NO ACTION`) applies.
+     *
+     * @since 3.7.0
+     */
+    onDelete?: RelationOptions['onDelete'];
+    /**
+     * @description
+     * The foreign key `ON UPDATE` action for the relation. If not set, the database default (`NO ACTION`) applies.
+     *
+     * @since 3.7.0
+     */
+    onUpdate?: RelationOptions['onUpdate'];
+    /**
+     * @description
+     * Whether the relation is always loaded together with the owning entity.
+     */
+    eager?: RelationOptions['eager'];
 };
 
 // Struct field definitions
@@ -335,6 +375,7 @@ export type CustomFields = {
     Promotion?: CustomFieldConfig[];
     Refund?: CustomFieldConfig[];
     Region?: CustomFieldConfig[];
+    Role?: CustomFieldConfig[];
     Seller?: CustomFieldConfig[];
     Session?: CustomFieldConfig[];
     ShippingLine?: CustomFieldConfig[];
@@ -360,8 +401,6 @@ export interface HasCustomFields {
  * Returns true for non-list relation custom fields, i.e. those which also expose a
  * `<name>Id` property on the entity and in the GraphQL APIs.
  */
-export function isNonListRelationCustomField(
-    config: CustomFieldConfig,
-): config is RelationCustomFieldConfig {
+export function isNonListRelationCustomField(config: CustomFieldConfig): config is RelationCustomFieldConfig {
     return config.type === 'relation' && config.list !== true;
 }
