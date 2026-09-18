@@ -793,6 +793,10 @@ msgstr "Grupul de opțiuni a fost atribuit cu succes"
 msgid "Marks the account as verified without the customer having to use a verification email."
 msgstr ""
 
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "Allocated refund amounts must equal refund total"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx
 msgid "Run Test"
 msgstr "Rulează test"
@@ -1216,6 +1220,7 @@ msgstr "Nu s-au putut anula articolele comenzii"
 msgid "Transaction ID"
 msgstr "ID tranzacție"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Allocated"
 msgstr "Alocat"
@@ -1435,6 +1440,8 @@ msgstr "Prețurile includ taxa pentru zona de taxare implicită"
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+#: src/lib/components/data-input/slug-input.tsx
+#: src/lib/components/data-input/slug-input.tsx
 msgid "This field is required"
 msgstr ""
 
@@ -1932,8 +1939,8 @@ msgid "New tax category"
 msgstr "Categorie de taxă nouă"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "Partial refund completed"
-msgstr "Rambursare parțială finalizată"
+#~ msgid "Partial refund completed"
+#~ msgstr "Rambursare parțială finalizată"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Set custom fields"
@@ -2125,6 +2132,10 @@ msgstr "Profilul a fost actualizat cu succes"
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Payment method"
 msgstr "Metodă de plată"
+
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx
+msgid "Destination"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
@@ -3977,8 +3988,8 @@ msgid "New Stock Location"
 msgstr "Locație Stoc Nouă"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "{successfulRefundCount} payment(s) refunded before failure. Check order history for details."
-msgstr "{successfulRefundCount} plată(ți) rambursată(e) înainte de eșec. Verifică istoricul comenzii pentru detalii."
+#~ msgid "{successfulRefundCount} payment(s) refunded before failure. Check order history for details."
+#~ msgstr "{successfulRefundCount} plată(ți) rambursată(e) înainte de eșec. Verifică istoricul comenzii pentru detalii."
 
 #: src/lib/components/data-input/relation-selector.tsx
 msgid "Select item"
@@ -4240,6 +4251,10 @@ msgstr "Nu s-a putut crea grupul de clienți"
 msgid "Failed to create role"
 msgstr "Nu s-a putut crea rolul"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Payment methods"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Product name"
 msgstr "Nume produs"
@@ -4281,7 +4296,7 @@ msgstr "Adaugă grup de opțiuni"
 msgid "All"
 msgstr "Toate"
 
-#. placeholder {0}: formatCurrency(refund.amountToRefundTotal, order.currencyCode)
+#. placeholder {0}: formatCurrency(refund.refundTotal, order.currencyCode)
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Refund {0}"
 msgstr "Rambursare {0}"
@@ -4465,6 +4480,10 @@ msgstr "Elimină grupul de opțiuni"
 msgid "Description"
 msgstr "Descriere"
 
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "Every refund destination must draw from a payment"
+msgstr ""
+
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx
 #: src/app/routes/_authenticated/_countries/countries.tsx
 #: src/app/routes/_authenticated/_countries/countries.tsx
@@ -4526,6 +4545,10 @@ msgstr "Filtrează"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
 msgid "Failed to update administrator"
 msgstr "Nu s-a putut actualiza administratorul"
+
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "No payment or destination was selected"
+msgstr ""
 
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "Manage your personal saved views for this table"
@@ -5452,6 +5475,10 @@ msgstr "Acesta este un rol implicit și nu poate fi modificat"
 msgid "My saved views"
 msgstr "Vizualizările mele salvate"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Other refund destinations"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 msgid "State / Province"
 msgstr "Județ / Provincie"
@@ -5643,8 +5670,8 @@ msgid "Password reset requested"
 msgstr "Resetare parolă solicitată"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "Allocated payment amount must equal refund total"
-msgstr "Suma alocată plății trebuie să fie egală cu totalul rambursării"
+#~ msgid "Allocated payment amount must equal refund total"
+#~ msgstr "Suma alocată plății trebuie să fie egală cu totalul rambursării"
 
 #. placeholder {0}: selection.length
 #: src/lib/components/shared/remove-from-channel-bulk-action.tsx
@@ -5732,6 +5759,10 @@ msgstr "Elimină"
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "Failed to update customer"
 msgstr "Nu s-a putut actualiza clientul"
+
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Draw from"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Remove option groups?"
@@ -6096,6 +6127,7 @@ msgstr "Selectează {0}"
 msgid "New facet values to add:"
 msgstr "Valori atribut noi de adăugat:"
 
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "Failed to process refund"
@@ -6693,6 +6725,11 @@ msgstr "Vizualizează rezultatul"
 msgid "Rows per page"
 msgstr "Rânduri pe pagină"
 
+#. placeholder {0}: formatCurrency(capacity, order.currencyCode)
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "Amounts drawn from payment {label} exceed its refundable amount of {0}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 msgid "Loading collections..."
 msgstr "Se încarcă colecțiile..."
@@ -6923,8 +6960,8 @@ msgid "Fulfillment ID"
 msgstr "ID livrare"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
-msgid "Select payments to refund"
-msgstr "Selectează plățile de rambursat"
+#~ msgid "Select payments to refund"
+#~ msgstr "Selectează plățile de rambursat"
 
 #: src/lib/components/shared/error-page.tsx
 msgid "The page you are looking for does not exist or may have been moved."
@@ -6977,6 +7014,10 @@ msgstr "Vizualizare globală \"{viewName}\" aplicată"
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Customer registered"
 msgstr "Client înregistrat"
+
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Remaining"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts

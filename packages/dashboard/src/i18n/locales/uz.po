@@ -793,6 +793,10 @@ msgstr "Optsiya guruhi tayinlandi"
 msgid "Marks the account as verified without the customer having to use a verification email."
 msgstr ""
 
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "Allocated refund amounts must equal refund total"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx
 msgid "Run Test"
 msgstr "Sinovni ishga tushirish"
@@ -1216,6 +1220,7 @@ msgstr "Buyurtma elementlarini bekor qilib bo'lmadi"
 msgid "Transaction ID"
 msgstr "Tranzaksiya ID"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Allocated"
 msgstr "Ajratilgan"
@@ -1435,6 +1440,8 @@ msgstr "Narxlar standart soliq hududi uchun soliqni o'z ichiga oladi"
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+#: src/lib/components/data-input/slug-input.tsx
+#: src/lib/components/data-input/slug-input.tsx
 msgid "This field is required"
 msgstr ""
 
@@ -1932,8 +1939,8 @@ msgid "New tax category"
 msgstr "Yangi soliq toifasi"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "Partial refund completed"
-msgstr "Qisman pul qaytarish bajarildi"
+#~ msgid "Partial refund completed"
+#~ msgstr "Qisman pul qaytarish bajarildi"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Set custom fields"
@@ -2125,6 +2132,10 @@ msgstr "Profil muvaffaqiyatli yangilandi"
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Payment method"
 msgstr "To'lov usuli"
+
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx
+msgid "Destination"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
@@ -3977,8 +3988,8 @@ msgid "New Stock Location"
 msgstr "Yangi zaxira joylashuvi"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "{successfulRefundCount} payment(s) refunded before failure. Check order history for details."
-msgstr "Nosozlikdan oldin {successfulRefundCount} ta to'lov qaytarildi. Tafsilotlar uchun buyurtma tarixini tekshiring."
+#~ msgid "{successfulRefundCount} payment(s) refunded before failure. Check order history for details."
+#~ msgstr "Nosozlikdan oldin {successfulRefundCount} ta to'lov qaytarildi. Tafsilotlar uchun buyurtma tarixini tekshiring."
 
 #: src/lib/components/data-input/relation-selector.tsx
 msgid "Select item"
@@ -4240,6 +4251,10 @@ msgstr "Mijozlar guruhini yaratib bo'lmadi"
 msgid "Failed to create role"
 msgstr "Rolni yaratib bo'lmadi"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Payment methods"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Product name"
 msgstr "Mahsulot nomi"
@@ -4281,7 +4296,7 @@ msgstr "Optsiya guruhi qo'shish"
 msgid "All"
 msgstr "Barchasi"
 
-#. placeholder {0}: formatCurrency(refund.amountToRefundTotal, order.currencyCode)
+#. placeholder {0}: formatCurrency(refund.refundTotal, order.currencyCode)
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Refund {0}"
 msgstr "{0} pul qaytarish"
@@ -4465,6 +4480,10 @@ msgstr "Optsiya guruhini olib tashlash"
 msgid "Description"
 msgstr "Tavsif"
 
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "Every refund destination must draw from a payment"
+msgstr ""
+
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx
 #: src/app/routes/_authenticated/_countries/countries.tsx
 #: src/app/routes/_authenticated/_countries/countries.tsx
@@ -4526,6 +4545,10 @@ msgstr "Filtr"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
 msgid "Failed to update administrator"
 msgstr "Administratorni yangilab bo'lmadi"
+
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "No payment or destination was selected"
+msgstr ""
 
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "Manage your personal saved views for this table"
@@ -5452,6 +5475,10 @@ msgstr "Bu standart Rol va uni o'zgartirib bo'lmaydi"
 msgid "My saved views"
 msgstr "Mening saqlangan ko'rinishlarim"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Other refund destinations"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 msgid "State / Province"
 msgstr "Shtat / Viloyat"
@@ -5643,8 +5670,8 @@ msgid "Password reset requested"
 msgstr "Parolni tiklash so'raldi"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "Allocated payment amount must equal refund total"
-msgstr "Ajratilgan to'lov summasi pul qaytarish jamiga teng bo'lishi kerak"
+#~ msgid "Allocated payment amount must equal refund total"
+#~ msgstr "Ajratilgan to'lov summasi pul qaytarish jamiga teng bo'lishi kerak"
 
 #. placeholder {0}: selection.length
 #: src/lib/components/shared/remove-from-channel-bulk-action.tsx
@@ -5732,6 +5759,10 @@ msgstr "Olib tashlash"
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "Failed to update customer"
 msgstr "Mijozni yangilab bo'lmadi"
+
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Draw from"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Remove option groups?"
@@ -6096,6 +6127,7 @@ msgstr "{0} larni tanlang"
 msgid "New facet values to add:"
 msgstr "Qo'shish uchun yangi faset qiymatlari:"
 
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "Failed to process refund"
@@ -6693,6 +6725,11 @@ msgstr "Natijani ko'rish"
 msgid "Rows per page"
 msgstr "Sahifadagi qatorlar"
 
+#. placeholder {0}: formatCurrency(capacity, order.currencyCode)
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "Amounts drawn from payment {label} exceed its refundable amount of {0}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 msgid "Loading collections..."
 msgstr "To'plamlar yuklanmoqda..."
@@ -6923,8 +6960,8 @@ msgid "Fulfillment ID"
 msgstr "Bajarish ID"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
-msgid "Select payments to refund"
-msgstr "Pul qaytarish uchun to'lovlarni tanlang"
+#~ msgid "Select payments to refund"
+#~ msgstr "Pul qaytarish uchun to'lovlarni tanlang"
 
 #: src/lib/components/shared/error-page.tsx
 msgid "The page you are looking for does not exist or may have been moved."
@@ -6977,6 +7014,10 @@ msgstr "\"{viewName}\" global ko'rinishi qo'llanildi"
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Customer registered"
 msgstr "Mijoz ro'yxatdan o'tdi"
+
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Remaining"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts

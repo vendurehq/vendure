@@ -821,6 +821,10 @@ msgstr "Skupina voleb úspěšně přiřazena"
 msgid "Marks the account as verified without the customer having to use a verification email."
 msgstr ""
 
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "Allocated refund amounts must equal refund total"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx
 msgid "Run Test"
 msgstr "Spustit test"
@@ -1244,6 +1248,7 @@ msgstr "Nepodařilo se zrušit položky objednávky"
 msgid "Transaction ID"
 msgstr "ID transakce"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Allocated"
 msgstr "Alokováno"
@@ -1471,6 +1476,8 @@ msgstr "Ceny zahrnují DPH pro výchozí daňovou zónu"
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+#: src/lib/components/data-input/slug-input.tsx
+#: src/lib/components/data-input/slug-input.tsx
 msgid "This field is required"
 msgstr ""
 
@@ -1993,8 +2000,8 @@ msgstr "Nová daňová kategorie"
 #~ msgstr "Přidat volbu"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "Partial refund completed"
-msgstr "Částečné vrácení dokončeno"
+#~ msgid "Partial refund completed"
+#~ msgstr "Částečné vrácení dokončeno"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Set custom fields"
@@ -2192,6 +2199,10 @@ msgstr "Profil úspěšně aktualizován"
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Payment method"
 msgstr "Způsob platby"
+
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx
+msgid "Destination"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
@@ -4073,8 +4084,8 @@ msgid "New Stock Location"
 msgstr "Nový sklad"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "{successfulRefundCount} payment(s) refunded before failure. Check order history for details."
-msgstr "{successfulRefundCount} plateb bylo vráceno před selháním. Podrobnosti najdete v historii objednávky."
+#~ msgid "{successfulRefundCount} payment(s) refunded before failure. Check order history for details."
+#~ msgstr "{successfulRefundCount} plateb bylo vráceno před selháním. Podrobnosti najdete v historii objednávky."
 
 #: src/lib/components/data-input/relation-selector.tsx
 msgid "Select item"
@@ -4347,6 +4358,10 @@ msgstr "Nepodařilo se vytvořit skupinu zákazníků"
 msgid "Failed to create role"
 msgstr "Nepodařilo se vytvořit roli"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Payment methods"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Product name"
 msgstr "Název produktu"
@@ -4392,7 +4407,7 @@ msgstr "Přidat skupinu voleb"
 msgid "All"
 msgstr "Vše"
 
-#. placeholder {0}: formatCurrency(refund.amountToRefundTotal, order.currencyCode)
+#. placeholder {0}: formatCurrency(refund.refundTotal, order.currencyCode)
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Refund {0}"
 msgstr "Vrátit {0}"
@@ -4576,6 +4591,10 @@ msgstr "Odebrat skupinu možností"
 msgid "Description"
 msgstr "Popis"
 
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "Every refund destination must draw from a payment"
+msgstr ""
+
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx
 #: src/app/routes/_authenticated/_countries/countries.tsx
 #: src/app/routes/_authenticated/_countries/countries.tsx
@@ -4641,6 +4660,10 @@ msgstr "Filtr"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
 msgid "Failed to update administrator"
 msgstr "Aktualizace administrátora se nezdařila"
+
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "No payment or destination was selected"
+msgstr ""
 
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "Manage your personal saved views for this table"
@@ -5604,6 +5627,10 @@ msgstr "Toto je výchozí role a nelze ji upravit"
 msgid "My saved views"
 msgstr "Moje uložené pohledy"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Other refund destinations"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 msgid "State / Province"
 msgstr "Stát / Kraj"
@@ -5795,8 +5822,8 @@ msgid "Password reset requested"
 msgstr "Požadováno obnovení hesla"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "Allocated payment amount must equal refund total"
-msgstr "Přidělená částka platby se musí rovnat celkové částce vrácení"
+#~ msgid "Allocated payment amount must equal refund total"
+#~ msgstr "Přidělená částka platby se musí rovnat celkové částce vrácení"
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #~ msgid "e.g. Small"
@@ -5896,6 +5923,10 @@ msgstr "Odebrat"
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "Failed to update customer"
 msgstr "Nepodařilo se aktualizovat zákazníka"
+
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Draw from"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Remove option groups?"
@@ -6280,6 +6311,7 @@ msgstr "Vybrat {0}"
 msgid "New facet values to add:"
 msgstr "Nové hodnoty vlastností k přidání:"
 
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "Failed to process refund"
@@ -6893,6 +6925,11 @@ msgstr "Zobrazit výsledek"
 msgid "Rows per page"
 msgstr "Řádků na stránku"
 
+#. placeholder {0}: formatCurrency(capacity, order.currencyCode)
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "Amounts drawn from payment {label} exceed its refundable amount of {0}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 msgid "Loading collections..."
 msgstr "Načítání kolekcí..."
@@ -7127,8 +7164,8 @@ msgid "Fulfillment ID"
 msgstr "ID expedice"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
-msgid "Select payments to refund"
-msgstr "Vyberte platby k vrácení"
+#~ msgid "Select payments to refund"
+#~ msgstr "Vyberte platby k vrácení"
 
 #: src/lib/components/shared/error-page.tsx
 msgid "The page you are looking for does not exist or may have been moved."
@@ -7185,6 +7222,10 @@ msgstr "Použit globální pohled \"{viewName}\""
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Customer registered"
 msgstr "Zákazník registrován"
+
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Remaining"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts

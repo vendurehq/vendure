@@ -821,6 +821,10 @@ msgstr "विकल्प समूह सफलतापूर्वक तो
 msgid "Marks the account as verified without the customer having to use a verification email."
 msgstr ""
 
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "Allocated refund amounts must equal refund total"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx
 msgid "Run Test"
 msgstr "परीक्षण चलाउनुहोस्"
@@ -1244,6 +1248,7 @@ msgstr "अर्डर वस्तुहरू रद्द गर्न अ�
 msgid "Transaction ID"
 msgstr "लेनदेन ID"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Allocated"
 msgstr "आवंटित"
@@ -1471,6 +1476,8 @@ msgstr "मूल्यहरूमा पूर्वनिर्धारि�
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+#: src/lib/components/data-input/slug-input.tsx
+#: src/lib/components/data-input/slug-input.tsx
 msgid "This field is required"
 msgstr ""
 
@@ -1993,8 +2000,8 @@ msgstr "नयाँ कर वर्ग"
 #~ msgstr "विकल्प थप्नुहोस्"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "Partial refund completed"
-msgstr "आंशिक फिर्ता सम्पन्न"
+#~ msgid "Partial refund completed"
+#~ msgstr "आंशिक फिर्ता सम्पन्न"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Set custom fields"
@@ -2192,6 +2199,10 @@ msgstr "प्रोफाइल सफलतापूर्वक अपडे�
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Payment method"
 msgstr "भुक्तानी विधि"
+
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx
+msgid "Destination"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
@@ -4073,8 +4084,8 @@ msgid "New Stock Location"
 msgstr "नयाँ स्टक स्थान"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "{successfulRefundCount} payment(s) refunded before failure. Check order history for details."
-msgstr "असफलता अघि {successfulRefundCount} भुक्तानी(हरू) फिर्ता गरियो। विवरणको लागि अर्डर इतिहास जाँच गर्नुहोस्।"
+#~ msgid "{successfulRefundCount} payment(s) refunded before failure. Check order history for details."
+#~ msgstr "असफलता अघि {successfulRefundCount} भुक्तानी(हरू) फिर्ता गरियो। विवरणको लागि अर्डर इतिहास जाँच गर्नुहोस्।"
 
 #: src/lib/components/data-input/relation-selector.tsx
 msgid "Select item"
@@ -4347,6 +4358,10 @@ msgstr "ग्राहक समूह सिर्जना गर्न अ�
 msgid "Failed to create role"
 msgstr "भूमिका सिर्जना गर्न असफल"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Payment methods"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Product name"
 msgstr "उत्पादन नाम"
@@ -4392,7 +4407,7 @@ msgstr "विकल्प समूह थप्नुहोस्"
 msgid "All"
 msgstr "सबै"
 
-#. placeholder {0}: formatCurrency(refund.amountToRefundTotal, order.currencyCode)
+#. placeholder {0}: formatCurrency(refund.refundTotal, order.currencyCode)
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Refund {0}"
 msgstr "{0} फिर्ता"
@@ -4576,6 +4591,10 @@ msgstr "विकल्प समूह हटाउनुहोस्"
 msgid "Description"
 msgstr "विवरण"
 
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "Every refund destination must draw from a payment"
+msgstr ""
+
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx
 #: src/app/routes/_authenticated/_countries/countries.tsx
 #: src/app/routes/_authenticated/_countries/countries.tsx
@@ -4641,6 +4660,10 @@ msgstr "फिल्टर"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
 msgid "Failed to update administrator"
 msgstr "प्रशासक अपडेट गर्न असफल"
+
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "No payment or destination was selected"
+msgstr ""
 
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "Manage your personal saved views for this table"
@@ -5604,6 +5627,10 @@ msgstr "यो पूर्वनिर्धारित भूमिका ह
 msgid "My saved views"
 msgstr "मेरो सुरक्षित दृश्यहरू"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Other refund destinations"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 msgid "State / Province"
 msgstr "राज्य / प्रान्त"
@@ -5795,8 +5822,8 @@ msgid "Password reset requested"
 msgstr "पासवर्ड रिसेट अनुरोध गरियो"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "Allocated payment amount must equal refund total"
-msgstr "तोकिएको भुक्तानी रकम फिर्ता कुल बराबर हुनुपर्छ"
+#~ msgid "Allocated payment amount must equal refund total"
+#~ msgstr "तोकिएको भुक्तानी रकम फिर्ता कुल बराबर हुनुपर्छ"
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #~ msgid "e.g. Small"
@@ -5896,6 +5923,10 @@ msgstr "हटाउनुहोस्"
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "Failed to update customer"
 msgstr "ग्राहक अपडेट गर्न असफल"
+
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Draw from"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Remove option groups?"
@@ -6280,6 +6311,7 @@ msgstr "{0} चयन गर्नुहोस्"
 msgid "New facet values to add:"
 msgstr "थप्नको लागि नयाँ विशेषता मानहरू:"
 
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "Failed to process refund"
@@ -6893,6 +6925,11 @@ msgstr "परिणाम हेर्नुहोस्"
 msgid "Rows per page"
 msgstr "प्रति पृष्ठ पङ्क्तिहरू"
 
+#. placeholder {0}: formatCurrency(capacity, order.currencyCode)
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "Amounts drawn from payment {label} exceed its refundable amount of {0}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 msgid "Loading collections..."
 msgstr "संग्रहहरू लोड गर्दै..."
@@ -7127,8 +7164,8 @@ msgid "Fulfillment ID"
 msgstr "पूर्ति ID"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
-msgid "Select payments to refund"
-msgstr "फिर्ताको लागि भुक्तानीहरू छान्नुहोस्"
+#~ msgid "Select payments to refund"
+#~ msgstr "फिर्ताको लागि भुक्तानीहरू छान्नुहोस्"
 
 #: src/lib/components/shared/error-page.tsx
 msgid "The page you are looking for does not exist or may have been moved."
@@ -7185,6 +7222,10 @@ msgstr "ग्लोबल दृश्य \"{viewName}\" लागू गरि
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Customer registered"
 msgstr "ग्राहक दर्ता गरियो"
+
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Remaining"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts

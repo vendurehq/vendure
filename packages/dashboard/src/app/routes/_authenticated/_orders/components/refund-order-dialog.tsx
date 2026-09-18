@@ -37,27 +37,54 @@ import {
 function RefundTargetRow({
     target,
     currencyCode,
+    paymentOptions,
     toMajorUnits,
     toMinorUnits,
     onAmountChange,
     onSelectedChange,
+    onPaymentChange,
+    onArgsChange,
 }: {
     target: RefundTarget;
     currencyCode: string;
+    paymentOptions: Array<{ id: string; label: string; refundableAmount: number }>;
     toMajorUnits: (value: number) => number;
     toMinorUnits: (value: number) => number;
     onAmountChange: (targetId: string, amount: number, selected?: boolean) => void;
     onSelectedChange: (targetId: string, selected: boolean) => void;
+    onPaymentChange: (targetId: string, paymentId: string) => void;
+    onArgsChange: (targetId: string, args: Record<string, any> | undefined) => void;
 }) {
+    const { formatCurrency } = useLocalFormat();
+    const Icon = target.icon;
+    const ConfigComponent = target.component;
+    const eligiblePayments = paymentOptions.filter(p => target.eligiblePaymentIds.includes(p.id));
+    const selectedPayment = eligiblePayments.find(p => p.id === target.paymentId);
+    // A destination which can draw on more than one Payment needs the administrator to say which,
+    // since the refundable balance it consumes belongs to that specific Payment.
+    const showPaymentPicker = target.type === 'destination' && eligiblePayments.length > 1;
+
     return (
-        <div className="border rounded-md p-3" data-testid={`refund-target-${target.type === 'destination' ? target.destinationCode : target.id}`}>
+        <div
+            className="border rounded-md p-3 space-y-2"
+            data-testid={`refund-target-${target.destinationCode ?? target.id}`}
+        >
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <Checkbox
                         checked={target.selected}
                         onCheckedChange={checked => onSelectedChange(target.id, !!checked)}
                     />
-                    <div className="font-medium">{target.label}</div>
+                    {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
+                    <div>
+                        <div className="font-medium">{target.label}</div>
+                        {selectedPayment && (
+                            <div className="text-sm text-muted-foreground">
+                                <Trans>Available</Trans>:{' '}
+                                {formatCurrency(selectedPayment.refundableAmount, currencyCode)}
+                            </div>
+                        )}
+                    </div>
                 </div>
                 <div className="flex items-center gap-2">
                     <Label className="text-sm">
@@ -66,8 +93,10 @@ function RefundTargetRow({
                     <Input
                         type="number"
                         step="0.01"
+                        data-testid="refund-target-amount"
                         value={target.amountToRefund ? toMajorUnits(target.amountToRefund) : ''}
                         placeholder="0"
+                        max={selectedPayment ? toMajorUnits(selectedPayment.refundableAmount) : undefined}
                         onChange={e => {
                             const amount = toMinorUnits(Number.parseFloat(e.target.value) || 0);
                             onAmountChange(target.id, amount, amount > 0);
@@ -77,6 +106,45 @@ function RefundTargetRow({
                     <span className="text-muted-foreground text-sm">{currencyCode}</span>
                 </div>
             </div>
+            {showPaymentPicker && (
+                <div className="flex items-center gap-2 pl-6">
+                    <Label className="text-sm text-muted-foreground">
+                        <Trans>Draw from</Trans>:
+                    </Label>
+                    <Select
+                        value={target.paymentId}
+                        onValueChange={value => value && onPaymentChange(target.id, value)}
+                    >
+                        <SelectTrigger
+                            className="w-64"
+                            data-testid={`refund-target-payment-${target.destinationCode ?? target.id}`}
+                        >
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {eligiblePayments.map(payment => (
+                                <SelectItem key={payment.id} value={payment.id}>
+                                    {payment.label} (
+                                    {formatCurrency(payment.refundableAmount, currencyCode)})
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            )}
+            {target.selected && ConfigComponent && (
+                <div className="pl-6" data-testid={`refund-target-config-${target.destinationCode ?? target.id}`}>
+                    <ConfigComponent
+                        amount={target.amountToRefund}
+                        paymentId={target.paymentId}
+                        currencyCode={currencyCode}
+                        value={target.args}
+                        onChange={(args: Record<string, any> | undefined) =>
+                            onArgsChange(target.id, args)
+                        }
+                    />
+                </div>
+            )}
         </div>
     );
 }
@@ -352,10 +420,13 @@ export const RefundOrderDialog = forwardRef<RefundOrderDialogRef, RefundOrderDia
                                             key={target.id}
                                             target={target}
                                             currencyCode={order.currencyCode}
+                                            paymentOptions={refund.paymentOptions}
                                             toMajorUnits={toMajorUnits}
                                             toMinorUnits={toMinorUnits}
                                             onAmountChange={refund.onTargetAmountChange}
                                             onSelectedChange={refund.onTargetSelected}
+                                            onPaymentChange={refund.onTargetPaymentChange}
+                                            onArgsChange={refund.onTargetArgsChange}
                                         />
                                     ))}
                             </div>
@@ -375,10 +446,13 @@ export const RefundOrderDialog = forwardRef<RefundOrderDialogRef, RefundOrderDia
                                                 key={target.id}
                                                 target={target}
                                                 currencyCode={order.currencyCode}
+                                                paymentOptions={refund.paymentOptions}
                                                 toMajorUnits={toMajorUnits}
                                                 toMinorUnits={toMinorUnits}
                                                 onAmountChange={refund.onTargetAmountChange}
                                                 onSelectedChange={refund.onTargetSelected}
+                                                onPaymentChange={refund.onTargetPaymentChange}
+                                                onArgsChange={refund.onTargetArgsChange}
                                             />
                                         ))}
                                 </div>

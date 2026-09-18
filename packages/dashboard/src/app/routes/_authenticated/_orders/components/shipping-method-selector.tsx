@@ -2,6 +2,7 @@ import { Money } from '@/vdb/components/data-display/money.js';
 import { Card, CardContent, CardHeader, CardTitle } from '@/vdb/components/ui/card.js';
 import { ResultOf } from '@/vdb/graphql/graphql.js';
 import { Trans } from '@lingui/react/macro';
+
 import { draftOrderEligibleShippingMethodsDocument } from '../orders.graphql.js';
 
 type ShippingMethodQuote = ResultOf<

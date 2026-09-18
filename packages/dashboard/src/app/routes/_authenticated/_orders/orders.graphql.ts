@@ -782,6 +782,7 @@ export const refundDestinationsDocument = graphql(`
         refundDestinations(orderId: $orderId) {
             code
             description
+            availableForPaymentIds
         }
     }
 `);

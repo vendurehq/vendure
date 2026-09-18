@@ -2,7 +2,9 @@ import { Badge } from '@/vdb/components/ui/badge.js';
 import { TableCell, TableRow } from '@/vdb/components/ui/table.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { Trans } from '@lingui/react/macro';
+
 import { Order } from '../utils/order-types.js';
+
 import { MoneyGrossNet } from './money-gross-net.js';
 
 export interface OrderTableTotalsProps {
