@@ -1908,7 +1908,7 @@
                   "title": "Refund",
                   "slug": "refund",
                   "file": "docs/reference/typescript-api/entities/refund.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-13T16:33:50+01:00"
                 },
                 {
                   "title": "Region",
@@ -2695,6 +2695,12 @@
                   "lastModified": "2026-01-28T14:49:21+01:00"
                 },
                 {
+                  "title": "RefundDestinationStrategy",
+                  "slug": "refund-destination-strategy",
+                  "file": "docs/reference/typescript-api/payment/refund-destination-strategy.mdx",
+                  "lastModified": "2026-08-13T16:33:50+01:00"
+                },
+                {
                   "title": "RefundProcess",
                   "slug": "refund-process",
                   "file": "docs/reference/typescript-api/payment/refund-process.mdx",
@@ -2786,7 +2792,7 @@
                   "title": "MultiChannelStockLocationStrategy",
                   "slug": "multi-channel-stock-location-strategy",
                   "file": "docs/reference/typescript-api/products-stock/multi-channel-stock-location-strategy.mdx",
-                  "lastModified": "2026-08-13T17:32:23+01:00"
+                  "lastModified": "2026-08-13T15:54:46Z"
                 },
                 {
                   "title": "ProductVariantPriceCalculationStrategy",
@@ -3886,7 +3892,7 @@
                   "title": "Input Objects",
                   "slug": "input-types",
                   "file": "docs/reference/graphql-api/admin/input-types.mdx",
-                  "lastModified": "2026-09-03T13:25:27Z"
+                  "lastModified": "2026-09-18T13:13:10+02:00"
                 },
                 {
                   "title": "Mutations",
@@ -3898,13 +3904,13 @@
                   "title": "Queries",
                   "slug": "queries",
                   "file": "docs/reference/graphql-api/admin/queries.mdx",
-                  "lastModified": "2026-03-06T13:07:42+01:00"
+                  "lastModified": "2026-03-31T09:58:45Z"
                 },
                 {
                   "title": "Types",
                   "slug": "object-types",
                   "file": "docs/reference/graphql-api/admin/object-types.mdx",
-                  "lastModified": "2026-09-11T13:49:04+02:00"
+                  "lastModified": "2026-09-18T13:13:10+02:00"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -3918,7 +3924,7 @@
                   "title": "Enums",
                   "slug": "enums",
                   "file": "docs/reference/graphql-api/shop/enums.mdx",
-                  "lastModified": "2026-09-01T11:19:25Z"
+                  "lastModified": "2026-08-13T15:54:46Z"
                 },
                 {
                   "title": "Input Objects",
@@ -3942,7 +3948,7 @@
                   "title": "Types",
                   "slug": "object-types",
                   "file": "docs/reference/graphql-api/shop/object-types.mdx",
-                  "lastModified": "2026-09-03T13:25:27Z"
+                  "lastModified": "2026-09-18T13:13:10+02:00"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -4130,6 +4136,11 @@
                   "slug": "page-blocks",
                   "file": "docs/reference/dashboard/extensions-api/page-blocks.mdx",
                   "lastModified": "2026-07-29T16:21:34+02:00"
+                },
+                {
+                  "title": "RefundDestinations",
+                  "slug": "refund-destinations",
+                  "file": "docs/reference/dashboard/extensions-api/refund-destinations.mdx"
                 },
                 {
                   "title": "Routes",

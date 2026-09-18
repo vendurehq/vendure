@@ -2,7 +2,7 @@
 title: "RefundDestinationStrategy"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/config/payment/refund-destination-strategy.ts" sourceLine="51" packageName="@vendure/core" since="3.8.0" />
+<GenerationInfo sourceFile="packages/core/src/config/payment/refund-destination-strategy.ts" sourceLine="79" packageName="@vendure/core" since="3.8.0" />
 
 A RefundDestinationStrategy defines a possible destination for a refund.
 The default destination is the original payment method, but plugins can add additional
@@ -14,6 +14,10 @@ shares logic with an existing payment method handler (e.g. both a store-credit p
 handler and a store-credit refund destination need to call the same API), extract the
 shared logic into a service and inject it into both.
 
+A refund to a non-default destination still draws its balance from a Payment on the Order,
+which is what limits the amount that can be refunded. The Payment identifies where the money
+came from; the destination identifies where it goes.
+
 *Example*
 
 ```ts
@@ -23,13 +27,36 @@ class StoreCreditRefundDestination implements RefundDestinationStrategy {
         { languageCode: LanguageCode.en, value: 'Refund as store credit' },
     ];
 
-    async isAvailable(ctx, order, payment) {
+    private storeCreditService: StoreCreditService;
+
+    init(injector: Injector) {
+        this.storeCreditService = injector.get(StoreCreditService);
+    }
+
+    isAvailable(ctx: RequestContext, order: Order, payment: Payment) {
+        // Refunding a store credit payment back to store credit is handled by the
+        // payment method handler itself, so don't offer it here.
         return payment.method !== 'store-credit-payment';
     }
 
-    async createRefund(ctx, input, amount, order, payment) {
-        // Issue store credit to the customer
-        return { state: 'Settled' as const, transactionId: 'sc-123' };
+    async createRefund(
+        ctx: RequestContext,
+        input: RefundOrderInput,
+        amount: number,
+        order: Order,
+        payment: Payment,
+        args?: JsonCompatible<any>,
+    ) {
+        const credit = await this.storeCreditService.issue(ctx, {
+            customerId: order.customerId,
+            value: amount,
+            expiresInDays: args?.expiresInDays,
+        });
+        return {
+            state: 'Settled' as const,
+            transactionId: `store-credit-${credit.id}`,
+            metadata: { storeCreditId: credit.id },
+        };
     }
 }
 ```
@@ -52,6 +79,7 @@ interface RefundDestinationStrategy extends InjectableStrategy {
         amount: number,
         order: Order,
         payment: Payment,
+        args?: JsonCompatible<any>,
     ): CreateRefundResult | Promise<CreateRefundResult>;
 }
 ```
@@ -65,7 +93,8 @@ interface RefundDestinationStrategy extends InjectableStrategy {
 
 <MemberInfo kind="property" type={`string`}   />
 
-A unique code identifying this refund destination.
+A unique code identifying this refund destination. The code `default` is reserved for the
+built-in destination which refunds to the original payment method.
 ### description
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/configurable-operation-def/localized-string-array#localizedstringarray'>LocalizedStringArray</a>`}   />
@@ -75,18 +104,23 @@ A human-readable description of this destination, used in the admin UI.
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>, payment: <a href='/reference/typescript-api/entities/payment#payment'>Payment</a>) => boolean | Promise<boolean>`}   />
 
-Whether this destination is available for the given order and payment.
-This is called when resolving the `refundDestinations` query to determine
-which destinations to offer the admin.
+Whether this destination is available for the given Order and Payment. Availability is
+determined per-Payment, since a destination may be valid for one of an Order's payments
+but not another.
+
+This is called when resolving the `refundDestinations` query to build the list of Payments
+a destination may be used with, and again when a refund is created, to verify that the
+Payment chosen by the administrator is one of them.
 ### createRefund
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: RefundOrderInput, amount: number, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>, payment: <a href='/reference/typescript-api/entities/payment#payment'>Payment</a>) => <a href='/reference/typescript-api/payment/payment-method-types#createrefundresult'>CreateRefundResult</a> | Promise<<a href='/reference/typescript-api/payment/payment-method-types#createrefundresult'>CreateRefundResult</a>>`}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: RefundOrderInput, amount: number, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>, payment: <a href='/reference/typescript-api/entities/payment#payment'>Payment</a>, args?: <a href='/reference/typescript-api/common/json-compatible#jsoncompatible'>JsonCompatible</a><any>) => <a href='/reference/typescript-api/payment/payment-method-types#createrefundresult'>CreateRefundResult</a> | Promise<<a href='/reference/typescript-api/payment/payment-method-types#createrefundresult'>CreateRefundResult</a>>`}   />
 
 Execute the refund to this destination. Called instead of
 `PaymentMethodHandler.createRefund()` when this destination is selected.
 
 The returned [CreateRefundResult](/reference/typescript-api/payment/payment-method-types#createrefundresult) determines the refund state
-and any associated transaction ID or metadata.
+and any associated transaction ID or metadata. Throwing from this method aborts the whole
+refund operation and rolls back any Refunds created earlier in the same call.
 
 
 </div>

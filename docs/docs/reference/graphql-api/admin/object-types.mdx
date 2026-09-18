@@ -4142,12 +4142,39 @@ type RefundAmountError {
   typeName="RefundDestination"
   typeLinks={{
     String: '/reference/graphql-api/admin/object-types#string',
+    ID: '/reference/graphql-api/admin/object-types#id',
   }}
 >
 {`"""Represents an available refund destination for an order."""
 type RefundDestination {
   code: String!
   description: String!
+  """
+  The IDs of the Payments on this Order for which this destination is available, as
+  determined by the strategy's \`isAvailable()\` method. A refund to this destination must
+  draw its balance from one of these Payments.
+  """
+  availableForPaymentIds: [ID!]!
+}`}
+</GraphQLDoc>
+
+<a name="refunddestinationerror"></a>
+
+## RefundDestinationError
+
+<GraphQLDoc
+  type="type"
+  typeName="RefundDestinationError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/admin/enums#errorcode',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`"""Returned if the specified refund destination does not exist, or is not available for the specified Payment"""
+type RefundDestinationError {
+  errorCode: ErrorCode!
+  message: String!
+  destinationCode: String!
 }`}
 </GraphQLDoc>
 
@@ -4192,9 +4219,10 @@ type RefundDestination {
     AlreadyRefundedError: '/reference/graphql-api/admin/object-types#alreadyrefundederror',
     RefundStateTransitionError: '/reference/graphql-api/admin/object-types#refundstatetransitionerror',
     RefundAmountError: '/reference/graphql-api/admin/object-types#refundamounterror',
+    RefundDestinationError: '/reference/graphql-api/admin/object-types#refunddestinationerror',
   }}
 >
-{`union RefundOrderResult = Refund | QuantityTooGreatError | NothingToRefundError | OrderStateTransitionError | MultipleOrderError | PaymentOrderMismatchError | RefundOrderStateError | AlreadyRefundedError | RefundStateTransitionError | RefundAmountError`}
+{`union RefundOrderResult = Refund | QuantityTooGreatError | NothingToRefundError | OrderStateTransitionError | MultipleOrderError | PaymentOrderMismatchError | RefundOrderStateError | AlreadyRefundedError | RefundStateTransitionError | RefundAmountError | RefundDestinationError`}
 </GraphQLDoc>
 
 <a name="refundorderstateerror"></a>

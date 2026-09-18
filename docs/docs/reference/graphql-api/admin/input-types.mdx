@@ -3569,6 +3569,7 @@ input NumberOperators {
     Money: '/reference/graphql-api/admin/object-types#money',
     ID: '/reference/graphql-api/admin/object-types#id',
     String: '/reference/graphql-api/admin/object-types#string',
+    RefundTargetInput: '/reference/graphql-api/admin/input-types#refundtargetinput',
   }}
 >
 {`input RefundOrderInput {
@@ -3586,8 +3587,59 @@ input NumberOperators {
   Optional refund destination code. When omitted, refunds to the original
   payment method. Use the \`refundDestinations\` query to discover available
   destinations for an order.
+  
+  Ignored when \`targets\` is specified.
   """
   destination: String
+  """
+  Splits the refund across multiple payments and/or refund destinations. The sum of the
+  \`amount\` of each target is the total amount refunded, and the top-level \`amount\` and
+  \`destination\` fields are ignored.
+  
+  All targets are validated before any refund is created, and the whole operation is
+  performed in a single transaction.
+  """
+  targets: [RefundTargetInput!]
+}`}
+</GraphQLDoc>
+
+<a name="refundtargetinput"></a>
+
+## RefundTargetInput
+
+<GraphQLDoc
+  type="input"
+  typeName="RefundTargetInput"
+  typeLinks={{
+    ID: '/reference/graphql-api/admin/object-types#id',
+    Money: '/reference/graphql-api/admin/object-types#money',
+    String: '/reference/graphql-api/admin/object-types#string',
+    JSON: '/reference/graphql-api/admin/object-types#json',
+  }}
+>
+{`"""
+Specifies a single portion of a refund: how much to refund, which Payment's refundable
+balance it is drawn from, and where the funds are directed.
+"""
+input RefundTargetInput {
+  """
+  The Payment whose refundable balance is drawn on. Defaults to the top-level \`paymentId\`
+  of the RefundOrderInput when omitted.
+  """
+  paymentId: ID
+  """The amount to refund to this target."""
+  amount: Money!
+  """
+  The refund destination code. When omitted, the funds are refunded to the original
+  payment method.
+  """
+  destination: String
+  """
+  Arbitrary configuration passed to the RefundDestinationStrategy's \`createRefund()\` method,
+  for example an expiry date for a store credit refund. Has no effect when \`destination\`
+  is omitted.
+  """
+  arguments: JSON
 }`}
 </GraphQLDoc>
 
