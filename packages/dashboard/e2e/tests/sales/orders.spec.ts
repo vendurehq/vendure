@@ -881,7 +881,7 @@ test.describe('Orders', () => {
             // Selecting store credit moves the whole outstanding total onto it, which the
             // dialog requires before it will submit.
             await storeCreditRow.getByRole('checkbox').first().check();
-            await expect(storeCreditRow.locator('input[type="number"]')).not.toHaveValue('');
+            await expect(storeCreditRow.getByTestId('refund-target-amount')).not.toHaveValue('');
 
             // Submit
             const refundButton = dialog.getByRole('button', { name: /Refund/i }).last();
@@ -911,8 +911,9 @@ test.describe('Orders', () => {
             const dialog = page.locator('[role="dialog"]');
             await expect(dialog).toBeVisible({ timeout: 5_000 });
 
-            // The "Other refund destinations" section should be visible
-            await expect(dialog.getByText('Other refund destinations')).toBeVisible();
+            // The destinations are fetched asynchronously once the dialog opens, so allow for the
+            // query to resolve before asserting on the section.
+            await expect(dialog.getByText('Other refund destinations')).toBeVisible({ timeout: 10_000 });
 
             // Store credit destination should appear
             const storeCreditRow = dialog.getByTestId('refund-target-store-credit');
@@ -920,6 +921,57 @@ test.describe('Orders', () => {
 
             // Store credit should be unchecked by default
             await expect(storeCreditRow.getByRole('checkbox').first()).not.toBeChecked();
+        });
+
+        // #4563 — the refundDestinations dashboard extension point supplies the label, icon and
+        // optional configuration component for a destination defined by a backend strategy.
+        test('should render the registered dashboard extension for a refund destination', async ({
+            page,
+        }) => {
+            test.setTimeout(60_000);
+
+            const client = new VendureAdminClient(page);
+            await client.login();
+            const orderId = await createPaidOrder(client);
+
+            await page.goto(`/orders/${orderId}`);
+            await expect(page.getByRole('button', { name: /Fulfill order/i })).toBeVisible({
+                timeout: 10_000,
+            });
+
+            await openRefundDialog(page);
+
+            const dialog = page.locator('[role="dialog"]');
+            await expect(dialog).toBeVisible({ timeout: 5_000 });
+
+            const storeCreditRow = dialog.getByTestId('refund-target-store-credit');
+            await expect(storeCreditRow).toBeVisible();
+
+            // The extension's `label` takes precedence over the backend strategy's description.
+            await expect(storeCreditRow.getByText('Store credit (plugin label)')).toBeVisible();
+
+            // The configuration component is only rendered once the destination is selected.
+            await expect(dialog.getByTestId('store-credit-expiry-input')).toBeHidden();
+
+            const quantityInput = dialog.getByTestId('refund-quantity').first();
+            await quantityInput.fill('1');
+            await dialog.getByRole('combobox').click();
+            await page.getByRole('option').first().click();
+
+            await dialog.getByTestId(/^refund-target-payment-/).getByRole('checkbox').first().uncheck();
+            await storeCreditRow.getByRole('checkbox').first().check();
+
+            const expiryInput = dialog.getByTestId('store-credit-expiry-input');
+            await expect(expiryInput).toBeVisible();
+            await expiryInput.fill('90');
+            await expect(expiryInput).toHaveValue('90');
+
+            const refundButton = dialog.getByRole('button', { name: /Refund/i }).last();
+            await refundButton.click();
+
+            await expect(
+                page.locator('[data-sonner-toast]').filter({ hasNotText: /error/i }).first(),
+            ).toBeVisible({ timeout: 10_000 });
         });
 
         // #4563 — refund dialog should validate allocated amounts match total
@@ -988,7 +1040,7 @@ test.describe('Orders', () => {
 
             // Read the auto-calculated total from the payment row
             const paymentRow = dialog.getByTestId(/^refund-target-payment-/);
-            const paymentAmountStr = await paymentRow.locator('input[type="number"]').inputValue();
+            const paymentAmountStr = await paymentRow.getByTestId('refund-target-amount').inputValue();
             const fullAmount = Number.parseFloat(paymentAmountStr);
 
             // Split: half to original payment, half to store credit
@@ -996,11 +1048,11 @@ test.describe('Orders', () => {
             const remainingAmount = (fullAmount - Number.parseFloat(halfAmount)).toFixed(2);
 
             // Set the payment amount to half
-            await paymentRow.locator('input[type="number"]').fill(halfAmount);
+            await paymentRow.getByTestId('refund-target-amount').fill(halfAmount);
 
             // Enter remaining amount into store credit
             const storeCreditRow = dialog.getByTestId('refund-target-store-credit');
-            await storeCreditRow.locator('input[type="number"]').fill(remainingAmount);
+            await storeCreditRow.getByTestId('refund-target-amount').fill(remainingAmount);
 
             // Submit the split refund
             const refundButton = dialog.getByRole('button', { name: /Refund/i }).last();

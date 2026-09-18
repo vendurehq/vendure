@@ -167,11 +167,20 @@ class TestStoreCreditDestination implements RefundDestinationStrategy {
         return true;
     }
 
-    createRefund(_ctx: RequestContext, _input: RefundOrderInput, amount: number) {
+    createRefund(
+        _ctx: RequestContext,
+        _input: RefundOrderInput,
+        amount: number,
+        _order: unknown,
+        _payment: unknown,
+        args?: any,
+    ) {
         return {
             state: 'Settled' as const,
             transactionId: `sc-${Date.now()}`,
-            metadata: { storeCreditAmount: amount },
+            // `args` carries whatever the destination's dashboard component produced, so the
+            // tests can confirm it survived the round trip.
+            metadata: { storeCreditAmount: amount, args: args ?? null },
         };
     }
 }
