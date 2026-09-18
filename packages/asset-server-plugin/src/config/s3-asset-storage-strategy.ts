@@ -285,7 +285,7 @@ export class S3AssetStorageStrategy implements AssetStorageStrategy {
     private getObjectParams(identifier: string) {
         return {
             Bucket: this.s3Config.bucket,
-            Key: path.join(identifier.replace(/^\//, '')),
+            Key: path.posix.join(identifier.replace(/^\//, '')),
         };
     }
 
