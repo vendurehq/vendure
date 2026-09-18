@@ -24,6 +24,7 @@ export class SearchIndexItem {
     @EntityId({ primary: true })
     channelId: ID;
 
+    @Index()
     @EntityId()
     productId: ID;
 
