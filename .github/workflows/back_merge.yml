@@ -170,3 +170,16 @@ jobs:
               run: |
                   gh pr comment "$PR_NUMBER" \
                     --body "New conflicts detected during back-merge of \`$SOURCE\` into \`$TARGET\`. Please resolve the conflicts in this PR."
+
+            # A conflicted back-merge leaves the target branch behind the source until someone
+            # resolves the pull request by hand. Fail the run after that pull request has been
+            # created or commented on. Without this the conflict path exits zero, so the branches
+            # drift while every run reports success.
+            - name: Report the conflict as a failure
+              if: steps.merge.outputs.result == 'conflict'
+              env:
+                  SOURCE: ${{ needs.resolve-branches.outputs.source }}
+                  TARGET: ${{ needs.resolve-branches.outputs.target }}
+              run: |
+                  echo "::error::Back-merge of $SOURCE into $TARGET has conflicts. $TARGET does not receive $SOURCE until they are resolved."
+                  exit 1
