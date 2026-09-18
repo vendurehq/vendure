@@ -189,7 +189,7 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
         const { healthChecks, errorHandlers } = this.configService.systemOptions;
         const { assetImportStrategy } = this.configService.importExportOptions;
         const { refundProcess: refundProcess } = this.configService.paymentOptions;
-        const { cacheStrategy, instrumentationStrategy, encryptionStrategy, secretAccessStrategy } =
+        const { instrumentationStrategy, encryptionStrategy, secretAccessStrategy } =
             this.configService.systemOptions;
         const entityIdStrategy = entityIdStrategyCurrent ?? entityIdStrategyDeprecated;
         return [
@@ -235,7 +235,6 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
             productVariantPriceSelectionStrategy,
             guestCheckoutStrategy,
             ...refundProcess,
-            cacheStrategy,
             ...(instrumentationStrategy ? [instrumentationStrategy] : []),
             ...(encryptionStrategy ? [encryptionStrategy] : []),
             ...(secretAccessStrategy ? [secretAccessStrategy] : []),
