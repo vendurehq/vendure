@@ -1,7 +1,10 @@
 import { spawn } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
+import { stripAnsi } from '../src/shared/strip-ansi';
 
 export interface CliTestProject {
     projectDir: string;
@@ -28,28 +31,13 @@ export interface CliCommandResult {
 }
 
 /**
- * Removes ANSI escape codes.
- *
- * Whether the CLI colours its output depends on the environment it is spawned
- * in, not on the command. Vitest exports FORCE_COLOR to child processes when
- * its own output is coloured. Its output is coloured when the suite runs
- * through Lerna and plain when it runs in the package directly, so one command
- * gives different bytes depending on how the suite was started. A test
- * asserting on what the CLI said should not depend on how it was started.
- */
-function stripAnsi(text: string): string {
-    // eslint-disable-next-line no-control-regex
-    return text.replace(/\u001b\[[0-9;]*m/g, '');
-}
-
-/**
  * Creates a temporary test project for CLI testing
  */
 export function createTestProject(projectName: string = 'test-project'): CliTestProject {
     const projectDir = join(
         tmpdir(),
         'vendure-cli-e2e',
-        `${projectName}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        `${projectName}-${Date.now()}-${randomBytes(6).toString('hex')}`,
     );
 
     // Create project directory
@@ -133,7 +121,7 @@ export const config: VendureConfig = {
                 // Use the built CLI from the dist directory
                 const cliPath = join(__dirname, '..', 'dist', 'cli.js');
 
-                const child = spawn('node', [cliPath, ...args], {
+                const child = spawn(process.execPath, [cliPath, ...args], {
                     cwd: projectDir,
                     env: {
                         ...process.env,
@@ -318,4 +306,126 @@ export async function waitFor(
     }
 
     throw new Error(`Condition not met within ${timeoutMs}ms`);
+}
+
+export interface SimulatedGlobalInstall {
+    /** The installed `@vendure/cli` directory, for asserting what is beside it. */
+    cliDir: string;
+    /** Runs the globally installed CLI from `cwd`. */
+    runCliCommand: (
+        args: string[],
+        options?: { cwd?: string; env?: Record<string, string> },
+    ) => Promise<CliCommandResult>;
+    /** The machine-wide `cli.json` the CLI will read. */
+    configPath: string;
+    /** A directory with no project in it, to run from. */
+    emptyDir: string;
+    cleanup: () => void;
+}
+
+/**
+ * Builds a layout that looks to the CLI like a global npm installation:
+ * `<prefix>/lib/node_modules/@vendure/cli` with the named plugin fixtures as
+ * its siblings, and no project anywhere above it.
+ *
+ * The CLI is copied rather than symlinked, because it resolves its own location
+ * through `realpath` — a symlink would lead back to the repository, where the
+ * enclosing directory is not a global `node_modules` and the whole point of the
+ * test would be lost. Its dependencies are linked in, since only the package's
+ * own location matters here.
+ */
+export function createSimulatedGlobalInstall(fixtureNames: string[]): SimulatedGlobalInstall {
+    const prefix = join(
+        tmpdir(),
+        'vendure-cli-e2e',
+        `global-${Date.now()}-${randomBytes(6).toString('hex')}`,
+    );
+    const globalNodeModules = join(prefix, 'lib', 'node_modules');
+    const cliDir = join(globalNodeModules, '@vendure', 'cli');
+    mkdirSync(cliDir, { recursive: true });
+
+    cpSync(join(CLI_PACKAGE_DIR, 'dist'), join(cliDir, 'dist'), { recursive: true });
+    cpSync(join(CLI_PACKAGE_DIR, 'package.json'), join(cliDir, 'package.json'));
+    linkDeclaredDependencies(cliDir);
+
+    for (const fixtureName of fixtureNames) {
+        const fixtureDir = join(CLI_PLUGIN_FIXTURES_DIR, fixtureName);
+        const packageName = JSON.parse(readFileSync(join(fixtureDir, 'package.json'), 'utf-8'))
+            .name as string;
+        cpSync(fixtureDir, join(globalNodeModules, ...packageName.split('/')), { recursive: true });
+    }
+    // Plugin fixtures require('@vendure/cli'), which resolves to the sibling
+    // copy, exactly as it would for a real global install.
+
+    const configDir = join(prefix, 'config');
+    const emptyDir = join(prefix, 'empty');
+    mkdirSync(configDir, { recursive: true });
+    mkdirSync(emptyDir, { recursive: true });
+
+    return {
+        cliDir,
+        configPath: join(configDir, 'cli.json'),
+        emptyDir,
+        cleanup: () => rmSync(prefix, { recursive: true, force: true }),
+        runCliCommand: (args, options = {}) =>
+            new Promise((resolve, reject) => {
+                const child = spawn(process.execPath, [join(cliDir, 'dist', 'cli.js'), ...args], {
+                    cwd: options.cwd ?? emptyDir,
+                    env: {
+                        ...process.env,
+                        VENDURE_RUNNING_IN_CLI: undefined,
+                        VENDURE_CLI_CONFIG_DIR: configDir,
+                        ...options.env,
+                    },
+                    stdio: ['pipe', 'pipe', 'pipe'],
+                });
+                let stdout = '';
+                let stderr = '';
+                child.stdout?.on('data', data => (stdout += data.toString()));
+                child.stderr?.on('data', data => (stderr += data.toString()));
+                child.on('close', code =>
+                    resolve({
+                        stdout: stripAnsi(stdout),
+                        stderr: stripAnsi(stderr),
+                        exitCode: code ?? 0,
+                        rawStdout: stdout,
+                        rawStderr: stderr,
+                    }),
+                );
+                child.on('error', reject);
+            }),
+    };
+}
+
+/**
+ * Links only the packages `@vendure/cli` declares as production dependencies,
+ * which is what `npm install -g @vendure/cli` would put beside it.
+ *
+ * Linking the repository's whole `node_modules` instead would let the CLI
+ * import anything the monorepo happens to have hoisted — `typeorm`, `graphql`,
+ * `@vendure/core` — and a global installation has none of those. The tests
+ * would then prove only that the CLI can find a package, never that a real
+ * installation ships it.
+ *
+ * Each link points at the package's real location, so its own transitive
+ * dependencies still resolve from there: Node resolves a symlink before
+ * looking for `node_modules`, so a linked package behaves exactly as an
+ * installed one, while the CLI's own lookups see only what is linked.
+ */
+function linkDeclaredDependencies(cliDir: string): void {
+    const { dependencies } = JSON.parse(readFileSync(join(CLI_PACKAGE_DIR, 'package.json'), 'utf-8')) as {
+        dependencies: Record<string, string>;
+    };
+    const repoModules = join(CLI_PACKAGE_DIR, '..', '..', 'node_modules');
+    const linkType = process.platform === 'win32' ? 'junction' : 'dir';
+
+    for (const packageName of Object.keys(dependencies)) {
+        const source = join(repoModules, ...packageName.split('/'));
+        if (!existsSync(source)) {
+            continue;
+        }
+        const target = join(cliDir, 'node_modules', ...packageName.split('/'));
+        mkdirSync(join(target, '..'), { recursive: true });
+        symlinkSync(source, target, linkType);
+    }
 }

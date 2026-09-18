@@ -3,7 +3,7 @@ import { runCliCommand } from '../../shared/cli-command-exit';
 
 export const pluginsCommandDef: CliCommandDefinition = {
     name: 'plugins',
-    description: 'List, enable, or disable CLI plugins for this project',
+    description: 'List, enable, or disable CLI plugins',
     arguments: [
         {
             name: 'action',
@@ -20,6 +20,12 @@ export const pluginsCommandDef: CliCommandDefinition = {
         {
             long: '--json',
             description: 'Print discovered CLI plugins as JSON (non-interactive)',
+            required: false,
+        },
+        {
+            short: '-g',
+            long: '--global',
+            description: 'Act on the machine-wide plugin list rather than this project',
             required: false,
         },
     ],

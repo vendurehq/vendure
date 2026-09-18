@@ -4,6 +4,7 @@ import { runCliCommand } from '../../shared/cli-command-exit';
 export const startCommandDef: CliCommandDefinition = {
     name: 'start',
     description: 'Start a built Vendure project',
+    requiresProject: true,
     arguments: [
         {
             name: 'target',

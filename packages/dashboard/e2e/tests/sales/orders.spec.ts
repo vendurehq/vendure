@@ -1,6 +1,7 @@
 import { type Page, expect, test } from '@playwright/test';
 
 import { BaseListPage } from '../../page-objects/list-page.base.js';
+import { closePopup, expectPopupClosed } from '../../utils/base-ui-popups.js';
 import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
 
 // Orders use a multi-step draft flow rather than a single CRUD form.
@@ -556,7 +557,10 @@ test.describe('Orders', () => {
         // Free text wins over the selection: a custom description must survive the popup
         // closing, instead of snapping back to the description that was picked.
         await taxDescriptionInput.fill(' Custom tax description ');
-        await taxDescriptionInput.press('Escape');
+        // Picking a suggestion above already closed the popup, and typing a description that
+        // matches no existing one does not reopen it. Pin that, because an open popup here
+        // would put a backdrop over the "Add surcharge" button below.
+        await expectPopupClosed(taxDescriptionInput);
         await taxDescriptionInput.blur();
         await expect(taxDescriptionInput).toHaveValue(' Custom tax description ');
 
@@ -580,7 +584,7 @@ test.describe('Orders', () => {
         await taxDescriptionInput.click();
         await expect(suggestion('Custom tax description')).toBeVisible();
         // Close the popup, which otherwise covers the fields below.
-        await taxDescriptionInput.press('Escape');
+        await closePopup(taxDescriptionInput);
         await addSurcharge('Gift wrap');
         await taxDescriptionInput.click();
         await expect(suggestion(seededTaxDescription)).toHaveCount(1);

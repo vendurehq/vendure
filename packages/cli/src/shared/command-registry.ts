@@ -6,6 +6,7 @@ import {
     CliCommandContext,
     CliCommandNode,
     CliCommandOption,
+    effectiveRequiresProject,
     hasCliSubcommands,
     isRunnableCliCommand,
 } from './cli-command-definition';
@@ -13,6 +14,7 @@ import { CliCommandExit } from './cli-command-exit';
 import { buildOptionFlags, parseOptionFlags } from './cli-command-options';
 import { CliPluginExtensionAccessor } from './cli-plugin-extension';
 import { CommandTreeEntry, RootOptionEntry } from './command-registry-store';
+import { findVendureProjectRoot, vendureProjectRequiredMessage } from './project-validation';
 
 /**
  * An option declared on an ancestor of a command. Commander stores the parsed
@@ -32,6 +34,12 @@ export interface RegisterCommandsOptions {
     rootOptions?: RootOptionEntry[];
     /** Reads plugin contributions registered for a named extension point. */
     getPluginExtensions?: CliPluginExtensionAccessor;
+    /**
+     * Locates the Vendure project the `requiresProject` gate checks for.
+     * Overridden by tests, which run inside a project and so would otherwise
+     * be unable to exercise the gate at all.
+     */
+    findProjectRoot?: () => string | undefined;
 }
 
 /**
@@ -87,10 +95,18 @@ export function registerCommands(
     tree: CommandTreeEntry[],
     options: RegisterCommandsOptions = {},
 ): void {
-    const { rootOptions = [], getPluginExtensions = () => [] } = options;
+    const {
+        rootOptions = [],
+        getPluginExtensions = () => [],
+        findProjectRoot = findVendureProjectRoot,
+    } = options;
+    const getProjectRoot = resolveProjectRootOnce(findProjectRoot);
     const sharedOptions = declareOptions(program, rootOptions);
     for (const { node, source } of tree) {
-        const command = registerNode(program, node, [], sharedOptions, getPluginExtensions);
+        const command = registerNode(program, node, [], sharedOptions, getPluginExtensions, {
+            getProjectRoot,
+            requiresProject: false,
+        });
         if (source) {
             // Commander groups by the heading text itself, so every command
             // from one package lands in one section without further
@@ -99,6 +115,126 @@ export function registerCommands(
             command.helpGroup(pluginCommandsHeading(source));
         }
     }
+    addProjectLegend(program, {
+        // The program has no description of its own in the command list.
+        ownDescriptionMarked: false,
+        subcommands: tree.map(entry => entry.node),
+        subcommandsInherit: false,
+        getProjectRoot,
+    });
+}
+
+/**
+ * What a node needs to know about the project gate: the answer, and whether
+ * the command it is nested in already demanded one.
+ */
+interface ProjectScope {
+    getProjectRoot: () => string | undefined;
+    requiresProject: boolean;
+}
+
+/** Appended to a project command's description when there is no project. */
+const PROJECT_MARKER = '*';
+
+/**
+ * Colours the marker so it can be picked out of a list of commands, and dims
+ * the sentence explaining it so the legend stays subordinate to the list it
+ * annotates. The marker keeps its colour inside the legend, which is what ties
+ * the two together.
+ *
+ * Yellow rather than red: nothing has gone wrong, the commands simply need
+ * something this directory does not have.
+ *
+ * As with {@link styleHelpTitle}, colour is decoration only — the legend says
+ * the same thing in words — and picocolors emits nothing when it detects no
+ * colour support, so a pipe, a redirect or NO_COLOR all give plain text.
+ */
+export function styleProjectMarker(colors: MarkerColors = pc): string {
+    return colors.yellow(PROJECT_MARKER);
+}
+
+export function styleProjectLegend(colors: MarkerColors = pc): string {
+    return `  ${colors.yellow(PROJECT_MARKER)} ${colors.dim(
+        'Requires a Vendure project. You are not in one.',
+    )}`;
+}
+
+/**
+ * Defaults to picocolors. A test passes `createColors(true)` to see the escape
+ * codes whatever terminal the suite is run in.
+ */
+export type MarkerColors = Pick<typeof pc, 'yellow' | 'dim'>;
+
+/**
+ * The description shown in help, marked when the command needs a project that
+ * is not there.
+ *
+ * A marker rather than the command being hidden, so the command list is the
+ * same wherever the CLI is run and `vendure --help` stays a reliable answer to
+ * what the CLI can do. A marker rather than words on each line because most
+ * commands need a project: spelled out, the same phrase would fill most of the
+ * list and push nearly every line past eighty columns. Nothing is added inside
+ * a project, where it would say nothing.
+ */
+function describeNode(
+    node: CliCommandNode,
+    requiresProject: boolean,
+    getProjectRoot: () => string | undefined,
+): string {
+    if (!requiresProject || getProjectRoot()) {
+        return node.description;
+    }
+    return `${node.description} ${styleProjectMarker()}`;
+}
+
+/**
+ * Adds the legend to a command's help, if a marker will appear in it.
+ *
+ * Every level is checked on its own, because help is asked for at every level
+ * and a marker with no legend in sight is a worse answer than no marker at
+ * all. A command's own description appears in its own help, so a marked leaf
+ * needs the legend just as a parent listing marked subcommands does.
+ */
+function addProjectLegend(
+    command: Command,
+    options: {
+        /** Whether this command's own description carries the marker. */
+        ownDescriptionMarked: boolean;
+        /** The subcommands this command's help lists. */
+        subcommands: readonly CliCommandNode[];
+        /**
+         * What those subcommands inherit when they declare nothing, which is
+         * this command's own effective requirement rather than the one it was
+         * handed.
+         */
+        subcommandsInherit: boolean;
+        getProjectRoot: () => string | undefined;
+    },
+): void {
+    const { ownDescriptionMarked, subcommands, subcommandsInherit, getProjectRoot } = options;
+    const anySubcommandMarked = subcommands.some(
+        subcommand => effectiveRequiresProject(subcommand, subcommandsInherit) && !getProjectRoot(),
+    );
+    if (ownDescriptionMarked || anySubcommandMarked) {
+        command.addHelpText('after', `\n${styleProjectLegend()}`);
+    }
+}
+
+/**
+ * Looks the project root up at most once per process. Both the gate and the
+ * help marker ask for it, on every command in the tree, and it cannot change
+ * while the CLI runs.
+ */
+function resolveProjectRootOnce(find: () => string | undefined): () => string | undefined {
+    let resolved = false;
+    let value: string | undefined;
+    return () => {
+        if (!resolved) {
+            value = find();
+            resolved = true;
+        }
+        return value;
+    };
 }
 
 /**
@@ -111,8 +247,13 @@ function registerNode(
     path: string[],
     sharedOptions: SharedOption[],
     getPluginExtensions: CliPluginExtensionAccessor,
+    projectScope: ProjectScope,
 ): Command {
-    const command = parent.command(node.name).description(node.description);
+    const requiresProject = effectiveRequiresProject(node, projectScope.requiresProject);
+    const getProjectRoot = projectScope.getProjectRoot;
+    const command = parent
+        .command(node.name)
+        .description(describeNode(node, requiresProject, getProjectRoot));
     const commandPath = [...path, node.name];
     const runnable = isRunnableCliCommand(node) ? node : undefined;
     const subcommands = hasCliSubcommands(node) ? node.subcommands : undefined;
@@ -130,7 +271,10 @@ function registerNode(
         // it; hasCliSubcommands explains why.
         const inheritedOptions = [...sharedOptions, ...ownOptions];
         for (const subcommand of subcommands) {
-            registerNode(command, subcommand, commandPath, inheritedOptions, getPluginExtensions);
+            registerNode(command, subcommand, commandPath, inheritedOptions, getPluginExtensions, {
+                ...projectScope,
+                requiresProject,
+            });
         }
         if (runnable) {
             // A command with subcommands takes no positional arguments, so any
@@ -149,6 +293,13 @@ function registerNode(
         }
     }
 
+    addProjectLegend(command, {
+        ownDescriptionMarked: requiresProject && !getProjectRoot(),
+        subcommands: subcommands ?? [],
+        subcommandsInherit: requiresProject,
+        getProjectRoot,
+    });
+
     if (!runnable) {
         // A group has no action: Commander prints its help and exits non-zero
         // when it is run without a subcommand.
@@ -163,6 +314,15 @@ function registerNode(
             // Commander is what stops `vendure deploy plann` deploying, and gives
             // the same message and "did you mean" hint that a group gives.
             reportUnknownSubcommand(command);
+        }
+        // Checked after the subcommand is resolved, so a mistyped subcommand is
+        // still reported as a typo rather than as a missing project, and before
+        // anything the command does: the point of the gate is to refuse ahead of
+        // the first prompt and ahead of the lazy import of an implementation
+        // that may require a package only a project installs.
+        if (requiresProject && !projectScope.getProjectRoot()) {
+            process.stderr.write(vendureProjectRequiredMessage(commandPath));
+            process.exit(1);
         }
         fillSharedValues(command, commanderOptions(args), sharedOptions);
         const context: CliCommandContext = {

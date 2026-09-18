@@ -32,13 +32,6 @@ export const config: VendureConfig = {
             origin: IS_DEV ? true : (process.env.CORS_ORIGINS?.split(',').map(o => o.trim()).filter(Boolean) ?? []),
             credentials: true,
         },
-        // The following options are useful in development mode,
-        // but are best turned off for production for security
-        // reasons.
-        ...(IS_DEV ? {
-            adminApiDebug: true,
-            shopApiDebug: true,
-        } : {}),
     },
     authOptions: {
         tokenMethod: ['bearer', 'cookie'],

@@ -7,8 +7,12 @@ import { builtinCommandDefs } from './commands/builtins';
 import { registerCommands, styleHelpTitle } from './shared/command-registry';
 import { CommandRegistry } from './shared/command-registry-store';
 import {
+    CliPluginScopeError,
+    CliPluginScopeKind,
     findInactivePluginProvidingCommand,
     listInactiveCliPluginPackages,
+    listInactiveCliPlugins,
+    pluginsCommandFor,
     resolveCliPlugins,
 } from './shared/resolve-cli-plugins';
 
@@ -48,16 +52,19 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
 
     // A broken plugin must not take down the CLI: built-ins (including the
     // `plugins` command needed to disable it) stay available.
-    const { loaded, failures } = resolveCliPlugins();
-    for (const failure of failures) {
-        writePluginSkipped(failure.packageName, 'Failed to load CLI plugin', failure.reason);
+    const { loaded, failures, scopeErrors } = resolveCliPlugins();
+    for (const scopeError of scopeErrors) {
+        writeScopeError(scopeError);
     }
-    for (const { packageName, plugin } of loaded) {
+    for (const failure of failures) {
+        writePluginSkipped(failure.packageName, 'Failed to load CLI plugin', failure.reason, failure.scope);
+    }
+    for (const { packageName, plugin, scope } of loaded) {
         try {
             registry.applyPlugin(plugin);
         } catch (e) {
             const reason = e instanceof Error ? e.message : String(e);
-            writePluginSkipped(packageName, 'Failed to register CLI plugin', reason);
+            writePluginSkipped(packageName, 'Failed to register CLI plugin', reason, scope);
         }
     }
 
@@ -78,13 +85,32 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
 }
 
 /**
+ * Reports a plugin list the CLI could not read. Nothing is enabled from it, so
+ * there is no plugin to name and nothing to disable — the file itself is the
+ * thing to fix.
+ */
+function writeScopeError({ origin, reason }: CliPluginScopeError): void {
+    process.stderr.write(pc.red(`${reason}\n`));
+    process.stderr.write(`No CLI plugins were loaded from it. Fix ${origin}, or delete it to start over.\n`);
+}
+
+/**
  * Reports a plugin the CLI could not use, and how to disable it. Built-ins stay
  * registered either way, so `vendure plugins remove` remains reachable.
+ *
+ * The suggested command names the scope the plugin was enabled in, because
+ * removing it from the other one would report that it was never enabled there
+ * and leave the broken plugin in place.
  */
-function writePluginSkipped(packageName: string, headline: string, reason: string): void {
+function writePluginSkipped(
+    packageName: string,
+    headline: string,
+    reason: string,
+    scope: CliPluginScopeKind,
+): void {
     process.stderr.write(pc.red(`${headline} "${packageName}": ${reason}\n`));
     process.stderr.write(
-        `Skipping it. Fix the issue or disable it with: vendure plugins remove ${packageName}\n`,
+        `Skipping it. Fix the issue or disable it with: ${pluginsCommandFor('remove', packageName, scope)}\n`,
     );
 }
 
@@ -131,14 +157,19 @@ function writeUnknownCommandHelp(commandName: string): void {
         process.stderr.write(
             `It is provided by ${provider.packageName}, which is installed but not enabled.\n`,
         );
-        process.stderr.write(`Enable it with: vendure plugins add ${provider.packageName}\n`);
+        process.stderr.write(
+            `Enable it with: ${pluginsCommandFor('add', provider.packageName, provider.scope)}\n`,
+        );
         return;
     }
 
-    const inactive = listInactiveCliPluginPackages();
+    const inactive = listInactiveCliPlugins();
     if (inactive.length === 1) {
-        process.stderr.write(`It may be provided by ${inactive[0]}, which is installed but not enabled.\n`);
-        process.stderr.write(`Enable it with: vendure plugins add ${inactive[0]}\n`);
+        const [only] = inactive;
+        process.stderr.write(
+            `It may be provided by ${only.packageName}, which is installed but not enabled.\n`,
+        );
+        process.stderr.write(`Enable it with: ${pluginsCommandFor('add', only.packageName, only.scope)}\n`);
         return;
     }
     if (inactive.length > 1) {

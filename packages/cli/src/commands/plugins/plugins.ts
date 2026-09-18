@@ -3,22 +3,65 @@ import pc from 'picocolors';
 
 import { exitCliCommand } from '../../shared/cli-command-exit';
 import {
+    addGlobalPlugin,
+    CLI_PLUGINS_ENV_VAR,
+    getGlobalPluginAllowlist,
+    readEnvPluginNames,
+    removeGlobalPlugin,
+    writeGlobalPluginAllowlist,
+} from '../../shared/cli-global-plugin-config';
+import {
     addCliPluginToProjectConfig,
     mergeEnabledPluginSelection,
     readCliProjectPackageJson,
     removeCliPluginFromProjectConfig,
     writeCliPluginProjectConfig,
 } from '../../shared/cli-plugin-project-config';
+import { findVendureProjectRoot } from '../../shared/project-validation';
 import {
     cliPluginCommandNames,
-    DiscoveredCliPlugin,
+    CliPluginScopeKind,
     discoverCliPlugins,
-    getCliPluginProjectContext,
+    DiscoveredCliPlugin,
+    getCliPluginScope,
+    pluginsCommandFor,
+    PluginScope,
 } from '../../shared/resolve-cli-plugins';
-import { abortIfNonInteractive, isNonInteractiveEnvironment, withInteractiveTimeout } from '../../utilities/utils';
+import {
+    abortIfNonInteractive,
+    isNonInteractiveEnvironment,
+    withInteractiveTimeout,
+} from '../../utilities/utils';
 
 export interface PluginsCommandOptions {
     json?: boolean;
+    global?: boolean;
+}
+
+/**
+ * Which allowlist `add` and `remove` write to.
+ *
+ * `--global` is explicit. Otherwise the project is used when there is one,
+ * because that is the narrower change and the one a developer in a repo means.
+ * Outside a project the global list is the only one there is, so it is used
+ * rather than reporting that no package.json was found — that is the whole
+ * situation a globally installed CLI is run in.
+ */
+function resolveTargetScope(options: PluginsCommandOptions): PluginScope {
+    // findVendureProjectRoot, not the plugin-config root: the latter falls back
+    // to the nearest package.json whatever it contains, so in an unrelated npm
+    // package it would answer 'project' and write vendure.cli.plugins into a
+    // manifest that has nothing to do with Vendure. The rest of the CLI — the
+    // command gate, the help legend, the docs — all ask this same question.
+    const kind: CliPluginScopeKind = options.global || !findVendureProjectRoot() ? 'global' : 'project';
+    const scope = getCliPluginScope(kind);
+    if (!scope) {
+        // Only the project scope can be absent, and only when its package.json
+        // is gone — which the line above just read.
+        log.error('Could not find a project package.json.');
+        exitCliCommand(1);
+    }
+    return scope;
 }
 
 /**
@@ -46,7 +89,14 @@ export async function pluginsCommand(
     if (normalizedAction) {
         log.error(`Unknown plugins action "${action}". Use add, remove, or omit the action to list.`);
         log.info(
-            'Examples:\n   vendure plugins\n   vendure plugins add @vendure/cloud\n   vendure plugins remove @vendure/cloud\n   vendure plugins --json',
+            [
+                'Examples:',
+                '   vendure plugins',
+                '   vendure plugins add @vendure/cloud',
+                '   vendure plugins add --global @vendure/cloud',
+                '   vendure plugins remove @vendure/cloud',
+                '   vendure plugins --json',
+            ].join('\n'),
         );
         exitCliCommand(1);
     }
@@ -75,67 +125,94 @@ function requirePackageName(action: string, packageName: string | undefined): st
 }
 
 function addPlugin(packageName: string, options: PluginsCommandOptions): void {
-    assertPackageCanBeEnabled(packageName);
-    const result = addCliPluginToProjectConfig(packageName);
-    log.success(`Enabled CLI plugin ${pc.cyan(packageName)}`);
-    log.info(`Wrote ${result.packageJsonPath}`);
+    const scope = resolveTargetScope(options);
+    assertPackageCanBeEnabled(packageName, scope);
+    const written =
+        scope.kind === 'global'
+            ? addGlobalPlugin(packageName).path
+            : addCliPluginToProjectConfig(packageName).packageJsonPath;
+    log.success(`Enabled CLI plugin ${pc.cyan(packageName)} ${scopeSuffix(scope.kind)}`);
+    log.info(`Wrote ${written}`);
     if (options.json) {
         printJson(discoverCliPlugins({ validate: true }));
     }
 }
 
+/** Names the list that was changed, so the message is unambiguous. */
+function scopeSuffix(scope: CliPluginScopeKind): string {
+    return scope === 'global' ? 'for this machine' : 'for this project';
+}
+
 function removePlugin(packageName: string, options: PluginsCommandOptions): void {
-    const project = readCliProjectPackageJson();
-    if (!project) {
-        log.error('Could not find a project package.json.');
+    const scope = resolveTargetScope(options);
+    const enabled = readEnabledPlugins(scope.kind);
+
+    // The environment variable is read afresh at every invocation, so removing
+    // the name from the config file would change nothing and the command would
+    // report a success that the next invocation contradicts.
+    if (scope.kind === 'global' && readEnvPluginNames().includes(packageName)) {
+        log.error(
+            `Package "${packageName}" is enabled by the ${CLI_PLUGINS_ENV_VAR} environment variable, ` +
+                'which this command cannot change.',
+        );
+        log.info(`Unset ${CLI_PLUGINS_ENV_VAR}, or remove "${packageName}" from its value.`);
         exitCliCommand(1);
     }
 
-    const enabled = project.packageJson.vendure?.cli?.plugins ?? [];
     if (!enabled.includes(packageName)) {
-        log.error(`Package "${packageName}" is not an enabled CLI plugin, so there is nothing to remove.`);
+        log.error(
+            `Package "${packageName}" is not an enabled CLI plugin ${scopeSuffix(
+                scope.kind,
+            )}, so there is nothing to remove.`,
+        );
         if (enabled.length > 0) {
             log.info(`Enabled plugins:\n${enabled.map(name => `   ${name}`).join('\n')}`);
         } else {
             log.info('No CLI plugins are currently enabled.');
         }
+        // The other list is the usual reason for this, so say so rather than
+        // leaving the user to guess which one they were looking at.
+        const other: CliPluginScopeKind = scope.kind === 'global' ? 'project' : 'global';
+        if (readEnabledPlugins(other).includes(packageName)) {
+            log.info(
+                `It is enabled ${scopeSuffix(other)}. Remove it with: ${pluginsCommandFor(
+                    'remove',
+                    packageName,
+                    other,
+                )}`,
+            );
+        }
         exitCliCommand(1);
     }
 
-    const result = removeCliPluginFromProjectConfig(packageName);
-    log.success(`Disabled CLI plugin ${pc.cyan(packageName)}`);
-    log.info(`Wrote ${result.packageJsonPath}`);
+    const written =
+        scope.kind === 'global'
+            ? removeGlobalPlugin(packageName).path
+            : removeCliPluginFromProjectConfig(packageName).packageJsonPath;
+    log.success(`Disabled CLI plugin ${pc.cyan(packageName)} ${scopeSuffix(scope.kind)}`);
+    log.info(`Wrote ${written}`);
     if (options.json) {
         printJson(discoverCliPlugins({ validate: true }));
     }
 }
 
-function assertPackageCanBeEnabled(packageName: string): void {
-    const context = getCliPluginProjectContext();
-    if (!context) {
-        log.error('Could not find a project package.json.');
-        exitCliCommand(1);
+/** The allowlist as it currently stands in one scope. */
+function readEnabledPlugins(scope: CliPluginScopeKind): string[] {
+    if (scope === 'global') {
+        return getGlobalPluginAllowlist();
     }
+    return readCliProjectPackageJson()?.packageJson.vendure?.cli?.plugins ?? [];
+}
 
-    if (!context.directDependencyNames.has(packageName)) {
-        log.error(
-            `Package "${packageName}" is not a direct dependency of ${context.projectRoot}. Install it first, then run vendure plugins add ${packageName}.`,
-        );
-        exitCliCommand(1);
-    }
-
-    const resolved = context.resolvePackage(packageName);
-    if (!resolved) {
-        log.error(
-            `Package "${packageName}" is a dependency but could not be resolved from ${context.projectRoot}. Check that it is installed correctly (and built, if it is a workspace package).`,
-        );
-        exitCliCommand(1);
-    }
-
-    if (!resolved.packageJson.vendure?.cliPlugin) {
-        log.error(
-            `Package "${packageName}" does not declare vendure.cliPlugin in its package.json, so it cannot be enabled as a CLI plugin.`,
-        );
+/**
+ * Refuses a package the scope could not load, using the scope's own rules, so
+ * that `plugins add` never writes an allowlist entry that startup would then
+ * report as broken.
+ */
+function assertPackageCanBeEnabled(packageName: string, scope: PluginScope): void {
+    const ineligible = scope.check(packageName);
+    if (ineligible) {
+        log.error(`Package "${packageName}" cannot be enabled ${scopeSuffix(scope.kind)}: ${ineligible}`);
         exitCliCommand(1);
     }
 }
@@ -145,6 +222,7 @@ async function runInteractiveManager(): Promise<void> {
         abortIfNonInteractive('vendure plugins', [
             'vendure plugins --json',
             'vendure plugins add @vendure/cloud',
+            'vendure plugins add --global @vendure/cloud',
             'vendure plugins remove @vendure/cloud',
         ])
     ) {
@@ -153,7 +231,7 @@ async function runInteractiveManager(): Promise<void> {
 
     const discovered = discoverCliPlugins({ validate: true });
     if (discovered.length === 0) {
-        log.info('No direct dependencies declare a vendure.cliPlugin entry.');
+        log.info('No installed package declares a vendure.cliPlugin entry.');
         return;
     }
 
@@ -177,14 +255,16 @@ async function runInteractiveManager(): Promise<void> {
         async () =>
             multiselect({
                 message: 'Enable CLI plugins (space to toggle, enter to save)',
+                // Keyed by scope as well as name, because the same package
+                // can be offered once per scope and the two toggle separately.
                 options: toggleable.map(plugin => ({
-                    value: plugin.packageName,
-                    label: plugin.packageName,
+                    value: toggleKey(plugin),
+                    label: toggleLabel(plugin),
                     hint: statusHint(plugin),
                 })),
                 initialValues: toggleable
                     .filter(plugin => plugin.status === 'enabled')
-                    .map(plugin => plugin.packageName),
+                    .map(plugin => toggleKey(plugin)),
                 required: false,
             }),
         {
@@ -202,18 +282,45 @@ async function runInteractiveManager(): Promise<void> {
         exitCliCommand(0);
     }
 
-    const currentPlugins = readCliProjectPackageJson()?.packageJson.vendure?.cli?.plugins ?? [];
-    // Entries classified as failed are not offered for toggling and must
-    // survive the write — a user who only opened the manager to look should
-    // not delete a temporarily broken plugin from the allowlist.
-    const plugins = mergeEnabledPluginSelection(
-        currentPlugins,
-        toggleable.map(plugin => plugin.packageName),
-        selected as string[],
-    );
+    const selectedKeys = new Set(selected);
+    const written: string[] = [];
 
-    const result = writeCliPluginProjectConfig({ plugins });
-    outro(`Updated ${result.packageJsonPath}`);
+    for (const scope of ['global', 'project'] as CliPluginScopeKind[]) {
+        const inScope = toggleable.filter(plugin => plugin.scope === scope);
+        if (inScope.length === 0) {
+            continue;
+        }
+        // Entries classified as failed are not offered for toggling and must
+        // survive the write — a user who only opened the manager to look should
+        // not delete a temporarily broken plugin from the allowlist.
+        const plugins = mergeEnabledPluginSelection(
+            readEnabledPlugins(scope),
+            inScope.map(plugin => plugin.packageName),
+            inScope.filter(plugin => selectedKeys.has(toggleKey(plugin))).map(plugin => plugin.packageName),
+        );
+        written.push(
+            scope === 'global'
+                ? writeGlobalPluginAllowlist(plugins).path
+                : writeCliPluginProjectConfig({ plugins }).packageJsonPath,
+        );
+    }
+
+    outro(written.length > 0 ? `Updated ${written.join(' and ')}` : 'No changes made.');
+}
+
+/** One row's label: the package, and which list it would be written to. */
+function toggleLabel(plugin: DiscoveredCliPlugin): string {
+    const scope = pc.dim(`(${scopeSuffix(plugin.scope)})`);
+    return `${plugin.packageName} ${scope}`;
+}
+
+/**
+ * Identifies one row of the picker. The same package can be installed both
+ * globally and in the project, and each is enabled separately, so the name
+ * alone would make the two rows indistinguishable.
+ */
+function toggleKey(plugin: DiscoveredCliPlugin): string {
+    return `${plugin.scope}:${plugin.packageName}`;
 }
 
 function statusHint(plugin: DiscoveredCliPlugin): string {
@@ -256,7 +363,7 @@ function printTextList(plugins: DiscoveredCliPlugin[]): void {
     }
     for (const plugin of plugins) {
         const detail = plugin.status === 'failed' && plugin.reason ? ` — ${plugin.reason}` : '';
-        process.stdout.write(`${plugin.packageName}\t${plugin.status}${detail}\n`);
+        process.stdout.write(`${plugin.packageName}\t${plugin.scope}\t${plugin.status}${detail}\n`);
         const commands = cliPluginCommandNames(plugin);
         if (commands.length > 0) {
             // Indented under its package, so each plugin's first line stays a
@@ -272,6 +379,7 @@ function printJson(plugins: DiscoveredCliPlugin[]): void {
             {
                 plugins: plugins.map(plugin => ({
                     packageName: plugin.packageName,
+                    scope: plugin.scope,
                     status: plugin.status,
                     reason: plugin.reason,
                     entryPath: plugin.entryPath,

@@ -1001,6 +1001,86 @@ argument is mandatory.
   visible both in the command's own options and in `inheritedOptions`. They must
   agree on whether a value follows the flag, otherwise the plugin is rejected.
 
+### Commands that need a project
+
+A command that reads or writes a Vendure project sets `requiresProject: true`.
+The CLI then refuses to run it outside a project, rather than letting it fail
+part way through — after a stack of prompts, or on a `require` of a package that
+only a project installs:
+
+```ts
+import { defineCliPlugin } from '@vendure/cli';
+
+export default defineCliPlugin({
+    id: '@example/vendure-cli-plugin',
+    commands: [
+        {
+            name: 'deploy',
+            description: 'Deploy this project',
+            requiresProject: true,
+            action: async () => {
+                /* ... */
+            },
+        },
+    ],
+});
+```
+
+Running it from a directory that is not in a project writes to stderr and exits
+with code 1, without the action running:
+
+```text
+vendure deploy must be run from a Vendure project directory.
+No package.json with a Vendure dependency was found in /home/user or any parent directory.
+```
+
+Declared on a command that has subcommands, or on a group, it applies to every
+command below it. A subcommand sets `requiresProject: false` to opt back out,
+which is how a group mixes commands that need a project with ones that do not:
+
+```ts
+{
+    name: 'cloud',
+    description: 'Vendure Cloud commands',
+    requiresProject: true,
+    subcommands: [
+        // Needs a project, inherited from the group.
+        { name: 'deploy', description: 'Deploy this project', action: deploy },
+        // Runs anywhere: it asks who is logged in, which no project affects.
+        { name: 'whoami', description: 'Show the current user', requiresProject: false, action: whoami },
+    ],
+}
+```
+
+This matters most for a globally installed CLI (`npm install -g @vendure/cli`),
+which can be run from any directory on the machine.
+
+The CLI looks for a `package.json` with a dependency in the `@vendure/` scope, in
+the current directory or any parent, so the check passes from a subdirectory of a
+project. It answers one question — is there a Vendure project here — and a
+command whose needs are narrower still checks for itself and reports its own
+error: `migrate` wants a config file it can resolve, `add` wants a tsconfig.
+
+Outside a project, `vendure --help` marks these commands rather than hiding
+them, so the command list is the same wherever the CLI is run. The legend is
+added to the help of every command where a marker appears, and says where the
+user is, which a marker on its own cannot:
+
+```text
+Commands:
+  deploy      Deploy this project *
+  whoami      Show the current user
+
+  * Requires a Vendure project. You are not in one.
+```
+
+Inside a project nothing is marked and no legend is added.
+
+Set it only where running outside a project cannot produce a useful result.
+The built-in `doctor` command, for instance, does **not** set it: reporting
+that a directory is not a Vendure project is one of the things it checks, so
+refusing to run would remove the answer in the case that most needs it.
+
 ### Collisions
 
 A plugin that would take over or discard something it does not own is not
@@ -1081,6 +1161,85 @@ A listed plugin that cannot be resolved, loaded or registered is skipped with an
 error on stderr — the rest of the CLI (including `vendure plugins remove`) stays
 usable. That covers a decorator which throws while it is being applied: the
 plugin contributes nothing and every other plugin is unaffected.
+
+### Globally installed plugins
+
+The CLI can also be installed globally, so that its commands are available from
+any directory:
+
+```bash
+npm install -g @vendure/cli @vendure/cloud
+```
+
+A globally installed plugin is enabled in the machine-wide list rather than in a
+project, because there is no project to write to:
+
+```bash
+vendure plugins add --global @vendure/cloud
+vendure plugins remove --global @vendure/cloud
+```
+
+That list lives in `cli.json`, in the CLI's config directory —
+`$XDG_CONFIG_HOME/vendure` or `~/.config/vendure` on Linux and macOS, `%APPDATA%\vendure`
+on Windows, or wherever `VENDURE_CLI_CONFIG_DIR` points:
+
+```json
+{
+    "plugins": ["@vendure/cloud"],
+    "pluginRoots": []
+}
+```
+
+`pluginRoots` lists extra directories to resolve those packages from. It is
+normally empty: the CLI looks in its own installation directory, where a
+globally installed plugin sits beside it. Use it when a package manager
+arranges global packages somewhere the CLI does not find them.
+
+Both lists apply at once. Global plugins are registered first and project
+plugins second, so a project overrides the machine — the same rule that makes
+the last entry of a single list win. A package enabled in both is loaded once,
+from the project, so the copy pinned alongside the project's code is the one
+that runs.
+
+`vendure plugins` shows which list each package came from:
+
+```bash
+$ vendure plugins --json
+{
+    "plugins": [
+        { "packageName": "@vendure/cloud", "scope": "global", "status": "enabled" }
+    ]
+}
+```
+
+With no `--global` flag, `add` and `remove` write to the project when there is
+one and to the machine-wide list when there is not, so the command does the
+expected thing in both places.
+
+#### Enabling a plugin without writing a file
+
+`VENDURE_CLI_PLUGINS` is a comma-separated list of packages to enable, added to
+whatever `cli.json` lists:
+
+```bash
+VENDURE_CLI_PLUGINS=@vendure/cloud vendure deploy
+```
+
+The variable is read afresh at every invocation and is additive to `cli.json`,
+so it enables a plugin without writing anything to disk, and
+`vendure plugins remove --global` cannot countermand it — unset the variable
+instead.
+
+#### Version skew
+
+Installed globally, `@vendure/cli` and a plugin are independent installs and
+nothing pins them to each other, so a plugin can meet an older CLI than it was
+written against. Check for the capabilities you rely on — see
+[Checking what the installed CLI supports](#checking-what-the-installed-cli-supports).
+
+Built-in commands that read a project — `migrate`, `schema`, `doctor` — load
+`@vendure/core` from the project rather than from the CLI's own installation, so
+a global CLI runs each project against that project's own version of Vendure.
 
 ## Getting Help
 

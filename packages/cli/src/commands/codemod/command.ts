@@ -1,6 +1,8 @@
 import { CliCommandDefinition } from '../../shared/cli-command-definition';
 import { runCliCommand } from '../../shared/cli-command-exit';
 
+// No `requiresProject`: the path argument names the files to rewrite, so
+// transforming a project from outside it is a valid way to run this.
 export const codemodCommandDef: CliCommandDefinition = {
     name: 'codemod',
     description: 'Run codemods to update your Vendure project code',
