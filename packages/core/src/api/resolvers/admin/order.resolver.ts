@@ -27,7 +27,7 @@ import {
     SettlePaymentResult,
     TransitionPaymentToStateResult,
 } from '@vendure/common/lib/generated-types';
-import { PaginatedList } from '@vendure/common/lib/shared-types';
+import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 
 import { ErrorResultUnion, isGraphQlErrorResult } from '../../../common/error/error-result';
 import { TransactionalConnection } from '../../../connection';
@@ -78,7 +78,7 @@ export class OrderResolver {
     async refundDestinations(
         @Ctx() ctx: RequestContext,
         @Args() args: QueryRefundDestinationsArgs,
-    ): Promise<Array<{ code: string; description: string }>> {
+    ): Promise<Array<{ code: string; description: string; availableForPaymentIds: ID[] }>> {
         return this.orderService.getRefundDestinations(ctx, args.orderId);
     }
 

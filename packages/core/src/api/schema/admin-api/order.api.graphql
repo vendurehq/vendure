@@ -135,8 +135,44 @@ input RefundOrderInput {
     Optional refund destination code. When omitted, refunds to the original
     payment method. Use the `refundDestinations` query to discover available
     destinations for an order.
+
+    Ignored when `targets` is specified.
     """
     destination: String
+    """
+    Splits the refund across multiple payments and/or refund destinations. The sum of the
+    `amount` of each target is the total amount refunded, and the top-level `amount` and
+    `destination` fields are ignored.
+
+    All targets are validated before any refund is created, and the whole operation is
+    performed in a single transaction.
+    """
+    targets: [RefundTargetInput!]
+}
+
+"""
+Specifies a single portion of a refund: how much to refund, which Payment's refundable
+balance it is drawn from, and where the funds are directed.
+"""
+input RefundTargetInput {
+    """
+    The Payment whose refundable balance is drawn on. Defaults to the top-level `paymentId`
+    of the RefundOrderInput when omitted.
+    """
+    paymentId: ID
+    "The amount to refund to this target."
+    amount: Money!
+    """
+    The refund destination code. When omitted, the funds are refunded to the original
+    payment method.
+    """
+    destination: String
+    """
+    Arbitrary configuration passed to the RefundDestinationStrategy's `createRefund()` method,
+    for example an expiry date for a store credit refund. Has no effect when `destination`
+    is omitted.
+    """
+    arguments: JSON
 }
 
 input OrderLineInput {
@@ -356,6 +392,13 @@ type RefundAmountError implements ErrorResult {
     maximumRefundable: Int!
 }
 
+"Returned if the specified refund destination does not exist, or is not available for the specified Payment"
+type RefundDestinationError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+    destinationCode: String!
+}
+
 "Returned when there is an error in transitioning the Refund state"
 type RefundStateTransitionError implements ErrorResult {
     errorCode: ErrorCode!
@@ -428,6 +471,12 @@ Represents an available refund destination for an order.
 type RefundDestination {
     code: String!
     description: String!
+    """
+    The IDs of the Payments on this Order for which this destination is available, as
+    determined by the strategy's `isAvailable()` method. A refund to this destination must
+    draw its balance from one of these Payments.
+    """
+    availableForPaymentIds: [ID!]!
 }
 
 union TransitionOrderToStateResult = Order | OrderStateTransitionError
@@ -463,6 +512,7 @@ union RefundOrderResult =
     | AlreadyRefundedError
     | RefundStateTransitionError
     | RefundAmountError
+    | RefundDestinationError
 union SettleRefundResult = Refund | RefundStateTransitionError
 union TransitionFulfillmentToStateResult = Fulfillment | FulfillmentStateTransitionError
 union TransitionPaymentToStateResult = Payment | PaymentStateTransitionError

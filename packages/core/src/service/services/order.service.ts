@@ -82,6 +82,7 @@ import { Instrument } from '../../common/instrument-decorator';
 import { grossPriceOf, netPriceOf } from '../../common/tax-utils';
 import { ListQueryOptions } from '../../common/types/common-types';
 import { assertFound, idsAreEqual } from '../../common/utils';
+import { RelationCustomFieldConfig } from '../../config';
 import { ConfigService } from '../../config/config.service';
 import { Logger } from '../../config/logger/vendure-logger';
 import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
@@ -90,10 +91,10 @@ import { Channel } from '../../entity/channel/channel.entity';
 import { Customer } from '../../entity/customer/customer.entity';
 import { Fulfillment } from '../../entity/fulfillment/fulfillment.entity';
 import { HistoryEntry } from '../../entity/history-entry/history-entry.entity';
-import { FulfillmentLine } from '../../entity/order-line-reference/fulfillment-line.entity';
-import { OrderLine } from '../../entity/order-line/order-line.entity';
-import { OrderModification } from '../../entity/order-modification/order-modification.entity';
 import { Order } from '../../entity/order/order.entity';
+import { OrderLine } from '../../entity/order-line/order-line.entity';
+import { FulfillmentLine } from '../../entity/order-line-reference/fulfillment-line.entity';
+import { OrderModification } from '../../entity/order-modification/order-modification.entity';
 import { Payment } from '../../entity/payment/payment.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
 import { Promotion } from '../../entity/promotion/promotion.entity';
@@ -133,7 +134,6 @@ import {
 } from '../helpers/utils/order-utils';
 import { patchEntity } from '../helpers/utils/patch-entity';
 
-import { RelationCustomFieldConfig } from '../../config';
 import { ChannelService } from './channel.service';
 import { CountryService } from './country.service';
 import { CustomerService } from './customer.service';
@@ -1974,7 +1974,8 @@ export class OrderService implements OnApplicationBootstrap {
         if (
             (!input.lines || input.lines.length === 0 || summate(input.lines, 'quantity') === 0) &&
             input.shipping === 0 &&
-            !input.amount
+            !input.amount &&
+            !input.targets?.length
         ) {
             return new NothingToRefundError();
         }
@@ -2020,7 +2021,7 @@ export class OrderService implements OnApplicationBootstrap {
     async getRefundDestinations(
         ctx: RequestContext,
         orderId: ID,
-    ): Promise<Array<{ code: string; description: string }>> {
+    ): Promise<Array<{ code: string; description: string; availableForPaymentIds: ID[] }>> {
         const order = await this.connection.getEntityOrThrow(ctx, Order, orderId, {
             relations: ['payments', 'payments.refunds'],
         });
@@ -2032,24 +2033,29 @@ export class OrderService implements OnApplicationBootstrap {
         const defaultDescription: LocalizedStringArray = [
             { languageCode: LanguageCode.en, value: 'Refund to original payment method' },
         ];
-        const defaultDestination = {
-            code: DEFAULT_REFUND_DESTINATION_CODE,
-            description: this.localizeDescription(ctx, defaultDescription),
-        };
+        const results = [
+            {
+                code: DEFAULT_REFUND_DESTINATION_CODE,
+                description: this.localizeDescription(ctx, defaultDescription),
+                availableForPaymentIds: refundablePayments.map(p => p.id),
+            },
+        ];
         const strategies = this.configService.paymentOptions.refundDestinations ?? [];
-        const results: Array<{ code: string; description: string }> = [defaultDestination];
         for (const strategy of strategies) {
-            let available = false;
+            // Availability is resolved per Payment rather than per Order, because a destination may
+            // be valid for one of the Order's payments but not another. The administrator must draw
+            // the refund from one of the Payments listed here.
+            const availableForPaymentIds: ID[] = [];
             for (const payment of refundablePayments) {
                 if (await strategy.isAvailable(ctx, order, payment)) {
-                    available = true;
-                    break;
+                    availableForPaymentIds.push(payment.id);
                 }
             }
-            if (available) {
+            if (availableForPaymentIds.length) {
                 results.push({
                     code: strategy.code,
                     description: this.localizeDescription(ctx, strategy.description),
+                    availableForPaymentIds,
                 });
             }
         }

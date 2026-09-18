@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ManualPaymentInput, RefundOrderInput } from '@vendure/common/lib/generated-types';
 import { DEFAULT_REFUND_DESTINATION_CODE } from '@vendure/common/lib/shared-constants';
-import { DeepPartial, ID } from '@vendure/common/lib/shared-types';
+import { DeepPartial, ID, JsonCompatible } from '@vendure/common/lib/shared-types';
 import { summate } from '@vendure/common/lib/shared-utils';
 import { In } from 'typeorm';
 
@@ -10,6 +10,7 @@ import { InternalServerError, UserInputError } from '../../common/error/errors';
 import {
     PaymentStateTransitionError,
     RefundAmountError,
+    RefundDestinationError,
     RefundStateTransitionError,
 } from '../../common/error/generated-graphql-admin-errors';
 import { IneligiblePaymentMethodError } from '../../common/error/generated-graphql-shop-errors';
@@ -18,7 +19,7 @@ import { PaymentMetadata } from '../../common/types/common-types';
 import { idsAreEqual } from '../../common/utils';
 import { ConfigService } from '../../config/config.service';
 import { Logger } from '../../config/logger/vendure-logger';
-import { PaymentMethodHandler } from '../../config/payment/payment-method-handler';
+import { CreateRefundResult, PaymentMethodHandler } from '../../config/payment/payment-method-handler';
 import { RefundDestinationStrategy } from '../../config/payment/refund-destination-strategy';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Fulfillment } from '../../entity/fulfillment/fulfillment.entity';
@@ -33,10 +34,24 @@ import { PaymentStateTransitionEvent } from '../../event-bus/events/payment-stat
 import { RefundStateTransitionEvent } from '../../event-bus/events/refund-state-transition-event';
 import { PaymentState } from '../helpers/payment-state-machine/payment-state';
 import { PaymentStateMachine } from '../helpers/payment-state-machine/payment-state-machine';
+import { RefundState } from '../helpers/refund-state-machine/refund-state';
 import { RefundStateMachine } from '../helpers/refund-state-machine/refund-state-machine';
 import { assertOrderIsInChannel } from '../helpers/utils/order-utils';
 
 import { PaymentMethodService } from './payment-method.service';
+
+/**
+ * A single portion of a refund, once the requested input has been resolved against the Order's
+ * Payments and the configured RefundDestinationStrategies.
+ */
+interface ResolvedRefundTarget {
+    /** The Payment whose refundable balance this portion is drawn from. */
+    payment: Payment;
+    amount: number;
+    /** The destination receiving the funds, or undefined to refund to the original payment method. */
+    strategy?: RefundDestinationStrategy;
+    args?: JsonCompatible<any>;
+}
 
 /**
  * @description
@@ -329,12 +344,18 @@ export class PaymentService {
             return payment;
         });
     }
-
     /**
      * @description
-     * Creates a Refund against the specified Payment. If the amount to be refunded exceeds the value of the
-     * specified Payment (in the case of multiple payments on a single Order), then the remaining outstanding
-     * refund amount will be refunded against the next available Payment from the Order.
+     * Creates one or more Refunds against the Payments of the given Order.
+     *
+     * By default the refund is drawn from the specified Payment, and if the amount to be refunded
+     * exceeds that Payment's remaining refundable balance (in the case of multiple payments on a
+     * single Order), the outstanding amount is refunded against the next available Payment.
+     *
+     * Alternatively, `input.targets` may be used to split the refund explicitly over several
+     * Payments and/or {@link RefundDestinationStrategy} destinations. Every target is resolved and
+     * validated before any Refund is created, so an invalid target rejects the whole operation
+     * without any funds having been moved.
      *
      * When creating a Refund in the context of an Order, it is
      * preferable to use the {@link OrderService} `refundOrder()` method, which performs additional
@@ -345,11 +366,154 @@ export class PaymentService {
         input: RefundOrderInput,
         order: Order,
         selectedPayment: Payment,
-    ): Promise<Refund | RefundStateTransitionError | RefundAmountError> {
+    ): Promise<Refund | RefundStateTransitionError | RefundAmountError | RefundDestinationError> {
         const orderWithRefunds = await this.connection.getEntityOrThrow(ctx, Order, order.id, {
             relations: ['payments', 'payments.refunds'],
         });
+        const useTargets = 0 < (input.targets?.length ?? 0);
+        const { total, orderLinesTotal } = useTargets
+            ? { total: summate(input.targets ?? [], 'amount'), orderLinesTotal: 0 }
+            : await this.getRefundAmount(ctx, input);
 
+        const targets = await this.resolveRefundTargets(
+            ctx,
+            input,
+            order,
+            orderWithRefunds,
+            selectedPayment,
+            total,
+        );
+        if (targets instanceof RefundAmountError || targets instanceof RefundDestinationError) {
+            return targets;
+        }
+
+        let primaryRefund: Refund | undefined;
+        for (let i = 0; i < targets.length; i++) {
+            const target = targets[i];
+            let refund = new Refund({
+                payment: target.payment,
+                total: target.amount,
+                reason: input.reason,
+                method: target.payment.method,
+                destination: target.strategy ? target.strategy.code : null,
+                state: 'Pending',
+                metadata: {},
+                items: orderLinesTotal, // deprecated
+                // These columns are not nullable, so the deprecated inputs default to zero when
+                // omitted. A refund specified via `amount` or `targets` does not use them at all.
+                adjustment: input.adjustment ?? 0, // deprecated
+                shipping: input.shipping ?? 0, // deprecated
+            });
+            const createRefundResult = target.strategy
+                ? await target.strategy.createRefund(
+                      ctx,
+                      input,
+                      target.amount,
+                      order,
+                      target.payment,
+                      target.args ?? undefined,
+                  )
+                : await this.createRefundViaPaymentMethodHandler(
+                      ctx,
+                      input,
+                      target.amount,
+                      order,
+                      target.payment,
+                  );
+            if (createRefundResult) {
+                refund.transactionId = createRefundResult.transactionId || '';
+                refund.metadata = createRefundResult.metadata || {};
+            }
+            refund = await this.connection.getRepository(ctx, Refund).save(refund);
+            if (i === 0) {
+                // The RefundLines record which OrderLines a refund relates to. A refund split over
+                // several Payments or destinations still relates to the same OrderLines, so the
+                // lines are attached once, to the first Refund. Attaching them to every Refund
+                // would record each OrderLine as having been refunded multiple times.
+                await this.createRefundLines(ctx, refund, input);
+                primaryRefund = refund;
+            }
+            if (createRefundResult) {
+                const transitionError = await this.transitionRefundState(
+                    ctx,
+                    order,
+                    refund,
+                    createRefundResult.state,
+                );
+                if (transitionError) {
+                    // Refunds created by earlier targets are deliberately left in place. A
+                    // PaymentMethodHandler or RefundDestinationStrategy may already have moved real
+                    // funds, and discarding the Refund would lose the record of it. See #4686.
+                    return transitionError;
+                }
+            }
+        }
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        return primaryRefund!;
+    }
+
+    /**
+     * Works out which Payment each portion of the refund is drawn from, how much is drawn, and
+     * which RefundDestinationStrategy (if any) receives it. Performs all validation which can be
+     * done before any funds move: destination codes are resolved, destination availability is
+     * checked against the Payment it will actually draw on, and the amounts allocated to each
+     * Payment are checked against that Payment's remaining refundable balance.
+     *
+     * No database writes are performed here.
+     */
+    private async resolveRefundTargets(
+        ctx: RequestContext,
+        input: RefundOrderInput,
+        order: Order,
+        orderWithRefunds: Order,
+        selectedPayment: Payment,
+        total: number,
+    ): Promise<ResolvedRefundTarget[] | RefundAmountError | RefundDestinationError> {
+        // Tracks how much this operation has already allocated to each Payment, so that several
+        // targets drawing on the same Payment cannot together exceed its refundable balance.
+        const allocated = new Map<ID, number>();
+        const remainingCapacityOf = (payment: Payment) =>
+            payment.amount - this.getPaymentRefundTotal(payment) - (allocated.get(payment.id) ?? 0);
+
+        if (0 < (input.targets?.length ?? 0)) {
+            const explicitTargets: ResolvedRefundTarget[] = [];
+            for (const targetInput of input.targets ?? []) {
+                if (targetInput.amount <= 0) {
+                    throw new UserInputError('error.refund-target-amount-must-be-positive');
+                }
+                const paymentId = targetInput.paymentId ?? input.paymentId;
+                const payment = orderWithRefunds.payments.find(p => idsAreEqual(p.id, paymentId));
+                if (!payment) {
+                    throw new UserInputError('error.refund-payment-not-on-order', {
+                        paymentId: String(paymentId),
+                    });
+                }
+                const targetStrategy = this.resolveRefundDestinationStrategy(targetInput.destination);
+                if (targetStrategy instanceof RefundDestinationError) {
+                    return targetStrategy;
+                }
+                if (targetStrategy && !(await targetStrategy.isAvailable(ctx, order, payment))) {
+                    return new RefundDestinationError({ destinationCode: targetStrategy.code });
+                }
+                const capacity = remainingCapacityOf(payment);
+                if (capacity < targetInput.amount) {
+                    return new RefundAmountError({ maximumRefundable: capacity });
+                }
+                allocated.set(payment.id, (allocated.get(payment.id) ?? 0) + targetInput.amount);
+                explicitTargets.push({
+                    payment,
+                    amount: targetInput.amount,
+                    strategy: targetStrategy,
+                    args: targetInput.arguments,
+                });
+            }
+            return explicitTargets;
+        }
+
+        const strategy = this.resolveRefundDestinationStrategy(input.destination);
+        if (strategy instanceof RefundDestinationError) {
+            return strategy;
+        }
         if (input.amount) {
             const paymentToRefund = orderWithRefunds.payments.find(p =>
                 idsAreEqual(p.id, selectedPayment.id),
@@ -357,170 +521,129 @@ export class PaymentService {
             if (!paymentToRefund) {
                 throw new InternalServerError('Could not find a Payment to refund');
             }
-            const refundableAmount = paymentToRefund.amount - this.getPaymentRefundTotal(paymentToRefund);
+            const refundableAmount = remainingCapacityOf(paymentToRefund);
             if (refundableAmount < input.amount) {
                 return new RefundAmountError({ maximumRefundable: refundableAmount });
             }
         }
-
-        const destinationStrategy = this.getRefundDestinationStrategy(input.destination);
-        if (destinationStrategy) {
-            // We only check isAvailable against the selected payment. If the refund
-            // spills over into other payments (in the loop below), we trust that the
-            // destination is still valid since the admin explicitly chose it.
-            const isAvailable = await destinationStrategy.isAvailable(ctx, order, selectedPayment);
-            if (!isAvailable) {
-                throw new UserInputError('error.refund-destination-not-available', {
-                    destination: destinationStrategy.code,
-                });
-            }
+        if (strategy && !(await strategy.isAvailable(ctx, order, selectedPayment))) {
+            return new RefundDestinationError({ destinationCode: strategy.code });
         }
 
-        const refundsCreated: Refund[] = [];
-        const refundablePayments = orderWithRefunds.payments.filter(p => {
-            return this.getPaymentRefundTotal(p) < p.amount;
-        });
-        let primaryRefund: Refund | undefined;
-        const refundedPaymentIds: ID[] = [];
-        const { total, orderLinesTotal } = await this.getRefundAmount(ctx, input);
-        const refundMax =
-            orderWithRefunds.payments
-                ?.map(p => p.amount - this.getPaymentRefundTotal(p))
-                .reduce((sum, amount) => sum + amount, 0) ?? 0;
+        // No explicit targets: allocate the total across the Order's refundable Payments, starting
+        // with the selected one and spilling over into the others as each is exhausted.
+        const refundablePayments = orderWithRefunds.payments.filter(
+            p => this.getPaymentRefundTotal(p) < p.amount,
+        );
+        const refundMax = refundablePayments.reduce((sum, p) => sum + remainingCapacityOf(p), 0);
+        const targets: ResolvedRefundTarget[] = [];
+        const usedPaymentIds: ID[] = [];
         let refundOutstanding = Math.min(total, refundMax);
         do {
             const paymentToRefund =
-                (refundedPaymentIds.length === 0 &&
+                (usedPaymentIds.length === 0 &&
                     refundablePayments.find(p => idsAreEqual(p.id, selectedPayment.id))) ||
-                refundablePayments.find(p => !refundedPaymentIds.includes(p.id));
+                refundablePayments.find(p => !usedPaymentIds.includes(p.id));
             if (!paymentToRefund) {
                 throw new InternalServerError('Could not find a Payment to refund');
             }
-            const amountNotRefunded = paymentToRefund.amount - this.getPaymentRefundTotal(paymentToRefund);
-            const constrainedTotal = Math.min(amountNotRefunded, refundOutstanding);
-            let refund = new Refund({
-                payment: paymentToRefund,
-                total: constrainedTotal,
-                reason: input.reason,
-                method: paymentToRefund.method,
-                destination: destinationStrategy ? destinationStrategy.code : null,
-                state: 'Pending',
-                metadata: {},
-                items: orderLinesTotal, // deprecated
-                adjustment: input.adjustment, // deprecated
-                shipping: input.shipping, // deprecated
-            });
-            let createRefundResult: Awaited<ReturnType<RefundDestinationStrategy['createRefund']>> | false;
-            if (destinationStrategy) {
-                createRefundResult = await destinationStrategy.createRefund(
-                    ctx,
-                    input,
-                    constrainedTotal,
-                    order,
-                    paymentToRefund,
-                );
-            } else {
-                let paymentMethod: PaymentMethod | undefined;
-                let handler: PaymentMethodHandler | undefined;
-                try {
-                    const methodAndHandler = await this.paymentMethodService.getMethodAndOperations(
-                        ctx,
-                        paymentToRefund.method,
-                    );
-                    paymentMethod = methodAndHandler.paymentMethod;
-                    handler = methodAndHandler.handler;
-                } catch (e) {
-                    Logger.warn(
-                        'Could not find a corresponding PaymentMethodHandler ' +
-                            `when creating a refund for the Payment with method "${paymentToRefund.method}"`,
-                    );
-                }
-                createRefundResult =
-                    paymentMethod && handler
-                        ? await handler.createRefund(
-                              ctx,
-                              input,
-                              constrainedTotal,
-                              order,
-                              paymentToRefund,
-                              paymentMethod.handler.args,
-                              paymentMethod,
-                          )
-                        : false;
-            }
-            if (createRefundResult) {
-                refund.transactionId = createRefundResult.transactionId || '';
-                refund.metadata = createRefundResult.metadata || {};
-            }
-            refund = await this.connection.getRepository(ctx, Refund).save(refund);
-            const refundLines: RefundLine[] = [];
-            for (const { orderLineId, quantity } of input.lines || []) {
-                const refundLine = await this.connection.getRepository(ctx, RefundLine).save(
-                    new RefundLine({
-                        refund,
-                        orderLineId,
-                        quantity,
-                    }),
-                );
-                refundLines.push(refundLine);
-            }
-            await this.connection
-                .getRepository(ctx, Fulfillment)
-                .createQueryBuilder()
-                .relation('lines')
-                .of(refund)
-                .add(refundLines);
-            if (createRefundResult) {
-                const fromState = refund.state;
-                // Each iteration's state transition is wrapped in withTransaction so
-                // the save, onTransitionEnd hooks and event publish commit or roll
-                // back together — same atomicity guarantee as the dedicated
-                // transition methods. The surrounding loop is intentionally NOT
-                // wrapped: refunds created in earlier iterations remain committed
-                // if a later iteration fails. #4686.
-                const transitionError = await this.connection.withTransaction(ctx, async txCtx => {
-                    let finalize: () => Promise<any>;
-                    try {
-                        const result = await this.refundStateMachine.transition(
-                            txCtx,
-                            order,
-                            refund,
-                            createRefundResult.state,
-                        );
-                        finalize = result.finalize;
-                    } catch (e: any) {
-                        return new RefundStateTransitionError({
-                            transitionError: e.message,
-                            fromState,
-                            toState: createRefundResult.state,
-                        });
-                    }
-                    await this.connection.getRepository(txCtx, Refund).save(refund, { reload: false });
-                    await finalize();
-                    await this.eventBus.publish(
-                        new RefundStateTransitionEvent(
-                            fromState,
-                            createRefundResult.state,
-                            txCtx,
-                            refund,
-                            order,
-                        ),
-                    );
-                    return undefined;
-                });
-                if (transitionError) {
-                    return transitionError;
-                }
-            }
-            if (primaryRefund == null) {
-                primaryRefund = refund;
-            }
-            refundsCreated.push(refund);
-            refundedPaymentIds.push(paymentToRefund.id);
-            refundOutstanding = total - summate(refundsCreated, 'total');
+            const constrainedTotal = Math.min(remainingCapacityOf(paymentToRefund), refundOutstanding);
+            targets.push({ payment: paymentToRefund, amount: constrainedTotal, strategy });
+            usedPaymentIds.push(paymentToRefund.id);
+            refundOutstanding = total - summate(targets, 'amount');
         } while (0 < refundOutstanding);
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        return primaryRefund;
+        return targets;
+    }
+
+    /**
+     * Refunds to the original payment method by delegating to the PaymentMethodHandler of the
+     * Payment being refunded. Returns `false` if no corresponding handler can be found, which
+     * leaves the Refund in the `Pending` state.
+     */
+    private async createRefundViaPaymentMethodHandler(
+        ctx: RequestContext,
+        input: RefundOrderInput,
+        amount: number,
+        order: Order,
+        payment: Payment,
+    ): Promise<CreateRefundResult | false> {
+        let paymentMethod: PaymentMethod | undefined;
+        let handler: PaymentMethodHandler | undefined;
+        try {
+            const methodAndHandler = await this.paymentMethodService.getMethodAndOperations(
+                ctx,
+                payment.method,
+            );
+            paymentMethod = methodAndHandler.paymentMethod;
+            handler = methodAndHandler.handler;
+        } catch (e) {
+            Logger.warn(
+                'Could not find a corresponding PaymentMethodHandler ' +
+                    `when creating a refund for the Payment with method "${payment.method}"`,
+            );
+        }
+        return paymentMethod && handler
+            ? handler.createRefund(
+                  ctx,
+                  input,
+                  amount,
+                  order,
+                  payment,
+                  paymentMethod.handler.args,
+                  paymentMethod,
+              )
+            : false;
+    }
+
+    private async createRefundLines(ctx: RequestContext, refund: Refund, input: RefundOrderInput) {
+        const refundLines: RefundLine[] = [];
+        for (const { orderLineId, quantity } of input.lines || []) {
+            const refundLine = await this.connection.getRepository(ctx, RefundLine).save(
+                new RefundLine({
+                    refund,
+                    orderLineId,
+                    quantity,
+                }),
+            );
+            refundLines.push(refundLine);
+        }
+        await this.connection
+            .getRepository(ctx, Fulfillment)
+            .createQueryBuilder()
+            .relation('lines')
+            .of(refund)
+            .add(refundLines);
+    }
+
+    private async transitionRefundState(
+        ctx: RequestContext,
+        order: Order,
+        refund: Refund,
+        toState: RefundState,
+    ): Promise<RefundStateTransitionError | undefined> {
+        const fromState = refund.state;
+        // The state transition is wrapped in withTransaction so the save, onTransitionEnd hooks and
+        // event publish commit or roll back together — the same atomicity guarantee as the
+        // dedicated transition methods. #4686.
+        return this.connection.withTransaction(ctx, async txCtx => {
+            let finalize: () => Promise<any>;
+            try {
+                const result = await this.refundStateMachine.transition(txCtx, order, refund, toState);
+                finalize = result.finalize;
+            } catch (e: any) {
+                return new RefundStateTransitionError({
+                    transitionError: e.message,
+                    fromState,
+                    toState,
+                });
+            }
+            await this.connection.getRepository(txCtx, Refund).save(refund, { reload: false });
+            await finalize();
+            await this.eventBus.publish(
+                new RefundStateTransitionEvent(fromState, toState, txCtx, refund, order),
+            );
+            return undefined;
+        });
     }
 
     /**
@@ -564,21 +687,22 @@ export class PaymentService {
     }
 
     /**
-     * Returns the matching RefundDestinationStrategy if a non-default destination
-     * code is specified, or undefined to use the default payment handler path.
+     * Returns the matching RefundDestinationStrategy if a non-default destination code is
+     * specified, or undefined to refund to the original payment method. An unrecognised code is
+     * reported as a RefundDestinationError rather than throwing, since it is caused by the input
+     * rather than by a fault in the server.
      */
-    private getRefundDestinationStrategy(
+    private resolveRefundDestinationStrategy(
         destination: string | undefined | null,
-    ): RefundDestinationStrategy | undefined {
+    ): RefundDestinationStrategy | undefined | RefundDestinationError {
         if (!destination || destination === DEFAULT_REFUND_DESTINATION_CODE) {
             return undefined;
         }
         const strategies = this.configService.paymentOptions.refundDestinations ?? [];
-        const match = strategies.find(s => s.code === destination);
-        if (!match) {
-            throw new InternalServerError(`No RefundDestinationStrategy found with code "${destination}"`);
-        }
-        return match;
+        return (
+            strategies.find(s => s.code === destination) ??
+            new RefundDestinationError({ destinationCode: destination })
+        );
     }
 
     private mergePaymentMetadata(m1: PaymentMetadata, m2?: PaymentMetadata): PaymentMetadata {
