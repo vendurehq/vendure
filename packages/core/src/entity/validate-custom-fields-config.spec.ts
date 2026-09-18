@@ -35,6 +35,20 @@ describe('validateCustomFieldsConfig()', () => {
         expect(result.errors).toEqual(['User entity does not support custom fields of type "localeString"']);
     });
 
+    // #5197 - Seller should accept localized custom fields
+    it('valid localeString and localeText on Seller', () => {
+        const config: CustomFields = {
+            Seller: [
+                { name: 'tagline', type: 'localeString' },
+                { name: 'description', type: 'localeText' },
+            ],
+        };
+        const result = validateCustomFieldsConfig(config, allEntities);
+
+        expect(result.errors).toEqual([]);
+        expect(result.valid).toBe(true);
+    });
+
     it('valid names', () => {
         const config: CustomFields = {
             User: [
