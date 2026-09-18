@@ -921,8 +921,8 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
                         );
                     }
                     // A base row with no translation rows at all matches neither branch above, so
-                    // keep it and let it sort as null. A Seller whose localized custom fields were
-                    // never set is in this state.
+                    // keep it and let it sort as null. Without this, sorting by a translatable key
+                    // silently drops such rows from the result set.
                     qb1.orWhere(`${translationsAlias}.id IS NULL`);
                     qb.setParameters({
                         nonDefaultLanguageCode: languageCode,

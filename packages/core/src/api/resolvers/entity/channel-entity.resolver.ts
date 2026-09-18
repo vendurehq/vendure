@@ -16,6 +16,8 @@ export class ChannelEntityResolver {
         @Ctx() ctx: RequestContext,
         @Parent() channel: Channel,
     ): Promise<Translated<Seller> | undefined> {
+        // createChannel and updateChannel return a Channel whose seller relation was assigned in
+        // memory without sellerId being populated, so fall back to the relation's own id.
         const sellerId = channel.sellerId ?? channel.seller?.id;
         return sellerId ? this.sellerService.findOne(ctx, sellerId) : undefined;
     }
