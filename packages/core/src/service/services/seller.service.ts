@@ -11,7 +11,7 @@ import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { RequestContext } from '../../api/common/request-context';
 import { Instrument } from '../../common/instrument-decorator';
 import { ListQueryOptions } from '../../common/types/common-types';
-import { Translated } from '../../common/types/locale-types';
+import { Translated, Translation } from '../../common/types/locale-types';
 import { assertFound } from '../../common/utils';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { SellerTranslation } from '../../entity/seller/seller-translation.entity';
@@ -78,10 +78,13 @@ export class SellerService {
     }
 
     async update(ctx: RequestContext, input: UpdateSellerInput): Promise<Translated<Seller>> {
-        await this.connection.getEntityOrThrow(ctx, Seller, input.id);
+        const existing = await this.connection.getEntityOrThrow(ctx, Seller, input.id);
         const seller = await this.translatableSaver.update({
             ctx,
-            input: { ...input, translations: this.withoutBlankTranslations(input.translations) },
+            input: {
+                ...input,
+                translations: this.withoutBlankTranslations(input.translations, existing.translations),
+            },
             entityType: Seller,
             translationType: SellerTranslation,
         });
@@ -102,11 +105,21 @@ export class SellerService {
     }
 
     // Needed only because a SellerTranslation holds nothing but custom field values for now. A row with
-    // none of them set says nothing, and both admin UIs submit such rows anyway.
-    private withoutBlankTranslations(translations: SellerTranslationInput[] | null | undefined) {
+    // none of them set says nothing, and both admin UIs submit such rows anyway. A language which
+    // already has a row is kept even when every value is blank, because clearing them is how a
+    // localized value gets removed. Matching on languageCode rather than on the input id is what
+    // TranslationDiffer itself matches on, so a client which omits the id still clears the value.
+    private withoutBlankTranslations(
+        translations: SellerTranslationInput[] | null | undefined,
+        existing: Array<Translation<Seller>> = [],
+    ) {
         const isSet = (value: unknown) =>
             value != null && value !== '' && !(Array.isArray(value) && !value.length);
-        return translations?.filter(t => t.id != null || Object.values(t.customFields ?? {}).some(isSet));
+        return translations?.filter(
+            t =>
+                existing.some(e => e.languageCode === t.languageCode) ||
+                Object.values(t.customFields ?? {}).some(isSet),
+        );
     }
 
     private async ensureDefaultSellerExists() {

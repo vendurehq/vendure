@@ -206,6 +206,23 @@ describe('Seller with localized custom fields', () => {
         expect(filteredAndSorted.sellers.items.map(s => s.name)).toEqual(['Fresh Foods']);
     });
 
+    // #5197 - the de sort above only reaches the non-default-language branch of the translation
+    // join. The default language is what most installations run, so cover it too while two of the
+    // three sellers still have no translation row.
+    it('sorts the seller list by a localized custom field in the default language', async () => {
+        const sorted = await adminClient.query(
+            getSellerListDocument,
+            { options: { sort: { tagline: SortOrder.ASC } } },
+            { languageCode: LanguageCode.en },
+        );
+        expect(sorted.sellers.totalItems).toBe(3);
+        expect(sorted.sellers.items.map(s => s.name).sort()).toEqual([
+            'Default Seller',
+            'Fresh Foods',
+            'Plain Seller',
+        ]);
+    });
+
     it('translates the seller in the createChannel response', async () => {
         const { createChannel } = await adminClient.query(
             createChannelWithSellerDocument,
@@ -349,6 +366,29 @@ describe('Seller with localized custom fields', () => {
 
         expect(updateSeller.name).toBe('Renamed Seller');
         expect(updateSeller.translations).toEqual([]);
+    });
+
+    // #5197 - a client which does not echo the translation id back must still be able to clear a
+    // localized value. Both bundled UIs send the id, so this path is only reachable from a direct
+    // API consumer or a plugin.
+    it('clears a localized value when the translation input omits the id', async () => {
+        const { createSeller } = await adminClient.query(createSellerDocument, {
+            input: {
+                name: 'Clearable Seller',
+                translations: [
+                    { languageCode: LanguageCode.en, customFields: { tagline: 'Has a tagline' } },
+                ],
+            },
+        });
+        expect(createSeller.customFields.tagline).toBe('Has a tagline');
+
+        const { updateSeller } = await adminClient.query(updateSellerDocument, {
+            input: {
+                id: createSeller.id,
+                translations: [{ languageCode: LanguageCode.en, customFields: { tagline: null } }],
+            },
+        });
+        expect(updateSeller.customFields.tagline).toBeNull();
     });
 
     it('publishes a created event whose seller carries the localized custom fields', async () => {
