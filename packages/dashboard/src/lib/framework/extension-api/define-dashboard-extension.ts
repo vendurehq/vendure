@@ -17,6 +17,7 @@ import {
     registerLayoutExtensions,
     registerLoginExtensions,
     registerNavigationExtensions,
+    registerRefundDestinationExtensions,
     registerToolbarExtensions,
 } from './logic/index.js';
 
@@ -83,6 +84,7 @@ export function executeDashboardExtensionCallbacks() {
  * - Login
  * - Custom history entries
  * - Toolbar items
+ * - Refund destinations
  *
  * @example
  * ```tsx
@@ -99,6 +101,7 @@ export function executeDashboardExtensionCallbacks() {
  *     login: {},
  *     historyEntries: [],
  *     toolbarItems: [],
+ *     refundDestinations: [],
  * });
  * ```
  *
@@ -139,6 +142,9 @@ export function defineDashboardExtension(extension: DashboardExtension) {
 
         // Register custom history entry components
         registerHistoryEntryComponents(extension.historyEntries);
+
+        // Register refund destination presentation extensions
+        registerRefundDestinationExtensions(extension.refundDestinations);
 
         // Register dashboard custom providers
         registerDashboardCustomProviders(extension.customProviders);

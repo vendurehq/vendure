@@ -13,6 +13,7 @@ import {
     DashboardLoginExtensions,
     DashboardNavSectionDefinition,
     DashboardPageBlockDefinition,
+    DashboardRefundDestinationDefinition,
     DashboardRouteDefinition,
     DashboardToolbarItemDefinition,
     DashboardWidgetDefinition,
@@ -149,6 +150,15 @@ export interface DashboardExtension {
      * in the Order or Customer history lists.
      */
     historyEntries?: DashboardHistoryEntryComponent[];
+    /**
+     * @description
+     * Allows the presentation of a refund destination to be customised in the refund dialog,
+     * adding a label, an icon and an optional configuration component. The destination itself is
+     * defined on the backend by a `RefundDestinationStrategy`.
+     *
+     * @since 3.8.0
+     */
+    refundDestinations?: DashboardRefundDestinationDefinition[];
     /**
      * @description
      * Allows you to define custom toolbar items in the app shell header bar.
