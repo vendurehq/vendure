@@ -57,6 +57,8 @@ export type JobUpdateOptions = {
  * @docsCategory JobQueue
  */
 export class SubscribableJob<T extends JobData<T> = any> extends Job<T> {
+    private _isBuffered = false;
+
     private readonly jobQueueStrategy: JobQueueStrategy;
 
     constructor(job: Job<T>, jobQueueStrategy: JobQueueStrategy) {
@@ -68,6 +70,38 @@ export class SubscribableJob<T extends JobData<T> = any> extends Job<T> {
         };
         super(config);
         this.jobQueueStrategy = jobQueueStrategy;
+    }
+
+    /**
+     * @description
+     * Creates the placeholder returned by `JobQueue.add()` when a {@link JobBuffer} collected
+     * the job instead of adding it to the queue. See {@link SubscribableJob.isBuffered}.
+     *
+     * @since 3.8.0
+     * @internal
+     */
+    static buffered<Data extends JobData<Data>>(
+        job: Job<Data>,
+        jobQueueStrategy: JobQueueStrategy,
+    ): SubscribableJob<Data> {
+        const subscribableJob = new SubscribableJob(job, jobQueueStrategy);
+        subscribableJob._isBuffered = true;
+        return subscribableJob;
+    }
+
+    /**
+     * @description
+     * Will be `true` if this instance is the placeholder returned by the {@link JobQueue}'s `add()` method
+     * for a job which was collected by a {@link JobBuffer} instead of being added to the queue. Such a job
+     * does not exist in any queue yet and has no real id, so there is nothing for `updates()` to poll - it
+     * will emit nothing until `timeoutMs` elapses. Check this flag before subscribing, and subscribe
+     * instead to the real jobs returned by the `JobQueueService`'s `flush()` method.
+     *
+     * @since 3.8.0
+     * @default false
+     */
+    get isBuffered(): boolean {
+        return this._isBuffered;
     }
 
     /**
