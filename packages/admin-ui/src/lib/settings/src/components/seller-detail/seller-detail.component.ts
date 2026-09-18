@@ -110,7 +110,7 @@ export class SellerDetailComponent
         if (!this.detailForm.dirty) {
             return;
         }
-        combineLatest(this.entity$, this.languageCode$)
+        combineLatest([this.entity$, this.languageCode$])
             .pipe(
                 take(1),
                 mergeMap(([seller, languageCode]) => {
