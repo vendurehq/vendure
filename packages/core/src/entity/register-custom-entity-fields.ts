@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/ban-types */
+/* eslint-disable @typescript-eslint/no-unsafe-function-type */
 import { CustomFieldType } from '@vendure/common/lib/shared-types';
 import { assertNever } from '@vendure/common/lib/shared-utils';
 import {
