@@ -19,6 +19,9 @@ import {
     RequestContext,
     ShippingMethod,
     TransactionalConnection,
+    Session,
+    AuthenticatedSession,
+    AnonymousSession
 } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import gql from 'graphql-tag';
@@ -58,6 +61,7 @@ const entitiesWithCustomFields: Array<keyof CustomFields> = [
     'Promotion',
     'Region',
     'Seller',
+    'Session',
     'ShippingMethod',
     'TaxCategory',
     'TaxRate',
@@ -1604,5 +1608,21 @@ describe('Custom field relations', () => {
                 expect.objectContaining({ id: collectionIdInternal }),
             ]);
         });
+    });
+
+    it('load relations on custom field session entity', async () => {
+        const connection = server.app.get(TransactionalConnection);
+        const sessions = await connection.rawConnection.getRepository(AnonymousSession).find({
+            relations: {
+                customFields: {
+                    single: true,
+                },
+            },
+            take: 2,
+        });
+
+        // TODO: exploring behaviour how to load customFields from session, tested on Session directly and it is returning customFields, AnonymousSession and AuthenticatedSession ends in WHERE error. Necessary to check this deeper.
+        console.log('sessions:');
+        console.log(sessions);
     });
 });
