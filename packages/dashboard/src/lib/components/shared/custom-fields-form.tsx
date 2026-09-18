@@ -14,21 +14,31 @@ import { useLingui } from '@lingui/react/macro';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { ResultOf } from 'gql.tada';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Control, Controller, ControllerFieldState, useFormContext } from 'react-hook-form';
+import { Control, Controller, ControllerFieldState, FieldValues, useFormContext } from 'react-hook-form';
 import { applyControlProps } from './apply-control-props.js';
 import { FormControlAdapter } from '../../framework/form-engine/form-control-adapter.js';
 import { TranslatableFormField } from './translatable-form-field.js';
 
 type CustomFieldConfig = Omit<ResultOf<typeof customFieldConfigFragment>, '__typename'>;
 
-interface CustomFieldsFormProps {
+interface CustomFieldsFormProps<TFieldValues extends FieldValues> {
     entityType: string;
-    control: Control<any, any>;
+    control: Control<TFieldValues, any, any>;
     formPathPrefix?: string;
     disabled?: boolean;
 }
 
-export function CustomFieldsForm({ entityType, control, formPathPrefix, disabled }: Readonly<CustomFieldsFormProps>) {
+// Generic on purpose: since react-hook-form 7.72.0, `Control._options.validate` is compared
+// contravariantly, so a form's `Control<T>` is not assignable to `Control<any, any>`.
+export function CustomFieldsForm<TFieldValues extends FieldValues>({
+    entityType,
+    control: formControl,
+    formPathPrefix,
+    disabled,
+}: Readonly<CustomFieldsFormProps<TFieldValues>>) {
+    // Custom field paths come from the server config at runtime, so they cannot be
+    // checked against the form's field types.
+    const control = formControl as Control<any>;
     const { t } = useLingui();
     const customFields = useCustomFieldConfig(entityType);
 
