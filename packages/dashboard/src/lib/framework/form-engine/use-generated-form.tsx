@@ -170,10 +170,15 @@ export function useGeneratedForm<
     // the parent route. When the schema changes identity, react-hook-form's
     // resolver is replaced and the form re-validates everything; when
     // defaultValues changes identity it can also reset uncontrolled inputs.
+    // `!entity` tells the schema whether it is validating a create or an update form — see
+    // `applyCustomFieldModifiers` for what that changes (#5241). An update page reads `entity`
+    // through a suspended query, so it is already there on the first render and the flag is
+    // constant: the resolver is never swapped between the two schemas.
+    const isCreateForm = !entity;
     const schema = useMemo(() => {
-        const generated = createFormSchemaFromFields(updateFields, customFieldConfig);
+        const generated = createFormSchemaFromFields(updateFields, customFieldConfig, false, isCreateForm);
         return extendSchemaRef.current?.(generated) ?? generated;
-    }, [updateFields, customFieldConfig]);
+    }, [updateFields, customFieldConfig, isCreateForm]);
     const defaultValues = useMemo(
         () => getDefaultValuesFromFields(updateFields, activeChannel?.defaultLanguageCode, customFieldConfig),
         [updateFields, activeChannel?.defaultLanguageCode, customFieldConfig],
