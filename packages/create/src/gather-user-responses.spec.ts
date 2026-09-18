@@ -36,9 +36,9 @@ describe('getCiConfiguration', () => {
 
         expect(responses.storefrontPort).toBe(mockedStorefrontPort);
         expect(responses.configSource).toContain(`http://localhost:${mockedStorefrontPort}/verify`);
-        expect(responses.configSource).toContain(`http://localhost:${mockedStorefrontPort}/password-reset`);
+        expect(responses.configSource).toContain(`http://localhost:${mockedStorefrontPort}/reset-password`);
         expect(responses.configSource).toContain(
-            `http://localhost:${mockedStorefrontPort}/verify-email-address-change`,
+            `http://localhost:${mockedStorefrontPort}/account/verify-email`,
         );
         expect(findAvailablePortMock).toHaveBeenCalledWith(STOREFRONT_PORT, PORT_SCAN_RANGE);
     });
