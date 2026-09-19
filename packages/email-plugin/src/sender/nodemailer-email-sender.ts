@@ -45,7 +45,8 @@ export class NodemailerEmailSender implements EmailSender {
             return JSON.stringify(transport?.options) !== JSON.stringify(options);
         } catch (error: any) {
             Logger.error(format(error.message), loggerCtx);
-            return false;
+            // Treat unserializable options as changed to avoid routing mail through a stale transport.
+            return true;
         }
     }
     async send(email: EmailDetails, options: EmailTransportOptions) {
