@@ -9,6 +9,9 @@ import { ExternalAuthenticationMethod } from '../../../entity/authentication-met
 import { Customer } from '../../../entity/customer/customer.entity';
 import { Role } from '../../../entity/role/role.entity';
 import { User } from '../../../entity/user/user.entity';
+import { EventBus } from '../../../event-bus/event-bus';
+import { AccountVerifiedEvent } from '../../../event-bus/events/account-verified-event';
+import { CustomerEvent } from '../../../event-bus/events/customer-event';
 import { AdministratorService } from '../../services/administrator.service';
 import { ChannelService } from '../../services/channel.service';
 import { CustomerService } from '../../services/customer.service';
@@ -31,6 +34,7 @@ export class ExternalAuthenticationService {
         private customerService: CustomerService,
         private administratorService: AdministratorService,
         private channelService: ChannelService,
+        private eventBus: EventBus,
     ) {}
 
     /**
@@ -153,6 +157,9 @@ export class ExternalAuthenticationService {
         }
         await this.channelService.assignToCurrentChannel(customer, ctx);
         await this.connection.getRepository(ctx, Customer).save(customer);
+        if (!existingCustomer) {
+            await this.eventBus.publish(new CustomerEvent(ctx, customer, 'created', config));
+        }
 
         await this.historyService.createHistoryEntryForCustomer({
             customerId: customer.id,
@@ -172,6 +179,7 @@ export class ExternalAuthenticationService {
                     strategy: config.strategy,
                 },
             });
+            await this.eventBus.publish(new AccountVerifiedEvent(ctx, customer));
         }
 
         return savedUser;
