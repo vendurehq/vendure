@@ -18,6 +18,7 @@ function validateCustomFieldsForEntity(
         ...assertNoNameConflictsWithEntity(entity, customFields),
         ...assertNoDuplicatedCustomFieldNames(entity.name, customFields),
         ...assetNonNullablesHaveDefaults(entity.name, customFields),
+        ...assertRelationReferentialActionsAreValid(entity.name, customFields),
         ...(isTranslatable(entity) ? [] : assertNoLocalizedFields(entity.name, customFields)),
     ];
 }
@@ -146,4 +147,37 @@ export function validateCustomFieldsConfig(
         valid: errors.length === 0,
         errors,
     };
+}
+
+/**
+ * Validates referential actions on relation custom fields.
+ *
+ * `SET NULL` requires a nullable relation, and referential actions are
+ * not supported on list relations, which are represented by a junction table.
+ */
+function assertRelationReferentialActionsAreValid(
+    entityName: string,
+    customFields: CustomFieldConfig[],
+): string[] {
+    const errors: string[] = [];
+    for (const field of customFields) {
+        if (field.type !== 'relation') {
+            continue;
+        }
+        for (const action of ['onDelete', 'onUpdate'] as const) {
+            if (field[action] === undefined) {
+                continue;
+            }
+            if (field.list) {
+                errors.push(
+                    `${entityName} entity custom field "${field.name}" cannot use "${action}" on a list relation field`,
+                );
+            } else if (field[action] === 'SET NULL' && field.nullable === false) {
+                errors.push(
+                    `${entityName} entity custom field "${field.name}" cannot be non-nullable when "${action}" is set to "SET NULL"`,
+                );
+            }
+        }
+    }
+    return errors;
 }

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { CustomFields } from '../config/custom-field/custom-field-types';
 
+import { Asset } from './asset/asset.entity';
 import { coreEntitiesMap } from './entities';
 import { validateCustomFieldsConfig } from './validate-custom-fields-config';
 
@@ -164,6 +165,101 @@ describe('validateCustomFieldsConfig()', () => {
         expect(result.valid).toBe(false);
         expect(result.errors).toEqual([
             'Product entity custom field "foo" is non-nullable and must have a defaultValue',
+        ]);
+    });
+
+    it('relation field with onDelete SET NULL cannot be non-nullable', () => {
+        const config: CustomFields = {
+            Product: [
+                {
+                    name: 'foo',
+                    type: 'relation',
+                    entity: Asset,
+                    nullable: false,
+                    defaultValue: 1,
+                    onDelete: 'SET NULL',
+                },
+            ],
+        };
+        const result = validateCustomFieldsConfig(config, allEntities);
+
+        expect(result.valid).toBe(false);
+        expect(result.errors).toEqual([
+            'Product entity custom field "foo" cannot be non-nullable when "onDelete" is set to "SET NULL"',
+        ]);
+    });
+
+    it('relation field with onUpdate SET NULL cannot be non-nullable', () => {
+        const config: CustomFields = {
+            Product: [
+                {
+                    name: 'foo',
+                    type: 'relation',
+                    entity: Asset,
+                    nullable: false,
+                    defaultValue: 1,
+                    onUpdate: 'SET NULL',
+                },
+            ],
+        };
+        const result = validateCustomFieldsConfig(config, allEntities);
+
+        expect(result.valid).toBe(false);
+        expect(result.errors).toEqual([
+            'Product entity custom field "foo" cannot be non-nullable when "onUpdate" is set to "SET NULL"',
+        ]);
+    });
+
+    it('relation field with onDelete SET NULL is valid when nullable', () => {
+        const config: CustomFields = {
+            Product: [{ name: 'foo', type: 'relation', entity: Asset, onDelete: 'SET NULL' }],
+        };
+        const result = validateCustomFieldsConfig(config, allEntities);
+
+        expect(result.valid).toBe(true);
+        expect(result.errors.length).toBe(0);
+    });
+
+    it('relation field with onDelete CASCADE is valid when non-nullable', () => {
+        const config: CustomFields = {
+            Product: [
+                {
+                    name: 'foo',
+                    type: 'relation',
+                    entity: Asset,
+                    nullable: false,
+                    defaultValue: 1,
+                    onDelete: 'CASCADE',
+                },
+            ],
+        };
+        const result = validateCustomFieldsConfig(config, allEntities);
+
+        expect(result.valid).toBe(true);
+        expect(result.errors.length).toBe(0);
+    });
+
+    it('list relation field cannot use onDelete', () => {
+        const config: CustomFields = {
+            Product: [{ name: 'foo', type: 'relation', entity: Asset, list: true, onDelete: 'CASCADE' }],
+        };
+        const result = validateCustomFieldsConfig(config, allEntities);
+
+        expect(result.valid).toBe(false);
+        expect(result.errors).toEqual([
+            'Product entity custom field "foo" cannot use "onDelete" on a list relation field',
+        ]);
+    });
+
+    it('list relation field cannot use onUpdate', () => {
+        const config: CustomFields = {
+            Product: [{ name: 'foo', type: 'relation', entity: Asset, list: true, onUpdate: 'CASCADE' }],
+        };
+        const result = validateCustomFieldsConfig(config, allEntities);
+
+        expect(result.valid).toBe(false);
+        expect(result.errors).toEqual([
+            'Product entity custom field "foo" cannot use "onUpdate" on a list relation field',
         ]);
     });
 });

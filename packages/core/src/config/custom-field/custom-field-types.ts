@@ -155,6 +155,18 @@ export type IntCustomFieldConfig = TypedCustomFieldConfig<'int', GraphQLIntCusto
 export type FloatCustomFieldConfig = TypedCustomFieldConfig<'float', GraphQLFloatCustomFieldConfig>;
 export type BooleanCustomFieldConfig = TypedCustomFieldConfig<'boolean', GraphQLBooleanCustomFieldConfig>;
 export type DateTimeCustomFieldConfig = TypedCustomFieldConfig<'datetime', GraphQLDateTimeCustomFieldConfig>;
+export type RelationOnDeleteAction =
+    | "RESTRICT"
+    | "CASCADE"
+    | "SET NULL"
+    | "DEFAULT"
+    | "NO ACTION";
+export type RelationOnUpdateAction =
+    | "RESTRICT"
+    | "CASCADE"
+    | "SET NULL"
+    | "DEFAULT"
+    | "NO ACTION";
 export type RelationCustomFieldConfig = TypedCustomFieldConfig<
     'relation',
     Omit<GraphQLRelationCustomFieldConfig, 'entity' | 'scalarFields'>
@@ -163,6 +175,8 @@ export type RelationCustomFieldConfig = TypedCustomFieldConfig<
     graphQLType?: string;
     eager?: boolean;
     inverseSide?: string | ((object: any) => any);
+    onDelete?: RelationOnDeleteAction;
+    onUpdate?: RelationOnUpdateAction;
 };
 
 // Struct field definitions

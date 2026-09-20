@@ -55,6 +55,8 @@ function registerCustomFieldsForEntity(
                     } else {
                         ManyToOne(type => customField.entity, customField.inverseSide, {
                             eager: customField.eager,
+                            onDelete: customField.onDelete,
+                            onUpdate: customField.onUpdate,
                         })(instance, name);
                         JoinColumn()(instance, name);
                     }
