@@ -159,13 +159,11 @@ export type RelationOnDeleteAction =
     | "RESTRICT"
     | "CASCADE"
     | "SET NULL"
-    | "DEFAULT"
     | "NO ACTION";
 export type RelationOnUpdateAction =
     | "RESTRICT"
     | "CASCADE"
     | "SET NULL"
-    | "DEFAULT"
     | "NO ACTION";
 export type RelationCustomFieldConfig = TypedCustomFieldConfig<
     'relation',
