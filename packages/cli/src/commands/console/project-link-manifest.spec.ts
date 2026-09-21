@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { LINK_ID, OTHER_LINK_ID, manifest } from './console.fixtures';
 import {
     ProjectLinkManifest,
+    consoleOriginsForManifest,
     getProjectLinkManifestPath,
     parseProjectLinkManifest,
     readProjectLinkManifest,
@@ -25,8 +26,39 @@ afterEach(() => {
 });
 
 describe('Project Link Manifest', () => {
-    it('parses and reconstructs the exact v1 contract', () => {
+    it('parses the exact legacy v1 contract and resolves it to production', () => {
         expect(parseProjectLinkManifest(structuredClone(manifest), LINK_ID)).toEqual(manifest);
+        expect(consoleOriginsForManifest(manifest)).toEqual({
+            appOrigin: 'https://console.vendure.io',
+            apiOrigin: 'https://api.vendure.io',
+        });
+
+        const root = vendureProject();
+        const manifestPath = getProjectLinkManifestPath(root);
+        fs.ensureDirSync(path.dirname(manifestPath));
+        fs.writeJsonSync(manifestPath, manifest);
+        const read = readProjectLinkManifest(root);
+        expect(read).toMatchObject({ kind: 'valid', manifest });
+        if (read.kind === 'valid') {
+            expect(consoleOriginsForManifest(read.manifest)).toEqual({
+                appOrigin: 'https://console.vendure.io',
+                apiOrigin: 'https://api.vendure.io',
+            });
+        }
+    });
+
+    it('parses and reconstructs the exact v2 contract', () => {
+        const current: ProjectLinkManifest = {
+            ...manifest,
+            schemaVersion: 2,
+            console: {
+                appOrigin: 'https://staging.console.vendure.io',
+                apiOrigin: 'https://staging.api.vendure.io',
+            },
+        };
+
+        expect(parseProjectLinkManifest(structuredClone(current), LINK_ID)).toEqual(current);
+        expect(consoleOriginsForManifest(current)).toEqual(current.console);
     });
 
     it('rejects unexpected fields and a mismatched link ID', () => {
@@ -45,6 +77,45 @@ describe('Project Link Manifest', () => {
         };
 
         expect(parseProjectLinkManifest(versionSevenManifest)).toEqual(versionSevenManifest);
+    });
+
+    it.each([
+        [
+            'a path',
+            {
+                appOrigin: 'https://console.vendure.io/link',
+                apiOrigin: 'https://api.vendure.io',
+            },
+        ],
+        [
+            'a query',
+            {
+                appOrigin: 'https://console.vendure.io',
+                apiOrigin: 'https://api.vendure.io?target=staging',
+            },
+        ],
+        [
+            'credentials',
+            {
+                appOrigin: 'https://user:secret@console.vendure.io',
+                apiOrigin: 'https://api.vendure.io',
+            },
+        ],
+        [
+            'an untrusted host',
+            {
+                appOrigin: 'https://console.example.com',
+                apiOrigin: 'https://api.example.com',
+            },
+        ],
+    ])('rejects Console origins with %s', (_label, console) => {
+        expect(() =>
+            parseProjectLinkManifest({
+                ...manifest,
+                schemaVersion: 2,
+                console,
+            }),
+        ).toThrow();
     });
 
     it('reports malformed JSON without including file contents', () => {

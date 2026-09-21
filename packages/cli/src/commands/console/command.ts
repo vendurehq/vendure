@@ -15,11 +15,6 @@ export const consoleCommandDef: CliCommandDefinition = {
     ],
     options: [
         {
-            long: '--allow-custom-console',
-            description: 'Allow custom remote Console endpoints without an interactive prompt',
-            required: false,
-        },
-        {
             long: '--project <path>',
             description: 'Vendure project directory (required when project discovery is ambiguous)',
             required: true,

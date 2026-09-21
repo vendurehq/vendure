@@ -15,7 +15,7 @@ import {
     createVendureProject,
     manifest,
 } from './console.fixtures';
-import { getProjectLinkManifestPath } from './project-link-manifest';
+import { ProjectLinkManifest, getProjectLinkManifestPath } from './project-link-manifest';
 
 /**
  * The official production pair, so the origin gate opens. Nothing reaches the
@@ -24,8 +24,17 @@ import { getProjectLinkManifestPath } from './project-link-manifest';
  */
 const OFFICIAL_ENV = {
     VENDURE_CLI_NON_INTERACTIVE: 'true',
-    VENDURE_CONSOLE_LINK_URL: 'https://console.vendure.io',
-    VENDURE_CONSOLE_LINK_API_URL: 'https://api.vendure.io',
+    VENDURE_CONSOLE_APP_URL: 'https://console.vendure.io',
+    VENDURE_CONSOLE_API_URL: 'https://api.vendure.io',
+};
+
+const productionManifest: ProjectLinkManifest = {
+    ...manifest,
+    schemaVersion: 2,
+    console: {
+        appOrigin: 'https://console.vendure.io',
+        apiOrigin: 'https://api.vendure.io',
+    },
 };
 
 const temporaryDirectories: string[] = [];
@@ -42,7 +51,7 @@ describe('console link command line login', () => {
         const run = await runLink();
 
         expect(run.exitCode).toBe(0);
-        expect(fs.readJsonSync(getProjectLinkManifestPath(run.root))).toEqual(manifest);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(run.root))).toEqual(productionManifest);
         // One approval. The browser was opened once and never sent to the
         // standalone sign-in page.
         expect(run.openedUrls).toHaveLength(1);
@@ -203,7 +212,7 @@ describe('console link command line login', () => {
         const run = await runLink({ tokenBody: { access_token: 'vcli_a', token_type: 'Bearer' } });
 
         expect(run.exitCode).toBe(0);
-        expect(fs.readJsonSync(getProjectLinkManifestPath(run.root))).toEqual(manifest);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(run.root))).toEqual(productionManifest);
         expect(run.sessions).toEqual([undefined]);
         expect(run.messages.join('\n')).toContain('could not be obtained');
     });
@@ -212,7 +221,7 @@ describe('console link command line login', () => {
         const run = await runLink({ supports: [] });
 
         expect(run.exitCode).toBe(0);
-        expect(fs.readJsonSync(getProjectLinkManifestPath(run.root))).toEqual(manifest);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(run.root))).toEqual(productionManifest);
         // No login was requested, so the verification URL is the plain one.
         expect(new URL(run.openedUrls[0]).searchParams.get('client')).toBeNull();
         expect(run.sessions).toEqual([undefined]);
@@ -223,7 +232,7 @@ describe('console link command line login', () => {
         const run = await runLink({ openUrl: () => Promise.reject(new Error('no browser')) });
 
         expect(run.exitCode).toBe(0);
-        expect(fs.readJsonSync(getProjectLinkManifestPath(run.root))).toEqual(manifest);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(run.root))).toEqual(productionManifest);
         // The URL offered for another machine carries no callback address,
         // because that address is only reachable from this one.
         const printed = run.messages.find(message => message.startsWith('https://'));
@@ -240,7 +249,7 @@ describe('console link command line login', () => {
         const run = await runLink({ openUrl: () => Promise.resolve() });
 
         expect(run.exitCode).toBe(0);
-        expect(fs.readJsonSync(getProjectLinkManifestPath(run.root))).toEqual(manifest);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(run.root))).toEqual(productionManifest);
         expect(run.sessions).toEqual([undefined]);
         const output = run.messages.join('\n');
         expect(output).toContain('The link is in place.');
@@ -253,7 +262,7 @@ describe('console link command line login', () => {
         const run = await runLink({ tokenStatus: 400 });
 
         expect(run.exitCode).toBe(0);
-        expect(fs.readJsonSync(getProjectLinkManifestPath(run.root))).toEqual(manifest);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(run.root))).toEqual(productionManifest);
         expect(run.sessions).toEqual([undefined]);
         expect(run.messages.join('\n')).toContain('could not be obtained');
     });
@@ -268,7 +277,7 @@ describe('console link command line login', () => {
         });
 
         expect(run.exitCode).toBe(130);
-        expect(fs.readJsonSync(getProjectLinkManifestPath(run.root))).toEqual(manifest);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(run.root))).toEqual(productionManifest);
         const output = run.messages.join('\n');
         expect(output).toContain('The link succeeded');
         expect(output).not.toContain('No Project Link Manifest was changed');
@@ -280,7 +289,7 @@ describe('console link command line login', () => {
         });
 
         expect(run.exitCode).toBe(0);
-        expect(fs.readJsonSync(getProjectLinkManifestPath(run.root))).toEqual(manifest);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(run.root))).toEqual(productionManifest);
         expect(run.sessions).toEqual([undefined]);
         expect(run.messages.join('\n')).toContain('EACCES');
     });
@@ -349,8 +358,8 @@ describe('console link command line login', () => {
                 ...baseDependencies(root, messages),
                 env: {
                     VENDURE_CLI_NON_INTERACTIVE: 'true',
-                    VENDURE_CONSOLE_LINK_URL: 'http://localhost:3000',
-                    VENDURE_CONSOLE_LINK_API_URL: 'http://localhost:3001',
+                    VENDURE_CONSOLE_APP_URL: 'http://localhost:3000',
+                    VENDURE_CONSOLE_API_URL: 'http://localhost:3001',
                 },
                 fetch: vi.fn(createConsoleFetch()) as unknown as typeof fetch,
                 hooks: [
