@@ -9,6 +9,10 @@ describe('console command definition', () => {
         expect(consoleCommandDef.options?.map(option => option.long)).toContain(flag);
     });
 
+    it('does not register the removed --allow-custom-console option', () => {
+        expect(consoleCommandDef.options?.map(option => option.long)).not.toContain('--allow-custom-console');
+    });
+
     it('takes the action as an optional argument', () => {
         expect(consoleCommandDef.arguments?.[0]).toMatchObject({ name: 'action', required: false });
     });

@@ -439,6 +439,14 @@ npx vendure console link
 An explicit pair takes precedence when no manifest exists or when it matches the manifest. If it names a different
 Console, the command refuses to continue and prints both pairs. Unset the variables to use the linked Console.
 
+The prerelease variables `VENDURE_CONSOLE_LINK_URL` and `VENDURE_CONSOLE_LINK_API_URL` are not supported. Use
+`VENDURE_CONSOLE_APP_URL` and `VENDURE_CONSOLE_API_URL` instead. The CLI stops with a migration message when either
+old variable is set, including when its value is empty.
+
+The prerelease `--allow-custom-console` option is also not supported and has no replacement. Console linking accepts
+only the production pair, the staging pair, or loopback origins on `localhost`, `127.0.0.1`, or `::1`. A custom
+Console host is not supported.
+
 The CLI rejects partial endpoint configuration and URLs that contain credentials, paths, queries, or fragments. It
 requires HTTPS except for `localhost`, `127.0.0.1`, and `::1`. It accepts the matching production pair, the matching
 staging pair, or a loopback pair. It rejects other hosts.

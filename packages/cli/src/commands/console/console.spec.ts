@@ -63,6 +63,21 @@ describe('console command', () => {
         expect(second.messages.join('\n')).toContain('Unknown console action');
     });
 
+    it.each([
+        ['VENDURE_CONSOLE_LINK_URL', 'VENDURE_CONSOLE_APP_URL', 'https://console.example.com'],
+        ['VENDURE_CONSOLE_LINK_API_URL', 'VENDURE_CONSOLE_API_URL', ''],
+    ])('refuses the removed %s variable and names %s', async (removed, replacement, value) => {
+        const fetchMock = vi.fn() as unknown as typeof fetch;
+        const test = testDependencies(vendureProject(), fetchMock, {
+            env: { [removed]: value },
+        });
+
+        expect(await consoleCommand('link', {}, test.dependencies)).toBe(1);
+        expect(fetchMock).not.toHaveBeenCalled();
+        expect(test.messages.join('\n')).toContain(`${removed} is no longer supported`);
+        expect(test.messages.join('\n')).toContain(`Use ${replacement} instead`);
+    });
+
     it('resolves the default working directory when the command runs', async () => {
         const root = vendureProject();
         const test = testDependencies(root, vi.fn() as unknown as typeof fetch);

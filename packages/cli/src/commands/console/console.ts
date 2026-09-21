@@ -239,6 +239,8 @@ async function runConsoleCommand(
         return 1;
     }
 
+    assertNoRemovedConsoleEnvironment(dependencies.env);
+
     const projectRoot = resolveProjectRoot(dependencies.cwd, options.project);
     if (normalizedAction === 'status') {
         return status(projectRoot, dependencies.env, dependencies.reporter);
@@ -247,6 +249,19 @@ async function runConsoleCommand(
         return unlink(projectRoot, options, dependencies);
     }
     return link(projectRoot, options, dependencies, signal, state);
+}
+
+function assertNoRemovedConsoleEnvironment(env: NodeJS.ProcessEnv): void {
+    const replacements = [
+        ['VENDURE_CONSOLE_LINK_URL', 'VENDURE_CONSOLE_APP_URL'],
+        ['VENDURE_CONSOLE_LINK_API_URL', 'VENDURE_CONSOLE_API_URL'],
+    ] as const;
+    const messages = replacements
+        .filter(([removed]) => env[removed] !== undefined)
+        .map(([removed, replacement]) => `${removed} is no longer supported. Use ${replacement} instead.`);
+    if (messages.length > 0) {
+        throw new Error(messages.join('\n'));
+    }
 }
 
 export function resolveConsoleEndpoints(
