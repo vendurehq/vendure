@@ -29,7 +29,6 @@ import {
     ManifestReadResult,
     PROJECT_LINK_MANIFEST_RELATIVE_PATH,
     ProjectLinkManifest,
-    consoleOriginsForManifest,
     parseProjectLinkManifest,
     readProjectLinkManifest,
     removeProjectLinkManifest,
@@ -315,7 +314,7 @@ async function link(
     const existing = readProjectLinkManifest(projectRoot);
     const endpoints = resolveConsoleEndpoints(
         dependencies.env,
-        existing.kind === 'valid' ? consoleOriginsForManifest(existing.manifest) : undefined,
+        existing.kind === 'valid' ? existing.manifest.console : undefined,
     );
     if (existing.kind === 'valid' && !options.force) {
         // A repeated link reuses the manifest and reruns plugin setup.
@@ -617,7 +616,7 @@ async function confirmRepair(
         throw new CommandInterruptedError();
     }
     if (result !== true) {
-        dependencies.reporter.info('No plugin setup was run. The Project Link Manifest is unchanged.');
+        dependencies.reporter.info('No plugin setup was run.');
         return false;
     }
     return true;
@@ -754,7 +753,7 @@ function status(projectRoot: string, env: NodeJS.ProcessEnv, reporter: ConsoleRe
     }
 
     const { manifest } = result;
-    const endpoints = resolveConsoleEndpoints(env, consoleOriginsForManifest(manifest));
+    const endpoints = resolveConsoleEndpoints(env, manifest.console);
     reporter.info(
         [
             `Account: ${manifest.account.name} (${manifest.account.id})`,

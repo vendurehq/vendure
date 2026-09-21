@@ -812,6 +812,47 @@ describe('console command', () => {
         expect(seen).toEqual(['staging']);
     });
 
+    it('uses explicit staging origins to repair a manifest without Console metadata', async () => {
+        const root = vendureProject();
+        const manifestPath = getProjectLinkManifestPath(root);
+        fs.ensureDirSync(path.dirname(manifestPath));
+        fs.writeJsonSync(manifestPath, manifest);
+        const fetchMock = vi.fn() as unknown as typeof fetch;
+        const test = testDependencies(root, fetchMock, {
+            env: {
+                VENDURE_CONSOLE_APP_URL: STAGING_CONSOLE.appOrigin,
+                VENDURE_CONSOLE_API_URL: STAGING_CONSOLE.apiOrigin,
+            },
+        });
+
+        expect(await consoleCommand('link', {}, test.dependencies)).toBe(0);
+        expect(fetchMock).not.toHaveBeenCalled();
+        expect(fs.readJsonSync(manifestPath)).toEqual(stagingManifest);
+    });
+
+    it('does not claim an upgraded manifest is unchanged when plugin setup is declined', async () => {
+        const root = vendureProject();
+        const manifestPath = getProjectLinkManifestPath(root);
+        fs.ensureDirSync(path.dirname(manifestPath));
+        fs.writeJsonSync(manifestPath, manifest);
+        const test = testDependencies(root, vi.fn() as unknown as typeof fetch, {
+            env: {},
+            hooks: [{ pluginId: '@example/p', hook: vi.fn(async () => undefined) }],
+            isNonInteractive: () => false,
+            prompt: () => Promise.resolve(false),
+        });
+
+        expect(await consoleCommand('link', {}, test.dependencies)).toBe(0);
+        expect(fs.readJsonSync(manifestPath)).toEqual({
+            ...manifest,
+            console: {
+                appOrigin: 'https://console.vendure.io',
+                apiOrigin: 'https://api.vendure.io',
+            },
+        });
+        expect(test.messages.join('\n')).not.toContain('Project Link Manifest is unchanged');
+    });
+
     it('runs plugin setup on a repair once the prompt is accepted', async () => {
         const root = vendureProject();
         fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
@@ -941,6 +982,21 @@ describe('console command', () => {
         const malformed = testDependencies(root, fetchMock);
         expect(await consoleCommand('status', {}, malformed.dependencies)).toBe(1);
         expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('uses explicit staging origins for status when the manifest has no Console metadata', async () => {
+        const root = vendureProject();
+        fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
+        fs.writeJsonSync(getProjectLinkManifestPath(root), manifest);
+        const test = testDependencies(root, vi.fn() as unknown as typeof fetch, {
+            env: {
+                VENDURE_CONSOLE_APP_URL: STAGING_CONSOLE.appOrigin,
+                VENDURE_CONSOLE_API_URL: STAGING_CONSOLE.apiOrigin,
+            },
+        });
+
+        expect(await consoleCommand('status', {}, test.dependencies)).toBe(0);
+        expect(test.messages.join('\n')).toContain(`Console: ${STAGING_CONSOLE.appOrigin}`);
     });
 
     it('unlinks only the local manifest after explicit confirmation', async () => {
