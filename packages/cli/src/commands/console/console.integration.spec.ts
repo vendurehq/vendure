@@ -66,7 +66,7 @@ describe('Console project-link integration', () => {
         expect(await consoleCommand('link', {}, dependencies)).toBe(0);
         expect(fs.readJsonSync(getProjectLinkManifestPath(projectRoot))).toEqual({
             ...manifest,
-            schemaVersion: 2,
+            schemaVersion: 1,
             console: {
                 appOrigin: 'http://localhost:3000',
                 apiOrigin: apiUrl,

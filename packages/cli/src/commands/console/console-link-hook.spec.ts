@@ -377,7 +377,7 @@ describe('console link hooks', () => {
         });
         expect(output).toContain('The link succeeded');
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(
-            expect.objectContaining({ schemaVersion: 2 }),
+            expect.objectContaining({ schemaVersion: 1 }),
         );
     });
 
@@ -425,7 +425,7 @@ function plugin(id: string, afterConsoleLink: ConsoleLinkHookRegistration) {
 function manifestForConsole(appOrigin: string, apiOrigin: string) {
     return {
         ...manifest,
-        schemaVersion: 2,
+        schemaVersion: 1,
         console: { appOrigin, apiOrigin },
     };
 }

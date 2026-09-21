@@ -383,11 +383,11 @@ On an already-linked project, `--yes` keeps the repair behavior. Only `--force` 
 
 ### Manifest and source control
 
-The v2 manifest contains identity metadata only:
+The manifest contains identity metadata only:
 
 ```json
 {
-    "schemaVersion": 2,
+    "schemaVersion": 1,
     "project": { "id": "<uuid>", "name": "<display name>" },
     "account": { "id": "<uuid>", "name": "<display name>" },
     "link": { "id": "<uuid>", "protocolVersion": 1 },
@@ -398,9 +398,9 @@ The v2 manifest contains identity metadata only:
 }
 ```
 
-The Console values are origins. They contain no path, query, fragment, or credentials. The CLI also accepts a v1
-manifest without `console` and treats it as a production Console link. Running `vendure console link` again upgrades
-that file to v2.
+The Console values are origins. They contain no path, query, fragment, or credentials. The CLI also accepts a
+manifest without `console` and treats it as a production Console link. Running `vendure console link` again adds
+the `console` block.
 
 Commit `.vendure/project.json` so that the repository keeps its Project identity. Ignore all other `.vendure` files.
 They are reserved for machine-local state and may contain secrets.
@@ -427,7 +427,7 @@ The original ancestor rule stays unchanged, and other projects remain ignored. T
 
 ### Console environments
 
-The command uses the Console recorded in `.vendure/project.json`. A v1 manifest and an unlinked project use
+The command uses the Console recorded in `.vendure/project.json`. A manifest without `console` and an unlinked project use
 `https://console.vendure.io` and `https://api.vendure.io`. To use a local Console environment, set both variables:
 
 ```bash
@@ -785,8 +785,8 @@ been extended. A group and all its subcommands must come from one plugin.
 ### Running after a project link
 
 Register an `afterConsoleLink` hook when a plugin must run setup after
-`vendure console link` writes or reuses the Project Link Manifest. A repair also adds the Console origins to a legacy
-v1 manifest:
+`vendure console link` writes or reuses the Project Link Manifest. A repair also adds the Console origins to a
+manifest that does not contain them:
 
 ```ts
 import { defineCliPlugin } from '@vendure/cli';

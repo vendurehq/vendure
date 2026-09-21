@@ -30,7 +30,7 @@ const OFFICIAL_ENV = {
 
 const productionManifest: ProjectLinkManifest = {
     ...manifest,
-    schemaVersion: 2,
+    schemaVersion: 1,
     console: {
         appOrigin: 'https://console.vendure.io',
         apiOrigin: 'https://api.vendure.io',

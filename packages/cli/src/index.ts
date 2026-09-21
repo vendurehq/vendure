@@ -55,11 +55,7 @@ export type {
 } from './commands/console/console-link-hook';
 export type { ConsoleOriginEnvironment, ConsoleOrigins } from './commands/console/console-origins';
 export type { ConsoleReporter } from './commands/console/console-reporter';
-export type {
-    ProjectLinkManifest,
-    ProjectLinkManifestV1,
-    ProjectLinkManifestV2,
-} from './commands/console/project-link-manifest';
+export type { ProjectLinkManifest } from './commands/console/project-link-manifest';
 export { readCommandContext, readCommandOptions } from './shared/cli-command-definition';
 export type {
     CliCommandAction,

@@ -549,7 +549,7 @@ async function repair(
         appOrigin: endpoints.consoleUrl,
         apiOrigin: endpoints.apiUrl,
     });
-    const upgraded = manifest.schemaVersion === 1;
+    const upgraded = manifest.console == null;
     if (upgraded) {
         await writeProjectLinkManifestAtomic(projectRoot, currentManifest);
     }

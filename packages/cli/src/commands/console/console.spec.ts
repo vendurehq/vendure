@@ -32,13 +32,13 @@ const STAGING_CONSOLE = {
 
 const localManifest: ProjectLinkManifest = {
     ...manifest,
-    schemaVersion: 2,
+    schemaVersion: 1,
     console: LOCAL_CONSOLE,
 };
 
 const stagingManifest: ProjectLinkManifest = {
     ...manifest,
-    schemaVersion: 2,
+    schemaVersion: 1,
     console: STAGING_CONSOLE,
 };
 
@@ -356,7 +356,7 @@ describe('console command', () => {
         expect(await consoleCommand('link', {}, test.dependencies)).toBe(0);
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual({
             ...versionSevenManifest,
-            schemaVersion: 2,
+            schemaVersion: 1,
             console: LOCAL_CONSOLE,
         });
     });
@@ -579,7 +579,7 @@ describe('console command', () => {
         expect(await consoleCommand('link', { force: true }, allowed.dependencies)).toBe(0);
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual({
             ...replacement,
-            schemaVersion: 2,
+            schemaVersion: 1,
             console: LOCAL_CONSOLE,
         });
     });
@@ -725,7 +725,7 @@ describe('console command', () => {
         expect(fetchMock).not.toHaveBeenCalled();
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual({
             ...manifest,
-            schemaVersion: 2,
+            schemaVersion: 1,
             console: {
                 appOrigin: 'https://console.vendure.io',
                 apiOrigin: 'https://api.vendure.io',

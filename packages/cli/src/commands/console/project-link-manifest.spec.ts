@@ -26,7 +26,7 @@ afterEach(() => {
 });
 
 describe('Project Link Manifest', () => {
-    it('parses the exact legacy v1 contract and resolves it to production', () => {
+    it('parses a manifest without Console origins and resolves it to production', () => {
         expect(parseProjectLinkManifest(structuredClone(manifest), LINK_ID)).toEqual(manifest);
         expect(consoleOriginsForManifest(manifest)).toEqual({
             appOrigin: 'https://console.vendure.io',
@@ -47,10 +47,10 @@ describe('Project Link Manifest', () => {
         }
     });
 
-    it('parses and reconstructs the exact v2 contract', () => {
+    it('parses and reconstructs the exact contract with Console origins', () => {
         const current: ProjectLinkManifest = {
             ...manifest,
-            schemaVersion: 2,
+            schemaVersion: 1,
             console: {
                 appOrigin: 'https://staging.console.vendure.io',
                 apiOrigin: 'https://staging.api.vendure.io',
@@ -67,6 +67,9 @@ describe('Project Link Manifest', () => {
         );
         expect(() => parseProjectLinkManifest(manifest, OTHER_LINK_ID)).toThrow(
             'does not match the created link request',
+        );
+        expect(() => parseProjectLinkManifest({ ...manifest, schemaVersion: 2 })).toThrow(
+            'schemaVersion must be 1',
         );
     });
 
@@ -112,7 +115,7 @@ describe('Project Link Manifest', () => {
         expect(() =>
             parseProjectLinkManifest({
                 ...manifest,
-                schemaVersion: 2,
+                schemaVersion: 1,
                 console,
             }),
         ).toThrow();
