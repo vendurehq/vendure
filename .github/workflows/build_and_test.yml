@@ -57,13 +57,14 @@ jobs:
                   fi
                   changed=$(git diff --name-only "$(git merge-base "$base" HEAD)" HEAD)
 
-                  if echo "$changed" | grep -qE '^(packages/|package\.json|bun\.lock|bunfig\.toml)'; then
+                  # Changes to workflows and composite actions change how CI runs, so they trigger the test suites too.
+                  if echo "$changed" | grep -qE '^(packages/|package\.json|bun\.lock|bunfig\.toml|\.github/(workflows|actions)/)'; then
                     echo "packages=true" >> "$GITHUB_OUTPUT"
                   else
                     echo "packages=false" >> "$GITHUB_OUTPUT"
                   fi
 
-                  if echo "$changed" | grep -q '^packages/dashboard/'; then
+                  if echo "$changed" | grep -qE '^(packages/dashboard/|\.github/(workflows|actions)/)'; then
                     echo "dashboard=true" >> "$GITHUB_OUTPUT"
                   else
                     echo "dashboard=false" >> "$GITHUB_OUTPUT"
