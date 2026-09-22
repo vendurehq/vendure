@@ -249,7 +249,10 @@ export class AssetServer {
         const decodedReqPath = this.sanitizeFilePath(filePath);
         if (imageParamsString !== '') {
             const imageParamHash = this.md5(imageParamsString);
-            return path.join(this.cacheDir, this.addSuffix(decodedReqPath, imageParamHash, imageFormat));
+            return path.posix.join(
+                this.cacheDir,
+                this.addSuffix(decodedReqPath, imageParamHash, imageFormat),
+            );
         } else {
             return decodedReqPath;
         }
@@ -293,7 +296,7 @@ export class AssetServer {
         const effectiveExt = ext ? `.${ext}` : originalExt;
         const baseName = path.basename(fileName, originalExt);
         const dirName = path.dirname(fileName);
-        return path.join(dirName, `${baseName}${suffix}${effectiveExt}`);
+        return path.posix.join(dirName, `${baseName}${suffix}${effectiveExt}`);
     }
 
     /**

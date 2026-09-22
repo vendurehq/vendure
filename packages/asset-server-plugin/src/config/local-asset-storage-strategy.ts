@@ -77,7 +77,10 @@ export class LocalAssetStorageStrategy implements AssetStorageStrategy {
         const filePathDirname = path.dirname(filePath);
         const deltaDirname = filePathDirname.replace(this.uploadPath, '');
         const identifier = path.join(deltaDirname, path.basename(filePath));
-        return identifier.replace(/^[\\/]+/, '');
+        return identifier
+            .replace(/^[\\/]+/, '')
+            .split(path.sep)
+            .join('/');
     }
 
     private identifierToFilePath(identifier: string): string {
