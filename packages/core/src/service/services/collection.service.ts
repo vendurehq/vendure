@@ -937,6 +937,8 @@ export class CollectionService implements OnModuleInit {
             .getRepository(ProductVariant)
             .createQueryBuilder('productVariant')
             .select('productVariant.id', 'id')
+            // Guards against duplicate ids from any filter that joins a to-many relation.
+            .distinct(true)
             .setFindOptions({ loadEagerRelations: false });
 
         // If there are no filters, we need to ensure that the query returns no results
