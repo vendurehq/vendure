@@ -2289,6 +2289,12 @@ export class OrderService implements OnApplicationBootstrap {
         orderId: ID,
         relations?: RelationPaths<Order>,
     ): Promise<Order> {
+        // Every method which modifies an Order reads it through here first, so this is the one
+        // place a write lock has to be taken to serialize concurrent modifications of the same
+        // order. It is taken before the read, so that what is read is what the lock protects.
+        // No-op outside a transaction and on databases without row locking, which is what keeps
+        // read-only requests from locking anything. See TransactionalConnection.lockRow.
+        await this.connection.lockRow(ctx, Order, orderId);
         const order = await this.findOne(
             ctx,
             orderId,
