@@ -20,9 +20,10 @@ import { JobQueueService } from './job-queue.service';
 import { TestingJobQueueStrategy } from './testing-job-queue-strategy';
 
 const queuePollInterval = 10;
+const defaultConcurrency = 1;
 const backoffStrategySpy = vi.fn();
 const testJobQueueStrategy = new TestingJobQueueStrategy({
-    concurrency: 1,
+    concurrency: defaultConcurrency,
     pollInterval: queuePollInterval,
     backoffStrategy: backoffStrategySpy.mockReturnValue(0),
 });
@@ -44,7 +45,7 @@ describe('JobQueueService', () => {
         // `module.close()` does not clear them. Reset them so no test inherits the jobs,
         // buffers or concurrency left behind by the one before it.
         testJobQueueStrategy.reset();
-        testJobQueueStrategy.concurrency = 1;
+        testJobQueueStrategy.concurrency = defaultConcurrency;
         testJobBufferStorageStrategy.reset();
 
         module = await Test.createTestingModule({
@@ -190,10 +191,7 @@ describe('JobQueueService', () => {
     });
 
     it('with concurrency', async () => {
-        const testingJobQueueStrategy = module.get(ConfigService).jobQueueOptions
-            .jobQueueStrategy as TestingJobQueueStrategy;
-
-        testingJobQueueStrategy.concurrency = 2;
+        testJobQueueStrategy.concurrency = 2;
 
         const subject = new Subject<void>();
         const testQueue = await jobQueueService.createQueue<string>({
@@ -387,7 +385,7 @@ describe('JobQueueService', () => {
 
     describe('buffering', () => {
         class TestJobBuffer implements JobBuffer<string> {
-            readonly id: 'test-job-buffer';
+            readonly id = 'test-job-buffer';
 
             collect(job: Job<string>): boolean | Promise<boolean> {
                 return job.queueName === 'buffer-test-queue-1';
@@ -445,7 +443,8 @@ describe('JobQueueService', () => {
             expect((await getJob(testJob2_1)).state).toBe(JobState.RUNNING);
             expect((await getJob(testJob2_2)).state).toBe(JobState.RUNNING);
 
-            const bufferedJobs = testJobBufferStorageStrategy.getBufferedJobs(testJobBuffer.id);
+            // #5395: jobs must be stored under the buffer's declared id, not under `undefined`
+            const bufferedJobs = testJobBufferStorageStrategy.getBufferedJobs('test-job-buffer');
             expect(bufferedJobs.map(j => j.data)).toEqual(['hello', 'world']);
         });
 
