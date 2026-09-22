@@ -71,7 +71,7 @@ export async function getQuickStartConfiguration(
                     ],
                     initialValue: true,
                 });
-                checkCancel(useSqlite);
+                checkCancel(useSqliteResponse);
                 useSqlite = useSqliteResponse as boolean;
                 if (useSqlite === false) {
                     const { result: dockerStatusManual } = await isDockerAvailable();

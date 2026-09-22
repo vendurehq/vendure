@@ -1,10 +1,22 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { PORT_SCAN_RANGE, STOREFRONT_PORT } from './constants';
-import { getCiConfiguration } from './gather-user-responses';
+import { getCiConfiguration, getQuickStartConfiguration } from './gather-user-responses';
 import { getPackageManagerInfo, registerTemplateHelpers } from './helpers';
 
-const { findAvailablePortMock } = vi.hoisted(() => ({ findAvailablePortMock: vi.fn() }));
+const { findAvailablePortMock, isDockerAvailableMock, selectMock, CANCELLED } = vi.hoisted(() => ({
+    findAvailablePortMock: vi.fn(),
+    isDockerAvailableMock: vi.fn(),
+    selectMock: vi.fn(),
+    CANCELLED: Symbol('cancelled'),
+}));
+
+vi.mock('@clack/prompts', async importOriginal => ({
+    ...(await importOriginal<typeof import('@clack/prompts')>()),
+    select: selectMock,
+    cancel: vi.fn(),
+    isCancel: (value: unknown) => value === CANCELLED,
+}));
 
 // vi.mock calls are hoisted above these imports, so gather-user-responses.ts
 // (which imports findAvailablePort from './helpers') sees the mock below.
@@ -13,6 +25,7 @@ vi.mock('./helpers', async importOriginal => {
     return {
         ...actual,
         findAvailablePort: findAvailablePortMock,
+        isDockerAvailable: isDockerAvailableMock,
     };
 });
 
@@ -49,5 +62,27 @@ describe('getCiConfiguration', () => {
         expect(responses.storefrontPort).toBe(STOREFRONT_PORT);
         expect(responses.configSource).toContain(`http://localhost:${STOREFRONT_PORT}/verify`);
         expect(findAvailablePortMock).not.toHaveBeenCalled();
+    });
+});
+
+describe('getQuickStartConfiguration', () => {
+    afterEach(() => {
+        vi.resetAllMocks();
+        vi.restoreAllMocks();
+    });
+
+    it('exits when the Docker fallback prompt is cancelled', async () => {
+        isDockerAvailableMock.mockResolvedValue({ result: 'not-running' });
+        selectMock.mockResolvedValue(CANCELLED);
+        const exit = vi.spyOn(process, 'exit').mockImplementation(() => {
+            throw new Error('process.exit');
+        });
+
+        await expect(getQuickStartConfiguration('my-vendure-app', 'npm', 3000)).rejects.toThrow(
+            'process.exit',
+        );
+        expect(exit).toHaveBeenCalledWith(0);
+        // A missed cancel carries on to the storefront prompt.
+        expect(selectMock).toHaveBeenCalledTimes(1);
     });
 });
