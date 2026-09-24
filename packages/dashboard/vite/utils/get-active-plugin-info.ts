@@ -49,6 +49,13 @@ export function filterActivePluginInfo(
  *   - a NestJS `DynamicModule` of the shape `{ module: SomePluginClass, ... }`,
  *     which some plugins use to return additional providers/imports.
  *
+ * Plugins can compose other plugins through the `plugins` property of the
+ * `@VendurePlugin` metadata (since v3.8.0). Vendure core registers these composed
+ * plugins at bootstrap (see `flattenPlugins()` in `@vendure/core`), so their
+ * class names are active too. This function reads the same `plugins` metadata
+ * key recursively. It cannot import `flattenPlugins()` because `@vendure/core`
+ * is not a runtime dependency of the dashboard package.
+ *
  * Matching by class name (rather than by class reference) is necessary because
  * the runtime config side and the static-discovery side load plugin modules
  * through different import paths and therefore see distinct class objects.
@@ -60,15 +67,36 @@ export function filterActivePluginInfo(
  */
 function getActivePluginNames(vendureConfig: Pick<VendureConfig, 'plugins'>): Set<string> {
     const names = new Set<string>();
-    for (const entry of vendureConfig.plugins ?? []) {
+    const visited = new Set<object>();
+    const visit = (entry: unknown) => {
         const pluginClass =
             typeof entry === 'function'
                 ? (entry as { name?: string })
                 : ((entry as { module?: { name?: string } } | null)?.module ?? undefined);
-        const name = pluginClass?.name;
-        if (name) {
-            names.add(name);
+        if (!pluginClass || visited.has(pluginClass)) {
+            return;
         }
+        visited.add(pluginClass);
+        if (pluginClass.name) {
+            names.add(pluginClass.name);
+        }
+        for (const composedPlugin of getComposedPlugins(pluginClass)) {
+            visit(composedPlugin);
+        }
+    };
+    for (const entry of vendureConfig.plugins ?? []) {
+        visit(entry);
     }
     return names;
+}
+
+/**
+ * Reads the `plugins` metadata that the `@VendurePlugin` decorator stores on a plugin class.
+ * `Reflect.getMetadata` is available when the Vendure config has loaded, because
+ * `@vendure/core` imports `reflect-metadata`.
+ */
+function getComposedPlugins(pluginClass: object): unknown[] {
+    const getMetadata = (Reflect as { getMetadata?: (key: string, target: object) => unknown }).getMetadata;
+    const composedPlugins = getMetadata?.('plugins', pluginClass);
+    return Array.isArray(composedPlugins) ? composedPlugins : [];
 }
