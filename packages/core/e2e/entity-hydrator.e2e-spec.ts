@@ -1,5 +1,6 @@
 // @ts-nocheck -- file relies on queries that are defined at runtime
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { DEFAULT_CHANNEL_CODE } from '@vendure/common/lib/shared-constants';
 import {
     ActiveOrderService,
     Asset,
@@ -29,7 +30,11 @@ import {
 } from './fixtures/test-plugins/hydration-test-plugin';
 import { FragmentOf, graphql } from './graphql/graphql-shop';
 import { updateChannelDocument } from './graphql/shared-definitions';
-import { addItemToOrderDocument, updatedOrderFragment } from './graphql/shop-definitions';
+import {
+    addItemToOrderDocument,
+    setShippingMethodDocument,
+    updatedOrderFragment,
+} from './graphql/shop-definitions';
 
 type UpdatedOrderFragment = FragmentOf<typeof updatedOrderFragment>;
 
@@ -453,6 +458,53 @@ describe('Entity hydration', () => {
         // isn't coupled to fixture CSV row order or the id strategy.
         expect(order!.lines[0].productVariant.product.id).toBe(order!.lines[0].productVariant.productId);
         expect(order!.lines[1].productVariant.product.id).toBe(order!.lines[1].productVariant.productId);
+    });
+
+    // https://github.com/vendurehq/vendure/issues/5428
+    // ShippingMethod holds the configured ShippingEligibilityChecker instances, which reference
+    // the DI graph (CacheService etc.). Merging a freshly loaded ShippingMethod into one already
+    // on the target must not walk those checker instances.
+    describe('merging into an already-loaded ShippingMethod', () => {
+        async function createOrderWithShippingLine() {
+            await shopClient.asAnonymousUser();
+            const { addItemToOrder } = await shopClient.query(addItemToOrderDocument, {
+                productVariantId: 'T_1',
+                quantity: 1,
+            });
+            orderResultGuard.assertSuccess(addItemToOrder);
+            await shopClient.query(setShippingMethodDocument, { id: ['T_1'] });
+            const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+            const order = await server.app
+                .get(OrderService)
+                .findOne(ctx, +addItemToOrder.id.replace(/^\D+/g, ''));
+            expect(order!.shippingLines.length).toBe(1);
+            return { ctx, order: order! };
+        }
+
+        it('concurrent hydrate() calls on the same order both resolve', async () => {
+            const { ctx, order } = await createOrderWithShippingLine();
+            const hydrator = server.app.get(EntityHydrator);
+
+            await Promise.all(
+                [1, 2].map(() =>
+                    hydrator.hydrate(ctx, order, { relations: ['shippingLines.shippingMethod'] }),
+                ),
+            );
+
+            expect(order.shippingLines[0].shippingMethod.id).toBe(order.shippingLines[0].shippingMethodId);
+        });
+
+        it('hydrating a deeper relation re-merges the ShippingMethod', async () => {
+            const { ctx, order } = await createOrderWithShippingLine();
+            const hydrator = server.app.get(EntityHydrator);
+
+            await hydrator.hydrate(ctx, order, { relations: ['shippingLines.shippingMethod'] });
+            await hydrator.hydrate(ctx, order, { relations: ['shippingLines.shippingMethod.channels'] });
+
+            expect(order.shippingLines[0].shippingMethod.channels.map(c => c.code)).toEqual([
+                DEFAULT_CHANNEL_CODE,
+            ]);
+        });
     });
 
     // https://github.com/vendurehq/vendure/issues/2546
