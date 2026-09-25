@@ -40,10 +40,10 @@ describe('scaffolded vendure-config storefront port (#5245)', () => {
             `verifyEmailAddressUrl: 'http://localhost:${SCANNED_STOREFRONT_PORT}/verify'`,
         );
         expect(configSource).toContain(
-            `passwordResetUrl: 'http://localhost:${SCANNED_STOREFRONT_PORT}/password-reset'`,
+            `passwordResetUrl: 'http://localhost:${SCANNED_STOREFRONT_PORT}/reset-password'`,
         );
         expect(configSource).toContain(
-            `changeEmailAddressUrl: 'http://localhost:${SCANNED_STOREFRONT_PORT}/verify-email-address-change'`,
+            `changeEmailAddressUrl: 'http://localhost:${SCANNED_STOREFRONT_PORT}/account/verify-email'`,
         );
     });
 
@@ -68,7 +68,7 @@ describe('scaffolded vendure-config storefront port (#5245)', () => {
         expect(siteUrl).toBe(`http://localhost:${SCANNED_STOREFRONT_PORT}`);
 
         // The two halves of one generated project must not disagree about the port.
-        for (const route of ['/verify', '/password-reset', '/verify-email-address-change']) {
+        for (const route of ['/verify', '/reset-password', '/account/verify-email']) {
             expect(configSource).toContain(`${siteUrl}${route}`);
         }
     });
