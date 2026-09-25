@@ -82,6 +82,13 @@ export interface DetailPageProps<
      * A function that sets the values for the update input type based on the entity.
      */
     setValuesForUpdate: (entity: ResultOf<T>[EntityField]) => VariablesOf<U>['input'];
+    /**
+     * @description
+     * A function that sets the starting values for the form when creating a new entity.
+     *
+     * @since 3.8.0
+     */
+    setValuesForCreate?: () => Partial<VariablesOf<C>['input']>;
 }
 
 export interface DetailPageFieldProps<
@@ -138,6 +145,7 @@ export function DetailPage<
     createDocument,
     updateDocument,
     setValuesForUpdate,
+    setValuesForCreate,
     title,
 }: DetailPageProps<T, C, U>) {
     const params = route.useParams();
@@ -155,6 +163,7 @@ export function DetailPage<
         entityName,
         params: { id: params.id },
         setValuesForUpdate,
+        setValuesForCreate,
         onSuccess: async data => {
             toast.success('Updated successfully');
             resetForm();

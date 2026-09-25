@@ -211,8 +211,8 @@ export function stripNullNullableFields<T extends Record<string, any>>(values: T
  * fallback — a lookup for that language finds the empty row instead of falling back to the default
  * language — most visibly in the search index, which shows an empty name. See #4885 / OSS-579.
  *
- * A row is kept when it is **dirty OR persisted**, and dropped otherwise. The two predicates are
- * complementary, each covering what the other is blind to:
+ * A row is kept when it is **dirty OR persisted OR a starting value**, and dropped otherwise.
+ * The predicates are complementary, each covering what the others are blind to:
  *
  * - `dirty` (from react-hook-form's `dirtyFields`) carries the **create** path: no row has an `id`
  *   yet, so a seeded row never typed into is not dirty and is dropped, while a filled one is kept.
@@ -220,6 +220,8 @@ export function stripNullNullableFields<T extends Record<string, any>>(values: T
  *   prop resets the form and promotes the entity to `defaultValues`, so on an update nothing is
  *   dirty until the user types — an untouched persisted row and an untouched seeded row look
  *   identical to dirty state, and only the `id` separates them.
+ * - `startingTranslations` covers a row filled in by `setValuesForCreate`. It is never dirty but
+ *   must be saved. Rows are matched by `languageCode`.
  *
  * Crucially there is no value inspection anywhere, so an untouched row seeded with a filled-looking
  * default (`Boolean` → `false`, `Int`/`Money` → `0`, enum → first member) is still correctly
@@ -235,6 +237,7 @@ export function stripUntouchedTranslations<T extends Record<string, any>>(
     values: T,
     fields: FieldInfo[],
     dirtyFields: any,
+    startingTranslations?: Array<{ languageCode: string }>,
 ): T {
     if (!values) {
         return values;
@@ -251,7 +254,12 @@ export function stripUntouchedTranslations<T extends Record<string, any>>(
             if (Array.isArray(value)) {
                 const isTranslationsArray = field.typeInfo.some(f => f.name === 'languageCode');
                 if (isTranslationsArray) {
-                    const kept = value.filter((entry, i) => isDirty(dirtyValue?.[i]) || isPersisted(entry));
+                    const kept = value.filter(
+                        (entry, i) =>
+                            isDirty(dirtyValue?.[i]) ||
+                            isPersisted(entry) ||
+                            !!startingTranslations?.some(row => row.languageCode === entry.languageCode),
+                    );
                     // Never strip every row: a fully-empty form (a non-nullable `String` maps to a
                     // bare `z.string()`, so a blank create passes validation) would otherwise submit
                     // `translations: []`. Leave the input untouched and let validation surface the
@@ -286,6 +294,27 @@ function isDirty(value: any): boolean {
  */
 function isPersisted(entry: any): boolean {
     return !!entry && typeof entry === 'object' && entry.id != null && entry.id !== '';
+}
+
+/**
+ * @description
+ * Merges `setValuesForCreate` values into the form's default values. Objects such as `customFields`
+ * are merged key by key. Everything else, including arrays, replaces the default.
+ */
+export function mergeStartingValues<T extends Record<string, any>>(
+    defaults: T,
+    startingValues: Record<string, any>,
+): T {
+    const result: Record<string, any> = { ...defaults };
+    for (const [key, value] of Object.entries(startingValues)) {
+        result[key] =
+            isObject(value) && isObject(result[key]) ? mergeStartingValues(result[key], value) : value;
+    }
+    return result as T;
+}
+
+function isObject(value: unknown): value is Record<string, any> {
+    return value != null && typeof value === 'object' && !Array.isArray(value);
 }
 
 /**
