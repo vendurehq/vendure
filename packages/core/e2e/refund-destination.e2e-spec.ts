@@ -83,6 +83,36 @@ class RestrictedDestination implements RefundDestinationStrategy {
     }
 }
 
+const hydrationSpy = vi.fn();
+
+/**
+ * Reads relations of the Order and Payment in both `isAvailable()` and `createRefund()`, so that the
+ * tests can verify both methods receive the same hydration in the query and in the mutation.
+ */
+class MultiPaymentOnlyDestination implements RefundDestinationStrategy {
+    readonly code = 'multi-payment-only';
+    readonly description = [{ languageCode: LanguageCode.en, value: 'Only for split payments' }];
+
+    isAvailable(ctx: RequestContext, order: Order, payment: Payment) {
+        const settledPayments = order.payments.filter(p => p.state === 'Settled');
+        return 1 < settledPayments.length && Array.isArray(payment.refunds);
+    }
+
+    createRefund(
+        ctx: RequestContext,
+        input: RefundOrderInput,
+        amount: number,
+        order: Order,
+        payment: Payment,
+    ) {
+        hydrationSpy({
+            orderPaymentCount: order.payments?.length,
+            paymentRefundsLoaded: Array.isArray(payment.refunds),
+        });
+        return { state: 'Settled' as const, transactionId: `multi-${amount}` };
+    }
+}
+
 /**
  * Simulates a destination whose external service fails, so that the tests can verify what happens
  * when a later target of a multi-target refund fails after earlier targets have moved funds.
@@ -202,6 +232,7 @@ describe('Refund destinations', () => {
                     new StoreCreditDestination(),
                     new RestrictedDestination(),
                     new ThrowingDestination(),
+                    new MultiPaymentOnlyDestination(),
                 ],
             },
         }),
@@ -577,6 +608,52 @@ describe('Refund destinations', () => {
                 () => adminClient.query(refundDestinationsDocument, { orderId }),
                 'No Order with the id',
             )();
+        });
+    });
+    describe('Order hydration passed to strategies', () => {
+        it('lists a destination whose isAvailable() reads order.payments', async () => {
+            const { refundDestinations } = await adminClient.query(refundDestinationsDocument, { orderId });
+
+            const multi = refundDestinations.find(d => d.code === 'multi-payment-only');
+            expect(multi!.availableForPaymentIds.sort()).toEqual(
+                [partialPaymentId, refundablePaymentId].sort(),
+            );
+        });
+
+        it('passes the same hydration to isAvailable() and createRefund() when refunding with targets', async () => {
+            hydrationSpy.mockClear();
+
+            const { refundOrder } = await adminClient.query(refundWithDestinationDocument, {
+                input: {
+                    paymentId: refundablePaymentId,
+                    reason: 'hydration via targets',
+                    targets: [
+                        { paymentId: refundablePaymentId, amount: 50, destination: 'multi-payment-only' },
+                    ],
+                },
+            });
+
+            refundGuard.assertSuccess(refundOrder);
+            expect(refundOrder.destination).toBe('multi-payment-only');
+            // The declined, partial and refundable Payments are all loaded on the Order.
+            expect(hydrationSpy).toHaveBeenCalledWith({ orderPaymentCount: 3, paymentRefundsLoaded: true });
+        });
+
+        it('passes the same hydration when refunding with the legacy destination field', async () => {
+            hydrationSpy.mockClear();
+
+            const { refundOrder } = await adminClient.query(refundWithDestinationDocument, {
+                input: {
+                    paymentId: refundablePaymentId,
+                    amount: 50,
+                    reason: 'hydration via destination',
+                    destination: 'multi-payment-only',
+                },
+            });
+
+            refundGuard.assertSuccess(refundOrder);
+            expect(refundOrder.destination).toBe('multi-payment-only');
+            expect(hydrationSpy).toHaveBeenCalledWith({ orderPaymentCount: 3, paymentRefundsLoaded: true });
         });
     });
 });

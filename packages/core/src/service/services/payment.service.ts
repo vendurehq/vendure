@@ -38,6 +38,7 @@ import { PaymentStateMachine } from '../helpers/payment-state-machine/payment-st
 import { RefundState } from '../helpers/refund-state-machine/refund-state';
 import { RefundStateMachine } from '../helpers/refund-state-machine/refund-state-machine';
 import { assertOrderIsInChannel } from '../helpers/utils/order-utils';
+import { REFUND_ORDER_RELATIONS } from '../helpers/utils/refund-order-relations';
 
 import { PaymentMethodService } from './payment-method.service';
 
@@ -371,7 +372,7 @@ export class PaymentService {
         Refund | RefundStateTransitionError | RefundAmountError | RefundDestinationError | RefundIncompleteError
     > {
         const orderWithRefunds = await this.connection.getEntityOrThrow(ctx, Order, order.id, {
-            relations: ['payments', 'payments.refunds'],
+            relations: REFUND_ORDER_RELATIONS,
         });
         const useTargets = 0 < (input.targets?.length ?? 0);
         const { total, orderLinesTotal } = useTargets
@@ -381,7 +382,6 @@ export class PaymentService {
         const targets = await this.resolveRefundTargets(
             ctx,
             input,
-            order,
             orderWithRefunds,
             selectedPayment,
             total,
@@ -394,7 +394,15 @@ export class PaymentService {
         for (let i = 0; i < targets.length; i++) {
             let result: { refund: Refund; transitionError?: RefundStateTransitionError };
             try {
-                result = await this.executeRefundTarget(ctx, input, order, targets[i], orderLinesTotal, i);
+                result = await this.executeRefundTarget(
+                    ctx,
+                    input,
+                    order,
+                    orderWithRefunds,
+                    targets[i],
+                    orderLinesTotal,
+                    i,
+                );
             } catch (e: any) {
                 if (!useTargets || createdRefunds.length === 0) {
                     throw e;
@@ -434,11 +442,15 @@ export class PaymentService {
 
     /**
      * Moves the funds for a single resolved target and records the resulting Refund.
+     *
+     * A RefundDestinationStrategy receives `orderWithRefunds`, the same Order it was given by
+     * `isAvailable()`. The PaymentMethodHandler receives `order`, as it always has.
      */
     private async executeRefundTarget(
         ctx: RequestContext,
         input: RefundOrderInput,
         order: Order,
+        orderWithRefunds: Order,
         target: ResolvedRefundTarget,
         orderLinesTotal: number,
         index: number,
@@ -462,7 +474,7 @@ export class PaymentService {
                   ctx,
                   input,
                   target.amount,
-                  order,
+                  orderWithRefunds,
                   target.payment,
                   target.args ?? undefined,
               )
@@ -509,7 +521,6 @@ export class PaymentService {
     private async resolveRefundTargets(
         ctx: RequestContext,
         input: RefundOrderInput,
-        order: Order,
         orderWithRefunds: Order,
         selectedPayment: Payment,
         total: number,
@@ -538,7 +549,7 @@ export class PaymentService {
                 if (targetStrategy instanceof RefundDestinationError) {
                     return targetStrategy;
                 }
-                if (targetStrategy && !(await targetStrategy.isAvailable(ctx, order, payment))) {
+                if (targetStrategy && !(await targetStrategy.isAvailable(ctx, orderWithRefunds, payment))) {
                     return new RefundDestinationError({ destinationCode: targetStrategy.code });
                 }
                 const capacity = remainingCapacityOf(payment);
@@ -573,8 +584,14 @@ export class PaymentService {
             }
         }
         if (strategy) {
-            this.assertPaymentIsSettled(selectedPayment);
-            if (!(await strategy.isAvailable(ctx, order, selectedPayment))) {
+            // Use the Payment as loaded on `orderWithRefunds`, so the strategy sees the same
+            // hydration as in the `refundDestinations` query.
+            const payment = orderWithRefunds.payments.find(p => idsAreEqual(p.id, selectedPayment.id));
+            if (!payment) {
+                throw new InternalServerError('Could not find a Payment to refund');
+            }
+            this.assertPaymentIsSettled(payment);
+            if (!(await strategy.isAvailable(ctx, orderWithRefunds, payment))) {
                 return new RefundDestinationError({ destinationCode: strategy.code });
             }
         }
@@ -590,7 +607,7 @@ export class PaymentService {
             // destination could have been chosen for directly.
             if (
                 strategy &&
-                (payment.state !== 'Settled' || !(await strategy.isAvailable(ctx, order, payment)))
+                (payment.state !== 'Settled' || !(await strategy.isAvailable(ctx, orderWithRefunds, payment)))
             ) {
                 continue;
             }

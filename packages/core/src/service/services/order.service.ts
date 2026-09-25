@@ -133,6 +133,7 @@ import {
     totalCoveredByPayments,
 } from '../helpers/utils/order-utils';
 import { patchEntity } from '../helpers/utils/patch-entity';
+import { REFUND_ORDER_RELATIONS } from '../helpers/utils/refund-order-relations';
 
 import { ChannelService } from './channel.service';
 import { CountryService } from './country.service';
@@ -2023,7 +2024,7 @@ export class OrderService implements OnApplicationBootstrap {
         orderId: ID,
     ): Promise<Array<{ code: string; description: string; availableForPaymentIds: ID[] }>> {
         const order = await this.connection.getEntityOrThrow(ctx, Order, orderId, {
-            relations: ['payments', 'payments.refunds'],
+            relations: REFUND_ORDER_RELATIONS,
             channelId: ctx.channelId,
         });
         // Only Settled Payments are listed, since those are the only ones a refund target or a

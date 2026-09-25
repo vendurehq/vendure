@@ -99,6 +99,10 @@ export interface RefundDestinationStrategy extends InjectableStrategy {
      * This is called when resolving the `refundDestinations` query to build the list of Payments
      * a destination may be used with, and again when a refund is created, to verify that the
      * Payment chosen by the administrator is one of them.
+     *
+     * In both cases the Order has its `payments` relation loaded, and each Payment has its
+     * `refunds` loaded. No other relations are loaded; use the {@link EntityHydrator} if the
+     * strategy needs more, such as `order.customer` or `order.lines`.
      */
     isAvailable(ctx: RequestContext, order: Order, payment: Payment): boolean | Promise<boolean>;
 
@@ -112,6 +116,8 @@ export interface RefundDestinationStrategy extends InjectableStrategy {
      * the same refund have already been processed, their Refunds are kept and the mutation returns
      * a `RefundIncompleteError`. If it throws for the first target, the error propagates and no
      * Refund is created.
+     *
+     * The `order` and `payment` are hydrated in the same way as for `isAvailable()`.
      *
      * @param args - The `arguments` supplied on the corresponding `RefundTargetInput`, which is
      * how a dashboard refund destination component passes its configuration through to the backend.
