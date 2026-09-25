@@ -191,6 +191,24 @@ export const RefundOrderDialog = forwardRef<RefundOrderDialogRef, RefundOrderDia
 
         const remaining = refund.refundTotal - refund.amountToRefundTotal;
 
+        const renderTargetRows = (type: RefundTarget['type']) =>
+            refund.refundTargets
+                .filter(rt => rt.type === type)
+                .map(target => (
+                    <RefundTargetRow
+                        key={target.id}
+                        target={target}
+                        currencyCode={order.currencyCode}
+                        paymentOptions={refund.paymentOptions}
+                        toMajorUnits={toMajorUnits}
+                        toMinorUnits={toMinorUnits}
+                        onAmountChange={refund.onTargetAmountChange}
+                        onSelectedChange={refund.onTargetSelected}
+                        onPaymentChange={refund.onTargetPaymentChange}
+                        onArgsChange={refund.onTargetArgsChange}
+                    />
+                ));
+
         return (
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent className="!max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -418,24 +436,7 @@ export const RefundOrderDialog = forwardRef<RefundOrderDialogRef, RefundOrderDia
                             <Label className="text-base font-medium">
                                 <Trans>Payment methods</Trans>
                             </Label>
-                            <div className="space-y-3">
-                                {refund.refundTargets
-                                    .filter(rt => rt.type === 'payment')
-                                    .map(target => (
-                                        <RefundTargetRow
-                                            key={target.id}
-                                            target={target}
-                                            currencyCode={order.currencyCode}
-                                            paymentOptions={refund.paymentOptions}
-                                            toMajorUnits={toMajorUnits}
-                                            toMinorUnits={toMinorUnits}
-                                            onAmountChange={refund.onTargetAmountChange}
-                                            onSelectedChange={refund.onTargetSelected}
-                                            onPaymentChange={refund.onTargetPaymentChange}
-                                            onArgsChange={refund.onTargetArgsChange}
-                                        />
-                                    ))}
-                            </div>
+                            <div className="space-y-3">{renderTargetRows('payment')}</div>
                         </div>
 
                         {/* Refund destinations */}
@@ -444,24 +445,7 @@ export const RefundOrderDialog = forwardRef<RefundOrderDialogRef, RefundOrderDia
                                 <Label className="text-base font-medium">
                                     <Trans>Other refund destinations</Trans>
                                 </Label>
-                                <div className="space-y-3">
-                                    {refund.refundTargets
-                                        .filter(rt => rt.type === 'destination')
-                                        .map(target => (
-                                            <RefundTargetRow
-                                                key={target.id}
-                                                target={target}
-                                                currencyCode={order.currencyCode}
-                                                paymentOptions={refund.paymentOptions}
-                                                toMajorUnits={toMajorUnits}
-                                                toMinorUnits={toMinorUnits}
-                                                onAmountChange={refund.onTargetAmountChange}
-                                                onSelectedChange={refund.onTargetSelected}
-                                                onPaymentChange={refund.onTargetPaymentChange}
-                                                onArgsChange={refund.onTargetArgsChange}
-                                            />
-                                        ))}
-                                </div>
+                                <div className="space-y-3">{renderTargetRows('destination')}</div>
                             </div>
                         )}
 
