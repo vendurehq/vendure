@@ -1,4 +1,12 @@
-import { CollectionFilter, CustomFields, dummyPaymentHandler, LanguageCode } from '@vendure/core';
+import { RefundOrderInput } from '@vendure/common/lib/generated-types';
+import {
+    CollectionFilter,
+    CustomFields,
+    dummyPaymentHandler,
+    LanguageCode,
+    RefundDestinationStrategy,
+    RequestContext,
+} from '@vendure/core';
 
 /**
  * Custom fields and payment handlers used by global-setup.ts to configure
@@ -153,6 +161,55 @@ export const e2eCustomFields: CustomFields = {
 };
 
 export const e2ePaymentMethodHandlers = [dummyPaymentHandler];
+
+/**
+ * A refund destination which always succeeds, used to exercise the non-default destination
+ * branch of the refund dialog.
+ */
+class TestStoreCreditDestination implements RefundDestinationStrategy {
+    readonly code = 'store-credit';
+    readonly description = [{ languageCode: LanguageCode.en, value: 'Refund as store credit' }];
+
+    isAvailable() {
+        return true;
+    }
+
+    createRefund(
+        _ctx: RequestContext,
+        _input: RefundOrderInput,
+        amount: number,
+        _order: unknown,
+        _payment: unknown,
+        args?: any,
+    ) {
+        return {
+            state: 'Settled' as const,
+            transactionId: `sc-${Date.now()}`,
+            // `args` carries whatever the destination's dashboard component produced, so the
+            // tests can confirm it survived the round trip.
+            metadata: { storeCreditAmount: amount, args: args ?? null },
+        };
+    }
+}
+
+/**
+ * A refund destination whose external service always fails, used to exercise the dialog's handling
+ * of a multi-target refund which fails after an earlier target has already been refunded.
+ */
+class TestFailingVoucherDestination implements RefundDestinationStrategy {
+    readonly code = 'failing-voucher';
+    readonly description = [{ languageCode: LanguageCode.en, value: 'Refund as voucher (always fails)' }];
+
+    isAvailable() {
+        return true;
+    }
+
+    createRefund(): never {
+        throw new Error('Voucher service unavailable');
+    }
+}
+
+export const e2eRefundDestinations = [new TestStoreCreditDestination(), new TestFailingVoucherDestination()];
 
 /**
  * A collection filter with a string list argument, used to reproduce #4987:

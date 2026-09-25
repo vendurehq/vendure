@@ -17,6 +17,7 @@ export const DEFAULT_AUTH_TOKEN_HEADER_KEY = 'vendure-auth-token';
 export const DEFAULT_APIKEY_HEADER_KEY = 'vendure-api-key';
 export const DEFAULT_COOKIE_NAME = 'session';
 export const DEFAULT_CHANNEL_TOKEN_KEY = 'vendure-token';
+export const DEFAULT_REFUND_DESTINATION_CODE = 'default';
 
 /**
  * The placeholder returned by the API in place of a `secret` field or config arg value which the

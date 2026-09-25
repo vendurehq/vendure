@@ -6,6 +6,7 @@ import {
     DashboardHistoryEntryComponent,
     DashboardLoginExtensions,
     DashboardPageBlockDefinition,
+    DashboardRefundDestinationDefinition,
     DashboardToolbarItemDefinition,
     DashboardWidgetDefinition,
     DashboardWidgetFilterDefinition,
@@ -36,6 +37,7 @@ export interface GlobalRegistryContents {
     viewOptionDefaultsRegistry: Map<string, DashboardDataTableViewOptionDefaults>;
     loginExtensions: DashboardLoginExtensions;
     historyEntries: Map<string, DashboardHistoryEntryComponent['component']>;
+    refundDestinations: Map<string, DashboardRefundDestinationDefinition>;
     navMenuModifiers: Array<(config: NavMenuConfig) => NavMenuConfig>;
     dashboardToolbarItemRegistry: Map<string, DashboardToolbarItemDefinition>;
     dashboardCustomProvidersRegistry: Map<string, DashboardCustomProviderDefinition>;

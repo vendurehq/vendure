@@ -821,6 +821,10 @@ msgstr "Gruppo di opzioni assegnato con successo"
 msgid "Marks the account as verified without the customer having to use a verification email."
 msgstr ""
 
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "Allocated refund amounts must equal refund total"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx
 msgid "Run Test"
 msgstr "Esegui test"
@@ -938,6 +942,10 @@ msgstr "Conferma navigazione"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Complete draft"
 msgstr "Completa bozza"
+
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "{refundedAmount} was refunded in {refundCount} refund(s), but \"{failedTargetLabel}\" failed: {failureReason}. Check the order's payments before trying again."
+msgstr ""
 
 #: src/app/routes/_authenticated/_administrators/administrators.tsx
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
@@ -1244,6 +1252,7 @@ msgstr "Impossibile annullare gli articoli dell'ordine"
 msgid "Transaction ID"
 msgstr "ID transazione"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Allocated"
 msgstr "Allocato"
@@ -1471,6 +1480,8 @@ msgstr "I prezzi includono l'IVA per la zona fiscale predefinita"
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+#: src/lib/components/data-input/slug-input.tsx
+#: src/lib/components/data-input/slug-input.tsx
 msgid "This field is required"
 msgstr ""
 
@@ -1993,8 +2004,8 @@ msgstr "Nuova categoria fiscale"
 #~ msgstr "Aggiungi opzione"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "Partial refund completed"
-msgstr "Rimborso parziale completato"
+#~ msgid "Partial refund completed"
+#~ msgstr "Rimborso parziale completato"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Set custom fields"
@@ -2192,6 +2203,10 @@ msgstr "Profilo aggiornato con successo"
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Payment method"
 msgstr "Metodo di pagamento"
+
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx
+msgid "Destination"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
@@ -3215,6 +3230,10 @@ msgstr "Opzioni prodotto"
 msgid "Select country"
 msgstr "Seleziona paese"
 
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "Refund only partially completed"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
 msgid "Creating..."
@@ -4073,8 +4092,8 @@ msgid "New Stock Location"
 msgstr "Nuova ubicazione magazzino"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "{successfulRefundCount} payment(s) refunded before failure. Check order history for details."
-msgstr "{successfulRefundCount} pagamento/i rimborsato/i prima dell'errore. Controlla la cronologia dell'ordine per i dettagli."
+#~ msgid "{successfulRefundCount} payment(s) refunded before failure. Check order history for details."
+#~ msgstr "{successfulRefundCount} pagamento/i rimborsato/i prima dell'errore. Controlla la cronologia dell'ordine per i dettagli."
 
 #: src/lib/components/data-input/relation-selector.tsx
 msgid "Select item"
@@ -4347,6 +4366,10 @@ msgstr "Impossibile creare gruppo clienti"
 msgid "Failed to create role"
 msgstr "Impossibile creare ruolo"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Payment methods"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Product name"
 msgstr "Nome prodotto"
@@ -4392,7 +4415,7 @@ msgstr "Aggiungi gruppo di opzioni"
 msgid "All"
 msgstr "Tutti"
 
-#. placeholder {0}: formatCurrency(refund.amountToRefundTotal, order.currencyCode)
+#. placeholder {0}: formatCurrency(refund.refundTotal, order.currencyCode)
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Refund {0}"
 msgstr "Rimborsa {0}"
@@ -4576,6 +4599,10 @@ msgstr "Rimuovi gruppo di opzioni"
 msgid "Description"
 msgstr "Descrizione"
 
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "Every refund destination must draw from a payment"
+msgstr ""
+
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx
 #: src/app/routes/_authenticated/_countries/countries.tsx
 #: src/app/routes/_authenticated/_countries/countries.tsx
@@ -4641,6 +4668,10 @@ msgstr "Filtra"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
 msgid "Failed to update administrator"
 msgstr "Aggiornamento amministratore non riuscito"
+
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "No payment or destination was selected"
+msgstr ""
 
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "Manage your personal saved views for this table"
@@ -5604,6 +5635,10 @@ msgstr "Questo è un ruolo predefinito e non può essere modificato"
 msgid "My saved views"
 msgstr "Le mie viste salvate"
 
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Other refund destinations"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 msgid "State / Province"
 msgstr "Stato / Provincia"
@@ -5795,8 +5830,8 @@ msgid "Password reset requested"
 msgstr "Richiesto reset password"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
-msgid "Allocated payment amount must equal refund total"
-msgstr "L'importo del pagamento allocato deve essere uguale al totale del rimborso"
+#~ msgid "Allocated payment amount must equal refund total"
+#~ msgstr "L'importo del pagamento allocato deve essere uguale al totale del rimborso"
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #~ msgid "e.g. Small"
@@ -5896,6 +5931,10 @@ msgstr "Rimuovi"
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "Failed to update customer"
 msgstr "Impossibile aggiornare cliente"
+
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Draw from"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Remove option groups?"
@@ -6280,6 +6319,7 @@ msgstr "Seleziona {0}"
 msgid "New facet values to add:"
 msgstr "Nuovi valori attributo da aggiungere:"
 
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "Failed to process refund"
@@ -6893,6 +6933,11 @@ msgstr "Visualizza risultato"
 msgid "Rows per page"
 msgstr "Righe per pagina"
 
+#. placeholder {0}: formatCurrency(capacity, order.currencyCode)
+#: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
+msgid "Amounts drawn from payment {label} exceed its refundable amount of {0}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 msgid "Loading collections..."
 msgstr "Caricamento collezioni..."
@@ -7127,8 +7172,8 @@ msgid "Fulfillment ID"
 msgstr "ID evasione"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
-msgid "Select payments to refund"
-msgstr "Seleziona i pagamenti da rimborsare"
+#~ msgid "Select payments to refund"
+#~ msgstr "Seleziona i pagamenti da rimborsare"
 
 #: src/lib/components/shared/error-page.tsx
 msgid "The page you are looking for does not exist or may have been moved."
@@ -7185,6 +7230,10 @@ msgstr "Vista globale „{viewName}\" applicata"
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Customer registered"
 msgstr "Cliente registrato"
+
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
+msgid "Remaining"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts

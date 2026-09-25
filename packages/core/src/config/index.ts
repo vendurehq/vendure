@@ -90,6 +90,7 @@ export * from './payment/example-payment-method-handler';
 export * from './payment/payment-method-eligibility-checker';
 export * from './payment/payment-method-handler';
 export * from './payment/payment-process';
+export * from './payment/refund-destination-strategy';
 export * from './promotion';
 export * from './refund/default-refund-process';
 export * from './session-cache/default-session-cache-strategy';

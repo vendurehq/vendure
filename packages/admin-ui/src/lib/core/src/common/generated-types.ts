@@ -1873,6 +1873,8 @@ export enum ErrorCode {
   PRODUCT_OPTION_IN_USE_ERROR = 'PRODUCT_OPTION_IN_USE_ERROR',
   QUANTITY_TOO_GREAT_ERROR = 'QUANTITY_TOO_GREAT_ERROR',
   REFUND_AMOUNT_ERROR = 'REFUND_AMOUNT_ERROR',
+  REFUND_DESTINATION_ERROR = 'REFUND_DESTINATION_ERROR',
+  REFUND_INCOMPLETE_ERROR = 'REFUND_INCOMPLETE_ERROR',
   REFUND_ORDER_STATE_ERROR = 'REFUND_ORDER_STATE_ERROR',
   REFUND_PAYMENT_ID_MISSING_ERROR = 'REFUND_PAYMENT_ID_MISSING_ERROR',
   REFUND_STATE_TRANSITION_ERROR = 'REFUND_STATE_TRANSITION_ERROR',
@@ -5738,6 +5740,12 @@ export type Query = {
   promotions: PromotionList;
   province?: Maybe<Province>;
   provinces: ProvinceList;
+  /**
+   * Returns the available refund destinations for the given order.
+   * This includes the default destination (original payment method) plus
+   * any custom destinations registered via RefundDestinationStrategy.
+   */
+  refundDestinations: Array<RefundDestination>;
   role?: Maybe<Role>;
   roles: RoleList;
   scheduledTasks: Array<ScheduledTask>;
@@ -5999,6 +6007,11 @@ export type QueryProvincesArgs = {
 };
 
 
+export type QueryRefundDestinationsArgs = {
+  orderId: Scalars['ID']['input'];
+};
+
+
 export type QueryRoleArgs = {
   id: Scalars['ID']['input'];
 };
@@ -6103,6 +6116,11 @@ export type Refund = Node & {
   adjustment: Scalars['Money']['output'];
   createdAt: Scalars['DateTime']['output'];
   customFields?: Maybe<Scalars['JSON']['output']>;
+  /**
+   * The refund destination code, if a non-default destination was used.
+   * When null, the refund was directed to the original payment method.
+   */
+  destination?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   items: Scalars['Money']['output'];
   lines: Array<RefundLine>;
@@ -6125,6 +6143,43 @@ export type RefundAmountError = ErrorResult & {
   message: Scalars['String']['output'];
 };
 
+/** Represents an available refund destination for an order. */
+export type RefundDestination = {
+  __typename?: 'RefundDestination';
+  /**
+   * The IDs of the Payments on this Order for which this destination is available, as
+   * determined by the strategy's `isAvailable()` method. A refund to this destination must
+   * draw its balance from one of these Payments.
+   */
+  availableForPaymentIds: Array<Scalars['ID']['output']>;
+  code: Scalars['String']['output'];
+  description: Scalars['String']['output'];
+};
+
+/** Returned if the specified refund destination does not exist, or is not available for the specified Payment */
+export type RefundDestinationError = ErrorResult & {
+  __typename?: 'RefundDestinationError';
+  destinationCode: Scalars['String']['output'];
+  errorCode: ErrorCode;
+  message: Scalars['String']['output'];
+};
+
+/**
+ * Returned when a refund split over several `targets` fails after one or more of the earlier
+ * targets have already been refunded. The Refunds created before the failure are kept, since their
+ * funds may already have been moved, and are listed in `refunds`.
+ */
+export type RefundIncompleteError = ErrorResult & {
+  __typename?: 'RefundIncompleteError';
+  errorCode: ErrorCode;
+  /** The zero-based index of the target in `RefundOrderInput.targets` which failed. */
+  failedTargetIndex: Scalars['Int']['output'];
+  failureReason: Scalars['String']['output'];
+  message: Scalars['String']['output'];
+  /** The Refunds created by this operation, including one whose state transition failed. */
+  refunds: Array<Refund>;
+};
+
 export type RefundLine = {
   __typename?: 'RefundLine';
   orderLine: OrderLine;
@@ -6142,15 +6197,34 @@ export type RefundOrderInput = {
    * Can be as much as the total amount of the payment minus the sum of all previous refunds.
    */
   amount?: InputMaybe<Scalars['Money']['input']>;
+  /**
+   * Optional refund destination code. When omitted, refunds to the original
+   * payment method. Use the `refundDestinations` query to discover available
+   * destinations for an order.
+   *
+   * Ignored when `targets` is specified.
+   */
+  destination?: InputMaybe<Scalars['String']['input']>;
   /** @deprecated Use the `amount` field instead */
   lines?: InputMaybe<Array<OrderLineInput>>;
   paymentId: Scalars['ID']['input'];
   reason?: InputMaybe<Scalars['String']['input']>;
   /** @deprecated Use the `amount` field instead */
   shipping?: InputMaybe<Scalars['Money']['input']>;
+  /**
+   * Splits the refund across multiple payments and/or refund destinations. The sum of the
+   * `amount` of each target is the total amount refunded, and the top-level `amount` and
+   * `destination` fields are ignored.
+   *
+   * All targets are validated before any refund is created, and every target must draw on a
+   * Payment in the `Settled` state. If a target fails once earlier targets have already been
+   * refunded, the Refunds created for the earlier targets are kept and a `RefundIncompleteError`
+   * is returned.
+   */
+  targets?: InputMaybe<Array<RefundTargetInput>>;
 };
 
-export type RefundOrderResult = AlreadyRefundedError | MultipleOrderError | NothingToRefundError | OrderStateTransitionError | PaymentOrderMismatchError | QuantityTooGreatError | Refund | RefundAmountError | RefundOrderStateError | RefundStateTransitionError;
+export type RefundOrderResult = AlreadyRefundedError | MultipleOrderError | NothingToRefundError | OrderStateTransitionError | PaymentOrderMismatchError | QuantityTooGreatError | Refund | RefundAmountError | RefundDestinationError | RefundIncompleteError | RefundOrderStateError | RefundStateTransitionError;
 
 /** Returned if an attempting to refund an Order which is not in the expected state */
 export type RefundOrderStateError = ErrorResult & {
@@ -6178,6 +6252,31 @@ export type RefundStateTransitionError = ErrorResult & {
   message: Scalars['String']['output'];
   toState: Scalars['String']['output'];
   transitionError: Scalars['String']['output'];
+};
+
+/**
+ * Specifies a single portion of a refund: how much to refund, which Payment's refundable
+ * balance it is drawn from, and where the funds are directed.
+ */
+export type RefundTargetInput = {
+  /** The amount to refund to this target. */
+  amount: Scalars['Money']['input'];
+  /**
+   * Arbitrary configuration passed to the RefundDestinationStrategy's `createRefund()` method,
+   * for example an expiry date for a store credit refund. Has no effect when `destination`
+   * is omitted.
+   */
+  arguments?: InputMaybe<Scalars['JSON']['input']>;
+  /**
+   * The refund destination code. When omitted, the funds are refunded to the original
+   * payment method.
+   */
+  destination?: InputMaybe<Scalars['String']['input']>;
+  /**
+   * The Payment whose refundable balance is drawn on. Defaults to the top-level `paymentId`
+   * of the RefundOrderInput when omitted.
+   */
+  paymentId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 export type Region = {
@@ -8328,6 +8427,8 @@ export type RefundOrderMutation = { refundOrder:
     | { __typename?: 'QuantityTooGreatError', errorCode: ErrorCode, message: string }
     | { __typename?: 'Refund', id: string, state: string, items: number, shipping: number, adjustment: number, transactionId?: string | null, paymentId: string }
     | { __typename?: 'RefundAmountError', errorCode: ErrorCode, message: string }
+    | { __typename?: 'RefundDestinationError', errorCode: ErrorCode, message: string }
+    | { __typename?: 'RefundIncompleteError', errorCode: ErrorCode, message: string }
     | { __typename?: 'RefundOrderStateError', errorCode: ErrorCode, message: string }
     | { __typename?: 'RefundStateTransitionError', errorCode: ErrorCode, message: string }
    };
@@ -9527,6 +9628,10 @@ type ErrorResult_QuantityTooGreatError_Fragment = { __typename?: 'QuantityTooGre
 
 type ErrorResult_RefundAmountError_Fragment = { __typename?: 'RefundAmountError', errorCode: ErrorCode, message: string };
 
+type ErrorResult_RefundDestinationError_Fragment = { __typename?: 'RefundDestinationError', errorCode: ErrorCode, message: string };
+
+type ErrorResult_RefundIncompleteError_Fragment = { __typename?: 'RefundIncompleteError', errorCode: ErrorCode, message: string };
+
 type ErrorResult_RefundOrderStateError_Fragment = { __typename?: 'RefundOrderStateError', errorCode: ErrorCode, message: string };
 
 type ErrorResult_RefundPaymentIdMissingError_Fragment = { __typename?: 'RefundPaymentIdMissingError', errorCode: ErrorCode, message: string };
@@ -9583,6 +9688,8 @@ export type ErrorResultFragment =
   | ErrorResult_ProductOptionInUseError_Fragment
   | ErrorResult_QuantityTooGreatError_Fragment
   | ErrorResult_RefundAmountError_Fragment
+  | ErrorResult_RefundDestinationError_Fragment
+  | ErrorResult_RefundIncompleteError_Fragment
   | ErrorResult_RefundOrderStateError_Fragment
   | ErrorResult_RefundPaymentIdMissingError_Fragment
   | ErrorResult_RefundStateTransitionError_Fragment

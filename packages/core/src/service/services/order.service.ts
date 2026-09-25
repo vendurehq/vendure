@@ -21,6 +21,7 @@ import {
     DeletionResult,
     FulfillOrderInput,
     HistoryEntryType,
+    LanguageCode,
     ManualPaymentInput,
     ModifyOrderInput,
     ModifyOrderResult,
@@ -38,6 +39,7 @@ import {
     UpdateOrderNoteInput,
 } from '@vendure/common/lib/generated-types';
 import { omit } from '@vendure/common/lib/omit';
+import { DEFAULT_REFUND_DESTINATION_CODE } from '@vendure/common/lib/shared-constants';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { getGraphQlInputName, summate } from '@vendure/common/lib/shared-utils';
 import { EntityManager, In, IsNull, LockNotSupportedOnGivenDriverError } from 'typeorm';
@@ -46,7 +48,8 @@ import { FindOptionsUtils } from 'typeorm/find-options/FindOptionsUtils';
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
 import { RequestContextCacheService } from '../../cache/request-context-cache.service';
-import { CacheKey, TRANSACTION_MANAGER_KEY } from '../../common/constants';
+import { LocalizedStringArray } from '../../common/configurable-operation';
+import { CacheKey, DEFAULT_LANGUAGE_CODE, TRANSACTION_MANAGER_KEY } from '../../common/constants';
 import { ErrorResultUnion, isGraphQlErrorResult, JustErrorResults } from '../../common/error/error-result';
 import { EntityNotFoundError, InternalServerError, UserInputError } from '../../common/error/errors';
 import {
@@ -79,6 +82,7 @@ import { Instrument } from '../../common/instrument-decorator';
 import { grossPriceOf, netPriceOf } from '../../common/tax-utils';
 import { ListQueryOptions } from '../../common/types/common-types';
 import { assertFound, idsAreEqual } from '../../common/utils';
+import { RelationCustomFieldConfig } from '../../config';
 import { ConfigService } from '../../config/config.service';
 import { Logger } from '../../config/logger/vendure-logger';
 import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
@@ -87,10 +91,10 @@ import { Channel } from '../../entity/channel/channel.entity';
 import { Customer } from '../../entity/customer/customer.entity';
 import { Fulfillment } from '../../entity/fulfillment/fulfillment.entity';
 import { HistoryEntry } from '../../entity/history-entry/history-entry.entity';
-import { FulfillmentLine } from '../../entity/order-line-reference/fulfillment-line.entity';
-import { OrderLine } from '../../entity/order-line/order-line.entity';
-import { OrderModification } from '../../entity/order-modification/order-modification.entity';
 import { Order } from '../../entity/order/order.entity';
+import { OrderLine } from '../../entity/order-line/order-line.entity';
+import { FulfillmentLine } from '../../entity/order-line-reference/fulfillment-line.entity';
+import { OrderModification } from '../../entity/order-modification/order-modification.entity';
 import { Payment } from '../../entity/payment/payment.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
 import { Promotion } from '../../entity/promotion/promotion.entity';
@@ -129,8 +133,8 @@ import {
     totalCoveredByPayments,
 } from '../helpers/utils/order-utils';
 import { patchEntity } from '../helpers/utils/patch-entity';
+import { REFUND_ORDER_RELATIONS } from '../helpers/utils/refund-order-relations';
 
-import { RelationCustomFieldConfig } from '../../config';
 import { ChannelService } from './channel.service';
 import { CountryService } from './country.service';
 import { CustomerService } from './customer.service';
@@ -1971,7 +1975,8 @@ export class OrderService implements OnApplicationBootstrap {
         if (
             (!input.lines || input.lines.length === 0 || summate(input.lines, 'quantity') === 0) &&
             input.shipping === 0 &&
-            !input.amount
+            !input.amount &&
+            !input.targets?.length
         ) {
             return new NothingToRefundError();
         }
@@ -2006,6 +2011,77 @@ export class OrderService implements OnApplicationBootstrap {
             await this.eventBus.publish(new RefundEvent(ctx, order, createdRefund, 'created'));
         }
         return createdRefund;
+    }
+
+    /**
+     * @description
+     * Returns the available refund destinations for the given order. Includes
+     * the default destination (original payment method) plus any custom
+     * destinations registered via {@link RefundDestinationStrategy}.
+     */
+    async getRefundDestinations(
+        ctx: RequestContext,
+        orderId: ID,
+    ): Promise<Array<{ code: string; description: string; availableForPaymentIds: ID[] }>> {
+        const order = await this.connection.getEntityOrThrow(ctx, Order, orderId, {
+            relations: REFUND_ORDER_RELATIONS,
+            channelId: ctx.channelId,
+        });
+        // Only Settled Payments are listed, since those are the only ones a refund target or a
+        // refund destination is allowed to draw on.
+        const refundablePayments = order.payments.filter(p => {
+            if (p.state !== 'Settled') {
+                return false;
+            }
+            const nonFailedRefunds = p.refunds?.filter(r => r.state !== 'Failed') ?? [];
+            const refundTotal = summate(nonFailedRefunds, 'total');
+            return refundTotal < p.amount;
+        });
+        const defaultDescription: LocalizedStringArray = [
+            { languageCode: LanguageCode.en, value: 'Refund to original payment method' },
+        ];
+        const results = [
+            {
+                code: DEFAULT_REFUND_DESTINATION_CODE,
+                description: this.localizeDescription(ctx, defaultDescription),
+                availableForPaymentIds: refundablePayments.map(p => p.id),
+            },
+        ];
+        const strategies = this.configService.paymentOptions.refundDestinations ?? [];
+        for (const strategy of strategies) {
+            // Availability is resolved per Payment rather than per Order, because a destination may
+            // be valid for one of the Order's payments but not another. The administrator must draw
+            // the refund from one of the Payments listed here.
+            const availableForPaymentIds: ID[] = [];
+            for (const payment of refundablePayments) {
+                if (await strategy.isAvailable(ctx, order, payment)) {
+                    availableForPaymentIds.push(payment.id);
+                }
+            }
+            if (availableForPaymentIds.length) {
+                results.push({
+                    code: strategy.code,
+                    description: this.localizeDescription(ctx, strategy.description),
+                    availableForPaymentIds,
+                });
+            }
+        }
+        return results;
+    }
+
+    /**
+     * Resolves the language-specific value of a refund destination description, falling back to the
+     * channel default language, then English, then whichever entry the strategy defined first.
+     */
+    private localizeDescription(ctx: RequestContext, description: LocalizedStringArray): string {
+        const preference = [ctx.languageCode, ctx.channel.defaultLanguageCode, DEFAULT_LANGUAGE_CODE];
+        for (const languageCode of preference) {
+            const match = description.find(x => x.languageCode === languageCode);
+            if (match) {
+                return match.value;
+            }
+        }
+        return description[0]?.value ?? '';
     }
 
     /**

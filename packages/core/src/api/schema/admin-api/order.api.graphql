@@ -3,6 +3,12 @@ type Query {
     orders(options: OrderListOptions): OrderList!
     "Returns a list of eligible shipping methods for the draft Order"
     eligibleShippingMethodsForDraftOrder(orderId: ID!): [ShippingMethodQuote!]!
+    """
+    Returns the available refund destinations for the given order.
+    This includes the default destination (original payment method) plus
+    any custom destinations registered via RefundDestinationStrategy.
+    """
+    refundDestinations(orderId: ID!): [RefundDestination!]!
 }
 
 type Mutation {
@@ -125,6 +131,50 @@ input RefundOrderInput {
     amount: Money
     paymentId: ID!
     reason: String
+    """
+    Optional refund destination code. When omitted, refunds to the original
+    payment method. Use the `refundDestinations` query to discover available
+    destinations for an order.
+
+    Ignored when `targets` is specified.
+    """
+    destination: String
+    """
+    Splits the refund across multiple payments and/or refund destinations. The sum of the
+    `amount` of each target is the total amount refunded, and the top-level `amount` and
+    `destination` fields are ignored.
+
+    All targets are validated before any refund is created, and every target must draw on a
+    Payment in the `Settled` state. If a target fails once earlier targets have already been
+    refunded, the Refunds created for the earlier targets are kept and a `RefundIncompleteError`
+    is returned.
+    """
+    targets: [RefundTargetInput!]
+}
+
+"""
+Specifies a single portion of a refund: how much to refund, which Payment's refundable
+balance it is drawn from, and where the funds are directed.
+"""
+input RefundTargetInput {
+    """
+    The Payment whose refundable balance is drawn on. Defaults to the top-level `paymentId`
+    of the RefundOrderInput when omitted.
+    """
+    paymentId: ID
+    "The amount to refund to this target."
+    amount: Money!
+    """
+    The refund destination code. When omitted, the funds are refunded to the original
+    payment method.
+    """
+    destination: String
+    """
+    Arbitrary configuration passed to the RefundDestinationStrategy's `createRefund()` method,
+    for example an expiry date for a store credit refund. Has no effect when `destination`
+    is omitted.
+    """
+    arguments: JSON
 }
 
 input OrderLineInput {
@@ -344,6 +394,28 @@ type RefundAmountError implements ErrorResult {
     maximumRefundable: Int!
 }
 
+"Returned if the specified refund destination does not exist, or is not available for the specified Payment"
+type RefundDestinationError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+    destinationCode: String!
+}
+
+"""
+Returned when a refund split over several `targets` fails after one or more of the earlier
+targets have already been refunded. The Refunds created before the failure are kept, since their
+funds may already have been moved, and are listed in `refunds`.
+"""
+type RefundIncompleteError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+    "The Refunds created by this operation, including one whose state transition failed."
+    refunds: [Refund!]!
+    "The zero-based index of the target in `RefundOrderInput.targets` which failed."
+    failedTargetIndex: Int!
+    failureReason: String!
+}
+
 "Returned when there is an error in transitioning the Refund state"
 type RefundStateTransitionError implements ErrorResult {
     errorCode: ErrorCode!
@@ -410,6 +482,20 @@ type ManualPaymentStateError implements ErrorResult {
     message: String!
 }
 
+"""
+Represents an available refund destination for an order.
+"""
+type RefundDestination {
+    code: String!
+    description: String!
+    """
+    The IDs of the Payments on this Order for which this destination is available, as
+    determined by the strategy's `isAvailable()` method. A refund to this destination must
+    draw its balance from one of these Payments.
+    """
+    availableForPaymentIds: [ID!]!
+}
+
 union TransitionOrderToStateResult = Order | OrderStateTransitionError
 union SettlePaymentResult =
     | Payment
@@ -443,6 +529,8 @@ union RefundOrderResult =
     | AlreadyRefundedError
     | RefundStateTransitionError
     | RefundAmountError
+    | RefundDestinationError
+    | RefundIncompleteError
 union SettleRefundResult = Refund | RefundStateTransitionError
 union TransitionFulfillmentToStateResult = Fulfillment | FulfillmentStateTransitionError
 union TransitionPaymentToStateResult = Payment | PaymentStateTransitionError

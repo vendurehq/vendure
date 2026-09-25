@@ -11,6 +11,7 @@ import {
     Truck,
     UserX,
 } from 'lucide-react';
+
 import { OrderHistoryOrderDetail } from './order-history-types.js';
 
 export function orderHistoryUtils(order: OrderHistoryOrderDetail) {

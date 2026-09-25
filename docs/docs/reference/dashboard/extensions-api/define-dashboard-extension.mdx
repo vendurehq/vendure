@@ -4,7 +4,7 @@ generated: true
 ---
 ## defineDashboardExtension
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/define-dashboard-extension.ts" sourceLine="111" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/define-dashboard-extension.ts" sourceLine="114" packageName="@vendure/dashboard" since="3.3.0" />
 
 The main entry point for extensions to the React-based dashboard. Every dashboard extension
 must contain a call to this function, usually in the entry point file that is referenced by
@@ -21,6 +21,7 @@ Every type of customisation of the dashboard can be defined here, including:
 - Login
 - Custom history entries
 - Toolbar items
+- Refund destinations
 
 *Example*
 
@@ -38,6 +39,7 @@ defineDashboardExtension({
     login: {},
     historyEntries: [],
     toolbarItems: [],
+    refundDestinations: [],
 });
 ```
 
@@ -52,7 +54,7 @@ Parameters
 
 ## DashboardExtension
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/extension-api-types.ts" sourceLine="42" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/extension-api-types.ts" sourceLine="43" packageName="@vendure/dashboard" since="3.3.0" />
 
 This is the main interface for defining _all_ extensions to the dashboard.
 
@@ -83,6 +85,7 @@ interface DashboardExtension {
     detailForms?: DashboardDetailFormExtensionDefinition[];
     login?: DashboardLoginExtensions;
     historyEntries?: DashboardHistoryEntryComponent[];
+    refundDestinations?: DashboardRefundDestinationDefinition[];
     toolbarItems?: DashboardToolbarItemDefinition[];
     customProviders?: DashboardCustomProviderDefinition[];
 }
@@ -196,6 +199,13 @@ Allows you to customize the login page with custom components.
 
 Allows a custom component to be used to render a history entry item
 in the Order or Customer history lists.
+### refundDestinations
+
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/refund-destinations#dashboardrefunddestinationdefinition'>DashboardRefundDestinationDefinition</a>[]`}  since="3.8.0"  />
+
+Allows the presentation of a refund destination to be customised in the refund dialog,
+adding a label, an icon and an optional configuration component. The destination itself is
+defined on the backend by a `RefundDestinationStrategy`.
 ### toolbarItems
 
 <MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/toolbar#dashboardtoolbaritemdefinition'>DashboardToolbarItemDefinition</a>[]`}  since="3.5.3"  />

@@ -14,6 +14,7 @@ class Refund extends VendureEntity implements HasCustomFields {
     @Money() adjustment: number;
     @Money() total: number;
     @Column() method: string;
+    @Column({ nullable: true, type: 'varchar' }) destination: string | null;
     @Column({ nullable: true }) reason: string;
     @Column('varchar') state: RefundState;
     @Column({ nullable: true }) transactionId: string;
@@ -65,6 +66,12 @@ class Refund extends VendureEntity implements HasCustomFields {
 <MemberInfo kind="property" type={`string`}   />
 
 
+### destination
+
+<MemberInfo kind="property" type={`string | null`}  since="3.8.0"  />
+
+The refund destination code, if a non-default destination was used.
+When null, the refund was directed to the original payment method.
 ### reason
 
 <MemberInfo kind="property" type={`string`}   />

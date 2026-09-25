@@ -83,7 +83,7 @@ function DraftOrderPage() {
     const { form: orderCustomFieldsForm } = useGeneratedForm({
         document: setDraftOrderCustomFieldsDocument,
         varName: undefined,
-        entity: entity,
+        entity,
         setValues: entity => {
             return {
                 orderId: entity.id,

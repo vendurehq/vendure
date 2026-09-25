@@ -1,5 +1,6 @@
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { Trans } from '@lingui/react/macro';
+
 import { Order } from '../utils/order-types.js';
 
 export function OrderTaxSummary({ order }: Readonly<{ order: Order }>) {
