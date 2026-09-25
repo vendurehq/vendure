@@ -96,7 +96,8 @@ function getActivePluginNames(vendureConfig: Pick<VendureConfig, 'plugins'>): Se
  * `@vendure/core` imports `reflect-metadata`.
  */
 function getComposedPlugins(pluginClass: object): unknown[] {
-    const getMetadata = (Reflect as { getMetadata?: (key: string, target: object) => unknown }).getMetadata;
-    const composedPlugins = getMetadata?.('plugins', pluginClass);
+    const composedPlugins = (
+        Reflect as unknown as { getMetadata(key: string, target: object): unknown }
+    ).getMetadata('plugins', pluginClass);
     return Array.isArray(composedPlugins) ? composedPlugins : [];
 }

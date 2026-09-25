@@ -1056,5 +1056,14 @@ describe('filterActivePluginInfo', () => {
             );
             expect(result.map(p => p.name)).toEqual(['ChildPlugin', 'ParentPlugin']);
         });
+
+        it('stops at a plugin that composes itself', () => {
+            const selfComposing = makePluginClass('SelfComposingPlugin');
+            VendurePlugin({ plugins: [selfComposing] })(selfComposing);
+            const result = filterActivePluginInfo([makePluginInfo('SelfComposingPlugin')], {
+                plugins: [selfComposing],
+            });
+            expect(result.map(p => p.name)).toEqual(['SelfComposingPlugin']);
+        });
     });
 });
