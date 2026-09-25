@@ -358,6 +358,10 @@ msgid "Successfully created role"
 msgstr "Rol succesvol aangemaakt"
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
+msgid "No option groups defined yet. Add option groups when variants differ by a shared property (e.g., Size, Color, Material). Without them, add variants one at a time below."
+msgstr "Nog geen optiegroepen gedefinieerd. Voeg optiegroepen toe wanneer varianten verschillen door een gedeelde eigenschap (bijv. Maat, Kleur, Materiaal). Zonder deze voegt u de varianten hieronder één voor één toe."
+
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
 msgid "Are you sure you want to delete this variant?"
 msgstr "Weet u zeker dat u deze variant wilt verwijderen?"
 
@@ -1475,6 +1479,8 @@ msgstr "Prijzen zijn inclusief belasting voor standaard belastingzone"
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+#: src/lib/components/data-input/slug-input.tsx
+#: src/lib/components/data-input/slug-input.tsx
 msgid "This field is required"
 msgstr ""
 
@@ -3655,6 +3661,7 @@ msgstr "Filtercriteria instellen voor de kolom {columnId}"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
+#: src/lib/components/shared/address-country-select.tsx
 #: src/lib/components/shared/customer-address-form.tsx
 msgid "Country"
 msgstr "Land"
@@ -3934,7 +3941,7 @@ msgstr "Rol succesvol bijgewerkt"
 msgid "The display name can omit the extension or keep {sourceExtensionLabel}. It cannot use a different file extension."
 msgstr ""
 
-#: src/lib/components/shared/customer-address-form.tsx
+#: src/lib/components/shared/address-country-select.tsx
 msgid "Select a country"
 msgstr "Selecteer een land"
 
@@ -6814,6 +6821,7 @@ msgid "Edit as form"
 msgstr "Bewerken als formulier"
 
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
+#: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 msgid "Edit Address"
 msgstr "Adres bewerken"
 
@@ -6954,10 +6962,6 @@ msgstr "Meer opmaakopties"
 msgid "{totalQuantity} item(s) refunded"
 msgstr "{totalQuantity} artikel(en) gerestitueerd"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
-msgid "No option groups defined yet. Add option groups when variants differ by a shared property (e.g., Size, Color, Material). Without them, add variants one at a time below."
-msgstr "Nog geen optiegroepen gedefinieerd. Voeg optiegroepen toe wanneer varianten verschillen door een gedeelde eigenschap (bijv. Maat, Kleur, Materiaal). Zonder deze voegt u de varianten hieronder één voor één toe."
-
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx
 msgid "New email:"
 msgstr "Nieuw e-mailadres:"
@@ -7023,6 +7027,7 @@ msgstr "Actief"
 msgid "Tax base"
 msgstr "Belastinggrondslag"
 
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-container.tsx
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-container.tsx
 msgid "Load more"

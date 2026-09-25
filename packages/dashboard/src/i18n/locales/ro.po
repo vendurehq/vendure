@@ -338,6 +338,10 @@ msgid "Successfully created role"
 msgstr "Rolul a fost creat cu succes"
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
+msgid "No option groups defined yet. Add option groups when variants differ by a shared property (e.g., Size, Color, Material). Without them, add variants one at a time below."
+msgstr "Nu au fost definite încă grupuri de opțiuni. Adaugă grupuri de opțiuni atunci când variantele diferă printr-o proprietate comună (ex., Mărime, Culoare, Material). Fără ele, adaugă variantele una câte una mai jos."
+
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
 msgid "Are you sure you want to delete this variant?"
 msgstr "Ești sigur că vrei să ștergi această variantă?"
 
@@ -1435,6 +1439,8 @@ msgstr "Prețurile includ taxa pentru zona de taxare implicită"
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+#: src/lib/components/data-input/slug-input.tsx
+#: src/lib/components/data-input/slug-input.tsx
 msgid "This field is required"
 msgstr ""
 
@@ -3569,6 +3575,7 @@ msgstr "Setează criteriile de filtrare pentru coloana {columnId}"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
+#: src/lib/components/shared/address-country-select.tsx
 #: src/lib/components/shared/customer-address-form.tsx
 msgid "Country"
 msgstr "Țară"
@@ -3848,7 +3855,7 @@ msgstr "Rolul a fost actualizat cu succes"
 msgid "The display name can omit the extension or keep {sourceExtensionLabel}. It cannot use a different file extension."
 msgstr ""
 
-#: src/lib/components/shared/customer-address-form.tsx
+#: src/lib/components/shared/address-country-select.tsx
 msgid "Select a country"
 msgstr "Selectează o țară"
 
@@ -6623,6 +6630,7 @@ msgid "Edit as form"
 msgstr "Editează ca formular"
 
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
+#: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 msgid "Edit Address"
 msgstr "Editează adresă"
 
@@ -6755,10 +6763,6 @@ msgstr "Mai multe opțiuni de formatare"
 msgid "{totalQuantity} item(s) refunded"
 msgstr "{totalQuantity} articol(e) rambursat(e)"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
-msgid "No option groups defined yet. Add option groups when variants differ by a shared property (e.g., Size, Color, Material). Without them, add variants one at a time below."
-msgstr "Nu au fost definite încă grupuri de opțiuni. Adaugă grupuri de opțiuni atunci când variantele diferă printr-o proprietate comună (ex., Mărime, Culoare, Material). Fără ele, adaugă variantele una câte una mai jos."
-
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx
 msgid "New email:"
 msgstr "Email nou:"
@@ -6824,6 +6828,7 @@ msgstr "Activă"
 msgid "Tax base"
 msgstr "Baza de taxare"
 
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-container.tsx
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-container.tsx
 msgid "Load more"
