@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
-import { ErrorCode, type RefundOrderInput } from '@vendure/common/lib/generated-types';
+import { CurrencyCode, ErrorCode, type RefundOrderInput } from '@vendure/common/lib/generated-types';
 import {
     LanguageCode,
     mergeConfig,
@@ -9,7 +9,12 @@ import {
     type RefundDestinationStrategy,
     type RequestContext,
 } from '@vendure/core';
-import { createErrorResultGuard, createTestEnvironment, type ErrorResultGuard } from '@vendure/testing';
+import {
+    createErrorResultGuard,
+    createTestEnvironment,
+    E2E_DEFAULT_CHANNEL_TOKEN,
+    type ErrorResultGuard,
+} from '@vendure/testing';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -22,6 +27,7 @@ import {
     testFailingPaymentMethod,
 } from './fixtures/test-payment-methods';
 import { graphql } from './graphql/graphql-admin';
+import { createChannelDocument } from './graphql/shared-definitions';
 import { addItemToOrderDocument, addPaymentDocument } from './graphql/shop-definitions';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 import { proceedToArrangingPayment } from './utils/test-order-utils';
@@ -458,6 +464,34 @@ describe('Refund destinations', () => {
                 'is in the "Declined" state',
             )();
             expect(storeCreditSpy).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('channel scoping', () => {
+        const SECOND_CHANNEL_TOKEN = 'refund-destination-second-channel';
+
+        afterAll(() => {
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+        });
+
+        it('does not return refund destinations for an Order in another Channel', async () => {
+            await adminClient.query(createChannelDocument, {
+                input: {
+                    code: 'refund-destination-second-channel',
+                    token: SECOND_CHANNEL_TOKEN,
+                    defaultLanguageCode: LanguageCode.en,
+                    currencyCode: CurrencyCode.GBP,
+                    pricesIncludeTax: true,
+                    defaultShippingZoneId: 'T_1',
+                    defaultTaxZoneId: 'T_1',
+                },
+            });
+            adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
+
+            await assertThrowsWithMessage(
+                () => adminClient.query(refundDestinationsDocument, { orderId }),
+                'No Order with the id',
+            )();
         });
     });
 });

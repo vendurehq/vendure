@@ -2024,6 +2024,7 @@ export class OrderService implements OnApplicationBootstrap {
     ): Promise<Array<{ code: string; description: string; availableForPaymentIds: ID[] }>> {
         const order = await this.connection.getEntityOrThrow(ctx, Order, orderId, {
             relations: ['payments', 'payments.refunds'],
+            channelId: ctx.channelId,
         });
         // Only Settled Payments are listed, since those are the only ones a refund target or a
         // refund destination is allowed to draw on.
