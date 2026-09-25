@@ -488,6 +488,7 @@ export class PaymentService {
                         paymentId: String(paymentId),
                     });
                 }
+                this.assertPaymentIsSettled(payment);
                 const targetStrategy = this.resolveRefundDestinationStrategy(targetInput.destination);
                 if (targetStrategy instanceof RefundDestinationError) {
                     return targetStrategy;
@@ -526,16 +527,34 @@ export class PaymentService {
                 return new RefundAmountError({ maximumRefundable: refundableAmount });
             }
         }
-        if (strategy && !(await strategy.isAvailable(ctx, order, selectedPayment))) {
-            return new RefundDestinationError({ destinationCode: strategy.code });
+        if (strategy) {
+            this.assertPaymentIsSettled(selectedPayment);
+            if (!(await strategy.isAvailable(ctx, order, selectedPayment))) {
+                return new RefundDestinationError({ destinationCode: strategy.code });
+            }
         }
 
         // No explicit targets: allocate the total across the Order's refundable Payments, starting
         // with the selected one and spilling over into the others as each is exhausted.
-        const refundablePayments = orderWithRefunds.payments.filter(
-            p => this.getPaymentRefundTotal(p) < p.amount,
-        );
+        const refundablePayments: Payment[] = [];
+        for (const payment of orderWithRefunds.payments) {
+            if (this.getPaymentRefundTotal(payment) >= payment.amount) {
+                continue;
+            }
+            // When refunding to a destination, the overflow may only spill onto Payments which the
+            // destination could have been chosen for directly.
+            if (
+                strategy &&
+                (payment.state !== 'Settled' || !(await strategy.isAvailable(ctx, order, payment)))
+            ) {
+                continue;
+            }
+            refundablePayments.push(payment);
+        }
         const refundMax = refundablePayments.reduce((sum, p) => sum + remainingCapacityOf(p), 0);
+        if (strategy && refundMax < total) {
+            return new RefundAmountError({ maximumRefundable: refundMax });
+        }
         const targets: ResolvedRefundTarget[] = [];
         const usedPaymentIds: ID[] = [];
         let refundOutstanding = Math.min(total, refundMax);
@@ -703,6 +722,21 @@ export class PaymentService {
             strategies.find(s => s.code === destination) ??
             new RefundDestinationError({ destinationCode: destination })
         );
+    }
+
+    /**
+     * Explicit refund targets and refund destinations may only draw on a Payment whose funds have
+     * been captured. A destination such as store credit issues value itself rather than asking the
+     * payment provider to return the funds, so drawing on a Declined or merely Authorized Payment
+     * would issue value that was never received.
+     */
+    private assertPaymentIsSettled(payment: Payment) {
+        if (payment.state !== 'Settled') {
+            throw new UserInputError('error.refund-payment-not-settled', {
+                paymentId: String(payment.id),
+                state: payment.state,
+            });
+        }
     }
 
     private mergePaymentMetadata(m1: PaymentMetadata, m2?: PaymentMetadata): PaymentMetadata {

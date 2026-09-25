@@ -16,9 +16,14 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
-import { partialPaymentMethod, singleStageRefundablePaymentMethod } from './fixtures/test-payment-methods';
+import {
+    partialPaymentMethod,
+    singleStageRefundablePaymentMethod,
+    testFailingPaymentMethod,
+} from './fixtures/test-payment-methods';
 import { graphql } from './graphql/graphql-admin';
 import { addItemToOrderDocument, addPaymentDocument } from './graphql/shop-definitions';
+import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 import { proceedToArrangingPayment } from './utils/test-order-utils';
 
 const PARTIAL_PAYMENT_AMOUNT = 1000;
@@ -146,6 +151,7 @@ describe('Refund destinations', () => {
     let orderLineId: string;
     let partialPaymentId: string;
     let refundablePaymentId: string;
+    let declinedPaymentId: string;
     let orderTotalWithTax: number;
 
     const refundGuard: ErrorResultGuard<{ id: string; total: number }> = createErrorResultGuard(
@@ -155,7 +161,11 @@ describe('Refund destinations', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
             paymentOptions: {
-                paymentMethodHandlers: [partialPaymentMethod, singleStageRefundablePaymentMethod],
+                paymentMethodHandlers: [
+                    partialPaymentMethod,
+                    singleStageRefundablePaymentMethod,
+                    testFailingPaymentMethod,
+                ],
                 refundDestinations: [new StoreCreditDestination(), new RestrictedDestination()],
             },
         }),
@@ -174,6 +184,10 @@ describe('Refund destinations', () => {
                         name: singleStageRefundablePaymentMethod.code,
                         handler: { code: singleStageRefundablePaymentMethod.code, arguments: [] },
                     },
+                    {
+                        name: testFailingPaymentMethod.code,
+                        handler: { code: testFailingPaymentMethod.code, arguments: [] },
+                    },
                 ],
             },
             productsCsvPath: path.join(__dirname, 'fixtures/e2e-products-full.csv'),
@@ -183,9 +197,13 @@ describe('Refund destinations', () => {
         await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
 
         // Build an Order paid for by two separate Payments, so that per-payment availability and
-        // per-payment refundable capacity can be exercised.
+        // per-payment refundable capacity can be exercised. A declined first attempt is also left on
+        // the Order, since a declined Payment must never be drawn on by a refund.
         await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_1', quantity: 2 });
         await proceedToArrangingPayment(shopClient, 2);
+        await shopClient.query(addPaymentDocument, {
+            input: { method: testFailingPaymentMethod.code, metadata: {} },
+        });
         await shopClient.query(addPaymentDocument, {
             input: {
                 method: partialPaymentMethod.code,
@@ -205,6 +223,7 @@ describe('Refund destinations', () => {
         refundablePaymentId = adminOrder!.payments!.find(
             p => p.method === singleStageRefundablePaymentMethod.code,
         )!.id;
+        declinedPaymentId = adminOrder!.payments!.find(p => p.method === testFailingPaymentMethod.code)!.id;
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -393,6 +412,52 @@ describe('Refund destinations', () => {
             expect(refundsWithLines).toHaveLength(1);
             expect(refundsWithLines[0].total).toBe(300);
             expect(refundsWithLines[0].lines).toEqual([{ orderLineId, quantity: 1 }]);
+        });
+    });
+    describe('payments which have not been settled', () => {
+        it('does not list a Declined payment for any destination', async () => {
+            const { refundDestinations } = await adminClient.query(refundDestinationsDocument, { orderId });
+
+            for (const destination of refundDestinations) {
+                expect(destination.availableForPaymentIds).not.toContain(declinedPaymentId);
+            }
+        });
+
+        it('rejects a refund target which draws on a Declined payment', async () => {
+            storeCreditSpy.mockClear();
+
+            await assertThrowsWithMessage(
+                () =>
+                    adminClient.query(refundWithDestinationDocument, {
+                        input: {
+                            paymentId: refundablePaymentId,
+                            reason: 'declined target',
+                            targets: [
+                                { paymentId: declinedPaymentId, amount: 100, destination: 'store-credit' },
+                            ],
+                        },
+                    }),
+                'is in the "Declined" state',
+            )();
+            expect(storeCreditSpy).not.toHaveBeenCalled();
+        });
+
+        it('rejects a refund to a destination which draws on a Declined payment', async () => {
+            storeCreditSpy.mockClear();
+
+            await assertThrowsWithMessage(
+                () =>
+                    adminClient.query(refundWithDestinationDocument, {
+                        input: {
+                            paymentId: declinedPaymentId,
+                            amount: 100,
+                            reason: 'declined destination',
+                            destination: 'store-credit',
+                        },
+                    }),
+                'is in the "Declined" state',
+            )();
+            expect(storeCreditSpy).not.toHaveBeenCalled();
         });
     });
 });

@@ -2025,7 +2025,12 @@ export class OrderService implements OnApplicationBootstrap {
         const order = await this.connection.getEntityOrThrow(ctx, Order, orderId, {
             relations: ['payments', 'payments.refunds'],
         });
+        // Only Settled Payments are listed, since those are the only ones a refund target or a
+        // refund destination is allowed to draw on.
         const refundablePayments = order.payments.filter(p => {
+            if (p.state !== 'Settled') {
+                return false;
+            }
             const nonFailedRefunds = p.refunds?.filter(r => r.state !== 'Failed') ?? [];
             const refundTotal = summate(nonFailedRefunds, 'total');
             return refundTotal < p.amount;
