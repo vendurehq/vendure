@@ -113,6 +113,12 @@ function RefundTargetRow({
                     </Label>
                     <Select
                         value={target.paymentId}
+                        items={Object.fromEntries(
+                            eligiblePayments.map(payment => [
+                                payment.id,
+                                `${payment.label} (${formatCurrency(payment.refundableAmount, currencyCode)})`,
+                            ]),
+                        )}
                         onValueChange={value => value && onPaymentChange(target.id, value)}
                     >
                         <SelectTrigger
