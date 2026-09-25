@@ -49,8 +49,8 @@ export function filterActivePluginInfo(
  *   - a NestJS `DynamicModule` of the shape `{ module: SomePluginClass, ... }`,
  *     which some plugins use to return additional providers/imports.
  *
- * A plugin can compose other plugins through the `plugins` property of its
- * `@VendurePlugin` metadata. Vendure core registers these composed
+ * Plugins can compose other plugins through the `plugins` property of the
+ * `@VendurePlugin` metadata (since v3.8.0). Vendure core registers these composed
  * plugins at bootstrap (see `flattenPlugins()` in `@vendure/core`), so their
  * class names are active too. This function reads the same `plugins` metadata
  * key recursively. It cannot import `flattenPlugins()` because `@vendure/core`
