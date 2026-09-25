@@ -463,6 +463,25 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
                 },
             });
 
+            if (refundResult.refundOrder.__typename === 'RefundIncompleteError') {
+                // Some targets were refunded before one failed, and those Refunds are kept on the
+                // server. The dialog is closed and the Order reloaded instead of keeping the stale
+                // allocation, which would refund the earlier targets again if it were resubmitted.
+                const { refunds, failedTargetIndex, failureReason } = refundResult.refundOrder;
+                const refundedAmount = formatCurrency(
+                    refunds.reduce((sum, r) => sum + r.total, 0),
+                    order.currencyCode,
+                );
+                const refundCount = refunds.length;
+                const failedTargetLabel = selectedTargets[failedTargetIndex]?.label ?? String(failedTargetIndex);
+                toast.warning(t`Refund only partially completed`, {
+                    description: t`${refundedAmount} was refunded in ${refundCount} refund(s), but "${failedTargetLabel}" failed: ${failureReason}. Check the order's payments before trying again.`,
+                    duration: Infinity,
+                });
+                onSuccess?.();
+                return;
+            }
+
             if (refundResult.refundOrder.__typename !== 'Refund') {
                 toast.error(t`Failed to process refund`, {
                     description: refundResult.refundOrder.message,

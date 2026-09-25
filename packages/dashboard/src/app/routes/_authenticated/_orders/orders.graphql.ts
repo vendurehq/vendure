@@ -770,6 +770,15 @@ export const refundOrderDocument = graphql(
                         quantity
                     }
                 }
+                ... on RefundIncompleteError {
+                    failedTargetIndex
+                    failureReason
+                    refunds {
+                        id
+                        total
+                        destination
+                    }
+                }
                 ...ErrorResult
             }
         }

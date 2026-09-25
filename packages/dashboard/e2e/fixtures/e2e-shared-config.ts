@@ -185,7 +185,24 @@ class TestStoreCreditDestination implements RefundDestinationStrategy {
     }
 }
 
-export const e2eRefundDestinations = [new TestStoreCreditDestination()];
+/**
+ * A refund destination whose external service always fails, used to exercise the dialog's handling
+ * of a multi-target refund which fails after an earlier target has already been refunded.
+ */
+class TestFailingVoucherDestination implements RefundDestinationStrategy {
+    readonly code = 'failing-voucher';
+    readonly description = [{ languageCode: LanguageCode.en, value: 'Refund as voucher (always fails)' }];
+
+    isAvailable() {
+        return true;
+    }
+
+    createRefund(): never {
+        throw new Error('Voucher service unavailable');
+    }
+}
+
+export const e2eRefundDestinations = [new TestStoreCreditDestination(), new TestFailingVoucherDestination()];
 
 /**
  * A collection filter with a string list argument, used to reproduce #4987:

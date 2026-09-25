@@ -1064,6 +1064,62 @@ test.describe('Orders', () => {
             ).toBeVisible({ timeout: 10_000 });
         });
 
+        // #4563 — when a later target fails after an earlier one was refunded, the dialog must report
+        // the partial refund and close, rather than leave the stale allocation to be resubmitted.
+        test('should report a partially completed split refund', async ({ page }) => {
+            test.setTimeout(60_000);
+
+            const client = new VendureAdminClient(page);
+            await client.login();
+            const orderId = await createPaidOrder(client);
+
+            await page.goto(`/orders/${orderId}`);
+            await expect(page.getByRole('button', { name: /Fulfill order/i })).toBeVisible({
+                timeout: 10_000,
+            });
+
+            await openRefundDialog(page);
+
+            const dialog = page.locator('[role="dialog"]');
+            await expect(dialog).toBeVisible({ timeout: 5_000 });
+
+            await dialog.getByTestId('refund-quantity').first().fill('1');
+            await dialog.getByRole('combobox').click();
+            await page.getByRole('option').first().click();
+
+            const paymentRow = dialog.getByTestId(/^refund-target-payment-/);
+            const fullAmount = Number.parseFloat(
+                await paymentRow.getByTestId('refund-target-amount').inputValue(),
+            );
+            const halfAmount = (Math.floor((fullAmount * 100) / 2) / 100).toFixed(2);
+            const remainingAmount = (fullAmount - Number.parseFloat(halfAmount)).toFixed(2);
+
+            // The original payment is refunded first and succeeds; the failing voucher is second.
+            await paymentRow.getByTestId('refund-target-amount').fill(halfAmount);
+            await dialog
+                .getByTestId('refund-target-failing-voucher')
+                .getByTestId('refund-target-amount')
+                .fill(remainingAmount);
+
+            await dialog.getByRole('button', { name: /Refund/i }).last().click();
+
+            const toast = page
+                .locator('[data-sonner-toast]')
+                .filter({ hasText: 'Refund only partially completed' });
+            await expect(toast).toBeVisible({ timeout: 10_000 });
+            await expect(toast).toContainText('Voucher service unavailable');
+            await expect(dialog).toBeHidden();
+
+            // The refund for the first target was kept.
+            const { order } = await client.gql(
+                `query ($id: ID!) { order(id: $id) { payments { refunds { total destination } } } }`,
+                { id: orderId },
+            );
+            const refunds = order.payments.flatMap((p: { refunds: unknown[] }) => p.refunds);
+            expect(refunds).toHaveLength(1);
+            expect(refunds[0].destination).toBeNull();
+        });
+
         // #4563 — refund with manual total override
         test('should allow manual refund total override', async ({ page }) => {
             test.setTimeout(60_000);
