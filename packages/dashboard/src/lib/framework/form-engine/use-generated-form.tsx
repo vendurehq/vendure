@@ -14,6 +14,7 @@ import {
 import {
     convertEmptyStringsToNull,
     getChangedTopLevelFields,
+    mergeStartingValues,
     removeEmptyIdFields,
     stripNullNullableFields,
     stripUntouchedTranslations,
@@ -111,6 +112,16 @@ export interface GeneratedFormOptions<
     ) => WithLooseCustomFields<
         VarName extends keyof VariablesOf<T> ? VariablesOf<T>[VarName] : VariablesOf<T>
     >;
+    /**
+     * @description
+     * The starting values to merge into the default values when there is no entity. The form resets
+     * whenever they change, so values such as `new Date()` should not be recreated on every render.
+     *
+     * @since 3.8.0
+     */
+    startingValues?: WithLooseCustomFields<
+        Partial<VarName extends keyof VariablesOf<T> ? VariablesOf<T>[VarName] : VariablesOf<T>>
+    >;
     onSubmit?: (
         values: VarName extends keyof VariablesOf<T> ? VariablesOf<T>[VarName] : VariablesOf<T>,
         meta?: GeneratedFormSubmitMeta,
@@ -153,7 +164,16 @@ export function useGeneratedForm<
     VarName extends keyof VariablesOf<T> | undefined,
     E extends Record<string, any> = Record<string, any>,
 >(options: GeneratedFormOptions<T, VarName, E>) {
-    const { document, entity, setValues, onSubmit, varName, customFieldConfig, extendSchema } = options;
+    const {
+        document,
+        entity,
+        setValues,
+        startingValues: startingValuesOption,
+        onSubmit,
+        varName,
+        customFieldConfig,
+        extendSchema,
+    } = options;
     const { activeChannel } = useChannel();
     const serverConfig = useServerConfig();
 
@@ -177,6 +197,8 @@ export function useGeneratedForm<
     // extender and keep a create-only rule alive for the rest of the edit session.
     const extendSchemaRef = useRef(extendSchema);
     extendSchemaRef.current = extendSchema;
+
+    const startingValues = entity ? undefined : startingValuesOption;
 
     // Recomputing this on every render produces a new array identity which
     // ripples into the schema and default-values memos below, defeating any
@@ -207,12 +229,11 @@ export function useGeneratedForm<
         () => ensureTranslationsForAllLanguages(entity, availableLanguages, defaultValues),
         [entity, availableLanguages, defaultValues],
     );
-    const processedDefaultValues = useMemo(
-        () =>
-            ensureTranslationsForAllLanguages(defaultValues, availableLanguages, defaultValues) ??
-            defaultValues,
-        [defaultValues, availableLanguages],
-    );
+    // Also used as `values` on create, so the form opens with no unsaved changes.
+    const processedDefaultValues = useMemo(() => {
+        const merged = startingValues ? mergeStartingValues(defaultValues, startingValues) : defaultValues;
+        return ensureTranslationsForAllLanguages(merged, availableLanguages, defaultValues) ?? merged;
+    }, [defaultValues, startingValues, availableLanguages]);
 
     const values = useMemo(() => {
         const raw = processedEntity
@@ -261,7 +282,12 @@ export function useGeneratedForm<
                 );
                 // Drop translation rows the form seeded for languages the user never filled,
                 // so we don't persist empty translations that break language fallback (#4885).
-                processed = stripUntouchedTranslations(processed, updateFields, dirtyFields);
+                processed = stripUntouchedTranslations(
+                    processed,
+                    updateFields,
+                    dirtyFields,
+                    startingValues?.translations,
+                );
                 if (!entity) {
                     processed = stripNullNullableFields(processed, updateFields);
                 }

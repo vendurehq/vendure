@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 
 // #4424 — Built-in form controls do not correctly handle disabled state.
 // Base UI components (Switch, Select, Popover) use portals and custom event
@@ -200,5 +200,96 @@ test.describe('Form inputs — disabled state (#4424)', () => {
             has: page.locator('[data-slot="field-label"]').getByText('Select Field', { exact: true }),
         });
         await expect(selectField.getByRole('combobox')).toBeEnabled();
+    });
+});
+
+// The test page builds its starting values from the `$preset` route param, like a parent ID.
+test.describe('Detail page starting values (setValuesForCreate)', () => {
+    function textbox(page: Page, label: string) {
+        return page
+            .locator('[data-slot="field"]')
+            .filter({ has: page.locator('[data-slot="field-label"]').getByText(label, { exact: true }) })
+            .getByRole('textbox');
+    }
+
+    test('shows the starting values on the create page, merged with the other defaults', async ({ page }) => {
+        await page.goto('/starting-values-test/first/new');
+        await expect(page.getByText('Starting Values Test')).toBeVisible();
+
+        await expect(textbox(page, 'Name')).toHaveValue('Prefilled first');
+        await expect(textbox(page, 'Slug')).toHaveValue('prefilled-first');
+        await expect(textbox(page, 'Info URL')).toHaveValue('https://example.com/first');
+        await expect(textbox(page, 'Additional Info')).toHaveValue(/^Opened at \d+$/);
+        // Custom fields without a starting value keep their defaults.
+        await expect(
+            page
+                .locator('[data-slot="field"]')
+                .filter({
+                    has: page.locator('[data-slot="field-label"]').getByText('Downloadable', { exact: true }),
+                })
+                .getByRole('switch'),
+        ).not.toBeChecked();
+    });
+
+    // The starting values include `Date.now()`, so they change on every call.
+    test('keeps what the user types when the starting values differ on each call', async ({ page }) => {
+        await page.goto('/starting-values-test/first/new');
+        await textbox(page, 'Description').fill('Typed by the user');
+        await textbox(page, 'Slug').click();
+        await page.waitForTimeout(500);
+        await expect(textbox(page, 'Description')).toHaveValue('Typed by the user');
+    });
+
+    test('opens clean, so leaving the page does not ask to discard changes', async ({ page }) => {
+        await page.goto('/starting-values-test/first/new');
+        await expect(textbox(page, 'Name')).toHaveValue('Prefilled first');
+        await expect(page.getByRole('button', { name: 'Create', exact: true })).toBeDisabled();
+
+        await page.getByRole('link', { name: 'Leave page' }).click();
+        await expect(page.getByText('Form Inputs Test')).toBeVisible();
+        await expect(page.getByText('Confirm navigation')).not.toBeVisible();
+    });
+
+    // Checks the prompt does appear here, which makes the previous test meaningful.
+    test('asks to discard changes when leaving after the user edits a field', async ({ page }) => {
+        await page.goto('/starting-values-test/first/new');
+        await textbox(page, 'Description').fill('Typed by the user');
+        await expect(page.getByRole('button', { name: 'Create', exact: true })).toBeEnabled();
+
+        await page.getByRole('link', { name: 'Leave page' }).click();
+        await expect(page.getByText('Confirm navigation')).toBeVisible();
+    });
+
+    // The route component stays mounted when only its params change.
+    test('updates the starting values when the route params change', async ({ page }) => {
+        await page.goto('/starting-values-test/first/new');
+        await expect(textbox(page, 'Name')).toHaveValue('Prefilled first');
+
+        await page.getByRole('link', { name: 'Open create page with preset "other"' }).click();
+        await expect(page).toHaveURL(/\/starting-values-test\/other\/new$/);
+        await expect(textbox(page, 'Name')).toHaveValue('Prefilled other');
+        await expect(textbox(page, 'Info URL')).toHaveValue('https://example.com/other');
+    });
+
+    test('saves the starting values with the created entity', async ({ page }) => {
+        // Unique per attempt, so a CI retry does not reuse the slug from the first run.
+        const preset = `saved-${Date.now()}`;
+        await page.goto(`/starting-values-test/${preset}/new`);
+        await expect(textbox(page, 'Name')).toHaveValue(`Prefilled ${preset}`);
+        await textbox(page, 'Description').fill('Created with starting values');
+        await page.getByRole('button', { name: 'Create', exact: true }).click();
+
+        await expect(page).toHaveURL(new RegExp(`/starting-values-test/${preset}/(?!new$)[^/]+$`));
+        await page.reload();
+        await expect(textbox(page, 'Name')).toHaveValue(`Prefilled ${preset}`);
+        await expect(textbox(page, 'Slug')).toHaveValue(`prefilled-${preset}`);
+        await expect(textbox(page, 'Description')).toHaveValue('Created with starting values');
+        await expect(textbox(page, 'Info URL')).toHaveValue(`https://example.com/${preset}`);
+    });
+
+    test('does not apply the starting values on the edit page', async ({ page }) => {
+        await page.goto('/starting-values-test/first/1');
+        await expect(textbox(page, 'Name')).toHaveValue('Laptop');
+        await expect(page.getByRole('button', { name: 'Update', exact: true })).toBeVisible();
     });
 });

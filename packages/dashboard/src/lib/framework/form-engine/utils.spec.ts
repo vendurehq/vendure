@@ -12,6 +12,7 @@ import {
     getChangedTopLevelFields,
     isFieldNullable,
     isRedactedSecretValue,
+    mergeStartingValues,
     pruneToChangedFields,
     removeEmptyIdFields,
     resolveInputComponentId,
@@ -249,6 +250,83 @@ describe('stripUntouchedTranslations', () => {
 
     it('returns null input unchanged', () => {
         expect(stripUntouchedTranslations(null as any, fields(), {})).toBeNull();
+    });
+
+    // Rows filled in by `setValuesForCreate` are never dirty, but must still be saved.
+    it('keeps an untouched row the page gave a starting value for', () => {
+        const values: CreateProductInput = {
+            input: {
+                translations: [
+                    { languageCode: 'en', name: 'Starting name', slug: '', description: '' },
+                    { languageCode: 'pl', name: '', slug: '', description: '' },
+                ],
+            },
+        };
+        const startingTranslations = [{ languageCode: 'en', name: 'Starting name' }];
+        const result = stripUntouchedTranslations(values, fields(), { input: {} }, startingTranslations);
+        expect(result.input.translations).toEqual([
+            { languageCode: 'en', name: 'Starting name', slug: '', description: '' },
+        ]);
+    });
+
+    it('keeps a starting-value row when the user only typed in another language', () => {
+        const values: CreateProductInput = {
+            input: {
+                translations: [
+                    { languageCode: 'en', name: 'Starting name', slug: '', description: '' },
+                    { languageCode: 'pl', name: 'Polska nazwa', slug: '', description: '' },
+                    { languageCode: 'de', name: '', slug: '', description: '' },
+                ],
+            },
+        };
+        const dirty = { input: { translations: [{}, { name: true }, {}] } };
+        const startingTranslations = [{ languageCode: 'en', name: 'Starting name' }];
+        const result = stripUntouchedTranslations(values, fields(), dirty, startingTranslations);
+        expect(result.input.translations).toEqual([
+            { languageCode: 'en', name: 'Starting name', slug: '', description: '' },
+            { languageCode: 'pl', name: 'Polska nazwa', slug: '', description: '' },
+        ]);
+    });
+});
+
+describe('mergeStartingValues', () => {
+    const defaults = () => ({
+        enabled: true,
+        facetValueIds: [] as string[],
+        translations: [{ languageCode: 'en', name: '', slug: '', description: '' }],
+        customFields: { infoUrl: '', isDownloadable: false, featureType: null },
+    });
+
+    it('replaces a top-level default with the starting value', () => {
+        const result = mergeStartingValues(defaults(), { enabled: false });
+        expect(result.enabled).toBe(false);
+        expect(result.facetValueIds).toEqual([]);
+    });
+
+    it('merges customFields key by key, keeping the defaults of the other custom fields', () => {
+        const result = mergeStartingValues(defaults(), { customFields: { infoUrl: 'https://example.com' } });
+        expect(result.customFields).toEqual({
+            infoUrl: 'https://example.com',
+            isDownloadable: false,
+            featureType: null,
+        });
+    });
+
+    it('replaces arrays instead of merging them', () => {
+        const result = mergeStartingValues(defaults(), { facetValueIds: ['1', '2'] });
+        expect(result.facetValueIds).toEqual(['1', '2']);
+    });
+
+    it('lets an explicit null replace the default', () => {
+        const result = mergeStartingValues(defaults(), { customFields: { isDownloadable: null } });
+        expect(result.customFields.isDownloadable).toBeNull();
+    });
+
+    it('does not mutate the defaults', () => {
+        const original = defaults();
+        const snapshot = structuredClone(original);
+        mergeStartingValues(original, { enabled: false, customFields: { infoUrl: 'x' } });
+        expect(original).toEqual(snapshot);
     });
 });
 

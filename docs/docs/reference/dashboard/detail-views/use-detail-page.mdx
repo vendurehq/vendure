@@ -4,7 +4,7 @@ generated: true
 ---
 ## useDetailPage
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/use-detail-page.ts" sourceLine="301" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/use-detail-page.ts" sourceLine="314" packageName="@vendure/dashboard" since="3.3.0" />
 
 **Status: Developer Preview**
 
@@ -98,6 +98,7 @@ interface DetailPageOptions<T extends TypedDocumentNode<any, any>, C extends Typ
     setValuesForUpdate: (
         entity: NonNullable<ResultOf<T>[EntityField]>,
     ) => WithLooseCustomFields<VariablesOf<U>[VarNameUpdate]>;
+    setValuesForCreate?: () => WithLooseCustomFields<Partial<VariablesOf<C>[VarNameCreate]>>;
     transformCreateInput?: (input: VariablesOf<C>[VarNameCreate]) => VariablesOf<C>[VarNameCreate];
     transformCreateVariables?: (variables: VariablesOf<C>) => VariablesOf<C>;
     transformUpdateInput?: (input: VariablesOf<U>[VarNameUpdate]) => VariablesOf<U>[VarNameUpdate];
@@ -153,6 +154,18 @@ The document to update the entity.
 <MemberInfo kind="property" type={`(         entity: NonNullable<ResultOf<T>[EntityField]>,     ) => WithLooseCustomFields<VariablesOf<U>[VarNameUpdate]>`}   />
 
 The function to set the values for the update document.
+### setValuesForCreate
+
+<MemberInfo kind="property" type={`() => WithLooseCustomFields<Partial<VariablesOf<C>[VarNameCreate]>>`}  since="3.8.0"  />
+
+The function to set the starting values for the create form, e.g. a parent ID from the
+route params. They are merged into the default values, so the form opens with no unsaved changes.
+
+*Example*
+
+```ts
+setValuesForCreate: () => ({ companyId: params.companyId }),
+```
 ### transformCreateInput
 
 <MemberInfo kind="property" type={`(input: VariablesOf<C>[VarNameCreate]) => VariablesOf<C>[VarNameCreate]`}   />
@@ -225,7 +238,7 @@ The function to call when the update is successful.
 </div>
 ## UseDetailPageResult
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/use-detail-page.ts" sourceLine="219" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/use-detail-page.ts" sourceLine="232" packageName="@vendure/dashboard" since="3.3.0" />
 
 
 

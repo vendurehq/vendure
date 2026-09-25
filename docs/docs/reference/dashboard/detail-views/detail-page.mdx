@@ -4,7 +4,7 @@ generated: true
 ---
 ## DetailPage
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/detail-page.tsx" sourceLine="129" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/detail-page.tsx" sourceLine="136" packageName="@vendure/dashboard" since="3.3.0" />
 
 Auto-generates a detail page with a form based on the provided query and mutation documents.
 
@@ -35,6 +35,7 @@ interface DetailPageProps<T extends TypedDocumentNode<any, any>, C extends Typed
     createDocument?: C;
     updateDocument: U;
     setValuesForUpdate: (entity: ResultOf<T>[EntityField]) => VariablesOf<U>['input'];
+    setValuesForCreate?: () => Partial<VariablesOf<C>['input']>;
 }
 ```
 
@@ -81,6 +82,11 @@ The mutation document used to update the entity.
 <MemberInfo kind="property" type={`(entity: ResultOf<T>[EntityField]) => VariablesOf<U>['input']`}   />
 
 A function that sets the values for the update input type based on the entity.
+### setValuesForCreate
+
+<MemberInfo kind="property" type={`() => Partial<VariablesOf<C>['input']>`}  since="3.8.0"  />
+
+A function that sets the starting values for the form when creating a new entity.
 
 
 </div>

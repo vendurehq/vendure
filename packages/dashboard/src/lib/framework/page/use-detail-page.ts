@@ -8,10 +8,10 @@ import {
     useQueryClient,
     useSuspenseQuery,
 } from '@tanstack/react-query';
-import { useRouter } from '@tanstack/react-router';
+import { useParams, useRouter } from '@tanstack/react-router';
 import { ResultOf, VariablesOf } from 'gql.tada';
 import { DocumentNode } from 'graphql';
-import { FormEvent } from 'react';
+import { FormEvent, useMemo } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 
 import { NEW_ENTITY_PATH } from '../../constants.js';
@@ -106,6 +106,19 @@ export interface DetailPageOptions<
     setValuesForUpdate: (
         entity: NonNullable<ResultOf<T>[EntityField]>,
     ) => WithLooseCustomFields<VariablesOf<U>[VarNameUpdate]>;
+    /**
+     * @description
+     * The function to set the starting values for the create form, e.g. a parent ID from the
+     * route params. They are merged into the default values, so the form opens with no unsaved changes.
+     *
+     * @example
+     * ```ts
+     * setValuesForCreate: () => ({ companyId: params.companyId }),
+     * ```
+     *
+     * @since 3.8.0
+     */
+    setValuesForCreate?: () => WithLooseCustomFields<Partial<VariablesOf<C>[VarNameCreate]>>;
     transformCreateInput?: (input: VariablesOf<C>[VarNameCreate]) => VariablesOf<C>[VarNameCreate];
     /**
      * @description
@@ -314,6 +327,7 @@ export function useDetailPage<
         createDocument,
         updateDocument,
         setValuesForUpdate,
+        setValuesForCreate,
         transformCreateInput,
         transformCreateVariables,
         transformUpdateInput,
@@ -349,6 +363,11 @@ export function useDetailPage<
         form.reset(form.getValues());
     };
 
+    const routeParams = useParams({ strict: false });
+    // Rerun only when the route params change. Rerunning every render would reset the form
+    // whenever the values include something like `new Date()`.
+    const startingValues = useMemo(() => (isNew ? setValuesForCreate?.() : undefined), [isNew, routeParams]);
+
     const createMutation = useMutation({
         mutationFn: createDocument ? api.mutate(createDocument) : undefined,
         onSuccess: data => {
@@ -381,6 +400,7 @@ export function useDetailPage<
         customFieldConfig,
         extendSchema,
         setValues: setValuesForUpdate,
+        startingValues,
         onSubmit(values: any, meta?: GeneratedFormSubmitMeta) {
             const filteredValues = removeReadonlyAndLocalizedCustomFields(values, customFieldConfig || []);
 
