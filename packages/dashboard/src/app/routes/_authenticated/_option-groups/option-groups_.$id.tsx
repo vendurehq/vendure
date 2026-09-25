@@ -25,6 +25,7 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, ParsedLocation, useLocation, useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import { ProductOptionsTable } from '../_products/components/product-options-table.js';
+import { SharedOptionGroupWarning } from '../_products/components/shared-option-group-warning.js';
 import {
     createProductOptionGroupDocument,
     productIdNameDocument,
@@ -166,6 +167,11 @@ function OptionGroupDetailPage() {
                 </ActionBarItem>
             </PageActionBar>
             <PageLayout>
+                {entity && entity.productCount > 1 && (
+                    <PageBlock column="main" blockId="shared-option-group-warning">
+                        <SharedOptionGroupWarning productCount={entity.productCount} />
+                    </PageBlock>
+                )}
                 <PageBlock column="main" blockId="main-form">
                     <DetailFormGrid>
                         <TranslatableFormFieldWrapper

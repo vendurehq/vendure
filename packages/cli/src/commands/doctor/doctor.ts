@@ -1,5 +1,5 @@
 import { log } from '@clack/prompts';
-import { RuntimeVendureConfig } from '@vendure/core';
+import type { RuntimeVendureConfig } from '@vendure/core';
 
 import { runConfigCheck } from './checks/config-check';
 import { runDatabaseCheck } from './checks/database-check';

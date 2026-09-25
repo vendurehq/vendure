@@ -334,8 +334,8 @@ Use `status` to validate and display the local link:
 npx vendure console status
 ```
 
-The output includes the Account, Project, schema version, protocol version, and local authentication state. This
-command reads local state only. It does not contact Vendure Console.
+The output includes the Account, Project, Console origins, schema version, protocol version, and local authentication
+state. This command reads local state only. It does not contact Vendure Console.
 
 ### Unlink a project
 
@@ -372,8 +372,8 @@ Running `vendure console link` in a project that is already linked repairs it ra
 is reused and any plugin setup runs again. Where a plugin is registered, that is confirmed first, because the manifest
 may have arrived with a clone.
 
-Use `--yes` to answer every confirmation owned by the CLI. This includes manifest changes, custom Console endpoints,
-and plugin setup on a repair. It does not answer questions asked by a plugin hook:
+Use `--yes` to answer every confirmation owned by the CLI. This includes manifest changes and plugin setup on a
+repair. It does not answer questions asked by a plugin hook:
 
 ```bash
 npx vendure console link --yes
@@ -383,16 +383,24 @@ On an already-linked project, `--yes` keeps the repair behavior. Only `--force` 
 
 ### Manifest and source control
 
-The v1 manifest contains identity metadata only:
+The manifest contains Project Link identity metadata and Console endpoint metadata:
 
 ```json
 {
     "schemaVersion": 1,
     "project": { "id": "<uuid>", "name": "<display name>" },
     "account": { "id": "<uuid>", "name": "<display name>" },
-    "link": { "id": "<uuid>", "protocolVersion": 1 }
+    "link": { "id": "<uuid>", "protocolVersion": 1 },
+    "console": {
+        "appOrigin": "https://console.vendure.io",
+        "apiOrigin": "https://api.vendure.io"
+    }
 }
 ```
+
+The Console values are origins. They contain no path, query, fragment, or credentials. The CLI also accepts a
+manifest without `console` and treats it as a production Console link. Running `vendure console link` again adds
+the `console` block.
 
 Commit `.vendure/project.json` so that the repository keeps its Project identity. Ignore all other `.vendure` files.
 They are reserved for machine-local state and may contain secrets.
@@ -419,30 +427,29 @@ The original ancestor rule stays unchanged, and other projects remain ignored. T
 
 ### Console environments
 
-The command uses `https://console.vendure.io` and `https://api.vendure.io` by default. To use a local Console
-environment, set both link-specific variables:
+The command uses the Console recorded in `.vendure/project.json`. A manifest without `console` and an unlinked project use
+`https://console.vendure.io` and `https://api.vendure.io`. To use a local Console environment, set both variables:
 
 ```bash
-VENDURE_CONSOLE_LINK_URL=http://localhost:3000 \
-VENDURE_CONSOLE_LINK_API_URL=http://localhost:3001 \
+VENDURE_CONSOLE_APP_URL=http://localhost:3000 \
+VENDURE_CONSOLE_API_URL=http://localhost:3001 \
 npx vendure console link
 ```
 
-The variables apply only to the unauthenticated Project Link exchange. They do not configure Console authentication,
-Environment Credentials, Registry access, package downloads, or Vendure Cloud operations.
+An explicit pair takes precedence when no manifest exists or when it matches the manifest. If it names a different
+Console, the command refuses to continue and prints both pairs. Unset the variables to use the linked Console.
+
+The prerelease variables `VENDURE_CONSOLE_LINK_URL` and `VENDURE_CONSOLE_LINK_API_URL` are not supported. Use
+`VENDURE_CONSOLE_APP_URL` and `VENDURE_CONSOLE_API_URL` instead. The CLI stops with a migration message when either
+old variable is set, including when its value is empty.
+
+The prerelease `--allow-custom-console` option is also not supported and has no replacement. Console linking accepts
+only the production pair, the staging pair, or loopback origins on `localhost`, `127.0.0.1`, or `::1`. A custom
+Console host is not supported.
 
 The CLI rejects partial endpoint configuration and URLs that contain credentials, paths, queries, or fragments. It
-requires HTTPS except for `localhost`, `127.0.0.1`, and `::1`. An official Console app or API origin is accepted only
-with the matching official origin from the same environment.
-
-Before it contacts a custom remote environment, the CLI displays both origins and asks for confirmation. In a
-non-interactive environment, pass `--allow-custom-console` to confirm them explicitly:
-
-```bash
-VENDURE_CONSOLE_LINK_URL=https://console.staging.example.com \
-VENDURE_CONSOLE_LINK_API_URL=https://api.staging.example.com \
-npx vendure console link --allow-custom-console
-```
+requires HTTPS except for `localhost`, `127.0.0.1`, and `::1`. It accepts the matching production pair, the matching
+staging pair, or a loopback pair. It rejects other hosts.
 
 ## Working in Monorepos
 
@@ -819,7 +826,8 @@ been extended. A group and all its subcommands must come from one plugin.
 ### Running after a project link
 
 Register an `afterConsoleLink` hook when a plugin must run setup after
-`vendure console link` writes or reuses the Project Link Manifest:
+`vendure console link` writes or reuses the Project Link Manifest. A repair also adds the Console origins to a
+manifest that does not contain them:
 
 ```ts
 import { defineCliPlugin } from '@vendure/cli';
@@ -900,12 +908,10 @@ of `'linked'`.
 
 If a hook must run only against production, require
 `context.endpoints.official === 'production'`. The value is `'staging'` for the
-official staging pair and `undefined` for custom or loopback origins. A custom
-endpoint confirmation does not authorize a hook to send credentials there.
+official staging pair and `undefined` for loopback origins.
 
-The value describes the origins for the current run. The manifest does not
-record its source origin, so a repair cannot verify where its identifiers came
-from.
+The value describes the origins for the current run. A repair gets them from the
+manifest unless the matching environment variables are set.
 
 ### Checking what the installed CLI supports
 
@@ -1001,6 +1007,86 @@ argument is mandatory.
   visible both in the command's own options and in `inheritedOptions`. They must
   agree on whether a value follows the flag, otherwise the plugin is rejected.
 
+### Commands that need a project
+
+A command that reads or writes a Vendure project sets `requiresProject: true`.
+The CLI then refuses to run it outside a project, rather than letting it fail
+part way through — after a stack of prompts, or on a `require` of a package that
+only a project installs:
+
+```ts
+import { defineCliPlugin } from '@vendure/cli';
+
+export default defineCliPlugin({
+    id: '@example/vendure-cli-plugin',
+    commands: [
+        {
+            name: 'deploy',
+            description: 'Deploy this project',
+            requiresProject: true,
+            action: async () => {
+                /* ... */
+            },
+        },
+    ],
+});
+```
+
+Running it from a directory that is not in a project writes to stderr and exits
+with code 1, without the action running:
+
+```text
+vendure deploy must be run from a Vendure project directory.
+No package.json with a Vendure dependency was found in /home/user or any parent directory.
+```
+
+Declared on a command that has subcommands, or on a group, it applies to every
+command below it. A subcommand sets `requiresProject: false` to opt back out,
+which is how a group mixes commands that need a project with ones that do not:
+
+```ts
+{
+    name: 'cloud',
+    description: 'Vendure Cloud commands',
+    requiresProject: true,
+    subcommands: [
+        // Needs a project, inherited from the group.
+        { name: 'deploy', description: 'Deploy this project', action: deploy },
+        // Runs anywhere: it asks who is logged in, which no project affects.
+        { name: 'whoami', description: 'Show the current user', requiresProject: false, action: whoami },
+    ],
+}
+```
+
+This matters most for a globally installed CLI (`npm install -g @vendure/cli`),
+which can be run from any directory on the machine.
+
+The CLI looks for a `package.json` with a dependency in the `@vendure/` scope, in
+the current directory or any parent, so the check passes from a subdirectory of a
+project. It answers one question — is there a Vendure project here — and a
+command whose needs are narrower still checks for itself and reports its own
+error: `migrate` wants a config file it can resolve, `add` wants a tsconfig.
+
+Outside a project, `vendure --help` marks these commands rather than hiding
+them, so the command list is the same wherever the CLI is run. The legend is
+added to the help of every command where a marker appears, and says where the
+user is, which a marker on its own cannot:
+
+```text
+Commands:
+  deploy      Deploy this project *
+  whoami      Show the current user
+
+  * Requires a Vendure project. You are not in one.
+```
+
+Inside a project nothing is marked and no legend is added.
+
+Set it only where running outside a project cannot produce a useful result.
+The built-in `doctor` command, for instance, does **not** set it: reporting
+that a directory is not a Vendure project is one of the things it checks, so
+refusing to run would remove the answer in the case that most needs it.
+
 ### Collisions
 
 A plugin that would take over or discard something it does not own is not
@@ -1081,6 +1167,85 @@ A listed plugin that cannot be resolved, loaded or registered is skipped with an
 error on stderr — the rest of the CLI (including `vendure plugins remove`) stays
 usable. That covers a decorator which throws while it is being applied: the
 plugin contributes nothing and every other plugin is unaffected.
+
+### Globally installed plugins
+
+The CLI can also be installed globally, so that its commands are available from
+any directory:
+
+```bash
+npm install -g @vendure/cli @vendure/cloud
+```
+
+A globally installed plugin is enabled in the machine-wide list rather than in a
+project, because there is no project to write to:
+
+```bash
+vendure plugins add --global @vendure/cloud
+vendure plugins remove --global @vendure/cloud
+```
+
+That list lives in `cli.json`, in the CLI's config directory —
+`$XDG_CONFIG_HOME/vendure` or `~/.config/vendure` on Linux and macOS, `%APPDATA%\vendure`
+on Windows, or wherever `VENDURE_CLI_CONFIG_DIR` points:
+
+```json
+{
+    "plugins": ["@vendure/cloud"],
+    "pluginRoots": []
+}
+```
+
+`pluginRoots` lists extra directories to resolve those packages from. It is
+normally empty: the CLI looks in its own installation directory, where a
+globally installed plugin sits beside it. Use it when a package manager
+arranges global packages somewhere the CLI does not find them.
+
+Both lists apply at once. Global plugins are registered first and project
+plugins second, so a project overrides the machine — the same rule that makes
+the last entry of a single list win. A package enabled in both is loaded once,
+from the project, so the copy pinned alongside the project's code is the one
+that runs.
+
+`vendure plugins` shows which list each package came from:
+
+```bash
+$ vendure plugins --json
+{
+    "plugins": [
+        { "packageName": "@vendure/cloud", "scope": "global", "status": "enabled" }
+    ]
+}
+```
+
+With no `--global` flag, `add` and `remove` write to the project when there is
+one and to the machine-wide list when there is not, so the command does the
+expected thing in both places.
+
+#### Enabling a plugin without writing a file
+
+`VENDURE_CLI_PLUGINS` is a comma-separated list of packages to enable, added to
+whatever `cli.json` lists:
+
+```bash
+VENDURE_CLI_PLUGINS=@vendure/cloud vendure deploy
+```
+
+The variable is read afresh at every invocation and is additive to `cli.json`,
+so it enables a plugin without writing anything to disk, and
+`vendure plugins remove --global` cannot countermand it — unset the variable
+instead.
+
+#### Version skew
+
+Installed globally, `@vendure/cli` and a plugin are independent installs and
+nothing pins them to each other, so a plugin can meet an older CLI than it was
+written against. Check for the capabilities you rely on — see
+[Checking what the installed CLI supports](#checking-what-the-installed-cli-supports).
+
+Built-in commands that read a project — `migrate`, `schema`, `doctor` — load
+`@vendure/core` from the project rather than from the CLI's own installation, so
+a global CLI runs each project against that project's own version of Vendure.
 
 ## Getting Help
 

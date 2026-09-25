@@ -12,8 +12,10 @@ import {
 import { omit } from '@vendure/common/lib/omit';
 import { pick } from '@vendure/common/lib/pick';
 import {
+    Order,
     OrderService,
     RequestContextService,
+    TransactionalConnection,
     defaultShippingCalculator,
     defaultShippingEligibilityChecker,
     manualFulfillmentHandler,
@@ -2452,6 +2454,56 @@ describe('Orders resolver', () => {
             });
             shopOrderGuard.assertSuccess(secondAdd);
             expect(secondAdd.lines[0].quantity).toBe(2);
+        });
+
+        // https://github.com/vendurehq/vendure/pull/5164
+        // Every Order mutation holds `order.surcharges` as a snapshot taken when the Order
+        // was loaded. Saving the Order must not act on that snapshot: a Surcharge added
+        // since the load, by a blocking event handler or by a concurrent request, would
+        // otherwise have its `orderId` set to null.
+        it('does not detach Surcharges when saving an Order with a stale surcharges array', async () => {
+            await shopClient.asAnonymousUser();
+            const { addItemToOrder: add } = await shopClient.query(addItemToOrderDocument, {
+                productVariantId: 'T_1',
+                quantity: 1,
+            });
+            shopOrderGuard.assertSuccess(add);
+            const internalOrderId = +add.id.replace('T_', '');
+
+            const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+            const orderService = server.app.get(OrderService);
+            const connection = server.app.get(TransactionalConnection);
+
+            await orderService.addSurchargeToOrder(ctx, internalOrderId, {
+                description: 'Gift wrap',
+                listPrice: 200,
+            });
+
+            const staleOrder = await connection.getEntityOrThrow(ctx, Order, internalOrderId, {
+                // `lines` is joined because saving an Order reads its calculated `discounts`
+                // property, via the enumerable getter installed by the calculated-property
+                // subscriber, and that getter throws when the relation is missing.
+                relations: ['surcharges', 'lines'],
+            });
+            expect(staleOrder.surcharges.length).toBe(1);
+
+            // A blocking event handler or a concurrent request adds a second Surcharge, which
+            // the array held by `staleOrder` does not know about.
+            await orderService.addSurchargeToOrder(ctx, internalOrderId, {
+                description: 'Loyalty discount',
+                listPrice: -500,
+            });
+
+            await connection.getRepository(ctx, Order).save(staleOrder);
+
+            const surcharges = await orderService.getOrderSurcharges(ctx, internalOrderId);
+            expect(surcharges.map(s => s.listPrice).sort((a, b) => a - b)).toEqual([-500, 200]);
+
+            // Removal deletes the row, so it does not depend on the Order save detaching it.
+            const loyaltyDiscount = surcharges.find(s => s.description === 'Loyalty discount')!;
+            await orderService.removeSurchargeFromOrder(ctx, internalOrderId, loyaltyDiscount.id);
+            const remaining = await orderService.getOrderSurcharges(ctx, internalOrderId);
+            expect(remaining.map(s => s.description)).toEqual(['Gift wrap']);
         });
     });
 

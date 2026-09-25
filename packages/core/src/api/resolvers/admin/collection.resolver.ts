@@ -71,6 +71,13 @@ export class CollectionResolver {
             const countsPromise = this.collectionService.getProductVariantCounts(ctx, collectionIds);
             this.requestContextCache.set(ctx, CacheKey.CollectionVariantCounts, countsPromise);
         }
+        // Cache the breadcrumbs query promise if breadcrumbs is requested, so that all
+        // items in the page are resolved with a bounded number of queries rather than
+        // walking the ancestor chain independently for every row.
+        if (isFieldInSelection(info, 'breadcrumbs')) {
+            const breadcrumbsPromise = this.collectionService.getBreadcrumbsForMany(ctx, collections.items);
+            this.requestContextCache.set(ctx, CacheKey.CollectionBreadcrumbs, breadcrumbsPromise);
+        }
         return collections;
     }
 

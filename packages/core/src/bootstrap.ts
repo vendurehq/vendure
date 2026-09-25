@@ -1,6 +1,10 @@
-import { DynamicModule, INestApplication, INestApplicationContext } from '@nestjs/common';
+import {
+    DynamicModule,
+    INestApplication,
+    INestApplicationContext,
+    NestApplicationOptions,
+} from '@nestjs/common';
 import { NestApplicationContextOptions } from '@nestjs/common/interfaces/nest-application-context-options.interface';
-import { NestApplicationOptions } from '@nestjs/common/interfaces/nest-application-options.interface';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { getConnectionToken } from '@nestjs/typeorm';

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { InjectDataSource } from '@nestjs/typeorm/dist/common/typeorm.decorators';
+import { InjectDataSource } from '@nestjs/typeorm';
 import { ID, Type } from '@vendure/common/lib/shared-types';
 import {
     DataSource,

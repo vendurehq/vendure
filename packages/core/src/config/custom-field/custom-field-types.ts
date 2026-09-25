@@ -42,6 +42,18 @@ import { VendureEntity } from '../../entity/base/base.entity';
  */
 export const CUSTOM_FIELDS_INPUT_TYPE_SUFFIX = 'CustomFieldsInput';
 
+/**
+ * @description
+ * Returns `true` if the given custom field type is a localized type, i.e. one whose values are
+ * stored on the entity's translation entity rather than on the entity itself.
+ *
+ * @docsCategory custom-fields
+ * @since 3.7.4
+ */
+export function isLocalizedCustomFieldType(type: CustomFieldType | undefined): boolean {
+    return type === 'localeString' || type === 'localeText';
+}
+
 // prettier-ignore
 export type DefaultValueType<T extends CustomFieldType | StructFieldType> =
     T extends 'string' | 'localeString' | 'text' | 'localeText' ? string :

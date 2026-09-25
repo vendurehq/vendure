@@ -4795,7 +4795,7 @@ msgstr "Widget Résumé des Commandes"
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts
 msgid "orderState.AddingItems"
-msgstr "orderState.Ajout d'articles"
+msgstr "Ajout d'articles"
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts
@@ -4805,17 +4805,17 @@ msgstr "Organisation de paiement supplémentaire"
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts
 msgid "orderState.ArrangingPayment"
-msgstr "orderState.Organisation du paiement"
+msgstr "Organisation du paiement"
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts
 msgid "orderState.Cancelled"
-msgstr "orderState.Annulé"
+msgstr "Annulé"
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts
 msgid "orderState.Created"
-msgstr "orderState.Créé"
+msgstr "Créé"
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts
@@ -4825,7 +4825,7 @@ msgstr "Livré"
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts
 msgid "orderState.Draft"
-msgstr "orderState.Brouillon"
+msgstr "Brouillon"
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts
@@ -4845,12 +4845,12 @@ msgstr "Partiellement expédié"
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts
 msgid "orderState.PaymentAuthorized"
-msgstr "orderState.Paiement autorisé"
+msgstr "Paiement autorisé"
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts
 msgid "orderState.PaymentSettled"
-msgstr "orderState.Paiement réglé"
+msgstr "Paiement réglé"
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts

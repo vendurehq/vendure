@@ -4,6 +4,7 @@ import { runCliCommand } from '../../shared/cli-command-exit';
 export const migrateCommandDef: CliCommandDefinition = {
     name: 'migrate',
     description: 'Generate, run or revert a database migration',
+    requiresProject: true,
     options: [
         {
             short: '-g',

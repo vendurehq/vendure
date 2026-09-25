@@ -203,6 +203,9 @@ describe(
 
                 expect(result.success).toBe(true);
                 expect(result.message).toContain('No pending migrations found');
+                // A database with no tables is not "out of sync": every table is pending because
+                // the project has not been set up yet.
+                expect(result.hasWarnings).toBe(false);
                 expect(result.migrationsRan).toBeDefined();
                 expect(result.migrationsRan).toHaveLength(0);
             });
@@ -224,6 +227,60 @@ describe(
                 expect(runResult.message).toContain('Successfully ran');
                 expect(runResult.migrationsRan).toBeDefined();
                 expect(runResult.migrationsRan?.length).toBeGreaterThan(0);
+            });
+
+            // #5001 — a `migrations` glob that stopped matching must not be reported as "up to date"
+            it('should report unmatched migration patterns when migrations have already been applied', async () => {
+                process.chdir(TEST_PROJECT_DIR);
+
+                // Apply a migration so the `migrations` table is non-empty
+                const generateResult = await generateMigrationOperation({
+                    name: 'TestMigration',
+                    outputDir: MIGRATIONS_DIR,
+                });
+                expect(generateResult.success).toBe(true);
+                expect((await runMigrationsOperation()).migrationsRan?.length).toBeGreaterThan(0);
+
+                // Simulate the glob resolving to nothing (wrong cwd, or unbuilt `dist/migrations/*.js`)
+                await fs.emptyDir(MIGRATIONS_DIR);
+
+                const result = await runMigrationsOperation();
+
+                expect(result.migrationsRan).toHaveLength(0);
+                expect(result.hasWarnings).toBe(true);
+                expect(result.message).toContain('No migration files matched');
+                expect(result.message).not.toContain('No pending migrations found');
+                // The fixture config uses `path.join(__dirname, ...)`, and an absolute pattern
+                // ignores the working directory, so pointing at it would misdirect the user
+                expect(result.message).not.toContain('resolved against the current directory');
+            });
+
+            // #5001 — a schema built with `synchronize: true` has no migration history, so an
+            // empty `migrations` table must not be taken to mean an empty database
+            it('should report schema drift on a database with tables but no migration history', async () => {
+                process.chdir(TEST_PROJECT_DIR);
+
+                const generateResult = await generateMigrationOperation({
+                    name: 'TestMigration',
+                    outputDir: MIGRATIONS_DIR,
+                });
+                expect(generateResult.success).toBe(true);
+                expect((await runMigrationsOperation()).migrationsRan?.length).toBeGreaterThan(0);
+
+                // Leave the tables in place but clear the history, which is what a
+                // `synchronize: true` database looks like, and drop one table so the schema no
+                // longer matches the entity configuration.
+                const Database = (await import('better-sqlite3')).default;
+                const db = new Database(path.join(TEST_PROJECT_DIR, 'test.db'));
+                db.exec('DELETE FROM "migrations"');
+                db.exec('DROP TABLE "history_entry"');
+                db.close();
+                await fs.emptyDir(MIGRATIONS_DIR);
+
+                const result = await runMigrationsOperation();
+
+                expect(result.hasWarnings).toBe(true);
+                expect(result.message).toContain('does not match your current configuration');
             });
 
             it('should handle database connection errors gracefully', async () => {
@@ -252,9 +309,8 @@ describe(
                 });
 
                 // Re-import the operation after the mock so that it picks up the mocked helper
-                const { runMigrationsOperation: runMigrationsWithInvalidDb } = await import(
-                    '../src/commands/migrate/migration-operations'
-                );
+                const { runMigrationsOperation: runMigrationsWithInvalidDb } =
+                    await import('../src/commands/migrate/migration-operations');
 
                 const result = await runMigrationsWithInvalidDb();
 

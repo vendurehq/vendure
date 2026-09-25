@@ -40,6 +40,13 @@ describe('JobQueueService', () => {
     beforeEach(async () => {
         setProcessContext('server');
 
+        // Both strategies are module-level and shared by every test in this file, and
+        // `module.close()` does not clear them. Reset them so no test inherits the jobs,
+        // buffers or concurrency left behind by the one before it.
+        testJobQueueStrategy.reset();
+        testJobQueueStrategy.concurrency = 1;
+        testJobBufferStorageStrategy.reset();
+
         module = await Test.createTestingModule({
             providers: [
                 { provide: ConfigService, useClass: MockConfigService },
@@ -225,6 +232,10 @@ describe('JobQueueService', () => {
     });
 
     it('processes existing jobs on start', async () => {
+        // job-1 completes and job-2 is dispatched in the same poll cycle, which needs a
+        // second concurrency slot. ActiveQueue reads this when the queue is created below.
+        testJobQueueStrategy.concurrency = 2;
+
         await testJobQueueStrategy.prePopulate([
             new Job<any>({
                 queueName: 'test',
@@ -401,6 +412,10 @@ describe('JobQueueService', () => {
         const testJobBuffer = new TestJobBuffer();
 
         beforeEach(async () => {
+            // Both queue-2 jobs must be dispatched by the same poll cycle. ActiveQueue reads
+            // the concurrency when the queue is created, so this has to be set beforehand.
+            testJobQueueStrategy.concurrency = 2;
+
             testQueue1 = await jobQueueService.createQueue({
                 name: 'buffer-test-queue-1',
                 process: job => {
@@ -435,6 +450,10 @@ describe('JobQueueService', () => {
         });
 
         it('flushes and reduces buffered jobs', async () => {
+            await testQueue1.add('hello');
+            await testQueue1.add('world');
+            await tick(queuePollInterval);
+
             const result = await jobQueueService.flush(testJobBuffer);
 
             expect(result.length).toBe(1);

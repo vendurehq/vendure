@@ -1,6 +1,7 @@
 import { type Page, expect, test } from '@playwright/test';
 
 import { BaseListPage } from '../../page-objects/list-page.base.js';
+import { closePopup, expectPopupClosed } from '../../utils/base-ui-popups.js';
 import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
 
 // Orders use a multi-step draft flow rather than a single CRUD form.
@@ -156,6 +157,131 @@ test.describe('Orders', () => {
         await expect(page).not.toHaveURL(/\/draft\//);
     });
 
+    // #5253 — eligible shipping methods must refresh after a line is added, without
+    // a page reload.
+    test('should refresh eligible shipping methods after adding a line to an existing draft order', async ({
+        page,
+    }) => {
+        test.setTimeout(60_000); // Draft order flow involves multiple mutations
+
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const { countries } = await client.gql(
+            `query { countries(options: { take: 1 }) { items { code } } }`,
+        );
+        const customerSuffix = Date.now();
+        const customerName = `Shipping Refresh ${customerSuffix}`;
+        const { createCustomer } = await client.gql(
+            `mutation ($input: CreateCustomerInput!) {
+                createCustomer(input: $input) {
+                    ... on Customer { id }
+                    ... on ErrorResult { errorCode message }
+                }
+            }`,
+            {
+                input: {
+                    firstName: 'Shipping',
+                    lastName: `Refresh ${customerSuffix}`,
+                    emailAddress: `shipping.refresh.${customerSuffix}@test.com`,
+                },
+            },
+        );
+        await client.gql(
+            `mutation ($customerId: ID!, $input: CreateAddressInput!) {
+                createCustomerAddress(customerId: $customerId, input: $input) { id }
+            }`,
+            {
+                customerId: createCustomer.id,
+                input: {
+                    fullName: customerName,
+                    streetLine1: '5253 Shipping Lane',
+                    city: 'Testville',
+                    postalCode: 'T3 5ST',
+                    countryCode: countries.items[0].code,
+                    defaultShippingAddress: true,
+                },
+            },
+        );
+        // Both seeded methods accept an empty order, so this test needs one that does
+        // not. It is created and deleted here rather than reconfiguring a seeded method,
+        // because spec files run in parallel against one shared server.
+        const conditionalMethodName = `Minimum Order Shipping ${customerSuffix}`;
+        const { createShippingMethod } = await client.gql(
+            `mutation ($input: CreateShippingMethodInput!) {
+                createShippingMethod(input: $input) { id }
+            }`,
+            {
+                input: {
+                    code: `minimum-order-shipping-${customerSuffix}`,
+                    fulfillmentHandler: 'manual-fulfillment',
+                    checker: {
+                        code: 'default-shipping-eligibility-checker',
+                        arguments: [{ name: 'orderMinimum', value: '1' }],
+                    },
+                    calculator: {
+                        code: 'default-shipping-calculator',
+                        arguments: [
+                            { name: 'rate', value: '750' },
+                            { name: 'taxRate', value: '0' },
+                            { name: 'includesTax', value: 'auto' },
+                        ],
+                    },
+                    translations: [{ languageCode: 'en', name: conditionalMethodName, description: '' }],
+                },
+            },
+        );
+
+        let draftCreated = false;
+        try {
+            const lp = listPage(page);
+            await lp.goto();
+            await lp.expectLoaded();
+            await lp.newButton.click();
+            await expect(page).toHaveURL(/\/orders\/draft\//, { timeout: 10_000 });
+            draftCreated = true;
+
+            // Set a customer with a default shipping address first — this
+            // enables the eligible-shipping-methods query for the first time
+            // (still a zero-line order).
+            await page.getByRole('button', { name: /Select customer/i }).click();
+            await page.getByPlaceholder('Search customers...').fill(String(customerSuffix));
+            const customerOption = page.getByRole('option').filter({ hasText: customerName });
+            await expect(customerOption).toBeVisible({ timeout: 5_000 });
+            const eligibilityResponse = page.waitForResponse(
+                response =>
+                    response.url().includes('/admin-api') &&
+                    response.status() === 200 &&
+                    (response.request().postData() ?? '').includes('DraftOrderEligibleShippingMethods'),
+            );
+            await customerOption.click();
+            await eligibilityResponse;
+            await expect(page.getByText('Standard Shipping', { exact: true })).toBeVisible();
+            await expect(page.getByText(conditionalMethodName, { exact: true })).toHaveCount(0);
+
+            // Adding a product makes the minimum-order method eligible.
+            const addItemButton = page.locator('[role="combobox"]').filter({ hasText: 'Add item to order' });
+            await addItemButton.scrollIntoViewIfNeeded();
+            await addItemButton.click();
+            await page.getByPlaceholder('Add item to order...').fill('laptop');
+            await expect(page.getByRole('option').first()).toBeVisible({ timeout: 5_000 });
+            await page.getByRole('option').first().click();
+
+            const shippingLabel = page.getByText(conditionalMethodName, { exact: true });
+            await expect(shippingLabel).toBeVisible({ timeout: 10_000 });
+            await expect(page.getByText('No shipping methods available')).toHaveCount(0);
+        } finally {
+            try {
+                if (draftCreated) {
+                    await deleteCurrentDraft(page);
+                }
+            } finally {
+                await client.gql(`mutation ($id: ID!) { deleteShippingMethod(id: $id) { result message } }`, {
+                    id: createShippingMethod.id,
+                });
+            }
+        }
+    });
+
     test('should show the completed order in the list', async ({ page }) => {
         const lp = listPage(page);
         await lp.goto();
@@ -212,11 +338,7 @@ test.describe('Orders', () => {
         await expect(page).toHaveURL(/\/orders\/draft\//, { timeout: 10_000 });
 
         // Delete the draft without configuring it
-        await page.getByRole('button', { name: /Delete draft/i }).click();
-        // Confirm the deletion dialog — AlertDialog uses "Continue" as the action button
-        await page.locator('[role="alertdialog"]').getByRole('button', { name: 'Continue' }).click();
-        // Should navigate back to the orders list (URL may include query params)
-        await expect(page).not.toHaveURL(/\/draft\//, { timeout: 15_000 });
+        await deleteCurrentDraft(page);
         await expect(page.getByTestId('page-heading')).toBeVisible();
     });
 
@@ -556,7 +678,10 @@ test.describe('Orders', () => {
         // Free text wins over the selection: a custom description must survive the popup
         // closing, instead of snapping back to the description that was picked.
         await taxDescriptionInput.fill(' Custom tax description ');
-        await taxDescriptionInput.press('Escape');
+        // Picking a suggestion above already closed the popup, and typing a description that
+        // matches no existing one does not reopen it. Pin that, because an open popup here
+        // would put a backdrop over the "Add surcharge" button below.
+        await expectPopupClosed(taxDescriptionInput);
         await taxDescriptionInput.blur();
         await expect(taxDescriptionInput).toHaveValue(' Custom tax description ');
 
@@ -580,7 +705,7 @@ test.describe('Orders', () => {
         await taxDescriptionInput.click();
         await expect(suggestion('Custom tax description')).toBeVisible();
         // Close the popup, which otherwise covers the fields below.
-        await taxDescriptionInput.press('Escape');
+        await closePopup(taxDescriptionInput);
         await addSurcharge('Gift wrap');
         await taxDescriptionInput.click();
         await expect(suggestion(seededTaxDescription)).toHaveCount(1);
@@ -900,6 +1025,17 @@ async function createFulfilledOrder(client: VendureAdminClient): Promise<string>
     );
 
     return orderId;
+}
+
+/**
+ * Deletes the draft order currently open in the page. A test may leave a popover or
+ * combobox open over the page, so dismiss that first or the delete button is not clickable.
+ */
+async function deleteCurrentDraft(page: Page) {
+    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: /Delete draft/i }).click();
+    await page.locator('[role="alertdialog"]').getByRole('button', { name: 'Continue' }).click();
+    await expect(page).not.toHaveURL(/\/draft\//, { timeout: 15_000 });
 }
 
 /**

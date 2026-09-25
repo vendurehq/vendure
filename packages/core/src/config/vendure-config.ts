@@ -1,5 +1,4 @@
 import { ApolloServerPlugin, CSRFPreventionOptions } from '@apollo/server';
-import { RenderPageOptions } from '@apollographql/graphql-playground-html';
 import { DynamicModule, Type } from '@nestjs/common';
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
 import { LanguageCode } from '@vendure/common/lib/generated-types';
@@ -112,35 +111,39 @@ export interface ApiOptions {
     shopApiPath?: string;
     /**
      * @description
-     * The playground config to the admin GraphQL API
-     * [ApolloServer playground](https://www.apollographql.com/docs/apollo-server/api/apollo-server/#constructoroptions-apolloserver).
+     * Enables the GraphQL landing page served at the admin API path. Since Apollo Server 5
+     * removed the GraphQL Playground, a truthy value now serves GraphiQL instead, and the
+     * object form is read as a boolean and otherwise ignored.
      *
      * @deprecated Use `\@vendure/graphiql-plugin` instead.
      * @default false
      */
-    adminApiPlayground?: boolean | RenderPageOptions;
+    adminApiPlayground?: boolean | Record<string, any>;
     /**
      * @description
-     * The playground config to the shop GraphQL API
-     * [ApolloServer playground](https://www.apollographql.com/docs/apollo-server/api/apollo-server/#constructoroptions-apolloserver).
+     * Enables the GraphQL landing page served at the shop API path. Since Apollo Server 5
+     * removed the GraphQL Playground, a truthy value now serves GraphiQL instead, and the
+     * object form is read as a boolean and otherwise ignored.
      *
      * @deprecated Use `\@vendure/graphiql-plugin` instead.
      * @default false
      */
-    shopApiPlayground?: boolean | RenderPageOptions;
+    shopApiPlayground?: boolean | Record<string, any>;
     /**
      * @description
-     * The debug config to the admin GraphQL API
-     * [ApolloServer playground](https://www.apollographql.com/docs/apollo-server/api/apollo-server/#constructoroptions-apolloserver).
+     * Has no effect. This option used to set the `debug` option of Apollo Server, which was
+     * removed in Apollo Server 4.
      *
+     * @deprecated Will be removed in a future major version.
      * @default false
      */
     adminApiDebug?: boolean;
     /**
      * @description
-     * The debug config to the shop GraphQL API
-     * [ApolloServer playground](https://www.apollographql.com/docs/apollo-server/api/apollo-server/#constructoroptions-apolloserver).
+     * Has no effect. This option used to set the `debug` option of Apollo Server, which was
+     * removed in Apollo Server 4.
      *
+     * @deprecated Will be removed in a future major version.
      * @default false
      */
     shopApiDebug?: boolean;
@@ -1344,12 +1347,13 @@ export interface EntityOptions {
 export interface SystemOptions {
     /**
      * @description
-     * Defines an array of {@link HealthCheckStrategy} instances which are used by the `/health` endpoint to verify
-     * that any critical systems which the Vendure server depends on are also healthy.
+     * Defines an array of {@link HealthCheckStrategy} instances. Before v3.6.0 the `/health` endpoint ran these
+     * strategies to verify that critical systems which the Vendure server depends on were healthy. Since v3.6.0
+     * the strategies are not executed and this option has no effect on the `/health` response.
      *
-     * @default [TypeORMHealthCheckStrategy]
+     * @default []
      * @since 1.6.0
-     * @deprecated Use infrastructure-level health checks (e.g. Kubernetes probes, Docker healthchecks,
+     * @deprecated Not executed since v3.6.0. Use infrastructure-level health checks (e.g. Kubernetes probes, Docker healthchecks,
      * load balancer checks) instead of application-level health checks. The application should not
      * be responsible for determining its own health. This config option will be removed in v4.0.0.
      */

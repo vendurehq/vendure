@@ -35,6 +35,47 @@ describe('validateCustomFieldsConfig()', () => {
         expect(result.errors).toEqual(['User entity does not support custom fields of type "localeString"']);
     });
 
+    // #5328 - a localeText custom field must be rejected on non-localized entities, like localeString
+    it('invalid localeText', () => {
+        const config: CustomFields = {
+            User: [
+                { name: 'foo', type: 'string' },
+                { name: 'bar', type: 'localeText' },
+            ],
+        };
+        const result = validateCustomFieldsConfig(config, allEntities);
+
+        expect(result.valid).toBe(false);
+        expect(result.errors).toEqual(['User entity does not support custom fields of type "localeText"']);
+    });
+
+    it('valid localeText on a translatable entity', () => {
+        const config: CustomFields = {
+            Product: [
+                { name: 'foo', type: 'string' },
+                { name: 'bar', type: 'localeText' },
+            ],
+        };
+        const result = validateCustomFieldsConfig(config, allEntities);
+
+        expect(result.valid).toBe(true);
+        expect(result.errors.length).toBe(0);
+    });
+
+    // #5197 - Seller should accept localized custom fields
+    it('valid localeString and localeText on Seller', () => {
+        const config: CustomFields = {
+            Seller: [
+                { name: 'tagline', type: 'localeString' },
+                { name: 'description', type: 'localeText' },
+            ],
+        };
+        const result = validateCustomFieldsConfig(config, allEntities);
+
+        expect(result.errors).toEqual([]);
+        expect(result.valid).toBe(true);
+    });
+
     it('valid names', () => {
         const config: CustomFields = {
             User: [

@@ -28,6 +28,8 @@ jobs:
     resolve-branches:
         name: Resolve merge target
         runs-on: ubuntu-latest
+        permissions:
+            contents: read
         outputs:
             source: ${{ github.ref_name }}
             target: ${{ steps.target.outputs.branch }}
@@ -55,7 +57,7 @@ jobs:
         steps:
             - name: Generate CI Bot Token
               id: app-token
-              uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2.2.2
+              uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
               with:
                   app-id: ${{ secrets.CI_BOT_APP_ID }}
                   private-key: ${{ secrets.CI_BOT_APP_PRIVATE_KEY }}
@@ -64,7 +66,7 @@ jobs:
                   permission-contents: write
 
             - name: Checkout target branch
-              uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   token: ${{ steps.app-token.outputs.token }}
                   ref: ${{ needs.resolve-branches.outputs.target }}
@@ -168,3 +170,20 @@ jobs:
               run: |
                   gh pr comment "$PR_NUMBER" \
                     --body "New conflicts detected during back-merge of \`$SOURCE\` into \`$TARGET\`. Please resolve the conflicts in this PR."
+
+            # This step must stay last: the steps above create or comment on the back-merge pull
+            # request, and failing before them would skip that. Without this step the conflict
+            # path exits zero, so a back-merge which merged nothing reports success and the two
+            # branches drift with no failing run to show it.
+            #
+            # This condition needs !cancelled() where the Push merge step above does not. An `if`
+            # with no status check function implies success(), which is right for pushing but
+            # would skip this step after any earlier step failed and leave the conflict silent.
+            - name: Report the conflict as a failure
+              if: ${{ !cancelled() && steps.merge.outputs.result == 'conflict' }}
+              env:
+                  SOURCE: ${{ needs.resolve-branches.outputs.source }}
+                  TARGET: ${{ needs.resolve-branches.outputs.target }}
+              run: |
+                  echo "::error::Back-merge of $SOURCE into $TARGET has conflicts. $TARGET will not include the commits from $SOURCE until the conflicts are resolved."
+                  exit 1

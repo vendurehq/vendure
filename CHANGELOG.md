@@ -1,14 +1,149 @@
 ## Unreleased
 
-#### Security
-
-* **core** Bump `file-type` to `^21.3.1` to fix an infinite loop on malformed ASF input (#5099) [GHSA-5v7r-6r5c-r473](https://github.com/advisories/GHSA-5v7r-6r5c-r473)
-
 #### Features
 
 * **core** Reject blank strings for required fields on top-level mutation inputs (#5080). Adds `InputValidationInterceptor` with a curated registry of ~45 input types. A storefront that sends `name: ""` or `sku: "   "` now gets a `UserInputError` instead of persisting an empty string. Opt out with `apiOptions.inputValidation.requiredFieldValidation: false`. Relates to [#5080](https://github.com/vendurehq/vendure/issues/5080).
-* **asset-server-plugin** Bump `file-type` to `^21.3.1` (#5099) [GHSA-5v7r-6r5c-r473](https://github.com/advisories/GHSA-5v7r-6r5c-r473)
-* **core** Note: `file-type` v21 renames four MIME types to their IANA registrations (`audio/x-flac` to `audio/flac`, `video/x-matroska` to `video/matroska`, `application/x-apache-arrow` to `application/vnd.apache.arrow.file`, `application/x-parquet` to `application/vnd.apache.parquet`). If you list any of the old values explicitly in `assetOptions.permittedFileTypes`, update them, otherwise those uploads will be rejected. The default wildcard config (`image/*`, `video/*`, `audio/*`, `.pdf`) is unaffected.
+
+
+## <small>3.7.3 (2026-09-01)</small>
+
+
+#### Security
+
+This release fixes a number of vulnerabilities which were responsibly disclosed to us via GitHub
+security advisories. Full details of each are in the linked advisory.
+
+* **core** Fix unauthenticated takeover of external/SSO customer accounts via `registerCustomerAccount` ([GHSA-wr5h-x3x6-4h23](https://github.com/vendurehq/vendure/security/advisories/GHSA-wr5h-x3x6-4h23))
+* **core** Fix cross-channel IDOR in Order payment, refund, fulfillment and customer note operations ([GHSA-7qvr-c5vf-xxfh](https://github.com/vendurehq/vendure/security/advisories/GHSA-7qvr-c5vf-xxfh))
+* **core** Channel-scope the source entity in the assign-to-channel and remove-from-channel mutations ([GHSA-422x-jq57-j238](https://github.com/vendurehq/vendure/security/advisories/GHSA-422x-jq57-j238))
+* **core** Channel-scope the source entity looked up by the `duplicateEntity` mutation ([GHSA-f94w-2928-x43p](https://github.com/vendurehq/vendure/security/advisories/GHSA-f94w-2928-x43p))
+* **core** Scope Administrator reads to the administrators the caller has authority over ([GHSA-37j3-p93w-fq6w](https://github.com/vendurehq/vendure/security/advisories/GHSA-37j3-p93w-fq6w))
+* **core** Channel-scope the `updateChannel` and `deleteChannel` mutations ([GHSA-22x4-937q-5fr5](https://github.com/vendurehq/vendure/security/advisories/GHSA-22x4-937q-5fr5))
+* **core** Channel-scope the `ProductOptionGroup` lookup in `createProductOption` ([GHSA-gg28-cx38-jxxr](https://github.com/vendurehq/vendure/security/advisories/GHSA-gg28-cx38-jxxr))
+* **core** Close the remaining account enumeration timing oracle for accounts with no native password ([GHSA-c63h-3vvx-48ph](https://github.com/vendurehq/vendure/security/advisories/GHSA-c63h-3vvx-48ph))
+* **core** Warn at startup about the permissive default CORS config, and add `apiOptions.csrfPrevention` to block Login CSRF ([GHSA-vr2h-89r2-9rwv](https://github.com/vendurehq/vendure/security/advisories/GHSA-vr2h-89r2-9rwv))
+* **core** Stop returning the session token in job data over the Admin API ([GHSA-32jm-mf7r-7qw5](https://github.com/vendurehq/vendure/security/advisories/GHSA-32jm-mf7r-7qw5))
+* **asset-server-plugin** Fix stored XSS via SVG upload by hardening the headers used to serve assets ([GHSA-f4r3-h6jf-4m29](https://github.com/vendurehq/vendure/security/advisories/GHSA-f4r3-h6jf-4m29))
+* **core** Bump `file-type` to `^21.3.1` to fix an infinite loop on malformed ASF input (#5099) ([GHSA-5v7r-6r5c-r473](https://github.com/advisories/GHSA-5v7r-6r5c-r473))
+* **asset-server-plugin** Bump `file-type` to `^21.3.1` (#5099) ([GHSA-5v7r-6r5c-r473](https://github.com/advisories/GHSA-5v7r-6r5c-r473))
+
+##### Behaviour changes from the security fixes
+
+* `registerCustomerAccount` no longer stores the supplied password when an account already exists for
+  that email address through another authentication strategy and has no password yet. A verification
+  token is emailed to the address instead, and the password is set by passing that token to
+  `verifyCustomerAccount`. This happens whatever the value of `authOptions.requireVerification`, so
+  such a customer cannot log in immediately after registering. The caller-supplied `firstName`,
+  `lastName`, `phoneNumber` and custom fields are now ignored whenever a User already exists for the
+  email address.
+* The `administrators` and `administrator` queries now only return administrators whose roles the
+  caller has authority over. A channel-scoped administrator no longer sees staff belonging only to
+  other channels.
+* `updateChannel` and `deleteChannel` now only act on channels the caller's role is scoped to.
+* `duplicateEntity`, the assign-to-channel and remove-from-channel mutations, `createProductOption`,
+  and the Order payment, refund, fulfillment and customer note operations now throw when the target
+  entity is not visible in the active channel, where they previously succeeded.
+* Job data returned over the Admin API no longer includes the session token. Upgrading stops new
+  leakage, but tokens may already be present in historical job records. After upgrading, purge
+  settled job data and consider invalidating existing administrator sessions. The token is still
+  written to the job record itself; the change which stops `RequestContext.serialize()` persisting it
+  in the first place alters the type of `RequestContext.session` and so lands in the next minor
+  release.
+* `apiOptions.csrfPrevention` is new and defaults to `false`, so nothing changes unless you enable it.
+  If you do, every client which uploads files or uses `GET` for queries must send the
+  `Apollo-Require-Preflight` header. `@vendure/admin-ui`, `@vendure/dashboard` and `@vendure/testing`
+  already do. Vendure now also logs a warning at startup when `apiOptions.cors` reflects any origin
+  together with `credentials: true`, which is the default. Set an explicit origin allowlist in
+  production.
+* The asset server now sends `X-Content-Type-Options: nosniff` and a `Content-Security-Policy` on
+  every asset, and serves markup assets (SVG, HTML, XML) with `Content-Disposition: attachment`.
+  Opening such an asset's URL directly now downloads it rather than rendering it. Images embedded
+  with `<img src>` are unaffected.
+* `file-type` v21 renames four MIME types to their IANA registrations (`audio/x-flac` to
+  `audio/flac`, `video/x-matroska` to `video/matroska`, `application/x-apache-arrow` to
+  `application/vnd.apache.arrow.file`, `application/x-parquet` to
+  `application/vnd.apache.parquet`). If you list any of the old values explicitly in
+  `assetOptions.permittedFileTypes`, update them, otherwise those uploads will be rejected. The
+  default wildcard config (`image/*`, `video/*`, `audio/*`, `.pdf`) is unaffected.
+
+#### Perf
+
+* **core** remove the per-request stock query stampede (#5224) ([19d5ca4](https://github.com/vendurehq/vendure/commit/19d5ca4)), closes [#5224](https://github.com/vendurehq/vendure/issues/5224)
+
+#### Fixes
+
+* **asset-server-plugin** Harden SVG asset serving headers (GHSA-f4r3) ([d8f4dce](https://github.com/vendurehq/vendure/commit/d8f4dce))
+* **asset-server-plugin** Scope sandbox CSP to markup types so PDFs render inline ([3edda6a](https://github.com/vendurehq/vendure/commit/3edda6a))
+* **cli** address review - exports map fallback, workspace markers, tests, JSON cleanup ([64070a0](https://github.com/vendurehq/vendure/commit/64070a0))
+* **cli** detect monorepo root when dependency check runs without project check ([b8c21e4](https://github.com/vendurehq/vendure/commit/b8c21e4))
+* **cli** resolve hoisted dependencies in monorepo workspaces ([2d6b284](https://github.com/vendurehq/vendure/commit/2d6b284)), closes [#4842](https://github.com/vendurehq/vendure/issues/4842)
+* **cli** restore node_modules-not-found detection with require.resolve fallback ([7dcbebe](https://github.com/vendurehq/vendure/commit/7dcbebe))
+* **cli** update e2e test for require.resolve-based dependency check ([f543d2c](https://github.com/vendurehq/vendure/commit/f543d2c))
+* **cli** use require.resolve for all dependency checks, remove monorepoRoot plumbing ([ed9b004](https://github.com/vendurehq/vendure/commit/ed9b004))
+* **cli** walk up to workspace root for duplicate singleton scan when local node_modules absent ([63853a4](https://github.com/vendurehq/vendure/commit/63853a4))
+* **core** Address review feedback on seller Order channel scoping ([fc082e0](https://github.com/vendurehq/vendure/commit/fc082e0)), closes [#4117](https://github.com/vendurehq/vendure/issues/4117)
+* **core** Apply seller Order price adjustments in the seller's Channel ([90036af](https://github.com/vendurehq/vendure/commit/90036af)), closes [#4117](https://github.com/vendurehq/vendure/issues/4117)
+* **core** assign SuperAdmin & Customer roles in ChannelService.create() ([0bfc5c5](https://github.com/vendurehq/vendure/commit/0bfc5c5))
+* **core** Bump file-type to ^21.3.1 (GHSA-5v7r-6r5c-r473) (#5099) ([93f7f5e](https://github.com/vendurehq/vendure/commit/93f7f5e)), closes [#5099](https://github.com/vendurehq/vendure/issues/5099)
+* **core** Check every element in isTranslatable, harden translateDeep against holes (#5059) ([05d86e7](https://github.com/vendurehq/vendure/commit/05d86e7)), closes [#5059](https://github.com/vendurehq/vendure/issues/5059)
+* **core** Clarify seller Order context scope and tighten e2e assertions ([cd73438](https://github.com/vendurehq/vendure/commit/cd73438)), closes [#4117](https://github.com/vendurehq/vendure/issues/4117)
+* **core** Do not remove shipping lines from order when shipping method is deleted ([a8ed3be](https://github.com/vendurehq/vendure/commit/a8ed3be))
+* **core** Enforce channel permission check on Promotion assign/remove (#5072) ([b2c2838](https://github.com/vendurehq/vendure/commit/b2c2838)), closes [#5072](https://github.com/vendurehq/vendure/issues/5072)
+* **core** Enforce channel scope on ProductVariant soft-deletion ([bbae71c](https://github.com/vendurehq/vendure/commit/bbae71c))
+* **core** enqueue apply-collection-filters job after the transaction commits (#5195) ([5690169](https://github.com/vendurehq/vendure/commit/5690169)), closes [#5195](https://github.com/vendurehq/vendure/issues/5195)
+* **core** filter SQLite search index by request currency (#5149) ([656db1d](https://github.com/vendurehq/vendure/commit/656db1d)), closes [#5149](https://github.com/vendurehq/vendure/issues/5149)
+* **core** Guard against removing promotions from default channel (#5096) ([ac160a0](https://github.com/vendurehq/vendure/commit/ac160a0)), closes [#5096](https://github.com/vendurehq/vendure/issues/5096)
+* **core** guard initial job-queue status update and log real error details (#5167) ([1659e14](https://github.com/vendurehq/vendure/commit/1659e14)), closes [#5167](https://github.com/vendurehq/vendure/issues/5167)
+* **core** Handle deleted shipping methods and address review feedback ([f608a93](https://github.com/vendurehq/vendure/commit/f608a93))
+* **core** Handle stock location cache invalidation failures ([15401da](https://github.com/vendurehq/vendure/commit/15401da))
+* **core** Invalidate stock location channel id cache correctly ([e6ae02c](https://github.com/vendurehq/vendure/commit/e6ae02c)), closes [#3324](https://github.com/vendurehq/vendure/issues/3324)
+* **core** keep in-flight initial job update visible during shutdown ([f5bb50a](https://github.com/vendurehq/vendure/commit/f5bb50a))
+* **core** load order line relation custom fields ([869dc8d](https://github.com/vendurehq/vendure/commit/869dc8d))
+* **core** preserve order line relation custom fields ([736c030](https://github.com/vendurehq/vendure/commit/736c030))
+* **core** Preserve seller Order ShippingLines when splitting an Order ([45ac90d](https://github.com/vendurehq/vendure/commit/45ac90d)), closes [#4117](https://github.com/vendurehq/vendure/issues/4117)
+* **core** Preserve the transaction when scoping the seller Order context ([beba661](https://github.com/vendurehq/vendure/commit/beba661)), closes [#4117](https://github.com/vendurehq/vendure/issues/4117)
+* **core** Prevent exponential re-merge of shared entity references (#5085) ([f50b288](https://github.com/vendurehq/vendure/commit/f50b288)), closes [#5085](https://github.com/vendurehq/vendure/issues/5085)
+* **core** Prevent NaN discount amount on cancelled modified OrderLine (#5101) ([a5fd670](https://github.com/vendurehq/vendure/commit/a5fd670)), closes [#5101](https://github.com/vendurehq/vendure/issues/5101)
+* **core** Price every ProductVariant in relation arrays, avoid spread RangeError (#5058) ([a9a7887](https://github.com/vendurehq/vendure/commit/a9a7887)), closes [#5058](https://github.com/vendurehq/vendure/issues/5058)
+* **core** Propagate field descriptions to generated Filter/Sort parameters ([d038cb3](https://github.com/vendurehq/vendure/commit/d038cb3)), closes [#5032](https://github.com/vendurehq/vendure/issues/5032)
+* **core** Properly delete shipping lines on channel unassignment ([3d7a333](https://github.com/vendurehq/vendure/commit/3d7a333))
+* **core** Re-apply shipping Promotions to seller Orders ([b93cfdd](https://github.com/vendurehq/vendure/commit/b93cfdd)), closes [#4117](https://github.com/vendurehq/vendure/issues/4117) [#4117](https://github.com/vendurehq/vendure/issues/4117)
+* **core** Recalculate active orders when shipping method is unassigned from channel ([7975d82](https://github.com/vendurehq/vendure/commit/7975d82)), closes [#4494](https://github.com/vendurehq/vendure/issues/4494)
+* **core** Remove shipping lines from active orders when deleted or unassigned (#4492) ([14200b1](https://github.com/vendurehq/vendure/commit/14200b1)), closes [#4492](https://github.com/vendurehq/vendure/issues/4492)
+* **core** Scope shipping line cleanup to channel unassignment ([7d1fcd6](https://github.com/vendurehq/vendure/commit/7d1fcd6))
+* **core** Scope shipping Promotion re-application to the seller Order path ([01793b0](https://github.com/vendurehq/vendure/commit/01793b0))
+* **core** update better-sqlite3 for Node 24 (#5146) ([51cc491](https://github.com/vendurehq/vendure/commit/51cc491)), closes [#5146](https://github.com/vendurehq/vendure/issues/5146)
+* **core** update order merge relation field logic ([8aab2b2](https://github.com/vendurehq/vendure/commit/8aab2b2))
+* **core** Use event ctx directly and manually remove shipping lines ([f6cc8f8](https://github.com/vendurehq/vendure/commit/f6cc8f8))
+* **create** defer open import to avoid Yarn PnP crash on Node 22 (#5207) ([f9b0fc2](https://github.com/vendurehq/vendure/commit/f9b0fc2)), closes [#5207](https://github.com/vendurehq/vendure/issues/5207)
+* **dashboard** close button on add payment dialog not working ([f019797](https://github.com/vendurehq/vendure/commit/f019797))
+* **dashboard** default transactionId to undefined for empty strings ([eb40e95](https://github.com/vendurehq/vendure/commit/eb40e95))
+* **dashboard** Forward transformQueryKey and view options from ListPage (#5066) ([b9b1de3](https://github.com/vendurehq/vendure/commit/b9b1de3)), closes [#5066](https://github.com/vendurehq/vendure/issues/5066)
+* **dashboard** Keep compiled files inside outputPath for upward imports ([3b4c093](https://github.com/vendurehq/vendure/commit/3b4c093)), closes [#5086](https://github.com/vendurehq/vendure/issues/5086)
+* **dashboard** make entity selectors refetch on mount ([d6c5143](https://github.com/vendurehq/vendure/commit/d6c5143)), closes [#5178](https://github.com/vendurehq/vendure/issues/5178) [#5177](https://github.com/vendurehq/vendure/issues/5177) [#5182](https://github.com/vendurehq/vendure/issues/5182)
+* **dashboard** match the add-payment option exactly ([04f03bf](https://github.com/vendurehq/vendure/commit/04f03bf)), closes [#5090](https://github.com/vendurehq/vendure/issues/5090) [#5171](https://github.com/vendurehq/vendure/issues/5171) [#5173](https://github.com/vendurehq/vendure/issues/5173)
+* **dashboard** Optional transaction ID for manual payment ([61b6d1f](https://github.com/vendurehq/vendure/commit/61b6d1f))
+* **dashboard** Preserve the filesystem root in commonAncestorDir ([a8e35d4](https://github.com/vendurehq/vendure/commit/a8e35d4))
+* **dashboard** recover active channel after deleting the current one (#5228) ([9f84f9c](https://github.com/vendurehq/vendure/commit/9f84f9c)), closes [#5228](https://github.com/vendurehq/vendure/issues/5228)
+* **dashboard** refresh channel switcher after deleting channels ([15fb6d2](https://github.com/vendurehq/vendure/commit/15fb6d2))
+* **dashboard** refresh tax category selector after mutations ([7a48b4a](https://github.com/vendurehq/vendure/commit/7a48b4a))
+* **dashboard** remap tsconfig baseUrl when the source root widens ([e47ce81](https://github.com/vendurehq/vendure/commit/e47ce81)), closes [#5086](https://github.com/vendurehq/vendure/issues/5086) [#5086](https://github.com/vendurehq/vendure/issues/5086)
+* **dashboard** remove arbitrary 1000 max on promotion usage limits (#5226) ([b18777b](https://github.com/vendurehq/vendure/commit/b18777b)), closes [#5226](https://github.com/vendurehq/vendure/issues/5226)
+* **dashboard** Resolve the source root through path.relative ([36ffafd](https://github.com/vendurehq/vendure/commit/36ffafd))
+* **dashboard** Show loading indicator when uploading assets ([85627cf](https://github.com/vendurehq/vendure/commit/85627cf))
+* **dashboard** tighten source-root resolution and emit validation ([c1ccc44](https://github.com/vendurehq/vendure/commit/c1ccc44)), closes [#5090](https://github.com/vendurehq/vendure/issues/5090) [#5086](https://github.com/vendurehq/vendure/issues/5086)
+* **dashboard** Transform JSX when compiling plugin config imports ([7b91a25](https://github.com/vendurehq/vendure/commit/7b91a25)), closes [#3726](https://github.com/vendurehq/vendure/issues/3726)
+* **dashboard** Transform JSX when compiling the Vendure config ([bb510af](https://github.com/vendurehq/vendure/commit/bb510af))
+* **dashboard** Treat readonly custom fields as optional in Zod schema (#5057) ([1faa4c1](https://github.com/vendurehq/vendure/commit/1faa4c1)), closes [#5057](https://github.com/vendurehq/vendure/issues/5057) [#5045](https://github.com/vendurehq/vendure/issues/5045)
+* **dashboard** Use updateActiveAdministrator for profile page (#5055) ([2ad73a8](https://github.com/vendurehq/vendure/commit/2ad73a8)), closes [#5055](https://github.com/vendurehq/vendure/issues/5055)
+* **dashboard** warn only when the default source root widens ([171707c](https://github.com/vendurehq/vendure/commit/171707c)), closes [#5086](https://github.com/vendurehq/vendure/issues/5086)
+
+#### Features
+
+* **asset-server-plugin** add background color query param for transparent images (#4999) ([0fec7bc](https://github.com/vendurehq/vendure/commit/0fec7bc)), closes [#4999](https://github.com/vendurehq/vendure/issues/4999)
+* **create** add TanStack Start storefront option (#5144) ([1c0c8b7](https://github.com/vendurehq/vendure/commit/1c0c8b7)), closes [#5144](https://github.com/vendurehq/vendure/issues/5144)
+* **dashboard** Allow creating customer and address inline on draft … (#4952) ([54ee8d3](https://github.com/vendurehq/vendure/commit/54ee8d3)), closes [#4952](https://github.com/vendurehq/vendure/issues/4952)
+* **dashboard** Support multi-channel selection in assign-to-channel follow-up (#5036) ([b8004ae](https://github.com/vendurehq/vendure/commit/b8004ae)), closes [#5036](https://github.com/vendurehq/vendure/issues/5036)
 
 ## <small>3.7.2 (2026-08-03)</small>
 

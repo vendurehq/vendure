@@ -30,9 +30,7 @@ export class SqljsInitializer implements TestDbInitializer<DriverOptions<'sqljs'
     async populate(populateFn: () => Promise<void>): Promise<void> {
         if (!fs.existsSync(this.dbFilePath)) {
             const dirName = path.dirname(this.dbFilePath);
-            if (!fs.existsSync(dirName)) {
-                fs.mkdirSync(dirName);
-            }
+            fs.mkdirSync(dirName, { recursive: true });
             (this.connectionOptions as Mutable<DriverOptions<'sqljs'>>).autoSave = true;
             (this.connectionOptions as Mutable<DriverOptions<'sqljs'>>).synchronize = true;
             await populateFn();

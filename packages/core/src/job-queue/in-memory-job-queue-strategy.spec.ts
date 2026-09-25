@@ -76,6 +76,21 @@ describe('InMemoryJobQueueStrategy', () => {
             expect(await getIdResultsFor({ take: 10, skip: 2 })).toEqual(['email-1', 'video-3', 'email-2']);
         });
 
+        it('totalItems counts all matches, not the returned page', async () => {
+            expect(await strategy.findMany({ take: 1 })).toMatchObject({ totalItems: 5 });
+            expect(await strategy.findMany({ take: 1, skip: 1 })).toMatchObject({ totalItems: 5 });
+            expect(await strategy.findMany({ take: 2, skip: 4 })).toMatchObject({ totalItems: 5 });
+        });
+
+        it('totalItems counts matches after filtering', async () => {
+            const result = await strategy.findMany({
+                take: 1,
+                filter: { queueName: { eq: 'video' } },
+            });
+            expect(result.items.length).toBe(1);
+            expect(result.totalItems).toBe(3);
+        });
+
         it('sort createdAt', async () => {
             expect(await getIdResultsFor({ sort: { createdAt: SortOrder.DESC } })).toEqual([
                 'email-2',

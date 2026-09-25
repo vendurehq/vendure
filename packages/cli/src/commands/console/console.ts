@@ -17,10 +17,11 @@ import {
 } from './cli-auth';
 import { ConsoleLinkContext, ConsoleLinkOutcome, RegisteredConsoleLinkHook } from './console-link-hook';
 import {
+    ConsoleOrigins,
     DEFAULT_CONSOLE_API_URL,
     DEFAULT_CONSOLE_URL,
-    assertOfficialConsoleOriginPair,
     officialConsoleEnvironment,
+    trustedConsoleOrigins,
 } from './console-origins';
 import { ConsoleReporter } from './console-reporter';
 import { ensureProjectLinkGitignore } from './project-link-gitignore';
@@ -32,6 +33,7 @@ import {
     readProjectLinkManifest,
     removeProjectLinkManifest,
     resolveProjectRoot,
+    withConsoleOrigins,
     writeProjectLinkManifestAtomic,
 } from './project-link-manifest';
 import { nonEmptyString, objectValue, uuid } from './project-link-validation';
@@ -54,7 +56,6 @@ const MAX_RETRY_DELAY_MS = 2_000;
 export const CALLBACK_GRACE_MS = 2_500;
 
 export interface ConsoleCommandOptions {
-    allowCustomConsole?: boolean;
     project?: string;
     force?: boolean;
     /** Answers every confirmation owned by the CLI. */
@@ -143,11 +144,7 @@ function createDefaultDependencies(): ConsoleCommandDependencies {
         openUrl: openUrlInBrowser,
         prompt: async message => {
             const result = await withInteractiveTimeout(() => confirm({ message }), {
-                examples: [
-                    'vendure console link --allow-custom-console',
-                    'vendure console link --force',
-                    'vendure console unlink --force',
-                ],
+                examples: ['vendure console link --force', 'vendure console unlink --force'],
                 helpCommands: ['vendure console --help'],
             });
             return isCancel(result) ? undefined : result;
@@ -241,9 +238,11 @@ async function runConsoleCommand(
         return 1;
     }
 
+    assertNoRemovedConsoleEnvironment(dependencies.env);
+
     const projectRoot = resolveProjectRoot(dependencies.cwd, options.project);
     if (normalizedAction === 'status') {
-        return status(projectRoot, dependencies.reporter);
+        return status(projectRoot, dependencies.env, dependencies.reporter);
     }
     if (normalizedAction === 'unlink') {
         return unlink(projectRoot, options, dependencies);
@@ -251,18 +250,58 @@ async function runConsoleCommand(
     return link(projectRoot, options, dependencies, signal, state);
 }
 
-export function resolveConsoleEndpoints(env: NodeJS.ProcessEnv): ConsoleEndpoints {
-    const consoleOverride = env.VENDURE_CONSOLE_LINK_URL?.trim() || undefined;
-    const apiOverride = env.VENDURE_CONSOLE_LINK_API_URL?.trim() || undefined;
+function assertNoRemovedConsoleEnvironment(env: NodeJS.ProcessEnv): void {
+    const replacements = [
+        ['VENDURE_CONSOLE_LINK_URL', 'VENDURE_CONSOLE_APP_URL'],
+        ['VENDURE_CONSOLE_LINK_API_URL', 'VENDURE_CONSOLE_API_URL'],
+    ] as const;
+    const messages = replacements
+        .filter(([removed]) => env[removed] !== undefined)
+        .map(([removed, replacement]) => `${removed} is no longer supported. Use ${replacement} instead.`);
+    if (messages.length > 0) {
+        throw new Error(messages.join('\n'));
+    }
+}
+
+export function resolveConsoleEndpoints(
+    env: NodeJS.ProcessEnv,
+    manifestConsole?: ConsoleOrigins,
+): ConsoleEndpoints {
+    const consoleOverride = env.VENDURE_CONSOLE_APP_URL?.trim() || undefined;
+    const apiOverride = env.VENDURE_CONSOLE_API_URL?.trim() || undefined;
     if (Boolean(consoleOverride) !== Boolean(apiOverride)) {
         throw new Error(
-            'Set both VENDURE_CONSOLE_LINK_URL and VENDURE_CONSOLE_LINK_API_URL, or unset both to use production.',
+            'Set both VENDURE_CONSOLE_APP_URL and VENDURE_CONSOLE_API_URL, or unset both to use the linked Console or production default.',
         );
     }
-    const consoleUrl = baseUrl(consoleOverride ?? DEFAULT_CONSOLE_URL, 'VENDURE_CONSOLE_LINK_URL');
-    const apiUrl = baseUrl(apiOverride ?? DEFAULT_CONSOLE_API_URL, 'VENDURE_CONSOLE_LINK_API_URL');
-    assertOfficialConsoleOriginPair({ consoleUrl, apiUrl });
-    return { consoleUrl, apiUrl };
+    const configured =
+        consoleOverride && apiOverride
+            ? trustedConsoleOrigins(
+                  { appOrigin: consoleOverride, apiOrigin: apiOverride },
+                  { app: 'VENDURE_CONSOLE_APP_URL', api: 'VENDURE_CONSOLE_API_URL' },
+              )
+            : undefined;
+    if (
+        configured &&
+        manifestConsole &&
+        (configured.appOrigin !== manifestConsole.appOrigin ||
+            configured.apiOrigin !== manifestConsole.apiOrigin)
+    ) {
+        throw new Error(
+            [
+                'The configured Console conflicts with the Project Link Manifest.',
+                `Manifest Console: ${manifestConsole.appOrigin} (API: ${manifestConsole.apiOrigin})`,
+                `Environment Console: ${configured.appOrigin} (API: ${configured.apiOrigin})`,
+                'Unset VENDURE_CONSOLE_APP_URL and VENDURE_CONSOLE_API_URL to use the linked Console.',
+            ].join('\n'),
+        );
+    }
+    const resolved = configured ??
+        manifestConsole ?? {
+            appOrigin: DEFAULT_CONSOLE_URL,
+            apiOrigin: DEFAULT_CONSOLE_API_URL,
+        };
+    return { consoleUrl: resolved.appOrigin, apiUrl: resolved.apiOrigin };
 }
 
 async function link(
@@ -272,8 +311,11 @@ async function link(
     signal: AbortSignal,
     state: ConsoleCommandState,
 ): Promise<number> {
-    const endpoints = resolveConsoleEndpoints(dependencies.env);
     const existing = readProjectLinkManifest(projectRoot);
+    const endpoints = resolveConsoleEndpoints(
+        dependencies.env,
+        existing.kind === 'valid' ? existing.manifest.console : undefined,
+    );
     if (existing.kind === 'valid' && !options.force) {
         // A repeated link reuses the manifest and reruns plugin setup.
         return repair(
@@ -294,10 +336,6 @@ async function link(
         }
     }
 
-    const endpointApproval = await confirmCustomConsoleEndpoints(endpoints, options, dependencies);
-    if (endpointApproval !== 'confirmed') {
-        return endpointApproval === 'cancelled' ? 0 : 1;
-    }
     const request = await createProjectLink(endpoints, dependencies, signal);
     let login = await startConsoleLogin(request, endpoints, dependencies);
     try {
@@ -320,8 +358,12 @@ async function link(
             dependencies.reporter.url(request.verificationUrl);
         }
 
-        const manifest = await waitForApproval(request, endpoints, dependencies, signal);
+        const approvedManifest = await waitForApproval(request, endpoints, dependencies, signal);
         throwIfAborted(signal);
+        const manifest = withConsoleOrigins(approvedManifest, {
+            appOrigin: endpoints.consoleUrl,
+            apiOrigin: endpoints.apiUrl,
+        });
         // Record the approved link before the optional session exchange.
         const manifestPath = await writeProjectLinkManifestAtomic(projectRoot, manifest);
         state.outcome = 'linked';
@@ -517,23 +559,29 @@ async function repair(
     signal: AbortSignal,
     state: ConsoleCommandState,
 ): Promise<number> {
-    const endpointApproval = await confirmCustomConsoleEndpoints(endpoints, options, dependencies);
-    if (endpointApproval !== 'confirmed') {
-        return endpointApproval === 'cancelled' ? 0 : 1;
-    }
-    dependencies.reporter.success(`Already linked to ${manifest.project.name} in ${manifest.account.name}.`);
-    dependencies.reporter.info(
-        `Kept ${manifestPath}. Run vendure console link --force to link this project to a different Console Project.`,
-    );
-    reportProjectLinkGitignore(projectRoot, dependencies.reporter);
-    if (!(await confirmRepair(manifest, options, dependencies))) {
-        return 0;
+    const currentManifest = withConsoleOrigins(manifest, {
+        appOrigin: endpoints.consoleUrl,
+        apiOrigin: endpoints.apiUrl,
+    });
+    const upgraded = manifest.console == null;
+    if (upgraded) {
+        await writeProjectLinkManifestAtomic(projectRoot, currentManifest);
     }
     state.outcome = 'repaired';
     state.manifestPath = manifestPath;
+    dependencies.reporter.success(
+        `Already linked to ${currentManifest.project.name} in ${currentManifest.account.name}.`,
+    );
+    dependencies.reporter.info(
+        `${upgraded ? 'Updated' : 'Kept'} ${manifestPath}. Run vendure console link --force to link this project to a different Console Project.`,
+    );
+    reportProjectLinkGitignore(projectRoot, dependencies.reporter);
+    if (!(await confirmRepair(currentManifest, options, dependencies))) {
+        return 0;
+    }
 
     return runConsoleLinkHooks(
-        { projectRoot, manifest, manifestPath, endpoints, outcome: 'repaired' },
+        { projectRoot, manifest: currentManifest, manifestPath, endpoints, outcome: 'repaired' },
         options,
         dependencies,
         signal,
@@ -568,7 +616,7 @@ async function confirmRepair(
         throw new CommandInterruptedError();
     }
     if (result !== true) {
-        dependencies.reporter.info('No plugin setup was run. The Project Link Manifest is unchanged.');
+        dependencies.reporter.info('No plugin setup was run.');
         return false;
     }
     return true;
@@ -690,42 +738,7 @@ function linkUnfinished(outcome: ConsoleLinkOutcome, manifestPath: string): stri
     return `${survived} The setup that runs after linking did not finish.`;
 }
 
-async function confirmCustomConsoleEndpoints(
-    endpoints: ConsoleEndpoints,
-    options: ConsoleCommandOptions,
-    dependencies: ConsoleCommandDependencies,
-): Promise<'confirmed' | 'cancelled' | 'required'> {
-    if (!usesCustomRemoteEndpoints(endpoints) || options.allowCustomConsole || options.yes) {
-        return 'confirmed';
-    }
-    if (dependencies.isNonInteractive()) {
-        dependencies.reporter.error(
-            'Refusing to use custom remote Console endpoints without explicit approval in a non-interactive environment.',
-        );
-        dependencies.reporter.info(
-            'Run vendure console link --allow-custom-console to approve these endpoints.',
-        );
-        return 'required';
-    }
-    const result = await dependencies.prompt(
-        [
-            'Link through these custom Console endpoints?',
-            `Console: ${endpoints.consoleUrl}`,
-            `API: ${endpoints.apiUrl}`,
-            'The API controls the Project Link Manifest written to this repository.',
-        ].join('\n'),
-    );
-    if (result === undefined) {
-        throw new CommandInterruptedError();
-    }
-    if (!result) {
-        dependencies.reporter.info('No Console requests or Project Link Manifest changes were made.');
-        return 'cancelled';
-    }
-    return 'confirmed';
-}
-
-function status(projectRoot: string, reporter: ConsoleReporter): number {
+function status(projectRoot: string, env: NodeJS.ProcessEnv, reporter: ConsoleReporter): number {
     const result = readProjectLinkManifest(projectRoot);
     if (result.kind === 'missing') {
         reporter.info(`Project: Not linked\nManifest: ${result.path}\nAuthentication: Not stored locally`);
@@ -740,6 +753,7 @@ function status(projectRoot: string, reporter: ConsoleReporter): number {
     }
 
     const { manifest } = result;
+    const endpoints = resolveConsoleEndpoints(env, manifest.console);
     reporter.info(
         [
             `Account: ${manifest.account.name} (${manifest.account.id})`,
@@ -747,6 +761,8 @@ function status(projectRoot: string, reporter: ConsoleReporter): number {
             `Schema version: ${manifest.schemaVersion}`,
             `Protocol version: ${manifest.link.protocolVersion}`,
             `Link: ${manifest.link.id}`,
+            `Console: ${endpoints.consoleUrl}`,
+            `Console API: ${endpoints.apiUrl}`,
             `Manifest: ${result.path}`,
             'Authentication: Not stored locally (browser authorization)',
         ].join('\n'),
@@ -1079,39 +1095,6 @@ function abortable<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
 
 function abortError(): DOMException {
     return new DOMException('The operation was aborted.', 'AbortError');
-}
-
-function baseUrl(value: string, label: string): string {
-    let url: URL;
-    try {
-        url = new URL(value);
-    } catch {
-        throw new Error(`${label} must be an absolute HTTP or HTTPS URL.`);
-    }
-    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) {
-        throw new Error(`${label} must be an absolute HTTP or HTTPS URL without credentials.`);
-    }
-    if (url.search || url.hash || (url.pathname !== '/' && url.pathname !== '')) {
-        throw new Error(`${label} must contain only an origin without a path, query, or fragment.`);
-    }
-    if (url.protocol === 'http:' && !isLoopbackHostname(url.hostname)) {
-        throw new Error(`${label} must use HTTPS unless it is a loopback URL.`);
-    }
-    return url.origin;
-}
-
-function isLoopbackHostname(hostname: string): boolean {
-    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
-}
-
-/** Whether these origins are a remote Console that Vendure does not operate. */
-function usesCustomRemoteEndpoints(endpoints: ConsoleEndpoints): boolean {
-    if (officialConsoleEnvironment(endpoints) !== undefined) {
-        return false;
-    }
-    return ![endpoints.consoleUrl, endpoints.apiUrl].every(value =>
-        isLoopbackHostname(new URL(value).hostname),
-    );
 }
 
 function timestamp(value: unknown, label: string): number {

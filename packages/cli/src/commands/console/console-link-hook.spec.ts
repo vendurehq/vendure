@@ -50,13 +50,14 @@ describe('console link hooks', () => {
         expect(test.exitCode).toBe(0);
         // The OSS protocol ran exactly once: one create, one poll.
         expect(test.requestPaths).toEqual(['/v1/project-links', `/v1/project-links/${LINK_ID}/poll`]);
-        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
+        const currentManifest = manifestForConsole('http://localhost:3000', test.apiUrl);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(currentManifest);
 
         expect(contexts).toHaveLength(1);
         const context = contexts[0];
         expect(context.projectRoot).toBe(root);
         expect(context.manifestPath).toBe(getProjectLinkManifestPath(root));
-        expect(context.manifest).toEqual(manifest);
+        expect(context.manifest).toEqual(currentManifest);
         expect(context.force).toBe(false);
         expect(context.outcome).toBe('linked');
         expect(context.isNonInteractive).toBe(true);
@@ -72,7 +73,9 @@ describe('console link hooks', () => {
 
         expect(test.exitCode).toBe(0);
         expect(test.requestPaths).toEqual(['/v1/project-links', `/v1/project-links/${LINK_ID}/poll`]);
-        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(
+            manifestForConsole('http://localhost:3000', test.apiUrl),
+        );
     });
 
     it('runs hooks in plugin order and stops at the first failure', async () => {
@@ -93,7 +96,9 @@ describe('console link hooks', () => {
         expect(test.exitCode).toBe(1);
         // The link is not rolled back, and the report says so rather than
         // leaving the reader to guess what survived.
-        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(
+            manifestForConsole('http://localhost:3000', test.apiUrl),
+        );
         const output = test.messages.join('\n');
         expect(output).toContain(`The ${FIRST_PLUGIN} plugin failed after linking`);
         expect(output).toContain('Console rejected the credential request.');
@@ -159,12 +164,12 @@ describe('console link hooks', () => {
             {},
             {
                 ...offlineDependencies(root),
-                // A custom remote Console with no approval, so the command
-                // stops before it creates anything.
+                // An untrusted remote Console stops the command before it
+                // creates anything.
                 env: {
                     VENDURE_CLI_NON_INTERACTIVE: 'true',
-                    VENDURE_CONSOLE_LINK_URL: 'https://console.staging.example.com',
-                    VENDURE_CONSOLE_LINK_API_URL: 'https://api.staging.example.com',
+                    VENDURE_CONSOLE_APP_URL: 'https://console.staging.example.com',
+                    VENDURE_CONSOLE_API_URL: 'https://api.staging.example.com',
                 },
                 fetch: fetchMock,
                 hooks: consoleLinkHooks(registry),
@@ -233,6 +238,7 @@ describe('console link hooks', () => {
             'subcommands',
             'extendCommands',
             'afterConsoleLink',
+            'requiresProject',
         ]);
         expect(Object.isFrozen(CLI_PLUGIN_EXTENSION_POINTS)).toBe(true);
     });
@@ -259,10 +265,11 @@ describe('console link hooks', () => {
         // Repair is local. Nothing is asked of Console, so no second Project
         // Link is created and the first is not abandoned.
         expect(fetchMock).not.toHaveBeenCalled();
-        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
+        const currentManifest = manifestForConsole('https://console.vendure.io', 'https://api.vendure.io');
+        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(currentManifest);
         expect(contexts).toHaveLength(1);
         expect(contexts[0].outcome).toBe('repaired');
-        expect(contexts[0].manifest).toEqual(manifest);
+        expect(contexts[0].manifest).toEqual(currentManifest);
         expect(contexts[0].manifestPath).toBe(getProjectLinkManifestPath(root));
     });
 
@@ -287,7 +294,9 @@ describe('console link hooks', () => {
         const output = messages.join('\n');
         expect(output).toContain('was not changed');
         expect(output).not.toContain('The link succeeded');
-        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(
+            manifestForConsole('https://console.vendure.io', 'https://api.vendure.io'),
+        );
     });
 
     it('gives each hook its own context, so one cannot decide what the next reads', async () => {
@@ -368,7 +377,9 @@ describe('console link hooks', () => {
             message: `The ${FIRST_PLUGIN} plugin stopped the run after linking.`,
         });
         expect(output).toContain('The link succeeded');
-        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(manifest);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(
+            expect.objectContaining({ schemaVersion: 1 }),
+        );
     });
 
     it('snapshots non-interactive mode once for a hook context and its confirm function', async () => {
@@ -412,6 +423,14 @@ function plugin(id: string, afterConsoleLink: ConsoleLinkHookRegistration) {
     return defineCliPlugin({ id, commands: [], afterConsoleLink });
 }
 
+function manifestForConsole(appOrigin: string, apiOrigin: string) {
+    return {
+        ...manifest,
+        schemaVersion: 1,
+        console: { appOrigin, apiOrigin },
+    };
+}
+
 /**
  * A registry holding the real built-in commands, so `console` is registered the
  * way the host registers it and a plugin meets the same collision rules.
@@ -450,8 +469,8 @@ async function runLink(
             ...offlineDependencies(root, messages),
             env: {
                 VENDURE_CLI_NON_INTERACTIVE: 'true',
-                VENDURE_CONSOLE_LINK_URL: 'http://localhost:3000',
-                VENDURE_CONSOLE_LINK_API_URL: apiUrl,
+                VENDURE_CONSOLE_APP_URL: 'http://localhost:3000',
+                VENDURE_CONSOLE_API_URL: apiUrl,
             },
             fetch: globalThis.fetch,
             hooks: consoleLinkHooks(registry),

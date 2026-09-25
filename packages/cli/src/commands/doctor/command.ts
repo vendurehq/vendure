@@ -1,6 +1,8 @@
 import { CliCommandDefinition } from '../../shared/cli-command-definition';
 import { runCliCommand } from '../../shared/cli-command-exit';
 
+// No `requiresProject`: reporting that a directory is not a Vendure project is
+// one of doctor's own checks, so refusing to run would remove that answer.
 export const doctorCommandDef: CliCommandDefinition = {
     name: 'doctor',
     description: 'Run diagnostic checks on your Vendure project',

@@ -61,7 +61,7 @@ export const useExtendedRouter = (
                         (r: AnyRoute) => r.path === pathWithoutLeadingSlash,
                     ) > -1
                 ) {
-                    // Skip if the route already exists
+                    warnRouteCollision(path);
                     continue;
                 }
 
@@ -91,7 +91,7 @@ export const useExtendedRouter = (
                     );
 
                 if (routeExists) {
-                    // Skip if the route already exists
+                    warnRouteCollision(path);
                     continue;
                 }
 
@@ -130,6 +130,14 @@ export const useExtendedRouter = (
         return createExtendedRouter(routerOptions, extendedRouteTree);
     }, [baseRouteTree, routerOptions, extensionsLoaded]);
 };
+
+function warnRouteCollision(path: string) {
+    if (process.env.NODE_ENV !== 'production') {
+        console.warn(
+            `[Dashboard] Extension route "${path}" conflicts with an existing route and will not be registered.`,
+        );
+    }
+}
 
 /**
  * Helper to create a router with extended route tree, handling some

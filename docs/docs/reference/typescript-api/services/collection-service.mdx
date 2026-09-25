@@ -18,6 +18,7 @@ class CollectionService implements OnModuleInit {
     getChildren(ctx: RequestContext, collectionId: ID) => Promise<Collection[]>;
     getProductVariantCounts(ctx: RequestContext, collectionIds: ID[]) => Promise<Map<ID, number>>;
     getBreadcrumbs(ctx: RequestContext, collection: Collection) => Promise<Array<{ name: string; id: ID; slug: string }>>;
+    getBreadcrumbsForMany(ctx: RequestContext, collections: Array<Translated<Collection>>) => Promise<Map<ID, Array<{ name: string; id: ID; slug: string }>>>;
     getCollectionsByProductId(ctx: RequestContext, productId: ID, publicOnly: boolean) => Promise<Array<Translated<Collection>>>;
     getDescendants(ctx: RequestContext, rootId: ID, maxDepth: number = Number.MAX_SAFE_INTEGER) => Promise<Array<Translated<Collection>>>;
     getAncestors(collectionId: ID) => Promise<Collection[]>;
@@ -89,6 +90,13 @@ avoiding N+1 query issues when resolving productVariantCount on multiple collect
 
 Returns an array of name/id pairs representing all ancestor Collections up
 to the Root Collection.
+### getBreadcrumbsForMany
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, collections: Array<Translated<<a href='/reference/typescript-api/entities/collection#collection'>Collection</a>>>) => Promise<Map<<a href='/reference/typescript-api/common/id#id'>ID</a>, Array<{ name: string; id: <a href='/reference/typescript-api/common/id#id'>ID</a>; slug: string }>>>`}   />
+
+Returns a Map of collection IDs to their breadcrumb arrays. This performs a bounded
+number of bulk queries (one per tree level present in the batch, not one per collection),
+avoiding N+1 query issues when resolving breadcrumbs for multiple collections at once.
 ### getCollectionsByProductId
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productId: <a href='/reference/typescript-api/common/id#id'>ID</a>, publicOnly: boolean) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/collection#collection'>Collection</a>>>>`}   />

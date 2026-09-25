@@ -5,15 +5,26 @@ import path from 'node:path';
 
 import { MONOREPO_PACKAGE_DIRS } from '../../utilities/monorepo-utils';
 
-import { exactObjectValue, nonEmptyString, uuid } from './project-link-validation';
+import {
+    ConsoleOrigins,
+    DEFAULT_CONSOLE_API_URL,
+    DEFAULT_CONSOLE_URL,
+    trustedConsoleOrigins,
+} from './console-origins';
+import { exactObjectValue, nonEmptyString, objectValue, uuid } from './project-link-validation';
 
 export const PROJECT_LINK_MANIFEST_RELATIVE_PATH = path.join('.vendure', 'project.json');
 
-export interface ProjectLinkManifest {
-    schemaVersion: 1;
+interface ProjectLinkManifestIdentity {
     project: { id: string; name: string };
     account: { id: string; name: string };
     link: { id: string; protocolVersion: 1 };
+}
+
+/** The Project Link Manifest contract. */
+export interface ProjectLinkManifest extends ProjectLinkManifestIdentity {
+    schemaVersion: 1;
+    console?: ConsoleOrigins;
 }
 
 export type ManifestReadResult =
@@ -100,10 +111,18 @@ export function readProjectLinkManifest(projectRoot: string): ManifestReadResult
 }
 
 export function parseProjectLinkManifest(value: unknown, expectedLinkId?: string): ProjectLinkManifest {
-    const root = exactObject(value, ['schemaVersion', 'project', 'account', 'link'], 'manifest');
-    if (root.schemaVersion !== 1) {
+    const candidate = objectValue(value, 'The manifest must be an object.');
+    if (candidate.schemaVersion !== 1) {
         throw new Error('The manifest schemaVersion must be 1.');
     }
+    const hasConsole = Object.prototype.hasOwnProperty.call(candidate, 'console');
+    const root = exactObject(
+        candidate,
+        hasConsole
+            ? ['schemaVersion', 'project', 'account', 'link', 'console']
+            : ['schemaVersion', 'project', 'account', 'link'],
+        'manifest',
+    );
 
     const project = identityObject(root.project, 'project');
     const account = identityObject(root.account, 'account');
@@ -116,11 +135,41 @@ export function parseProjectLinkManifest(value: unknown, expectedLinkId?: string
         throw new Error('The approved manifest does not match the created link request.');
     }
 
-    return {
-        schemaVersion: 1,
+    const identity: ProjectLinkManifestIdentity = {
         project,
         account,
         link: { id: linkId, protocolVersion: 1 },
+    };
+    if (!hasConsole) {
+        return { schemaVersion: 1, ...identity };
+    }
+    const console = exactObject(root.console, ['appOrigin', 'apiOrigin'], 'console');
+    return {
+        schemaVersion: 1,
+        ...identity,
+        console: trustedConsoleOrigins({
+            appOrigin: nonEmptyString(console.appOrigin, 'The console.appOrigin must be a non-empty string.'),
+            apiOrigin: nonEmptyString(console.apiOrigin, 'The console.apiOrigin must be a non-empty string.'),
+        }),
+    };
+}
+
+export function consoleOriginsForManifest(manifest: ProjectLinkManifest): ConsoleOrigins {
+    return manifest.console
+        ? { ...manifest.console }
+        : { appOrigin: DEFAULT_CONSOLE_URL, apiOrigin: DEFAULT_CONSOLE_API_URL };
+}
+
+export function withConsoleOrigins(
+    manifest: ProjectLinkManifest,
+    console: ConsoleOrigins,
+): ProjectLinkManifest {
+    return {
+        schemaVersion: 1,
+        project: { ...manifest.project },
+        account: { ...manifest.account },
+        link: { ...manifest.link },
+        console: trustedConsoleOrigins(console),
     };
 }
 

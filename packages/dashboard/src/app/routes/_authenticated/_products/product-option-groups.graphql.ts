@@ -39,6 +39,7 @@ export const productOptionGroupIdNameDocument = graphql(`
         productOptionGroup(id: $id) {
             id
             name
+            productCount
         }
     }
 `);
@@ -77,6 +78,7 @@ export const productOptionDetailDocument = graphql(`
                 id
                 name
                 code
+                productCount
             }
             customFields
         }

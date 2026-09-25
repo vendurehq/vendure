@@ -2,7 +2,7 @@
 title: "ApiOptions"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/config/vendure-config.ts" sourceLine="84" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/vendure-config.ts" sourceLine="83" packageName="@vendure/core" />
 
 The ApiOptions define how the Vendure GraphQL APIs are exposed, as well as allowing the API layer
 to be extended with middleware.
@@ -13,8 +13,8 @@ interface ApiOptions {
     port: number;
     adminApiPath?: string;
     shopApiPath?: string;
-    adminApiPlayground?: boolean | RenderPageOptions;
-    shopApiPlayground?: boolean | RenderPageOptions;
+    adminApiPlayground?: boolean | Record<string, any>;
+    shopApiPlayground?: boolean | Record<string, any>;
     adminApiDebug?: boolean;
     shopApiDebug?: boolean;
     shopListQueryLimit?: number;
@@ -70,28 +70,30 @@ The path to the admin GraphQL API.
 The path to the shop GraphQL API.
 ### adminApiPlayground
 
-<MemberInfo kind="property" type={`boolean | RenderPageOptions`} default={`false`}   />
+<MemberInfo kind="property" type={`boolean | Record<string, any>`} default={`false`}   />
 
-The playground config to the admin GraphQL API
-[ApolloServer playground](https://www.apollographql.com/docs/apollo-server/api/apollo-server/#constructoroptions-apolloserver).
+Enables the GraphQL landing page served at the admin API path. Since Apollo Server 5
+removed the GraphQL Playground, a truthy value now serves GraphiQL instead, and the
+object form is read as a boolean and otherwise ignored.
 ### shopApiPlayground
 
-<MemberInfo kind="property" type={`boolean | RenderPageOptions`} default={`false`}   />
+<MemberInfo kind="property" type={`boolean | Record<string, any>`} default={`false`}   />
 
-The playground config to the shop GraphQL API
-[ApolloServer playground](https://www.apollographql.com/docs/apollo-server/api/apollo-server/#constructoroptions-apolloserver).
+Enables the GraphQL landing page served at the shop API path. Since Apollo Server 5
+removed the GraphQL Playground, a truthy value now serves GraphiQL instead, and the
+object form is read as a boolean and otherwise ignored.
 ### adminApiDebug
 
 <MemberInfo kind="property" type={`boolean`} default={`false`}   />
 
-The debug config to the admin GraphQL API
-[ApolloServer playground](https://www.apollographql.com/docs/apollo-server/api/apollo-server/#constructoroptions-apolloserver).
+Has no effect. This option used to set the `debug` option of Apollo Server, which was
+removed in Apollo Server 4.
 ### shopApiDebug
 
 <MemberInfo kind="property" type={`boolean`} default={`false`}   />
 
-The debug config to the shop GraphQL API
-[ApolloServer playground](https://www.apollographql.com/docs/apollo-server/api/apollo-server/#constructoroptions-apolloserver).
+Has no effect. This option used to set the `debug` option of Apollo Server, which was
+removed in Apollo Server 4.
 ### shopListQueryLimit
 
 <MemberInfo kind="property" type={`number`} default={`100`}   />

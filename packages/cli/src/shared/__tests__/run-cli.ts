@@ -5,6 +5,7 @@ import { CliCommandNode, CliCommandOption } from '../cli-command-definition';
 import { CliPluginExtensionAccessor } from '../cli-plugin-extension';
 import { registerCommands } from '../command-registry';
 import { CommandTreeEntry, RootOptionEntry } from '../command-registry-store';
+import { stripAnsi } from '../strip-ansi';
 
 /**
  * Accepts either shape so a test can pass a bare fixture when it does not care
@@ -55,6 +56,13 @@ export async function runCli(
     sharedOptions: Array<CliCommandOption | RootOptionEntry>,
     argv: string[],
     getPluginExtensions?: CliPluginExtensionAccessor,
+    /**
+     * Stands in for the `requiresProject` gate's project lookup. The suite runs
+     * inside the Vendure repo, which is itself a project, so a test that wants
+     * the gate to fire has to say so rather than rely on where it is run from.
+     * Left out, the real lookup applies and the gate stays open.
+     */
+    findProjectRoot?: () => string | undefined,
 ): Promise<CliRun> {
     let stdout = '';
     let commanderStderr = '';
@@ -75,6 +83,7 @@ export async function runCli(
     registerCommands(program, commands.map(toCommandEntry), {
         rootOptions: sharedOptions.map(toOptionEntry),
         getPluginExtensions,
+        findProjectRoot,
     });
 
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation(((code?: number) => {
@@ -108,9 +117,9 @@ export async function runCli(
 
     return {
         exitCode,
-        stdout,
-        stderr: commanderStderr + processStderr,
-        commanderStderr,
-        processStderr,
+        stdout: stripAnsi(stdout),
+        stderr: stripAnsi(commanderStderr + processStderr),
+        commanderStderr: stripAnsi(commanderStderr),
+        processStderr: stripAnsi(processStderr),
     };
 }

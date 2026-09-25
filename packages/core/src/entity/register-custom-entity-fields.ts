@@ -16,7 +16,11 @@ import { EmbeddedMetadataArgs } from 'typeorm/metadata-args/EmbeddedMetadataArgs
 import { RelationMetadataArgs } from 'typeorm/metadata-args/RelationMetadataArgs';
 import { DateUtils } from 'typeorm/util/DateUtils';
 
-import { CustomFieldConfig, CustomFields } from '../config/custom-field/custom-field-types';
+import {
+    CustomFieldConfig,
+    CustomFields,
+    isLocalizedCustomFieldType,
+} from '../config/custom-field/custom-field-types';
 import { Logger } from '../config/logger/vendure-logger';
 import { VendureConfig } from '../config/vendure-config';
 import { getDatabaseType, VendureDatabaseType } from '../connection/database-type';
@@ -285,18 +289,18 @@ export function registerCustomFieldsForEntity(
             };
 
             if (translation) {
-                if (customField.type === 'localeString' || customField.type === 'localeText') {
+                if (isLocalizedCustomFieldType(customField.type)) {
                     registerColumn();
                 }
             } else {
-                if (customField.type !== 'localeString' && customField.type !== 'localeText') {
+                if (!isLocalizedCustomFieldType(customField.type)) {
                     registerColumn();
                 }
             }
 
             const relationFieldsCount = customFields.filter(f => f.type === 'relation').length;
             const nonLocaleStringFieldsCount = customFields.filter(
-                f => f.type !== 'localeString' && f.type !== 'localeText' && f.type !== 'relation',
+                f => !isLocalizedCustomFieldType(f.type) && f.type !== 'relation',
             ).length;
 
             if (0 < relationFieldsCount && nonLocaleStringFieldsCount === 0) {
@@ -440,7 +444,7 @@ function assertLocaleFieldsNotSpecified(config: VendureConfig, entityName: keyof
     const customFields = config.customFields && config.customFields[entityName];
     if (customFields) {
         for (const customField of customFields) {
-            if (customField.type === 'localeString' || customField.type === 'localeText') {
+            if (isLocalizedCustomFieldType(customField.type)) {
                 Logger.error(
                     `Custom field "${customField.name}" on entity "${entityName}" cannot be of type "localeString" or "localeText". ` +
                         `This entity does not support localization.`,

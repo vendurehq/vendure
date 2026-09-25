@@ -1,0 +1,62 @@
+name: Dependency impact
+
+# Labels each dependency pull request with what it does to the published contract, because a
+# lockfile refresh and a widened published range look identical in the pull request list and mean
+# different things.
+#
+# Uses pull_request_target for the reason given in dependabot_auto_merge.yml: a workflow that
+# Dependabot triggers via pull_request gets a read-only GITHUB_TOKEN, so it could not apply a
+# label or post a comment.
+#
+# SECURITY: pull_request_target runs the workflow definition from the base branch with write
+# access to the base repository. This workflow must never check out, install, or build the pull
+# request head. It checks out the base commit to get its own script, and reads the head's
+# package.json files as data through the GitHub API. Parsing JSON never executes anything from the
+# pull request. It takes no secret beyond the automatic GITHUB_TOKEN.
+#
+# This is deliberately not a required status check and must not become one. It reports a fact
+# about a pull request; it does not judge it. It is a separate workflow rather than a job in
+# build_and_test.yml so that it stays out of the all-passed needs list.
+on:
+    pull_request_target:
+        types: [opened, reopened, synchronize]
+
+permissions: {}
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+    cancel-in-progress: true
+
+jobs:
+    classify:
+        name: classify dependency impact
+        runs-on: ubuntu-latest
+        permissions:
+            # contents: read is for checking out this repository's base commit.
+            #
+            # pull-requests: write is for listing the files the pull request changes, and for the
+            # label and the report comment. Those two go through the issue endpoints, but GitHub
+            # authorises a call against a pull request as a pull request whatever the endpoint is
+            # shaped like, so issues: write alone returns 403 on the label and the script exits 1.
+            #
+            # issues: write is for creating the two labels when they do not exist yet, which is a
+            # repository-level API and is the one call here that is not against the pull request.
+            contents: read
+            pull-requests: write
+            issues: write
+        steps:
+            - name: Check out trusted workflow code
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  # Do not override ref or repository here. For pull_request_target, checkout's
+                  # protected default resolves trusted code from the base repository, never the
+                  # pull request head or merge commit.
+                  persist-credentials: false
+
+            - name: Test classifier
+              run: node --test .github/workflows/scripts/dependency-impact.test.js
+
+            - name: Classify and report
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: node .github/workflows/scripts/dependency-impact.js

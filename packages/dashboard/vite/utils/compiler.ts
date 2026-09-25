@@ -296,8 +296,22 @@ async function resolveSourceContext(
 
     // Collect all local source files by walking the import tree
     const collectStart = Date.now();
-    const sourceFiles = await collectLocalSourceFiles(inputPath, originalTsConfigInfo);
+    const { sourceFiles, skippedPackageJsonFiles } = await collectLocalSourceFiles(
+        inputPath,
+        originalTsConfigInfo,
+    );
     logger.debug(`Collected ${sourceFiles.length} source files in ${Date.now() - collectStart}ms`);
+
+    // The import stays in the emitted JavaScript, so leaving this silent means the
+    // config fails to load with a bare "Cannot find module" naming a file the author
+    // can see on disk.
+    if (skippedPackageJsonFiles.length) {
+        logger.warn(
+            `A package.json cannot be copied into the compiled config output, because its "type" field ` +
+                `decides how the compiled files beside it are loaded. Loading the config will fail on ` +
+                `${skippedPackageJsonFiles.join(', ')}. Read the file at runtime instead of importing it.`,
+        );
+    }
 
     let sourceRoot = customSourceRoot;
     if (!sourceRoot) {
@@ -325,12 +339,14 @@ async function resolveSourceContext(
 }
 
 /**
- * Compiles TypeScript files to JavaScript using per-file transpilation.
+ * Compiles TypeScript files to JavaScript using per-file transpilation, and copies
+ * across the JSON they import.
  *
  * Instead of using `ts.createProgram()` (which resolves all imports including
  * node_modules type definitions and can OOM on projects with heavy dependencies),
  * this function:
- * 1. Transpiles each given source file individually with `ts.transpileModule()` (no type resolution)
+ * 1. Transpiles each given TypeScript file individually with `ts.transpileModule()`
+ *    (no type resolution), and copies JSON through unchanged
  * 2. Validates every emit lands inside outputPath before writing anything
  *
  * This avoids loading massive `.d.ts` files from packages like `openai`, `ai`, etc.
@@ -353,16 +369,27 @@ async function compileTypeScript({
 }): Promise<void> {
     await fs.ensureDir(outputPath);
 
+    const afterTransformers: Array<ts.TransformerFactory<ts.SourceFile>> = [];
+
     // Build path transformer for ESM mode
     // This is necessary because tsconfig-paths.register() only works for CommonJS require(),
     // not for ESM import(). We need to transform the import paths during transpilation.
-    let pathTransformer: ts.TransformerFactory<ts.SourceFile> | undefined;
     if (module === 'esm' && tsConfigInfo) {
         logger.debug('Adding path transformer for ESM mode');
-        pathTransformer = createPathTransformer({
-            baseUrl: tsConfigInfo.baseUrl,
-            paths: tsConfigInfo.paths,
-        });
+        afterTransformers.push(
+            createPathTransformer({
+                baseUrl: tsConfigInfo.baseUrl,
+                paths: tsConfigInfo.paths,
+            }),
+        );
+    }
+
+    // Copying the JSON is enough for CommonJS, whose require() reads it directly.
+    // TypeScript emits the import without an attribute, and Node refuses to load a
+    // JSON module in ESM without `with { type: 'json' }`, which the author cannot write
+    // in a source file that also targets CommonJS for the server build.
+    if (module === 'esm') {
+        afterTransformers.push(createJsonImportAttributeTransformer());
     }
 
     // Note: emitDecoratorMetadata with transpileModule emits `Object` for all
@@ -380,8 +407,8 @@ async function compileTypeScript({
         emitDecoratorMetadata: true,
         esModuleInterop: true,
     };
-    const transformers: ts.CustomTransformers | undefined = pathTransformer
-        ? { after: [pathTransformer] }
+    const transformers: ts.CustomTransformers | undefined = afterTransformers.length
+        ? { after: afterTransformers }
         : undefined;
 
     // Transpile first and validate every destination before writing anything,
@@ -395,17 +422,22 @@ async function compileTypeScript({
 
     for (const filePath of sourceFiles) {
         const content = await fs.readFile(filePath, 'utf-8');
-        const result = ts.transpileModule(content, {
-            compilerOptions,
-            fileName: filePath,
-            transformers,
-        });
+        // JSON is data, not code: it is copied byte for byte so the require() or
+        // import in the emitted JavaScript resolves against the same content the
+        // server would have read.
+        const outputText = filePath.endsWith('.json')
+            ? content
+            : ts.transpileModule(content, {
+                  compilerOptions,
+                  fileName: filePath,
+                  transformers,
+              }).outputText;
 
         // Compute output path preserving directory structure relative to source root
         const relativePath = path.relative(sourceRoot, filePath);
         const outputFilePath = path.join(outputPath, relativePath).replace(/\.tsx?$/, '.js');
 
-        pendingEmits.push({ sourceFile: filePath, outputFilePath, outputText: result.outputText });
+        pendingEmits.push({ sourceFile: filePath, outputFilePath, outputText });
     }
 
     for (const emit of pendingEmits) {
@@ -416,6 +448,64 @@ async function compileTypeScript({
         await fs.ensureDir(path.dirname(emit.outputFilePath));
         await fs.writeFile(emit.outputFilePath, emit.outputText);
     }
+}
+
+/**
+ * Adds `type: 'json'` to the import attributes of import and export declarations
+ * of `.json` specifiers that do not already carry a `type` attribute. Any other
+ * attributes, including an empty `with {}`, are kept and the entry is appended.
+ *
+ * Matching on the `.json` suffix is a superset of the rule `collectLocalSourceFiles`
+ * uses to copy a JSON file. Bare specifiers such as `some-pkg/data.json` are never
+ * copied, but still get the attribute, because Node requires it for them too.
+ */
+function createJsonImportAttributeTransformer(): ts.TransformerFactory<ts.SourceFile> {
+    return context => {
+        const { factory } = context;
+        const withJsonAttribute = (attributes: ts.ImportAttributes | undefined) => {
+            const typeJson = factory.createImportAttribute(
+                factory.createIdentifier('type'),
+                factory.createStringLiteral('json'),
+            );
+            return attributes
+                ? factory.updateImportAttributes(
+                      attributes,
+                      factory.createNodeArray([...attributes.elements, typeJson]),
+                      attributes.multiLine,
+                  )
+                : factory.createImportAttributes(factory.createNodeArray([typeJson]));
+        };
+        const needsJsonAttributes = (node: ts.ImportDeclaration | ts.ExportDeclaration) =>
+            !node.attributes?.elements.some(attribute => attribute.name.text === 'type') &&
+            !!node.moduleSpecifier &&
+            ts.isStringLiteral(node.moduleSpecifier) &&
+            node.moduleSpecifier.text.endsWith('.json');
+
+        const visitor: ts.Visitor = node => {
+            if (ts.isImportDeclaration(node) && needsJsonAttributes(node)) {
+                return factory.updateImportDeclaration(
+                    node,
+                    node.modifiers,
+                    node.importClause,
+                    node.moduleSpecifier,
+                    withJsonAttribute(node.attributes),
+                );
+            }
+            if (ts.isExportDeclaration(node) && needsJsonAttributes(node)) {
+                return factory.updateExportDeclaration(
+                    node,
+                    node.modifiers,
+                    node.isTypeOnly,
+                    node.exportClause,
+                    node.moduleSpecifier,
+                    withJsonAttribute(node.attributes),
+                );
+            }
+            return node;
+        };
+
+        return sourceFile => ts.visitEachChild(sourceFile, visitor, context);
+    };
 }
 
 function assertWithinOutputPath(outputFilePath: string, outputPath: string): void {
@@ -436,8 +526,9 @@ function assertWithinOutputPath(outputFilePath: string, outputPath: string): voi
 
 /**
  * Collects all local source files reachable from the entry point by following
- * import/export declarations. Only follows local imports (relative paths and
- * tsconfig path aliases), not npm package imports.
+ * import/export declarations, along with the JSON files they import. Only follows
+ * local imports (relative paths and tsconfig path aliases), not npm package
+ * imports.
  *
  * This is intentionally lightweight — it uses TypeScript's AST parser only
  * for reading import statements, without any module resolution or type loading.
@@ -445,8 +536,9 @@ function assertWithinOutputPath(outputFilePath: string, outputPath: string): voi
 async function collectLocalSourceFiles(
     entryFile: string,
     tsConfigInfo?: { baseUrl: string; paths: Record<string, string[]> },
-): Promise<string[]> {
+): Promise<{ sourceFiles: string[]; skippedPackageJsonFiles: string[] }> {
     const visited = new Set<string>();
+    const skippedPackageJson = new Set<string>();
 
     async function processFile(filePath: string) {
         const resolved = await resolveSourceFile(filePath);
@@ -455,10 +547,22 @@ async function collectLocalSourceFiles(
         // Skip declaration files and non-source files before adding to visited,
         // so they don't leak into the returned sourceFiles array.
         if (resolved.endsWith('.d.ts') || resolved.endsWith('.d.tsx')) return;
-        if (!/\.(ts|tsx|js|jsx)$/.test(resolved)) return;
+        if (!/\.(ts|tsx|js|jsx|json)$/.test(resolved)) return;
+        // A package.json is never copied. At the output root it would collide with
+        // the one written there to declare the module type, and in any nested
+        // directory its own "type" field decides how the compiled .js files beside
+        // it are loaded, which breaks them.
+        if (path.basename(resolved) === 'package.json') {
+            skippedPackageJson.add(resolved);
+            return;
+        }
 
         if (visited.has(resolved)) return;
         visited.add(resolved);
+
+        // JSON is copied verbatim and declares no imports, so there is nothing to
+        // parse or follow.
+        if (resolved.endsWith('.json')) return;
 
         const content = await fs.readFile(resolved, 'utf-8');
         const sf = ts.createSourceFile(resolved, content, ts.ScriptTarget.Latest, true);
@@ -467,6 +571,7 @@ async function collectLocalSourceFiles(
 
         ts.forEachChild(sf, node => {
             if (!ts.isImportDeclaration(node) && !ts.isExportDeclaration(node)) return;
+            if (isTypeOnlyImportOrExport(node)) return;
             const moduleSpecifier = node.moduleSpecifier;
             if (!moduleSpecifier || !ts.isStringLiteral(moduleSpecifier)) return;
             const importPath = moduleSpecifier.text;
@@ -489,7 +594,37 @@ async function collectLocalSourceFiles(
     }
 
     await processFile(entryFile);
-    return [...visited];
+    return { sourceFiles: [...visited], skippedPackageJsonFiles: [...skippedPackageJson] };
+}
+
+function isTypeOnlyImportOrExport(node: ts.ImportDeclaration | ts.ExportDeclaration) {
+    if (ts.isImportDeclaration(node)) {
+        const importClause = node.importClause;
+        if (!importClause) {
+            return false;
+        }
+        if (importClause.isTypeOnly) {
+            return true;
+        }
+        const namedBindings = importClause.namedBindings;
+        return (
+            !importClause.name &&
+            !!namedBindings &&
+            ts.isNamedImports(namedBindings) &&
+            namedBindings.elements.length > 0 &&
+            namedBindings.elements.every(element => element.isTypeOnly)
+        );
+    }
+
+    if (node.isTypeOnly) {
+        return true;
+    }
+    return (
+        !!node.exportClause &&
+        ts.isNamedExports(node.exportClause) &&
+        node.exportClause.elements.length > 0 &&
+        node.exportClause.elements.every(element => element.isTypeOnly)
+    );
 }
 
 async function registerTsConfigPaths(options: {
