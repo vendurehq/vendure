@@ -53,7 +53,7 @@ export type {
     ConsoleLinkHookWithSession,
     ConsoleLinkOutcome,
 } from './commands/console/console-link-hook';
-export type { ConsoleOriginEnvironment } from './commands/console/console-origins';
+export type { ConsoleOriginEnvironment, ConsoleOrigins } from './commands/console/console-origins';
 export type { ConsoleReporter } from './commands/console/console-reporter';
 export type { ProjectLinkManifest } from './commands/console/project-link-manifest';
 export { readCommandContext, readCommandOptions } from './shared/cli-command-definition';

@@ -4,13 +4,13 @@ import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wra
 import { ListPage } from '@/vdb/framework/page/list-page.js';
 import { api } from '@/vdb/graphql/api.js';
 import { Trans, useLingui } from '@lingui/react/macro';
-import { FetchQueryOptions, useQueries, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { ExpandedState, getExpandedRowModel } from '@tanstack/react-table';
 import { TableOptions } from '@tanstack/table-core';
 import { ResultOf } from 'gql.tada';
 import { Folder, FolderOpen, PlusIcon } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 
 import {
@@ -32,6 +32,7 @@ import {
     RemoveCollectionsFromChannelBulkAction,
 } from './components/collection-bulk-actions.js';
 import { CollectionContentsSheet } from './components/collection-contents-sheet.js';
+import { usePaginatedChildCollections } from './hooks/use-paginated-child-collections.js';
 
 function parseExpandedParam(expanded?: string): ExpandedState {
     if (!expanded) return {};
@@ -87,10 +88,6 @@ function CollectionListPage() {
         parseExpandedParam(routeSearch.expanded),
     );
     const [searchTerm, setSearchTerm] = useState<string>('');
-    const [accumulatedChildren, setAccumulatedChildren] = useState<
-        Record<string, { items: Collection[]; totalItems: number }>
-    >({});
-    const [nextPageToFetch, setNextPageToFetch] = useState<Record<string, number>>({});
 
     const setExpanded = useCallback(
         (updater: ExpandedState | ((prev: ExpandedState) => ExpandedState)) => {
@@ -109,116 +106,37 @@ function CollectionListPage() {
         [navigate],
     );
 
-    // NOTE: queryFn must be pure (no setState side effects). With the global
-    // `keepPreviousData`, a re-mounted component is served the cached data on its
-    // first render before the refetch lands, and TanStack Query skips the queryFn
-    // entirely for that cached render. If we called setAccumulatedChildren inside
-    // queryFn, those cache-hit renders would never populate accumulatedChildren,
-    // so children wouldn't render. Instead we sync via the useEffect below, which
-    // fires for both cache hits and fresh fetches.
-    const firstPageChildQueries = useQueries({
-        queries:
+    // Loads child collections for expanded nodes one page (CHILDREN_PAGE_SIZE) at a time.
+    // Expanding a node with many children (common in deeply nested trees) would otherwise
+    // fetch every descendant - and compute breadcrumbs for each - in a single unbounded
+    // request.
+    const { accumulatedChildren, handleLoadMoreChildren, resetChildren } = usePaginatedChildCollections<
+        Collection
+    >({
+        expandedIds:
             expanded === true
                 ? []
                 : Object.entries(expanded)
-                      .filter(([collectionId]) => !accumulatedChildren[collectionId])
-                      .map(([collectionId]) => {
-                          return {
-                              queryKey: ['childCollections', collectionId, 'page', 0],
-                              queryFn: async () => {
-                                  const result = await api.query(collectionListDocument, {
-                                      options: {
-                                          filter: {
-                                              parentId: { eq: collectionId },
-                                          },
-                                          take: CHILDREN_PAGE_SIZE,
-                                          skip: 0,
-                                      },
-                                  });
-                                  return {
-                                      collectionId,
-                                      items: result.collections.items,
-                                      totalItems: result.collections.totalItems,
-                                  };
-                              },
-                          } satisfies FetchQueryOptions;
-                      }),
-    });
-
-    useEffect(() => {
-        const newChildren: Record<string, { items: Collection[]; totalItems: number }> = {};
-        let hasNew = false;
-        for (const query of firstPageChildQueries) {
-            if (query.data && !accumulatedChildren[query.data.collectionId]) {
-                newChildren[query.data.collectionId] = {
-                    items: query.data.items as Collection[],
-                    totalItems: query.data.totalItems,
-                };
-                hasNew = true;
-            }
-        }
-        if (hasNew) {
-            setAccumulatedChildren(prev => ({ ...prev, ...newChildren }));
-        }
-    }, [firstPageChildQueries]);
-
-    const pagedChildQueries = useQueries({
-        queries: Object.entries(nextPageToFetch)
-            .filter(([_, page]) => page > 0)
-            .map(([collectionId, page]) => {
-                return {
-                    queryKey: ['childCollections', collectionId, 'page', page],
-                    queryFn: async () => {
-                        const result = await api.query(collectionListDocument, {
-                            options: {
-                                filter: {
-                                    parentId: { eq: collectionId },
-                                },
-                                take: CHILDREN_PAGE_SIZE,
-                                skip: page * CHILDREN_PAGE_SIZE,
-                            },
-                        });
-                        return {
-                            collectionId,
-                            items: result.collections.items,
-                            totalItems: result.collections.totalItems,
-                        };
+                      .filter(([, isExpanded]) => isExpanded)
+                      .map(([collectionId]) => collectionId),
+        pageSize: CHILDREN_PAGE_SIZE,
+        queryKeyPrefix: 'childCollections',
+        fetchChildren: async (parentId, take, skip) => {
+            const result = await api.query(collectionListDocument, {
+                options: {
+                    filter: {
+                        parentId: { eq: parentId },
                     },
-                } satisfies FetchQueryOptions;
-            }),
-    });
-
-    useEffect(() => {
-        let hasUpdates = false;
-        const childUpdates: Record<string, { items: Collection[]; totalItems: number }> = {};
-        const fetchedPages: string[] = [];
-        for (const query of pagedChildQueries) {
-            if (!query.data) continue;
-            const { collectionId, items, totalItems } = query.data as {
-                collectionId: string;
-                items: Collection[];
-                totalItems: number;
-            };
-            if (accumulatedChildren[collectionId]) {
-                childUpdates[collectionId] = {
-                    items: [...accumulatedChildren[collectionId].items, ...items],
-                    totalItems,
-                };
-                fetchedPages.push(collectionId);
-                hasUpdates = true;
-            }
-        }
-        if (hasUpdates) {
-            setAccumulatedChildren(prev => ({ ...prev, ...childUpdates }));
-            setNextPageToFetch(prev => {
-                const next = { ...prev };
-                for (const id of fetchedPages) {
-                    delete next[id];
-                }
-                return next;
+                    take,
+                    skip,
+                },
             });
-        }
-    }, [pagedChildQueries]);
+            return {
+                items: result.collections.items,
+                totalItems: result.collections.totalItems,
+            };
+        },
+    });
 
     const addSubCollections = (data: Collection[]): CollectionOrLoadMore[] => {
         const allRows: CollectionOrLoadMore[] = [];
@@ -255,21 +173,7 @@ function CollectionListPage() {
         return allRows;
     };
 
-    const handleLoadMoreChildren = (parentId: string) => {
-        const currentItems = accumulatedChildren[parentId]?.items.length ?? 0;
-        const nextPage = Math.floor(currentItems / CHILDREN_PAGE_SIZE);
-        setNextPageToFetch(prev => ({
-            ...prev,
-            [parentId]: nextPage,
-        }));
-    };
-
-    const handleReorder = async (
-        oldIndex: number,
-        newIndex: number,
-        item: Collection,
-        allItems?: Collection[],
-    ) => {
+    const handleReorder = async (oldIndex: number, newIndex: number, item: Collection, allItems?: Collection[]) => {
         if (isLoadMoreRow(item as CollectionOrLoadMore)) {
             return;
         }
@@ -332,14 +236,9 @@ function CollectionListPage() {
                 queryClient.removeQueries({ queryKey: ['childCollections', targetParentId] });
             }
 
-            setAccumulatedChildren(prev => {
-                const newState = { ...prev };
-                delete newState[sourceParentId];
-                if (targetParentId !== sourceParentId) {
-                    delete newState[targetParentId];
-                }
-                return newState;
-            });
+            resetChildren(
+                targetParentId !== sourceParentId ? [sourceParentId, targetParentId] : [sourceParentId],
+            );
 
             await queryClient.invalidateQueries({ queryKey: ['PaginatedListDataTable'] });
 
@@ -505,7 +404,7 @@ function CollectionListPage() {
                     refreshChildCaches: () => {
                         queryClient.removeQueries({ queryKey: ['childCollections'] });
                         queryClient.removeQueries({ queryKey: ['PaginatedListDataTable'] });
-                        setAccumulatedChildren({});
+                        resetChildren();
                     },
                     isUtilityRow: (row: { original: CollectionOrLoadMore }) => isLoadMoreRow(row.original),
                     renderUtilityRow: (row: { original: CollectionOrLoadMore }) => {

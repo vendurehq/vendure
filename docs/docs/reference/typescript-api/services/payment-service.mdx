@@ -2,7 +2,7 @@
 title: "PaymentService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/payment.service.ts" sourceLine="62" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/payment.service.ts" sourceLine="64" packageName="@vendure/core" />
 
 Contains methods relating to [Payment](/reference/typescript-api/entities/payment#payment) entities.
 
@@ -17,7 +17,9 @@ class PaymentService {
     settlePayment(ctx: RequestContext, paymentId: ID) => Promise<PaymentStateTransitionError | Payment>;
     cancelPayment(ctx: RequestContext, paymentId: ID) => Promise<PaymentStateTransitionError | Payment>;
     createManualPayment(ctx: RequestContext, order: Order, amount: number, input: ManualPaymentInput) => ;
-    createRefund(ctx: RequestContext, input: RefundOrderInput, order: Order, selectedPayment: Payment) => Promise<Refund | RefundStateTransitionError | RefundAmountError | RefundDestinationError>;
+    createRefund(ctx: RequestContext, input: RefundOrderInput, order: Order, selectedPayment: Payment) => Promise<
+        Refund | RefundStateTransitionError | RefundAmountError | RefundDestinationError | RefundIncompleteError
+    >;
 }
 ```
 
@@ -85,7 +87,7 @@ preferable to use the [OrderService](/reference/typescript-api/services/order-se
 updating the Order state too.
 ### createRefund
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: RefundOrderInput, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>, selectedPayment: <a href='/reference/typescript-api/entities/payment#payment'>Payment</a>) => Promise<<a href='/reference/typescript-api/entities/refund#refund'>Refund</a> | RefundStateTransitionError | RefundAmountError | RefundDestinationError>`}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: RefundOrderInput, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>, selectedPayment: <a href='/reference/typescript-api/entities/payment#payment'>Payment</a>) => Promise<         <a href='/reference/typescript-api/entities/refund#refund'>Refund</a> | RefundStateTransitionError | RefundAmountError | RefundDestinationError | RefundIncompleteError     >`}   />
 
 Creates one or more Refunds against the Payments of the given Order.
 

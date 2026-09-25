@@ -1,5 +1,5 @@
 import { log } from '@clack/prompts';
-import type { VendureConfig } from '@vendure/core';
+import type { MigrationDiagnostic, VendureConfig } from '@vendure/core';
 import path from 'node:path';
 
 import { loadVendureConfigFile } from '../../shared/load-vendure-config-file';
@@ -7,6 +7,8 @@ import { requireProjectCore } from '../../shared/project-core';
 import { validateVendureProjectDirectory } from '../../shared/project-validation';
 import { analyzeProject } from '../../shared/shared-prompts';
 import { VendureConfigRef } from '../../shared/vendure-config-ref';
+
+import { buildMigrationReport } from './migration-report';
 
 export interface MigrationOptions {
     name?: string;
@@ -18,6 +20,8 @@ export interface MigrationOptions {
 export interface MigrationResult {
     success: boolean;
     message: string;
+    /** The operation completed, but reported something the user needs to act on. */
+    hasWarnings?: boolean;
     migrationName?: string;
     migrationsRan?: string[];
 }
@@ -88,15 +92,16 @@ export async function runMigrationsOperation(configFile?: string): Promise<Migra
         const config = await loadVendureConfigFile(vendureConfig);
 
         log.info('Running migrations...');
-        const migrationsRan = await requireProjectCore().runMigrations(config);
-
-        const report = migrationsRan.length
-            ? `Successfully ran ${migrationsRan.length} migrations`
-            : 'No pending migrations found';
+        const diagnostics: MigrationDiagnostic[] = [];
+        const migrationsRan = await requireProjectCore().runMigrations(config, {
+            onDiagnostic: diagnostic => diagnostics.push(diagnostic),
+        });
+        const report = buildMigrationReport(migrationsRan, diagnostics);
 
         return {
             success: true,
-            message: report,
+            message: report.message,
+            hasWarnings: report.hasWarnings,
             migrationsRan,
         };
     } catch (error: any) {

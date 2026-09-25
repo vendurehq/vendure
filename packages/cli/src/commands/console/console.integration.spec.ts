@@ -52,8 +52,8 @@ describe('Console project-link integration', () => {
             cwd: projectRoot,
             env: {
                 VENDURE_CLI_NON_INTERACTIVE: 'true',
-                VENDURE_CONSOLE_LINK_URL: 'http://localhost:3000',
-                VENDURE_CONSOLE_LINK_API_URL: apiUrl,
+                VENDURE_CONSOLE_APP_URL: 'http://localhost:3000',
+                VENDURE_CONSOLE_API_URL: apiUrl,
             },
             fetch: globalThis.fetch,
             isNonInteractive: () => true,
@@ -64,7 +64,14 @@ describe('Console project-link integration', () => {
         };
 
         expect(await consoleCommand('link', {}, dependencies)).toBe(0);
-        expect(fs.readJsonSync(getProjectLinkManifestPath(projectRoot))).toEqual(manifest);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(projectRoot))).toEqual({
+            ...manifest,
+            schemaVersion: 1,
+            console: {
+                appOrigin: 'http://localhost:3000',
+                apiOrigin: apiUrl,
+            },
+        });
         expect(fs.readFileSync(path.join(projectRoot, '.gitignore'), 'utf8')).toContain(
             '!.vendure/project.json',
         );

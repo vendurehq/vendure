@@ -2837,7 +2837,7 @@ msgstr "Cancelled"
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts
 msgid "fulfillmentState.Created"
-msgstr "fulfillmentState.Created"
+msgstr "Created"
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts

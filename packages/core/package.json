@@ -1,6 +1,6 @@
 {
     "name": "@vendure/core",
-    "version": "3.7.2",
+    "version": "3.7.3",
     "description": "A modern, headless ecommerce framework",
     "repository": {
         "type": "git",
@@ -53,7 +53,7 @@
         "@nestjs/platform-express": "^12.0.1",
         "@nestjs/typeorm": "^12.0.1",
         "@types/express": "^5.0.1",
-        "@vendure/common": "3.7.2",
+        "@vendure/common": "3.7.3",
         "bcrypt": "^6.0.0",
         "cookie-session": "^2.1.0",
         "cron-time-generator": "^2.0.3",

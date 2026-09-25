@@ -321,6 +321,10 @@ export const SELLER_FRAGMENT = gql`
         createdAt
         updatedAt
         name
+        translations {
+            id
+            languageCode
+        }
     }
 `;
 

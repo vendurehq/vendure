@@ -2555,6 +2555,7 @@ export class OrderService implements OnApplicationBootstrap {
                     'billingAddress',
                     'lines',
                     'shippingLines',
+                    'surcharges',
                     'aggregateOrder',
                     'sellerOrders',
                     'customer',

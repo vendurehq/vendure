@@ -334,8 +334,8 @@ Use `status` to validate and display the local link:
 npx vendure console status
 ```
 
-The output includes the Account, Project, schema version, protocol version, and local authentication state. This
-command reads local state only. It does not contact Vendure Console.
+The output includes the Account, Project, Console origins, schema version, protocol version, and local authentication
+state. This command reads local state only. It does not contact Vendure Console.
 
 ### Unlink a project
 
@@ -372,8 +372,8 @@ Running `vendure console link` in a project that is already linked repairs it ra
 is reused and any plugin setup runs again. Where a plugin is registered, that is confirmed first, because the manifest
 may have arrived with a clone.
 
-Use `--yes` to answer every confirmation owned by the CLI. This includes manifest changes, custom Console endpoints,
-and plugin setup on a repair. It does not answer questions asked by a plugin hook:
+Use `--yes` to answer every confirmation owned by the CLI. This includes manifest changes and plugin setup on a
+repair. It does not answer questions asked by a plugin hook:
 
 ```bash
 npx vendure console link --yes
@@ -383,16 +383,24 @@ On an already-linked project, `--yes` keeps the repair behavior. Only `--force` 
 
 ### Manifest and source control
 
-The v1 manifest contains identity metadata only:
+The manifest contains Project Link identity metadata and Console endpoint metadata:
 
 ```json
 {
     "schemaVersion": 1,
     "project": { "id": "<uuid>", "name": "<display name>" },
     "account": { "id": "<uuid>", "name": "<display name>" },
-    "link": { "id": "<uuid>", "protocolVersion": 1 }
+    "link": { "id": "<uuid>", "protocolVersion": 1 },
+    "console": {
+        "appOrigin": "https://console.vendure.io",
+        "apiOrigin": "https://api.vendure.io"
+    }
 }
 ```
+
+The Console values are origins. They contain no path, query, fragment, or credentials. The CLI also accepts a
+manifest without `console` and treats it as a production Console link. Running `vendure console link` again adds
+the `console` block.
 
 Commit `.vendure/project.json` so that the repository keeps its Project identity. Ignore all other `.vendure` files.
 They are reserved for machine-local state and may contain secrets.
@@ -419,30 +427,29 @@ The original ancestor rule stays unchanged, and other projects remain ignored. T
 
 ### Console environments
 
-The command uses `https://console.vendure.io` and `https://api.vendure.io` by default. To use a local Console
-environment, set both link-specific variables:
+The command uses the Console recorded in `.vendure/project.json`. A manifest without `console` and an unlinked project use
+`https://console.vendure.io` and `https://api.vendure.io`. To use a local Console environment, set both variables:
 
 ```bash
-VENDURE_CONSOLE_LINK_URL=http://localhost:3000 \
-VENDURE_CONSOLE_LINK_API_URL=http://localhost:3001 \
+VENDURE_CONSOLE_APP_URL=http://localhost:3000 \
+VENDURE_CONSOLE_API_URL=http://localhost:3001 \
 npx vendure console link
 ```
 
-The variables apply only to the unauthenticated Project Link exchange. They do not configure Console authentication,
-Environment Credentials, Registry access, package downloads, or Vendure Cloud operations.
+An explicit pair takes precedence when no manifest exists or when it matches the manifest. If it names a different
+Console, the command refuses to continue and prints both pairs. Unset the variables to use the linked Console.
+
+The prerelease variables `VENDURE_CONSOLE_LINK_URL` and `VENDURE_CONSOLE_LINK_API_URL` are not supported. Use
+`VENDURE_CONSOLE_APP_URL` and `VENDURE_CONSOLE_API_URL` instead. The CLI stops with a migration message when either
+old variable is set, including when its value is empty.
+
+The prerelease `--allow-custom-console` option is also not supported and has no replacement. Console linking accepts
+only the production pair, the staging pair, or loopback origins on `localhost`, `127.0.0.1`, or `::1`. A custom
+Console host is not supported.
 
 The CLI rejects partial endpoint configuration and URLs that contain credentials, paths, queries, or fragments. It
-requires HTTPS except for `localhost`, `127.0.0.1`, and `::1`. An official Console app or API origin is accepted only
-with the matching official origin from the same environment.
-
-Before it contacts a custom remote environment, the CLI displays both origins and asks for confirmation. In a
-non-interactive environment, pass `--allow-custom-console` to confirm them explicitly:
-
-```bash
-VENDURE_CONSOLE_LINK_URL=https://console.staging.example.com \
-VENDURE_CONSOLE_LINK_API_URL=https://api.staging.example.com \
-npx vendure console link --allow-custom-console
-```
+requires HTTPS except for `localhost`, `127.0.0.1`, and `::1`. It accepts the matching production pair, the matching
+staging pair, or a loopback pair. It rejects other hosts.
 
 ## Working in Monorepos
 
@@ -819,7 +826,8 @@ been extended. A group and all its subcommands must come from one plugin.
 ### Running after a project link
 
 Register an `afterConsoleLink` hook when a plugin must run setup after
-`vendure console link` writes or reuses the Project Link Manifest:
+`vendure console link` writes or reuses the Project Link Manifest. A repair also adds the Console origins to a
+manifest that does not contain them:
 
 ```ts
 import { defineCliPlugin } from '@vendure/cli';
@@ -900,12 +908,10 @@ of `'linked'`.
 
 If a hook must run only against production, require
 `context.endpoints.official === 'production'`. The value is `'staging'` for the
-official staging pair and `undefined` for custom or loopback origins. A custom
-endpoint confirmation does not authorize a hook to send credentials there.
+official staging pair and `undefined` for loopback origins.
 
-The value describes the origins for the current run. The manifest does not
-record its source origin, so a repair cannot verify where its identifiers came
-from.
+The value describes the origins for the current run. A repair gets them from the
+manifest unless the matching environment variables are set.
 
 ### Checking what the installed CLI supports
 

@@ -39,8 +39,16 @@ export class Surcharge extends VendureEntity {
     @Column('simple-json')
     taxLines: TaxLine[];
 
+    // TypeORM's default 'nullify' sets `orderId` to null on every Surcharge row missing from
+    // the in-memory `Order.surcharges` array, which is a snapshot from the time the Order was
+    // loaded: a Surcharge added since, by an event handler or by a concurrent request, is
+    // detached by the next save of that Order. `OrderService.removeSurchargeFromOrder` deletes
+    // the row, so nothing needs the nullify.
     @Index()
-    @ManyToOne(type => Order, order => order.surcharges, { onDelete: 'CASCADE' })
+    @ManyToOne(type => Order, order => order.surcharges, {
+        onDelete: 'CASCADE',
+        orphanedRowAction: 'disable',
+    })
     order: Order;
 
     @Index()

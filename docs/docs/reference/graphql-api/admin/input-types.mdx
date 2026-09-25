@@ -1612,11 +1612,13 @@ input CreateApiKeyInput {
   typeName="CreateSellerInput"
   typeLinks={{
     String: '/reference/graphql-api/admin/object-types#string',
+    SellerTranslationInput: '/reference/graphql-api/admin/input-types#sellertranslationinput',
     JSON: '/reference/graphql-api/admin/object-types#json',
   }}
 >
 {`input CreateSellerInput {
   name: String!
+  translations: [SellerTranslationInput!]
   customFields: JSON
 }`}
 </GraphQLDoc>
@@ -3596,8 +3598,10 @@ input NumberOperators {
   \`amount\` of each target is the total amount refunded, and the top-level \`amount\` and
   \`destination\` fields are ignored.
   
-  All targets are validated before any refund is created, and the whole operation is
-  performed in a single transaction.
+  All targets are validated before any refund is created, and every target must draw on a
+  Payment in the \`Settled\` state. If a target fails once earlier targets have already been
+  refunded, the Refunds created for the earlier targets are kept and a \`RefundIncompleteError\`
+  is returned.
   """
   targets: [RefundTargetInput!]
 }`}
@@ -3991,6 +3995,26 @@ input RefundTargetInput {
   createdAt: SortOrder
   updatedAt: SortOrder
   name: SortOrder
+}`}
+</GraphQLDoc>
+
+<a name="sellertranslationinput"></a>
+
+## SellerTranslationInput
+
+<GraphQLDoc
+  type="input"
+  typeName="SellerTranslationInput"
+  typeLinks={{
+    ID: '/reference/graphql-api/admin/object-types#id',
+    LanguageCode: '/reference/graphql-api/admin/enums#languagecode',
+    JSON: '/reference/graphql-api/admin/object-types#json',
+  }}
+>
+{`input SellerTranslationInput {
+  id: ID
+  languageCode: LanguageCode!
+  customFields: JSON
 }`}
 </GraphQLDoc>
 
@@ -5360,12 +5384,14 @@ input UpdateProductVariantPriceInput {
   typeLinks={{
     ID: '/reference/graphql-api/admin/object-types#id',
     String: '/reference/graphql-api/admin/object-types#string',
+    SellerTranslationInput: '/reference/graphql-api/admin/input-types#sellertranslationinput',
     JSON: '/reference/graphql-api/admin/object-types#json',
   }}
 >
 {`input UpdateSellerInput {
   id: ID!
   name: String
+  translations: [SellerTranslationInput!]
   customFields: JSON
 }`}
 </GraphQLDoc>

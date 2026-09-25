@@ -111,6 +111,10 @@ but not another.
 This is called when resolving the `refundDestinations` query to build the list of Payments
 a destination may be used with, and again when a refund is created, to verify that the
 Payment chosen by the administrator is one of them.
+
+In both cases the Order has its `payments` relation loaded, and each Payment has its
+`refunds` loaded. No other relations are loaded; use the [EntityHydrator](/reference/typescript-api/data-access/entity-hydrator#entityhydrator) if the
+strategy needs more, such as `order.customer` or `order.lines`.
 ### createRefund
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: RefundOrderInput, amount: number, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>, payment: <a href='/reference/typescript-api/entities/payment#payment'>Payment</a>, args?: <a href='/reference/typescript-api/common/json-compatible#jsoncompatible'>JsonCompatible</a><any>) => <a href='/reference/typescript-api/payment/payment-method-types#createrefundresult'>CreateRefundResult</a> | Promise<<a href='/reference/typescript-api/payment/payment-method-types#createrefundresult'>CreateRefundResult</a>>`}   />
@@ -119,8 +123,12 @@ Execute the refund to this destination. Called instead of
 `PaymentMethodHandler.createRefund()` when this destination is selected.
 
 The returned [CreateRefundResult](/reference/typescript-api/payment/payment-method-types#createrefundresult) determines the refund state
-and any associated transaction ID or metadata. Throwing from this method aborts the whole
-refund operation and rolls back any Refunds created earlier in the same call.
+and any associated transaction ID or metadata. If this method throws when earlier targets of
+the same refund have already been processed, their Refunds are kept and the mutation returns
+a `RefundIncompleteError`. If it throws for the first target, the error propagates and no
+Refund is created.
+
+The `order` and `payment` are hydrated in the same way as for `isAvailable()`.
 
 
 </div>

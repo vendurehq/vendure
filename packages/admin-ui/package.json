@@ -1,6 +1,6 @@
 {
     "name": "@vendure/admin-ui",
-    "version": "3.7.2",
+    "version": "3.7.3",
     "license": "GPL-3.0-or-later",
     "repository": {
         "type": "git",
@@ -53,7 +53,7 @@
         "@ng-select/ng-select": "^14.2.6",
         "@ngx-translate/core": "^16.0.4",
         "@ngx-translate/http-loader": "^18.0.0",
-        "@vendure/common": "3.7.2",
+        "@vendure/common": "3.7.3",
         "@webcomponents/custom-elements": "^1.6.0",
         "apollo-angular": "^10.0.3",
         "apollo-upload-client": "^18.0.1",
@@ -96,7 +96,7 @@
         "@types/jasminewd2": "~2.0.10",
         "@types/node": "^18.17.9",
         "@types/react": "^19.0.12",
-        "@typescript-eslint/eslint-plugin": "^5.59.2",
+        "@typescript-eslint/eslint-plugin": "^8.68.0",
         "@typescript-eslint/parser": "^5.59.2",
         "@vendure/ngx-translate-extract": "^9.4.2",
         "cross-spawn": "^7.0.3",

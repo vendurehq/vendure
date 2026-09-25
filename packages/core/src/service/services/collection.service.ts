@@ -441,6 +441,41 @@ export class CollectionService implements OnModuleInit {
 
     /**
      * @description
+     * Returns a Map of collection IDs to their breadcrumb arrays. This performs a bounded
+     * number of bulk queries (one per tree level present in the batch, not one per collection),
+     * avoiding N+1 query issues when resolving breadcrumbs for multiple collections at once.
+     */
+    async getBreadcrumbsForMany(
+        ctx: RequestContext,
+        collections: Array<Translated<Collection>>,
+    ): Promise<Map<ID, Array<{ name: string; id: ID; slug: string }>>> {
+        const result = new Map<ID, Array<{ name: string; id: ID; slug: string }>>();
+        if (collections.length === 0) {
+            return result;
+        }
+        const rootCollection = await this.getRootCollection(ctx);
+        const pickProps = pick(['id', 'name', 'slug']);
+        const nonRootCollections = collections.filter(c => !idsAreEqual(c.id, rootCollection.id));
+        if (nonRootCollections.length < collections.length) {
+            result.set(rootCollection.id, [pickProps(rootCollection)]);
+        }
+        const ancestorsByCollectionId = await this.getAncestorsForMany(
+            ctx,
+            nonRootCollections.map(c => c.id),
+        );
+        for (const collection of nonRootCollections) {
+            const ancestors = ancestorsByCollectionId.get(collection.id) ?? [];
+            result.set(collection.id, [
+                pickProps(rootCollection),
+                ...ancestors.map(a => pickProps(a)).reverse(),
+                pickProps(collection),
+            ]);
+        }
+        return result;
+    }
+
+    /**
+     * @description
      * Returns all Collections which are associated with the given Product ID.
      */
     async getCollectionsByProductId(
@@ -539,6 +574,117 @@ export class CollectionService implements OnModuleInit {
                 });
                 return resultCategories;
             });
+    }
+
+    /**
+     * @description
+     * Batched version of the ancestor-walking logic used by `getAncestors`. Rather than
+     * recursing one query per level for each collection individually, this walks the whole
+     * set of collections up the tree one level at a time, so the number of queries is bounded
+     * by the deepest collection in the set rather than by (number of collections x depth).
+     */
+    private async getAncestorsForMany(
+        ctx: RequestContext,
+        collectionIds: ID[],
+    ): Promise<Map<ID, Array<Translated<Collection>>>> {
+        const ancestorIdsByCollectionId = new Map<ID, ID[]>();
+        collectionIds.forEach(id => ancestorIdsByCollectionId.set(id, []));
+        // Tracks every id already visited on each collection's own walk up the tree, so that
+        // a multi-node cycle (e.g. A's parent is B, B's parent is A) terminates instead of
+        // looping forever - unlike a direct self-parent check, this catches cycles of any length.
+        const visitedIdsByCollectionId = new Map<ID, Set<ID>>();
+        collectionIds.forEach(id => visitedIdsByCollectionId.set(id, new Set([id])));
+
+        let frontier = new Map<ID, ID>(collectionIds.map(id => [id, id]));
+        while (frontier.size > 0) {
+            const { parentIdById, isRootById } = await this.loadParentInfoForFrontier(ctx, frontier);
+            frontier = this.advanceAncestorFrontier(
+                frontier,
+                parentIdById,
+                isRootById,
+                visitedIdsByCollectionId,
+                ancestorIdsByCollectionId,
+            );
+        }
+
+        const allAncestorIds = unique([...ancestorIdsByCollectionId.values()].flat());
+        const ancestorEntities = allAncestorIds.length
+            ? await this.connection.getRepository(ctx, Collection).find({ where: { id: In(allAncestorIds) } })
+            : [];
+        const ancestorById = new Map(ancestorEntities.map(c => [c.id, this.translator.translate(c, ctx)]));
+
+        const result = new Map<ID, Array<Translated<Collection>>>();
+        for (const [collectionId, ancestorIds] of ancestorIdsByCollectionId) {
+            result.set(
+                collectionId,
+                ancestorIds.map(id => ancestorById.get(id)).filter((c): c is Translated<Collection> => !!c),
+            );
+        }
+        return result;
+    }
+
+    /**
+     * @description
+     * Loads the parentId of every collection currently at the front of the batched ancestor
+     * walk, plus the isRoot flag of each of those parents, in two bulk queries.
+     */
+    private async loadParentInfoForFrontier(
+        ctx: RequestContext,
+        frontier: Map<ID, ID>,
+    ): Promise<{ parentIdById: Map<ID, ID>; isRootById: Map<ID, boolean> }> {
+        const idsToLoad = unique([...frontier.values()]);
+        const rows = await this.connection.getRepository(ctx, Collection).find({
+            select: ['id', 'parentId'],
+            where: { id: In(idsToLoad) },
+        });
+        const parentIdById = new Map(rows.map(r => [r.id, r.parentId] as const));
+
+        const candidateParentIds = unique([...parentIdById.values()].filter((id): id is ID => id != null));
+        const parentRows = candidateParentIds.length
+            ? await this.connection.getRepository(ctx, Collection).find({
+                  select: ['id', 'isRoot'],
+                  where: { id: In(candidateParentIds) },
+              })
+            : [];
+        const isRootById = new Map(parentRows.map(r => [r.id, r.isRoot]));
+        return { parentIdById, isRootById };
+    }
+
+    /**
+     * @description
+     * Advances the batched ancestor walk by one tree level, returning the next frontier
+     * (collection id -> its next-to-load ancestor id). A collection drops out of the frontier
+     * once its parent is null, is the root, or has already been visited on that collection's
+     * own walk (an ancestor cycle).
+     */
+    private advanceAncestorFrontier(
+        frontier: Map<ID, ID>,
+        parentIdById: Map<ID, ID>,
+        isRootById: Map<ID, boolean>,
+        visitedIdsByCollectionId: Map<ID, Set<ID>>,
+        ancestorIdsByCollectionId: Map<ID, ID[]>,
+    ): Map<ID, ID> {
+        const nextFrontier = new Map<ID, ID>();
+        for (const [collectionId, currentId] of frontier) {
+            const parentId = parentIdById.get(currentId);
+            if (parentId == null) {
+                continue;
+            }
+            const visited = visitedIdsByCollectionId.get(collectionId)!;
+            if (visited.has(parentId)) {
+                Logger.error(
+                    `Circular reference detected in Collection tree: Collection ${collectionId} has an ancestor cycle`,
+                );
+                continue;
+            }
+            if (isRootById.get(parentId)) {
+                continue;
+            }
+            visited.add(parentId);
+            ancestorIdsByCollectionId.get(collectionId)!.push(parentId);
+            nextFrontier.set(collectionId, parentId);
+        }
+        return nextFrontier;
     }
 
     async previewCollectionVariants(

@@ -96,6 +96,18 @@ export class CollectionEntityResolver {
         @Ctx() ctx: RequestContext,
         @Parent() collection: Collection,
     ): Promise<CollectionBreadcrumb[]> {
+        const cachedBreadcrumbsPromise = this.requestContextCache.get<
+            Promise<Map<ID, CollectionBreadcrumb[]>>
+        >(ctx, CacheKey.CollectionBreadcrumbs);
+        if (cachedBreadcrumbsPromise) {
+            const breadcrumbsMap = await cachedBreadcrumbsPromise;
+            const breadcrumbs = breadcrumbsMap.get(collection.id);
+            if (breadcrumbs) {
+                return breadcrumbs;
+            }
+        }
+        // Fallback to single-collection resolution if cache not available (e.g., single
+        // collection query)
         return this.collectionService.getBreadcrumbs(ctx, collection);
     }
 

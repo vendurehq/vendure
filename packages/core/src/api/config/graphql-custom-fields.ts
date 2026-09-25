@@ -14,6 +14,7 @@ import {
     CUSTOM_FIELDS_INPUT_TYPE_SUFFIX,
     CustomFieldConfig,
     CustomFields,
+    isLocalizedCustomFieldType,
     isNonListRelationCustomField,
     StructCustomFieldConfig,
     StructFieldConfig,
@@ -86,11 +87,9 @@ export function addGraphQLCustomFields(
             }
         }
 
-        const localizedFields = customEntityFields.filter(
-            field => field.type === 'localeString' || field.type === 'localeText',
-        );
+        const localizedFields = customEntityFields.filter(field => isLocalizedCustomFieldType(field.type));
         const nonLocalizedFields = customEntityFields.filter(
-            field => field.type !== 'localeString' && field.type !== 'localeText',
+            field => !isLocalizedCustomFieldType(field.type),
         );
         const writeableLocalizedFields = localizedFields.filter(field => !field.readonly);
         const writeableNonLocalizedFields = nonLocalizedFields.filter(field => !field.readonly);

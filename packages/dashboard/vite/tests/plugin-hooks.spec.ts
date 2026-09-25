@@ -1,3 +1,4 @@
+import { VendurePlugin, VendurePluginMetadata } from '@vendure/core';
 import { pathToFileURL } from 'node:url';
 import path from 'path';
 import type { Plugin } from 'vite';
@@ -1016,5 +1017,53 @@ describe('filterActivePluginInfo', () => {
             plugins: [null as any, undefined as any, {} as any, makePluginClass('A')],
         });
         expect(result.map(p => p.name)).toEqual(['A']);
+    });
+
+    describe('composed plugins', () => {
+        function makeVendurePlugin(name: string, plugins: VendurePluginMetadata['plugins'] = []) {
+            const cls = makePluginClass(name);
+            VendurePlugin({ plugins })(cls);
+            return cls;
+        }
+
+        it('keeps a composed plugin when only the parent is in vendureConfig.plugins', () => {
+            const child = makeVendurePlugin('ChildPlugin');
+            const parent = makeVendurePlugin('ParentPlugin', [child]);
+            const result = filterActivePluginInfo(
+                [makePluginInfo('ChildPlugin'), makePluginInfo('ParentPlugin'), makePluginInfo('Other')],
+                { plugins: [parent] },
+            );
+            expect(result.map(p => p.name)).toEqual(['ChildPlugin', 'ParentPlugin']);
+        });
+
+        it('follows composed plugins through nested DynamicModule entries', () => {
+            const grandChild = makeVendurePlugin('GrandChildPlugin');
+            const child = makeVendurePlugin('ChildPlugin', [{ module: grandChild }]);
+            const parent = makeVendurePlugin('ParentPlugin', [{ module: child }]);
+            const result = filterActivePluginInfo(
+                [makePluginInfo('GrandChildPlugin'), makePluginInfo('ChildPlugin')],
+                { plugins: [{ module: parent }] },
+            );
+            expect(result.map(p => p.name)).toEqual(['GrandChildPlugin', 'ChildPlugin']);
+        });
+
+        it('lists each plugin once when the composed plugin is also in vendureConfig.plugins', () => {
+            const child = makeVendurePlugin('ChildPlugin');
+            const parent = makeVendurePlugin('ParentPlugin', [child]);
+            const result = filterActivePluginInfo(
+                [makePluginInfo('ChildPlugin'), makePluginInfo('ParentPlugin')],
+                { plugins: [parent, child, parent] },
+            );
+            expect(result.map(p => p.name)).toEqual(['ChildPlugin', 'ParentPlugin']);
+        });
+
+        it('stops at a plugin that composes itself', () => {
+            const selfComposing = makePluginClass('SelfComposingPlugin');
+            VendurePlugin({ plugins: [selfComposing] })(selfComposing);
+            const result = filterActivePluginInfo([makePluginInfo('SelfComposingPlugin')], {
+                plugins: [selfComposing],
+            });
+            expect(result.map(p => p.name)).toEqual(['SelfComposingPlugin']);
+        });
     });
 });

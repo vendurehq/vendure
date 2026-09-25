@@ -35,6 +35,7 @@ import {
     checkNodeVersion,
     checkThatNpmCanReadCwd,
     cleanUpDockerResources,
+    createProjectRequire,
     detectPackageManager,
     downloadAndExtractStorefront,
     findAvailablePort,
@@ -48,7 +49,6 @@ import {
     installPackages,
     isSafeToCreateProjectIn,
     registerTemplateHelpers,
-    createProjectRequire,
     resolvePackageRootDir,
     scaffoldAlreadyExists,
     startPostgresDatabase,
@@ -64,7 +64,7 @@ import {
     StorefrontId,
     StorefrontStarter,
 } from './storefront-starters';
-import { CliLogLevel, PackageManager } from './types';
+import { CliLogLevel, PackageManager, UserResponses } from './types';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJson = require('../package.json');
@@ -163,7 +163,6 @@ export async function createVendureApp(
 
     const portSpinner = spinner();
     let port: number;
-    let storefrontPort: number = STOREFRONT_PORT;
     portSpinner.start(`Establishing port...`);
     try {
         port = await findAvailablePort(SERVER_PORT, PORT_SCAN_RANGE);
@@ -197,6 +196,22 @@ export async function createVendureApp(
             { newline: 'after' },
         );
     }
+    // No spinner around this call: the quick start and manual modes prompt from here, and a
+    // running spinner erases the prompt every 80ms and takes over Ctrl+C via clack's block().
+    let configResult: UserResponses;
+    try {
+        configResult =
+            mode === 'ci'
+                ? await getCiConfiguration(root, packageManager, port, ciStorefront, ciDbType)
+                : mode === 'manual'
+                  ? await getManualConfiguration(root, packageManager, port)
+                  : await getQuickStartConfiguration(root, packageManager, port);
+    } catch (e: any) {
+        // generateSources scans for the storefront port, so an exhausted port range surfaces
+        // here rather than at the scan's own call site.
+        outro(pc.red(e.message));
+        process.exit(1);
+    }
     const {
         dbType,
         configSource,
@@ -212,34 +227,14 @@ export async function createVendureApp(
         agentsSource,
         populateProducts,
         storefront: storefrontId,
-    } = mode === 'ci'
-        ? await getCiConfiguration(root, packageManager, port, ciStorefront, ciDbType)
-        : mode === 'manual'
-          ? await getManualConfiguration(root, packageManager, port)
-          : await getQuickStartConfiguration(root, packageManager, port);
+        storefrontPort,
+    } = configResult;
     const storefront = storefrontId ? getStorefrontStarter(storefrontId) : undefined;
     const includeStorefront = storefront != null;
 
     // Determine the server root directory (either root or apps/server for monorepo)
     const serverRoot = includeStorefront ? path.join(root, 'apps', 'server') : root;
     const storefrontRoot = path.join(root, 'apps', 'storefront');
-
-    // Find an available storefront port if including storefront
-    if (includeStorefront) {
-        const storefrontPortSpinner = spinner();
-        storefrontPortSpinner.start(`Establishing storefront port...`);
-        try {
-            // Start scanning from the higher of STOREFRONT_PORT or serverPort + 1
-            // to avoid conflicts with the server port
-            const storefrontStartPort = Math.max(STOREFRONT_PORT, port + 1);
-            storefrontPort = await findAvailablePort(storefrontStartPort, PORT_SCAN_RANGE);
-            storefrontPortSpinner.stop(`Using storefront port ${storefrontPort}`);
-        } catch (e: any) {
-            storefrontPortSpinner.stop(pc.red('Could not find an available storefront port'));
-            outro(e.message);
-            process.exit(1);
-        }
-    }
 
     process.chdir(root);
     // This check spawns `npm` itself, so it only makes sense (and only works) for npm.

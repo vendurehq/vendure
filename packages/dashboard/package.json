@@ -1,7 +1,7 @@
 {
     "name": "@vendure/dashboard",
     "private": false,
-    "version": "3.7.2",
+    "version": "3.7.3",
     "type": "module",
     "repository": {
         "type": "git",
@@ -111,7 +111,7 @@
         "graphql": "^16.14.2",
         "input-otp": "^1.4.2",
         "json-edit-react": "^1.23.1",
-        "lucide-react": "^0.575.0",
+        "lucide-react": "^0.577.0",
         "motion": "^12.38.0",
         "next-themes": "^0.4.6",
         "react": "^19.2.4",
@@ -139,8 +139,8 @@
         "@storybook/react-vite": "^10.3.1",
         "@types/node": "^22.19.0",
         "@vendure-io/design-lint": "^1.0.0-beta.2",
-        "@vendure/common": "3.7.2",
-        "@vendure/core": "3.7.2",
+        "@vendure/common": "3.7.3",
+        "@vendure/core": "3.7.3",
         "@vitest/browser": "^3.2.4",
         "@vitest/coverage-v8": "^3.2.4",
         "eslint": "^9.39.0",

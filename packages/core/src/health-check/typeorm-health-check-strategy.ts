@@ -14,9 +14,8 @@ export interface TypeORMHealthCheckOptions {
 
 /**
  * @description
- * A {@link HealthCheckStrategy} used to check the health of the database. This health
- * check is included by default, but can be customized by explicitly adding it to the
- * `systemOptions.healthChecks` array:
+ * A {@link HealthCheckStrategy} used to check the health of the database. Since v3.6.0 it is not
+ * executed and will be removed in v4.0.0. The example below shows the pre-v3.6.0 configuration:
  *
  * @example
  * ```ts
@@ -27,8 +26,6 @@ export interface TypeORMHealthCheckOptions {
  *   systemOptions: {
  *     healthChecks:[
  *         // The default key is "database" and the default timeout is 1000ms
- *         // Sometimes this is too short and leads to false negatives in the
- *         // /health endpoint.
  *         new TypeORMHealthCheckStrategy({ key: 'postgres-db', timeout: 5000 }),
  *     ]
  *   }

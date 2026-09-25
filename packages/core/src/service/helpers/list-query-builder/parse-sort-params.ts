@@ -8,6 +8,7 @@ import { UserInputError } from '../../../common/error/errors';
 import { NullOptionals, SortParameter } from '../../../common/types/common-types';
 import {
     CustomFieldConfig,
+    isLocalizedCustomFieldType,
     isNonListRelationCustomField,
 } from '../../../config/custom-field/custom-field-types';
 import { VendureEntity } from '../../../entity/base/base.entity';
@@ -49,9 +50,8 @@ export function parseSortParams<T extends VendureEntity>(
             const translationsAlias = `${alias}__translations`;
 
             const pathParts = [translationsAlias];
-            const isLocaleStringCustomField =
-                customFields?.find(f => f.name === key)?.type === 'localeString';
-            if (isLocaleStringCustomField) {
+            const customFieldType = customFields?.find(f => f.name === key)?.type;
+            if (isLocalizedCustomFieldType(customFieldType)) {
                 pathParts.push('customFields');
             }
             pathParts.push(key);

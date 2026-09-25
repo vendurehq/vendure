@@ -136,7 +136,19 @@ export function AssignToChannelDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent
+                className="sm:max-w-[425px]"
+                // This dialog is opened from a DropdownMenuItem with closeOnClick={false},
+                // which keeps the ancestor DropdownMenu mounted and open underneath this
+                // dialog. React bubbles synthetic keyboard events through the component
+                // tree, not the DOM tree. Without stopping propagation here, the still-open
+                // menu's own keydown handling (typeahead and roving focus) intercepts
+                // keystrokes typed into the channel search input below — the same defect
+                // as #5393 (Collections Move). Escape-to-close is unaffected: Base UI
+                // merges its own dismiss handler onto this same element, and that handler
+                // still runs.
+                onKeyDown={e => e.stopPropagation()}
+            >
                 <DialogHeader>
                     <DialogTitle>
                         <Trans>Assign {entityType} to channels</Trans>
