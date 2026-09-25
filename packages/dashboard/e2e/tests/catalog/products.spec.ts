@@ -48,9 +48,9 @@ test.describe('Product detail features', () => {
 
         // Enabled switch lives in the action bar, not in a sidebar field
         await expect(page.getByTestId('product-enabled-switch')).toBeVisible();
-        await expect(
-            page.locator('[data-slot="field-label"]').filter({ hasText: /^Enabled$/ }),
-        ).toHaveCount(0);
+        await expect(page.locator('[data-slot="field-label"]').filter({ hasText: /^Enabled$/ })).toHaveCount(
+            0,
+        );
 
         // Facet Values block
         await expect(
@@ -288,10 +288,9 @@ async function cleanupVariantEditorProduct(
     optionGroupId: string,
 ) {
     await client.gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, { id: productId });
-    await client.gql(
-        `mutation ($id: ID!) { deleteProductOptionGroup(id: $id, force: true) { result } }`,
-        { id: optionGroupId },
-    );
+    await client.gql(`mutation ($id: ID!) { deleteProductOptionGroup(id: $id, force: true) { result } }`, {
+        id: optionGroupId,
+    });
 }
 
 // The Manage variants page is now an inline editor: every option cell renders as an
@@ -304,10 +303,7 @@ test.describe('Manage variants inline editing', () => {
         const client = new VendureAdminClient(page);
         await client.login();
         const unique = Date.now();
-        const { productId, optionGroupId, smallOptionId } = await createVariantEditorProduct(
-            client,
-            unique,
-        );
+        const { productId, optionGroupId, smallOptionId } = await createVariantEditorProduct(client, unique);
 
         try {
             const variantId = await createVariantEditorVariant(
@@ -362,8 +358,10 @@ test.describe('Manage variants inline editing', () => {
         const client = new VendureAdminClient(page);
         await client.login();
         const unique = Date.now();
-        const { productId, optionGroupId, smallOptionId, largeOptionId } =
-            await createVariantEditorProduct(client, unique);
+        const { productId, optionGroupId, smallOptionId, largeOptionId } = await createVariantEditorProduct(
+            client,
+            unique,
+        );
 
         try {
             const smallVariantId = await createVariantEditorVariant(
@@ -458,8 +456,14 @@ test.describe('Manage variants inline editing', () => {
                         code: `size-${unique}`,
                         translations: [{ languageCode: 'en', name: 'Size' }],
                         options: [
-                            { code: `small-${unique}`, translations: [{ languageCode: 'en', name: 'Small' }] },
-                            { code: `large-${unique}`, translations: [{ languageCode: 'en', name: 'Large' }] },
+                            {
+                                code: `small-${unique}`,
+                                translations: [{ languageCode: 'en', name: 'Small' }],
+                            },
+                            {
+                                code: `large-${unique}`,
+                                translations: [{ languageCode: 'en', name: 'Large' }],
+                            },
                         ],
                     },
                 },
@@ -558,6 +562,143 @@ test.describe('Manage variants inline editing', () => {
                 await client.gql(
                     `mutation ($id: ID!) { deleteProductOptionGroup(id: $id, force: true) { result } }`,
                     { id: optionGroupId },
+                );
+            }
+        }
+    });
+    test('adds a second variant to a product that has no option groups', async ({ page }) => {
+        // https://github.com/vendurehq/vendure/issues/5325
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const unique = Date.now();
+
+        const { createProduct } = await client.gql(
+            `mutation ($input: CreateProductInput!) { createProduct(input: $input) { id } }`,
+            {
+                input: {
+                    translations: [
+                        {
+                            languageCode: 'en',
+                            name: `E2E Optionless ${unique}`,
+                            slug: `e2e-optionless-${unique}`,
+                            description: '',
+                        },
+                    ],
+                },
+            },
+        );
+        const productId = createProduct.id as string;
+        const firstSku = `e2e-optionless-first-${unique}`;
+        const secondSku = `e2e-optionless-second-${unique}`;
+
+        try {
+            await createVariantEditorVariant(client, productId, `First ${unique}`, firstSku, []);
+
+            await page.goto(`/products/${productId}/variants`);
+            await expect(page.getByRole('cell', { name: firstSku })).toBeVisible({ timeout: 10_000 });
+
+            await page.getByRole('button', { name: 'Add variant' }).click();
+            const dialog = page.getByRole('dialog');
+            await expect(dialog).toBeVisible();
+            // No option groups, so the dialog does not render the option selects at all.
+            await expect(dialog.getByText('Product options')).toHaveCount(0);
+
+            await dialog.getByLabel('Name', { exact: true }).fill(`Second ${unique}`);
+            await dialog.getByLabel('SKU', { exact: true }).fill(secondSku);
+            await Promise.all([
+                page.waitForResponse(
+                    resp =>
+                        resp.url().includes('/admin-api') &&
+                        resp.request().postData()?.includes('CreateProductVariants') === true &&
+                        resp.status() === 200,
+                ),
+                dialog.getByRole('button', { name: 'Create variant' }).click(),
+            ]);
+
+            // Both variants are now listed.
+            await expect(page.getByRole('cell', { name: secondSku })).toBeVisible({ timeout: 10_000 });
+            await expect(page.getByRole('cell', { name: firstSku })).toBeVisible();
+
+            // Adding a third variant starts from an empty form, not the second variant's values.
+            await page.getByRole('button', { name: 'Add variant' }).click();
+            await expect(dialog).toBeVisible();
+            await expect(dialog.getByLabel('Name', { exact: true })).toHaveValue('');
+            await expect(dialog.getByLabel('SKU', { exact: true })).toHaveValue('');
+        } finally {
+            await client.gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, {
+                id: productId,
+            });
+        }
+    });
+
+    // #5325 — the Add variant dialog stays on the page while the product has no option groups,
+    // so it must pick up a group added afterwards without a page reload.
+    test('Add variant dialog shows an option group added on the same page visit', async ({ page }) => {
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const unique = Date.now();
+        const groupName = `Size ${unique}`;
+        const newSku = `e2e-late-group-new-${unique}`;
+
+        const { createProduct } = await client.gql(
+            `mutation ($input: CreateProductInput!) { createProduct(input: $input) { id } }`,
+            {
+                input: {
+                    translations: [
+                        {
+                            languageCode: 'en',
+                            name: `E2E Late Group ${unique}`,
+                            slug: `e2e-late-group-${unique}`,
+                            description: '',
+                        },
+                    ],
+                },
+            },
+        );
+        const productId = createProduct.id as string;
+
+        try {
+            const firstSku = `e2e-late-group-first-${unique}`;
+            await createVariantEditorVariant(client, productId, `First ${unique}`, firstSku, []);
+
+            await page.goto(`/products/${productId}/variants`);
+            await expect(page.getByRole('cell', { name: firstSku })).toBeVisible({ timeout: 10_000 });
+
+            await page.getByRole('button', { name: 'Add option group' }).click();
+            const groupDialog = page.getByRole('dialog');
+            await page.getByRole('tab', { name: 'Create new' }).click();
+            await page.getByPlaceholder('e.g. Size').fill(groupName);
+            const optionInput = page.getByPlaceholder('Enter value and press Enter');
+            await optionInput.fill('Small');
+            await optionInput.press('Enter');
+            await expect(groupDialog.locator('[data-slot="badge"]', { hasText: 'Small' })).toBeVisible();
+            await page.getByRole('button', { name: 'Save option group' }).click();
+            await expect(groupDialog).toBeHidden({ timeout: 10_000 });
+            await expect(page.getByRole('columnheader', { name: groupName })).toBeVisible({
+                timeout: 10_000,
+            });
+
+            await page.getByRole('button', { name: 'Add variant' }).click();
+            const dialog = page.getByRole('dialog');
+            await expect(dialog.getByText('Product options')).toBeVisible({ timeout: 10_000 });
+            await dialog.getByRole('combobox').click();
+            await page.getByRole('option', { name: 'Small' }).click();
+            await dialog.getByLabel('SKU', { exact: true }).fill(newSku);
+            await dialog.getByRole('button', { name: 'Create variant' }).click();
+
+            await expect(page.getByRole('cell', { name: newSku })).toBeVisible({ timeout: 10_000 });
+        } finally {
+            const { product } = await client.gql(
+                `query ($id: ID!) { product(id: $id) { optionGroups { id } } }`,
+                { id: productId },
+            );
+            await client.gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, {
+                id: productId,
+            });
+            for (const group of product.optionGroups as Array<{ id: string }>) {
+                await client.gql(
+                    `mutation ($id: ID!) { deleteProductOptionGroup(id: $id, force: true) { result } }`,
+                    { id: group.id },
                 );
             }
         }

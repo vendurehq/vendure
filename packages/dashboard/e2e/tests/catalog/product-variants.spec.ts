@@ -726,18 +726,14 @@ test.describe('variant detail option & stock editing (PRD)', () => {
         await sizeInput.fill('ZZZ');
         await sizeInput.press('Enter');
         await expect(sizeInput).toHaveValue('ZZZ');
-        await expect(
-            page.locator('[data-sonner-toast]').filter({ hasText: /updated/i }),
-        ).toHaveCount(0);
+        await expect(page.locator('[data-sonner-toast]').filter({ hasText: /updated/i })).toHaveCount(0);
 
         // Picking a suggestion with Enter (popup open) still works — and still no submit.
         await sizeInput.fill('La');
         await sizeInput.press('ArrowDown');
         await sizeInput.press('Enter');
         await expect(sizeInput).toHaveValue('Large');
-        await expect(
-            page.locator('[data-sonner-toast]').filter({ hasText: /updated/i }),
-        ).toHaveCount(0);
+        await expect(page.locator('[data-sonner-toast]').filter({ hasText: /updated/i })).toHaveCount(0);
 
         // Definitive: a reload shows the original option — nothing was persisted.
         await page.reload();
@@ -780,9 +776,7 @@ test.describe('variant detail option & stock editing (PRD)', () => {
         await skuInput.press('Enter');
 
         // No success toast, and a reload shows the option unchanged.
-        await expect(
-            page.locator('[data-sonner-toast]').filter({ hasText: /updated/i }),
-        ).toHaveCount(0);
+        await expect(page.locator('[data-sonner-toast]').filter({ hasText: /updated/i })).toHaveCount(0);
         await page.reload();
         await expect(page.getByLabel('Size', { exact: true })).toHaveValue('Small', {
             timeout: 10_000,
@@ -1079,6 +1073,208 @@ test.describe('variant update sends only changed fields (OSS-567)', () => {
                 .filter({ hasText: /updated/i })
                 .first(),
         ).toBeVisible({ timeout: 10_000 });
+    });
+
+    test.afterAll(async ({ browser }) => {
+        if (!productId) return;
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        await client.gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, { id: productId });
+        await page.close();
+    });
+});
+
+// #5325 — an option group may hold two options with the same display name and different
+// codes. The suggestion list keys its rows on the display name, so it cannot tell those two
+// rows apart. Picking one must never move the variant onto the other option's id, which the
+// duplicate-combination guard would not see because the displayed text does not change.
+test.describe('two options in a group share a display name', () => {
+    test.describe.configure({ mode: 'serial' });
+
+    let productId: string;
+    let variantOnSecondOptionId: string;
+
+    // Reads the option codes actually stored against a variant, so an assertion cannot be
+    // satisfied by the page merely displaying the right name.
+    async function storedOptionCodes(page: import('@playwright/test').Page, variantId: string) {
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const data = await client.gql(`query ($id: ID!) { productVariant(id: $id) { options { code } } }`, {
+            id: variantId,
+        });
+        return (data.productVariant.options as Array<{ code: string }>).map(option => option.code).sort();
+    }
+
+    test.beforeAll(async ({ browser }) => {
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+
+        const product = await client.gql(
+            `mutation ($input: CreateProductInput!) { createProduct(input: $input) { id } }`,
+            {
+                input: {
+                    translations: [
+                        {
+                            languageCode: 'en',
+                            name: 'E2E Duplicate Option Name Product',
+                            slug: 'e2e-duplicate-option-name-product',
+                            description: '',
+                        },
+                    ],
+                },
+            },
+        );
+        productId = product.createProduct.id;
+
+        const group = await client.gql(
+            `mutation ($input: CreateProductOptionGroupInput!) {
+                createProductOptionGroup(input: $input) { id options { id code } }
+            }`,
+            {
+                input: {
+                    code: 'e2e-dupname-size',
+                    translations: [{ languageCode: 'en', name: 'Collision Size' }],
+                    options: [
+                        { code: 'e2e-dupname-a', translations: [{ languageCode: 'en', name: 'Small' }] },
+                        { code: 'e2e-dupname-b', translations: [{ languageCode: 'en', name: 'Small' }] },
+                    ],
+                },
+            },
+        );
+        const optionIdByCode: Record<string, string> = {};
+        for (const option of group.createProductOptionGroup.options) {
+            optionIdByCode[option.code] = option.id;
+        }
+
+        // A second group, so a test can edit one group while the ambiguous one stays untouched.
+        const colourGroup = await client.gql(
+            `mutation ($input: CreateProductOptionGroupInput!) {
+                createProductOptionGroup(input: $input) { id options { id code } }
+            }`,
+            {
+                input: {
+                    code: 'e2e-dupname-colour',
+                    translations: [{ languageCode: 'en', name: 'Collision Colour' }],
+                    options: [
+                        { code: 'e2e-dupname-red', translations: [{ languageCode: 'en', name: 'Red' }] },
+                        { code: 'e2e-dupname-blue', translations: [{ languageCode: 'en', name: 'Blue' }] },
+                    ],
+                },
+            },
+        );
+        for (const option of colourGroup.createProductOptionGroup.options) {
+            optionIdByCode[option.code] = option.id;
+        }
+
+        for (const optionGroupId of [
+            group.createProductOptionGroup.id,
+            colourGroup.createProductOptionGroup.id,
+        ]) {
+            await client.gql(
+                `mutation ($productId: ID!, $optionGroupId: ID!) {
+                    addOptionGroupToProduct(productId: $productId, optionGroupId: $optionGroupId) { id }
+                }`,
+                { productId, optionGroupId },
+            );
+        }
+
+        const variants = await client.gql(
+            `mutation ($input: [CreateProductVariantInput!]!) {
+                createProductVariants(input: $input) { id sku }
+            }`,
+            {
+                input: [
+                    {
+                        productId,
+                        sku: 'E2E-DUPNAME-A',
+                        price: 1000,
+                        optionIds: [optionIdByCode['e2e-dupname-a'], optionIdByCode['e2e-dupname-red']],
+                        translations: [{ languageCode: 'en', name: 'E2E Duplicate Option Name A' }],
+                    },
+                    {
+                        productId,
+                        sku: 'E2E-DUPNAME-B',
+                        price: 1000,
+                        optionIds: [optionIdByCode['e2e-dupname-b'], optionIdByCode['e2e-dupname-red']],
+                        translations: [{ languageCode: 'en', name: 'E2E Duplicate Option Name B' }],
+                    },
+                ],
+            },
+        );
+        variantOnSecondOptionId = variants.createProductVariants.find(
+            (variant: { sku: string }) => variant.sku === 'E2E-DUPNAME-B',
+        ).id;
+        await page.close();
+    });
+
+    test('picking the identically named row leaves the variant on its own option', async ({ page }) => {
+        await page.goto(`/product-variants/${variantOnSecondOptionId}`);
+        const sizeInput = page.getByLabel('Collision Size', { exact: true });
+        await expect(sizeInput).toHaveValue('Small', { timeout: 10_000 });
+
+        // Open the suggestions and pick the first row, which is the option this variant does
+        // not hold. Both rows read "Small".
+        await sizeInput.click();
+        const suggestions = page.locator('[data-slot="combobox-item"]');
+        await expect(suggestions).toHaveCount(2);
+        await suggestions.first().click();
+
+        // Nothing the admin can see has changed, so there must be nothing to save.
+        await expect(sizeInput).toHaveValue('Small');
+        await expect(page.getByRole('button', { name: 'Update' })).toBeDisabled();
+
+        // The stored option is untouched.
+        expect(await storedOptionCodes(page, variantOnSecondOptionId)).toEqual([
+            'e2e-dupname-b',
+            'e2e-dupname-red',
+        ]);
+    });
+
+    test('editing another group keeps the ambiguous group on its stored option', async ({ page }) => {
+        await page.goto(`/product-variants/${variantOnSecondOptionId}`);
+        const sizeInput = page.getByLabel('Collision Size', { exact: true });
+        await expect(sizeInput).toHaveValue('Small', { timeout: 10_000 });
+
+        // Change only Colour. Size still reads "Small", which two options in its group share.
+        const colourInput = page.getByLabel('Collision Colour', { exact: true });
+        await colourInput.fill('Blue');
+        await page.getByRole('option', { name: 'Blue' }).click();
+        await page.getByRole('button', { name: 'Update' }).click();
+        await expect(page.getByText('Successfully updated product variant')).toBeVisible({ timeout: 15_000 });
+
+        expect(await storedOptionCodes(page, variantOnSecondOptionId)).toEqual([
+            'e2e-dupname-b',
+            'e2e-dupname-blue',
+        ]);
+    });
+
+    test('editing only the SKU submits no option ids', async ({ page }) => {
+        await page.goto(`/product-variants/${variantOnSecondOptionId}`);
+        const sizeInput = page.getByLabel('Collision Size', { exact: true });
+        await expect(sizeInput).toHaveValue('Small', { timeout: 10_000 });
+
+        const skuInput = page
+            .locator('[data-slot="field"]')
+            .filter({ has: page.getByText('SKU', { exact: true }) })
+            .getByRole('textbox');
+        const newSku = `E2E-DUPNAME-B-${Date.now()}`;
+        await skuInput.fill(newSku);
+
+        const updateRequest = page.waitForRequest(
+            req =>
+                req.method() === 'POST' && (req.postData() ?? '').includes('mutation UpdateProductVariant('),
+            { timeout: 15_000 },
+        );
+        await page.getByRole('button', { name: 'Update' }).click();
+        const input = (await updateRequest).postDataJSON()?.variables?.input;
+
+        expect(Object.keys(input).sort()).toEqual(['id', 'sku']);
+        expect(await storedOptionCodes(page, variantOnSecondOptionId)).toEqual([
+            'e2e-dupname-b',
+            'e2e-dupname-blue',
+        ]);
     });
 
     test.afterAll(async ({ browser }) => {

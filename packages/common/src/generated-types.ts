@@ -3009,7 +3009,12 @@ export type Mutation = {
   createProductOption: ProductOption;
   /** Create a new ProductOptionGroup */
   createProductOptionGroup: ProductOptionGroup;
-  /** Create a set of ProductVariants based on the OptionGroups assigned to the given Product */
+  /**
+   * Creates ProductVariants for the given Product. Each input must name exactly one option from
+   * each OptionGroup assigned to the Product. A create is rejected if another variant of the
+   * Product already holds the same combination of options. A Product with no OptionGroups may
+   * hold any number of variants.
+   */
   createProductVariants: Array<Maybe<ProductVariant>>;
   createPromotion: CreatePromotionResult;
   /** Create a new Province */

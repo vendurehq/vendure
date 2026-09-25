@@ -233,25 +233,22 @@ function ProductVariantDetailPage() {
         if (!trimmed) {
             return { kind: 'empty' };
         }
+        // Text that still reads as the option the variant already holds means that option,
+        // never a different option that happens to share the name.
+        const held = entity?.options.find(o => o.group.id === group.id);
+        if (held && held.name.trim().toLowerCase() === trimmed.toLowerCase()) {
+            return { kind: 'existing', id: held.id };
+        }
         const match = group.options.find(o => o.name.trim().toLowerCase() === trimmed.toLowerCase());
         return match ? { kind: 'existing', id: match.id } : { kind: 'new', name: trimmed };
     };
 
-    // Commits a group's free text. An exact match to an existing option is written straight
-    // into the form's `optionIds` to keep dirty-tracking accurate; a new value leaves
-    // `optionIds` untouched and is resolved to a created option on save. Either way the save
-    // path (button or Enter) re-resolves the text, so it is the single source of truth.
-    const commitGroupText = (group: (typeof optionGroups)[number], text: string) => {
+    // Records a group's free text, the page's only record of the pending selection. Only the
+    // save path writes the form's `optionIds`, and only once its guards pass. The update
+    // mutation sends every field whose value differs from the loaded variant, so an id written
+    // here would reach the server even when those guards found nothing to change.
+    const setGroupText = (group: (typeof optionGroups)[number], text: string) => {
         setOptionTextByGroup(prev => ({ ...prev, [group.id]: text }));
-        const resolution = resolveGroupOption(group, text);
-        if (resolution.kind === 'existing') {
-            const current = form.getValues('optionIds') ?? [];
-            const withoutGroup = current.filter(id => !group.options.some(o => o.id === id));
-            form.setValue('optionIds', [...withoutGroup, resolution.id], {
-                shouldDirty: true,
-                shouldValidate: true,
-            });
-        }
     };
 
     const anyOptionEmpty = optionGroups.some(group => !(optionTextByGroup[group.id] ?? '').trim());
@@ -316,6 +313,11 @@ function ProductVariantDetailPage() {
         if (!entity) {
             return;
         }
+        // Only an edit to the options can create a conflict.
+        if (!optionsDirty) {
+            setDuplicateOptionsError(null);
+            return;
+        }
         const resolutions = entity.product.optionGroups.map(group =>
             resolveGroupOption(group, optionTextByGroup[group.id] ?? ''),
         );
@@ -331,20 +333,27 @@ function ProductVariantDetailPage() {
                 ? t`A variant with these options already exists: ${conflict.name} (${conflict.sku})`
                 : null,
         );
-    }, [optionTextByGroup, siblingVariants, entity, t]);
+    }, [optionTextByGroup, optionsDirty, siblingVariants, entity, t]);
 
     // Single save path shared by the Update button and the form's native submit (Enter),
     // so Enter can never persist a state the Update button would refuse. Resolves each
     // option group to an id (creating any new options) after guarding against empty and
     // duplicate combinations.
-    const saveVariant = async (event: React.SyntheticEvent) => {
+    const saveVariant = async (event: React.SubmitEvent<HTMLFormElement>) => {
         event.preventDefault();
         // Creating a new variant has no options block to resolve; submit directly.
         if (creatingNewEntity) {
-            submitHandler(event as unknown as React.FormEvent<HTMLFormElement>);
+            submitHandler(event);
             return;
         }
         if (!entity) {
+            return;
+        }
+        // Nothing to resolve when no option was edited. Leaving `optionIds` out of the
+        // submission stops an unrelated edit, such as a price change, from reassigning
+        // the variant's options.
+        if (!optionsDirty) {
+            submitHandler(event);
             return;
         }
         const resolutions = optionGroups.map(group => ({
@@ -383,7 +392,7 @@ function ProductVariantDetailPage() {
                 }
             }
             form.setValue('optionIds', finalOptionIds, { shouldDirty: true, shouldValidate: true });
-            await submitHandler(event as unknown as React.FormEvent<HTMLFormElement>);
+            await submitHandler(event);
         } finally {
             setIsSavingOptions(false);
         }
@@ -506,7 +515,7 @@ function ProductVariantDetailPage() {
                             disabled={
                                 !(form.formState.isDirty || optionsDirty) ||
                                 !form.formState.isValid ||
-                                anyOptionEmpty ||
+                                (optionsDirty && anyOptionEmpty) ||
                                 !!duplicateOptionsError ||
                                 !!optionCreatePermissionError ||
                                 isPending ||
@@ -527,11 +536,11 @@ function ProductVariantDetailPage() {
                                     key={group.id}
                                     group={group}
                                     value={optionTextByGroup[group.id] ?? ''}
-                                    onValueChange={value => commitGroupText(group, value)}
+                                    onValueChange={value => setGroupText(group, value)}
                                     onSelectOption={optionId => {
                                         const option = group.options.find(o => o.id === optionId);
                                         if (option) {
-                                            commitGroupText(group, option.name);
+                                            setGroupText(group, option.name);
                                         }
                                     }}
                                     invalid={

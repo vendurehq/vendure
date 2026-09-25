@@ -354,6 +354,10 @@ msgid "Successfully created role"
 msgstr "역할이 생성되었습니다"
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
+msgid "No option groups defined yet. Add option groups when variants differ by a shared property (e.g., Size, Color, Material). Without them, add variants one at a time below."
+msgstr "아직 옵션 그룹이 정의되지 않았습니다. 변형이 공유 속성에 따라 다를 때 옵션 그룹을 추가하세요(예: 사이즈, 색상, 소재). 옵션 그룹이 없으면 아래에서 변형을 하나씩 추가하세요."
+
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
 msgid "Are you sure you want to delete this variant?"
 msgstr "이 변형을 삭제하시겠습니까?"
 
@@ -1463,6 +1467,8 @@ msgstr "가격에 기본 세금 지역의 세금이 포함됩니다"
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+#: src/lib/components/data-input/slug-input.tsx
+#: src/lib/components/data-input/slug-input.tsx
 msgid "This field is required"
 msgstr "이 필드는 필수입니다"
 
@@ -3643,6 +3649,7 @@ msgstr "{columnId} 열의 필터 조건 설정"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
+#: src/lib/components/shared/address-country-select.tsx
 #: src/lib/components/shared/customer-address-form.tsx
 msgid "Country"
 msgstr "국가"
@@ -3918,7 +3925,7 @@ msgstr "역할이 업데이트되었습니다"
 msgid "The display name can omit the extension or keep {sourceExtensionLabel}. It cannot use a different file extension."
 msgstr ""
 
-#: src/lib/components/shared/customer-address-form.tsx
+#: src/lib/components/shared/address-country-select.tsx
 msgid "Select a country"
 msgstr "국가 선택"
 
@@ -6743,6 +6750,7 @@ msgid "Edit as form"
 msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
+#: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 msgid "Edit Address"
 msgstr "주소 편집"
 
@@ -6883,10 +6891,6 @@ msgstr ""
 msgid "{totalQuantity} item(s) refunded"
 msgstr "{totalQuantity}개 항목이 환불되었습니다"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
-msgid "No option groups defined yet. Add option groups to create different variants of your product (e.g., Size, Color, Material)"
-msgstr "아직 옵션 그룹이 정의되지 않았습니다. 상품의 다양한 변형을 만들려면 옵션 그룹을 추가하세요(예: 사이즈, 색상, 소재)"
-
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx
 msgid "New email:"
 msgstr "새 이메일:"
@@ -6952,6 +6956,7 @@ msgstr "활성"
 msgid "Tax base"
 msgstr "과세 기준"
 
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-container.tsx
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-container.tsx
 msgid "Load more"

@@ -415,10 +415,11 @@ export class ProductVariantService {
     }
 
     private async createSingle(ctx: RequestContext, input: CreateProductVariantInput): Promise<ID> {
+        // optionIds is nullable in the GraphQL input, so it can arrive as null. Both checks
+        // below read its length, so normalise it first.
+        input.optionIds ??= [];
         await this.validateVariantOptionIds(ctx, input.productId, input.optionIds);
-        if (!input.optionIds) {
-            input.optionIds = [];
-        }
+        await this.assertOptionCombinationIsUnused(ctx, input.productId, input.optionIds);
         if (input.price == null) {
             input.price = 0;
         }
@@ -553,7 +554,7 @@ export class ProductVariantService {
             throw new UserInputError('error.stockonhand-cannot-be-negative');
         }
         if (input.optionIds) {
-            await this.validateVariantOptionIds(ctx, existingVariant.productId, input.optionIds, true);
+            await this.validateVariantOptionIds(ctx, existingVariant.productId, input.optionIds);
         }
         const inputWithoutPriceAndStockLevels = {
             ...input,
@@ -1079,12 +1080,11 @@ export class ProductVariantService {
         return result;
     }
 
-    private async validateVariantOptionIds(
-        ctx: RequestContext,
-        productId: ID,
-        optionIds: ID[] = [],
-        isUpdateOperation?: boolean,
-    ) {
+    /**
+     * Checks that the given option ids name exactly one option from each of the Product's
+     * option groups.
+     */
+    private async validateVariantOptionIds(ctx: RequestContext, productId: ID, optionIds: ID[]) {
         // this could be done with fewer queries but depending on the data, node will crash
         // https://github.com/vendurehq/vendure/issues/328
         const optionGroups = (
@@ -1108,6 +1108,15 @@ export class ProductVariantService {
         ) {
             this.throwIncompatibleOptionsError(optionGroups);
         }
+    }
+
+    /**
+     * Ensures that no other ProductVariant of the Product already holds the given combination
+     * of options. Call this only after {@link validateVariantOptionIds}, which is what makes an
+     * empty list mean the Product has no option groups rather than a malformed input.
+     */
+    private async assertOptionCombinationIsUnused(ctx: RequestContext, productId: ID, optionIds: ID[]) {
+        if (optionIds.length === 0) return;
 
         const product = await this.connection.getEntityOrThrow(ctx, Product, productId, {
             channelId: ctx.channelId,
@@ -1121,7 +1130,6 @@ export class ProductVariantService {
             .filter(v => !v.deletedAt)
             .forEach(variant => {
                 const variantOptionIds = this.sortJoin(variant.options, ',', 'id');
-                if (isUpdateOperation) return;
                 if (variantOptionIds === inputOptionIds) {
                     throw new UserInputError('error.product-variant-options-combination-already-exists', {
                         variantName: this.translator.translate(variant, ctx).name,
