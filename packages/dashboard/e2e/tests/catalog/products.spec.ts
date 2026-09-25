@@ -630,6 +630,79 @@ test.describe('Manage variants inline editing', () => {
             });
         }
     });
+
+    // #5325 — the Add variant dialog stays on the page while the product has no option groups,
+    // so it must pick up a group added afterwards without a page reload.
+    test('Add variant dialog shows an option group added on the same page visit', async ({ page }) => {
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const unique = Date.now();
+        const groupName = `Size ${unique}`;
+        const newSku = `e2e-late-group-new-${unique}`;
+
+        const { createProduct } = await client.gql(
+            `mutation ($input: CreateProductInput!) { createProduct(input: $input) { id } }`,
+            {
+                input: {
+                    translations: [
+                        {
+                            languageCode: 'en',
+                            name: `E2E Late Group ${unique}`,
+                            slug: `e2e-late-group-${unique}`,
+                            description: '',
+                        },
+                    ],
+                },
+            },
+        );
+        const productId = createProduct.id as string;
+
+        try {
+            const firstSku = `e2e-late-group-first-${unique}`;
+            await createVariantEditorVariant(client, productId, `First ${unique}`, firstSku, []);
+
+            await page.goto(`/products/${productId}/variants`);
+            await expect(page.getByRole('cell', { name: firstSku })).toBeVisible({ timeout: 10_000 });
+
+            await page.getByRole('button', { name: 'Add option group' }).click();
+            const groupDialog = page.getByRole('dialog');
+            await page.getByRole('tab', { name: 'Create new' }).click();
+            await page.getByPlaceholder('e.g. Size').fill(groupName);
+            const optionInput = page.getByPlaceholder('Enter value and press Enter');
+            await optionInput.fill('Small');
+            await optionInput.press('Enter');
+            await expect(groupDialog.locator('[data-slot="badge"]', { hasText: 'Small' })).toBeVisible();
+            await page.getByRole('button', { name: 'Save option group' }).click();
+            await expect(groupDialog).toBeHidden({ timeout: 10_000 });
+            await expect(page.getByRole('columnheader', { name: groupName })).toBeVisible({
+                timeout: 10_000,
+            });
+
+            await page.getByRole('button', { name: 'Add variant' }).click();
+            const dialog = page.getByRole('dialog');
+            await expect(dialog.getByText('Product options')).toBeVisible({ timeout: 10_000 });
+            await dialog.getByRole('combobox').click();
+            await page.getByRole('option', { name: 'Small' }).click();
+            await dialog.getByLabel('SKU', { exact: true }).fill(newSku);
+            await dialog.getByRole('button', { name: 'Create variant' }).click();
+
+            await expect(page.getByRole('cell', { name: newSku })).toBeVisible({ timeout: 10_000 });
+        } finally {
+            const { product } = await client.gql(
+                `query ($id: ID!) { product(id: $id) { optionGroups { id } } }`,
+                { id: productId },
+            );
+            await client.gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, {
+                id: productId,
+            });
+            for (const group of product.optionGroups as Array<{ id: string }>) {
+                await client.gql(
+                    `mutation ($id: ID!) { deleteProductOptionGroup(id: $id, force: true) { result } }`,
+                    { id: group.id },
+                );
+            }
+        }
+    });
 });
 
 // OSS-567 — the changed-fields-only update behaviour is framework-wide, not just
