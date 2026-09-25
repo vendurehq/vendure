@@ -11,6 +11,7 @@ import {
     PaymentStateTransitionError,
     RefundAmountError,
     RefundDestinationError,
+    RefundIncompleteError,
     RefundStateTransitionError,
 } from '../../common/error/generated-graphql-admin-errors';
 import { IneligiblePaymentMethodError } from '../../common/error/generated-graphql-shop-errors';
@@ -366,7 +367,9 @@ export class PaymentService {
         input: RefundOrderInput,
         order: Order,
         selectedPayment: Payment,
-    ): Promise<Refund | RefundStateTransitionError | RefundAmountError | RefundDestinationError> {
+    ): Promise<
+        Refund | RefundStateTransitionError | RefundAmountError | RefundDestinationError | RefundIncompleteError
+    > {
         const orderWithRefunds = await this.connection.getEntityOrThrow(ctx, Order, order.id, {
             relations: ['payments', 'payments.refunds'],
         });
@@ -387,69 +390,111 @@ export class PaymentService {
             return targets;
         }
 
-        let primaryRefund: Refund | undefined;
+        const createdRefunds: Refund[] = [];
         for (let i = 0; i < targets.length; i++) {
-            const target = targets[i];
-            let refund = new Refund({
-                payment: target.payment,
-                total: target.amount,
-                reason: input.reason,
-                method: target.payment.method,
-                destination: target.strategy ? target.strategy.code : null,
-                state: 'Pending',
-                metadata: {},
-                items: orderLinesTotal, // deprecated
-                // These columns are not nullable, so the deprecated inputs default to zero when
-                // omitted. A refund specified via `amount` or `targets` does not use them at all.
-                adjustment: input.adjustment ?? 0, // deprecated
-                shipping: input.shipping ?? 0, // deprecated
-            });
-            const createRefundResult = target.strategy
-                ? await target.strategy.createRefund(
-                      ctx,
-                      input,
-                      target.amount,
-                      order,
-                      target.payment,
-                      target.args ?? undefined,
-                  )
-                : await this.createRefundViaPaymentMethodHandler(
-                      ctx,
-                      input,
-                      target.amount,
-                      order,
-                      target.payment,
-                  );
-            if (createRefundResult) {
-                refund.transactionId = createRefundResult.transactionId || '';
-                refund.metadata = createRefundResult.metadata || {};
-            }
-            refund = await this.connection.getRepository(ctx, Refund).save(refund);
-            if (i === 0) {
-                // The RefundLines record which OrderLines a refund relates to. A refund split over
-                // several Payments or destinations still relates to the same OrderLines, so the
-                // lines are attached once, to the first Refund. Attaching them to every Refund
-                // would record each OrderLine as having been refunded multiple times.
-                await this.createRefundLines(ctx, refund, input);
-                primaryRefund = refund;
-            }
-            if (createRefundResult) {
-                const transitionError = await this.transitionRefundState(
-                    ctx,
-                    order,
-                    refund,
-                    createRefundResult.state,
-                );
-                if (transitionError) {
-                    // Refunds created by earlier targets are deliberately left in place. A
-                    // PaymentMethodHandler or RefundDestinationStrategy may already have moved real
-                    // funds, and discarding the Refund would lose the record of it. See #4686.
-                    return transitionError;
+            let result: { refund: Refund; transitionError?: RefundStateTransitionError };
+            try {
+                result = await this.executeRefundTarget(ctx, input, order, targets[i], orderLinesTotal, i);
+            } catch (e: any) {
+                if (!useTargets || createdRefunds.length === 0) {
+                    throw e;
                 }
+                // Throwing would roll back the Refunds created for the earlier targets, even though
+                // their funds have already been moved. They are kept, and the caller is told which
+                // target failed.
+                Logger.error(
+                    `Refund target ${i} of Order ${order.code} failed after ${createdRefunds.length} ` +
+                        `Refund(s) had been created: ${String(e?.message ?? e)}`,
+                    undefined,
+                    e?.stack,
+                );
+                return new RefundIncompleteError({
+                    refunds: createdRefunds,
+                    failedTargetIndex: i,
+                    failureReason: String(e?.message ?? e),
+                });
+            }
+            createdRefunds.push(result.refund);
+            if (result.transitionError) {
+                // Refunds created by earlier targets are deliberately left in place. A
+                // PaymentMethodHandler or RefundDestinationStrategy may already have moved real
+                // funds, and discarding the Refund would lose the record of it. See #4686.
+                if (!useTargets || i === 0) {
+                    return result.transitionError;
+                }
+                return new RefundIncompleteError({
+                    refunds: createdRefunds,
+                    failedTargetIndex: i,
+                    failureReason: result.transitionError.transitionError,
+                });
             }
         }
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        return primaryRefund!;
+        return createdRefunds[0];
+    }
+
+    /**
+     * Moves the funds for a single resolved target and records the resulting Refund.
+     */
+    private async executeRefundTarget(
+        ctx: RequestContext,
+        input: RefundOrderInput,
+        order: Order,
+        target: ResolvedRefundTarget,
+        orderLinesTotal: number,
+        index: number,
+    ): Promise<{ refund: Refund; transitionError?: RefundStateTransitionError }> {
+        let refund = new Refund({
+            payment: target.payment,
+            total: target.amount,
+            reason: input.reason,
+            method: target.payment.method,
+            destination: target.strategy ? target.strategy.code : null,
+            state: 'Pending',
+            metadata: {},
+            items: orderLinesTotal, // deprecated
+            // These columns are not nullable, so the deprecated inputs default to zero when
+            // omitted. A refund specified via `amount` or `targets` does not use them at all.
+            adjustment: input.adjustment ?? 0, // deprecated
+            shipping: input.shipping ?? 0, // deprecated
+        });
+        const createRefundResult = target.strategy
+            ? await target.strategy.createRefund(
+                  ctx,
+                  input,
+                  target.amount,
+                  order,
+                  target.payment,
+                  target.args ?? undefined,
+              )
+            : await this.createRefundViaPaymentMethodHandler(
+                  ctx,
+                  input,
+                  target.amount,
+                  order,
+                  target.payment,
+              );
+        if (createRefundResult) {
+            refund.transactionId = createRefundResult.transactionId || '';
+            refund.metadata = createRefundResult.metadata || {};
+        }
+        refund = await this.connection.getRepository(ctx, Refund).save(refund);
+        if (index === 0) {
+            // The RefundLines record which OrderLines a refund relates to. A refund split over
+            // several Payments or destinations still relates to the same OrderLines, so the
+            // lines are attached once, to the first Refund. Attaching them to every Refund
+            // would record each OrderLine as having been refunded multiple times.
+            await this.createRefundLines(ctx, refund, input);
+        }
+        if (createRefundResult) {
+            const transitionError = await this.transitionRefundState(
+                ctx,
+                order,
+                refund,
+                createRefundResult.state,
+            );
+            return { refund, transitionError };
+        }
+        return { refund };
     }
 
     /**

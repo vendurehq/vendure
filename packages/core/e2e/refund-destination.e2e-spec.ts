@@ -83,6 +83,23 @@ class RestrictedDestination implements RefundDestinationStrategy {
     }
 }
 
+/**
+ * Simulates a destination whose external service fails, so that the tests can verify what happens
+ * when a later target of a multi-target refund fails after earlier targets have moved funds.
+ */
+class ThrowingDestination implements RefundDestinationStrategy {
+    readonly code = 'throwing';
+    readonly description = [{ languageCode: LanguageCode.en, value: 'Always fails' }];
+
+    isAvailable() {
+        return true;
+    }
+
+    createRefund(): never {
+        throw new Error('Voucher service unavailable');
+    }
+}
+
 const refundDestinationsDocument = graphql(`
     query GetRefundDestinations($orderId: ID!) {
         refundDestinations(orderId: $orderId) {
@@ -118,6 +135,15 @@ const refundWithDestinationDocument = graphql(`
             }
             ... on RefundDestinationError {
                 destinationCode
+            }
+            ... on RefundIncompleteError {
+                failedTargetIndex
+                failureReason
+                refunds {
+                    id
+                    total
+                    destination
+                }
             }
         }
     }
@@ -172,7 +198,11 @@ describe('Refund destinations', () => {
                     singleStageRefundablePaymentMethod,
                     testFailingPaymentMethod,
                 ],
-                refundDestinations: [new StoreCreditDestination(), new RestrictedDestination()],
+                refundDestinations: [
+                    new StoreCreditDestination(),
+                    new RestrictedDestination(),
+                    new ThrowingDestination(),
+                ],
             },
         }),
     );
@@ -464,6 +494,61 @@ describe('Refund destinations', () => {
                 'is in the "Declined" state',
             )();
             expect(storeCreditSpy).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('failure part-way through a multi-target refund', () => {
+        async function countRefunds() {
+            const { order } = await adminClient.query(getOrderPaymentsDocument, { id: orderId });
+            return order!.payments!.reduce((sum, p) => sum + (p.refunds?.length ?? 0), 0);
+        }
+
+        it('keeps the Refunds for earlier targets and returns RefundIncompleteError', async () => {
+            const refundCountBefore = await countRefunds();
+
+            const { refundOrder } = await adminClient.query(refundWithDestinationDocument, {
+                input: {
+                    paymentId: partialPaymentId,
+                    reason: 'fails on second target',
+                    targets: [
+                        { paymentId: partialPaymentId, amount: 100 },
+                        { paymentId: refundablePaymentId, amount: 100, destination: 'throwing' },
+                    ],
+                },
+            });
+
+            refundGuard.assertErrorResult(refundOrder);
+            expect(refundOrder.errorCode).toBe(ErrorCode.REFUND_INCOMPLETE_ERROR);
+            const incomplete = refundOrder as any;
+            expect(incomplete.failedTargetIndex).toBe(1);
+            expect(incomplete.failureReason).toBe('Voucher service unavailable');
+            expect(incomplete.refunds).toHaveLength(1);
+            expect(incomplete.refunds[0].total).toBe(100);
+            expect(incomplete.refunds[0].destination).toBeNull();
+
+            // The first target's Refund was committed, since its funds have already been moved.
+            expect(await countRefunds()).toBe(refundCountBefore + 1);
+        });
+
+        it('creates no Refund when the first target fails', async () => {
+            const refundCountBefore = await countRefunds();
+
+            await assertThrowsWithMessage(
+                () =>
+                    adminClient.query(refundWithDestinationDocument, {
+                        input: {
+                            paymentId: refundablePaymentId,
+                            reason: 'fails on first target',
+                            targets: [
+                                { paymentId: refundablePaymentId, amount: 100, destination: 'throwing' },
+                                { paymentId: partialPaymentId, amount: 100 },
+                            ],
+                        },
+                    }),
+                'Voucher service unavailable',
+            )();
+
+            expect(await countRefunds()).toBe(refundCountBefore);
         });
     });
 

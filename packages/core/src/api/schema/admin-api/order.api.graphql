@@ -144,8 +144,10 @@ input RefundOrderInput {
     `amount` of each target is the total amount refunded, and the top-level `amount` and
     `destination` fields are ignored.
 
-    All targets are validated before any refund is created, and the whole operation is
-    performed in a single transaction.
+    All targets are validated before any refund is created, and every target must draw on a
+    Payment in the `Settled` state. If a target fails once earlier targets have already been
+    refunded, the Refunds created for the earlier targets are kept and a `RefundIncompleteError`
+    is returned.
     """
     targets: [RefundTargetInput!]
 }
@@ -399,6 +401,21 @@ type RefundDestinationError implements ErrorResult {
     destinationCode: String!
 }
 
+"""
+Returned when a refund split over several `targets` fails after one or more of the earlier
+targets have already been refunded. The Refunds created before the failure are kept, since their
+funds may already have been moved, and are listed in `refunds`.
+"""
+type RefundIncompleteError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+    "The Refunds created by this operation, including one whose state transition failed."
+    refunds: [Refund!]!
+    "The zero-based index of the target in `RefundOrderInput.targets` which failed."
+    failedTargetIndex: Int!
+    failureReason: String!
+}
+
 "Returned when there is an error in transitioning the Refund state"
 type RefundStateTransitionError implements ErrorResult {
     errorCode: ErrorCode!
@@ -513,6 +530,7 @@ union RefundOrderResult =
     | RefundStateTransitionError
     | RefundAmountError
     | RefundDestinationError
+    | RefundIncompleteError
 union SettleRefundResult = Refund | RefundStateTransitionError
 union TransitionFulfillmentToStateResult = Fulfillment | FulfillmentStateTransitionError
 union TransitionPaymentToStateResult = Payment | PaymentStateTransitionError

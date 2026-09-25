@@ -137,6 +137,7 @@
       "QuantityTooGreatError",
       "RefundAmountError",
       "RefundDestinationError",
+      "RefundIncompleteError",
       "RefundOrderStateError",
       "RefundPaymentIdMissingError",
       "RefundStateTransitionError",
@@ -248,6 +249,7 @@
       "Refund",
       "RefundAmountError",
       "RefundDestinationError",
+      "RefundIncompleteError",
       "RefundOrderStateError",
       "RefundStateTransitionError"
     ],

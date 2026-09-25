@@ -1865,6 +1865,7 @@ export enum ErrorCode {
   QUANTITY_TOO_GREAT_ERROR = 'QUANTITY_TOO_GREAT_ERROR',
   REFUND_AMOUNT_ERROR = 'REFUND_AMOUNT_ERROR',
   REFUND_DESTINATION_ERROR = 'REFUND_DESTINATION_ERROR',
+  REFUND_INCOMPLETE_ERROR = 'REFUND_INCOMPLETE_ERROR',
   REFUND_ORDER_STATE_ERROR = 'REFUND_ORDER_STATE_ERROR',
   REFUND_PAYMENT_ID_MISSING_ERROR = 'REFUND_PAYMENT_ID_MISSING_ERROR',
   REFUND_STATE_TRANSITION_ERROR = 'REFUND_STATE_TRANSITION_ERROR',
@@ -6088,6 +6089,22 @@ export type RefundDestinationError = ErrorResult & {
   message: Scalars['String']['output'];
 };
 
+/**
+ * Returned when a refund split over several `targets` fails after one or more of the earlier
+ * targets have already been refunded. The Refunds created before the failure are kept, since their
+ * funds may already have been moved, and are listed in `refunds`.
+ */
+export type RefundIncompleteError = ErrorResult & {
+  __typename?: 'RefundIncompleteError';
+  errorCode: ErrorCode;
+  /** The zero-based index of the target in `RefundOrderInput.targets` which failed. */
+  failedTargetIndex: Scalars['Int']['output'];
+  failureReason: Scalars['String']['output'];
+  message: Scalars['String']['output'];
+  /** The Refunds created by this operation, including one whose state transition failed. */
+  refunds: Array<Refund>;
+};
+
 export type RefundLine = {
   __typename?: 'RefundLine';
   orderLine: OrderLine;
@@ -6124,13 +6141,15 @@ export type RefundOrderInput = {
    * `amount` of each target is the total amount refunded, and the top-level `amount` and
    * `destination` fields are ignored.
    *
-   * All targets are validated before any refund is created, and the whole operation is
-   * performed in a single transaction.
+   * All targets are validated before any refund is created, and every target must draw on a
+   * Payment in the `Settled` state. If a target fails once earlier targets have already been
+   * refunded, the Refunds created for the earlier targets are kept and a `RefundIncompleteError`
+   * is returned.
    */
   targets?: InputMaybe<Array<RefundTargetInput>>;
 };
 
-export type RefundOrderResult = AlreadyRefundedError | MultipleOrderError | NothingToRefundError | OrderStateTransitionError | PaymentOrderMismatchError | QuantityTooGreatError | Refund | RefundAmountError | RefundDestinationError | RefundOrderStateError | RefundStateTransitionError;
+export type RefundOrderResult = AlreadyRefundedError | MultipleOrderError | NothingToRefundError | OrderStateTransitionError | PaymentOrderMismatchError | QuantityTooGreatError | Refund | RefundAmountError | RefundDestinationError | RefundIncompleteError | RefundOrderStateError | RefundStateTransitionError;
 
 /** Returned if an attempting to refund an Order which is not in the expected state */
 export type RefundOrderStateError = ErrorResult & {

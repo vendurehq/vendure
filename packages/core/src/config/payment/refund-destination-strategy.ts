@@ -108,8 +108,10 @@ export interface RefundDestinationStrategy extends InjectableStrategy {
      * `PaymentMethodHandler.createRefund()` when this destination is selected.
      *
      * The returned {@link CreateRefundResult} determines the refund state
-     * and any associated transaction ID or metadata. Throwing from this method aborts the whole
-     * refund operation and rolls back any Refunds created earlier in the same call.
+     * and any associated transaction ID or metadata. If this method throws when earlier targets of
+     * the same refund have already been processed, their Refunds are kept and the mutation returns
+     * a `RefundIncompleteError`. If it throws for the first target, the error propagates and no
+     * Refund is created.
      *
      * @param args - The `arguments` supplied on the corresponding `RefundTargetInput`, which is
      * how a dashboard refund destination component passes its configuration through to the backend.

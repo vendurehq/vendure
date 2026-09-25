@@ -115,6 +115,7 @@
     "QUANTITY_TOO_GREAT_ERROR": "The specified quantity is greater than the available OrderItems",
     "REFUND_AMOUNT_ERROR": "The amount specified exceeds the refundable amount for this payment",
     "REFUND_DESTINATION_ERROR": "The refund destination \"{ destinationCode }\" does not exist or is not available for this payment",
+    "REFUND_INCOMPLETE_ERROR": "Refund target { failedTargetIndex } failed: { failureReason }. The Refunds created for the earlier targets have been kept",
     "REFUND_ORDER_STATE_ERROR": "Cannot refund an Order in the \"{ orderState }\" state",
     "SETTLE_PAYMENT_ERROR": "Settling the payment failed",
     "VERIFICATION_TOKEN_EXPIRED_ERROR": "Verification token has expired. Use refreshCustomerVerification to send a new token.",
