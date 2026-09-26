@@ -1,7 +1,12 @@
 import { DynamicModule, Module } from '@nestjs/common';
 import { describe, expect, it } from 'vitest';
 
-import { flattenPlugins, getEntitiesFromPlugins, getModuleMetadata } from './plugin-metadata';
+import {
+    flattenPlugins,
+    getEntitiesFromPlugins,
+    getModuleMetadata,
+    getPluginAPIExtensions,
+} from './plugin-metadata';
 import { VendurePlugin } from './vendure-plugin';
 
 describe('plugin metadata', () => {
@@ -53,6 +58,25 @@ describe('plugin metadata', () => {
         class CompositePlugin {}
 
         expect(getEntitiesFromPlugins([CompositePlugin])).toEqual([TestEntity]);
+    });
+
+    it('finds composed API extensions in a raw, unflattened plugin list', () => {
+        const childExtension = { schema: undefined };
+        const parentExtension = { schema: undefined };
+
+        @VendurePlugin({ adminApiExtensions: childExtension })
+        class ChildPlugin {}
+
+        @VendurePlugin({ plugins: [{ module: ChildPlugin }], adminApiExtensions: parentExtension })
+        class ParentPlugin {}
+
+        for (const plugins of [[ParentPlugin], flattenPlugins([ParentPlugin])]) {
+            const extensions = getPluginAPIExtensions(plugins, 'admin');
+            expect(extensions).toHaveLength(2);
+            expect(extensions[0]).toBe(childExtension);
+            expect(extensions[1]).toBe(parentExtension);
+        }
+        expect(getPluginAPIExtensions([ParentPlugin], 'shop')).toEqual([]);
     });
 
     it('adds composed plugins to the NestJS module imports', () => {

@@ -72,10 +72,9 @@ export function getPluginAPIExtensions(
     plugins: Array<Type<any> | DynamicModule>,
     apiType: 'shop' | 'admin',
 ): APIExtensionDefinition[] {
-    const extensions =
-        apiType === 'shop'
-            ? plugins.map(p => reflectMetadata(p, PLUGIN_METADATA.SHOP_API_EXTENSIONS))
-            : plugins.map(p => reflectMetadata(p, PLUGIN_METADATA.ADMIN_API_EXTENSIONS));
+    const metadataKey =
+        apiType === 'shop' ? PLUGIN_METADATA.SHOP_API_EXTENSIONS : PLUGIN_METADATA.ADMIN_API_EXTENSIONS;
+    const extensions = flattenPlugins(plugins).map(p => reflectMetadata(p, metadataKey));
 
     return extensions.filter(notNullOrUndefined);
 }

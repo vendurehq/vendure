@@ -276,6 +276,35 @@ describe('runPluginConfigurations()', () => {
         await runPluginConfigurations(config);
         expect(config.customFields.Product).toContainEqual({ name: 'fromPlugin', type: 'string' });
     });
+
+    // The CLI and Dashboard schema generators pass the raw plugin list, which is not flattened
+    // by `preBootstrapConfig`. See #5430.
+    it('flattens composed plugins and runs their configuration functions once', async () => {
+        let childRuns = 0;
+
+        @VendurePlugin({
+            configuration: cfg => {
+                childRuns++;
+                cfg.customFields.Product.push({ name: 'fromChild', type: 'string' });
+                return cfg;
+            },
+        })
+        class ChildPlugin {}
+
+        @VendurePlugin({ plugins: [ChildPlugin] })
+        class ParentPlugin {}
+
+        const rawConfig = makeConfig({ plugins: [{ module: ParentPlugin }] });
+        await runPluginConfigurations(rawConfig);
+        expect(rawConfig.plugins).toEqual([ChildPlugin, { module: ParentPlugin }]);
+        expect(rawConfig.customFields.Product).toEqual([{ name: 'fromChild', type: 'string' }]);
+        expect(childRuns).toBe(1);
+
+        const flattenedConfig = makeConfig({ plugins: [ChildPlugin, ParentPlugin] });
+        await runPluginConfigurations(flattenedConfig);
+        expect(flattenedConfig.plugins).toEqual([ChildPlugin, ParentPlugin]);
+        expect(childRuns).toBe(2);
+    });
 });
 
 describe('registerCustomEntityFields()', () => {
