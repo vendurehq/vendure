@@ -43,7 +43,7 @@ export class AssetInterceptorPlugin implements ApolloServerPlugin {
         };
     }
 
-    private prefixAssetUrls(request: any, document: DocumentNode, data?: Record<string, unknown> | null) {
+    prefixAssetUrls(request: any, document: DocumentNode, data?: Record<string, unknown> | null) {
         const typeTree = this.graphqlValueTransformer.getOutputTypeTree(document);
         const toAbsoluteUrl = this.toAbsoluteUrl;
         if (!toAbsoluteUrl || !data) {

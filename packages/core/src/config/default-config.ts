@@ -104,6 +104,7 @@ export const defaultConfig: RuntimeVendureConfig = {
         inputValidation: {
             requiredFieldValidation: true,
         },
+        subscriptions: false,
     },
     entityIdStrategy: new AutoIncrementIdStrategy(),
     authOptions: {

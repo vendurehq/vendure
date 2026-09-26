@@ -181,6 +181,10 @@ export class AuthGuard implements CanActivate {
         }
 
         if (hasOwnerPermission && !serializedSession) {
+            if (info?.operation.operation === 'subscription' && !this.configService.authOptions.disableAuth) {
+                // The token of a new session could not be returned over a WebSocket
+                throw new ForbiddenError(LogLevel.Verbose);
+            }
             serializedSession = await this.sessionService.createAnonymousSession();
             setSessionToken({
                 sessionToken: serializedSession.token,

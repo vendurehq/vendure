@@ -1,12 +1,12 @@
 ---
 title: "Extend the GraphQL API"
-metaTitle: "Extending the Vendure GraphQL API with Custom Queries and Mutations"
-metaDescription: "Add custom queries, mutations, and types to the Vendure Shop and Admin GraphQL APIs using schema extensions and resolvers in your plugins."
+metaTitle: "Extending the Vendure GraphQL API with Custom Queries, Mutations and Subscriptions"
+metaDescription: "Add custom queries, mutations, subscriptions and types to the Vendure Shop and Admin GraphQL APIs using schema extensions and resolvers in your plugins."
 ---
 
 Extension to the GraphQL API consists of two parts:
 
-1. **Schema extensions**. These define new types, fields, queries and mutations.
+1. **Schema extensions**. These define new types, fields, queries, mutations and subscriptions.
 2. **Resolvers**. These provide the logic that backs up the schema extensions.
 
 The Shop API and Admin APIs can be extended independently:
@@ -174,6 +174,126 @@ import { shopApiExtensions, adminApiExtensions } from './api/api-extensions';
 })
 export class BannerPlugin {}
 ```
+
+
+## Adding a new Subscription
+
+Subscriptions push results to the client whenever something happens on the server. They are served over WebSocket and are enabled with the [`subscriptions`](/reference/typescript-api/configuration/api-options#subscriptions) option:
+
+```ts title="src/vendure-config.ts"
+import { VendureConfig } from '@vendure/core';
+
+export const config: VendureConfig = {
+    apiOptions: {
+        subscriptions: true, // [!code highlight]
+    },
+    // ...
+};
+```
+
+Let's allow the storefront to be notified whenever the text of a banner changes. First we define the subscription in the schema:
+
+```ts title="src/plugins/banner/api/api-extensions.ts"
+import gql from 'graphql-tag';
+
+export const shopApiExtensions = gql`
+  extend type Query {
+    activeBanner(locationId: String!): String
+  }
+
+  extend type Subscription {
+    activeBannerChanged(locationId: String!): String! # [!code highlight]
+  }
+`;
+```
+
+A subscription resolver returns an async iterable, which yields an object for each result, keyed by the name of the subscription. We will create it with the `PubSub` class of the [graphql-subscriptions](https://github.com/apollographql/graphql-subscriptions) package:
+
+```bash
+npm install graphql-subscriptions
+```
+
+The change is published via the [EventBus](/developer-guide/events/), which delivers an event only after its transaction has been committed. The Channel id is part of the trigger name, so that clients only receive the changes made in their own Channel:
+
+```ts title="src/plugins/banner/services/banner.service.ts"
+import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
+import { EventBus, RequestContext, VendureEvent } from '@vendure/core';
+import { PubSub } from 'graphql-subscriptions';
+
+export class BannerTextChangedEvent extends VendureEvent {
+    constructor(public ctx: RequestContext, public locationId: string, public text: string) {
+        super();
+    }
+}
+
+@Injectable()
+export class BannerService implements OnApplicationBootstrap {
+    private pubSub = new PubSub();
+
+    constructor(private eventBus: EventBus) {}
+
+    onApplicationBootstrap() {
+        this.eventBus.ofType(BannerTextChangedEvent).subscribe(({ ctx, locationId, text }) => { // [!code highlight]
+            this.pubSub.publish(`banner:${ctx.channelId}:${locationId}`, { activeBannerChanged: text }); // [!code highlight]
+        }); // [!code highlight]
+    }
+
+    async setBannerText(ctx: RequestContext, locationId: string, text: string) {
+        // ... save the banner text
+        await this.eventBus.publish(new BannerTextChangedEvent(ctx, locationId, text)); // [!code highlight]
+        return text;
+    }
+
+    activeBannerChanges(ctx: RequestContext, locationId: string) {
+        return this.pubSub.asyncIterableIterator(`banner:${ctx.channelId}:${locationId}`); // [!code highlight]
+    }
+}
+```
+
+The resolver is defined with the `@Subscription()` decorator, and supports `@Allow()` and `@Ctx()` just like a query:
+
+```ts title="src/plugins/banner/api/banner-shop.resolver.ts"
+import { Args, Query, Resolver, Subscription } from '@nestjs/graphql';
+import { Ctx, RequestContext } from '@vendure/core';
+import { BannerService } from '../services/banner.service.ts';
+
+@Resolver()
+class BannerShopResolver {
+    constructor(private bannerService: BannerService) {}
+
+    // ...
+
+    @Subscription() // [!code highlight]
+    activeBannerChanged(@Ctx() ctx: RequestContext, @Args() args: { locationId: string; }) { // [!code highlight]
+        return this.bannerService.activeBannerChanges(ctx, args.locationId); // [!code highlight]
+    } // [!code highlight]
+}
+```
+
+:::info
+The `PubSub` class only delivers events within a single process. If you run more than one server instance, or publish events from the worker, use an implementation backed by a message broker, such as [graphql-redis-subscriptions](https://github.com/davidyaha/graphql-redis-subscriptions).
+:::
+
+Clients connect to the URL of the API with a GraphQL over WebSocket client such as [graphql-ws](https://github.com/enisdenjo/graphql-ws), and pass the session token and the Channel token as connection params. Cookies are not read over WebSocket, so a client authenticates with a [bearer token](/storefront/connect-api/#bearer-token-sessions) or an API key, which `authOptions.tokenMethod` must allow:
+
+```ts
+import { createClient } from 'graphql-ws';
+
+const client = createClient({
+    url: 'ws://localhost:3000/shop-api',
+    connectionParams: {
+        Authorization: `Bearer ${sessionToken}`,
+        'vendure-token': channelToken,
+    },
+});
+
+client.subscribe(
+    { query: 'subscription { activeBannerChanged(locationId: "homepage") }' },
+    { next: result => console.log(result.data), error: console.error, complete: () => {} },
+);
+```
+
+If Vendure runs behind a reverse proxy, it must be configured to forward WebSocket connections to the API paths.
 
 
 ## Defining a new type

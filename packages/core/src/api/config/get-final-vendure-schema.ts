@@ -1,6 +1,15 @@
 import { GraphQLTypesLoader } from '@nestjs/graphql';
 import { notNullOrUndefined } from '@vendure/common/lib/shared-utils';
-import { buildSchema, concatAST, extendSchema, GraphQLSchema, printSchema } from 'graphql/index';
+import {
+    buildSchema,
+    concatAST,
+    DocumentNode,
+    extendSchema,
+    GraphQLObjectType,
+    GraphQLSchema,
+    Kind,
+    printSchema,
+} from 'graphql/index';
 import path from 'path';
 
 import {
@@ -179,7 +188,31 @@ function extendSchemaWithPluginApiExtensions(
     const documentNodes = getPluginAPIExtensions(plugins, apiType)
         .map(e => (typeof e.schema === 'function' ? e.schema(schema) : e.schema))
         .filter(notNullOrUndefined);
-    return documentNodes.length ? extendSchema(schema, concatAST(documentNodes)) : schema;
+    if (!documentNodes.length) {
+        return schema;
+    }
+    const extensions = concatAST(documentNodes);
+    return extendSchema(addSubscriptionTypeIfExtended(schema, extensions), extensions);
+}
+
+/**
+ * The Vendure schema defines no Subscription type, so an empty one is added
+ * for plugins to extend, in the same way as they extend Query and Mutation.
+ */
+function addSubscriptionTypeIfExtended(schema: GraphQLSchema, extensions: DocumentNode): GraphQLSchema {
+    const subscriptionDefinitions = extensions.definitions.filter(
+        definition => 'name' in definition && definition.name?.value === 'Subscription',
+    );
+    const isOnlyExtended =
+        subscriptionDefinitions.length > 0 &&
+        subscriptionDefinitions.every(definition => definition.kind === Kind.OBJECT_TYPE_EXTENSION);
+    if (!isOnlyExtended || schema.getSubscriptionType()) {
+        return schema;
+    }
+    return new GraphQLSchema({
+        ...schema.toConfig(),
+        subscription: new GraphQLObjectType({ name: 'Subscription', fields: {} }),
+    });
 }
 
 export function isUsingDefaultEntityIdStrategy(entityIdStrategy: EntityIdStrategy<any>): boolean {

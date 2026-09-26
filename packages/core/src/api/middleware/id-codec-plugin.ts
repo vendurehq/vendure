@@ -33,7 +33,7 @@ export class IdCodecPlugin implements ApolloServerPlugin {
         };
     }
 
-    private encodeIdFields(document: DocumentNode, data?: Record<string, unknown> | null) {
+    encodeIdFields(document: DocumentNode, data?: Record<string, unknown> | null) {
         if (!data) {
             return;
         }

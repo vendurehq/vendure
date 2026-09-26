@@ -1,6 +1,7 @@
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { DynamicModule } from '@nestjs/common';
-import { GraphQLModule, GraphQLTypesLoader } from '@nestjs/graphql';
+import { HttpAdapterHost } from '@nestjs/core';
+import { GraphQLModule, GraphQLSchemaHost, GraphQLTypesLoader } from '@nestjs/graphql';
 import { GraphQLSchema, printSchema, ValidationContext } from 'graphql';
 
 import { ConfigModule } from '../../config/config.module';
@@ -8,13 +9,16 @@ import { ConfigService } from '../../config/config.service';
 import { I18nModule } from '../../i18n/i18n.module';
 import { I18nService } from '../../i18n/i18n.service';
 import { ServiceModule } from '../../service/service.module';
+import { SessionService } from '../../service/services/session.service';
 import { ApiSharedModule } from '../api-internal-modules';
 import { CustomFieldRelationResolverService } from '../common/custom-field-relation-resolver.service';
 import { IdCodecService } from '../common/id-codec.service';
 import { AssetInterceptorPlugin } from '../middleware/asset-interceptor-plugin';
 import { IdCodecPlugin } from '../middleware/id-codec-plugin';
+import { RejectSubscriptionsOverHttpPlugin } from '../middleware/reject-subscriptions-over-http-plugin';
 import { TranslateErrorsPlugin } from '../middleware/translate-errors-plugin';
 
+import { createSubscriptionServerOptions } from './create-subscription-server-options';
 import { generateResolvers } from './generate-resolvers';
 import { getFinalVendureSchema, isUsingDefaultEntityIdStrategy } from './get-final-vendure-schema';
 
@@ -42,6 +46,9 @@ export function configureGraphQLModule(
             idCodecService: IdCodecService,
             typesLoader: GraphQLTypesLoader,
             customFieldRelationResolverService: CustomFieldRelationResolverService,
+            sessionService: SessionService,
+            httpAdapterHost: HttpAdapterHost,
+            schemaHost: GraphQLSchemaHost,
         ) => {
             return createGraphQLOptions(
                 i18nService,
@@ -49,6 +56,9 @@ export function configureGraphQLModule(
                 idCodecService,
                 typesLoader,
                 customFieldRelationResolverService,
+                sessionService,
+                httpAdapterHost,
+                schemaHost,
                 getOptions(configService),
             );
         },
@@ -58,6 +68,9 @@ export function configureGraphQLModule(
             IdCodecService,
             GraphQLTypesLoader,
             CustomFieldRelationResolverService,
+            SessionService,
+            HttpAdapterHost,
+            GraphQLSchemaHost,
         ],
         imports: [ConfigModule, I18nModule, ApiSharedModule, ServiceModule],
     });
@@ -69,6 +82,9 @@ async function createGraphQLOptions(
     idCodecService: IdCodecService,
     typesLoader: GraphQLTypesLoader,
     customFieldRelationResolverService: CustomFieldRelationResolverService,
+    sessionService: SessionService,
+    httpAdapterHost: HttpAdapterHost,
+    schemaHost: GraphQLSchemaHost,
     options: GraphQLApiOptions,
 ): Promise<ApolloDriverConfig> {
     const builtSchema = await buildSchemaForApi(options.apiType);
@@ -79,21 +95,25 @@ async function createGraphQLOptions(
         builtSchema,
     );
 
+    const assetInterceptorPlugin = new AssetInterceptorPlugin(configService);
     const apolloServerPlugins = [
         new TranslateErrorsPlugin(i18nService),
-        new AssetInterceptorPlugin(configService),
+        assetInterceptorPlugin,
+        new RejectSubscriptionsOverHttpPlugin(),
         ...configService.apiOptions.apolloServerPlugins,
     ];
     // We only need to add the IdCodecPlugin if the user has configured
     // a non-default EntityIdStrategy. This is a performance optimization
     // that prevents unnecessary traversal of each response when no
     // actual encoding/decoding is taking place.
+    let idCodecPlugin: IdCodecPlugin | undefined;
     if (
         !isUsingDefaultEntityIdStrategy(
             configService.entityOptions.entityIdStrategy ?? configService.entityIdStrategy,
         )
     ) {
-        apolloServerPlugins.unshift(new IdCodecPlugin(idCodecService));
+        idCodecPlugin = new IdCodecPlugin(idCodecService);
+        apolloServerPlugins.unshift(idCodecPlugin);
     }
 
     return {
@@ -119,6 +139,20 @@ async function createGraphQLOptions(
         plugins: apolloServerPlugins,
         validationRules: options.validationRules,
         introspection: configService.apiOptions.introspection ?? true,
+        subscriptions: configService.apiOptions.subscriptions
+            ? {
+                  'graphql-ws': createSubscriptionServerOptions({
+                      validationRules: options.validationRules,
+                      configService,
+                      i18nService,
+                      sessionService,
+                      httpAdapterHost,
+                      schemaHost,
+                      assetInterceptorPlugin,
+                      idCodecPlugin,
+                  }),
+              }
+            : undefined,
     } as ApolloDriverConfig;
 
     /**
