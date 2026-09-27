@@ -3,7 +3,7 @@ import { MODULE_METADATA } from '@nestjs/common/constants';
 import { Type } from '@vendure/common/lib/shared-types';
 import { notNullOrUndefined } from '@vendure/common/lib/shared-utils';
 
-import { APIExtensionDefinition, DashboardExtension, PluginConfigurationFn } from './vendure-plugin';
+import { APIExtensionDefinition, PluginConfigurationFn } from './vendure-plugin';
 
 export const PLUGIN_METADATA = {
     CONFIGURATION: 'configuration',
@@ -77,12 +77,6 @@ export function getPluginAPIExtensions(
     const extensions = flattenPlugins(plugins).map(p => reflectMetadata(p, metadataKey));
 
     return extensions.filter(notNullOrUndefined);
-}
-
-export function getPluginDashboardExtensions(
-    plugins: Array<Type<any> | DynamicModule>,
-): DashboardExtension[] {
-    return plugins.map(p => reflectMetadata(p, PLUGIN_METADATA.DASHBOARD)).filter(notNullOrUndefined);
 }
 
 export function getCompatibility(plugin: Type<any> | DynamicModule): string | undefined {
