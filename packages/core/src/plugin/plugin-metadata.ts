@@ -68,6 +68,10 @@ export function getModuleMetadata(module: Type<any>) {
     };
 }
 
+/**
+ * Returns the Shop API or Admin API extensions of the given plugins. The list does not have to be
+ * flattened first: this function also returns the extensions of composed plugins.
+ */
 export function getPluginAPIExtensions(
     plugins: Array<Type<any> | DynamicModule>,
     apiType: 'shop' | 'admin',
