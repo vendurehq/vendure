@@ -13,8 +13,7 @@ name: Floating dependency check
 # not compile, which is information rather than a reason to block other people's work.
 on:
     schedule:
-        # Wednesday 04:00 UTC. Offset from the Monday Dependabot run so a failure here is not read
-        # as being caused by that morning's pull requests, and away from the 02:00 jobs.
+        # Wednesday 04:00 UTC, away from the 02:00 jobs.
         - cron: '0 4 * * 3'
     workflow_dispatch:
 

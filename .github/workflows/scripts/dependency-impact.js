@@ -242,8 +242,8 @@ function removeLabel(label) {
 }
 
 /**
- * Posts the report, or edits the report already on the pull request. Dependabot force-pushes this
- * branch on every rebase, so posting a new comment each time would bury the pull request.
+ * Posts the report, or edits the report already on the pull request. Editing the existing comment
+ * prevents repeated workflow runs from burying the pull request.
  */
 function upsertComment(body) {
     const existing = findReportComment();

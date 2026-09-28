@@ -4,9 +4,8 @@ name: Dependency impact
 # lockfile refresh and a widened published range look identical in the pull request list and mean
 # different things.
 #
-# Uses pull_request_target for the reason given in dependabot_auto_merge.yml: a workflow that
-# Dependabot triggers via pull_request gets a read-only GITHUB_TOKEN, so it could not apply a
-# label or post a comment.
+# Uses pull_request_target because the workflow needs a write token to apply a label and post a
+# comment.
 #
 # SECURITY: pull_request_target runs the workflow definition from the base branch with write
 # access to the base repository. This workflow must never check out, install, or build the pull
