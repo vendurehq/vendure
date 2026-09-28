@@ -31,7 +31,7 @@ describe('scaffolded vendure-config storefront port (#5245)', () => {
         findAvailablePortMock.mockResolvedValue(SCANNED_STOREFRONT_PORT);
     });
 
-    it('points the email URLs at the storefront the scaffold actually created', async () => {
+    it('uses the storefront starter routes in every generated email link', async () => {
         const { configSource } = await getCiConfiguration(PROJECT_ROOT, 'npm', SERVER_PORT, 'nextjs');
 
         // The issue reports a verification link on a port nothing listens on.
@@ -45,6 +45,8 @@ describe('scaffolded vendure-config storefront port (#5245)', () => {
         expect(configSource).toContain(
             `changeEmailAddressUrl: 'http://localhost:${SCANNED_STOREFRONT_PORT}/account/verify-email'`,
         );
+        expect(configSource).not.toContain('/password-reset');
+        expect(configSource).not.toContain('/verify-email-address-change');
     });
 
     it('agrees with the origin written into the storefront own env file', async () => {
