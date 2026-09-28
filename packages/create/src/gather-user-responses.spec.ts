@@ -4,17 +4,26 @@ import { PORT_SCAN_RANGE, STOREFRONT_PORT } from './constants';
 import { getCiConfiguration, getQuickStartConfiguration } from './gather-user-responses';
 import { getPackageManagerInfo, registerTemplateHelpers } from './helpers';
 
-const { findAvailablePortMock, isDockerAvailableMock, selectMock, CANCELLED } = vi.hoisted(() => ({
-    findAvailablePortMock: vi.fn(),
-    isDockerAvailableMock: vi.fn(),
-    selectMock: vi.fn(),
-    CANCELLED: Symbol('cancelled'),
-}));
+const DOCKER_FALLBACK_PROMPT = 'We could not automatically start Docker. How should we proceed?';
 
+const { findAvailablePortMock, isDockerAvailableMock, selectMock, cancelMock, CANCELLED } = vi.hoisted(
+    () => ({
+        findAvailablePortMock: vi.fn(),
+        isDockerAvailableMock: vi.fn(),
+        selectMock: vi.fn(),
+        cancelMock: vi.fn(),
+        CANCELLED: Symbol('cancelled'),
+    }),
+);
+
+// The real cancel value is a module-private Symbol in @clack/core, and producing it by
+// driving a real prompt fails outside a TTY, so isCancel is stubbed to recognise a
+// stand-in. Everything downstream of it stays real: checkCancel, its cancel() call and
+// the process.exit it makes.
 vi.mock('@clack/prompts', async importOriginal => ({
     ...(await importOriginal<typeof import('@clack/prompts')>()),
     select: selectMock,
-    cancel: vi.fn(),
+    cancel: cancelMock,
     isCancel: (value: unknown) => value === CANCELLED,
 }));
 
@@ -73,16 +82,26 @@ describe('getQuickStartConfiguration', () => {
 
     it('exits when the Docker fallback prompt is cancelled', async () => {
         isDockerAvailableMock.mockResolvedValue({ result: 'not-running' });
-        selectMock.mockResolvedValue(CANCELLED);
+        // Cancel the Docker fallback prompt only. Every later prompt answers normally, so
+        // reaching one shows up below as that prompt having been asked.
+        selectMock.mockImplementation(async (options: { message: string }) =>
+            options.message === DOCKER_FALLBACK_PROMPT ? CANCELLED : 'none',
+        );
         const exit = vi.spyOn(process, 'exit').mockImplementation(() => {
             throw new Error('process.exit');
         });
 
-        await expect(getQuickStartConfiguration('my-vendure-app', 'npm', 3000)).rejects.toThrow(
-            'process.exit',
+        const outcome = await getQuickStartConfiguration('my-vendure-app', 'npm', 3000).then(
+            () => 'setup returned a configuration',
+            (e: Error) => e.message,
         );
+
+        // Which prompts were asked is the assertion that distinguishes the two behaviours. A
+        // missed cancel carries on to the storefront prompt, which cancels correctly and also
+        // exits with 0, so the exit alone does not show where the cancel was handled.
+        expect(selectMock.mock.calls.map(([options]) => options.message)).toEqual([DOCKER_FALLBACK_PROMPT]);
+        expect(outcome).toBe('process.exit');
+        expect(cancelMock).toHaveBeenCalledWith('Setup cancelled.');
         expect(exit).toHaveBeenCalledWith(0);
-        // A missed cancel carries on to the storefront prompt.
-        expect(selectMock).toHaveBeenCalledTimes(1);
     });
 });
