@@ -1,4 +1,5 @@
 import { RequestContext } from '@vendure/core';
+import { Readable } from 'node:stream';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AssetServer } from '../asset-server';
@@ -83,6 +84,79 @@ describe('asset identifiers on Windows', () => {
         await strategy.deleteFile('source/ab/image.jpg');
 
         expect(send.mock.calls[0][0].input.Key).toBe('source/ab/image.jpg');
+    });
+
+    it('falls back to a legacy backslash key when a browser-normalized URL misses', async () => {
+        const strategy = new S3AssetStorageStrategy({ bucket: 'test', credentials: null as any }, () => '');
+        const keys: string[] = [];
+        const send = vi.fn().mockImplementation(async (command: any) => {
+            keys.push(command.input.Key);
+            if (keys.length === 1) {
+                const error: any = new Error('missing POSIX key');
+                error.name = 'NoSuchKey';
+                error.$metadata = { httpStatusCode: 404 };
+                throw error;
+            }
+            return { Body: Readable.from([Buffer.from('legacy asset')]) };
+        });
+        (strategy as any).s3Client = { send };
+        (strategy as any).AWS = {
+            GetObjectCommand: class {
+                constructor(public input: any) {}
+            },
+        };
+
+        const result = await strategy.readFileToBuffer('source/ab/image.jpg');
+
+        expect(result.toString()).toBe('legacy asset');
+        expect(keys).toEqual(['source/ab/image.jpg', 'source\\ab\\image.jpg']);
+    });
+
+    it('reserves a forward-slash name when only the legacy S3 key exists', async () => {
+        const strategy = new S3AssetStorageStrategy({ bucket: 'test', credentials: null as any }, () => '');
+        const keys: string[] = [];
+        const send = vi.fn().mockImplementation(async (command: any) => {
+            keys.push(command.input.Key);
+            if (keys.length === 1) {
+                const error: any = new Error('missing POSIX key');
+                error.name = 'NotFound';
+                error.$metadata = { httpStatusCode: 404 };
+                throw error;
+            }
+            return {};
+        });
+        (strategy as any).s3Client = { send };
+        (strategy as any).AWS = {
+            HeadObjectCommand: class {
+                constructor(public input: any) {}
+            },
+        };
+
+        const exists = await strategy.fileExists('source/ab/image.jpg');
+
+        expect(exists).toBe(true);
+        expect(keys).toEqual(['source/ab/image.jpg', 'source\\ab\\image.jpg']);
+    });
+
+    it('returns false for a missing flat filename', async () => {
+        const strategy = new S3AssetStorageStrategy({ bucket: 'test', credentials: null as any }, () => '');
+        const send = vi.fn().mockRejectedValue(
+            Object.assign(new Error('missing flat key'), {
+                name: 'NotFound',
+                $metadata: { httpStatusCode: 404 },
+            }),
+        );
+        (strategy as any).s3Client = { send };
+        (strategy as any).AWS = {
+            HeadObjectCommand: class {
+                constructor(public input: any) {}
+            },
+        };
+
+        const exists = await strategy.fileExists('image.jpg');
+
+        expect(exists).toBe(false);
+        expect(send).toHaveBeenCalledOnce();
     });
 
     it('AssetServer uses forward slashes in S3 cache keys', () => {

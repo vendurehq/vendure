@@ -237,8 +237,18 @@ export class S3AssetStorageStrategy implements AssetStorageStrategy {
     private async readFile(identifier: string) {
         const { GetObjectCommand } = this.AWS;
 
-        const result = await this.s3Client.send(new GetObjectCommand(this.getObjectParams(identifier)));
-        return result.Body as Readable | undefined;
+        try {
+            const result = await this.s3Client.send(new GetObjectCommand(this.getObjectParams(identifier)));
+            return result.Body as Readable | undefined;
+        } catch (err: any) {
+            if (!this.isNotFoundError(err) || !identifier.includes('/')) {
+                throw err;
+            }
+            const result = await this.s3Client.send(
+                new GetObjectCommand(this.getLegacyObjectParams(identifier)),
+            );
+            return result.Body as Readable | undefined;
+        }
     }
 
     private async writeFile(fileName: string, data: PutObjectRequest['Body'] | string | Uint8Array | Buffer) {
@@ -278,7 +288,21 @@ export class S3AssetStorageStrategy implements AssetStorageStrategy {
             await this.s3Client.send(new HeadObjectCommand(this.getObjectParams(fileName)));
             return true;
         } catch (err: any) {
-            return false;
+            if (!this.isNotFoundError(err)) {
+                throw err;
+            }
+            if (!fileName.includes('/')) {
+                return false;
+            }
+            try {
+                await this.s3Client.send(new HeadObjectCommand(this.getLegacyObjectParams(fileName)));
+                return true;
+            } catch (legacyErr: any) {
+                if (!this.isNotFoundError(legacyErr)) {
+                    throw legacyErr;
+                }
+                return false;
+            }
         }
     }
 
@@ -287,6 +311,19 @@ export class S3AssetStorageStrategy implements AssetStorageStrategy {
             Bucket: this.s3Config.bucket,
             Key: path.posix.join(identifier.replace(/^\//, '')),
         };
+    }
+
+    private getLegacyObjectParams(identifier: string) {
+        return {
+            Bucket: this.s3Config.bucket,
+            Key: path.win32.join(identifier.replace(/^\//, '')),
+        };
+    }
+
+    private isNotFoundError(err: any): boolean {
+        return (
+            err?.$metadata?.httpStatusCode === 404 || err?.name === 'NoSuchKey' || err?.name === 'NotFound'
+        );
     }
 
     private async ensureBucket(bucket = this.s3Config.bucket) {
