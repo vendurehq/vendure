@@ -177,7 +177,10 @@ describe('interactive create prompts (#5352)', () => {
     });
 
     it('Manual Configuration shows every prompt with no spinner running, and cancels cleanly', async () => {
-        const { prompts, events } = await runCli({
+        // Declared in the order the prompts are expected, so the keys double as the expected
+        // sequence. Answers are looked up by message and not consumed, so a count on its own
+        // would still pass if a regression dropped one prompt and repeated another.
+        const answers = {
             [MODE_PROMPT]: 'manual',
             // Postgres asks every connection question, including schema and SSL.
             'Which database are you using?': 'postgres',
@@ -192,10 +195,11 @@ describe('interactive create prompts (#5352)', () => {
             'What password do you want to use for the superadmin user?': 'superadmin',
             'Populate with some sample product data?': true,
             [STOREFRONT_PROMPT]: state.CANCEL,
-        });
+        };
+        const { prompts, events } = await runCli(answers);
 
         expect(prompts).toHaveLength(13);
-        expect(prompts[0].message).toBe(MODE_PROMPT);
+        expect(prompts.map(p => p.message)).toEqual(Object.keys(answers));
         expect(prompts.filter(p => p.spinnerRunning)).toEqual([]);
         expect(events.slice(-3)).toEqual([
             `prompt: ${STOREFRONT_PROMPT}`,
