@@ -209,14 +209,12 @@ describe('StockLevelService', () => {
             ]);
 
             expect(queryBuilderReads.length).toBe(1);
-            // The fixture rows are not in this order, so the batch must have asked the database
-            // for it - the unbatched query got it for free from the (productVariantId,
-            // stockLocationId) index.
+            // The fixture rows are not in this order, so the batch must ask the database for it.
             expect(variant1.map(sl => sl.stockLocationId)).toEqual([1, 2]);
             expect(variant2.map(sl => sl.stockLocationId)).toEqual([1]);
         });
 
-        it('selects the StockLocation relation, as the unbatched query did', async () => {
+        it('includes the StockLocation relation on each StockLevel', async () => {
             const [stockLevel] = await service.getStockLevelsForVariant(ctx, 2);
 
             expect(stockLevel.stockLocation).toBe(location1);
@@ -236,6 +234,7 @@ describe('StockLevelService', () => {
                 service.getStockLevelsForVariant(otherChannelCtx, 2),
             ]);
 
+            expect(queryBuilderReads[0].params.channelId).toBe(42);
             expect(variant1.map(sl => sl.stockLocationId)).toEqual([2]);
             expect(variant2).toEqual([]);
         });
