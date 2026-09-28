@@ -43,32 +43,11 @@ jobs:
                   fetch-depth: 0
             - name: Detect changed paths
               id: check
+              env:
+                  GITHUB_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+                  GITHUB_EVENT_BEFORE: ${{ github.event.before }}
               run: |
-                  if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-                    echo "packages=true" >> "$GITHUB_OUTPUT"
-                    echo "dashboard=true" >> "$GITHUB_OUTPUT"
-                    exit 0
-                  fi
-
-                  base="${{ github.event.pull_request.base.sha }}"
-                  if [ -z "$base" ]; then base="${{ github.event.before }}"; fi
-                  if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
-                    base="HEAD~1"
-                  fi
-                  changed=$(git diff --name-only "$(git merge-base "$base" HEAD)" HEAD)
-
-                  # Changes to workflows and composite actions change how CI runs, so they trigger the test suites too.
-                  if echo "$changed" | grep -qE '^(packages/|package\.json|bun\.lock|bunfig\.toml|\.github/(workflows|actions)/)'; then
-                    echo "packages=true" >> "$GITHUB_OUTPUT"
-                  else
-                    echo "packages=false" >> "$GITHUB_OUTPUT"
-                  fi
-
-                  if echo "$changed" | grep -qE '^(packages/dashboard/|\.github/(workflows|actions)/)'; then
-                    echo "dashboard=true" >> "$GITHUB_OUTPUT"
-                  else
-                    echo "dashboard=false" >> "$GITHUB_OUTPUT"
-                  fi
+                  bash .github/workflows/scripts/detect-changes.sh
     codegen:
         needs: detect-changes
         if: needs.detect-changes.outputs.packages == 'true'
