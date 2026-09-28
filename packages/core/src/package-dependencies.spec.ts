@@ -41,3 +41,20 @@ describe('core published type dependencies', () => {
         expect(pkg.devDependencies?.['@types/express']).toBeUndefined();
     });
 });
+
+describe('typescript-eslint configuration', () => {
+    const repositoryRoot = path.join(__dirname, '../../..');
+    const rootPackage = JSON.parse(
+        fs.readFileSync(path.join(repositoryRoot, 'package.json'), 'utf-8'),
+    ) as { dependencies?: Record<string, string> };
+    const adminUiPackage = JSON.parse(
+        fs.readFileSync(path.join(repositoryRoot, 'packages/admin-ui/package.json'), 'utf-8'),
+    ) as { devDependencies?: Record<string, string> };
+
+    it('keeps the parser major aligned with the typescript-eslint plugin in every lint package', () => {
+        expect(rootPackage.dependencies?.['@typescript-eslint/parser']).toMatch(/^\^8\./);
+        expect(rootPackage.dependencies?.['@typescript-eslint/eslint-plugin']).toMatch(/^\^8\./);
+        expect(adminUiPackage.devDependencies?.['@typescript-eslint/parser']).toMatch(/^\^8\./);
+        expect(adminUiPackage.devDependencies?.['@typescript-eslint/eslint-plugin']).toMatch(/^\^8\./);
+    });
+});
