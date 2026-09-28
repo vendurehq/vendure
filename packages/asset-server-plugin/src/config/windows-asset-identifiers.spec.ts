@@ -62,6 +62,14 @@ describe('asset identifiers on Windows', () => {
             expect(identifier).toBe('source/ab/image.jpg');
         });
 
+        it('does not leak a forward-slash uploadPath into the identifier', async () => {
+            const strategy = new LocalAssetStorageStrategy('C:/vendure/assets');
+
+            const identifier = await strategy.writeFileFromBuffer('source/ab/image.jpg', Buffer.from(''));
+
+            expect(identifier).toBe('source/ab/image.jpg');
+        });
+
         it('still reads identifiers stored with backslashes', async () => {
             const strategy = new LocalAssetStorageStrategy('C:\\vendure\\assets');
 
@@ -83,7 +91,10 @@ describe('asset identifiers on Windows', () => {
 
         await strategy.deleteFile('source/ab/image.jpg');
 
-        expect(send.mock.calls[0][0].input.Key).toBe('source/ab/image.jpg');
+        expect(send.mock.calls.map((call: any[]) => call[0].input.Key)).toEqual([
+            'source/ab/image.jpg',
+            'source\\ab\\image.jpg',
+        ]);
     });
 
     it('falls back to a legacy backslash key when a browser-normalized URL misses', async () => {
@@ -173,5 +184,44 @@ describe('asset identifiers on Windows', () => {
         });
 
         expect(cacheKey).toMatch(/^cache\/source\/ab\/image[0-9a-f]{32}\.jpg$/);
+    });
+
+    it('AssetServer uses forward slashes in cache keys for a non-S3 strategy', () => {
+        const server = new AssetServer(
+            {} as any,
+            {
+                assetOptions: {
+                    assetStorageStrategy: new LocalAssetStorageStrategy('C:\\vendure\\assets'),
+                },
+            } as any,
+            {} as any,
+        );
+
+        const cacheKey: string = (server as any).getFileNameFromParameters('/source/ab/image.jpg', {
+            width: 100,
+            mode: 'crop',
+        });
+
+        expect(cacheKey).not.toContain('\\');
+        expect(cacheKey).toMatch(/^cache\/source\/ab\/image[0-9a-f]{32}\.jpg$/);
+    });
+
+    it('AssetServer still strips traversal segments for a non-S3 strategy', () => {
+        const server = new AssetServer(
+            {} as any,
+            {
+                assetOptions: {
+                    assetStorageStrategy: new LocalAssetStorageStrategy('C:\\vendure\\assets'),
+                },
+            } as any,
+            {} as any,
+        );
+
+        const identifier: string = (server as any).getFileNameFromParameters(
+            '/source/..\\..\\windows/system32/config',
+            {},
+        );
+
+        expect(identifier).not.toContain('..');
     });
 });
