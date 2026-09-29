@@ -123,8 +123,8 @@ export class StockLevelService {
                 productVariantIds: this.uniqueIds(ids),
             })
             .andWhere('channel.id = :channelId', { channelId: ctx.channelId })
-            // Sort by stock location so the order is deterministic.
-            // `stock-control-multi-location.e2e-spec.ts` asserts on it.
+            // An IN (...) query gives no row order guarantee, so sort to keep the order of
+            // `stockLevels` stable for API clients.
             .orderBy('stockLevel.stockLocationId', 'ASC')
             .getMany();
         return this.groupByVariantId(ids, stockLevels);
