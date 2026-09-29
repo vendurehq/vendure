@@ -1,0 +1,367 @@
+---
+title: 'Assistant outside Vendure'
+metaTitle: 'Build an MCP Assistant outside Vendure | Vendure'
+metaDescription: 'Run your own shop assistant as a separate service: register once, run the OAuth round trip during a navigation the shopper is already making, and renew tokens without interrupting the chat.'
+order: 4
+---
+
+An assistant that runs outside the Vendure process must obtain an OAuth token before it can act for a signed-in
+shopper. For a first-party assistant, you can handle the OAuth flow without showing a consent screen to the
+shopper. Start the flow during a navigation the shopper is already making, and your consent page can
+automatically approve your own client.
+
+## When this is the right shape
+
+Use this approach when the assistant runs as a separate service from Vendure.
+
+Use a different approach when:
+
+- **The assistant is a Vendure plugin in the same process.** It can run the tools directly, with no token at all:
+  see [Assistant inside Vendure](/guides/mcp-server/assistant-inside-vendure/).
+- **The AI client belongs to the shopper**, such as Claude Desktop, ChatGPT, or Cursor. Those clients run this
+  flow themselves. All you build is [the customer consent page](/guides/mcp-server/oauth-consent/#before-you-start).
+
+## Before you start
+
+Every authorization for the shop toolset redirects the browser to your `oauth.storefrontConsentUrl`. Even a
+first-party assistant must go through the storefront OAuth flow. That redirect is where the invisibility comes from: your consent
+page recognises your own `client_id`, approves without drawing a screen, and redirects onward. Build that page
+first: [the customer consent page](/guides/mcp-server/oauth-consent/#before-you-start).
+
+To integrate your assistant, you will:
+
+1. Register it once and store its client id.
+2. Start the authorization by redirecting the shopper's browser.
+3. Handle the callback and exchange the code for tokens.
+4. Hold the tokens for the conversation.
+5. Renew silently and call tools.
+
+```text
+Your assistant                     Vendure                        Your consent page
+     │
+     │ 1. Register once ──────────────▶ client_id
+     │
+     │ 2. Redirect shopper ───────────▶ /mcp/oauth/authorize
+     │                                        │
+     │                                        └─ redirect ──────────▶ ?request_token=…
+     │                                                                     │
+     │                                                           approve your client
+     │                                                                     │
+     │ 3. Browser returns with ?code=…&state=… ◀──────────────────────────────┘
+     │
+     │ 4. Exchange code ──────────────▶ /mcp/oauth/token
+     │                                  ◀── access_token + refresh_token
+     │
+     │ 5. Call MCP tools ─────────────▶ /mcp/shop
+```
+
+Steps 2 and 3 are browser redirects. Everything else is server-to-server.
+
+## Register once, and store the client id
+
+Registration always creates a new client record with a new id. Register the first time only, and persist what you
+get back. Re-registering on every boot leaves a trail of unused records. It also changes your assistant's
+identity in the tool-call logs.
+
+```ts title="src/mcp/oauth-client.ts"
+const VENDURE_URL = 'https://my-store.example.com';
+const RESOURCE = `${VENDURE_URL}/mcp/shop`;
+const REDIRECT_URI = 'https://assistant.example.com/mcp/callback';
+
+/**
+ * Returns this assistant's client id, registering it the first time only. `db` here is your
+ * own storage, not Vendure's.
+ */
+export async function getClientId(): Promise<string> {
+    const stored = await db.getSetting('mcpClientId');
+    if (stored) {
+        return stored;
+    }
+    const response = await fetch(`${VENDURE_URL}/mcp/oauth/register`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+            client_name: 'Acme Assistant',
+            client_uri: 'https://assistant.example.com',
+            // The address used in step 3 must appear here, or the authorize step refuses it.
+            redirect_uris: [REDIRECT_URI],
+        }),
+    });
+    if (!response.ok) {
+        throw new Error(`MCP client registration failed: ${response.status}`);
+    }
+    const { client_id } = (await response.json()) as { client_id: string };
+    await db.setSetting('mcpClientId', client_id);
+    return client_id;
+}
+```
+
+Your consent page also needs to know this `client_id` so it can recognise and automatically approve your
+assistant.
+
+## Start the authorization
+
+The authorization flow requires the shopper's browser, so start it at a point where a navigation is already
+expected.
+
+- Start it when the shopper opens the assistant or navigates to another page.
+- Start it only when the shopper is already signed in. Your consent page has to send a signed-out shopper to a
+  login form, in the middle of the page they were reading.
+- Do not trigger the flow while the shopper is actively interacting with the chat.
+
+Every authorization needs three fresh random values. Each does a different job.
+
+| Value | Where it goes | What it is for |
+|---|---|---|
+| **Code verifier** | Stays on your server, then goes to the token endpoint | Proves that the service redeeming the code is the one that started the flow. Never send it to the browser. |
+| **Code challenge** | Travels in the browser, on the authorize URL | A one-way hash of the verifier. Anyone who steals it learns nothing, because they cannot work backwards to the verifier. |
+| **State** | Travels in the browser, and comes back on the callback | Ties the callback to a flow this server started, and to the customer who started it. |
+
+The authorization code cannot be redeemed without the code verifier.
+
+:::info
+The examples below use in-memory maps for simplicity. In a multi-instance deployment, use shared storage for
+pending OAuth flows and conversation state.
+:::
+
+```ts title="src/mcp/oauth-client.ts"
+import { createHash, randomBytes } from 'crypto';
+
+interface PendingFlow {
+    /** The secret half of the pair. Never leaves your server. */
+    codeVerifier: string;
+    /** Who started this flow. The callback needs it to know whose tokens these are. */
+    customerId: string;
+    conversationId: string;
+}
+
+// Keyed by state. Use shared storage if more than one instance can handle the callback.
+const pendingFlows = new Map<string, PendingFlow>();
+
+/** Returns the URL to send the shopper's browser to. */
+export async function startAuthorization(
+    customerId: string,
+    conversationId: string,
+): Promise<string> {
+    const codeVerifier = randomBytes(32).toString('base64url');
+    const codeChallenge = createHash('sha256').update(codeVerifier).digest('base64url');
+    const state = randomBytes(16).toString('base64url');
+
+    pendingFlows.set(state, { codeVerifier, customerId, conversationId });
+
+    const url = new URL('/mcp/oauth/authorize', VENDURE_URL);
+    url.searchParams.set('response_type', 'code');
+    url.searchParams.set('client_id', await getClientId());
+    url.searchParams.set('redirect_uri', REDIRECT_URI);
+    url.searchParams.set('code_challenge', codeChallenge);
+    url.searchParams.set('code_challenge_method', 'S256');
+    // Names the toolset the token will be good for. `/mcp/shop` is the customer-facing one.
+    url.searchParams.set('resource', RESOURCE);
+    url.searchParams.set('state', state);
+    return url.toString();
+}
+```
+
+## Handle the callback
+
+```ts title="src/mcp/oauth-client.ts"
+/** Handles the browser's return from the consent page. */
+export async function handleCallback(query: Record<string, string | undefined>): Promise<void> {
+    const { code, state, error } = query;
+
+    // Check the state before anything else, every time.
+    if (!state) {
+        throw new Error('Unrecognised MCP callback — no state');
+    }
+    const flow = pendingFlows.get(state);
+    if (!flow) {
+        throw new Error('Unrecognised MCP callback — no matching flow');
+    }
+    // Each state is good for one callback only.
+    pendingFlows.delete(state);
+
+    if (error || !code) {
+        // The shopper denied, or the server refused. There is nothing to store.
+        return;
+    }
+
+    const tokens = await requestTokens({
+        grant_type: 'authorization_code',
+        code,
+        client_id: await getClientId(),
+        redirect_uri: REDIRECT_URI,
+        code_verifier: flow.codeVerifier,
+        resource: RESOURCE,
+    });
+    conversations.set(flow.conversationId, tokens);
+}
+```
+
+## Hold the tokens for the conversation
+
+The token exchange gives you two tokens. For a conversation-scoped assistant, keep the tokens in memory for the
+lifetime of the conversation. If the assistant needs to act for a shopper after the conversation ends, persist
+the grant securely instead. See
+[Act for a shopper who is not present](#optional-act-for-a-shopper-who-is-not-present).
+
+```ts title="src/mcp/oauth-client.ts"
+/** Replace the access token this long before it expires. */
+const RENEW_WITHIN_MS = 60_000;
+
+interface Tokens {
+    accessToken: string;
+    refreshToken: string;
+    /** Clock time at which the access token stops working. */
+    expiresAt: number;
+    /** Set while a renewal is in flight, so two messages cannot renew at once. */
+    renewal?: Promise<Tokens>;
+}
+
+const conversations = new Map<string, Tokens>();
+
+async function requestTokens(body: Record<string, string>): Promise<Tokens> {
+    const response = await fetch(`${VENDURE_URL}/mcp/oauth/token`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+        throw new Error(`MCP token request failed: ${response.status}`);
+    }
+    const payload = (await response.json()) as {
+        access_token: string;
+        refresh_token: string;
+        expires_in: number;
+    };
+    return {
+        accessToken: payload.access_token,
+        refreshToken: payload.refresh_token,
+        expiresAt: Date.now() + payload.expires_in * 1000,
+    };
+}
+```
+
+## Renew silently and call tools
+
+The access token lasts 15 minutes by default. The refresh token lasts 30 days. Token refresh happens
+server-to-server, so the shopper does not need to go through OAuth again. Make sure concurrent requests share the
+same renewal operation.
+
+```ts title="src/mcp/oauth-client.ts"
+/** Returns a usable access token, renewing first if the current one is nearly up. */
+export async function accessTokenFor(conversationId: string): Promise<string> {
+    const tokens = conversations.get(conversationId);
+    if (!tokens) {
+        throw new Error('This conversation has no MCP grant yet');
+    }
+    if (tokens.expiresAt - Date.now() > RENEW_WITHIN_MS) {
+        return tokens.accessToken;
+    }
+    // One renewal at a time: a simultaneous second renewal can revoke the whole grant
+    // (see "How refresh-token rotation works" below). Share one promise so there is
+    // only ever one call in flight.
+    const renewal = (tokens.renewal ??= renew(conversationId, tokens).finally(() => {
+        delete tokens.renewal;
+    }));
+    return (await renewal).accessToken;
+}
+
+async function renew(conversationId: string, current: Tokens): Promise<Tokens> {
+    const fresh = await requestTokens({
+        grant_type: 'refresh_token',
+        refresh_token: current.refreshToken,
+        client_id: await getClientId(),
+        resource: RESOURCE,
+    });
+    conversations.set(conversationId, fresh);
+    return fresh;
+}
+```
+
+Then call tools with whatever `accessTokenFor` hands back:
+
+```ts
+import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
+
+const transport = new StreamableHTTPClientTransport(new URL(`${VENDURE_URL}/mcp/shop`), {
+    requestInit: {
+        headers: { authorization: `Bearer ${await accessTokenFor(conversationId)}` },
+    },
+});
+const client = new Client({ name: 'acme-assistant', version: '1.0.0' });
+await client.connect(transport);
+```
+
+## Optional: Act for a shopper who is not present
+
+Sometimes the assistant must act for a shopper who is not there: following up on an abandoned basket, or
+answering a question later. A conversation-scoped, in-memory token is the wrong home for that. Persist the pair
+instead. Key it by customer identity, never by conversation.
+
+A conversation is short-lived, and a customer may have several. If you key grants by conversation, each
+conversation gets its own grant and you lose access to it when the conversation ends. For persistent assistants,
+key the grant by customer instead so it can be refreshed, revoked, and reused across conversations.
+
+Three things change with a persisted pair:
+
+- **Encrypt the refresh token at rest.** It is a 30-day credential for that shopper's account.
+- **Lock the renewal across processes, not only within one.** The single-promise trick above serialises renewals
+  inside one instance only. Two instances renewing the same grant trigger the revocation described in
+  [How refresh-token rotation works](#how-refresh-token-rotation-works). A short lease in Redis, or a row-level
+  lock, is enough.
+- **Handle a dead grant as a normal outcome.** An administrator can revoke a grant from the dashboard. Your own
+  code can revoke it. The server revokes it automatically if a rotated refresh token is ever replayed. A grant
+  also expires 30 days after its last refresh. Treat a rejected refresh as "ask this shopper again next time
+  they visit", not as an error to retry.
+
+## Security and production considerations
+
+### Why the state check matters
+
+The state is the only thing tying a callback to a flow this backend started, and to the right customer. Skip the
+check and anyone can begin their own authorization, then cause a shopper's browser to complete it. Your assistant
+then ends up holding a token, but not the one it thinks it holds. Three obligations follow:
+
+- Look the state up on every callback.
+- Treat an unknown state as an error.
+- Use each state once.
+
+### How refresh-token rotation works
+
+Never refresh the same grant concurrently.
+
+Every refresh rotates the pair: you get a new access token and a new refresh token. Refresh-token rotation
+invalidates the previous refresh token. The server treats a replay of an invalidated refresh token as evidence of
+theft. If two requests refresh simultaneously, one may succeed while the other uses the now-invalid token. A
+retry with that old token can cause the entire grant to be revoked. Serialise renewals, as the `tokens.renewal`
+promise above does.
+
+### Handling a rate-limit refusal
+
+Every shopper's grant sits behind the single client record you registered above, so all of your assistant's
+traffic shares one `rateLimits.perClient` allowance. Raise that allowance in
+[Set rate limits](/guides/mcp-server/production/#set-rate-limits). The counters also need a cache backend that
+only evicts on time, covered in
+[Where the rate-limit counters live](/guides/mcp-server/production/#where-the-rate-limit-counters-live).
+
+If a call is refused, respect `data.retryAfterSeconds` when it is provided and avoid retrying immediately. Do
+not branch on the numeric error code. The exact shape of a refusal, before and inside a tool call, is described
+in [What a rate-limited caller sees](/guides/mcp-server/production/#what-a-rate-limited-caller-sees).
+
+## Troubleshooting
+
+| What you see | Cause | Fix |
+|---|---|---|
+| The authorize call returns a 400 saying the redirect is not registered | The `redirect_uri` on the authorize URL is not among the `redirect_uris` the client was registered with. The comparison is an exact string match | Send a `redirect_uri` that exactly matches a registered one |
+| The callback carries a `state` with no matching flow | The flow was not started by this server, or the state was already used | Treat it as an error and store nothing |
+| Callbacks intermittently find no matching flow after you scale past one instance | Pending flows are stored in one instance's memory | Store pending flows in shared storage |
+| The callback carries `error`, or no `code` | The shopper denied (`access_denied`), or the server refused (`invalid_request`, `server_error`) | There is nothing to store; start a fresh flow on a later navigation |
+| The token endpoint rejects a refresh | The grant was revoked (by an administrator, your own code, or automatically after a refresh-token replay), or it expired 30 days after the last refresh | Treat the grant as dead: ask this shopper to authorize again next time they visit |
+| A protocol error with `data.retryAfterSeconds` | A rate limit refused the call before a tool ran | Wait the given seconds, and tell the shopper to try again in a moment |
+
+## See also
+
+- [The customer consent page](/guides/mcp-server/oauth-consent/#before-you-start) — the page this flow redirects through, and where your own assistant gets waved past.
+- [Built-in Tool Reference](/guides/mcp-server/built-in-tools/) — the tools your assistant can reach on the shop toolset.
+- [Production Hardening](/guides/mcp-server/production/) — rate limits, token secret rotation and the go-live checklist.
+- [Logging & Observability](/guides/mcp-server/observability/) — tool-call logging and telemetry.

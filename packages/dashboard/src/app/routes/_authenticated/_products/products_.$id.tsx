@@ -1,5 +1,5 @@
 import { RichTextInput } from '@/vdb/components/data-input/rich-text-input.js';
-import { SlugInput } from '@/vdb/components/data-input/slug-input.js';
+import { requireGeneratedSlug, SlugInput } from '@/vdb/components/data-input/slug-input.js';
 import { usePriceFactor } from '@/vdb/components/shared/assign-to-channel-dialog.js';
 import { AssignedChannels } from '@/vdb/components/shared/assigned-channels.js';
 import { AssignedFacetValues } from '@/vdb/components/shared/assigned-facet-values.js';
@@ -36,6 +36,7 @@ import { AddOptionGroupDialog } from './components/add-option-group-dialog.js';
 import { GenerateVariantsPanel } from './components/generate-variants-panel.js';
 import { ProductOptionGroupBadge } from './components/product-option-group-badge.js';
 import { ProductVariantsTable } from './components/product-variants-table.js';
+import { SharedOptionGroupWarning } from './components/shared-option-group-warning.js';
 import { useRemoveOptionGroup } from './hooks/use-remove-option-group.js';
 import {
     assignProductsToChannelDocument,
@@ -136,10 +137,14 @@ function ProductDetailPage() {
 
     const { form, submitHandler, entity, isPending, refreshEntity, resetForm } = useDetailPage({
         pageId,
+        // OSS-567: the Product update mutation is patch-style, so send only the fields the user
+        // changed and never clobber a concurrent edit to an untouched field.
+        sendOnlyChangedFields: true,
         entityName: 'Product',
         queryDocument: productDetailDocument,
         createDocument: createProductDocument,
         updateDocument: updateProductDocument,
+        extendSchema: creatingNewEntity ? requireGeneratedSlug : undefined,
         setValuesForUpdate: entity => {
             return {
                 id: entity.id,
@@ -327,15 +332,26 @@ function ProductDetailPage() {
                 {entity && entity.optionGroups.length > 0 && (
                     <PageBlock column="side" blockId="option-groups" title={<Trans>Product Options</Trans>}>
                         <div className="flex flex-wrap gap-1.5 mb-3">
-                            {entity.optionGroups.map(g => (
-                                <ProductOptionGroupBadge
-                                    key={g.id}
-                                    id={g.id}
-                                    name={g.name}
-                                    productId={entity.id}
-                                    onRemoved={() => refreshEntity()}
-                                />
-                            ))}
+                            {entity.optionGroups.map(g => {
+                                const badge = (
+                                    <ProductOptionGroupBadge
+                                        key={g.id}
+                                        id={g.id}
+                                        name={g.name}
+                                        productId={entity.id}
+                                        onRemoved={() => refreshEntity()}
+                                    />
+                                );
+                                // A shared group takes a full row so its warning sits next to its name
+                                return g.productCount > 1 ? (
+                                    <div key={g.id} className="w-full space-y-2">
+                                        {badge}
+                                        <SharedOptionGroupWarning productCount={g.productCount} />
+                                    </div>
+                                ) : (
+                                    badge
+                                );
+                            })}
                         </div>
                         <AddOptionGroupDialog
                             productId={entity.id}

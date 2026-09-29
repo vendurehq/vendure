@@ -141,6 +141,11 @@ export interface ListPageProps<
      * Allows you to customize how the search term is used in the list query options.
      * For instance, when you want the term to filter on specific fields.
      *
+     * The returned filter is merged with the column & faceted filters, so when the term should
+     * match any of several fields, group those fields in an `_or` block. Setting a page-level
+     * `filterOperator: 'OR'` would instead OR together _every_ top-level condition, including
+     * the column filters.
+     *
      * @example
      * ```tsx
      *  <ListPage
@@ -149,9 +154,11 @@ export interface ListPageProps<
      *    listQuery={administratorListDocument}
      *    onSearchTermChange={searchTerm => {
      *      return {
-     *        firstName: { contains: searchTerm },
-     *        lastName: { contains: searchTerm },
-     *        emailAddress: { contains: searchTerm },
+     *        _or: [
+     *          { firstName: { contains: searchTerm } },
+     *          { lastName: { contains: searchTerm } },
+     *          { emailAddress: { contains: searchTerm } },
+     *        ],
      *      };
      *    }}
      *  />
@@ -339,6 +346,27 @@ export interface ListPageProps<
     transformData?: (data: any[]) => any[];
     /**
      * @description
+     * Allows the react-query cache key to be transformed. Use this together with the
+     * `transformVariables` prop when a page injects extra state into the query
+     * (e.g. a language selector or a status filter): the default key only reflects page, sorting,
+     * column filters and the search term, so without transforming the key too, changing the injected
+     * state serves a stale cached result instead of refetching.
+     */
+    transformQueryKey?: (queryKey: any[]) => any[];
+    /**
+     * @description
+     * When true, disables the view options (column visibility) control in the table toolbar.
+     */
+    disableViewOptions?: boolean;
+    /**
+     * @description
+     * When false, the row selection checkbox column will not be included.
+     *
+     * @default true
+     */
+    includeSelectionColumn?: boolean;
+    /**
+     * @description
      * Allows you to directly manipulate the TanStack Table `TableOptions` object before the
      * table is created. And advanced option that is not often required.
      */
@@ -524,6 +552,9 @@ export function ListPage<
     dropdownMenuItems,
     rowActions,
     transformData,
+    transformQueryKey,
+    disableViewOptions,
+    includeSelectionColumn,
     setTableOptions,
     bulkActions,
     registerRefresher,
@@ -625,6 +656,9 @@ export function ListPage<
         bulkActions,
         setTableOptions,
         transformData,
+        transformQueryKey,
+        disableViewOptions,
+        includeSelectionColumn,
         registerRefresher,
         emptyStateAction,
     };

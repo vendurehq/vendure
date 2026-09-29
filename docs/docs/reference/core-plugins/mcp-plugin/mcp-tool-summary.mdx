@@ -1,0 +1,65 @@
+---
+title: "McpToolSummary"
+generated: true
+---
+<GenerationInfo sourceFile="packages/mcp-plugin/src/types.ts" sourceLine="376" packageName="@vendure/mcp-plugin" since="3.8.0" />
+
+A tool as described to a caller, carrying everything a model needs to decide whether to call it.
+Returned by `McpToolExecutionService.listTools` and by the `search_tools` discovery meta-tool.
+
+```ts title="Signature"
+interface McpToolSummary {
+    name: string;
+    title?: string;
+    description: string;
+    toolset: McpToolset;
+    behavior: McpToolBehavior;
+    annotations: ToolAnnotations;
+    inputSchema: McpJsonSchema;
+}
+```
+
+<div className="members-wrapper">
+
+### name
+
+<MemberInfo kind="property" type={`string`}   />
+
+The tool's unique snake_case name within its toolset, e.g. `search_products`.
+### title
+
+<MemberInfo kind="property" type={`string`}   />
+
+Human-readable title declared by the tool. The same value is copied onto
+`annotations.title`.
+### description
+
+<MemberInfo kind="property" type={`string`}   />
+
+What the tool does, written for an AI agent to read.
+### toolset
+
+<MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-toolset#mcptoolset'>McpToolset</a>`}   />
+
+Which Vendure API the tool works over: `shop` for the Shop API, `admin` for the Admin API.
+### behavior
+
+<MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-tool-behavior#mcptoolbehavior'>McpToolBehavior</a>`}   />
+
+What the tool does to data: `readonly` only reads it, `mutating` changes it, and
+`destructive` changes it and needs a confirmation round-trip before running.
+### annotations
+
+<MemberInfo kind="property" type={`ToolAnnotations`}   />
+
+MCP annotations derived from `behavior`. `readOnlyHint` and `idempotentHint` are true for
+a `readonly` tool. `destructiveHint` is true for a `destructive` tool.
+### inputSchema
+
+<MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-json-schema#mcpjsonschema'>McpJsonSchema</a>`}   />
+
+The input schema a call must satisfy: the tool's declared schema plus, for a destructive
+tool, the optional `confirm` field the registry injects.
+
+
+</div>

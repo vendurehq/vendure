@@ -76,6 +76,11 @@ export class ChannelResolver {
         return this.channelService.delete(ctx, args.id);
     }
 
+    /**
+     * ChannelService.delete() checks the DeleteChannel permission on each Channel before it touches
+     * any data, so a Channel outside the scope of the Role is never deleted, whatever happens to the
+     * other ids in the same call. See GHSA-22x4-937q-5fr5.
+     */
     @Transaction()
     @Mutation()
     @Allow(Permission.SuperAdmin, Permission.DeleteChannel)

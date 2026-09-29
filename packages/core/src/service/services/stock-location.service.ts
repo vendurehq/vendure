@@ -96,7 +96,10 @@ export class StockLocationService {
     }
 
     async update(ctx: RequestContext, input: UpdateStockLocationInput): Promise<StockLocation> {
-        const stockLocation = await this.connection.getEntityOrThrow(ctx, StockLocation, input.id);
+        // Ensure the entity belongs to the active channel before updating.
+        const stockLocation = await this.connection.getEntityOrThrow(ctx, StockLocation, input.id, {
+            channelId: ctx.channelId,
+        });
         const updatedStockLocation = patchEntity(stockLocation, input);
         await this.connection.getRepository(ctx, StockLocation).save(updatedStockLocation);
         await this.customFieldRelationService.updateRelations(
@@ -196,21 +199,23 @@ export class StockLocationService {
         if (!hasPermission) {
             throw new ForbiddenError();
         }
-        for (const stockLocationId of input.stockLocationIds) {
-            const stockLocation = await this.connection.findOneInChannel(
-                ctx,
-                StockLocation,
-                stockLocationId,
-                ctx.channelId,
-            );
-            await this.channelService.assignToChannels(ctx, StockLocation, stockLocationId, [
+        // Source entities must be visible in the active Channel (GHSA-422x-jq57-j238).
+        const stockLocations = await this.connection.findByIdsInChannel(
+            ctx,
+            StockLocation,
+            input.stockLocationIds,
+            ctx.channelId,
+            {},
+        );
+        for (const stockLocation of stockLocations) {
+            await this.channelService.assignToChannels(ctx, StockLocation, stockLocation.id, [
                 input.channelId,
             ]);
         }
         return this.connection.findByIdsInChannel(
             ctx,
             StockLocation,
-            input.stockLocationIds,
+            stockLocations.map(location => location.id),
             ctx.channelId,
             {},
         );
@@ -235,16 +240,23 @@ export class StockLocationService {
         if (idsAreEqual(input.channelId, defaultChannel.id)) {
             throw new UserInputError('error.items-cannot-be-removed-from-default-channel');
         }
-        for (const stockLocationId of input.stockLocationIds) {
-            const stockLocation = await this.connection.getEntityOrThrow(ctx, StockLocation, stockLocationId);
-            await this.channelService.removeFromChannels(ctx, StockLocation, stockLocationId, [
+        // Source entities must be visible in the active Channel (GHSA-422x-jq57-j238).
+        const stockLocations = await this.connection.findByIdsInChannel(
+            ctx,
+            StockLocation,
+            input.stockLocationIds,
+            ctx.channelId,
+            {},
+        );
+        for (const stockLocation of stockLocations) {
+            await this.channelService.removeFromChannels(ctx, StockLocation, stockLocation.id, [
                 input.channelId,
             ]);
         }
         return this.connection.findByIdsInChannel(
             ctx,
             StockLocation,
-            input.stockLocationIds,
+            stockLocations.map(location => location.id),
             ctx.channelId,
             {},
         );

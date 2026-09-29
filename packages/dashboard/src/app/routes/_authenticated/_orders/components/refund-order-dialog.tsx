@@ -26,13 +26,134 @@ import { AlertCircle } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useState } from 'react';
 import { uiConfig } from 'virtual:vendure-ui-config';
 
-import { useRefundOrder } from '../hooks/use-refund-order.js';
+import { RefundTarget, useRefundOrder } from '../hooks/use-refund-order.js';
 import { Order } from '../utils/order-types.js';
 import {
     getMaxRefundableQuantity,
     getRefundableQuantity,
     lineCanBeRefunded,
 } from '../utils/order-utils.js';
+
+function RefundTargetRow({
+    target,
+    currencyCode,
+    paymentOptions,
+    toMajorUnits,
+    toMinorUnits,
+    onAmountChange,
+    onSelectedChange,
+    onPaymentChange,
+    onArgsChange,
+}: {
+    target: RefundTarget;
+    currencyCode: string;
+    paymentOptions: Array<{ id: string; label: string; refundableAmount: number }>;
+    toMajorUnits: (value: number) => number;
+    toMinorUnits: (value: number) => number;
+    onAmountChange: (targetId: string, amount: number, selected?: boolean) => void;
+    onSelectedChange: (targetId: string, selected: boolean) => void;
+    onPaymentChange: (targetId: string, paymentId: string) => void;
+    onArgsChange: (targetId: string, args: Record<string, any> | undefined) => void;
+}) {
+    const { formatCurrency } = useLocalFormat();
+    const Icon = target.icon;
+    const ConfigComponent = target.component;
+    const eligiblePayments = paymentOptions.filter(p => target.eligiblePaymentIds.includes(p.id));
+    const selectedPayment = eligiblePayments.find(p => p.id === target.paymentId);
+    // A destination which can draw on more than one Payment needs the administrator to say which,
+    // since the refundable balance it consumes belongs to that specific Payment.
+    const showPaymentPicker = target.type === 'destination' && eligiblePayments.length > 1;
+
+    return (
+        <div
+            className="border rounded-md p-3 space-y-2"
+            data-testid={`refund-target-${target.destinationCode ?? target.id}`}
+        >
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <Checkbox
+                        checked={target.selected}
+                        onCheckedChange={checked => onSelectedChange(target.id, !!checked)}
+                    />
+                    {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
+                    <div>
+                        <div className="font-medium">{target.label}</div>
+                        {selectedPayment && (
+                            <div className="text-sm text-muted-foreground">
+                                <Trans>Available</Trans>:{' '}
+                                {formatCurrency(selectedPayment.refundableAmount, currencyCode)}
+                            </div>
+                        )}
+                    </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Label className="text-sm">
+                        <Trans>Amount</Trans>:
+                    </Label>
+                    <Input
+                        type="number"
+                        step="0.01"
+                        data-testid="refund-target-amount"
+                        value={target.amountToRefund ? toMajorUnits(target.amountToRefund) : ''}
+                        placeholder="0"
+                        max={selectedPayment ? toMajorUnits(selectedPayment.refundableAmount) : undefined}
+                        onChange={e => {
+                            const amount = toMinorUnits(Number.parseFloat(e.target.value) || 0);
+                            onAmountChange(target.id, amount, amount > 0);
+                        }}
+                        className="w-24"
+                    />
+                    <span className="text-muted-foreground text-sm">{currencyCode}</span>
+                </div>
+            </div>
+            {showPaymentPicker && (
+                <div className="flex items-center gap-2 pl-6">
+                    <Label className="text-sm text-muted-foreground">
+                        <Trans>Draw from</Trans>:
+                    </Label>
+                    <Select
+                        value={target.paymentId}
+                        items={Object.fromEntries(
+                            eligiblePayments.map(payment => [
+                                payment.id,
+                                `${payment.label} (${formatCurrency(payment.refundableAmount, currencyCode)})`,
+                            ]),
+                        )}
+                        onValueChange={value => value && onPaymentChange(target.id, value)}
+                    >
+                        <SelectTrigger
+                            className="w-64"
+                            data-testid={`refund-target-payment-${target.destinationCode ?? target.id}`}
+                        >
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {eligiblePayments.map(payment => (
+                                <SelectItem key={payment.id} value={payment.id}>
+                                    {payment.label} (
+                                    {formatCurrency(payment.refundableAmount, currencyCode)})
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            )}
+            {target.selected && ConfigComponent && (
+                <div className="pl-6" data-testid={`refund-target-config-${target.destinationCode ?? target.id}`}>
+                    <ConfigComponent
+                        amount={target.amountToRefund}
+                        paymentId={target.paymentId}
+                        currencyCode={currencyCode}
+                        value={target.args}
+                        onChange={(args: Record<string, any> | undefined) =>
+                            onArgsChange(target.id, args)
+                        }
+                    />
+                </div>
+            )}
+        </div>
+    );
+}
 
 interface RefundOrderDialogProps {
     readonly order: Order;
@@ -67,6 +188,26 @@ export const RefundOrderDialog = forwardRef<RefundOrderDialogRef, RefundOrderDia
         const handleClose = () => {
             setOpen(false);
         };
+
+        const remaining = refund.refundTotal - refund.amountToRefundTotal;
+
+        const renderTargetRows = (type: RefundTarget['type']) =>
+            refund.refundTargets
+                .filter(rt => rt.type === type)
+                .map(target => (
+                    <RefundTargetRow
+                        key={target.id}
+                        target={target}
+                        currencyCode={order.currencyCode}
+                        paymentOptions={refund.paymentOptions}
+                        toMajorUnits={toMajorUnits}
+                        toMinorUnits={toMinorUnits}
+                        onAmountChange={refund.onTargetAmountChange}
+                        onSelectedChange={refund.onTargetSelected}
+                        onPaymentChange={refund.onTargetPaymentChange}
+                        onArgsChange={refund.onTargetArgsChange}
+                    />
+                ));
 
         return (
             <Dialog open={open} onOpenChange={setOpen}>
@@ -273,7 +414,8 @@ export const RefundOrderDialog = forwardRef<RefundOrderDialogRef, RefundOrderDia
                                 <Input
                                     type="number"
                                     step="0.01"
-                                    value={toMajorUnits(refund.refundTotal)}
+                                    value={refund.refundTotal ? toMajorUnits(refund.refundTotal) : ''}
+                                    placeholder="0"
                                     onChange={e =>
                                         refund.onManualRefundTotalChange(
                                             toMinorUnits(Number.parseFloat(e.target.value) || 0),
@@ -289,61 +431,41 @@ export const RefundOrderDialog = forwardRef<RefundOrderDialogRef, RefundOrderDia
                             </div>
                         </div>
 
-                        {/* Payment Selection */}
+                        {/* Payment methods */}
                         <div className="space-y-2">
                             <Label className="text-base font-medium">
-                                <Trans>Select payments to refund</Trans>
+                                <Trans>Payment methods</Trans>
                             </Label>
-                            <div className="space-y-3">
-                                {refund.refundablePayments.map(payment => (
-                                    <div key={payment.id} className="border rounded-md p-3 space-y-2">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <Checkbox
-                                                    checked={payment.selected}
-                                                    onCheckedChange={checked =>
-                                                        refund.onPaymentSelected(payment.id, !!checked)
-                                                    }
-                                                />
-                                                <div>
-                                                    <div className="font-medium">{payment.method}</div>
-                                                    <div className="text-sm text-muted-foreground">
-                                                        <Trans>Available</Trans>:{' '}
-                                                        {formatCurrency(
-                                                            payment.refundableAmount,
-                                                            order.currencyCode,
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            {payment.selected && (
-                                                <div className="flex items-center gap-2">
-                                                    <Label className="text-sm">
-                                                        <Trans>Amount</Trans>:
-                                                    </Label>
-                                                    <Input
-                                                        type="number"
-                                                        step="0.01"
-                                                        value={toMajorUnits(payment.amountToRefund)}
-                                                        onChange={e =>
-                                                            refund.onPaymentAmountChange(
-                                                                payment.id,
-                                                                toMinorUnits(Number.parseFloat(e.target.value) || 0),
-                                                            )
-                                                        }
-                                                        className="w-24"
-                                                        max={toMajorUnits(payment.refundableAmount)}
-                                                    />
-                                                    <span className="text-muted-foreground text-sm">
-                                                        {order.currencyCode}
-                                                    </span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
+                            <div className="space-y-3">{renderTargetRows('payment')}</div>
                         </div>
+
+                        {/* Refund destinations */}
+                        {refund.refundTargets.some(rt => rt.type === 'destination') && (
+                            <div className="space-y-2">
+                                <Label className="text-base font-medium">
+                                    <Trans>Other refund destinations</Trans>
+                                </Label>
+                                <div className="space-y-3">{renderTargetRows('destination')}</div>
+                            </div>
+                        )}
+
+                        {/* Allocation summary */}
+                        {refund.refundTotal > 0 && (
+                            <div className={`text-sm flex justify-between px-1 ${remaining === 0 ? 'text-muted-foreground' : 'text-destructive font-medium'}`}>
+                                <span>
+                                    <Trans>Allocated</Trans>:{' '}
+                                    {formatCurrency(refund.amountToRefundTotal, order.currencyCode)}
+                                    {' / '}
+                                    {formatCurrency(refund.refundTotal, order.currencyCode)}
+                                </span>
+                                {remaining !== 0 && (
+                                    <span>
+                                        <Trans>Remaining</Trans>:{' '}
+                                        {formatCurrency(remaining, order.currencyCode)}
+                                    </span>
+                                )}
+                            </div>
+                        )}
 
                         {/* Validation Errors */}
                         {refund.validationErrors.length > 0 && (
@@ -370,7 +492,7 @@ export const RefundOrderDialog = forwardRef<RefundOrderDialogRef, RefundOrderDia
                                 <Trans>Processing...</Trans>
                             ) : (
                                 <Trans>
-                                    Refund {formatCurrency(refund.amountToRefundTotal, order.currencyCode)}
+                                    Refund {formatCurrency(refund.refundTotal, order.currencyCode)}
                                 </Trans>
                             )}
                         </Button>

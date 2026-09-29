@@ -1,0 +1,13 @@
+---
+title: "DriverOptions"
+generated: true
+---
+<GenerationInfo sourceFile="packages/testing/src/initializers/test-db-initializer.ts" sourceLine="11" packageName="@vendure/testing" />
+
+The TypeORM options for a particular driver, selected from the `DataSourceOptions` union by
+the driver's `type`. Selecting from the union rather than importing the driver's own options
+module avoids depending on where TypeORM keeps that module.
+
+```ts title="Signature"
+type DriverOptions<T extends DataSourceOptions['type']> = Extract<DataSourceOptions, { type: T }>
+```

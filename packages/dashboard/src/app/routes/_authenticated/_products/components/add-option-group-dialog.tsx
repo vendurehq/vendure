@@ -223,7 +223,6 @@ function OptionGroupSearch({
                         : undefined,
                 },
             }),
-        staleTime: 1000 * 60,
     });
 
     const items = data?.productOptionGroups?.items ?? [];

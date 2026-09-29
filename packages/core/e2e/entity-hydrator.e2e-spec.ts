@@ -10,6 +10,7 @@ import {
     OrderLine,
     OrderService,
     Product,
+    ProductVariant,
     RequestContext,
     RequestContextService,
     TransactionalConnection,
@@ -405,6 +406,55 @@ describe('Entity hydration', () => {
         expect(order!.lines[1].productVariant.product.facetValues[0].facet).toBeDefined();
     });
 
+    // https://github.com/vendurehq/vendure/issues/4537
+    // A relation can be present on some elements of an array relation but not others. This is
+    // reachable through the public API: plugin code (e.g. an OrderInterceptor, see
+    // order-interceptor.ts:168) hydrates a relation onto a *single* line's variant, leaving the
+    // array unevenly loaded as [present, missing] — exactly what the reporter described. Hydrating
+    // the whole array must then populate every element, not just sample the first. Producing the
+    // uneven state through a real hydrate() call (rather than editing the entity by hand) verifies
+    // the fix against a shape a real code path actually generates.
+    it("hydrates lines after a plugin hydrated one line's variant", async () => {
+        // Fresh anonymous order so we're not appending to another test's active order.
+        await shopClient.asAnonymousUser();
+        // Two variants belonging to different products (T_1 = Laptop, T_5 = Curvy Monitor),
+        // so each line has its own ProductVariant and Product instance.
+        await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_1', quantity: 1 });
+        const { addItemToOrder } = await shopClient.query(addItemToOrderDocument, {
+            productVariantId: 'T_5',
+            quantity: 1,
+        });
+        orderResultGuard.assertSuccess(addItemToOrder);
+
+        const internalOrderId = +addItemToOrder.id.replace(/^\D+/g, '');
+        const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+        const hydrator = server.app.get(EntityHydrator);
+        const order = await server.app
+            .get(OrderService)
+            .findOne(ctx, internalOrderId, ['lines.productVariant']);
+
+        expect(order!.lines[0].productVariant.product).toBeUndefined();
+        expect(order!.lines[1].productVariant.product).toBeUndefined();
+
+        // A plugin acts on one line and hydrates just that line's variant.
+        await hydrator.hydrate(ctx, order!.lines[0].productVariant, { relations: ['product'] });
+
+        // The array is now unevenly loaded: [present, missing].
+        expect(order!.lines[0].productVariant.product).toBeDefined();
+        expect(order!.lines[1].productVariant.product).toBeUndefined();
+
+        await hydrator.hydrate(ctx, order!, { relations: ['lines.productVariant.product'] });
+
+        // Before the fix, only lines[0] was sampled, so the relation was considered present for
+        // the whole array and nothing was fetched, leaving lines[1]'s product undefined.
+        expect(order!.lines[0].productVariant.product).toBeDefined();
+        expect(order!.lines[1].productVariant.product).toBeDefined();
+        // Assert against each variant's own productId rather than a hardcoded id, so the test
+        // isn't coupled to fixture CSV row order or the id strategy.
+        expect(order!.lines[0].productVariant.product.id).toBe(order!.lines[0].productVariant.productId);
+        expect(order!.lines[1].productVariant.product.id).toBe(order!.lines[1].productVariant.productId);
+    });
+
     // https://github.com/vendurehq/vendure/issues/2546
     it('Preserves ordering when merging arrays of relations', async () => {
         await shopClient.asUserWithCredentials('trevor_donnelly96@hotmail.com', 'test');
@@ -474,6 +524,88 @@ describe('Entity hydration', () => {
         expect(child.image1).toBeDefined();
         expect(child.image2).toBeDefined();
     });
+
+    /*
+     * Regression test for https://github.com/vendurehq/vendure/pull/5030
+     * TypeORM's query relation load strategy silently returns null for relations whose
+     * grouping key `<TargetEntity>_customFields_<fieldName>_id` exceeds the 63-char
+     * postgres/mysql alias limit. The long-named field below produces a 74-char key, while
+     * the short-named control field (49 chars) was never affected. SQLite imposes no alias
+     * limit, so only the postgres and mysql runs exercise the regression.
+     */
+    it('hydrates a relation custom field with a very long name', async () => {
+        await adminClient.query(updateChannelDocument, {
+            input: {
+                id: 'T_1',
+                customFields: {
+                    additionalConfigId: 'T_1',
+                    additionalConfigWithAVeryLongPropertyNameId: 'T_1',
+                },
+            },
+        });
+
+        const { hydrateChannelWithLongCustomFieldName } = await adminClient.query(
+            getHydratedChannelLongCustomFieldNameDocument,
+            {
+                id: 'T_1',
+            },
+        );
+
+        const customFields = hydrateChannelWithLongCustomFieldName.customFields;
+        expect(customFields.additionalConfig.id).toBe('T_1');
+        expect(customFields.additionalConfigWithAVeryLongPropertyName.id).toBe('T_1');
+        expect(customFields.additionalConfigWithAVeryLongPropertyName.backgroundImage).toBeDefined();
+    });
+
+    // Follow-up to #4986: isTranslatable() decided from element [0] whether an entire relation
+    // array was translatable. With a null featuredAsset at [0], nothing in the array was
+    // translated (Asset.name is a LocaleString, so it stayed undefined); with the asset at [0],
+    // translation ran but every other element's null featuredAsset was rewritten to undefined.
+    // The assertions below fail under either ordering, so the test does not depend on DB row
+    // order or on the id strategy.
+    it('translates a relation reached past a null array element', async () => {
+        const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+        const connection = server.app.get(TransactionalConnection).rawConnection;
+        // The expected name is the known fixture literal (also asserted near the top of this
+        // file), so the expectation is independent of the data the translation path reads
+        const assetName = 'derick-david-409858-unsplash.jpg';
+        const assets = await connection.getRepository(Asset).find();
+        const asset = assets.find(a => a.translations.some(t => t.name === assetName));
+
+        // Raw-connection queries take the numeric DB id; 'T_1' exists only at the API layer
+        const laptop = await connection
+            .getRepository(Product)
+            .findOne({ where: { id: 1 }, relations: { variants: true } });
+        const variantWithAssetId = laptop!.variants[laptop!.variants.length - 1].id;
+        const nullAssetVariantCount = laptop!.variants.length - 1;
+        // Give exactly one of the variants a featuredAsset; the others keep the
+        // featuredAsset that is null in the database.
+        await connection.getRepository(ProductVariant).update(variantWithAssetId, { featuredAsset: asset! });
+        try {
+            const product = await connection
+                .getRepository(Product)
+                .findOne({ where: { id: 1 }, relations: { variants: true } });
+
+            await server.app.get(EntityHydrator).hydrate(ctx, product!, {
+                relations: ['variants.featuredAsset'],
+            });
+
+            const withAsset = product!.variants.filter(v => v.featuredAsset != null);
+            expect(withAsset.length).toBe(1);
+            expect(withAsset[0].featuredAsset.name).toBe(assetName);
+            // The others were null in the database and must still be null, not undefined:
+            // getMissingRelations() treats undefined as never-fetched, so hydrate() would
+            // re-query them on every subsequent call.
+            expect(product!.variants.filter(v => v.featuredAsset === null).length).toBe(
+                nullAssetVariantCount,
+            );
+        } finally {
+            // Restore the shared fixture so tests added after this one do not inherit it
+            await connection
+                .getRepository(ProductVariant)
+                .update(variantWithAssetId, { featuredAsset: null });
+        }
+    });
 });
 
 function getVariantWithName(product: Product, name: string) {
@@ -526,5 +658,11 @@ const getHydratedChannelNestedDocument = graphql(`
 const getHydratedChannelLongAliasDocument = graphql(`
     query GetHydratedChannelNested($id: ID!) {
         hydrateChannelWithVeryLongPropertyName(id: $id)
+    }
+`);
+
+const getHydratedChannelLongCustomFieldNameDocument = graphql(`
+    query GetHydratedChannelLongCustomFieldName($id: ID!) {
+        hydrateChannelWithLongCustomFieldName(id: $id)
     }
 `);

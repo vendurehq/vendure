@@ -42,6 +42,33 @@ export const config: VendureConfig = {
 };
 ```
 
+## CORS origins
+
+The default `apiOptions.cors` value is `{ origin: true, credentials: true }`. `origin: true` reflects
+the `Origin` header of any caller back as `Access-Control-Allow-Origin`, so any website can make
+cross-origin requests to your Shop and Admin APIs. Replace it with the origins you actually serve:
+
+```ts
+import { VendureConfig } from '@vendure/core';
+
+export const config: VendureConfig = {
+  apiOptions: {
+    cors: {
+      // e.g. CORS_ORIGINS="https://example.com,https://admin.example.com"
+      origin: process.env.CORS_ORIGINS?.split(',').map(o => o.trim()).filter(Boolean) ?? [], // [!code highlight]
+      credentials: true,
+    },
+  },
+  // ...
+};
+```
+
+Vendure logs a warning at startup if it finds the reflect-any-origin default in place. The warning is
+most important when you also set `authOptions.cookieOptions.sameSite` to `'none'` or when you use
+`tokenMethod: 'bearer'`, because neither of those relies on the `SameSite` cookie rules that otherwise
+limit the impact. See the [Security guide](/developer-guide/security/#configure-cors) for the
+full explanation.
+
 ## API hardening
 
 It is recommended that you install and configure the [HardenPlugin](/reference/core-plugins/harden-plugin/) for all production deployments. This plugin locks down your schema (disabling introspection and field suggestions) and protects your Shop API against malicious queries that could otherwise overwhelm your server.

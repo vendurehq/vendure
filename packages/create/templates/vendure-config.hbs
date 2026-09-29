@@ -13,7 +13,9 @@ import 'dotenv/config';
 import path from 'path';
 
 const IS_DEV = process.env.APP_ENV === 'dev';
-const serverPort = +process.env.PORT || 3000;
+// PORT wins because hosting platforms inject it into the environment at runtime, and that
+// must take precedence over any value baked into the .env file at scaffold time.
+const serverPort = +process.env.PORT || +process.env.VENDURE_SERVER_PORT || 3000;
 
 export const config: VendureConfig = {
     apiOptions: {
@@ -21,13 +23,15 @@ export const config: VendureConfig = {
         adminApiPath: 'admin-api',
         shopApiPath: 'shop-api',
         trustProxy: IS_DEV ? false : 1,
-        // The following options are useful in development mode,
-        // but are best turned off for production for security
-        // reasons.
-        ...(IS_DEV ? {
-            adminApiDebug: true,
-            shopApiDebug: true,
-        } : {}),
+        // Which browser origins may make credentialed requests to the Shop and Admin APIs.
+        // In dev any origin is reflected, so a storefront on any port works. In production set
+        // CORS_ORIGINS to a comma-separated list of the origins you serve, for example
+        // "https://example.com,https://admin.example.com". An unset value blocks all
+        // cross-origin browser requests, which is the safe default.
+        cors: {
+            origin: IS_DEV ? true : (process.env.CORS_ORIGINS?.split(',').map(o => o.trim()).filter(Boolean) ?? []),
+            credentials: true,
+        },
     },
     authOptions: {
         tokenMethod: ['bearer', 'cookie'],
@@ -91,11 +95,17 @@ export const config: VendureConfig = {
             templateLoader: new FileBasedTemplateLoader(path.join(__dirname, '../static/email/templates')),
             globalTemplateVars: {
                 // The following variables will change depending on your storefront implementation.
-                // Here we are assuming a storefront running at http://localhost:8080.
+{{#if isMonorepo}}
+                // These point at the storefront created alongside this server, on the port it
+                // was assigned. Change them if you move the storefront elsewhere.
+{{else}}
+                // No storefront was created, so port {{ storefrontPort }} is only a placeholder:
+                // nothing is listening on it until you point these at your own storefront.
+{{/if}}
                 fromAddress: '"example" <noreply@example.com>',
-                verifyEmailAddressUrl: 'http://localhost:8080/verify',
-                passwordResetUrl: 'http://localhost:8080/password-reset',
-                changeEmailAddressUrl: 'http://localhost:8080/verify-email-address-change',
+                verifyEmailAddressUrl: 'http://localhost:{{ storefrontPort }}/verify',
+                passwordResetUrl: 'http://localhost:{{ storefrontPort }}/password-reset',
+                changeEmailAddressUrl: 'http://localhost:{{ storefrontPort }}/verify-email-address-change',
                 // The URL of the password reset page of the Vendure Dashboard.
                 adminPasswordResetUrl: `http://localhost:${serverPort}/dashboard/reset-password`
             },

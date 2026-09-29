@@ -1,29 +1,8 @@
+import { formatShortcut } from '../../../keyboard-shortcut.js';
 import { Button } from '../../ui/button.js';
 import { Toggle } from '../../ui/toggle.js';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../ui/tooltip.js';
-
-const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
-
-/**
- * Formats a shortcut definition like 'mod+B' or 'mod+shift+8' for the current platform.
- */
-export function formatShortcut(shortcut: string): string {
-    return shortcut
-        .split('+')
-        .map(key => {
-            switch (key) {
-                case 'mod':
-                    return isMac ? '⌘' : 'Ctrl';
-                case 'shift':
-                    return isMac ? '⇧' : 'Shift';
-                case 'alt':
-                    return isMac ? '⌥' : 'Alt';
-                default:
-                    return key.toUpperCase();
-            }
-        })
-        .join(isMac ? '' : '+');
-}
+export { formatShortcut } from '../../../keyboard-shortcut.js';
 
 export interface ToolbarButtonProps {
     label: string;

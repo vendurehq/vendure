@@ -1,0 +1,37 @@
+---
+title: "StoredMediaUpload"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/helpers/stored-media/stored-media.service.ts" sourceLine="39" packageName="@vendure/core" />
+
+A file supplied programmatically to Vendure's stored-media pipeline. The stream is validated,
+persisted and converted into an Asset preview in the same way as a GraphQL file upload.
+
+```ts title="Signature"
+interface StoredMediaUpload {
+    createReadStream: () => Readable;
+    filename: string;
+    mimetype: string;
+}
+```
+
+<div className="members-wrapper">
+
+### createReadStream
+
+<MemberInfo kind="property" type={`() => Readable`}   />
+
+
+### filename
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### mimetype
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+
+
+</div>

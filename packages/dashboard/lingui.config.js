@@ -1,7 +1,11 @@
 import { defineConfig } from '@lingui/cli';
+import { formatter } from '@lingui/format-po';
 
 export default defineConfig({
     sourceLocale: 'en',
+    // Line numbers in the `#:` reference comments churn on every unrelated edit
+    // to a source file, which makes the catalogs a constant source of merge conflicts.
+    format: formatter({ lineNumbers: false }),
     locales: [
         'he',
         'ar',
@@ -26,6 +30,7 @@ export default defineConfig({
         'sv',
         'tr',
         'ja',
+        'ko',
         'bg',
         'nl',
         'ro',

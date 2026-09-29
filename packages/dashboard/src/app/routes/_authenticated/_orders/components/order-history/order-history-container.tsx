@@ -3,6 +3,7 @@ import { Button } from '@/vdb/components/ui/button.js';
 import { Skeleton } from '@/vdb/components/ui/skeleton.js';
 import { Trans } from '@lingui/react/macro';
 import { TriangleAlert } from 'lucide-react';
+
 import { OrderHistory } from './order-history.js';
 import { useOrderHistory } from './use-order-history.js';
 

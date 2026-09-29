@@ -40,6 +40,11 @@ describe('AssetServerPlugin', () => {
     const { server, adminClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
             // logger: new DefaultLogger({ level: LogLevel.Info }),
+            // The types these tests actually upload. `text/html` is added on top of the usual
+            // image/pdf set so the security-headers tests can exercise the non-SVG markup branch.
+            assetOptions: {
+                permittedFileTypes: ['image/*', '.pdf', 'text/html'],
+            },
             plugins: [
                 AssetServerPlugin.init({
                     assetUploadDir: path.join(__dirname, TEST_ASSET_DIR),
@@ -196,6 +201,69 @@ describe('AssetServerPlugin', () => {
         });
     });
 
+    // GHSA-f4r3-h6jf-4m29: harden the headers on served assets so that a permitted-but-scriptable
+    // asset (SVG in particular) cannot execute script when opened directly or embedded.
+    describe('security headers', () => {
+        const BASE_CSP = "default-src 'none'; script-src 'none'";
+        const MARKUP_CSP = `${BASE_CSP}; sandbox`;
+        const uploadAsset = async (fileName: string): Promise<FragmentOf<typeof assetFragment>> => {
+            const { createAssets } = await adminClient.fileUploadMutation({
+                mutation: createAssetsDocument,
+                filePaths: [path.join(__dirname, `fixtures/assets/${fileName}`)],
+                mapVariables: filePaths => ({ input: filePaths.map(() => ({ file: null })) }),
+            });
+            return createAssets[0];
+        };
+
+        it('serves an SVG source as an attachment with nosniff and a sandboxed CSP', async () => {
+            const svgAsset = await uploadAsset('test.svg');
+            const res = await fetch(svgAsset.source);
+
+            expect(res.headers.get('content-type')).toContain('image/svg+xml');
+            expect(res.headers.get('content-disposition')).toBe('attachment');
+            expect(res.headers.get('x-content-type-options')).toBe('nosniff');
+            expect(res.headers.get('content-security-policy')).toBe(MARKUP_CSP);
+        });
+
+        it('serves an HTML asset as an attachment (non-SVG markup branch)', async () => {
+            const htmlAsset = await uploadAsset('test.html');
+            const res = await fetch(htmlAsset.source);
+
+            expect(res.headers.get('content-type')).toContain('text/html');
+            expect(res.headers.get('content-disposition')).toBe('attachment');
+            expect(res.headers.get('x-content-type-options')).toBe('nosniff');
+            expect(res.headers.get('content-security-policy')).toBe(MARKUP_CSP);
+        });
+
+        it('does not force-download or sandbox a non-markup asset, but still sends nosniff + CSP', async () => {
+            const jpgAsset = await uploadAsset('test.jpg');
+            const res = await fetch(jpgAsset.source);
+
+            expect(res.headers.get('content-disposition')).toBeNull();
+            expect(res.headers.get('x-content-type-options')).toBe('nosniff');
+            expect(res.headers.get('content-security-policy')).toBe(BASE_CSP);
+        });
+
+        // The regression this split fixes: a PDF must NOT get the `sandbox` token (which forced a
+        // download in Chromium) nor `Content-Disposition: attachment`, so it still renders inline.
+        it('does not sandbox or force-download a PDF', async () => {
+            const pdfAsset = await uploadAsset('test.pdf');
+            const res = await fetch(pdfAsset.source);
+
+            expect(res.headers.get('content-disposition')).toBeNull();
+            expect(res.headers.get('x-content-type-options')).toBe('nosniff');
+            expect(res.headers.get('content-security-policy')).toBe(BASE_CSP);
+        });
+
+        it('sets the same headers on transformed images', async () => {
+            const jpgAsset = await uploadAsset('test.jpg');
+            const res = await fetch(`${jpgAsset.preview}?w=57&h=57`);
+
+            expect(res.headers.get('x-content-type-options')).toBe('nosniff');
+            expect(res.headers.get('content-security-policy')).toBe(BASE_CSP);
+        });
+    });
+
     describe('unexpected input', () => {
         it('does not error on non-integer width', async () => {
             return fetch(`${asset.preview}?w=10.5`);
@@ -254,8 +322,9 @@ describe('AssetServerPlugin', () => {
 
             expect(deleteAsset.result).toBe(DeletionResult.DELETED);
 
-            expect(fs.existsSync(sourceFilePath)).toBe(false);
-            expect(fs.existsSync(previewFilePath)).toBe(false);
+            await expect
+                .poll(() => [sourceFilePath, previewFilePath].some(filePath => fs.existsSync(filePath)))
+                .toBe(false);
         });
     });
 

@@ -280,7 +280,7 @@ export class SettingsDataService {
             Codegen.CreateSellerMutation,
             Codegen.CreateSellerMutationVariables
         >(CREATE_SELLER, {
-            input,
+            input: pick(input, ['name', 'translations', 'customFields']),
         });
     }
 
@@ -289,7 +289,7 @@ export class SettingsDataService {
             Codegen.UpdateSellerMutation,
             Codegen.UpdateSellerMutationVariables
         >(UPDATE_SELLER, {
-            input,
+            input: pick(input, ['id', 'name', 'translations', 'customFields']),
         });
     }
 

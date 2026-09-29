@@ -14,7 +14,9 @@ import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
 import { Trans } from '@lingui/react/macro';
 import { EllipsisVertical } from 'lucide-react';
 import { Fragment, useMemo } from 'react';
+
 import { orderDetailDocument, orderLineFragment } from '../orders.graphql.js';
+
 import { MoneyGrossNet } from './money-gross-net.js';
 import { OrderTableTotals } from './order-table-totals.js';
 

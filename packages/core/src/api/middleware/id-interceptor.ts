@@ -1,8 +1,8 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
-import { GqlExecutionContext } from '@nestjs/graphql';
 import { IdOperators } from '@vendure/common/lib/generated-types';
 import { GraphQLNamedType, GraphQLSchema, OperationDefinitionNode } from 'graphql';
 import { Observable } from 'rxjs';
+import { GqlExecutionContext } from '../../common/nestjs-graphql-internals';
 
 import { GraphqlValueTransformer } from '../common/graphql-value-transformer';
 import { IdCodecService } from '../common/id-codec.service';

@@ -64,20 +64,28 @@ It does not use Bun for those generated dependency installs.
 | `migrate` | Generate, run or revert database migrations               | `commands/migrate.md` |
 | `schema`  | Generate a GraphQL schema file from the Admin/Shop API    | `commands/schema.md`  |
 | `doctor`  | Diagnose project, dependency, config, schema and DB health | `commands/doctor.md`  |
-| `codemod` | Run automated code transforms (e.g. UI migrations)        | `commands/codemod.md` |
+| `codemod` | Run automated code transforms (e.g. UI migrations)       | `commands/codemod.md` |
+| `plugins` | List / enable / disable CLI plugins for the project       | `commands/plugins.md` |
+
+Installed **CLI plugins** (packages that declare `vendure.cliPlugin`) may add
+commands or replace built-ins such as `dev`. Prefer `vendure --help` in the
+project to see the effective command set. See the developer CLI guide section
+“Extending the CLI”.
 
 ## Critical rules for agents
 
 1. **Never hardcode `npx`.** Resolve the runner from the project's lockfile —
    see "Running the CLI" above (`bunx`, `pnpm exec`, `yarn`, `npx`).
-2. **Prompt-capable commands (`add`, `migrate`, `schema`, `codemod`) need
-   explicit flags/arguments from agents.** Run them with explicit inputs so they
-   take the non-interactive path; otherwise the process rejects prompt-only
+2. **Prompt-capable commands (`add`, `migrate`, `schema`, `codemod`, `plugins`)
+   need explicit flags/arguments from agents.** Run them with explicit inputs so
+   they take the non-interactive path; otherwise the process rejects prompt-only
    invocations in non-interactive environments. Set
    `VENDURE_CLI_NON_INTERACTIVE=true` when calling the CLI from an agent so
    prompt-only invocations fail fast with examples instead of waiting on a
    terminal prompt. The exact non-interactive flags are in each command's
-   reference file.
+   reference file. For CLI plugins use `vendure plugins --json` /
+   `vendure plugins add <pkg>` / `vendure plugins remove <pkg>` — there is no
+   blanket-approve flag.
 3. **`dev`, `start`, and `build --watch` are long-running processes.** Do not
    run them just to "check" something. Run them only when the user asks, and
    prefer running them in the background.

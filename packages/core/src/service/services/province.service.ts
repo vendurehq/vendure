@@ -13,6 +13,7 @@ import { Instrument } from '../../common/instrument-decorator';
 import { ListQueryOptions } from '../../common/types/common-types';
 import { Translated } from '../../common/types/locale-types';
 import { assertFound } from '../../common/utils';
+import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Province } from '../../entity/region/province.entity';
 import { RegionTranslation } from '../../entity/region/region-translation.entity';
@@ -64,7 +65,10 @@ export class ProvinceService {
     ): Promise<Translated<Province> | undefined> {
         return this.connection
             .getRepository(ctx, Province)
-            .findOne({ where: { id: provinceId }, relations })
+            .findOne({
+                where: { id: provinceId },
+                relations: findOptionsArrayToObject<Province>(relations ?? []),
+            })
             .then(province => (province && this.translator.translate(province, ctx)) ?? undefined);
     }
 

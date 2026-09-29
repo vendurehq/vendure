@@ -1,5 +1,51 @@
 import { ID } from '@vendure/common/lib/shared-types';
-import { FindOneOptions } from 'typeorm';
+import { FindManyOptions, FindOneOptions, FindOptionsRelations, FindOptionsSelect } from 'typeorm';
+
+/**
+ * @description
+ * The relations to join when finding an entity. Accepts either the TypeORM object form,
+ * or an array of dot-separated relation paths as produced by {@link RelationPaths}.
+ *
+ * @docsCategory data-access
+ * @since 3.8.0
+ */
+export type FindOptionsRelationsInput<T> = FindOptionsRelations<T> | string[];
+
+/**
+ * @description
+ * The columns to select when finding an entity. Accepts either the TypeORM object form,
+ * or an array of column names.
+ *
+ * @docsCategory data-access
+ * @since 3.8.0
+ */
+export type FindOptionsSelectInput<T> = FindOptionsSelect<T> | string[];
+
+/**
+ * @description
+ * The TypeORM `FindOneOptions`, with `relations` and `select` also accepting an array of
+ * paths.
+ *
+ * @docsCategory data-access
+ * @since 3.8.0
+ */
+export interface VendureFindOneOptions<T = any> extends Omit<FindOneOptions<T>, 'relations' | 'select'> {
+    relations?: FindOptionsRelationsInput<T>;
+    select?: FindOptionsSelectInput<T>;
+}
+
+/**
+ * @description
+ * The TypeORM `FindManyOptions`, with `relations` and `select` also accepting an array of
+ * paths.
+ *
+ * @docsCategory data-access
+ * @since 3.8.0
+ */
+export interface VendureFindManyOptions<T = any> extends Omit<FindManyOptions<T>, 'relations' | 'select'> {
+    relations?: FindOptionsRelationsInput<T>;
+    select?: FindOptionsSelectInput<T>;
+}
 
 /**
  * @description
@@ -7,7 +53,7 @@ import { FindOneOptions } from 'typeorm';
  *
  * @docsCategory data-access
  */
-export interface GetEntityOrThrowOptions<T = any> extends FindOneOptions<T> {
+export interface GetEntityOrThrowOptions<T = any> extends VendureFindOneOptions<T> {
     /**
      * @description
      * An optional channelId to limit results to entities assigned to the given Channel. Should

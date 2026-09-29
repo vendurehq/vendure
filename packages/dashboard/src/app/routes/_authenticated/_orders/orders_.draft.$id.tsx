@@ -6,6 +6,7 @@ import { Button } from '@/vdb/components/ui/button.js';
 import { Form } from '@/vdb/components/ui/form.js';
 import { addCustomFields } from '@/vdb/framework/document-introspection/add-custom-fields.js';
 import { useGeneratedForm } from '@/vdb/framework/form-engine/use-generated-form.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import {
     Page,
     PageActionBar,
@@ -13,20 +14,19 @@ import {
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
-import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { api } from '@/vdb/graphql/api.js';
 import { Trans, useLingui } from '@lingui/react/macro';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { ResultOf } from 'gql.tada';
 import { User } from 'lucide-react';
 import { toast } from 'sonner';
+import { addressFragment } from '../_customers/customers.graphql.js';
 import { CustomerAddressSelector } from './components/customer-address-selector.js';
 import { DraftOrderStatus } from './components/draft-order-status.js';
 import { EditOrderTable } from './components/edit-order-table.js';
 import { OrderAddress } from './components/order-address.js';
-import { addressFragment } from '../_customers/customers.graphql.js';
 import {
     addItemToDraftOrderDocument,
     adjustDraftOrderLineDocument,
@@ -58,6 +58,7 @@ function DraftOrderPage() {
     const params = Route.useParams();
     const { t } = useLingui();
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
 
     const { entity, refreshEntity, form } = useDetailPage({
         queryDocument: addCustomFields(orderDetailDocument, {
@@ -72,10 +73,17 @@ function DraftOrderPage() {
         params: { id: params.id },
     });
 
+    // Shipping eligibility is recomputed server-side from the whole order, so any
+    // change to the order makes the cached quote list invalid.
+    const refreshOrderAndShippingMethods = () => {
+        refreshEntity();
+        void queryClient.invalidateQueries({ queryKey: ['eligibleShippingMethods', entity?.id] });
+    };
+
     const { form: orderCustomFieldsForm } = useGeneratedForm({
         document: setDraftOrderCustomFieldsDocument,
         varName: undefined,
-        entity: entity,
+        entity,
         setValues: entity => {
             return {
                 orderId: entity.id,
@@ -91,7 +99,7 @@ function DraftOrderPage() {
         mutationFn: api.mutate(setDraftOrderCustomFieldsDocument),
         onSuccess: (result: ResultOf<typeof setDraftOrderCustomFieldsDocument>) => {
             toast.success(t`Order custom fields updated`);
-            refreshEntity();
+            refreshOrderAndShippingMethods();
         },
         onError: error => {
             toast.error(t`Failed to update order custom fields: ${error.message}`);
@@ -102,6 +110,10 @@ function DraftOrderPage() {
         queryKey: ['eligibleShippingMethods', entity?.id],
         queryFn: () => api.query(draftOrderEligibleShippingMethodsDocument, { orderId: entity?.id ?? '' }),
         enabled: !!entity?.shippingAddress?.streetLine1,
+        // The key carries the order id, so the app-wide keepPreviousData default would
+        // show one order's shipping methods on another. An explicit undefined is needed
+        // to override that default; omitting the option is not the same thing.
+        placeholderData: undefined,
     });
 
     const { mutate: addItemToDraftOrder } = useMutation({
@@ -111,7 +123,7 @@ function DraftOrderPage() {
             switch (order.__typename) {
                 case 'Order':
                     toast.success(t`Item added to order`);
-                    refreshEntity();
+                    refreshOrderAndShippingMethods();
                     break;
                 default:
                     toast.error(order.message);
@@ -132,7 +144,7 @@ function DraftOrderPage() {
             switch (order.__typename) {
                 case 'Order':
                     toast.success(t`Order line updated`);
-                    refreshEntity();
+                    refreshOrderAndShippingMethods();
                     break;
                 default:
                     toast.error(order.message);
@@ -151,7 +163,7 @@ function DraftOrderPage() {
             switch (order.__typename) {
                 case 'Order':
                     toast.success(t`Order line removed`);
-                    refreshEntity();
+                    refreshOrderAndShippingMethods();
                     break;
                 default:
                     toast.error(order.message);
@@ -163,7 +175,7 @@ function DraftOrderPage() {
         },
     });
 
-    const { mutate: setCustomerForDraftOrder } = useMutation({
+    const { mutateAsync: setCustomerForDraftOrder } = useMutation({
         mutationFn: api.mutate(setCustomerForDraftOrderDocument),
         onSuccess: async (result: ResultOf<typeof setCustomerForDraftOrderDocument>) => {
             const order = result.setCustomerForDraftOrder;
@@ -181,12 +193,8 @@ function DraftOrderPage() {
                         });
                         addresses = customer?.addresses ?? [];
                     }
-                    const defaultShippingAddress = addresses.find(
-                        address => address.defaultShippingAddress,
-                    );
-                    const defaultBillingAddress = addresses.find(
-                        address => address.defaultBillingAddress,
-                    );
+                    const defaultShippingAddress = addresses.find(address => address.defaultShippingAddress);
+                    const defaultBillingAddress = addresses.find(address => address.defaultBillingAddress);
                     // Sequence the address mutations: they all mutate the same
                     // version-tracked Order, so firing them concurrently makes
                     // the second read a stale version and fail with an
@@ -214,9 +222,11 @@ function DraftOrderPage() {
                             });
                         }
                     } catch (e) {
-                        toast.error(t`Failed to set address for order: ${e instanceof Error ? e.message : String(e)}`);
+                        toast.error(
+                            t`Failed to set address for order: ${e instanceof Error ? e.message : String(e)}`,
+                        );
                     }
-                    refreshEntity();
+                    refreshOrderAndShippingMethods();
                     break;
                 }
                 default:
@@ -229,22 +239,22 @@ function DraftOrderPage() {
         },
     });
 
-    const { mutate: setShippingAddressForDraftOrder } = useMutation({
+    const { mutateAsync: setShippingAddressForDraftOrder } = useMutation({
         mutationFn: api.mutate(setShippingAddressForDraftOrderDocument),
         onSuccess: (result: ResultOf<typeof setShippingAddressForDraftOrderDocument>) => {
             toast.success(t`Shipping address set for order`);
-            refreshEntity();
+            refreshOrderAndShippingMethods();
         },
         onError: error => {
             toast.error(t`Failed to set shipping address for order: ${error.message}`);
         },
     });
 
-    const { mutate: setBillingAddressForDraftOrder } = useMutation({
+    const { mutateAsync: setBillingAddressForDraftOrder } = useMutation({
         mutationFn: api.mutate(setBillingAddressForDraftOrderDocument),
         onSuccess: (result: ResultOf<typeof setBillingAddressForDraftOrderDocument>) => {
             toast.success(t`Billing address set for order`);
-            refreshEntity();
+            refreshOrderAndShippingMethods();
         },
         onError: error => {
             toast.error(t`Failed to set billing address for order: ${error.message}`);
@@ -255,7 +265,7 @@ function DraftOrderPage() {
         mutationFn: api.mutate(unsetShippingAddressForDraftOrderDocument),
         onSuccess: (result: ResultOf<typeof unsetShippingAddressForDraftOrderDocument>) => {
             toast.success(t`Shipping address unset for order`);
-            refreshEntity();
+            refreshOrderAndShippingMethods();
         },
         onError: error => {
             toast.error(t`Failed to unset shipping address for order: ${error.message}`);
@@ -266,7 +276,7 @@ function DraftOrderPage() {
         mutationFn: api.mutate(unsetBillingAddressForDraftOrderDocument),
         onSuccess: (result: ResultOf<typeof unsetBillingAddressForDraftOrderDocument>) => {
             toast.success(t`Billing address unset for order`);
-            refreshEntity();
+            refreshOrderAndShippingMethods();
         },
         onError: error => {
             toast.error(t`Failed to unset billing address for order: ${error.message}`);
@@ -280,7 +290,7 @@ function DraftOrderPage() {
             switch (order.__typename) {
                 case 'Order':
                     toast.success(t`Shipping method set for order`);
-                    refreshEntity();
+                    refreshOrderAndShippingMethods();
                     break;
                 default:
                     toast.error(order.message);
@@ -299,7 +309,7 @@ function DraftOrderPage() {
             switch (order.__typename) {
                 case 'Order':
                     toast.success(t`Coupon code set for order`);
-                    refreshEntity();
+                    refreshOrderAndShippingMethods();
                     break;
                 default:
                     toast.error(order.message);
@@ -315,7 +325,7 @@ function DraftOrderPage() {
         mutationFn: api.mutate(removeCouponCodeFromDraftOrderDocument),
         onSuccess: (result: ResultOf<typeof removeCouponCodeFromDraftOrderDocument>) => {
             toast.success(t`Coupon code removed from order`);
-            refreshEntity();
+            refreshOrderAndShippingMethods();
         },
         onError: error => {
             toast.error(t`Failed to remove coupon code from order: ${error.message}`);
@@ -329,7 +339,7 @@ function DraftOrderPage() {
             switch (order?.__typename) {
                 case 'Order':
                     toast.success(t`Draft order completed`);
-                    refreshEntity();
+                    refreshOrderAndShippingMethods();
                     setTimeout(() => {
                         navigate({ to: `/orders/$id`, params: { id: order.id } });
                     }, 500);
@@ -497,59 +507,88 @@ function DraftOrderPage() {
                 </PageBlock>
                 <PageBlock column="side" blockId="customer" title={<Trans>Customer</Trans>}>
                     {entity?.customer?.id ? (
-                        <Button variant="outline" render={<Link to={`/customers/${entity?.customer?.id}`} />} className="mb-4">
+                        <Button
+                            variant="outline"
+                            render={<Link to={`/customers/${entity?.customer?.id}`} />}
+                            className="mb-4"
+                        >
                             <User className="w-4 h-4" />
                             {entity?.customer?.firstName} {entity?.customer?.lastName}
                         </Button>
                     ) : null}
                     <CustomerSelector
+                        allowCreateNew
                         onSelect={customer => {
                             setCustomerForDraftOrder({ orderId: entity.id, customerId: customer.id });
+                        }}
+                        onCreateNew={async input => {
+                            const result = await setCustomerForDraftOrder({ orderId: entity.id, input });
+                            if (result.setCustomerForDraftOrder.__typename !== 'Order') {
+                                // ErrorResult, not a transport error — mutateAsync resolves, so throw to
+                                // keep the popover open with the entered values.
+                                throw new Error(result.setCustomerForDraftOrder.message);
+                            }
                         }}
                     />
                 </PageBlock>
                 <PageBlock column="side" blockId="shipping-address" title={<Trans>Shipping address</Trans>}>
                     <div className="flex flex-col">
                         <OrderAddress address={entity.shippingAddress ?? undefined} />
-                        {entity.shippingAddress?.streetLine1 ? (
-                            <RemoveAddressButton
-                                onClick={() => unsetShippingAddressForDraftOrder({ orderId: entity.id })}
+                        <div className="mt-2 flex items-center gap-2">
+                            <CustomerAddressSelector
+                                customerId={entity.customer?.id}
+                                onSelect={address => {
+                                    setShippingAddressForDraftOrder({
+                                        orderId: entity.id,
+                                        input: mapToAddressInput(address),
+                                    });
+                                }}
+                                onSubmitNew={async input => {
+                                    await setShippingAddressForDraftOrder({
+                                        orderId: entity.id,
+                                        input,
+                                    });
+                                }}
+                                initialAddress={entity.shippingAddress}
+                                currentAddress={entity.shippingAddress}
+                                submitLabel={<Trans>Okay</Trans>}
                             />
-                        ) : (
-                            <div className="mt-4">
-                                <CustomerAddressSelector
-                                    customerId={entity.customer?.id}
-                                    onSelect={address => {
-                                        setShippingAddressForDraftOrder({
-                                            orderId: entity.id,
-                                            input: mapToAddressInput(address),
-                                        });
-                                    }}
+                            {entity.shippingAddress?.streetLine1 && (
+                                <RemoveAddressButton
+                                    onClick={() => unsetShippingAddressForDraftOrder({ orderId: entity.id })}
                                 />
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
                 </PageBlock>
                 <PageBlock column="side" blockId="billing-address" title={<Trans>Billing address</Trans>}>
                     <div className="flex flex-col">
                         <OrderAddress address={entity.billingAddress ?? undefined} />
-                        {entity.billingAddress?.streetLine1 ? (
-                            <RemoveAddressButton
-                                onClick={() => unsetBillingAddressForDraftOrder({ orderId: entity.id })}
+                        <div className="mt-2 flex items-center gap-2">
+                            <CustomerAddressSelector
+                                customerId={entity.customer?.id}
+                                onSelect={address => {
+                                    setBillingAddressForDraftOrder({
+                                        orderId: entity.id,
+                                        input: mapToAddressInput(address),
+                                    });
+                                }}
+                                onSubmitNew={async input => {
+                                    await setBillingAddressForDraftOrder({
+                                        orderId: entity.id,
+                                        input,
+                                    });
+                                }}
+                                initialAddress={entity.billingAddress}
+                                currentAddress={entity.billingAddress}
+                                submitLabel={<Trans>Okay</Trans>}
                             />
-                        ) : (
-                            <div className="mt-4">
-                                <CustomerAddressSelector
-                                    customerId={entity.customer?.id}
-                                    onSelect={address => {
-                                        setBillingAddressForDraftOrder({
-                                            orderId: entity.id,
-                                            input: mapToAddressInput(address),
-                                        });
-                                    }}
+                            {entity.billingAddress?.streetLine1 && (
+                                <RemoveAddressButton
+                                    onClick={() => unsetBillingAddressForDraftOrder({ orderId: entity.id })}
                                 />
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
                 </PageBlock>
             </PageLayout>
@@ -575,10 +614,8 @@ function mapToAddressInput(address: ResultOf<typeof addressFragment>) {
 
 function RemoveAddressButton(props: { onClick: () => void }) {
     return (
-        <div className="">
-            <Button variant="outline" className="mt-4" size="sm" onClick={props.onClick}>
-                <Trans>Remove</Trans>
-            </Button>
-        </div>
+        <Button variant="outline" size="sm" onClick={props.onClick}>
+            <Trans>Remove</Trans>
+        </Button>
     );
 }

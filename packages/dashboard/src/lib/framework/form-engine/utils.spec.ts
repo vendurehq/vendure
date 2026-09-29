@@ -3,11 +3,18 @@ import { describe, expect, it } from 'vitest';
 
 import { FieldInfo, getOperationVariablesFields } from '../document-introspection/get-document-structure.js';
 
+import { REDACTED_SECRET_PLACEHOLDER, SECRET_PLACEHOLDER_PREFIX } from '@vendure/common/lib/shared-constants';
 import { ConfigurableFieldDef } from './form-engine-types.js';
+
 import {
     convertEmptyStringsToNull,
+    deepEqual,
+    getChangedTopLevelFields,
     isFieldNullable,
+    isRedactedSecretValue,
+    pruneToChangedFields,
     removeEmptyIdFields,
+    resolveInputComponentId,
     stripNullNullableFields,
     stripUntouchedTranslations,
     transformRelationFields,
@@ -924,5 +931,238 @@ describe('isFieldNullable', () => {
                 ui: { options: [{ value: 'a' }] },
             } as ConfigurableFieldDef),
         ).toBe(false);
+    });
+});
+
+describe('resolveInputComponentId', () => {
+    it('returns undefined for a plain field', () => {
+        expect(
+            resolveInputComponentId({ name: 'note', type: 'string' } as ConfigurableFieldDef),
+        ).toBeUndefined();
+    });
+
+    it('defaults secret fields to the masked password input', () => {
+        expect(
+            resolveInputComponentId({ name: 'apiKey', type: 'string', secret: true } as ConfigurableFieldDef),
+        ).toBe('password-form-input');
+    });
+
+    it('does not mask when secret is false', () => {
+        expect(
+            resolveInputComponentId({
+                name: 'apiKey',
+                type: 'string',
+                secret: false,
+            } as ConfigurableFieldDef),
+        ).toBeUndefined();
+    });
+
+    it('lets an explicit ui.component win over the secret default', () => {
+        expect(
+            resolveInputComponentId({
+                name: 'apiKey',
+                type: 'string',
+                secret: true,
+                ui: { component: 'my-custom-input' },
+            } as ConfigurableFieldDef),
+        ).toBe('my-custom-input');
+    });
+});
+
+describe('isRedactedSecretValue', () => {
+    it('detects the current redaction placeholder', () => {
+        expect(isRedactedSecretValue(REDACTED_SECRET_PLACEHOLDER)).toBe(true);
+    });
+
+    it('detects a placeholder from another version by prefix', () => {
+        expect(isRedactedSecretValue(`${SECRET_PLACEHOLDER_PREFIX}v99`)).toBe(true);
+    });
+
+    it('does not treat a real value as redacted', () => {
+        expect(isRedactedSecretValue('sk_live_abc123')).toBe(false);
+    });
+
+    it('is false for non-string values', () => {
+        expect(isRedactedSecretValue(undefined)).toBe(false);
+        expect(isRedactedSecretValue(null)).toBe(false);
+        expect(isRedactedSecretValue(42)).toBe(false);
+    });
+});
+
+describe('deepEqual', () => {
+    it('treats identical primitives as equal', () => {
+        expect(deepEqual(1, 1)).toBe(true);
+        expect(deepEqual('a', 'a')).toBe(true);
+        expect(deepEqual(true, true)).toBe(true);
+        expect(deepEqual(null, null)).toBe(true);
+        expect(deepEqual(undefined, undefined)).toBe(true);
+    });
+
+    it('treats differing primitives as unequal', () => {
+        expect(deepEqual(1, 2)).toBe(false);
+        expect(deepEqual('a', 'b')).toBe(false);
+        expect(deepEqual(null, undefined)).toBe(false);
+        expect(deepEqual(0, '')).toBe(false);
+    });
+
+    it('treats NaN as equal to NaN (cleared numeric input)', () => {
+        expect(deepEqual(NaN, NaN)).toBe(true);
+    });
+
+    it('compares arrays by element, order-sensitive', () => {
+        expect(deepEqual([1, 2, 3], [1, 2, 3])).toBe(true);
+        expect(deepEqual([1, 2, 3], [3, 2, 1])).toBe(false);
+        expect(deepEqual(['a'], ['a', 'b'])).toBe(false);
+    });
+
+    it('compares plain objects structurally', () => {
+        expect(deepEqual({ a: 1, b: { c: 2 } }, { a: 1, b: { c: 2 } })).toBe(true);
+        expect(deepEqual({ a: 1 }, { a: 1, b: 2 })).toBe(false);
+        expect(deepEqual({ a: 1 }, { a: 2 })).toBe(false);
+    });
+
+    it('compares Date values by time', () => {
+        expect(deepEqual(new Date('2026-01-01'), new Date('2026-01-01'))).toBe(true);
+        expect(deepEqual(new Date('2026-01-01'), new Date('2026-01-02'))).toBe(false);
+    });
+});
+
+describe('getChangedTopLevelFields', () => {
+    const field = (name: string, nullable: boolean): FieldInfo => ({
+        name,
+        type: 'String',
+        nullable,
+        list: false,
+        isPaginatedList: false,
+        isScalar: true,
+    });
+
+    // Typical variant-update input fields: id is non-nullable, the rest nullable.
+    const fields: FieldInfo[] = [
+        field('id', false),
+        field('sku', true),
+        field('trackInventory', true),
+        field('facetValueIds', true),
+        field('assetIds', true),
+        field('translations', true),
+        field('customFields', true),
+    ];
+
+    const baseline = {
+        id: '1',
+        sku: 'OLD',
+        trackInventory: false,
+        facetValueIds: ['1', '2'],
+        assetIds: ['10'],
+        translations: [{ languageCode: 'en', name: 'Widget' }],
+        customFields: { foo: 'a' },
+    };
+
+    it('includes only the changed scalar plus non-nullable id', () => {
+        const changed = getChangedTopLevelFields({ ...baseline, sku: 'NEW' }, baseline, fields);
+        expect([...changed].sort()).toEqual(['id', 'sku']);
+    });
+
+    it('omits untouched fields', () => {
+        const changed = getChangedTopLevelFields({ ...baseline }, baseline, fields);
+        // Only the non-nullable id remains.
+        expect([...changed]).toEqual(['id']);
+    });
+
+    it('detects a changed relation array (facet value added)', () => {
+        const changed = getChangedTopLevelFields(
+            { ...baseline, facetValueIds: ['1', '2', '3'] },
+            baseline,
+            fields,
+        );
+        expect(changed.has('facetValueIds')).toBe(true);
+        expect(changed.has('assetIds')).toBe(false);
+    });
+
+    it('detects a relation array whose element was removed (the RHF dirtyFields blind spot)', () => {
+        const changed = getChangedTopLevelFields({ ...baseline, facetValueIds: ['1'] }, baseline, fields);
+        expect(changed.has('facetValueIds')).toBe(true);
+    });
+
+    it('detects a key removed entirely from the submitted values', () => {
+        const submitted: Record<string, any> = { ...baseline };
+        delete submitted.assetIds;
+        const changed = getChangedTopLevelFields(submitted, baseline, fields);
+        expect(changed.has('assetIds')).toBe(true);
+    });
+
+    it('marks translations dirty on a nested translation edit, sent whole', () => {
+        const changed = getChangedTopLevelFields(
+            { ...baseline, translations: [{ languageCode: 'en', name: 'Gadget' }] },
+            baseline,
+            fields,
+        );
+        expect(changed.has('translations')).toBe(true);
+    });
+
+    it('marks customFields dirty on a nested custom-field edit', () => {
+        const changed = getChangedTopLevelFields(
+            { ...baseline, customFields: { foo: 'b' } },
+            baseline,
+            fields,
+        );
+        expect(changed.has('customFields')).toBe(true);
+    });
+
+    it('always includes non-nullable fields even when unchanged (e.g. required translations)', () => {
+        const withRequiredTranslations: FieldInfo[] = [field('id', false), field('translations', false)];
+        const base = { id: '1', translations: [{ languageCode: 'en', name: 'X' }] };
+        const changed = getChangedTopLevelFields({ ...base }, base, withRequiredTranslations);
+        expect([...changed].sort()).toEqual(['id', 'translations']);
+    });
+
+    it('detects a field set from undefined baseline to a value (do not drop the user edit)', () => {
+        // e.g. featuredAssetId is undefined on load, the user selects an asset.
+        const base = { id: '1', featuredAssetId: undefined };
+        const changed = getChangedTopLevelFields({ id: '1', featuredAssetId: 'asset-1' }, base, [
+            field('id', false),
+            field('featuredAssetId', true),
+        ]);
+        expect(changed.has('featuredAssetId')).toBe(true);
+    });
+
+    it('detects a field cleared from a value to undefined', () => {
+        const base = { id: '1', featuredAssetId: 'asset-1' };
+        const changed = getChangedTopLevelFields({ id: '1', featuredAssetId: undefined }, base, [
+            field('id', false),
+            field('featuredAssetId', true),
+        ]);
+        expect(changed.has('featuredAssetId')).toBe(true);
+    });
+
+    it('does not throw when a non-nullable field is absent from both submitted and baseline', () => {
+        const changed = getChangedTopLevelFields({ sku: 'A' }, { sku: 'A' }, [
+            field('id', false),
+            field('sku', true),
+        ]);
+        // id is always included (non-nullable) even though absent from the values;
+        // the caller only keeps keys that actually exist in the payload.
+        expect(changed.has('id')).toBe(true);
+        expect(changed.has('sku')).toBe(false);
+    });
+});
+
+describe('pruneToChangedFields', () => {
+    it('keeps only the changed fields', () => {
+        const pruned = pruneToChangedFields(
+            { id: '1', name: 'new', facetValueIds: ['1'], enabled: true },
+            new Set(['id', 'name']),
+        );
+        expect(pruned).toEqual({ id: '1', name: 'new' });
+    });
+
+    it('returns the full payload when sendAll is true (escape hatch)', () => {
+        const values = { id: '1', name: 'new', facetValueIds: ['1'], enabled: true };
+        expect(pruneToChangedFields(values, new Set(['id', 'name']), true)).toEqual(values);
+    });
+
+    it('returns the full payload when there is no change set', () => {
+        const values = { id: '1', name: 'new' };
+        expect(pruneToChangedFields(values, undefined)).toEqual(values);
     });
 });

@@ -1,4 +1,4 @@
-import { ImageTransformFormat } from '../types';
+import { HexColorString, ImageTransformFormat } from '../types';
 
 import {
     GetImageTransformParametersArgs,
@@ -42,6 +42,22 @@ export interface PresetOnlyStrategyOptions {
      * @default false
      */
     allowFocalPoint?: boolean;
+    /**
+     * @description
+     * Whether to allow the background color to be specified in the URL.
+     * If omitted (default), the `bg` parameter is dropped.
+     * If set to an array of hex color strings (e.g. `['#ffffff', '#000000']`),
+     * only those colors are permitted — keeping the cache key space bounded.
+     * If set to `'any'`, any valid hex color is accepted (explicit opt-in to an
+     * unbounded cache surface).
+     *
+     * Comparison is case-insensitive, so `'#FFFFFF'` and `'#ffffff'` are
+     * treated as the same entry.
+     *
+     * @default undefined
+     * @since 3.8.0
+     */
+    permittedBackgroundColors?: HexColorString[] | 'any';
 }
 
 /**
@@ -73,6 +89,7 @@ export interface PresetOnlyStrategyOptions {
  *     permittedQuality: [0, 50, 75, 85, 95],
  *     permittedFormats: ['jpg', 'webp', 'avif'],
  *     allowFocalPoint: true,
+ *     permittedBackgroundColors: ['#ffffff', '#000000'],
  *   }),
  * });
  * ```
@@ -107,6 +124,23 @@ export class PresetOnlyStrategy implements ImageTransformStrategy {
             fpx: this.options.allowFocalPoint ? input.fpx : undefined,
             fpy: this.options.allowFocalPoint ? input.fpy : undefined,
             preset: input.preset,
+            backgroundColor: this.getPermittedBackgroundColor(input.backgroundColor),
         };
+    }
+
+    private getPermittedBackgroundColor(input: string | undefined): string | undefined {
+        if (!input) {
+            return undefined;
+        }
+        const permitted = this.options.permittedBackgroundColors;
+        if (!permitted) {
+            return undefined;
+        }
+        if (permitted === 'any') {
+            return input;
+        }
+        const normalise = (c: string) => c.toLowerCase();
+        const normalised = normalise(input);
+        return permitted.some(c => normalise(c) === normalised) ? input : undefined;
     }
 }

@@ -249,7 +249,7 @@ function CustomFieldItem({ fieldDef, control, fieldName, disabled }: Readonly<Cu
                             <CustomFieldFormItem
                                 fieldDef={fieldDef}
                                 getTranslation={getTranslation}
-                                fieldName={field.name}
+                                fieldPath={field.name}
                                 fieldState={fieldState}
                             >
                                 {localeFallbackPlaceholder
@@ -275,7 +275,7 @@ function CustomFieldItem({ fieldDef, control, fieldName, disabled }: Readonly<Cu
                         <CustomFieldFormItem
                             fieldDef={fieldDef}
                             getTranslation={getTranslation}
-                            fieldName={field.name}
+                            fieldPath={field.name}
                             fieldState={fieldState}
                         >
                             <CustomFormComponent fieldDef={fieldDef} {...field} />
@@ -302,7 +302,7 @@ function CustomFieldItem({ fieldDef, control, fieldName, disabled }: Readonly<Cu
                             <CustomFieldFormItem
                                 fieldDef={fieldDef}
                                 getTranslation={getTranslation}
-                                fieldName={fieldDef.name}
+                                fieldPath={field.name}
                                 fieldState={fieldState}
                             >
                                 <CustomFieldListInput
@@ -331,7 +331,7 @@ function CustomFieldItem({ fieldDef, control, fieldName, disabled }: Readonly<Cu
                         <CustomFieldFormItem
                             fieldDef={fieldDef}
                             getTranslation={getTranslation}
-                            fieldName={fieldDef.name}
+                            fieldPath={field.name}
                             fieldState={fieldState}
                         >
                             <StructFormInput {...field} fieldDef={fieldDef} />
@@ -353,7 +353,7 @@ function CustomFieldItem({ fieldDef, control, fieldName, disabled }: Readonly<Cu
                     <CustomFieldFormItem
                         fieldDef={fieldDef}
                         getTranslation={getTranslation}
-                        fieldName={fieldDef.name}
+                        fieldPath={field.name}
                         fieldState={fieldState}
                     >
                         <FormControlAdapter fieldDef={fieldDef} field={field} valueMode="native" />
@@ -369,7 +369,13 @@ interface CustomFieldFormItemProps {
     getTranslation: (
         input: string | Array<{ languageCode: string; value: string }> | null | undefined,
     ) => string | undefined;
-    fieldName: string;
+    /**
+     * The form control's path. The element id is built from this rather than from
+     * the field's own name, because a page can render this form more than once —
+     * the product variant page renders it per price — and the field's name would
+     * then repeat down the page.
+     */
+    fieldPath: string;
     fieldState?: ControllerFieldState;
     children: React.ReactNode;
 }
@@ -377,14 +383,14 @@ interface CustomFieldFormItemProps {
 function CustomFieldFormItem({
     fieldDef,
     getTranslation,
-    fieldName,
+    fieldPath,
     fieldState,
     children,
 }: Readonly<CustomFieldFormItemProps>) {
-    const fieldId = `field-${fieldName}`;
+    const fieldId = `field-${fieldPath}`;
     return (
         <Field data-invalid={fieldState?.invalid || undefined}>
-            <FieldLabel htmlFor={fieldId}>{getTranslation(fieldDef.label) ?? fieldName}</FieldLabel>
+            <FieldLabel htmlFor={fieldId}>{getTranslation(fieldDef.label) ?? fieldDef.name}</FieldLabel>
             {children}
             {getTranslation(fieldDef.description) && (
                 <FieldDescription>{getTranslation(fieldDef.description)}</FieldDescription>

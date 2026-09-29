@@ -2,13 +2,14 @@
 title: "AdministratorService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/administrator.service.ts" sourceLine="50" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/administrator.service.ts" sourceLine="53" packageName="@vendure/core" />
 
 Contains methods relating to [Administrator](/reference/typescript-api/entities/administrator#administrator) entities.
 
 ```ts title="Signature"
 class AdministratorService {
-    constructor(connection: TransactionalConnection, configService: ConfigService, listQueryBuilder: ListQueryBuilder, passwordCipher: PasswordCipher, userService: UserService, roleService: RoleService, customFieldRelationService: CustomFieldRelationService, eventBus: EventBus, requestContextService: RequestContextService)
+    constructor(connection: TransactionalConnection, configService: ConfigService, listQueryBuilder: ListQueryBuilder, passwordCipher: PasswordCipher, userService: UserService, roleService: RoleService, customFieldRelationService: CustomFieldRelationService, assetService: AssetService, eventBus: EventBus, requestContextService: RequestContextService)
+    setAvatar(ctx: RequestContext, administratorId: ID, upload: Promise<StoredMediaUpload> | StoredMediaUpload | null) => Promise<Administrator>;
     findAll(ctx: RequestContext, options?: ListQueryOptions<Administrator>, relations?: RelationPaths<Administrator>) => Promise<PaginatedList<Administrator>>;
     findOne(ctx: RequestContext, administratorId: ID, relations?: RelationPaths<Administrator>) => Promise<Administrator | undefined>;
     findOneByUserId(ctx: RequestContext, userId: ID, relations?: RelationPaths<Administrator>) => Promise<Administrator | undefined>;
@@ -26,6 +27,11 @@ class AdministratorService {
 
 <div className="members-wrapper">
 
+### setAvatar
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, administratorId: <a href='/reference/typescript-api/common/id#id'>ID</a>, upload: Promise<<a href='/reference/typescript-api/assets/stored-media-upload#storedmediaupload'>StoredMediaUpload</a>> | <a href='/reference/typescript-api/assets/stored-media-upload#storedmediaupload'>StoredMediaUpload</a> | null) => Promise<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a>>`}   />
+
+
 ### findAll
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options?: ListQueryOptions<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a>>, relations?: RelationPaths<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a>>) => Promise<<a href='/reference/typescript-api/common/paginated-list#paginatedlist'>PaginatedList</a><<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a>>>`}   />
@@ -36,6 +42,9 @@ Get a paginated list of Administrators.
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, administratorId: <a href='/reference/typescript-api/common/id#id'>ID</a>, relations?: RelationPaths<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a>>) => Promise<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a> | undefined>`}   />
 
 Get an Administrator by id.
+
+Resolves to `undefined` if the Administrator is not visible to the active user, so that a
+caller cannot confirm the existence of an Administrator they are not allowed to see.
 ### findOneByUserId
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>, relations?: RelationPaths<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a>>) => Promise<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a> | undefined>`}   />

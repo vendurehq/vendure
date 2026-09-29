@@ -1,5 +1,6 @@
 import { IFieldResolver, IResolvers } from '@graphql-tools/utils';
 import { StockMovementType } from '@vendure/common/lib/generated-types';
+import { REDACTED_SECRET_PLACEHOLDER } from '@vendure/common/lib/shared-constants';
 import { GraphQLSchema } from 'graphql';
 import { GraphQLDateTime, GraphQLJSON } from 'graphql-scalars';
 
@@ -194,6 +195,7 @@ function generateCustomFieldResolvers(
     schema: GraphQLSchema,
 ) {
     const ENTITY_ID_KEY = '__entityId__';
+    const ENTITY_KEY = '__entity__';
     const adminResolvers: IResolvers = {};
     const shopResolvers: IResolvers = {};
 
@@ -215,6 +217,9 @@ function generateCustomFieldResolvers(
             return {
                 ...source.customFields,
                 [ENTITY_ID_KEY]: source.id,
+                // Retain the owning entity so that field resolvers (e.g. secret-field redaction) can
+                // pass the real VendureEntity to strategies, rather than this customFields wrapper.
+                [ENTITY_KEY]: source,
             };
         };
         const resolverObject = {
@@ -311,7 +316,20 @@ function generateCustomFieldResolvers(
                     if (!userHasPermissionsOnCustomField(ctx, fieldDef)) {
                         return null;
                     }
-                    return source[fieldDef.name];
+                    const value = source[fieldDef.name];
+                    if (fieldDef.secret === true && value != null) {
+                        const secretAccessStrategy = configService.systemOptions.secretAccessStrategy;
+                        const canReveal = secretAccessStrategy
+                            ? await secretAccessStrategy.canAccessSecret(ctx, {
+                                  kind: 'customField',
+                                  entityType: entityName,
+                                  fieldName: fieldDef.name,
+                                  entity: source[ENTITY_KEY],
+                              })
+                            : false;
+                        return canReveal ? value : REDACTED_SECRET_PLACEHOLDER;
+                    }
+                    return value;
                 };
             }
 

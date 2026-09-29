@@ -1,7 +1,11 @@
 import { ConfigurableOperationDefFragment } from '@/vdb/graphql/fragments.js';
 import { describe, expect, it } from 'vitest';
 
-import { formatScalarArgValue, parseOperationDescription } from './configurable-operation-description.js';
+import {
+    descriptionIncludesAdjacentAffix,
+    formatScalarArgValue,
+    parseOperationDescription,
+} from './configurable-operation-description.js';
 
 type ConfigArgDef = ConfigurableOperationDefFragment['args'][number];
 
@@ -115,5 +119,17 @@ describe('formatScalarArgValue', () => {
     it('passes plain values through', () => {
         expect(formatScalarArgValue(argDef({ type: 'int' }), '5')).toBe('5');
         expect(formatScalarArgValue(argDef({ type: 'string' }), 'abc')).toBe('abc');
+    });
+});
+
+describe('descriptionIncludesAdjacentAffix', () => {
+    it('detects affixes already adjacent to a placeholder', () => {
+        expect(descriptionIncludesAdjacentAffix('Discount by $ ', '$', 'before')).toBe(true);
+        expect(descriptionIncludesAdjacentAffix('% discount', '%', 'after')).toBe(true);
+    });
+
+    it('does not match affixes elsewhere in the surrounding text', () => {
+        expect(descriptionIncludesAdjacentAffix('$ discount by ', '$', 'before')).toBe(false);
+        expect(descriptionIncludesAdjacentAffix(' discount (%)', '%', 'after')).toBe(false);
     });
 });

@@ -15,6 +15,7 @@ import {
     SetAttachmentsFn,
     SetMetadataFn,
     SetOptionalAddressFieldsFn,
+    SetPlainTextBodyFn,
     SetSubjectFn,
     SetTemplateVarsFn,
 } from '../types';
@@ -155,6 +156,8 @@ export class EmailEventHandler<T extends string = string, Event extends EventWit
     private setAttachmentsFn?: SetAttachmentsFn<Event>;
     private setOptionalAddressFieldsFn?: SetOptionalAddressFieldsFn<Event>;
     private setMetadataFn?: SetMetadataFn<Event>;
+    private setPlainTextBodyFn?: SetPlainTextBodyFn<Event>;
+
     private filterFns: Array<(event: Event) => boolean> = [];
     private configurations: EmailTemplateConfig[] = [];
     private defaultSubject: string;
@@ -200,6 +203,18 @@ export class EmailEventHandler<T extends string = string, Event extends EventWit
      */
     setRecipient(setRecipientFn: (event: Event) => string): EmailEventHandler<T, Event> {
         this.setRecipientFn = setRecipientFn;
+        return this;
+    }
+
+    /**
+     * @description
+     * A function which defines the plain-text body of the email, used by clients which do not
+     * render HTML. If not defined, the email is sent without a plain-text part.
+     *
+     * @since 3.8.0
+     */
+    setPlainTextBody(setPlainTextBodyFn: SetPlainTextBodyFn<Event>): EmailEventHandler<T, Event> {
+        this.setPlainTextBodyFn = setPlainTextBodyFn;
         return this;
     }
 
@@ -365,6 +380,7 @@ export class EmailEventHandler<T extends string = string, Event extends EventWit
     ): EmailEventHandlerWithAsyncData<R, T, Event, EventWithAsyncData<Event, R>> {
         const asyncHandler = new EmailEventHandlerWithAsyncData(loadDataFn, this.listener, this.event);
         asyncHandler.setRecipientFn = this.setRecipientFn;
+        asyncHandler.setPlainTextBodyFn = this.setPlainTextBodyFn;
         asyncHandler.setTemplateVarsFn = this.setTemplateVarsFn;
         asyncHandler.setAttachmentsFn = this.setAttachmentsFn;
         asyncHandler.setOptionalAddressFieldsFn = this.setOptionalAddressFieldsFn;
@@ -436,6 +452,13 @@ export class EmailEventHandler<T extends string = string, Event extends EventWit
         }
         const recipient = this.setRecipientFn(event);
         const templateVars = this.setTemplateVarsFn ? this.setTemplateVarsFn(event, globals) : {};
+        const allTemplateVars = { ...globals, ...templateVars };
+        let text: string | undefined;
+        try {
+            text = await this.setPlainTextBodyFn?.(event, allTemplateVars);
+        } catch (e: any) {
+            Logger.error(e.message, loggerCtx, e.stack);
+        }
         let attachmentsArray: EmailAttachment[] = [];
         try {
             attachmentsArray = (await this.setAttachmentsFn?.(event)) ?? [];
@@ -450,8 +473,9 @@ export class EmailEventHandler<T extends string = string, Event extends EventWit
             ctx: event.ctx.serialize(),
             type: this.type,
             recipient,
+            text,
             from: this.from,
-            templateVars: { ...globals, ...templateVars },
+            templateVars: allTemplateVars,
             subject,
             templateFile: configuration ? configuration.templateFile : 'body.hbs',
             attachments,

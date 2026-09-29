@@ -13,6 +13,7 @@ import { Translatable, Translation } from '../../../common/types/locale-types';
 import { asyncObservable, idsAreEqual } from '../../../common/utils';
 import { ConfigService } from '../../../config/config.service';
 import { Logger } from '../../../config/logger/vendure-logger';
+import { findOptionsArrayToObject } from '../../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { Channel } from '../../../entity/channel/channel.entity';
 import { FacetValue } from '../../../entity/facet-value/facet-value.entity';
@@ -372,7 +373,7 @@ export class IndexerController {
         where.channels = { id: In(channels.map(c => c.id)) };
         const [variants, count] = await this.connection.getRepository(ctx, ProductVariant).findAndCount({
             loadEagerRelations: false,
-            relations: variantRelations,
+            relations: findOptionsArrayToObject<ProductVariant>(variantRelations),
             where,
             take,
             skip,
@@ -396,7 +397,7 @@ export class IndexerController {
 
         const product = await this.connection.getRepository(ctx, Product).findOne({
             loadEagerRelations: false,
-            relations: productRelations,
+            relations: findOptionsArrayToObject<Product>(productRelations),
             relationLoadStrategy: 'query',
             where: { id: Equal(productId), channels: { id: In(channels.map(x => x.id)) } },
         });

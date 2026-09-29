@@ -14,6 +14,7 @@ import { Instrument } from '../../common/instrument-decorator';
 import { ListQueryOptions } from '../../common/types/common-types';
 import { Translated } from '../../common/types/locale-types';
 import { assertFound } from '../../common/utils';
+import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Address } from '../../entity';
 import { Country } from '../../entity/region/country.entity';
@@ -65,7 +66,10 @@ export class CountryService {
     ): Promise<Translated<Country> | undefined> {
         return this.connection
             .getRepository(ctx, Country)
-            .findOne({ where: { id: countryId }, relations })
+            .findOne({
+                where: { id: countryId },
+                relations: findOptionsArrayToObject<Country>(relations ?? []),
+            })
             .then(country => (country && this.translator.translate(country, ctx)) ?? undefined);
     }
 

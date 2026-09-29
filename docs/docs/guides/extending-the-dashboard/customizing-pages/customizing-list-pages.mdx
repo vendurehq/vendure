@@ -45,6 +45,8 @@ defineDashboardExtension({
 
 Use [Dev Mode](/extending-the-dashboard/extending-overview/#dev-mode) or the [Extension Targets reference](/extending-the-dashboard/customizing-pages/extension-targets/) to find the `pageId` and `blockId`.
 
+A display component replaces whatever the Dashboard would otherwise render in that column, including the built-in renderers that some columns come with. The `price` and `priceWithTax` columns, for example, are rendered as formatted money by default, and registering a display component for one of them replaces that rendering.
+
 ## Custom table cell components
 
 You can define your own custom components to render specific table cells:

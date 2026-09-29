@@ -4,7 +4,9 @@ import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js'
 import { Button } from '@/vdb/components/ui/button.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
-import {    DetailFormGrid,
+import {
+    CustomFieldsPageBlock,
+    DetailFormGrid,
     Page,
     PageActionBar,
     PageBlock,
@@ -55,6 +57,7 @@ function RoleDetailPage() {
                 description: entity.description,
                 permissions: entity.permissions,
                 channelIds: entity.channels.map(channel => channel.id),
+                customFields: entity.customFields,
             };
         },
         params: { id: params.id },
@@ -102,6 +105,7 @@ function RoleDetailPage() {
                         />
                     </DetailFormGrid>
                 </PageBlock>
+                <CustomFieldsPageBlock column="main" entityType="Role" control={form.control} />
                 <PageBlock column="main" blockId="channels">
                     <div className="space-y-8">
                         <div className="md:grid md:grid-cols-2 gap-4">

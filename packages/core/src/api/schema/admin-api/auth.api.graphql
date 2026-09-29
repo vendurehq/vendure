@@ -48,11 +48,27 @@ type PasswordResetTokenExpiredError implements ErrorResult {
     message: String!
 }
 
-"Returned when the given password fails password validation."
+# The three password error types below are also declared in the shop API, in
+# shop-api/shop-error-results.graphql. GraphQL resolves an ErrorResult by its `__typename`, so the
+# services return one set of classes to both APIs and the two declarations must stay identical.
+
+"Returned when attempting to register or verify a customer account without a password, when one is required."
+type MissingPasswordError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+}
+
+"Returned when attempting to register or verify a customer account where the given password fails password validation."
 type PasswordValidationError implements ErrorResult {
     errorCode: ErrorCode!
     message: String!
     validationErrorMessage: String!
+}
+
+"Returned when attempting to verify a customer account with a password, when a password has already been set."
+type PasswordAlreadySetError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
 }
 
 union NativeAuthenticationResult = CurrentUser | InvalidCredentialsError | NativeAuthStrategyError

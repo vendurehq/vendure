@@ -37,6 +37,7 @@ import { Instrument } from '../../../common/instrument-decorator';
 import { idsAreEqual } from '../../../common/utils';
 import { ConfigService } from '../../../config/config.service';
 import { CustomFieldConfig } from '../../../config/custom-field/custom-field-types';
+import { findOptionsArrayToObject } from '../../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { VendureEntity } from '../../../entity/base/base.entity';
 import { FulfillmentLine } from '../../../entity/order-line-reference/fulfillment-line.entity';
@@ -333,8 +334,13 @@ export class OrderModifier {
         for (const line of lineInputs) {
             const orderLine = fullOrder.lines.find(l => idsAreEqual(l.id, line.orderLineId));
             if (orderLine) {
+                // A partial cancellation bypasses `OrderCalculator` recalculation entirely, so the
+                // `PROMOTION` adjustments are rescaled here to preserve the invariant that they are
+                // stored scaled to the current quantity.
+                orderLine.setQuantityRescalingAdjustments(orderLine.quantity - line.quantity);
                 await this.connection.getRepository(ctx, OrderLine).update(line.orderLineId, {
-                    quantity: orderLine.quantity - line.quantity,
+                    quantity: orderLine.quantity,
+                    adjustments: orderLine.adjustments,
                 });
 
                 await this.eventBus.publish(new OrderLineEvent(ctx, order, orderLine, 'cancelled'));
@@ -808,7 +814,7 @@ export class OrderModifier {
 
     private getOrderPayments(ctx: RequestContext, orderId: ID): Promise<Payment[]> {
         return this.connection.getRepository(ctx, Payment).find({
-            relations: ['refunds'],
+            relations: { refunds: true },
             where: {
                 order: { id: orderId } as any,
             },
@@ -851,7 +857,9 @@ export class OrderModifier {
                 .getRepository(ctx, OrderLine)
                 .findOne({
                     where: { id: orderLine.id },
-                    relations: customFieldRelations.map(r => `customFields.${r.name}`),
+                    relations: findOptionsArrayToObject<OrderLine>(
+                        customFieldRelations.map(r => `customFields.${r.name}`),
+                    ),
                 })
                 .then(result => result ?? undefined);
         }

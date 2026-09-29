@@ -16,6 +16,7 @@ import { api } from '@/vdb/graphql/api.js';
 import { useCustomFieldConfig } from '@/vdb/hooks/use-custom-field-config.js';
 import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
 import { useIsMobile } from '@/vdb/hooks/use-mobile.js';
+import { isDestructiveTransition, orderStateDictionary } from '@/vdb/utils/state-type.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
@@ -30,15 +31,15 @@ import {
     transitionOrderToStateDocument,
 } from '../orders.graphql.js';
 import { canAddFulfillment, canRefundOrder, shouldShowAddManualPaymentButton } from '../utils/order-utils.js';
-import { OrderProcessDialog } from './order-process-dialog.js';
 
-import { isDestructiveTransition, orderStateDictionary } from '@/vdb/utils/state-type.js';
+
 import { AddManualPaymentDialog } from './add-manual-payment-dialog.js';
 import { FulfillOrderDialog } from './fulfill-order-dialog.js';
 import { FulfillmentDetails } from './fulfillment-details.js';
 import { OrderAddress } from './order-address.js';
 import { OrderHistoryContainer } from './order-history/order-history-container.js';
 import { orderHistoryQueryKey } from './order-history/use-order-history.js';
+import { OrderProcessDialog } from './order-process-dialog.js';
 import { OrderTable } from './order-table.js';
 import { OrderTaxSummary } from './order-tax-summary.js';
 import { PaymentDetails } from './payment-details.js';

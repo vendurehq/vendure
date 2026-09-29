@@ -1,7 +1,6 @@
-import { DataSourceOptions } from 'typeorm';
-
 import { UserInputError } from '../../../common/error/errors';
 import { Logger } from '../../../config/logger/vendure-logger';
+import { VendureDatabaseType } from '../../../connection/database-type';
 
 const loggerCtx = 'ListQueryBuilder';
 
@@ -19,7 +18,7 @@ type RegExpEngine = new (pattern: string, flags: string) => CompiledRegExp;
  * The SQLite driver flavours whose `regexp` implementation is a JS function evaluated on the
  * Node.js event loop, and which are therefore exposed to ReDoS via the built-in `RegExp` engine.
  */
-const SQLITE_REGEXP_DB_TYPES: Array<DataSourceOptions['type']> = ['better-sqlite3', 'sqljs'];
+const SQLITE_REGEXP_DB_TYPES: VendureDatabaseType[] = ['better-sqlite3', 'sqljs'];
 
 // `undefined` = not yet attempted, `null` = re2 is not installed.
 let re2Engine: RegExpEngine | null | undefined;
@@ -49,7 +48,7 @@ function loadRe2Engine(): RegExpEngine | null {
  * Has no effect when `re2` is not installed (the built-in engine, which supports those features,
  * is used as a fallback) or on non-SQLite backends, where the pattern is evaluated by the database.
  */
-export function assertRegexFilterEngineCompatible(pattern: string, dbType: DataSourceOptions['type']): void {
+export function assertRegexFilterEngineCompatible(pattern: string, dbType: VendureDatabaseType): void {
     if (!SQLITE_REGEXP_DB_TYPES.includes(dbType)) {
         return;
     }

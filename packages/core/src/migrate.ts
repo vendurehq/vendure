@@ -3,13 +3,15 @@ import { randomBytes } from 'crypto';
 import fs from 'fs-extra';
 import path from 'path';
 import pc from 'picocolors';
-import { Connection, createConnection, DataSourceOptions } from 'typeorm';
+import { DataSource, DataSourceOptions, EntityMetadata, MigrationExecutor } from 'typeorm';
 import { MysqlDriver } from 'typeorm/driver/mysql/MysqlDriver';
 import { camelCase } from 'typeorm/util/StringUtils';
 
 import { preBootstrapConfig } from './bootstrap';
 import { resetConfig } from './config/config-helpers';
 import { VendureConfig } from './config/vendure-config';
+import { getDatabaseType } from './connection/database-type';
+import { Product } from './entity/product/product.entity';
 
 /**
  * @description
@@ -49,16 +51,72 @@ export interface MigrationOptions {
 
 /**
  * @description
+ * A condition detected while running migrations which cannot be inferred from the return value
+ * of {@link runMigrations}.
+ *
+ * @docsCategory migration
+ * @since 3.7.4
+ */
+export interface MigrationDiagnostic {
+    /**
+     * @description
+     * Identifies the condition:
+     *
+     * - `no-migrations-matched`: the configured `migrations` patterns matched no files, but the
+     *   database has migrations recorded as applied. The patterns must therefore have stopped
+     *   matching, for example because they point at compiled output which has not been built.
+     * - `schema-out-of-sync`: the database schema does not match the current entity
+     *   configuration, so a new migration needs to be generated.
+     */
+    code: 'no-migrations-matched' | 'schema-out-of-sync';
+    /**
+     * @description
+     * The condition rendered as lines of human-readable text.
+     */
+    lines: string[];
+}
+
+/**
+ * @description
+ * Options for {@link runMigrations}.
+ *
+ * @docsCategory migration
+ * @since 3.7.4
+ */
+export interface RunMigrationsOptions {
+    /**
+     * @description
+     * Invoked for each {@link MigrationDiagnostic} detected during the run. These conditions are
+     * also printed to the console, unless the `VENDURE_RUNNING_IN_CLI` environment variable is
+     * set, which the Vendure CLI does so that it can render them itself. Passing this callback
+     * does not suppress that output.
+     */
+    onDiagnostic?: (diagnostic: MigrationDiagnostic) => void;
+}
+
+/**
+ * @description
  * Runs any pending database migrations. See [TypeORM migration docs](https://typeorm.io/#/migrations)
  * for more information about the underlying migration mechanism.
  *
  * @docsCategory migration
  */
-export async function runMigrations(userConfig: Partial<VendureConfig>): Promise<string[]> {
+export async function runMigrations(
+    userConfig: Partial<VendureConfig>,
+    options?: RunMigrationsOptions,
+): Promise<string[]> {
     const config = await preBootstrapConfig(userConfig);
-    const connection = await createConnection(createConnectionOptions(config));
+    const connection = await createDataSource(createDataSourceOptions(config));
     const migrationsRan: string[] = [];
+    const report = (diagnostic: MigrationDiagnostic) => {
+        options?.onDiagnostic?.(diagnostic);
+        log(pc.yellow(diagnostic.lines.join('\n')));
+    };
     try {
+        const unmatched = await detectUnmatchedPatterns(connection);
+        if (unmatched) {
+            report(unmatched);
+        }
         const migrations = await disableForeignKeysForSqLite(connection, () =>
             connection.runMigrations({ transaction: 'each' }),
         );
@@ -75,25 +133,103 @@ export async function runMigrations(userConfig: Partial<VendureConfig>): Promise
             process.exitCode = 1;
         }
     } finally {
-        await checkMigrationStatus(connection);
-        await connection.close();
-        resetConfig();
+        try {
+            await checkMigrationStatus(connection, report);
+        } finally {
+            await connection.destroy();
+            resetConfig();
+        }
     }
     return migrationsRan;
 }
 
-async function checkMigrationStatus(connection: Connection) {
+async function checkMigrationStatus(connection: DataSource, report: (d: MigrationDiagnostic) => void) {
+    // Against a database with no tables at all the schema builder reports the entire schema as
+    // pending, which is what a project looks like before it has been set up. That is not drift,
+    // so there is nothing useful to say about it.
+    //
+    // The `migrations` table is the wrong discriminator here: a schema built with
+    // `synchronize: true` has every table and no migration history, because TypeORM only writes
+    // that table when it runs a migration. Reporting drift is exactly what that developer needs
+    // when they switch to `synchronize: false` and change an entity.
+    if (!(await hasBeenSetUp(connection))) {
+        return;
+    }
     const builderLog = await connection.driver.createSchemaBuilder().log();
     if (builderLog.upQueries.length) {
-        log(
-            pc.yellow(
+        report({
+            code: 'schema-out-of-sync',
+            lines: [
                 'Your database schema does not match your current configuration. Generate a new migration for the following changes:',
-            ),
-        );
-        for (const query of builderLog.upQueries) {
-            log(' - ' + pc.yellow(query.query));
-        }
+                ...builderLog.upQueries.map(q => ' - ' + q.query),
+            ],
+        });
     }
+}
+
+/**
+ * Asking about one known table keeps this to a single statement. Loading every entity table
+ * would answer the same question, but `createSchemaBuilder().log()` already does that on its
+ * own query runner, so the work would be done twice on every run.
+ */
+async function hasBeenSetUp(connection: DataSource): Promise<boolean> {
+    const queryRunner = connection.createQueryRunner();
+    try {
+        return await queryRunner.hasTable(connection.getMetadata(Product).tablePath);
+    } finally {
+        await queryRunner.release();
+    }
+}
+
+/**
+ * TypeORM resolves migration globs relative to `process.cwd()` and silently yields zero classes
+ * when nothing matches. That is indistinguishable from "every migration has already been
+ * applied" in the return value of `runMigrations()`, so the command reports success while
+ * leaving the database untouched.
+ *
+ * Zero loaded classes on its own is not evidence of a problem: it is also what a project looks
+ * like before its first migration is authored, which is how the `create` scaffold ships. The
+ * discriminator is the `migrations` table. If the database has migrations on record but nothing
+ * loaded, the patterns can only have stopped matching.
+ */
+async function detectUnmatchedPatterns(connection: DataSource): Promise<MigrationDiagnostic | undefined> {
+    // Giving up as soon as any class loaded means a config which mixes a working pattern with a
+    // broken one will not warn. That is no worse than the current behaviour.
+    if (connection.migrations.length) {
+        return;
+    }
+    const patterns = getConfiguredPatterns(connection.options.migrations);
+    if (!patterns.length) {
+        return;
+    }
+    // Creates the `migrations` table as a side effect, which `runMigrations()` does anyway on
+    // the next line. Returns an empty array rather than throwing against a fresh database.
+    const executed = await new MigrationExecutor(connection).getExecutedMigrations();
+    if (!executed.length) {
+        return;
+    }
+    // The cwd only explains the failure for a relative pattern. The scaffolded config uses
+    // `path.join(__dirname, ...)`, where pointing at the working directory sends the user looking
+    // for a problem that is not there.
+    const anyRelative = patterns.some(pattern => !path.isAbsolute(pattern));
+    return {
+        code: 'no-migrations-matched',
+        lines: [
+            'No migration files matched the configured `migrations` patterns, but this database has migrations recorded as applied.',
+            'Nothing on disk matches these patterns. If they point at compiled output, check that it has been built:',
+            ...patterns.map(pattern => ' - ' + pattern),
+            ...(anyRelative
+                ? [`Relative patterns are resolved against the current directory (${process.cwd()}).`]
+                : []),
+        ],
+    };
+}
+
+function getConfiguredPatterns(configuredMigrations: DataSourceOptions['migrations']): string[] {
+    const entries = Array.isArray(configuredMigrations)
+        ? configuredMigrations
+        : Object.values(configuredMigrations ?? {});
+    return entries.filter((entry): entry is string => typeof entry === 'string');
 }
 
 /**
@@ -105,7 +241,7 @@ async function checkMigrationStatus(connection: Connection) {
  */
 export async function revertLastMigration(userConfig: Partial<VendureConfig>) {
     const config = await preBootstrapConfig(userConfig);
-    const connection = await createConnection(createConnectionOptions(config));
+    const connection = await createDataSource(createDataSourceOptions(config));
     try {
         await disableForeignKeysForSqLite(connection, () =>
             connection.undoLastMigration({ transaction: 'each' }),
@@ -119,7 +255,7 @@ export async function revertLastMigration(userConfig: Partial<VendureConfig>) {
             process.exitCode = 1;
         }
     } finally {
-        await connection.close();
+        await connection.destroy();
         resetConfig();
     }
 }
@@ -130,6 +266,12 @@ export async function revertLastMigration(userConfig: Partial<VendureConfig>) {
  * See [TypeORM migration docs](https://typeorm.io/#/migrations) for more information about the
  * underlying migration mechanism.
  *
+ * If the schema changes include adding the `(languageCode, baseId)` unique constraint to one or more
+ * translation tables (introduced in v3.7 to prevent duplicate translations, see
+ * [#4884](https://github.com/vendurehq/vendure/issues/4884)), the generated migration will begin
+ * with a call to {@link deduplicateTranslations} for exactly those tables, so that any duplicate rows
+ * already present in the database are removed before the constraint is created.
+ *
  * @docsCategory migration
  */
 export async function generateMigration(
@@ -139,7 +281,7 @@ export async function generateMigration(
     const config = await preBootstrapConfig(userConfig);
     const { connection, cleanup } = options.fromEmpty
         ? await createEmptyDatabaseConnection(config)
-        : { connection: await createConnection(createConnectionOptions(config)), cleanup: undefined };
+        : { connection: await createDataSource(createDataSourceOptions(config)), cleanup: undefined };
 
     let migrationName: string | undefined;
     try {
@@ -153,13 +295,23 @@ export async function generateMigration(
         const downSqls = sqlInMemory.downQueries.map(q =>
             formatMigrationQuery(q.query, q.parameters, isMysql),
         );
+        const translationTablesToDeduplicate = getTranslationTablesGainingUniqueConstraint(
+            connection.entityMetadatas,
+            sqlInMemory.upQueries.map(q => q.query),
+        );
 
         if (upSqls.length) {
             if (options.name) {
                 const timestamp = new Date().getTime();
                 const filename = timestamp.toString() + '-' + options.name + '.ts';
                 const directory = options.outputDir;
-                const fileContent = getTemplate(options.name as any, timestamp, upSqls, downSqls.reverse());
+                const fileContent = getTemplate(
+                    options.name as any,
+                    timestamp,
+                    upSqls,
+                    downSqls.reverse(),
+                    translationTablesToDeduplicate,
+                );
                 const outputPath = directory
                     ? path.join(directory, filename)
                     : path.join(process.cwd(), filename);
@@ -173,11 +325,11 @@ export async function generateMigration(
             log(pc.yellow('No changes in database schema were found - cannot generate a migration.'));
         }
     } finally {
-        // Nested so that a failing connection.close() still drops the shadow database (cleanup)
+        // Nested so that a failing connection.destroy() still drops the shadow database (cleanup)
         // and resets the config, rather than orphaning the shadow DB and leaking the admin
         // connection.
         try {
-            await connection.close();
+            await connection.destroy();
         } finally {
             if (cleanup) {
                 await cleanup();
@@ -188,7 +340,7 @@ export async function generateMigration(
     return migrationName;
 }
 
-function createConnectionOptions(userConfig: Partial<VendureConfig>): DataSourceOptions {
+function createDataSourceOptions(userConfig: Partial<VendureConfig>): DataSourceOptions {
     return Object.assign({ logging: ['query', 'error', 'schema'] }, userConfig.dbConnectionOptions, {
         subscribers: [],
         synchronize: false,
@@ -198,11 +350,15 @@ function createConnectionOptions(userConfig: Partial<VendureConfig>): DataSource
     });
 }
 
+function createDataSource(options: DataSourceOptions): Promise<DataSource> {
+    return new DataSource(options).initialize();
+}
+
 interface EmptyDatabaseConnection {
-    connection: Connection;
+    connection: DataSource;
     /**
      * Tears down any temporary database that was provisioned. Must be called *after* the
-     * {@link connection} has been closed.
+     * {@link connection} has been destroyed.
      */
     cleanup?: () => Promise<void>;
 }
@@ -219,8 +375,8 @@ interface EmptyDatabaseConnection {
 async function createEmptyDatabaseConnection(
     config: Partial<VendureConfig>,
 ): Promise<EmptyDatabaseConnection> {
-    const baseOptions = createConnectionOptions(config);
-    switch (baseOptions.type) {
+    const baseOptions = createDataSourceOptions(config);
+    switch (getDatabaseType(baseOptions)) {
         // aurora-postgres/aurora-mysql are intentionally excluded: they connect over the Aurora
         // Data API, where `CREATE DATABASE` is not supported the same way, and this has not been
         // verified - so they fall through to the clear "unsupported" error below.
@@ -232,7 +388,7 @@ async function createEmptyDatabaseConnection(
         case 'better-sqlite3':
         case 'sqlite':
         case 'sqljs':
-            return { connection: await createConnection(emptySqliteOptions(baseOptions)) };
+            return { connection: await createDataSource(emptySqliteOptions(baseOptions)) };
         default:
             throw new Error(
                 `Generating a migration from an empty database is not supported for the "${baseOptions.type}" ` +
@@ -294,9 +450,8 @@ async function provisionShadowDatabase(
 
     // An admin connection to the *configured* database, used only to create and later drop the
     // temporary shadow database.
-    const admin = await createConnection({
+    const admin = await createDataSource({
         ...master,
-        name: `vendure-shadow-admin-${shadowName}`,
         entities: [],
         migrations: [],
         logging: false,
@@ -314,27 +469,24 @@ async function provisionShadowDatabase(
     try {
         await admin.query(`CREATE DATABASE ${quotedName}${charsetClause}`);
     } catch (e: any) {
-        await admin.close();
+        await admin.destroy();
         throw new Error(
             `Could not create the temporary shadow database ${shadowName}. Ensure the configured database ` +
                 `user has permission to create databases. Original error: ${e.message as string}`,
         );
     }
 
-    let connection: Connection;
+    let connection: DataSource;
     try {
         // `withDatabase` retargets the shadow connection at shadowName, accounting for a database
         // embedded in a connection `url` (which would otherwise override the top-level `database`
         // and point the shadow connection back at the real configured database).
-        connection = await createConnection({
-            ...withDatabase(master, shadowName),
-            name: `vendure-shadow-${shadowName}`,
-        } as DataSourceOptions);
+        connection = await createDataSource(withDatabase(master, shadowName));
     } catch (e) {
         // The shadow database was created but we could not connect to it - drop it so it is not
         // left behind, then surface the original error.
         await admin.query(`DROP DATABASE IF EXISTS ${quotedName}`).catch(() => undefined);
-        await admin.close();
+        await admin.destroy();
         throw e;
     }
 
@@ -352,30 +504,26 @@ async function provisionShadowDatabase(
                 }
                 await admin.query(`DROP DATABASE IF EXISTS ${quotedName}`);
             } finally {
-                await admin.close();
+                await admin.destroy();
             }
         },
     };
 }
 
 function emptySqliteOptions(baseOptions: DataSourceOptions): DataSourceOptions {
-    const shared = {
-        ...baseOptions,
-        name: `vendure-shadow-${uniqueShadowSuffix()}`,
-    };
     if (baseOptions.type === 'sqljs') {
         // For sqljs the database can be a Uint8Array of saved bytes; unset it (and the save
         // callback/location) so the shadow really is an empty in-memory database, not a restored
         // copy of a populated one.
         return {
-            ...shared,
+            ...baseOptions,
             location: undefined,
             database: undefined,
             autoSave: false,
             autoSaveCallback: undefined,
         } as unknown as DataSourceOptions;
     }
-    return { ...shared, database: ':memory:' } as DataSourceOptions;
+    return { ...baseOptions, database: ':memory:' } as DataSourceOptions;
 }
 
 /**
@@ -383,8 +531,9 @@ function emptySqliteOptions(baseOptions: DataSourceOptions): DataSourceOptions {
  * is a work-around for the issue.
  * See https://github.com/typeorm/typeorm/issues/2576#issuecomment-499506647
  */
-async function disableForeignKeysForSqLite<T>(connection: Connection, work: () => Promise<T>): Promise<T> {
-    const isSqLite = connection.options.type === 'sqlite' || connection.options.type === 'better-sqlite3';
+async function disableForeignKeysForSqLite<T>(connection: DataSource, work: () => Promise<T>): Promise<T> {
+    const dbType = getDatabaseType(connection);
+    const isSqLite = dbType === 'sqlite' || dbType === 'better-sqlite3';
     if (isSqLite) {
         await connection.query('PRAGMA foreign_keys=OFF');
     }
@@ -405,16 +554,79 @@ function formatMigrationQuery(query: string, parameters: any[] | undefined, isMy
     return `        await queryRunner.query(${quote}${escaped}${quote}, ${JSON.stringify(parameters)});`;
 }
 
+const TRANSLATION_UNIQUE_COLUMNS = ['languageCode', 'baseId'];
+
+/**
+ * Returns the names of the translation tables (core or plugin-defined) to which the given
+ * schema-builder `up` queries add the `(languageCode, baseId)` unique constraint — i.e. the tables
+ * that need de-duplicating before this migration runs.
+ *
+ * Exported for testing.
+ */
+export function getTranslationTablesGainingUniqueConstraint(
+    entityMetadatas: EntityMetadata[],
+    upQueries: string[],
+): string[] {
+    return entityMetadatas
+        .filter(isTranslationEntity)
+        .map(metadata => metadata.tableName)
+        .filter(tableName => upQueries.some(query => addsTranslationUniqueConstraint(query, tableName)));
+}
+
+function isTranslationEntity(metadata: EntityMetadata): boolean {
+    const columnNames = metadata.columns.map(column => column.databaseName);
+    return TRANSLATION_UNIQUE_COLUMNS.every(name => columnNames.includes(name));
+}
+
+/**
+ * Whether a DDL statement creates a unique constraint or index over `(languageCode, baseId)` on the
+ * given table. Works across dialects by looking at the quoted identifiers in the statement: Postgres
+ * emits `ALTER TABLE "t" ADD CONSTRAINT "UQ_x" UNIQUE ("languageCode", "baseId")`, MySQL emits
+ * `` ALTER TABLE `t` ADD UNIQUE INDEX `IDX_x` (`languageCode`, `baseId`) ``, and SQLite recreates the
+ * whole table as `CREATE TABLE "temporary_t" (... CONSTRAINT "UQ_x" UNIQUE ("languageCode", "baseId"))`.
+ */
+function addsTranslationUniqueConstraint(query: string, tableName: string): boolean {
+    if (!/\bUNIQUE\b/i.test(query)) {
+        return false;
+    }
+    const identifiers = new Set(Array.from(query.matchAll(/["`]([^"`]+)["`]/g), match => match[1]));
+    return (
+        (identifiers.has(tableName) || identifiers.has(`temporary_${tableName}`)) &&
+        TRANSLATION_UNIQUE_COLUMNS.every(name => identifiers.has(name))
+    );
+}
+
 /**
  * Gets contents of the migration file.
+ *
+ * Exported for testing.
  */
-function getTemplate(name: string, timestamp: number, upSqls: string[], downSqls: string[]): string {
+export function getTemplate(
+    name: string,
+    timestamp: number,
+    upSqls: string[],
+    downSqls: string[],
+    translationTablesToDeduplicate: string[] = [],
+): string {
+    const deduplicateImport = translationTablesToDeduplicate.length
+        ? `import { deduplicateTranslations } from "@vendure/core";
+`
+        : '';
+    const deduplicateCall = translationTablesToDeduplicate.length
+        ? `        // Remove any duplicate (baseId, languageCode) translation rows left over from before the
+        // unique constraint existed, keeping the most recently updated row of each pair. This must
+        // run before the constraint is created below. See https://github.com/vendurehq/vendure/issues/4884
+        await deduplicateTranslations(queryRunner, [${translationTablesToDeduplicate
+            .map(table => `'${table}'`)
+            .join(', ')}]);
+`
+        : '';
     return `import {MigrationInterface, QueryRunner} from "typeorm";
-
+${deduplicateImport}
 export class ${camelCase(name, true)}${timestamp} implements MigrationInterface {
 
    public async up(queryRunner: QueryRunner): Promise<any> {
-${upSqls.join(`
+${deduplicateCall}${upSqls.join(`
 `)}
    }
 

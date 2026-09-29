@@ -1,17 +1,19 @@
 import { AppSidebar } from '@/vdb/components/layout/app-sidebar.js';
-import { AppShellHeader, AppShellMain } from '@/vdb/components/ui/app-shell.js';
 import { DevModeIndicator } from '@/vdb/components/layout/dev-mode-indicator.js';
 import { GeneratedBreadcrumbs } from '@/vdb/components/layout/generated-breadcrumbs.js';
 import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
+import { AppShellHeader, AppShellMain } from '@/vdb/components/ui/app-shell.js';
 import { Separator } from '@/vdb/components/ui/separator.js';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/vdb/components/ui/sidebar.js';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
+import { CustomProviders } from '@/vdb/framework/extension-api/custom-providers.js';
 import {
     DashboardToolbarItemDefinition,
     ToolbarItemPosition,
 } from '@/vdb/framework/extension-api/types/toolbar.js';
-import { CustomProviders } from '@/vdb/framework/extension-api/custom-providers.js';
 import { getToolbarItemRegistry } from '@/vdb/framework/toolbar/toolbar-extensions.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
+import { formatShortcut } from '@/vdb/keyboard-shortcut.js';
 import { Outlet } from '@tanstack/react-router';
 import React from 'react';
 import { Alerts } from '../shared/alerts.js';
@@ -141,7 +143,12 @@ export function AppLayout() {
             <SidebarInset render={<div />} className="overflow-hidden">
                 <AppShellHeader>
                     <div className="flex items-center justify-start gap-2 min-w-0 overflow-hidden">
-                        <SidebarTrigger className="-ml-1 shrink-0" />
+                        <Tooltip>
+                            <TooltipTrigger render={<SidebarTrigger className="-ml-1 shrink-0" />} />
+                            <TooltipContent>
+                                Toggle sidebar <kbd className="ms-2 font-mono">{formatShortcut('mod+B')}</kbd>
+                            </TooltipContent>
+                        </Tooltip>
                         <Separator
                             orientation="vertical"
                             className="mr-2 shrink-0 data-vertical:h-4 data-vertical:self-auto"

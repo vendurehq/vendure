@@ -1,10 +1,11 @@
-import { CurrencyCode, LanguageCode } from '@vendure/common/lib/generated-types';
+import { CurrencyCode, LanguageCode, Permission } from '@vendure/common/lib/generated-types';
 import {
     Asset,
     CustomFields,
     Logger,
     mergeConfig,
     OrderService,
+    Product,
     ProductService,
     RequestContextService,
     TransactionalConnection,
@@ -36,6 +37,7 @@ const customConfig = mergeConfig(testConfig(), {
             { name: 'notNullable', type: 'string', nullable: false, defaultValue: '' },
             { name: 'stringWithDefault', type: 'string', defaultValue: 'hello' },
             { name: 'localeStringWithDefault', type: 'localeString', defaultValue: 'hola' },
+            { name: 'localeTextField', type: 'localeText' },
             { name: 'intWithDefault', type: 'int', defaultValue: 5 },
             { name: 'floatWithDefault', type: 'float', defaultValue: 5.5678 },
             { name: 'booleanWithDefault', type: 'boolean', defaultValue: true },
@@ -188,6 +190,11 @@ const customConfig = mergeConfig(testConfig(), {
                 type: 'string',
                 unique: true,
             },
+            {
+                name: 'indexedString',
+                type: 'string',
+                index: true,
+            },
         ],
         Facet: [
             {
@@ -207,6 +214,7 @@ const customConfig = mergeConfig(testConfig(), {
             { name: 'secretKey2', type: 'string', defaultValue: '', public: false, internal: false },
         ],
         OrderLine: [{ name: 'validateInt', type: 'int', min: 0, max: 10 }],
+        Role: [{ name: 'note', type: 'string', nullable: true }],
         ProductVariantPrice: [
             {
                 name: 'costPrice',
@@ -266,6 +274,19 @@ describe('Custom fields', () => {
         await server.destroy();
     });
 
+    // #3444
+    it('creates a database index for an indexed custom field', () => {
+        const connection = server.app.get(TransactionalConnection).rawConnection;
+        const productMetadata = connection.getMetadata(Product);
+        const indexedCustomFields = productMetadata.indices.filter(
+            index =>
+                index.columns.length === 1 && index.columns[0].propertyPath === 'customFields.indexedString',
+        );
+
+        expect(indexedCustomFields).toHaveLength(1);
+        expect(indexedCustomFields[0].isUnique).toBe(false);
+    });
+
     it('globalSettings.serverConfig.customFieldConfig', async () => {
         const { globalSettings } = await adminClient.query(getServerConfigCustomFieldsDocument);
 
@@ -275,6 +296,7 @@ describe('Custom fields', () => {
                 { name: 'notNullable', type: 'string', list: false },
                 { name: 'stringWithDefault', type: 'string', list: false },
                 { name: 'localeStringWithDefault', type: 'localeString', list: false },
+                { name: 'localeTextField', type: 'localeText', list: false },
                 { name: 'intWithDefault', type: 'int', list: false },
                 { name: 'floatWithDefault', type: 'float', list: false },
                 { name: 'booleanWithDefault', type: 'boolean', list: false },
@@ -325,6 +347,7 @@ describe('Custom fields', () => {
                 { name: 'stringListWithDefault', type: 'string', list: true },
                 { name: 'intListWithValidation', type: 'int', list: true },
                 { name: 'uniqueString', type: 'string', list: false },
+                { name: 'indexedString', type: 'string', list: false },
             ],
         });
     });
@@ -342,6 +365,7 @@ describe('Custom fields', () => {
                 { name: 'notNullable', type: 'string', list: false },
                 { name: 'stringWithDefault', type: 'string', list: false },
                 { name: 'localeStringWithDefault', type: 'localeString', list: false },
+                { name: 'localeTextField', type: 'localeText', list: false },
                 { name: 'intWithDefault', type: 'int', list: false },
                 { name: 'floatWithDefault', type: 'float', list: false },
                 { name: 'booleanWithDefault', type: 'boolean', list: false },
@@ -387,6 +411,7 @@ describe('Custom fields', () => {
                 { name: 'stringListWithDefault', type: 'string', list: true },
                 { name: 'intListWithValidation', type: 'int', list: true },
                 { name: 'uniqueString', type: 'string', list: false },
+                { name: 'indexedString', type: 'string', list: false },
                 // The internal type should not be exposed at all
                 // { name: 'internalString', type: 'string' },
                 // The dashboard: false type should not be exposed in entityCustomFields
@@ -956,6 +981,13 @@ describe('Custom fields', () => {
             expect(products.totalItems).toBe(1);
         });
 
+        // https://github.com/vendurehq/vendure/issues/5199
+        it('can sort by localeText custom fields', async () => {
+            const { products } = await adminClient.query(getProductsSortByLocaleTextDocument);
+
+            expect(products.totalItems).toBe(1);
+        });
+
         it('can filter by custom fields', async () => {
             const { products } = await adminClient.query(getProductsFilterByStringDocument);
 
@@ -1309,7 +1341,187 @@ describe('Custom fields', () => {
             expect(warnSpy).not.toHaveBeenCalled();
         });
     });
+
+    describe('Role entity', () => {
+        let roleId: string;
+
+        it('createRole persists the custom field', async () => {
+            const { createRole } = await adminClient.query(createRoleWithCustomFieldsDocument, {
+                input: {
+                    code: 'custom-fields-role',
+                    description: 'Role with custom fields',
+                    permissions: [Permission.ReadCatalog],
+                    customFields: { note: 'created' },
+                },
+            });
+            roleId = createRole.id;
+
+            expect(createRole.customFields).toEqual({ note: 'created' });
+        });
+
+        it('role query returns the custom field', async () => {
+            const { role } = await adminClient.query(getRoleCustomFieldsDocument, { id: roleId });
+
+            expect(role?.customFields).toEqual({ note: 'created' });
+        });
+
+        it('updateRole updates the custom field', async () => {
+            const { updateRole } = await adminClient.query(updateRoleWithCustomFieldsDocument, {
+                input: {
+                    id: roleId,
+                    customFields: { note: 'updated' },
+                },
+            });
+
+            expect(updateRole.customFields).toEqual({ note: 'updated' });
+        });
+
+        it('updating other fields leaves the custom field intact', async () => {
+            const { updateRole } = await adminClient.query(updateRoleWithCustomFieldsDocument, {
+                input: {
+                    id: roleId,
+                    description: 'Role with custom fields (edited)',
+                },
+            });
+
+            expect(updateRole.description).toBe('Role with custom fields (edited)');
+            expect(updateRole.customFields).toEqual({ note: 'updated' });
+        });
+
+        it('can filter the roles list by a custom field', async () => {
+            await adminClient.query(createRoleWithCustomFieldsDocument, {
+                input: {
+                    code: 'custom-fields-role-filter',
+                    description: 'Role used for the custom field filter test',
+                    permissions: [Permission.ReadCatalog],
+                    customFields: { note: 'filter-target' },
+                },
+            });
+
+            const { roles } = await adminClient.query(getRolesFilterByCustomFieldDocument);
+
+            expect(roles.totalItems).toBe(1);
+            expect(roles.items.map(i => i.code)).toEqual(['custom-fields-role-filter']);
+        });
+
+        it('can sort the roles list by a custom field', async () => {
+            // Both roles are created here, and the list is filtered down to just
+            // these two, so the assertion does not depend on how the database
+            // orders the null notes of all the other roles.
+            for (const note of ['sort-note-b', 'sort-note-a']) {
+                await adminClient.query(createRoleWithCustomFieldsDocument, {
+                    input: {
+                        code: `custom-fields-role-${note}`,
+                        description: 'Role used for the custom field sort test',
+                        permissions: [Permission.ReadCatalog],
+                        customFields: { note },
+                    },
+                });
+            }
+
+            const { roles: asc } = await adminClient.query(getRolesSortByCustomFieldAscDocument);
+
+            expect(asc.totalItems).toBe(2);
+            expect(asc.items.map(i => i.customFields?.note)).toEqual(['sort-note-a', 'sort-note-b']);
+
+            const { roles: desc } = await adminClient.query(getRolesSortByCustomFieldDescDocument);
+
+            expect(desc.totalItems).toBe(2);
+            expect(desc.items.map(i => i.customFields?.note)).toEqual(['sort-note-b', 'sort-note-a']);
+        });
+
+        // Runs last: the tests above assert the note is still 'updated'.
+        it('updateRole can set a custom field back to null', async () => {
+            const { updateRole } = await adminClient.query(updateRoleWithCustomFieldsDocument, {
+                input: {
+                    id: roleId,
+                    customFields: { note: null },
+                },
+            });
+
+            expect(updateRole.customFields).toEqual({ note: null });
+
+            const { role } = await adminClient.query(getRoleCustomFieldsDocument, { id: roleId });
+
+            expect(role?.customFields).toEqual({ note: null });
+        });
+    });
 });
+
+const createRoleWithCustomFieldsDocument = graphql(`
+    mutation CreateRoleWithCustomFields($input: CreateRoleInput!) {
+        createRole(input: $input) {
+            id
+            description
+            customFields {
+                note
+            }
+        }
+    }
+`);
+
+const updateRoleWithCustomFieldsDocument = graphql(`
+    mutation UpdateRoleWithCustomFields($input: UpdateRoleInput!) {
+        updateRole(input: $input) {
+            id
+            description
+            customFields {
+                note
+            }
+        }
+    }
+`);
+
+const getRoleCustomFieldsDocument = graphql(`
+    query GetRoleCustomFields($id: ID!) {
+        role(id: $id) {
+            id
+            customFields {
+                note
+            }
+        }
+    }
+`);
+
+const getRolesFilterByCustomFieldDocument = graphql(`
+    query GetRolesFilterByCustomField {
+        roles(options: { filter: { note: { eq: "filter-target" } } }) {
+            totalItems
+            items {
+                id
+                code
+            }
+        }
+    }
+`);
+
+const getRolesSortByCustomFieldAscDocument = graphql(`
+    query GetRolesSortByCustomFieldAsc {
+        roles(options: { filter: { note: { contains: "sort-note-" } }, sort: { note: ASC } }) {
+            totalItems
+            items {
+                id
+                customFields {
+                    note
+                }
+            }
+        }
+    }
+`);
+
+const getRolesSortByCustomFieldDescDocument = graphql(`
+    query GetRolesSortByCustomFieldDesc {
+        roles(options: { filter: { note: { contains: "sort-note-" } }, sort: { note: DESC } }) {
+            totalItems
+            items {
+                id
+                customFields {
+                    note
+                }
+            }
+        }
+    }
+`);
 
 const getServerConfigCustomFieldsDocument = graphql(`
     query GetServerConfigCustomFields {
@@ -1528,6 +1740,14 @@ const getProductsSortByNullableDocument = graphql(`
 const getProductsSortByLocaleStringDocument = graphql(`
     query GetProductsSortByLocaleString {
         products(options: { sort: { localeStringWithDefault: ASC } }) {
+            totalItems
+        }
+    }
+`);
+
+const getProductsSortByLocaleTextDocument = graphql(`
+    query GetProductsSortByLocaleText {
+        products(options: { sort: { localeTextField: ASC } }) {
             totalItems
         }
     }

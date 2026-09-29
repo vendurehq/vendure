@@ -37,6 +37,7 @@ function mapGraphQLCustomFieldToConfig(field: StructField) {
         readonly: false,
         requiresPermission: [],
         nullable: true, // Default to true since GraphQL fields are nullable by default
+        secret: false, // struct sub-fields cannot be secret
     };
 
     switch (field.__typename) {
@@ -257,7 +258,7 @@ function applyCustomFieldModifiers(zodType: ZodType, customField: CustomFieldCon
     if (customField.list) {
         modifiedType = z.array(modifiedType);
     }
-    if (customField.nullable !== false) {
+    if (customField.nullable !== false || customField.readonly) {
         modifiedType = modifiedType.optional().nullable();
     }
     if (customField.readonly) {

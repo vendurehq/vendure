@@ -1,10 +1,11 @@
 import { cancel, isCancel, log, select, spinner, text } from '@clack/prompts';
-import { kebabCase } from '../../../utilities/case-utils';
 import path from 'path';
 import { ClassDeclaration, Scope, SourceFile } from 'ts-morph';
+import { kebabCase } from '../../../utilities/case-utils';
 
 import { Messages, pascalCaseRegex } from '../../../constants';
 import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command';
+import { exitCliCommand } from '../../../shared/cli-command-exit';
 import { EntityRef } from '../../../shared/entity-ref';
 import { ServiceRef } from '../../../shared/service-ref';
 import { analyzeProject, selectEntity, selectPlugin } from '../../../shared/shared-prompts';
@@ -93,7 +94,7 @@ export async function addService(
               }));
     if (!isNonInteractive && isCancel(type)) {
         cancel('Cancelled');
-        process.exit(0);
+        exitCliCommand(0);
     }
     const options: AddServiceOptions = {
         type,
@@ -157,7 +158,7 @@ export async function addService(
 
         if (!isNonInteractive && isCancel(name)) {
             cancel(cancelledMessage);
-            process.exit(0);
+            exitCliCommand(0);
         }
 
         options.serviceName = name as string;

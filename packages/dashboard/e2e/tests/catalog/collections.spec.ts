@@ -339,8 +339,11 @@ test.describe('Issue #3548: Collection facet filter boolean args', () => {
         await page.getByRole('button', { name: /Add collection filter/i }).click();
         await page.getByRole('menuitem', { name: /Filter by facet values/i }).click();
 
-        // Open the "Facet values" chip popover and select a facet value
-        await page.getByRole('button', { name: 'Facet values' }).click();
+        // The first empty argument opens automatically when the filter is added.
+        await expect(page.getByRole('button', { name: 'Facet values', exact: true })).toHaveAttribute(
+            'aria-expanded',
+            'true',
+        );
         await page.getByRole('button', { name: /Add facet values/i }).click();
         await page.getByPlaceholder('Search facet values...').fill(facetValueName);
         await page.getByRole('option', { name: facetValueName, exact: true }).click();
@@ -482,7 +485,9 @@ test.describe('Collection tree toggles, search subtitles & detail breadcrumb', (
             .toContain(parentId);
 
         // The leaf child row has no expand/collapse toggle.
-        const childRow = page.locator('tbody tr').filter({ has: page.getByText(CHILD_NAME, { exact: true }) });
+        const childRow = page
+            .locator('tbody tr')
+            .filter({ has: page.getByText(CHILD_NAME, { exact: true }) });
         const childNameCell = childRow.locator('td').filter({ hasText: CHILD_NAME });
         await expect(childNameCell.getByLabel(/Expand|Collapse/)).toHaveCount(0);
 
@@ -505,7 +510,9 @@ test.describe('Collection tree toggles, search subtitles & detail breadcrumb', (
         });
         await lp.search(CHILD_NAME);
 
-        const childRow = page.locator('tbody tr').filter({ has: page.getByText(CHILD_NAME, { exact: true }) });
+        const childRow = page
+            .locator('tbody tr')
+            .filter({ has: page.getByText(CHILD_NAME, { exact: true }) });
         await expect(childRow).toBeVisible({ timeout: 10_000 });
         // Ancestor path rendered as a subtitle under the name.
         await expect(childRow.getByText(PARENT_NAME, { exact: true })).toBeVisible();
@@ -670,6 +677,7 @@ test.describe('Issue #4987: String list filter args preserve numeric values', ()
 
         // Both values survive a reload.
         await page.reload();
+        await page.getByRole('button', { name: 'externalIds', exact: true }).click();
         await expect(page.getByLabel('Remove 3249')).toBeVisible({ timeout: 10_000 });
         await expect(page.getByLabel('Remove 5')).toBeVisible();
 
@@ -684,5 +692,182 @@ test.describe('Issue #4987: String list filter args preserve numeric values', ()
         expect(filter?.args).toEqual(
             expect.arrayContaining([{ name: 'externalIds', value: '["3249","5"]' }]),
         );
+    });
+});
+
+// OSS-567 — a structurally different page (configurable-operation `filters` array,
+// no update transform). Editing only the name must send just id + translations,
+// leaving the `filters` replace-array untouched so a concurrent filter change
+// can't be clobbered.
+test.describe('collection update sends only changed fields (OSS-567)', () => {
+    let collectionId: string;
+
+    test.beforeAll(async ({ browser }) => {
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const { facetValues } = await client.gql(
+            `query { facetValues(options: { take: 1 }) { items { id } } }`,
+        );
+        const facetValueId = facetValues.items[0].id as string;
+        const { createCollection } = await client.gql(
+            `mutation ($input: CreateCollectionInput!) { createCollection(input: $input) { id } }`,
+            {
+                input: {
+                    translations: [
+                        {
+                            languageCode: 'en',
+                            name: 'OSS567 Collection',
+                            slug: `oss567-collection-${Date.now()}`,
+                            description: '',
+                        },
+                    ],
+                    filters: [
+                        {
+                            code: 'facet-value-filter',
+                            arguments: [
+                                { name: 'facetValueIds', value: `["${facetValueId}"]` },
+                                { name: 'containsAny', value: 'false' },
+                            ],
+                        },
+                    ],
+                },
+            },
+        );
+        collectionId = createCollection.id;
+        await page.close();
+    });
+
+    test('editing only the name submits just id + translations, not filters', async ({ page }) => {
+        const dp = new BaseDetailPage(page, {
+            newPath: '/collections/new',
+            pathPrefix: '/collections/',
+            newTitle: 'New collection',
+        });
+        await page.goto(`/collections/${collectionId}`);
+        await expect(dp.formItem('Name').getByRole('textbox')).toBeVisible({ timeout: 10_000 });
+        const newName = `OSS567 Collection ${Date.now()}`;
+        await dp.fillInput('Name', newName);
+
+        const updateRequest = page.waitForRequest(
+            req => req.method() === 'POST' && (req.postData() ?? '').includes('mutation UpdateCollection('),
+            { timeout: 15_000 },
+        );
+        await dp.clickUpdate();
+        const input = (await updateRequest).postDataJSON()?.variables?.input;
+
+        // The exhaustive key assertion already proves filters/inheritFilters are omitted.
+        expect(input).toBeTruthy();
+        expect(Object.keys(input).sort()).toEqual(['id', 'translations']);
+        expect(input.translations?.[0]?.name).toBe(newName);
+
+        await expect(
+            page
+                .locator('[data-sonner-toast]')
+                .filter({ hasText: /updated/i })
+                .first(),
+        ).toBeVisible({ timeout: 10_000 });
+    });
+
+    test.afterAll(async ({ browser }) => {
+        if (!collectionId) return;
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        await client.gql(`mutation ($id: ID!) { deleteCollection(id: $id) { result } }`, {
+            id: collectionId,
+        });
+        await page.close();
+    });
+});
+
+// #5393 — the Move-collections dialog's filter input did not accept any keystrokes.
+test.describe('Issue #5393: Collections Move dialog filter input', () => {
+    let collectionAId: string;
+    let collectionBId: string;
+    const COLLECTION_A_NAME = 'E2E Move Filter Test A';
+    const COLLECTION_B_NAME = 'E2E Move Filter Test B';
+
+    test.beforeAll(async ({ browser }) => {
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+
+        const { createCollection: a } = await client.gql(
+            `mutation ($input: CreateCollectionInput!) { createCollection(input: $input) { id } }`,
+            {
+                input: {
+                    filters: [],
+                    translations: [
+                        { languageCode: 'en', name: COLLECTION_A_NAME, slug: 'e2e-move-filter-a', description: '' },
+                    ],
+                },
+            },
+        );
+        collectionAId = a.id as string;
+
+        const { createCollection: b } = await client.gql(
+            `mutation ($input: CreateCollectionInput!) { createCollection(input: $input) { id } }`,
+            {
+                input: {
+                    filters: [],
+                    translations: [
+                        { languageCode: 'en', name: COLLECTION_B_NAME, slug: 'e2e-move-filter-b', description: '' },
+                    ],
+                },
+            },
+        );
+        collectionBId = b.id as string;
+        await page.close();
+    });
+
+    test.afterAll(async ({ browser }) => {
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        if (collectionAId) {
+            await client.gql(`mutation ($id: ID!) { deleteCollection(id: $id) { result } }`, {
+                id: collectionAId,
+            });
+        }
+        if (collectionBId) {
+            await client.gql(`mutation ($id: ID!) { deleteCollection(id: $id) { result } }`, {
+                id: collectionBId,
+            });
+        }
+        await page.close();
+    });
+
+    test('should accept keystrokes and filter the destination tree', async ({ page }) => {
+        await page.goto('/collections');
+        await expect(page.getByRole('heading', { name: 'Collections' })).toBeVisible();
+
+        const row = page.locator('tbody tr').filter({ has: page.getByText(COLLECTION_A_NAME) });
+        await row.getByRole('checkbox').click();
+
+        await page.getByRole('button', { name: 'Actions' }).click();
+        await page.getByRole('menuitem', { name: 'Move' }).click();
+
+        const dialog = page.getByRole('dialog', { name: 'Move Collections' });
+        await expect(dialog).toBeVisible();
+
+        const filterInput = dialog.getByPlaceholder('Filter by collection name');
+        await filterInput.click();
+        await filterInput.pressSequentially(COLLECTION_B_NAME);
+
+        // The core regression: keystrokes must land in the controlled input's value.
+        await expect(filterInput).toHaveValue(COLLECTION_B_NAME);
+
+        // The debounced query then narrows the destination tree to the match.
+        // Collection A's name stays visible in the header strip listing the
+        // collections being moved, regardless of the filter, so scope these
+        // assertions to the tree's own row buttons rather than the whole dialog.
+        // Each row's accessible name is "{name} {name}": Vendure's breadcrumbs
+        // field always includes the collection itself as the last entry, and
+        // CollectionTreeNode renders that entry a second time as a subtitle. That
+        // duplication is harmless here, since neither fixture name is a substring
+        // of the other.
+        await expect(dialog.getByRole('button', { name: COLLECTION_B_NAME })).toBeVisible({ timeout: 5_000 });
+        await expect(dialog.getByRole('button', { name: COLLECTION_A_NAME })).not.toBeVisible();
     });
 });

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { type Page, expect, test } from '@playwright/test';
 
 import { createCrudTestSuite } from '../../utils/crud-test-factory.js';
 import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
@@ -51,4 +51,195 @@ test('should show new history entries after updating the customer', async ({ pag
     await expect(page.getByText('Successfully updated customer')).toBeVisible();
 
     await expect(page.getByText('Customer details updated').first()).toBeVisible();
+});
+
+// discussions/4756 — an admin-created customer has no password, so the verify dialog has to say
+// so rather than silently verifying an account nobody can log into
+test('should report a missing password inline, then verify the account', async ({ page }) => {
+    const client = new VendureAdminClient(page);
+    await client.login();
+    const result = await client.gql(
+        `mutation CreateCustomerForVerifyTest($input: CreateCustomerInput!) {
+            createCustomer(input: $input) {
+                __typename
+                ... on Customer { id }
+                ... on ErrorResult { errorCode message }
+            }
+        }`,
+        {
+            input: {
+                firstName: 'Verify',
+                lastName: 'DialogTest',
+                emailAddress: `verify-dialog-test-${Date.now()}@example.com`,
+            },
+        },
+    );
+    expect(result.createCustomer.__typename).toBe('Customer');
+    const customerId = result.createCustomer.id;
+
+    await page.goto(`/customers/${customerId}`);
+    await page.getByRole('button', { name: 'Verify account' }).click();
+
+    const dialog = page.getByRole('dialog');
+    await dialog.getByRole('button', { name: 'Verify', exact: true }).click();
+    await expect(page.getByTestId('verify-account-error')).toContainText('password must be provided');
+
+    await dialog.getByLabel('Password').fill('test-password');
+    await dialog.getByRole('button', { name: 'Verify', exact: true }).click();
+
+    await expect(page.getByText('Customer account verified')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Verify account' })).toHaveCount(0);
+});
+
+// discussions/4756 — the create form's password field goes to the `createCustomer(password:)`
+// argument rather than into CreateCustomerInput, and verifies the account on the way
+test('should create a customer with a password, verified on creation', async ({ page }) => {
+    const client = new VendureAdminClient(page);
+    await client.login();
+    const emailAddress = `create-with-password-${Date.now()}@example.com`;
+
+    await page.goto('/customers/new');
+    await page.getByLabel('First name').fill('Password');
+    await page.getByLabel('Last name').fill('OnCreate');
+    await page.getByLabel('Email address').fill(emailAddress);
+    await page.getByLabel('Password', { exact: true }).fill('test-password');
+    await page.getByRole('button', { name: 'Create' }).click();
+
+    await expect(page.getByText('Successfully created customer')).toBeVisible();
+    // Wait for the detail page of the new customer before reading its status, so the assertions
+    // below cannot pass against a page which has not rendered yet.
+    await expect(page.getByRole('heading', { name: 'Password OnCreate' })).toBeVisible();
+    await expect(page.getByText('Verified', { exact: true })).toBeVisible();
+    // Verified already, so the action for verifying it is not offered.
+    await expect(page.getByRole('button', { name: 'Verify account' })).toHaveCount(0);
+});
+
+// discussions/4756 — a password the server's validation strategy rejects must say why, rather
+// than failing silently now that createCustomer returns PasswordValidationError
+test('should report a rejected password when creating a customer', async ({ page }) => {
+    const client = new VendureAdminClient(page);
+    await client.login();
+
+    await page.goto('/customers/new');
+    await page.getByLabel('First name').fill('Weak');
+    await page.getByLabel('Last name').fill('Password');
+    await page.getByLabel('Email address').fill(`weak-password-${Date.now()}@example.com`);
+    await page.getByLabel('Password', { exact: true }).fill('ab');
+    await page.getByRole('button', { name: 'Create' }).click();
+
+    await expect(page.getByText('Failed to create customer')).toBeVisible();
+    // The description, not just the title, so the test fails if the server's reason stops being
+    // surfaced. The default PasswordValidationStrategy reports no policy of its own, so this is
+    // the generic message; a strategy which returns a string puts that in `validationErrorMessage`.
+    await expect(page.getByText('Password is invalid')).toBeVisible();
+});
+
+test.describe('Address form country dropdown', () => {
+    let customerId = '';
+    let countryId = '';
+
+    async function createCustomerWithUsAddress(client: VendureAdminClient, name: string) {
+        const suffix = Date.now();
+        const customerResult = await client.gql(
+            `mutation CreateCustomer($input: CreateCustomerInput!) {
+                createCustomer(input: $input) {
+                    ... on Customer { id }
+                    ... on ErrorResult { errorCode message }
+                }
+            }`,
+            {
+                input: {
+                    firstName: 'Country',
+                    lastName: name,
+                    emailAddress: `country-${name.toLowerCase()}-${suffix}@example.com`,
+                },
+            },
+        );
+        if (!('id' in customerResult.createCustomer)) {
+            throw new Error(customerResult.createCustomer.message);
+        }
+        customerId = customerResult.createCustomer.id;
+
+        await client.gql(
+            `mutation CreateCustomerAddress($customerId: ID!, $input: CreateAddressInput!) {
+                createCustomerAddress(customerId: $customerId, input: $input) { id }
+            }`,
+            {
+                customerId,
+                input: {
+                    fullName: `Country ${name}`,
+                    streetLine1: '123 Main Street',
+                    city: 'New York',
+                    countryCode: 'US',
+                },
+            },
+        );
+    }
+
+    async function openAddressCountrySelect(page: Page) {
+        await page.goto(`/customers/${customerId}`);
+        await page.getByRole('button', { name: 'Edit Address' }).click();
+        return page.getByRole('dialog', { name: 'Edit Address' }).getByRole('combobox', { name: 'Country' });
+    }
+
+    test.afterEach(async ({ page }) => {
+        const client = new VendureAdminClient(page);
+        await client.login();
+        if (customerId) {
+            await client.gql(`mutation DeleteCustomer($id: ID!) { deleteCustomer(id: $id) { result } }`, {
+                id: customerId,
+            });
+            customerId = '';
+        }
+        if (countryId) {
+            await client.gql(`mutation DeleteCountry($id: ID!) { deleteCountry(id: $id) { result } }`, {
+                id: countryId,
+            });
+            countryId = '';
+        }
+    });
+
+    // #5191 — saved address countries must display in the customer address form
+    test('should pre-select an existing address country when editing', async ({ page }) => {
+        const client = new VendureAdminClient(page);
+        await client.login();
+        await createCustomerWithUsAddress(client, 'Preselection');
+
+        const countrySelect = await openAddressCountrySelect(page);
+
+        await expect(countrySelect).toContainText('United States of America');
+    });
+
+    // #5191 — the dropdown must list countries by name, so a country created after
+    // the others is still found where someone scanning the list expects it
+    test('should list countries in name order, including a newly created one', async ({ page }) => {
+        const client = new VendureAdminClient(page);
+        await client.login();
+        // "Belgium" sorts between the seeded "Austria" and "Canada", so name order
+        // puts it third while insertion order puts it last.
+        const created = await client.gql(
+            `mutation CreateCountry($input: CreateCountryInput!) {
+                createCountry(input: $input) { id }
+            }`,
+            {
+                input: {
+                    code: 'BE',
+                    enabled: true,
+                    translations: [{ languageCode: 'en', name: 'Belgium' }],
+                },
+            },
+        );
+        countryId = created.createCountry.id;
+        await createCustomerWithUsAddress(client, 'Ordering');
+
+        const countrySelect = await openAddressCountrySelect(page);
+        await countrySelect.click();
+
+        // allInnerTexts() snapshots immediately rather than auto-waiting, so wait
+        // for the popup to render before reading the option order out of it.
+        await expect(page.getByRole('option', { name: 'Belgium' })).toBeVisible();
+
+        const optionNames = await page.getByRole('option').allInnerTexts();
+        expect(optionNames).toEqual([...optionNames].sort((a, b) => a.localeCompare(b)));
+    });
 });

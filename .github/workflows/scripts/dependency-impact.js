@@ -1,0 +1,386 @@
+const { execFileSync } = require('child_process');
+const fs = require('fs');
+
+/**
+ * Classifies a pull request that touches a package.json or bun.lock, and reports what it does to
+ * the published dependency contract.
+ *
+ * A pull request changes the contract when it edits a `dependencies`, `peerDependencies` or
+ * `optionalDependencies` range in the package.json of a published package. Everything else —
+ * devDependencies, bun.lock, and the manifests of private packages — leaves the contract alone.
+ * Both look the same in the pull request list, and they mean different things: a widened range is
+ * a new promise to every consumer, whereas a lockfile edit only records what this repository
+ * installs.
+ *
+ * A package counts as published when its path is packages/<name>/package.json and its manifest
+ * does not set `"private": true`. The root manifest and docs/package.json both set it, so the
+ * same test excludes them without naming them.
+ *
+ * SECURITY: this runs from a pull_request_target workflow with write access to the base
+ * repository. It reads the pull request head's package.json files as data through the GitHub API
+ * and parses them with JSON.parse. It never checks out, installs, resolves or executes anything
+ * from the head. Do not add a step here that does.
+ */
+
+const MARKER = '<!-- dependency-impact -->';
+const CONTRACT_LABEL = 'deps: contract change';
+const LOCKFILE_LABEL = 'deps: lockfile only';
+const CONTRACT_SECTIONS = ['dependencies', 'peerDependencies', 'optionalDependencies'];
+const PUBLISHED_PATH = /^packages\/[^/]+\/package\.json$/;
+
+const event = JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
+const repo = process.env.GITHUB_REPOSITORY;
+const prNumber = event.pull_request.number;
+const baseSha = event.pull_request.base.sha;
+const headSha = event.pull_request.head.sha;
+
+try {
+    main();
+} catch (err) {
+    // Every call in here is execFileSync, so there is nothing to await and nothing to unhandle.
+    // Print the stack: this runs unattended, and a message alone loses where it came from.
+    console.error(err.stack || err.message);
+    process.exit(1);
+}
+
+function main() {
+    const changedFiles = gh([`repos/${repo}/pulls/${prNumber}/files`, '--paginate', '--jq', '.[].filename'])
+        .split('\n')
+        .filter(Boolean);
+
+    const manifests = changedFiles.filter(f => f === 'package.json' || f.endsWith('/package.json'));
+    const lockfileChanged = changedFiles.includes('bun.lock');
+
+    // Run on every pull request synchronization so a push which removes the last dependency file
+    // can clear the classification left by an earlier run.
+    if (!manifests.length && !lockfileChanged) {
+        removeLabel(CONTRACT_LABEL);
+        removeLabel(LOCKFILE_LABEL);
+        deleteReportComment();
+        console.log('cleared dependency impact classification (no dependency files changed)');
+        return;
+    }
+
+    const mergeBaseSha = gh([
+        `repos/${repo}/compare/${baseSha}...${headSha}`,
+        '--jq',
+        '.merge_base_commit.sha',
+    ]).trim();
+    if (!mergeBaseSha) {
+        throw new Error(`could not determine merge base for ${baseSha}...${headSha}`);
+    }
+
+    const contractChanges = [];
+    const otherChanges = [];
+
+    for (const path of manifests) {
+        // Compare the pull request head with its merge base, not the current base tip. Otherwise a
+        // change made only on the target branch can be misreported as a reversal by a stale head.
+        const base = readManifest(path, mergeBaseSha);
+        const head = readManifest(path, headSha);
+        // A manifest present at neither ref cannot be compared. This happens when a pull request
+        // adds and then removes the same file across pushes.
+        if (!base && !head) {
+            continue;
+        }
+        const published = isPublished(path, head || base);
+        // devDependencies is reported but never counts as a contract change, so the scanned list
+        // is the contract sections plus that one. Restating the contract sections here instead
+        // would let the two lists drift, and the drift would be silent.
+        for (const section of [...CONTRACT_SECTIONS, 'devDependencies']) {
+            for (const change of diffSection(base, head, section)) {
+                const entry = { ...change, path, section };
+                const isContract = published && CONTRACT_SECTIONS.includes(section);
+                (isContract ? contractChanges : otherChanges).push(entry);
+            }
+        }
+    }
+
+    const label = contractChanges.length ? CONTRACT_LABEL : LOCKFILE_LABEL;
+    const remove = label === CONTRACT_LABEL ? LOCKFILE_LABEL : CONTRACT_LABEL;
+
+    ensureLabels();
+    applyLabel(label, remove);
+    upsertComment(buildComment({ contractChanges, otherChanges, lockfileChanged }));
+
+    console.log(`applied "${label}" (${contractChanges.length} contract, ${otherChanges.length} other)`);
+}
+
+/**
+ * A package is published when it lives directly under packages/ and does not opt out with
+ * `"private": true`. Deriving it this way means a new package is classified correctly without
+ * anyone remembering to update a list here.
+ */
+function isPublished(path, manifest) {
+    return PUBLISHED_PATH.test(path) && manifest.private !== true;
+}
+
+function diffSection(base, head, section) {
+    const before = readSection(base, section);
+    const after = readSection(head, section);
+    const changes = [];
+    for (const name of new Set([...Object.keys(before), ...Object.keys(after)])) {
+        if (before[name] !== after[name]) {
+            changes.push({ name, from: before[name], to: after[name] });
+        }
+    }
+    return changes.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Reads one dependency section from a manifest. A manifest is only valid JSON, not valid npm, so a
+ * section can be a string or an array. Object.keys would then read a string as one entry per
+ * character and report a row per character, so anything that is not a plain object is read as
+ * absent. The section's real entries at the other ref still show up, as removed or added.
+ */
+function readSection(manifest, section) {
+    const value = manifest && manifest[section];
+    return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
+/**
+ * Percent-encodes a repository path for use in a contents API URL. The path comes from the pull
+ * request's changed-file list, and git permits `?`, `#` and `%` in a filename. Left raw, such a
+ * name would change which endpoint and which ref the request asks for.
+ */
+function encodePath(path) {
+    return path.split('/').map(encodeURIComponent).join('/');
+}
+
+/**
+ * Reads a manifest at a given commit and parses it. Returns null when the file does not exist at
+ * that commit, which is the normal case for a manifest the pull request adds or deletes.
+ */
+function readManifest(path, ref) {
+    let raw;
+    try {
+        // ref goes in the query string. Passing it with -f makes gh send it as a request body,
+        // which the contents API ignores, and every lookup then resolves against the default
+        // branch or 404s.
+        raw = gh([
+            `repos/${repo}/contents/${encodePath(path)}?ref=${ref}`,
+            '-H',
+            'Accept: application/vnd.github.raw',
+        ]);
+    } catch (e) {
+        if (isHttpError(e, 404)) {
+            return null;
+        }
+        // Any other failure means the classification would be wrong rather than absent, so stop
+        // instead of reporting a contract change as a lockfile refresh.
+        throw new Error(`could not read ${path} at ${ref}: ${String(e.stderr || '').trim() || e.message}`);
+    }
+    try {
+        return JSON.parse(raw);
+    } catch (e) {
+        // Returning null here would make diffSection read the manifest as empty and report every
+        // dependency in it as removed. A manifest that does not parse is a broken pull request,
+        // so say so instead of publishing a wrong report.
+        throw new Error(`could not parse ${path} at ${ref}: ${e.message}`);
+    }
+}
+
+function ensureLabels() {
+    const wanted = [
+        {
+            name: CONTRACT_LABEL,
+            color: 'B60205',
+            description: 'Changes a dependency range in a published package',
+        },
+        {
+            name: LOCKFILE_LABEL,
+            color: '0E8A16',
+            description: 'Leaves every published dependency range unchanged',
+        },
+    ];
+    for (const label of wanted) {
+        try {
+            gh([`repos/${repo}/labels/${encodeURIComponent(label.name)}`]);
+        } catch (e) {
+            if (!isHttpError(e, 404)) {
+                throw e;
+            }
+            try {
+                gh([
+                    `repos/${repo}/labels`,
+                    '-X',
+                    'POST',
+                    '-f',
+                    `name=${label.name}`,
+                    '-f',
+                    `color=${label.color}`,
+                    '-f',
+                    `description=${label.description}`,
+                ]);
+            } catch (createError) {
+                if (!isHttpError(createError, 422)) {
+                    throw createError;
+                }
+                // A concurrent run can create the label after our lookup. Confirm that this is the
+                // race we expected rather than suppressing an unrelated validation failure.
+                gh([`repos/${repo}/labels/${encodeURIComponent(label.name)}`]);
+            }
+        }
+    }
+}
+
+function applyLabel(add, remove) {
+    gh([`repos/${repo}/issues/${prNumber}/labels`, '-X', 'POST', '-f', `labels[]=${add}`]);
+    // Removing the opposite label matters when a push changes the classification. Without it a
+    // pull request that drops a manifest edit keeps both labels and reads as ambiguous.
+    removeLabel(remove);
+}
+
+function removeLabel(label) {
+    try {
+        gh([`repos/${repo}/issues/${prNumber}/labels/${encodeURIComponent(label)}`, '-X', 'DELETE']);
+    } catch (e) {
+        if (!isHttpError(e, 404)) {
+            throw e;
+        }
+    }
+}
+
+/**
+ * Posts the report, or edits the report already on the pull request. Dependabot force-pushes this
+ * branch on every rebase, so posting a new comment each time would bury the pull request.
+ */
+function upsertComment(body) {
+    const existing = findReportComment();
+
+    if (existing) {
+        gh([`repos/${repo}/issues/comments/${existing}`, '-X', 'PATCH', '-f', `body=${body}`]);
+    } else {
+        gh([`repos/${repo}/issues/${prNumber}/comments`, '-X', 'POST', '-f', `body=${body}`]);
+    }
+}
+
+function deleteReportComment() {
+    const existing = findReportComment();
+    if (existing) {
+        gh([`repos/${repo}/issues/comments/${existing}`, '-X', 'DELETE']);
+    }
+}
+
+function findReportComment() {
+    return gh([
+        `repos/${repo}/issues/${prNumber}/comments`,
+        '--paginate',
+        // gh applies --jq per page, so an aggregating filter over a default 30-item page can
+        // return one id per page, and a two-line result makes the PATCH URL unusable.
+        '-X',
+        'GET',
+        '-F',
+        'per_page=100',
+        '--jq',
+        `[.[] | select(.user.login == "github-actions[bot]") | select(.body | contains("${MARKER}")) | .id] | first // empty`,
+    ]).trim();
+}
+
+function buildComment({ contractChanges, otherChanges, lockfileChanged }) {
+    const lines = [
+        MARKER,
+        '',
+        contractChanges.length
+            ? '### This pull request changes the published dependency contract'
+            : '### This pull request leaves the published dependency contract unchanged',
+        '',
+    ];
+
+    if (contractChanges.length) {
+        lines.push(
+            'This pull request changes a dependency range in a published package, so it changes what',
+            'consumers resolve. Review the new range rather than the resolved version.',
+            '',
+            '| dependency | declared in | range |',
+            '| --- | --- | --- |',
+        );
+        for (const c of contractChanges) {
+            lines.push(
+                `| ${codeCell(c.name)} | ${escapeMarkdown(packageOf(c.path))} / ${c.section} | ${formatRange(c)} |`,
+            );
+        }
+        lines.push('');
+    } else {
+        lines.push(
+            'No published dependency range changes. Consumers resolve exactly what they did before.',
+            '',
+        );
+    }
+
+    if (otherChanges.length) {
+        lines.push(
+            `<details><summary>${otherChanges.length} change(s) that do not affect the contract</summary>`,
+            '',
+        );
+        lines.push('| dependency | declared in | range |', '| --- | --- | --- |');
+        for (const c of otherChanges) {
+            lines.push(
+                `| ${codeCell(c.name)} | ${escapeMarkdown(packageOf(c.path))} / ${c.section} | ${formatRange(c)} |`,
+            );
+        }
+        lines.push('', '</details>', '');
+    }
+
+    if (lockfileChanged) {
+        lines.push(
+            '`bun.lock` changed. The lockfile records what this repository installs, and CI verifies',
+            'only that combination. It is not what a consumer installing the published packages gets.',
+            '',
+        );
+    }
+
+    lines.push('<sub>Reported by `dependency_impact.yml`. Not a required check.</sub>');
+    return lines.join('\n');
+}
+
+function packageOf(path) {
+    return path === 'package.json' ? '(root)' : path.replace(/\/package\.json$/, '');
+}
+
+function formatRange({ from, to }) {
+    if (from === undefined) {
+        return `added ${codeCell(to)}`;
+    }
+    if (to === undefined) {
+        return `removed ${codeCell(from)}`;
+    }
+    return `${codeCell(from)} -> ${codeCell(to)}`;
+}
+
+/**
+ * Renders one value inside a table cell code span. GFM treats an HTML entity inside a code span as
+ * literal text, so entity-escaping a range would display `&gt;=16.0.0 &#124;&#124; ^17.0.0` rather
+ * than `>=16.0.0 || ^17.0.0`, and `||` is ordinary in a peer range. Values containing a pipe,
+ * backslash or backtick use an HTML code element with fully entity-escaped text. This avoids a
+ * partial Markdown-escaping path while preserving both the displayed value and code styling.
+ */
+function codeCell(value) {
+    const text = String(value).replace(/\r?\n/g, ' ');
+    // A backtick cannot be escaped inside a code span. Pipes and backslashes interact with the
+    // table parser, so all three take the fully entity-escaped HTML route.
+    if (/[|`\\]/.test(text)) {
+        return `<code>${escapeMarkdown(text)}</code>`;
+    }
+    return `\`${text}\``;
+}
+
+function escapeMarkdown(value) {
+    return String(value)
+        .replace(/\r?\n/g, ' ')
+        .replace(/[!"#$%&'()*+,./:;<=>?@[\\\]^_`{|}~-]/g, character => {
+            return `&#${character.codePointAt(0)};`;
+        });
+}
+
+function isHttpError(error, status) {
+    return `${String(error.stderr || '')}\n${String(error.stdout || '')}`.includes(`HTTP ${status}`);
+}
+
+function gh(args) {
+    return execFileSync('gh', ['api', ...args], {
+        encoding: 'utf8',
+        maxBuffer: 32 * 1024 * 1024,
+        stdio: ['ignore', 'pipe', 'pipe'],
+    });
+}

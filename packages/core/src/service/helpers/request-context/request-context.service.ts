@@ -8,6 +8,7 @@ import ms from 'ms';
 import { ApiType, getApiType } from '../../../api/common/get-api-type';
 import { RequestContext } from '../../../api/common/request-context';
 import { UserInputError } from '../../../common/error/errors';
+import { parseAcceptLanguage } from '../../../common/parse-accept-language';
 import { idsAreEqual } from '../../../common/utils';
 import { ConfigService } from '../../../config/config.service';
 import { CachedSession, CachedSessionUser } from '../../../config/session-cache/session-cache-strategy';
@@ -97,6 +98,7 @@ export class RequestContextService {
             apiType,
             channel,
             languageCode,
+            acceptedLanguageCodes: this.getAcceptedLanguageCodes(req),
             currencyCode,
             session,
             isAuthorized: true,
@@ -132,6 +134,7 @@ export class RequestContextService {
             apiType,
             channel,
             languageCode,
+            acceptedLanguageCodes: this.getAcceptedLanguageCodes(req),
             currencyCode,
             session,
             isAuthorized,
@@ -162,6 +165,10 @@ export class RequestContextService {
             channel.defaultLanguageCode ??
             this.configService.defaultLanguageCode
         );
+    }
+
+    private getAcceptedLanguageCodes(req: Request | undefined): LanguageCode[] {
+        return parseAcceptLanguage(req?.headers?.['accept-language']);
     }
 
     private getCurrencyCode(req: Request, channel: Channel): CurrencyCode | undefined {

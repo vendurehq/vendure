@@ -168,6 +168,24 @@ describe('Default search plugin', () => {
         expect(result.search.items.map(i => i.productVariantName)).toEqual(expected);
     }
 
+    /**
+     * Clients generated from the GraphQL schema commonly send `sort: {}` when the user has not
+     * selected a sort order. Since an empty object is truthy, this used to be treated as an
+     * explicit sort, which suppressed the relevance ordering that applies when searching by term.
+     */
+    async function testRelevanceSortingWithEmptySortObject(testProducts: TestProducts) {
+        const result = await testProducts({
+            term: 'slr',
+            groupByProduct: true,
+            sort: {},
+        });
+
+        // "Slr Camera" matches on the product name whereas "Camera Lens" only matches in the
+        // description, so the higher-scoring "Slr Camera" must come first, even though it has the
+        // higher productVariantId, which is the fallback ordering used when no score is applied.
+        expect(result.search.items.map(i => i.productName)).toEqual(['Slr Camera', 'Camera Lens']);
+    }
+
     async function testMatchSearchTerm(testProducts: TestProducts) {
         const result = await testProducts({
             term: 'camera',
@@ -685,6 +703,9 @@ describe('Default search plugin', () => {
 
         it('sort price without grouping', () => testSortingNoGrouping(testProductsShop, 'price'));
 
+        it('sorts by relevance when sort is an empty object', () =>
+            testRelevanceSortingWithEmptySortObject(testProductsShop));
+
         it('omits results for disabled ProductVariants', async () => {
             await adminClient.query(updateProductVariantsDocument, {
                 input: [{ id: 'T_3', enabled: false }],
@@ -821,6 +842,9 @@ describe('Default search plugin', () => {
         it('sort name without grouping', () => testSortingNoGrouping(testProductsAdmin, 'name'));
 
         it('sort price without grouping', () => testSortingNoGrouping(testProductsAdmin, 'price'));
+
+        it('sorts by relevance when sort is an empty object', () =>
+            testRelevanceSortingWithEmptySortObject(testProductsAdmin));
 
         describe('updating the index', () => {
             it('updates index when ProductVariants are changed', async () => {

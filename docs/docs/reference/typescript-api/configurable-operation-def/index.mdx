@@ -2,7 +2,7 @@
 title: "ConfigurableOperationDef"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/common/configurable-operation.ts" sourceLine="335" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/common/configurable-operation.ts" sourceLine="435" packageName="@vendure/core" />
 
 A ConfigurableOperationDef is a special type of object used extensively by Vendure to define
 code blocks which have arguments which are configurable at run-time by the administrator.
@@ -77,15 +77,43 @@ export const customShippingCalculator = new ShippingCalculator({
 });
 ```
 
+## Translations
+
+The `description` of the operation, plus the `label` and `description` of each arg, may be
+defined inline as a [LocalizedStringArray](/reference/typescript-api/configurable-operation-def/localized-string-array#localizedstringarray). They may also be supplied from the server-side
+message catalogs, under the `configurableOperation` namespace, using keys of the form:
+
+```text
+configurableOperation.<type>.<code>.description
+configurableOperation.<type>.<code>.args.<argName>.label
+configurableOperation.<type>.<code>.args.<argName>.description
+configurableOperation.<type>.<code>.args.<argName>.options.<optionValue>.label
+```
+
+where `<type>` is one of [ConfigurableOperationDefType](/reference/typescript-api/configurable-operation-def/configurable-operation-def-type#configurableoperationdeftype). Call
+`ConfigurableOperationDef.getTranslationKeys` to see the exact keys for a given operation.
+Catalog entries take precedence over the inline arrays for the same language, which means the
+strings of a third-party operation can be overridden by registering translations for its keys
+via `I18nService.addTranslation()`. A key which does not match any operation is simply never
+read, so a typo produces no error — the inline string is used instead.
+
+The description and the arg labels are resolved to a single string before being sent, in the
+language requested by the client. Select option labels are the exception: they are sent as a
+full [LocalizedStringArray](/reference/typescript-api/configurable-operation-def/localized-string-array#localizedstringarray) with the catalog translation merged in, because the Admin UI
+resolves them against the administrator's display language, which is a separate setting from the
+content language sent with the request.
+
 ```ts title="Signature"
 class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
     code: string
     args: T
     description: LocalizedStringArray
+    protected encryptionStrategy?: EncryptionStrategy;
     constructor(options: ConfigurableOperationDefOptions<T>)
     init(injector: Injector) => ;
     destroy() => ;
     toGraphQlType(ctx: RequestContext) => ConfigurableOperationDefinition;
+    getTranslationKeys() => ConfigurableOperationTranslationKey[];
     argsArrayToHash(args: ConfigArg[]) => ConfigArgValues<T>;
 }
 ```
@@ -107,6 +135,11 @@ class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/configurable-operation-def/localized-string-array#localizedstringarray'>LocalizedStringArray</a>`}   />
 
 
+### encryptionStrategy
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/configuration/encryption-strategy#encryptionstrategy'>EncryptionStrategy</a>`}   />
+
+
 ### init
 
 <MemberInfo kind="method" type={`(injector: <a href='/reference/typescript-api/common/injector#injector'>Injector</a>) => `}   />
@@ -123,6 +156,14 @@ class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
 
 Convert a ConfigurableOperationDef into a ConfigurableOperationDefinition object, typically
 so that it can be sent via the API.
+### getTranslationKeys
+
+<MemberInfo kind="method" type={`() => <a href='/reference/typescript-api/configurable-operation-def/configurable-operation-translation-key#configurableoperationtranslationkey'>ConfigurableOperationTranslationKey</a>[]`}  since="3.8.0"  />
+
+Lists every string on this operation which can be translated via the message catalogs,
+along with the paths under which the translations must be stored in the
+`configurableOperation` namespace. Intended for translation tooling and for plugin authors
+checking which keys they need to define.
 ### argsArrayToHash
 
 <MemberInfo kind="method" type={`(args: ConfigArg[]) => ConfigArgValues<T>`}   />

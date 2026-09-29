@@ -13,6 +13,7 @@ import {
     DashboardLoginExtensions,
     DashboardNavSectionDefinition,
     DashboardPageBlockDefinition,
+    DashboardRefundDestinationDefinition,
     DashboardRouteDefinition,
     DashboardToolbarItemDefinition,
     DashboardWidgetDefinition,
@@ -70,6 +71,11 @@ export interface DashboardExtension {
      *             : s
      *     ),
      * })
+     *
+     * // Function form, deciding per user. The function itself still runs once, at
+     * // registration; the predicate it attaches is evaluated on every nav render.
+     * navSections: config =>
+     *     setNavVisibility(config, { sections: [BUILT_IN_NAV_SECTION_IDS.Catalog] }, ctx => !isFloorStaff(ctx)),
      * ```
      *
      * Note: modifier functions should return a **new** config object rather than
@@ -144,6 +150,15 @@ export interface DashboardExtension {
      * in the Order or Customer history lists.
      */
     historyEntries?: DashboardHistoryEntryComponent[];
+    /**
+     * @description
+     * Allows the presentation of a refund destination to be customised in the refund dialog,
+     * adding a label, an icon and an optional configuration component. The destination itself is
+     * defined on the backend by a `RefundDestinationStrategy`.
+     *
+     * @since 3.8.0
+     */
+    refundDestinations?: DashboardRefundDestinationDefinition[];
     /**
      * @description
      * Allows you to define custom toolbar items in the app shell header bar.

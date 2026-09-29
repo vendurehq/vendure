@@ -4,13 +4,16 @@ import {
     DuplicateEntityResult,
     EntityDuplicatorDefinition,
 } from '@vendure/common/lib/generated-types';
+import { ID } from '@vendure/common/lib/shared-types';
 
 import { RequestContext } from '../../../api/common/request-context';
+import { EntityNotFoundError } from '../../../common/error/errors';
 import { DuplicateEntityError } from '../../../common/error/generated-graphql-admin-errors';
 import { ConfigService } from '../../../config/config.service';
 import { Logger } from '../../../config/logger/vendure-logger';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { ConfigArgService } from '../config-arg/config-arg.service';
+import { isChannelAwareMetadata } from '../utils/is-channel-aware-metadata';
 
 /**
  * @description
@@ -73,6 +76,7 @@ export class EntityDuplicatorService {
 
         return await this.connection.withTransaction(ctx, async innerCtx => {
             try {
+                await this.assertSourceEntityIsInChannel(innerCtx, input.entityName, input.entityId);
                 const newEntity = await duplicator.duplicate({
                     ctx: innerCtx,
                     entityName: input.entityName,
@@ -88,5 +92,28 @@ export class EntityDuplicatorService {
                 });
             }
         });
+    }
+
+    /**
+     * If the entity being duplicated is ChannelAware, then the source entity must belong to the
+     * active Channel. Without this check, an Administrator with a Channel-scoped role could copy
+     * an entity out of a Channel they have no access to. The built-in duplicators also scope their
+     * own lookups, but a custom duplicator cannot be relied on to do so.
+     */
+    private async assertSourceEntityIsInChannel(ctx: RequestContext, entityName: string, id: ID) {
+        const metadata = this.connection.rawConnection.entityMetadatas.find(m => m.name === entityName);
+        if (!metadata || !isChannelAwareMetadata(metadata)) {
+            return;
+        }
+        const existsInChannel = await this.connection
+            .getRepository(ctx, metadata.target)
+            .createQueryBuilder('entity')
+            .leftJoin('entity.channels', 'channel')
+            .where('entity.id = :id', { id })
+            .andWhere('channel.id = :channelId', { channelId: ctx.channelId })
+            .getExists();
+        if (!existsInChannel) {
+            throw new EntityNotFoundError(entityName, id);
+        }
     }
 }

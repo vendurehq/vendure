@@ -1,19 +1,11 @@
 import { log } from '@clack/prompts';
-import { GraphQLTypesLoader } from '@nestjs/graphql';
-import {
-    getConfig,
-    getFinalVendureSchema,
-    resetConfig,
-    runPluginConfigurations,
-    setConfig,
-    VENDURE_ADMIN_API_TYPE_PATHS,
-    VENDURE_SHOP_API_TYPE_PATHS,
-} from '@vendure/core';
+import type { GraphQLTypesLoader as GraphQLTypesLoaderType } from '@nestjs/graphql';
 import { writeFileSync } from 'fs-extra';
-import { getIntrospectionQuery, graphqlSync, printSchema } from 'graphql';
 import path from 'node:path';
 
+import { exitCliCommand, rethrowCliCommandExit } from '../../../shared/cli-command-exit';
 import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file';
+import { requireFromProject, requireProjectCore } from '../../../shared/project-core';
 import { analyzeProject } from '../../../shared/shared-prompts';
 import { VendureConfigRef } from '../../../shared/vendure-config-ref';
 import { type SchemaOptions } from '../schema';
@@ -21,20 +13,37 @@ import { type SchemaOptions } from '../schema';
 const cancelledMessage = 'Generate schema cancelled';
 
 export async function generateSchema(options: SchemaOptions) {
-    resetConfig();
+    // The project's own Vendure. `setConfig` and `getConfig` read and write a
+    // singleton held inside the package, and the project's `vendure-config.ts`
+    // is compiled against the copy installed in the project. Loading a
+    // different copy here would give the two of them separate singletons, so
+    // the config written below would not be the config read back.
+    const core = requireProjectCore();
+    // The project's GraphQL, for the same reason as core, and for one more: the
+    // schema these functions are given was built by the project's copy. Two
+    // physical copies of the same version do not recognise each other's types,
+    // so printing a project schema with the CLI's copy fails with "Cannot use
+    // GraphQLObjectType from another module or realm".
+    const { getIntrospectionQuery, graphqlSync, printSchema } =
+        requireFromProject<typeof import('graphql')>('graphql');
+    core.resetConfig();
     try {
         const { project, vendureTsConfig } = await analyzeProject({ cancelledMessage });
         const vendureConfig = new VendureConfigRef(project, options.config);
         log.info('Using VendureConfig from ' + vendureConfig.getPathRelativeToProjectRoot());
         const config = await loadVendureConfigFile(vendureConfig, vendureTsConfig);
-        await setConfig(config);
+        await core.setConfig(config);
 
         const apiType = options.api === 'shop' ? 'shop' : 'admin';
-        const typePaths = apiType === 'shop' ? VENDURE_SHOP_API_TYPE_PATHS : VENDURE_ADMIN_API_TYPE_PATHS;
+        const typePaths =
+            apiType === 'shop' ? core.VENDURE_SHOP_API_TYPE_PATHS : core.VENDURE_ADMIN_API_TYPE_PATHS;
 
-        const runtimeConfig = await runPluginConfigurations(getConfig() as any);
+        const runtimeConfig = await core.runPluginConfigurations(core.getConfig() as any);
+        const { GraphQLTypesLoader } = requireFromProject<{
+            GraphQLTypesLoader: new () => GraphQLTypesLoaderType;
+        }>('@nestjs/graphql');
         const typesLoader = new GraphQLTypesLoader();
-        const schema = await getFinalVendureSchema({
+        const schema = await core.getFinalVendureSchema({
             config: runtimeConfig,
             typePaths,
             typesLoader,
@@ -54,8 +63,9 @@ export async function generateSchema(options: SchemaOptions) {
             writeFileSync(outFile, JSON.stringify(jsonSchema));
         }
         log.info(`Generated schema: ${outFile}`);
-    } catch (e) {
+    } catch (e: unknown) {
+        rethrowCliCommandExit(e);
         log.error(e instanceof Error ? e.message : String(e));
-        process.exit(1);
+        exitCliCommand(1);
     }
 }

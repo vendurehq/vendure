@@ -306,6 +306,17 @@ export abstract class PromotionAction<
         this.onDeactivateFn = config.onDeactivate;
     }
 
+    /**
+     * @description
+     * Whether this action defines any of the side-effect functions. Such an action can have an
+     * effect on the Order (adding a free gift, say) without producing a price adjustment.
+     *
+     * @internal
+     */
+    get hasSideEffects(): boolean {
+        return !!(this.onActivateFn || this.onDeactivateFn);
+    }
+
     /** @internal */
     abstract execute(...arg: any[]): number | Promise<number>;
 

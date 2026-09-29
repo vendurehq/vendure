@@ -31,6 +31,7 @@ import {
     mergeMap,
     shareReplay,
     skip,
+    startWith,
     switchMap,
     switchMapTo,
     take,
@@ -138,7 +139,10 @@ export class ProductVariantDetailComponent
             tap(data => (this.channelDefaultCurrencyCode = data.activeChannel.defaultCurrencyCode)),
             map(data => data.activeChannel.availableCurrencyCodes),
         );
-        this.unusedCurrencyCodes$ = combineLatest(this.pricesForm.valueChanges, availableCurrencyCodes$).pipe(
+        this.unusedCurrencyCodes$ = combineLatest([
+            this.pricesForm.valueChanges.pipe(startWith(this.pricesForm.value)),
+            availableCurrencyCodes$
+        ]).pipe(
             map(([prices, currencyCodes]) =>
                 currencyCodes.filter(code => !prices.map(p => p.currencyCode).includes(code)),
             ),

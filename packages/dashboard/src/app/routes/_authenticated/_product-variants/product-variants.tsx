@@ -98,18 +98,9 @@ function ProductListPage() {
             onSearchTermChange={searchTerm => {
                 return searchTerm
                     ? {
-                          name: { contains: searchTerm },
-                          sku: { contains: searchTerm },
+                          _or: [{ name: { contains: searchTerm } }, { sku: { contains: searchTerm } }],
                       }
                     : {};
-            }}
-            transformVariables={variables => {
-                return {
-                    options: {
-                        ...variables.options,
-                        filterOperator: 'OR',
-                    },
-                };
             }}
             route={Route}
         ></ListPage>

@@ -87,13 +87,16 @@ export class InMemoryJobQueueStrategy extends PollingJobQueueStrategy implements
             if (options.filter) {
                 items = this.applyFilters(items, options.filter);
             }
-            if (options.skip || options.take) {
-                items = this.applyPagination(items, options.skip, options.take);
-            }
+        }
+        // `totalItems` is the count of all matching jobs, so it must be taken before
+        // pagination narrows `items` to a single page.
+        const totalItems = items.length;
+        if (options?.skip || options?.take) {
+            items = this.applyPagination(items, options.skip, options.take);
         }
         return {
             items,
-            totalItems: items.length,
+            totalItems,
         };
     }
 

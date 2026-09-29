@@ -17,6 +17,7 @@ type ScheduledTask {
     description: String!
     schedule: String!
     scheduleDescription: String!
+    timezone: String
     lastExecutedAt: DateTime
     nextExecutionAt: DateTime
     isRunning: Boolean!

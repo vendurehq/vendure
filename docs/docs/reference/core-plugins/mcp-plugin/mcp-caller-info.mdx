@@ -1,0 +1,33 @@
+---
+title: "McpCallerInfo"
+generated: true
+---
+<GenerationInfo sourceFile="packages/mcp-sdk/src/mcp-tool.decorator.ts" sourceLine="162" packageName="@vendure/mcp-sdk" since="3.8.0" />
+
+Who is calling a tool and how. Passed as the optional third argument to
+`McpToolHandler.execute`.
+
+```ts title="Signature"
+interface McpCallerInfo {
+    grant?: McpCallerGrant;
+    clientIp?: string;
+}
+```
+
+<div className="members-wrapper">
+
+### grant
+
+<MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-caller-grant#mcpcallergrant'>McpCallerGrant</a>`}   />
+
+The OAuth grant behind the call. It is set for every call that arrived via MCP OAuth, and
+undefined for anonymous shop calls and in-process calls.
+### clientIp
+
+<MemberInfo kind="property" type={`string`}   />
+
+The client IP resolved by the HTTP transport. It is set for every HTTP call, and undefined
+for in-process calls.
+
+
+</div>

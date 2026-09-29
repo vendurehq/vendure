@@ -9,6 +9,7 @@ import { Logger } from '../config/logger/vendure-logger';
 import { ProcessContext } from '../process-context';
 
 import { NoopSchedulerStrategy } from './noop-scheduler-strategy';
+import { assertValidTimezones, getScheduleTimezone } from './schedule-timezone';
 import { ScheduledTask } from './scheduled-task';
 import { TaskReport } from './scheduler-strategy';
 
@@ -17,6 +18,7 @@ export interface TaskInfo {
     description: string;
     schedule: string;
     scheduleDescription: string;
+    timezone: string | null;
     lastExecutedAt: Date | null;
     nextExecutionAt: Date | null;
     isRunning: boolean;
@@ -42,6 +44,8 @@ export class SchedulerService implements OnApplicationBootstrap, OnApplicationSh
     ) {}
 
     onApplicationBootstrap() {
+        assertValidTimezones(this.configService.schedulerOptions);
+        const scheduledTasks = this.configService.schedulerOptions.tasks ?? [];
         const schedulerStrategy = this.configService.schedulerOptions.schedulerStrategy;
         if (!schedulerStrategy || schedulerStrategy instanceof NoopSchedulerStrategy) {
             Logger.warn('No scheduler strategy is configured! Scheduled tasks will not be executed.');
@@ -53,7 +57,6 @@ export class SchedulerService implements OnApplicationBootstrap, OnApplicationSh
         this.shouldRunTasks =
             this.configService.schedulerOptions.runTasksInWorkerOnly === false ||
             this.processContext.isWorker;
-        const scheduledTasks = this.configService.schedulerOptions.tasks ?? [];
 
         for (const task of scheduledTasks) {
             const job = this.createCronJob(task);
@@ -63,7 +66,10 @@ export class SchedulerService implements OnApplicationBootstrap, OnApplicationSh
             } else {
                 if (this.shouldRunTasks) {
                     const schedule = cronstrue.toString(pattern);
-                    Logger.info(`Registered scheduled task: ${task.id} - ${schedule}`);
+                    const timezone = getScheduleTimezone(task, this.configService.schedulerOptions);
+                    Logger.info(
+                        `Registered scheduled task: ${task.id} - ${schedule}${timezone ? ` (${timezone})` : ''}`,
+                    );
                 }
                 this.jobs.set(task.id, { task, job });
             }
@@ -141,6 +147,7 @@ export class SchedulerService implements OnApplicationBootstrap, OnApplicationSh
             description: task.options.description ?? '',
             schedule: pattern ?? 'unknown',
             scheduleDescription: pattern ? cronstrue.toString(pattern) : 'unknown',
+            timezone: job.options.timezone ?? null,
             lastExecutedAt: taskReport.lastExecutedAt,
             nextExecutionAt: job.nextRun(),
             isRunning: taskReport.isRunning,
@@ -170,6 +177,7 @@ export class SchedulerService implements OnApplicationBootstrap, OnApplicationSh
             {
                 name: task.id,
                 protect: task.options.preventOverlap ? protectCallback : undefined,
+                timezone: getScheduleTimezone(task, this.configService.schedulerOptions),
             },
             () => {
                 if (this.shouldRunTasks) {

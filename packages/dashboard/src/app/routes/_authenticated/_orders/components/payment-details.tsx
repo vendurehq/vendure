@@ -20,6 +20,7 @@ import { useMutation } from '@tanstack/react-query';
 import { ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+
 import {
     cancelPaymentDocument,
     paymentWithRefundsFragment,
@@ -27,6 +28,7 @@ import {
     settleRefundDocument,
     transitionPaymentToStateDocument,
 } from '../orders.graphql.js';
+
 import { SettleRefundDialog } from './settle-refund-dialog.js';
 import { StateTransitionAction, StateTransitionControl } from './state-transition-control.js';
 
@@ -262,6 +264,12 @@ export function PaymentDetails({ payment, currencyCode, onSuccess }: Readonly<Pa
                                             label={<Trans>Total</Trans>}
                                             value={formatCurrency(refund.total, currencyCode)}
                                         />
+                                        {refund.destination && (
+                                            <LabeledData
+                                                label={<Trans>Destination</Trans>}
+                                                value={refund.destination}
+                                            />
+                                        )}
                                         {refund.reason && (
                                             <LabeledData
                                                 label={<Trans>Reason</Trans>}

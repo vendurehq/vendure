@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { addCommand } from './add';
 import * as apiExtensionModule from './api-extension/add-api-extension';
 import * as codegenModule from './codegen/add-codegen';
+import { addCommandDef } from './command';
 import * as entityModule from './entity/add-entity';
 import * as jobQueueModule from './job-queue/add-job-queue';
 import * as pluginModule from './plugin/create-new-plugin';
@@ -211,7 +212,9 @@ describe('add command', () => {
         });
 
         it('treats false values as not triggering non-interactive mode', async () => {
-            await addCommand({ codegen: false, uiExtensions: false } as any);
+            await expect(addCommandDef.action({ codegen: false, uiExtensions: false } as any)).resolves.toBe(
+                1,
+            );
 
             // Should NOT call any add functions (goes to interactive mode instead)
             expect(mockCreateNewPlugin).not.toHaveBeenCalled();
@@ -254,15 +257,11 @@ describe('add command', () => {
     describe('non-interactive mode - error cases', () => {
         it('logs error and exits when validation fails', async () => {
             const { log } = await import('@clack/prompts');
-            const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
 
-            await addCommand({ plugin: '   ' }); // Empty plugin name
+            await expect(addCommandDef.action({ plugin: '   ' })).resolves.toBe(1);
 
             expect(log.error).toHaveBeenCalled();
-            expect(exitSpy).toHaveBeenCalledWith(1);
             expect(mockCreateNewPlugin).not.toHaveBeenCalled();
-
-            exitSpy.mockRestore();
         });
 
         it('logs error with stack trace when exception is thrown', async () => {
@@ -271,14 +270,9 @@ describe('add command', () => {
             error.stack = 'Error: Plugin name is required\n    at someFunction';
             mockCreateNewPlugin.mockRejectedValue(error);
 
-            const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
-
-            await addCommand({ plugin: 'test' });
+            await expect(addCommandDef.action({ plugin: 'test' })).resolves.toBe(1);
 
             expect(log.error).toHaveBeenCalled();
-            expect(exitSpy).toHaveBeenCalledWith(1);
-
-            exitSpy.mockRestore();
         });
     });
 
@@ -286,7 +280,7 @@ describe('add command', () => {
         it('enters interactive mode when no options are provided', async () => {
             const { intro } = await import('@clack/prompts');
 
-            await addCommand();
+            await expect(addCommandDef.action(undefined)).resolves.toBe(1);
 
             // Should call intro to start interactive session
             expect(intro).toHaveBeenCalled();
@@ -298,45 +292,56 @@ describe('add command', () => {
         it('enters interactive mode when options object is empty', async () => {
             const { intro } = await import('@clack/prompts');
 
-            await addCommand({});
+            await expect(addCommandDef.action({})).resolves.toBe(1);
 
             expect(intro).toHaveBeenCalled();
             expect(mockCreateNewPlugin).not.toHaveBeenCalled();
         });
 
+        it('returns a failure code when an interactive scaffold fails', async () => {
+            const { log, select } = await import('@clack/prompts');
+            vi.mocked(select).mockResolvedValueOnce('create-new-plugin' as never);
+            mockCreateNewPlugin.mockRejectedValueOnce(new Error('scaffold failed'));
+
+            await expect(addCommandDef.action(undefined)).resolves.toBe(1);
+
+            expect(log.error).toHaveBeenCalledWith('scaffold failed');
+        });
+
+        it('returns success after an interactive scaffold completes', async () => {
+            const { select } = await import('@clack/prompts');
+            vi.mocked(select).mockResolvedValueOnce('create-new-plugin' as never);
+
+            await expect(addCommandDef.action(undefined)).resolves.toBe(0);
+
+            expect(mockCreateNewPlugin).toHaveBeenCalled();
+        });
+
         it('fails fast when no operation is provided in a non-interactive environment', async () => {
             const { intro, log } = await import('@clack/prompts');
-            const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
 
             setStdinIsTTY(false);
 
-            await addCommand();
+            await expect(addCommandDef.action(undefined)).resolves.toBe(1);
 
             expect(log.error).toHaveBeenCalledWith(
                 'Cannot run "vendure add" interactively because non-interactive mode is active.',
             );
             expect(log.info).toHaveBeenCalledWith(expect.stringContaining('VENDURE_CLI_NON_INTERACTIVE'));
             expect(intro).not.toHaveBeenCalled();
-            expect(exitSpy).toHaveBeenCalledWith(1);
-
-            exitSpy.mockRestore();
         });
 
         it('fails fast when VENDURE_CLI_NON_INTERACTIVE is set and no operation is provided', async () => {
             const { intro, log } = await import('@clack/prompts');
-            const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
 
             vi.stubEnv('VENDURE_CLI_NON_INTERACTIVE', 'true');
 
-            await addCommand();
+            await expect(addCommandDef.action(undefined)).resolves.toBe(1);
 
             expect(log.error).toHaveBeenCalledWith(
                 'Cannot run "vendure add" interactively because non-interactive mode is active.',
             );
             expect(intro).not.toHaveBeenCalled();
-            expect(exitSpy).toHaveBeenCalledWith(1);
-
-            exitSpy.mockRestore();
         });
 
         it('enters non-interactive mode when config is provided with operation flag', async () => {

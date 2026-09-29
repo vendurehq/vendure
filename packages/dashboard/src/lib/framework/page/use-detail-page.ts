@@ -25,7 +25,12 @@ import {
     getMutationName,
     getQueryName,
 } from '../document-introspection/get-document-structure.js';
-import { useGeneratedForm, WithLooseCustomFields } from '../form-engine/use-generated-form.js';
+import {
+    GeneratedFormSubmitMeta,
+    useGeneratedForm,
+    WithLooseCustomFields,
+} from '../form-engine/use-generated-form.js';
+import { pruneToChangedFields } from '../form-engine/utils.js';
 
 import { DetailEntityPath } from './page-types.js';
 
@@ -102,6 +107,15 @@ export interface DetailPageOptions<
         entity: NonNullable<ResultOf<T>[EntityField]>,
     ) => WithLooseCustomFields<VariablesOf<U>[VarNameUpdate]>;
     transformCreateInput?: (input: VariablesOf<C>[VarNameCreate]) => VariablesOf<C>[VarNameCreate];
+    /**
+     * @description
+     * Adjusts the full set of variables sent to the create mutation, for a create mutation which
+     * takes more than the input object, such as `createCustomer(input:, password:)`. Runs after
+     * `transformCreateInput`, which has already shaped `variables.input`.
+     *
+     * @since 3.8.0
+     */
+    transformCreateVariables?: (variables: VariablesOf<C>) => VariablesOf<C>;
     transformUpdateInput?: (input: VariablesOf<U>[VarNameUpdate]) => VariablesOf<U>[VarNameUpdate];
     /**
      * @description
@@ -131,6 +145,22 @@ export interface DetailPageOptions<
      * @since 3.7.0
      */
     extendSchema?: (schema: ZodObject<any>) => ZodTypeAny;
+    /**
+     * @description
+     * By default an update mutation sends the full form payload. Set this to `true` to instead send
+     * only the fields the user actually changed, so that an untouched field's stale page-load value
+     * cannot silently overwrite a concurrent change made by another admin or via the API.
+     *
+     * Only enable this for a detail page whose update mutation is patch-style: an absent field must
+     * be left unchanged, and no persisted value may be *derived* from the (now partial) input.
+     * Vendure's built-in Product, Collection and ProductVariant update paths satisfy this; a
+     * resolver that recomputes a field from the input — as `updatePromotion` does for
+     * `priorityScore` — does not, and would corrupt that field when it is omitted.
+     *
+     * @default false
+     * @since 3.8.0
+     */
+    sendOnlyChangedFields?: boolean;
     /**
      * @description
      * The function to call when the update is successful.
@@ -285,8 +315,10 @@ export function useDetailPage<
         updateDocument,
         setValuesForUpdate,
         transformCreateInput,
+        transformCreateVariables,
         transformUpdateInput,
         extendSchema,
+        sendOnlyChangedFields,
         params,
         entityField,
         entityName,
@@ -349,14 +381,24 @@ export function useDetailPage<
         customFieldConfig,
         extendSchema,
         setValues: setValuesForUpdate,
-        onSubmit(values: any) {
+        onSubmit(values: any, meta?: GeneratedFormSubmitMeta) {
             const filteredValues = removeReadonlyAndLocalizedCustomFields(values, customFieldConfig || []);
 
             if (isNew) {
                 const finalInput = transformCreateInput?.(filteredValues) ?? filteredValues;
-                createMutation.mutate({ input: finalInput });
+                const variables = { input: finalInput } as VariablesOf<C>;
+                createMutation.mutate(transformCreateVariables?.(variables) ?? variables);
             } else {
-                const finalInput = transformUpdateInput?.(filteredValues) ?? filteredValues;
+                // When the page opts in via `sendOnlyChangedFields`, send only the fields the user
+                // actually changed (plus non-nullable fields, which `changedFields` always
+                // includes), so an untouched field's stale value cannot overwrite a concurrent edit.
+                // The default keeps sending the full payload, which is safe for any update resolver.
+                const prunedValues = pruneToChangedFields(
+                    filteredValues,
+                    meta?.changedFields,
+                    !sendOnlyChangedFields,
+                );
+                const finalInput = transformUpdateInput?.(prunedValues) ?? prunedValues;
                 updateMutation.mutate({ input: finalInput });
             }
         },

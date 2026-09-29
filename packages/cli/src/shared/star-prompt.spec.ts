@@ -3,7 +3,8 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 
-import { getVendureCliConfigDir, renderStarPrompt, showStarPromptOnce } from './star-prompt';
+import { getVendureCliConfigDir } from './cli-config-dir';
+import { renderStarPrompt, showStarPromptOnce } from './star-prompt';
 
 function createTempDir() {
     return mkdtempSync(path.join(tmpdir(), 'vendure-cli-star-prompt-'));

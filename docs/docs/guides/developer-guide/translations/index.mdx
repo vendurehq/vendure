@@ -100,7 +100,7 @@ Let's say you've implemented some custom server-side functionality as part of a 
 provide these messages in multiple languages.
 
 Using [`addTranslation`](/reference/typescript-api/common/i18n-service/#addtranslation) inside the `onApplicationBootstrap` ([Nestjs lifecycle hooks](https://docs.nestjs.com/fundamentals/lifecycle-events)) of a Plugin is the easiest way to add new translations.
-While Vendure is only using `error`, `errorResult` and `message` resource keys you are free to use your own.
+While Vendure is only using the `error`, `errorResult`, `message` and `configurableOperation` resource keys you are free to use your own.
 
 ### Translatable Error
 This example shows how to create a custom translatable error
@@ -150,6 +150,93 @@ export class TranslationTestPlugin implements OnApplicationBootstrap {
 
 To receive an error in a specific language you need to use the `languageCode` query parameter
 `query(QUERY_WITH_ERROR_RESULT, { variables }, { languageCode: LanguageCode.de });`
+
+### Configurable operation translations
+
+The `description` of a [`ConfigurableOperationDef`](/reference/typescript-api/configurable-operation-def/configurable-operation-def/) — a promotion condition, shipping calculator, collection filter and so on — as well as the `label` and `description` of each of its args, can be defined inline as an array of localized strings:
+
+```ts
+export const customShippingCalculator = new ShippingCalculator({
+    code: 'custom-shipping-calculator',
+    description: [
+        { languageCode: LanguageCode.en, value: 'Custom shipping calculator' },
+        { languageCode: LanguageCode.de, value: 'Eigener Versandrechner' },
+    ],
+    args: {
+        rate: {
+            type: 'int',
+            label: [{ languageCode: LanguageCode.en, value: 'Shipping price' }],
+        },
+    },
+    calculate: order => ({ price: 500, priceIncludesTax: false, taxRate: 0 }),
+});
+```
+
+The same strings can also come from the message catalogs, under the `configurableOperation` namespace. This keeps the operation definition readable when you support many languages, and it lets you translate an operation defined by someone else without forking it.
+
+The keys are derived from the operation, so there is nothing to register:
+
+```text
+configurableOperation.<type>.<code>.description
+configurableOperation.<type>.<code>.args.<argName>.label
+configurableOperation.<type>.<code>.args.<argName>.description
+configurableOperation.<type>.<code>.args.<argName>.options.<optionValue>.label
+```
+
+`<type>` is the registry the operation belongs to, such as `ShippingCalculator` or `PromotionCondition`. It forms part of the key because a `code` is only unique within its own registry — core itself uses `buy_x_get_y_free` for both a promotion condition and a promotion action.
+
+So the German strings above could instead be registered like this:
+
+```ts
+@VendurePlugin({
+    imports: [PluginCommonModule],
+    providers: [I18nService],
+    // ...
+})
+export class MyPlugin implements OnApplicationBootstrap {
+
+    constructor(private i18nService: I18nService) {}
+
+    onApplicationBootstrap(): any {
+        this.i18nService.addTranslation('de', {
+            configurableOperation: {
+                ShippingCalculator: {
+                    'custom-shipping-calculator': {
+                        description: 'Eigener Versandrechner',
+                        args: {
+                            rate: { label: 'Versandpreis' },
+                        },
+                    },
+                },
+            },
+        });
+    }
+}
+```
+
+### Which language these strings are resolved into
+
+These strings describe the operation itself, so they should appear in whatever language the administrator reads. That is a separate setting from the one which selects the translation of your product and Collection data.
+
+The two come from different parts of the request. The `languageCode` query parameter selects which translation of your data to return, such as the product name or the Collection description. The `Accept-Language` header tells the server which language to write its own text in, and operation descriptions and argument labels count as its own text. So an administrator reading the Admin UI in Japanese while editing the German translation of a product sends `?languageCode=de` together with `Accept-Language: ja`, and gets German product data described by Japanese labels.
+
+A client which sends no `Accept-Language` header falls back to `languageCode`.
+
+Vendure tries each language in turn: first the languages from `Accept-Language` in the order the header gives them, then the request's `languageCode`, then the Channel's default language, then English. For each one it looks in the catalogs first and in the inline array second. A catalog entry therefore wins over an inline string for the same language, which is what allows a third-party operation's wording to be overridden. An operation which ships only inline strings still resolves to its own language rather than to an English catalog entry defined elsewhere.
+
+Select option labels behave slightly differently. The description and the argument labels arrive at the client already resolved to a single string, but option labels are sent as the full array with the catalog translation merged into it. The merged entry carries the language code the client asked for. Clients look up their own display language and fall back to the first entry in the array when they find no exact match, so a translation filed under any other code would be passed over.
+
+:::caution
+Browsers send an `Accept-Language` header of their own, derived from the operating system locale, on every request. A browser-based Admin API client which relies on `languageCode` alone for these strings will therefore resolve them against that OS locale.
+
+If you maintain such a client, set the header explicitly from whatever language your interface is displayed in. The Dashboard and the Admin UI both do this. Server-to-server clients are unaffected, since they only send the header if they choose to.
+:::
+
+:::note
+A key which matches no operation is never read, so a mistyped key produces no error — the inline string is used instead and the mistake is silent. Call `getTranslationKeys()` on the operation, which returns the exact key paths it expects.
+:::
+
+Several of core's descriptions are templates rather than sentences, for example `Discount order by { discount }%`. The admin UI substitutes the live argument values into these placeholders, so a translated string must reproduce them exactly, spaces inside the braces included.
 
 ### Use translations
 

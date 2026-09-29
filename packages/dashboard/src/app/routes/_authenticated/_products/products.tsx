@@ -73,9 +73,11 @@ function ProductListPage() {
             onSearchTermChange={searchTerm => {
                 return searchTerm
                     ? {
-                          name: { contains: searchTerm },
-                          slug: { contains: searchTerm },
-                          sku: { contains: searchTerm },
+                          _or: [
+                              { name: { contains: searchTerm } },
+                              { slug: { contains: searchTerm } },
+                              { sku: { contains: searchTerm } },
+                          ],
                       }
                     : {};
             }}
@@ -93,14 +95,6 @@ function ProductListPage() {
                     title: t`Facet values`,
                     component: FacetValueFacetedFilter,
                 },
-            }}
-            transformVariables={variables => {
-                return {
-                    options: {
-                        ...variables.options,
-                        filterOperator: 'OR',
-                    },
-                };
             }}
             defaultSort={[{ id: 'updatedAt', desc: true }]}
             defaultVisibility={{

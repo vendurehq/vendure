@@ -139,6 +139,13 @@ export interface DashboardPageBlockDefinition {
     title?: React.ReactNode;
     /**
      * @description
+     * Optional supporting text displayed below the page block title.
+     *
+     * @since 3.8.0
+     */
+    description?: React.ReactNode;
+    /**
+     * @description
      * The location of the page block. It specifies the pageId, and then the
      * relative location compared to another existing block.
      */

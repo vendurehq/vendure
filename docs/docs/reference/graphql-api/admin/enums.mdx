@@ -396,7 +396,9 @@ enum CurrencyCode {
   MIME_TYPE_ERROR
   PASSWORD_RESET_TOKEN_INVALID_ERROR
   PASSWORD_RESET_TOKEN_EXPIRED_ERROR
+  MISSING_PASSWORD_ERROR
   PASSWORD_VALIDATION_ERROR
+  PASSWORD_ALREADY_SET_ERROR
   LANGUAGE_NOT_AVAILABLE_ERROR
   DUPLICATE_ENTITY_ERROR
   FACET_IN_USE_ERROR
@@ -416,6 +418,8 @@ enum CurrencyCode {
   ALREADY_REFUNDED_ERROR
   QUANTITY_TOO_GREAT_ERROR
   REFUND_AMOUNT_ERROR
+  REFUND_DESTINATION_ERROR
+  REFUND_INCOMPLETE_ERROR
   REFUND_STATE_TRANSITION_ERROR
   PAYMENT_STATE_TRANSITION_ERROR
   FULFILLMENT_STATE_TRANSITION_ERROR
@@ -962,6 +966,8 @@ enum Permission {
   Public
   """Grants permission to update GlobalSettings"""
   UpdateGlobalSettings
+  """Grants permission to read the decrypted value of custom fields and config args marked as \`secret\`"""
+  ReadSecret
   """Grants permission to create Products, Facets, Assets, Collections"""
   CreateCatalog
   """Grants permission to read Products, Facets, Assets, Collections"""

@@ -9,6 +9,7 @@ import {
     DeletionResponse,
     DeletionResult,
     OrderType,
+    Permission,
     RemovePromotionsFromChannelInput,
     UpdatePromotionInput,
     UpdatePromotionResult,
@@ -20,7 +21,7 @@ import { In, IsNull, Raw } from 'typeorm';
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
 import { ErrorResultUnion, JustErrorResults } from '../../common/error/error-result';
-import { UserInputError } from '../../common/error/errors';
+import { ForbiddenError, UserInputError } from '../../common/error/errors';
 import { MissingConditionsError } from '../../common/error/generated-graphql-admin-errors';
 import {
     CouponCodeExpiredError,
@@ -48,6 +49,7 @@ import { TranslatableSaver } from '../helpers/translatable-saver/translatable-sa
 import { TranslatorService } from '../helpers/translator/translator.service';
 
 import { ChannelService } from './channel.service';
+import { RoleService } from './role.service';
 
 /**
  * @description
@@ -71,6 +73,7 @@ export class PromotionService {
         private eventBus: EventBus,
         private translatableSaver: TranslatableSaver,
         private translator: TranslatorService,
+        private roleService: RoleService,
     ) {
         this.availableConditions = this.configService.promotionOptions.promotionConditions || [];
         this.availableActions = this.configService.promotionOptions.promotionActions || [];
@@ -176,13 +179,17 @@ export class PromotionService {
             beforeSave: async p => {
                 p.priorityScore = this.calculatePriorityScore(input);
                 if (input.conditions) {
-                    p.conditions = input.conditions.map(c =>
-                        this.configArgService.parseInput('PromotionCondition', c),
+                    p.conditions = this.configArgService.parseInputList(
+                        'PromotionCondition',
+                        input.conditions,
+                        promotion.conditions,
                     );
                 }
                 if (input.actions) {
-                    p.actions = input.actions.map(a =>
-                        this.configArgService.parseInput('PromotionAction', a),
+                    p.actions = this.configArgService.parseInputList(
+                        'PromotionAction',
+                        input.actions,
+                        promotion.actions,
                     );
                 }
             },
@@ -193,7 +200,9 @@ export class PromotionService {
     }
 
     async softDeletePromotion(ctx: RequestContext, promotionId: ID): Promise<DeletionResponse> {
-        const promotion = await this.connection.getEntityOrThrow(ctx, Promotion, promotionId);
+        const promotion = await this.connection.getEntityOrThrow(ctx, Promotion, promotionId, {
+            channelId: ctx.channelId,
+        });
         await this.connection
             .getRepository(ctx, Promotion)
             .update({ id: promotionId }, { deletedAt: new Date() });
@@ -208,6 +217,12 @@ export class PromotionService {
         ctx: RequestContext,
         input: AssignPromotionsToChannelInput,
     ): Promise<Promotion[]> {
+        const hasPermission = await this.roleService.userHasAnyPermissionsOnChannel(ctx, input.channelId, [
+            Permission.UpdatePromotion,
+        ]);
+        if (!hasPermission) {
+            throw new ForbiddenError();
+        }
         const promotions = await this.connection.findByIdsInChannel(
             ctx,
             Promotion,
@@ -222,6 +237,16 @@ export class PromotionService {
     }
 
     async removePromotionsFromChannel(ctx: RequestContext, input: RemovePromotionsFromChannelInput) {
+        const hasPermission = await this.roleService.userHasAnyPermissionsOnChannel(ctx, input.channelId, [
+            Permission.UpdatePromotion,
+        ]);
+        if (!hasPermission) {
+            throw new ForbiddenError();
+        }
+        const defaultChannel = await this.channelService.getDefaultChannel(ctx);
+        if (idsAreEqual(input.channelId, defaultChannel.id)) {
+            throw new UserInputError('error.items-cannot-be-removed-from-default-channel');
+        }
         const promotions = await this.connection.findByIdsInChannel(
             ctx,
             Promotion,
@@ -258,7 +283,7 @@ export class PromotionService {
                 deletedAt: IsNull(),
                 channels: { id: ctx.channelId },
             },
-            relations: ['channels'],
+            relations: { channels: true },
         });
         if (!promotion || !promotion.channels.find(c => idsAreEqual(c.id, ctx.channelId))) {
             return new CouponCodeInvalidError({ couponCode });

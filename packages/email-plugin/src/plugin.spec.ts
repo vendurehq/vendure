@@ -24,6 +24,7 @@ import { afterEach, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 
 import { EmailProcessor } from './email-processor';
 import { EmailEventListener } from './event-listener';
+import { NoopEmailGenerator } from './generator/noop-email-generator';
 import { orderConfirmationHandler } from './handler/default-email-handlers';
 import { EmailEventHandler } from './handler/event-handler';
 import { EmailPlugin } from './plugin';
@@ -348,6 +349,101 @@ describe('EmailPlugin', () => {
             await eventBus.publish(new MockEvent(ctx, true));
             await pause();
             expect(onSend.mock.calls[0][0].subject).toBe('Hello quux');
+        });
+    });
+
+    describe('plain text body', () => {
+        const ctx = RequestContext.deserialize({
+            _channel: { code: DEFAULT_CHANNEL_CODE },
+            _languageCode: LanguageCode.en,
+        } as any);
+
+        it('sends no plain text body when not set', async () => {
+            const handler = new EmailEventListener('test')
+                .on(MockEvent)
+                .setFrom('"test from" <noreply@test.com>')
+                .setRecipient(() => 'test@test.com')
+                .setSubject('Hello')
+                .setTemplateVars(() => ({ testVar: 'this is the test var' }));
+
+            await initPluginWithHandlers([handler]);
+
+            await eventBus.publish(new MockEvent(ctx, true));
+            await pause();
+            expect(onSend.mock.calls[0][0].text).toBeUndefined();
+        });
+
+        it('uses the plain text body when set', async () => {
+            const handler = new EmailEventListener('test')
+                .on(MockEvent)
+                .setFrom('"test from" <noreply@test.com>')
+                .setRecipient(() => 'test@test.com')
+                .setSubject('Hello')
+                .setTemplateVars(() => ({ testVar: 'this is the test var' }))
+                .setPlainTextBody(() => 'custom plain text');
+
+            await initPluginWithHandlers([handler]);
+
+            await eventBus.publish(new MockEvent(ctx, true));
+            await pause();
+            expect(onSend.mock.calls[0][0].text).toBe('custom plain text');
+        });
+
+        it('sets the plain text body when using the NoopEmailGenerator', async () => {
+            const handler = new EmailEventListener('test')
+                .on(MockEvent)
+                .setFrom('"test from" <noreply@test.com>')
+                .setRecipient(() => 'test@test.com')
+                .setSubject('Hello')
+                .setTemplateVars(() => ({ testVar: 'this is the test var' }))
+                .setPlainTextBody(() => 'custom plain text');
+
+            await initPluginWithHandlers([handler], { emailGenerator: new NoopEmailGenerator() });
+
+            await eventBus.publish(new MockEvent(ctx, true));
+            await pause();
+            expect(onSend.mock.calls[0][0].text).toBe('custom plain text');
+        });
+
+        it('passes the template vars to the setPlainTextBody function', async () => {
+            const handler = new EmailEventListener('test')
+                .on(MockEvent)
+                .setFrom('"test from" <noreply@test.com>')
+                .setRecipient(() => 'test@test.com')
+                .setSubject('Hello')
+                .setTemplateVars(() => ({ testVar: 'foo' }))
+                .setPlainTextBody(
+                    (event, templateVars) =>
+                        `${templateVars.globalVar as string} ${templateVars.testVar as string}`,
+                );
+
+            await initPluginWithHandlers([handler], { globalTemplateVars: { globalVar: 'baz' } });
+
+            await eventBus.publish(new MockEvent(ctx, true));
+            await pause();
+            expect(onSend.mock.calls[0][0].text).toBe('baz foo');
+        });
+
+        it('logs the error and still sends the email if the setPlainTextBody function throws', async () => {
+            testingLogger.errorSpy.mockClear();
+
+            const handler = new EmailEventListener('test')
+                .on(MockEvent)
+                .setFrom('"test from" <noreply@test.com>')
+                .setRecipient(() => 'test@test.com')
+                .setSubject('Hello')
+                .setTemplateVars(() => ({ testVar: 'this is the test var' }))
+                .setPlainTextBody(() => {
+                    throw new Error('boom');
+                });
+
+            await initPluginWithHandlers([handler]);
+
+            await eventBus.publish(new MockEvent(ctx, true));
+            await pause();
+            expect(testingLogger.errorSpy.mock.calls[0][0]).toContain('boom');
+            expect(onSend).toHaveBeenCalledTimes(1);
+            expect(onSend.mock.calls[0][0].text).toBeUndefined();
         });
     });
 

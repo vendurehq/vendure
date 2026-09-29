@@ -71,6 +71,13 @@ Contributions are welcome: bugs, features, or docs. Our **[Contribution Guide](.
 
 Pick up a [labelled issue](https://github.com/vendurehq/vendure/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22%F0%9F%91%8B%20contributions%20welcome%22) as a good first contribution.
 
+## Security
+
+To report a suspected security vulnerability, use
+[GitHub's private vulnerability reporting](https://github.com/vendurehq/vendure/security/advisories/new).
+Do not disclose security vulnerabilities through public GitHub issues or email. See our
+[security policy](./SECURITY.md) for details.
+
 ## Releases
 
 Patch releases ship regularly. Check our [release notes](https://github.com/vendurehq/vendure/releases) to keep up to date.

@@ -14,6 +14,7 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation } from '@tanstack/react-query';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { PlusIcon } from 'lucide-react';
+
 import { createDraftOrderDocument, orderListDocument } from './orders.graphql.js';
 
 export const Route = createFileRoute('/_authenticated/_orders/orders')({

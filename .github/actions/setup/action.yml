@@ -10,6 +10,10 @@ inputs:
         required: false
         # Pinned. Bump explicitly when re-validating against a newer Bun.
         default: '1.3.10'
+    typeorm:
+        description: 'TypeORM profile from scripts/typeorm/profiles.json. Leave empty to install the versions declared in the workspace.'
+        required: false
+        default: ''
 runs:
     using: 'composite'
     steps:
@@ -20,5 +24,14 @@ runs:
           with:
               bun-version: ${{ inputs.bun-version }}
         - name: Install dependencies
+          if: inputs.typeorm == ''
           shell: bash
           run: bun install --frozen-lockfile
+        # Applying a profile rewrites the root overrides, so the lockfile is
+        # expected to change and cannot be installed frozen.
+        - name: Install dependencies (TypeORM ${{ inputs.typeorm }})
+          if: inputs.typeorm != ''
+          shell: bash
+          run: |
+              node scripts/typeorm/use-version.mjs "${{ inputs.typeorm }}"
+              node scripts/typeorm/verify.mjs

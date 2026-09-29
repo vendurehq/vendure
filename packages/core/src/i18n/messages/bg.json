@@ -1,0 +1,199 @@
+{
+  "configurableOperation": {
+    "CollectionFilter": {
+      "facet-value-filter": {
+        "description": "Филтриране по атрибутни стойности",
+        "args": {
+          "facetValueIds": {
+            "label": "Атрибутни стойности"
+          },
+          "containsAny": {
+            "label": "Съдържа някоя",
+            "description": "Ако е отметнато, вариантите на продукта трябва да имат поне една от избраните атрибутни стойности. Ако не е отметнато, вариантът трябва да има всички избрани стойности."
+          },
+          "combineWithAnd": {
+            "label": "Режим на комбиниране",
+            "description": "Ако този филтър се комбинира с други филтри, трябва ли да бъдат изпълнени всички условия (AND) или е достатъчно само едно от тях (OR)?"
+          }
+        }
+      },
+      "variant-name-filter": {
+        "description": "Филтриране по име на вариант на продукта",
+        "args": {
+          "combineWithAnd": {
+            "label": "Режим на комбиниране",
+            "description": "Ако този филтър се комбинира с други филтри, трябва ли да бъдат изпълнени всички условия (AND) или е достатъчно само едно от тях (OR)?"
+          }
+        }
+      },
+      "variant-id-filter": {
+        "description": "Ръчен избор на варианти на продукта",
+        "args": {
+          "variantIds": {
+            "label": "Варианти на продукта"
+          },
+          "combineWithAnd": {
+            "label": "Режим на комбиниране",
+            "description": "Ако този филтър се комбинира с други филтри, трябва ли да бъдат изпълнени всички условия (AND) или е достатъчно само едно от тях (OR)?"
+          }
+        }
+      },
+      "product-id-filter": {
+        "description": "Ръчен избор на продукти",
+        "args": {
+          "productIds": {
+            "label": "Продукти"
+          },
+          "combineWithAnd": {
+            "label": "Режим на комбиниране",
+            "description": "Ако този филтър се комбинира с други филтри, трябва ли да бъдат изпълнени всички условия (AND) или е достатъчно само едно от тях (OR)?"
+          }
+        }
+      }
+    },
+    "EntityDuplicator": {
+      "product-duplicator": {
+        "description": "Дубликатор по подразбиране за продукти",
+        "args": {
+          "includeVariants": {
+            "label": "Включване на вариантите"
+          }
+        }
+      },
+      "collection-duplicator": {
+        "description": "Дубликатор по подразбиране за колекции"
+      },
+      "facet-duplicator": {
+        "description": "Дубликатор по подразбиране за атрибути",
+        "args": {
+          "includeFacetValues": {
+            "label": "Включване на атрибутните стойности"
+          }
+        }
+      },
+      "promotion-duplicator": {
+        "description": "Дубликатор по подразбиране за промоции"
+      }
+    },
+    "FulfillmentHandler": {
+      "manual-fulfillment": {
+        "description": "Ръчно въвеждане на данните за изпълнението"
+      }
+    },
+    "PaymentMethodHandler": {
+      "dummy-payment-handler": {
+        "description": "Фиктивен доставчик на плащания, предназначен само за тестване и разработка.",
+        "args": {
+          "automaticSettle": {
+            "label": "Оторизиране и уреждане в 1 стъпка",
+            "description": "Ако е активирано, плащанията ще се създават в състояние \"Settled\"."
+          }
+        }
+      },
+      "example-payment-provider": {
+        "description": "Примерен доставчик на плащания"
+      }
+    },
+    "PromotionAction": {
+      "order_fixed_discount": {
+        "description": "Отстъпка от поръчката с фиксирана сума"
+      },
+      "order_line_fixed_discount": {
+        "description": "Отстъпка от orderLine с фиксирана сума"
+      },
+      "order_percentage_discount": {
+        "description": "Отстъпка от поръчката с { discount }%"
+      },
+      "facet_based_discount": {
+        "description": "Отстъпка от { discount }% за продуктите с тези атрибути"
+      },
+      "products_percentage_discount": {
+        "description": "Отстъпка от { discount }% за посочените продукти",
+        "args": {
+          "productVariantIds": {
+            "label": "Варианти на продукта"
+          }
+        }
+      },
+      "free_shipping": {
+        "description": "Безплатна доставка"
+      },
+      "buy_x_get_y_free": {
+        "description": "Купуване на X продукта и получаване на Y продукта безплатно"
+      }
+    },
+    "PromotionCondition": {
+      "minimum_order_amount": {
+        "description": "Ако общата сума на поръчката е по-голяма от { amount }"
+      },
+      "at_least_n_with_facets": {
+        "description": "Купуване на поне { minimum } продукта с посочените атрибути"
+      },
+      "contains_products": {
+        "description": "Купуване на поне { minimum } от посочените продукти",
+        "args": {
+          "productVariantIds": {
+            "label": "Варианти на продукта"
+          }
+        }
+      },
+      "customer_group": {
+        "description": "Клиентът е член на посочената група",
+        "args": {
+          "customerGroupId": {
+            "label": "Група клиенти"
+          }
+        }
+      },
+      "buy_x_get_y_free": {
+        "description": "Купуване на X продукта и получаване на Y продукта безплатно",
+        "args": {
+          "variantIdsX": {
+            "label": "Купуване на amountX от тези варианти"
+          },
+          "variantIdsY": {
+            "label": "Получаване на amountY от тези варианти безплатно"
+          }
+        }
+      }
+    },
+    "ShippingCalculator": {
+      "default-shipping-calculator": {
+        "description": "Калкулатор за доставка с фиксирана ставка по подразбиране",
+        "args": {
+          "rate": {
+            "label": "Цена на доставката"
+          },
+          "includesTax": {
+            "label": "Цената включва данък",
+            "options": {
+              "include": {
+                "label": "Включва данък"
+              },
+              "exclude": {
+                "label": "Не включва данък"
+              },
+              "auto": {
+                "label": "Автоматично (според канала)"
+              }
+            }
+          },
+          "taxRate": {
+            "label": "Данъчна ставка"
+          }
+        }
+      }
+    },
+    "ShippingEligibilityChecker": {
+      "default-shipping-eligibility-checker": {
+        "description": "Проверка за допустимост на доставката по подразбиране",
+        "args": {
+          "orderMinimum": {
+            "label": "Минимална стойност на поръчката",
+            "description": "Поръчката е допустима само ако общата ѝ сума е по-голяма или равна на тази стойност"
+          }
+        }
+      }
+    }
+  }
+}

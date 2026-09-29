@@ -1,4 +1,5 @@
 import { ChannelCodeLabel } from '@/vdb/components/shared/channel-code-label.js';
+import { ChannelColorPicker } from '@/vdb/components/shared/channel-color-picker.js';
 import { CurrencySelector } from '@/vdb/components/shared/currency-selector.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
@@ -21,6 +22,7 @@ import {
 } from '@/vdb/framework/layout-engine/page-layout.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
+import { useChannelColors } from '@/vdb/hooks/use-channel-colors.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { z } from '@/vdb/lib/zod.js';
 import { Trans, useLingui } from '@lingui/react/macro';
@@ -76,6 +78,7 @@ function ChannelDetailPage() {
     const creatingNewEntity = params.id === NEW_ENTITY_PATH;
     const { t } = useLingui();
     const { refreshChannels } = useChannel();
+    const { canEdit: canEditChannelColors, isAvailable: channelColorsAvailable } = useChannelColors();
 
     const { form, submitHandler, entity, isPending, resetForm } = useDetailPage({
         pageId,
@@ -347,6 +350,14 @@ function ChannelDetailPage() {
                         />
                     </DetailFormGrid>
                 </PageBlock>
+                {!creatingNewEntity && entity && canEditChannelColors && channelColorsAvailable ? (
+                    <PageBlock column="side" blockId="appearance" title={<Trans>Appearance</Trans>}>
+                        <p className="mb-4 text-sm text-muted-foreground">
+                            <Trans>Choose the shared marker color used for this channel.</Trans>
+                        </p>
+                        <ChannelColorPicker channelId={entity.id} />
+                    </PageBlock>
+                ) : null}
                 <CustomFieldsPageBlock column="main" entityType="Channel" control={form.control} />
             </PageLayout>
         </Page>

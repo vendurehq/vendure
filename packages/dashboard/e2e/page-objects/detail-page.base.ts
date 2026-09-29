@@ -1,5 +1,7 @@
 import { type Locator, type Page, expect } from '@playwright/test';
 
+import { closePopup } from '../utils/base-ui-popups.js';
+
 export interface DetailPageConfig {
     /** URL path for the "new" form, e.g. '/tax-categories/new' */
     newPath: string;
@@ -95,20 +97,10 @@ export class BaseDetailPage {
     async selectPopoverOption(triggerLocator: Locator, optionText: string) {
         await triggerLocator.click();
         await this.page.getByRole('option', { name: optionText, exact: true }).click();
-        // Multi-selects stay open after choosing an option (unless a filter is active). Close the
-        // popup so its modal backdrop does not intercept the next form interaction.
-        await this.closeDropdown();
-    }
-
-    /**
-     * Dismiss an open Base UI dropdown and wait until it can no longer swallow clicks.
-     * A closed popup stays mounted but hidden, and its inert backdrop outlives the listbox —
-     * most visibly after opening a dropdown that has no options at all.
-     */
-    async closeDropdown() {
-        await this.page.keyboard.press('Escape');
-        await expect(this.page.getByRole('listbox').filter({ visible: true })).toHaveCount(0);
-        await expect(this.page.locator('[data-base-ui-inert]')).toHaveCount(0);
+        // Multi-selects stay open after choosing an option, and the popup's backdrop would
+        // intercept the next form interaction. A filtered picker closes itself instead, and
+        // closePopup requires an open popup, so this does not suit those.
+        await closePopup(triggerLocator);
     }
 
     /** Toggle a switch field identified by its label. */

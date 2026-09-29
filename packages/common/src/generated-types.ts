@@ -86,6 +86,7 @@ export enum AdjustmentType {
 
 export type Administrator = Node & {
   __typename?: 'Administrator';
+  avatar?: Maybe<Asset>;
   createdAt: Scalars['DateTime']['output'];
   customFields?: Maybe<Scalars['JSON']['output']>;
   emailAddress: Scalars['String']['output'];
@@ -201,8 +202,14 @@ export type ApiKeyFilterParameter = {
   _or?: InputMaybe<Array<ApiKeyFilterParameter>>;
   createdAt?: InputMaybe<DateOperators>;
   id?: InputMaybe<IdOperators>;
+  /** Helps you identify unused keys */
   lastUsedAt?: InputMaybe<DateOperators>;
+  /**
+   * ID by which we can look up the API-Key.
+   * Also helps you identify keys without leaking the underlying secret API-Key.
+   */
   lookupId?: InputMaybe<StringOperators>;
+  /** A descriptive name so you can remind yourself where the API-Key gets used */
   name?: InputMaybe<StringOperators>;
   updatedAt?: InputMaybe<DateOperators>;
 };
@@ -229,8 +236,14 @@ export type ApiKeyListOptions = {
 export type ApiKeySortParameter = {
   createdAt?: InputMaybe<SortOrder>;
   id?: InputMaybe<SortOrder>;
+  /** Helps you identify unused keys */
   lastUsedAt?: InputMaybe<SortOrder>;
+  /**
+   * ID by which we can look up the API-Key.
+   * Also helps you identify keys without leaking the underlying secret API-Key.
+   */
   lookupId?: InputMaybe<SortOrder>;
+  /** A descriptive name so you can remind yourself where the API-Key gets used */
   name?: InputMaybe<SortOrder>;
   updatedAt?: InputMaybe<SortOrder>;
 };
@@ -418,6 +431,7 @@ export type BooleanCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -530,9 +544,11 @@ export type ChannelFilterParameter = {
   defaultCurrencyCode?: InputMaybe<StringOperators>;
   defaultLanguageCode?: InputMaybe<StringOperators>;
   id?: InputMaybe<IdOperators>;
+  /** Not yet used - will be implemented in a future release. */
   outOfStockThreshold?: InputMaybe<NumberOperators>;
   pricesIncludeTax?: InputMaybe<BooleanOperators>;
   token?: InputMaybe<StringOperators>;
+  /** Not yet used - will be implemented in a future release. */
   trackInventory?: InputMaybe<BooleanOperators>;
   updatedAt?: InputMaybe<DateOperators>;
 };
@@ -560,6 +576,7 @@ export type ChannelSortParameter = {
   code?: InputMaybe<SortOrder>;
   createdAt?: InputMaybe<SortOrder>;
   id?: InputMaybe<SortOrder>;
+  /** Not yet used - will be implemented in a future release. */
   outOfStockThreshold?: InputMaybe<SortOrder>;
   token?: InputMaybe<SortOrder>;
   updatedAt?: InputMaybe<SortOrder>;
@@ -686,6 +703,7 @@ export type ConfigArgDefinition = {
   list: Scalars['Boolean']['output'];
   name: Scalars['String']['output'];
   required: Scalars['Boolean']['output'];
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -952,7 +970,7 @@ export type CreateCustomerInput = {
   title?: InputMaybe<Scalars['String']['input']>;
 };
 
-export type CreateCustomerResult = Customer | EmailAddressConflictError;
+export type CreateCustomerResult = Customer | EmailAddressConflictError | PasswordValidationError;
 
 export type CreateFacetInput = {
   code: Scalars['String']['input'];
@@ -1076,6 +1094,7 @@ export type CreateProvinceInput = {
 export type CreateRoleInput = {
   channelIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   code: Scalars['String']['input'];
+  customFields?: InputMaybe<Scalars['JSON']['input']>;
   description: Scalars['String']['input'];
   permissions: Array<Permission>;
 };
@@ -1083,6 +1102,7 @@ export type CreateRoleInput = {
 export type CreateSellerInput = {
   customFields?: InputMaybe<Scalars['JSON']['input']>;
   name: Scalars['String']['input'];
+  translations?: InputMaybe<Array<SellerTranslationInput>>;
 };
 
 export type CreateShippingMethodInput = {
@@ -1475,6 +1495,7 @@ export type CustomField = {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -1512,6 +1533,7 @@ export type CustomFields = {
   Promotion: Array<CustomFieldConfig>;
   Refund: Array<CustomFieldConfig>;
   Region: Array<CustomFieldConfig>;
+  Role: Array<CustomFieldConfig>;
   Seller: Array<CustomFieldConfig>;
   Session: Array<CustomFieldConfig>;
   ShippingLine: Array<CustomFieldConfig>;
@@ -1684,6 +1706,7 @@ export type DateTimeCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   step?: Maybe<Scalars['Int']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
@@ -1819,6 +1842,7 @@ export enum ErrorCode {
   MANUAL_PAYMENT_STATE_ERROR = 'MANUAL_PAYMENT_STATE_ERROR',
   MIME_TYPE_ERROR = 'MIME_TYPE_ERROR',
   MISSING_CONDITIONS_ERROR = 'MISSING_CONDITIONS_ERROR',
+  MISSING_PASSWORD_ERROR = 'MISSING_PASSWORD_ERROR',
   MULTIPLE_ORDER_ERROR = 'MULTIPLE_ORDER_ERROR',
   NATIVE_AUTH_STRATEGY_ERROR = 'NATIVE_AUTH_STRATEGY_ERROR',
   NEGATIVE_QUANTITY_ERROR = 'NEGATIVE_QUANTITY_ERROR',
@@ -1830,6 +1854,7 @@ export enum ErrorCode {
   ORDER_MODIFICATION_ERROR = 'ORDER_MODIFICATION_ERROR',
   ORDER_MODIFICATION_STATE_ERROR = 'ORDER_MODIFICATION_STATE_ERROR',
   ORDER_STATE_TRANSITION_ERROR = 'ORDER_STATE_TRANSITION_ERROR',
+  PASSWORD_ALREADY_SET_ERROR = 'PASSWORD_ALREADY_SET_ERROR',
   PASSWORD_RESET_TOKEN_EXPIRED_ERROR = 'PASSWORD_RESET_TOKEN_EXPIRED_ERROR',
   PASSWORD_RESET_TOKEN_INVALID_ERROR = 'PASSWORD_RESET_TOKEN_INVALID_ERROR',
   PASSWORD_VALIDATION_ERROR = 'PASSWORD_VALIDATION_ERROR',
@@ -1840,6 +1865,8 @@ export enum ErrorCode {
   PRODUCT_OPTION_IN_USE_ERROR = 'PRODUCT_OPTION_IN_USE_ERROR',
   QUANTITY_TOO_GREAT_ERROR = 'QUANTITY_TOO_GREAT_ERROR',
   REFUND_AMOUNT_ERROR = 'REFUND_AMOUNT_ERROR',
+  REFUND_DESTINATION_ERROR = 'REFUND_DESTINATION_ERROR',
+  REFUND_INCOMPLETE_ERROR = 'REFUND_INCOMPLETE_ERROR',
   REFUND_ORDER_STATE_ERROR = 'REFUND_ORDER_STATE_ERROR',
   REFUND_PAYMENT_ID_MISSING_ERROR = 'REFUND_PAYMENT_ID_MISSING_ERROR',
   REFUND_STATE_TRANSITION_ERROR = 'REFUND_STATE_TRANSITION_ERROR',
@@ -2044,6 +2071,7 @@ export type FloatCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   step?: Maybe<Scalars['Float']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
@@ -2267,6 +2295,7 @@ export type IntCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   step?: Maybe<Scalars['Int']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
@@ -2747,6 +2776,7 @@ export type LocaleStringCustomFieldConfig = CustomField & {
   pattern?: Maybe<Scalars['String']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -2763,6 +2793,7 @@ export type LocaleTextCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -2836,6 +2867,13 @@ export type MimeTypeError = ErrorResult & {
 /** Returned if a PromotionCondition has neither a couponCode nor any conditions set */
 export type MissingConditionsError = ErrorResult & {
   __typename?: 'MissingConditionsError';
+  errorCode: ErrorCode;
+  message: Scalars['String']['output'];
+};
+
+/** Returned when attempting to register or verify a customer account without a password, when one is required. */
+export type MissingPasswordError = ErrorResult & {
+  __typename?: 'MissingPasswordError';
   errorCode: ErrorCode;
   message: Scalars['String']['output'];
 };
@@ -3164,6 +3202,8 @@ export type Mutation = {
   rotateApiKey: RotateApiKeyResult;
   runPendingSearchIndexUpdates: Success;
   runScheduledTask: Success;
+  /** Upload, replace or remove the active Administrator's profile picture */
+  setActiveAdministratorAvatar: Administrator;
   setCustomerForDraftOrder: SetCustomerForDraftOrderResult;
   /** Sets the billing address for a draft Order */
   setDraftOrderBillingAddress: Order;
@@ -3251,6 +3291,20 @@ export type Mutation = {
   updateTaxRate: TaxRate;
   /** Update an existing Zone */
   updateZone: Zone;
+  /**
+   * Manually mark a Customer's email address as verified, without the Customer having to use a
+   * verification email.
+   *
+   * A Customer with no password set (as created by `createCustomer` without one) cannot log in.
+   * Omitting `password` for such a Customer returns a `MissingPasswordError`. Passing one for a
+   * Customer who already has a password returns a `PasswordAlreadySetError`.
+   *
+   * Two failures are outside the result union, because they describe a Customer the caller should
+   * not have picked rather than a password they should correct: a Customer with no User at all (a
+   * guest checkout), and a User whose only credential is external, which a password cannot be
+   * stored on. Both throw.
+   */
+  verifyCustomerAccount: VerifyCustomerAccountResult;
 };
 
 
@@ -3916,6 +3970,11 @@ export type MutationRunScheduledTaskArgs = {
 };
 
 
+export type MutationSetActiveAdministratorAvatarArgs = {
+  file?: InputMaybe<Scalars['Upload']['input']>;
+};
+
+
 export type MutationSetCustomerForDraftOrderArgs = {
   customerId?: InputMaybe<Scalars['ID']['input']>;
   input?: InputMaybe<CreateCustomerInput>;
@@ -4174,6 +4233,12 @@ export type MutationUpdateZoneArgs = {
   input: UpdateZoneInput;
 };
 
+
+export type MutationVerifyCustomerAccountArgs = {
+  id: Scalars['ID']['input'];
+  password?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type NativeAuthInput = {
   password: Scalars['String']['input'];
   username: Scalars['String']['input'];
@@ -4331,21 +4396,36 @@ export type OrderAddress = {
 export type OrderFilterParameter = {
   _and?: InputMaybe<Array<OrderFilterParameter>>;
   _or?: InputMaybe<Array<OrderFilterParameter>>;
+  /** An order is active as long as the payment process has not been completed */
   active?: InputMaybe<BooleanOperators>;
   aggregateOrderId?: InputMaybe<IdOperators>;
+  /** A unique code for the Order */
   code?: InputMaybe<StringOperators>;
   createdAt?: InputMaybe<DateOperators>;
   currencyCode?: InputMaybe<StringOperators>;
   customerLastName?: InputMaybe<StringOperators>;
   id?: InputMaybe<IdOperators>;
+  /**
+   * The date & time that the Order was placed, i.e. the Customer
+   * completed the checkout and the Order is no longer "active"
+   */
   orderPlacedAt?: InputMaybe<DateOperators>;
   shipping?: InputMaybe<NumberOperators>;
   shippingWithTax?: InputMaybe<NumberOperators>;
   state?: InputMaybe<StringOperators>;
+  /**
+   * The subTotal is the total of all OrderLines in the Order. This figure also includes any Order-level
+   * discounts which have been prorated (proportionally distributed) amongst the items of each OrderLine.
+   * To get a total of all OrderLines which does not account for prorated discounts, use the
+   * sum of `OrderLine.discountedLinePrice` values.
+   */
   subTotal?: InputMaybe<NumberOperators>;
+  /** Same as subTotal, but inclusive of tax */
   subTotalWithTax?: InputMaybe<NumberOperators>;
+  /** Equal to subTotal plus shipping */
   total?: InputMaybe<NumberOperators>;
   totalQuantity?: InputMaybe<NumberOperators>;
+  /** The final payable amount. Equal to subTotalWithTax plus shippingWithTax */
   totalWithTax?: InputMaybe<NumberOperators>;
   transactionId?: InputMaybe<StringOperators>;
   type?: InputMaybe<StringOperators>;
@@ -4501,18 +4581,32 @@ export type OrderProcessState = {
 
 export type OrderSortParameter = {
   aggregateOrderId?: InputMaybe<SortOrder>;
+  /** A unique code for the Order */
   code?: InputMaybe<SortOrder>;
   createdAt?: InputMaybe<SortOrder>;
   customerLastName?: InputMaybe<SortOrder>;
   id?: InputMaybe<SortOrder>;
+  /**
+   * The date & time that the Order was placed, i.e. the Customer
+   * completed the checkout and the Order is no longer "active"
+   */
   orderPlacedAt?: InputMaybe<SortOrder>;
   shipping?: InputMaybe<SortOrder>;
   shippingWithTax?: InputMaybe<SortOrder>;
   state?: InputMaybe<SortOrder>;
+  /**
+   * The subTotal is the total of all OrderLines in the Order. This figure also includes any Order-level
+   * discounts which have been prorated (proportionally distributed) amongst the items of each OrderLine.
+   * To get a total of all OrderLines which does not account for prorated discounts, use the
+   * sum of `OrderLine.discountedLinePrice` values.
+   */
   subTotal?: InputMaybe<SortOrder>;
+  /** Same as subTotal, but inclusive of tax */
   subTotalWithTax?: InputMaybe<SortOrder>;
+  /** Equal to subTotal plus shipping */
   total?: InputMaybe<SortOrder>;
   totalQuantity?: InputMaybe<SortOrder>;
+  /** The final payable amount. Equal to subTotalWithTax plus shippingWithTax */
   totalWithTax?: InputMaybe<SortOrder>;
   transactionId?: InputMaybe<SortOrder>;
   updatedAt?: InputMaybe<SortOrder>;
@@ -4555,6 +4649,13 @@ export type PaginatedList = {
   totalItems: Scalars['Int']['output'];
 };
 
+/** Returned when attempting to verify a customer account with a password, when a password has already been set. */
+export type PasswordAlreadySetError = ErrorResult & {
+  __typename?: 'PasswordAlreadySetError';
+  errorCode: ErrorCode;
+  message: Scalars['String']['output'];
+};
+
 /**
  * Returned if the token used to reset an Administrator's password is valid, but has
  * expired according to the `verificationTokenDuration` setting in the AuthOptions.
@@ -4575,7 +4676,7 @@ export type PasswordResetTokenInvalidError = ErrorResult & {
   message: Scalars['String']['output'];
 };
 
-/** Returned when the given password fails password validation. */
+/** Returned when attempting to register or verify a customer account where the given password fails password validation. */
 export type PasswordValidationError = ErrorResult & {
   __typename?: 'PasswordValidationError';
   errorCode: ErrorCode;
@@ -4869,6 +4970,8 @@ export enum Permission {
   ReadProduct = 'ReadProduct',
   /** Grants permission to read Promotion */
   ReadPromotion = 'ReadPromotion',
+  /** Grants permission to read the decrypted value of custom fields and config args marked as `secret` */
+  ReadSecret = 'ReadSecret',
   /** Grants permission to read Seller */
   ReadSeller = 'ReadSeller',
   /** Grants permission to read PaymentMethods, ShippingMethods, TaxCategories, TaxRates, Zones, Countries, System & GlobalSettings */
@@ -5073,6 +5176,7 @@ export type ProductOptionGroupFilterParameter = {
   id?: InputMaybe<IdOperators>;
   languageCode?: InputMaybe<StringOperators>;
   name?: InputMaybe<StringOperators>;
+  /** The number of products that use this option group */
   productCount?: InputMaybe<NumberOperators>;
   updatedAt?: InputMaybe<DateOperators>;
 };
@@ -5110,6 +5214,7 @@ export type ProductOptionGroupSortParameter = {
   createdAt?: InputMaybe<SortOrder>;
   id?: InputMaybe<SortOrder>;
   name?: InputMaybe<SortOrder>;
+  /** The number of products that use this option group */
   productCount?: InputMaybe<SortOrder>;
   updatedAt?: InputMaybe<SortOrder>;
 };
@@ -5563,6 +5668,12 @@ export type Query = {
   promotions: PromotionList;
   province?: Maybe<Province>;
   provinces: ProvinceList;
+  /**
+   * Returns the available refund destinations for the given order.
+   * This includes the default destination (original payment method) plus
+   * any custom destinations registered via RefundDestinationStrategy.
+   */
+  refundDestinations: Array<RefundDestination>;
   role?: Maybe<Role>;
   roles: RoleList;
   scheduledTasks: Array<ScheduledTask>;
@@ -5822,6 +5933,11 @@ export type QueryProvincesArgs = {
 };
 
 
+export type QueryRefundDestinationsArgs = {
+  orderId: Scalars['ID']['input'];
+};
+
+
 export type QueryRoleArgs = {
   id: Scalars['ID']['input'];
 };
@@ -5926,6 +6042,11 @@ export type Refund = Node & {
   adjustment: Scalars['Money']['output'];
   createdAt: Scalars['DateTime']['output'];
   customFields?: Maybe<Scalars['JSON']['output']>;
+  /**
+   * The refund destination code, if a non-default destination was used.
+   * When null, the refund was directed to the original payment method.
+   */
+  destination?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   items: Scalars['Money']['output'];
   lines: Array<RefundLine>;
@@ -5948,6 +6069,43 @@ export type RefundAmountError = ErrorResult & {
   message: Scalars['String']['output'];
 };
 
+/** Represents an available refund destination for an order. */
+export type RefundDestination = {
+  __typename?: 'RefundDestination';
+  /**
+   * The IDs of the Payments on this Order for which this destination is available, as
+   * determined by the strategy's `isAvailable()` method. A refund to this destination must
+   * draw its balance from one of these Payments.
+   */
+  availableForPaymentIds: Array<Scalars['ID']['output']>;
+  code: Scalars['String']['output'];
+  description: Scalars['String']['output'];
+};
+
+/** Returned if the specified refund destination does not exist, or is not available for the specified Payment */
+export type RefundDestinationError = ErrorResult & {
+  __typename?: 'RefundDestinationError';
+  destinationCode: Scalars['String']['output'];
+  errorCode: ErrorCode;
+  message: Scalars['String']['output'];
+};
+
+/**
+ * Returned when a refund split over several `targets` fails after one or more of the earlier
+ * targets have already been refunded. The Refunds created before the failure are kept, since their
+ * funds may already have been moved, and are listed in `refunds`.
+ */
+export type RefundIncompleteError = ErrorResult & {
+  __typename?: 'RefundIncompleteError';
+  errorCode: ErrorCode;
+  /** The zero-based index of the target in `RefundOrderInput.targets` which failed. */
+  failedTargetIndex: Scalars['Int']['output'];
+  failureReason: Scalars['String']['output'];
+  message: Scalars['String']['output'];
+  /** The Refunds created by this operation, including one whose state transition failed. */
+  refunds: Array<Refund>;
+};
+
 export type RefundLine = {
   __typename?: 'RefundLine';
   orderLine: OrderLine;
@@ -5965,15 +6123,34 @@ export type RefundOrderInput = {
    * Can be as much as the total amount of the payment minus the sum of all previous refunds.
    */
   amount?: InputMaybe<Scalars['Money']['input']>;
+  /**
+   * Optional refund destination code. When omitted, refunds to the original
+   * payment method. Use the `refundDestinations` query to discover available
+   * destinations for an order.
+   *
+   * Ignored when `targets` is specified.
+   */
+  destination?: InputMaybe<Scalars['String']['input']>;
   /** @deprecated Use the `amount` field instead */
   lines?: InputMaybe<Array<OrderLineInput>>;
   paymentId: Scalars['ID']['input'];
   reason?: InputMaybe<Scalars['String']['input']>;
   /** @deprecated Use the `amount` field instead */
   shipping?: InputMaybe<Scalars['Money']['input']>;
+  /**
+   * Splits the refund across multiple payments and/or refund destinations. The sum of the
+   * `amount` of each target is the total amount refunded, and the top-level `amount` and
+   * `destination` fields are ignored.
+   *
+   * All targets are validated before any refund is created, and every target must draw on a
+   * Payment in the `Settled` state. If a target fails once earlier targets have already been
+   * refunded, the Refunds created for the earlier targets are kept and a `RefundIncompleteError`
+   * is returned.
+   */
+  targets?: InputMaybe<Array<RefundTargetInput>>;
 };
 
-export type RefundOrderResult = AlreadyRefundedError | MultipleOrderError | NothingToRefundError | OrderStateTransitionError | PaymentOrderMismatchError | QuantityTooGreatError | Refund | RefundAmountError | RefundOrderStateError | RefundStateTransitionError;
+export type RefundOrderResult = AlreadyRefundedError | MultipleOrderError | NothingToRefundError | OrderStateTransitionError | PaymentOrderMismatchError | QuantityTooGreatError | Refund | RefundAmountError | RefundDestinationError | RefundIncompleteError | RefundOrderStateError | RefundStateTransitionError;
 
 /** Returned if an attempting to refund an Order which is not in the expected state */
 export type RefundOrderStateError = ErrorResult & {
@@ -6001,6 +6178,31 @@ export type RefundStateTransitionError = ErrorResult & {
   message: Scalars['String']['output'];
   toState: Scalars['String']['output'];
   transitionError: Scalars['String']['output'];
+};
+
+/**
+ * Specifies a single portion of a refund: how much to refund, which Payment's refundable
+ * balance it is drawn from, and where the funds are directed.
+ */
+export type RefundTargetInput = {
+  /** The amount to refund to this target. */
+  amount: Scalars['Money']['input'];
+  /**
+   * Arbitrary configuration passed to the RefundDestinationStrategy's `createRefund()` method,
+   * for example an expiry date for a store credit refund. Has no effect when `destination`
+   * is omitted.
+   */
+  arguments?: InputMaybe<Scalars['JSON']['input']>;
+  /**
+   * The refund destination code. When omitted, the funds are refunded to the original
+   * payment method.
+   */
+  destination?: InputMaybe<Scalars['String']['input']>;
+  /**
+   * The Payment whose refundable balance is drawn on. Defaults to the top-level `paymentId`
+   * of the RefundOrderInput when omitted.
+   */
+  paymentId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 export type Region = {
@@ -6040,6 +6242,7 @@ export type RelationCustomFieldConfig = CustomField & {
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
   scalarFields: Array<Scalars['String']['output']>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -6130,6 +6333,7 @@ export type Role = Node & {
   channels: Array<Channel>;
   code: Scalars['String']['output'];
   createdAt: Scalars['DateTime']['output'];
+  customFields?: Maybe<Scalars['JSON']['output']>;
   description: Scalars['String']['output'];
   id: Scalars['ID']['output'];
   permissions: Array<Permission>;
@@ -6201,6 +6405,7 @@ export type ScheduledTask = {
   nextExecutionAt?: Maybe<Scalars['DateTime']['output']>;
   schedule: Scalars['String']['output'];
   scheduleDescription: Scalars['String']['output'];
+  timezone?: Maybe<Scalars['String']['output']>;
 };
 
 export type SearchInput = {
@@ -6279,6 +6484,7 @@ export type Seller = Node & {
   customFields?: Maybe<Scalars['JSON']['output']>;
   id: Scalars['ID']['output'];
   name: Scalars['String']['output'];
+  translations: Array<SellerTranslation>;
   updatedAt: Scalars['DateTime']['output'];
 };
 
@@ -6315,6 +6521,24 @@ export type SellerSortParameter = {
   id?: InputMaybe<SortOrder>;
   name?: InputMaybe<SortOrder>;
   updatedAt?: InputMaybe<SortOrder>;
+};
+
+/**
+ * Holds a Seller's localized custom field values for one language.
+ * The Seller's own fields, such as `name`, are not translated.
+ */
+export type SellerTranslation = {
+  __typename?: 'SellerTranslation';
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  languageCode: LanguageCode;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type SellerTranslationInput = {
+  customFields?: InputMaybe<Scalars['JSON']['input']>;
+  id?: InputMaybe<Scalars['ID']['input']>;
+  languageCode: LanguageCode;
 };
 
 export type ServerConfig = {
@@ -6627,6 +6851,7 @@ export type StringCustomFieldConfig = CustomField & {
   pattern?: Maybe<Scalars['String']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -6680,6 +6905,7 @@ export type StructCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -6914,6 +7140,7 @@ export type TextCustomFieldConfig = CustomField & {
   nullable?: Maybe<Scalars['Boolean']['output']>;
   readonly?: Maybe<Scalars['Boolean']['output']>;
   requiresPermission?: Maybe<Array<Permission>>;
+  secret?: Maybe<Scalars['Boolean']['output']>;
   type: Scalars['String']['output'];
   ui?: Maybe<Scalars['JSON']['output']>;
 };
@@ -7223,6 +7450,7 @@ export type UpdateProvinceInput = {
 export type UpdateRoleInput = {
   channelIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   code?: InputMaybe<Scalars['String']['input']>;
+  customFields?: InputMaybe<Scalars['JSON']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   id: Scalars['ID']['input'];
   permissions?: InputMaybe<Array<Permission>>;
@@ -7237,6 +7465,7 @@ export type UpdateSellerInput = {
   customFields?: InputMaybe<Scalars['JSON']['input']>;
   id: Scalars['ID']['input'];
   name?: InputMaybe<Scalars['String']['input']>;
+  translations?: InputMaybe<Array<SellerTranslationInput>>;
 };
 
 export type UpdateShippingMethodInput = {
@@ -7297,6 +7526,8 @@ export type User = Node & {
   updatedAt: Scalars['DateTime']['output'];
   verified: Scalars['Boolean']['output'];
 };
+
+export type VerifyCustomerAccountResult = Customer | MissingPasswordError | PasswordAlreadySetError | PasswordValidationError;
 
 export type Zone = Node & {
   __typename?: 'Zone';

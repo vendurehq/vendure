@@ -7,14 +7,14 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/vdb/components/ui/dialog.js';
+import type { Tone } from '@/vdb/components/ui/status-badge.js';
 import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
 import { useServerConfig } from '@/vdb/hooks/use-server-config.js';
 import { cn } from '@/vdb/lib/utils.js';
+import { isDestructiveTransition, orderStateDictionary } from '@/vdb/utils/state-type.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { ArrowRight, Workflow } from 'lucide-react';
 import { useMemo } from 'react';
-import { isDestructiveTransition, orderStateDictionary } from '@/vdb/utils/state-type.js';
-import type { Tone } from '@/vdb/components/ui/status-badge.js';
 
 interface OrderProcessDialogProps {
     currentState: string;

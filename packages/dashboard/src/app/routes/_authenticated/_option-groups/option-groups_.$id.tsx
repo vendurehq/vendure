@@ -1,4 +1,4 @@
-import { SlugInput } from '@/vdb/components/data-input/index.js';
+import { requireGeneratedCode, SlugInput } from '@/vdb/components/data-input/index.js';
 import { AssignedChannels } from '@/vdb/components/shared/assigned-channels.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
@@ -25,6 +25,7 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, ParsedLocation, useLocation, useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import { ProductOptionsTable } from '../_products/components/product-options-table.js';
+import { SharedOptionGroupWarning } from '../_products/components/shared-option-group-warning.js';
 import {
     createProductOptionGroupDocument,
     productIdNameDocument,
@@ -108,6 +109,7 @@ function OptionGroupDetailPage() {
         queryDocument: productOptionGroupDetailDocument,
         createDocument: createProductOptionGroupDocument,
         updateDocument: updateProductOptionGroupDocument,
+        extendSchema: creatingNewEntity ? requireGeneratedCode : undefined,
         setValuesForUpdate: entity => {
             return {
                 id: entity.id,
@@ -165,6 +167,11 @@ function OptionGroupDetailPage() {
                 </ActionBarItem>
             </PageActionBar>
             <PageLayout>
+                {entity && entity.productCount > 1 && (
+                    <PageBlock column="main" blockId="shared-option-group-warning">
+                        <SharedOptionGroupWarning productCount={entity.productCount} />
+                    </PageBlock>
+                )}
                 <PageBlock column="main" blockId="main-form">
                     <DetailFormGrid>
                         <TranslatableFormFieldWrapper

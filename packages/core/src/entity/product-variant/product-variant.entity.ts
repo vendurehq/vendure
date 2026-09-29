@@ -71,6 +71,7 @@ export class ProductVariant
     currencyCode: CurrencyCode;
 
     @Calculated({
+        relations: ['productVariantPrices'],
         expression: 'productvariant__productVariantPrices.price',
     })
     get price(): number {
@@ -83,6 +84,7 @@ export class ProductVariant
     }
 
     @Calculated({
+        relations: ['productVariantPrices'],
         // Note: this works fine for sorting by priceWithTax, but filtering will return inaccurate
         // results due to this expression not taking taxes into account. This is because the tax
         // rate is calculated at run-time in the application layer based on the current context,

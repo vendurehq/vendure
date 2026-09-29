@@ -4,6 +4,7 @@ import { Button } from '@/vdb/components/ui/button.js';
 import { Trans } from '@lingui/react/macro';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { ArrowLeft } from 'lucide-react';
+
 import { OrderDetail, OrderDetailShared } from './components/order-detail-shared.js';
 import { loadSellerOrder } from './utils/order-detail-loaders.js';
 import { getSeller } from './utils/order-utils.js';

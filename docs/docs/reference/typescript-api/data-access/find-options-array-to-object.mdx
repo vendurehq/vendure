@@ -1,0 +1,25 @@
+---
+title: "FindOptionsArrayToObject"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/connection/find-options-array-to-object.ts" sourceLine="17" packageName="@vendure/core" since="3.8.0" />
+
+Converts a string array of relation paths into the object form used by the TypeORM
+FindOptions `relations` property. Dotted paths are expanded into nested objects.
+
+*Example*
+
+```ts
+findOptionsArrayToObject<Order>(['customer', 'lines.productVariant']);
+// { customer: true, lines: { productVariant: true } }
+```
+
+```ts title="Signature"
+function findOptionsArrayToObject<T>(input: string[]): FindOptionsRelations<T>
+```
+Parameters
+
+### input
+
+<MemberInfo kind="parameter" type={`string[]`} />
+

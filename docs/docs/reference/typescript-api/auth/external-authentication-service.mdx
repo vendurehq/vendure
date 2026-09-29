@@ -2,7 +2,7 @@
 title: "ExternalAuthenticationService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/helpers/external-authentication/external-authentication.service.ts" sourceLine="25" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/helpers/external-authentication/external-authentication.service.ts" sourceLine="27" packageName="@vendure/core" />
 
 This is a helper service which exposes methods related to looking up and creating Users based on an
 external [AuthenticationStrategy](/reference/typescript-api/auth/authentication-strategy#authenticationstrategy).
@@ -28,7 +28,10 @@ class ExternalAuthenticationService {
             firstName?: string;
             lastName?: string;
             roles: Role[];
+            /** An optional provider profile image to use as the Administrator avatar. */
+            avatar?: Promise<StoredMediaUpload> | StoredMediaUpload;
         }) => ;
+    setAdministratorAvatar(ctx: RequestContext, userId: ID, avatar: Promise<StoredMediaUpload> | StoredMediaUpload | null) => Promise<Administrator>;
     findUser(ctx: RequestContext, strategy: string, externalIdentifier: string) => Promise<User | undefined>;
     createUser(ctx: RequestContext, config: {
             strategy: string;
@@ -71,11 +74,32 @@ user owns the email address. Attempting to link an unverified external identity 
 will throw an [UnverifiedExternalEmailError](/reference/typescript-api/errors/error-types#unverifiedexternalemailerror).
 ### createAdministratorAndUser
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, config: {             strategy: string;             externalIdentifier: string;             identifier: string;             emailAddress?: string;             firstName?: string;             lastName?: string;             roles: <a href='/reference/typescript-api/entities/role#role'>Role</a>[];         }) => `}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, config: {             strategy: string;             externalIdentifier: string;             identifier: string;             emailAddress?: string;             firstName?: string;             lastName?: string;             roles: <a href='/reference/typescript-api/entities/role#role'>Role</a>[];             /** An optional provider profile image to use as the <a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a> avatar. */             avatar?: Promise<<a href='/reference/typescript-api/assets/stored-media-upload#storedmediaupload'>StoredMediaUpload</a>> | <a href='/reference/typescript-api/assets/stored-media-upload#storedmediaupload'>StoredMediaUpload</a>;         }) => `}   />
 
 If an administrator has been successfully authenticated by an external authentication provider, yet cannot
 be found using `findAdministratorUser`, then we need to create a new User and
 Administrator record in Vendure for that user.
+### setAdministratorAvatar
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>, avatar: Promise<<a href='/reference/typescript-api/assets/stored-media-upload#storedmediaupload'>StoredMediaUpload</a>> | <a href='/reference/typescript-api/assets/stored-media-upload#storedmediaupload'>StoredMediaUpload</a> | null) => Promise<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a>>`}   />
+
+Sets or removes the avatar belonging to an externally-authenticated Administrator.
+This allows an authentication strategy to synchronize a provider profile image without
+needing to look up the Administrator or manage the underlying system Asset.
+
+*Example*
+
+```ts
+import { Readable } from 'stream';
+
+const response = await fetch(googleProfile.picture);
+const image = Buffer.from(await response.arrayBuffer());
+await externalAuthenticationService.setAdministratorAvatar(ctx, user.id, {
+    filename: `${googleProfile.sub}.jpg`,
+    mimetype: response.headers.get('content-type') ?? 'image/jpeg',
+    createReadStream: () => Readable.from([image]),
+});
+```
 ### findUser
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, strategy: string, externalIdentifier: string) => Promise<<a href='/reference/typescript-api/entities/user#user'>User</a> | undefined>`}   />

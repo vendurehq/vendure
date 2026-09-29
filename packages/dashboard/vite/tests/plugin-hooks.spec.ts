@@ -1,3 +1,4 @@
+import { VendurePlugin, VendurePluginMetadata } from '@vendure/core';
 import { pathToFileURL } from 'node:url';
 import path from 'path';
 import type { Plugin } from 'vite';
@@ -447,6 +448,28 @@ describe('viteConfigPlugin', () => {
         const aliases = result.resolve.alias as Record<string, string>;
         expect(aliases['@custom']).toBe('/custom/path');
         expect(aliases['@/vdb']).toBeDefined();
+    });
+
+    it('sets the @/gql alias to graphql.ts inside gqlOutputPath', () => {
+        const plugin = viteConfigPlugin({ packageRoot, gqlOutputPath: '/fake/gql-output' });
+        const result = callConfig(plugin, {}, { command: 'serve' });
+        const aliases = result.resolve.alias as Record<string, string>;
+        expect(aliases['@/gql']).toBe(path.resolve('/fake/gql-output', 'graphql.ts'));
+    });
+
+    it('omits the @/gql alias when gqlOutputPath is not given', () => {
+        const plugin = viteConfigPlugin({ packageRoot });
+        const result = callConfig(plugin, {}, { command: 'serve' });
+        const aliases = result.resolve.alias as Record<string, string>;
+        expect('@/gql' in aliases).toBe(false);
+    });
+
+    it('lets a @/gql alias from the user config override the default', () => {
+        const plugin = viteConfigPlugin({ packageRoot, gqlOutputPath: '/fake/gql-output' });
+        const config = { resolve: { alias: { '@/gql': '/user/gql/graphql.ts' } } };
+        const result = callConfig(plugin, config, { command: 'serve' });
+        const aliases = result.resolve.alias as Record<string, string>;
+        expect(aliases['@/gql']).toBe('/user/gql/graphql.ts');
     });
 
     it('sets optimizeDeps.exclude with virtual modules', () => {
@@ -1016,5 +1039,53 @@ describe('filterActivePluginInfo', () => {
             plugins: [null as any, undefined as any, {} as any, makePluginClass('A')],
         });
         expect(result.map(p => p.name)).toEqual(['A']);
+    });
+
+    describe('composed plugins', () => {
+        function makeVendurePlugin(name: string, plugins: VendurePluginMetadata['plugins'] = []) {
+            const cls = makePluginClass(name);
+            VendurePlugin({ plugins })(cls);
+            return cls;
+        }
+
+        it('keeps a composed plugin when only the parent is in vendureConfig.plugins', () => {
+            const child = makeVendurePlugin('ChildPlugin');
+            const parent = makeVendurePlugin('ParentPlugin', [child]);
+            const result = filterActivePluginInfo(
+                [makePluginInfo('ChildPlugin'), makePluginInfo('ParentPlugin'), makePluginInfo('Other')],
+                { plugins: [parent] },
+            );
+            expect(result.map(p => p.name)).toEqual(['ChildPlugin', 'ParentPlugin']);
+        });
+
+        it('follows composed plugins through nested DynamicModule entries', () => {
+            const grandChild = makeVendurePlugin('GrandChildPlugin');
+            const child = makeVendurePlugin('ChildPlugin', [{ module: grandChild }]);
+            const parent = makeVendurePlugin('ParentPlugin', [{ module: child }]);
+            const result = filterActivePluginInfo(
+                [makePluginInfo('GrandChildPlugin'), makePluginInfo('ChildPlugin')],
+                { plugins: [{ module: parent }] },
+            );
+            expect(result.map(p => p.name)).toEqual(['GrandChildPlugin', 'ChildPlugin']);
+        });
+
+        it('lists each plugin once when the composed plugin is also in vendureConfig.plugins', () => {
+            const child = makeVendurePlugin('ChildPlugin');
+            const parent = makeVendurePlugin('ParentPlugin', [child]);
+            const result = filterActivePluginInfo(
+                [makePluginInfo('ChildPlugin'), makePluginInfo('ParentPlugin')],
+                { plugins: [parent, child, parent] },
+            );
+            expect(result.map(p => p.name)).toEqual(['ChildPlugin', 'ParentPlugin']);
+        });
+
+        it('stops at a plugin that composes itself', () => {
+            const selfComposing = makePluginClass('SelfComposingPlugin');
+            VendurePlugin({ plugins: [selfComposing] })(selfComposing);
+            const result = filterActivePluginInfo([makePluginInfo('SelfComposingPlugin')], {
+                plugins: [selfComposing],
+            });
+            expect(result.map(p => p.name)).toEqual(['SelfComposingPlugin']);
+        });
     });
 });

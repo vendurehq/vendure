@@ -8,6 +8,7 @@ export const DeleteCountriesBulkAction: BulkActionComponent<any> = ({ selection,
             mutationDocument={deleteCountriesDocument}
             entityName="countries"
             requiredPermissions={['DeleteCountry']}
+            invalidateQueries={['availableCountries']}
             selection={selection}
             table={table}
         />

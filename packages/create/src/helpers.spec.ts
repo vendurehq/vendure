@@ -4,9 +4,10 @@ import Handlebars from 'handlebars';
 import { EventEmitter } from 'node:events';
 import { Socket, createServer, type Server } from 'node:net';
 import path from 'node:path';
+import semver from 'semver';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { TYPEORM_VERSION } from './constants';
+import { REQUIRED_NODE_VERSION, TYPEORM_VERSION } from './constants';
 import { registerEscapeSingleHelper } from './gather-user-responses';
 import {
     checkNodeVersion,
@@ -631,6 +632,14 @@ describe('checkNodeVersion', () => {
     it('does not warn on a maintained Node version', () => {
         checkNodeVersion('>=20.0.0', 'v22.15.0');
         expect(log).not.toHaveBeenCalled();
+    });
+
+    it('enforces the Node.js versions supported by the storefront toolchain', () => {
+        expect(semver.satisfies('20.18.0', REQUIRED_NODE_VERSION)).toBe(false);
+        expect(semver.satisfies('20.19.0', REQUIRED_NODE_VERSION)).toBe(true);
+        expect(semver.satisfies('21.0.0', REQUIRED_NODE_VERSION)).toBe(false);
+        expect(semver.satisfies('22.11.0', REQUIRED_NODE_VERSION)).toBe(false);
+        expect(semver.satisfies('22.12.0', REQUIRED_NODE_VERSION)).toBe(true);
     });
 });
 

@@ -11,11 +11,12 @@ import { In } from 'typeorm';
 import { RequestContext } from '../../api/common/request-context';
 import { Instrument } from '../../common/instrument-decorator';
 import { idsAreEqual } from '../../common/utils';
+import { Logger } from '../../config/logger/vendure-logger';
 import { ShippingCalculator } from '../../config/shipping-method/shipping-calculator';
 import { ShippingEligibilityChecker } from '../../config/shipping-method/shipping-eligibility-checker';
 import { TransactionalConnection } from '../../connection/transactional-connection';
-import { Order } from '../../entity/order/order.entity';
 import { OrderLine } from '../../entity/order-line/order-line.entity';
+import { Order } from '../../entity/order/order.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
 import { ShippingMethod } from '../../entity/shipping-method/shipping-method.entity';
 import { Allocation } from '../../entity/stock-movement/allocation.entity';
@@ -26,11 +27,14 @@ import { StockAdjustment } from '../../entity/stock-movement/stock-adjustment.en
 import { StockMovement } from '../../entity/stock-movement/stock-movement.entity';
 import { EventBus } from '../../event-bus/event-bus';
 import { StockMovementEvent } from '../../event-bus/events/stock-movement-event';
+import { StockShortfall, StockShortfallEvent } from '../../event-bus/events/stock-shortfall-event';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
 
 import { GlobalSettingsService } from './global-settings.service';
 import { StockLevelService } from './stock-level.service';
 import { StockLocationService } from './stock-location.service';
+
+const loggerCtx = 'StockMovementService';
 
 /**
  * @description
@@ -154,45 +158,109 @@ export class StockMovementService {
         ctx: RequestContext,
         lines: OrderLineInput[],
     ): Promise<Allocation[]> {
-        const allocations: Allocation[] = [];
-        const globalTrackInventory = (await this.globalSettingsService.getSettings(ctx)).trackInventory;
-        for (const { orderLineId, quantity } of lines) {
-            const orderLine = await this.connection.getEntityOrThrow(ctx, OrderLine, orderLineId);
-            const productVariant = await this.connection.getEntityOrThrow(
-                ctx,
-                ProductVariant,
-                orderLine.productVariantId,
-                { includeSoftDeleted: true },
-            );
-            const allocationLocations = await this.stockLocationService.getAllocationLocations(
-                ctx,
-                orderLine,
-                quantity,
-            );
-            for (const allocationLocation of allocationLocations) {
-                const allocation = new Allocation({
-                    productVariant: new ProductVariant({ id: orderLine.productVariantId }),
-                    stockLocation: allocationLocation.location,
-                    quantity: allocationLocation.quantity,
-                    orderLine,
-                });
-                allocations.push(allocation);
+        // Run inside a transaction so that the per-variant pessimistic locks taken during
+        // allocation (see MultiChannelStockLocationStrategy.forAllocation) are valid and held until
+        // commit. Without this, a caller from a non-transactional context (a job-queue processor or
+        // a stand-alone script calling e.g. `orderService.transitionToState`) would trigger
+        // TypeORM's `PessimisticLockTransactionRequiredError` on every driver. Nested transactions
+        // join the existing one, so the core API paths (already `@Transaction`-wrapped) are unaffected.
+        return this.connection.withTransaction(ctx, async txCtx => {
+            const allocations: Allocation[] = [];
+            // A single batch can contain lines from more than one Order: `Fulfillment.orders` is a
+            // many-to-many relation and `default-fulfillment-process` re-allocates a cancelled
+            // fulfillment's lines in one call. Shortfalls are therefore grouped by the Order the
+            // shortfalling line belongs to, so each StockShortfallEvent references the right Order.
+            const shortfallsByOrder = new Map<ID, { order: Order; shortfalls: StockShortfall[] }>();
+            const globalTrackInventory = (await this.globalSettingsService.getSettings(txCtx))
+                .trackInventory;
 
-                if (this.trackInventoryForVariant(productVariant, globalTrackInventory)) {
-                    await this.stockLevelService.updateStockAllocatedForLocation(
-                        ctx,
-                        orderLine.productVariantId,
-                        allocationLocation.location.id,
-                        allocationLocation.quantity,
-                    );
+            // Load the order lines up front and process them in a deterministic order (by
+            // productVariantId), so concurrent allocation batches acquire the per-variant stock
+            // locks in the same global order and cannot deadlock when two Orders reference the same
+            // variants in a different sequence.
+            const orderLinesToAllocate = await Promise.all(
+                lines.map(async ({ orderLineId, quantity }) => ({
+                    orderLine: await this.connection.getEntityOrThrow(txCtx, OrderLine, orderLineId, {
+                        relations: ['order'],
+                    }),
+                    quantity,
+                })),
+            );
+            orderLinesToAllocate.sort((a, b) =>
+                `${a.orderLine.productVariantId}`.localeCompare(`${b.orderLine.productVariantId}`, undefined, {
+                    numeric: true,
+                }),
+            );
+
+            for (const { orderLine, quantity } of orderLinesToAllocate) {
+                const productVariant = await this.connection.getEntityOrThrow(
+                    txCtx,
+                    ProductVariant,
+                    orderLine.productVariantId,
+                    { includeSoftDeleted: true },
+                );
+                const allocationLocations = await this.stockLocationService.getAllocationLocations(
+                    txCtx,
+                    orderLine,
+                    quantity,
+                );
+                const allocatedForLine = allocationLocations.reduce((sum, l) => sum + l.quantity, 0);
+                if (allocatedForLine < quantity) {
+                    const shortfall: StockShortfall = {
+                        productVariantId: orderLine.productVariantId,
+                        orderLineId: orderLine.id,
+                        requested: quantity,
+                        allocated: allocatedForLine,
+                    };
+                    const group = shortfallsByOrder.get(orderLine.order.id);
+                    if (group) {
+                        group.shortfalls.push(shortfall);
+                    } else {
+                        shortfallsByOrder.set(orderLine.order.id, {
+                            order: orderLine.order,
+                            shortfalls: [shortfall],
+                        });
+                    }
+                }
+                for (const allocationLocation of allocationLocations) {
+                    const allocation = new Allocation({
+                        productVariant: new ProductVariant({ id: orderLine.productVariantId }),
+                        stockLocation: allocationLocation.location,
+                        quantity: allocationLocation.quantity,
+                        orderLine,
+                    });
+                    allocations.push(allocation);
+
+                    if (this.trackInventoryForVariant(productVariant, globalTrackInventory)) {
+                        await this.stockLevelService.updateStockAllocatedForLocation(
+                            txCtx,
+                            orderLine.productVariantId,
+                            allocationLocation.location.id,
+                            allocationLocation.quantity,
+                        );
+                    }
                 }
             }
-        }
-        const savedAllocations = await this.connection.getRepository(ctx, Allocation).save(allocations);
-        if (savedAllocations.length) {
-            await this.eventBus.publish(new StockMovementEvent(ctx, savedAllocations));
-        }
-        return savedAllocations;
+            const savedAllocations = await this.connection.getRepository(txCtx, Allocation).save(allocations);
+            if (savedAllocations.length) {
+                await this.eventBus.publish(new StockMovementEvent(txCtx, savedAllocations));
+            }
+            for (const { order, shortfalls } of shortfallsByOrder.values()) {
+                // Surface the shortfall in the logs: allocation is capped rather than failed (the
+                // payment may already be captured), so without this a paid-but-under-allocated Order
+                // looks normal in the admin UI. The StockShortfallEvent lets a plugin react further.
+                for (const shortfall of shortfalls) {
+                    Logger.warn(
+                        `Stock shortfall on Order ${order.code}: ProductVariant ` +
+                            `${shortfall.productVariantId} requested ${shortfall.requested}, ` +
+                            `allocated ${shortfall.allocated}`,
+                        loggerCtx,
+                    );
+                }
+                await this.eventBus.publish(new StockShortfallEvent(txCtx, order, shortfalls));
+            }
+            return savedAllocations;
+        });
     }
 
     /**
@@ -270,7 +338,7 @@ export class StockMovementService {
             where: {
                 id: In(lineInputs.map(l => l.orderLineId)),
             },
-            relations: ['productVariant'],
+            relations: { productVariant: true },
         });
 
         const cancellations: Cancellation[] = [];
@@ -321,7 +389,7 @@ export class StockMovementService {
         const releases: Release[] = [];
         const orderLines = await this.connection.getRepository(ctx, OrderLine).find({
             where: { id: In(lineInputs.map(l => l.orderLineId)) },
-            relations: ['productVariant'],
+            relations: { productVariant: true },
         });
         const globalTrackInventory = (await this.globalSettingsService.getSettings(ctx)).trackInventory;
         const variantsMap = new Map<ID, ProductVariant>();

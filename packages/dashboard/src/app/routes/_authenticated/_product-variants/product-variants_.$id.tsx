@@ -122,6 +122,9 @@ function ProductVariantDetailPage() {
 
     const { form, submitHandler, entity, isPending, resetForm } = useDetailPage({
         pageId,
+        // OSS-567: the ProductVariant update mutation is patch-style, so send only the fields the
+        // user changed and never clobber a concurrent edit to an untouched field.
+        sendOnlyChangedFields: true,
         queryDocument: addCustomFields(productVariantDetailDocument, {
             includeNestedFragments: ['ProductVariantPrice'],
         }),

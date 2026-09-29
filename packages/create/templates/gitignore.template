@@ -3,4 +3,6 @@ dist
 admin-ui
 static/assets
 static/email/test-emails
-.vendure/
+# Commit the identity-only Project Link Manifest. Keep all other local Vendure state ignored.
+.vendure/*
+!.vendure/project.json

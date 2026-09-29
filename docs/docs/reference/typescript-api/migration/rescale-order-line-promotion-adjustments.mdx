@@ -1,0 +1,55 @@
+---
+title: "RescaleOrderLinePromotionAdjustments"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/migration-utils/v3_8_orderline_promotion_rescale.ts" sourceLine="156" packageName="@vendure/core" since="3.8.0" />
+
+Rescales `PROMOTION`-type `Adjustment`s on `order_line` rows that were partially
+cancelled by a pre-#5127 `cancelOrderByOrderLines()`, which reduced `quantity`
+without rescaling `adjustments`. Reading those rows with the fixed `OrderLine`
+getters (which divide a `PROMOTION` adjustment by the *current* `quantity`,
+instead of `orderPlacedQuantity`) would otherwise inflate their discount.
+
+`OrderModifier.modifyOrder()` ends in `applyPriceAdjustments()`, which recomputes the
+`PROMOTION` amounts for every line in the order, including lines not referenced by the
+`OrderModification`. For a subsequently-cancelled line, the stored basis is its current
+quantity plus the quantities in order-cancellation history after the order's latest
+`OrderModification`.
+
+Some databases can store a modification and cancellation with the same timestamp. Their
+order is then unknowable from persisted data, so the helper throws before writing anything.
+Inspect those lines and pass `ambiguousOrderLineQuantityBases`: use the current quantity if
+the modification happened last, or the quantity before cancellation if cancellation happened
+last.
+
+Call this from your migration's `up()` method - it needs no schema change, so it
+can run at any point in the migration.
+
+```ts
+import { MigrationInterface, QueryRunner } from 'typeorm';
+import { rescaleOrderLinePromotionAdjustments } from '@vendure/core';
+
+export class RescaleOrderLinePromotionAdjustments1234567890 implements MigrationInterface {
+    public async up(queryRunner: QueryRunner): Promise<any> {
+        await rescaleOrderLinePromotionAdjustments(queryRunner);
+    }
+
+    public async down(queryRunner: QueryRunner): Promise<any> {
+        // This is a one-way data migration - the pre-migration amounts are not recoverable.
+    }
+}
+```
+
+```ts title="Signature"
+function rescaleOrderLinePromotionAdjustments(queryRunner: QueryRunner, options: RescaleOrderLinePromotionAdjustmentsOptions = {}): Promise<void>
+```
+Parameters
+
+### queryRunner
+
+<MemberInfo kind="parameter" type={`QueryRunner`} />
+
+### options
+
+<MemberInfo kind="parameter" type={`RescaleOrderLinePromotionAdjustmentsOptions`} />
+

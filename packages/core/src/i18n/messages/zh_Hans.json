@@ -1,0 +1,199 @@
+{
+  "configurableOperation": {
+    "CollectionFilter": {
+      "facet-value-filter": {
+        "description": "按属性值筛选",
+        "args": {
+          "facetValueIds": {
+            "label": "属性值"
+          },
+          "containsAny": {
+            "label": "包含任意一个",
+            "description": "勾选后，产品变体必须至少具有所选属性值中的一个。未勾选时，变体必须具有所有所选的值。"
+          },
+          "combineWithAnd": {
+            "label": "组合模式",
+            "description": "当此筛选器与其他筛选器组合时，是需要满足所有条件（AND），还是只需满足其中之一（OR）？"
+          }
+        }
+      },
+      "variant-name-filter": {
+        "description": "按产品变体名称筛选",
+        "args": {
+          "combineWithAnd": {
+            "label": "组合模式",
+            "description": "当此筛选器与其他筛选器组合时，是需要满足所有条件（AND），还是只需满足其中之一（OR）？"
+          }
+        }
+      },
+      "variant-id-filter": {
+        "description": "手动选择产品变体",
+        "args": {
+          "variantIds": {
+            "label": "产品变体"
+          },
+          "combineWithAnd": {
+            "label": "组合模式",
+            "description": "当此筛选器与其他筛选器组合时，是需要满足所有条件（AND），还是只需满足其中之一（OR）？"
+          }
+        }
+      },
+      "product-id-filter": {
+        "description": "手动选择商品",
+        "args": {
+          "productIds": {
+            "label": "商品"
+          },
+          "combineWithAnd": {
+            "label": "组合模式",
+            "description": "当此筛选器与其他筛选器组合时，是需要满足所有条件（AND），还是只需满足其中之一（OR）？"
+          }
+        }
+      }
+    },
+    "EntityDuplicator": {
+      "product-duplicator": {
+        "description": "商品的默认复制器",
+        "args": {
+          "includeVariants": {
+            "label": "包含变体"
+          }
+        }
+      },
+      "collection-duplicator": {
+        "description": "集合的默认复制器"
+      },
+      "facet-duplicator": {
+        "description": "属性的默认复制器",
+        "args": {
+          "includeFacetValues": {
+            "label": "包含属性值"
+          }
+        }
+      },
+      "promotion-duplicator": {
+        "description": "促销的默认复制器"
+      }
+    },
+    "FulfillmentHandler": {
+      "manual-fulfillment": {
+        "description": "手动输入履约详情"
+      }
+    },
+    "PaymentMethodHandler": {
+      "dummy-payment-handler": {
+        "description": "仅供测试和开发使用的虚拟支付提供商。",
+        "args": {
+          "automaticSettle": {
+            "label": "一步完成授权与结算",
+            "description": "启用后，支付将以 \"Settled\" 状态创建。"
+          }
+        }
+      },
+      "example-payment-provider": {
+        "description": "示例支付提供商"
+      }
+    },
+    "PromotionAction": {
+      "order_fixed_discount": {
+        "description": "按固定金额为订单打折"
+      },
+      "order_line_fixed_discount": {
+        "description": "按固定金额为 orderLine 打折"
+      },
+      "order_percentage_discount": {
+        "description": "为订单提供 { discount }% 折扣"
+      },
+      "facet_based_discount": {
+        "description": "为具有这些属性的商品提供 { discount }% 折扣"
+      },
+      "products_percentage_discount": {
+        "description": "为指定商品提供 { discount }% 折扣",
+        "args": {
+          "productVariantIds": {
+            "label": "产品变体"
+          }
+        }
+      },
+      "free_shipping": {
+        "description": "免运费"
+      },
+      "buy_x_get_y_free": {
+        "description": "购买 X 件商品，免费获得 Y 件商品"
+      }
+    },
+    "PromotionCondition": {
+      "minimum_order_amount": {
+        "description": "如果订单总额大于 { amount }"
+      },
+      "at_least_n_with_facets": {
+        "description": "购买至少 { minimum } 件具有指定属性的商品"
+      },
+      "contains_products": {
+        "description": "购买至少 { minimum } 件指定商品",
+        "args": {
+          "productVariantIds": {
+            "label": "产品变体"
+          }
+        }
+      },
+      "customer_group": {
+        "description": "客户属于指定的客户组",
+        "args": {
+          "customerGroupId": {
+            "label": "客户组"
+          }
+        }
+      },
+      "buy_x_get_y_free": {
+        "description": "购买 X 件商品，免费获得 Y 件商品",
+        "args": {
+          "variantIdsX": {
+            "label": "购买 amountX 件此类变体"
+          },
+          "variantIdsY": {
+            "label": "免费获得 amountY 件此类变体"
+          }
+        }
+      }
+    },
+    "ShippingCalculator": {
+      "default-shipping-calculator": {
+        "description": "默认统一费率运费计算器",
+        "args": {
+          "rate": {
+            "label": "运费"
+          },
+          "includesTax": {
+            "label": "价格含税",
+            "options": {
+              "include": {
+                "label": "含税"
+              },
+              "exclude": {
+                "label": "不含税"
+              },
+              "auto": {
+                "label": "自动（基于渠道）"
+              }
+            }
+          },
+          "taxRate": {
+            "label": "税率"
+          }
+        }
+      }
+    },
+    "ShippingEligibilityChecker": {
+      "default-shipping-eligibility-checker": {
+        "description": "默认配送资格检查器",
+        "args": {
+          "orderMinimum": {
+            "label": "最低订单金额",
+            "description": "仅当订单总额大于或等于此值时，订单才符合条件"
+          }
+        }
+      }
+    }
+  }
+}

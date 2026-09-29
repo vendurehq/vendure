@@ -1,0 +1,199 @@
+{
+  "configurableOperation": {
+    "CollectionFilter": {
+      "facet-value-filter": {
+        "description": "विशेषता मानहरूद्वारा फिल्टर गर्नुहोस्",
+        "args": {
+          "facetValueIds": {
+            "label": "विशेषता मानहरू"
+          },
+          "containsAny": {
+            "label": "कुनै पनि समावेश गर्दछ",
+            "description": "चिन्ह लगाइएमा, उत्पादन भेरियन्टहरूसँग चयन गरिएका विशेषता मानहरूमध्ये कम्तीमा एउटा हुनुपर्छ। चिन्ह नलगाइएमा, भेरियन्टसँग चयन गरिएका सबै मानहरू हुनुपर्छ।"
+          },
+          "combineWithAnd": {
+            "label": "संयोजन मोड",
+            "description": "यो फिल्टरलाई अन्य फिल्टरहरूसँग जोड्दा सबै सर्तहरू पूरा हुनुपर्छ (AND), वा तीमध्ये कुनै एउटा मात्र भए पुग्छ (OR)?"
+          }
+        }
+      },
+      "variant-name-filter": {
+        "description": "उत्पादन भेरियन्टको नामद्वारा फिल्टर गर्नुहोस्",
+        "args": {
+          "combineWithAnd": {
+            "label": "संयोजन मोड",
+            "description": "यो फिल्टरलाई अन्य फिल्टरहरूसँग जोड्दा सबै सर्तहरू पूरा हुनुपर्छ (AND), वा तीमध्ये कुनै एउटा मात्र भए पुग्छ (OR)?"
+          }
+        }
+      },
+      "variant-id-filter": {
+        "description": "उत्पादन भेरियन्टहरू म्यानुअल रूपमा चयन गर्नुहोस्",
+        "args": {
+          "variantIds": {
+            "label": "उत्पादन भेरियन्टहरू"
+          },
+          "combineWithAnd": {
+            "label": "संयोजन मोड",
+            "description": "यो फिल्टरलाई अन्य फिल्टरहरूसँग जोड्दा सबै सर्तहरू पूरा हुनुपर्छ (AND), वा तीमध्ये कुनै एउटा मात्र भए पुग्छ (OR)?"
+          }
+        }
+      },
+      "product-id-filter": {
+        "description": "उत्पादनहरू म्यानुअल रूपमा चयन गर्नुहोस्",
+        "args": {
+          "productIds": {
+            "label": "उत्पादनहरू"
+          },
+          "combineWithAnd": {
+            "label": "संयोजन मोड",
+            "description": "यो फिल्टरलाई अन्य फिल्टरहरूसँग जोड्दा सबै सर्तहरू पूरा हुनुपर्छ (AND), वा तीमध्ये कुनै एउटा मात्र भए पुग्छ (OR)?"
+          }
+        }
+      }
+    },
+    "EntityDuplicator": {
+      "product-duplicator": {
+        "description": "उत्पादनहरूका लागि पूर्वनिर्धारित डुप्लिकेटर",
+        "args": {
+          "includeVariants": {
+            "label": "भेरियन्टहरू समावेश गर्नुहोस्"
+          }
+        }
+      },
+      "collection-duplicator": {
+        "description": "संग्रहहरूका लागि पूर्वनिर्धारित डुप्लिकेटर"
+      },
+      "facet-duplicator": {
+        "description": "विशेषताहरूका लागि पूर्वनिर्धारित डुप्लिकेटर",
+        "args": {
+          "includeFacetValues": {
+            "label": "विशेषता मानहरू समावेश गर्नुहोस्"
+          }
+        }
+      },
+      "promotion-duplicator": {
+        "description": "प्रमोशनहरूका लागि पूर्वनिर्धारित डुप्लिकेटर"
+      }
+    },
+    "FulfillmentHandler": {
+      "manual-fulfillment": {
+        "description": "पूर्ति विवरणहरू म्यानुअल रूपमा प्रविष्ट गर्नुहोस्"
+      }
+    },
+    "PaymentMethodHandler": {
+      "dummy-payment-handler": {
+        "description": "परीक्षण र विकासका लागि मात्र बनाइएको नक्कली भुक्तानी प्रदायक।",
+        "args": {
+          "automaticSettle": {
+            "label": "एउटै चरणमा अधिकृत गर्नुहोस् र मिलान गर्नुहोस्",
+            "description": "सक्षम पारिएमा, भुक्तानीहरू \"Settled\" अवस्थामा सिर्जना हुनेछन्।"
+          }
+        }
+      },
+      "example-payment-provider": {
+        "description": "उदाहरण भुक्तानी प्रदायक"
+      }
+    },
+    "PromotionAction": {
+      "order_fixed_discount": {
+        "description": "अर्डरमा निश्चित रकमको छुट दिनुहोस्"
+      },
+      "order_line_fixed_discount": {
+        "description": "orderLine मा निश्चित रकमको छुट दिनुहोस्"
+      },
+      "order_percentage_discount": {
+        "description": "अर्डरमा { discount }% छुट दिनुहोस्"
+      },
+      "facet_based_discount": {
+        "description": "यी विशेषताहरू भएका उत्पादनहरूमा { discount }% छुट दिनुहोस्"
+      },
+      "products_percentage_discount": {
+        "description": "तोकिएका उत्पादनहरूमा { discount }% छुट दिनुहोस्",
+        "args": {
+          "productVariantIds": {
+            "label": "उत्पादन भेरियन्टहरू"
+          }
+        }
+      },
+      "free_shipping": {
+        "description": "निःशुल्क ढुवानी"
+      },
+      "buy_x_get_y_free": {
+        "description": "X वटा उत्पादन किन्नुहोस्, Y वटा उत्पादन निःशुल्क पाउनुहोस्"
+      }
+    },
+    "PromotionCondition": {
+      "minimum_order_amount": {
+        "description": "यदि अर्डरको कुल रकम { amount } भन्दा बढी छ भने"
+      },
+      "at_least_n_with_facets": {
+        "description": "तोकिएका विशेषताहरू भएका कम्तीमा { minimum } वटा उत्पादन किन्नुहोस्"
+      },
+      "contains_products": {
+        "description": "तोकिएका उत्पादनहरूमध्ये कम्तीमा { minimum } वटा किन्नुहोस्",
+        "args": {
+          "productVariantIds": {
+            "label": "उत्पादन भेरियन्टहरू"
+          }
+        }
+      },
+      "customer_group": {
+        "description": "ग्राहक तोकिएको समूहको सदस्य हो",
+        "args": {
+          "customerGroupId": {
+            "label": "ग्राहक समूह"
+          }
+        }
+      },
+      "buy_x_get_y_free": {
+        "description": "X वटा उत्पादन किन्नुहोस्, Y वटा उत्पादन निःशुल्क पाउनुहोस्",
+        "args": {
+          "variantIdsX": {
+            "label": "यी भेरियन्टहरूमध्ये amountX वटा किन्नुहोस्"
+          },
+          "variantIdsY": {
+            "label": "यी भेरियन्टहरूमध्ये amountY वटा निःशुल्क पाउनुहोस्"
+          }
+        }
+      }
+    },
+    "ShippingCalculator": {
+      "default-shipping-calculator": {
+        "description": "पूर्वनिर्धारित निश्चित दर ढुवानी क्याल्कुलेटर",
+        "args": {
+          "rate": {
+            "label": "ढुवानी मूल्य"
+          },
+          "includesTax": {
+            "label": "मूल्यमा कर समावेश छ",
+            "options": {
+              "include": {
+                "label": "कर समावेश छ"
+              },
+              "exclude": {
+                "label": "कर समावेश छैन"
+              },
+              "auto": {
+                "label": "स्वतः (च्यानलमा आधारित)"
+              }
+            }
+          },
+          "taxRate": {
+            "label": "कर दर"
+          }
+        }
+      }
+    },
+    "ShippingEligibilityChecker": {
+      "default-shipping-eligibility-checker": {
+        "description": "पूर्वनिर्धारित ढुवानी योग्यता परीक्षक",
+        "args": {
+          "orderMinimum": {
+            "label": "न्यूनतम अर्डर मूल्य",
+            "description": "अर्डरको कुल रकम यो मानभन्दा ठूलो वा बराबर भएमा मात्र अर्डर योग्य हुन्छ"
+          }
+        }
+      }
+    }
+  }
+}

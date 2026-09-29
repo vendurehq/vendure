@@ -1,6 +1,7 @@
 import { Trans } from '@lingui/react/macro';
 import { ResultOf } from 'gql.tada';
 import { Globe, Phone } from 'lucide-react';
+
 import { orderAddressFragment } from '../orders.graphql.js';
 
 type OrderAddress = Partial<Omit<ResultOf<typeof orderAddressFragment>, 'country'>> & {

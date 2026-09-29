@@ -31,7 +31,7 @@ export interface CollectionFilterConfig<T extends ConfigArgs> extends Configurab
  *
  * @example
  * ```ts
- * import { CollectionFilter, LanguageCode } from '\@vendure/core';
+ * import { CollectionFilter, getDataSource, LanguageCode } from '\@vendure/core';
  *
  * export const skuCollectionFilter = new CollectionFilter({
  *   args: {
@@ -53,7 +53,7 @@ export interface CollectionFilterConfig<T extends ConfigArgs> extends Configurab
  *
  *   // This is the function that defines the logic of the filter.
  *   apply: (qb, args) => {
- *     const LIKE = qb.connection.options.type === 'postgres' ? 'ILIKE' : 'LIKE';
+ *     const LIKE = getDataSource(qb).options.type === 'postgres' ? 'ILIKE' : 'LIKE';
  *     return qb.andWhere(`productVariant.sku ${LIKE} :sku`, { sku: `%${args.sku}%` });
  *   },
  * });

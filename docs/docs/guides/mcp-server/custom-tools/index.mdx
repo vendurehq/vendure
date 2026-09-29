@@ -1,0 +1,323 @@
+---
+title: 'Registering Custom MCP Tools'
+metaTitle: 'Registering Custom MCP Tools | Vendure'
+metaDescription: 'Expose your own Vendure operations to AI agents with the @McpTool decorator from @vendure/mcp-sdk — input/output schemas, permissions, destructive confirmation, and discovery keywords.'
+order: 5
+---
+
+Any Vendure plugin can add custom MCP tools. Define an injectable service, decorate it with
+[`@McpTool`](/reference/core-plugins/mcp-plugin/mcp-tool/), and register it as a provider. The MCP plugin
+discovers the tool at bootstrap and exposes it alongside Vendure's built-in tools.
+
+## Before you start
+
+Install `@vendure/mcp-sdk` in the plugin that defines your tool:
+
+```sh
+npm install @vendure/mcp-sdk
+```
+
+Your tools should import MCP types and decorators from `@vendure/mcp-sdk`, rather than from `@vendure/core` or
+`@vendure/mcp-plugin`. The MCP server itself still requires `@vendure/mcp-plugin` and `McpPlugin` in your Vendure
+configuration.
+
+:::warning[Keep a single copy of `@vendure/mcp-sdk`]
+Make sure your application resolves a single version of `@vendure/mcp-sdk`. Multiple copies can cause the
+registry to miss decorated tools: check with `npm ls @vendure/mcp-sdk`.
+:::
+
+To add a tool, you will:
+
+1. Write the tool class.
+2. Register it as a provider.
+3. Define input and output schemas.
+4. Set permissions.
+
+Optionally add destructive confirmation, discovery keywords, or caller information.
+
+## Write the tool class
+
+A tool is an `@Injectable()` class with the `@McpTool` decorator and an `execute(ctx, input)` method. Implement
+[`McpToolHandler`](/reference/core-plugins/mcp-plugin/mcp-tool-handler/) from `@vendure/mcp-sdk` for type-safety:
+
+```ts title="src/tools/low-stock.tool.ts"
+import { Injectable } from '@nestjs/common';
+import { Permission, ProductVariantService, RequestContext } from '@vendure/core';
+import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+
+interface LowStockInput {
+    threshold: number;
+}
+
+@McpTool({
+    name: 'find_low_stock_variants',
+    toolset: 'admin',
+    description: 'List product variants whose stock on hand is at or below a threshold.',
+    permissions: [Permission.ReadCatalog],
+    behavior: 'readonly',
+    inputSchema: {
+        type: 'object',
+        properties: {
+            threshold: { type: 'number', description: 'Stock-on-hand level to report at or below.' },
+        },
+        required: ['threshold'],
+        additionalProperties: false,
+    },
+})
+@Injectable()
+export class FindLowStockVariantsTool implements McpToolHandler<LowStockInput> {
+    constructor(private productVariantService: ProductVariantService) {}
+
+    async execute(ctx: RequestContext, input: LowStockInput) {
+        // Query Vendure services here, then return a plain serializable object.
+        // The whole return value is sent to the agent as the tool result.
+        return { variants: [] };
+    }
+}
+```
+
+To refuse a call, throw a `UserInputError` from `@vendure/core`. The agent receives `isError: true` with your message.
+Returning a Vendure error result, an object with `errorCode`, `message` and `__typename` such as the
+`CouponCodeInvalidError` that `OrderService.applyCouponCode` can return, is reported the same way, with the object
+as the structured content.
+
+Tool names share a flat namespace within each toolset, including built-in tools. Use a plugin-specific prefix
+such as `wishlist_add_item` rather than a generic name such as `add_item`, to avoid colliding with a future
+Vendure release.
+
+## Register it as a provider
+
+Register the class as a provider in the plugin that owns it:
+
+```ts title="src/my-plugin.ts"
+@VendurePlugin({
+    imports: [PluginCommonModule],
+    providers: [FindLowStockVariantsTool],
+})
+export class MyPlugin {}
+```
+
+The MCP registry discovers every `@McpTool` provider across the running app at bootstrap. To confirm the tool is
+being served, list the tools with the MCP Inspector: see
+[Test & debug with the MCP Inspector](/guides/mcp-server/quick-start/#test--debug-with-the-mcp-inspector).
+
+## Define input and output schemas
+
+`inputSchema` accepts either a plain JSON Schema object
+([`McpJsonSchema`](/reference/core-plugins/mcp-plugin/mcp-json-schema/)) or a
+[Standard Schema](https://standardschema.dev/) object
+([`McpStandardSchema`](/reference/core-plugins/mcp-plugin/mcp-standard-schema/)) from a library such as Zod 4,
+ArkType, or Valibot. Zod users need Zod 4.2 or later: Zod 3 cannot produce the JSON Schema that MCP requires.
+
+With a Standard Schema, the schema library validates and parses the input before `execute()` is called. The
+server converts the schema to JSON Schema once at startup to advertise the tool. You define the shape once and
+derive the TypeScript type from it:
+
+```ts
+import { z } from 'zod';
+
+const lowStockInput = z.object({
+    threshold: z.number().int().min(0).describe('Stock-on-hand level to report at or below.'),
+});
+
+@McpTool({
+    name: 'find_low_stock_variants',
+    toolset: 'admin',
+    description: 'List product variants whose stock on hand is at or below a threshold.',
+    permissions: [Permission.ReadCatalog],
+    behavior: 'readonly',
+    inputSchema: lowStockInput,
+})
+@Injectable()
+export class FindLowStockVariantsTool implements McpToolHandler<z.infer<typeof lowStockInput>> {
+    async execute(ctx: RequestContext, input: z.infer<typeof lowStockInput>) {
+        // input is fully typed — and it is the library-parsed value, so defaults
+        // and coercions have already been applied.
+    }
+}
+```
+
+To avoid a schema library, use a plain JSON Schema object instead, as the first example on this page does. In
+either form, the server validates every call's arguments before your `execute` runs. There is no per-request
+validation to wire up. A schema that is neither form is a TypeScript error at the decorator. If a neither-form
+schema reaches the registry anyway, startup aborts with an error naming the offending tool.
+
+- Omitting `inputSchema` means the tool accepts no arguments (the server publishes
+  `{ type: 'object', properties: {}, additionalProperties: false }`), not "accepts anything".
+- Hand-written JSON Schemas should declare `additionalProperties: false` so unknown fields are
+  rejected. Zod strips unknown keys by default. Use `z.strictObject()` to reject them instead.
+
+:::note
+`outputSchema` does not reject invalid output. The server detects drift, logs a warning, and the call still
+succeeds.
+:::
+
+## Set permissions
+
+`permissions` is a list of [`Permission`](/reference/typescript-api/common/permission/) values. Multiple
+permissions use OR semantics: the caller only needs one of the listed permissions.
+
+| The tool | Set `permissions` to |
+|---|---|
+| Is a shop tool callable by anyone | `[Permission.Public]`, or omit the field: omitted or empty means `Permission.Public` on a shop tool |
+| Needs a signed-in user | `[Permission.Authenticated]` |
+| Wraps an admin operation | The permissions the equivalent Admin GraphQL operation requires, so the tool is never more permissive than the API it wraps |
+
+:::warning
+Admin tools must declare at least one permission. The server fails at startup, naming the tool, if `permissions`
+is missing or empty.
+:::
+
+If any administrator may call it, say so with `[Permission.Authenticated]`. An explicit `[Permission.Public]`
+behaves the same on the admin endpoint but reads as "anonymous allowed".
+
+`Permission.Owner` is refused at startup. It is not a granted permission, so no MCP caller could ever pass it. Use
+`[Permission.Authenticated]` and check ownership inside the tool.
+
+## Optional: Use the shopper's active order
+
+Set `usesActiveOrder: true` on a Shop tool that uses the shopper's active Order (cart). This lets anonymous callers continue the same cart across tool calls using a `sessionToken`.
+
+Session creation depends on the tool's `behavior`:
+
+- `readonly` tools only use an existing session.
+- `mutating` and confirmed `destructive` tools create an anonymous session when needed.
+
+Leave `usesActiveOrder` unset for tools that do not need the shopper's cart.
+
+```ts
+@McpTool({
+    name: 'add_warranty_to_cart',
+    toolset: 'shop',
+    description: 'Add a warranty to the active cart.',
+    permissions: [Permission.Public],
+    behavior: 'mutating',
+    usesActiveOrder: true,
+    inputSchema: warrantyInput,
+})
+```
+
+:::warning
+Do not add or handle `sessionToken` yourself. The MCP plugin manages it automatically and provides `execute` with the resolved `RequestContext`.
+:::
+
+## Optional: Require confirmation on a destructive tool
+
+Use `behavior: 'destructive'` for tools that delete, cancel, refund, or otherwise make an irreversible or
+difficult-to-reverse change. The registry then does the confirmation handshake for you:
+
+- It advertises an optional `confirm: boolean` parameter on the tool's schema.
+- Without `confirm: true`, it returns a non-error approval request with the tool's name and description, never
+  its arguments; your `execute` is not run.
+- On `confirm: true`, it strips `confirm` and runs your `execute`.
+
+:::warning
+Do not add `confirm` to your schema or read it in `execute`. The registry adds and handles it automatically, and
+a destructive tool that declares its own `confirm` property fails at bootstrap.
+:::
+
+This holds for both schema forms. For a Standard Schema tool, the registry validates your fields
+with your schema and handles `confirm` itself. Even a strict Zod schema never sees it. One
+constraint: a destructive tool's schema must parse to a plain object. A schema whose output is
+transformed to a string or an array is rejected at call time.
+
+```ts title="src/tools/archive-product.tool.ts"
+@McpTool({
+    name: 'archive_product',
+    toolset: 'admin',
+    description: 'Permanently archive a product so it can no longer be sold.',
+    permissions: [Permission.DeleteCatalog],
+    behavior: 'destructive', // the registry gates confirmation
+    inputSchema: {
+        type: 'object',
+        properties: { id: { type: 'string', description: 'Product ID to archive.' } },
+        required: ['id'],
+        additionalProperties: false,
+        // Note: no `confirm` here — the registry adds and gates it.
+    },
+})
+@Injectable()
+export class ArchiveProductTool implements McpToolHandler<{ id: string }> {
+    // ...
+}
+```
+
+See [How tool safety is derived](/guides/mcp-server/built-in-tools/#how-tool-safety-is-derived) for what each
+`behavior` value means.
+
+## Optional: Add discovery keywords
+
+The optional `keywords` field is used only when tools are discovered through `search_tools`. In discovery mode
+the server ranks tools against a user's `search_tools` query. Your keywords join the tool's name, title, and
+description in the searchable text. Use keywords for synonyms or phrases that users might search for but that do
+not appear in the tool's name or description:
+
+```ts
+keywords: ['money back', 'reimburse', 'return payment'],
+```
+
+Keywords are never serialized into a tool listing or sent to the agent. They only tune search. They have no
+effect in the default `direct` exposure mode. See
+[Tool exposure](/guides/mcp-server/built-in-tools/#tool-exposure-direct-vs-discovery) for how discovery works.
+
+## Metadata quick reference
+
+The full field list, types, and defaults are on
+[`McpToolMetadata`](/reference/core-plugins/mcp-plugin/mcp-tool-metadata/). In brief:
+
+| Field | Purpose |
+|---|---|
+| `name` | Unique name within the toolset; snake_case by convention. `search_tools` and `execute_tool` are reserved |
+| `title` | Optional human-friendly title |
+| `description` | Agent-facing description — write it for the model |
+| `toolset` | `'shop'` or `'admin'` — which endpoint serves it |
+| `permissions` | `Permission[]`, OR semantics. Omitted/empty on `shop` defaults to Public; required on `admin` — boot fails without it |
+| `behavior` | Safety classification: `'readonly'`, `'mutating'` (default), or `'destructive'` |
+| `usesActiveOrder` | Set on Shop tools that need the active cart; enables registry-managed anonymous `sessionToken` handling |
+| `inputSchema` / `outputSchema` | JSON Schema or Standard Schema (e.g. Zod v4); input validated pre-call, output drift-checked post-call |
+| `keywords` | Search-only synonyms for discovery mode |
+
+## Optional: Read caller identity
+
+`execute(ctx, input)` is enough for almost every tool. To learn who is calling, `execute` takes an optional third
+argument, [`McpCallerInfo`](/reference/core-plugins/mcp-plugin/mcp-caller-info/), from `@vendure/mcp-sdk`. It
+carries the OAuth grant behind the call and the client IP:
+
+```ts
+import { McpCallerInfo, McpToolHandler } from '@vendure/mcp-sdk';
+
+export class MyTool implements McpToolHandler<MyInput> {
+    async execute(ctx: RequestContext, input: MyInput, caller?: McpCallerInfo) {
+        const grant = caller?.grant; // the OAuth grant info, when present
+        // ...
+    }
+}
+```
+
+`caller` is always passed. Its fields vary by call type:
+
+| Field | When it is set |
+|---|---|
+| `caller.grant` | OAuth-authenticated calls. Undefined for anonymous shop calls and for in-process calls made via `McpToolExecutionService` |
+| `caller.clientIp` | HTTP calls, anonymous included. Undefined for in-process calls |
+
+A tool never needs to depend on `@vendure/mcp-plugin`. Everything a tool implements comes from
+`@vendure/mcp-sdk`.
+
+## Troubleshooting
+
+| What you see | Cause | Fix |
+|---|---|---|
+| Your tool does not appear in the tool list | Multiple versions of `@vendure/mcp-sdk` are installed | Run `npm ls @vendure/mcp-sdk` and make sure only one version resolves |
+| TypeScript rejects a Zod schema, saying it is not assignable to `McpJsonSchema` | Zod 3 is installed, often as a transitive dependency | Upgrade to Zod 4.2 or later, or use a plain JSON Schema object |
+| An admin tool fails at startup | Its `permissions` is missing or empty | Add at least one permission |
+| A destructive tool fails at bootstrap | Its schema declares `confirm` | Remove `confirm`; the registry adds it automatically |
+| A destructive tool is rejected at runtime | Its schema does not parse to a plain object | Make the schema produce a plain object |
+| An active-order tool fails at bootstrap | It is an admin tool, or its schema declares `sessionToken` | Use `usesActiveOrder` only on Shop tools and let the registry manage `sessionToken` |
+| A startup error about a duplicate tool name | Another tool in the same toolset uses that name, built-in tools included | Rename yours with a plugin-specific prefix |
+
+## See also
+
+- [`McpToolMetadata`](/reference/core-plugins/mcp-plugin/mcp-tool-metadata/) — the full field list, types, and defaults.
+- [Built-in Tool Reference](/guides/mcp-server/built-in-tools/) — the tools Vendure ships, behavior values, and exposure modes.
+- [Test & debug with the MCP Inspector](/guides/mcp-server/quick-start/#test--debug-with-the-mcp-inspector) — list and call your tool interactively.
