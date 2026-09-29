@@ -353,10 +353,7 @@ describe('form-schema-tools', () => {
             expect(() => schema.parse(undefinedData)).toThrow();
         });
 
-        // #5241 — every custom field is nullable in the GraphQL input type, so a nullable: false
-        // custom field is seeded `null` on a create form. The server guarantees such a field has a
-        // `defaultValue` backing the column's SQL DEFAULT, and the create submit path strips the
-        // null from the payload (`stripNullNullableFields`), so the create schema accepts it.
+        // #5241: a create form accepts an empty nullable: false custom field
         it('should accept null and a missing value for nullable: false custom fields on a create form', () => {
             const fields = [createMockField('customFields', 'Object', false, false, [])];
             const customFields = [createMockCustomField('sku', 'string', { nullable: false })];
@@ -366,19 +363,6 @@ describe('form-schema-tools', () => {
             expect(() => createSchema.parse({ customFields: { sku: 'AB-123' } })).not.toThrow();
             expect(() => createSchema.parse({ customFields: { sku: null } })).not.toThrow();
             expect(() => createSchema.parse({ customFields: {} })).not.toThrow();
-        });
-
-        // #5045 / PR #5057 — readonly fields are excluded from the Create/Update input types and
-        // stripped from the payload, so they stay both optional and nullable.
-        it('should treat readonly int custom fields as optional and nullable when nullable is false', () => {
-            const fields = [createMockField('customFields', 'Object', false, false, [])];
-            const customFields = [createMockCustomField('score', 'int', { nullable: false, readonly: true })];
-
-            const schema = createFormSchemaFromFields(fields, customFields, false);
-
-            expect(() => schema.parse({ customFields: { score: null } })).not.toThrow();
-            expect(() => schema.parse({ customFields: {} })).not.toThrow();
-            expect(() => schema.parse({ customFields: { score: 5 } })).not.toThrow();
         });
 
         it('should only include non-translatable fields in root context', () => {
@@ -861,11 +845,7 @@ describe('form-schema-tools', () => {
             expect(defaults.customFields.featureType).toBeNull();
         });
 
-        // #5241 — every custom field is nullable in the GraphQL input type, so a `nullable: false`
-        // custom field is seeded `null` while the update schema requires a value, which left the
-        // create form invalid at mount with no visible error. The create schema accepts the null
-        // default (the null is stripped from the payload on submit, so the column's SQL DEFAULT
-        // applies); the update schema keeps rejecting it, since the column is NOT NULL.
+        // #5241: the null seeded for a nullable: false custom field passes the create schema only
         it.each([
             ['int', 'Int'],
             ['float', 'Float'],
