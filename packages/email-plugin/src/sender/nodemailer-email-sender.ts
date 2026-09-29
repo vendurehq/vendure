@@ -49,7 +49,10 @@ export class NodemailerEmailSender implements EmailSender {
         try {
             return JSON.stringify(transport?.options) !== JSON.stringify(options);
         } catch (error: any) {
-            Logger.error(format(error.message), loggerCtx);
+            Logger.debug(
+                `Could not compare transport options, recreating the transport: ${String(error.message)}`,
+                loggerCtx,
+            );
             // Treat unserializable options as changed to avoid routing mail through a stale transport.
             return true;
         }
