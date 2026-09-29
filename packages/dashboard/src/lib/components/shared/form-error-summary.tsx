@@ -5,9 +5,8 @@ import { FieldErrors, useFormState, UseFormReturn } from 'react-hook-form';
 
 interface FlatError {
     name: string;
-    // The (already-localised-or-not) message produced by the validator. When a
-    // leaf error carries no message we leave this undefined and render a generic
-    // translated fallback, so the summary is never empty while the form is invalid.
+    // Undefined when the error has no message. A generic translated message is shown instead,
+    // so the summary is never empty while the form is invalid.
     message?: string;
 }
 
@@ -15,10 +14,9 @@ interface FlatError {
  * Walks the nested react-hook-form errors object and collects the leaf errors,
  * flattening nested groups like `customFields` and arrays like
  * `stockLevels.0.stockOnHand` into dotted paths. A leaf is identified by an RHF
- * error `type`; this ensures errors without a `message` are still surfaced
- * rather than silently dropped (the exact "disabled with no prompt" failure we
- * are fixing). The reserved `root` bucket (used for server/form-level errors) is
- * skipped as it is not a user-editable field.
+ * error `type`, so errors without a `message` are still listed. The reserved
+ * `root` bucket (used for server/form-level errors) is skipped as it is not a
+ * user-editable field.
  */
 function collectErrors(errors: FieldErrors, path: string[] = []): FlatError[] {
     const result: FlatError[] = [];
@@ -40,22 +38,26 @@ function collectErrors(errors: FieldErrors, path: string[] = []): FlatError[] {
     return result;
 }
 
-/**
- * Turns a dotted field path into a human-readable label, e.g.
- * "customFields.myField" -> "My field", and keeps enough path context to tell
- * repeated/nested entries apart, e.g. "translations.0.name" -> "Translations #1 › Name".
- *
- * This is a best-effort fallback: the precise, configured (and translated) field
- * label is rendered next to each offending field by the form itself. Resolving
- * the configured label here would require threading the entity type / custom
- * field config into this shared component — see follow-up noted on #4741.
- */
 function humanizeSegment(segment: string): string {
     const spaced = segment.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[_-]+/g, ' ');
     return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
-function humanizeFieldName(name: string): string {
+/**
+ * Turns a dotted error path into a readable label, e.g. "customFields.myField" -> "My Field",
+ * "stockLevels.0.stockOnHand" -> "Stock Levels › #1 › Stock On Hand", and
+ * "translations.1.name" -> "Name (de)", using the row's language code.
+ *
+ * The label is derived from the path, so it is not translated and does not use the
+ * configured custom field label.
+ */
+function humanizeFieldName(name: string, values: Record<string, any> | undefined): string {
+    const translation = /^translations\.(\d+)\.(.+)$/.exec(name);
+    if (translation) {
+        const languageCode = values?.translations?.[Number(translation[1])]?.languageCode;
+        const label = humanizeFieldName(translation[2], undefined);
+        return languageCode ? `${label} (${languageCode})` : label;
+    }
     return name
         .split('.')
         // The "customFields" wrapper segment is noise on every custom field.
@@ -67,11 +69,10 @@ function humanizeFieldName(name: string): string {
 
 /**
  * @description
- * Surfaces the reasons a detail-page form cannot be submitted. When the form is
- * invalid the submit button is disabled; without this summary the user has no
- * on-page indication of *why* (see issue #4741 / OSS-540), particularly when the
- * offending field is a custom field whose value fails validation and is scrolled
- * out of view.
+ * Lists the fields which stop a detail-page form from being submitted, with each
+ * field's validation message. Rendered by the page layout for every page with a form,
+ * because the submit button is disabled while the form is invalid and the offending
+ * field may be out of view.
  */
 export function FormErrorSummary({ form }: Readonly<{ form: UseFormReturn<any> }>) {
     const { errors } = useFormState({ control: form.control });
@@ -89,14 +90,13 @@ export function FormErrorSummary({ form }: Readonly<{ form: UseFormReturn<any> }
                 <ul className="list-disc pl-4">
                     {flatErrors.map(error => (
                         <li key={error.name}>
-                            {/* Focusing the field scrolls it back into view — the exact
-                                "offending field is scrolled out of view" case #4741 targets. */}
+                            {/* Focusing the field scrolls it into view. */}
                             <button
                                 type="button"
                                 className="font-medium underline underline-offset-2 hover:no-underline"
                                 onClick={() => form.setFocus(error.name)}
                             >
-                                {humanizeFieldName(error.name)}
+                                {humanizeFieldName(error.name, form.getValues())}
                             </button>
                             : {error.message ?? <Trans>This field is invalid</Trans>}
                         </li>
