@@ -86,6 +86,12 @@ export class JobQueue<Data extends JobData<Data> = object> {
      *   .then(update => update.result),
      *   .catch(err => err.message);
      * ```
+     *
+     * *Note*: if a {@link JobBuffer} collects the job, it is not added to the queue at all and this
+     * method resolves with a placeholder whose {@link SubscribableJob} `isBuffered` flag is `true`.
+     * There is no queued job for such a placeholder to poll, so subscribing to its `updates()` will
+     * yield nothing until the configured `timeoutMs` elapses. Check `isBuffered` before subscribing,
+     * and subscribe instead to the real jobs returned by the `JobQueueService`'s `flush()` method.
      */
     async add(data: Data, options?: JobOptions<Data>): Promise<SubscribableJob<Data>> {
         const job = new Job<any>({
@@ -104,7 +110,7 @@ export class JobQueue<Data extends JobData<Data> = object> {
                 data: job.data,
                 id: 'buffered',
             });
-            return new SubscribableJob(bufferedJob, this.jobQueueStrategy);
+            return SubscribableJob.buffered(bufferedJob, this.jobQueueStrategy);
         }
     }
 }
