@@ -20,8 +20,15 @@ import { RequestContext } from './request-context';
 import { userHasPermissionsOnCustomField } from './user-has-permissions-on-custom-field';
 
 /**
- * Validates the value of a custom field input against any configured constraints.
- * If validation fails, an error is thrown.
+ * @description
+ * Runs the checks the GraphQL APIs apply to custom field input: `readonly`, `nullable`,
+ * `requiresPermission`, the `pattern`, `options`, `min` and `max` constraints, and the field's own
+ * `validate` function. Throws a `UserInputError` on the first failed check.
+ *
+ * Use it to validate custom field values that do not arrive through the GraphQL APIs.
+ *
+ * @docsCategory custom-fields
+ * @since 3.8.0
  */
 export async function validateCustomFieldValue(
     config: CustomFieldConfig,

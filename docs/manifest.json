@@ -940,6 +940,62 @@
       "hidden": true
     },
     {
+      "title": "MCP Server",
+      "slug": "mcp-server",
+      "children": [
+        {
+          "title": "Quick Start",
+          "slug": "quick-start",
+          "file": "docs/guides/mcp-server/quick-start/index.mdx"
+        },
+        {
+          "title": "OAuth & Consent",
+          "slug": "oauth-consent",
+          "file": "docs/guides/mcp-server/oauth-consent/index.mdx"
+        },
+        {
+          "title": "Assistant inside Vendure",
+          "slug": "assistant-inside-vendure",
+          "file": "docs/guides/mcp-server/assistant-inside-vendure/index.mdx"
+        },
+        {
+          "title": "Assistant outside Vendure",
+          "slug": "assistant-outside-vendure",
+          "file": "docs/guides/mcp-server/assistant-outside-vendure/index.mdx"
+        },
+        {
+          "title": "Registering Custom Tools",
+          "slug": "custom-tools",
+          "file": "docs/guides/mcp-server/custom-tools/index.mdx"
+        },
+        {
+          "title": "Production Hardening",
+          "slug": "production",
+          "file": "docs/guides/mcp-server/production/index.mdx"
+        },
+        {
+          "title": "Logging & Observability",
+          "slug": "observability",
+          "file": "docs/guides/mcp-server/observability/index.mdx"
+        },
+        {
+          "title": "Administration",
+          "slug": "administration",
+          "file": "docs/guides/mcp-server/administration/index.mdx"
+        },
+        {
+          "title": "Built-in Tool Reference",
+          "slug": "built-in-tools",
+          "file": "docs/guides/mcp-server/built-in-tools/index.mdx"
+        },
+        {
+          "title": "OAuth Protocol Reference",
+          "slug": "oauth-reference",
+          "file": "docs/guides/mcp-server/oauth-reference/index.mdx"
+        }
+      ]
+    },
+    {
       "title": "Reference",
       "slug": "reference",
       "file": "docs/reference/index.mdx",
@@ -1543,6 +1599,11 @@
                   "slug": "typed-custom-single-field-config",
                   "file": "docs/reference/typescript-api/custom-fields/typed-custom-single-field-config.mdx",
                   "lastModified": "2026-09-21T15:40:19+02:00"
+                },
+                {
+                  "title": "ValidateCustomFieldValue",
+                  "slug": "validate-custom-field-value",
+                  "file": "docs/reference/typescript-api/custom-fields/validate-custom-field-value.mdx"
                 }
               ],
               "lastModified": "2026-09-21T15:40:19+02:00"
@@ -3861,6 +3922,153 @@
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
+            },
+            {
+              "title": "McpPlugin",
+              "slug": "mcp-plugin",
+              "file": "docs/reference/core-plugins/mcp-plugin/index.mdx",
+              "children": [
+                {
+                  "title": "McpAuthorizationCode",
+                  "slug": "mcp-authorization-code",
+                  "file": "docs/reference/core-plugins/mcp-plugin/mcp-authorization-code.mdx"
+                },
+                {
+                  "title": "McpAuthorizationRequest",
+                  "slug": "mcp-authorization-request",
+                  "file": "docs/reference/core-plugins/mcp-plugin/mcp-authorization-request.mdx"
+                },
+                {
+                  "title": "McpCallerGrant",
+                  "slug": "mcp-caller-grant",
+                  "file": "docs/reference/core-plugins/mcp-plugin/mcp-caller-grant.mdx"
+                },
+                {
+                  "title": "McpCallerInfo",
+                  "slug": "mcp-caller-info",
+                  "file": "docs/reference/core-plugins/mcp-plugin/mcp-caller-info.mdx"
+                },
+                {
+                  "title": "McpDnsRebindingOptions",
+                  "slug": "mcp-dns-rebinding-options",
+                  "file": "docs/reference/core-plugins/mcp-plugin/mcp-dns-rebinding-options.mdx"
+                },
+                {
+                  "title": "McpJsonSchema",
+                  "slug": "mcp-json-schema",
+                  "file": "docs/reference/core-plugins/mcp-plugin/mcp-json-schema.mdx"
+                },
+                {
+                  "title": "McpLoggingOptions",
+                  "slug": "mcp-logging-options",
+                  "file": "docs/reference/core-plugins/mcp-plugin/mcp-logging-options.mdx"
+                },
+                {
+                  "title": "McpLogRedactFn",
+                  "slug": "mcp-log-redact-fn",
+                  "file": "docs/reference/core-plugins/mcp-plugin/mcp-log-redact-fn.mdx"
+                },
+                {
+                  "title": "McpOauthClient",
+                  "slug": "mcp-oauth-client",
+                  "file": "docs/reference/core-plugins/mcp-plugin/mcp-oauth-client.mdx"
+                },
+                {
+                  "title": "McpOauthGrant",
+                  "slug": "mcp-oauth-grant",
+                  "file": "docs/reference/core-plugins/mcp-plugin/mcp-oauth-grant.mdx"
+                },
+                {
+                  "title": "McpOauthGrantStatus",
+                  "slug": "mcp-oauth-grant-status",
+                  "file": "docs/reference/core-plugins/mcp-plugin/mcp-oauth-grant-status.mdx"
+                },
+                {
+                  "title": "McpOauthOptions",
+                  "slug": "mcp-oauth-options",
+                  "file": "docs/reference/core-plugins/mcp-plugin/mcp-oauth-options.mdx"
+                },
+                {
+                  "title": "McpPluginOptions",
+                  "slug": "mcp-plugin-options",
+                  "file": "docs/reference/core-plugins/mcp-plugin/mcp-plugin-options.mdx"
+                },
+                {
+                  "title": "McpRateLimitOptions",
+                  "slug": "mcp-rate-limit-options",
+                  "file": "docs/reference/core-plugins/mcp-plugin/mcp-rate-limit-options.mdx"
+                },
+                {
+                  "title": "McpStandardSchema",
+                  "slug": "mcp-standard-schema",
+                  "file": "docs/reference/core-plugins/mcp-plugin/mcp-standard-schema.mdx"
+                },
+                {
+                  "title": "McpStandardSchemaIssue",
+                  "slug": "mcp-standard-schema-issue",
+                  "file": "docs/reference/core-plugins/mcp-plugin/mcp-standard-schema-issue.mdx"
+                },
+                {
+                  "title": "McpStandardSchemaResult",
+                  "slug": "mcp-standard-schema-result",
+                  "file": "docs/reference/core-plugins/mcp-plugin/mcp-standard-schema-result.mdx"
+                },
+                {
+                  "title": "McpTool",
+                  "slug": "mcp-tool",
+                  "file": "docs/reference/core-plugins/mcp-plugin/mcp-tool.mdx"
+                },
+                {
+                  "title": "McpToolBehavior",
+                  "slug": "mcp-tool-behavior",
+                  "file": "docs/reference/core-plugins/mcp-plugin/mcp-tool-behavior.mdx"
+                },
+                {
+                  "title": "McpToolCallEvent",
+                  "slug": "mcp-tool-call-event",
+                  "file": "docs/reference/core-plugins/mcp-plugin/mcp-tool-call-event.mdx"
+                },
+                {
+                  "title": "McpToolCallLog",
+                  "slug": "mcp-tool-call-log",
+                  "file": "docs/reference/core-plugins/mcp-plugin/mcp-tool-call-log.mdx"
+                },
+                {
+                  "title": "McpToolExecutionService",
+                  "slug": "mcp-tool-execution-service",
+                  "file": "docs/reference/core-plugins/mcp-plugin/mcp-tool-execution-service.mdx"
+                },
+                {
+                  "title": "McpToolExposureMode",
+                  "slug": "mcp-tool-exposure-mode",
+                  "file": "docs/reference/core-plugins/mcp-plugin/mcp-tool-exposure-mode.mdx"
+                },
+                {
+                  "title": "McpToolHandler",
+                  "slug": "mcp-tool-handler",
+                  "file": "docs/reference/core-plugins/mcp-plugin/mcp-tool-handler.mdx"
+                },
+                {
+                  "title": "McpToolMetadata",
+                  "slug": "mcp-tool-metadata",
+                  "file": "docs/reference/core-plugins/mcp-plugin/mcp-tool-metadata.mdx"
+                },
+                {
+                  "title": "McpToolSchema",
+                  "slug": "mcp-tool-schema",
+                  "file": "docs/reference/core-plugins/mcp-plugin/mcp-tool-schema.mdx"
+                },
+                {
+                  "title": "McpToolset",
+                  "slug": "mcp-toolset",
+                  "file": "docs/reference/core-plugins/mcp-plugin/mcp-toolset.mdx"
+                },
+                {
+                  "title": "McpToolSummary",
+                  "slug": "mcp-tool-summary",
+                  "file": "docs/reference/core-plugins/mcp-plugin/mcp-tool-summary.mdx"
+                }
+              ]
             },
             {
               "title": "TelemetryPlugin",

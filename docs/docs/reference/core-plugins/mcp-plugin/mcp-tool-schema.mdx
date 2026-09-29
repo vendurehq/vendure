@@ -1,0 +1,13 @@
+---
+title: "McpToolSchema"
+generated: true
+---
+<GenerationInfo sourceFile="packages/mcp-sdk/src/mcp-tool.decorator.ts" sourceLine="37" packageName="@vendure/mcp-sdk" since="3.8.0" />
+
+A tool input/output schema in either accepted form: a plain JSON Schema object
+([McpJsonSchema](/reference/core-plugins/mcp-plugin/mcp-json-schema#mcpjsonschema)), or a Standard Schema object with JSON Schema conversion
+([McpStandardSchema](/reference/core-plugins/mcp-plugin/mcp-standard-schema#mcpstandardschema), e.g. a Zod v4 schema).
+
+```ts title="Signature"
+type McpToolSchema = McpJsonSchema | McpStandardSchema
+```

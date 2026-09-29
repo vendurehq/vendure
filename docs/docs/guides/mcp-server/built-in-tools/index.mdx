@@ -1,0 +1,339 @@
+---
+title: 'Built-in Tool Reference'
+metaTitle: 'MCP Built-in Tool Reference | Vendure'
+metaDescription: 'The 42 tools the Vendure MCP plugin ships — 18 shop and 24 admin — grouped by area, with their safety classification, permissions, and how tool exposure and confirmation work.'
+order: 9
+---
+
+The plugin ships 42 built-in tools: 18 on the shop toolset and 24 on the admin toolset. This page groups them by
+area and explains the model they follow. It is not exhaustive on every input field. The live `tools/list`
+response for your configuration is the authoritative set: it already accounts for permissions, tool toggles, and
+exposure mode.
+
+## How the tools are organized
+
+- **Toolset.** Every tool belongs to `shop` or `admin`, which decides the endpoint that serves it
+  (`/mcp/shop` or `/mcp/admin`) and the permissions it is checked against.
+- **Permissions.** A tool declares one or more [`Permission`](/reference/typescript-api/common/permission/)
+  values with OR semantics: the caller needs any one of them. Shop tools use `Public` (anonymous) or
+  `Authenticated` (signed-in customer). Admin tools use fine-grained permissions such as `ReadOrder` or
+  `UpdateProduct`.
+
+### How tool safety is derived
+
+Each tool declares a single `behavior`, one of:
+
+- **readonly** — changes nothing.
+- **mutating** — writes data and runs immediately. This is the default when `behavior` is omitted.
+- **destructive** — writes data and requires the confirmation round-trip below before running.
+
+The declared behavior drives the MCP annotations an agent sees: `readOnlyHint` and `idempotentHint` are true for
+`readonly` tools, and `destructiveHint` is true for `destructive` tools.
+
+### Destructive confirmation
+
+A destructive tool gets an optional `confirm` parameter. Without `confirm: true`, it runs nothing and returns a
+non-error `confirmation_required` response that names the tool and its action but none of its arguments. With
+confirmation it runs. Seven built-in tools are destructive:
+
+| Tool | Toolset |
+|---|---|
+| `place_order` | **shop** |
+| `adjust_stock` | admin |
+| `cancel_order` | admin |
+| `create_fulfillment` | admin |
+| `refund_order` | admin |
+| `set_active_channel` | admin |
+| `update_order_state` | admin |
+
+`place_order` sits on the shop toolset, so the shop tools are not confirmation-free. Placing an order is a
+real-money action, and it is gated like the destructive admin tools.
+
+`confirm` is a request to the agent, not a lock: a host should ask its user before running a tool annotated
+`destructiveHint: true`, and use rate limits and the tool call log as further controls.
+
+### Tool toggles
+
+Administrators can enable or disable any individual tool, from the Tools page of the dashboard's MCP Server
+section or through the `setMcpToolEnabled` mutation (gated by `UpdateMcpServer`). A disabled tool disappears
+from `tools/list` and cannot be called. Tool toggles are the primary lever for scoping what an agent can do.
+
+## How prices are returned
+
+Prices on products, variants, orders and shipping quotes appear twice. The plain field is a whole number in the
+currency's smallest unit, which is what Vendure stores and what you should use for any calculation. The field
+whose name ends in `Decimal` is the same amount written out with the decimal point in the right place. Show that
+one to a shopper, or hand it to a language model.
+
+```json
+{
+  "price": 20999,
+  "priceDecimal": "209.99",
+  "priceWithTax": 25199,
+  "priceWithTaxDecimal": "251.99",
+  "currencyCode": "USD"
+}
+```
+
+The number of decimal places comes from your store's `moneyStrategy.precision` setting, which defaults to 2. It
+is one setting for the whole store rather than one per currency. A store selling in currencies with different
+numbers of decimal places handles that itself.
+
+A shipping quote carries no currency of its own, so `get_eligible_shipping_methods` takes the currency from the
+cart the quote was calculated for. Anything a shipping calculator attached to the quote under `metadata` or
+`customFields` is returned unchanged alongside these fields.
+
+## Shop tools
+
+### Cart & Checkout
+
+| Tool | Safety | Permission | Description |
+|---|---|---|---|
+| `add_to_cart` | mutating | Public | Add an item to the active cart, by variant ID or by product ID |
+| `update_cart_line` | mutating | Public | Update the quantity of a cart line |
+| `remove_from_cart` | mutating | Public | Remove a line from the active cart |
+| `get_cart` | readonly | Public | Get the active cart |
+| `apply_coupon_code` | mutating | Public | Apply a coupon code to the cart |
+| `remove_coupon_code` | mutating | Public | Remove a coupon code from the cart |
+| `set_checkout_details` | mutating | Public | Set the cart's addresses, and the buyer for a guest checkout |
+| `set_shipping_method` | mutating | Public | Set the cart shipping method |
+| `get_eligible_shipping_methods` | readonly | Public | List shipping methods eligible for the cart |
+| `get_eligible_payment_methods` | readonly | Public | List payment methods eligible for the cart |
+| `place_order` | **destructive** | Public | Move the cart to the payment stage if needed, then add payment. Answers with a status |
+
+Cart tools use an existing cart's currency. A cart started through `add_to_cart` uses the channel's default currency.
+
+`add_to_cart` takes exactly one of `variantId` or `productId`. Product IDs and variant IDs are separate numbering
+sequences that overlap. A product ID used where a variant ID belongs would resolve to a real but unrelated
+variant, and put the wrong item in the cart. Given a `productId` for a product with several variants, the tool
+adds nothing. It returns an error listing each variant with its ID, so the caller can retry with the right one.
+Use `get_product` to get variant IDs in the first place.
+
+`set_checkout_details` can set either address; `billingSameAsShipping: true` copies the shipping address from
+the call or existing cart. Address updates are one transaction, so a rejected address changes neither one. It
+refuses both a call with none of `shippingAddress`, `billingAddress`, `billingSameAsShipping`, or `customer`,
+and one with `billingAddress` and `billingSameAsShipping`.
+
+For guest checkout, pass `customer` with `emailAddress`, `firstName`, and `lastName`, with addresses or
+separately. A signed-in caller cannot pass it. When the order is placed, a guest's checkout address is saved to
+the new customer's address book.
+
+A new shipping address can make the shipping method the shopper already chose ineligible. Vendure then
+swaps the cart's shipping line to the cheapest method that is still eligible, or drops the line when none is.
+It does either without reporting it, so the tool reports it instead: the response carries
+`shippingMethodChanged: true` and a `message` saying which of the two happened, and `order.shippingLines`
+shows the current state. A response without `shippingMethodChanged` means the chosen method survived the
+change.
+
+`place_order` answers `status: "placed"` when Vendure places the order, otherwise `status: "awaiting_payment"`.
+That includes partial payments and a provider redirect in the payment's `publicMetadata`; an order in
+`ArrangingPayment` cannot be edited until paid in full. Vendure's default order process requires a customer, so
+its refusal names `set_checkout_details`; stores that change `arrangingPaymentRequiresCustomer` or replace the
+process get their process's answer.
+
+Order responses include customer and address details, product variant names, payments, refunds, and fulfillments.
+Amounts follow the integer and `Decimal` format above. An order's `customer` is
+`{ id, emailAddress, firstName, lastName }`, or `null` on a cart nobody has claimed yet. Each payment carries
+`publicMetadata`, which holds only the `public` key of whatever the payment handler stored. An empty
+`shippingLines` means no shipping method has been chosen. Each entry in `fulfillments` is
+`{ id, state, method, trackingCode, lines: [{ orderLineId, quantity }] }`; the cart tools leave the field out
+altogether, because an open cart has no shipments to report.
+
+Every order includes `couponCodes` and `discounts`, with discounts grouped by promotion. Discount amounts are negative and include both standard and `Decimal` values.
+A valid coupon does not always reduce the cart price. It may appear in `couponCodes` without changing the total or `discounts`, so compare these fields with the previous cart before reporting a discount.
+Orders returned with Vendure errors, such as insufficient stock, have the same shape as successful order results.
+
+### Catalog (browse)
+
+| Tool | Safety | Permission | Description |
+|---|---|---|---|
+| `get_product` | readonly | Public | Get an enabled product by ID or slug, with its purchasable variants |
+| `search_products` | readonly | Public | Name/slug lookup, word by word; every word must match, plurals handled; optionally within one collection |
+| `get_collection` | readonly | Public | Get a public collection by ID or slug |
+| `list_collections` | readonly | Public | List public collections (paginated) |
+
+`search_products` can be limited to a collection using either `collectionId` or `collectionSlug`. Product list
+results from `search_products` and the admin `list_products` include a `priceRange`. Use `get_product` for the
+full description, assets, and variants.
+
+### Orders & account
+
+| Tool | Safety | Permission | Description |
+|---|---|---|---|
+| `get_order` | readonly | Public | Get an accessible order by code |
+| `list_my_orders` | readonly | Authenticated | List the signed-in customer's orders, newest first |
+| `get_my_account` | readonly | Authenticated | Get the signed-in customer account |
+
+`get_order` answers `order: null` with a `message` when no order has that code or the caller may not see it.
+
+`get_my_account` answers the customer's `id`, `firstName`, `lastName`, `emailAddress` and `phoneNumber`, plus
+`addresses`: one entry per saved address with its `id`, the address fields, and the `defaultShippingAddress`
+and `defaultBillingAddress` flags.
+
+## Admin tools
+
+### Catalog (manage)
+
+| Tool | Safety | Permission | Description |
+|---|---|---|---|
+| `get_product` | readonly | ReadProduct | Get a product by ID, with its variants and option groups |
+| `list_products` | readonly | ReadProduct | List and filter products (paginated) |
+| `create_product` | mutating | CreateProduct | Create a product |
+| `update_product` | mutating | UpdateProduct | Update a product's details, including its images and featured image |
+| `create_variant` | mutating | UpdateProduct | Create a product variant |
+| `update_variant` | mutating | UpdateProduct | Update a variant's price or SKU |
+
+`get_product` is where variant IDs (for `get_stock_levels`, `adjust_stock` and `update_variant`) and option IDs
+(for `create_variant`) come from. `get_stock_levels` and `adjust_stock` both answer with one entry per stock
+location, carrying `stockLocationId`, `stockLocationName`, `stockOnHand` and `stockAllocated`. `adjust_stock`
+refuses a stock location that is not in the administrator's active channel.
+
+### Orders
+
+| Tool | Safety | Permission | Description |
+|---|---|---|---|
+| `get_order` | readonly | ReadOrder | Get an order by ID or code |
+| `list_orders` | readonly | ReadOrder | List and filter orders, most recently placed first (paginated, sortable) |
+| `add_note_to_order` | mutating | UpdateOrder | Add a note to an order timeline; returns the order and the note |
+| `create_fulfillment` | **destructive** | UpdateOrder | Fulfill an order's lines with a shipping method name and an optional tracking code |
+| `update_order_state` | **destructive** | UpdateOrder | Transition an order to another state |
+| `cancel_order` | **destructive** | UpdateOrder | Cancel an order and restock lines |
+| `refund_order` | **destructive** | UpdateOrder | Refund part or all of an order's payment |
+
+`refund_order` refunds the selected payment. If `paymentId` is omitted, it uses the first settled payment with a
+refundable balance. If `amount` is omitted, it refunds that payment's remaining balance.
+
+`create_fulfillment` uses core's `manual-fulfillment` handler. Omit `lines` to fulfill every unfulfilled quantity,
+or pass `[{ orderLineId, quantity }]` for part of an order. `trackingCode` defaults to an empty string, and every
+line must belong to the order named by `id`.
+
+Without `state`, the new fulfillment is `Pending` and the order stays put. `Shipped` or `Delivered` moves it from
+`Pending` and core moves the order to its corresponding full or partial state; use `Shipped` to mark it shipped.
+The call is transactional: a refused transition rolls the fulfillment back. Core checks quantities and fulfillable
+stock, not order state, so an open cart can be fulfilled too.
+
+`update_order_state` directly drives the order state machine: it can move covered `PaymentAuthorized` orders to
+`PaymentSettled`, return `ArrangingPayment` to `AddingItems`, and move `AddingItems` or `Draft` to
+`ArrangingPayment`. Fulfillments, not this tool, move orders to `Shipped` or `Delivered`; `cancel_order` restocks
+lines. `Cancelled` needs every line cancelled unless the order is still in `AddingItems` or `ArrangingPayment`.
+Order modification and its follow-up payment need the Admin API.
+
+### Customers
+
+| Tool | Safety | Permission | Description |
+|---|---|---|---|
+| `get_customer` | readonly | ReadCustomer | Get a customer by ID |
+| `list_customers` | readonly | ReadCustomer | List and filter customers (paginated) |
+| `create_customer` | mutating | CreateCustomer | Create a customer record |
+| `update_customer` | mutating | UpdateCustomer | Update a customer's details |
+| `add_customer_to_group` | mutating | UpdateCustomerGroup | Add a customer to a group |
+| `list_customer_groups` | readonly | ReadCustomerGroup | List customer groups |
+
+`add_customer_to_group` holds `UpdateCustomerGroup` rather than `ReadCustomer`, so it returns the customer id
+and the customer's groups, and nothing else about the customer. It refuses a customer id that does not resolve
+in the active channel instead of reporting a group the customer was never added to.
+
+Every required ID input of a built-in tool has a tool that returns it. Optional inputs such as `facetValueIds`
+and `taxCategoryId` do not, so their values come from the dashboard or the Admin API.
+
+### Stock & inventory
+
+| Tool | Safety | Permission | Description |
+|---|---|---|---|
+| `get_stock_levels` | readonly | ReadProduct | Get stock levels for a variant |
+| `adjust_stock` | **destructive** | UpdateProduct | Adjust stock on hand for a variant |
+
+### Channels
+
+| Tool | Safety | Permission | Description |
+|---|---|---|---|
+| `list_channels` | readonly | ReadSettings or ReadChannel | List channels available to the administrator |
+| `set_active_channel` | **destructive** | Authenticated | Set the active channel for this MCP grant |
+
+### Assets & media
+
+| Tool | Safety | Permission | Description |
+|---|---|---|---|
+| `upload_asset` | mutating | CreateAsset | Upload an asset from a public HTTP(S) URL |
+
+`upload_asset` fetches the URL once and does not follow redirects; give it the final URL of the file. A URL
+that does not answer with the file is refused with a message saying so.
+
+### Filtering and paging admin lists
+
+Every list tool takes `limit` (a whole number from 1 to 100, defaulting to 25) and `offset`. A value outside
+that range is refused with a validation error naming the field, so a call for 0 rows or 1000 rows is refused
+instead of returning every row in the channel.
+The cap of 100 belongs to the MCP tools; it is deliberately stricter than the Admin API's `adminListQueryLimit`,
+which defaults to 1000, because a tool result has to fit in a model's context.
+
+`list_products`, `list_orders` and `list_customers` also take a `filter` object. Its keys are fields and its
+values are operator objects, and every condition in it has to hold for a record to be returned. There is no
+way to express "either or": for that, call the tool twice.
+
+| Value type | Operators |
+|---|---|
+| String | `eq`, `contains`, `in` (an array of exact values) |
+| Date | `before`, `after`, each an ISO 8601 date-time such as `2026-08-25T12:00:00Z` |
+| Number | `eq`, `gte`, `lte` |
+| Boolean | `eq` |
+
+`contains` is case-insensitive on Postgres; on other databases it follows the collation of the column.
+
+| Tool | Filterable fields |
+|---|---|
+| `list_products` | `name`, `slug`, `sku` (matches any of the product's variants), `enabled`, `updatedAt` |
+| `list_orders` | `code`, `state`, `active`, `customerLastName`, `orderPlacedAt`, `updatedAt`, `totalWithTax` |
+| `list_customers` | `emailAddress`, `firstName`, `lastName`, `phoneNumber`, `postalCode` (matches any of the customer's addresses), `createdAt` |
+
+Finding the orders that have been sitting at payment since before noon:
+
+```json
+{
+  "filter": {
+    "state": { "eq": "ArrangingPayment" },
+    "updatedAt": { "before": "2026-08-25T12:00:00Z" }
+  }
+}
+```
+
+`totalWithTax` is a whole number in the currency's smallest unit, like every other price these tools return.
+
+## Tool exposure: direct vs discovery
+
+`toolExposure` controls what `tools/list` returns.
+
+### `direct` (default)
+
+Lists every permitted, enabled tool. Prefer it: modern agents and hosts do their own tool search. Scope an agent
+by disabling tools, not by hiding the list.
+
+### `discovery` (opt-in)
+
+Replaces the full list with exactly two meta-tools.
+
+`search_tools({ query, limit? })` returns the tools that best match the query, ranked with BM25 over each tool's
+name, title, description, and author-supplied keywords. Each result includes the tool's input schema. `query` is
+required. An empty string skips ranking and returns the first `limit` tools by name, as a sample of what is
+available rather than the full list. `limit` defaults to 10 and is clamped to between 1 and 50.
+
+`execute_tool({ name, arguments })` runs a tool found via `search_tools`. It validates `arguments` against that
+tool's schema exactly as a direct call would.
+
+Reach for discovery only when the full list is a problem:
+
+- A host with a low tool cap: 42 tools exceeds some clients' limits.
+- A model with no built-in tool search: older Claude and GPT models, Gemini, Grok, GLM, and most open-source
+  models.
+
+Discovery is a compatibility escape hatch, not the recommended default.
+
+:::note
+Discovery keeps the same permission and confirmation rules as direct mode. It changes how tools are listed and
+invoked, never what a caller is allowed to do.
+:::
+
+## See also
+
+- [Registering Custom MCP Tools](/guides/mcp-server/custom-tools/) — add your own tools to these toolsets.
+- [`@McpTool` reference](/reference/core-plugins/mcp-plugin/mcp-tool/) — the decorator and metadata types.

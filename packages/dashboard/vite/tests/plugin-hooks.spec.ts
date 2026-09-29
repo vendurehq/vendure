@@ -450,6 +450,28 @@ describe('viteConfigPlugin', () => {
         expect(aliases['@/vdb']).toBeDefined();
     });
 
+    it('sets the @/gql alias to graphql.ts inside gqlOutputPath', () => {
+        const plugin = viteConfigPlugin({ packageRoot, gqlOutputPath: '/fake/gql-output' });
+        const result = callConfig(plugin, {}, { command: 'serve' });
+        const aliases = result.resolve.alias as Record<string, string>;
+        expect(aliases['@/gql']).toBe(path.resolve('/fake/gql-output', 'graphql.ts'));
+    });
+
+    it('omits the @/gql alias when gqlOutputPath is not given', () => {
+        const plugin = viteConfigPlugin({ packageRoot });
+        const result = callConfig(plugin, {}, { command: 'serve' });
+        const aliases = result.resolve.alias as Record<string, string>;
+        expect('@/gql' in aliases).toBe(false);
+    });
+
+    it('lets a @/gql alias from the user config override the default', () => {
+        const plugin = viteConfigPlugin({ packageRoot, gqlOutputPath: '/fake/gql-output' });
+        const config = { resolve: { alias: { '@/gql': '/user/gql/graphql.ts' } } };
+        const result = callConfig(plugin, config, { command: 'serve' });
+        const aliases = result.resolve.alias as Record<string, string>;
+        expect(aliases['@/gql']).toBe('/user/gql/graphql.ts');
+    });
+
     it('sets optimizeDeps.exclude with virtual modules', () => {
         const plugin = viteConfigPlugin({ packageRoot });
         const result = callConfig(plugin, {}, { command: 'serve' });

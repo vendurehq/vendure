@@ -12,5 +12,6 @@ export const graphql = initGraphQLTada<{
     };
 }>();
 
+export type { TypedDocumentNode } from '@graphql-typed-document-node/core';
 export { readFragment } from 'gql.tada';
 export type { FragmentOf, ResultOf, VariablesOf } from 'gql.tada';
