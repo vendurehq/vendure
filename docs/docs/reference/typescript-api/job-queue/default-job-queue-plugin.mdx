@@ -4,7 +4,7 @@ generated: true
 ---
 ## DefaultJobQueuePlugin
 
-<GenerationInfo sourceFile="packages/core/src/plugin/default-job-queue-plugin/default-job-queue-plugin.ts" sourceLine="127" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/plugin/default-job-queue-plugin/default-job-queue-plugin.ts" sourceLine="179" packageName="@vendure/core" />
 
 A plugin which configures Vendure to use the SQL database to persist the JobQueue jobs using the [SqlJobQueueStrategy](/reference/typescript-api/job-queue/sql-job-queue-strategy#sqljobqueuestrategy). If you add this
 plugin to an existing Vendure installation, you'll need to run a [database migration](/developer-guide/migrations), since this
@@ -52,6 +52,59 @@ export const config: VendureConfig = {
   ],
 };
 ```
+### maxIdlePollInterval
+The longest interval in ms between polls of an idle queue. When a poll finds no job, the
+interval before the next poll doubles, up to this value. When a poll finds a job, the
+interval returns to `pollInterval`. This reduces the queries an idle queue makes, and works
+with every database. The first job after a quiet period can wait up to this interval before
+it starts. By default this equals `pollInterval`, so the interval does not change.
+
+*Example*
+
+```ts
+export const config: VendureConfig = {
+  plugins: [
+    DefaultJobQueuePlugin.init({
+      // Poll after 200ms, 400ms, 800ms and so on, up to every 5s,
+      // while there are no jobs.
+      pollInterval: 200,
+      maxIdlePollInterval: 5000,
+    }),
+  ],
+};
+```
+
+### useNotify
+On Postgres, set `useNotify: true` to use the [PgNotifyJobQueueStrategy](/reference/typescript-api/job-queue/pg-notify-job-queue-strategy#pgnotifyjobqueuestrategy). An idle queue
+then waits for a Postgres `NOTIFY`, sent when a job is added, instead of polling. This removes
+nearly all idle queries, which matters when the database is reached over a network. On any
+other database this option logs a warning and the queue polls at `pollInterval`.
+
+If `dbConnectionOptions` points at a connection pooler in transaction mode, such as PgBouncer,
+the pooler accepts `LISTEN` but never delivers notifications. In that case, point the listener
+at the direct database host:
+
+*Example*
+
+```ts
+export const config: VendureConfig = {
+  plugins: [
+    DefaultJobQueuePlugin.init({
+      useNotify: {
+        listenerConnection: {
+          connectionString: process.env.DATABASE_DIRECT_URL,
+        },
+      },
+      // Used while the listener is not connected
+      maxIdlePollInterval: 5000,
+    }),
+  ],
+};
+```
+
+If the listener cannot receive notifications, the strategy logs a warning and the queue polls at
+`pollInterval`.
+
 ### concurrency
 The number of jobs to process concurrently per worker. Defaults to 1.
 
@@ -142,7 +195,7 @@ You can configure the settings & schedule of the task via the [DefaultJobQueuePl
 
 ## DefaultJobQueueOptions
 
-<GenerationInfo sourceFile="packages/core/src/plugin/default-job-queue-plugin/types.ts" sourceLine="12" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/plugin/default-job-queue-plugin/types.ts" sourceLine="14" packageName="@vendure/core" />
 
 Configuration options for the DefaultJobQueuePlugin. These values get passed into the
 [SqlJobQueueStrategy](/reference/typescript-api/job-queue/sql-job-queue-strategy#sqljobqueuestrategy).
@@ -150,10 +203,12 @@ Configuration options for the DefaultJobQueuePlugin. These values get passed int
 ```ts title="Signature"
 interface DefaultJobQueueOptions {
     pollInterval?: number | ((queueName: string) => number);
+    maxIdlePollInterval?: number | ((queueName: string) => number);
     concurrency?: number | ((queueName: string) => number);
     backoffStrategy?: BackoffStrategy;
     setRetries?: (queueName: string, job: Job) => number;
     useDatabaseForBuffer?: boolean;
+    useNotify?: boolean | Pick<PgNotifyJobQueueStrategyConfig, 'listenerConnection' | 'safetyIntervalMs'>;
     gracefulShutdownTimeout?: number;
     keepJobsCount?: number;
     cleanJobsSchedule?: ScheduledTaskConfig['schedule'];
@@ -169,6 +224,19 @@ interface DefaultJobQueueOptions {
 The interval in ms between polling the database for new jobs. If many job queues
 are active, the polling may cause undue load on the database, in which case this value
 should be increased to e.g. 1000.
+### maxIdlePollInterval
+
+<MemberInfo kind="property" type={`number | ((queueName: string) => number)`} default={`pollInterval`}  since="3.8.0"  />
+
+The longest interval in ms between polls of an idle queue. When a poll finds no
+job, the interval before the next poll doubles, up to this value. When a poll finds
+a job, the interval returns to `pollInterval`.
+
+This reduces the queries an idle queue makes. The first job after a quiet period
+can wait up to this interval before it starts. Can be set to a function which
+receives the queue name, so that a queue which needs fast pickup keeps a low value.
+
+By default this equals `pollInterval`, so the interval does not change.
 ### concurrency
 
 <MemberInfo kind="property" type={`number | ((queueName: string) => number)`} default={`1`}   />
@@ -227,6 +295,19 @@ recommended for production.
 
 When enabled, a new `JobRecordBuffer` database entity will be defined which will
 require a migration when first enabling this option.
+### useNotify
+
+<MemberInfo kind="property" type={`boolean | Pick<<a href='/reference/typescript-api/job-queue/pg-notify-job-queue-strategy-config#pgnotifyjobqueuestrategyconfig'>PgNotifyJobQueueStrategyConfig</a>, 'listenerConnection' | 'safetyIntervalMs'>`} default={`false`}  since="3.8.0"  />
+
+If set to `true`, the job queue uses the [PgNotifyJobQueueStrategy](/reference/typescript-api/job-queue/pg-notify-job-queue-strategy#pgnotifyjobqueuestrategy). An idle
+queue then waits for a Postgres `NOTIFY` instead of polling the `job_record` table.
+
+Requires Postgres. On any other database this option logs a warning and the queue
+polls at `pollInterval`.
+
+If `dbConnectionOptions` points at a connection pooler in transaction mode, such as
+PgBouncer, pass an object with `listenerConnection` set to the direct database host.
+See [PgNotifyJobQueueStrategyConfig](/reference/typescript-api/job-queue/pg-notify-job-queue-strategy-config#pgnotifyjobqueuestrategyconfig).
 ### gracefulShutdownTimeout
 
 <MemberInfo kind="property" type={`number`} default={`20_000`}  since="2.2.0"  />

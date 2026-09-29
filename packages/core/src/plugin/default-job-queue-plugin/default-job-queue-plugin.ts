@@ -7,6 +7,7 @@ import { cleanJobsTask } from './clean-jobs-task';
 import { DEFAULT_JOB_QUEUE_PLUGIN_OPTIONS } from './constants';
 import { JobRecordBuffer } from './job-record-buffer.entity';
 import { JobRecord } from './job-record.entity';
+import { PgNotifyJobQueueStrategy } from './pg-notify-job-queue-strategy';
 import { SqlJobBufferStorageStrategy } from './sql-job-buffer-storage-strategy';
 import { SqlJobQueueStrategy } from './sql-job-queue-strategy';
 import { DefaultJobQueueOptions } from './types';
@@ -57,6 +58,57 @@ import { DefaultJobQueueOptions } from './types';
  *   ],
  * };
  * ```
+ * ### maxIdlePollInterval
+ * The longest interval in ms between polls of an idle queue. When a poll finds no job, the
+ * interval before the next poll doubles, up to this value. When a poll finds a job, the
+ * interval returns to `pollInterval`. This reduces the queries an idle queue makes, and works
+ * with every database. The first job after a quiet period can wait up to this interval before
+ * it starts. By default this equals `pollInterval`, so the interval does not change.
+ *
+ * @example
+ * ```ts
+ * export const config: VendureConfig = {
+ *   plugins: [
+ *     DefaultJobQueuePlugin.init({
+ *       // Poll after 200ms, 400ms, 800ms and so on, up to every 5s,
+ *       // while there are no jobs.
+ *       pollInterval: 200,
+ *       maxIdlePollInterval: 5000,
+ *     }),
+ *   ],
+ * };
+ * ```
+ *
+ * ### useNotify
+ * On Postgres, set `useNotify: true` to use the {@link PgNotifyJobQueueStrategy}. An idle queue
+ * then waits for a Postgres `NOTIFY`, sent when a job is added, instead of polling. This removes
+ * nearly all idle queries, which matters when the database is reached over a network. On any
+ * other database this option logs a warning and the queue polls at `pollInterval`.
+ *
+ * If `dbConnectionOptions` points at a connection pooler in transaction mode, such as PgBouncer,
+ * the pooler accepts `LISTEN` but never delivers notifications. In that case, point the listener
+ * at the direct database host:
+ *
+ * @example
+ * ```ts
+ * export const config: VendureConfig = {
+ *   plugins: [
+ *     DefaultJobQueuePlugin.init({
+ *       useNotify: {
+ *         listenerConnection: {
+ *           connectionString: process.env.DATABASE_DIRECT_URL,
+ *         },
+ *       },
+ *       // Used while the listener is not connected
+ *       maxIdlePollInterval: 5000,
+ *     }),
+ *   ],
+ * };
+ * ```
+ *
+ * If the listener cannot receive notifications, the strategy logs a warning and the queue polls at
+ * `pollInterval`.
+ *
  * ### concurrency
  * The number of jobs to process concurrently per worker. Defaults to 1.
  *
@@ -131,15 +183,29 @@ import { DefaultJobQueueOptions } from './types';
             ? [JobRecord, JobRecordBuffer]
             : [JobRecord],
     configuration: config => {
-        const { pollInterval, concurrency, backoffStrategy, setRetries, gracefulShutdownTimeout } =
-            DefaultJobQueuePlugin.options ?? {};
-        config.jobQueueOptions.jobQueueStrategy = new SqlJobQueueStrategy({
-            concurrency,
+        const {
             pollInterval,
+            maxIdlePollInterval,
+            concurrency,
             backoffStrategy,
             setRetries,
             gracefulShutdownTimeout,
-        });
+            useNotify,
+        } = DefaultJobQueuePlugin.options ?? {};
+        const strategyConfig = {
+            concurrency,
+            pollInterval,
+            maxIdlePollInterval,
+            backoffStrategy,
+            setRetries,
+            gracefulShutdownTimeout,
+        };
+        config.jobQueueOptions.jobQueueStrategy = useNotify
+            ? new PgNotifyJobQueueStrategy({
+                  ...strategyConfig,
+                  ...(typeof useNotify === 'object' ? useNotify : {}),
+              })
+            : new SqlJobQueueStrategy(strategyConfig);
         if (DefaultJobQueuePlugin.options.useDatabaseForBuffer === true) {
             config.jobQueueOptions.jobBufferStorageStrategy = new SqlJobBufferStorageStrategy();
         }

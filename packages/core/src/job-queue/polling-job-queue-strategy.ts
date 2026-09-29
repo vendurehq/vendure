@@ -52,6 +52,18 @@ export interface PollingJobQueueStrategyConfig {
     pollInterval?: number | ((queueName: string) => number);
     /**
      * @description
+     * The longest interval in ms between polls of an idle queue. When a poll finds no
+     * job, the interval before the next poll doubles, up to this value. When a poll finds
+     * a job, the interval returns to `pollInterval`.
+     *
+     * By default this equals `pollInterval`, so the interval does not change.
+     *
+     * @since 3.8.0
+     * @default pollInterval
+     */
+    maxIdlePollInterval?: number | ((queueName: string) => number);
+    /**
+     * @description
      * When a job is added to the JobQueue using `JobQueue.add()`, the calling
      * code may specify the number of retries in case of failure. This option allows
      * you to override that number and specify your own number of retries based on
@@ -90,7 +102,9 @@ class ActiveQueue<Data extends JobData<Data> = object> {
     private queueStopped$ = new Subject<typeof STOP_SIGNAL>();
     private subscription: Subscription;
     private readonly pollInterval: number;
+    private readonly maxIdlePollInterval: number;
     private readonly concurrency: number;
+    private delay: number;
 
     constructor(
         private readonly queueName: string,
@@ -101,6 +115,14 @@ class ActiveQueue<Data extends JobData<Data> = object> {
             typeof this.jobQueueStrategy.pollInterval === 'function'
                 ? this.jobQueueStrategy.pollInterval(queueName)
                 : this.jobQueueStrategy.pollInterval;
+        const maxIdlePollInterval = this.jobQueueStrategy.maxIdlePollInterval;
+        this.maxIdlePollInterval = Math.max(
+            this.pollInterval,
+            (typeof maxIdlePollInterval === 'function'
+                ? maxIdlePollInterval(queueName)
+                : maxIdlePollInterval) ?? this.pollInterval,
+        );
+        this.delay = this.pollInterval;
         this.concurrency =
             typeof this.jobQueueStrategy.concurrency === 'function'
                 ? this.jobQueueStrategy.concurrency(queueName)
@@ -115,11 +137,14 @@ class ActiveQueue<Data extends JobData<Data> = object> {
         });
         this.running = true;
         const runNextJobs = async () => {
+            let idle = false;
             try {
                 const runningJobsCount = this.activeJobs.length;
+                idle = runningJobsCount < this.concurrency;
                 for (let i = runningJobsCount; i < this.concurrency; i++) {
                     const nextJob = await this.jobQueueStrategy.next(this.queueName);
                     if (nextJob) {
+                        idle = false;
                         // Track the job as active before awaiting the initial status update,
                         // so it stays visible to awaitRunningJobsOrTimeout() during a shutdown
                         // that races this update. If the update throws, remove it again so the
@@ -184,7 +209,8 @@ class ActiveQueue<Data extends JobData<Data> = object> {
                 ]);
             }
             if (this.running) {
-                this.timer = setTimeout(runNextJobs, this.pollInterval);
+                this.delay = idle ? Math.min(this.delay * 2, this.maxIdlePollInterval) : this.pollInterval;
+                this.timer = setTimeout(runNextJobs, this.delay);
             }
         };
 
@@ -276,6 +302,7 @@ class ActiveQueue<Data extends JobData<Data> = object> {
 export abstract class PollingJobQueueStrategy extends InjectableJobQueueStrategy {
     public concurrency: number | ((queueName: string) => number);
     public pollInterval: number | ((queueName: string) => number);
+    public maxIdlePollInterval?: number | ((queueName: string) => number);
     public setRetries: (queueName: string, job: Job) => number;
     public backOffStrategy?: BackoffStrategy;
     public gracefulShutdownTimeout: number;
@@ -290,6 +317,7 @@ export abstract class PollingJobQueueStrategy extends InjectableJobQueueStrategy
         if (concurrencyOrConfig && isObject(concurrencyOrConfig)) {
             this.concurrency = concurrencyOrConfig.concurrency ?? 1;
             this.pollInterval = concurrencyOrConfig.pollInterval ?? 200;
+            this.maxIdlePollInterval = concurrencyOrConfig.maxIdlePollInterval;
             this.backOffStrategy = concurrencyOrConfig.backoffStrategy ?? (() => 1000);
             this.setRetries = concurrencyOrConfig.setRetries ?? ((_, job) => job.retries);
             this.gracefulShutdownTimeout = concurrencyOrConfig.gracefulShutdownTimeout ?? 20_000;

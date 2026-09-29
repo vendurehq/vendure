@@ -1,0 +1,100 @@
+---
+title: "PgNotifyJobQueueStrategy"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/plugin/default-job-queue-plugin/pg-notify-job-queue-strategy.ts" sourceLine="151" packageName="@vendure/core" since="3.8.0" />
+
+A [JobQueueStrategy](/reference/typescript-api/job-queue/job-queue-strategy#jobqueuestrategy) which waits for Postgres `LISTEN`/`NOTIFY` instead of
+polling the database for jobs. It extends [SqlJobQueueStrategy](/reference/typescript-api/job-queue/sql-job-queue-strategy#sqljobqueuestrategy), so jobs are
+stored, locked and listed in the Admin UI in the same way.
+
+When a queue has no job, `next()` waits until one of these happens:
+
+- `add()` commits a job to that queue. The notification is sent in the same
+  transaction as the insert, so it arrives on commit and never on rollback.
+- A job on that queue is returned to `PENDING`, for example by a worker shutting down.
+- A retry which this worker scheduled becomes due.
+- The listener connection is lost.
+- `safetyIntervalMs` passes.
+
+While the listener is not connected, queues poll at `pollInterval`, backing off up to
+`maxIdlePollInterval` if it is set.
+
+Each `add()` makes one extra database round trip to send the notification.
+
+*Example*
+
+```ts
+import { DefaultJobQueuePlugin, VendureConfig } from '@vendure/core';
+
+export const config: VendureConfig = {
+  // ...
+  plugins: [
+    DefaultJobQueuePlugin.init({ useNotify: true }),
+  ],
+};
+```
+
+If `dbConnectionOptions` points at a connection pooler in transaction mode, set
+`listenerConnection` to the direct database host. See
+[PgNotifyJobQueueStrategyConfig](/reference/typescript-api/job-queue/pg-notify-job-queue-strategy-config#pgnotifyjobqueuestrategyconfig).
+
+Requires Postgres. On any other database the strategy logs a warning during
+bootstrap and behaves like [SqlJobQueueStrategy](/reference/typescript-api/job-queue/sql-job-queue-strategy#sqljobqueuestrategy).
+
+```ts title="Signature"
+class PgNotifyJobQueueStrategy extends SqlJobQueueStrategy {
+    constructor(config: PgNotifyJobQueueStrategyConfig = {})
+    init(injector: Injector) => ;
+    next(queueName: string) => Promise<Job | undefined>;
+    update(job: Job<any>) => Promise<void>;
+    add(job: Job<Data>, jobOptions?: JobQueueStrategyJobOptions<Data>) => Promise<Job<Data>>;
+    start(queueName: string, process: (job: Job<Data>) => Promise<any>) => Promise<void>;
+    stop(queueName: string, process: (job: Job<Data>) => Promise<any>) => Promise<void>;
+    destroy() => ;
+}
+```
+* Extends: [`SqlJobQueueStrategy`](/reference/typescript-api/job-queue/sql-job-queue-strategy#sqljobqueuestrategy)
+
+
+
+<div className="members-wrapper">
+
+### init
+
+<MemberInfo kind="method" type={`(injector: <a href='/reference/typescript-api/common/injector#injector'>Injector</a>) => `}   />
+
+
+### next
+
+<MemberInfo kind="method" type={`(queueName: string) => Promise<<a href='/reference/typescript-api/job-queue/job#job'>Job</a> | undefined>`}   />
+
+
+### update
+
+<MemberInfo kind="method" type={`(job: <a href='/reference/typescript-api/job-queue/job#job'>Job</a><any>) => Promise<void>`}   />
+
+
+### add
+
+<MemberInfo kind="method" type={`(job: <a href='/reference/typescript-api/job-queue/job#job'>Job</a><Data>, jobOptions?: JobQueueStrategyJobOptions<Data>) => Promise<<a href='/reference/typescript-api/job-queue/job#job'>Job</a><Data>>`}   />
+
+
+### start
+
+<MemberInfo kind="method" type={`(queueName: string, process: (job: <a href='/reference/typescript-api/job-queue/job#job'>Job</a><Data>) => Promise<any>) => Promise<void>`}   />
+
+
+### stop
+
+<MemberInfo kind="method" type={`(queueName: string, process: (job: <a href='/reference/typescript-api/job-queue/job#job'>Job</a><Data>) => Promise<any>) => Promise<void>`}   />
+
+
+### destroy
+
+<MemberInfo kind="method" type={`() => `}   />
+
+
+
+
+</div>

@@ -2,7 +2,7 @@
 title: "PollingJobQueueStrategy"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/job-queue/polling-job-queue-strategy.ts" sourceLine="276" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/job-queue/polling-job-queue-strategy.ts" sourceLine="302" packageName="@vendure/core" />
 
 This class allows easier implementation of [JobQueueStrategy](/reference/typescript-api/job-queue/job-queue-strategy#jobqueuestrategy) in a polling style.
 Instead of providing [JobQueueStrategy](/reference/typescript-api/job-queue/job-queue-strategy#jobqueuestrategy) `start()` you should provide a `next` method.
@@ -14,6 +14,7 @@ to notify on new jobs. It is used by the [SqlJobQueueStrategy](/reference/typesc
 class PollingJobQueueStrategy extends InjectableJobQueueStrategy {
     public concurrency: number | ((queueName: string) => number);
     public pollInterval: number | ((queueName: string) => number);
+    public maxIdlePollInterval?: number | ((queueName: string) => number);
     public setRetries: (queueName: string, job: Job) => number;
     public backOffStrategy?: BackoffStrategy;
     public gracefulShutdownTimeout: number;
@@ -41,6 +42,11 @@ class PollingJobQueueStrategy extends InjectableJobQueueStrategy {
 
 
 ### pollInterval
+
+<MemberInfo kind="property" type={`number | ((queueName: string) => number)`}   />
+
+
+### maxIdlePollInterval
 
 <MemberInfo kind="property" type={`number | ((queueName: string) => number)`}   />
 

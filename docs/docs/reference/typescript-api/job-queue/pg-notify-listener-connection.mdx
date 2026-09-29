@@ -1,0 +1,86 @@
+---
+title: "PgNotifyListenerConnection"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/plugin/default-job-queue-plugin/pg-notify-job-queue-strategy.ts" sourceLine="53" packageName="@vendure/core" since="3.8.0" />
+
+Connection details for the listener of the [PgNotifyJobQueueStrategy](/reference/typescript-api/job-queue/pg-notify-job-queue-strategy#pgnotifyjobqueuestrategy). These are
+passed to the `pg` package's `Client`, which also accepts its other `ClientConfig`
+options.
+
+```ts title="Signature"
+interface PgNotifyListenerConnection {
+    connectionString?: string;
+    host?: string;
+    port?: number;
+    user?: string;
+    password?: string;
+    database?: string;
+    ssl?: boolean | ConnectionOptions;
+    application_name?: string;
+    keepAlive?: boolean;
+    keepAliveInitialDelayMillis?: number;
+    [option: string]: unknown;
+}
+```
+
+<div className="members-wrapper">
+
+### connectionString
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### host
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### port
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### user
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### password
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### database
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### ssl
+
+<MemberInfo kind="property" type={`boolean | ConnectionOptions`}   />
+
+
+### application_name
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### keepAlive
+
+<MemberInfo kind="property" type={`boolean`}   />
+
+
+### keepAliveInitialDelayMillis
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### [index]
+
+<MemberInfo kind="property" type={`unknown`}   />
+
+
+
+
+</div>

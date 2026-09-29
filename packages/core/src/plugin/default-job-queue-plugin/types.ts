@@ -1,6 +1,8 @@
 import { BackoffStrategy, Job } from '../../job-queue';
 import { ScheduledTaskConfig } from '../../scheduler';
 
+import { PgNotifyJobQueueStrategyConfig } from './pg-notify-job-queue-strategy';
+
 /**
  * @description
  * Configuration options for the DefaultJobQueuePlugin. These values get passed into the
@@ -19,6 +21,22 @@ export interface DefaultJobQueueOptions {
      * @default 200
      */
     pollInterval?: number | ((queueName: string) => number);
+    /**
+     * @description
+     * The longest interval in ms between polls of an idle queue. When a poll finds no
+     * job, the interval before the next poll doubles, up to this value. When a poll finds
+     * a job, the interval returns to `pollInterval`.
+     *
+     * This reduces the queries an idle queue makes. The first job after a quiet period
+     * can wait up to this interval before it starts. Can be set to a function which
+     * receives the queue name, so that a queue which needs fast pickup keeps a low value.
+     *
+     * By default this equals `pollInterval`, so the interval does not change.
+     *
+     * @since 3.8.0
+     * @default pollInterval
+     */
+    maxIdlePollInterval?: number | ((queueName: string) => number);
     /**
      * @description
      * How many jobs from a given queue to process concurrently.
@@ -83,6 +101,22 @@ export interface DefaultJobQueueOptions {
      * @since 1.3.0
      */
     useDatabaseForBuffer?: boolean;
+    /**
+     * @description
+     * If set to `true`, the job queue uses the {@link PgNotifyJobQueueStrategy}. An idle
+     * queue then waits for a Postgres `NOTIFY` instead of polling the `job_record` table.
+     *
+     * Requires Postgres. On any other database this option logs a warning and the queue
+     * polls at `pollInterval`.
+     *
+     * If `dbConnectionOptions` points at a connection pooler in transaction mode, such as
+     * PgBouncer, pass an object with `listenerConnection` set to the direct database host.
+     * See {@link PgNotifyJobQueueStrategyConfig}.
+     *
+     * @default false
+     * @since 3.8.0
+     */
+    useNotify?: boolean | Pick<PgNotifyJobQueueStrategyConfig, 'listenerConnection' | 'safetyIntervalMs'>;
     /**
      * @description
      * The timeout in ms which the queue will use when attempting a graceful shutdown.

@@ -1,0 +1,51 @@
+---
+title: "PgNotifyJobQueueStrategyConfig"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/plugin/default-job-queue-plugin/pg-notify-job-queue-strategy.ts" sourceLine="74" packageName="@vendure/core" since="3.8.0" />
+
+Configuration options for the [PgNotifyJobQueueStrategy](/reference/typescript-api/job-queue/pg-notify-job-queue-strategy#pgnotifyjobqueuestrategy).
+
+```ts title="Signature"
+interface PgNotifyJobQueueStrategyConfig extends PollingJobQueueStrategyConfig {
+    listenerConnection?: PgNotifyListenerConnection;
+    safetyIntervalMs?: number;
+}
+```
+* Extends: PollingJobQueueStrategyConfig
+
+
+
+<div className="members-wrapper">
+
+### listenerConnection
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/job-queue/pg-notify-listener-connection#pgnotifylistenerconnection'>PgNotifyListenerConnection</a>`} default={`undefined`}   />
+
+Connection details for the listener connection.
+
+The listener holds one connection open in `LISTEN` for as long as the worker runs,
+separate from TypeORM's pool. When this option is not set, the connection details
+are taken from `dbConnectionOptions`, including `replication.master` and `extra`.
+
+Set this option when `dbConnectionOptions` points at a connection pooler in
+transaction mode, such as PgBouncer, Supavisor, or the pooled endpoint of Neon or
+Supabase. Such a pooler accepts `LISTEN` but never delivers notifications. Point the
+listener at the direct database host, or at a pooler port in session mode.
+
+On connect, the listener sends itself a test notification. If it does not arrive
+within 3 seconds, the strategy logs a warning and the queues poll at `pollInterval`
+until the process restarts.
+### safetyIntervalMs
+
+<MemberInfo kind="property" type={`number`} default={`300_000`}   />
+
+The longest time a queue waits for a notification before it checks the database
+again.
+
+Postgres does not store notifications for a listener which is disconnected. A job
+whose notification was missed, for example one retried by a worker which has since
+exited, is picked up at the latest after this interval.
+
+
+</div>

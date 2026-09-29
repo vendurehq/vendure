@@ -18,6 +18,7 @@ describe('PollingJobQueueStrategy', () => {
     let activeProcess: ((job: Job) => Promise<any>) | undefined;
 
     afterEach(async () => {
+        vi.useRealTimers();
         // strategy.destroy() does not touch the ActiveQueue timer, so without
         // an explicit stop() the polling loop keeps running against a
         // torn-down mock in the next test. Calling stop() here — rather than
@@ -131,5 +132,65 @@ describe('PollingJobQueueStrategy', () => {
         await stopPromise;
 
         expect(processed).toEqual(['job-1']);
+    });
+
+    it('backs off up to maxIdlePollInterval while idle, and resets once a job is found', async () => {
+        strategy = new InMemoryJobQueueStrategy({
+            concurrency: 1,
+            pollInterval: 10,
+            maxIdlePollInterval: 80,
+        });
+        strategy.init({ get: () => ({ isWorker: false }) } as any);
+        vi.useFakeTimers();
+        const next = vi.spyOn(strategy, 'next');
+        const processed: string[] = [];
+        const process = async (job: Job) => {
+            processed.push(job.id as string);
+        };
+        activeProcess = process;
+        await strategy.start('test', process);
+
+        // Without the backoff this is ~40 polls: 10ms, then 20, 40, 80, 80, ...
+        await vi.advanceTimersByTimeAsync(400);
+        expect(next.mock.calls.length).toBeLessThan(12);
+
+        await strategy.add(new Job({ id: 'job-1', queueName: 'test', data: {} }));
+        for (let i = 0; i < 100 && !processed.length; i++) {
+            await vi.advanceTimersByTimeAsync(1);
+        }
+        expect(processed).toEqual(['job-1']);
+        const callsAfterJob = next.mock.calls.length;
+        // Reset to pollInterval, so the next polls come at +10ms and +30ms rather than +80ms.
+        await vi.advanceTimersByTimeAsync(35);
+        expect(next.mock.calls.length).toBeGreaterThanOrEqual(callsAfterJob + 2);
+    });
+
+    it('does not back off when one concurrency slot finds a job and another does not', async () => {
+        strategy = new InMemoryJobQueueStrategy({
+            concurrency: 2,
+            pollInterval: 10,
+            maxIdlePollInterval: 80,
+        });
+        strategy.init({ get: () => ({ isWorker: false }) } as any);
+        vi.useFakeTimers();
+        let calls = 0;
+        let lastCallAt = 0;
+        // The first slot of each round finds a job and the second finds nothing. Calls in
+        // the same round are well under 5ms apart; rounds are at least pollInterval apart.
+        vi.spyOn(strategy, 'next').mockImplementation(async () => {
+            calls++;
+            const newRound = Date.now() - lastCallAt > 5;
+            lastCallAt = Date.now();
+            return newRound ? new Job({ id: `job-${calls}`, queueName: 'test', data: {} }) : undefined;
+        });
+        vi.spyOn(strategy, 'update').mockResolvedValue(undefined);
+        const process = async () => undefined;
+        activeProcess = process;
+        await strategy.start('test', process);
+
+        await vi.advanceTimersByTimeAsync(300);
+
+        // At 10ms per round this is ~50 calls; backing off to 80ms would give ~12.
+        expect(calls).toBeGreaterThan(25);
     });
 });
