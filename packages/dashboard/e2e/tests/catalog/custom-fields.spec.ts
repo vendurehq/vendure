@@ -539,7 +539,10 @@ test.describe('Form error summary', () => {
     const summary = (page: Page) => page.getByRole('alert').filter({ hasText: 'This cannot be saved' });
 
     /** Serves every ProductDetail response with an invalid `numericCode`, passing each through `edit`. */
-    async function serveInvalidNumericCode(page: Page, edit: (product: any, call: number) => void = () => {}) {
+    async function serveInvalidNumericCode(
+        page: Page,
+        edit: (product: any, call: number) => void = () => {},
+    ) {
         let call = 0;
         await page.route('**/admin-api**', async route => {
             if (!/query ProductDetail\b/.test(route.request().postData() ?? '')) {
@@ -602,7 +605,10 @@ test.describe('Form error summary', () => {
 
         // Leave and re-enter: the cached product renders first, then the stale query refetches.
         // Suspense queries count as fresh for their first second, so wait that out on the list.
-        await page.getByRole('navigation', { name: 'breadcrumb' }).getByRole('link', { name: 'Products' }).click();
+        await page
+            .getByRole('navigation', { name: 'breadcrumb' })
+            .getByRole('link', { name: 'Products' })
+            .click();
         const lp = listPage(page);
         await lp.expectLoaded();
         await lp.search('Laptop');

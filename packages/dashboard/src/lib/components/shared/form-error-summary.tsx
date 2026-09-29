@@ -1,7 +1,7 @@
 import { Alert, AlertDescription, AlertTitle } from '@/vdb/components/ui/alert.js';
 import { Trans } from '@lingui/react/macro';
 import { AlertCircle } from 'lucide-react';
-import { FieldErrors, useFormState, UseFormReturn } from 'react-hook-form';
+import { FieldErrors, UseFormReturn, useFormState } from 'react-hook-form';
 
 interface FlatError {
     name: string;
@@ -58,13 +58,15 @@ function humanizeFieldName(name: string, values: Record<string, any> | undefined
         const label = humanizeFieldName(translation[2], undefined);
         return languageCode ? `${label} (${languageCode})` : label;
     }
-    return name
-        .split('.')
-        // The "customFields" wrapper segment is noise on every custom field.
-        .filter(segment => segment !== 'customFields')
-        // Array indices become 1-based to disambiguate repeated groups.
-        .map(segment => (/^\d+$/.test(segment) ? `#${Number(segment) + 1}` : humanizeSegment(segment)))
-        .join(' › ');
+    return (
+        name
+            .split('.')
+            // The "customFields" wrapper segment is noise on every custom field.
+            .filter(segment => segment !== 'customFields')
+            // Array indices become 1-based to disambiguate repeated groups.
+            .map(segment => (/^\d+$/.test(segment) ? `#${Number(segment) + 1}` : humanizeSegment(segment)))
+            .join(' › ')
+    );
 }
 
 /**
