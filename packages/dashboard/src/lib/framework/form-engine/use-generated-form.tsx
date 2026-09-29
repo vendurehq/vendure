@@ -166,15 +166,14 @@ export function useGeneratedForm<
     // config hasn't changed.
     const availableLanguages = serverConfig?.availableLanguages ?? EMPTY_LANGUAGES;
 
+    // A create form has no entity. `useDetailPage` reads the entity through a suspended query, so
+    // an update page has it on the first render. See `applyCustomFieldModifiers` (#5241).
+    const isCreateForm = !entity;
+
     // Without memoisation these objects/arrays are rebuilt on every render of
     // the parent route. When the schema changes identity, react-hook-form's
     // resolver is replaced and the form re-validates everything; when
     // defaultValues changes identity it can also reset uncontrolled inputs.
-    // `!entity` tells the schema whether it is validating a create or an update form — see
-    // `applyCustomFieldModifiers` for what that changes (#5241). An update page reads `entity`
-    // through a suspended query, so it is already there on the first render and the flag is
-    // constant: the resolver is never swapped between the two schemas.
-    const isCreateForm = !entity;
     const schema = useMemo(() => {
         const generated = createFormSchemaFromFields(updateFields, customFieldConfig, false, isCreateForm);
         return extendSchemaRef.current?.(generated) ?? generated;
