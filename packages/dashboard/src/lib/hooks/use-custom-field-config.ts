@@ -10,12 +10,8 @@ import { useServerConfig } from './use-server-config.js';
  * Also filters out any custom fields that the current active user does not
  * have permissions to access.
  *
- * The result is memoised so it keeps a stable identity across renders. The form
- * engine (`useGeneratedForm`) derives its zod schema and default values from this
- * config via `useMemo` and re-validates whenever the schema identity changes;
- * returning a fresh array on every render made the schema unstable, which — once
- * on-load validation was added — produced an infinite validate → re-render loop
- * (OSS-540).
+ * The result keeps the same identity across renders until the server config or
+ * the active user's permissions change, so it can be used as a memo dependency.
  *
  * @docsCategory hooks
  * @since 3.4.0

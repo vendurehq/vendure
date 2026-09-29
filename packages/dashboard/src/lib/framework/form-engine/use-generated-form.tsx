@@ -76,11 +76,7 @@ export interface GeneratedFormOptions<
      * The entity to use to generate the form.
      */
     entity: E | null | undefined;
-    // Custom field config used to build the validation schema. MUST be referentially
-    // stable across renders (e.g. from `useCustomFieldConfig`, which memoises it):
-    // it feeds the `schema`/`values` memos and the on-load validation effect below,
-    // so a fresh array each render causes an infinite validate -> re-render loop.
-    customFieldConfig?: any[];
+    customFieldConfig?: any[]; // Add custom field config for validation
     /**
      * @description
      * Refines the auto-generated Zod schema before it is passed to the form resolver. Use this
@@ -236,20 +232,20 @@ export function useGeneratedForm<
     // back empty, and `stripUntouchedTranslations` would then keep every seeded row (see its docs).
     const { dirtyFields } = form.formState;
 
-    // When editing an existing entity, validate once the entity has loaded so
-    // that any pre-existing invalid values (e.g. a custom field whose stored
-    // value or default fails validation) surface as on-page errors instead of
-    // silently disabling the submit button with no explanation (see #4741).
+    // When editing an existing entity, validate the loaded values so that a stored value which
+    // fails validation is shown as an error, rather than only disabling the submit button.
+    //
+    // Keyed on the content of `values`, not its identity. react-hook-form resets the form, and
+    // clears its errors, whenever `values` changes by deep equality, so this re-validates after
+    // every such reset (e.g. a refetch of the same entity). Content keying also means a caller
+    // passing a new `customFieldConfig` array or `entity` object on each render does not re-run
+    // it on every render.
+    const valuesKey = JSON.stringify(values);
     useEffect(() => {
         if (entity) {
             void form.trigger();
         }
-        // Keyed on the entity id (so we don't re-run on every background refetch
-        // that yields a new object identity) plus the inputs that shape the
-        // validated `values` — `schema` (custom field config) and the available
-        // languages — so we re-validate if those settle after the entity loads,
-        // otherwise hidden invalid custom fields/translations could stay hidden.
-    }, [entity?.id, schema, availableLanguages]);
+    }, [valuesKey]);
 
     let submitHandler = (event: FormEvent): any => {
         event.preventDefault();
