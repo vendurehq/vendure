@@ -124,7 +124,7 @@ export class StockLevelService {
             })
             .andWhere('channel.id = :channelId', { channelId: ctx.channelId })
             // Sort by stock location so the order is deterministic.
-            // The multi-location e2e suite asserts on it.
+            // `stock-control-multi-location.e2e-spec.ts` asserts on it.
             .orderBy('stockLevel.stockLocationId', 'ASC')
             .getMany();
         return this.groupByVariantId(ids, stockLevels);
