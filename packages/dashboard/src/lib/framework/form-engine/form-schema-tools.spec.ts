@@ -353,7 +353,8 @@ describe('form-schema-tools', () => {
             expect(() => schema.parse(undefinedData)).toThrow();
         });
 
-        // #5241: a create form accepts an empty nullable: false custom field
+        // #5241: a create form accepts an empty nullable: false custom field. The create submit path
+        // strips the null (`stripNullNullableFields`), so the column's SQL DEFAULT applies.
         it('should accept null and a missing value for nullable: false custom fields on a create form', () => {
             const fields = [createMockField('customFields', 'Object', false, false, [])];
             const customFields = [createMockCustomField('sku', 'string', { nullable: false })];
@@ -845,7 +846,8 @@ describe('form-schema-tools', () => {
             expect(defaults.customFields.featureType).toBeNull();
         });
 
-        // #5241: the null seeded for a nullable: false custom field passes the create schema only
+        // #5241: the null seeded for a nullable: false custom field passes the create schema only.
+        // It is stripped on submit, so the SQL DEFAULT applies. The update schema rejects it (NOT NULL).
         it.each([
             ['int', 'Int'],
             ['float', 'Float'],
