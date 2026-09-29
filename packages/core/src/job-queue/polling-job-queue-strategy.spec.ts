@@ -1,3 +1,4 @@
+import { JobState } from '@vendure/common/lib/generated-types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { InMemoryJobQueueStrategy } from './in-memory-job-queue-strategy';
@@ -131,5 +132,30 @@ describe('PollingJobQueueStrategy', () => {
         await stopPromise;
 
         expect(processed).toEqual(['job-1']);
+    });
+
+    // #5440
+    it('keeps a job cancelled while running as CANCELLED when process returns a non-Job value', async () => {
+        await strategy.add(new Job({ id: 'job-1', queueName: 'test', data: {} }));
+
+        const process = async (job: Job) => {
+            await strategy.cancelJob(job.id as string);
+            await vi.waitFor(() => expect(job.state).toBe(JobState.CANCELLED), {
+                timeout: 2000,
+                interval: 10,
+            });
+            return 'done';
+        };
+        activeProcess = process;
+        await strategy.start('test', process);
+
+        await vi.waitFor(
+            async () => {
+                const job = await strategy.findOne('job-1');
+                expect(job?.isSettled).toBe(true);
+                expect(job?.state).toBe(JobState.CANCELLED);
+            },
+            { timeout: 2000, interval: 20 },
+        );
     });
 });

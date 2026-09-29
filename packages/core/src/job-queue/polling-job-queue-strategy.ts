@@ -151,7 +151,10 @@ class ActiveQueue<Data extends JobData<Data> = object> {
                                 result => {
                                     if (result === STOP_SIGNAL) {
                                         nextJob.defer();
-                                    } else if (result instanceof Job && result.state === JobState.CANCELLED) {
+                                    } else if (
+                                        nextJob.state === JobState.CANCELLED ||
+                                        (result instanceof Job && result.state === JobState.CANCELLED)
+                                    ) {
                                         nextJob.cancel();
                                     } else {
                                         nextJob.complete(result);
