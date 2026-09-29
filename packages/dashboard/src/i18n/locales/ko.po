@@ -126,6 +126,10 @@ msgstr "주문이 이행되었습니다"
 msgid "Are you sure you want to delete {0} {entityName}?"
 msgstr "{0}개 {entityName}을(를) 삭제하시겠습니까?"
 
+#: src/app/routes/_authenticated/_orders/orders.tsx
+msgid "Customer email"
+msgstr ""
+
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
 msgid "Global out of stock threshold"
 msgstr "전역 품절 임계값"
@@ -3218,6 +3222,7 @@ msgstr "{columnId} 열의 필터 조건 설정"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
+#: src/lib/components/shared/address-country-select.tsx
 #: src/lib/components/shared/customer-address-form.tsx
 msgid "Country"
 msgstr "국가"
@@ -3434,7 +3439,7 @@ msgstr "결제가 승인되었습니다"
 msgid "Successfully updated role"
 msgstr "역할이 업데이트되었습니다"
 
-#: src/lib/components/shared/customer-address-form.tsx
+#: src/lib/components/shared/address-country-select.tsx
 msgid "Select a country"
 msgstr "국가 선택"
 
@@ -5831,6 +5836,7 @@ msgid "useWidgetFilters must be used within a WidgetFiltersProvider"
 msgstr "useWidgetFilters는 WidgetFiltersProvider 내에서 사용해야 합니다"
 
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
+#: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 msgid "Edit Address"
 msgstr "주소 편집"
 
@@ -5997,6 +6003,7 @@ msgstr "활성"
 msgid "Tax base"
 msgstr "과세 기준"
 
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-container.tsx
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-container.tsx
 msgid "Load more"

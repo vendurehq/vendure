@@ -126,6 +126,10 @@ msgstr "Bestelling succesvol afgehandeld"
 msgid "Are you sure you want to delete {0} {entityName}?"
 msgstr "Weet u zeker dat u {0} {entityName} wilt verwijderen?"
 
+#: src/app/routes/_authenticated/_orders/orders.tsx
+msgid "Customer email"
+msgstr ""
+
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
 msgid "Global out of stock threshold"
 msgstr "Globale uitverkocht-drempelwaarde"
@@ -3238,6 +3242,7 @@ msgstr "Filtercriteria instellen voor de kolom {columnId}"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
+#: src/lib/components/shared/address-country-select.tsx
 #: src/lib/components/shared/customer-address-form.tsx
 msgid "Country"
 msgstr "Land"
@@ -3458,7 +3463,7 @@ msgstr "Betaling geautoriseerd"
 msgid "Successfully updated role"
 msgstr "Rol succesvol bijgewerkt"
 
-#: src/lib/components/shared/customer-address-form.tsx
+#: src/lib/components/shared/address-country-select.tsx
 msgid "Select a country"
 msgstr "Selecteer een land"
 
@@ -5911,6 +5916,7 @@ msgid "useWidgetFilters must be used within a WidgetFiltersProvider"
 msgstr "useWidgetFilters moet binnen een WidgetFiltersProvider worden gebruikt"
 
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
+#: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 msgid "Edit Address"
 msgstr "Adres bewerken"
 
@@ -6077,6 +6083,7 @@ msgstr "Actief"
 msgid "Tax base"
 msgstr "Belastinggrondslag"
 
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-container.tsx
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-container.tsx
 msgid "Load more"

@@ -126,6 +126,10 @@ msgstr "Успешно изпълнена поръчка"
 msgid "Are you sure you want to delete {0} {entityName}?"
 msgstr "Сигурни ли сте, че искате да изтриете {0} {entityName}?"
 
+#: src/app/routes/_authenticated/_orders/orders.tsx
+msgid "Customer email"
+msgstr ""
+
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
 msgid "Global out of stock threshold"
 msgstr "Глобален праг за изчерпване"
@@ -3264,6 +3268,7 @@ msgstr "Задаване на критерии за филтриране за к
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
+#: src/lib/components/shared/address-country-select.tsx
 #: src/lib/components/shared/customer-address-form.tsx
 msgid "Country"
 msgstr "Държава"
@@ -3484,7 +3489,7 @@ msgstr "Разрешено плащане"
 msgid "Successfully updated role"
 msgstr "Успешно актуализирана роля"
 
-#: src/lib/components/shared/customer-address-form.tsx
+#: src/lib/components/shared/address-country-select.tsx
 msgid "Select a country"
 msgstr "Изберете държава"
 
@@ -5948,6 +5953,7 @@ msgid "useWidgetFilters must be used within a WidgetFiltersProvider"
 msgstr "useWidgetFilters трябва да се използва в рамките на WidgetFiltersProvider"
 
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
+#: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 msgid "Edit Address"
 msgstr "Редакция на адрес"
 
@@ -6119,6 +6125,7 @@ msgstr "Активен"
 msgid "Tax base"
 msgstr "Данъчна основа"
 
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-container.tsx
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-container.tsx
 msgid "Load more"

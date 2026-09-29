@@ -21,6 +21,7 @@ export const orderListDocument = graphql(`
                     id
                     firstName
                     lastName
+                    emailAddress
                 }
                 orderPlacedAt
                 total

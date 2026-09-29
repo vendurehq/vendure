@@ -126,6 +126,10 @@ msgstr "注文をフルフィルメントしました"
 msgid "Are you sure you want to delete {0} {entityName}?"
 msgstr "{0}{entityName}を削除してもよろしいですか？"
 
+#: src/app/routes/_authenticated/_orders/orders.tsx
+msgid "Customer email"
+msgstr ""
+
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
 msgid "Global out of stock threshold"
 msgstr "グローバル在庫切れしきい値"
@@ -3244,6 +3248,7 @@ msgstr "{columnId} 列のフィルター条件を設定"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
+#: src/lib/components/shared/address-country-select.tsx
 #: src/lib/components/shared/customer-address-form.tsx
 msgid "Country"
 msgstr "国"
@@ -3464,7 +3469,7 @@ msgstr "支払いを承認しました"
 msgid "Successfully updated role"
 msgstr "ロールを更新しました"
 
-#: src/lib/components/shared/customer-address-form.tsx
+#: src/lib/components/shared/address-country-select.tsx
 msgid "Select a country"
 msgstr "国を選択"
 
@@ -5916,6 +5921,7 @@ msgid "useWidgetFilters must be used within a WidgetFiltersProvider"
 msgstr "useWidgetFiltersはWidgetFiltersProvider内で使用する必要があります"
 
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
+#: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 msgid "Edit Address"
 msgstr "住所を編集"
 
@@ -6082,6 +6088,7 @@ msgstr "アクティブ"
 msgid "Tax base"
 msgstr "課税標準"
 
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-container.tsx
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-container.tsx
 msgid "Load more"

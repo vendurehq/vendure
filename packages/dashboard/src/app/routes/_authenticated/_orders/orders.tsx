@@ -89,8 +89,15 @@ function OrderListPage() {
                     },
                 },
             }}
+            additionalColumns={{
+                customerEmailAddress: {
+                    header: t`Customer email`,
+                    cell: ({ row }) => row.original.customer?.emailAddress,
+                },
+            }}
             defaultVisibility={{
                 id: false,
+                customerEmailAddress: false,
                 createdAt: false,
                 orderPlacedAt: false,
                 type: false,
