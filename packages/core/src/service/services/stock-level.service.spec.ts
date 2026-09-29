@@ -9,9 +9,9 @@ import { StockLocation } from '../../entity/stock-location/stock-location.entity
 import { StockLevelService } from './stock-level.service';
 
 /**
- * Unit tests for the request-scoped batching of StockLevel lookups. Resolving the stock of a
- * list of ProductVariants used to issue one query per variant, and two per variant on the
- * Admin API, where `stockOnHand` and `stockAllocated` are separate field resolvers.
+ * Unit tests for the request-scoped batching of StockLevel lookups. Concurrent lookups within
+ * one RequestContext share a single query, including the separate `stockOnHand` and
+ * `stockAllocated` field resolvers of the Admin API.
  */
 
 /** One row per variant 1-5, all at stock location 1. */
@@ -57,17 +57,31 @@ const allStockLevelsWithLocation = [
     ...allStockLevels.map(sl => new StockLevel({ ...sl, stockLocation: location1 })),
 ];
 
-/** The bound parameters and ordering of each query-builder read, newest last. */
-const queryBuilderReads: Array<{ params: Record<string, any>; orderBy?: string }> = [];
+type QueryBuilderRead = {
+    selectedRelations: string[];
+    clauses: string[];
+    params: Record<string, any>;
+    orderBy?: string;
+};
+
+/**
+ * The selected relations, where clauses, bound parameters and ordering of each query-builder
+ * read, newest last.
+ */
+const queryBuilderReads: QueryBuilderRead[] = [];
 
 function createQueryBuilder() {
-    const read: { params: Record<string, any>; orderBy?: string } = { params: {} };
+    const read: QueryBuilderRead = { selectedRelations: [], clauses: [], params: {} };
     const record = (clause: string, params: Record<string, any>) => {
+        read.clauses.push(clause);
         Object.assign(read.params, params);
         return queryBuilder;
     };
     const queryBuilder: any = {
-        leftJoinAndSelect: () => queryBuilder,
+        leftJoinAndSelect: (relation: string) => {
+            read.selectedRelations.push(relation);
+            return queryBuilder;
+        },
         leftJoin: () => queryBuilder,
         where: record,
         andWhere: record,
@@ -78,11 +92,14 @@ function createQueryBuilder() {
         getMany: () => {
             queryBuilderReads.push(read);
             const ids: Array<string | number> = read.params.productVariantIds;
-            const rows = allStockLevelsWithLocation.filter(
-                sl =>
-                    ids.map(id => String(id)).includes(String(sl.productVariantId)) &&
-                    sl.stockLocation.channels.some(c => String(c.id) === String(read.params.channelId)),
-            );
+            const selectsStockLocation = read.selectedRelations.includes('stockLevel.stockLocation');
+            const rows = allStockLevelsWithLocation
+                .filter(
+                    sl =>
+                        ids.map(id => String(id)).includes(String(sl.productVariantId)) &&
+                        sl.stockLocation.channels.some(c => String(c.id) === String(read.params.channelId)),
+                )
+                .map(sl => (selectsStockLocation ? sl : new StockLevel({ ...sl, stockLocation: undefined })));
             if (!read.orderBy) {
                 return Promise.resolve(rows);
             }
@@ -215,9 +232,9 @@ describe('StockLevelService', () => {
         });
 
         it('includes the StockLocation relation on each StockLevel', async () => {
-            const [stockLevel] = await service.getStockLevelsForVariant(ctx, 2);
+            const stockLevels = await service.getStockLevelsForVariant(ctx, 1);
 
-            expect(stockLevel.stockLocation).toBe(location1);
+            expect(stockLevels.map(sl => sl.stockLocation)).toEqual([location1, location2]);
         });
 
         it('returns an empty array for a variant with no StockLevel rows', async () => {
@@ -234,6 +251,9 @@ describe('StockLevelService', () => {
                 service.getStockLevelsForVariant(otherChannelCtx, 2),
             ]);
 
+            // The mock filters rows on the bound channelId but cannot evaluate SQL, so the clause
+            // that uses it is asserted directly.
+            expect(queryBuilderReads[0].clauses).toContain('channel.id = :channelId');
             expect(queryBuilderReads[0].params.channelId).toBe(42);
             expect(variant1.map(sl => sl.stockLocationId)).toEqual([2]);
             expect(variant2).toEqual([]);
