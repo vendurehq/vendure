@@ -92,7 +92,11 @@ describe('useGeneratedForm with a nullable: false custom field', () => {
             getForm().setValue('name', 'Warehouse', { shouldValidate: true });
         });
         expect(getIsValid()).toBe(true);
-        expect(await getForm().trigger()).toBe(true);
+        let valid: boolean | undefined;
+        await act(async () => {
+            valid = await getForm().trigger();
+        });
+        expect(valid).toBe(true);
         unmount();
     });
 
@@ -109,12 +113,21 @@ describe('useGeneratedForm with a nullable: false custom field', () => {
     // `useGeneratedForm` is public, and an extension may pass an entity loaded after the first render.
     it('switches to the update schema when the entity arrives after the first render', async () => {
         const { getForm, setEntity, unmount } = await renderForm(undefined);
+        let validBefore: boolean | undefined;
+        await act(async () => {
+            validBefore = await getForm().trigger('customFields.defaultMinStock' as any);
+        });
+        expect(validBefore).toBe(true);
         await setEntity(existingStockLocation);
         expect(getForm().getValues('customFields.defaultMinStock' as any)).toBe(5);
         await act(async () => {
             getForm().setValue('customFields.defaultMinStock' as any, null);
         });
-        expect(await getForm().trigger()).toBe(false);
+        let validAfter: boolean | undefined;
+        await act(async () => {
+            validAfter = await getForm().trigger();
+        });
+        expect(validAfter).toBe(false);
         unmount();
     });
 });
