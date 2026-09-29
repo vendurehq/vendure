@@ -75,7 +75,7 @@ async function renderForm(initialEntity?: Record<string, any>) {
         root.render(createElement(Probe));
     });
     return {
-        getForm: () => form!,
+        getForm: () => form as NonNullable<typeof form>,
         getIsValid: () => isValid,
         setEntity: (entity: Record<string, any>) => act(async () => setEntity(entity)),
         unmount: () => act(() => root.unmount()),
@@ -93,7 +93,7 @@ describe('useGeneratedForm with a nullable: false custom field', () => {
         });
         expect(getIsValid()).toBe(true);
         expect(await getForm().trigger()).toBe(true);
-        await unmount();
+        unmount();
     });
 
     it('update form still rejects a cleared value', async () => {
@@ -103,7 +103,7 @@ describe('useGeneratedForm with a nullable: false custom field', () => {
             getForm().setValue('customFields.defaultMinStock' as any, null, { shouldValidate: true });
         });
         expect(getIsValid()).toBe(false);
-        await unmount();
+        unmount();
     });
 
     // `useGeneratedForm` is public, and an extension may pass an entity loaded after the first render.
@@ -115,6 +115,6 @@ describe('useGeneratedForm with a nullable: false custom field', () => {
             getForm().setValue('customFields.defaultMinStock' as any, null);
         });
         expect(await getForm().trigger()).toBe(false);
-        await unmount();
+        unmount();
     });
 });
