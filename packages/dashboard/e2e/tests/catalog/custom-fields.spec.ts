@@ -531,3 +531,100 @@ test.describe('Custom Fields', () => {
         await expect(picker.locator('input[type="time"]')).toBeEnabled();
     });
 });
+
+// #4741 — when the form is invalid the submit button is disabled, and the page has to say why.
+// Uses the `numericCode` field (pattern `^[0-9]*$`). A stored value which fails the pattern is
+// simulated by rewriting the ProductDetail response, because the server rejects one on write.
+test.describe('Form error summary', () => {
+    const summary = (page: Page) => page.getByRole('alert').filter({ hasText: 'This cannot be saved' });
+
+    /** Serves every ProductDetail response with an invalid `numericCode`, passing each through `edit`. */
+    async function serveInvalidNumericCode(page: Page, edit: (product: any, call: number) => void = () => {}) {
+        let call = 0;
+        await page.route('**/admin-api**', async route => {
+            if (!/query ProductDetail\b/.test(route.request().postData() ?? '')) {
+                return route.fallback();
+            }
+            const response = await route.fetch();
+            const json = await response.json();
+            const product = json.data?.product;
+            if (product?.customFields) {
+                product.customFields.numericCode = 'not-numeric';
+                edit(product, call++);
+            }
+            await route.fulfill({ response, json });
+        });
+    }
+
+    test('lists an invalid field on the create page and clears once it is fixed', async ({ page }) => {
+        const dp = detailPage(page);
+        await dp.gotoNew();
+        await dp.expectNewPageLoaded();
+
+        await dp.fillInput('Product name', 'Form error summary test');
+        await expect(dp.createButton).toBeEnabled({ timeout: 10_000 });
+        await expect(summary(page)).toBeHidden();
+
+        await dp.fillInput('Numeric Code', 'abc');
+        await expect(dp.createButton).toBeDisabled();
+        await expect(summary(page)).toContainText('Numeric Code: Value must match pattern: ^[0-9]*$');
+
+        await dp.fillInput('Numeric Code', '12345');
+        await expect(summary(page)).toBeHidden();
+        await expect(dp.createButton).toBeEnabled();
+    });
+
+    test('lists a loaded value which fails validation before any field is touched', async ({ page }) => {
+        await serveInvalidNumericCode(page);
+        await goToProduct(page);
+
+        await expect(summary(page)).toContainText('Numeric Code: Value must match pattern: ^[0-9]*$');
+
+        // A valid edit to another field leaves Update disabled, and the reason stays on the page.
+        await detailPage(page).fillInput('Product name', 'Laptop edited');
+        await expect(page.getByRole('button', { name: 'Update', exact: true })).toBeDisabled();
+        await expect(summary(page)).toBeVisible();
+    });
+
+    test('lists the invalid value again after the same product is refetched', async ({ page }) => {
+        // The refetch returns a different name, so react-hook-form resets the form and clears its
+        // errors. The summary has to come back after that reset.
+        await serveInvalidNumericCode(page, (product, call) => {
+            if (call > 0) {
+                product.name = 'Laptop (refetched)';
+                for (const translation of product.translations ?? []) {
+                    translation.name = 'Laptop (refetched)';
+                }
+            }
+        });
+        await goToProduct(page);
+        await expect(summary(page)).toBeVisible();
+
+        // Leave and re-enter: the cached product renders first, then the stale query refetches.
+        // Suspense queries count as fresh for their first second, so wait that out on the list.
+        await page.getByRole('navigation', { name: 'breadcrumb' }).getByRole('link', { name: 'Products' }).click();
+        const lp = listPage(page);
+        await lp.expectLoaded();
+        await lp.search('Laptop');
+        await page.waitForTimeout(1_500);
+        await lp.clickEntity('Laptop');
+        await expect(detailPage(page).formItem('Product name').getByRole('textbox')).toHaveValue(
+            'Laptop (refetched)',
+            { timeout: 10_000 },
+        );
+        await expect(summary(page)).toBeVisible();
+    });
+});
+
+/** Opens the seeded "Laptop" product without waiting for a clean form, which an invalid value prevents. */
+async function goToProduct(page: Page) {
+    const lp = listPage(page);
+    await lp.goto();
+    await lp.expectLoaded();
+    await lp.search('Laptop');
+    await lp.clickEntity('Laptop');
+    await expect(page).toHaveURL(/\/products\/[^/]+$/);
+    await expect(detailPage(page).formItem('Product name').getByRole('textbox')).toHaveValue('Laptop', {
+        timeout: 10_000,
+    });
+}

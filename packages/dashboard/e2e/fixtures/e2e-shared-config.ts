@@ -69,15 +69,13 @@ export const e2eCustomFields: CustomFields = {
             options: [{ value: 'standard' }, { value: 'premium' }],
         },
         {
-            // Used by tests/regression/issue-4741-form-error-summary.spec.ts.
-            // Nullable + a pattern that permits the empty default, so it does not
-            // affect other product create/edit tests, but rejects non-numeric
-            // input — letting a test drive the form into an invalid state.
-            name: 'oss540NumericCode',
+            // Used by the #4741 tests in catalog/custom-fields.spec.ts. Nullable, and the
+            // pattern accepts the empty default, so other product tests are unaffected.
+            name: 'numericCode',
             type: 'string',
             nullable: true,
             pattern: '^[0-9]*$',
-            label: [{ languageCode: LanguageCode.en, value: 'OSS-540 Numeric Code' }],
+            label: [{ languageCode: LanguageCode.en, value: 'Numeric Code' }],
         },
         // ── SEO tab ──
         {
