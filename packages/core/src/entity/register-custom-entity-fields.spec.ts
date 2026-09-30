@@ -1,14 +1,16 @@
 import { DeepPartial } from '@vendure/common/lib/shared-types';
-import { getMetadataArgsStorage } from 'typeorm';
+import { Column, DataSource, Entity, getMetadataArgsStorage, PrimaryGeneratedColumn } from 'typeorm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Logger } from '../config';
 import { CustomFieldConfig, CustomFields } from '../config/custom-field/custom-field-types';
+import { AutoIncrementIdStrategy } from '../config/entity/auto-increment-id-strategy';
 import { VendureConfig } from '../config/vendure-config';
 
 import { Asset } from './asset/asset.entity';
 import { VendureEntity } from './base/base.entity';
 import { registerCustomEntityFields, registerCustomFieldsForEntity } from './register-custom-entity-fields';
+import { setEntityIdStrategy } from './set-entity-id-strategy';
 
 const SINGLE_RELATION_FIELD = '__testRelationOptionsSingle__';
 const LIST_RELATION_FIELD = '__testRelationOptionsList__';
@@ -383,6 +385,23 @@ function removeTestMetadata() {
 class IndexedCustomFields {}
 class RelatedEntity {}
 
+@Entity()
+class IndexedRelationTarget {
+    @PrimaryGeneratedColumn()
+    id: number;
+}
+
+class IndexedRelationHostCustomFields {}
+
+@Entity()
+class IndexedRelationHost {
+    @PrimaryGeneratedColumn()
+    id: number;
+
+    @Column(type => IndexedRelationHostCustomFields)
+    customFields: IndexedRelationHostCustomFields;
+}
+
 describe('registerCustomFieldsForEntity() indexes', () => {
     const metadata = getMetadataArgsStorage();
     let originalLengths: {
@@ -455,6 +474,36 @@ describe('registerCustomFieldsForEntity() indexes', () => {
             expect(indices[0].unique).not.toBe(true);
         },
     );
+
+    // Builds the schema through TypeORM, because an index on a property that is not a column
+    // only fails once TypeORM resolves the entity metadata at startup.
+    it('creates the index of a single relation on its foreign key column', async () => {
+        const config = {
+            customFields: {
+                Product: [{ name: 'related', type: 'relation', entity: IndexedRelationTarget, index: true }],
+            },
+            dbConnectionOptions: { type: 'sqljs' },
+        } as VendureConfig;
+        registerCustomFieldsForEntity(config, 'Product', IndexedRelationHostCustomFields);
+        const entities = [IndexedRelationHost, IndexedRelationTarget];
+        setEntityIdStrategy(new AutoIncrementIdStrategy(), entities);
+
+        const dataSource = new DataSource({ type: 'sqljs', entities, synchronize: true });
+        await dataSource.initialize();
+        try {
+            const queryRunner = dataSource.createQueryRunner();
+            const table = await queryRunner.getTable('indexed_relation_host');
+            await queryRunner.release();
+
+            const indices = table?.indices.filter(
+                index => index.columnNames.length === 1 && index.columnNames[0] === 'customFieldsRelatedid',
+            );
+            expect(indices).toHaveLength(1);
+            expect(indices?.[0].isUnique).toBe(false);
+        } finally {
+            await dataSource.destroy();
+        }
+    });
 
     function register(
         dbEngine: VendureConfig['dbConnectionOptions']['type'],
