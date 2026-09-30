@@ -126,10 +126,6 @@ msgstr "تم تنفيذ الطلب بنجاح"
 msgid "Are you sure you want to delete {0} {entityName}?"
 msgstr "هل أنت متأكد من حذف {0} {entityName}؟"
 
-#: src/app/routes/_authenticated/_orders/orders.tsx
-msgid "Customer email"
-msgstr ""
-
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
 msgid "Global out of stock threshold"
 msgstr "حد نفاد المخزون العام"
@@ -2175,6 +2171,11 @@ msgstr "رمز العملة"
 #: src/i18n/common-strings.ts
 msgid "fieldName.customer"
 msgstr "العميل"
+
+#. js-lingui-explicit-id
+#: src/i18n/common-strings.ts
+msgid "fieldName.customerEmailAddress"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts

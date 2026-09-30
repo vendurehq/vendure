@@ -126,10 +126,6 @@ msgstr "अर्डर सफलतापूर्वक पूरा गरि
 msgid "Are you sure you want to delete {0} {entityName}?"
 msgstr "के तपाईं निश्चित हुनुहुन्छ कि तपाईं {0} {entityName} मेट्न चाहनुहुन्छ?"
 
-#: src/app/routes/_authenticated/_orders/orders.tsx
-msgid "Customer email"
-msgstr ""
-
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
 msgid "Global out of stock threshold"
 msgstr "ग्लोबल स्टक बाहिर थ्रेसहोल्ड"
@@ -2175,6 +2171,11 @@ msgstr "मुद्रा कोड"
 #: src/i18n/common-strings.ts
 msgid "fieldName.customer"
 msgstr "ग्राहक"
+
+#. js-lingui-explicit-id
+#: src/i18n/common-strings.ts
+msgid "fieldName.customerEmailAddress"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts

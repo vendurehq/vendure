@@ -126,10 +126,6 @@ msgstr "已成功履行订单"
 msgid "Are you sure you want to delete {0} {entityName}?"
 msgstr "确定要删除 {0} {entityName} 吗？"
 
-#: src/app/routes/_authenticated/_orders/orders.tsx
-msgid "Customer email"
-msgstr ""
-
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
 msgid "Global out of stock threshold"
 msgstr "全局缺货阈值"
@@ -2175,6 +2171,11 @@ msgstr "货币代码"
 #: src/i18n/common-strings.ts
 msgid "fieldName.customer"
 msgstr "客户"
+
+#. js-lingui-explicit-id
+#: src/i18n/common-strings.ts
+msgid "fieldName.customerEmailAddress"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts

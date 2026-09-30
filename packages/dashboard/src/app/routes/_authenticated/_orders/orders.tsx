@@ -9,6 +9,7 @@ import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wra
 import { ListPage } from '@/vdb/framework/page/list-page.js';
 import { api } from '@/vdb/graphql/api.js';
 import { ResultOf } from '@/vdb/graphql/graphql.js';
+import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
 import { useServerConfig } from '@/vdb/hooks/use-server-config.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation } from '@tanstack/react-query';
@@ -25,6 +26,7 @@ function OrderListPage() {
     const serverConfig = useServerConfig();
     const navigate = useNavigate();
     const { t } = useLingui();
+    const { getTranslatedFieldName } = useDynamicTranslations();
     const { mutate: createDraftOrder } = useMutation({
         mutationFn: api.mutate(createDraftOrderDocument),
         onSuccess: (result: ResultOf<typeof createDraftOrderDocument>) => {
@@ -91,7 +93,7 @@ function OrderListPage() {
             }}
             additionalColumns={{
                 customerEmailAddress: {
-                    header: t`Customer email`,
+                    header: () => getTranslatedFieldName('customerEmailAddress'),
                     meta: { dependencies: ['customer'] },
                     cell: ({ row }) => row.original.customer?.emailAddress,
                 },

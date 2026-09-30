@@ -59,6 +59,7 @@ const commonI18nString = {
         /* i18n*/ 'fieldName.createdAt',
         /* i18n*/ 'fieldName.currencyCode',
         /* i18n*/ 'fieldName.customer',
+        /* i18n*/ 'fieldName.customerEmailAddress',
         /* i18n*/ 'fieldName.customerGroup',
         /* i18n*/ 'fieldName.customers',
         /* i18n*/ 'fieldName.customFields',
