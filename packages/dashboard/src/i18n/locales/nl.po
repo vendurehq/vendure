@@ -2173,7 +2173,7 @@ msgstr "Klant"
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts
 msgid "fieldName.customerEmailAddress"
-msgstr ""
+msgstr "E-mailadres klant"
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts

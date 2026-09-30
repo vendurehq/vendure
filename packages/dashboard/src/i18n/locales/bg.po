@@ -2193,7 +2193,7 @@ msgstr "Клиент"
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts
 msgid "fieldName.customerEmailAddress"
-msgstr ""
+msgstr "Имейл на клиента"
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts
