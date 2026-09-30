@@ -92,6 +92,7 @@ function OrderListPage() {
             additionalColumns={{
                 customerEmailAddress: {
                     header: t`Customer email`,
+                    meta: { dependencies: ['customer'] },
                     cell: ({ row }) => row.original.customer?.emailAddress,
                 },
             }}
