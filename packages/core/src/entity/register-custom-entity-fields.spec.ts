@@ -437,7 +437,7 @@ describe('registerCustomFieldsForEntity() indexes', () => {
     );
 
     it.each(['mysql', 'mariadb', 'postgres', 'sqlite'] as const)(
-        'registers the index on a single relation property for %s',
+        'registers the index on the id property of a single relation for %s',
         dbEngine => {
             const fields: CustomFieldConfig[] = [
                 {
@@ -450,7 +450,7 @@ describe('registerCustomFieldsForEntity() indexes', () => {
             register(dbEngine, fields);
             register(dbEngine, fields);
 
-            const indices = getTestIndices('related');
+            const indices = getTestIndices('relatedId');
             expect(indices).toHaveLength(1);
             expect(indices[0].unique).not.toBe(true);
         },

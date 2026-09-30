@@ -75,7 +75,8 @@ for (const entity of entitiesWithCustomFields) {
     ];
 }
 customFieldConfig.Product?.push(
-    { name: 'cfCollection', type: 'relation', entity: Collection, list: false },
+    // https://github.com/vendurehq/vendure/issues/5448
+    { name: 'cfCollection', type: 'relation', entity: Collection, list: false, index: true },
     { name: 'cfCountry', type: 'relation', entity: Country, list: false },
     { name: 'cfFacetValue', type: 'relation', entity: FacetValue, list: false },
     { name: 'cfFacet', type: 'relation', entity: Facet, list: false },
@@ -120,6 +121,19 @@ describe('Custom field relations', () => {
 
     afterAll(async () => {
         await server.destroy();
+    });
+
+    // https://github.com/vendurehq/vendure/issues/5448
+    it('creates a database index on the id column of an indexed single relation field', () => {
+        const connection = server.app.get(TransactionalConnection).rawConnection;
+        const productMetadata = connection.getMetadata(Product);
+        const indexedCustomFields = productMetadata.indices.filter(
+            index =>
+                index.columns.length === 1 && index.columns[0].propertyPath === 'customFields.cfCollectionId',
+        );
+
+        expect(indexedCustomFields).toHaveLength(1);
+        expect(indexedCustomFields[0].isUnique).toBe(false);
     });
 
     it('customFieldConfig query returns entity and scalar fields', async () => {
