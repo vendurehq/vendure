@@ -13,10 +13,11 @@ import { act, StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { useDashboardExtensions } from '../extension-api/use-dashboard-extensions.js';
-
-import { extensionRoutes } from './page-api.js';
-import { useExtendedRouter } from './use-extended-router.js';
+// Each test imports fresh instances of these modules, because
+// use-dashboard-extensions.js keeps the loaded state at module level.
+let useDashboardExtensions: typeof import('../extension-api/use-dashboard-extensions.js').useDashboardExtensions;
+let extensionRoutes: typeof import('./page-api.js').extensionRoutes;
+let useExtendedRouter: typeof import('./use-extended-router.js').useExtendedRouter;
 
 const runDashboardExtensions = vi.hoisted(() => vi.fn(async () => undefined));
 
@@ -71,7 +72,11 @@ describe('useExtendedRouter rendering', () => {
     let committedRouters: Set<AnyRouter>;
     let appRenders: boolean[];
 
-    beforeEach(() => {
+    beforeEach(async () => {
+        vi.resetModules();
+        ({ useDashboardExtensions } = await import('../extension-api/use-dashboard-extensions.js'));
+        ({ extensionRoutes } = await import('./page-api.js'));
+        ({ useExtendedRouter } = await import('./use-extended-router.js'));
         container = document.createElement('div');
         document.body.appendChild(container);
         root = createRoot(container);
@@ -79,7 +84,6 @@ describe('useExtendedRouter rendering', () => {
         appRenders = [];
         // jsdom does not implement scrollTo, which the router calls after a navigation.
         vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
-        extensionRoutes.clear();
         warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     });
 
@@ -89,7 +93,6 @@ describe('useExtendedRouter rendering', () => {
         });
         container.remove();
         vi.restoreAllMocks();
-        extensionRoutes.clear();
     });
 
     function InnerApp(props: {
