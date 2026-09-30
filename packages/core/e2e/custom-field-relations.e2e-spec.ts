@@ -124,7 +124,7 @@ describe('Custom field relations', () => {
     });
 
     // https://github.com/vendurehq/vendure/issues/5448
-    it('creates a database index on the id column of an indexed single relation field', () => {
+    it('registers a non-unique index on the id column of an indexed single relation field', () => {
         const connection = server.app.get(TransactionalConnection).rawConnection;
         const productMetadata = connection.getMetadata(Product);
         const indexedCustomFields = productMetadata.indices.filter(

@@ -210,8 +210,8 @@ export function registerCustomFieldsForEntity(
                         // to the same database column as the relation's join column.
                         EntityId({ nullable: true })(instance, `${name}Id`);
                         if (indexed) {
-                            // The index must target the id property, since TypeORM does not
-                            // resolve the relation property itself to a column.
+                            // TypeORM matches an index to a relation by its bare property name, which
+                            // never matches a relation inside the customFields embedded.
                             registerIndex(instance, `${name}Id`);
                         }
                     }
