@@ -39,10 +39,16 @@ test.describe('Orders', () => {
         await lp.goto();
         await lp.expectLoaded();
 
+        // Hiding the Customer column must not stop the email column from getting its data.
         await lp.openColumnSettings();
+        await page.getByRole('menuitemcheckbox', { name: /^customer$/i }).click();
         await page.getByRole('menuitemcheckbox', { name: /customer email/i }).click();
         await page.keyboard.press('Escape');
 
+        await expect(lp.dataTable.locator('thead th').filter({ hasText: /^customer$/i })).toBeHidden();
+        await expect(lp.dataTable.locator('thead th').filter({ hasText: 'Customer email' })).toHaveText(
+            'Customer email',
+        );
         const orderRow = lp.getRows().filter({ hasText: order.code });
         await expect(orderRow).toContainText(order.customer.emailAddress);
 
