@@ -18,7 +18,10 @@ export function useCustomFieldConfig(entityType: string): CustomFieldConfig[] {
     if (!serverConfig) {
         return [];
     }
-    const customFieldConfig = serverConfig.entityCustomFields.find(field => field.entityName === entityType);
+    // Country is an alias of Region: its custom fields are configured under `Region`.
+    // The detail query applies the same alias in `add-custom-fields.ts`.
+    const entityName = entityType === 'Country' ? 'Region' : entityType;
+    const customFieldConfig = serverConfig.entityCustomFields.find(field => field.entityName === entityName);
     return (
         customFieldConfig?.customFields?.filter(config => {
             return config.requiresPermission ? hasPermissions(config.requiresPermission) : true;
