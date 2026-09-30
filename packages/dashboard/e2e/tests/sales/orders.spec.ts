@@ -25,6 +25,32 @@ test.describe('Orders', () => {
         await lp.expectLoaded();
     });
 
+    // #2850 — order list can show the customer's email address
+    test('should show the customer email address column in the orders list', async ({ page }) => {
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const orderId = await createPaidOrder(client);
+        const { order } = await client.gql(
+            `query ($id: ID!) { order(id: $id) { code customer { emailAddress } } }`,
+            { id: orderId },
+        );
+
+        const lp = listPage(page);
+        await lp.goto();
+        await lp.expectLoaded();
+
+        await lp.openColumnSettings();
+        await page.getByRole('menuitemcheckbox', { name: /customer email/i }).click();
+        await page.keyboard.press('Escape');
+
+        const orderRow = lp.getRows().filter({ hasText: order.code });
+        await expect(orderRow).toContainText(order.customer.emailAddress);
+
+        // Column settings are saved per user, so restore them for the other tests.
+        await lp.openColumnSettings();
+        await page.getByRole('menuitem', { name: 'Reset' }).click();
+    });
+
     // #4748 — enum columns (e.g. Order.type / OrderType) must be offered in the
     // "Add filter" menu, render a working enum filter input (not an empty dialog),
     // and actually filter server-side (core maps every enum column to StringOperators,
