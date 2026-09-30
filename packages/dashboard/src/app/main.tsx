@@ -135,6 +135,7 @@ function BootSplash() {
 
 function App() {
     const [i18nLoaded, setI18nLoaded] = React.useState(false);
+    const [extensionsRegistered, setExtensionsRegistered] = React.useState(false);
     const { extensionsLoaded } = useDashboardExtensions();
     useEffect(() => {
         // With this method we dynamically load the catalogs
@@ -147,10 +148,13 @@ function App() {
     useEffect(() => {
         if (extensionsLoaded) {
             executeDashboardExtensionCallbacks();
+            // InnerApp builds the router once, on its first render. The extension
+            // routes must be registered before that render.
+            setExtensionsRegistered(true);
         }
     }, [extensionsLoaded]);
 
-    if (!i18nLoaded || !extensionsLoaded) {
+    if (!i18nLoaded || !extensionsRegistered) {
         // Show a minimal full-screen splash so the user sees that the app is
         // loading rather than a white screen while i18n catalogs and dashboard
         // extensions resolve.
