@@ -180,6 +180,19 @@ behaves the same on the admin endpoint but reads as "anonymous allowed".
 `Permission.Owner` is refused at startup. It is not a granted permission, so no MCP caller could ever pass it. Use
 `[Permission.Authenticated]` and check ownership inside the tool.
 
+If your config sets an [`EntityAccessControlStrategy`](/reference/typescript-api/auth/entity-access-control-strategy/),
+tool calls go through it:
+
+- `canAccess()` can refuse a tool that `permissions` allows, and tool listings leave a refused tool out. Unlike GraphQL,
+  it cannot allow a tool that `permissions` refuses.
+- `canAccess()` runs once per distinct permission list on each MCP request. Tools with the same list share the result.
+  A throw refuses those tools and is logged.
+- `canAccess()` receives the tool's `permissions`, or `[Permission.Public]` for a Shop tool that declares none.
+- `prepareAccessControl()` runs on the context passed to the tool handler, so `applyAccessControl()` filters the
+  queries made with that context. A tool or Core service can copy the context, for example to open its own
+  transaction. Data your strategy stores per context object is not found on the copy, so key it on something a copy
+  keeps, such as `ctx.session`.
+
 ## Optional: Use the shopper's active order
 
 Set `usesActiveOrder: true` on a Shop tool that uses the shopper's active Order (cart). This lets anonymous callers continue the same cart across tool calls using a `sessionToken`.

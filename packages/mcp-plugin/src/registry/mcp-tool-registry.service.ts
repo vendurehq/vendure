@@ -98,6 +98,8 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     private discoveryMetaTools: McpExposedTool[] = [];
     private bm25 = new Map<McpToolset, Bm25Index>();
     private toggleCache = new WeakMap<RequestContext, Record<string, boolean>>();
+    // Every request lists all tools, so canAccess runs once per distinct permission list, not once per tool.
+    private readonly canAccessCache = new WeakMap<RequestContext, Map<string, Promise<boolean>>>();
 
     constructor(
         private readonly discoveryService: DiscoveryService,
@@ -434,13 +436,17 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         callContext: McpExecutionContext,
         toolInput: Record<string, unknown>,
     ): Promise<unknown> {
+        // Prepared on the context the handler receives: a strategy may store its data per context
+        // object, and the transaction runs on a copy.
+        const { entityAccessControlStrategy } = this.configService.authOptions;
         if (tool.resolvedBehavior === 'readonly') {
+            await entityAccessControlStrategy.prepareAccessControl?.(callContext.ctx);
             return tool.handler.execute(callContext.ctx, toolInput, this.toCallerInfo(callContext));
         }
-        // withTransaction needs a promise; some handlers return a plain value.
-        return this.connection.withTransaction(callContext.ctx, txCtx =>
-            Promise.resolve(tool.handler.execute(txCtx, toolInput, this.toCallerInfo(callContext))),
-        );
+        return this.connection.withTransaction(callContext.ctx, async txCtx => {
+            await entityAccessControlStrategy.prepareAccessControl?.(txCtx);
+            return tool.handler.execute(txCtx, toolInput, this.toCallerInfo(callContext));
+        });
     }
 
     private async handleToolCallError(call: {
@@ -527,7 +533,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         if (!this.isToolEnabled(tool, toggles)) {
             return { kind: 'refused', result: this.errorResult(`MCP tool is disabled: ${name}`) };
         }
-        if (!this.hasPermissions(ctx, tool)) {
+        if (!(await this.canCallTool(ctx, tool))) {
             return {
                 kind: 'refused',
                 result: this.errorResult(`You do not have permission to call MCP tool: ${name}`),
@@ -741,10 +747,12 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
 
     private async visibleTools(ctx: RequestContext, toolset: McpToolset): Promise<McpRegisteredTool[]> {
         const toggles = await this.getToolToggles(ctx);
-        return [...this.tools.values()]
+        const enabledTools = [...this.tools.values()]
             .filter(tool => tool.toolset === toolset)
-            .filter(tool => this.isToolEnabled(tool, toggles))
-            .filter(tool => this.hasPermissions(ctx, tool))
+            .filter(tool => this.isToolEnabled(tool, toggles));
+        const callable = await Promise.all(enabledTools.map(tool => this.canCallTool(ctx, tool)));
+        return enabledTools
+            .filter((_tool, index) => callable[index])
             .sort((a, b) => a.name.localeCompare(b.name));
     }
 
@@ -755,6 +763,49 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             destructiveHint: behavior === 'destructive',
             idempotentHint: behavior === 'readonly',
         };
+    }
+
+    // The strategy can refuse a tool but not grant one. The anonymous Shop context is
+    // `authorizedAsOwnerOnly`, which the default strategy accepts for any permission.
+    private async canCallTool(
+        ctx: RequestContext,
+        tool: Pick<McpRegisteredTool, 'permissions'>,
+    ): Promise<boolean> {
+        if (!this.hasPermissions(ctx, tool)) {
+            return false;
+        }
+        // An omitted list means Public on a Shop tool, so the strategy is told Public.
+        const permissions = tool.permissions?.length ? tool.permissions : [Permission.Public];
+        let decisions = this.canAccessCache.get(ctx);
+        if (!decisions) {
+            decisions = new Map();
+            this.canAccessCache.set(ctx, decisions);
+        }
+        const key = [...permissions].sort((a, b) => a.localeCompare(b)).join(',');
+        let decision = decisions.get(key);
+        if (!decision) {
+            decision = this.askStrategyCanAccess(ctx, permissions);
+            decisions.set(key, decision);
+        }
+        return decision;
+    }
+
+    private async askStrategyCanAccess(ctx: RequestContext, permissions: Permission[]): Promise<boolean> {
+        try {
+            return await this.configService.authOptions.entityAccessControlStrategy.canAccess(
+                ctx,
+                permissions,
+            );
+        } catch (e) {
+            // Every request lists the tools, so a throw that escaped here would fail every request.
+            Logger.error(
+                `EntityAccessControlStrategy.canAccess failed for MCP tool permissions ` +
+                    `[${permissions.join(', ')}]: ${e instanceof Error ? e.message : String(e)}`,
+                loggerCtx,
+                e instanceof Error ? e.stack : undefined,
+            );
+            return false;
+        }
     }
 
     private hasPermissions(ctx: RequestContext, tool: Pick<McpRegisteredTool, 'permissions'>): boolean {

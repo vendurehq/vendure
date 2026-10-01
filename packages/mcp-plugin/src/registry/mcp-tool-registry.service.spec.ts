@@ -1,6 +1,7 @@
 import { StandardSchemaWithJSON } from '@modelcontextprotocol/server';
 import { Permission } from '@vendure/common/lib/generated-types';
 import {
+    DefaultEntityAccessControlStrategy,
     ForbiddenError,
     I18nError,
     InternalServerError,
@@ -99,7 +100,12 @@ function build(
             Promise.resolve({ id: 'anon-id', token: 'anon-token', expires: new Date(Date.now() + 60_000) }),
         ),
     };
-    const configService = { authOptions: { customPermissions } };
+    const configService = {
+        authOptions: {
+            customPermissions,
+            entityAccessControlStrategy: new DefaultEntityAccessControlStrategy(),
+        },
+    };
     // Stands in for TransactionalConnection: mutating tools are handed a transactional context,
     // which here is just the context they were called with.
     const connection = {
@@ -116,7 +122,16 @@ function build(
         connection as any,
         resolveMcpPluginOptions(options),
     );
-    return { service, rateLimiter, toolCallLog, settingsStoreService, sessionService, store, connection };
+    return {
+        service,
+        rateLimiter,
+        toolCallLog,
+        settingsStoreService,
+        sessionService,
+        store,
+        connection,
+        configService,
+    };
 }
 
 const shopTool = (over: Partial<McpToolMetadata> = {}): McpToolMetadata => ({
@@ -651,6 +666,68 @@ describe('McpToolRegistryService', () => {
             const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'get_thing', {});
             expect(result.isError).toBe(true);
             expect((result.content as any)[0].text).toMatch(/permission/);
+        });
+
+        it('denies a call the entity access control strategy refuses, without running the handler', async () => {
+            const execute = vi.fn(() => ({ ok: true }));
+            const { service, configService } = build([wrapper(shopTool(), execute)]);
+            vi.spyOn(configService.authOptions.entityAccessControlStrategy, 'canAccess').mockResolvedValue(
+                false,
+            );
+            service.onApplicationBootstrap();
+            const result = await service.callToolDirect({ ctx: makeCtx() }, 'shop', 'get_thing', {});
+            expect(result.isError).toBe(true);
+            expect((result.content as any)[0].text).toMatch(/permission/);
+            expect(execute).not.toHaveBeenCalled();
+        });
+
+        it('treats a throw from the entity access control strategy as a refusal and logs it', async () => {
+            const error = vi.spyOn(Logger, 'error').mockImplementation(() => undefined);
+            const execute = vi.fn(() => ({ ok: true }));
+            const { service, configService } = build([wrapper(shopTool(), execute)]);
+            vi.spyOn(configService.authOptions.entityAccessControlStrategy, 'canAccess').mockRejectedValue(
+                new Error('policy lookup failed'),
+            );
+            service.onApplicationBootstrap();
+
+            expect(await service.getCallableTools(makeCtx(), 'shop')).toEqual([]);
+            const result = await service.callToolDirect({ ctx: makeCtx() }, 'shop', 'get_thing', {});
+            expect(result.isError).toBe(true);
+            expect((result.content as any)[0].text).toMatch(/permission/);
+            expect((result.content as any)[0].text).not.toMatch(/policy lookup failed/);
+            expect(execute).not.toHaveBeenCalled();
+            expect(error).toHaveBeenCalledWith(
+                expect.stringContaining('policy lookup failed'),
+                expect.anything(),
+                expect.anything(),
+            );
+            error.mockRestore();
+        });
+
+        it('asks the strategy once per distinct permission list for a context', async () => {
+            const { service, configService } = build([
+                wrapper(shopTool({ name: 'get_one' })),
+                wrapper(shopTool({ name: 'get_two' })),
+                wrapper(shopTool({ name: 'get_three', permissions: [Permission.ReadCatalog] })),
+            ]);
+            const canAccess = vi.spyOn(configService.authOptions.entityAccessControlStrategy, 'canAccess');
+            service.onApplicationBootstrap();
+            const ctx = makeCtx({ granted: [Permission.ReadCatalog] });
+
+            await service.getCallableTools(ctx, 'shop');
+            await service.callToolDirect({ ctx }, 'shop', 'get_one', {});
+            expect(canAccess).toHaveBeenCalledTimes(2);
+
+            await service.getCallableTools(makeCtx({ granted: [Permission.ReadCatalog] }), 'shop');
+            expect(canAccess).toHaveBeenCalledTimes(4);
+        });
+
+        it('tells the strategy Public for a shop tool that declares no permissions', async () => {
+            const { service, configService } = build([wrapper(shopTool({ permissions: undefined }))]);
+            const canAccess = vi.spyOn(configService.authOptions.entityAccessControlStrategy, 'canAccess');
+            service.onApplicationBootstrap();
+            await service.callToolDirect({ ctx: makeCtx() }, 'shop', 'get_thing', {});
+            expect(canAccess).toHaveBeenCalledWith(expect.anything(), [Permission.Public]);
         });
 
         it('runs a permitted tool end-to-end and returns structuredContent', async () => {
