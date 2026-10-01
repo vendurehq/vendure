@@ -19,9 +19,9 @@ Use this approach when your assistant runs as part of the Vendure server, for ex
 Use a different approach when:
 
 - **The assistant runs as a separate service.** It sits outside the Vendure process, so it authenticates with
-  OAuth. See [Assistant outside Vendure](/guides/mcp-server/assistant-outside-vendure/).
+  OAuth. See [Assistant outside Vendure](/mcp-server/assistant-outside-vendure/).
 - **The AI client belongs to the shopper**, such as Claude Desktop, ChatGPT, or Cursor. Those clients authenticate
-  themselves, so you need [the customer consent page](/guides/mcp-server/oauth-consent/#before-you-start).
+  themselves, so you need [the customer consent page](/mcp-server/oauth-consent/#before-you-start).
 
 ## List and execute MCP tools
 
@@ -256,17 +256,17 @@ An in-process call that hits a limit comes back as a failed tool result, `isErro
 There is no HTTP 429, because there is no HTTP request. Tell the shopper to try again in a moment.
 
 Three scopes count in-process calls: `perSession`, `perUser` for a signed-in shopper, and any `perTool` limit on
-the tool being called. Set them in [Set rate limits](/guides/mcp-server/production/#set-rate-limits). The counters
+the tool being called. Set them in [Set rate limits](/mcp-server/production/#set-rate-limits). The counters
 also need a cache backend that only evicts on time, covered in
-[Where the rate-limit counters live](/guides/mcp-server/production/#where-the-rate-limit-counters-live).
+[Where the rate-limit counters live](/mcp-server/production/#where-the-rate-limit-counters-live).
 
 **Common mistake.** Reusing one `RequestContext` across shoppers puts them all in one session bucket and one user
 bucket. A single chatty conversation can then lock the others out.
 
 ## See also
 
-- [Built-in Tool Reference](/guides/mcp-server/built-in-tools/) — the tools your assistant can reach on the shop toolset.
-- [Registering Custom Tools](/guides/mcp-server/custom-tools/) — add your own operations to that set.
-- [Logging & Observability](/guides/mcp-server/observability/) — what a tool-call log row records, and how to subscribe to tool-call events.
-- [OAuth & Consent](/guides/mcp-server/oauth-consent/) — what the other paths involve, if this shape turns out to be the wrong one.
-- [Production Hardening](/guides/mcp-server/production/) — the go-live checklist.
+- [Built-in Tool Reference](/mcp-server/built-in-tools/) — the tools your assistant can reach on the shop toolset.
+- [Registering Custom Tools](/mcp-server/custom-tools/) — add your own operations to that set.
+- [Logging & Observability](/mcp-server/observability/) — what a tool-call log row records, and how to subscribe to tool-call events.
+- [OAuth & Consent](/mcp-server/oauth-consent/) — what the other paths involve, if this shape turns out to be the wrong one.
+- [Production Hardening](/mcp-server/production/) — the go-live checklist.

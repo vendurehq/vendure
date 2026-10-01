@@ -5,8 +5,8 @@ metaDescription: 'Record MCP tool calls with tiered capture, read them back in t
 order: 7
 ---
 
-MCP tool calls can be recorded and inspected through the dashboard and Admin API, or forwarded to external
-systems through events and OpenTelemetry.
+The MCP plugin records every tool call. You can inspect the records through the dashboard and Admin API, or
+forward calls to external systems through events and OpenTelemetry.
 
 To monitor MCP tool calls:
 
@@ -14,7 +14,7 @@ To monitor MCP tool calls:
 2. Optionally subscribe to tool-call events or export OpenTelemetry spans.
 
 Giving operators access to the recorded data is covered in
-[Administration](/guides/mcp-server/administration/).
+[Administration](/mcp-server/administration/).
 
 ## Privacy
 
@@ -24,8 +24,10 @@ IP address capture is also disabled by default.
 
 ## Configure tool-call logging
 
-Every tool call can be recorded to the [`McpToolCallLog`](/reference/core-plugins/mcp-plugin/mcp-tool-call-log/)
-table. What gets stored is controlled by [`logging.capture`](/reference/core-plugins/mcp-plugin/mcp-logging-options/):
+Every call that reaches a tool is recorded to the
+[`McpToolCallLog`](/reference/core-plugins/mcp-plugin/mcp-tool-call-log/) table. Logging is always on: there is no
+option to turn it off. What gets stored is controlled by
+[`logging.capture`](/reference/core-plugins/mcp-plugin/mcp-logging-options/):
 
 | `capture` | What is stored |
 |---|---|
@@ -66,11 +68,11 @@ need to identify or distinguish anonymous callers.
 
 Captured IP addresses follow the same `ttlDays` retention period as the rest of the log. If Vendure runs behind
 a reverse proxy, enable
-[`trustProxy`](/guides/mcp-server/production/#configure-your-reverse-proxy) so the recorded IP is the actual
+[`trustProxy`](/mcp-server/production/#configure-your-reverse-proxy) so the recorded IP is the actual
 client IP.
 
 Reading a log's `input`, `output`, and `clientIp` fields through the Admin API requires the `ReadCustomer`
-permission on top of `ReadMcpServer`. See [Administration](/guides/mcp-server/administration/).
+permission on top of `ReadMcpServer`. See [Administration](/mcp-server/administration/).
 
 Logged calls are available in the **MCP Server** dashboard and through the Admin GraphQL API:
 
@@ -103,7 +105,7 @@ eventBus.ofType(McpToolCallEvent).subscribe(event => {
 
 Each tool call emits a `McpToolRegistryService.callTool` span nested under the `/mcp` HTTP trace whenever the
 [`@vendure/telemetry-plugin`](/reference/core-plugins/telemetry-plugin/) is active. Follow that plugin's
-[Telemetry guide](/guides/developer-guide/telemetry/) for the collector, Jaeger/Loki/Grafana setup.
+[Telemetry guide](/developer-guide/telemetry/) for the collector, Jaeger/Loki/Grafana setup.
 
 To put tool metadata on that span, register a method hook on `McpToolRegistryService.callTool`. Set safe
 attributes only. Never copy the tool input or the result payload onto a span, because either may contain
@@ -148,7 +150,7 @@ connector to derive metrics from the exported spans.
 
 ## See also
 
-- [Administration](/guides/mcp-server/administration/) — the permissions that gate these logs and stats.
-- [Production Hardening](/guides/mcp-server/production/) — the go-live checklist for the server these logs come from.
+- [Administration](/mcp-server/administration/) — the permissions that gate these logs and stats.
+- [Production Hardening](/mcp-server/production/) — the go-live checklist for the server these logs come from.
 - [`McpPluginOptions`](/reference/core-plugins/mcp-plugin/mcp-plugin-options/) — every option on this page, in full.
-- [Telemetry](/guides/developer-guide/telemetry/) — collector, Jaeger, Loki, and Grafana setup.
+- [Telemetry](/developer-guide/telemetry/) — collector, Jaeger, Loki, and Grafana setup.

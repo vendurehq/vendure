@@ -17,16 +17,16 @@ Use this approach when the assistant runs as a separate service from Vendure.
 Use a different approach when:
 
 - **The assistant is a Vendure plugin in the same process.** It can run the tools directly, with no token at all:
-  see [Assistant inside Vendure](/guides/mcp-server/assistant-inside-vendure/).
+  see [Assistant inside Vendure](/mcp-server/assistant-inside-vendure/).
 - **The AI client belongs to the shopper**, such as Claude Desktop, ChatGPT, or Cursor. Those clients run this
-  flow themselves. All you build is [the customer consent page](/guides/mcp-server/oauth-consent/#before-you-start).
+  flow themselves. All you build is [the customer consent page](/mcp-server/oauth-consent/#before-you-start).
 
 ## Before you start
 
 Every authorization for the shop toolset redirects the browser to your `oauth.storefrontConsentUrl`. Even a
 first-party assistant must go through the storefront OAuth flow. That redirect is where the invisibility comes from: your consent
 page recognises your own `client_id`, approves without drawing a screen, and redirects onward. Build that page
-first: [the customer consent page](/guides/mcp-server/oauth-consent/#before-you-start).
+first: [the customer consent page](/mcp-server/oauth-consent/#before-you-start).
 
 To integrate your assistant, you will:
 
@@ -340,13 +340,13 @@ promise above does.
 
 Every shopper's grant sits behind the single client record you registered above, so all of your assistant's
 traffic shares one `rateLimits.perClient` allowance. Raise that allowance in
-[Set rate limits](/guides/mcp-server/production/#set-rate-limits). The counters also need a cache backend that
+[Set rate limits](/mcp-server/production/#set-rate-limits). The counters also need a cache backend that
 only evicts on time, covered in
-[Where the rate-limit counters live](/guides/mcp-server/production/#where-the-rate-limit-counters-live).
+[Where the rate-limit counters live](/mcp-server/production/#where-the-rate-limit-counters-live).
 
 If a call is refused, respect `data.retryAfterSeconds` when it is provided and avoid retrying immediately. Do
 not branch on the numeric error code. The exact shape of a refusal, before and inside a tool call, is described
-in [What a rate-limited caller sees](/guides/mcp-server/production/#what-a-rate-limited-caller-sees).
+in [What a rate-limited caller sees](/mcp-server/production/#what-a-rate-limited-caller-sees).
 
 ## Troubleshooting
 
@@ -361,7 +361,7 @@ in [What a rate-limited caller sees](/guides/mcp-server/production/#what-a-rate-
 
 ## See also
 
-- [The customer consent page](/guides/mcp-server/oauth-consent/#before-you-start) — the page this flow redirects through, and where your own assistant gets waved past.
-- [Built-in Tool Reference](/guides/mcp-server/built-in-tools/) — the tools your assistant can reach on the shop toolset.
-- [Production Hardening](/guides/mcp-server/production/) — rate limits, token secret rotation and the go-live checklist.
-- [Logging & Observability](/guides/mcp-server/observability/) — tool-call logging and telemetry.
+- [The customer consent page](/mcp-server/oauth-consent/#before-you-start) — the page this flow redirects through, and where your own assistant gets waved past.
+- [Built-in Tool Reference](/mcp-server/built-in-tools/) — the tools your assistant can reach on the shop toolset.
+- [Production Hardening](/mcp-server/production/) — rate limits, token secret rotation and the go-live checklist.
+- [Logging & Observability](/mcp-server/observability/) — tool-call logging and telemetry.

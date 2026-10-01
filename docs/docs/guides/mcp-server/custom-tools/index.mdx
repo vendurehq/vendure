@@ -99,7 +99,7 @@ export class MyPlugin {}
 
 The MCP registry discovers every `@McpTool` provider across the running app at bootstrap. To confirm the tool is
 being served, list the tools with the MCP Inspector: see
-[Test & debug with the MCP Inspector](/guides/mcp-server/quick-start/#test--debug-with-the-mcp-inspector).
+[Test & debug with the MCP Inspector](/mcp-server/quick-start/#test--debug-with-the-mcp-inspector).
 
 ## Define input and output schemas
 
@@ -242,7 +242,7 @@ export class ArchiveProductTool implements McpToolHandler<{ id: string }> {
 }
 ```
 
-See [How tool safety is derived](/guides/mcp-server/built-in-tools/#how-tool-safety-is-derived) for what each
+See [How tool safety is derived](/mcp-server/built-in-tools/#how-tool-safety-is-derived) for what each
 `behavior` value means.
 
 ## Optional: Add discovery keywords
@@ -258,7 +258,7 @@ keywords: ['money back', 'reimburse', 'return payment'],
 
 Keywords are never serialized into a tool listing or sent to the agent. They only tune search. They have no
 effect in the default `direct` exposure mode. See
-[Tool exposure](/guides/mcp-server/built-in-tools/#tool-exposure-direct-vs-discovery) for how discovery works.
+[Tool exposure](/mcp-server/built-in-tools/#tool-exposure-direct-vs-discovery) for how discovery works.
 
 ## Metadata quick reference
 
@@ -319,5 +319,5 @@ A tool never needs to depend on `@vendure/mcp-plugin`. Everything a tool impleme
 ## See also
 
 - [`McpToolMetadata`](/reference/core-plugins/mcp-plugin/mcp-tool-metadata/) — the full field list, types, and defaults.
-- [Built-in Tool Reference](/guides/mcp-server/built-in-tools/) — the tools Vendure ships, behavior values, and exposure modes.
-- [Test & debug with the MCP Inspector](/guides/mcp-server/quick-start/#test--debug-with-the-mcp-inspector) — list and call your tool interactively.
+- [Built-in Tool Reference](/mcp-server/built-in-tools/) — the tools Vendure ships, behavior values, and exposure modes.
+- [Test & debug with the MCP Inspector](/mcp-server/quick-start/#test--debug-with-the-mcp-inspector) — list and call your tool interactively.

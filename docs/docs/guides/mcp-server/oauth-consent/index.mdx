@@ -16,10 +16,10 @@ ships, customers on a consent page you build on your storefront.
   skip the rest of this page.
 - **A chat assistant you build as a Vendure plugin.** It runs the tools directly, with
   no browser, consent page, popup, or token. See
-  [Assistant inside Vendure](/guides/mcp-server/assistant-inside-vendure/).
+  [Assistant inside Vendure](/mcp-server/assistant-inside-vendure/).
 - **A chat assistant you run outside Vendure**, as a separate service with its own
   front end. You need the full OAuth round trip and the consent page built below. See
-  [Assistant outside Vendure](/guides/mcp-server/assistant-outside-vendure/) for the
+  [Assistant outside Vendure](/mcp-server/assistant-outside-vendure/) for the
   client side.
 - **Shoppers bringing their own AI client**, such as Claude Desktop, ChatGPT, or
   Cursor. Each shopper approves once, on the consent page you build below.
@@ -441,8 +441,8 @@ The lookup call never needs the token, because it reads nothing channel-specific
 
 ## See also
 
-- [OAuth Protocol Reference](/guides/mcp-server/oauth-reference/) — endpoints, the `client_id` metadata document, token lifetimes, sessions, and refusals
-- [Assistant inside Vendure](/guides/mcp-server/assistant-inside-vendure/) — a chat assistant built as a Vendure plugin, with no browser round trip at all
-- [Assistant outside Vendure](/guides/mcp-server/assistant-outside-vendure/) — a chat assistant in its own service, running the OAuth flow invisibly
-- [Production Hardening](/guides/mcp-server/production/) — the issuer guard, token secret rotation, and rate limits
-- [Built-in Tool Reference](/guides/mcp-server/built-in-tools/) — what the shop and admin toolsets expose once a grant is in place
+- [OAuth Protocol Reference](/mcp-server/oauth-reference/) — endpoints, the `client_id` metadata document, token lifetimes, sessions, and refusals
+- [Assistant inside Vendure](/mcp-server/assistant-inside-vendure/) — a chat assistant built as a Vendure plugin, with no browser round trip at all
+- [Assistant outside Vendure](/mcp-server/assistant-outside-vendure/) — a chat assistant in its own service, running the OAuth flow invisibly
+- [Production Hardening](/mcp-server/production/) — the issuer guard, token secret rotation, and rate limits
+- [Built-in Tool Reference](/mcp-server/built-in-tools/) — what the shop and admin toolsets expose once a grant is in place

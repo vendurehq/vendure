@@ -7,7 +7,7 @@ order: 10
 
 Every endpoint, rule, and lifetime of the MCP server's OAuth 2.1 surface, for building
 or debugging a client integration. For the pages where a person approves a client, see
-[OAuth & Consent Integration](/guides/mcp-server/oauth-consent/).
+[OAuth & Consent Integration](/mcp-server/oauth-consent/).
 
 ## The OAuth 2.1 flow
 
@@ -15,7 +15,7 @@ A client outside your server authenticates with OAuth 2.1 and PKCE, and the clie
 drives every step. The server side is configured through
 [`McpOauthOptions`](/reference/core-plugins/mcp-plugin/mcp-oauth-options/). An
 assistant built as a Vendure plugin skips this flow entirely: see
-[Assistant inside Vendure](/guides/mcp-server/assistant-inside-vendure/).
+[Assistant inside Vendure](/mcp-server/assistant-inside-vendure/).
 
 1. **Discover.** A call to a protected endpoint returns `401` with a
    `WWW-Authenticate: Bearer resource_metadata="…"` header. The client fetches that
@@ -41,7 +41,7 @@ assistant built as a Vendure plugin skips this flow entirely: see
 4. **Consent.** A person approves: an administrator in the dashboard, a customer on
    your storefront page. On approval the server issues a short-lived authorization
    `code` and redirects back to the client's `redirect_uri`. Both consent pages are
-   covered in [OAuth & Consent Integration](/guides/mcp-server/oauth-consent/).
+   covered in [OAuth & Consent Integration](/mcp-server/oauth-consent/).
 5. **Exchange the code.** The client `POST`s to `/mcp/oauth/token` with these fields:
    - `grant_type=authorization_code`
    - `code`
@@ -75,9 +75,9 @@ The plugin still serves it for compatibility.
 Consent decisions are not endpoints in that table. Each one is an `authorizeMcpClient`
 mutation: an administrator's decision on the Admin API, a customer's on the Shop API.
 
-The token endpoint accepts an `application/x-www-form-urlencoded` body, as OAuth 2.1
-requires (RFC 6749). The `/register` and `/revoke` endpoints accept form-encoded
-bodies too.
+The token, `/register` and `/revoke` endpoints accept an
+`application/x-www-form-urlencoded` body, the format OAuth 2.1 requires (RFC 6749).
+They also accept an `application/json` body.
 
 The authorization-server metadata advertises:
 
@@ -194,23 +194,27 @@ and deletes its session. The user must authorize the client again.
   operation that marks the grant revoked. On a single instance the credential stops
   working straight away. If you run several instances with the default in-memory
   cache, the other instances keep accepting the cached session for up to 5 minutes,
-  the `sessionCacheTTL`. A shared cache fixes that. See the
-  [production guide](/guides/mcp-server/production/).
+  the `sessionCacheTTL`. A shared cache fixes that. See
+  [Horizontal scaling](/mcp-server/production/#horizontal-scaling).
 - **The daily retention task.** This deletes the session of any grant that has passed
   its own expiry. That is the case where a client stopped refreshing for longer than
   `refreshTokenTtlSeconds`. The task runs once a day, at 03:30 by default, set through
   `oauth.retentionSchedule`. Session deletion can therefore lag the grant's expiry by
-  up to a day.
+  up to a day. If the task is not running, the session remains until it expires on
+  its own.
 - **Natural expiry.** A session can lapse while its grant is still valid. The next MCP
   request creates a replacement, so a lapsed session never breaks a working grant.
 
 ### Rotating the secret or the issuer
 
 Rotating `oauth.tokenSecret` or changing `oauth.issuer` stops every existing token
-working at once. The grants live until their own expiry, and the retention task
-removes their sessions then, up to `refreshTokenTtlSeconds` plus a day. Revoking the
-grants removes their sessions right away. Nothing about those sessions can be derived
-from the old access tokens.
+working at once. Every call is refused and every refresh fails, so each agent must
+authorize again.
+
+The old grants are not revoked. They live until their own expiry, and the retention
+task removes their sessions then, up to `refreshTokenTtlSeconds` plus a day. Revoking
+the grants removes their sessions right away. Nothing about those sessions can be
+derived from the old access tokens.
 
 ## Why a request is refused
 
@@ -243,30 +247,16 @@ Client registration failures follow the same format, using:
 Rate limits return `429` with `error: "rate_limit_exceeded"` and `retry_after_seconds` in the body. Prefer the `Retry-After` header.
 
 Refusals of the consent decision itself are covered in the
-[oauth-consent troubleshooting table](/guides/mcp-server/oauth-consent/#troubleshooting).
+[oauth-consent troubleshooting table](/mcp-server/oauth-consent/#troubleshooting).
 That covers a mismatched `Origin` header, an unset consent URL, and a user holding an
 administrator record.
 
-## How refusals reach the client
-
-Handle a refusal rather than failing, and surface a "try again in a moment" message to
-the person chatting. A refusal arrives in one of two shapes:
-
-| When it arrives | What it looks like |
-|---|---|
-| Before a tool runs, during the client's own setup calls | A protocol error carrying `data.retryAfterSeconds` and `data.scope` |
-| Once a tool has started | An ordinary failed tool result, with a text message and no structured retry hint |
-
-Read the retry hint defensively, and treat a missing value as "wait a few seconds".
-Do not branch on the numeric error code or on the HTTP status. Every refusal is HTTP
-`429`, with the retry hint in the JSON-RPC error body.
-
-The limits behind these refusals are configured through `rateLimits`. See
-[Production Hardening](/guides/mcp-server/production/#set-rate-limits) for the
-scopes, defaults, and tuning advice.
+Rate-limit refusals on the MCP endpoints themselves, as opposed to the OAuth endpoints
+above, are covered in
+[What a rate-limited caller sees](/mcp-server/production/#what-a-rate-limited-caller-sees).
 
 ## See also
 
-- [OAuth & Consent Integration](/guides/mcp-server/oauth-consent/) — the admin and customer consent pages this flow redirects to
-- [Assistant outside Vendure](/guides/mcp-server/assistant-outside-vendure/) — a first-party client that runs this flow invisibly
-- [Production Hardening](/guides/mcp-server/production/) — the issuer guard, token secret rotation, and rate limits protecting these endpoints
+- [OAuth & Consent Integration](/mcp-server/oauth-consent/) — the admin and customer consent pages this flow redirects to
+- [Assistant outside Vendure](/mcp-server/assistant-outside-vendure/) — a first-party client that runs this flow invisibly
+- [Production Hardening](/mcp-server/production/) — the issuer guard, token secret rotation, and rate limits protecting these endpoints

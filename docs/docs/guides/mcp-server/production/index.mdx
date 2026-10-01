@@ -18,7 +18,7 @@ Each option is documented in detail in
 [`McpPluginOptions`](/reference/core-plugins/mcp-plugin/mcp-plugin-options/).
 
 Tool-call logging and monitoring are covered separately in
-[Logging & Observability](/guides/mcp-server/observability/).
+[Logging & Observability](/mcp-server/observability/).
 
 ## Set the token secret
 
@@ -40,7 +40,7 @@ In production, `oauth.issuer` must be a public HTTPS origin.
 
 :::warning
 Keep the issuer stable once clients have been connected. Changing it invalidates all existing grants — see
-[Changing the issuer](#changing-the-issuer).
+[Rotating the secret or the issuer](/mcp-server/oauth-reference/#rotating-the-secret-or-the-issuer).
 :::
 
 `oauth.storefrontConsentUrl` is subject to the same loopback check when configured:
@@ -79,7 +79,7 @@ Vendure allows consent requests without an `Origin` because server-rendered cons
 no `Origin` header. If your proxy strips an `Origin` header that was sent by the browser, however, cross-site
 approval requests could bypass the origin check.
 
-Also enable Vendure's [`trustProxy`](/guides/deployment/production-configuration/#trust-proxy). This allows
+Also enable Vendure's [`trustProxy`](/deployment/production-configuration/#trust-proxy). This allows
 Vendure to determine the real client IP from the proxy headers. Without it, all clients may appear to come from
 the proxy's IP, causing them to share the same rate-limit bucket.
 
@@ -146,15 +146,8 @@ Admin and Shop GraphQL APIs, without the grant's expiry check being applied.
 The session token is never sent to the client, but anyone who can access the database can potentially use it.
 **Treat the session table as sensitive data.**
 
-Sessions follow the lifetime of their OAuth grant:
-
-- Revoking a grant immediately deletes its session.
-- When a grant expires, the OAuth cleanup job removes its session.
-- The cleanup job runs once a day at 03:30 by default. You can change this with `oauth.retentionSchedule`.
-- Because of this, an expired grant's session may remain in the database for up to a day. If the cleanup job is
-  not running, it can remain until the session itself expires.
-
-If you need to invalidate a session immediately, revoke the corresponding grant.
+If you need to invalidate a session immediately, revoke the corresponding grant. When each session is deleted is
+covered in [What ends a session](/mcp-server/oauth-reference/#what-ends-a-session).
 
 ### Horizontal scaling
 
@@ -167,13 +160,7 @@ may continue accepting the session for up to 5 minutes, based on `sessionCacheTT
 For multi-instance deployments, use a shared cache such as Redis or SQL to ensure session invalidation is
 propagated across all instances.
 
-See [Horizontal scaling](/guides/deployment/horizontal-scaling/) for configuration details.
-
-### Changing the issuer
-
-Changing the issuer invalidates every existing grant. The tokens were issued for the old address, so every call
-is refused and refresh fails. Each agent must authorize again. The old grants are not revoked. The cleanup job
-removes their sessions once the grants expire.
+See [Horizontal scaling](/deployment/horizontal-scaling/) for configuration details.
 
 ### When the boot guard runs
 
@@ -207,11 +194,21 @@ are HTTP 429 responses with a `Retry-After` header giving the seconds to wait. T
 error with code `-31029`, and `error.data.retryAfterSeconds` carries the same wait time for
 programmatic use.
 
+`error.data.scope` names the limit that refused the request.
+
 A request that already reached a tool is refused inside the tool call. The client gets a failed tool
-result rather than a protocol error, which is what the MCP spec asks for.
+result rather than a protocol error, which is what the MCP spec asks for. It carries a text message and no
+structured retry hint.
 
 Notifications expect no reply, so a rate-limited notification gets the same 429 and `Retry-After`
 with `id: null` in the error body.
+
+A client should handle a refusal rather than fail, and show the person chatting a "try again in a moment"
+message:
+
+- Read `retryAfterSeconds` defensively, and treat a missing value as "wait a few seconds".
+- Do not branch on the numeric error code.
+- Do not rely on HTTP 429 alone. A refusal inside a tool call arrives as a failed tool result, not as a 429.
 
 ### CORS and request body size
 
@@ -228,11 +225,11 @@ without it does not take effect.
 | The server refuses to boot with `NODE_ENV=production` | `oauth.issuer` is not public HTTPS, `oauth.storefrontConsentUrl` is not public HTTPS, or `oauth.allowLoopbackCimdDocuments` is enabled | Use public HTTPS URLs and turn off `allowLoopbackCimdDocuments` |
 | The DNS-rebinding guard rejects requests even though the host is in your allow-list | The entry is written as a URL or carries a port; the guard reduces the incoming header to its hostname before comparing, so such entries never match | Write bare hostnames in `allowedHosts` and `allowedOrigins` |
 | Rate limits never trigger on a busy store | The default in-memory cache holds at most 10,000 entries for the whole application, and other cache activity evicts the counters | Use the SQL or Redis cache plugin |
-| Anonymous callers get 429s at low traffic | Behind a proxy, `req.ip` is the proxy's address, so every anonymous caller shares one allowance | Enable Vendure's [`trustProxy`](/guides/deployment/production-configuration/#trust-proxy) |
+| Anonymous callers get 429s at low traffic | Behind a proxy, `req.ip` is the proxy's address, so every anonymous caller shares one allowance | Enable Vendure's [`trustProxy`](/deployment/production-configuration/#trust-proxy) |
 
 ## See also
 
-- [Logging & Observability](/guides/mcp-server/observability/) — tool-call logging, operator permissions, events, and OpenTelemetry spans.
-- [OAuth Protocol Reference](/guides/mcp-server/oauth-reference/) — the endpoints these limits and guards protect.
-- [Quick Start](/guides/mcp-server/quick-start/#database-migration) — the 5-entity migration note for `synchronize: false` deployments.
+- [Logging & Observability](/mcp-server/observability/) — tool-call logging, operator permissions, events, and OpenTelemetry spans.
+- [OAuth Protocol Reference](/mcp-server/oauth-reference/) — the endpoints these limits and guards protect.
+- [Quick Start](/mcp-server/quick-start/#database-migration) — the 5-entity migration note for `synchronize: false` deployments.
 - [`McpPluginOptions`](/reference/core-plugins/mcp-plugin/mcp-plugin-options/) — every option on this page, in full.

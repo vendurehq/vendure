@@ -24,7 +24,7 @@ The plugin serves MCP over Streamable HTTP at two paths. Every MCP request is a 
 
 The shop endpoint needs no OAuth configuration, which makes it the quickest way to try the server. The admin
 endpoint and authenticated customer access both need OAuth. An MCP client discovers where that flow starts from
-the server's own response, described in the [OAuth Protocol Reference](/guides/mcp-server/oauth-reference/).
+the server's own response, described in the [OAuth Protocol Reference](/mcp-server/oauth-reference/).
 
 To get a server running and confirm it works:
 
@@ -55,7 +55,7 @@ export const config: VendureConfig = {
 
 That serves the anonymous shop endpoint. `shopAccess` controls who may call it: `anonymous` (default),
 `authenticated` or `disabled`. See
-[Production Hardening](/guides/mcp-server/production/#decide-who-may-call-the-shop-endpoint). Configure OAuth
+[Production Hardening](/mcp-server/production/#decide-who-may-call-the-shop-endpoint). Configure OAuth
 later, when you need the admin endpoint or authenticated customer access. [`McpPluginOptions`](/reference/core-plugins/mcp-plugin/mcp-plugin-options/) documents every
 option.
 
@@ -70,7 +70,7 @@ option.
 - `McpToolCallLog`
 
 If you run with `synchronize: false` (the recommended production setting), generate and run a migration so these
-tables are created. See [Migrations](/guides/developer-guide/migrations/) for the workflow.
+tables are created. See [Migrations](/developer-guide/migrations/) for the workflow.
 
 ## Test & debug with the MCP Inspector
 
@@ -108,7 +108,7 @@ configure OAuth and point the client at that endpoint. The client runs the OAuth
 :::tip
 The dashboard has an MCP Server section in its navigation with four pages: Overview, Tools, Grants and
 Activity. The Connect a client button on the Overview page shows copyable connection snippets for both
-endpoints. [OAuth & Consent](/guides/mcp-server/oauth-consent/) covers how admin sign-in works through the
+endpoints. [OAuth & Consent](/mcp-server/oauth-consent/) covers how admin sign-in works through the
 dashboard.
 :::
 
@@ -151,7 +151,7 @@ tool search.
 
 If your host has a low tool cap, or your model has no built-in tool search, set `toolExposure: 'discovery'`. That
 replaces the full list with two meta-tools, `search_tools` and `execute_tool`.
-[Built-in Tool Reference](/guides/mcp-server/built-in-tools/#tool-exposure-direct-vs-discovery) explains when to
+[Built-in Tool Reference](/mcp-server/built-in-tools/#tool-exposure-direct-vs-discovery) explains when to
 reach for it.
 
 ## Troubleshooting
@@ -164,8 +164,8 @@ reach for it.
 
 ## Next steps
 
-- [OAuth & Consent](/guides/mcp-server/oauth-consent/) — approving clients, and the storefront consent page you need to build for shop OAuth.
-- [Registering Custom Tools](/guides/mcp-server/custom-tools/) — add your own `@McpTool` tools.
-- [Production Hardening](/guides/mcp-server/production/) — the go-live checklist and rate limits.
-- [Logging & Observability](/guides/mcp-server/observability/) — tool-call logging and telemetry.
-- [Built-in Tool Reference](/guides/mcp-server/built-in-tools/) — every tool the plugin ships.
+- [OAuth & Consent](/mcp-server/oauth-consent/) — approving clients, and the storefront consent page you need to build for shop OAuth.
+- [Registering Custom Tools](/mcp-server/custom-tools/) — add your own `@McpTool` tools.
+- [Production Hardening](/mcp-server/production/) — the go-live checklist and rate limits.
+- [Logging & Observability](/mcp-server/observability/) — tool-call logging and telemetry.
+- [Built-in Tool Reference](/mcp-server/built-in-tools/) — every tool the plugin ships.

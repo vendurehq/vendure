@@ -17,11 +17,11 @@ who manage the AI integration.
 | Task | Permission |
 |---|---|
 | View the tool registry and active grants | `ReadMcpServer` |
-| View [call logs and stats](/guides/mcp-server/observability/) | `ReadMcpServer` |
+| View [call logs and stats](/mcp-server/observability/) | `ReadMcpServer` |
 | Turn a tool on or off | `UpdateMcpServer` |
 | Revoke a grant | `UpdateMcpServer` |
 | Prune expired call logs | `UpdateMcpServer` |
-| [Approve an admin consent request](/guides/mcp-server/oauth-consent/#approve-a-client-as-an-administrator) | `UpdateMcpServer` |
+| [Approve an admin consent request](/mcp-server/oauth-consent/#approve-a-client-as-an-administrator) | `UpdateMcpServer` |
 
 :::info
 `ReadMcpServer` does not expose captured request or response bodies. Reading a call log's `input`, `output`, or
@@ -44,6 +44,6 @@ The tool-registry query returns the full registry. It is not filtered per caller
 
 ## See also
 
-- [Logging & Observability](/guides/mcp-server/observability/) — the call logs and stats these permissions gate.
-- [OAuth & Consent Integration](/guides/mcp-server/oauth-consent/) — the consent requests an operator approves.
-- [Production Hardening](/guides/mcp-server/production/) — the go-live checklist for the server itself.
+- [Logging & Observability](/mcp-server/observability/) — the call logs and stats these permissions gate.
+- [OAuth & Consent Integration](/mcp-server/oauth-consent/) — the consent requests an operator approves.
+- [Production Hardening](/mcp-server/production/) — the go-live checklist for the server itself.
