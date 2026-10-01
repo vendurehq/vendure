@@ -139,7 +139,7 @@ describe('dev command', () => {
     });
 
     describe('resolveVendureProjectDirectory()', () => {
-        // EE-415: the scaffold puts the server outside the conventional package directories.
+        // A workspace server can be outside the conventional package directories.
         it('finds the server workspace from the root', () => {
             const dir = createTempDir();
             const serverDir = path.join(dir, 'server');
