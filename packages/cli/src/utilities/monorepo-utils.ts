@@ -123,7 +123,7 @@ export function findWorkspacePackageJsonsWithDependency(rootDir: string, depende
                     '^' +
                         segment
                             .split('*')
-                            .map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+                            .map(part => part.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`))
                             .join('.*') +
                         '$',
                 );
@@ -140,7 +140,7 @@ export function findWorkspacePackageJsonsWithDependency(rootDir: string, depende
             }
         }
     }
-    return [...packages].sort();
+    return [...packages].sort((a, b) => a.localeCompare(b));
 }
 
 /**
