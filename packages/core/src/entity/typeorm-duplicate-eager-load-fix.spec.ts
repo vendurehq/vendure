@@ -88,6 +88,14 @@ describe('joinCoversRelation()', () => {
         expect(covers(eagerRelation, [join()], { relations: { productVariantPrices: true } })).toBe(true);
     });
 
+    it('covers a relation the find options merely name in an array', () => {
+        expect(covers(eagerRelation, [join()], { relations: ['productVariantPrices'] })).toBe(true);
+    });
+
+    it('does not cover a relation with nested relations named in an array', () => {
+        expect(covers(eagerRelation, [join()], { relations: ['productVariantPrices.variant'] })).toBe(false);
+    });
+
     it('covers a relation when the find options name an unrelated one', () => {
         expect(covers(eagerRelation, [join()], { relations: { featuredAsset: true } })).toBe(true);
     });

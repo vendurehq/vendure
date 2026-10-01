@@ -18,6 +18,7 @@ describe('joinEagerRelationsInsteadOfQuerying()', () => {
         eagerRelations?: RelationMetadata[];
         relationMetadatas?: RelationMetadata[];
         relations?: any;
+        loadEagerRelations?: boolean;
         hasMetadata?: boolean;
     }) {
         const eagerRelations = options.eagerRelations ?? [];
@@ -31,7 +32,10 @@ describe('joinEagerRelationsInsteadOfQuerying()', () => {
                 },
             },
             relationMetadatas: options.relationMetadatas ?? [...eagerRelations],
-            findOptions: { relations: options.relations },
+            findOptions: {
+                relations: options.relations,
+                loadEagerRelations: options.loadEagerRelations,
+            },
         };
     }
 
@@ -67,6 +71,17 @@ describe('joinEagerRelationsInsteadOfQuerying()', () => {
         joinEagerRelations.mockClear();
         const translations = relation('translations');
         const qb = queryBuilder({ eagerRelations: [translations], relations: { translations: true } });
+
+        joinEagerRelationsInsteadOfQuerying(qb);
+
+        expect(joinEagerRelations).not.toHaveBeenCalled();
+        expect(qb.relationMetadatas).toEqual([translations]);
+    });
+
+    it('leaves an eager relation alone when the caller named it in an array', () => {
+        joinEagerRelations.mockClear();
+        const translations = relation('translations');
+        const qb = queryBuilder({ eagerRelations: [translations], relations: ['translations'] });
 
         joinEagerRelationsInsteadOfQuerying(qb);
 
@@ -110,6 +125,58 @@ describe('joinEagerRelationsInsteadOfQuerying()', () => {
 
         expect(joinEagerRelations).not.toHaveBeenCalled();
         expect(qb.relationMetadatas).toEqual([owner]);
+    });
+
+    it.each(['customFields.owner', 'customFields.owner.roles'])(
+        'recognises a dotted relation path named in an array as "%s"',
+        path => {
+            joinEagerRelations.mockClear();
+            const owner = relation('customFields.owner');
+            const qb = queryBuilder({
+                eagerRelations: [owner],
+                relations: [path],
+            });
+
+            joinEagerRelationsInsteadOfQuerying(qb);
+
+            expect(joinEagerRelations).not.toHaveBeenCalled();
+            expect(qb.relationMetadatas).toEqual([owner]);
+        },
+    );
+
+    it.each([{ relations: ['translations'] }, { relations: { translations: true } }])(
+        'joins only the unnamed eager relation when relations is $relations',
+        ({ relations }) => {
+            joinEagerRelations.mockClear();
+            const translations = relation('translations');
+            const prices = relation('productVariantPrices');
+            const qb = queryBuilder({ eagerRelations: [translations, prices], relations });
+
+            joinEagerRelationsInsteadOfQuerying(qb);
+
+            expect(joinEagerRelations).toHaveBeenCalledWith(
+                qb,
+                'product',
+                { ...qb.expressionMap.mainAlias.metadata, eagerRelations: [prices] },
+                'left',
+            );
+            expect(qb.relationMetadatas).toEqual([translations]);
+            expect(qb.expressionMap.mainAlias.metadata.eagerRelations).toEqual([translations, prices]);
+        },
+    );
+
+    it('does nothing when eager relation loading is disabled', () => {
+        joinEagerRelations.mockClear();
+        const translations = relation('translations');
+        const qb = queryBuilder({
+            eagerRelations: [translations],
+            loadEagerRelations: false,
+        });
+
+        joinEagerRelationsInsteadOfQuerying(qb);
+
+        expect(joinEagerRelations).not.toHaveBeenCalled();
+        expect(qb.relationMetadatas).toEqual([translations]);
     });
 
     it('does nothing under the join strategy, where eager relations are joined already', () => {

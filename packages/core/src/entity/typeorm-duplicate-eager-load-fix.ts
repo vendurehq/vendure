@@ -2,6 +2,7 @@ import { QueryRunner } from 'typeorm';
 import { RelationMetadata } from 'typeorm/metadata/RelationMetadata';
 import { JoinAttribute } from 'typeorm/query-builder/JoinAttribute';
 import { SelectQueryBuilder } from 'typeorm/query-builder/SelectQueryBuilder';
+import { OrmUtils } from 'typeorm/util/OrmUtils';
 
 let patchApplied = false;
 
@@ -100,7 +101,7 @@ export function joinCoversRelation(
  * something about the contents of the relation rather than merely naming it.
  */
 function hasOptionsForPath(options: any, propertyPath: string): boolean {
-    let value = options;
+    let value = Array.isArray(options) ? OrmUtils.propertyPathsToTruthyObject(options) : options;
     for (const segment of propertyPath.split('.')) {
         if (value == null || typeof value !== 'object') {
             return false;

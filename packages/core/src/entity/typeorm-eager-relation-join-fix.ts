@@ -1,6 +1,7 @@
 import { FindOptionsUtils } from 'typeorm/find-options/FindOptionsUtils';
 import { RelationMetadata } from 'typeorm/metadata/RelationMetadata';
 import { SelectQueryBuilder } from 'typeorm/query-builder/SelectQueryBuilder';
+import { OrmUtils } from 'typeorm/util/OrmUtils';
 
 let patchApplied = false;
 
@@ -56,14 +57,17 @@ export function patchTypeOrmEagerRelationJoins() {
  * Exported for testing.
  */
 export function joinEagerRelationsInsteadOfQuerying(qb: any): void {
-    if (qb?.expressionMap?.relationLoadStrategy !== 'query') {
+    if (qb?.expressionMap?.relationLoadStrategy !== 'query' || qb.findOptions?.loadEagerRelations === false) {
         return;
     }
     const mainAlias = qb.expressionMap.mainAlias;
     if (!mainAlias?.hasMetadata || !Array.isArray(qb.relationMetadatas) || !qb.relationMetadatas.length) {
         return;
     }
-    const requestedRelations = qb.findOptions?.relations;
+    const relations = qb.findOptions?.relations;
+    const requestedRelations = Array.isArray(relations)
+        ? OrmUtils.propertyPathsToTruthyObject(relations)
+        : relations;
     const eagerOnly: RelationMetadata[] = qb.relationMetadatas.filter(
         (relation: RelationMetadata) =>
             relation.isEager &&
@@ -84,14 +88,14 @@ export function joinEagerRelationsInsteadOfQuerying(qb: any): void {
             metadata: unknown,
             parentJoinType: string,
         ) => void
-    )(qb, mainAlias.name, mainAlias.metadata, 'left');
+    )(qb, mainAlias.name, { ...mainAlias.metadata, eagerRelations: eagerOnly }, 'left');
     qb.relationMetadatas = qb.relationMetadatas.filter(
         (relation: RelationMetadata) => !eagerOnly.includes(relation),
     );
 }
 
 /**
- * Whether the find options name the given relation path, in either of the forms TypeORM accepts:
+ * Whether the normalized find options name the given relation path:
  * `{ translations: true }` and `{ translations: { ... } }`.
  *
  * A relation declared on an embedded entity has a dotted property path, so an eager relation
