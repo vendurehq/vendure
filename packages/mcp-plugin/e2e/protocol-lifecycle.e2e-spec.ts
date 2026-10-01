@@ -99,6 +99,17 @@ describe('MCP protocol conformance (direct mode)', () => {
         expect(res.body.result.content[0].text).toContain('bad-input-from-caller');
     });
 
+    it("a plugin's own I18nError subclass reaches the caller translated, with its variables filled in", async () => {
+        const res = await postMcp(
+            baseUrl(),
+            'shop',
+            rpc('tools/call', { name: 'shop_plugin_error', arguments: {} }, 19),
+        );
+        expect(res.status).toBe(200);
+        expect(res.body.result.isError).toBe(true);
+        expect(res.body.result.content[0].text).toBe('No Product with the id "42" could be found');
+    });
+
     it('GET /mcp/shop and /mcp/admin → 405 with Allow: POST', async () => {
         for (const toolset of ['shop', 'admin']) {
             const res = await fetch(`${baseUrl()}/mcp/${toolset}`, { method: 'GET' });
@@ -270,6 +281,16 @@ describe('MCP discovery mode', () => {
             ),
         );
         expect(res.body.result.structuredContent).toEqual({ echoed: 'hop' });
+    });
+
+    it("execute_tool returns a plugin's own I18nError subclass translated", async () => {
+        const res = await postMcp(
+            baseUrl(),
+            'shop',
+            rpc('tools/call', { name: 'execute_tool', arguments: { name: 'shop_plugin_error' } }, 4),
+        );
+        expect(res.body.result.isError).toBe(true);
+        expect(res.body.result.content[0].text).toBe('No Product with the id "42" could be found');
     });
 
     it('execute_tool rejects inner arguments that violate the target schema (funnel validation)', async () => {

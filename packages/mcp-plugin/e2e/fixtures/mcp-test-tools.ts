@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
     Customer,
+    I18nError,
     Permission,
     PluginCommonModule,
     RequestContext,
@@ -97,6 +98,28 @@ export class ShopBadInputTool implements McpToolHandler {
     }
 }
 
+// Stands in for an error class a plugin defines itself, rather than one exported by core.
+class PluginRecordNotFoundError extends I18nError {
+    constructor(id: number) {
+        super('error.entity-with-id-not-found', { entityName: 'Product', id }, 'PLUGIN_RECORD_NOT_FOUND');
+    }
+}
+
+@Injectable()
+@McpTool({
+    name: 'shop_plugin_error',
+    description: "Always throws a plugin's own I18nError subclass, with translation variables.",
+    toolset: 'shop',
+    behavior: 'readonly',
+    permissions: [Permission.Public],
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+})
+export class ShopPluginErrorTool implements McpToolHandler {
+    execute(): never {
+        throw new PluginRecordNotFoundError(42);
+    }
+}
+
 @Injectable()
 @McpTool({
     name: 'shop_write_then_boom',
@@ -168,6 +191,7 @@ export class AdminListTool implements McpToolHandler {
         ShopCartWriteTool,
         ShopBoomTool,
         ShopBadInputTool,
+        ShopPluginErrorTool,
         ShopWriteThenBoomTool,
         ShopDeleteTool,
         AdminListTool,

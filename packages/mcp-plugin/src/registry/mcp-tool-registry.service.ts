@@ -3,20 +3,16 @@ import { Inject, Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { DiscoveryService } from '@nestjs/core';
 import {
     ConfigService,
-    EntityNotFoundError,
-    ForbiddenError,
     GraphQLErrorResult,
     I18nError,
-    IllegalOperationError,
     Instrument,
     isGraphQlErrorResult,
     Logger,
+    LogLevel,
     Permission,
     RequestContext,
     SettingsStoreService,
     TransactionalConnection,
-    UnauthorizedError,
-    UserInputError,
 } from '@vendure/core';
 import {
     McpCallerInfo,
@@ -47,16 +43,6 @@ const ALL_TOOLSETS: readonly McpToolset[] = ['shop', 'admin'];
 // Also stated in the no-results hint and the meta-tool's schema description; keep all three in sync.
 const SEARCH_DEFAULT_LIMIT = 10;
 const SEARCH_MAX_LIMIT = 50;
-// Error types a tool throws on purpose, with a message meant to be read by the caller. Anything
-// else is treated as an internal failure: logged server-side, and the caller gets a generic
-// message instead.
-const CALLER_SAFE_ERROR_TYPES = [
-    UserInputError,
-    IllegalOperationError,
-    EntityNotFoundError,
-    ForbiddenError,
-    UnauthorizedError,
-] as const;
 const GENERIC_TOOL_ERROR_MESSAGE =
     'The tool failed unexpectedly. This is a server-side fault, not a problem with your ' +
     'arguments. Do not retry with different arguments; tell the user the operation could not ' +
@@ -467,12 +453,12 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     }): Promise<CallToolResult> {
         const { error, callContext, tool, input, startedAt, sessionToken } = call;
         const message = error instanceof Error ? error.message : 'MCP tool failed';
-        const callerSafe = CALLER_SAFE_ERROR_TYPES.some(ErrorType => error instanceof ErrorType);
-        const callerMessage =
-            callerSafe && error instanceof I18nError
-                ? callContext.ctx.translate(error.message, error.variables)
-                : message;
-        if (!callerSafe) {
+        // An I18nError carries a message meant for the caller. One with LogLevel.Error, such as
+        // InternalServerError, reports a server fault, so it gets the generic message like any other error.
+        const callerSafe = error instanceof I18nError && error.logLevel !== LogLevel.Error;
+        if (callerSafe) {
+            this.logCallerSafeError(tool.name, error);
+        } else {
             Logger.error(
                 `MCP tool "${tool.name}" failed: ${message}`,
                 loggerCtx,
@@ -487,7 +473,31 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             durationMs: Date.now() - startedAt,
             status: 'error',
         });
-        return this.errorResult(callerSafe ? callerMessage : GENERIC_TOOL_ERROR_MESSAGE, sessionToken);
+        return this.errorResult(
+            callerSafe
+                ? callContext.ctx.translate(error.message, error.variables)
+                : GENERIC_TOOL_ERROR_MESSAGE,
+            sessionToken,
+        );
+    }
+
+    // Logs at the level the error declares, as the GraphQL API's exception logger does.
+    private logCallerSafeError(toolName: string, error: I18nError): void {
+        const text = `MCP tool "${toolName}" refused the call: ${error.message}`;
+        switch (error.logLevel) {
+            case LogLevel.Warn:
+                Logger.warn(text, loggerCtx);
+                break;
+            case LogLevel.Info:
+                Logger.info(text, loggerCtx);
+                break;
+            case LogLevel.Verbose:
+                Logger.verbose(text, loggerCtx);
+                break;
+            case LogLevel.Debug:
+                Logger.debug(text, loggerCtx);
+                break;
+        }
     }
 
     private async admitToolCall(

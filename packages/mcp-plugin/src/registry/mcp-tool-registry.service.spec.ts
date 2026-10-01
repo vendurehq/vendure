@@ -1,6 +1,16 @@
 import { StandardSchemaWithJSON } from '@modelcontextprotocol/server';
 import { Permission } from '@vendure/common/lib/generated-types';
-import { Logger, OrderStateTransitionError, PermissionDefinition, UserInputError } from '@vendure/core';
+import {
+    ForbiddenError,
+    I18nError,
+    InternalServerError,
+    Logger,
+    LogLevel,
+    OrderStateTransitionError,
+    PermissionDefinition,
+    UnauthorizedError,
+    UserInputError,
+} from '@vendure/core';
 import { McpStandardSchema, McpToolMetadata, McpToolset } from '@vendure/mcp-sdk';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -1421,6 +1431,89 @@ describe('McpToolRegistryService', () => {
             error.mockRestore();
         });
 
+        it('passes through caller-safe errors logged below Warn, such as UnauthorizedError and a Verbose ForbiddenError', async () => {
+            for (const thrown of [new UnauthorizedError(), new ForbiddenError(LogLevel.Verbose)]) {
+                const execute = () => {
+                    throw thrown;
+                };
+                const { service } = build([wrapper(shopTool(), execute)]);
+                service.onApplicationBootstrap();
+                const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'get_thing', {});
+                expect(result.isError).toBe(true);
+                expect((result.content as any)[0].text).toBe(thrown.message);
+            }
+        });
+
+        it('logs a caller-safe error at the level it declares, never as an error', async () => {
+            const spies = {
+                error: vi.spyOn(Logger, 'error').mockImplementation(() => undefined),
+                warn: vi.spyOn(Logger, 'warn').mockImplementation(() => undefined),
+                verbose: vi.spyOn(Logger, 'verbose').mockImplementation(() => undefined),
+            };
+            for (const thrown of [
+                new UserInputError('bad input from caller'),
+                new ForbiddenError(LogLevel.Verbose),
+            ]) {
+                const execute = () => {
+                    throw thrown;
+                };
+                const { service } = build([wrapper(shopTool(), execute)]);
+                service.onApplicationBootstrap();
+                await service.callTool({ ctx: makeCtx() }, 'shop', 'get_thing', {});
+            }
+            expect(spies.warn).toHaveBeenCalledWith(
+                expect.stringContaining('bad input from caller'),
+                expect.anything(),
+            );
+            expect(spies.verbose).toHaveBeenCalledWith(
+                expect.stringContaining('error.forbidden'),
+                expect.anything(),
+            );
+            expect(spies.error).not.toHaveBeenCalled();
+            Object.values(spies).forEach(spy => spy.mockRestore());
+        });
+
+        it('genericizes an InternalServerError for the caller and logs it server-side', async () => {
+            const error = vi.spyOn(Logger, 'error').mockImplementation(() => undefined);
+            const execute = () => {
+                throw new InternalServerError('error.cannot-locate-customer-for-user');
+            };
+            const { service } = build([wrapper(shopTool(), execute)]);
+            service.onApplicationBootstrap();
+            const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'get_thing', {});
+            expect(result.isError).toBe(true);
+            expect((result.content as any)[0].text).toMatch(/^The tool failed unexpectedly\./);
+            expect(error).toHaveBeenCalledWith(
+                expect.stringContaining('error.cannot-locate-customer-for-user'),
+                expect.anything(),
+                expect.anything(),
+            );
+            error.mockRestore();
+        });
+
+        it('genericizes a plugin I18nError subclass that reports a server fault with LogLevel.Error', async () => {
+            class GatewayError extends I18nError {
+                constructor() {
+                    super('gateway timed out', {}, 'GATEWAY_ERROR', LogLevel.Error);
+                }
+            }
+            const error = vi.spyOn(Logger, 'error').mockImplementation(() => undefined);
+            const execute = () => {
+                throw new GatewayError();
+            };
+            const { service } = build([wrapper(shopTool(), execute)]);
+            service.onApplicationBootstrap();
+            const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'get_thing', {});
+            expect(result.isError).toBe(true);
+            expect((result.content as any)[0].text).toMatch(/^The tool failed unexpectedly\./);
+            expect(error).toHaveBeenCalledWith(
+                expect.stringContaining('gateway timed out'),
+                expect.anything(),
+                expect.anything(),
+            );
+            error.mockRestore();
+        });
+
         it('treats a thrown non-Error value as internal, using the fallback message', async () => {
             const thrown: unknown = 'oops';
             const execute = () => {
@@ -1441,12 +1534,20 @@ describe('McpToolRegistryService', () => {
     });
 
     describe('caller-facing error text', () => {
+        // Stands in for an error class defined by a plugin rather than by core.
+        class RecordLockedError extends I18nError {
+            constructor(id: number) {
+                super('error.record-is-locked', { id }, 'RECORD_LOCKED');
+            }
+        }
+
         // Stands in for the request's translate function. i18next runs its ICU formatter on every
         // string it returns, including one it has no entry for, so the fake throws on a brace the
         // way the real formatter would.
         const dictionary: Record<string, (vars: any) => string> = {
             'error.order-does-not-contain-line-with-id': vars =>
                 `This order does not contain an OrderLine with the id ${String(vars.id)}`,
+            'error.record-is-locked': vars => `Record ${String(vars.id)} is locked`,
             'errorResult.ORDER_STATE_TRANSITION_ERROR': vars =>
                 `Cannot transition Order from "${String(vars.fromState)}" to "${String(vars.toState)}"`,
         };
@@ -1480,6 +1581,36 @@ describe('McpToolRegistryService', () => {
                     output: { message: 'error.order-does-not-contain-line-with-id' },
                 }),
             );
+        });
+
+        it("translates a plugin's own I18nError subclass and does not log it as a server error", async () => {
+            const error = vi.spyOn(Logger, 'error').mockImplementation(() => undefined);
+            const { result, toolCallLog } = await callWith(() => {
+                throw new RecordLockedError(7);
+            }, makeCtx({ translate }));
+
+            expect(result.isError).toBe(true);
+            expect((result.content as any)[0].text).toBe('Record 7 is locked');
+            expect(error).not.toHaveBeenCalled();
+            expect(toolCallLog.logToolCall).toHaveBeenCalledWith(
+                expect.objectContaining({ status: 'error', output: { message: 'error.record-is-locked' } }),
+            );
+            error.mockRestore();
+        });
+
+        it("translates a plugin's own I18nError subclass thrown through execute_tool in discovery mode", async () => {
+            const execute = () => {
+                throw new RecordLockedError(7);
+            };
+            const { service } = build([wrapper(shopTool(), execute)], { toolExposure: 'discovery' });
+            service.onApplicationBootstrap();
+            const result = await service.callTool({ ctx: makeCtx({ translate }) }, 'shop', 'execute_tool', {
+                name: 'get_thing',
+                arguments: {},
+            });
+
+            expect(result.isError).toBe(true);
+            expect((result.content as any)[0].text).toBe('Record 7 is locked');
         });
 
         it('leaves the key alone when the context carries no translate function', async () => {

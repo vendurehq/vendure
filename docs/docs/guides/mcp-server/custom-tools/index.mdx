@@ -76,10 +76,16 @@ export class FindLowStockVariantsTool implements McpToolHandler<LowStockInput> {
 }
 ```
 
-To refuse a call, throw a `UserInputError` from `@vendure/core`. The agent receives `isError: true` with your message.
-Returning a Vendure error result, an object with `errorCode`, `message` and `__typename` such as the
-`CouponCodeInvalidError` that `OrderService.applyCouponCode` can return, is reported the same way, with the object
-as the structured content.
+To refuse a call, throw an error that extends `I18nError` from `@vendure/core`. It can be a core class such as
+`UserInputError`, or a class your plugin defines.
+
+What the agent receives depends on how the tool ends:
+
+| The tool | The agent receives |
+|---|---|
+| Throws an `I18nError`, apart from the cases in the last row | `isError: true` and the translated message |
+| Returns a Vendure error result, an object with `errorCode`, `message` and `__typename`, such as the `CouponCodeInvalidError` from `OrderService.applyCouponCode` | `isError: true`, the translated message, and the error object as the structured content |
+| Throws `InternalServerError`, an `I18nError` whose `logLevel` is `LogLevel.Error`, or an error that does not extend `I18nError` | `isError: true` and a fixed message saying the tool failed unexpectedly. The server logs the real error and its stack trace |
 
 Tool names share a flat namespace within each toolset, including built-in tools. Use a plugin-specific prefix
 such as `wishlist_add_item` rather than a generic name such as `add_item`, to avoid colliding with a future
