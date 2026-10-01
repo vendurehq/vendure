@@ -26,7 +26,7 @@ Here's an illustration of the flow of an email being sent:
 ![Email plugin flow](./email-plugin-flow.webp)
 
 All emails are triggered by a particular [Event](/developer-guide/events/) - in this case when the state of an
-Order changes. The EmailPlugin ships with a set of [default email handlers](https://github.com/vendurehq/vendure/blob/master/packages/email-plugin/src/default-email-handlers.ts),
+Order changes. The EmailPlugin ships with a set of [default email handlers](https://github.com/vendurehq/vendure/blob/master/packages/email-plugin/src/handler/default-email-handlers.ts),
 one of which is responsible for sending "order confirmation" emails.
 
 ### EmailEventHandlers
