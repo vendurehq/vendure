@@ -2,19 +2,19 @@
 title: "UserService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/user.service.ts" sourceLine="39" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/user.service.ts" sourceLine="36" packageName="@vendure/core" />
 
 Contains methods relating to [User](/reference/typescript-api/entities/user#user) entities.
 
 ```ts title="Signature"
 class UserService {
-    constructor(connection: TransactionalConnection, configService: ConfigService, roleService: RoleService, passwordCipher: PasswordCipher, verificationTokenGenerator: VerificationTokenGenerator, moduleRef: ModuleRef)
+    constructor(connection: TransactionalConnection, configService: ConfigService, passwordCipher: PasswordCipher, verificationTokenGenerator: VerificationTokenGenerator, moduleRef: ModuleRef)
     getUserById(ctx: RequestContext, userId: ID) => Promise<User | undefined>;
     getUserByEmailAddress(ctx: RequestContext, emailAddress: string, userType?: 'administrator' | 'customer') => Promise<User | undefined>;
     createCustomerUser(ctx: RequestContext, identifier: string, password?: string) => Promise<User | PasswordValidationError>;
     addNativeAuthenticationMethod(ctx: RequestContext, user: User, identifier: string, password?: string) => Promise<User | PasswordValidationError>;
     createAdminUser(ctx: RequestContext, identifier: string, password: string) => Promise<User>;
-    createApiKeyUser(ctx: RequestContext, roles: Role[], identifier: string) => Promise<User>;
+    createApiKeyUser(ctx: RequestContext, identifier: string) => Promise<User>;
     softDelete(ctx: RequestContext, userId: ID) => ;
     setVerificationToken(ctx: RequestContext, user: User) => Promise<User>;
     verifyUserByToken(ctx: RequestContext, verificationToken: string, password?: string) => Promise<ErrorResultUnion<VerifyCustomerAccountResult, User>>;
@@ -49,7 +49,9 @@ class UserService {
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, identifier: string, password?: string) => Promise<<a href='/reference/typescript-api/entities/user#user'>User</a> | PasswordValidationError>`}   />
 
-Creates a new User with the special `customer` Role and using the [NativeAuthenticationStrategy](/reference/typescript-api/auth/native-authentication-strategy#nativeauthenticationstrategy).
+Creates a new customer User using the [NativeAuthenticationStrategy](/reference/typescript-api/auth/native-authentication-strategy#nativeauthenticationstrategy). The
+Customer role's permissions are derived from the Customer's channel memberships at
+permission-resolution time, so no role bookkeeping happens here.
 ### addNativeAuthenticationMethod
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, user: <a href='/reference/typescript-api/entities/user#user'>User</a>, identifier: string, password?: string) => Promise<<a href='/reference/typescript-api/entities/user#user'>User</a> | PasswordValidationError>`}   />
@@ -64,11 +66,12 @@ flow is completed.
 Creates a new verified User using the [NativeAuthenticationStrategy](/reference/typescript-api/auth/native-authentication-strategy#nativeauthenticationstrategy).
 ### createApiKeyUser
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, roles: <a href='/reference/typescript-api/entities/role#role'>Role</a>[], identifier: string) => Promise<<a href='/reference/typescript-api/entities/user#user'>User</a>>`}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, identifier: string) => Promise<<a href='/reference/typescript-api/entities/user#user'>User</a>>`}   />
 
 Creates a new User which will be responsible for the permissions of an API-Key.
 
-IMPORTANT: The caller is responsible for avoiding privilege escalations!
+IMPORTANT: The caller is responsible for granting the User its Roles via
+[RoleAssignmentService](/reference/typescript-api/services/role-assignment-service#roleassignmentservice) before a session is created for it.
 ### softDelete
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => `}   />

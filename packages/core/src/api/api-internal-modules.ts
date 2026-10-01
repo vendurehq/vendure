@@ -32,6 +32,7 @@ import { PaymentMethodResolver } from './resolvers/admin/payment-method.resolver
 import { ProductOptionResolver } from './resolvers/admin/product-option.resolver';
 import { ProductResolver } from './resolvers/admin/product.resolver';
 import { PromotionResolver } from './resolvers/admin/promotion.resolver';
+import { RoleAssignmentResolver } from './resolvers/admin/role-assignment.resolver';
 import { RoleResolver } from './resolvers/admin/role.resolver';
 import { ScheduledTaskResolver } from './resolvers/admin/scheduled-task.resolver';
 import { SearchResolver } from './resolvers/admin/search.resolver';
@@ -84,11 +85,11 @@ import {
 } from './resolvers/entity/product-variant-entity.resolver';
 import { RefundEntityResolver } from './resolvers/entity/refund-entity.resolver';
 import { RefundLineEntityResolver } from './resolvers/entity/refund-line-entity.resolver';
-import { RoleEntityResolver } from './resolvers/entity/role-entity.resolver';
+import { RoleAssignmentEntityResolver } from './resolvers/entity/role-assignment-entity.resolver';
 import { ShippingLineEntityResolver } from './resolvers/entity/shipping-line-entity.resolver';
 import { ShippingMethodEntityResolver } from './resolvers/entity/shipping-method-entity.resolver';
 import { TaxRateEntityResolver } from './resolvers/entity/tax-rate-entity.resolver';
-import { UserEntityResolver } from './resolvers/entity/user-entity.resolver';
+import { UserAdminEntityResolver, UserEntityResolver } from './resolvers/entity/user-entity.resolver';
 import { ZoneEntityResolver } from './resolvers/entity/zone-entity.resolver';
 import { ShopAuthResolver } from './resolvers/shop/shop-auth.resolver';
 import { ShopCustomerResolver } from './resolvers/shop/shop-customer.resolver';
@@ -120,6 +121,7 @@ const adminResolvers = [
     ProductOptionResolver,
     ProductResolver,
     PromotionResolver,
+    RoleAssignmentResolver,
     RoleResolver,
     SearchResolver,
     ScheduledTaskResolver,
@@ -163,7 +165,6 @@ export const entityResolvers = [
     ProductVariantEntityResolver,
     RefundEntityResolver,
     RefundLineEntityResolver,
-    RoleEntityResolver,
     ShippingLineEntityResolver,
     UserEntityResolver,
     TaxRateEntityResolver,
@@ -172,6 +173,8 @@ export const entityResolvers = [
 ];
 
 export const adminEntityResolvers = [
+    RoleAssignmentEntityResolver,
+    UserAdminEntityResolver,
     AdministratorEntityResolver,
     CustomerAdminEntityResolver,
     OrderAdminEntityResolver,

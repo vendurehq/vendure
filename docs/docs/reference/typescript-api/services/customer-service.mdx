@@ -72,7 +72,9 @@ Returns a list of all [CustomerGroup](/reference/typescript-api/entities/custome
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: CreateCustomerInput, password?: string) => Promise<<a href='/reference/typescript-api/errors/error-result-union#errorresultunion'>ErrorResultUnion</a><CreateCustomerResult, <a href='/reference/typescript-api/entities/customer#customer'>Customer</a>>>`}   />
 
-Creates a new Customer, including creation of a new User with the special `customer` Role.
+Creates a new Customer, including creation of a new User. Customer permissions are
+derived from channel membership (see [CUSTOMER_PERMISSIONS](/reference/typescript-api/auth/customer_permissions#customer_permissions)), so no Role is
+involved.
 
 If the `password` argument is specified, the Customer will be immediately verified. If not,
 then an [AccountRegistrationEvent](/reference/typescript-api/events/event-types#accountregistrationevent) is published, so that the customer can have their

@@ -8,17 +8,28 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import { ResultOf } from './graphql/graphql-admin';
-import { createChannelDocument, getCustomerListDocument, MeDocument } from './graphql/shared-definitions';
-import { getProductsTake3Document } from './graphql/shop-definitions';
+import {
+    assignProductToChannelDocument,
+    createChannelDocument,
+    getCustomerListDocument,
+    MeDocument,
+} from './graphql/shared-definitions';
+import {
+    addItemToOrderDocument,
+    getActiveCustomerDocument,
+    getProductsTake3Document,
+} from './graphql/shop-definitions';
+import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 
 const NO_AUTOJOIN_CHANNEL_CODE = 'no-autojoin-channel';
 const NO_AUTOJOIN_CHANNEL_TOKEN = 'no_autojoin_channel_token';
 const OPEN_CHANNEL_CODE = 'open-channel';
 const OPEN_CHANNEL_TOKEN = 'open_channel_token';
+const FORBIDDEN_MESSAGE = 'You are not currently authorized to perform this action';
 
 /**
- * Suppresses the silent auto-join for the no-autojoin channel. Every other channel behaves as the
- * default (auto-join).
+ * Declines the auto-join for the no-autojoin channel, which denies customers access to it. Every
+ * other channel behaves as the default (auto-join).
  */
 class TestCustomerChannelAssignmentStrategy implements CustomerChannelAssignmentStrategy {
     canAssignCustomerToChannel(ctx: RequestContext): boolean {
@@ -53,7 +64,7 @@ describe('CustomerChannelAssignmentStrategy', () => {
             [NO_AUTOJOIN_CHANNEL_CODE, NO_AUTOJOIN_CHANNEL_TOKEN],
             [OPEN_CHANNEL_CODE, OPEN_CHANNEL_TOKEN],
         ]) {
-            await adminClient.query(createChannelDocument, {
+            const { createChannel } = await adminClient.query(createChannelDocument, {
                 input: {
                     code,
                     token,
@@ -64,6 +75,11 @@ describe('CustomerChannelAssignmentStrategy', () => {
                     defaultTaxZoneId: 'T_1',
                 },
             });
+            if (code === NO_AUTOJOIN_CHANNEL_CODE && 'id' in createChannel) {
+                await adminClient.query(assignProductToChannelDocument, {
+                    input: { channelId: createChannel.id, productIds: ['T_1'] },
+                });
+            }
         }
     }, TEST_SETUP_TIMEOUT_MS);
 
@@ -77,15 +93,58 @@ describe('CustomerChannelAssignmentStrategy', () => {
         return customers.items.map(c => c.emailAddress);
     }
 
-    it('lets an authenticated non-member operate on a no-autojoin channel without persisting membership', async () => {
+    it('denies a customer-scoped operation on a no-autojoin channel without persisting membership', async () => {
         shopClient.setChannelToken(NO_AUTOJOIN_CHANNEL_TOKEN);
         await shopClient.asUserWithCredentials(customer.emailAddress, 'test');
+        // `login.channels` lists real memberships only, so for a single-channel customer the test
+        // client switches to that channel's token. Re-pin the channel under test.
+        shopClient.setChannelToken(NO_AUTOJOIN_CHANNEL_TOKEN);
 
-        // The authenticated, customer-scoped query succeeds.
-        const { me } = await shopClient.query(MeDocument);
-        expect(me?.identifier).toBe(customer.emailAddress);
+        // Customer permissions derive from membership, so a declined assignment means no
+        // `Authenticated` on this channel. The first request rebuilds the context from the
+        // re-serialized session and is denied; so is the next one served from the cached session.
+        await assertThrowsWithMessage(() => shopClient.query(MeDocument), FORBIDDEN_MESSAGE)();
+        await assertThrowsWithMessage(() => shopClient.query(MeDocument), FORBIDDEN_MESSAGE)();
 
-        // But the Customer is not recorded as a member of the channel.
+        // Public operations remain available to the same authenticated session.
+        const { products } = await shopClient.query(getProductsTake3Document);
+        expect(Array.isArray(products.items)).toBe(true);
+
+        // And the Customer is not recorded as a member of the channel.
+        expect(await channelMembers(NO_AUTOJOIN_CHANNEL_TOKEN)).not.toContain(customer.emailAddress);
+    });
+
+    // The ForbiddenError covers operations gated on Permission.Authenticated only. Operations
+    // gated on Permission.Owner need a session and nothing else, so they still run on the
+    // declined channel, but the Customer record is resolved per channel and the session is
+    // treated as a guest there. This records the contract described on
+    // CustomerChannelAssignmentStrategy.
+    it('an Owner-gated operation treats the customer as a guest on a no-autojoin channel', async () => {
+        shopClient.setChannelToken(NO_AUTOJOIN_CHANNEL_TOKEN);
+        await shopClient.asUserWithCredentials(customer.emailAddress, 'test');
+        shopClient.setChannelToken(NO_AUTOJOIN_CHANNEL_TOKEN);
+
+        await assertThrowsWithMessage(() => shopClient.query(MeDocument), FORBIDDEN_MESSAGE)();
+        const { activeCustomer } = await shopClient.query(getActiveCustomerDocument);
+        expect(activeCustomer).toBeNull();
+        expect(await channelMembers(NO_AUTOJOIN_CHANNEL_TOKEN)).not.toContain(customer.emailAddress);
+    });
+
+    // An order built on a declined channel belongs to a guest: the Customer is not attached
+    // to it and does not become a member of the channel.
+    it('an order built on a no-autojoin channel has no Customer attached', async () => {
+        shopClient.setChannelToken(NO_AUTOJOIN_CHANNEL_TOKEN);
+        await shopClient.asUserWithCredentials(customer.emailAddress, 'test');
+        shopClient.setChannelToken(NO_AUTOJOIN_CHANNEL_TOKEN);
+
+        const { addItemToOrder } = await shopClient.query(addItemToOrderDocument, {
+            productVariantId: 'T_1',
+            quantity: 1,
+        });
+        if (!('customer' in addItemToOrder)) {
+            throw new Error(`addItemToOrder failed: ${JSON.stringify(addItemToOrder)}`);
+        }
+        expect(addItemToOrder.customer).toBeNull();
         expect(await channelMembers(NO_AUTOJOIN_CHANNEL_TOKEN)).not.toContain(customer.emailAddress);
     });
 
@@ -100,11 +159,16 @@ describe('CustomerChannelAssignmentStrategy', () => {
     it('re-evaluates per channel when the active channel changes mid-session', async () => {
         shopClient.setChannelToken(OPEN_CHANNEL_TOKEN);
         await shopClient.asUserWithCredentials(customer.emailAddress, 'test');
-
-        shopClient.setChannelToken(NO_AUTOJOIN_CHANNEL_TOKEN);
+        shopClient.setChannelToken(OPEN_CHANNEL_TOKEN);
         const { me } = await shopClient.query(MeDocument);
         expect(me?.identifier).toBe(customer.emailAddress);
 
+        // Membership on the open channel does not carry over: the no-autojoin channel is
+        // re-evaluated and denied within the same session.
+        shopClient.setChannelToken(NO_AUTOJOIN_CHANNEL_TOKEN);
+        await assertThrowsWithMessage(() => shopClient.query(MeDocument), FORBIDDEN_MESSAGE)();
+
+        expect(await channelMembers(OPEN_CHANNEL_TOKEN)).toContain(customer.emailAddress);
         expect(await channelMembers(NO_AUTOJOIN_CHANNEL_TOKEN)).not.toContain(customer.emailAddress);
     });
 

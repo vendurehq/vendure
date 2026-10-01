@@ -3,7 +3,7 @@ import { type Page, expect, test } from '@playwright/test';
 import { BaseDetailPage } from '../../page-objects/detail-page.base.js';
 import { BaseListPage } from '../../page-objects/list-page.base.js';
 
-// Administrators have a password field and a multi-select role picker
+// Administrators have a password field and a role assignment builder
 // that don't fit the standard CRUD factory, so we use custom tests.
 
 test.describe('Administrators', () => {
@@ -54,10 +54,10 @@ test.describe('Administrators', () => {
         await dp.fillInput('Email Address or identifier', 'test-admin@example.com');
         await dp.fillPassword('Password', 'test123456');
 
-        // Open the roles multi-select (combobox in the "Roles" PageBlock)
-        // and select the "SuperAdmin" role
-        const rolesCombobox = page.getByRole('combobox');
-        await dp.selectPopoverOption(rolesCombobox, 'SuperAdmin');
+        // The role assignment editor starts with one row on the active channel,
+        // so only the role itself needs picking
+        const roleCombobox = page.getByRole('combobox').first();
+        await dp.selectPopoverOption(roleCombobox, 'SuperAdmin');
 
         await dp.clickCreate();
         await dp.expectSuccessToast(/Successfully created administrator/);

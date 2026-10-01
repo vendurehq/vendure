@@ -2,7 +2,7 @@ import { CurrencyCode, LanguageCode } from '@vendure/common/lib/generated-types'
 import { DeepPartial, ID } from '@vendure/common/lib/shared-types';
 import { Column, Entity, Index, ManyToMany, ManyToOne } from 'typeorm';
 
-import { Customer, PaymentMethod, Promotion, Role, ShippingMethod, StockLocation } from '..';
+import { Customer, PaymentMethod, Promotion, ShippingMethod, StockLocation } from '..';
 import { ApiKey } from '../api-key/api-key.entity';
 import { VendureEntity } from '../base/base.entity';
 import { Collection } from '../collection/collection.entity';
@@ -144,9 +144,6 @@ export class Channel extends VendureEntity {
 
     @ManyToMany(type => Customer, customer => customer.channels, { onDelete: 'CASCADE' })
     customers: Customer[];
-
-    @ManyToMany(type => Role, role => role.channels, { onDelete: 'CASCADE' })
-    roles: Role[];
 
     @ManyToMany(type => StockLocation, stockLocation => stockLocation.channels, { onDelete: 'CASCADE' })
     stockLocations: StockLocation[];

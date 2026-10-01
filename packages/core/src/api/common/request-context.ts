@@ -254,23 +254,34 @@ export class RequestContext {
     /**
      * @description
      * Returns `true` if there is an active Session & User associated with this request,
-     * and that User has **at least one** of the specified permissions on the active Channel.
+     * and that User has **at least one** of the specified permissions on the given Channel.
+     * The Channel defaults to the active Channel of this request.
      *
      * This method uses OR logic - it checks if the user has ANY of the given permissions,
      * not ALL of them. For AND logic, use {@link userHasAllPermissions}.
      *
      * @example
      * ```ts
-     * // Returns true if user has ReadProduct OR ReadCatalog
+     * // Returns true if user has ReadProduct OR ReadCatalog on the active Channel
      * ctx.userHasPermissions([Permission.ReadProduct, Permission.ReadCatalog]);
+     *
+     * // Returns true if user has UpdateChannel on the Channel with the given id
+     * ctx.userHasPermissions([Permission.UpdateChannel], channelId);
      * ```
+     *
+     * @param permissions The permissions to check for.
+     * @param channelId The id of the Channel to check the permissions on. Defaults to the
+     * active Channel of this request. Since 3.7.3.
      */
-    userHasPermissions(permissions: Permission[]): boolean {
+    userHasPermissions(permissions: Permission[], channelId: ID = this.channelId): boolean {
         const user = this.session?.user;
-        if (!user || !this.channelId) {
+        if (!user || !channelId) {
             return false;
         }
-        const permissionsOnChannel = user.channelPermissions.find(c => idsAreEqual(c.id, this.channelId));
+        if (user.globalPermissions && this.arraysIntersect(user.globalPermissions, permissions)) {
+            return true;
+        }
+        const permissionsOnChannel = user.channelPermissions.find(c => idsAreEqual(c.id, channelId));
         if (permissionsOnChannel) {
             return this.arraysIntersect(permissionsOnChannel.permissions, permissions);
         }
@@ -280,29 +291,41 @@ export class RequestContext {
     /**
      * @description
      * Returns `true` if there is an active Session & User associated with this request,
-     * and that User has **all** of the specified permissions on the active Channel.
+     * and that User has **all** of the specified permissions on the given Channel.
+     * The Channel defaults to the active Channel of this request.
      *
      * This method uses AND logic - it checks if the user has EVERY one of the given permissions.
      * For OR logic (any permission), use {@link userHasPermissions}.
      *
      * @example
      * ```ts
-     * // Returns true only if user has BOTH ReadProduct AND UpdateProduct
+     * // Returns true only if user has BOTH ReadProduct AND UpdateProduct on the active Channel
      * ctx.userHasAllPermissions([Permission.ReadProduct, Permission.UpdateProduct]);
+     *
+     * // Returns true only if user has BOTH permissions on the Channel with the given id
+     * ctx.userHasAllPermissions([Permission.ReadProduct, Permission.UpdateProduct], channelId);
      * ```
+     *
+     * @param permissions The permissions to check for.
+     * @param channelId The id of the Channel to check the permissions on. Defaults to the
+     * active Channel of this request. Since 3.7.3.
      *
      * @since 3.6.0
      */
-    userHasAllPermissions(permissions: Permission[]): boolean {
+    userHasAllPermissions(permissions: Permission[], channelId: ID = this.channelId): boolean {
         const user = this.session?.user;
-        if (!user || !this.channelId) {
+        if (!user || !channelId) {
             return false;
         }
-        const permissionsOnChannel = user.channelPermissions.find(c => idsAreEqual(c.id, this.channelId));
-        if (permissionsOnChannel) {
-            return permissions.every(permission => permissionsOnChannel.permissions.includes(permission));
+        const globalPermissions = user.globalPermissions ?? [];
+        const permissionsOnChannel = user.channelPermissions.find(c => idsAreEqual(c.id, channelId));
+        const channelPermissions = permissionsOnChannel?.permissions ?? [];
+        if (globalPermissions.length === 0 && channelPermissions.length === 0) {
+            return false;
         }
-        return false;
+        return permissions.every(
+            permission => globalPermissions.includes(permission) || channelPermissions.includes(permission),
+        );
     }
 
     /**

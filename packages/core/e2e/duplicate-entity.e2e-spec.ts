@@ -135,7 +135,6 @@ describe('Duplicating entities', () => {
         // create a new role and Admin and sign in as that Admin
         const { createRole } = await adminClient.query(createRoleDocument, {
             input: {
-                channelIds: ['T_1'],
                 code: 'test-role',
                 description: 'Testing custom permissions',
                 permissions: [

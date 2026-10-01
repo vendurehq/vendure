@@ -5,6 +5,7 @@ import {
     CurrencyCode,
     DeletionResponse,
     DeletionResult,
+    Permission,
     UpdateChannelInput,
     UpdateChannelResult,
 } from '@vendure/common/lib/generated-types';
@@ -19,6 +20,7 @@ import { ErrorResultUnion, isGraphQlErrorResult } from '../../common/error/error
 import {
     ChannelNotFoundError,
     EntityNotFoundError,
+    ForbiddenError,
     InternalServerError,
     UserInputError,
 } from '../../common/error/errors';
@@ -45,6 +47,7 @@ import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-build
 import { patchEntity } from '../helpers/utils/patch-entity';
 
 import { GlobalSettingsService } from './global-settings.service';
+import { RoleAssignmentService } from './role-assignment.service';
 /**
  * @description
  * Contains methods relating to {@link Channel} entities.
@@ -63,6 +66,7 @@ export class ChannelService {
         private customFieldRelationService: CustomFieldRelationService,
         private eventBus: EventBus,
         private listQueryBuilder: ListQueryBuilder,
+        private roleAssignmentService: RoleAssignmentService,
     ) {}
 
     /**
@@ -364,15 +368,24 @@ export class ChannelService {
             await this.connection.getRepository(ctx, Channel).save(newChannel);
         }
         await this.customFieldRelationService.updateRelations(ctx, Channel, input, newChannel);
+        // No SuperAdmin assignment rows are written for the new Channel: SuperAdmin access is
+        // resolved at check time from the single default-channel row (see RoleAssignment).
         await this.allChannels.refresh(ctx);
         await this.eventBus.publish(new ChannelEvent(ctx, newChannel, 'created', input));
         return newChannel;
     }
 
+    /**
+     * @description
+     * Updates a Channel. Throws a ForbiddenError if the active user does not hold the
+     * `UpdateChannel` permission on the target Channel. A SuperAdmin is exempt. A RequestContext
+     * with no session skips the check.
+     */
     async update(
         ctx: RequestContext,
         input: UpdateChannelInput,
     ): Promise<ErrorResultUnion<UpdateChannelResult, Channel>> {
+        this.assertHasPermissionOnChannel(ctx, input.id, Permission.UpdateChannel);
         const channel = await this.findOne(ctx, input.id);
         if (!channel) {
             throw new EntityNotFoundError('Channel', input.id);
@@ -465,7 +478,19 @@ export class ChannelService {
         return assertFound(this.findOne(ctx, channel.id));
     }
 
+    /**
+     * @description
+     * Deletes a Channel. Throws a ForbiddenError if the active user does not hold the
+     * `DeleteChannel` permission on the target Channel. A SuperAdmin is exempt. A RequestContext
+     * with no session skips the check.
+     *
+     * The RoleAssignments on the Channel are removed through
+     * {@link RoleAssignmentService.removeAllAssignmentsOnChannel} before the Channel row goes,
+     * so that a {@link RoleAssignmentEvent} is published and the affected Users' cached
+     * sessions are evicted.
+     */
     async delete(ctx: RequestContext, id: ID): Promise<DeletionResponse> {
+        this.assertHasPermissionOnChannel(ctx, id, Permission.DeleteChannel);
         const channel = await this.connection.getEntityOrThrow(ctx, Channel, id);
         if (channel.code === DEFAULT_CHANNEL_CODE)
             return {
@@ -475,6 +500,7 @@ export class ChannelService {
 
         const deletedChannel = new Channel(channel);
         await this.connection.getRepository(ctx, Session).delete({ activeChannelId: id });
+        await this.roleAssignmentService.removeAllAssignmentsOnChannel(ctx, id);
         await this.connection.getRepository(ctx, Channel).delete(id);
         await this.connection.getRepository(ctx, ProductVariantPrice).delete({
             channelId: id,
@@ -484,6 +510,31 @@ export class ChannelService {
         return {
             result: DeletionResult.DELETED,
         };
+    }
+
+    /**
+     * A Channel may only be modified by a user who holds the required permission on that particular
+     * Channel, see GHSA-22x4-937q-5fr5.
+     *
+     * A SuperAdmin is exempt. The SuperAdmin permission is global (see {@link RoleAssignment}), so
+     * the check on the active Channel answers for every Channel.
+     *
+     * A RequestContext with no session is skipped, because it belongs to an internal server-side
+     * call such as Populator.setChannelDefaults(), which calls update() with RequestContext.empty().
+     * With the default AuthGuard an unauthenticated API request cannot reach this point. Note that
+     * the skip fails open: a custom EntityAccessControlStrategy which admits sessionless requests
+     * would bypass this check.
+     */
+    private assertHasPermissionOnChannel(ctx: RequestContext, channelId: ID, permission: Permission) {
+        if (!ctx.session?.user) {
+            return;
+        }
+        if (ctx.userHasPermissions([Permission.SuperAdmin])) {
+            return;
+        }
+        if (!ctx.userHasPermissions([permission], channelId)) {
+            throw new ForbiddenError();
+        }
     }
 
     /**

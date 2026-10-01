@@ -52,7 +52,7 @@ export * from './events/promotion-event';
 export * from './events/province-event';
 export * from './events/refund-event';
 export * from './events/refund-state-transition-event';
-export * from './events/role-change-event';
+export * from './events/role-assignment-event';
 export * from './events/role-event';
 export * from './events/search-event';
 export * from './events/seller-event';

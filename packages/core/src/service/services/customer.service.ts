@@ -198,7 +198,9 @@ export class CustomerService {
 
     /**
      * @description
-     * Creates a new Customer, including creation of a new User with the special `customer` Role.
+     * Creates a new Customer, including creation of a new User. Customer permissions are
+     * derived from channel membership (see {@link CUSTOMER_PERMISSIONS}), so no Role is
+     * involved.
      *
      * If the `password` argument is specified, the Customer will be immediately verified. If not,
      * then an {@link AccountRegistrationEvent} is published, so that the customer can have their
