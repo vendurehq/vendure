@@ -41,7 +41,7 @@ the authorization URL.
 | `client` | Required. `'cli'` or `'create'` identifies the caller on the approval page. |
 | `appOrigin`, `apiOrigin` | Default to `https://console.vendure.io` and `https://api.vendure.io`. |
 | `signal` | Cancels login and token exchange. Cancellation rejects with `AbortError`. |
-| `timeoutMs` | Callback deadline in milliseconds. Default is `300_000`, or five minutes. |
+| `timeoutMs` | Callback deadline in milliseconds. Default is `300_000`, or five minutes. Must be finite, greater than zero, and at most `2_147_483_647`. |
 | `openBrowser(url)` | Optional function that returns `Promise<boolean>`. The default uses the OS browser opener. |
 | `reportAuthorizationUrl(url)` | Receives the URL when opening fails or returns `false`. The default prints it to stdout. |
 | `fetch` | Optional fetch implementation. Defaults to `globalThis.fetch`. |

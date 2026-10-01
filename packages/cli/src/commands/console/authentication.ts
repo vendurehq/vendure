@@ -46,7 +46,8 @@ export async function loginWithBrowser(options: ConsoleBrowserLoginOptions): Pro
     });
     if (!['cli', 'create'].includes(options.client)) throw new Error('Unknown Console login client.');
     const timeoutMs = options.timeoutMs ?? 300_000;
-    if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) throw new Error('Invalid login timeout.');
+    if (!Number.isFinite(timeoutMs) || timeoutMs <= 0 || timeoutMs > 2_147_483_647)
+        throw new Error('Invalid login timeout.');
     if (options.signal?.aborted) throw new DOMException('The operation was aborted.', 'AbortError');
     const state = createLoginState();
     const callback = await startLoopbackCallback(state, true);

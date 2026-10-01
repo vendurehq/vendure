@@ -143,6 +143,17 @@ describe('public Console browser login', () => {
         expect(openBrowser).not.toHaveBeenCalled();
     });
 
+    it.each([Infinity, NaN, 0, -1, 2_147_483_648])(
+        'rejects an invalid callback deadline %s before opening a browser',
+        async timeoutMs => {
+            const openBrowser = vi.fn(() => Promise.resolve(true));
+            await expect(loginWithBrowser({ client: 'cli', timeoutMs, openBrowser })).rejects.toThrow(
+                'Invalid login timeout.',
+            );
+            expect(openBrowser).not.toHaveBeenCalled();
+        },
+    );
+
     it('wraps malformed login tokens as transient grant errors', async () => {
         tokenFetch.mockResolvedValue(Response.json({ ...token, token_type: 'Basic' }));
         await expect(
