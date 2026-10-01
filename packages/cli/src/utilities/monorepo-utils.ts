@@ -154,6 +154,9 @@ export function findWorkspacePackageJsonsWithDependency(rootDir: string, depende
     return [...packages].sort((a, b) => a.localeCompare(b));
 }
 
+/** A workspace has multiple Core projects and needs an explicit selection. */
+export class AmbiguousVendureProjectError extends Error {}
+
 /**
  * Resolves a Core project from an explicit path, the current package, workspace members or
  * conventional monorepo directories. Rejects ambiguous workspace members.
@@ -175,7 +178,7 @@ export function resolveCoreProjectDirectory(cwd: string, project?: string): stri
     const workspacePackages = findWorkspacePackageJsonsWithDependency(cwd, '@vendure/core');
     if (workspacePackages.length > 1) {
         const candidates = workspacePackages.map(file => path.relative(cwd, path.dirname(file)));
-        throw new Error(
+        throw new AmbiguousVendureProjectError(
             `Multiple Vendure projects found in "${cwd}": ${candidates.join(', ')}. Use --project <dir> to select one.`,
         );
     }

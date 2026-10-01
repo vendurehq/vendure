@@ -99,13 +99,20 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
 }
 
 /**
- * Reports a plugin list the CLI could not read. Nothing is enabled from it, so
- * there is no plugin to name and nothing to disable — the file itself is the
- * thing to fix.
+ * Reports a plugin scope the CLI could not use. An ambiguous project never
+ * supplies a member allowlist.
  */
-function writeScopeError({ origin, reason }: CliPluginScopeError): void {
+function writeScopeError({ scope, origin, reason }: CliPluginScopeError): void {
     process.stderr.write(pc.red(`${reason}\n`));
-    process.stderr.write(`No CLI plugins were loaded from it. Fix ${origin}, or delete it to start over.\n`);
+    if (scope === 'project') {
+        process.stderr.write(
+            'No project CLI plugins were loaded. Run from a project directory or use dev --project <dir>.\n',
+        );
+    } else {
+        process.stderr.write(
+            `No CLI plugins were loaded from it. Fix ${origin}, or delete it to start over.\n`,
+        );
+    }
 }
 
 /**

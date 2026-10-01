@@ -2,7 +2,11 @@ import fs from 'fs-extra';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 
-import { findPackageJsonWithDependency, resolveCoreProjectDirectory } from '../utilities/monorepo-utils';
+import {
+    AmbiguousVendureProjectError,
+    findPackageJsonWithDependency,
+    resolveCoreProjectDirectory,
+} from '../utilities/monorepo-utils';
 
 import { ProjectCliPluginConfig } from './cli-command-definition';
 import { mergeEnvPluginNames, readGlobalCliConfig } from './cli-global-plugin-config';
@@ -718,7 +722,25 @@ function getGlobalPluginScope(
  * The project scope, or `undefined` when there is no project package.json.
  */
 function getProjectPluginScope(options: ResolveCliPluginsOptions): PluginScope | undefined {
-    const context = getProjectPluginContext(options);
+    let context: ProjectPluginContext | null;
+    try {
+        context = getProjectPluginContext(options);
+    } catch (error) {
+        if (options.project !== undefined || !(error instanceof AmbiguousVendureProjectError)) {
+            throw error;
+        }
+        // Report the selection problem without loading any member's plugins.
+        // Commands can still show help or run their own project validation.
+        return {
+            kind: 'project',
+            origin: path.resolve(options.cwd ?? process.cwd()),
+            allowlist: [],
+            resolvePackage: () => null,
+            check: () => undefined,
+            listCandidates: () => [],
+            error: error.message,
+        };
+    }
     if (!context) {
         return undefined;
     }

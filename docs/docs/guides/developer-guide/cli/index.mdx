@@ -1243,6 +1243,12 @@ From a project subdirectory, lookup walks up to the project. If no Core project 
 its existing preference for a parent `package.json` that configures `vendure.cli` or depends on
 `@vendure/cli`. Dependencies between the working directory and that parent remain eligible.
 
+An ambiguous workspace produces a plugin scope error and loads no member's plugins. Help and diagnostic
+commands remain available. Run `dev --project <dir>` to select a member. For project plugin changes,
+run `vendure plugins add` or `remove` from inside the member directory. Explicit `--global` changes
+still use the global allowlist.
+
+
 A package that declares a plugin but is not listed is reported by a one-line
 hint on stderr rather than being loaded:
 

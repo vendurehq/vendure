@@ -254,6 +254,22 @@ describe('Workspace project plugin loading', () => {
                 `Multiple Vendure projects found in "${project.projectDir}": other, server.`,
             );
             expect(result.stderr).toContain('Use --project <dir>');
+            const help = await project.runCliCommand(['--help']);
+            expect(help.stdout).toContain('Usage: vendure');
+            expect(help.stderr).toContain('Multiple Vendure projects found');
+            const doctor = await project.runCliCommand(['doctor', '--format', 'json'], { expectError: true });
+            expect(() => JSON.parse(doctor.stdout)).not.toThrow();
+            const rootPackage = project.readFile('package.json');
+            const serverPackage = project.readFile('server/package.json');
+            const removed = await project.runCliCommand(
+                ['plugins', 'remove', '@vendure-e2e/cloud-dev-cli-plugin'],
+                { expectError: true },
+            );
+            expect(removed.exitCode).toBe(1);
+            expect(removed.stderr).toContain('Multiple Vendure projects found');
+            expect(project.readFile('package.json')).toBe(rootPackage);
+            expect(project.readFile('server/package.json')).toBe(serverPackage);
+
             const selected = await project.runCliCommand(['dev', 'bogus', '--project', 'server'], {
                 expectError: true,
             });

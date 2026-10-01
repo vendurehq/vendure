@@ -103,6 +103,34 @@ describe('CLI plugin scopes', () => {
         },
     );
 
+    it('reports implicit ambiguity as a scope error without selecting a member', () => {
+        const root = makeTempDir('vendure-ambiguous-workspace-');
+        fs.writeJsonSync(path.join(root, 'package.json'), { workspaces: ['server', 'other'] });
+        for (const member of ['server', 'other']) {
+            fs.ensureDirSync(path.join(root, member));
+            fs.writeJsonSync(path.join(root, member, 'package.json'), {
+                dependencies: { '@vendure/core': '*', '@example/tools': '*' },
+                vendure: { cli: { plugins: ['@example/tools'] } },
+            });
+            installPlugin(path.join(root, member), '@example/tools', member);
+        }
+        const result = resolveCliPlugins({ cwd: root, scopes: ['project'] });
+        expect(result.loaded).toEqual([]);
+        expect(result.scopeErrors).toEqual([
+            {
+                scope: 'project',
+                origin: root,
+                reason: `Multiple Vendure projects found in "${root}": other, server. Use --project <dir> to select one.`,
+            },
+        ]);
+        const selected = resolveCliPlugins({ cwd: root, project: 'server', scopes: ['project'] });
+        expect(selected.scopeErrors).toEqual([]);
+        expect(selected.loaded).toHaveLength(1);
+        expect(() => resolveCliPlugins({ cwd: root, project: 'missing', scopes: ['project'] })).toThrow(
+            'Invalid --project directory',
+        );
+    });
+
     it('does not accept a workspace root dependency as a member dependency', () => {
         const root = makeTempDir('vendure-workspace-');
         fs.writeJsonSync(path.join(root, 'package.json'), {
