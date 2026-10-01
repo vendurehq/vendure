@@ -113,7 +113,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     private bm25 = new Map<McpToolset, Bm25Index>();
     private toggleCache = new WeakMap<RequestContext, Record<string, boolean>>();
     // Every request lists all tools, so canAccess runs once per distinct permission list, not once per tool.
-    private canAccessCache = new WeakMap<RequestContext, Map<string, Promise<boolean>>>();
+    private readonly canAccessCache = new WeakMap<RequestContext, Map<string, Promise<boolean>>>();
 
     constructor(
         private readonly discoveryService: DiscoveryService,
@@ -768,7 +768,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             decisions = new Map();
             this.canAccessCache.set(ctx, decisions);
         }
-        const key = [...permissions].sort().join(',');
+        const key = [...permissions].sort((a, b) => a.localeCompare(b)).join(',');
         let decision = decisions.get(key);
         if (!decision) {
             decision = this.askStrategyCanAccess(ctx, permissions);
