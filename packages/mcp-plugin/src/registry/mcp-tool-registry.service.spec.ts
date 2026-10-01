@@ -1473,6 +1473,21 @@ describe('McpToolRegistryService', () => {
             Object.values(spies).forEach(spy => spy.mockRestore());
         });
 
+        it('logs the stack of a caller-safe error at debug level', async () => {
+            const debug = vi.spyOn(Logger, 'debug').mockImplementation(() => undefined);
+            const warn = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
+            const thrown = new UserInputError('bad input from caller');
+            const execute = () => {
+                throw thrown;
+            };
+            const { service } = build([wrapper(shopTool(), execute)]);
+            service.onApplicationBootstrap();
+            await service.callTool({ ctx: makeCtx() }, 'shop', 'get_thing', {});
+            expect(debug).toHaveBeenCalledWith(thrown.stack, expect.anything());
+            debug.mockRestore();
+            warn.mockRestore();
+        });
+
         it('genericizes an InternalServerError for the caller and logs it server-side', async () => {
             const error = vi.spyOn(Logger, 'error').mockImplementation(() => undefined);
             const execute = () => {

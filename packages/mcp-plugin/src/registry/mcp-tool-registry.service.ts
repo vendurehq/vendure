@@ -498,6 +498,9 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                 Logger.debug(text, loggerCtx);
                 break;
         }
+        if (error.stack) {
+            Logger.debug(error.stack, loggerCtx);
+        }
     }
 
     private async admitToolCall(
