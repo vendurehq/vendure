@@ -13,6 +13,8 @@
  * To run these tests:
  * npm run vitest -- --config e2e/vitest.e2e.config.mts
  */
+import { mkdirSync, renameSync } from 'node:fs';
+import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
@@ -184,6 +186,80 @@ describe('Extension collisions and recovery', () => {
             expect(traceOf(result.stdout)).toEqual(['PLATFORM_BEFORE', 'PLATFORM_AFTER']);
         } finally {
             project.cleanup();
+        }
+    });
+});
+
+describe('Workspace project plugin loading', () => {
+    let project: CliTestProject;
+
+    beforeAll(() => {
+        project = createTestProject('cli-workspace-plugins');
+        installCliPluginFixture(project, 'cloud-dev-cli-plugin');
+        const server = path.join(project.projectDir, 'server');
+        mkdirSync(server);
+        for (const name of ['package.json', 'node_modules']) {
+            renameSync(path.join(project.projectDir, name), path.join(server, name));
+        }
+        project.writeFile('package.json', JSON.stringify({ workspaces: ['server'] }));
+    });
+
+    afterAll(() => project.cleanup());
+
+    it.each([
+        ['dev', 'bogus'],
+        ['dev', 'bogus', '--project', 'server'],
+        ['dev', 'bogus', '--project=server'],
+    ])('loads the member plugin before parsing %j', async (...args) => {
+        const result = await project.runCliCommand([...args, '--cloud-env', 'staging'], {
+            expectError: true,
+        });
+        expect(traceOf(result.stdout)).toEqual(['CLOUD_BEFORE', 'CLOUD_AFTER']);
+        expect(readMarker(result.stdout, 'CLOUD_BEFORE').cloudEnv).toBe('staging');
+        expect(result.stdout).toContain('Unknown dev target "bogus"');
+    });
+
+    it('uses the member allowlist for plugin management', async () => {
+        const listed = await project.runCliCommand(['plugins', '--json']);
+        expect(JSON.parse(listed.stdout).plugins).toContainEqual(
+            expect.objectContaining({
+                packageName: '@vendure-e2e/cloud-dev-cli-plugin',
+                scope: 'project',
+                status: 'enabled',
+            }),
+        );
+        try {
+            await project.runCliCommand(['plugins', 'remove', '@vendure-e2e/cloud-dev-cli-plugin']);
+            expect(JSON.parse(project.readFile('server/package.json')).vendure.cli.plugins).toEqual([]);
+            expect(JSON.parse(project.readFile('package.json')).vendure).toBeUndefined();
+        } finally {
+            await project.runCliCommand(['plugins', 'add', '@vendure-e2e/cloud-dev-cli-plugin']);
+        }
+    });
+
+    it('rejects an invalid explicit project before loading plugins', async () => {
+        const result = await project.runCliCommand(['dev', '--project', 'missing'], { expectError: true });
+        expect(result.exitCode).toBe(1);
+        expect(result.stderr).toContain('Invalid --project directory');
+        expect(traceOf(result.stdout)).toEqual([]);
+    });
+
+    it('reports ambiguous members and lets --project select one', async () => {
+        project.writeFile('other/package.json', JSON.stringify({ dependencies: { '@vendure/core': '*' } }));
+        project.writeFile('package.json', JSON.stringify({ workspaces: ['server', 'other'] }));
+        try {
+            const result = await project.runCliCommand(['dev'], { expectError: true });
+            expect(result.exitCode).toBe(1);
+            expect(result.stderr).toContain(
+                `Multiple Vendure projects found in "${project.projectDir}": other, server.`,
+            );
+            expect(result.stderr).toContain('Use --project <dir>');
+            const selected = await project.runCliCommand(['dev', 'bogus', '--project', 'server'], {
+                expectError: true,
+            });
+            expect(traceOf(selected.stdout)).toEqual(['CLOUD_BEFORE', 'CLOUD_AFTER']);
+        } finally {
+            project.writeFile('package.json', JSON.stringify({ workspaces: ['server'] }));
         }
     });
 });

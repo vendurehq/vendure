@@ -83,6 +83,58 @@ describe('CLI plugin scopes', () => {
         return { root, packageJson };
     }
 
+    it.each([['server'], { packages: ['server'] }])(
+        'loads plugins from workspace declaration %j',
+        workspaces => {
+            const root = makeTempDir('vendure-workspace-');
+            fs.writeJsonSync(path.join(root, 'package.json'), { workspaces });
+            const server = path.join(root, 'server');
+            fs.ensureDirSync(server);
+            fs.writeJsonSync(path.join(server, 'package.json'), {
+                dependencies: { '@vendure/core': '*', '@example/tools': '*' },
+                vendure: { cli: { plugins: ['@example/tools'] } },
+            });
+            installPlugin(server, '@example/tools', 'tools');
+
+            const result = resolveCliPlugins({ cwd: root, scopes: ['project'] });
+
+            expect(result.failures).toEqual([]);
+            expect(result.loaded.map(plugin => plugin.packageName)).toEqual(['@example/tools']);
+        },
+    );
+
+    it('does not accept a workspace root dependency as a member dependency', () => {
+        const root = makeTempDir('vendure-workspace-');
+        fs.writeJsonSync(path.join(root, 'package.json'), {
+            workspaces: ['server'],
+            dependencies: { '@example/tools': '*' },
+        });
+        const server = path.join(root, 'server');
+        fs.ensureDirSync(server);
+        fs.writeJsonSync(path.join(server, 'package.json'), {
+            dependencies: { '@vendure/core': '*' },
+            vendure: { cli: { plugins: ['@example/tools'] } },
+        });
+        installPlugin(root, '@example/tools', 'tools');
+        const result = resolveCliPlugins({ cwd: root, scopes: ['project'] });
+        expect(result.loaded).toEqual([]);
+        expect(result.failures[0].reason).toContain('not a direct dependency');
+    });
+
+    it('requires a plugin declaration in a selected project dependency', () => {
+        const project = makeProject({
+            dependencies: { '@vendure/core': '*', '@example/tools': '*' },
+            plugins: ['@example/tools'],
+        });
+        installPlugin(project.root, '@example/tools', 'tools');
+        fs.writeJsonSync(path.join(project.root, 'node_modules/@example/tools/package.json'), {
+            name: '@example/tools',
+        });
+        const result = resolveCliPlugins({ cwd: project.root, scopes: ['project'] });
+        expect(result.loaded).toEqual([]);
+        expect(result.failures[0].reason).toContain('vendure.cliPlugin');
+    });
+
     it('loads a plugin enabled in the global config', () => {
         const globalRoot = makeTempDir('vendure-scope-global-');
         installPlugin(globalRoot, '@example/cloud', 'cloud');

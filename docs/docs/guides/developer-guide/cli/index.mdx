@@ -63,6 +63,14 @@ asks you to select one with `--project`. If no project is found, the error names
 For a workspace with `"workspaces": ["server"]`, run `vendure dev` or `vendure dev server` from the root.
 Running from inside `server/` also works.
 
+The CLI reads `--project` before it loads plugins and parses the full `dev` command. It reads the plugin
+allowlist from the selected project's `package.json` and resolves plugin packages from that project.
+A plugin must still be a direct project dependency and declare `vendure.cliPlugin`.
+Workspace project discovery also selects the plugin allowlist for other CLI commands. Their own project
+validation and actions keep their existing behavior. From a project subdirectory, plugin lookup walks up
+to the project directory.
+
+
 | Option | Description |
 | --- | --- |
 | `--project <dir>` | Select the Vendure project directory before discovery. |
@@ -1228,12 +1236,12 @@ npx vendure plugins add @example/vendure-cli-plugin
 npx vendure plugins remove @example/vendure-cli-plugin
 ```
 
-The CLI finds the project root by walking up from the current directory to the
-nearest `package.json` that configures `vendure.cli` or depends on
-`@vendure/cli`, then scans the `dependencies`, `devDependencies` and
-`optionalDependencies` of every `package.json` between the two. In a monorepo
-that means a plugin installed in a workspace package is found even when
-`@vendure/cli` is hoisted to the workspace root.
+The CLI uses the discovered Core project for the plugin allowlist and package resolution. For `dev`,
+`--project <dir>` selects that project before plugins are loaded. Workspace discovery applies to plugin
+loading for every command, and `vendure plugins add` and `remove` use the discovered member's allowlist.
+From a project subdirectory, lookup walks up to the project. If no Core project is found, lookup keeps
+its existing preference for a parent `package.json` that configures `vendure.cli` or depends on
+`@vendure/cli`. Dependencies between the working directory and that parent remain eligible.
 
 A package that declares a plugin but is not listed is reported by a one-line
 hint on stderr rather than being loaded:

@@ -22,13 +22,16 @@ export function detectJsonIndent(raw: string): string | number {
 /**
  * Reads the project package.json used for CLI plugin configuration.
  */
-export function readCliProjectPackageJson(cwd: string = process.cwd()): {
+export function readCliProjectPackageJson(
+    cwd: string = process.cwd(),
+    project?: string,
+): {
     projectRoot: string;
     packageJsonPath: string;
     packageJson: PackageJsonLike;
     raw: string;
 } | null {
-    const projectRoot = resolveCliProjectRoot(cwd);
+    const projectRoot = resolveCliProjectRoot(cwd, project);
     const packageJsonPath = path.join(projectRoot, 'package.json');
     if (!fs.existsSync(packageJsonPath)) {
         return null;
@@ -144,9 +147,7 @@ export function removeCliPluginFromProjectConfig(
         throw new Error('Could not find a project package.json to update CLI plugin configuration.');
     }
 
-    const plugins = (project.packageJson.vendure?.cli?.plugins ?? []).filter(
-        name => name !== packageName,
-    );
+    const plugins = (project.packageJson.vendure?.cli?.plugins ?? []).filter(name => name !== packageName);
 
     return writeCliPluginProjectConfig({ cwd, plugins });
 }

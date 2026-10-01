@@ -14,10 +14,7 @@ import {
     signalToExitCode,
 } from '../../shared/cli-process-utils';
 import { showStarPromptOnce } from '../../shared/star-prompt';
-import {
-    findPackageJsonWithDependency,
-    findWorkspacePackageJsonsWithDependency,
-} from '../../utilities/monorepo-utils';
+import { resolveCoreProjectDirectory } from '../../utilities/monorepo-utils';
 
 export type DevTarget = 'all' | 'server' | 'worker' | 'dashboard';
 
@@ -166,33 +163,7 @@ export function normalizeDevTarget(targetArg?: string): DevTarget {
 }
 
 export function resolveVendureProjectDirectory(cwd: string, project?: string): string {
-    if (project !== undefined) {
-        const projectDir = path.resolve(cwd, project);
-        if (!hasVendureCoreDependency(path.join(projectDir, 'package.json'))) {
-            throw new Error(
-                `Invalid --project directory "${projectDir}". Expected a package.json with an @vendure/core dependency.`,
-            );
-        }
-        return projectDir;
-    }
-    if (hasVendureCoreDependency(path.join(cwd, 'package.json'))) {
-        return cwd;
-    }
-
-    const workspacePackages = findWorkspacePackageJsonsWithDependency(cwd, '@vendure/core');
-    if (workspacePackages.length > 1) {
-        const candidates = workspacePackages.map(file => path.relative(cwd, path.dirname(file)));
-        throw new Error(
-            `Multiple Vendure projects found in "${cwd}": ${candidates.join(', ')}. Use --project <dir> to select one.`,
-        );
-    }
-    const packageJsonPath = workspacePackages[0] ?? findPackageJsonWithDependency(cwd, '@vendure/core');
-    if (!packageJsonPath) {
-        throw new Error(
-            `No Vendure project found in "${cwd}". Use --project <dir> to select a project directory.`,
-        );
-    }
-    return path.dirname(packageJsonPath);
+    return resolveCoreProjectDirectory(cwd, project);
 }
 
 function startDevProcess(
@@ -778,22 +749,5 @@ function assertFileExists(projectDir: string, relativePath: string) {
         throw new Error(
             `Could not find ${relativePath}. Run this command from a Vendure server project root.`,
         );
-    }
-}
-
-function hasVendureCoreDependency(packageJsonPath: string): boolean {
-    if (!existsSync(packageJsonPath)) {
-        return false;
-    }
-    try {
-        const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8')) as {
-            dependencies?: Record<string, string>;
-            devDependencies?: Record<string, string>;
-        };
-        return !!(
-            packageJson.dependencies?.['@vendure/core'] ?? packageJson.devDependencies?.['@vendure/core']
-        );
-    } catch {
-        return false;
     }
 }

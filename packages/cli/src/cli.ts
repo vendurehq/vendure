@@ -4,6 +4,8 @@ import { Command } from 'commander';
 import pc from 'picocolors';
 
 import { builtinCommandDefs } from './commands/builtins';
+import { devCommandDef } from './commands/dev/command';
+import { buildOptionFlags } from './shared/cli-command-options';
 import { registerCommands, styleHelpTitle } from './shared/command-registry';
 import { CommandRegistry } from './shared/command-registry-store';
 import {
@@ -14,6 +16,7 @@ import {
     listInactiveCliPlugins,
     pluginsCommandFor,
     resolveCliPlugins,
+    ResolveCliPluginsOptions,
 } from './shared/resolve-cli-plugins';
 
 async function main(): Promise<void> {
@@ -52,7 +55,18 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
 
     // A broken plugin must not take down the CLI: built-ins (including the
     // `plugins` command needed to disable it) stay available.
-    const { loaded, failures, scopeErrors } = resolveCliPlugins();
+    // Select the dev project before loading plugins that extend its options and action.
+    // Parse the full command only after those plugins have been registered.
+    const pluginOptions: ResolveCliPluginsOptions = {};
+    if (process.argv[2] === 'dev') {
+        const selection = new Command().allowUnknownOption().exitOverride();
+        for (const option of devCommandDef.options ?? []) {
+            selection.option(buildOptionFlags(option), option.description);
+        }
+        selection.parseOptions(process.argv.slice(3));
+        pluginOptions.project = selection.opts<{ project?: string }>().project;
+    }
+    const { loaded, failures, scopeErrors } = resolveCliPlugins(pluginOptions);
     for (const scopeError of scopeErrors) {
         writeScopeError(scopeError);
     }
@@ -75,11 +89,11 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
 
     program.on('command:*', operands => {
         const unknown = operands[0] ?? '';
-        writeUnknownCommandHelp(unknown);
+        writeUnknownCommandHelp(unknown, pluginOptions);
         process.exit(1);
     });
 
-    maybeWriteInactivePluginsHint(process.argv);
+    maybeWriteInactivePluginsHint(process.argv, pluginOptions);
 
     await program.parseAsync(process.argv);
 }
@@ -127,7 +141,7 @@ const HINT_SUPPRESSING_COMMANDS = new Set(['plugins', 'help']);
  * One-line hint when packages declare CLI plugins but are not enabled yet.
  * Skipped for `vendure plugins` itself and for `--help` / `--version`.
  */
-function maybeWriteInactivePluginsHint(argv: string[]): void {
+function maybeWriteInactivePluginsHint(argv: string[], options: ResolveCliPluginsOptions): void {
     const args = argv.slice(2);
     if (args.length === 0) {
         return;
@@ -140,7 +154,7 @@ function maybeWriteInactivePluginsHint(argv: string[]): void {
         return;
     }
 
-    const inactive = listInactiveCliPluginPackages();
+    const inactive = listInactiveCliPluginPackages(options);
     if (inactive.length === 0) {
         return;
     }
@@ -149,10 +163,10 @@ function maybeWriteInactivePluginsHint(argv: string[]): void {
     process.stderr.write(`${inactive.length} ${noun} CLI commands. Run "vendure plugins" to review them.\n`);
 }
 
-function writeUnknownCommandHelp(commandName: string): void {
+function writeUnknownCommandHelp(commandName: string, options: ResolveCliPluginsOptions): void {
     process.stderr.write(`Unknown command "${commandName}".\n`);
 
-    const provider = findInactivePluginProvidingCommand(commandName);
+    const provider = findInactivePluginProvidingCommand(commandName, options);
     if (provider) {
         process.stderr.write(
             `It is provided by ${provider.packageName}, which is installed but not enabled.\n`,
@@ -163,7 +177,7 @@ function writeUnknownCommandHelp(commandName: string): void {
         return;
     }
 
-    const inactive = listInactiveCliPlugins();
+    const inactive = listInactiveCliPlugins(options);
     if (inactive.length === 1) {
         const [only] = inactive;
         process.stderr.write(

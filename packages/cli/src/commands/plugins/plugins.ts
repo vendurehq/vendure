@@ -26,6 +26,7 @@ import {
     getCliPluginScope,
     pluginsCommandFor,
     PluginScope,
+    resolveCliProjectRoot,
 } from '../../shared/resolve-cli-plugins';
 import {
     abortIfNonInteractive,
@@ -51,9 +52,10 @@ function resolveTargetScope(options: PluginsCommandOptions): PluginScope {
     // findVendureProjectRoot, not the plugin-config root: the latter falls back
     // to the nearest package.json whatever it contains, so in an unrelated npm
     // package it would answer 'project' and write vendure.cli.plugins into a
-    // manifest that has nothing to do with Vendure. The rest of the CLI — the
-    // command gate, the help legend, the docs — all ask this same question.
-    const kind: CliPluginScopeKind = options.global || !findVendureProjectRoot() ? 'global' : 'project';
+    // manifest that has nothing to do with Vendure.
+    // Check the discovered directory so workspace members use their own list.
+    const kind: CliPluginScopeKind =
+        options.global || !findVendureProjectRoot(resolveCliProjectRoot()) ? 'global' : 'project';
     const scope = getCliPluginScope(kind);
     if (!scope) {
         // Only the project scope can be absent, and only when its package.json

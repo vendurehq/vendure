@@ -155,6 +155,40 @@ export function findWorkspacePackageJsonsWithDependency(rootDir: string, depende
 }
 
 /**
+ * Resolves a Core project from an explicit path, the current package, workspace members or
+ * conventional monorepo directories. Rejects ambiguous workspace members.
+ */
+export function resolveCoreProjectDirectory(cwd: string, project?: string): string {
+    if (project !== undefined) {
+        const projectDir = path.resolve(cwd, project);
+        if (!hasNamedDependency(path.join(projectDir, 'package.json'), '@vendure/core')) {
+            throw new Error(
+                `Invalid --project directory "${projectDir}". Expected a package.json with an @vendure/core dependency.`,
+            );
+        }
+        return projectDir;
+    }
+    if (hasNamedDependency(path.join(cwd, 'package.json'), '@vendure/core')) {
+        return cwd;
+    }
+
+    const workspacePackages = findWorkspacePackageJsonsWithDependency(cwd, '@vendure/core');
+    if (workspacePackages.length > 1) {
+        const candidates = workspacePackages.map(file => path.relative(cwd, path.dirname(file)));
+        throw new Error(
+            `Multiple Vendure projects found in "${cwd}": ${candidates.join(', ')}. Use --project <dir> to select one.`,
+        );
+    }
+    const packageJsonPath = workspacePackages[0] ?? findPackageJsonWithDependency(cwd, '@vendure/core');
+    if (!packageJsonPath) {
+        throw new Error(
+            `No Vendure project found in "${cwd}". Use --project <dir> to select a project directory.`,
+        );
+    }
+    return path.dirname(packageJsonPath);
+}
+
+/**
  * Checks if a package.json file exists and has the specified dependency.
  */
 function hasNamedDependency(packageJsonPath: string, dependencyName: string): boolean {

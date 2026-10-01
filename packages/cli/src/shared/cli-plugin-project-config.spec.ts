@@ -7,6 +7,7 @@ import {
     addCliPluginToProjectConfig,
     detectJsonIndent,
     mergeEnabledPluginSelection,
+    readCliProjectPackageJson,
     removeCliPluginFromProjectConfig,
 } from './cli-plugin-project-config';
 
@@ -26,6 +27,23 @@ describe('cli-plugin-project-config', () => {
         fs.writeFileSync(packageJsonPath, rawPackageJson, 'utf8');
         return { root, packageJsonPath };
     }
+
+    it('reads the same workspace member from the root and a project subdirectory', () => {
+        const { root } = makeProject(JSON.stringify({ workspaces: ['server'] }));
+        const server = path.join(root, 'server');
+        fs.ensureDirSync(path.join(server, 'src'));
+        fs.writeJsonSync(path.join(server, 'package.json'), {
+            dependencies: { '@vendure/core': '*' },
+            vendure: { cli: { plugins: ['@example/tools'] } },
+        });
+        expect(readCliProjectPackageJson(root)?.projectRoot).toBe(server);
+        expect(readCliProjectPackageJson(path.join(server, 'src'))?.projectRoot).toBe(server);
+        fs.ensureDirSync(path.join(root, 'other'));
+        fs.writeJsonSync(path.join(root, 'other/package.json'), { dependencies: { '@vendure/core': '*' } });
+        fs.writeJsonSync(path.join(root, 'package.json'), { workspaces: ['server', 'other'] });
+        expect(() => readCliProjectPackageJson(root)).toThrow('Multiple Vendure projects found');
+        expect(readCliProjectPackageJson(root, 'server')?.projectRoot).toBe(server);
+    });
 
     it('detects space and tab indentation', () => {
         expect(detectJsonIndent('{\n  "name": "x"\n}\n')).toBe(2);
@@ -100,9 +118,7 @@ describe('cli-plugin-project-config', () => {
         });
 
         it('appends newly selected plugins at the end', () => {
-            expect(mergeEnabledPluginSelection([], ['@example/a'], ['@example/a'])).toEqual([
-                '@example/a',
-            ]);
+            expect(mergeEnabledPluginSelection([], ['@example/a'], ['@example/a'])).toEqual(['@example/a']);
         });
     });
 });
