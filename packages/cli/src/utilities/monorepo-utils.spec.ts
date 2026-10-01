@@ -31,6 +31,21 @@ describe('workspace package discovery', () => {
         );
     });
 
+    it('finds directory symlinks in wildcards and skips broken links and file links', () => {
+        writePackage('', { workspaces: ['projects/*'] });
+        writePackage('server', { dependencies: { '@vendure/core': '3.6.0' } });
+        fs.ensureDirSync(path.join(dir, 'projects'));
+        fs.symlinkSync(path.join(dir, 'server'), path.join(dir, 'projects/server'), 'junction');
+        fs.symlinkSync(path.join(dir, 'missing'), path.join(dir, 'projects/broken'), 'junction');
+        fs.symlinkSync(path.join(dir, 'package.json'), path.join(dir, 'projects/file'));
+        expect(findWorkspacePackageJsonsWithDependency(dir, '@vendure/core')).toEqual([
+            path.join(dir, 'projects/server/package.json'),
+        ]);
+        expect(findPackageJsonWithDependency(dir, '@vendure/core')).toBe(
+            path.join(dir, 'projects/server/package.json'),
+        );
+    });
+
     it('returns all candidates once when patterns overlap', () => {
         writePackage('', { workspaces: ['services/*', 'services/one'] });
         writePackage('services/one', { dependencies: { '@vendure/core': '3.6.0' } });

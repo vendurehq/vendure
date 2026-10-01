@@ -129,7 +129,18 @@ export function findWorkspacePackageJsonsWithDependency(rootDir: string, depende
                 );
                 return fs
                     .readdirSync(dir, { withFileTypes: true })
-                    .filter(entry => entry.isDirectory() && matcher.test(entry.name))
+                    .filter(entry => {
+                        if (!matcher.test(entry.name)) {
+                            return false;
+                        }
+                        const candidate = path.join(dir, entry.name);
+                        return (
+                            entry.isDirectory() ||
+                            (entry.isSymbolicLink() &&
+                                fs.existsSync(candidate) &&
+                                fs.statSync(candidate).isDirectory())
+                        );
+                    })
                     .map(entry => path.join(dir, entry.name));
             });
         }
