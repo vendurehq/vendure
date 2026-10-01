@@ -112,6 +112,8 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     private discoveryMetaTools: McpExposedTool[] = [];
     private bm25 = new Map<McpToolset, Bm25Index>();
     private toggleCache = new WeakMap<RequestContext, Record<string, boolean>>();
+    // Every request lists all tools, so canAccess runs once per distinct permission list, not once per tool.
+    private canAccessCache = new WeakMap<RequestContext, Map<string, Promise<boolean>>>();
 
     constructor(
         private readonly discoveryService: DiscoveryService,
@@ -754,13 +756,28 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     // `authorizedAsOwnerOnly`, which the default strategy accepts for any permission.
     private async canCallTool(
         ctx: RequestContext,
-        tool: Pick<McpRegisteredTool, 'name' | 'permissions'>,
+        tool: Pick<McpRegisteredTool, 'permissions'>,
     ): Promise<boolean> {
         if (!this.hasPermissions(ctx, tool)) {
             return false;
         }
         // An omitted list means Public on a Shop tool, so the strategy is told Public.
         const permissions = tool.permissions?.length ? tool.permissions : [Permission.Public];
+        let decisions = this.canAccessCache.get(ctx);
+        if (!decisions) {
+            decisions = new Map();
+            this.canAccessCache.set(ctx, decisions);
+        }
+        const key = [...permissions].sort().join(',');
+        let decision = decisions.get(key);
+        if (!decision) {
+            decision = this.askStrategyCanAccess(ctx, permissions);
+            decisions.set(key, decision);
+        }
+        return decision;
+    }
+
+    private async askStrategyCanAccess(ctx: RequestContext, permissions: Permission[]): Promise<boolean> {
         try {
             return await this.configService.authOptions.entityAccessControlStrategy.canAccess(
                 ctx,
@@ -769,8 +786,8 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         } catch (e) {
             // Every request lists the tools, so a throw that escaped here would fail every request.
             Logger.error(
-                `EntityAccessControlStrategy.canAccess failed for MCP tool "${tool.name}": ` +
-                    `${e instanceof Error ? e.message : String(e)}`,
+                `EntityAccessControlStrategy.canAccess failed for MCP tool permissions ` +
+                    `[${permissions.join(', ')}]: ${e instanceof Error ? e.message : String(e)}`,
                 loggerCtx,
                 e instanceof Error ? e.stack : undefined,
             );

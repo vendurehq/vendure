@@ -179,8 +179,8 @@ tool calls go through it:
 
 - `canAccess()` can refuse a tool that `permissions` allows, and tool listings leave a refused tool out. Unlike GraphQL,
   it cannot allow a tool that `permissions` refuses.
-- `canAccess()` runs once per tool each time the server lists tools, which happens on every MCP request. A throw refuses
-  that tool and is logged.
+- `canAccess()` runs once per distinct permission list on each MCP request. Tools with the same list share the result.
+  A throw refuses those tools and is logged.
 - `canAccess()` receives the tool's `permissions`, or `[Permission.Public]` for a Shop tool that declares none.
 - `prepareAccessControl()` runs on the context passed to the tool handler, so `applyAccessControl()` filters the
   queries made with that context. A tool or Core service can copy the context, for example to open its own

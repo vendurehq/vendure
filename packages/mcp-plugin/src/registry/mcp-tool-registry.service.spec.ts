@@ -699,6 +699,24 @@ describe('McpToolRegistryService', () => {
             error.mockRestore();
         });
 
+        it('asks the strategy once per distinct permission list for a context', async () => {
+            const { service, configService } = build([
+                wrapper(shopTool({ name: 'get_one' })),
+                wrapper(shopTool({ name: 'get_two' })),
+                wrapper(shopTool({ name: 'get_three', permissions: [Permission.ReadCatalog] })),
+            ]);
+            const canAccess = vi.spyOn(configService.authOptions.entityAccessControlStrategy, 'canAccess');
+            service.onApplicationBootstrap();
+            const ctx = makeCtx({ granted: [Permission.ReadCatalog] });
+
+            await service.getCallableTools(ctx, 'shop');
+            await service.callToolDirect({ ctx }, 'shop', 'get_one', {});
+            expect(canAccess).toHaveBeenCalledTimes(2);
+
+            await service.getCallableTools(makeCtx({ granted: [Permission.ReadCatalog] }), 'shop');
+            expect(canAccess).toHaveBeenCalledTimes(4);
+        });
+
         it('tells the strategy Public for a shop tool that declares no permissions', async () => {
             const { service, configService } = build([wrapper(shopTool({ permissions: undefined }))]);
             const canAccess = vi.spyOn(configService.authOptions.entityAccessControlStrategy, 'canAccess');
