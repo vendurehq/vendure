@@ -44,6 +44,8 @@
  * ```
  */
 export { builtinCommands } from './commands/builtins';
+export { ConsoleTokenGrantError, loginWithBrowser, refreshSession } from './commands/console/authentication';
+export type { ConsoleBrowserLoginOptions, ConsoleRefreshOptions } from './commands/console/authentication';
 export type { ConsoleSession } from './commands/console/cli-auth';
 export type {
     ConsoleLinkContext,

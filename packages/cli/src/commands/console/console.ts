@@ -1,18 +1,15 @@
 import { confirm, isCancel, log } from '@clack/prompts';
-import { ChildProcess, spawn } from 'node:child_process';
 
 import { CliCommandExit } from '../../shared/cli-command-exit';
 import { isNonInteractiveEnvironment, withInteractiveTimeout } from '../../utilities/utils';
 
+import { exchangeConsoleCode, openConsoleBrowser } from './authentication';
 import {
-    CLI_TOKEN_PATH,
     ConsoleSession,
     LoopbackCallback,
-    authorizationCodeGrant,
     cliAuthSearchParams,
     createLoginState,
     createPkceChallenge,
-    parseConsoleSession,
     startLoopbackCallback,
 } from './cli-auth';
 import { ConsoleLinkContext, ConsoleLinkOutcome, RegisteredConsoleLinkHook } from './console-link-hook';
@@ -144,7 +141,7 @@ function createDefaultDependencies(): ConsoleCommandDependencies {
         hooks: [],
         isNonInteractive: () => isNonInteractiveEnvironment(),
         now: () => Date.now(),
-        openUrl: openUrlInBrowser,
+        openUrl: openConsoleBrowser,
         prompt: async message => {
             const result = await withInteractiveTimeout(() => confirm({ message }), {
                 examples: ['vendure console link --force', 'vendure console unlink --force'],
@@ -595,28 +592,13 @@ async function completeConsoleLogin(
             dependencies.reporter.warn(`The link is in place. ${noSessionFromThisLink()}`);
             return undefined;
         }
-        // Sampled before the round trip, so the expiry is not overstated by it.
-        const issuedAt = dependencies.now();
-        const value = await requestJson(
-            `${endpoints.apiUrl}${CLI_TOKEN_PATH}`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(
-                    authorizationCodeGrant({
-                        code,
-                        verifier: login.verifier,
-                        redirectUri: login.redirectUri,
-                    }),
-                ),
-            },
-            dependencies,
-            signal,
+        return await exchangeConsoleCode(
+            { code, verifier: login.verifier, redirectUri: login.redirectUri },
+            { apiOrigin: endpoints.apiUrl, fetch: dependencies.fetch, now: dependencies.now, signal },
         );
-        return parseConsoleSession(value, issuedAt);
     } catch (error) {
-        if (error instanceof CommandInterruptedError) {
-            throw error;
+        if (signal.aborted || error instanceof CommandInterruptedError) {
+            throw new CommandInterruptedError();
         }
         dependencies.reporter.warn(
             `The Console session could not be obtained: ${
@@ -1250,27 +1232,5 @@ function abortableSleep(milliseconds: number, signal: AbortSignal): Promise<void
             reject(new CommandInterruptedError());
         };
         signal.addEventListener('abort', onAbort, { once: true });
-    });
-}
-
-function openUrlInBrowser(url: string): Promise<void> {
-    // explorer.exe drops URL query strings, so Windows must go through the url.dll protocol handler.
-    const isWindows = process.platform === 'win32';
-    const command = process.platform === 'darwin' ? 'open' : isWindows ? 'rundll32' : 'xdg-open';
-    const args = isWindows ? ['url.dll,FileProtocolHandler', url] : [url];
-    return new Promise((resolve, reject) => {
-        let child: ChildProcess;
-        try {
-            child = spawn(command, args, { detached: true, stdio: 'ignore' });
-        } catch (error) {
-            reject(error);
-            return;
-        }
-        child.once('error', reject);
-        child.once('spawn', () => {
-            child.removeListener('error', reject);
-            child.unref();
-            resolve();
-        });
     });
 }

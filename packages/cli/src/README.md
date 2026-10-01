@@ -437,6 +437,9 @@ Keep the lazy `import()` inside the action so heavy command modules are not load
 
 ## Extending the CLI with Plugins
 
+For standalone Console login and refresh, see the [Console authentication API](../CONSOLE_AUTH.md).
+Import these operations from `@vendure/cli`. Project-link setup continues to use `afterConsoleLink`.
+
 External packages add commands, add to existing ones, or replace them by
 exporting a CLI plugin with `defineCliPlugin`.
 
