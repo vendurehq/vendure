@@ -1,13 +1,6 @@
 import { Permission } from '@vendure/common/lib/generated-types';
 import { SUPER_ADMIN_USER_IDENTIFIER } from '@vendure/common/lib/shared-constants';
-import {
-    ApiKeyService,
-    ConfigService,
-    RequestContextService,
-    Role,
-    TransactionalConnection,
-    User,
-} from '@vendure/core';
+import { ApiKeyService, RequestContextService, Role, TransactionalConnection, User } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -311,16 +304,11 @@ describe('API-key authorization (GHSA-37xp-mjp8-6f9x)', () => {
                 .findOneOrFail({ where: { identifier }, relations: { roles: { channels: true } } });
         }
 
-        // catalogRoleId is an encoded GraphQL id, but the service needs the database id. The strategy
-        // is picked the same way the GraphQL layer picks it.
-        async function loadCatalogRole(): Promise<Role> {
-            const configService = server.app.get(ConfigService);
-            const idStrategy = configService.entityOptions.entityIdStrategy ?? configService.entityIdStrategy;
-            const id = idStrategy.decodeId(catalogRoleId);
+        async function loadRole(code: string): Promise<Role> {
             return server.app
                 .get(TransactionalConnection)
                 .rawConnection.getRepository(Role)
-                .findOneOrFail({ where: { id } });
+                .findOneOrFail({ where: { code } });
         }
 
         async function ctxAs(user: User) {
@@ -330,7 +318,7 @@ describe('API-key authorization (GHSA-37xp-mjp8-6f9x)', () => {
         it('blocks binding a key to a higher-privileged existing User', async () => {
             const managerUser = await loadUser(manager.emailAddress);
             const superAdminUser = await loadUser(SUPER_ADMIN_USER_IDENTIFIER);
-            const catalogRole = await loadCatalogRole();
+            const catalogRole = await loadRole('catalog-reader');
             const ctx = await ctxAs(managerUser);
             const apiKeyService = server.app.get(ApiKeyService);
 
@@ -349,7 +337,7 @@ describe('API-key authorization (GHSA-37xp-mjp8-6f9x)', () => {
 
         it('allows binding a key to a User whose permissions the caller fully holds', async () => {
             const managerUser = await loadUser(manager.emailAddress);
-            const catalogRole = await loadCatalogRole();
+            const catalogRole = await loadRole('catalog-reader');
             const ctx = await ctxAs(managerUser);
             const apiKeyService = server.app.get(ApiKeyService);
 
