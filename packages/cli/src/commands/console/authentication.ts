@@ -122,12 +122,14 @@ export function exchangeConsoleCode(
 function trustedApiOrigin(value: string): string {
     const url = new URL(value);
     const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
+    let appOrigin = DEFAULT_CONSOLE_URL;
+    if (loopback) {
+        appOrigin = url.origin;
+    } else if (url.hostname === 'staging.api.vendure.io') {
+        appOrigin = 'https://staging.console.vendure.io';
+    }
     return trustedConsoleOrigins({
-        appOrigin: loopback
-            ? url.origin
-            : url.hostname === 'staging.api.vendure.io'
-              ? 'https://staging.console.vendure.io'
-              : DEFAULT_CONSOLE_URL,
+        appOrigin,
         apiOrigin: value,
     }).apiOrigin;
 }
@@ -256,7 +258,12 @@ function openAuthenticationBrowser(url: string): Promise<boolean> {
 /** Internal browser opener shared with Project linking. */
 export function openConsoleBrowser(url: string): Promise<void> {
     const windows = process.platform === 'win32';
-    const command = process.platform === 'darwin' ? 'open' : windows ? 'rundll32' : 'xdg-open';
+    let command = 'xdg-open';
+    if (windows) {
+        command = 'rundll32';
+    } else if (process.platform === 'darwin') {
+        command = 'open';
+    }
     const args = windows ? ['url.dll,FileProtocolHandler', url] : [url];
     return new Promise((resolve, reject) => {
         let child: ChildProcess;
