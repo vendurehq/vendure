@@ -17,7 +17,7 @@ export const devCommandDef: CliCommandDefinition = {
         {
             long: '--project <dir>',
             description: 'Vendure project directory, resolved against the working directory',
-            required: false,
+            required: true,
         },
         {
             long: '--server-entry <path>',

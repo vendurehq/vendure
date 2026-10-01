@@ -109,6 +109,13 @@ describe('dev project selection through the command definition', () => {
         expect(spawn).not.toHaveBeenCalled();
     });
 
+    it('requires a directory value for --project', async () => {
+        const result = await runCli([devCommandDef], [], ['dev', '--project'], undefined, () => undefined);
+        expect(result.exitCode).toBe(1);
+        expect(result.commanderStderr).toContain("option '--project <dir>' argument missing");
+        expect(spawn).not.toHaveBeenCalled();
+    });
+
     it('reports an invalid --project before starting a process', async () => {
         const error = vi.spyOn(log, 'error').mockImplementation(() => undefined);
         const result = await runCli(
