@@ -32,6 +32,47 @@ The Vendure CLI supports both **interactive** and **non-interactive** modes:
 For guidance on using the CLI together with project instructions for AI coding agents, see the
 [AI-assisted development guide](/guides/developer-guide/ai-assisted-development/).
 
+## The Dev Command
+
+The `dev` command runs the server, worker and Dashboard in development mode. Use a target to run one process:
+
+```bash
+npx vendure dev
+npx vendure dev server
+npx vendure dev --project server
+npx vendure dev server --project ./apps/backend
+```
+
+`server` in `vendure dev server` selects the server process. `--project <dir>` selects the project directory.
+Relative project paths are resolved against the working directory. Entry files and the Vite config are resolved
+from the selected project.
+
+The command resolves the project in this order:
+
+1. Use `--project <dir>` if supplied. The directory must have a `package.json` with `@vendure/core` in
+   `dependencies` or `devDependencies`. An invalid path stops the command.
+2. Use the working directory if its `package.json` depends on `@vendure/core`.
+3. Search members declared in the working directory's `package.json` `workspaces` field. Both
+   `["server"]` and `{ "packages": ["server"] }` are supported, with `*` wildcards such as `apps/*`.
+4. Search immediate members of `packages`, `apps`, `libs`, `services` and `modules` in that order.
+
+If more than one declared workspace member depends on `@vendure/core`, the command lists the candidates and
+asks you to select one with `--project`. If no project is found, the error names the searched directory and
+`--project`.
+
+For a workspace with `"workspaces": ["server"]`, run `vendure dev` or `vendure dev server` from the root.
+Running from inside `server/` also works.
+
+| Option | Description |
+| --- | --- |
+| `--project <dir>` | Select the Vendure project directory before discovery. |
+| `--server-entry <path>` | Server entry file. Default: `./src/index.ts`. |
+| `--worker-entry <path>` | Worker entry file. Default: `./src/index-worker.ts`. |
+| `--vite-config <path>` | Dashboard Vite config file. Default: Vite config discovery. |
+| `--inspect [host:port]` | Enable the Node.js inspector for the server and worker. |
+| `--inspect-brk [host:port]` | Enable the inspector and pause before user code starts. |
+| `--no-reload` | Disable automatic server and worker restarts. |
+
 ## The Add Command
 
 The `add` command is used to add new entities, resolvers, services, plugins, and more to your Vendure project.

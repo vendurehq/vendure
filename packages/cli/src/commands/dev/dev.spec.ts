@@ -139,6 +139,70 @@ describe('dev command', () => {
     });
 
     describe('resolveVendureProjectDirectory()', () => {
+        // EE-415: the scaffold puts the server outside the conventional package directories.
+        it('finds the server workspace from the root', () => {
+            const dir = createTempDir();
+            const serverDir = path.join(dir, 'server');
+            try {
+                mkdirSync(serverDir);
+                writePackageJson(dir, { workspaces: ['server'] });
+                writePackageJson(serverDir, { dependencies: { '@vendure/core': '3.6.0' } });
+                expect(resolveVendureProjectDirectory(dir)).toBe(serverDir);
+            } finally {
+                rmSync(dir, { recursive: true, force: true });
+            }
+        });
+
+        it('uses --project before root discovery and ambiguous workspace members', () => {
+            const dir = createTempDir();
+            try {
+                for (const name of ['server', 'other']) {
+                    mkdirSync(path.join(dir, name));
+                    writePackageJson(path.join(dir, name), { dependencies: { '@vendure/core': '3.6.0' } });
+                }
+                writePackageJson(dir, { workspaces: ['server', 'other'] });
+                expect(resolveVendureProjectDirectory(dir, 'server')).toBe(path.join(dir, 'server'));
+                expect(() => resolveVendureProjectDirectory(dir)).toThrow(
+                    `Multiple Vendure projects found in "${dir}": other, server. Use --project <dir> to select one.`,
+                );
+                writePackageJson(dir, { dependencies: { '@vendure/core': '3.6.0' } });
+                expect(resolveVendureProjectDirectory(dir, 'server')).toBe(path.join(dir, 'server'));
+                expect(resolveVendureProjectDirectory(dir, path.join(dir, 'other'))).toBe(
+                    path.join(dir, 'other'),
+                );
+            } finally {
+                rmSync(dir, { recursive: true, force: true });
+            }
+        });
+
+        it('rejects invalid --project paths without falling back', () => {
+            const dir = createTempDir();
+            try {
+                writePackageJson(dir, { dependencies: { '@vendure/core': '3.6.0' } });
+                mkdirSync(path.join(dir, 'empty'));
+                writePackageJson(path.join(dir, 'empty'), {});
+                for (const name of ['missing', 'empty', 'package.json']) {
+                    expect(() => resolveVendureProjectDirectory(dir, name)).toThrow(
+                        `Invalid --project directory "${path.join(dir, name)}"`,
+                    );
+                }
+            } finally {
+                rmSync(dir, { recursive: true, force: true });
+            }
+        });
+
+        it('names the searched directory and --project when no project exists', () => {
+            const dir = createTempDir();
+            try {
+                writePackageJson(dir, { workspaces: ['missing'] });
+                expect(() => resolveVendureProjectDirectory(dir)).toThrow(
+                    `No Vendure project found in "${dir}". Use --project <dir> to select a project directory.`,
+                );
+            } finally {
+                rmSync(dir, { recursive: true, force: true });
+            }
+        });
+
         it('returns the current directory for a Vendure package', () => {
             const dir = createTempDir();
             try {

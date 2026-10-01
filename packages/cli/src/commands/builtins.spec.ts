@@ -37,20 +37,20 @@ describe('builtinCommandDefs project gate', () => {
             .map(command => command.name)
             .sort();
 
-        expect(gated).toEqual(['add', 'build', 'console', 'dev', 'migrate', 'schema', 'start']);
+        expect(gated).toEqual(['add', 'build', 'console', 'migrate', 'schema', 'start']);
     });
 
     /**
      * `doctor` is here deliberately: reporting that a directory is not a
      * Vendure project is one of its checks, so it has to run where that is true.
      */
-    it('leaves the commands that work anywhere ungated', () => {
+    it('leaves commands with their own project resolution or no project requirement ungated', () => {
         const ungated = builtinCommandDefs
             .filter(command => !command.requiresProject)
             .map(command => command.name)
             .sort();
 
-        expect(ungated).toEqual(['codemod', 'doctor', 'plugins']);
+        expect(ungated).toEqual(['codemod', 'dev', 'doctor', 'plugins']);
     });
 
     /**

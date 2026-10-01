@@ -58,8 +58,8 @@ export function detectMonorepoStructure(dirPath: string): MonorepoInfo {
 
 /**
  * Searches for a package.json file with a specific dependency within monorepo structures.
- * Searches common monorepo directories (packages, apps, libs) for subdirectories containing
- * a package.json with the specified dependency.
+ * Checks the root package, declared workspace members, then common monorepo directories.
+ * Returns the first package.json with the specified dependency.
  *
  * @param rootDir - The root directory to search from
  * @param dependencyName - The dependency name to look for (e.g., '@vendure/core')
@@ -70,6 +70,11 @@ export function findPackageJsonWithDependency(rootDir: string, dependencyName: s
     const rootPackageJsonPath = path.join(rootDir, 'package.json');
     if (hasNamedDependency(rootPackageJsonPath, dependencyName)) {
         return rootPackageJsonPath;
+    }
+
+    const workspacePackages = findWorkspacePackageJsonsWithDependency(rootDir, dependencyName);
+    if (workspacePackages.length > 0) {
+        return workspacePackages[0];
     }
 
     // Search in monorepo package directories
@@ -86,6 +91,56 @@ export function findPackageJsonWithDependency(rootDir: string, dependencyName: s
     }
 
     return null;
+}
+
+/**
+ * Finds workspace members with the specified dependency. Supports array and object workspace
+ * declarations, with `*` wildcards in path segments. Overlapping patterns return each member once.
+ */
+export function findWorkspacePackageJsonsWithDependency(rootDir: string, dependencyName: string): string[] {
+    let workspaces: string[] | { packages?: string[] } | undefined;
+    try {
+        workspaces = fs.readJsonSync(path.join(rootDir, 'package.json')).workspaces;
+    } catch {
+        return [];
+    }
+    const patterns = Array.isArray(workspaces) ? workspaces : workspaces?.packages;
+    if (!Array.isArray(patterns)) {
+        return [];
+    }
+    const packages = new Set<string>();
+    for (const pattern of patterns) {
+        let directories = [path.resolve(rootDir)];
+        for (const segment of pattern.split('/').filter(Boolean)) {
+            directories = directories.flatMap(dir => {
+                if (!segment.includes('*')) {
+                    const candidate = path.resolve(dir, segment);
+                    return fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()
+                        ? [candidate]
+                        : [];
+                }
+                const matcher = new RegExp(
+                    '^' +
+                        segment
+                            .split('*')
+                            .map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+                            .join('.*') +
+                        '$',
+                );
+                return fs
+                    .readdirSync(dir, { withFileTypes: true })
+                    .filter(entry => entry.isDirectory() && matcher.test(entry.name))
+                    .map(entry => path.join(dir, entry.name));
+            });
+        }
+        for (const dir of directories) {
+            const packageJsonPath = path.join(dir, 'package.json');
+            if (hasNamedDependency(packageJsonPath, dependencyName)) {
+                packages.add(packageJsonPath);
+            }
+        }
+    }
+    return [...packages].sort();
 }
 
 /**

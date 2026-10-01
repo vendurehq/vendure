@@ -14,7 +14,10 @@ import {
     signalToExitCode,
 } from '../../shared/cli-process-utils';
 import { showStarPromptOnce } from '../../shared/star-prompt';
-import { findPackageJsonWithDependency } from '../../utilities/monorepo-utils';
+import {
+    findPackageJsonWithDependency,
+    findWorkspacePackageJsonsWithDependency,
+} from '../../utilities/monorepo-utils';
 
 export type DevTarget = 'all' | 'server' | 'worker' | 'dashboard';
 
@@ -30,6 +33,7 @@ interface DevProcessDefinition {
 }
 
 export interface DevOptions {
+    project?: string;
     serverEntry?: string;
     workerEntry?: string;
     viteConfig?: string;
@@ -73,7 +77,7 @@ const reloadIgnoredFileNames = new Set([
 export async function devCommand(targetArg?: string, options: DevOptions = {}): Promise<number> {
     try {
         const target = normalizeDevTarget(targetArg);
-        const projectDir = resolveVendureProjectDirectory(process.cwd());
+        const projectDir = resolveVendureProjectDirectory(process.cwd(), options.project);
         const devProcessDefinitions = getDevProcessDefinitions(options, target);
         const processes =
             target === 'all'
@@ -161,13 +165,34 @@ export function normalizeDevTarget(targetArg?: string): DevTarget {
     throw new Error(`Unknown dev target "${target}". Expected one of: ${validTargets.join(', ')}`);
 }
 
-export function resolveVendureProjectDirectory(cwd: string): string {
+export function resolveVendureProjectDirectory(cwd: string, project?: string): string {
+    if (project !== undefined) {
+        const projectDir = path.resolve(cwd, project);
+        if (!hasVendureCoreDependency(path.join(projectDir, 'package.json'))) {
+            throw new Error(
+                `Invalid --project directory "${projectDir}". Expected a package.json with an @vendure/core dependency.`,
+            );
+        }
+        return projectDir;
+    }
     if (hasVendureCoreDependency(path.join(cwd, 'package.json'))) {
         return cwd;
     }
 
-    const packageJsonPath = findPackageJsonWithDependency(cwd, '@vendure/core');
-    return packageJsonPath ? path.dirname(packageJsonPath) : cwd;
+    const workspacePackages = findWorkspacePackageJsonsWithDependency(cwd, '@vendure/core');
+    if (workspacePackages.length > 1) {
+        const candidates = workspacePackages.map(file => path.relative(cwd, path.dirname(file)));
+        throw new Error(
+            `Multiple Vendure projects found in "${cwd}": ${candidates.join(', ')}. Use --project <dir> to select one.`,
+        );
+    }
+    const packageJsonPath = workspacePackages[0] ?? findPackageJsonWithDependency(cwd, '@vendure/core');
+    if (!packageJsonPath) {
+        throw new Error(
+            `No Vendure project found in "${cwd}". Use --project <dir> to select a project directory.`,
+        );
+    }
+    return path.dirname(packageJsonPath);
 }
 
 function startDevProcess(
