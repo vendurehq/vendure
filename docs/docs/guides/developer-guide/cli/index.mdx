@@ -326,6 +326,43 @@ The browser owns authentication and authorization. The CLI does not store your C
 polling secret stays in memory and is not included in the browser URL, output, or manifest. If the browser cannot open,
 the CLI prints the verification URL so that you can open it manually.
 
+### Structured, non-interactive linking
+
+For automation, run:
+
+```bash
+npx vendure console link --json --non-interactive --project ./apps/server
+```
+
+`--non-interactive` prohibits prompts, automatic browser launch, and waiting for browser approval. An approved
+manifest is reused. If approval is missing, the command returns `incomplete` with exit code 1 and an interactive
+repair command. It creates no pending request. `--force` still means a different Project Link, so it requires
+interactive approval even with `--yes`. Neither flag authorizes a plugin to replace credentials or registry tokens.
+
+`--json` writes one result to stdout and disables terminal prompts. Reporter progress goes to stderr. Browser
+approval remains available unless `--non-interactive` is set. Human output remains the default.
+The result has this shape:
+
+```json
+{
+    "schemaVersion": 1,
+    "operation": "console.link",
+    "outcome": "repaired",
+    "data": {
+        "link": { "outcome": "repaired", "manifestPath": "/checkout/apps/server/.vendure/project.json" },
+        "plugins": {}
+    },
+    "missingInputs": [],
+    "nextSteps": []
+}
+```
+
+Link outcomes are `linked`, `repaired`, `incomplete`, or `failed`. Missing inputs name the required input and may
+include `flag`, `command`, `argument`, or `environment` names. They never contain secret values. Plugin setup data
+is stored under the plugin ID in `data.plugins`. Incomplete or failed setup returns exit code 1 and keeps the
+approved manifest. Interrupts retain exit code 130 or 143. JSON results contain no session, parsed option values,
+polling secrets, or raw errors. Plugins must supply only safe setup metadata.
+
 ### Link status
 
 Use `status` to validate and display the local link:
@@ -846,7 +883,7 @@ export default defineCliPlugin({
 
 The context contains `projectRoot`, `manifest`, `manifestPath`, `endpoints`,
 `outcome`, the optional `session`, `signal`, `reporter`, `confirm`,
-`isNonInteractive`, and `force`. Each hook gets its own manifest and endpoint
+`isNonInteractive`, `force`, `outputMode`, immutable parsed `options`, and `contributeResult`. Each hook gets its own manifest and endpoint
 objects. A session is also copied when the hook requested one and the login
 succeeded.
 
@@ -862,7 +899,12 @@ export default defineCliPlugin({
         requiresSession: true,
         hook: async context => {
             if (!context.session) {
-                context.reporter.warn('No Console session was obtained.');
+                context.contributeResult({
+                    outcome: 'incomplete',
+                    data: { session: 'missing' },
+                    missingInputs: [{ input: 'consoleSession', command: 'vendure console link' }],
+                    nextSteps: ['Run vendure console link interactively on this machine and sign in.'],
+                });
                 return;
             }
             await storeCredential(context.session);
@@ -885,8 +927,16 @@ Do not replace the `console` command for post-link setup. Register the hook.
 - A hook failure does not remove the manifest.
 - Hooks must be repeatable because a repair runs them again.
 
-Throw when setup fails. If the hook cannot run in the current environment,
-report what the user must do and return.
+Throw when setup fails, or call `context.contributeResult` with `outcome: 'incomplete'` or `'failed'`, safe `data`,
+and repair steps. Both stop later hooks and return non-zero. Use `outcome: 'configured'` for completed setup.
+Core combines contributions into one result. Do not print a second JSON object or include credentials, tokens,
+raw errors, or parsed option values in a contribution. Use `context.reporter` for progress.
+
+`context.outputMode` is `'human'` or `'json'`. `context.options` is a frozen copy of parsed command options,
+including flags declared by `extendCommands`. Define explicit plugin replacement flags and read them here.
+Core's `--yes` and `--force` apply only to Core decisions. A session-requesting hook may reuse its own stored
+session on repair. If that session is missing, report incomplete setup through `contributeResult`. Core does
+not read plugin credential stores or start a login in explicit non-interactive mode.
 
 Check `context.isNonInteractive` before calling `context.confirm`. The confirm
 function rejects in a non-interactive run. Put multi-choice setup in a plugin

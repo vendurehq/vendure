@@ -16,6 +16,14 @@ export const consoleCommandDef: CliCommandDefinition = {
     ],
     options: [
         {
+            long: '--json',
+            description: 'Write one structured Console result to stdout',
+        },
+        {
+            long: '--non-interactive',
+            description: 'Do not prompt, open a browser or wait for browser approval',
+        },
+        {
             long: '--project <path>',
             description: 'Vendure project directory (required when project discovery is ambiguous)',
             required: true,

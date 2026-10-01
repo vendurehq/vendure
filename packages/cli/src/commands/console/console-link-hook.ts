@@ -1,6 +1,7 @@
 import { ConsoleSession } from './cli-auth';
 import { ConsoleOriginEnvironment } from './console-origins';
 import { ConsoleReporter } from './console-reporter';
+import { ConsoleLinkResultContribution } from './console-result';
 import { ProjectLinkManifest } from './project-link-manifest';
 
 /** The Console origins resolved for this run. @since 3.8.0 */
@@ -35,9 +36,20 @@ export interface ConsoleLinkContext {
     /** Aborts on SIGINT or SIGTERM. */
     signal: AbortSignal;
     reporter: ConsoleReporter;
+    /** Requested output format. @since 3.8.0 */
+    outputMode: 'human' | 'json';
+    /** Isolated, immutable parsed options, including plugin flags. Never report secret values. @since 3.8.0 */
+    options: Readonly<Record<string, unknown>>;
+    /**
+     * Adds safe setup data under this plugin's ID in Core's result. Incomplete
+     * or failed setup returns non-zero and keeps the approved manifest.
+     * Never include credentials, tokens or raw errors.
+     * @since 3.8.0
+     */
+    contributeResult(contribution: ConsoleLinkResultContribution): void;
     /** Asks a yes/no question. Use only when {@link isNonInteractive} is `false`. */
     confirm(message: string): Promise<boolean | undefined>;
-    /** Whether no terminal is available for {@link confirm}. */
+    /** Whether non-interactive mode was requested or no terminal is available for {@link confirm}. */
     isNonInteractive: boolean;
     /** Whether `--force` was given. */
     force: boolean;
