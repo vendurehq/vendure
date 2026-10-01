@@ -8,9 +8,8 @@ import {
     RequestContext,
     TranslatorService,
 } from '@vendure/core';
+import { type ListInput, listOptions } from '@vendure/mcp-sdk';
 import { z } from 'zod';
-
-import { type ListInput, listOptions } from './list-helpers';
 
 // Kept to the fields an operations user actually asks for, to keep the tool's input small.
 export const ORDER_SORT_FIELDS = ['orderPlacedAt', 'updatedAt', 'createdAt', 'total'] as const;

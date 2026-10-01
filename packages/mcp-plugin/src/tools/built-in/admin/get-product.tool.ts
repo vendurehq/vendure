@@ -6,13 +6,12 @@ import {
     ProductVariantService,
     RequestContext,
 } from '@vendure/core';
-import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { idSchema, McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { McpCatalogQueryService } from '../catalog-query.service';
-import { idSchema } from '../id-schema';
-import { variantOffset, variantPaging } from '../list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
+import { variantOffset, variantPaging } from '../variant-paging';
 
 const getProductInput = z.strictObject({
     id: idSchema.describe('Product ID.'),

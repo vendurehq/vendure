@@ -556,6 +556,9 @@
     "packages/mcp-sdk": {
       "name": "@vendure/mcp-sdk",
       "version": "3.7.3",
+      "dependencies": {
+        "zod": "^4.2.0",
+      },
       "devDependencies": {
         "@vendure/common": "3.7.3",
         "@vendure/core": "3.7.3",

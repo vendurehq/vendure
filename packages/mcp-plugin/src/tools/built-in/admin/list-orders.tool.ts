@@ -1,16 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { OrderService, Permission, RequestContext, TranslatorService } from '@vendure/core';
-import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
-import { z } from 'zod';
-
 import {
     booleanFilter,
     dateFilter,
+    McpTool,
+    McpToolHandler,
     numberFilter,
     page,
     paginationFields,
     stringFilter,
-} from '../list-helpers';
+} from '@vendure/mcp-sdk';
+import { z } from 'zod';
+
 import {
     ORDER_LIST_RELATIONS,
     ORDER_SORT_FIELDS,

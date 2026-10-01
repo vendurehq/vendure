@@ -1,0 +1,21 @@
+---
+title: "IdSchema"
+generated: true
+---
+<GenerationInfo sourceFile="packages/mcp-sdk/src/id-schema.ts" sourceLine="22" packageName="@vendure/mcp-sdk" since="3.8.0" />
+
+A Zod schema for a Vendure entity ID. It accepts a string or a number, because the
+project's ID strategy decides which one an ID is.
+
+*Example*
+
+```ts
+import { idSchema, MAX_ID_LIST_LENGTH } from '@vendure/mcp-sdk';
+import { z } from 'zod';
+
+const input = z.strictObject({
+    productId: idSchema.describe('The product to update.'),
+    assetIds: z.array(idSchema).max(MAX_ID_LIST_LENGTH).optional(),
+});
+```
+

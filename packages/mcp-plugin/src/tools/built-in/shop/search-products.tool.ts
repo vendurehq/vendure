@@ -1,13 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { CollectionService, ID, Permission, RequestContext } from '@vendure/core';
-import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { idSchema, McpTool, McpToolHandler, page, paginationFields, shortText } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { McpCatalogQueryService } from '../catalog-query.service';
-import { idSchema } from '../id-schema';
-import { page, paginationFields } from '../list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
-import { shortText } from '../string-schemas';
 
 import { collectionLookup, findPublicCollection, noCollectionMessage } from './collection-lookup';
 import { productSearchWords, publicProductListOptions } from './product-search-query';

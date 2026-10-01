@@ -1,17 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { Permission, Product, ProductService, RequestContext } from '@vendure/core';
-import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
-import { z } from 'zod';
-
-import { McpCatalogQueryService } from '../catalog-query.service';
 import {
     booleanFilter,
     dateFilter,
     listOptions,
+    McpTool,
+    McpToolHandler,
     page,
     paginationFields,
     stringFilter,
-} from '../list-helpers';
+} from '@vendure/mcp-sdk';
+import { z } from 'zod';
+
+import { McpCatalogQueryService } from '../catalog-query.service';
 import { McpToolSerializerService } from '../serializer.service';
 
 const listProductsInput = z.strictObject({

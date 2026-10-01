@@ -8,11 +8,16 @@ import {
     StockLocationService,
     UserInputError,
 } from '@vendure/core';
-import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import {
+    GRAPHQL_INT_MAX,
+    GRAPHQL_INT_MIN,
+    idSchema,
+    int32Schema,
+    McpTool,
+    McpToolHandler,
+} from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { idSchema } from '../id-schema';
-import { GRAPHQL_INT_MAX, GRAPHQL_INT_MIN, int32Schema } from '../int32-schema';
 import { McpToolSerializerService } from '../serializer.service';
 
 const adjustStockInput = z.strictObject({

@@ -1,12 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { Permission, ProductService, ProductVariantService, RequestContext } from '@vendure/core';
-import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { idSchema, McpTool, McpToolHandler, shortText } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { idSchema } from '../id-schema';
-import { variantOffset, variantPaging } from '../list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
-import { shortText } from '../string-schemas';
+import { variantOffset, variantPaging } from '../variant-paging';
 
 const getProductInput = z.strictObject({
     id: idSchema.describe('Product ID.').optional(),

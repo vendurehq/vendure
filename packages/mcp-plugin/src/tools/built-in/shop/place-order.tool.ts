@@ -17,13 +17,12 @@ import {
     UnauthorizedError,
     UserInputError,
 } from '@vendure/core';
-import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { McpTool, McpToolHandler, shortText } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { loggerCtx } from '../../../constants';
 import { McpActiveOrderService } from '../active-order.service';
 import { McpToolSerializerService } from '../serializer.service';
-import { shortText } from '../string-schemas';
 
 const placeOrderInput = z.strictObject({
     paymentMethodCode: shortText.describe('Payment method code.'),

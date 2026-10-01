@@ -1,9 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { Customer, CustomerService, Permission, RequestContext } from '@vendure/core';
-import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import {
+    dateFilter,
+    listOptions,
+    McpTool,
+    McpToolHandler,
+    page,
+    paginationFields,
+    stringFilter,
+} from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { dateFilter, listOptions, page, paginationFields, stringFilter } from '../list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 
 const listCustomersInput = z.strictObject({

@@ -23,6 +23,7 @@ import {
     Refund,
     StockLevel,
 } from '@vendure/core';
+import { toDecimalString } from '@vendure/mcp-sdk';
 
 /** How much of a product's description a list item keeps; `get_product` has the whole text. */
 const LIST_ITEM_DESCRIPTION_LENGTH = 200;
@@ -36,23 +37,9 @@ export class McpToolSerializerService {
 
     // Tool results carry the raw whole-number amount as well as this formatted string, so a
     // language model can quote a price without doing the division itself.
-    //
-    // The digits are shifted as text rather than divided, because dividing by 100 can introduce
-    // floating-point error on real-world prices.
     decimal(value: number | undefined | null): string {
         const precision = this.configService.entityOptions.moneyStrategy.precision ?? 2;
-        // Only matters if a store configures its own money strategy that can hand over a
-        // fractional amount; under the default one this is already a whole number.
-        const rounded = Math.round(value ?? 0);
-        const negative = rounded < 0;
-        const digits = String(Math.abs(rounded));
-        if (precision === 0) {
-            return `${negative ? '-' : ''}${digits}`;
-        }
-        const padded = digits.padStart(precision + 1, '0');
-        const whole = padded.slice(0, -precision);
-        const fraction = padded.slice(-precision);
-        return `${negative ? '-' : ''}${whole}.${fraction}`;
+        return toDecimalString(value, precision);
     }
 
     // UTC ISO strings so a language model can compare and quote dates without knowing the server's timezone.

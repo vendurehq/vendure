@@ -1,7 +1,6 @@
 import { LanguageCode } from '@vendure/common/lib/generated-types';
+import { longText, shortText } from '@vendure/mcp-sdk';
 import { z } from 'zod';
-
-import { longText, shortText } from '../string-schemas';
 
 export const productTranslationSchema = z.strictObject({
     languageCode: z.enum(LanguageCode).describe('Language code, e.g. "en".'),

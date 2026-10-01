@@ -1,10 +1,6 @@
 import { GlobalFlag } from '@vendure/common/lib/generated-types';
+import { emailAddressSchema, idSchema, int32Schema, MAX_ID_LIST_LENGTH, shortText } from '@vendure/mcp-sdk';
 import { z } from 'zod';
-
-import { emailAddressSchema } from '../email-schema';
-import { idSchema, MAX_ID_LIST_LENGTH } from '../id-schema';
-import { int32Schema } from '../int32-schema';
-import { shortText } from '../string-schemas';
 
 /**
  * Fields shared by create_customer and update_customer. create uses them as is; update makes them all

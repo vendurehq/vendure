@@ -1,6 +1,5 @@
 import { ListQueryOptions, Product } from '@vendure/core';
-
-import { type ListInput, listOptions } from '../list-helpers';
+import { type ListInput, listOptions } from '@vendure/mcp-sdk';
 
 // Words under four characters are left alone so short words like "gas" or "bus" aren't mangled.
 function singular(word: string): string {

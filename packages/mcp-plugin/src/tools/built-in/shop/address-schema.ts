@@ -1,6 +1,5 @@
+import { shortText } from '@vendure/mcp-sdk';
 import { z } from 'zod';
-
-import { shortText } from '../string-schemas';
 
 export const addressInputSchema = z.strictObject({
     fullName: shortText.optional(),

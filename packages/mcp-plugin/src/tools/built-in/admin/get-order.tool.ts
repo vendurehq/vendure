@@ -1,12 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { OrderService, Permission, RequestContext } from '@vendure/core';
-import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { idSchema, McpTool, McpToolHandler, shortText } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { idSchema } from '../id-schema';
 import { ORDER_DETAIL_RELATIONS } from '../order-list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
-import { shortText } from '../string-schemas';
 
 const getOrderInput = z
     .strictObject({

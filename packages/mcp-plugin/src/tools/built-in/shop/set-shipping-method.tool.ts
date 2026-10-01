@@ -1,10 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { OrderService, Permission, RequestContext } from '@vendure/core';
-import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { idSchema, McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { McpActiveOrderService } from '../active-order.service';
-import { idSchema } from '../id-schema';
 import { McpToolSerializerService } from '../serializer.service';
 
 const setShippingMethodInput = z.strictObject({

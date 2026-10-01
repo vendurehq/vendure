@@ -1,11 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { OrderService, OrderState, Permission, RequestContext } from '@vendure/core';
-import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { idSchema, McpTool, McpToolHandler, shortText } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { idSchema } from '../id-schema';
 import { McpToolSerializerService } from '../serializer.service';
-import { enumString, shortText } from '../string-schemas';
+import { enumString } from '../string-schemas';
 
 const updateOrderStateInput = z.strictObject({
     id: idSchema.describe('Order ID.'),

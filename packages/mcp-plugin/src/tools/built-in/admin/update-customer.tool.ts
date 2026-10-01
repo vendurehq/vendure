@@ -1,10 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { CustomerService, Permission, RequestContext } from '@vendure/core';
-import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { idSchema, McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { McpCustomFieldInputService } from '../custom-field-input.service';
-import { idSchema } from '../id-schema';
 import { McpToolSerializerService } from '../serializer.service';
 
 import { customerFieldsSchema } from './entity-field-schemas';

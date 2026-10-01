@@ -1,0 +1,18 @@
+---
+title: "ListOptions"
+generated: true
+---
+<GenerationInfo sourceFile="packages/mcp-sdk/src/list-helpers.ts" sourceLine="184" packageName="@vendure/mcp-sdk" since="3.8.0" />
+
+Turns a list tool's input into the `ListQueryOptions` that Vendure's `findAll` methods take.
+It sorts the newest items first. See [page](/reference/core-plugins/mcp-plugin/page#page) for an example.
+
+```ts title="Signature"
+function listOptions<T extends VendureEntity>(input: ListInput): ListQueryOptions<T>
+```
+Parameters
+
+### input
+
+<MemberInfo kind="parameter" type={`<a href='/reference/core-plugins/mcp-plugin/list-input#listinput'>ListInput</a>`} />
+

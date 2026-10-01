@@ -1,9 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { CustomerService, OrderService, Permission, RequestContext, TranslatorService } from '@vendure/core';
-import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { McpTool, McpToolHandler, page, paginationFields } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { page, paginationFields } from '../list-helpers';
 import { ORDER_LIST_RELATIONS, orderListOptions, translateLineVariants } from '../order-list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 

@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import * as listHelpers from './list-helpers';
 
-describe('built-in list helpers', () => {
+describe('list helpers', () => {
     it('forwards a filter to core and leaves the key out when there is none', () => {
         const paged = listHelpers.listOptions({ limit: 5 });
         expect(paged).toEqual({ take: 5, skip: 0, sort: { createdAt: 'DESC', id: 'DESC' } });
@@ -35,16 +35,14 @@ describe('built-in list helpers', () => {
         expect(accepts({ limit: 1 })).toBe(true);
         expect(accepts({ limit: 100 })).toBe(true);
         expect(accepts({ offset: 0 })).toBe(true);
-        // A limit of 0 used to reach core, which reads a falsy take as "no limit" and returns
-        // every row; 101 used to come back as an untranslated error key.
+        // Core reads a take of 0 as "no limit" and would return every row.
         expect(accepts({ limit: 0 })).toBe(false);
         expect(accepts({ limit: -1 })).toBe(false);
         expect(accepts({ limit: 101 })).toBe(false);
         expect(accepts({ limit: 1.5 })).toBe(false);
-        // A negative offset was clamped to 0 by core while hasMore was still computed from the
-        // raw value, so the list claimed there was always another page.
+        // Core clamps a negative offset to 0, but `page` would still compute hasMore from -1.
         expect(accepts({ offset: -1 })).toBe(false);
-        // An offset above the GraphQL Int range reached the database as a number it cannot store.
+        // The database cannot store an offset above the GraphQL Int range.
         expect(accepts({ offset: 2147483647 })).toBe(true);
         expect(accepts({ offset: 2147483648 })).toBe(false);
     });
@@ -56,5 +54,17 @@ describe('built-in list helpers', () => {
         expect(accepts({ eq: 'a'.repeat(256) })).toBe(false);
         expect(accepts({ in: Array.from({ length: 100 }, () => 'code') })).toBe(true);
         expect(accepts({ in: Array.from({ length: 101 }, () => 'code') })).toBe(false);
+    });
+
+    it('reports whether items remain after the page', () => {
+        expect(listHelpers.page(['a', 'b'], 5, { offset: 2 }).hasMore).toBe(true);
+        expect(listHelpers.page(['a'], 5, { offset: 4 }).hasMore).toBe(false);
+        expect(listHelpers.page(['a', 'b'], 2, {})).toEqual({ items: ['a', 'b'], total: 2, hasMore: false });
+    });
+
+    it('slices 25 items when the input sets no limit', () => {
+        const all = Array.from({ length: 30 }, (_, index) => index);
+        expect(listHelpers.slicePage(all, {})).toEqual(all.slice(0, 25));
+        expect(listHelpers.slicePage(all, { offset: 28, limit: 5 })).toEqual([28, 29]);
     });
 });

@@ -1,10 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { CollectionService, ID, Permission, RequestContext } from '@vendure/core';
-import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { idSchema, McpTool, McpToolHandler, page, paginationFields, slicePage } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { idSchema } from '../id-schema';
-import { page, paginationFields, slicePage } from '../list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 
 import { publicCollectionListOptions } from './collection-lookup';

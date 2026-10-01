@@ -12,14 +12,12 @@ import {
     TransactionalConnection,
     UserInputError,
 } from '@vendure/core';
-import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { emailAddressSchema, McpTool, McpToolHandler, shortText } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { McpActiveOrderService } from '../active-order.service';
 import { McpCustomFieldInputService } from '../custom-field-input.service';
-import { emailAddressSchema } from '../email-schema';
 import { McpToolSerializerService } from '../serializer.service';
-import { shortText } from '../string-schemas';
 
 import { addressInputSchema } from './address-schema';
 

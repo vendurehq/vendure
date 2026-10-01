@@ -1,10 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { CustomerGroupListOptions } from '@vendure/common/lib/generated-types';
 import { CustomerGroup, CustomerGroupService, Permission, RequestContext } from '@vendure/core';
-import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { listOptions, McpTool, McpToolHandler, page, paginationFields } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { listOptions, page, paginationFields } from '../list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 
 const listCustomerGroupsInput = z.strictObject({

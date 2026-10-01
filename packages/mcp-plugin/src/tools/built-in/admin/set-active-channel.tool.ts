@@ -12,12 +12,11 @@ import {
     TransactionalConnection,
     UserInputError,
 } from '@vendure/core';
-import { McpCallerInfo, McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { McpCallerInfo, McpTool, McpToolHandler, shortText } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { McpOauthGrant } from '../../../entities/mcp-oauth-grant.entity';
 import { McpToolSerializerService } from '../serializer.service';
-import { shortText } from '../string-schemas';
 
 import { userChannelIds } from './channel-access';
 

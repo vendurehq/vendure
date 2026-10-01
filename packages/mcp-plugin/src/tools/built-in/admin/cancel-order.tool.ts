@@ -1,11 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { OrderService, Permission, RequestContext } from '@vendure/core';
-import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { idSchema, longText, McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { idSchema } from '../id-schema';
 import { McpToolSerializerService } from '../serializer.service';
-import { longText } from '../string-schemas';
 
 const cancelOrderInput = z.strictObject({
     id: idSchema.describe('Order ID.'),

@@ -1,9 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { CustomerService, Permission, RequestContext } from '@vendure/core';
-import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { idSchema, McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { idSchema } from '../id-schema';
 import { McpToolSerializerService } from '../serializer.service';
 
 const getCustomerInput = z.strictObject({

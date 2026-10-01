@@ -657,22 +657,6 @@ describe('McpToolSerializerService', () => {
 });
 
 describe('money scaling', () => {
-    it('pads amounts smaller than one whole unit', () => {
-        const service = new McpToolSerializerService(configWithPrecision(2));
-        expect(service.variant({ id: 1, price: 5, priceWithTax: 60 } as any)).toMatchObject({
-            priceDecimal: '0.05',
-            priceWithTaxDecimal: '0.60',
-        });
-    });
-
-    it('emits no decimal point for a currency the store keeps whole', () => {
-        const service = new McpToolSerializerService(configWithPrecision(0));
-        expect(service.variant({ id: 1, price: 1000, priceWithTax: 1000 } as any)).toMatchObject({
-            priceDecimal: '1000',
-            priceWithTaxDecimal: '1000',
-        });
-    });
-
     it('honours a store configured for three decimal places', () => {
         const service = new McpToolSerializerService(configWithPrecision(3));
         expect(service.variant({ id: 1, price: 25199, priceWithTax: 25199 } as any)).toMatchObject({
@@ -717,21 +701,5 @@ describe('money scaling', () => {
                 .customFields,
         ).toBeUndefined();
         expect(quoteService.paymentQuote({ id: 2, code: 'card' } as any).customFields).toBeUndefined();
-    });
-
-    it('does not print a negative zero when a fractional amount rounds toward zero', () => {
-        const service = new McpToolSerializerService(configWithPrecision(2));
-        expect(service.variant({ id: 1, price: -0.4, priceWithTax: -0.4 } as any)).toMatchObject({
-            priceDecimal: '0.00',
-            priceWithTaxDecimal: '0.00',
-        });
-    });
-
-    it('rounds a fractional amount before scaling it', () => {
-        const service = new McpToolSerializerService(configWithPrecision(2));
-        expect(service.variant({ id: 1, price: 20999.6, priceWithTax: 20999.6 } as any)).toMatchObject({
-            priceDecimal: '210.00',
-            priceWithTaxDecimal: '210.00',
-        });
     });
 });

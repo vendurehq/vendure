@@ -1,0 +1,22 @@
+---
+title: "SlicePage"
+generated: true
+---
+<GenerationInfo sourceFile="packages/mcp-sdk/src/list-helpers.ts" sourceLine="171" packageName="@vendure/mcp-sdk" since="3.8.0" />
+
+Returns one page of an in-memory array, using the input's `offset` and `limit`. The page
+size defaults to 25. Pass the array's length to [page](/reference/core-plugins/mcp-plugin/page#page) as the total.
+
+```ts title="Signature"
+function slicePage<T>(all: T[], input: ListInput): T[]
+```
+Parameters
+
+### all
+
+<MemberInfo kind="parameter" type={`T[]`} />
+
+### input
+
+<MemberInfo kind="parameter" type={`<a href='/reference/core-plugins/mcp-plugin/list-input#listinput'>ListInput</a>`} />
+

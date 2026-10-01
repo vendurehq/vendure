@@ -1,13 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { HistoryEntryType } from '@vendure/common/lib/generated-types';
 import { HistoryService, OrderService, Permission, RequestContext } from '@vendure/core';
-import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { idSchema, longText, McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { idSchema } from '../id-schema';
 import { findOrderOrThrow, ORDER_DETAIL_RELATIONS } from '../order-list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
-import { longText } from '../string-schemas';
 
 const addNoteToOrderInput = z.strictObject({
     id: idSchema.describe('Order ID.'),

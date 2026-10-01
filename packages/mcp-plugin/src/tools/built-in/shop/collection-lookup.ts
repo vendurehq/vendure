@@ -7,8 +7,7 @@ import {
     RelationPaths,
     RequestContext,
 } from '@vendure/core';
-
-import { type ListInput, listOptions } from '../list-helpers';
+import { type ListInput, listOptions } from '@vendure/mcp-sdk';
 
 type CollectionLookup = { kind: 'id'; value: ID } | { kind: 'slug'; value: string };
 

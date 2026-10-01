@@ -10,14 +10,11 @@ import {
     Refund,
     RequestContext,
 } from '@vendure/core';
-import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { idSchema, int32Schema, McpTool, McpToolHandler, shortText } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { idSchema } from '../id-schema';
-import { int32Schema } from '../int32-schema';
 import { findOrderOrThrow } from '../order-list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
-import { shortText } from '../string-schemas';
 
 const refundOrderInput = z.strictObject({
     id: idSchema.describe('Order ID.'),

@@ -7,14 +7,11 @@ import {
     StockLevelService,
     UserInputError,
 } from '@vendure/core';
-import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { idSchema, int32Schema, McpTool, McpToolHandler, shortText } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { McpCustomFieldInputService } from '../custom-field-input.service';
-import { idSchema } from '../id-schema';
-import { int32Schema } from '../int32-schema';
 import { McpToolSerializerService } from '../serializer.service';
-import { shortText } from '../string-schemas';
 
 import { variantFieldsSchema } from './entity-field-schemas';
 import { variantTranslationSchema } from './translation-schemas';
