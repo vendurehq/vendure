@@ -5,7 +5,7 @@ import { z } from 'zod';
  * A Zod schema for a customer email address of at most 255 characters. It refuses a value
  * that is not a valid email address.
  *
- * @docsCategory core plugins/McpPlugin
+ * @docsCategory mcp-sdk
  * @since 3.8.0
  */
 export const emailAddressSchema = z

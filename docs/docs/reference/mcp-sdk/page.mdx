@@ -42,7 +42,7 @@ export class ListCustomersTool implements McpToolHandler<ListCustomersInput> {
 ```
 
 ```ts title="Signature"
-function page<T>(items: T[], totalItems: number, input: { offset?: number }): void
+function page<T>(items: T[], totalItems: number, input: { offset?: number }): { items: T[]; total: number; hasMore: boolean }
 ```
 Parameters
 

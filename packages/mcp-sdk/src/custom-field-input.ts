@@ -37,7 +37,7 @@ import { ConfigService, UserInputError, validateCustomFieldValue } from '@vendur
  * }
  * ```
  *
- * @docsCategory core plugins/McpPlugin
+ * @docsCategory mcp-sdk
  * @since 3.8.0
  */
 export async function assertCustomFieldsWritable(

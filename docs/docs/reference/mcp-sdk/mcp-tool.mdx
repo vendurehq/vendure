@@ -6,8 +6,8 @@ generated: true
 
 Marks a class as an MCP tool. The class must be a NestJS provider (can be injected via `@Injectable()`)
 so the MCP server can discover it and inject the services it depends on.
-It also needs an `execute` method (see [McpToolHandler](/reference/core-plugins/mcp-plugin/mcp-tool-handler#mcptoolhandler)), which the server checks for when registering the
-tool. The [McpToolMetadata](/reference/core-plugins/mcp-plugin/mcp-tool-metadata#mcptoolmetadata) you pass is read at runtime and used by the
+It also needs an `execute` method (see [McpToolHandler](/reference/mcp-sdk/mcp-tool-handler#mcptoolhandler)), which the server checks for when registering the
+tool. The [McpToolMetadata](/reference/mcp-sdk/mcp-tool-metadata#mcptoolmetadata) you pass is read at runtime and used by the
 [MCP plugin](/reference/core-plugins/mcp-plugin/) to turn the class into a
 callable tool.
 

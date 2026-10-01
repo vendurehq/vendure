@@ -4,7 +4,7 @@ generated: true
 ---
 <GenerationInfo sourceFile="packages/mcp-sdk/src/mcp-tool.decorator.ts" sourceLine="47" packageName="@vendure/mcp-sdk" since="3.8.0" />
 
-Describes a single MCP tool. Attach this to a class with the [McpTool](/reference/core-plugins/mcp-plugin/mcp-tool#mcptool) decorator; the MCP
+Describes a single MCP tool. Attach this to a class with the [McpTool](/reference/mcp-sdk/mcp-tool#mcptool) decorator; the MCP
 server finds those classes on startup and exposes each one to agents.
 
 ```ts title="Signature"
@@ -55,7 +55,7 @@ description to match `search_tools` queries in discovery mode. They are never sh
 agent or returned in a tool result.
 ### toolset
 
-<MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-toolset#mcptoolset'>McpToolset</a>`}   />
+<MemberInfo kind="property" type={`<a href='/reference/mcp-sdk/mcp-toolset#mcptoolset'>McpToolset</a>`}   />
 
 A `shop` tool appears on the MCP shop endpoint, an `admin` tool on the admin endpoint.
 Names only have to be unique within one toolset.
@@ -73,7 +73,7 @@ On an `admin` tool it is required. The server refuses to start when it is omitte
 Use `[Permission.Authenticated]` if any signed-in administrator may call the tool.
 ### behavior
 
-<MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-tool-behavior#mcptoolbehavior'>McpToolBehavior</a>`} default={`'mutating'`}   />
+<MemberInfo kind="property" type={`<a href='/reference/mcp-sdk/mcp-tool-behavior#mcptoolbehavior'>McpToolBehavior</a>`} default={`'mutating'`}   />
 
 How the tool behaves, which decides how it is exposed to the agent:
 
@@ -94,16 +94,16 @@ callers to continue the same cart using a `sessionToken`.
 Only valid for Shop tools. The `sessionToken` field is managed automatically.
 ### inputSchema
 
-<MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-tool-schema#mcptoolschema'>McpToolSchema</a>`}   />
+<MemberInfo kind="property" type={`<a href='/reference/mcp-sdk/mcp-tool-schema#mcptoolschema'>McpToolSchema</a>`}   />
 
 The schema for the tool's arguments. Two forms are accepted: a plain JSON Schema object
-([McpJsonSchema](/reference/core-plugins/mcp-plugin/mcp-json-schema#mcpjsonschema)), or a Standard Schema object that can emit JSON Schema
-([McpStandardSchema](/reference/core-plugins/mcp-plugin/mcp-standard-schema#mcpstandardschema)), such as a Zod v4 schema. The registry compiles the schema once
+([McpJsonSchema](/reference/mcp-sdk/mcp-json-schema#mcpjsonschema)), or a Standard Schema object that can emit JSON Schema
+([McpStandardSchema](/reference/mcp-sdk/mcp-standard-schema#mcpstandardschema)), such as a Zod v4 schema. The registry compiles the schema once
 at startup, and validates every call's arguments against it. A tool that omits it takes no
 arguments.
 ### outputSchema
 
-<MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-tool-schema#mcptoolschema'>McpToolSchema</a>`}   />
+<MemberInfo kind="property" type={`<a href='/reference/mcp-sdk/mcp-tool-schema#mcptoolschema'>McpToolSchema</a>`}   />
 
 The schema for the tool's return value, in the same two forms as `inputSchema`. The registry
 validates each result against it and logs a warning on a mismatch. The call still succeeds,

@@ -1031,6 +1031,14 @@ const manifestInput: DocsPackageManifestInput = {
                     ],
                 },
                 {
+                    title: 'MCP SDK',
+                    slug: 'mcp-sdk',
+                    file: file('docs/reference/mcp-sdk/index.mdx'),
+                    children: createNestedNavigationFromFolder(folder('docs/reference/mcp-sdk'), {
+                        filter: (info: FileInfo) => info.filename !== 'index.mdx',
+                    }),
+                },
+                {
                     title: 'GraphQL API',
                     slug: 'graphql-api',
                     children: [

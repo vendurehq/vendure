@@ -2,7 +2,7 @@
  * @description
  * One validation failure reported by an {@link McpStandardSchema}.
  *
- * @docsCategory core plugins/McpPlugin
+ * @docsCategory mcp-sdk
  * @since 3.8.0
  */
 export interface McpStandardSchemaIssue {
@@ -25,7 +25,7 @@ export interface McpStandardSchemaIssue {
  * The result of validating a value against an {@link McpStandardSchema}: the (possibly
  * transformed) value on success, or a list of issues on failure.
  *
- * @docsCategory core plugins/McpPlugin
+ * @docsCategory mcp-sdk
  * @since 3.8.0
  */
 export type McpStandardSchemaResult<Output = unknown> =
@@ -42,7 +42,7 @@ export type McpStandardSchemaResult<Output = unknown> =
  * calls `validate` on every incoming call. The tool's `execute` method receives the validated
  * value, so library features like defaults apply.
  *
- * @docsCategory core plugins/McpPlugin
+ * @docsCategory mcp-sdk
  * @since 3.8.0
  */
 export interface McpStandardSchema<Input = unknown, Output = Input> {

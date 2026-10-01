@@ -10,7 +10,7 @@ import { shortText } from './string-schemas';
  * The paging and filter fields of a list tool's input, which {@link listOptions} and
  * {@link slicePage} read.
  *
- * @docsCategory core plugins/McpPlugin
+ * @docsCategory mcp-sdk
  * @since 3.8.0
  */
 export interface ListInput {
@@ -57,10 +57,14 @@ export interface ListInput {
  * }
  * ```
  *
- * @docsCategory core plugins/McpPlugin
+ * @docsCategory mcp-sdk
  * @since 3.8.0
  */
-export function page<T>(items: T[], totalItems: number, input: { offset?: number }) {
+export function page<T>(
+    items: T[],
+    totalItems: number,
+    input: { offset?: number },
+): { items: T[]; total: number; hasMore: boolean } {
     const offset = input.offset ?? 0;
     // `total` deliberately renames Vendure's `totalItems`.
     return { items, total: totalItems, hasMore: offset + items.length < totalItems };
@@ -72,7 +76,7 @@ const DEFAULT_LIST_PAGE_SIZE = 25;
  * @description
  * The largest `limit` that {@link paginationFields} accepts: 100.
  *
- * @docsCategory core plugins/McpPlugin
+ * @docsCategory mcp-sdk
  * @since 3.8.0
  */
 export const MAX_LIST_PAGE_SIZE = 100;
@@ -83,10 +87,13 @@ export const MAX_LIST_PAGE_SIZE = 100;
  * `limit` accepts 1 to {@link MAX_LIST_PAGE_SIZE} and defaults to 25. `noun` names the items
  * in the field descriptions, such as "customers". See {@link page} for an example.
  *
- * @docsCategory core plugins/McpPlugin
+ * @docsCategory mcp-sdk
  * @since 3.8.0
  */
-export function paginationFields(noun: string) {
+export function paginationFields(noun: string): {
+    limit: z.ZodOptional<z.ZodNumber>;
+    offset: z.ZodOptional<z.ZodNumber>;
+} {
     return {
         limit: z
             .number()
@@ -112,7 +119,7 @@ const MAX_FILTER_VALUES = 100;
  * A Zod schema for filtering a string field in a list tool. It takes `eq`, `contains`, and
  * `in` with up to 100 values. Each value is at most 255 characters.
  *
- * @docsCategory core plugins/McpPlugin
+ * @docsCategory mcp-sdk
  * @since 3.8.0
  */
 export const stringFilter = z.strictObject({
@@ -130,7 +137,7 @@ export const stringFilter = z.strictObject({
  * A Zod schema for filtering a date field in a list tool. It takes `before` and `after` as
  * ISO 8601 date-times and parses them into `Date` objects, which Vendure's list queries need.
  *
- * @docsCategory core plugins/McpPlugin
+ * @docsCategory mcp-sdk
  * @since 3.8.0
  */
 export const dateFilter = z.strictObject({
@@ -142,7 +149,7 @@ export const dateFilter = z.strictObject({
  * @description
  * A Zod schema for filtering a number field in a list tool. It takes `eq`, `gte` and `lte`.
  *
- * @docsCategory core plugins/McpPlugin
+ * @docsCategory mcp-sdk
  * @since 3.8.0
  */
 export const numberFilter = z.strictObject({
@@ -155,7 +162,7 @@ export const numberFilter = z.strictObject({
  * @description
  * A Zod schema for filtering a boolean field in a list tool. It takes `eq`.
  *
- * @docsCategory core plugins/McpPlugin
+ * @docsCategory mcp-sdk
  * @since 3.8.0
  */
 export const booleanFilter = z.strictObject({ eq: z.boolean().optional() });
@@ -165,7 +172,7 @@ export const booleanFilter = z.strictObject({ eq: z.boolean().optional() });
  * Returns one page of an in-memory array, using the input's `offset` and `limit`. The page
  * size defaults to 25. Pass the array's length to {@link page} as the total.
  *
- * @docsCategory core plugins/McpPlugin
+ * @docsCategory mcp-sdk
  * @since 3.8.0
  */
 export function slicePage<T>(all: T[], input: ListInput): T[] {
@@ -178,7 +185,7 @@ export function slicePage<T>(all: T[], input: ListInput): T[] {
  * Turns a list tool's input into the `ListQueryOptions` that Vendure's `findAll` methods take.
  * It sorts the newest items first. See {@link page} for an example.
  *
- * @docsCategory core plugins/McpPlugin
+ * @docsCategory mcp-sdk
  * @since 3.8.0
  */
 export function listOptions<T extends VendureEntity>(input: ListInput): ListQueryOptions<T> {

@@ -39,12 +39,12 @@ Human-readable title declared by the tool. The same value is copied onto
 What the tool does, written for an AI agent to read.
 ### toolset
 
-<MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-toolset#mcptoolset'>McpToolset</a>`}   />
+<MemberInfo kind="property" type={`<a href='/reference/mcp-sdk/mcp-toolset#mcptoolset'>McpToolset</a>`}   />
 
 Which Vendure API the tool works over: `shop` for the Shop API, `admin` for the Admin API.
 ### behavior
 
-<MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-tool-behavior#mcptoolbehavior'>McpToolBehavior</a>`}   />
+<MemberInfo kind="property" type={`<a href='/reference/mcp-sdk/mcp-tool-behavior#mcptoolbehavior'>McpToolBehavior</a>`}   />
 
 What the tool does to data: `readonly` only reads it, `mutating` changes it, and
 `destructive` changes it and needs a confirmation round-trip before running.
@@ -56,7 +56,7 @@ MCP annotations derived from `behavior`. `readOnlyHint` and `idempotentHint` are
 a `readonly` tool. `destructiveHint` is true for a `destructive` tool.
 ### inputSchema
 
-<MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-json-schema#mcpjsonschema'>McpJsonSchema</a>`}   />
+<MemberInfo kind="property" type={`<a href='/reference/mcp-sdk/mcp-json-schema#mcpjsonschema'>McpJsonSchema</a>`}   />
 
 The input schema a call must satisfy: the tool's declared schema plus, for a destructive
 tool, the optional `confirm` field the registry injects.

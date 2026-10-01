@@ -16,7 +16,7 @@ import { z } from 'zod';
  * });
  * ```
  *
- * @docsCategory core plugins/McpPlugin
+ * @docsCategory mcp-sdk
  * @since 3.8.0
  */
 export const idSchema = z.union([z.string(), z.number()], {
@@ -27,7 +27,7 @@ export const idSchema = z.union([z.string(), z.number()], {
  * @description
  * The most IDs one input list should hold: 100. Use it as the `.max()` of an ID array.
  *
- * @docsCategory core plugins/McpPlugin
+ * @docsCategory mcp-sdk
  * @since 3.8.0
  */
 export const MAX_ID_LIST_LENGTH = 100;

@@ -6,7 +6,7 @@ order: 5
 ---
 
 Any Vendure plugin can add custom MCP tools. Define an injectable service, decorate it with
-[`@McpTool`](/reference/core-plugins/mcp-plugin/mcp-tool/), and register it as a provider. The MCP plugin
+[`@McpTool`](/reference/mcp-sdk/mcp-tool/), and register it as a provider. The MCP plugin
 discovers the tool at bootstrap and exposes it alongside Vendure's built-in tools.
 
 ## Before you start
@@ -38,7 +38,7 @@ Optionally add destructive confirmation, discovery keywords, or caller informati
 ## Write the tool class
 
 A tool is an `@Injectable()` class with the `@McpTool` decorator and an `execute(ctx, input)` method. Implement
-[`McpToolHandler`](/reference/core-plugins/mcp-plugin/mcp-tool-handler/) from `@vendure/mcp-sdk` for type-safety:
+[`McpToolHandler`](/reference/mcp-sdk/mcp-tool-handler/) from `@vendure/mcp-sdk` for type-safety:
 
 ```ts title="src/tools/low-stock.tool.ts"
 import { Injectable } from '@nestjs/common';
@@ -104,9 +104,9 @@ being served, list the tools with the MCP Inspector: see
 ## Define input and output schemas
 
 `inputSchema` accepts either a plain JSON Schema object
-([`McpJsonSchema`](/reference/core-plugins/mcp-plugin/mcp-json-schema/)) or a
+([`McpJsonSchema`](/reference/mcp-sdk/mcp-json-schema/)) or a
 [Standard Schema](https://standardschema.dev/) object
-([`McpStandardSchema`](/reference/core-plugins/mcp-plugin/mcp-standard-schema/)) from a library such as Zod 4,
+([`McpStandardSchema`](/reference/mcp-sdk/mcp-standard-schema/)) from a library such as Zod 4,
 ArkType, or Valibot. Zod users need Zod 4.2 or later: Zod 3 cannot produce the JSON Schema that MCP requires.
 
 With a Standard Schema, the schema library validates and parses the input before `execute()` is called. The
@@ -263,7 +263,7 @@ effect in the default `direct` exposure mode. See
 ## Metadata quick reference
 
 The full field list, types, and defaults are on
-[`McpToolMetadata`](/reference/core-plugins/mcp-plugin/mcp-tool-metadata/). In brief:
+[`McpToolMetadata`](/reference/mcp-sdk/mcp-tool-metadata/). In brief:
 
 | Field | Purpose |
 |---|---|
@@ -280,7 +280,7 @@ The full field list, types, and defaults are on
 ## Optional: Read caller identity
 
 `execute(ctx, input)` is enough for almost every tool. To learn who is calling, `execute` takes an optional third
-argument, [`McpCallerInfo`](/reference/core-plugins/mcp-plugin/mcp-caller-info/), from `@vendure/mcp-sdk`. It
+argument, [`McpCallerInfo`](/reference/mcp-sdk/mcp-caller-info/), from `@vendure/mcp-sdk`. It
 carries the OAuth grant behind the call and the client IP:
 
 ```ts
@@ -318,6 +318,6 @@ A tool never needs to depend on `@vendure/mcp-plugin`. Everything a tool impleme
 
 ## See also
 
-- [`McpToolMetadata`](/reference/core-plugins/mcp-plugin/mcp-tool-metadata/) — the full field list, types, and defaults.
+- [`McpToolMetadata`](/reference/mcp-sdk/mcp-tool-metadata/) — the full field list, types, and defaults.
 - [Built-in Tool Reference](/mcp-server/built-in-tools/) — the tools Vendure ships, behavior values, and exposure modes.
 - [Test & debug with the MCP Inspector](/mcp-server/quick-start/#test--debug-with-the-mcp-inspector) — list and call your tool interactively.

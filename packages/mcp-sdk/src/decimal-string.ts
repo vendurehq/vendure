@@ -16,7 +16,7 @@
  * toDecimalString(1000, 0); // '1000'
  * ```
  *
- * @docsCategory core plugins/McpPlugin
+ * @docsCategory mcp-sdk
  * @since 3.8.0
  */
 export function toDecimalString(amount: number | undefined | null, precision: number): string {

@@ -10,7 +10,7 @@ import { McpToolBehavior, McpToolset } from './types';
  * A JSON Schema for a tool's input or output. Only object types are described here;
  * any other JSON Schema keywords can be added via the index signature.
  *
- * @docsCategory core plugins/McpPlugin
+ * @docsCategory mcp-sdk
  * @since 3.8.0
  */
 export interface McpJsonSchema {
@@ -31,7 +31,7 @@ export interface McpJsonSchema {
  * ({@link McpJsonSchema}), or a Standard Schema object with JSON Schema conversion
  * ({@link McpStandardSchema}, e.g. a Zod v4 schema).
  *
- * @docsCategory core plugins/McpPlugin
+ * @docsCategory mcp-sdk
  * @since 3.8.0
  */
 export type McpToolSchema = McpJsonSchema | McpStandardSchema;
@@ -41,7 +41,7 @@ export type McpToolSchema = McpJsonSchema | McpStandardSchema;
  * Describes a single MCP tool. Attach this to a class with the {@link McpTool} decorator; the MCP
  * server finds those classes on startup and exposes each one to agents.
  *
- * @docsCategory core plugins/McpPlugin
+ * @docsCategory mcp-sdk
  * @since 3.8.0
  */
 export interface McpToolMetadata {
@@ -139,7 +139,7 @@ export interface McpToolMetadata {
  * @description
  * The MCP OAuth grant behind a tool call, when the call arrived over MCP OAuth.
  *
- * @docsCategory core plugins/McpPlugin
+ * @docsCategory mcp-sdk
  * @since 3.8.0
  */
 export interface McpCallerGrant {
@@ -156,7 +156,7 @@ export interface McpCallerGrant {
  * Who is calling a tool and how. Passed as the optional third argument to
  * {@link McpToolHandler.execute}.
  *
- * @docsCategory core plugins/McpPlugin
+ * @docsCategory mcp-sdk
  * @since 3.8.0
  */
 export interface McpCallerInfo {
@@ -180,7 +180,7 @@ export interface McpCallerInfo {
  * {@link RequestContext}, the input, and, when a tool needs to know who is calling,
  * {@link McpCallerInfo}.
  *
- * @docsCategory core plugins/McpPlugin
+ * @docsCategory mcp-sdk
  * @since 3.8.0
  */
 export interface McpToolHandler<I = unknown, O = unknown> {
@@ -225,7 +225,7 @@ export interface McpToolHandler<I = unknown, O = unknown> {
  * }
  * ```
  *
- * @docsCategory core plugins/McpPlugin
+ * @docsCategory mcp-sdk
  * @since 3.8.0
  */
 export const McpTool = DiscoveryService.createDecorator<McpToolMetadata>();
