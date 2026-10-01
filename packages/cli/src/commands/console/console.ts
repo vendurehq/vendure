@@ -230,46 +230,52 @@ export async function consoleCommand(
         }
         return code;
     } catch (error) {
-        state.result.outcome = 'failed';
-        state.result.nextSteps.push('Check the Console configuration and rerun vendure console link.');
-        if (interruptedExitCode !== undefined || error instanceof CommandInterruptedError) {
-            // A process signal wins so SIGTERM retains exit code 143. Prompt cancellation and external aborts use 130.
-            const exitCode = interruptedExitCode ?? 130;
-            resolvedDependencies.reporter.warn(
-                // Once the manifest is written the link is done and cannot be
-                // taken back, so saying nothing changed would be untrue. An
-                // interrupt after that point stopped a hook, not the link.
-                state.manifestPath && state.outcome
-                    ? `Console command interrupted. ${linkUnfinished(state.outcome, state.manifestPath)}`
-                    : 'Console command interrupted. No Project Link Manifest was changed.',
-            );
-            return exitCode;
-        }
-        if (error instanceof CliCommandExit) {
-            if (options.json) {
-                return error.exitCode || 1;
-            }
-            throw error;
-        }
-        resolvedDependencies.reporter.error(
-            options.json
-                ? 'The Console command failed.'
-                : error instanceof Error
-                  ? error.message
-                  : String(error),
+        return reportConsoleCommandError(
+            error,
+            options,
+            resolvedDependencies.reporter,
+            state,
+            interruptedExitCode,
         );
-        return 1;
     } finally {
         process.removeListener('SIGINT', onSigint);
         process.removeListener('SIGTERM', onSigterm);
         externalSignal?.removeEventListener('abort', onExternalAbort);
-        if (state.manifestPath && state.outcome) {
-            state.result.data.link = { outcome: state.outcome, manifestPath: state.manifestPath };
-        }
         if (options.json) {
             process.stdout.write(`${JSON.stringify(state.result)}\n`);
         }
     }
+}
+
+/** Reports a failure without exposing raw errors in JSON mode. */
+function reportConsoleCommandError(
+    error: unknown,
+    options: ConsoleCommandOptions,
+    reporter: ConsoleReporter,
+    state: ConsoleCommandState,
+    interruptedExitCode: number | undefined,
+): number {
+    state.result.outcome = 'failed';
+    state.result.nextSteps.push('Check the Console configuration and rerun vendure console link.');
+    if (interruptedExitCode !== undefined || error instanceof CommandInterruptedError) {
+        // A process signal wins so SIGTERM retains exit code 143. Prompt cancellation and external aborts use 130.
+        reporter.warn(
+            // An interrupt after the manifest was written stopped setup, not the link.
+            state.manifestPath && state.outcome
+                ? `Console command interrupted. ${linkUnfinished(state.outcome, state.manifestPath)}`
+                : 'Console command interrupted. No Project Link Manifest was changed.',
+        );
+        return interruptedExitCode ?? 130;
+    }
+    if (error instanceof CliCommandExit) {
+        if (options.json) {
+            return error.exitCode || 1;
+        }
+        throw error;
+    }
+    const detail = error instanceof Error ? error.message : String(error);
+    reporter.error(options.json ? 'The Console command failed.' : detail);
+    return 1;
 }
 
 /**
@@ -393,11 +399,12 @@ async function link(
             state,
         );
     }
+    const replacementFlag = options.force ? ' --force' : '';
     if (options.nonInteractive) {
         state.result.outcome = 'incomplete';
         state.result.missingInputs.push({ input: 'projectLinkApproval', command: 'vendure console link' });
         const nextStep =
-            `Run vendure console link --project ${JSON.stringify(projectRoot)}${options.force ? ' --force' : ''} ` +
+            `Run vendure console link --project ${JSON.stringify(projectRoot)}${replacementFlag} ` +
             'interactively and approve the Project Link. Then rerun this command.';
         state.result.nextSteps.push(nextStep);
         dependencies.reporter.error('A Project Link approval is required.');
@@ -443,6 +450,7 @@ async function link(
         const manifestPath = await writeProjectLinkManifestAtomic(projectRoot, manifest);
         state.outcome = 'linked';
         state.manifestPath = manifestPath;
+        state.result.data.link = { outcome: 'linked', manifestPath };
         dependencies.reporter.success(`Linked ${manifest.project.name} to ${manifest.account.name}.`);
         dependencies.reporter.info(`Wrote ${manifestPath}`);
         reportProjectLinkGitignore(projectRoot, dependencies.reporter);
@@ -645,6 +653,7 @@ async function repair(
     }
     state.outcome = 'repaired';
     state.manifestPath = manifestPath;
+    state.result.data.link = { outcome: 'repaired', manifestPath };
     dependencies.reporter.success(
         `Already linked to ${currentManifest.project.name} in ${currentManifest.account.name}.`,
     );
@@ -768,11 +777,8 @@ async function runConsoleLinkHooks(
                 dependencies.reporter.warn(linkUnfinished(inputs.outcome, inputs.manifestPath));
                 throw error;
             }
-            const detail = options.json
-                ? 'Setup did not finish.'
-                : error instanceof Error
-                  ? error.message
-                  : String(error);
+            const rawDetail = error instanceof Error ? error.message : String(error);
+            const detail = options.json ? 'Setup did not finish.' : rawDetail;
             state.result.outcome = 'failed';
             state.result.nextSteps.push(`Rerun vendure console link to finish setup for ${pluginId}.`);
             dependencies.reporter.error(`The ${pluginId} plugin failed after linking: ${detail}`);
