@@ -108,6 +108,40 @@ describe('isFieldInSelection', () => {
             expect(isFieldInSelection(info, 'productVariantCount')).toBe(true);
         });
 
+        it('finds the field when the parent field is selected more than once', () => {
+            // Simulates: collections { items { id } items { productVariantCount } }
+            const items = (fieldNames: string[]): SelectionNode => ({
+                kind: Kind.FIELD,
+                name: { kind: Kind.NAME, value: 'items' },
+                selectionSet: { kind: Kind.SELECTION_SET, selections: createFieldSelections(fieldNames) },
+            });
+            const info = {
+                fieldNodes: [
+                    {
+                        kind: Kind.FIELD,
+                        name: { kind: Kind.NAME, value: 'collections' },
+                        selectionSet: {
+                            kind: Kind.SELECTION_SET,
+                            selections: [items(['id']), items(['productVariantCount'])],
+                        },
+                    },
+                ],
+                fragments: {},
+            } as unknown as GraphQLResolveInfo;
+            expect(isFieldInSelection(info, 'productVariantCount')).toBe(true);
+        });
+
+        it('finds the field when a field in the path is selected more than once', () => {
+            // Simulates: collections { items { children { id } children { productVariantCount } } }
+            const children = (fieldNames: string[]): SelectionNode => ({
+                kind: Kind.FIELD,
+                name: { kind: Kind.NAME, value: 'children' },
+                selectionSet: { kind: Kind.SELECTION_SET, selections: createFieldSelections(fieldNames) },
+            });
+            const info = createMockResolveInfo([children(['id']), children(['productVariantCount'])]);
+            expect(isFieldInSelection(info, 'productVariantCount', ['items', 'children'])).toBe(true);
+        });
+
         it('returns false when selection set is empty', () => {
             const info = createMockResolveInfo([]);
             expect(isFieldInSelection(info, 'productVariantCount')).toBe(false);

@@ -15,40 +15,32 @@ export function isFieldInSelection(
         node => node.selectionSet?.selections ?? [],
     );
     for (const name of Array.isArray(parentFieldName) ? parentFieldName : [parentFieldName]) {
-        selections = findFieldInSelections(selections, name, info)?.selectionSet?.selections ?? [];
+        selections = findFieldsInSelections(selections, name, info).flatMap(
+            field => field.selectionSet?.selections ?? [],
+        );
     }
     return hasFieldInSelections(selections, fieldName, info);
 }
 
 /**
- * Finds a field by name in selections, including fragment spreads and inline fragments.
+ * Finds all fields with the given name in selections, including fragment spreads and inline
+ * fragments. A field may be selected more than once, in which case GraphQL merges the selections.
  */
-function findFieldInSelections(
+function findFieldsInSelections(
     selections: readonly SelectionNode[],
     fieldName: string,
     info: GraphQLResolveInfo,
-): FieldNode | undefined {
-    for (const selection of selections) {
-        if (selection.kind === 'Field' && selection.name.value === fieldName) {
-            return selection;
+): FieldNode[] {
+    return selections.flatMap(selection => {
+        if (selection.kind === 'Field') {
+            return selection.name.value === fieldName ? [selection] : [];
         }
         if (selection.kind === 'FragmentSpread') {
             const fragment = info.fragments[selection.name.value];
-            if (fragment) {
-                const found = findFieldInSelections(fragment.selectionSet.selections, fieldName, info);
-                if (found) {
-                    return found;
-                }
-            }
+            return fragment ? findFieldsInSelections(fragment.selectionSet.selections, fieldName, info) : [];
         }
-        if (selection.kind === 'InlineFragment') {
-            const found = findFieldInSelections(selection.selectionSet.selections, fieldName, info);
-            if (found) {
-                return found;
-            }
-        }
-    }
-    return undefined;
+        return findFieldsInSelections(selection.selectionSet.selections, fieldName, info);
+    });
 }
 
 /**

@@ -6,6 +6,8 @@ import {
     ProductVariantListOptions,
 } from '@vendure/common/lib/generated-types';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
+import { unique } from '@vendure/common/lib/unique';
+import DataLoader from 'dataloader';
 
 import { RequestContextCacheService } from '../../../cache/request-context-cache.service';
 import { CacheKey } from '../../../common/constants';
@@ -88,10 +90,31 @@ export class CollectionEntityResolver {
                 return count;
             }
         }
-        // Fallback to single query if cache not available (e.g., single collection query)
-        // or if this collection was not included in the cached counts (e.g. a nested parent)
-        const singleCountMap = await this.collectionService.getProductVariantCounts(ctx, [collection.id]);
-        return singleCountMap.get(String(collection.id)) ?? 0;
+        // Fallback if cache not available (e.g., single collection query) or if this collection was
+        // not included in the cached counts (e.g. a nested parent or grandchild). Collections resolved
+        // in the same tick are batched into a single query.
+        return this.getProductVariantCountLoader(ctx).load(collection.id);
+    }
+
+    /**
+     * `cache: false` batches without memoizing, so a write earlier in the request is not masked.
+     */
+    private getProductVariantCountLoader(ctx: RequestContext): DataLoader<ID, number> {
+        return this.requestContextCache.get(
+            ctx,
+            CacheKey.CollectionVariantCountLoader,
+            () =>
+                new DataLoader<ID, number>(
+                    async ids => {
+                        const counts = await this.collectionService.getProductVariantCounts(
+                            ctx,
+                            unique([...ids]),
+                        );
+                        return ids.map(id => counts.get(String(id)) ?? 0);
+                    },
+                    { cache: false },
+                ),
+        );
     }
 
     @ResolveField()
