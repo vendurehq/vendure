@@ -16,10 +16,11 @@ import {
 } from '@vendure/common/lib/shared-constants';
 import { ID, PaginatedList, Type } from '@vendure/common/lib/shared-types';
 import { unique } from '@vendure/common/lib/unique';
-import { FindOptionsWhere } from 'typeorm';
+import { EntityManager, FindOptionsWhere, Repository } from 'typeorm';
 
 import { RelationPaths } from '../../api';
 import { RequestContext } from '../../api/common/request-context';
+import { TRANSACTION_MANAGER_KEY } from '../../common/constants';
 import { ErrorResultUnion, isGraphQlErrorResult } from '../../common/error/error-result';
 import {
     ChannelNotFoundError,
@@ -30,7 +31,6 @@ import {
 } from '../../common/error/errors';
 import { LanguageNotAvailableError } from '../../common/error/generated-graphql-admin-errors';
 import { Instrument } from '../../common/instrument-decorator';
-import { createSelfRefreshingCache, SelfRefreshingCache } from '../../common/self-refreshing-cache';
 import { ChannelAware, ListQueryOptions } from '../../common/types/common-types';
 import { assertFound, idsAreEqual } from '../../common/utils';
 import { ConfigService } from '../../config/config.service';
@@ -53,6 +53,12 @@ import { isChannelAwareMetadata } from '../helpers/utils/is-channel-aware-metada
 import { patchEntity } from '../helpers/utils/patch-entity';
 
 import { GlobalSettingsService } from './global-settings.service';
+
+const TOKEN_CACHE_SIZE = 10_000;
+const MISS_CACHE_SIZE = 1_000;
+
+type CacheEntry<T> = { value: Promise<T>; expires: number };
+
 /**
  * @description
  * Contains methods relating to {@link Channel} entities.
@@ -62,7 +68,22 @@ import { GlobalSettingsService } from './global-settings.service';
 @Injectable()
 @Instrument()
 export class ChannelService {
-    private allChannels: SelfRefreshingCache<Channel[], [RequestContext]>;
+    /**
+     * Channels are looked up on every request, so lookups by token, the default Channel and the
+     * Channel count are cached per process. Promises are cached so that concurrent misses share
+     * one query. Once resolved, unknown tokens move to a smaller cache of their own, so that a
+     * flood of them cannot evict the count or the default Channel, and can only evict known tokens
+     * while their query is in flight.
+     */
+    private countCache = new Map<string, CacheEntry<number>>();
+    private defaultChannelCache = new Map<string, CacheEntry<Channel | undefined>>();
+    private tokenCache = new Map<string, CacheEntry<Channel | undefined>>();
+    private missCache = new Map<string, CacheEntry<Channel | undefined>>();
+    /**
+     * Transactions which have created, updated or deleted a Channel. They skip the cache entirely
+     * until they end, because other requests may refill it from the committed data in the meantime.
+     */
+    private channelWriters = new WeakSet<EntityManager>();
 
     constructor(
         private connection: TransactionalConnection,
@@ -71,50 +92,20 @@ export class ChannelService {
         private customFieldRelationService: CustomFieldRelationService,
         private eventBus: EventBus,
         private listQueryBuilder: ListQueryBuilder,
-    ) {}
+    ) {
+        // The caches are also cleared synchronously in create, update and delete, but that happens
+        // before the transaction commits. Events are published after the commit, so clearing again
+        // here drops anything another request cached from the old data in the meantime.
+        this.eventBus.ofType(ChannelEvent).subscribe(() => this.clearCache());
+    }
 
     /**
-     * When the app is bootstrapped, ensure a default Channel exists and populate the
-     * channel lookup array.
+     * When the app is bootstrapped, ensure a default Channel exists.
      *
      * @internal
      */
     async initChannels() {
         await this.ensureDefaultChannelExists();
-        await this.ensureCacheExists();
-    }
-
-    /**
-     * Creates a channels cache, that can be used to reduce number of channel queries to database
-     *
-     * @internal
-     */
-    async createCache(): Promise<SelfRefreshingCache<Channel[], [RequestContext]>> {
-        return createSelfRefreshingCache({
-            name: 'ChannelService.allChannels',
-            ttl: this.configService.entityOptions.channelCacheTtl,
-            refresh: {
-                fn: async ctx => {
-                    const result = await this.listQueryBuilder
-                        .build(
-                            Channel,
-                            {},
-                            {
-                                ctx,
-                                relations: ['defaultShippingZone', 'defaultTaxZone'],
-                                ignoreQueryLimits: true,
-                            },
-                        )
-                        .getManyAndCount()
-                        .then(([items, totalItems]) => ({
-                            items,
-                            totalItems,
-                        }));
-                    return result.items;
-                },
-                defaultArgs: [RequestContext.empty()],
-            },
-        });
     }
 
     /**
@@ -281,13 +272,21 @@ export class ChannelService {
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             ctxOrToken instanceof RequestContext ? [ctxOrToken, token!] : [undefined, ctxOrToken];
 
-        const allChannels = await this.allChannels.value(ctx);
-
-        if (allChannels.length === 1 || channelToken === '') {
+        const channelCount = await this.cached(ctx, this.countCache, 'count', repository =>
+            repository.count(),
+        );
+        if (channelCount === 1 || channelToken === '') {
             // there is only the default channel, so return it
             return this.getDefaultChannel(ctx);
         }
-        const channel = allChannels.find(c => c.token === channelToken);
+        // Misses are cached too, so unknown tokens do not query the database on every request
+        const channel = await this.cached(
+            ctx,
+            this.tokenCache,
+            channelToken,
+            repository => this.findChannel(repository, { token: channelToken }),
+            { maxSize: TOKEN_CACHE_SIZE, missCache: this.missCache },
+        );
         if (!channel) {
             throw new ChannelNotFoundError(channelToken);
         }
@@ -299,8 +298,9 @@ export class ChannelService {
      * Returns the default Channel.
      */
     async getDefaultChannel(ctx?: RequestContext): Promise<Channel> {
-        const allChannels = await this.allChannels.value(ctx);
-        const defaultChannel = allChannels.find(channel => channel.code === DEFAULT_CHANNEL_CODE);
+        const defaultChannel = await this.cached(ctx, this.defaultChannelCache, 'default', repository =>
+            this.findChannel(repository, { code: DEFAULT_CHANNEL_CODE }),
+        );
 
         if (!defaultChannel) {
             throw new InternalServerError('error.default-channel-not-found');
@@ -372,7 +372,7 @@ export class ChannelService {
             await this.connection.getRepository(ctx, Channel).save(newChannel);
         }
         await this.customFieldRelationService.updateRelations(ctx, Channel, input, newChannel);
-        await this.allChannels.refresh(ctx);
+        this.clearCache(ctx);
         await this.assignDefaultRolesToChannel(ctx, newChannel.id);
         await this.eventBus.publish(new ChannelEvent(ctx, newChannel, 'created', input));
         return newChannel;
@@ -476,7 +476,7 @@ export class ChannelService {
         }
         await this.connection.getRepository(ctx, Channel).save(updatedChannel, { reload: false });
         await this.customFieldRelationService.updateRelations(ctx, Channel, input, updatedChannel);
-        await this.allChannels.refresh(ctx);
+        this.clearCache(ctx);
         await this.eventBus.publish(new ChannelEvent(ctx, channel, 'updated', input));
         return assertFound(this.findOne(ctx, channel.id));
     }
@@ -502,6 +502,7 @@ export class ChannelService {
         await this.connection.getRepository(ctx, ProductVariantPrice).delete({
             channelId: id,
         });
+        this.clearCache(ctx);
         await this.eventBus.publish(new ChannelEvent(ctx, deletedChannel, 'deleted', id));
 
         return {
@@ -545,15 +546,97 @@ export class ChannelService {
         return isChannelAwareMetadata(this.connection.rawConnection.getMetadata(entityType));
     }
 
-    /**
-     * Ensures channel cache exists. If not, this method creates one.
-     */
-    private async ensureCacheExists() {
-        if (this.allChannels) {
-            return;
-        }
+    private findChannel(
+        repository: Repository<Channel>,
+        where: FindOptionsWhere<Channel>,
+    ): Promise<Channel | undefined> {
+        return repository
+            .findOne({ where, relations: { defaultShippingZone: true, defaultTaxZone: true } })
+            .then(result => result ?? undefined);
+    }
 
-        this.allChannels = await this.createCache();
+    /**
+     * Cached entries are shared by every request in the process, so they are loaded outside of
+     * any transaction. A caller inside a transaction still uses a cached Channel, but on a miss it
+     * loads through its own transaction and does not store the result, so it does not need a second
+     * pool connection while holding one. Resolved misses are ignored inside a transaction. A
+     * transaction which has written a Channel skips the cache entirely, so it always sees its own
+     * writes and never shares them with other requests.
+     *
+     * Loads go to the repository directly rather than through `TransactionalConnection.getRepository(ctx)`,
+     * because resolving a Channel is not subject to the {@link EntityAccessControlStrategy}, and
+     * the result must not depend on whether the cache was warm. They also read from the master,
+     * so that replica lag right after a write is not cached for the whole TTL.
+     */
+    private cached<T>(
+        ctx: RequestContext | undefined,
+        cache: Map<string, CacheEntry<T>>,
+        key: string,
+        load: (repository: Repository<Channel>) => Promise<T>,
+        options: { maxSize?: number; missCache?: Map<string, CacheEntry<T>> } = {},
+    ): Promise<T> {
+        const { maxSize = Infinity, missCache } = options;
+        const now = Date.now();
+        const transactionManager: EntityManager | undefined = ctx && (ctx as any)[TRANSACTION_MANAGER_KEY];
+        if (transactionManager) {
+            const cachedHit = this.channelWriters.has(transactionManager) ? undefined : cache.get(key);
+            return cachedHit && now < cachedHit.expires
+                ? cachedHit.value
+                : load(transactionManager.getRepository(Channel));
+        }
+        const hit = cache.get(key) ?? missCache?.get(key);
+        if (hit && now < hit.expires) {
+            return hit.value;
+        }
+        cache.delete(key);
+        missCache?.delete(key);
+        const entry = {
+            value: this.loadFromMaster(load),
+            expires: now + this.configService.entityOptions.channelCacheTtl,
+        };
+        this.setBounded(cache, key, entry, maxSize);
+        entry.value.then(
+            result => {
+                if (missCache && result == null && cache.get(key) === entry) {
+                    cache.delete(key);
+                    this.setBounded(missCache, key, entry, MISS_CACHE_SIZE);
+                }
+            },
+            () => {
+                if (cache.get(key) === entry) {
+                    cache.delete(key);
+                }
+            },
+        );
+        return entry.value;
+    }
+
+    private async loadFromMaster<T>(load: (repository: Repository<Channel>) => Promise<T>): Promise<T> {
+        const queryRunner = this.connection.rawConnection.createQueryRunner('master');
+        try {
+            return await load(queryRunner.manager.getRepository(Channel));
+        } finally {
+            await queryRunner.release();
+        }
+    }
+
+    private setBounded<V>(cache: Map<string, V>, key: string, value: V, maxSize: number) {
+        if (cache.size >= maxSize) {
+            // Evicts the oldest insertion rather than the least recently used entry
+            cache.delete(cache.keys().next().value as string);
+        }
+        cache.set(key, value);
+    }
+
+    private clearCache(ctx?: RequestContext) {
+        const transactionManager: EntityManager | undefined = ctx && (ctx as any)[TRANSACTION_MANAGER_KEY];
+        if (transactionManager) {
+            this.channelWriters.add(transactionManager);
+        }
+        this.countCache.clear();
+        this.defaultChannelCache.clear();
+        this.tokenCache.clear();
+        this.missCache.clear();
     }
 
     /**
