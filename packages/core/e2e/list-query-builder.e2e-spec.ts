@@ -424,6 +424,24 @@ describe('ListQueryBuilder', () => {
                     expect(testEntities.items).toEqual([]);
                 },
             );
+
+            // Patterns that compile to a large RE2 program are rejected.
+            it.skipIf(dbType !== 'sqljs' && dbType !== 'better-sqlite3')(
+                'rejects a pattern whose compiled program is too large',
+                assertThrowsWithMessage(
+                    () =>
+                        adminClient.query(GET_LIST, {
+                            options: {
+                                filter: {
+                                    description: {
+                                        regex: '.{999}',
+                                    },
+                                },
+                            },
+                        }),
+                    'The regex filter pattern is not allowed as it may cause excessive resource consumption',
+                ),
+            );
         });
     });
 
