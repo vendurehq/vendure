@@ -12,6 +12,7 @@ import {
     getChangedTopLevelFields,
     isFieldNullable,
     isRedactedSecretValue,
+    mergeStartingValues,
     pruneToChangedFields,
     removeEmptyIdFields,
     resolveInputComponentId,
@@ -249,6 +250,81 @@ describe('stripUntouchedTranslations', () => {
 
     it('returns null input unchanged', () => {
         expect(stripUntouchedTranslations(null as any, fields(), {})).toBeNull();
+    });
+});
+
+describe('mergeStartingValues', () => {
+    const defaults = () => ({
+        enabled: true,
+        facetValueIds: [] as string[],
+        translations: [{ languageCode: 'en', name: '', slug: '', description: '' }],
+        customFields: { infoUrl: '', isDownloadable: false, featureType: null },
+    });
+
+    it('replaces top-level defaults, including arrays, with the starting values', () => {
+        const result = mergeStartingValues(defaults(), { enabled: false, facetValueIds: ['1', '2'] });
+        expect(result.enabled).toBe(false);
+        expect(result.facetValueIds).toEqual(['1', '2']);
+    });
+
+    it('merges customFields key by key, keeping the defaults of the other custom fields', () => {
+        const result = mergeStartingValues(defaults(), { customFields: { infoUrl: 'https://example.com' } });
+        expect(result.customFields).toEqual({
+            infoUrl: 'https://example.com',
+            isDownloadable: false,
+            featureType: null,
+        });
+    });
+
+    it('merges a translation row onto the default row of the same language, in its position', () => {
+        const withLanguages = {
+            translations: [
+                { languageCode: 'en', name: '', slug: '', customFields: { subtitle: '', isFeatured: false } },
+                { languageCode: 'de', name: '', slug: '', customFields: { subtitle: '', isFeatured: false } },
+            ],
+        };
+        const startingRow = { languageCode: 'de', name: 'Name', customFields: { subtitle: 'Subtitle' } };
+        const result = mergeStartingValues(withLanguages, { translations: [startingRow] });
+        expect(result.translations).toEqual([
+            { languageCode: 'en', name: '', slug: '', customFields: { subtitle: '', isFeatured: false } },
+            {
+                languageCode: 'de',
+                name: 'Name',
+                slug: '',
+                customFields: { subtitle: 'Subtitle', isFeatured: false },
+            },
+        ]);
+    });
+
+    it('adds a row for a language with no default row last, merged onto the first default row', () => {
+        const result = mergeStartingValues(defaults(), {
+            translations: [{ languageCode: 'fr', name: 'Nom' }],
+        });
+        expect(result.translations).toEqual([
+            { languageCode: 'en', name: '', slug: '', description: '' },
+            { languageCode: 'fr', name: 'Nom', slug: '', description: '' },
+        ]);
+    });
+
+    it('keeps the default for a key set to undefined', () => {
+        const result = mergeStartingValues(defaults(), {
+            enabled: undefined,
+            customFields: { infoUrl: undefined },
+            translations: [{ languageCode: 'en', name: undefined }],
+        });
+        expect(result).toEqual(defaults());
+    });
+
+    it('lets an explicit null replace the default', () => {
+        const result = mergeStartingValues(defaults(), { customFields: { isDownloadable: null } });
+        expect(result.customFields.isDownloadable).toBeNull();
+    });
+
+    it('does not mutate the defaults', () => {
+        const original = defaults();
+        const snapshot = structuredClone(original);
+        mergeStartingValues(original, { enabled: false, customFields: { infoUrl: 'x' } });
+        expect(original).toEqual(snapshot);
     });
 });
 

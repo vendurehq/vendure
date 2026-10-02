@@ -14,6 +14,7 @@ import {
 import {
     convertEmptyStringsToNull,
     getChangedTopLevelFields,
+    mergeStartingValues,
     removeEmptyIdFields,
     stripNullNullableFields,
     stripUntouchedTranslations,
@@ -111,6 +112,17 @@ export interface GeneratedFormOptions<
     ) => WithLooseCustomFields<
         VarName extends keyof VariablesOf<T> ? VariablesOf<T>[VarName] : VariablesOf<T>
     >;
+    /**
+     * @description
+     * The starting values to apply on top of the default values when there is no entity. They count as
+     * unsaved changes. The form resets whenever they change, so values such as `new Date()` should not
+     * be recreated on every render.
+     *
+     * @since 3.8.0
+     */
+    startingValues?: WithLooseCustomFields<
+        Partial<VarName extends keyof VariablesOf<T> ? VariablesOf<T>[VarName] : VariablesOf<T>>
+    >;
     onSubmit?: (
         values: VarName extends keyof VariablesOf<T> ? VariablesOf<T>[VarName] : VariablesOf<T>,
         meta?: GeneratedFormSubmitMeta,
@@ -153,7 +165,16 @@ export function useGeneratedForm<
     VarName extends keyof VariablesOf<T> | undefined,
     E extends Record<string, any> = Record<string, any>,
 >(options: GeneratedFormOptions<T, VarName, E>) {
-    const { document, entity, setValues, onSubmit, varName, customFieldConfig, extendSchema } = options;
+    const {
+        document,
+        entity,
+        setValues,
+        startingValues: startingValuesOption,
+        onSubmit,
+        varName,
+        customFieldConfig,
+        extendSchema,
+    } = options;
     const { activeChannel } = useChannel();
     const serverConfig = useServerConfig();
 
@@ -177,6 +198,8 @@ export function useGeneratedForm<
     // extender and keep a create-only rule alive for the rest of the edit session.
     const extendSchemaRef = useRef(extendSchema);
     extendSchemaRef.current = extendSchema;
+
+    const startingValues = entity ? undefined : startingValuesOption;
 
     // Recomputing this on every render produces a new array identity which
     // ripples into the schema and default-values memos below, defeating any
@@ -226,12 +249,19 @@ export function useGeneratedForm<
             : processedDefaultValues;
         return applyNullableSelectCustomFieldDefaults(raw, customFieldConfig);
     }, [processedEntity, processedDefaultValues, updateFields, customFieldConfig]);
+    const startingFormValues = useMemo(
+        () => (startingValues ? mergeStartingValues(values, startingValues) : undefined),
+        [values, startingValues],
+    );
 
     const form = useForm({
         resolver: zodResolver(schema),
         mode: 'onChange',
         defaultValues: processedDefaultValues,
-        values,
+        values: startingFormValues ?? values,
+        // Keep the defaults as the baseline, so the starting values count as unsaved changes and the
+        // page's submit button is enabled.
+        resetOptions: { keepDefaultValues: !!startingFormValues },
     });
     // Read `dirtyFields` here, during render, so react-hook-form's lazily-tracked `formState`
     // Proxy actually populates it. If it were only read inside the submit handler it could come
