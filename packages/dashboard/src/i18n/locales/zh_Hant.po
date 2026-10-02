@@ -358,6 +358,10 @@ msgid "Successfully created role"
 msgstr "已成功建立角色"
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
+msgid "No option groups defined yet. Add option groups when variants differ by a shared property (e.g., Size, Color, Material). Without them, add variants one at a time below."
+msgstr "尚未定義選項群組。當變體因共同屬性而不同時，新增選項群組（例如：尺寸、顏色、材質）。如果沒有選項群組，請在下方逐一新增變體。"
+
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
 msgid "Are you sure you want to delete this variant?"
 msgstr "確定要刪除此變體嗎？"
 
@@ -7018,10 +7022,6 @@ msgstr "更多格式選項"
 #: src/app/routes/_authenticated/_orders/components/order-history/default-order-history-components.tsx
 msgid "{totalQuantity} item(s) refunded"
 msgstr "{totalQuantity}件商品已退款"
-
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
-msgid "No option groups defined yet. Add option groups to create different variants of your product (e.g., Size, Color, Material)"
-msgstr "尚未定義選項群組。新增選項群組以建立商品的不同變體（例如：尺寸、顏色、材質）"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx
 msgid "New email:"

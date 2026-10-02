@@ -34,6 +34,8 @@ import {
     createAdministratorDocument,
     createChannelDocument,
     createCollectionDocument,
+    createProductDocument,
+    createProductVariantsDocument,
     createPromotionDocument,
     createRoleDocument,
     duplicateEntityDocument,
@@ -636,6 +638,56 @@ describe('Duplicating entities', () => {
                 );
                 expect(variant).not.toBeUndefined();
                 expect(variant!.taxCategory.id).toEqual('T_2');
+            });
+
+            // https://github.com/vendurehq/vendure/issues/5325
+            it('duplicate product whose variants have no options', async () => {
+                const { createProduct } = await adminClient.query(createProductDocument, {
+                    input: {
+                        translations: [
+                            {
+                                languageCode: LanguageCode.en,
+                                name: 'Gift Card',
+                                slug: 'gift-card',
+                                description: 'A gift card',
+                            },
+                        ],
+                    },
+                });
+                await adminClient.query(createProductVariantsDocument, {
+                    input: [
+                        {
+                            productId: createProduct.id,
+                            sku: 'GC10',
+                            optionIds: [],
+                            translations: [{ languageCode: LanguageCode.en, name: 'Gift Card 10' }],
+                        },
+                        {
+                            productId: createProduct.id,
+                            sku: 'GC20',
+                            optionIds: [],
+                            translations: [{ languageCode: LanguageCode.en, name: 'Gift Card 20' }],
+                        },
+                    ],
+                });
+
+                const { duplicateEntity } = await adminClient.query(duplicateEntityDocument, {
+                    input: {
+                        entityName: 'Product',
+                        entityId: createProduct.id,
+                        duplicatorInput: {
+                            code: 'product-duplicator',
+                            arguments: [{ name: 'includeVariants', value: 'true' }],
+                        },
+                    },
+                });
+                duplicateEntityGuard.assertSuccess(duplicateEntity);
+
+                const { product } = await adminClient.query(getProductWithVariantsDocument, {
+                    id: duplicateEntity.newEntityId,
+                });
+                expect(product?.variants.length).toBe(2);
+                expect(product?.variants.map(v => v.sku).sort()).toEqual(['GC10-copy', 'GC20-copy']);
             });
         });
 
