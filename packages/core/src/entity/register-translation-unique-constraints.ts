@@ -2,10 +2,14 @@
 import { Type } from '@vendure/common/lib/shared-types';
 import { getMetadataArgsStorage, Unique } from 'typeorm';
 
+import { getTranslationEntityNames } from './register-custom-entity-fields';
+
 /**
- * Adds a unique constraint on `(languageCode, base)` to every registered translation entity —
- * any entity implementing `Translation<T>`, detected by it declaring both a `languageCode`
- * column and a `base` relation, the two members that interface requires. This enforces at the
+ * Adds a unique constraint on `(languageCode, base)` to every registered translation entity. An
+ * entity is a translation entity when it is the target of a `translations` relation, the same
+ * definition {@link getTranslationEntityNames} gives custom-field registration. It must also
+ * declare the `languageCode` column and `base` relation that `Translation<T>` requires, since
+ * the constraint is built from those two members. This enforces at the
  * database level the invariant that a translatable entity has at most one translation per
  * language; the application-level check in `TranslatableSaver` reads existing translations
  * before inserting, so two concurrent updates can both pass it and insert the same language
@@ -19,7 +23,11 @@ import { getMetadataArgsStorage, Unique } from 'typeorm';
  */
 export function registerTranslationEntityUniqueConstraints(entities: Array<Type<any>>) {
     const metadataArgsStorage = getMetadataArgsStorage();
+    const translationEntityNames = getTranslationEntityNames();
     for (const EntityCtor of entities) {
+        if (!translationEntityNames.has(EntityCtor.name)) {
+            continue;
+        }
         // Columns and relations may be declared on a parent class, so match metadata
         // against the whole inheritance chain the way TypeORM itself does.
         const chain = getInheritanceChain(EntityCtor);

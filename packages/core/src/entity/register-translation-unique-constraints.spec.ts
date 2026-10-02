@@ -37,6 +37,55 @@ class TestArticleTranslation extends VendureEntity implements Translation<TestAr
 class TestArticleTranslationSubclass extends TestArticleTranslation {}
 
 @Entity()
+class TestSubclassArticle extends VendureEntity {
+    @OneToMany(() => TestArticleTranslationSubclass, translation => translation.base)
+    translations: Array<Translation<TestArticle>>;
+}
+
+// Declares the `translations` relation by entity name, as plugins do to break circular imports.
+@Entity()
+class TestStringTargetArticle extends VendureEntity {
+    constructor(input?: DeepPartial<TestStringTargetArticle>) {
+        super(input);
+    }
+
+    @OneToMany('TestStringTargetArticleTranslation', 'base')
+    translations: Array<Translation<TestStringTargetArticle>>;
+}
+
+@Entity()
+class TestStringTargetArticleTranslation extends VendureEntity {
+    constructor(input?: DeepPartial<TestStringTargetArticleTranslation>) {
+        super(input);
+    }
+
+    @Column('varchar') languageCode: LanguageCode;
+
+    @ManyToOne('TestStringTargetArticle', 'translations')
+    base: TestStringTargetArticle;
+}
+
+// Has the `languageCode` and `base` members of `Translation<T>`, but nothing points a
+// `translations` relation at it, so it is not a translation entity.
+@Entity()
+class TestArticleRevision extends VendureEntity {
+    constructor(input?: DeepPartial<TestArticleRevision>) {
+        super(input);
+    }
+
+    @Column('varchar') languageCode: LanguageCode;
+
+    @ManyToOne(() => TestArticle)
+    base: TestArticle;
+}
+
+@Entity()
+class TestPreConstrainedArticle extends VendureEntity {
+    @OneToMany(() => TestPreConstrainedTranslation, translation => translation.base)
+    translations: Array<Translation<TestArticle>>;
+}
+
+@Entity()
 @Unique(['languageCode', 'base'])
 class TestPreConstrainedTranslation extends VendureEntity implements Translation<TestArticle> {
     constructor(input?: DeepPartial<Translation<TestArticle>>) {
@@ -54,6 +103,8 @@ const testEntities = [
     TestArticleTranslation,
     TestArticleTranslationSubclass,
     TestPreConstrainedTranslation,
+    TestStringTargetArticleTranslation,
+    TestArticleRevision,
 ];
 
 function uniquesFor(target: new (...args: any[]) => any) {
@@ -86,6 +137,24 @@ describe('registerTranslationEntityUniqueConstraints()', () => {
         registerTranslationEntityUniqueConstraints([TestArticle, TestArticleTranslation]);
 
         expect(uniquesFor(TestArticle)).toHaveLength(0);
+    });
+
+    // #5327: the constraint uses the same relation-based definition as custom-field registration
+    it('does not add a constraint to an entity that no translations relation targets', () => {
+        registerTranslationEntityUniqueConstraints([TestArticle, TestArticleRevision]);
+
+        expect(uniquesFor(TestArticleRevision)).toHaveLength(0);
+    });
+
+    it('detects a translation entity targeted by a string-named translations relation', () => {
+        registerTranslationEntityUniqueConstraints([
+            TestStringTargetArticle,
+            TestStringTargetArticleTranslation,
+        ]);
+
+        const uniques = uniquesFor(TestStringTargetArticleTranslation);
+        expect(uniques).toHaveLength(1);
+        expect(uniques[0].columns).toEqual(['languageCode', 'base']);
     });
 
     it('is idempotent across repeated bootstraps in the same process', () => {
