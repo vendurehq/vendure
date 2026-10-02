@@ -14,7 +14,7 @@ import { cn } from '@/vdb/lib/utils.js';
 import { useCopyToClipboard } from '@uidotdev/usehooks';
 import { CheckIcon, CopyIcon, EllipsisVerticalIcon, InfoIcon } from 'lucide-react';
 import React, { ComponentProps, useMemo, useState } from 'react';
-import { Control, UseFormReturn } from 'react-hook-form';
+import { Control, FieldValues, UseFormReturn } from 'react-hook-form';
 
 import { ActionBarItemPosition, DashboardActionBarItem } from '../extension-api/types/layout.js';
 import { ActionBarItem, ActionBarItemProps, ActionBarItemWrapper } from './action-bar-item-wrapper.js';
@@ -974,14 +974,16 @@ export function FullWidthPageBlock({
  * @docsPage PageBlock
  * @since 3.3.0
  */
-export function CustomFieldsPageBlock({
+// Generic on purpose: since react-hook-form 7.72.0, `Control._options.validate` is compared
+// contravariantly, so a form's `Control<T>` is not assignable to `Control<any, any>`.
+export function CustomFieldsPageBlock<TFieldValues extends FieldValues>({
     column,
     entityType,
     control,
 }: Readonly<{
     column: 'main' | 'side';
     entityType: string;
-    control: Control<any, any>;
+    control: Control<TFieldValues, any, any>;
 }>) {
     const customFieldConfig = useCustomFieldConfig(entityType);
     const isServerConfigLoaded = useIsServerConfigLoaded();
