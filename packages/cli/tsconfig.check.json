@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "exclude": [
+    "dist/**/*",
+    "src/**/*.template.tsx",
+    "**/fixtures/**/*"
+  ]
+}

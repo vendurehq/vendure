@@ -12,3 +12,12 @@ declare module 'i18next-icu' {
 declare module 'i18next-fs-backend' {
     // default
 }
+
+declare module 'better-sqlite3' {
+    class Database {
+        constructor(filename: string);
+        exec(sql: string): this;
+        close(): this;
+    }
+    export default Database;
+}

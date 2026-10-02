@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, MockInstance, vi } from 'vitest';
 
 // Mock @clack/prompts
 vi.mock('@clack/prompts', () => ({
@@ -13,7 +13,7 @@ vi.mock('@clack/prompts', () => ({
 import { log } from '@clack/prompts';
 
 describe('doctor command internals', () => {
-    let mockExit: ReturnType<typeof vi.spyOn>;
+    let mockExit: MockInstance<typeof process.exit>;
 
     beforeEach(() => {
         vi.clearAllMocks();
