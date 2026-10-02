@@ -77,6 +77,37 @@ describe('isFieldInSelection', () => {
             expect(isFieldInSelection(info, 'slug', 'children')).toBe(true);
         });
 
+        it('works with a path of parent field names', () => {
+            // Simulates: collections { items { id children { id productVariantCount } } }
+            const info = createMockResolveInfo([
+                ...createFieldSelections(['id']),
+                {
+                    kind: Kind.FIELD,
+                    name: { kind: Kind.NAME, value: 'children' },
+                    selectionSet: {
+                        kind: Kind.SELECTION_SET,
+                        selections: createFieldSelections(['id', 'productVariantCount']),
+                    },
+                },
+            ]);
+            expect(isFieldInSelection(info, 'productVariantCount', ['items', 'children'])).toBe(true);
+            expect(isFieldInSelection(info, 'productVariantCount')).toBe(false);
+        });
+
+        it('returns false when field is only at a different level of the path', () => {
+            // Simulates: collections { items { productVariantCount children { id } } }
+            const info = createMockResolveInfo([
+                ...createFieldSelections(['productVariantCount']),
+                {
+                    kind: Kind.FIELD,
+                    name: { kind: Kind.NAME, value: 'children' },
+                    selectionSet: { kind: Kind.SELECTION_SET, selections: createFieldSelections(['id']) },
+                },
+            ]);
+            expect(isFieldInSelection(info, 'productVariantCount', ['items', 'children'])).toBe(false);
+            expect(isFieldInSelection(info, 'productVariantCount')).toBe(true);
+        });
+
         it('returns false when selection set is empty', () => {
             const info = createMockResolveInfo([]);
             expect(isFieldInSelection(info, 'productVariantCount')).toBe(false);
@@ -125,6 +156,51 @@ describe('isFieldInSelection', () => {
 
             const info = createMockResolveInfo(selections, 'items', fragments);
             expect(isFieldInSelection(info, 'productVariantCount')).toBe(true);
+        });
+
+        it('follows a path of parent field names through a fragment spread', () => {
+            // Simulates:
+            // collections {
+            //   items {
+            //     ...CollectionFields
+            //   }
+            // }
+            // fragment CollectionFields on Collection {
+            //   children { productVariantCount }
+            // }
+            const fragments: GraphQLResolveInfo['fragments'] = {
+                CollectionFields: {
+                    kind: Kind.FRAGMENT_DEFINITION,
+                    name: { kind: Kind.NAME, value: 'CollectionFields' },
+                    typeCondition: {
+                        kind: Kind.NAMED_TYPE,
+                        name: { kind: Kind.NAME, value: 'Collection' },
+                    },
+                    selectionSet: {
+                        kind: Kind.SELECTION_SET,
+                        selections: [
+                            {
+                                kind: Kind.FIELD,
+                                name: { kind: Kind.NAME, value: 'children' },
+                                selectionSet: {
+                                    kind: Kind.SELECTION_SET,
+                                    selections: createFieldSelections(['productVariantCount']),
+                                },
+                            },
+                        ],
+                    },
+                },
+            } as unknown as GraphQLResolveInfo['fragments'];
+
+            const selections: SelectionNode[] = [
+                {
+                    kind: Kind.FRAGMENT_SPREAD,
+                    name: { kind: Kind.NAME, value: 'CollectionFields' },
+                },
+            ];
+
+            const info = createMockResolveInfo(selections, 'items', fragments);
+            expect(isFieldInSelection(info, 'productVariantCount', ['items', 'children'])).toBe(true);
         });
 
         it('returns false when field is not in a fragment spread', () => {

@@ -3,17 +3,21 @@ import { FieldNode, GraphQLResolveInfo, SelectionNode } from 'graphql';
 /**
  * Checks if a specific field is requested in the GraphQL query selection set.
  * Looks for the field within the 'items' selection of a paginated list.
+ * A path of parent field names can be given to look deeper, e.g. `['items', 'children']`.
  * Supports direct field selections, fragment spreads, and inline fragments.
  */
 export function isFieldInSelection(
     info: GraphQLResolveInfo,
     fieldName: string,
-    parentFieldName = 'items',
+    parentFieldName: string | string[] = 'items',
 ): boolean {
-    const parentSelections = info.fieldNodes.flatMap(node => node.selectionSet?.selections ?? []);
-    const parentField = findFieldInSelections(parentSelections, parentFieldName, info);
-    const childSelections = parentField?.selectionSet?.selections ?? [];
-    return hasFieldInSelections(childSelections, fieldName, info);
+    let selections: readonly SelectionNode[] = info.fieldNodes.flatMap(
+        node => node.selectionSet?.selections ?? [],
+    );
+    for (const name of Array.isArray(parentFieldName) ? parentFieldName : [parentFieldName]) {
+        selections = findFieldInSelections(selections, name, info)?.selectionSet?.selections ?? [];
+    }
+    return hasFieldInSelections(selections, fieldName, info);
 }
 
 /**
