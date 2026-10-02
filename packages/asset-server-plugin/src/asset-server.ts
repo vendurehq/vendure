@@ -249,9 +249,13 @@ export class AssetServer {
         const decodedReqPath = this.sanitizeFilePath(filePath);
         if (imageParamsString !== '') {
             const imageParamHash = this.md5(imageParamsString);
+            // Without a requested format, sharp writes SVG input as PNG. The cached file must be
+            // named for what it contains, because its extension decides the served Content-Type.
+            const isSvg = this.getMimeType(decodedReqPath) === 'image/svg+xml';
+            const outputFormat = imageFormat || (isSvg ? 'png' : undefined);
             return path.posix.join(
                 this.cacheDir,
-                this.addSuffix(decodedReqPath, imageParamHash, imageFormat),
+                this.addSuffix(decodedReqPath, imageParamHash, outputFormat),
             );
         } else {
             return decodedReqPath;
