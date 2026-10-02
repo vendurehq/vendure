@@ -434,20 +434,19 @@ export function DataTable<TData>({
     }, [onPageChange, searchTerm]);
 
     useEffect(() => {
+        // Also skips the mount run, so the initial filters are not reported as a change.
+        if (JSON.stringify(prevColumnFiltersRef.current) === JSON.stringify(columnFilters)) {
+            return;
+        }
+        prevColumnFiltersRef.current = columnFilters;
         onFilterChange?.(tableRef.current, columnFilters);
-        if (
-            page &&
-            page > 1 &&
-            itemsPerPage &&
-            JSON.stringify(prevColumnFiltersRef.current) !== JSON.stringify(columnFilters)
-        ) {
+        if (page && page > 1 && itemsPerPage) {
             // Set the page back to 1 when filters change
             setPagination({
                 ...pagination,
                 pageIndex: 0,
             });
         }
-        prevColumnFiltersRef.current = columnFilters;
     }, [columnFilters]);
 
     const handleSearchChange = (value: string) => {
