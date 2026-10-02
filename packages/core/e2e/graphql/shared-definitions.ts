@@ -39,6 +39,7 @@ export const getTasksDocument = graphql(`
             scheduleDescription
             lastResult
             enabled
+            isRunning
         }
     }
 `);
