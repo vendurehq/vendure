@@ -2426,6 +2426,9 @@ describe('Collection resolver', () => {
     describe('productVariantCount of nested children in collection list', () => {
         let parentId: string;
         let childId: string;
+        // Expected counts come from `productVariants.totalItems`, which is resolved independently
+        // of `productVariantCount`. Earlier tests delete some of the fixture variants.
+        let expectedParentCount: number;
         let expectedChildCount: number;
 
         beforeAll(async () => {
@@ -2451,14 +2454,27 @@ describe('Collection resolver', () => {
             childId = await createFilteredCollection('variant-count-child', 'computers', parentId);
             await awaitRunningJobs(adminClient, 5000);
 
-            const { collection } = await adminClient.query(getCollectionVariantCountDocument, {
+            const { collection: parent } = await adminClient.query(getCollectionVariantCountDocument, {
+                id: parentId,
+            });
+            const { collection: child } = await adminClient.query(getCollectionVariantCountDocument, {
                 id: childId,
             });
-            expectedChildCount = collection!.productVariantCount;
+            expectedParentCount = parent!.productVariants.totalItems;
+            expectedChildCount = child!.productVariants.totalItems;
         });
 
-        it('child has variants when queried directly', () => {
+        it('counts are correct when queried directly', async () => {
+            const { collection: parent } = await adminClient.query(getCollectionVariantCountDocument, {
+                id: parentId,
+            });
+            const { collection: child } = await adminClient.query(getCollectionVariantCountDocument, {
+                id: childId,
+            });
             expect(expectedChildCount).toBeGreaterThan(0);
+            expect(expectedParentCount).toBeGreaterThan(expectedChildCount);
+            expect(parent?.productVariantCount).toBe(expectedParentCount);
+            expect(child?.productVariantCount).toBe(expectedChildCount);
         });
 
         for (const apiName of ['admin', 'shop'] as const) {
@@ -2491,6 +2507,19 @@ describe('Collection resolver', () => {
                 });
                 expect(collections.items[0].children).toEqual([
                     { id: childId, productVariantCount: expectedChildCount },
+                ]);
+            });
+
+            it(`${apiName} API: parent not included in cached counts`, async () => {
+                const { collections } = await client().query(getCollectionListParentVariantCountsDocument, {
+                    options: { filter: { id: { eq: childId } } },
+                });
+                expect(collections.items).toEqual([
+                    {
+                        id: childId,
+                        productVariantCount: expectedChildCount,
+                        parent: { id: parentId, productVariantCount: expectedParentCount },
+                    },
                 ]);
             });
         }
@@ -2680,6 +2709,9 @@ const getCollectionVariantCountDocument = graphql(`
         collection(id: $id) {
             id
             productVariantCount
+            productVariants {
+                totalItems
+            }
         }
     }
 `);
@@ -2705,6 +2737,21 @@ const getCollectionListChildVariantCountsDocument = graphql(`
             items {
                 id
                 children {
+                    id
+                    productVariantCount
+                }
+            }
+        }
+    }
+`);
+
+const getCollectionListParentVariantCountsDocument = graphql(`
+    query GetCollectionListParentVariantCounts($options: CollectionListOptions) {
+        collections(options: $options) {
+            items {
+                id
+                productVariantCount
+                parent {
                     id
                     productVariantCount
                 }

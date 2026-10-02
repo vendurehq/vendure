@@ -15,7 +15,6 @@ import {
     QueryPreviewCollectionVariantsArgs,
 } from '@vendure/common/lib/generated-types';
 import { PaginatedList } from '@vendure/common/lib/shared-types';
-import { unique } from '@vendure/common/lib/unique';
 import { GraphQLResolveInfo } from 'graphql';
 
 import { RequestContextCacheService } from '../../../cache/request-context-cache.service';
@@ -27,6 +26,7 @@ import { Collection } from '../../../entity/collection/collection.entity';
 import { CollectionService } from '../../../service/services/collection.service';
 import { FacetValueService } from '../../../service/services/facet-value.service';
 import { ConfigurableOperationCodec } from '../../common/configurable-operation-codec';
+import { getVariantCountCollectionIds } from '../../common/get-variant-count-collection-ids';
 import { isFieldInSelection } from '../../common/is-field-in-selection';
 import { RequestContext } from '../../common/request-context';
 import { Allow } from '../../decorators/allow.decorator';
@@ -66,17 +66,9 @@ export class CollectionResolver {
     ): Promise<PaginatedList<Translated<Collection>>> {
         const collections = await this.collectionService.findAll(ctx, args.options || undefined, relations);
         // Cache the variant counts query promise if productVariantCount is requested,
-        // allowing the DB query to start before the field resolvers are called.
-        // Children are only included when `children { productVariantCount }` is requested.
-        const itemCountsRequested = isFieldInSelection(info, 'productVariantCount');
-        const childCountsRequested = isFieldInSelection(info, 'productVariantCount', ['items', 'children']);
-        if (itemCountsRequested || childCountsRequested) {
-            const collectionIds = unique(
-                collections.items.flatMap(c => [
-                    ...(itemCountsRequested ? [c.id] : []),
-                    ...(childCountsRequested ? (c.children ?? []).map(ch => ch.id) : []),
-                ]),
-            );
+        // allowing the DB query to start before the field resolvers are called
+        const collectionIds = getVariantCountCollectionIds(info, collections.items);
+        if (collectionIds) {
             const countsPromise = this.collectionService.getProductVariantCounts(ctx, collectionIds);
             this.requestContextCache.set(ctx, CacheKey.CollectionVariantCounts, countsPromise);
         }
