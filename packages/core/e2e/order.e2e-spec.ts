@@ -2505,6 +2505,47 @@ describe('Orders resolver', () => {
             const remaining = await orderService.getOrderSurcharges(ctx, internalOrderId);
             expect(remaining.map(s => s.description)).toEqual(['Gift wrap']);
         });
+
+        // https://github.com/vendurehq/vendure/issues/5332
+        // `applyPriceAdjustments` calculates `Order.subTotal` from `order.surcharges`, which is
+        // a snapshot taken when the Order was loaded. A Surcharge added since then must still be
+        // reflected in the persisted totals.
+        it('calculates totals from current Surcharges, not a stale snapshot', async () => {
+            await shopClient.asAnonymousUser();
+            const { addItemToOrder: add } = await shopClient.query(addItemToOrderDocument, {
+                productVariantId: 'T_1',
+                quantity: 1,
+            });
+            shopOrderGuard.assertSuccess(add);
+            const internalOrderId = +add.id.replace('T_', '');
+
+            const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+            const orderService = server.app.get(OrderService);
+            const connection = server.app.get(TransactionalConnection);
+
+            await orderService.addSurchargeToOrder(ctx, internalOrderId, {
+                description: 'Gift wrap',
+                listPrice: 200,
+            });
+
+            const staleOrder = await connection.getEntityOrThrow(ctx, Order, internalOrderId, {
+                relations: ['surcharges', 'lines', 'shippingLines'],
+            });
+
+            // A blocking event handler or a concurrent request adds a second Surcharge, which
+            // `staleOrder.surcharges` does not know about.
+            await orderService.addSurchargeToOrder(ctx, internalOrderId, {
+                description: 'Loyalty discount',
+                listPrice: -500,
+            });
+
+            const updatedOrder = await orderService.applyPriceAdjustments(ctx, staleOrder);
+
+            const expectedSubTotal =
+                staleOrder.lines.reduce((sum, l) => sum + l.proratedLinePrice, 0) + 200 - 500;
+            expect(updatedOrder.surcharges.length).toBe(2);
+            expect(updatedOrder.subTotal).toBe(expectedSubTotal);
+        });
     });
 
     describe('set order currency code', () => {
