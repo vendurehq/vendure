@@ -379,12 +379,12 @@ export async function runPluginConfigurations(config: RuntimeVendureConfig): Pro
             Object.assign(config, result);
         }
     }
-    // Remove the keys which no plugin used, so that the rest of the bootstrap
-    // treats those entities as if they had no custom fields config at all.
-    const customFields = config.customFields as Record<string, unknown[] | undefined>;
+    // Remove the keys which no plugin used. An empty entry would still add a
+    // `customFields: JSON` field to the entity's GraphQL type, which clashes with
+    // plugins that declare `customFields` in their own schema.
     for (const entityName of addedCustomFieldsKeys) {
-        if (customFields[entityName]?.length === 0) {
-            delete customFields[entityName];
+        if (config.customFields[entityName]?.length === 0) {
+            delete config.customFields[entityName];
         }
     }
     return config;
@@ -396,13 +396,17 @@ export async function runPluginConfigurations(config: RuntimeVendureConfig): Pro
  * functions can push custom fields onto them, the same as for core entities.
  */
 function addCustomFieldsKeysForPluginEntities(config: RuntimeVendureConfig): string[] {
-    const customFields = config.customFields as Record<string, unknown[] | undefined>;
     const embeddeds = getMetadataArgsStorage().embeddeds;
     const addedKeys: string[] = [];
     for (const entity of getEntitiesFromPlugins(config.plugins)) {
-        const hasCustomFields = embeddeds.some(e => e.target === entity && e.propertyName === 'customFields');
-        if (hasCustomFields && !customFields[entity.name]) {
-            customFields[entity.name] = [];
+        // Match on the target name, the same way as `registerCustomEntityFields`
+        const hasCustomFields = embeddeds.some(
+            e =>
+                e.propertyName === 'customFields' &&
+                (typeof e.target === 'string' ? e.target : e.target.name) === entity.name,
+        );
+        if (hasCustomFields && !config.customFields[entity.name]) {
+            config.customFields[entity.name] = [];
             addedKeys.push(entity.name);
         }
     }

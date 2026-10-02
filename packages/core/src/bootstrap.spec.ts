@@ -22,7 +22,7 @@ class PluginEntityWithCustomFields extends VendureEntity implements HasCustomFie
 @VendurePlugin({
     entities: [PluginEntityWithCustomFields],
     configuration: config => {
-        (config.customFields as any).PluginEntityWithCustomFields.push({ name: 'foo', type: 'string' });
+        config.customFields.PluginEntityWithCustomFields.push({ name: 'foo', type: 'string' });
         return config;
     },
 })
@@ -52,7 +52,7 @@ describe('preBootstrapConfig()', () => {
             plugins: [PluginWithCustomFieldsOnOwnEntity],
         });
 
-        expect((config.customFields as any).PluginEntityWithCustomFields).toEqual([
+        expect(config.customFields.PluginEntityWithCustomFields).toEqual([
             { name: 'foo', type: 'string' },
         ]);
     });
