@@ -171,14 +171,15 @@ export class SchedulerService implements OnApplicationBootstrap, OnApplicationSh
                 name: task.id,
                 protect: task.options.preventOverlap ? protectCallback : undefined,
             },
-            () => {
+            async () => {
                 if (this.shouldRunTasks) {
                     // Only execute the cron task on the worker process
                     // so that any expensive logic does not affect
                     // the responsiveness of server processes
                     this.runningTasks++;
                     try {
-                        schedulerStrategy.executeTask(task)(job);
+                        // Awaiting keeps croner's `protect` blocking for the full run
+                        await schedulerStrategy.executeTask(task)(job);
                     } catch (e: any) {
                         const message = e instanceof Error ? e.message : String(e);
                         Logger.error(`Error executing scheduled task ${task.id}: ${message}`);
