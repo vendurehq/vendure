@@ -130,5 +130,26 @@ export default async function globalSetup() {
         productsCsvPath: path.join(__dirname, '../../core/e2e/fixtures/e2e-products-full.csv'),
         customerCount: 5,
     });
+
+    // Seed a value for the readonly `relatedAsset` relation custom field on the first product
+    // (Laptop). Readonly relation custom fields are excluded from the GraphQL input types, so they
+    // cannot be set via the Admin API — set it directly here so OSS-584 (a custom form component
+    // reading the relation object) can be exercised on the product detail page.
+    const { Asset, Product, TransactionalConnection } = await import('@vendure/core');
+    const dataSource = server.app.get(TransactionalConnection).rawConnection;
+    const [firstAsset] = await dataSource.getRepository(Asset).find({ take: 1, order: { id: 'ASC' } });
+    // Target the same product the e2e test opens (slug "laptop"), so seeding and assertion never
+    // drift apart if the fixture CSV order changes.
+    const laptop = await dataSource
+        .getRepository(Product)
+        .createQueryBuilder('product')
+        .leftJoin('product.translations', 'translation')
+        .where('translation.slug = :slug', { slug: 'laptop' })
+        .getOne();
+    if (firstAsset && laptop) {
+        (laptop.customFields as Record<string, unknown>).relatedAsset = firstAsset;
+        await dataSource.getRepository(Product).save(laptop);
+    }
+
     (globalThis as any).__VENDURE_SERVER__ = server;
 }

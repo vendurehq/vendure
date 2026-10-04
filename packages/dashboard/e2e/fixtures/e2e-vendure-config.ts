@@ -2,6 +2,7 @@ import { VendureConfig } from '@vendure/core';
 
 import { AlertTestPlugin } from './alert-test-plugin';
 import { FormInputsTestPlugin } from './form-inputs-test-plugin';
+import { RelationCfPlugin } from './relation-cf-plugin';
 
 /**
  * Vendure config for the Vite plugin during E2E tests.
@@ -30,5 +31,5 @@ export const config: VendureConfig = {
     paymentOptions: {
         paymentMethodHandlers: [],
     },
-    plugins: [FormInputsTestPlugin, AlertTestPlugin],
+    plugins: [FormInputsTestPlugin, AlertTestPlugin, RelationCfPlugin],
 };
