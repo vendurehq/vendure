@@ -748,6 +748,11 @@ msgstr "新しいファセット値"
 msgid "Successfully updated channel"
 msgstr "チャネルを更新しました"
 
+#. placeholder {0}: lines.length
+#: src/app/routes/_authenticated/_shipping-methods/components/test-order-builder.tsx
+msgid "{0, plural, one {# item} other {# items}}"
+msgstr "{0, plural, other {# 件の商品}}"
+
 #: src/lib/components/shared/history-timeline/history-timeline-with-grouping.tsx
 msgid "Show less"
 msgstr "表示を減らす"
@@ -848,11 +853,9 @@ msgstr "この下書き注文を削除してもよろしいですか？"
 msgid "Fulfillment created"
 msgstr "フルフィルメントを作成しました"
 
-#. placeholder {0}: testResult.length
-#. placeholder {1}: testResult.length !== 1 ? 's' : ''
 #: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-result.tsx
-msgid "Found {0} eligible shipping method{1}"
-msgstr "{0}個の適格な配送方法が見つかりました"
+#~ msgid "Found {0} eligible shipping method{1}"
+#~ msgstr "{0}個の適格な配送方法が見つかりました"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 #: src/lib/components/shared/asset/asset-properties.tsx
@@ -1170,6 +1173,11 @@ msgstr "API Keys"
 #: src/app/routes/_authenticated/_products/components/product-option-select.tsx
 msgid "Search {name}..."
 msgstr "{name}を検索..."
+
+#. placeholder {0}: selection.length
+#: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
+msgid "{0, plural, one {Are you sure you want to remove # country from this zone?} other {Are you sure you want to remove # countries from this zone?}}"
+msgstr "{0, plural, other {このゾーンから # 件の国を削除してもよろしいですか？}}"
 
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx
 msgid "Edit asset"
@@ -1525,6 +1533,11 @@ msgstr "最新の注文"
 msgid "+ {leftOver} more"
 msgstr "+ {leftOver} 件"
 
+#. placeholder {0}: selection.length
+#: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
+msgid "{0, plural, one {Removed # country from zone} other {Removed # countries from zone}}"
+msgstr "{0, plural, other {ゾーンから # 件の国を削除しました}}"
+
 #: src/lib/components/shared/customer-address-form.tsx
 msgid "Use as the default billing address"
 msgstr "デフォルトの請求先住所として使用"
@@ -1584,6 +1597,10 @@ msgstr "通常"
 msgid "Filters"
 msgstr "フィルター"
 
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+msgid "selected collection"
+msgstr "選択したコレクション"
+
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts
 msgid "Customer Groups"
@@ -1631,10 +1648,9 @@ msgstr "作成日時"
 msgid "Loading addresses..."
 msgstr "住所を読み込み中..."
 
-#. placeholder {0}: collectionsToMove.length === 1 ? 'this collection' : `${collectionsToMove.length} collections`
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
-msgid "Select a target collection to move {0} to."
-msgstr "{0}を移動するターゲットコレクションを選択してください。"
+#~ msgid "Select a target collection to move {0} to."
+#~ msgstr "{0}を移動するターゲットコレクションを選択してください。"
 
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
@@ -1859,6 +1875,11 @@ msgstr "税カテゴリの更新に失敗しました"
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Refund settled successfully"
 msgstr "返金を決済しました"
+
+#. placeholder {0}: collectionsToMove.length
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+msgid "{0, plural, =1 {Select a target collection to move this collection to.} other {Select a target collection to move # collections to.}}"
+msgstr "{0, plural, =1 {このコレクションの移動先となるコレクションを選択してください。} other {# 件のコレクションの移動先となるコレクションを選択してください。}}"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
@@ -2805,6 +2826,10 @@ msgstr "送料を再計算"
 #~ msgid "Select which options should apply to the existing variant \"{0}\""
 #~ msgstr "既存のバリエーション「{0}」に適用するオプションを選択"
 
+#: src/lib/components/shared/asset/asset-gallery.tsx
+msgid "{totalItems, plural, one {# asset found} other {# assets found}}"
+msgstr "{totalItems, plural, other {# 件のアセットが見つかりました}}"
+
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx
 #: src/app/routes/_authenticated/_assets/assets.tsx
 #: src/app/routes/_authenticated/_assets/assets.tsx
@@ -2957,6 +2982,11 @@ msgstr "{entityIdsLength}個の{entityType}のファセット値を更新しま�
 msgid "Failed to remove customer from group"
 msgstr "グループからの顧客の削除に失敗しました"
 
+#. placeholder {0}: testResult.length
+#: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-result.tsx
+msgid "{0, plural, one {Found # eligible shipping method} other {Found # eligible shipping methods}}"
+msgstr "{0, plural, other {# 件の適格な配送方法が見つかりました}}"
+
 #: src/lib/components/layout/nav-user.tsx
 msgctxt "theme"
 msgid "System"
@@ -3072,11 +3102,9 @@ msgstr "昨日"
 #~ msgid "Option name"
 #~ msgstr "オプション名"
 
-#. placeholder {0}: selection.length
-#. placeholder {1}: selection.length === 1 ? 'country' : 'countries'
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
-msgid "Are you sure you want to remove {0} {1} from this zone?"
-msgstr "このゾーンから{0} {1}を削除してもよろしいですか？"
+#~ msgid "Are you sure you want to remove {0} {1} from this zone?"
+#~ msgstr "このゾーンから{0} {1}を削除してもよろしいですか？"
 
 #. placeholder {0}: addedSurcharges.length
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx
@@ -3400,10 +3428,9 @@ msgstr "グローバルビューを管理"
 msgid "Processing..."
 msgstr "処理中..."
 
-#. placeholder {0}: totalItems === 1 ? 'asset' : 'assets'
 #: src/lib/components/shared/asset/asset-gallery.tsx
-msgid "{totalItems} {0} found"
-msgstr "{totalItems} 件の{0}が見つかりました"
+#~ msgid "{totalItems} {0} found"
+#~ msgstr "{totalItems} 件の{0}が見つかりました"
 
 #: src/lib/components/date-range-picker.tsx
 msgid "Select date range"
@@ -4019,12 +4046,9 @@ msgstr "次の状態を選択"
 msgid "No alerts"
 msgstr "アラートなし"
 
-#. placeholder {0}: collectionsToMove.length
-#. placeholder {1}: collectionsToMove.length === 1 ? '' : 's'
-#. placeholder {2}: selectedCollectionId === topLevelCollectionId ? 'top level' : collectionNameCache.current.get(selectedCollectionId) || 'selected collection'
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
-msgid "Moving {0} collection{1} into {2}"
-msgstr "{0}個のコレクションを{2}に移動中"
+#~ msgid "Moving {0} collection{1} into {2}"
+#~ msgstr "{0}個のコレクションを{2}に移動中"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-sheet.tsx
 #: src/app/routes/_authenticated/_shipping-methods/components/test-single-shipping-method-sheet.tsx
@@ -4408,11 +4432,9 @@ msgstr "配送方法をテスト"
 msgid "Payment settled successfully"
 msgstr "支払いを決済しました"
 
-#. placeholder {0}: selection.length
-#. placeholder {1}: selection.length === 1 ? 'country' : 'countries'
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
-msgid "Removed {0} {1} from zone"
-msgstr "ゾーンから{0} {1}を削除しました"
+#~ msgid "Removed {0} {1} from zone"
+#~ msgstr "ゾーンから{0} {1}を削除しました"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 msgid "Enable"
@@ -5483,6 +5505,10 @@ msgstr "税抜："
 msgid "Successfully added option value"
 msgstr "オプション値を追加しました"
 
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+msgid "top level"
+msgstr "トップレベル"
+
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "Collection moved to new parent"
 msgstr "コレクションを新しい親に移動しました"
@@ -6283,6 +6309,11 @@ msgstr "顧客のグループへの追加に失敗しました"
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Manage variants"
 msgstr "バリエーションを管理"
+
+#. placeholder {0}: collectionsToMove.length
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+msgid "{0, plural, one {Moving # collection into {destination}} other {Moving # collections into {destination}}}"
+msgstr "{0, plural, other {# 件のコレクションを移動中: {destination}}}"
 
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "Applied global view \"{viewName}\""

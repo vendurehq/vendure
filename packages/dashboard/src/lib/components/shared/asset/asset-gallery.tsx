@@ -22,7 +22,7 @@ import { assetFragment, AssetFragment } from '@/vdb/graphql/fragments.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { formatFileSize } from '@/vdb/lib/utils.js';
-import { Trans, useLingui } from '@lingui/react/macro';
+import { Plural, Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useDebounce } from '@uidotdev/usehooks';
@@ -481,9 +481,7 @@ export function AssetGallery({
 
             <div className="flex flex-col md:flex-row items-center md:justify-between gap-4 mt-4 flex-shrink-0">
                 <div className="mt-2 text-xs text-muted-foreground flex-shrink-0">
-                    <Trans>
-                        {totalItems} {totalItems === 1 ? 'asset' : 'assets'} found
-                    </Trans>
+                    <Plural value={totalItems} one="# asset found" other="# assets found" />
                     {selected.length > 0 && (
                         <Trans>, {selected.length} selected</Trans>
                     )}
