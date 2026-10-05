@@ -1,7 +1,7 @@
 {
   "id": "core",
   "name": "Vendure Core Documentation",
-  "version": "3.7.3",
+  "version": "3.7.4",
   "vendureVersion": "v3",
   "navigation": [
     {
@@ -1914,7 +1914,7 @@
                   "title": "OrderLine",
                   "slug": "order-line",
                   "file": "docs/reference/typescript-api/entities/order-line.mdx",
-                  "lastModified": "2026-09-03T12:03:40Z"
+                  "lastModified": "2026-10-05T12:08:27+02:00"
                 },
                 {
                   "title": "OrderLineReference",
@@ -2506,7 +2506,7 @@
                   "title": "RescaleOrderLinePromotionAdjustments",
                   "slug": "rescale-order-line-promotion-adjustments",
                   "file": "docs/reference/typescript-api/migration/rescale-order-line-promotion-adjustments.mdx",
-                  "lastModified": "2026-09-03T12:03:40Z"
+                  "lastModified": "2026-10-05T12:08:27+02:00"
                 },
                 {
                   "title": "RevertLastMigration",
