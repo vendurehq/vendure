@@ -43,6 +43,27 @@
  * });
  * ```
  */
+export {
+    NotLoggedInError,
+    SessionRefreshUnavailableError,
+    SessionRejectedError,
+    SessionUnstorableError,
+    getAccessToken,
+    listOrganizations,
+    loginWithDevice,
+    logout,
+    readAuthStatus,
+    refreshAccessToken,
+} from './auth';
+export type {
+    AuthOptions,
+    AuthOrganization,
+    AuthStatus,
+    AuthUser,
+    DeviceAuthorization,
+    DeviceLoginOptions,
+    StoredOrganization,
+} from './auth';
 export { builtinCommands } from './commands/builtins';
 export { ConsoleTokenGrantError, loginWithBrowser, refreshSession } from './commands/console/authentication';
 export type { ConsoleBrowserLoginOptions, ConsoleRefreshOptions } from './commands/console/authentication';
