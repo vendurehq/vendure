@@ -2,7 +2,6 @@ import { CallToolResult, ToolAnnotations } from '@modelcontextprotocol/server';
 import { Inject, Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { DiscoveryService } from '@nestjs/core';
 import {
-    ActiveOrderService,
     ConfigService,
     GraphQLErrorResult,
     I18nError,
@@ -10,6 +9,7 @@ import {
     isGraphQlErrorResult,
     Logger,
     LogLevel,
+    Order,
     Permission,
     RequestContext,
     SettingsStoreService,
@@ -111,7 +111,6 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         private readonly shopSession: McpShopSessionService,
         private readonly configService: ConfigService,
         private readonly connection: TransactionalConnection,
-        private readonly activeOrderService: ActiveOrderService,
         @Inject(MCP_PLUGIN_OPTIONS) private readonly options: ResolvedMcpPluginOptions,
     ) {}
 
@@ -444,7 +443,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         if (!tool.usesActiveOrder || !ctx.session) {
             return callContext;
         }
-        const cart = await this.activeOrderService.getActiveOrder(ctx, undefined);
+        const cart = await this.findCart(ctx);
         if (!cart || cart.currencyCode === ctx.currencyCode) {
             return callContext;
         }
@@ -452,6 +451,20 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         const cartCtx = ctx.copy();
         (cartCtx as any)._currencyCode = cart.currencyCode;
         return { ...callContext, ctx: cartCtx };
+    }
+
+    // Only the lookup step of ActiveOrderService.getActiveOrder. getActiveOrder can also reprice a
+    // stale cart, and would do so in the request's currency, converting the cart before it is read.
+    private async findCart(ctx: RequestContext): Promise<Order | undefined> {
+        const { activeOrderStrategy } = this.configService.orderOptions;
+        const strategies = Array.isArray(activeOrderStrategy) ? activeOrderStrategy : [activeOrderStrategy];
+        for (const strategy of strategies) {
+            const order = await strategy.determineActiveOrder(ctx, {});
+            if (order) {
+                return order;
+            }
+        }
+        return undefined;
     }
 
     // A writing tool runs in one transaction, so a throw rolls back all its writes.

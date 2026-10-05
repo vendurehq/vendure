@@ -22,6 +22,7 @@ import {
     SessionService,
     ShippingEligibilityChecker,
     TransactionalConnection,
+    TtlOrderRecalculationStrategy,
     User,
     VendurePlugin,
 } from '@vendure/core';
@@ -770,6 +771,30 @@ describe('MCP built-in shop tools', () => {
         expect(stored.currencyCode).toBe(second);
         expect(stored.lines).toHaveLength(1);
         expect(stored.lines[0].quantity).toBe(2);
+        expect(stored.lines[0].listPrice).toBe(2000);
+    });
+
+    // Core reprices a stale cart whenever it looks the cart up, in the currency of the request that
+    // looked it up. The cart must already be read in its own currency when that happens.
+    it("keeps the cart's own currency when core reprices a stale cart on read", async () => {
+        const second = await allowSecondCurrency();
+        const { sessionToken, orderId } = await storefrontCartIn(second);
+        const { orderOptions } = server.app.get(ConfigService);
+        const previousStrategy = orderOptions.orderRecalculationStrategy;
+        // A TTL of 0 makes every cart stale on every read.
+        orderOptions.orderRecalculationStrategy = new TtlOrderRecalculationStrategy({ ttlMs: 0 });
+        try {
+            const cart = await postMcp(baseUrl(), 'shop', callTool('get_cart', { sessionToken }, 1));
+            expect(cart.body.result.isError).toBeUndefined();
+            expect(cart.body.result.structuredContent.order.currencyCode).toBe(second);
+        } finally {
+            orderOptions.orderRecalculationStrategy = previousStrategy;
+        }
+
+        const stored = await connection
+            .getRepository(adminCtx, Order)
+            .findOneOrFail({ where: { id: orderId }, relations: ['lines'] });
+        expect(stored.currencyCode).toBe(second);
         expect(stored.lines[0].listPrice).toBe(2000);
     });
 
