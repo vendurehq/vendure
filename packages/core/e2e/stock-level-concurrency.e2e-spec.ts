@@ -231,6 +231,10 @@ describe('StockLevelService concurrency', () => {
         });
 
         it('interleaved allocation and sale updates are both applied', async () => {
+            // Start above 0 so that no ordering of the three updates takes stockAllocated below 0.
+            // If the -1 landed first on 0, the clamp would lift it back to 0 and cancel it, and
+            // the result would depend on the order the database applied them in.
+            await setStockLevel(10, 1);
             await Promise.all([
                 stockLevelService.updateStockAllocatedForLocation(ctx, productVariantId, stockLocationId, 3),
                 stockLevelService.updateStockOnHandForLocation(ctx, productVariantId, stockLocationId, -3),
@@ -238,7 +242,7 @@ describe('StockLevelService concurrency', () => {
             ]);
 
             const stockLevel = await getStockLevel();
-            expect(stockLevel.stockAllocated).toBe(2);
+            expect(stockLevel.stockAllocated).toBe(3);
             expect(stockLevel.stockOnHand).toBe(7);
         });
 
