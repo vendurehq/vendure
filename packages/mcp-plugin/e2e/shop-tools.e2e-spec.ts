@@ -536,6 +536,59 @@ describe('MCP built-in shop tools', () => {
     }
 
     /**
+     * Lets the default channel sell in a second currency and prices the fixture variant at 2000 in
+     * it. Returns that currency. Calling it again sets the same values.
+     */
+    async function allowSecondCurrency(): Promise<CurrencyCode> {
+        const second = defaultCurrencyCode === CurrencyCode.EUR ? CurrencyCode.USD : CurrencyCode.EUR;
+        const channelUpdate = await adminClient.query(
+            gql`
+                mutation AllowSecondCurrency($input: UpdateChannelInput!) {
+                    updateChannel(input: $input) {
+                        ... on Channel {
+                            id
+                            availableCurrencyCodes
+                        }
+                        ... on ErrorResult {
+                            errorCode
+                            message
+                        }
+                    }
+                }
+            `,
+            {
+                input: {
+                    id: defaultChannelAdminId,
+                    availableCurrencyCodes: [defaultCurrencyCode, second],
+                },
+            },
+        );
+        expect(channelUpdate.updateChannel.availableCurrencyCodes).toContain(second);
+
+        const variantUpdate = await adminClient.query(
+            gql`
+                mutation SetSecondCurrencyPrice($input: [UpdateProductVariantInput!]!) {
+                    updateProductVariants(input: $input) {
+                        id
+                        prices {
+                            currencyCode
+                            price
+                        }
+                    }
+                }
+            `,
+            {
+                input: [{ id: variantAdminId, prices: [{ currencyCode: second, price: 2000 }] }],
+            },
+        );
+        expect(variantUpdate.updateProductVariants[0].prices).toContainEqual({
+            currencyCode: second,
+            price: 2000,
+        });
+        return second;
+    }
+
+    /**
      * Builds the cart a storefront request would build for a shopper browsing in `currencyCode`:
      * the request carries that currency, so the order is stored in it. It holds one of the fixture
      * variant.
@@ -664,52 +717,7 @@ describe('MCP built-in shop tools', () => {
     // request, so every tool call used to run in the channel's default currency and flipped a cart
     // the storefront had built in another one. Cart tools now run in the cart's own currency.
     it("keeps the cart's own currency when a tool writes to a cart the storefront built", async () => {
-        const second = defaultCurrencyCode === CurrencyCode.EUR ? CurrencyCode.USD : CurrencyCode.EUR;
-        const channelUpdate = await adminClient.query(
-            gql`
-                mutation AllowSecondCurrency($input: UpdateChannelInput!) {
-                    updateChannel(input: $input) {
-                        ... on Channel {
-                            id
-                            availableCurrencyCodes
-                        }
-                        ... on ErrorResult {
-                            errorCode
-                            message
-                        }
-                    }
-                }
-            `,
-            {
-                input: {
-                    id: defaultChannelAdminId,
-                    availableCurrencyCodes: [defaultCurrencyCode, second],
-                },
-            },
-        );
-        expect(channelUpdate.updateChannel.availableCurrencyCodes).toContain(second);
-
-        const variantUpdate = await adminClient.query(
-            gql`
-                mutation SetSecondCurrencyPrice($input: [UpdateProductVariantInput!]!) {
-                    updateProductVariants(input: $input) {
-                        id
-                        prices {
-                            currencyCode
-                            price
-                        }
-                    }
-                }
-            `,
-            {
-                input: [{ id: variantAdminId, prices: [{ currencyCode: second, price: 2000 }] }],
-            },
-        );
-        expect(variantUpdate.updateProductVariants[0].prices).toContainEqual({
-            currencyCode: second,
-            price: 2000,
-        });
-
+        const second = await allowSecondCurrency();
         const { sessionToken, orderId } = await storefrontCartIn(second);
         const beforeMcp = await connection
             .getRepository(adminCtx, Order)
@@ -744,9 +752,8 @@ describe('MCP built-in shop tools', () => {
         expect(stored.lines[0].listPrice).toBe(2000);
     });
 
-    // Relies on the second currency and its variant price set up by the test above.
     it("keeps the cart's own currency when a plugin tool writes to it through core services", async () => {
-        const second = defaultCurrencyCode === CurrencyCode.EUR ? CurrencyCode.USD : CurrencyCode.EUR;
+        const second = await allowSecondCurrency();
         const { sessionToken, orderId } = await storefrontCartIn(second);
 
         const added = await postMcp(
