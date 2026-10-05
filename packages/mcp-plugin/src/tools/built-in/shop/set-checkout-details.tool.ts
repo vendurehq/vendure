@@ -107,7 +107,7 @@ export class SetCheckoutDetailsTool implements McpToolHandler<SetCheckoutDetails
         if (isGraphQlErrorResult(cart)) {
             return this.serializer.orderOrError(cart);
         }
-        return this.connection.withTransaction(cart.ctx, async txCtx => {
+        return this.connection.withTransaction(ctx, async txCtx => {
             // The customer relation is loaded so that the answer can show who the cart belongs to.
             const before = await this.orderService.findOne(txCtx, cart.id, ['shippingLines', 'customer']);
             if (!before) {

@@ -29,10 +29,8 @@ function connectionStub() {
 }
 
 function activeOrderReturning(id: number) {
-    // The real service hands back a context in the cart's currency, and the tool has to run its
-    // transaction on that one. The stub returns the context it was given so a test can check.
     return {
-        findOrThrow: (ctx: unknown) => Promise.resolve({ id, currencyCode: 'USD', ctx }),
+        findOrThrow: () => Promise.resolve({ id, currencyCode: 'USD' }),
     } as any;
 }
 

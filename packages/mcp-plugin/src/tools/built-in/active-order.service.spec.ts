@@ -4,51 +4,19 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { McpActiveOrderService } from './active-order.service';
 
-/**
- * Stands in for RequestContext. The currency has to sit behind a getter over a private field, and
- * `copy()` has to keep that getter, because the service changes a copy's currency by writing the
- * private field, which is what core itself does.
- */
-class FakeCtx {
-    /** Set only by the transaction stub, so a test can tell the two contexts apart. */
-    inTransaction?: boolean;
-    private _currencyCode: string;
-
-    constructor(
-        currencyCode: string,
-        public session: { id: string; token: string; activeOrderId?: string },
-    ) {
-        this._currencyCode = currencyCode;
-    }
-
-    get currencyCode(): string {
-        return this._currencyCode;
-    }
-
-    copy(): FakeCtx {
-        return Object.assign(Object.create(Object.getPrototypeOf(this)), this);
-    }
-}
-
-/**
- * A ctx of a test's own, rather than the shared `ctxWithSession`: the lock tests read the session
- * back after the call, and the binding tests need a currency they choose.
- */
-function cartCtx(currencyCode = 'USD', activeOrderId?: string): FakeCtx {
-    return new FakeCtx(currencyCode, { id: 's1', token: 't1', activeOrderId });
+/** A ctx of a test's own, for the tests that read the session back after the call. */
+function cartCtx(activeOrderId?: string) {
+    return { session: { id: 's1', token: 't1', activeOrderId } };
 }
 
 /** A ctx carrying a session, which find/findOrderWithLines require before touching core. */
 const ctxWithSession = cartCtx() as never;
 
 /**
- * Stands in for TransactionalConnection. `withTransaction` hands the same ctx through unless
- * `copiesCtx` is set, in which case it hands over a copy the way core does. The query builder
- * chain returns `row` from the locking select, or rejects with `lockError`.
+ * Stands in for TransactionalConnection. `withTransaction` hands the same ctx through. The query
+ * builder chain returns `row` from the locking select, or rejects with `lockError`.
  */
-function connectionStub(
-    options: { row?: { activeOrderId?: string } | null; lockError?: Error; copiesCtx?: boolean } = {},
-) {
+function connectionStub(options: { row?: { activeOrderId?: string } | null; lockError?: Error } = {}) {
     const getOne = vi.fn(() =>
         options.lockError ? Promise.reject(options.lockError) : Promise.resolve(options.row ?? null),
     );
@@ -58,8 +26,7 @@ function connectionStub(
         getOne,
     };
     return {
-        withTransaction: (ctx: FakeCtx, work: (ctx: unknown) => Promise<unknown>) =>
-            work(options.copiesCtx ? Object.assign(ctx.copy(), { inTransaction: true }) : ctx),
+        withTransaction: (ctx: unknown, work: (ctx: unknown) => Promise<unknown>) => work(ctx),
         getRepository: () => ({ createQueryBuilder: () => queryBuilder }),
         queryBuilder,
     };
@@ -86,41 +53,6 @@ describe('McpActiveOrderService', () => {
             expect(result).toMatchObject({ id: activeOrder.id, currencyCode: activeOrder.currencyCode });
             expect(activeOrderService.getActiveOrder).toHaveBeenCalledWith(ctxWithSession, undefined);
             expect(orderService.findOne).not.toHaveBeenCalled();
-        });
-
-        it('returns the request context itself when the cart is already in its currency', async () => {
-            const activeOrderService = {
-                getActiveOrder: vi.fn().mockResolvedValue({ id: '1', currencyCode: 'USD' }),
-            };
-            const service = new McpActiveOrderService(
-                activeOrderService as never,
-                { findOne: vi.fn() } as never,
-                connectionStub() as never,
-            );
-            const ctx = cartCtx('USD');
-
-            const result = await service.find(ctx as never);
-
-            expect(result?.ctx).toBe(ctx);
-        });
-
-        it("binds the reference to a copy of the context in the cart's currency", async () => {
-            const activeOrderService = {
-                getActiveOrder: vi.fn().mockResolvedValue({ id: '1', currencyCode: 'EUR' }),
-            };
-            const service = new McpActiveOrderService(
-                activeOrderService as never,
-                { findOne: vi.fn() } as never,
-                connectionStub() as never,
-            );
-            const ctx = cartCtx('USD');
-
-            const result = await service.find(ctx as never);
-
-            expect(result?.ctx.currencyCode).toBe('EUR');
-            expect(result?.ctx.session).toBe(ctx.session);
-            expect(result?.ctx).not.toBe(ctx);
-            expect(ctx.currencyCode).toBe('USD');
         });
     });
 
@@ -210,7 +142,7 @@ describe('McpActiveOrderService', () => {
                 orderService as never,
                 connectionStub({ row: {} }) as never,
             );
-            const ctx = cartCtx('USD', '4');
+            const ctx = cartCtx('4');
 
             await service.findOrCreate(ctx as never);
 
@@ -227,31 +159,13 @@ describe('McpActiveOrderService', () => {
                 orderService as never,
                 connectionStub({ lockError: new LockNotSupportedOnGivenDriverError() }) as never,
             );
-            const ctx = cartCtx('USD', '4');
+            const ctx = cartCtx('4');
 
             const result = await service.findOrCreate(ctx as never);
 
             expect(result).toMatchObject({ id: activeOrder.id, currencyCode: activeOrder.currencyCode });
             expect(activeOrderService.getActiveOrder).toHaveBeenCalledWith(ctx, undefined, true);
             expect(ctx.session.activeOrderId).toBe('4');
-        });
-
-        it('binds the new cart to the request context, not the transaction context', async () => {
-            const activeOrderService = {
-                getActiveOrder: vi.fn().mockResolvedValue({ id: '1', currencyCode: 'USD' }),
-            };
-            const service = new McpActiveOrderService(
-                activeOrderService as never,
-                { findOne: vi.fn() } as never,
-                connectionStub({ copiesCtx: true }) as never,
-            );
-            const ctx = cartCtx('USD');
-
-            const result = await service.findOrCreate(ctx as never);
-
-            // The transaction context's query runner is released once the transaction ends, so a
-            // reference must never carry it.
-            expect(result.ctx).toBe(ctx);
         });
 
         it('rethrows any other error from the locking select', async () => {

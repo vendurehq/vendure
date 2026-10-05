@@ -36,7 +36,7 @@ export class GetEligiblePaymentMethodsTool implements McpToolHandler<Record<stri
     async execute(ctx: RequestContext) {
         const order = await this.activeOrder.find(ctx);
         if (!order) return { methods: [], message: NO_CART_MESSAGE };
-        const quotes = await this.orderService.getEligiblePaymentMethods(order.ctx, order.id);
+        const quotes = await this.orderService.getEligiblePaymentMethods(ctx, order.id);
         return { methods: quotes.map(quote => this.serializer.paymentQuote(quote)) };
     }
 }

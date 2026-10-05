@@ -111,6 +111,9 @@ function build(
     const connection = {
         withTransaction: vi.fn((ctx: any, work: (txCtx: any) => Promise<unknown>) => work(ctx)),
     };
+    const activeOrderService = {
+        getActiveOrder: vi.fn((): Promise<unknown> => Promise.resolve(undefined)),
+    };
     const service = new McpToolRegistryService(
         discoveryService as any,
         settingsStoreService as any,
@@ -120,10 +123,12 @@ function build(
         new McpShopSessionService(sessionService as any),
         configService as any,
         connection as any,
+        activeOrderService as any,
         resolveMcpPluginOptions(options),
     );
     return {
         service,
+        activeOrderService,
         rateLimiter,
         toolCallLog,
         settingsStoreService,
@@ -570,6 +575,75 @@ describe('McpToolRegistryService', () => {
             expect(toolCallLog.logToolCall).toHaveBeenCalledWith(
                 expect.objectContaining({ status: 'error' }),
             );
+        });
+    });
+
+    describe('cart currency', () => {
+        const cartTool = (over: Partial<McpToolMetadata> = {}) =>
+            shopTool({
+                name: 'touch_cart',
+                behavior: 'mutating',
+                usesActiveOrder: true,
+                permissions: [Permission.Authenticated],
+                ...over,
+            });
+
+        // Core's RequestContext reads its currency from a private field, and copy() keeps the getter.
+        const currencyGetter = {
+            get currencyCode() {
+                return (this as any)._currencyCode;
+            },
+        };
+        function signedInCtx(currencyCode: string) {
+            return Object.assign(
+                Object.create(currencyGetter),
+                makeCtx({ granted: [Permission.Authenticated] }),
+                {
+                    session: { id: 's1', token: 't1' },
+                    _currencyCode: currencyCode,
+                    copy() {
+                        return Object.assign(Object.create(currencyGetter), this);
+                    },
+                },
+            );
+        }
+
+        it("gives a tool that uses the active order a context in the cart's currency", async () => {
+            const execute = vi.fn(() => ({ ok: true }));
+            const { service, activeOrderService } = build([wrapper(cartTool(), execute)]);
+            activeOrderService.getActiveOrder.mockResolvedValue({ id: '1', currencyCode: 'EUR' });
+            service.onApplicationBootstrap();
+            const ctx = signedInCtx('USD');
+
+            await service.callTool({ ctx }, 'shop', 'touch_cart', {});
+
+            const handlerCtx = (execute.mock.calls[0] as unknown[])[0] as typeof ctx;
+            expect(handlerCtx.currencyCode).toBe('EUR');
+            expect(handlerCtx.session).toBe(ctx.session);
+            expect(ctx.currencyCode).toBe('USD');
+        });
+
+        it('passes the context through unchanged when the cart is already in its currency', async () => {
+            const execute = vi.fn(() => ({ ok: true }));
+            const { service, activeOrderService } = build([wrapper(cartTool(), execute)]);
+            activeOrderService.getActiveOrder.mockResolvedValue({ id: '1', currencyCode: 'USD' });
+            service.onApplicationBootstrap();
+            const ctx = signedInCtx('USD');
+
+            await service.callTool({ ctx }, 'shop', 'touch_cart', {});
+
+            expect((execute.mock.calls[0] as unknown[])[0]).toBe(ctx);
+        });
+
+        it('does not look up a cart for a tool that does not use the active order', async () => {
+            const { service, activeOrderService } = build([
+                wrapper(cartTool({ usesActiveOrder: undefined })),
+            ]);
+            service.onApplicationBootstrap();
+
+            await service.callTool({ ctx: signedInCtx('USD') }, 'shop', 'touch_cart', {});
+
+            expect(activeOrderService.getActiveOrder).not.toHaveBeenCalled();
         });
     });
 

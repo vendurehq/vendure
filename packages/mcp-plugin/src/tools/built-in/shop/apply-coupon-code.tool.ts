@@ -45,7 +45,7 @@ export class ApplyCouponCodeTool implements McpToolHandler<ApplyCouponCodeInput>
             return this.serializer.orderOrError(order);
         }
         return this.serializer.orderOrError(
-            await this.orderService.applyCouponCode(order.ctx, order.id, input.code),
+            await this.orderService.applyCouponCode(ctx, order.id, input.code),
         );
     }
 }

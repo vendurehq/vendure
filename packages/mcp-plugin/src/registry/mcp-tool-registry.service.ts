@@ -2,6 +2,7 @@ import { CallToolResult, ToolAnnotations } from '@modelcontextprotocol/server';
 import { Inject, Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { DiscoveryService } from '@nestjs/core';
 import {
+    ActiveOrderService,
     ConfigService,
     GraphQLErrorResult,
     I18nError,
@@ -110,6 +111,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         private readonly shopSession: McpShopSessionService,
         private readonly configService: ConfigService,
         private readonly connection: TransactionalConnection,
+        private readonly activeOrderService: ActiveOrderService,
         @Inject(MCP_PLUGIN_OPTIONS) private readonly options: ResolvedMcpPluginOptions,
     ) {}
 
@@ -380,7 +382,8 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
 
         const startedAt = Date.now();
         try {
-            const output = await this.runToolHandler(tool, callContext, toolInput);
+            const handlerContext = await this.inCartCurrency(tool, callContext);
+            const output = await this.runToolHandler(tool, handlerContext, toolInput);
             return await this.buildToolCallResult({
                 callContext,
                 tool,
@@ -428,6 +431,27 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             input: prepared.input,
             sessionToken: prepared.sessionToken,
         };
+    }
+
+    // Core reprices a cart into the request's currency on every change. A storefront keeps the cart's
+    // currency by sending it with each request, but an MCP call has none, so this sends it instead.
+    private async inCartCurrency(
+        tool: McpRegisteredTool,
+        callContext: McpExecutionContext,
+    ): Promise<McpExecutionContext> {
+        const { ctx } = callContext;
+        // Without a session there is no cart, and core's lookup throws instead of returning none.
+        if (!tool.usesActiveOrder || !ctx.session) {
+            return callContext;
+        }
+        const cart = await this.activeOrderService.getActiveOrder(ctx, undefined);
+        if (!cart || cart.currencyCode === ctx.currencyCode) {
+            return callContext;
+        }
+        // Set the same private field core sets when it changes a cart's currency.
+        const cartCtx = ctx.copy();
+        (cartCtx as any)._currencyCode = cart.currencyCode;
+        return { ...callContext, ctx: cartCtx };
     }
 
     // A writing tool runs in one transaction, so a throw rolls back all its writes.
