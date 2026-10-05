@@ -143,21 +143,56 @@ jobs:
                   cd $HOME/install/test-app
                   npm run dev &
                   node $GITHUB_WORKSPACE/.github/workflows/scripts/smoke-tests
-            - name: Kill dev server after smoke tests
-              shell: bash
+            # Both steps below free ports 3000 (server) and 5173 (dashboard Vite) so that the
+            # dashboard tests start a fresh `npm run dev`. If either port is still bound, the
+            # tests run against the smoke-test server, which predates the test plugin, and fail
+            # with "Test component not found". So each step waits for both ports to be free,
+            # and fails here if they are not.
+            - name: Kill dev server after smoke tests (Unix)
+              if: runner.os != 'Windows'
               run: |
-                  # Kill everything on ports 3000 and 5173 so the dashboard tests can start fresh.
-                  # `npm run dev` spawns child processes (server on 3000, dashboard Vite on 5173)
-                  # that aren't killed by killing the parent, so we kill by port. Freeing 5173 here
-                  # is essential: otherwise the smoke-test dashboard lingers and the next step's
-                  # dashboard fails to bind it.
-                  if [[ "$RUNNER_OS" == "Windows" ]]; then
-                      # Windows: use netstat to find PIDs and taskkill
-                      netstat -ano | grep -E ':(3000|5173)[[:space:]]' | grep 'LISTENING' | awk '{print $5}' | sort -u | xargs -r -I {} taskkill //F //PID {} 2>/dev/null || true
-                  else
-                      # Linux/macOS: use lsof
-                      lsof -ti:3000,5173 | xargs kill 2>/dev/null || true
-                  fi
+                  # `kill` sends SIGTERM. `vendure dev` treats a child which exits by a signal as
+                  # stopped on purpose, so it does not restart the server or the dashboard.
+                  lsof -ti:3000,5173 | xargs kill 2>/dev/null || true
+                  for i in $(seq 30); do
+                      lsof -ti:3000,5173 >/dev/null || { echo "Ports 3000 and 5173 are free"; exit 0; }
+                      sleep 1
+                  done
+                  lsof -i:3000,5173
+                  echo "::error::Ports 3000 and 5173 are still in use"
+                  exit 1
+            - name: Kill dev server after smoke tests (Windows)
+              if: runner.os == 'Windows'
+              shell: pwsh
+              run: |
+                  # Windows has no signals: `taskkill /F` ends a process with exit code 1.
+                  # `vendure dev` treats a non-zero exit without a signal as a crash, and restarts
+                  # that child on the next file change. The next step copies the test plugin into
+                  # src/, so killing only the processes on the two ports lets `vendure dev` start
+                  # them again. Kill the process tree of everything started from the test app,
+                  # which includes the `vendure dev` supervisor.
+                  $appDir = (Join-Path $HOME 'install\test-app').ToLowerInvariant()
+                  Get-CimInstance Win32_Process |
+                      Where-Object { $_.ProcessId -ne $PID -and $_.CommandLine -and $_.CommandLine.Replace('/', '\').ToLowerInvariant().Contains($appDir) } |
+                      ForEach-Object {
+                          Write-Host "Killing process tree $($_.ProcessId): $($_.CommandLine)"
+                          taskkill /F /T /PID $_.ProcessId 2>&1 | Out-Null
+                      }
+                  # A server child started with a relative path does not match the test app
+                  # directory. Kill whatever still holds the ports.
+                  $ports = 3000, 5173
+                  for ($i = 0; $i -lt 30; $i++) {
+                      $listeners = Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue | Where-Object { $ports -contains $_.LocalPort }
+                      if (-not $listeners) { Write-Host "Ports 3000 and 5173 are free"; exit 0 }
+                      $listeners | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object {
+                          Write-Host "Killing process tree $_, which listens on port 3000 or 5173"
+                          taskkill /F /T /PID $_ 2>&1 | Out-Null
+                      }
+                      Start-Sleep -Seconds 1
+                  }
+                  Get-NetTCPConnection -State Listen | Where-Object { $ports -contains $_.LocalPort } | Format-Table -AutoSize
+                  Write-Host "::error::Ports 3000 and 5173 are still in use"
+                  exit 1
             - name: Copy files (Windows)
               if: runner.os == 'Windows'
               shell: pwsh
