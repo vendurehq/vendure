@@ -1,10 +1,24 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 
-import { SessionRefreshUnavailableError, SessionRejectedError } from './auth-errors';
-import { AuthOptions, WORKOS_AUTHENTICATE_URL, WORKOS_DEVICE_AUTHORIZE_URL } from './auth-options';
+import {
+    ReauthenticationRequiredError,
+    SessionRefreshUnavailableError,
+    SessionRejectedError,
+} from './auth-errors';
+import { AuthOptions } from './auth-options';
 import { AuthUser } from './auth-store';
 
 export const WORKOS_REQUEST_TIMEOUT_MS = 30_000;
+
+/**
+ * The WorkOS application a Vendure Console accepts tokens from, as Console
+ * publishes it. The CLI never chooses either value itself.
+ */
+export interface WorkosClient {
+    clientId: string;
+    /** The WorkOS API host, e.g. `api.workos.com`. */
+    apiHostname: string;
+}
 
 /** The device authorization WorkOS issued. https://workos.com/docs/reference/authkit/cli-auth */
 export interface DeviceAuthorization {
@@ -27,29 +41,51 @@ export interface WorkosAuthentication {
     organizationId: string | null;
 }
 
+/** Test seam for the poll interval. */
+export interface PollOptions extends AuthOptions {
+    sleep?: (ms: number, signal?: AbortSignal) => Promise<void>;
+}
+
+/**
+ * WorkOS error codes that mean the session needs a new interactive sign-in
+ * rather than a retry: an organization enforces SSO or MFA, or the user must
+ * pick an organization. WorkOS reports some in `error` and some in `code`.
+ */
+const REAUTHENTICATION_CODES = new Set([
+    'sso_required',
+    'organization_authentication_methods_required',
+    'mfa_enrollment',
+    'mfa_challenge',
+    'email_verification_required',
+    'organization_selection_required',
+]);
+
 export async function startDeviceAuthorization(
-    clientId: string,
+    client: WorkosClient,
     options: AuthOptions = {},
 ): Promise<DeviceAuthorization> {
     const response = await workosRequest(
-        WORKOS_DEVICE_AUTHORIZE_URL,
+        client,
+        '/user_management/authorize/device',
         {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
-            body: new URLSearchParams({ client_id: clientId }).toString(),
+            body: new URLSearchParams({ client_id: client.clientId }).toString(),
         },
         options,
     );
     if (!response.ok) {
-        throw new Error(`Could not start the login: WorkOS answered with HTTP ${response.status}.`);
+        const code = await readErrorCode(response);
+        throw new Error(`Could not start the login: WorkOS answered ${describeFailure(response, code)}.`);
     }
     const body: unknown = await response.json();
     if (
         !isRecord(body) ||
         !nonEmpty(body.device_code) ||
         !nonEmpty(body.user_code) ||
-        !nonEmpty(body.verification_uri) ||
-        !nonEmpty(body.verification_uri_complete) ||
+        !isHttpsUrl(body.verification_uri) ||
+        // Handed to the system browser opener, so it must be a web URL.
+        !isHttpsUrl(body.verification_uri_complete) ||
         !positiveNumber(body.expires_in)
     ) {
         throw new Error('WorkOS returned a malformed device authorization.');
@@ -70,24 +106,26 @@ export async function startDeviceAuthorization(
  * seconds to the interval, anything else ends the login.
  */
 export async function pollDeviceAuthorization(
-    clientId: string,
+    client: WorkosClient,
     device: DeviceAuthorization,
-    options: AuthOptions = {},
+    options: PollOptions = {},
 ): Promise<WorkosAuthentication> {
     const now = options.now ?? Date.now;
+    const wait = options.sleep ?? ((ms, signal) => sleep(ms, undefined, { signal }));
     const deadline = now() + device.expiresIn * 1000;
     let interval = device.interval;
     while (now() < deadline) {
-        await sleep(interval * 1000, undefined, { signal: options.signal });
+        await wait(interval * 1000, options.signal);
         const response = await workosRequest(
-            WORKOS_AUTHENTICATE_URL,
+            client,
+            '/user_management/authenticate',
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
                 body: JSON.stringify({
                     grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
                     device_code: device.deviceCode,
-                    client_id: clientId,
+                    client_id: client.clientId,
                 }),
             },
             options,
@@ -95,21 +133,21 @@ export async function pollDeviceAuthorization(
         if (response.ok) {
             return parseAuthentication(await response.json());
         }
-        const error = await readErrorCode(response);
-        if (error === 'authorization_pending') {
+        const code = await readErrorCode(response);
+        if (code === 'authorization_pending') {
             continue;
         }
-        if (error === 'slow_down') {
+        if (code === 'slow_down') {
             interval += 5;
             continue;
         }
-        if (error === 'access_denied') {
+        if (code === 'access_denied') {
             throw new Error('The login was denied in the browser.');
         }
-        if (error === 'expired_token') {
+        if (code === 'expired_token') {
             break;
         }
-        throw new Error(`The login failed: ${error ?? `HTTP ${response.status}`}.`);
+        throw new Error(`The login failed: WorkOS answered ${describeFailure(response, code)}.`);
     }
     throw new Error('The login code expired before it was approved. Run the login again.');
 }
@@ -119,12 +157,13 @@ export async function pollDeviceAuthorization(
  * that WorkOS organization: WorkOS bakes the user's role and permissions in that
  * organization into the token's claims at issue time.
  *
- * Only `invalid_grant` means the token is dead. Every other failure, including
- * a rate limit or an unknown code, is reported as transient so a wrong guess
- * costs the user a retry rather than their login.
+ * `invalid_grant` means the token is dead. The codes in
+ * {@link REAUTHENTICATION_CODES} mean a new sign-in is needed. Anything else is
+ * reported as possibly transient, so a wrong guess costs the user a retry
+ * rather than their login.
  */
 export async function exchangeRefreshToken(
-    clientId: string,
+    client: WorkosClient,
     refreshToken: string,
     organizationId: string | null,
     options: AuthOptions = {},
@@ -132,13 +171,14 @@ export async function exchangeRefreshToken(
     let response: Response;
     try {
         response = await workosRequest(
-            WORKOS_AUTHENTICATE_URL,
+            client,
+            '/user_management/authenticate',
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
                 body: JSON.stringify({
                     grant_type: 'refresh_token',
-                    client_id: clientId,
+                    client_id: client.clientId,
                     refresh_token: refreshToken,
                     ...(organizationId ? { organization_id: organizationId } : {}),
                 }),
@@ -150,32 +190,62 @@ export async function exchangeRefreshToken(
         throw new SessionRefreshUnavailableError();
     }
     if (!response.ok) {
-        if ((await readErrorCode(response)) === 'invalid_grant') {
+        const code = await readErrorCode(response);
+        if (code === 'invalid_grant') {
             throw new SessionRejectedError();
         }
-        throw new SessionRefreshUnavailableError();
+        if (code && REAUTHENTICATION_CODES.has(code)) {
+            throw new ReauthenticationRequiredError(code);
+        }
+        throw new SessionRefreshUnavailableError(
+            `Could not renew the CLI session: WorkOS answered ${describeFailure(response, code)}.`,
+        );
     }
     try {
         return parseAuthentication(await response.json());
     } catch {
-        throw new SessionRefreshUnavailableError();
+        // WorkOS accepted the grant, so the refresh token is already spent.
+        throw new SessionRefreshUnavailableError(
+            'WorkOS renewed the CLI session, but its answer could not be read, so the renewed session ' +
+                'was not saved. If the next command fails, run `vendure auth login`.',
+        );
     }
 }
 
-async function workosRequest(url: string, init: RequestInit, options: AuthOptions): Promise<Response> {
+async function workosRequest(
+    client: WorkosClient,
+    pathname: string,
+    init: RequestInit,
+    options: AuthOptions,
+): Promise<Response> {
     const timeout = AbortSignal.timeout(WORKOS_REQUEST_TIMEOUT_MS);
     const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout;
     try {
-        return await (options.fetch ?? globalThis.fetch)(url, { ...init, redirect: 'error', signal });
+        return await (options.fetch ?? globalThis.fetch)(`https://${client.apiHostname}${pathname}`, {
+            ...init,
+            redirect: 'error',
+            signal,
+        });
     } catch (error) {
         if (options.signal?.aborted) throw error;
         throw new Error('Could not reach the authentication service. Check your connection and try again.');
     }
 }
 
+/** WorkOS puts the error code in `error` (OAuth errors) or in `code` (its own errors). */
 async function readErrorCode(response: Response): Promise<string | undefined> {
     const body: unknown = await response.json().catch(() => undefined);
-    return isRecord(body) && typeof body.error === 'string' ? body.error : undefined;
+    if (!isRecord(body)) {
+        return undefined;
+    }
+    if (typeof body.error === 'string') {
+        return body.error;
+    }
+    return typeof body.code === 'string' ? body.code : undefined;
+}
+
+function describeFailure(response: Response, code: string | undefined): string {
+    return code ? `${code} (HTTP ${response.status})` : `HTTP ${response.status}`;
 }
 
 function parseAuthentication(body: unknown): WorkosAuthentication {
@@ -205,6 +275,17 @@ function isRecord(value: unknown): value is Record<string, any> {
 
 function nonEmpty(value: unknown): value is string {
     return typeof value === 'string' && value.length > 0;
+}
+
+function isHttpsUrl(value: unknown): value is string {
+    if (typeof value !== 'string') {
+        return false;
+    }
+    try {
+        return new URL(value).protocol === 'https:';
+    } catch {
+        return false;
+    }
 }
 
 function positiveNumber(value: unknown): value is number {

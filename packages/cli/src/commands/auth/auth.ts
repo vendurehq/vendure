@@ -1,8 +1,15 @@
 import { confirm, isCancel, log } from '@clack/prompts';
 
-import { AuthStatus, DeviceLoginOptions, loginWithDevice, logout, readAuthStatus } from '../../auth';
-import { AuthOptions, resolveAuthEnvironment } from '../../auth/auth-options';
-import { hasLoginForOtherClient } from '../../auth/auth-session';
+import {
+    AuthStatus,
+    DeviceLoginOptions,
+    LogoutResult,
+    loginWithDevice,
+    logout,
+    readAuthStatus,
+} from '../../auth';
+import { AuthOptions, resolveConsoleApiUrl } from '../../auth/auth-options';
+import { hasLoginForOtherConsole } from '../../auth/auth-session';
 import { StoredOrganization } from '../../auth/auth-store';
 import { isNonInteractiveEnvironment, withInteractiveTimeout } from '../../utilities/utils';
 import { openConsoleBrowser } from '../console/authentication';
@@ -122,9 +129,9 @@ export function authStatusCommand(
     }
     if (!status.loggedIn) {
         deps.reporter.warn('Not logged in. Run `vendure auth login` to sign in.');
-        if (hasLoginForOtherClient(deps)) {
+        if (hasLoginForOtherConsole(deps)) {
             deps.reporter.info(
-                `A login for another Vendure environment is stored in ${status.path}. ` +
+                `A login for another Vendure Console is stored in ${status.path}. ` +
                     'Check VENDURE_CONSOLE_API_URL, or sign in again to replace it.',
             );
         }
@@ -139,7 +146,11 @@ export function authStatusCommand(
             `Access token expires: ${new Date(status.accessTokenExpiresAt).toISOString()} (renewed automatically)`,
         );
     }
-    lines.push(`WorkOS client: ${status.clientId}`, `Stored in: ${status.path}`);
+    lines.push(
+        `Vendure Console: ${status.consoleApiUrl}`,
+        `WorkOS client: ${status.clientId ?? 'unknown'}`,
+        `Stored in: ${status.path}`,
+    );
     deps.reporter.info(lines.join('\n'));
     return 0;
 }
@@ -148,19 +159,30 @@ export async function authLogoutCommand(
     dependencies: Partial<AuthCommandDependencies> = {},
 ): Promise<number> {
     const deps = resolveDependencies(dependencies);
-    const removed = await logout(deps);
-    if (removed) {
-        deps.reporter.success('Logged out. The CLI login was removed from this machine.');
-    } else {
+    let result: LogoutResult;
+    try {
+        result = await logout(deps);
+    } catch (error) {
+        deps.reporter.error(error instanceof Error ? error.message : 'The logout failed.');
+        return 1;
+    }
+    if (!result.removed) {
         deps.reporter.info('Not logged in.');
+    } else if (result.sessionEnded) {
+        deps.reporter.success('Logged out. The session was ended and the login removed from this machine.');
+    } else {
+        deps.reporter.success('Logged out. The login was removed from this machine.');
+        deps.reporter.warn(
+            'Vendure Console could not end the session, so a copy of this login keeps working until it expires.',
+        );
     }
     return 0;
 }
 
-/** Reports a misconfigured Console API or WorkOS client rather than throwing it. */
+/** Reports a misconfigured Console API rather than throwing it. */
 function hasValidEnvironment(deps: AuthCommandDependencies): boolean {
     try {
-        resolveAuthEnvironment(deps);
+        resolveConsoleApiUrl(deps);
         return true;
     } catch (error) {
         deps.reporter.error(error instanceof Error ? error.message : String(error));

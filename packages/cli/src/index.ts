@@ -45,6 +45,8 @@
  */
 export {
     NotLoggedInError,
+    ReauthenticationRequiredError,
+    SessionLockUnavailableError,
     SessionRefreshUnavailableError,
     SessionRejectedError,
     SessionUnstorableError,
@@ -62,6 +64,7 @@ export type {
     AuthUser,
     DeviceAuthorization,
     DeviceLoginOptions,
+    LogoutResult,
     StoredOrganization,
 } from './auth';
 export { builtinCommands } from './commands/builtins';

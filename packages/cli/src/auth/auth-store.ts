@@ -10,7 +10,7 @@ import {
 import path from 'node:path';
 
 import { SessionUnstorableError } from './auth-errors';
-import { AuthOptions, getAuthFilePath, resolveClientId } from './auth-options';
+import { AuthOptions, getAuthFilePath, resolveConsoleApiUrl } from './auth-options';
 import { errorCode } from './file-lock';
 
 /** The WorkOS user the stored session belongs to. @since 3.8.0 */
@@ -24,13 +24,15 @@ export interface AuthUser {
 /**
  * The CLI login as it is written to `auth.json`.
  *
- * `clientId` records which WorkOS client issued the tokens. A file from another
- * client reads as no login, because its refresh token cannot be spent against
- * the configured one and its access token is verified against another issuer.
+ * `consoleApiUrl` records which Vendure Console the login belongs to, and
+ * `clientId` and `workosApiHostname` the WorkOS application that Console
+ * published at login. A login for another Console reads as no login.
  */
 export interface StoredAuth {
     version: 1;
+    consoleApiUrl: string;
     clientId: string;
+    workosApiHostname: string;
     accessToken: string;
     refreshToken: string;
     user: AuthUser;
@@ -51,13 +53,13 @@ export interface StoredOrganization {
     name: string | null;
 }
 
-/** Returns the stored login for the configured client, or `undefined`. */
+/** Returns the stored login for the selected Vendure Console, or `undefined`. */
 export function readStoredAuth(options: AuthOptions = {}): StoredAuth | undefined {
     const stored = readStoredAuthFile(options);
-    return stored && stored.clientId === resolveClientId(options) ? stored : undefined;
+    return stored && stored.consoleApiUrl === resolveConsoleApiUrl(options) ? stored : undefined;
 }
 
-/** Returns whatever login is on disk, whichever client issued it. */
+/** Returns whatever login is on disk, whichever Console it belongs to. */
 export function readStoredAuthFile(options: AuthOptions = {}): StoredAuth | undefined {
     let raw: string;
     try {
@@ -76,10 +78,12 @@ function parseStoredAuth(value: unknown): StoredAuth | undefined {
     if (!isRecord(value) || value.version !== 1 || !isRecord(value.user)) {
         return undefined;
     }
-    const { clientId, accessToken, refreshToken, user } = value;
+    const { consoleApiUrl, clientId, workosApiHostname, accessToken, refreshToken, user } = value;
     const organization = parseOrganization(value.organization);
     if (
+        !nonEmpty(consoleApiUrl) ||
         !nonEmpty(clientId) ||
+        !nonEmpty(workosApiHostname) ||
         !nonEmpty(accessToken) ||
         !nonEmpty(refreshToken) ||
         organization === undefined ||
@@ -92,7 +96,9 @@ function parseStoredAuth(value: unknown): StoredAuth | undefined {
     }
     return {
         version: 1,
+        consoleApiUrl,
         clientId,
+        workosApiHostname,
         accessToken,
         refreshToken,
         organization,
@@ -131,7 +137,7 @@ export function writeStoredAuth(auth: StoredAuth, options: AuthOptions = {}): vo
     const tempFile = `${file}.${process.pid}.tmp`;
     try {
         writeFileSync(tempFile, serialize(auth), { mode: 0o600 });
-        renameSync(tempFile, file);
+        renameWithRetry(tempFile, file);
     } catch (error) {
         removeQuietly(tempFile);
         throw error;
@@ -166,8 +172,10 @@ export function assertStorable(replacing: StoredAuth, options: AuthOptions = {})
     const probeTarget = `${file}.${process.pid}.probed.tmp`;
     try {
         mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 });
+        // The write replaces an existing file, so the probe renames over one too.
+        writeFileSync(probeTarget, '', { mode: 0o600 });
         writeFileSync(probeFile, '0'.repeat(Buffer.byteLength(serialize(replacing))), { mode: 0o600 });
-        renameSync(probeFile, probeTarget);
+        renameWithRetry(probeFile, probeTarget);
         unlinkSync(probeTarget);
     } catch {
         removeQuietly(probeFile);
@@ -175,6 +183,29 @@ export function assertStorable(replacing: StoredAuth, options: AuthOptions = {})
         throw new SessionUnstorableError(path.dirname(file));
     }
 }
+
+/**
+ * On Windows, a rename over a file another process has open (an editor, a
+ * virus scanner, a concurrent read) fails for a moment with `EPERM`, `EBUSY` or
+ * `EACCES`. The write is retried briefly instead of failing after the refresh
+ * token was already spent.
+ */
+function renameWithRetry(from: string, to: string): void {
+    for (let attempt = 1; ; attempt++) {
+        try {
+            renameSync(from, to);
+            return;
+        } catch (error) {
+            const transient = ['EPERM', 'EBUSY', 'EACCES'].includes(errorCode(error) ?? '');
+            if (process.platform !== 'win32' || !transient || attempt >= RENAME_ATTEMPTS) {
+                throw error;
+            }
+            Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, attempt * 20);
+        }
+    }
+}
+
+const RENAME_ATTEMPTS = 5;
 
 function serialize(auth: StoredAuth): string {
     return JSON.stringify(auth, null, 2);

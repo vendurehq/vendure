@@ -1,7 +1,7 @@
 export const AUTH_LOGIN_COMMAND = 'vendure auth login';
 
 /**
- * No CLI login is stored on this machine for the configured WorkOS client.
+ * No CLI login is stored on this machine for the selected Vendure Console.
  *
  * @since 3.8.0
  */
@@ -30,8 +30,9 @@ export class SessionRejectedError extends Error {
 }
 
 /**
- * The session could not be renewed for a reason that may pass: the network, a
- * timeout, a WorkOS outage. The stored login is kept, so retrying is safe.
+ * The session could not be renewed, usually for a reason that may pass: the
+ * network, a timeout, a WorkOS outage. The stored login is kept. The message
+ * says when the refresh token was already spent and a retry will not help.
  *
  * @since 3.8.0
  */
@@ -52,5 +53,37 @@ export class SessionUnstorableError extends Error {
     constructor(directory: string) {
         super(`Cannot write the CLI session to ${directory}. Check that the directory is writable.`);
         this.name = 'SessionUnstorableError';
+    }
+}
+
+/**
+ * WorkOS needs a new interactive sign-in before it renews the session, for
+ * example because the organization now enforces SSO or MFA. `code` is the
+ * WorkOS error code, such as `sso_required` or `mfa_enrollment`.
+ *
+ * @since 3.8.0
+ */
+export class ReauthenticationRequiredError extends Error {
+    readonly nextStep = AUTH_LOGIN_COMMAND;
+
+    constructor(readonly code: string) {
+        super(`WorkOS requires you to sign in again (${code}). Run \`${AUTH_LOGIN_COMMAND}\`.`);
+        this.name = 'ReauthenticationRequiredError';
+    }
+}
+
+/**
+ * Another `vendure` command held the CLI login's lock for the whole wait, so a
+ * command that rewrites the login did not run.
+ *
+ * @since 3.8.0
+ */
+export class SessionLockUnavailableError extends Error {
+    constructor(lockFile: string) {
+        super(
+            `Another vendure command is still using the CLI login. Try again. If no other vendure command ` +
+                `is running, delete ${lockFile}.`,
+        );
+        this.name = 'SessionLockUnavailableError';
     }
 }

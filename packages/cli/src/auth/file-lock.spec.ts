@@ -1,8 +1,9 @@
 import fs from 'fs-extra';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { mkdtempSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import ts from 'typescript';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { withFileLock } from './file-lock';
@@ -73,4 +74,69 @@ describe('withFileLock', () => {
         // Not ours, so it is left in place.
         expect(fs.readFileSync(lockFile, 'utf-8')).toBe('live-process');
     });
+});
+
+describe('withFileLock across processes', () => {
+    /**
+     * Runs `processes` real Node processes against one lock file that a dead
+     * process left behind, `rounds` times, and returns each round's log of
+     * critical-section entries and exits. Every process breaks the same stale
+     * lock at once, which is the race a read-then-unlink break loses.
+     */
+    async function raceForStaleLock(rounds: number, processes: number): Promise<string[][]> {
+        const lockModule = path.join(directory, 'file-lock.js');
+        const source = fs.readFileSync(path.join(__dirname, 'file-lock.ts'), 'utf-8');
+        fs.writeFileSync(
+            lockModule,
+            ts.transpileModule(source, {
+                compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true },
+            }).outputText,
+        );
+        const child = path.join(directory, 'child.js');
+        fs.writeFileSync(
+            child,
+            `const { appendFileSync } = require('node:fs');
+const { withFileLock } = require(${JSON.stringify(lockModule)});
+const [lockFile, log] = process.argv.slice(2);
+withFileLock(lockFile, { staleMs: 60000, waitMs: 20000, pollMs: 2 }, async held => {
+    appendFileSync(log, 'enter ' + process.pid + ' ' + held + '\\n');
+    await new Promise(resolve => setTimeout(resolve, 10));
+    appendFileSync(log, 'exit ' + process.pid + '\\n');
+});`,
+        );
+        const deadPid = spawnSync(process.execPath, ['-e', '']).pid;
+        const logs: string[][] = [];
+        for (let round = 0; round < rounds; round++) {
+            const log = path.join(directory, `round-${round}.log`);
+            fs.mkdirpSync(path.dirname(lockFile));
+            writeFileSync(lockFile, `${deadPid}-left-behind`);
+            await Promise.all(
+                Array.from(
+                    { length: processes },
+                    () =>
+                        new Promise<void>((resolve, reject) => {
+                            spawn(process.execPath, [child, lockFile, log], { stdio: 'inherit' })
+                                .once('error', reject)
+                                .once('exit', () => resolve());
+                        }),
+                ),
+            );
+            logs.push(fs.readFileSync(log, 'utf-8').trim().split('\n'));
+        }
+        return logs;
+    }
+
+    it('lets exactly one process hold the lock when several break the same stale lock', async () => {
+        const logs = await raceForStaleLock(15, 6);
+
+        for (const lines of logs) {
+            expect(lines).toHaveLength(12);
+            for (let i = 0; i < lines.length; i += 2) {
+                const [, pid, held] = lines[i].split(' ');
+                expect(lines[i]).toBe(`enter ${pid} true`);
+                expect(held).toBe('true');
+                expect(lines[i + 1]).toBe(`exit ${pid}`);
+            }
+        }
+    }, 120_000);
 });

@@ -1,5 +1,10 @@
-import { NotLoggedInError, SessionRejectedError } from './auth-errors';
-import { AuthOptions, getAuthFilePath, getAuthLockPath, resolveClientId } from './auth-options';
+import {
+    NotLoggedInError,
+    ReauthenticationRequiredError,
+    SessionLockUnavailableError,
+    SessionRejectedError,
+} from './auth-errors';
+import { AuthOptions, getAuthFilePath, getAuthLockPath, resolveConsoleApiUrl } from './auth-options';
 import {
     AuthUser,
     StoredAuth,
@@ -14,13 +19,16 @@ import {
     AuthOrganization,
     ConsoleTokenRefusedError,
     fetchOrganizations,
+    fetchWorkosClient,
     resolveOrganization,
-} from './console-organizations';
+    signOut,
+} from './console-api';
 import { FileLockOptions, withFileLock } from './file-lock';
 import {
     DeviceAuthorization,
     WORKOS_REQUEST_TIMEOUT_MS,
     WorkosAuthentication,
+    WorkosClient,
     exchangeRefreshToken,
     pollDeviceAuthorization,
     startDeviceAuthorization,
@@ -33,15 +41,25 @@ import {
  */
 export interface AuthStatus {
     loggedIn: boolean;
-    /** The WorkOS client the CLI is configured for. */
-    clientId: string;
+    /** The Vendure Console API the CLI signs in to. */
+    consoleApiUrl: string;
     /** Where the login is stored. */
     path: string;
+    /** The WorkOS client that issued the stored login, as Console published it at login. */
+    clientId?: string;
     user?: AuthUser;
     /** The organization the session is scoped to. */
     organization?: StoredOrganization | null;
     /** When the current access token expires, as epoch milliseconds. It is renewed automatically. */
     accessTokenExpiresAt?: number;
+}
+
+/** What {@link logout} did. @since 3.8.0 */
+export interface LogoutResult {
+    /** Whether a login was stored on this machine. It is gone either way. */
+    removed: boolean;
+    /** Whether Vendure Console ended the WorkOS session, so copies of the login stop working too. */
+    sessionEnded: boolean;
 }
 
 /** @since 3.8.0 */
@@ -51,7 +69,7 @@ export interface DeviceLoginOptions extends AuthOptions {
     /**
      * Scope the new session to this organization rather than the one chosen in
      * the browser: a Customer Account id (Console's "Account identifier") or
-     * its exact name. Resolved through Vendure Console after sign-in.
+     * its name, ignoring case. Resolved through Vendure Console after sign-in.
      */
     organization?: string;
 }
@@ -205,7 +223,7 @@ async function spendRefreshToken(
  */
 function exchangeWithScope(auth: StoredAuth, options: AuthOptions): Promise<WorkosAuthentication> {
     return exchangeRefreshToken(
-        auth.clientId,
+        storedClient(auth),
         auth.refreshToken,
         auth.organization?.workosOrganizationId ?? null,
         options,
@@ -231,64 +249,85 @@ function discardIfStillSpent(spentRefreshToken: string, held: boolean, options: 
 
 /**
  * Signs in with the WorkOS device flow and stores the session, replacing any
- * login already on this machine.
+ * login already on this machine. The WorkOS client is the one the selected
+ * Vendure Console publishes, so Console accepts the tokens.
  *
+ * @throws SessionLockUnavailableError when another command held the login's lock for the whole wait.
  * @since 3.8.0
  */
 export async function loginWithDevice(options: DeviceLoginOptions = {}): Promise<AuthStatus> {
-    // Resolving the client also validates the Console API, so a misconfigured
-    // environment fails before the browser approval, not after it.
-    const clientId = resolveClientId(options);
-    const device = await startDeviceAuthorization(clientId, options);
+    const consoleApiUrl = resolveConsoleApiUrl(options);
+    // Before the browser step, so a Console that cannot be reached fails before
+    // the user approves anything.
+    const client = await fetchWorkosClient(consoleApiUrl, options);
+    const device = await startDeviceAuthorization(client, options);
     await options.onDeviceAuthorization?.(device);
-    let authentication = await pollDeviceAuthorization(clientId, device, options);
+    let authentication = await pollDeviceAuthorization(client, device, options);
+    const toSession = (scope: StoredOrganization | null): StoredAuth => ({
+        version: 1,
+        consoleApiUrl,
+        clientId: client.clientId,
+        workosApiHostname: client.apiHostname,
+        accessToken: authentication.accessToken,
+        refreshToken: authentication.refreshToken,
+        user: authentication.user,
+        organization: scope,
+    });
     let organization: StoredOrganization | null;
     if (options.organization) {
         const target = resolveOrganization(
-            await fetchOrganizations(authentication.accessToken, options),
+            await fetchOrganizations(consoleApiUrl, authentication.accessToken, options),
             options.organization,
         );
+        organization = toStoredOrganization(target);
         if (tokenOrganizationId(authentication) !== target.workosOrganizationId) {
-            assertStorable(
-                {
-                    version: 1,
-                    clientId,
-                    accessToken: authentication.accessToken,
-                    refreshToken: authentication.refreshToken,
-                    user: authentication.user,
-                    organization: toStoredOrganization(target),
-                },
-                options,
-            );
-            // The browser chose another organization, or none. This refresh
-            // token exists only in this process, so spending it needs no lock.
-            // WorkOS refuses an organization the user is not a member of.
-            authentication = await exchangeRefreshToken(
-                clientId,
-                authentication.refreshToken,
-                target.workosOrganizationId,
-                options,
-            );
+            assertStorable(toSession(organization), options);
+            authentication = await scopeToOrganization(client, authentication, target, options);
         }
         if (tokenOrganizationId(authentication) !== target.workosOrganizationId) {
             throw new Error(`WorkOS did not scope the login to ${target.name}.`);
         }
-        organization = toStoredOrganization(target);
     } else {
-        organization = await describeTokenOrganization(authentication, options);
+        organization = await describeTokenOrganization(consoleApiUrl, authentication, options);
     }
-    const session: StoredAuth = {
-        version: 1,
-        clientId,
-        accessToken: authentication.accessToken,
-        refreshToken: authentication.refreshToken,
-        user: authentication.user,
-        organization,
-    };
-    return withSessionLock(options, () => {
+    const session = toSession(organization);
+    return withSessionLock(options, held => {
+        // Unlocked, a refresh in flight could write the old login over this one.
+        if (!held) {
+            throw new SessionLockUnavailableError(getAuthLockPath(options));
+        }
         writeStoredAuth(session, options);
         return Promise.resolve(readAuthStatus(options));
     });
+}
+
+/**
+ * The browser chose another organization, or none. This refresh token exists
+ * only in this process, so spending it needs no lock. WorkOS refuses an
+ * organization the user is not a member of.
+ */
+async function scopeToOrganization(
+    client: WorkosClient,
+    authentication: WorkosAuthentication,
+    target: AuthOrganization,
+    options: AuthOptions,
+): Promise<WorkosAuthentication> {
+    try {
+        return await exchangeRefreshToken(
+            client,
+            authentication.refreshToken,
+            target.workosOrganizationId,
+            options,
+        );
+    } catch (error) {
+        if (error instanceof ReauthenticationRequiredError) {
+            throw new Error(
+                `${target.name} requires a new sign-in through WorkOS (${error.code}). Run ` +
+                    `\`vendure auth login\` without --organization and choose ${target.name} in the browser.`,
+            );
+        }
+        throw error;
+    }
 }
 
 /**
@@ -296,6 +335,7 @@ export async function loginWithDevice(options: DeviceLoginOptions = {}): Promise
  * without it, so a Console that cannot be reached costs only the name.
  */
 async function describeTokenOrganization(
+    consoleApiUrl: string,
     authentication: WorkosAuthentication,
     options: AuthOptions,
 ): Promise<StoredOrganization | null> {
@@ -303,7 +343,7 @@ async function describeTokenOrganization(
     if (!workosOrganizationId) {
         return null;
     }
-    const known = await fetchOrganizations(authentication.accessToken, options)
+    const known = await fetchOrganizations(consoleApiUrl, authentication.accessToken, options)
         .then(organizations => organizations.find(org => org.workosOrganizationId === workosOrganizationId))
         .catch(() => undefined);
     return known
@@ -319,17 +359,18 @@ async function describeTokenOrganization(
  * @since 3.8.0
  */
 export async function listOrganizations(options: AuthOptions = {}): Promise<AuthOrganization[]> {
+    const consoleApiUrl = resolveConsoleApiUrl(options);
     const token = await getAccessToken(options);
     if (!token) {
         throw new NotLoggedInError();
     }
     try {
-        return await fetchOrganizations(token, options);
+        return await fetchOrganizations(consoleApiUrl, token, options);
     } catch (error) {
         if (!(error instanceof ConsoleTokenRefusedError)) {
             throw error;
         }
-        return fetchOrganizations(await refreshAccessToken(token, options), options);
+        return fetchOrganizations(consoleApiUrl, await refreshAccessToken(token, options), options);
     }
 }
 
@@ -346,15 +387,48 @@ function tokenOrganizationId(authentication: WorkosAuthentication): string | nul
 }
 
 /**
- * Removes the stored login from this machine. Returns `false` when there was
- * none. WorkOS does not let a public client revoke a session, so a copied
- * refresh token stays valid until it expires.
+ * Signs out: asks Vendure Console to end the WorkOS session, then removes the
+ * login from this machine. Ending the session is best effort. When Console
+ * cannot be reached, a copy of the refresh token keeps working until it
+ * expires, and `sessionEnded` is `false`.
  *
+ * @throws SessionLockUnavailableError when another command held the login's lock for the whole wait.
  * @since 3.8.0
  */
-export function logout(options: AuthOptions = {}): Promise<boolean> {
-    // Locked so a refresh in flight cannot write the login back afterwards.
-    return withSessionLock(options, () => Promise.resolve(clearStoredAuth(options)));
+export async function logout(options: AuthOptions = {}): Promise<LogoutResult> {
+    const stored = readStoredAuthFile(options);
+    if (!stored) {
+        return { removed: false, sessionEnded: false };
+    }
+    const sessionEnded = await endSession(stored, options);
+    await withSessionLock(options, held => {
+        // Unlocked, a refresh in flight could write the login back afterwards.
+        if (!held) {
+            throw new SessionLockUnavailableError(getAuthLockPath(options));
+        }
+        clearStoredAuth(options);
+        return Promise.resolve();
+    });
+    return { removed: true, sessionEnded };
+}
+
+/**
+ * Console signs out only a valid access token. A login for the selected
+ * Console is renewed first if needed. A login for another Console is signed
+ * out with its stored token while that token is still valid.
+ */
+async function endSession(stored: StoredAuth, options: AuthOptions): Promise<boolean> {
+    try {
+        let token: string | undefined;
+        if (readStoredAuth(options)) {
+            token = await getAccessToken(options);
+        } else if (hasUsableLifetime(stored.accessToken, options)) {
+            token = stored.accessToken;
+        }
+        return token ? await signOut(stored.consoleApiUrl, token, options) : false;
+    } catch {
+        return false;
+    }
 }
 
 /**
@@ -363,8 +437,11 @@ export function logout(options: AuthOptions = {}): Promise<boolean> {
  * @since 3.8.0
  */
 export function readAuthStatus(options: AuthOptions = {}): AuthStatus {
-    const clientId = resolveClientId(options);
-    const status: AuthStatus = { loggedIn: false, clientId, path: getAuthFilePath(options) };
+    const status: AuthStatus = {
+        loggedIn: false,
+        consoleApiUrl: resolveConsoleApiUrl(options),
+        path: getAuthFilePath(options),
+    };
     const stored = readStoredAuth(options);
     if (!stored) {
         return status;
@@ -373,16 +450,21 @@ export function readAuthStatus(options: AuthOptions = {}): AuthStatus {
     return {
         ...status,
         loggedIn: true,
+        clientId: stored.clientId,
         user: stored.user,
         organization: stored.organization,
         ...(expiresAt === undefined ? {} : { accessTokenExpiresAt: expiresAt }),
     };
 }
 
-/** Whether a login issued for a different WorkOS client is on disk. */
-export function hasLoginForOtherClient(options: AuthOptions = {}): boolean {
+/** Whether a login for a different Vendure Console is on disk. */
+export function hasLoginForOtherConsole(options: AuthOptions = {}): boolean {
     const stored = readStoredAuthFile(options);
-    return stored !== undefined && stored.clientId !== resolveClientId(options);
+    return stored !== undefined && stored.consoleApiUrl !== resolveConsoleApiUrl(options);
+}
+
+function storedClient(auth: StoredAuth): WorkosClient {
+    return { clientId: auth.clientId, apiHostname: auth.workosApiHostname };
 }
 
 /**

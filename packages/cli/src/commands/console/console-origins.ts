@@ -129,15 +129,6 @@ export function classifyConsoleApiOrigin(
     return pair ? { environment: pair.environment, apiOrigin } : undefined;
 }
 
-/** The API origin of an official Console environment. */
-export function officialConsoleApiUrl(environment: ConsoleOriginEnvironment): string {
-    const pair = OFFICIAL_CONSOLE_ORIGINS.find(official => official.environment === environment);
-    if (!pair) {
-        throw new Error(`Unknown Vendure Console environment "${environment}".`);
-    }
-    return pair.apiUrl;
-}
-
 function trustedOrigin(value: string, label: string, trustedHosts: string[]): string {
     let url: URL;
     try {

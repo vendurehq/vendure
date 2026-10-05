@@ -76,8 +76,7 @@ async function acquireLock(lockFile: string, options: FileLockOptions): Promise<
             }
         }
 
-        if (isStale(lockFile, options.staleMs)) {
-            removeLock(lockFile);
+        if (breakStaleLock(lockFile, options.staleMs)) {
             continue;
         }
 
@@ -99,23 +98,43 @@ async function acquireLock(lockFile: string, options: FileLockOptions): Promise<
 }
 
 function releaseLock(lockFile: string, owner: string): void {
-    // Only drop the lock while we still hold it: another process may have
-    // broken ours as stale and taken its own.
-    try {
-        if (readFileSync(lockFile, 'utf-8') !== owner) {
-            return;
+    // Another process may have broken ours as stale and taken its own, so only
+    // a lock that still names this owner is removed.
+    withBreaker(lockFile, () => {
+        if (readOwner(lockFile) === owner) {
+            unlinkQuietly(lockFile);
         }
-    } catch {
-        return;
-    }
-    removeLock(lockFile);
+    });
 }
 
+/**
+ * Removes the lock if it is stale. Returns whether it did.
+ *
+ * Every removal of the lock file runs under the breaker lock and re-reads the
+ * lock there. Without it, two waiters can judge the same lock stale, the first
+ * removes it and takes a fresh one, and the second then removes the fresh lock:
+ * two processes hold the lock and both spend the same refresh token.
+ */
+function breakStaleLock(lockFile: string, staleMs: number): boolean {
+    let broken = false;
+    withBreaker(lockFile, () => {
+        if (isStale(lockFile, staleMs)) {
+            unlinkQuietly(lockFile);
+            broken = true;
+        }
+    });
+    return broken;
+}
+
+/** A lock is stale when it has not been touched for `staleMs`, or when its owner has exited. */
 function isStale(lockFile: string, staleMs: number): boolean {
+    const owner = readOwner(lockFile);
+    if (owner === undefined) {
+        return false;
+    }
     try {
-        return statSync(lockFile).mtimeMs < Date.now() - staleMs || ownerHasExited(lockFile);
+        return statSync(lockFile).mtimeMs < Date.now() - staleMs || ownerHasExited(owner);
     } catch {
-        // Gone between the failed create and this stat: free, so retry.
         return false;
     }
 }
@@ -126,13 +145,8 @@ function isStale(lockFile: string, staleMs: number): boolean {
  * a pid with no process breaks the lock at once rather than after `staleMs`.
  * A pid this process cannot signal (`EPERM`) belongs to a live process.
  */
-function ownerHasExited(lockFile: string): boolean {
-    let pid: number;
-    try {
-        pid = Number.parseInt(readFileSync(lockFile, 'utf-8').split('-')[0], 10);
-    } catch {
-        return false;
-    }
+function ownerHasExited(owner: string): boolean {
+    const pid = Number.parseInt(owner.split('-')[0], 10);
     if (!Number.isInteger(pid) || pid <= 0) {
         return false;
     }
@@ -144,12 +158,76 @@ function ownerHasExited(lockFile: string): boolean {
     }
 }
 
-function removeLock(lockFile: string): void {
-    try {
-        unlinkSync(lockFile);
-    } catch {
-        // Another process already removed it.
+/**
+ * The breaker is held only for a read and an unlink, so a waiter spins on it
+ * briefly. A breaker older than this belongs to a process that died inside that
+ * window.
+ */
+const BREAKER_STALE_MS = 2_000;
+const BREAKER_WAIT_MS = 1_000;
+
+/**
+ * Runs `fn` while holding `<lockFile>.break`. When the breaker cannot be taken
+ * in time, `fn` does not run: the lock is left in place, which is always safe.
+ */
+function withBreaker(lockFile: string, fn: () => void): void {
+    const breaker = `${lockFile}.break`;
+    const owner = `${process.pid}-${randomBytes(8).toString('hex')}`;
+    const deadline = Date.now() + BREAKER_WAIT_MS;
+    while (true) {
+        try {
+            writeFileSync(breaker, owner, { flag: 'wx', mode: 0o600 });
+            break;
+        } catch (error) {
+            if (errorCode(error) !== 'EEXIST' || Date.now() >= deadline) {
+                return;
+            }
+        }
+        const breakerOwner = readOwner(breaker);
+        if (
+            breakerOwner !== undefined &&
+            (isOlderThan(breaker, BREAKER_STALE_MS) || ownerHasExited(breakerOwner))
+        ) {
+            unlinkQuietly(breaker);
+            continue;
+        }
+        sleepSync(1);
     }
+    try {
+        fn();
+    } finally {
+        if (readOwner(breaker) === owner) {
+            unlinkQuietly(breaker);
+        }
+    }
+}
+
+function readOwner(file: string): string | undefined {
+    try {
+        return readFileSync(file, 'utf-8');
+    } catch {
+        return undefined;
+    }
+}
+
+function isOlderThan(file: string, ms: number): boolean {
+    try {
+        return statSync(file).mtimeMs < Date.now() - ms;
+    } catch {
+        return false;
+    }
+}
+
+function unlinkQuietly(file: string): void {
+    try {
+        unlinkSync(file);
+    } catch {
+        // Already removed.
+    }
+}
+
+function sleepSync(ms: number): void {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
 export function errorCode(error: unknown): string | undefined {

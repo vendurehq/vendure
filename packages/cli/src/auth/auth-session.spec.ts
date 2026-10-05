@@ -6,17 +6,13 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
     NotLoggedInError,
+    ReauthenticationRequiredError,
+    SessionLockUnavailableError,
     SessionRefreshUnavailableError,
     SessionRejectedError,
     SessionUnstorableError,
 } from './auth-errors';
-import {
-    AuthOptions,
-    PRODUCTION_AUTH_ENVIRONMENT,
-    STAGING_AUTH_ENVIRONMENT,
-    WORKOS_AUTHENTICATE_URL,
-    WORKOS_DEVICE_AUTHORIZE_URL,
-} from './auth-options';
+import { AuthOptions } from './auth-options';
 import {
     getAccessToken,
     listOrganizations,
@@ -47,8 +43,33 @@ interface Request {
     authorization?: string;
 }
 
-const PRODUCTION_CLIENT_ID = PRODUCTION_AUTH_ENVIRONMENT.workosClientId;
+const WORKOS_DEVICE_AUTHORIZE_URL = 'https://api.workos.com/user_management/authorize/device';
+const WORKOS_AUTHENTICATE_URL = 'https://api.workos.com/user_management/authenticate';
+const PRODUCTION_CLIENT_ID = 'client_01PRODUCTION';
+const STAGING_CLIENT_ID = 'client_01STAGING';
 const CONSOLE_ME_URL = 'https://api.vendure.io/v1/me';
+
+/** Console's public `GET /v1`, which names the WorkOS client its verifier accepts. */
+function serviceInfo(clientId = PRODUCTION_CLIENT_ID) {
+    return {
+        body: {
+            service: 'api',
+            authentication: { provider: 'workos', clientId, apiHostname: 'api.workos.com' },
+        },
+    };
+}
+
+/** Holds the session lock as a live process would, and makes waiters give up quickly. */
+async function withLockHeldElsewhere(run: () => Promise<void>): Promise<void> {
+    writeFileSync(path.join(configDir, 'auth.lock'), `${process.pid}-other-holder`);
+    const { waitMs } = SESSION_LOCK_OPTIONS;
+    SESSION_LOCK_OPTIONS.waitMs = 20;
+    try {
+        await run();
+    } finally {
+        SESSION_LOCK_OPTIONS.waitMs = waitMs;
+    }
+}
 const ACCOUNT_1 = '11111111-1111-4111-8111-111111111111';
 const ACCOUNT_2 = '22222222-2222-4222-8222-222222222222';
 
@@ -99,7 +120,9 @@ function fakeWorkos(responses: Array<FakeResponse | (() => FakeResponse)>) {
         const queued = responses.shift();
         if (!queued) return Promise.reject(new Error(`Unexpected request to ${url}`));
         const next = typeof queued === 'function' ? queued() : queued;
-        return Promise.resolve(new Response(JSON.stringify(next.body), { status: next.status ?? 200 }));
+        const status = next.status ?? 200;
+        const text = typeof next.body === 'string' ? next.body : JSON.stringify(next.body);
+        return Promise.resolve(new Response(status === 204 ? null : text, { status }));
     }) as typeof globalThis.fetch;
     return { fetch, requests };
 }
@@ -121,7 +144,9 @@ let options: AuthOptions;
 function storedAuth(overrides: Partial<StoredAuth> = {}): StoredAuth {
     return {
         version: 1,
+        consoleApiUrl: 'https://api.vendure.io',
         clientId: PRODUCTION_CLIENT_ID,
+        workosApiHostname: 'api.workos.com',
         accessToken: accessToken(3600),
         refreshToken: 'refresh_1',
         user: { id: USER.id, email: USER.email, firstName: 'Ada', lastName: 'Lovelace' },
@@ -148,6 +173,7 @@ describe('loginWithDevice', () => {
     it('runs the device flow and stores the session at 0600', async () => {
         const token = accessToken(300, { org_id: 'org_1' });
         const workos = fakeWorkos([
+            serviceInfo(),
             DEVICE,
             { status: 400, body: { error: 'authorization_pending' } },
             authentication(token, 'refresh_1', 'org_1'),
@@ -166,11 +192,13 @@ describe('loginWithDevice', () => {
         expect(shown).toEqual(['ABCD-EFGH']);
         expect(workos.requests.map(r => r.body.grant_type)).toEqual([
             undefined,
+            undefined,
             'urn:ietf:params:oauth:grant-type:device_code',
             'urn:ietf:params:oauth:grant-type:device_code',
             undefined,
         ]);
-        expect(workos.requests[0].body.client_id).toBe(PRODUCTION_CLIENT_ID);
+        expect(workos.requests[0].url).toBe('https://api.vendure.io/v1');
+        expect(workos.requests[1].body.client_id).toBe(PRODUCTION_CLIENT_ID);
         expect(status).toMatchObject({
             loggedIn: true,
             organization: { workosOrganizationId: 'org_1', name: 'Bromley Art Supplies' },
@@ -184,6 +212,7 @@ describe('loginWithDevice', () => {
 
     it('still logs in when Console cannot name the organization', async () => {
         const workos = fakeWorkos([
+            serviceInfo(),
             DEVICE,
             authentication(accessToken(300), 'refresh_1', 'org_1'),
             { status: 503, body: {} },
@@ -201,6 +230,7 @@ describe('loginWithDevice', () => {
     it('scopes the session to an organization named by its Account identifier', async () => {
         const deviceToken = accessToken(300, { org_id: 'org_1' });
         const workos = fakeWorkos([
+            serviceInfo(),
             DEVICE,
             authentication(deviceToken, 'refresh_1', 'org_1'),
             viewer(),
@@ -209,12 +239,12 @@ describe('loginWithDevice', () => {
 
         const status = await loginWithDevice({ ...options, fetch: workos.fetch, organization: ACCOUNT_2 });
 
-        expect(workos.requests[2]).toEqual({
+        expect(workos.requests[3]).toEqual({
             url: CONSOLE_ME_URL,
             body: {},
             authorization: `Bearer ${deviceToken}`,
         });
-        expect(workos.requests[3].body).toMatchObject({
+        expect(workos.requests[4].body).toMatchObject({
             grant_type: 'refresh_token',
             refresh_token: 'refresh_1',
             organization_id: 'org_2',
@@ -229,6 +259,7 @@ describe('loginWithDevice', () => {
 
     it('matches an organization name ignoring case, without re-scoping when already there', async () => {
         const workos = fakeWorkos([
+            serviceInfo(),
             DEVICE,
             authentication(accessToken(300, { org_id: 'org_1' }), 'refresh_1', 'org_1'),
             viewer(),
@@ -240,12 +271,13 @@ describe('loginWithDevice', () => {
             organization: 'bromley art supplies',
         });
 
-        expect(workos.requests).toHaveLength(3);
+        expect(workos.requests).toHaveLength(4);
         expect(status.organization?.customerAccountId).toBe(ACCOUNT_1);
     });
 
     it('refuses an ambiguous name and stores nothing', async () => {
         const workos = fakeWorkos([
+            serviceInfo(),
             DEVICE,
             authentication(accessToken(300), 'refresh_1'),
             viewer([
@@ -263,7 +295,12 @@ describe('loginWithDevice', () => {
     it('refuses an organization the user is not an active Console member of, and stores nothing', async () => {
         // Pending membership, and a WorkOS organization with no Customer Account.
         for (const organization of ['Invited', 'Not a Console account']) {
-            const run = fakeWorkos([DEVICE, authentication(accessToken(300), 'refresh_1'), viewer()]);
+            const run = fakeWorkos([
+                serviceInfo(),
+                DEVICE,
+                authentication(accessToken(300), 'refresh_1'),
+                viewer(),
+            ]);
             await expect(loginWithDevice({ ...options, fetch: run.fetch, organization })).rejects.toThrow(
                 /not an active member.*Example GmbH/s,
             );
@@ -273,6 +310,7 @@ describe('loginWithDevice', () => {
 
     it('refuses a token WorkOS did not scope to the organization asked for', async () => {
         const workos = fakeWorkos([
+            serviceInfo(),
             DEVICE,
             authentication(accessToken(300, { org_id: 'org_1' }), 'refresh_1', 'org_1'),
             viewer(),
@@ -285,18 +323,46 @@ describe('loginWithDevice', () => {
         expect(readStoredAuth(options)).toBeUndefined();
     });
 
-    it('refuses a custom WorkOS client outside local development, before the browser step', async () => {
-        const workos = fakeWorkos([]);
-        const customClient = { ...options, env: { ...options.env, VENDURE_AUTH_CLIENT_ID: 'client_other' } };
+    it('stops before the browser step when Console does not publish its sign-in settings', async () => {
+        const workos = fakeWorkos([{ status: 404, body: { code: 'not_found' } }]);
 
-        await expect(loginWithDevice({ ...customClient, fetch: workos.fetch })).rejects.toThrow(
-            'loopback VENDURE_CONSOLE_API_URL',
+        await expect(loginWithDevice({ ...options, fetch: workos.fetch })).rejects.toThrow(
+            'Could not read the sign-in settings from Vendure Console at https://api.vendure.io',
         );
-        expect(workos.requests).toHaveLength(0);
+        expect(workos.requests.map(r => r.url)).toEqual(['https://api.vendure.io/v1']);
     });
 
-    it('signs in to the staging client when the staging Console API is selected', async () => {
+    it('tells the user to choose an organization in the browser when it requires a new sign-in', async () => {
         const workos = fakeWorkos([
+            serviceInfo(),
+            DEVICE,
+            authentication(accessToken(300, { org_id: 'org_1' }), 'refresh_1', 'org_1'),
+            viewer(),
+            { status: 400, body: { error: 'sso_required' } },
+        ]);
+
+        await expect(
+            loginWithDevice({ ...options, fetch: workos.fetch, organization: 'Example GmbH' }),
+        ).rejects.toThrow(
+            'Example GmbH requires a new sign-in through WorkOS (sso_required). Run `vendure auth login` without --organization and choose Example GmbH in the browser.',
+        );
+        expect(readStoredAuth(options)).toBeUndefined();
+    });
+
+    it('does not write the login while another process holds the lock', async () => {
+        const workos = fakeWorkos([serviceInfo(), DEVICE, authentication(accessToken(300), 'refresh_1')]);
+
+        await withLockHeldElsewhere(async () => {
+            await expect(loginWithDevice({ ...options, fetch: workos.fetch })).rejects.toBeInstanceOf(
+                SessionLockUnavailableError,
+            );
+        });
+        expect(readStoredAuth(options)).toBeUndefined();
+    });
+
+    it('signs in with the client the staging Console publishes when staging is selected', async () => {
+        const workos = fakeWorkos([
+            serviceInfo(STAGING_CLIENT_ID),
             DEVICE,
             authentication(accessToken(300, { org_id: 'org_2' }), 'refresh_1', 'org_2'),
             viewer(),
@@ -308,11 +374,16 @@ describe('loginWithDevice', () => {
 
         await loginWithDevice({ ...staging, fetch: workos.fetch, organization: 'Example GmbH' });
 
-        expect(workos.requests[0].body.client_id).toBe(STAGING_AUTH_ENVIRONMENT.workosClientId);
-        expect(workos.requests[2].url).toBe('https://staging.api.vendure.io/v1/me');
+        expect(workos.requests[0].url).toBe('https://staging.api.vendure.io/v1');
+        expect(workos.requests[1].body.client_id).toBe(STAGING_CLIENT_ID);
+        expect(workos.requests[3].url).toBe('https://staging.api.vendure.io/v1/me');
+        expect(readStoredAuth(staging)).toMatchObject({
+            consoleApiUrl: 'https://staging.api.vendure.io',
+            clientId: STAGING_CLIENT_ID,
+        });
     });
 
-    it('never sends the token to a Console API that is not paired with the client', async () => {
+    it('refuses a Console API that is not official or loopback, before any request', async () => {
         const workos = fakeWorkos([]);
         const elsewhere = {
             ...options,
@@ -326,7 +397,7 @@ describe('loginWithDevice', () => {
     });
 
     it('reports a login denied in the browser', async () => {
-        const workos = fakeWorkos([DEVICE, { status: 400, body: { error: 'access_denied' } }]);
+        const workos = fakeWorkos([serviceInfo(), DEVICE, { status: 400, body: { error: 'access_denied' } }]);
 
         await expect(loginWithDevice({ ...options, fetch: workos.fetch })).rejects.toThrow('denied');
         expect(readStoredAuth(options)).toBeUndefined();
@@ -358,8 +429,8 @@ describe('listOrganizations', () => {
         expect(workos.requests[2].authorization).toBe(`Bearer ${renewed}`);
     });
 
-    it('uses a loopback Console API, and the staging client, in local development', async () => {
-        writeStoredAuth(storedAuth({ clientId: STAGING_AUTH_ENVIRONMENT.workosClientId }), options);
+    it('uses a loopback Console API in local development', async () => {
+        writeStoredAuth(storedAuth({ consoleApiUrl: 'http://localhost:3000' }), options);
         const workos = fakeWorkos([viewer()]);
         const local = {
             ...options,
@@ -404,15 +475,18 @@ describe('getAccessToken', () => {
         expect(readStoredAuth(options)).toMatchObject({ accessToken: renewed, refreshToken: 'refresh_2' });
     });
 
-    it('ignores a login issued for another WorkOS client', async () => {
-        writeStoredAuth(storedAuth({ clientId: 'client_other' }), options);
+    it('ignores a login for another Vendure Console', async () => {
+        writeStoredAuth(storedAuth({ consoleApiUrl: 'https://staging.api.vendure.io' }), options);
 
         await expect(getAccessToken(options)).resolves.toBeUndefined();
         expect(readAuthStatus(options).loggedIn).toBe(false);
     });
 
-    it('uses the staging client when the staging Console API is selected', async () => {
-        const stored = storedAuth({ clientId: STAGING_AUTH_ENVIRONMENT.workosClientId });
+    it('uses the staging login when the staging Console API is selected', async () => {
+        const stored = storedAuth({
+            consoleApiUrl: 'https://staging.api.vendure.io',
+            clientId: STAGING_CLIENT_ID,
+        });
         writeStoredAuth(stored, options);
         const staging = {
             ...options,
@@ -532,19 +606,53 @@ describe('refreshAccessToken', () => {
     it('keeps the login when WorkOS refuses the refresh token while the lock was not held', async () => {
         const failed = accessToken(3600);
         writeStoredAuth(storedAuth({ accessToken: failed }), options);
-        // A live holder: this process's pid and a fresh mtime, so the lock is never broken.
-        writeFileSync(path.join(configDir, 'auth.lock'), `${process.pid}-other-holder`);
         const workos = fakeWorkos([{ status: 400, body: { error: 'invalid_grant' } }]);
-        const { waitMs } = SESSION_LOCK_OPTIONS;
-        SESSION_LOCK_OPTIONS.waitMs = 20;
-        try {
+
+        await withLockHeldElsewhere(async () => {
             await expect(
                 refreshAccessToken(failed, { ...options, fetch: workos.fetch }),
             ).rejects.toBeInstanceOf(SessionRejectedError);
-        } finally {
-            SESSION_LOCK_OPTIONS.waitMs = waitMs;
-        }
+        });
         expect(readStoredAuth(options)?.refreshToken).toBe('refresh_1');
+    });
+
+    it.each([
+        ['error', 'sso_required'],
+        ['error', 'organization_authentication_methods_required'],
+        ['code', 'mfa_enrollment'],
+    ])('asks for a new sign-in when WorkOS answers with %s %s, and keeps the login', async (field, code) => {
+        const failed = accessToken(3600);
+        writeStoredAuth(storedAuth({ accessToken: failed }), options);
+        const workos = fakeWorkos([{ status: 403, body: { [field]: code } }]);
+
+        const error = await refreshAccessToken(failed, { ...options, fetch: workos.fetch }).catch(e => e);
+
+        expect(error).toBeInstanceOf(ReauthenticationRequiredError);
+        expect(error.code).toBe(code);
+        expect(error.message).toBe(
+            `WorkOS requires you to sign in again (${code}). Run \`vendure auth login\`.`,
+        );
+        expect(readStoredAuth(options)?.refreshToken).toBe('refresh_1');
+    });
+
+    it('names an unrecognised WorkOS error code', async () => {
+        const failed = accessToken(3600);
+        writeStoredAuth(storedAuth({ accessToken: failed }), options);
+        const workos = fakeWorkos([{ status: 429, body: { code: 'rate_limit_exceeded' } }]);
+
+        await expect(refreshAccessToken(failed, { ...options, fetch: workos.fetch })).rejects.toThrow(
+            'Could not renew the CLI session: WorkOS answered rate_limit_exceeded (HTTP 429).',
+        );
+    });
+
+    it('says the token was spent when WorkOS accepted the grant but its answer cannot be read', async () => {
+        const failed = accessToken(3600);
+        writeStoredAuth(storedAuth({ accessToken: failed }), options);
+        const workos = fakeWorkos([{ status: 200, body: '{"access_token": ' }]);
+
+        await expect(refreshAccessToken(failed, { ...options, fetch: workos.fetch })).rejects.toThrow(
+            /answer could not be read.*run `vendure auth login`/,
+        );
     });
 
     it('throws NotLoggedInError without a login', async () => {
@@ -568,11 +676,61 @@ describe('refreshAccessToken', () => {
 });
 
 describe('logout', () => {
-    it('removes the stored login', async () => {
-        writeStoredAuth(storedAuth(), options);
+    it('ends the session through Console, then removes the login', async () => {
+        const stored = storedAuth();
+        writeStoredAuth(stored, options);
+        const workos = fakeWorkos([{ status: 204, body: null }]);
 
-        await expect(logout(options)).resolves.toBe(true);
-        await expect(logout(options)).resolves.toBe(false);
+        await expect(logout({ ...options, fetch: workos.fetch })).resolves.toEqual({
+            removed: true,
+            sessionEnded: true,
+        });
+        expect(workos.requests).toEqual([
+            {
+                url: 'https://api.vendure.io/v1/me/sign-out',
+                body: {},
+                authorization: `Bearer ${stored.accessToken}`,
+            },
+        ]);
         expect(fs.existsSync(path.join(configDir, 'auth.json'))).toBe(false);
+    });
+
+    it('renews an expired access token before signing out', async () => {
+        writeStoredAuth(storedAuth({ accessToken: accessToken(10) }), options);
+        const renewed = accessToken(300);
+        const workos = fakeWorkos([
+            authentication(renewed, 'refresh_2', 'org_1'),
+            { status: 204, body: null },
+        ]);
+
+        await expect(logout({ ...options, fetch: workos.fetch })).resolves.toEqual({
+            removed: true,
+            sessionEnded: true,
+        });
+        expect(workos.requests[1].authorization).toBe(`Bearer ${renewed}`);
+    });
+
+    it('still removes the login when Console cannot end the session', async () => {
+        writeStoredAuth(storedAuth(), options);
+        const fetch = (() => Promise.reject(new Error('offline'))) as typeof globalThis.fetch;
+
+        await expect(logout({ ...options, fetch })).resolves.toEqual({ removed: true, sessionEnded: false });
+        expect(fs.existsSync(path.join(configDir, 'auth.json'))).toBe(false);
+    });
+
+    it('reports that nobody was logged in', async () => {
+        await expect(logout(options)).resolves.toEqual({ removed: false, sessionEnded: false });
+    });
+
+    it('keeps the login while another process holds the lock', async () => {
+        writeStoredAuth(storedAuth(), options);
+        const workos = fakeWorkos([{ status: 204, body: null }]);
+
+        await withLockHeldElsewhere(async () => {
+            await expect(logout({ ...options, fetch: workos.fetch })).rejects.toBeInstanceOf(
+                SessionLockUnavailableError,
+            );
+        });
+        expect(readStoredAuth(options)?.refreshToken).toBe('refresh_1');
     });
 });

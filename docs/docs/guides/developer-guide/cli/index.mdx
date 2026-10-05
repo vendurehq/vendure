@@ -373,7 +373,7 @@ than one organization, you choose one in the browser. Nothing on this machine ne
 another device.
 
 To choose the organization on the command line instead, for example in a script or on a remote machine, pass its
-Account identifier (in Vendure Console under **Settings**) or its exact name:
+Account identifier (in Vendure Console under **Settings**) or its name. Names match ignoring case:
 
 ```bash
 npx vendure auth login --organization 79e629da-...
@@ -397,17 +397,18 @@ code 1 when nobody is signed in.
 
 The login is stored in `auth.json` in the CLI configuration directory (`~/.config/vendure` by default, or
 `VENDURE_CLI_CONFIG_DIR`) and is readable only by your user. The CLI renews the access token automatically.
-`vendure auth logout` removes the login from this machine. It does not end sessions you have open in a browser.
+`vendure auth logout` asks Vendure Console to end the session, then removes the login from this machine. Once Console
+has ended the session, a copy of the login stops working as well. When Console cannot be reached, the command still
+removes the login and warns that a copy keeps working until it expires.
 
-The CLI signs in to production Vendure by default. To work against staging, set
-`VENDURE_CONSOLE_API_URL=https://staging.api.vendure.io`. `vendure auth` then uses the staging WorkOS client as well.
-`vendure console link` reads the same variable but also needs
+The CLI signs in to production Vendure Console by default. It reads the WorkOS client to sign in with from that
+Console, so a login is always one the Console accepts. To work against staging, set
+`VENDURE_CONSOLE_API_URL=https://staging.api.vendure.io`. `vendure console link` reads the same variable but also needs
 `VENDURE_CONSOLE_APP_URL=https://staging.console.vendure.io`, so set both when you use both commands. A login stored
-for one environment is not used with another.
+for one Console is not used with another.
 
 The CLI sends your access token only to the official Vendure Console API of the selected environment. During local
-development, `VENDURE_CONSOLE_API_URL` can point at a loopback Console API, and `VENDURE_AUTH_CLIENT_ID` can select
-the WorkOS client it accepts. Any other value is refused.
+development, `VENDURE_CONSOLE_API_URL` can point at a loopback Console API. Any other value is refused.
 
 ## The Console Command
 
@@ -1088,7 +1089,9 @@ if (response.status === 401) {
 
 Refresh tokens are single-use. The CLI serializes renewals across concurrent `vendure` processes with a lock file, so
 renew through these functions only. A `SessionRejectedError` means the login has ended and the user must run
-`vendure auth login` again. A `SessionRefreshUnavailableError` is transient and leaves the login in place.
+`vendure auth login` again. So does a `ReauthenticationRequiredError`, which WorkOS raises when, for example, the
+organization starts to enforce SSO or MFA. Its `code` names the reason. A `SessionRefreshUnavailableError` leaves the
+login in place and is usually transient, such as a network failure. Its message says when a retry will not help.
 
 `readAuthStatus()` describes the login, including the organization it is scoped to, without its tokens.
 `listOrganizations()` returns the Vendure Console organizations the user is an active member of. To change the

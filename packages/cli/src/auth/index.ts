@@ -1,5 +1,7 @@
 export {
     NotLoggedInError,
+    ReauthenticationRequiredError,
+    SessionLockUnavailableError,
     SessionRefreshUnavailableError,
     SessionRejectedError,
     SessionUnstorableError,
@@ -13,7 +15,7 @@ export {
     readAuthStatus,
     refreshAccessToken,
 } from './auth-session';
-export type { AuthStatus, DeviceLoginOptions } from './auth-session';
+export type { AuthStatus, DeviceLoginOptions, LogoutResult } from './auth-session';
 export type { AuthUser, StoredOrganization } from './auth-store';
-export type { AuthOrganization } from './console-organizations';
+export type { AuthOrganization } from './console-api';
 export type { DeviceAuthorization } from './workos-client';

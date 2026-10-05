@@ -12,7 +12,7 @@ export const authCommandDef: CliCommandGroupDefinition = {
                 {
                     long: '--organization <account>',
                     description:
-                        'Sign in to this organization: its Account identifier (Vendure Console → Settings) or exact name',
+                        'Sign in to this organization: its Account identifier (Vendure Console → Settings) or its name, ignoring case',
                     required: false,
                 },
             ],
