@@ -96,7 +96,9 @@ export class ProductVariantService {
         ctx: RequestContext,
         options?: ListQueryOptions<ProductVariant>,
     ): Promise<PaginatedList<Translated<ProductVariant>>> {
-        const relations = ['featuredAsset', 'taxCategory', 'channels'];
+        // No `channels` here: it brings one row per Channel with every variant, the Channel filter
+        // is the list query builder's own join, and the `channels` field resolver loads them.
+        const relations = ['featuredAsset', 'taxCategory'];
         const customPropertyMap: { [name: string]: string } = {};
         const hasFacetValueIdFilter =
             this.listQueryBuilder.filterObjectHasProperty<ProductVariantFilterParameter>(
@@ -289,10 +291,27 @@ export class ProductVariantService {
     }
 
     getFacetValuesForVariant(ctx: RequestContext, variantId: ID): Promise<Array<Translated<FacetValue>>> {
+        // Only the FacetValues of the active Channel, each with only that Channel joined: the
+        // resolver keeps exactly those, and joining every Channel brings one row per Channel per
+        // value. The joins are inner on purpose: on a many-to-many relation the condition of a left
+        // join only reaches the Channel table, so the join table would still bring every row.
         return this.connection
-            .findOneInChannel(ctx, ProductVariant, variantId, ctx.channelId, {
-                relations: ['facetValues', 'facetValues.facet', 'facetValues.channels'],
+            .getRepository(ctx, ProductVariant)
+            .createQueryBuilder('variant')
+            .innerJoin('variant.channels', 'variantChannel', 'variantChannel.id = :channelId', {
+                channelId: ctx.channelId,
             })
+            .leftJoinAndSelect('variant.facetValues', 'facetValue')
+            .leftJoinAndSelect('facetValue.translations', 'facetValueTranslation')
+            .leftJoinAndSelect('facetValue.facet', 'facet')
+            .leftJoinAndSelect('facet.translations', 'facetTranslation')
+            .innerJoinAndSelect(
+                'facetValue.channels',
+                'facetValueChannel',
+                'facetValueChannel.id = :channelId',
+            )
+            .where('variant.id = :variantId', { variantId })
+            .getOne()
             .then(variant =>
                 !variant ? [] : variant.facetValues.map(o => this.translator.translate(o, ctx, ['facet'])),
             );
