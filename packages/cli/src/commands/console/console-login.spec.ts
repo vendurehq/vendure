@@ -181,6 +181,48 @@ describe('console link command line login', () => {
         expect(run.messages.join('\n')).toContain('No Project Link Manifest was changed');
     });
 
+    it.each([
+        ['an interactive', true],
+        ['a non-interactive', false],
+    ])(
+        'returns an interrupt exit code when %s repair is interrupted while the login is renewed',
+        async (_, interactive) => {
+            const abort = new AbortController();
+            const hook = vi.fn(async () => undefined);
+            const run = await runLink({
+                linked: true,
+                interactive,
+                options: { yes: true },
+                storedAccessToken: accessToken('expired', ORGANIZATION_ID, -60),
+                signal: abort.signal,
+                fetch: () => {
+                    abort.abort();
+                    return Promise.reject(new DOMException('The operation was aborted.', 'AbortError'));
+                },
+                hooks: [{ pluginId: '@example/with-session', requiresSession: true, hook }],
+            });
+
+            expect(run.exitCode).toBe(130);
+            expect(hook).not.toHaveBeenCalled();
+            expect(run.messages.join('\n')).not.toContain('Could not sign in');
+        },
+    );
+
+    it('returns an interrupt exit code when a link is interrupted while the login is renewed', async () => {
+        const abort = new AbortController();
+        const run = await runLink({
+            storedAccessToken: accessToken('expired', ORGANIZATION_ID, -60),
+            signal: abort.signal,
+            fetch: () => {
+                abort.abort();
+                return Promise.reject(new DOMException('The operation was aborted.', 'AbortError'));
+            },
+        });
+
+        expect(run.exitCode).toBe(130);
+        expect(fs.existsSync(getProjectLinkManifestPath(run.root))).toBe(false);
+    });
+
     it('obtains no session when no plugin asked for one', async () => {
         const sessions: Array<ConsoleSession | undefined> = [];
         const run = await runLink({ hooks: [recordingHook(sessions, false)] });

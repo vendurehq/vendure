@@ -481,11 +481,12 @@ async function signIn(
 ): Promise<ConsoleLogin> {
     const auth = consoleAuthOptions(endpoints, dependencies, signal);
     const wanted = organization?.trim() || undefined;
-    const stored = await storedLogin(auth, wanted);
-    if (stored) {
-        return stored;
-    }
     try {
+        // Inside the try: renewing a stored login can be interrupted too.
+        const stored = await storedLogin(auth, wanted);
+        if (stored) {
+            return stored;
+        }
         await loginWithDevice({
             ...auth,
             organization: wanted,
@@ -779,8 +780,8 @@ async function repairSession(
                 'without a Console session. Run vendure console link interactively to sign in.',
         );
     } catch (error) {
-        if (error instanceof CommandInterruptedError) {
-            throw error;
+        if (signal.aborted || error instanceof CommandInterruptedError) {
+            throw new CommandInterruptedError();
         }
         dependencies.reporter.warn(
             `Could not sign in to Vendure Console: ${
