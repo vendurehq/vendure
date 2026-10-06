@@ -532,7 +532,7 @@ describe('MCP built-in shop tools', () => {
     async function orderByCode(code: string): Promise<Order> {
         return connection.getRepository(adminCtx, Order).findOneOrFail({
             where: { code },
-            relations: ['channels'],
+            relations: { channels: true },
         });
     }
 
@@ -707,7 +707,7 @@ describe('MCP built-in shop tools', () => {
 
         const order = await connection.getRepository(adminCtx, Order).findOneOrFail({
             where: { code: first.body.result.structuredContent.order.code },
-            relations: ['lines'],
+            relations: { lines: true },
         });
         expect(order.lines).toHaveLength(2);
         expect(String((await anonymousSession(session.token)).activeOrderId)).toBe(String(order.id));
@@ -744,7 +744,7 @@ describe('MCP built-in shop tools', () => {
 
         const stored = await connection
             .getRepository(adminCtx, Order)
-            .findOneOrFail({ where: { id: orderId }, relations: ['lines'] });
+            .findOneOrFail({ where: { id: orderId }, relations: { lines: true } });
         expect(stored.currencyCode).toBe(second);
         expect(stored.lines).toHaveLength(1);
         expect(stored.lines[0].quantity).toBe(3);
@@ -767,7 +767,7 @@ describe('MCP built-in shop tools', () => {
 
         const stored = await connection
             .getRepository(adminCtx, Order)
-            .findOneOrFail({ where: { id: orderId }, relations: ['lines'] });
+            .findOneOrFail({ where: { id: orderId }, relations: { lines: true } });
         expect(stored.currencyCode).toBe(second);
         expect(stored.lines).toHaveLength(1);
         expect(stored.lines[0].quantity).toBe(2);
@@ -793,7 +793,7 @@ describe('MCP built-in shop tools', () => {
 
         const stored = await connection
             .getRepository(adminCtx, Order)
-            .findOneOrFail({ where: { id: orderId }, relations: ['lines'] });
+            .findOneOrFail({ where: { id: orderId }, relations: { lines: true } });
         expect(stored.currencyCode).toBe(second);
         expect(stored.lines[0].listPrice).toBe(2000);
     });
@@ -877,7 +877,7 @@ describe('MCP built-in shop tools', () => {
             const flow = await shopFlow();
             const grantEntity = await connection.getRepository(adminCtx, McpOauthGrant).findOneOrFail({
                 where: { accessTokenHash: lookupHash(flow.access_token) },
-                relations: ['oauthClient'],
+                relations: { oauthClient: true },
             });
 
             const result = await shopClient.query(ACTIVE_GRANTS_QUERY);
@@ -917,7 +917,7 @@ describe('MCP built-in shop tools', () => {
             const flow = await shopFlow();
             const grantEntity = await connection.getRepository(adminCtx, McpOauthGrant).findOneOrFail({
                 where: { accessTokenHash: lookupHash(flow.access_token) },
-                relations: ['oauthClient'],
+                relations: { oauthClient: true },
             });
 
             const before = await shopClient.query(ACTIVE_GRANTS_QUERY);
@@ -1079,7 +1079,7 @@ describe('MCP built-in shop tools', () => {
         // the row it creates, rather than intercepting an outgoing email.
         const doomedUser = await connection.getRepository(adminCtx, User).findOneOrFail({
             where: { identifier: doomedEmail },
-            relations: ['authenticationMethods'],
+            relations: { authenticationMethods: true },
         });
         const verificationToken = doomedUser.getNativeAuthenticationMethod().verificationToken;
         if (!verificationToken) {
@@ -1670,7 +1670,7 @@ describe('MCP built-in shop tools', () => {
         async function customerShopContext(): Promise<RequestContext> {
             const customer = await connection.getRepository(adminCtx, Customer).findOneOrFail({
                 where: { emailAddress: customerEmail },
-                relations: ['user'],
+                relations: { user: true },
             });
             return server.app.get(RequestContextService).create({ apiType: 'shop', user: customer.user });
         }
@@ -1922,7 +1922,7 @@ describe('MCP built-in shop tools', () => {
 
             const stored = await connection.getRepository(adminCtx, Order).findOneOrFail({
                 where: { code: placedOrder.code as string },
-                relations: ['customer', 'customer.user'],
+                relations: { customer: { user: true } },
             });
             expect(stored.orderPlacedAt).toBeTruthy();
             expect(stored.customer?.emailAddress).toBe(GUEST_CHECKOUT_EMAIL);
@@ -1933,7 +1933,7 @@ describe('MCP built-in shop tools', () => {
             // address book, so this one does too.
             const buyer = await connection.getRepository(adminCtx, Customer).findOneOrFail({
                 where: { id: stored.customer?.id },
-                relations: ['addresses'],
+                relations: { addresses: true },
             });
             expect(buyer.addresses).toHaveLength(1);
             expect(buyer.addresses[0]).toMatchObject({
@@ -2425,7 +2425,7 @@ describe('MCP built-in shop tools', () => {
             // has to be named before any address is written. Nothing was.
             const stored = await connection.getRepository(adminCtx, Order).findOneOrFail({
                 where: { code: cart.code as string },
-                relations: ['customer'],
+                relations: { customer: true },
             });
             expect(stored.shippingAddress?.streetLine1).toBeUndefined();
             expect(stored.customer).toBeNull();

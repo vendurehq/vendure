@@ -809,7 +809,7 @@ describe('McpPlugin OAuth edge & security cases', () => {
             const adminCtx = await requestContextService.create({ apiType: 'admin' });
             const [administrator] = await connection
                 .getRepository(adminCtx, Administrator)
-                .find({ relations: ['user'], take: 1 });
+                .find({ relations: { user: true }, take: 1 });
             const { requestToken } = await startShopAuthorization();
             const ctx = new RequestContext({
                 apiType: 'shop',
@@ -900,7 +900,7 @@ describe('McpPlugin OAuth edge & security cases', () => {
             const adminCtx = await requestContextService.create({ apiType: 'admin' });
             const [customer] = await connection
                 .getRepository(adminCtx, Customer)
-                .find({ relations: ['user'], take: 1 });
+                .find({ relations: { user: true }, take: 1 });
             if (!customer?.user) {
                 throw new Error('Expected at least one seeded customer with a user');
             }

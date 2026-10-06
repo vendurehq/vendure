@@ -303,7 +303,7 @@ export class McpOauthService {
     private async assertNotAnAdministrator(ctx: RequestContext): Promise<void> {
         const administrator = await this.connection
             .getRepository(ctx, Administrator)
-            .findOne({ where: { user: { id: ctx.activeUserId } }, relations: ['user'] });
+            .findOne({ where: { user: { id: ctx.activeUserId } }, relations: { user: true } });
         if (administrator) {
             throw new ForbiddenException('Customer consent cannot be given by an administrator');
         }
@@ -370,7 +370,7 @@ export class McpOauthService {
                 revokedAt: IsNull(),
                 expiresAt: MoreThan(new Date()),
             },
-            relations: ['oauthClient'],
+            relations: { oauthClient: true },
             order: { lastActivityAt: 'DESC' },
         });
     }
@@ -584,7 +584,7 @@ export class McpOauthService {
         const codeHash = this.hashLookup(input.code);
         const code = await codeRepo.findOne({
             where: { code: codeHash },
-            relations: ['oauthClient'],
+            relations: { oauthClient: true },
         });
         if (!code || code.expiresAt <= new Date()) {
             throw new McpOauthError('invalid_grant', 'Authorization code invalid or expired');
@@ -637,7 +637,7 @@ export class McpOauthService {
         const refreshTokenHash = this.hashLookup(input.refresh_token);
         const grant = await grantRepo.findOne({
             where: { refreshTokenHash },
-            relations: ['oauthClient'],
+            relations: { oauthClient: true },
         });
         if (!grant) {
             const reused = await grantRepo.findOne({
@@ -770,7 +770,7 @@ export class McpOauthService {
     ): Promise<McpAuthorizationRequest> {
         const request = await this.connection.getRepository(ctx, McpAuthorizationRequest).findOne({
             where: { requestToken: this.hashLookup(requestToken) },
-            relations: ['oauthClient'],
+            relations: { oauthClient: true },
         });
         if (!request || request.expiresAt <= new Date()) {
             throw new BadRequestException('Authorization request invalid or expired');

@@ -1151,7 +1151,7 @@ describe('MCP admin API', () => {
             expect(customer).toBeDefined();
             const row = await connection.getRepository(adminCtx, Customer).findOne({
                 where: { emailAddress: customer.emailAddress },
-                relations: ['user'],
+                relations: { user: true },
             });
             return {
                 gqlId: customer.id,
@@ -1169,7 +1169,7 @@ describe('MCP admin API', () => {
             expect(administrator).toBeDefined();
             const row = await connection.getRepository(adminCtx, Administrator).findOne({
                 where: { emailAddress: administrator.emailAddress },
-                relations: ['user'],
+                relations: { user: true },
             });
             return {
                 name: `${administrator.firstName} ${administrator.lastName}`,

@@ -1415,7 +1415,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
         // A DB-level check that the payment was actually refunded, not just that the response echoed it.
         const paymentAfter = await connection
             .getRepository(adminCtx, Payment)
-            .findOneOrFail({ where: { id: paymentId }, relations: ['refunds'] });
+            .findOneOrFail({ where: { id: paymentId }, relations: { refunds: true } });
         expect(paymentAfter.refunds.reduce((sum, r) => sum + r.total, 0)).toBe(paymentBefore.amount);
     });
 
@@ -1452,7 +1452,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
 
         const paymentAfter = await connection
             .getRepository(adminCtx, Payment)
-            .findOneOrFail({ where: { id: paymentId }, relations: ['refunds'] });
+            .findOneOrFail({ where: { id: paymentId }, relations: { refunds: true } });
         expect(paymentAfter.refunds.reduce((sum, r) => sum + r.total, 0)).toBe(paymentBefore.amount);
     });
 
@@ -2045,7 +2045,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
 
             const stored = await connection
                 .getRepository(adminCtx, ProductVariant)
-                .findOneOrFail({ where: { sku }, relations: ['product'] });
+                .findOneOrFail({ where: { sku }, relations: { product: true } });
             expect(String(stored.product.id)).toBe(String(emptyProductId));
         });
 
@@ -2098,7 +2098,10 @@ describe('MCP built-in admin tools (direct mode)', () => {
             expect(updated.body.result.isError).toBeUndefined();
             const stored = await connection
                 .getRepository(adminCtx, Product)
-                .findOneOrFail({ where: { id: productId }, relations: ['assets', 'featuredAsset'] });
+                .findOneOrFail({
+                    where: { id: productId },
+                    relations: { assets: true, featuredAsset: true },
+                });
             expect(stored.assets.map(entry => String(entry.assetId)).sort()).toEqual(
                 assetIds.map(String).sort(),
             );
