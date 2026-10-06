@@ -197,6 +197,8 @@ tool calls go through it:
 
 Set `usesActiveOrder: true` on a Shop tool that uses the shopper's active Order (cart). This lets anonymous callers continue the same cart across tool calls using a `sessionToken`.
 
+When the shopper already has a cart, `ctx.currencyCode` is the cart's currency instead of the channel's default, so changes to the cart keep its currency and prices.
+
 Session creation depends on the tool's `behavior`:
 
 - `readonly` tools only use an existing session.
@@ -292,7 +294,7 @@ The full field list, types, and defaults are on
 | `toolset` | `'shop'` or `'admin'` — which endpoint serves it |
 | `permissions` | `Permission[]`, OR semantics. Omitted/empty on `shop` defaults to Public; required on `admin` — boot fails without it |
 | `behavior` | Safety classification: `'readonly'`, `'mutating'` (default), or `'destructive'` |
-| `usesActiveOrder` | Set on Shop tools that need the active cart; enables registry-managed anonymous `sessionToken` handling |
+| `usesActiveOrder` | Set on Shop tools that need the active cart; enables registry-managed anonymous `sessionToken` handling, and `ctx.currencyCode` is the cart's currency |
 | `inputSchema` / `outputSchema` | JSON Schema or Standard Schema (e.g. Zod v4); input validated pre-call, output drift-checked post-call |
 | `keywords` | Search-only synonyms for discovery mode |
 

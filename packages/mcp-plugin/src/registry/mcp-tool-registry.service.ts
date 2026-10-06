@@ -432,8 +432,9 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         };
     }
 
-    // Core reprices a cart into the request's currency on every change. A storefront keeps the cart's
-    // currency by sending it with each request, but an MCP call has none, so this sends it instead.
+    // Core reprices a cart into the request's currency on every change. A storefront sends the cart's
+    // currency with each request, but an MCP call has none, so the tool gets a copy of the context in
+    // the cart's currency.
     private async inCartCurrency(
         tool: McpRegisteredTool,
         callContext: McpExecutionContext,

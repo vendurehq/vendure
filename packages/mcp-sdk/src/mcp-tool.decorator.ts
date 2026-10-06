@@ -112,6 +112,9 @@ export interface McpToolMetadata {
      * Set to `true` for Shop tools that use the shopper's active Order. This enables anonymous
      * callers to continue the same cart using a `sessionToken`.
      *
+     * When the shopper already has a cart, `ctx.currencyCode` is the cart's currency instead of the
+     * channel's default, so changes to the cart keep its currency and prices.
+     *
      * Only valid for Shop tools. The `sessionToken` field is managed automatically.
      *
      * @default false

@@ -647,6 +647,37 @@ describe('McpToolRegistryService', () => {
             expect(activeOrderStrategy.determineActiveOrder).not.toHaveBeenCalled();
         });
 
+        it('passes the context through unchanged when the shopper has no cart', async () => {
+            const execute = vi.fn(() => ({ ok: true }));
+            const { service, activeOrderStrategy } = build([wrapper(cartTool(), execute)]);
+            service.onApplicationBootstrap();
+            const ctx = signedInCtx('USD');
+
+            await service.callTool({ ctx }, 'shop', 'touch_cart', {});
+
+            expect(activeOrderStrategy.determineActiveOrder).toHaveBeenCalledOnce();
+            expect((execute.mock.calls[0] as unknown[])[0]).toBe(ctx);
+        });
+
+        it('asks the next active-order strategy when the first finds no cart', async () => {
+            const execute = vi.fn(() => ({ ok: true }));
+            const { service, activeOrderStrategy, configService } = build([wrapper(cartTool(), execute)]);
+            const secondStrategy = {
+                name: 'second',
+                determineActiveOrder: vi.fn(() => Promise.resolve({ id: '1', currencyCode: 'EUR' })),
+            };
+            (configService.orderOptions as any).activeOrderStrategy = [activeOrderStrategy, secondStrategy];
+            service.onApplicationBootstrap();
+
+            await service.callTool({ ctx: signedInCtx('USD') }, 'shop', 'touch_cart', {});
+
+            expect(activeOrderStrategy.determineActiveOrder).toHaveBeenCalledOnce();
+            expect(secondStrategy.determineActiveOrder).toHaveBeenCalledOnce();
+            expect(((execute.mock.calls[0] as unknown[])[0] as { currencyCode: string }).currencyCode).toBe(
+                'EUR',
+            );
+        });
+
         it('does not look up a cart when the call has no session', async () => {
             const execute = vi.fn(() => ({ ok: true }));
             const { service, activeOrderStrategy } = build([wrapper(cartTool(), execute)]);
