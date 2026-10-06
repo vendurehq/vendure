@@ -18,6 +18,7 @@ describe('CLI Console Command E2E', () => {
         expect(result.stdout).toContain('link | status | unlink');
         expect(result.stdout).toContain('--project <path>');
         expect(result.stdout).toContain('--force');
+        expect(result.stdout).toContain('--organization');
     });
 
     it('requires a value when --project is present', async () => {
@@ -38,7 +39,7 @@ describe('CLI Console Command E2E', () => {
 
         expect(result.exitCode).toBe(0);
         expect(`${result.stdout}\n${result.stderr}`).toContain('Project: Not linked');
-        expect(`${result.stdout}\n${result.stderr}`).toContain('Authentication: Not stored locally');
+        expect(`${result.stdout}\n${result.stderr}`).toContain('Login: run vendure auth status');
     });
 
     it('removes only the local manifest with --force', async () => {
