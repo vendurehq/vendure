@@ -1,17 +1,18 @@
-import { confirm, isCancel, log } from '@clack/prompts';
+import { confirm, isCancel, log, select } from '@clack/prompts';
 
+import {
+    NotLoggedInError,
+    ReauthenticationRequiredError,
+    SessionRejectedError,
+} from '../../auth/auth-errors';
+import { AuthOptions } from '../../auth/auth-options';
+import { getAccessToken, loginWithDevice, readAuthStatus, refreshAccessToken } from '../../auth/auth-session';
+import { StoredOrganization } from '../../auth/auth-store';
 import { CliCommandExit } from '../../shared/cli-command-exit';
 import { isNonInteractiveEnvironment, withInteractiveTimeout } from '../../utilities/utils';
 
-import { exchangeConsoleCode, openConsoleBrowser } from './authentication';
-import {
-    ConsoleSession,
-    LoopbackCallback,
-    cliAuthSearchParams,
-    createLoginState,
-    createPkceChallenge,
-    startLoopbackCallback,
-} from './cli-auth';
+import { openConsoleBrowser } from './authentication';
+import { ConsoleSession } from './cli-auth';
 import { ConsoleLinkContext, ConsoleLinkOutcome, RegisteredConsoleLinkHook } from './console-link-hook';
 import {
     ConsoleOrigins,
@@ -36,22 +37,10 @@ import {
 } from './project-link-manifest';
 import { nonEmptyString, objectValue, uuid } from './project-link-validation';
 
-const PROJECT_LINKS_PATH = '/v1/project-links';
-const CLI_AUTH_CAPABILITY = 'cli-auth';
-const POLL_INTERVAL_MS = 2_000;
+const PROJECTS_PATH = '/v1/projects';
 const REQUEST_TIMEOUT_MS = 10_000;
-const MAX_RESPONSE_BYTES = 64 * 1024;
-const MAX_RETRY_DELAY_MS = 2_000;
-/**
- * How long the callback is still accepted after the poll has already returned
- * the manifest.
- *
- * Approval mints the code and returns the redirect in one transaction, so the
- * browser's navigation and the next poll run on unrelated clocks. Closing the
- * moment the poll wins would lose a session that was on its way, and hand
- * somebody who did everything right the report meant for a remote approval.
- */
-export const CALLBACK_GRACE_MS = 2_500;
+/** The project list grows with the account, so the cap is wider than one manifest needs. */
+const MAX_RESPONSE_BYTES = 1024 * 1024;
 
 export interface ConsoleCommandOptions {
     json?: boolean;
@@ -60,6 +49,8 @@ export interface ConsoleCommandOptions {
     force?: boolean;
     /** Answers every confirmation owned by the CLI. */
     yes?: boolean;
+    /** The organization to link a project of: its Account identifier or its name. */
+    organization?: string;
 }
 
 export interface ConsoleCommandDependencies {
@@ -75,10 +66,13 @@ export interface ConsoleCommandDependencies {
     now: () => number;
     openUrl: (url: string) => Promise<void>;
     prompt: (message: string) => Promise<boolean | undefined>;
+    /** Asks the user to choose one value. Resolves `undefined` when the prompt was cancelled. */
+    select: (
+        message: string,
+        choices: Array<{ value: string; label: string }>,
+    ) => Promise<string | undefined>;
     reporter: ConsoleReporter;
     signal?: AbortSignal;
-    sleep: (milliseconds: number, signal: AbortSignal) => Promise<void>;
-    startLoopbackCallback: typeof startLoopbackCallback;
 }
 
 interface ConsoleEndpoints {
@@ -86,32 +80,22 @@ interface ConsoleEndpoints {
     consoleUrl: string;
 }
 
-interface ProjectLinkRequest {
+/** An active Console Project of the signed-in organization. */
+interface ConsoleProject {
     id: string;
-    expiresAt: number;
-    pollingSecret: string;
-    verificationUrl: string;
-    /** What a decision on this link can also settle. Empty on an older Console. */
-    supports: string[];
+    name: string;
 }
 
-/** A command line login waiting on its callback, alongside a Project Link. */
-interface ConsoleLogin extends LoopbackCallback {
-    verifier: string;
-    /** The verification URL carrying the login request. */
-    verificationUrl: string;
-}
-
-interface ProjectLinkPollResult {
-    state: 'pending' | 'approved' | 'denied' | 'expired';
-    expiresAt: number;
-    manifest?: ProjectLinkManifest;
+/** The CLI login a command uses, matched to the Console it calls. */
+interface ConsoleLogin {
+    auth: AuthOptions;
+    accessToken: string;
 }
 
 class ConsoleRequestError extends Error {
     constructor(
         message: string,
-        readonly transient: boolean,
+        readonly httpStatus?: number,
     ) {
         super(message);
         this.name = 'ConsoleRequestError';
@@ -149,9 +133,14 @@ function createDefaultDependencies(): ConsoleCommandDependencies {
             });
             return isCancel(result) ? undefined : result;
         },
+        select: async (message, choices) => {
+            const result = await withInteractiveTimeout(() => select({ message, options: choices }), {
+                examples: ['vendure console link'],
+                helpCommands: ['vendure console --help'],
+            });
+            return isCancel(result) ? undefined : String(result);
+        },
         reporter: defaultReporter,
-        sleep: abortableSleep,
-        startLoopbackCallback,
     };
 }
 
@@ -309,7 +298,7 @@ async function runConsoleCommand(
 
     const projectRoot = resolveProjectRoot(dependencies.cwd, options.project);
     if (normalizedAction === 'status') {
-        return status(projectRoot, dependencies.env, dependencies.reporter);
+        return status(projectRoot, dependencies);
     }
     if (normalizedAction === 'unlink') {
         return unlink(projectRoot, options, dependencies);
@@ -402,9 +391,9 @@ async function link(
         state.result.missingInputs.push({ input: 'projectLinkApproval', command: 'vendure console link' });
         const nextStep =
             `Run vendure console link --project ${JSON.stringify(projectRoot)}${replacementFlag} ` +
-            'interactively and approve the Project Link. Then rerun this command.';
+            'interactively, sign in and choose the Console Project. Then rerun this command.';
         state.result.nextSteps.push(nextStep);
-        dependencies.reporter.error('A Project Link approval is required.');
+        dependencies.reporter.error('Choosing the Console Project to link requires an interactive run.');
         dependencies.reporter.info(nextStep);
         return 1;
     }
@@ -415,202 +404,306 @@ async function link(
         }
     }
 
-    const request = await createProjectLink(endpoints, dependencies, signal);
-    let login = await startConsoleLogin(request, endpoints, dependencies);
-    try {
-        dependencies.reporter.info('Approve the Project link in your browser.');
-        try {
-            await dependencies.openUrl(login?.verificationUrl ?? request.verificationUrl);
-        } catch {
-            if (login) {
-                // The callback address is on this machine, so a browser
-                // somewhere else can never reach it. Ask for the link alone
-                // rather than advertise a callback nothing will call, and say
-                // now what that costs rather than after the approval.
-                login.close();
-                login = undefined;
-                dependencies.reporter.warn(noSessionFromThisLink());
-            }
-            dependencies.reporter.warn(
-                'Could not open the browser automatically. Open this URL to continue:',
-            );
-            dependencies.reporter.url(request.verificationUrl);
-        }
-
-        const approvedManifest = await waitForApproval(request, endpoints, dependencies, signal);
-        throwIfAborted(signal);
-        const manifest = withConsoleOrigins(approvedManifest, {
-            appOrigin: endpoints.consoleUrl,
-            apiOrigin: endpoints.apiUrl,
-        });
-        // Record the approved link before the optional session exchange.
-        const manifestPath = await writeProjectLinkManifestAtomic(projectRoot, manifest);
-        state.outcome = 'linked';
-        state.manifestPath = manifestPath;
-        state.result.data.link = { outcome: 'linked', manifestPath };
-        dependencies.reporter.success(`Linked ${manifest.project.name} to ${manifest.account.name}.`);
-        dependencies.reporter.info(`Wrote ${manifestPath}`);
-        reportProjectLinkGitignore(projectRoot, dependencies.reporter);
-
-        const session = login
-            ? await completeConsoleLogin(login, endpoints, dependencies, signal)
-            : undefined;
-
-        return runConsoleLinkHooks(
-            { projectRoot, manifest, manifestPath, endpoints, outcome: 'linked', session },
-            options,
-            dependencies,
-            signal,
-            state,
+    const login = await signIn(endpoints, options.organization, dependencies, signal);
+    const organization = readAuthStatus(login.auth).organization;
+    if (!organization) {
+        throw new Error(
+            'Your CLI login is not scoped to an organization. Run vendure console link --organization ' +
+                '<account> with the Account identifier from Vendure Console → Settings.',
         );
-    } finally {
-        login?.close();
     }
-}
+    const accountName = describeOrganization(organization);
+    const project = await chooseProject(
+        await listProjects(endpoints, login, accountName, dependencies, signal),
+        accountName,
+        endpoints,
+        dependencies,
+    );
+    const linkedManifest = await linkProject(endpoints, login, project, accountName, dependencies, signal);
+    throwIfAborted(signal);
+    const manifest = withConsoleOrigins(linkedManifest, {
+        appOrigin: endpoints.consoleUrl,
+        apiOrigin: endpoints.apiUrl,
+    });
+    const manifestPath = await writeProjectLinkManifestAtomic(projectRoot, manifest);
+    state.outcome = 'linked';
+    state.manifestPath = manifestPath;
+    state.result.data.link = { outcome: 'linked', manifestPath };
+    dependencies.reporter.success(`Linked ${manifest.project.name} to ${manifest.account.name}.`);
+    dependencies.reporter.info(`Wrote ${manifestPath}`);
+    reportProjectLinkGitignore(projectRoot, dependencies.reporter);
 
-function noSessionFromThisLink(): string {
-    return (
-        'This link will not obtain a Console session. Run vendure console link again on this ' +
-        'machine to run the plugin setup again, where a plugin that needs a session can sign in.'
+    return runConsoleLinkHooks(
+        {
+            projectRoot,
+            manifest,
+            manifestPath,
+            endpoints,
+            outcome: 'linked',
+            session: dependencies.hooks.some(hook => hook.requiresSession) ? hookSession(login) : undefined,
+        },
+        options,
+        dependencies,
+        signal,
+        state,
     );
 }
 
 /**
- * Starts a command line login alongside the Project Link, when both sides
- * allow one.
- *
- * A plugin has to want one, because an unused token is still a live token. The
- * origins have to be an official Console, since approving a custom endpoint
- * approves creating a Project Link and never receiving a credential. The
- * Console has to say it settles a login, because one that does not redirects
- * nowhere and would leave the listener waiting.
- *
- * None of these stop the link, and neither does failing to bind the callback.
+ * The options that make the auth functions use the Console this command
+ * calls. `VENDURE_CONSOLE_API_URL` is set to that Console, because a link can
+ * take its Console from the manifest while the variable is unset.
  */
-async function startConsoleLogin(
-    request: ProjectLinkRequest,
-    endpoints: ConsoleEndpoints,
-    dependencies: ConsoleCommandDependencies,
-): Promise<ConsoleLogin | undefined> {
-    if (!dependencies.hooks.some(hook => hook.requiresSession)) {
-        return undefined;
-    }
-    if (officialConsoleEnvironment(endpoints) === undefined) {
-        dependencies.reporter.warn(
-            'This link uses endpoints that are not an official Vendure Console, so it obtains no Console session.',
-        );
-        return undefined;
-    }
-    if (!request.supports.includes(CLI_AUTH_CAPABILITY)) {
-        // Said out loud, because the alternative is a link that quietly obtains
-        // no session and a plugin that later cannot say why.
-        dependencies.reporter.warn(
-            'This Console does not settle a command line login with a Project Link approval, so ' +
-                'this link obtains no Console session.',
-        );
-        return undefined;
-    }
-    if (shellIsRemote(dependencies.env)) {
-        // Not a failure and not something a rerun changes, so it does not get
-        // the "run it again" advice: the callback address only means anything
-        // on the machine that bound it, and that is not where the browser is.
-        dependencies.reporter.warn(
-            'This looks like a remote shell, so a browser cannot return an approval to this ' +
-                'machine. The link is made without a Console session, and a plugin that needs ' +
-                'one signs in itself.',
-        );
-        return undefined;
-    }
-
-    const state = createLoginState();
-    let callback;
-    try {
-        callback = await dependencies.startLoopbackCallback(state);
-    } catch (error) {
-        // A port this process cannot bind is a reason to skip the login, not a
-        // reason to fail a link that has nothing to do with it.
-        dependencies.reporter.warn(
-            `Could not listen for a Console sign-in: ${
-                error instanceof Error ? error.message : String(error)
-            }`,
-        );
-        dependencies.reporter.warn(noSessionFromThisLink());
-        return undefined;
-    }
-
-    const { verifier, challenge } = createPkceChallenge();
-    const url = new URL(request.verificationUrl);
-    const searchParams = cliAuthSearchParams({ redirectUri: callback.redirectUri, state, challenge });
-    const reservedName = Object.keys(searchParams).find(name => url.searchParams.has(name));
-    if (reservedName) {
-        callback.close();
-        dependencies.reporter.warn(
-            `Console returned a verification URL with the reserved authentication parameter "${reservedName}", so this link obtains no Console session.`,
-        );
-        return undefined;
-    }
-    for (const [name, value] of Object.entries(searchParams)) {
-        url.searchParams.append(name, value);
-    }
-    return { ...callback, verifier, verificationUrl: url.toString() };
-}
-
-/**
- * Whether this shell is attached from another machine.
- *
- * An absent `DISPLAY` does not imply a remote browser. VS Code Remote,
- * devcontainers and WSL can open a local browser without it.
- */
-function shellIsRemote(env: NodeJS.ProcessEnv): boolean {
-    return Boolean(env.SSH_CONNECTION || env.SSH_TTY);
-}
-
-/**
- * Exchanges the authorization code, once the link itself is settled.
- *
- * The poll owns the link and this owns only the session, so nothing here fails
- * the command. A refusal, a browser that approved on another machine, or an
- * exchange that does not complete all end the same way: the link stands, no
- * session was obtained, and the report says so.
- */
-async function completeConsoleLogin(
-    login: ConsoleLogin,
+function consoleAuthOptions(
     endpoints: ConsoleEndpoints,
     dependencies: ConsoleCommandDependencies,
     signal: AbortSignal,
-): Promise<ConsoleSession | undefined> {
-    const graceController = new AbortController();
-    const abortGrace = () => graceController.abort();
-    signal.addEventListener('abort', abortGrace, { once: true });
+): AuthOptions {
+    return {
+        env: { ...dependencies.env, VENDURE_CONSOLE_API_URL: endpoints.apiUrl },
+        fetch: dependencies.fetch,
+        now: dependencies.now,
+        signal,
+    };
+}
+
+/**
+ * Returns the CLI login for this Console, the same one `vendure auth login`
+ * stores. Signs in with the device flow first when this machine has no usable
+ * login, or when `organization` names a different organization than the
+ * stored login.
+ */
+async function signIn(
+    endpoints: ConsoleEndpoints,
+    organization: string | undefined,
+    dependencies: ConsoleCommandDependencies,
+    signal: AbortSignal,
+): Promise<ConsoleLogin> {
+    const auth = consoleAuthOptions(endpoints, dependencies, signal);
+    const wanted = organization?.trim() || undefined;
+    const stored = await storedLogin(auth, wanted);
+    if (stored) {
+        return stored;
+    }
     try {
-        const code = await Promise.race([
-            login.code(),
-            dependencies.sleep(CALLBACK_GRACE_MS, graceController.signal).then(() => undefined),
-        ]);
-        throwIfAborted(signal);
-        if (!code) {
-            dependencies.reporter.warn(`The link is in place. ${noSessionFromThisLink()}`);
-            return undefined;
+        await loginWithDevice({
+            ...auth,
+            organization: wanted,
+            onDeviceAuthorization: async device => {
+                dependencies.reporter.info(
+                    `Sign in to Vendure Console. Confirm this code in your browser: ${device.userCode}\n` +
+                        `If the browser does not open, visit ${device.verificationUriComplete}`,
+                );
+                try {
+                    await dependencies.openUrl(device.verificationUriComplete);
+                } catch {
+                    // The URL is already on screen.
+                }
+                dependencies.reporter.info('Waiting for approval...');
+            },
+        });
+        const accessToken = await getAccessToken(auth);
+        if (!accessToken) {
+            throw new NotLoggedInError();
         }
-        return await exchangeConsoleCode(
-            { code, verifier: login.verifier, redirectUri: login.redirectUri },
-            { apiOrigin: endpoints.apiUrl, fetch: dependencies.fetch, now: dependencies.now, signal },
-        );
+        return { auth, accessToken };
     } catch (error) {
-        if (signal.aborted || error instanceof CommandInterruptedError) {
+        if (signal.aborted) {
             throw new CommandInterruptedError();
         }
-        dependencies.reporter.warn(
-            `The Console session could not be obtained: ${
-                error instanceof Error ? error.message : String(error)
-            }`,
-        );
-        dependencies.reporter.warn(`The link is in place. ${noSessionFromThisLink()}`);
+        throw error;
+    }
+}
+
+/**
+ * The stored login, or `undefined` when there is none for `organization` or
+ * when it must be renewed in the browser.
+ */
+async function storedLogin(
+    auth: AuthOptions,
+    organization: string | undefined,
+): Promise<ConsoleLogin | undefined> {
+    const stored = readAuthStatus(auth);
+    if (!stored.loggedIn || (organization && !matchesOrganization(stored.organization, organization))) {
         return undefined;
-    } finally {
-        signal.removeEventListener('abort', abortGrace);
-        graceController.abort();
-        login.close();
+    }
+    try {
+        const accessToken = await getAccessToken(auth);
+        return accessToken ? { auth, accessToken } : undefined;
+    } catch (error) {
+        if (
+            error instanceof NotLoggedInError ||
+            error instanceof SessionRejectedError ||
+            error instanceof ReauthenticationRequiredError
+        ) {
+            return undefined;
+        }
+        throw error;
+    }
+}
+
+/** Matches `--organization` the way `vendure auth login` resolves it: an Account identifier or a name. */
+function matchesOrganization(organization: StoredOrganization | null | undefined, wanted: string): boolean {
+    const value = wanted.toLowerCase();
+    return (
+        organization?.customerAccountId?.toLowerCase() === value ||
+        organization?.name?.trim().toLowerCase() === value
+    );
+}
+
+function describeOrganization(organization: StoredOrganization): string {
+    return organization.name ?? organization.customerAccountId ?? organization.workosOrganizationId;
+}
+
+/**
+ * What a hook that requested a session receives: the CLI login's access token.
+ * The refresh token stays in the login, because it is single-use and a copy
+ * that a plugin spends ends the login for every other command.
+ */
+function hookSession(login: ConsoleLogin): ConsoleSession {
+    const expiresAt = readAuthStatus(login.auth).accessTokenExpiresAt;
+    return { accessToken: login.accessToken, expiresAt: expiresAt ?? (login.auth.now ?? Date.now)() };
+}
+
+async function listProjects(
+    endpoints: ConsoleEndpoints,
+    login: ConsoleLogin,
+    accountName: string,
+    dependencies: ConsoleCommandDependencies,
+    signal: AbortSignal,
+): Promise<ConsoleProject[]> {
+    let value: unknown;
+    try {
+        value = await requestWithLogin(
+            `${endpoints.apiUrl}${PROJECTS_PATH}`,
+            { method: 'GET' },
+            login,
+            dependencies,
+            signal,
+        );
+    } catch (error) {
+        if (error instanceof ConsoleRequestError && error.httpStatus === 403) {
+            throw new Error(`Your role in ${accountName} does not allow you to see its projects.`);
+        }
+        throw error;
+    }
+    if (!Array.isArray(value)) {
+        throw new Error('Console returned a malformed project list.');
+    }
+    return value
+        .map(entry => objectValue(entry, 'Console returned a malformed project list.'))
+        .filter(project => project.state === 'active')
+        .map(project => ({
+            id: uuid(project.id, 'Console returned an invalid project id.'),
+            name: nonEmptyString(project.name, 'Console returned an invalid project name.'),
+        }));
+}
+
+/**
+ * The project to link. An organization with one active project links that
+ * project. With more, the user chooses, which needs a terminal.
+ */
+async function chooseProject(
+    projects: ConsoleProject[],
+    accountName: string,
+    endpoints: ConsoleEndpoints,
+    dependencies: ConsoleCommandDependencies,
+): Promise<ConsoleProject> {
+    if (projects.length === 0) {
+        throw new Error(
+            `${accountName} has no active project. Create one in Vendure Console at ${endpoints.consoleUrl}, ` +
+                'then run vendure console link again.',
+        );
+    }
+    if (projects.length === 1) {
+        return projects[0];
+    }
+    if (dependencies.isNonInteractive()) {
+        throw new Error(
+            `${accountName} has ${projects.length} projects. Run vendure console link in a terminal to choose one:\n` +
+                projects.map(project => `  ${project.name} (${project.id})`).join('\n'),
+        );
+    }
+    const projectId = await dependencies.select(
+        `Which project in ${accountName} do you want to link?`,
+        projects.map(project => ({ value: project.id, label: project.name })),
+    );
+    const chosen = projects.find(project => project.id === projectId);
+    if (!chosen) {
+        throw new CommandInterruptedError();
+    }
+    return chosen;
+}
+
+/** Links the project through Console's `POST /v1/projects/:projectId/link` and returns the manifest. */
+async function linkProject(
+    endpoints: ConsoleEndpoints,
+    login: ConsoleLogin,
+    project: ConsoleProject,
+    accountName: string,
+    dependencies: ConsoleCommandDependencies,
+    signal: AbortSignal,
+): Promise<ProjectLinkManifest> {
+    let value: unknown;
+    try {
+        value = await requestWithLogin(
+            `${endpoints.apiUrl}${PROJECTS_PATH}/${encodeURIComponent(project.id)}/link`,
+            { method: 'POST' },
+            login,
+            dependencies,
+            signal,
+        );
+    } catch (error) {
+        if (error instanceof ConsoleRequestError && error.httpStatus === 403) {
+            throw new Error(`Your role in ${accountName} does not allow you to link ${project.name}.`);
+        }
+        if (error instanceof ConsoleRequestError && error.httpStatus === 404) {
+            throw new Error(`${project.name} is no longer an active project in ${accountName}.`);
+        }
+        throw error;
+    }
+    const manifest = parseProjectLinkManifest(value);
+    if (manifest.project.id !== project.id) {
+        throw new Error('Console returned a Project Link Manifest for a different project.');
+    }
+    return manifest;
+}
+
+/**
+ * Sends a request with the CLI login's access token. When Console refuses the
+ * token, the login is renewed once and the request is sent again.
+ */
+async function requestWithLogin(
+    url: string,
+    init: RequestInit,
+    login: ConsoleLogin,
+    dependencies: ConsoleCommandDependencies,
+    signal: AbortSignal,
+): Promise<unknown> {
+    const send = () =>
+        requestJson(
+            url,
+            { ...init, headers: { Authorization: `Bearer ${login.accessToken}` } },
+            dependencies,
+            signal,
+        );
+    try {
+        return await send();
+    } catch (error) {
+        if (!(error instanceof ConsoleRequestError) || error.httpStatus !== 401) {
+            throw error;
+        }
+    }
+    login.accessToken = await refreshAccessToken(login.accessToken, login.auth);
+    try {
+        return await send();
+    } catch (error) {
+        if (error instanceof ConsoleRequestError && error.httpStatus === 401) {
+            throw new Error(
+                'Vendure Console did not accept the CLI login. Run vendure auth login, then try again.',
+            );
+        }
+        throw error;
     }
 }
 
@@ -646,14 +739,56 @@ async function repair(
     if (!(await confirmRepair(currentManifest, options, dependencies))) {
         return 0;
     }
+    const session = dependencies.hooks.some(hook => hook.requiresSession)
+        ? await repairSession(currentManifest, endpoints, options, dependencies, signal)
+        : undefined;
 
     return runConsoleLinkHooks(
-        { projectRoot, manifest: currentManifest, manifestPath, endpoints, outcome: 'repaired' },
+        { projectRoot, manifest: currentManifest, manifestPath, endpoints, outcome: 'repaired', session },
         options,
         dependencies,
         signal,
         state,
     );
+}
+
+/**
+ * The session for a repair, which asks Console nothing itself. It is the CLI
+ * login for the manifest's account, or the one `--organization` names. When no
+ * such login is stored, an interactive run signs in with the device flow. A
+ * failed sign-in does not stop the repair: the hooks run without a session and
+ * report what they could not do.
+ */
+async function repairSession(
+    manifest: ProjectLinkManifest,
+    endpoints: ConsoleEndpoints,
+    options: ConsoleCommandOptions,
+    dependencies: ConsoleCommandDependencies,
+    signal: AbortSignal,
+): Promise<ConsoleSession | undefined> {
+    const organization = options.organization?.trim() || manifest.account.id;
+    try {
+        const login = dependencies.isNonInteractive()
+            ? await storedLogin(consoleAuthOptions(endpoints, dependencies, signal), organization)
+            : await signIn(endpoints, organization, dependencies, signal);
+        if (login) {
+            return hookSession(login);
+        }
+        dependencies.reporter.warn(
+            `No CLI login for ${manifest.account.name} is stored on this machine, so plugin setup runs ` +
+                'without a Console session. Run vendure console link interactively to sign in.',
+        );
+    } catch (error) {
+        if (error instanceof CommandInterruptedError) {
+            throw error;
+        }
+        dependencies.reporter.warn(
+            `Could not sign in to Vendure Console: ${
+                error instanceof Error ? error.message : String(error)
+            } Plugin setup runs without a Console session.`,
+        );
+    }
+    return undefined;
 }
 
 /**
@@ -841,12 +976,12 @@ function linkUnfinished(outcome: ConsoleLinkOutcome, manifestPath: string): stri
     return `${survived} The setup that runs after linking did not finish.`;
 }
 
-function status(projectRoot: string, env: NodeJS.ProcessEnv, reporter: ConsoleReporter): number {
+function status(projectRoot: string, dependencies: ConsoleCommandDependencies): number {
+    const { env, reporter } = dependencies;
     const result = readProjectLinkManifest(projectRoot);
     if (result.kind === 'missing') {
-        reporter.info(`Project: Not linked\nManifest: ${result.path}\nAuthentication: Not stored locally`);
         reporter.info(
-            'Console authorization happens in the browser; the CLI stores no Console access token.',
+            `Project: Not linked\nManifest: ${result.path}\n${describeLogin(resolveConsoleEndpoints(env), dependencies)}`,
         );
         return 0;
     }
@@ -867,10 +1002,20 @@ function status(projectRoot: string, env: NodeJS.ProcessEnv, reporter: ConsoleRe
             `Console: ${endpoints.consoleUrl}`,
             `Console API: ${endpoints.apiUrl}`,
             `Manifest: ${result.path}`,
-            'Authentication: Not stored locally (browser authorization)',
+            describeLogin(endpoints, dependencies),
         ].join('\n'),
     );
     return 0;
+}
+
+/** The CLI login for this Console, as `vendure auth status` reports it. Makes no request. */
+function describeLogin(endpoints: ConsoleEndpoints, dependencies: ConsoleCommandDependencies): string {
+    const login = readAuthStatus({ env: { ...dependencies.env, VENDURE_CONSOLE_API_URL: endpoints.apiUrl } });
+    if (!login.loggedIn) {
+        return 'Login: Not logged in. vendure console link signs you in.';
+    }
+    const organization = login.organization ? ` in ${describeOrganization(login.organization)}` : '';
+    return `Login: ${login.user?.email ?? 'an unknown user'}${organization} (vendure auth status)`;
 }
 
 function reportProjectLinkGitignore(projectRoot: string, reporter: ConsoleReporter): void {
@@ -909,7 +1054,9 @@ async function unlink(
     }
     removeProjectLinkManifest(projectRoot);
     dependencies.reporter.success(`Removed local Project Link Manifest at ${existing.path}.`);
-    dependencies.reporter.info('The Console Project and server-side link request were not changed.');
+    dependencies.reporter.info(
+        'The Console Project, its Project Link and your CLI login were not changed. Run vendure auth logout to sign out.',
+    );
     return 0;
 }
 
@@ -949,133 +1096,6 @@ async function confirmManifestChange(
     return 'confirmed';
 }
 
-async function createProjectLink(
-    endpoints: ConsoleEndpoints,
-    dependencies: ConsoleCommandDependencies,
-    signal: AbortSignal,
-): Promise<ProjectLinkRequest> {
-    const value = await requestJson(
-        `${endpoints.apiUrl}${PROJECT_LINKS_PATH}`,
-        { method: 'POST' },
-        dependencies,
-        signal,
-    );
-    const object = objectValue(value, 'Console returned a malformed project-link response.');
-    const id = uuid(object.id, 'Console returned an invalid project-link id.');
-    if (object.state !== 'pending' || object.protocolVersion !== 1) {
-        throw new Error('Console returned an unsupported Project Link request.');
-    }
-    const expiresAt = timestamp(object.expiresAt, 'project-link expiry');
-    const pollingSecret = nonEmptyString(object.pollingSecret, 'Console returned an invalid polling secret.');
-    const verificationPath = nonEmptyString(
-        object.verificationPath,
-        'Console returned an invalid verification path.',
-    );
-    if (!verificationPath.startsWith('/') || verificationPath.startsWith('//')) {
-        throw new Error('Console returned an invalid verification path.');
-    }
-    const verificationUrl = new URL(verificationPath, `${endpoints.consoleUrl}/`).toString();
-    if (new URL(verificationUrl).origin !== new URL(endpoints.consoleUrl).origin) {
-        throw new Error('Console returned a verification URL for an unexpected origin.');
-    }
-    if (verificationUrl.includes(pollingSecret)) {
-        throw new Error('Console returned an unsafe verification URL.');
-    }
-    const supports = Array.isArray(object.supports)
-        ? object.supports.filter((entry): entry is string => typeof entry === 'string')
-        : [];
-    return { id, expiresAt, pollingSecret, verificationUrl, supports };
-}
-
-async function waitForApproval(
-    request: ProjectLinkRequest,
-    endpoints: ConsoleEndpoints,
-    dependencies: ConsoleCommandDependencies,
-    signal: AbortSignal,
-): Promise<ProjectLinkManifest> {
-    let expiresAt = request.expiresAt;
-    while (true) {
-        throwIfAborted(signal);
-        if (dependencies.now() >= expiresAt) {
-            throw new Error('The Project Link request expired. Run vendure console link again.');
-        }
-
-        const result = await pollWithRetry(request, expiresAt, endpoints, dependencies, signal);
-        expiresAt = result.expiresAt;
-        if (result.state === 'approved') {
-            if (!result.manifest) {
-                throw new Error('Console approved the request without returning a Project Link Manifest.');
-            }
-            return result.manifest;
-        }
-        if (result.state === 'denied') {
-            throw new Error('The Project Link request was denied in Console.');
-        }
-        if (result.state === 'expired' || dependencies.now() >= result.expiresAt) {
-            throw new Error('The Project Link request expired. Run vendure console link again.');
-        }
-        await dependencies.sleep(POLL_INTERVAL_MS, signal);
-    }
-}
-
-async function pollWithRetry(
-    request: ProjectLinkRequest,
-    expiresAt: number,
-    endpoints: ConsoleEndpoints,
-    dependencies: ConsoleCommandDependencies,
-    signal: AbortSignal,
-): Promise<ProjectLinkPollResult> {
-    let attempt = 0;
-    while (true) {
-        if (dependencies.now() >= expiresAt) {
-            throw new Error('The Project Link request expired. Run vendure console link again.');
-        }
-        try {
-            const value = await requestJson(
-                `${endpoints.apiUrl}${PROJECT_LINKS_PATH}/${encodeURIComponent(request.id)}/poll`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ pollingSecret: request.pollingSecret }),
-                },
-                dependencies,
-                signal,
-            );
-            return parsePollResult(value, request.id);
-        } catch (error) {
-            if (!(error instanceof ConsoleRequestError) || !error.transient) {
-                throw error;
-            }
-            const remainingMs = expiresAt - dependencies.now();
-            if (remainingMs <= 0) {
-                throw new Error('The Project Link request expired. Run vendure console link again.');
-            }
-            await dependencies.sleep(Math.min(retryDelay(attempt), remainingMs), signal);
-            attempt++;
-        }
-    }
-}
-
-function retryDelay(attempt: number): number {
-    return Math.min(attempt === 0 ? 500 : attempt * 1_000, MAX_RETRY_DELAY_MS);
-}
-
-function parsePollResult(value: unknown, expectedLinkId: string): ProjectLinkPollResult {
-    const record = objectValue(value, 'Console returned a malformed Project Link polling response.');
-    const state = record.state;
-    if (typeof state !== 'string' || !['pending', 'approved', 'denied', 'expired'].includes(state)) {
-        throw new Error('Console returned an unknown Project Link state.');
-    }
-    const result: ProjectLinkPollResult = {
-        state: state as ProjectLinkPollResult['state'],
-        expiresAt: timestamp(record.expiresAt, 'project-link expiry'),
-    };
-    if (state === 'approved') {
-        result.manifest = parseProjectLinkManifest(record.manifest, expectedLinkId);
-    }
-    return result;
-}
-
 async function requestJson(
     url: string,
     init: RequestInit,
@@ -1101,7 +1121,7 @@ async function requestJson(
         if (!response.ok) {
             throw new ConsoleRequestError(
                 `Vendure Console API request failed with HTTP ${response.status}.`,
-                isTransientHttpStatus(response.status),
+                response.status,
             );
         }
         return await readJsonBody(response, requestController.signal);
@@ -1116,7 +1136,6 @@ async function requestJson(
             timedOut
                 ? 'The Vendure Console API request timed out. Check the configured endpoint and try again.'
                 : 'Could not reach the Vendure Console API. Check your connection and configured endpoint.',
-            true,
         );
     } finally {
         clearTimeout(timeout);
@@ -1124,16 +1143,12 @@ async function requestJson(
     }
 }
 
-function isTransientHttpStatus(statusCode: number): boolean {
-    return statusCode >= 500 || statusCode === 408 || statusCode === 429;
-}
-
 async function readJsonBody(response: Response, signal: AbortSignal): Promise<unknown> {
     const text = await readCappedText(response, signal);
     try {
         return JSON.parse(text);
     } catch {
-        throw new ConsoleRequestError('Vendure Console API returned malformed JSON.', false);
+        throw new ConsoleRequestError('Vendure Console API returned malformed JSON.');
     }
 }
 
@@ -1141,7 +1156,7 @@ async function readCappedText(response: Response, signal: AbortSignal): Promise<
     if (!response.body) {
         const text = await abortable(response.text(), signal);
         if (Buffer.byteLength(text, 'utf8') > MAX_RESPONSE_BYTES) {
-            throw new ConsoleRequestError('Vendure Console API response exceeded the maximum size.', false);
+            throw new ConsoleRequestError('Vendure Console API response exceeded the maximum size.');
         }
         return text;
     }
@@ -1162,10 +1177,7 @@ async function readCappedText(response: Response, signal: AbortSignal): Promise<
             received += value.byteLength;
             if (received > MAX_RESPONSE_BYTES) {
                 await reader.cancel().catch(() => undefined);
-                throw new ConsoleRequestError(
-                    'Vendure Console API response exceeded the maximum size.',
-                    false,
-                );
+                throw new ConsoleRequestError('Vendure Console API response exceeded the maximum size.');
             }
             chunks.push(decoder.decode(value, { stream: true }));
         }
@@ -1200,37 +1212,8 @@ function abortError(): DOMException {
     return new DOMException('The operation was aborted.', 'AbortError');
 }
 
-function timestamp(value: unknown, label: string): number {
-    if (typeof value !== 'string') {
-        throw new Error(`Console returned an invalid ${label}.`);
-    }
-    const result = Date.parse(value);
-    if (!Number.isFinite(result)) {
-        throw new Error(`Console returned an invalid ${label}.`);
-    }
-    return result;
-}
-
 function throwIfAborted(signal: AbortSignal): void {
     if (signal.aborted) {
         throw new CommandInterruptedError();
     }
-}
-
-function abortableSleep(milliseconds: number, signal: AbortSignal): Promise<void> {
-    return new Promise((resolve, reject) => {
-        if (signal.aborted) {
-            reject(new CommandInterruptedError());
-            return;
-        }
-        const timeout = setTimeout(() => {
-            signal.removeEventListener('abort', onAbort);
-            resolve();
-        }, milliseconds);
-        const onAbort = () => {
-            clearTimeout(timeout);
-            reject(new CommandInterruptedError());
-        };
-        signal.addEventListener('abort', onAbort, { once: true });
-    });
 }

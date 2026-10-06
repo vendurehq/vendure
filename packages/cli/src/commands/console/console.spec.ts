@@ -9,13 +9,18 @@ import { ConsoleCommandDependencies, consoleCommand, resolveConsoleEndpoints } f
 import { ConsoleReporter } from './console-reporter';
 import {
     ACCOUNT_ID,
-    LINK_ID,
     NOW,
     OTHER_LINK_ID,
-    POLLING_SECRET,
-    createResponse,
-    expiry,
+    OTHER_PROJECT_ID,
+    PROJECT_ID,
+    STORED_ACCESS_TOKEN,
+    WORKOS_AUTHENTICATE_URL,
+    accessToken,
+    createCliConfigDir,
+    fakeConsole,
     manifest,
+    projectList,
+    storeLogin,
 } from './console.fixtures';
 import { PROJECT_LINK_KEEP_MANIFEST } from './project-link-gitignore';
 import { ProjectLinkManifest, getProjectLinkManifestPath } from './project-link-manifest';
@@ -204,10 +209,7 @@ describe('console command', () => {
         const seen: Array<string | undefined> = [];
         const test = testDependencies(
             vendureProject(),
-            sequenceFetch(
-                jsonResponse(createResponse()),
-                jsonResponse({ state: 'approved', expiresAt: expiry(), manifest }),
-            ),
+            sequenceFetch(jsonResponse(projectList()), jsonResponse(manifest)),
             {
                 env: {},
                 hooks: [
@@ -243,13 +245,9 @@ describe('console command', () => {
         expect(test.messages.join('\n')).toContain('not trusted');
     });
 
-    it('completes create, pending poll, approval, and atomic manifest write', async () => {
+    it('links the only project of the organization with the CLI login and writes the manifest', async () => {
         const root = vendureProject();
-        const fetchMock = sequenceFetch(
-            jsonResponse(createResponse()),
-            jsonResponse({ state: 'pending', expiresAt: expiry() }),
-            jsonResponse({ state: 'approved', expiresAt: expiry(), manifest }),
-        );
+        const fetchMock = sequenceFetch(jsonResponse(projectList()), jsonResponse(manifest));
         const test = testDependencies(root, fetchMock);
 
         expect(await consoleCommand('link', {}, test.dependencies)).toBe(0);
@@ -257,22 +255,22 @@ describe('console command', () => {
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(localManifest);
         expect(fs.readFileSync(path.join(root, '.gitignore'), 'utf8')).toContain('.vendure/*');
         expect(fs.readFileSync(path.join(root, '.gitignore'), 'utf8')).toContain('!.vendure/project.json');
-        expect(fetchMock).toHaveBeenCalledTimes(3);
-        expect(fetchMock.mock.calls[0][0]).toBe('http://localhost:3001/v1/project-links');
-        expect(fetchMock.mock.calls[1][0]).toBe(`http://localhost:3001/v1/project-links/${LINK_ID}/poll`);
-        expect(fetchMock.mock.calls[0][1]?.redirect).toBe('error');
-        expect(fetchMock.mock.calls[1][1]?.redirect).toBe('error');
-        expect(fetchMock.mock.calls[1][1]?.body).toBe(JSON.stringify({ pollingSecret: POLLING_SECRET }));
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+        expect(fetchMock.mock.calls[0][0]).toBe('http://localhost:3001/v1/projects');
+        expect(fetchMock.mock.calls[0][1]?.method).toBe('GET');
+        expect(fetchMock.mock.calls[1][0]).toBe(`http://localhost:3001/v1/projects/${PROJECT_ID}/link`);
+        expect(fetchMock.mock.calls[1][1]?.method).toBe('POST');
+        for (const [, init] of fetchMock.mock.calls) {
+            expect(init?.redirect).toBe('error');
+            expect(init?.headers).toEqual({ Authorization: `Bearer ${STORED_ACCESS_TOKEN}` });
+        }
         expect(test.messages.join('\n')).toContain('Updated');
         expect(test.messages.join('\n')).toContain('.gitignore');
     });
 
     it('uses an explicit staging Console for a new link and records it', async () => {
         const root = vendureProject();
-        const fetchMock = sequenceFetch(
-            jsonResponse(createResponse()),
-            jsonResponse({ state: 'approved', expiresAt: expiry(), manifest }),
-        );
+        const fetchMock = sequenceFetch(jsonResponse(projectList()), jsonResponse(manifest));
         const test = testDependencies(root, fetchMock, {
             env: {
                 VENDURE_CONSOLE_APP_URL: STAGING_CONSOLE.appOrigin,
@@ -282,17 +280,14 @@ describe('console command', () => {
 
         expect(await consoleCommand('link', {}, test.dependencies)).toBe(0);
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(stagingManifest);
-        expect(fetchMock.mock.calls[0][0]).toBe(`${STAGING_CONSOLE.apiOrigin}/v1/project-links`);
+        expect(fetchMock.mock.calls[0][0]).toBe(`${STAGING_CONSOLE.apiOrigin}/v1/projects`);
     });
 
     it('does not rewrite a gitignore that already has the Project Link rules', async () => {
         const root = vendureProject();
         const gitignore = ['node_modules', '.vendure/*', '!.vendure/project.json', ''].join('\n');
         fs.writeFileSync(path.join(root, '.gitignore'), gitignore);
-        const fetchMock = sequenceFetch(
-            jsonResponse(createResponse()),
-            jsonResponse({ state: 'approved', expiresAt: expiry(), manifest }),
-        );
+        const fetchMock = sequenceFetch(jsonResponse(projectList()), jsonResponse(manifest));
         const test = testDependencies(root, fetchMock);
 
         expect(await consoleCommand('link', {}, test.dependencies)).toBe(0);
@@ -303,10 +298,7 @@ describe('console command', () => {
     it('still writes the manifest when the project gitignore cannot be updated', async () => {
         const root = vendureProject();
         fs.ensureDirSync(path.join(root, '.gitignore'));
-        const fetchMock = sequenceFetch(
-            jsonResponse(createResponse()),
-            jsonResponse({ state: 'approved', expiresAt: expiry(), manifest }),
-        );
+        const fetchMock = sequenceFetch(jsonResponse(projectList()), jsonResponse(manifest));
         const test = testDependencies(root, fetchMock);
 
         expect(await consoleCommand('link', {}, test.dependencies)).toBe(0);
@@ -316,10 +308,7 @@ describe('console command', () => {
 
     it('links an apps/vendure monorepo from the workspace root and updates the project gitignore', async () => {
         const { workspace, project } = vendureMonorepo({ gitignore: 'node_modules\n' });
-        const fetchMock = sequenceFetch(
-            jsonResponse(createResponse()),
-            jsonResponse({ state: 'approved', expiresAt: expiry(), manifest }),
-        );
+        const fetchMock = sequenceFetch(jsonResponse(projectList()), jsonResponse(manifest));
         const test = testDependencies(workspace, fetchMock);
 
         expect(await consoleCommand('link', {}, test.dependencies)).toBe(0);
@@ -331,10 +320,7 @@ describe('console command', () => {
 
     it('does not rewrite a monorepo root gitignore during link', async () => {
         const { workspace, project } = vendureMonorepo({ gitignore: '.vendure/\n' });
-        const fetchMock = sequenceFetch(
-            jsonResponse(createResponse()),
-            jsonResponse({ state: 'approved', expiresAt: expiry(), manifest }),
-        );
+        const fetchMock = sequenceFetch(jsonResponse(projectList()), jsonResponse(manifest));
         const test = testDependencies(workspace, fetchMock);
 
         expect(await consoleCommand('link', {}, test.dependencies)).toBe(0);
@@ -345,30 +331,24 @@ describe('console command', () => {
         );
     });
 
-    it('accepts unknown API fields and version-agnostic UUIDs', async () => {
+    it('accepts unknown API fields, version-agnostic UUIDs and skips archived projects', async () => {
         const root = vendureProject();
         const versionSevenManifest: ProjectLinkManifest = {
             ...manifest,
             link: { id: UUID_V7_LINK_ID, protocolVersion: 1 },
         };
         const fetchMock = sequenceFetch(
-            jsonResponse({
-                ...createResponse(),
-                id: UUID_V7_LINK_ID,
-                verificationPath: `/?link=${UUID_V7_LINK_ID}`,
-                serverCapability: 'future-value',
-            }),
-            jsonResponse({ state: 'pending', expiresAt: expiry(), retryHint: 'future-value' }),
-            jsonResponse({
-                state: 'approved',
-                expiresAt: expiry(),
-                manifest: versionSevenManifest,
-                auditId: 'future-value',
-            }),
+            jsonResponse([
+                ...projectList(),
+                { id: OTHER_PROJECT_ID, name: 'Old shop', state: 'archived' },
+                { id: '77777777-7777-7777-8777-777777777777', name: 'Next', state: 'future-state' },
+            ]),
+            jsonResponse(versionSevenManifest),
         );
         const test = testDependencies(root, fetchMock);
 
         expect(await consoleCommand('link', {}, test.dependencies)).toBe(0);
+        expect(fetchMock.mock.calls[1][0]).toBe(`http://localhost:3001/v1/projects/${PROJECT_ID}/link`);
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual({
             ...versionSevenManifest,
             schemaVersion: 1,
@@ -376,63 +356,93 @@ describe('console command', () => {
         });
     });
 
-    it('prints the safe verification URL and continues when browser launch fails', async () => {
+    it('asks which project to link when the organization has several', async () => {
         const root = vendureProject();
+        const other = { ...manifest, project: { id: OTHER_PROJECT_ID, name: 'Wholesale' } };
         const fetchMock = sequenceFetch(
-            jsonResponse(createResponse()),
-            jsonResponse({ state: 'approved', expiresAt: expiry(), manifest }),
+            jsonResponse(
+                projectList([
+                    { id: PROJECT_ID, name: 'Storefront' },
+                    { id: OTHER_PROJECT_ID, name: 'Wholesale' },
+                ]),
+            ),
+            jsonResponse(other),
         );
-        const test = testDependencies(root, fetchMock, {
-            openUrl: () => Promise.reject(new Error('browser unavailable')),
-        });
+        const select = vi.fn(() => Promise.resolve(OTHER_PROJECT_ID));
+        const test = testDependencies(root, fetchMock, { isNonInteractive: () => false, select });
 
         expect(await consoleCommand('link', {}, test.dependencies)).toBe(0);
-        expect(test.urls).toEqual([`http://localhost:3000/?link=${LINK_ID}`]);
-        expect(test.messages.join('\n')).not.toContain(POLLING_SECRET);
+        expect(select).toHaveBeenCalledWith(expect.stringContaining('Acme'), [
+            { value: PROJECT_ID, label: 'Storefront' },
+            { value: OTHER_PROJECT_ID, label: 'Wholesale' },
+        ]);
+        expect(fetchMock.mock.calls[1][0]).toBe(`http://localhost:3001/v1/projects/${OTHER_PROJECT_ID}/link`);
+        expect(fs.readJsonSync(getProjectLinkManifestPath(root)).project.name).toBe('Wholesale');
     });
 
-    it('does not write a manifest after denial or a malformed approval', async () => {
-        const deniedRoot = vendureProject();
-        const denied = testDependencies(
-            deniedRoot,
-            sequenceFetch(
-                jsonResponse(createResponse()),
-                jsonResponse({ state: 'denied', expiresAt: expiry() }),
+    it('does not guess between several projects without a terminal, and lists them', async () => {
+        const root = vendureProject();
+        const fetchMock = sequenceFetch(
+            jsonResponse(
+                projectList([
+                    { id: PROJECT_ID, name: 'Storefront' },
+                    { id: OTHER_PROJECT_ID, name: 'Wholesale' },
+                ]),
             ),
         );
-        expect(await consoleCommand('link', {}, denied.dependencies)).toBe(1);
-        expect(fs.existsSync(getProjectLinkManifestPath(deniedRoot))).toBe(false);
-        expect(fs.existsSync(path.join(deniedRoot, '.gitignore'))).toBe(false);
+        const select = vi.fn();
+        const test = testDependencies(root, fetchMock, { select });
+
+        expect(await consoleCommand('link', {}, test.dependencies)).toBe(1);
+        expect(select).not.toHaveBeenCalled();
+        expect(fetchMock).toHaveBeenCalledOnce();
+        expect(test.messages.join('\n')).toContain(`Wholesale (${OTHER_PROJECT_ID})`);
+        expect(fs.existsSync(getProjectLinkManifestPath(root))).toBe(false);
+    });
+
+    it('names the Console to create a project in when the organization has none', async () => {
+        const root = vendureProject();
+        const fetchMock = sequenceFetch(
+            jsonResponse(projectList([{ id: PROJECT_ID, name: 'Storefront', state: 'archived' }])),
+        );
+        const test = testDependencies(root, fetchMock);
+
+        expect(await consoleCommand('link', {}, test.dependencies)).toBe(1);
+        expect(test.messages.join('\n')).toContain('Acme has no active project');
+        expect(test.messages.join('\n')).toContain(LOCAL_CONSOLE.appOrigin);
+        expect(fs.existsSync(getProjectLinkManifestPath(root))).toBe(false);
+    });
+
+    it('does not write a manifest when Console refuses the link or returns a malformed manifest', async () => {
+        const refusedRoot = vendureProject();
+        const refused = testDependencies(
+            refusedRoot,
+            sequenceFetch(jsonResponse(projectList()), new Response('{}', { status: 403 })),
+        );
+        expect(await consoleCommand('link', {}, refused.dependencies)).toBe(1);
+        expect(refused.messages.join('\n')).toContain('does not allow you to link Storefront');
+        expect(fs.existsSync(getProjectLinkManifestPath(refusedRoot))).toBe(false);
+        expect(fs.existsSync(path.join(refusedRoot, '.gitignore'))).toBe(false);
 
         const malformedRoot = vendureProject();
         const malformed = testDependencies(
             malformedRoot,
-            sequenceFetch(
-                jsonResponse(createResponse()),
-                jsonResponse({
-                    state: 'approved',
-                    expiresAt: expiry(),
-                    manifest: { ...manifest, pollingSecret: POLLING_SECRET },
-                }),
-            ),
+            sequenceFetch(jsonResponse(projectList()), jsonResponse({ ...manifest, secret: 'value' })),
         );
         expect(await consoleCommand('link', {}, malformed.dependencies)).toBe(1);
         expect(fs.existsSync(getProjectLinkManifestPath(malformedRoot))).toBe(false);
-        expect(malformed.messages.join('\n')).not.toContain(POLLING_SECRET);
+        expect(malformed.messages.join('\n')).not.toContain('value');
     });
 
-    it('reports an expired request without writing a manifest', async () => {
+    it('reports a project that is no longer active without writing a manifest', async () => {
         const root = vendureProject();
         const test = testDependencies(
             root,
-            sequenceFetch(
-                jsonResponse(createResponse()),
-                jsonResponse({ state: 'expired', expiresAt: new Date(NOW - 1).toISOString() }),
-            ),
+            sequenceFetch(jsonResponse(projectList()), new Response('{}', { status: 404 })),
         );
 
         expect(await consoleCommand('link', {}, test.dependencies)).toBe(1);
-        expect(test.messages.join('\n')).toContain('request expired');
+        expect(test.messages.join('\n')).toContain('Storefront is no longer an active project in Acme');
         expect(fs.existsSync(getProjectLinkManifestPath(root))).toBe(false);
     });
 
@@ -467,10 +477,7 @@ describe('console command', () => {
     it('rejects an oversized Console API response', async () => {
         const root = vendureProject();
         const fetchMock = sequenceFetch(
-            jsonResponse({
-                ...createResponse(),
-                padding: 'x'.repeat(70_000),
-            }),
+            jsonResponse([{ ...(projectList()[0] as object), padding: 'x'.repeat(1_100_000) }]),
         );
         const test = testDependencies(root, fetchMock);
 
@@ -479,82 +486,84 @@ describe('console command', () => {
         expect(fs.existsSync(getProjectLinkManifestPath(root))).toBe(false);
     });
 
-    it('retries HTTP 429 poll responses as transient failures', async () => {
+    it('renews the CLI login once when Console refuses its access token', async () => {
         const root = vendureProject();
-        const fetchMock = sequenceFetch(
-            jsonResponse(createResponse()),
-            new Response('', { status: 429 }),
-            jsonResponse({ state: 'approved', expiresAt: expiry(), manifest }),
-        );
-        const test = testDependencies(root, fetchMock);
+        const api = fakeConsole({
+            link: (projectId, authorization) =>
+                authorization === `Bearer ${STORED_ACCESS_TOKEN}`
+                    ? jsonResponse({}, 401)
+                    : jsonResponse({ ...manifest, project: { ...manifest.project, id: projectId } }),
+        });
+        const test = testDependencies(root, api.fetch);
 
         expect(await consoleCommand('link', {}, test.dependencies)).toBe(0);
-        expect(test.sleeps).toEqual([500]);
+        const links = api.requests.filter(request => request.url.endsWith('/link'));
+        expect(links.map(request => request.authorization)).toEqual([
+            `Bearer ${STORED_ACCESS_TOKEN}`,
+            `Bearer ${accessToken('issued-1')}`,
+        ]);
+        expect(api.requests.filter(request => request.url === WORKOS_AUTHENTICATE_URL)).toHaveLength(1);
+        expect(fs.existsSync(getProjectLinkManifestPath(root))).toBe(true);
     });
 
-    it('rejects a non-string poll state instead of treating it as pending', async () => {
+    it('stops when Console refuses the renewed access token too', async () => {
+        const root = vendureProject();
+        const api = fakeConsole({ link: () => jsonResponse({}, 401) });
+        const test = testDependencies(root, api.fetch);
+
+        expect(await consoleCommand('link', {}, test.dependencies)).toBe(1);
+        expect(api.requests.filter(request => request.url.endsWith('/link'))).toHaveLength(2);
+        expect(test.messages.join('\n')).toContain('did not accept the CLI login');
+        expect(fs.existsSync(getProjectLinkManifestPath(root))).toBe(false);
+    });
+
+    it('refuses a manifest for a project other than the one it linked', async () => {
         const root = vendureProject();
         const fetchMock = sequenceFetch(
-            jsonResponse(createResponse()),
-            jsonResponse({ state: ['approved'], expiresAt: expiry(), manifest }),
+            jsonResponse(projectList()),
+            jsonResponse({ ...manifest, project: { id: OTHER_PROJECT_ID, name: 'Wholesale' } }),
         );
         const test = testDependencies(root, fetchMock);
 
         expect(await consoleCommand('link', {}, test.dependencies)).toBe(1);
-        expect(test.messages.join('\n')).toContain('unknown Project Link state');
+        expect(test.messages.join('\n')).toContain('for a different project');
         expect(fs.existsSync(getProjectLinkManifestPath(root))).toBe(false);
     });
 
-    it('retries transient poll failures until expiry and does not retry request creation', async () => {
+    it('does not repeat a link request that failed', async () => {
         const root = vendureProject();
         const fetchMock = sequenceFetch(
-            jsonResponse(createResponse()),
+            jsonResponse(projectList()),
             new Response('', { status: 503 }),
-            new Response('', { status: 502 }),
-            new Response('', { status: 503 }),
-            new Response('', { status: 502 }),
-            jsonResponse({ state: 'approved', expiresAt: expiry(), manifest }),
+            jsonResponse(manifest),
         );
         const test = testDependencies(root, fetchMock);
 
-        expect(await consoleCommand('link', {}, test.dependencies)).toBe(0);
-        expect(test.sleeps).toEqual([500, 1_000, 2_000, 2_000]);
-
-        const createFailure = vi.fn(() =>
-            Promise.resolve(new Response('', { status: 503 })),
-        ) as unknown as typeof fetch;
-        const failed = testDependencies(vendureProject(), createFailure);
-        expect(await consoleCommand('link', {}, failed.dependencies)).toBe(1);
-        expect(createFailure).toHaveBeenCalledOnce();
+        // A repeated link records another Project Link, so a failure is reported, not retried.
+        expect(await consoleCommand('link', {}, test.dependencies)).toBe(1);
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+        expect(test.messages.join('\n')).toContain('HTTP 503');
     });
 
-    it('never prints the polling secret when polling becomes unreachable', async () => {
+    it('never prints the access token when Console becomes unreachable', async () => {
         const root = vendureProject();
         const fetchMock = vi
             .fn()
-            .mockResolvedValueOnce(jsonResponse(createResponse(new Date(NOW + 1_500).toISOString())))
-            .mockRejectedValue(new Error(`network error ${POLLING_SECRET}`)) as unknown as typeof fetch;
+            .mockResolvedValueOnce(jsonResponse(projectList()))
+            .mockRejectedValue(new Error(`network error ${STORED_ACCESS_TOKEN}`)) as unknown as typeof fetch;
         const test = testDependencies(root, fetchMock);
 
         expect(await consoleCommand('link', {}, test.dependencies)).toBe(1);
-        expect([...test.messages, ...test.urls].join('\n')).not.toContain(POLLING_SECRET);
+        expect([...test.messages, ...test.urls].join('\n')).not.toContain(STORED_ACCESS_TOKEN);
         expect(fs.existsSync(getProjectLinkManifestPath(root))).toBe(false);
     });
 
-    it('uses the latest expiry returned by polling', async () => {
+    it('reports a role that cannot list projects', async () => {
         const root = vendureProject();
-        const fetchMock = sequenceFetch(
-            jsonResponse(createResponse(new Date(NOW + 1_000).toISOString())),
-            jsonResponse({ state: 'pending', expiresAt: new Date(NOW + 5_000).toISOString() }),
-            jsonResponse({
-                state: 'approved',
-                expiresAt: new Date(NOW + 5_000).toISOString(),
-                manifest,
-            }),
-        );
-        const test = testDependencies(root, fetchMock);
+        const test = testDependencies(root, sequenceFetch(new Response('{}', { status: 403 })));
 
-        expect(await consoleCommand('link', {}, test.dependencies)).toBe(0);
+        expect(await consoleCommand('link', {}, test.dependencies)).toBe(1);
+        expect(test.messages.join('\n')).toContain('does not allow you to see its projects');
     });
 
     it('does not let --force bypass a cross-root Project Link Manifest', async () => {
@@ -586,10 +595,7 @@ describe('console command', () => {
         const replacement = { ...manifest, project: { ...manifest.project, name: 'Replacement' } };
         const allowed = testDependencies(
             root,
-            sequenceFetch(
-                jsonResponse(createResponse()),
-                jsonResponse({ state: 'approved', expiresAt: expiry(), manifest: replacement }),
-            ),
+            sequenceFetch(jsonResponse(projectList()), jsonResponse(replacement)),
         );
         expect(await consoleCommand('link', { force: true }, allowed.dependencies)).toBe(0);
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual({
@@ -609,10 +615,7 @@ describe('console command', () => {
         fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
         fs.writeJsonSync(getProjectLinkManifestPath(root), previous);
         const contexts: Array<{ force: boolean; outcome: string }> = [];
-        const fetchMock = sequenceFetch(
-            jsonResponse(createResponse()),
-            jsonResponse({ state: 'approved', expiresAt: expiry(), manifest }),
-        );
+        const fetchMock = sequenceFetch(jsonResponse(projectList()), jsonResponse(manifest));
         const test = testDependencies(root, fetchMock, {
             hooks: [
                 {
@@ -656,10 +659,7 @@ describe('console command', () => {
         const replacementPrompt = vi.fn(() => Promise.resolve(false));
         const replacement = testDependencies(
             replacementRoot,
-            sequenceFetch(
-                jsonResponse(createResponse()),
-                jsonResponse({ state: 'approved', expiresAt: expiry(), manifest }),
-            ),
+            sequenceFetch(jsonResponse(projectList()), jsonResponse(manifest)),
             { isNonInteractive: () => false, prompt: replacementPrompt },
         );
 
@@ -976,7 +976,11 @@ describe('console command', () => {
         expect(linked.messages.join('\n')).toContain(`Account: Acme (${ACCOUNT_ID})`);
         expect(linked.messages.join('\n')).toContain(`Manifest: ${getProjectLinkManifestPath(root)}`);
         expect(linked.messages.join('\n')).toContain(`Console: ${LOCAL_CONSOLE.appOrigin}`);
-        expect(linked.messages.join('\n')).toContain('Authentication: Not stored locally');
+        expect(linked.messages.join('\n')).toContain('Login: dev@example.com in Acme');
+
+        const signedOut = testDependencies(root, fetchMock, {}, { login: false });
+        expect(await consoleCommand('status', {}, signedOut.dependencies)).toBe(0);
+        expect(signedOut.messages.join('\n')).toContain('Login: Not logged in');
 
         fs.writeFileSync(getProjectLinkManifestPath(root), '{invalid');
         const malformed = testDependencies(root, fetchMock);
@@ -1020,14 +1024,19 @@ describe('console command', () => {
         const test = testDependencies(
             root,
             sequenceFetch(
-                jsonResponse(createResponse()),
-                jsonResponse({ state: 'pending', expiresAt: expiry() }),
+                jsonResponse(
+                    projectList([
+                        { id: PROJECT_ID, name: 'Storefront' },
+                        { id: OTHER_PROJECT_ID, name: 'Wholesale' },
+                    ]),
+                ),
             ),
             {
                 signal: externalAbort.signal,
-                sleep: () => {
+                isNonInteractive: () => false,
+                select: () => {
                     externalAbort.abort();
-                    return Promise.resolve();
+                    return Promise.resolve(undefined);
                 },
             },
         );
@@ -1038,20 +1047,34 @@ describe('console command', () => {
     });
 });
 
+/**
+ * Dependencies for one run. The CLI login lives in a temporary config
+ * directory and, unless `login` is `false`, holds a login for the run's
+ * Console API, scoped to the Acme organization.
+ */
 function testDependencies(
     root: string,
     fetchImplementation: typeof fetch,
     overrides: Partial<ConsoleCommandDependencies> = {},
+    options: { login?: boolean } = {},
 ): {
     dependencies: Partial<ConsoleCommandDependencies>;
     messages: string[];
-    sleeps: number[];
     urls: string[];
 } {
     const messages: string[] = [];
     const urls: string[] = [];
-    const sleeps: number[] = [];
-    let currentTime = NOW;
+    const env: NodeJS.ProcessEnv = {
+        ...(overrides.env ?? {
+            VENDURE_CLI_NON_INTERACTIVE: 'true',
+            VENDURE_CONSOLE_APP_URL: 'http://localhost:3000',
+            VENDURE_CONSOLE_API_URL: 'http://localhost:3001',
+        }),
+        VENDURE_CLI_CONFIG_DIR: createCliConfigDir(temporaryDirectories),
+    };
+    if (options.login !== false) {
+        storeLogin(env, env.VENDURE_CONSOLE_API_URL?.trim() || 'https://api.vendure.io');
+    }
     const reporter: ConsoleReporter = {
         error: message => messages.push(message),
         info: message => messages.push(message),
@@ -1062,33 +1085,24 @@ function testDependencies(
     return {
         dependencies: {
             cwd: root,
-            env: {
-                VENDURE_CLI_NON_INTERACTIVE: 'true',
-                VENDURE_CONSOLE_APP_URL: 'http://localhost:3000',
-                VENDURE_CONSOLE_API_URL: 'http://localhost:3001',
-            },
             fetch: fetchImplementation,
             isNonInteractive: () => true,
-            now: () => currentTime,
+            now: () => NOW,
             openUrl: () => Promise.resolve(),
             prompt: () => Promise.resolve(true),
+            select: () => Promise.resolve(undefined),
             reporter,
-            sleep: milliseconds => {
-                sleeps.push(milliseconds);
-                currentTime += milliseconds;
-                return Promise.resolve();
-            },
             ...overrides,
+            env,
         },
         messages,
-        sleeps,
         urls,
     };
 }
 
-function jsonResponse(value: unknown): Response {
+function jsonResponse(value: unknown, status = 200): Response {
     return new Response(JSON.stringify(value), {
-        status: 200,
+        status,
         headers: { 'Content-Type': 'application/json' },
     });
 }

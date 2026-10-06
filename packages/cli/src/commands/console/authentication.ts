@@ -112,7 +112,7 @@ export async function refreshSession(
     return { ...session, refreshToken: session.refreshToken ?? refreshToken };
 }
 
-/** Internal exchange shared by standalone login and combined Project linking. */
+/** Internal exchange for standalone login. */
 export function exchangeConsoleCode(
     input: { code: string; verifier: string; redirectUri: string },
     options: ConsoleRefreshOptions,
@@ -256,7 +256,7 @@ function openAuthenticationBrowser(url: string): Promise<boolean> {
     );
 }
 
-/** Internal browser opener shared with Project linking. */
+/** Internal browser opener shared with the device login of `vendure auth` and `vendure console`. */
 export function openConsoleBrowser(url: string): Promise<void> {
     const windows = process.platform === 'win32';
     let command = 'xdg-open';
@@ -307,10 +307,12 @@ const NO_STORE = { 'Cache-Control': 'no-store', 'Content-Type': 'text/plain' };
 const MAX_TOKEN_LIFETIME_SECONDS = 365 * 24 * 60 * 60;
 
 /**
- * A Console CLI Session, as the token route issued it.
+ * A Console CLI Session, as the token route issued it, or the `vendure auth`
+ * login's access token that `vendure console link` gives a hook that requested
+ * a session. That second kind has no `refreshToken`.
  *
- * The CLI does not write this anywhere. It is handed to the plugin hook that
- * asked for it, and storing it is that plugin's to do, under its own rules.
+ * The CLI does not write this anywhere. Storing it is the plugin's to do, under
+ * its own rules.
  *
  * @since 3.8.0
  */

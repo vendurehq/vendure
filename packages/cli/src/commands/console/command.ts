@@ -21,7 +21,7 @@ export const consoleCommandDef: CliCommandDefinition = {
         },
         {
             long: '--non-interactive',
-            description: 'Do not prompt, open a browser or wait for browser approval',
+            description: 'Do not prompt, sign in or open a browser',
         },
         {
             long: '--project <path>',
@@ -31,6 +31,13 @@ export const consoleCommandDef: CliCommandDefinition = {
         {
             long: '--force',
             description: 'Create a different Project Link or remove the current link without confirmation',
+            required: false,
+        },
+        {
+            long: '--organization <account>',
+            description:
+                'Link a project of this organization: its Account identifier (Vendure Console → Settings) or its name. ' +
+                'Signs in again when the CLI login belongs to another organization.',
             required: false,
         },
         {

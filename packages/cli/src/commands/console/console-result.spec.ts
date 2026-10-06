@@ -1,5 +1,5 @@
 import fs from 'fs-extra';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { defineCliPlugin, type ConsoleLinkContext } from '../../index';
 import { runCli } from '../../shared/__tests__/run-cli';
@@ -8,14 +8,20 @@ import { CommandRegistry } from '../../shared/command-registry-store';
 
 import { consoleCommandDef } from './command';
 import { consoleCommand } from './console';
-import { ACCESS_TOKEN, createVendureProject, manifest as legacyManifest } from './console.fixtures';
+import { createCliConfigDir, createVendureProject, manifest as legacyManifest } from './console.fixtures';
 import { getProjectLinkManifestPath } from './project-link-manifest';
 
+/** A value that must never reach stdout. */
+const SECRET = 'vcli_access-token';
 const directories: string[] = [];
 const manifest = {
     ...legacyManifest,
     console: { appOrigin: 'https://console.vendure.io', apiOrigin: 'https://api.vendure.io' },
 };
+beforeEach(() => {
+    // Commands that read the CLI login from `process.env` read an empty one, never the real one.
+    vi.stubEnv('VENDURE_CLI_CONFIG_DIR', createCliConfigDir(directories));
+});
 afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllEnvs();
@@ -23,13 +29,12 @@ afterEach(() => {
 });
 
 describe('EE-388 structured Console linking', () => {
-    it('returns incomplete without creating a request, opening a browser, prompting or waiting', async () => {
+    it('returns incomplete without signing in, opening a browser, prompting or calling Console', async () => {
         const root = createVendureProject(directories, 'console-result-');
         const fetch = vi.fn();
         const openUrl = vi.fn();
         const prompt = vi.fn();
-        const sleep = vi.fn();
-        const startLoopbackCallback = vi.fn();
+        const select = vi.fn();
         const stdout = vi.spyOn(process.stdout, 'write').mockReturnValue(true);
         const code = await consoleCommand(
             'link',
@@ -39,14 +44,12 @@ describe('EE-388 structured Console linking', () => {
                 fetch,
                 openUrl,
                 prompt,
-                sleep,
-                startLoopbackCallback,
+                select,
                 isNonInteractive: () => false,
             },
         );
         expect(code).toBe(1);
-        for (const fn of [fetch, openUrl, prompt, sleep, startLoopbackCallback])
-            expect(fn).not.toHaveBeenCalled();
+        for (const fn of [fetch, openUrl, prompt, select]) expect(fn).not.toHaveBeenCalled();
         expect(fs.existsSync(getProjectLinkManifestPath(root))).toBe(false);
         expect(stdout).toHaveBeenCalledTimes(1);
         const result = JSON.parse(String(stdout.mock.calls[0][0]));
@@ -93,7 +96,7 @@ describe('EE-388 structured Console linking', () => {
                             received = context;
                             expect(Object.isFrozen(context.options)).toBe(true);
                             expect(context.options.rotateCredential === true).toBe(rotate);
-                            expect(context.options.setupToken).toBe(ACCESS_TOKEN);
+                            expect(context.options.setupToken).toBe(SECRET);
                             expect(context.session).toBeUndefined();
                             expect(context.options.yes === true).toBe(yes);
                             expect(context.force).toBe(false);
@@ -124,7 +127,7 @@ describe('EE-388 structured Console linking', () => {
                     '--json',
                     '--non-interactive',
                     '--setup-token',
-                    ACCESS_TOKEN,
+                    SECRET,
                     ...(rotate ? ['--rotate-credential'] : []),
                     ...(yes ? ['--yes'] : []),
                 ],
@@ -134,7 +137,7 @@ describe('EE-388 structured Console linking', () => {
             expect(received).toBeDefined();
             expect(result.exitCode).toBe(1);
             expect(result.stdout.trim().split('\n')).toHaveLength(1);
-            expect(result.stdout).not.toContain(ACCESS_TOKEN);
+            expect(result.stdout).not.toContain(SECRET);
             expect(JSON.parse(result.stdout)).toMatchObject({
                 schemaVersion: 1,
                 operation: 'console.link',
@@ -162,7 +165,7 @@ describe('EE-388 structured Console linking', () => {
                     {
                         pluginId: '@example/setup',
                         hook: async () => {
-                            throw new Error(ACCESS_TOKEN);
+                            throw new Error(SECRET);
                         },
                     },
                 ],
@@ -171,7 +174,7 @@ describe('EE-388 structured Console linking', () => {
         expect(code).toBe(1);
         expect(stdout).toHaveBeenCalledTimes(1);
         const output = String(stdout.mock.calls[0][0]);
-        expect(output).not.toContain(ACCESS_TOKEN);
+        expect(output).not.toContain(SECRET);
         expect(JSON.parse(output)).toMatchObject({
             outcome: 'failed',
             data: { link: { outcome: 'repaired' } },

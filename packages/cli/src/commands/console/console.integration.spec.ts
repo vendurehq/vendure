@@ -7,11 +7,20 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { ConsoleCommandDependencies, consoleCommand } from './console';
 import { ConsoleReporter } from './console-reporter';
-import { LINK_ID, POLLING_SECRET, manifest } from './console.fixtures';
+import {
+    NOW,
+    PROJECT_ID,
+    STORED_ACCESS_TOKEN,
+    createCliConfigDir,
+    manifest,
+    projectList,
+    storeLogin,
+} from './console.fixtures';
 import { getProjectLinkManifestPath } from './project-link-manifest';
 
 let server: Server | undefined;
 let projectRoot: string | undefined;
+const temporaryDirectories: string[] = [];
 
 afterEach(async () => {
     if (server) {
@@ -24,13 +33,21 @@ afterEach(async () => {
         fs.removeSync(projectRoot);
         projectRoot = undefined;
     }
+    for (const directory of temporaryDirectories.splice(0)) {
+        fs.removeSync(directory);
+    }
 });
 
 describe('Console project-link integration', () => {
-    it('completes the protocol against an HTTP server and writes the manifest', async () => {
-        const requestBodies: unknown[] = [];
+    it('links with the CLI login against an HTTP server and writes the manifest', async () => {
+        const requests: Array<{ method?: string; url?: string; authorization?: string }> = [];
         server = createServer((request, response) => {
-            void respondToProjectLinkRequest(request, response, requestBodies);
+            requests.push({
+                method: request.method,
+                url: request.url,
+                authorization: request.headers.authorization,
+            });
+            respondToProjectLinkRequest(request, response);
         });
         await new Promise<void>(resolve => server?.listen(0, '127.0.0.1', resolve));
         const address = server.address() as AddressInfo;
@@ -48,19 +65,22 @@ describe('Console project-link integration', () => {
             warn: message => messages.push(message),
             url: value => messages.push(value),
         };
+        const env = {
+            VENDURE_CLI_NON_INTERACTIVE: 'true',
+            VENDURE_CONSOLE_APP_URL: 'http://localhost:3000',
+            VENDURE_CONSOLE_API_URL: apiUrl,
+            VENDURE_CLI_CONFIG_DIR: createCliConfigDir(temporaryDirectories),
+        };
+        storeLogin(env, apiUrl);
         const dependencies: Partial<ConsoleCommandDependencies> = {
             cwd: projectRoot,
-            env: {
-                VENDURE_CLI_NON_INTERACTIVE: 'true',
-                VENDURE_CONSOLE_APP_URL: 'http://localhost:3000',
-                VENDURE_CONSOLE_API_URL: apiUrl,
-            },
+            env,
             fetch: globalThis.fetch,
             isNonInteractive: () => true,
+            now: () => NOW,
             openUrl: () => Promise.resolve(),
             prompt: () => Promise.resolve(true),
             reporter,
-            sleep: () => Promise.resolve(),
         };
 
         expect(await consoleCommand('link', {}, dependencies)).toBe(0);
@@ -75,55 +95,34 @@ describe('Console project-link integration', () => {
         expect(fs.readFileSync(path.join(projectRoot, '.gitignore'), 'utf8')).toContain(
             '!.vendure/project.json',
         );
-        expect(requestBodies).toEqual([{ pollingSecret: POLLING_SECRET }]);
-        expect(messages.join('\n')).not.toContain(POLLING_SECRET);
+        expect(requests).toEqual([
+            { method: 'GET', url: '/v1/projects', authorization: `Bearer ${STORED_ACCESS_TOKEN}` },
+            {
+                method: 'POST',
+                url: `/v1/projects/${PROJECT_ID}/link`,
+                authorization: `Bearer ${STORED_ACCESS_TOKEN}`,
+            },
+        ]);
+        expect(messages.join('\n')).not.toContain(STORED_ACCESS_TOKEN);
     });
 });
 
-async function respondToProjectLinkRequest(
-    request: IncomingMessage,
-    response: ServerResponse,
-    requestBodies: unknown[],
-): Promise<void> {
-    const body = await readBody(request);
-    if (body !== undefined) {
-        requestBodies.push(body);
-    }
+function respondToProjectLinkRequest(request: IncomingMessage, response: ServerResponse): void {
+    request.resume();
     response.setHeader('Content-Type', 'application/json');
-    if (request.method === 'POST' && request.url === '/v1/project-links') {
-        response.end(
-            JSON.stringify({
-                id: LINK_ID,
-                state: 'pending',
-                protocolVersion: 1,
-                expiresAt: new Date(Date.now() + 60_000).toISOString(),
-                pollingSecret: POLLING_SECRET,
-                verificationPath: `/?link=${LINK_ID}`,
-            }),
-        );
+    if (request.headers.authorization !== `Bearer ${STORED_ACCESS_TOKEN}`) {
+        response.statusCode = 401;
+        response.end(JSON.stringify({ code: 'auth.token_invalid' }));
         return;
     }
-    if (request.method === 'POST' && request.url === `/v1/project-links/${LINK_ID}/poll`) {
-        response.end(
-            JSON.stringify({
-                state: 'approved',
-                expiresAt: new Date(Date.now() + 60_000).toISOString(),
-                manifest,
-            }),
-        );
+    if (request.method === 'GET' && request.url === '/v1/projects') {
+        response.end(JSON.stringify(projectList()));
+        return;
+    }
+    if (request.method === 'POST' && request.url === `/v1/projects/${PROJECT_ID}/link`) {
+        response.end(JSON.stringify(manifest));
         return;
     }
     response.statusCode = 404;
     response.end(JSON.stringify({ code: 'not_found' }));
-}
-
-async function readBody(request: IncomingMessage): Promise<unknown | undefined> {
-    const chunks: Buffer[] = [];
-    for await (const chunk of request) {
-        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-    }
-    if (chunks.length === 0) {
-        return undefined;
-    }
-    return JSON.parse(Buffer.concat(chunks).toString('utf8'));
 }

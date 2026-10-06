@@ -13,7 +13,7 @@ import { builtinCommandDefs } from '../builtins';
 import { ConsoleCommandDependencies, consoleCommand } from './console';
 import { ConsoleLinkContext, ConsoleLinkHook, ConsoleLinkHookRegistration } from './console-link-hook';
 import { ConsoleReporter } from './console-reporter';
-import { LINK_ID, POLLING_SECRET, manifest } from './console.fixtures';
+import { NOW, PROJECT_ID, createCliConfigDir, manifest, projectList, storeLogin } from './console.fixtures';
 import { getProjectLinkManifestPath } from './project-link-manifest';
 
 // Two plugins, so the tests that care about order can name which is which.
@@ -48,8 +48,8 @@ describe('console link hooks', () => {
         const test = await runLink(root, registry);
 
         expect(test.exitCode).toBe(0);
-        // The OSS protocol ran exactly once: one create, one poll.
-        expect(test.requestPaths).toEqual(['/v1/project-links', `/v1/project-links/${LINK_ID}/poll`]);
+        // The OSS protocol ran exactly once: one project list, one link.
+        expect(test.requestPaths).toEqual(['/v1/projects', `/v1/projects/${PROJECT_ID}/link`]);
         const currentManifest = manifestForConsole('http://localhost:3000', test.apiUrl);
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(currentManifest);
 
@@ -72,7 +72,7 @@ describe('console link hooks', () => {
         const test = await runLink(root, registryWith());
 
         expect(test.exitCode).toBe(0);
-        expect(test.requestPaths).toEqual(['/v1/project-links', `/v1/project-links/${LINK_ID}/poll`]);
+        expect(test.requestPaths).toEqual(['/v1/projects', `/v1/projects/${PROJECT_ID}/link`]);
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(
             manifestForConsole('http://localhost:3000', test.apiUrl),
         );
@@ -462,16 +462,19 @@ async function runLink(
     const apiUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 
     const messages: string[] = [];
+    const env = {
+        VENDURE_CLI_NON_INTERACTIVE: 'true',
+        VENDURE_CONSOLE_APP_URL: 'http://localhost:3000',
+        VENDURE_CONSOLE_API_URL: apiUrl,
+        VENDURE_CLI_CONFIG_DIR: createCliConfigDir(temporaryDirectories),
+    };
+    storeLogin(env, apiUrl);
     const exitCode = await consoleCommand(
         'link',
         {},
         {
             ...offlineDependencies(root, messages),
-            env: {
-                VENDURE_CLI_NON_INTERACTIVE: 'true',
-                VENDURE_CONSOLE_APP_URL: 'http://localhost:3000',
-                VENDURE_CONSOLE_API_URL: apiUrl,
-            },
+            env,
             fetch: globalThis.fetch,
             hooks: consoleLinkHooks(registry),
             ...overrides,
@@ -513,40 +516,29 @@ function offlineDependencies(root: string, messages: string[] = []): Partial<Con
     const reporter = recordingReporter(messages);
     return {
         cwd: root,
-        env: { VENDURE_CLI_NON_INTERACTIVE: 'true' },
+        env: {
+            VENDURE_CLI_NON_INTERACTIVE: 'true',
+            VENDURE_CLI_CONFIG_DIR: createCliConfigDir(temporaryDirectories),
+        },
         fetch: vi.fn() as unknown as typeof fetch,
         hooks: [],
         isNonInteractive: () => true,
+        // The stored login's tokens expire relative to NOW, so none is renewed.
+        now: () => NOW,
         openUrl: () => Promise.resolve(),
         prompt: () => Promise.resolve(true),
         reporter,
-        sleep: () => Promise.resolve(),
     };
 }
 
 function respondAsConsole(request: IncomingMessage, response: ServerResponse): void {
     request.resume();
     response.setHeader('Content-Type', 'application/json');
-    if (request.url === '/v1/project-links') {
-        response.end(
-            JSON.stringify({
-                id: LINK_ID,
-                state: 'pending',
-                protocolVersion: 1,
-                expiresAt: new Date(Date.now() + 60_000).toISOString(),
-                pollingSecret: POLLING_SECRET,
-                verificationPath: `/?link=${LINK_ID}`,
-            }),
-        );
+    if (request.url === '/v1/projects') {
+        response.end(JSON.stringify(projectList()));
         return;
     }
-    response.end(
-        JSON.stringify({
-            state: 'approved',
-            expiresAt: new Date(Date.now() + 60_000).toISOString(),
-            manifest,
-        }),
-    );
+    response.end(JSON.stringify(manifest));
 }
 
 function vendureProject(): string {

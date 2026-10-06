@@ -31,7 +31,14 @@ export interface ConsoleLinkContext {
     endpoints: ConsoleLinkEndpoints;
     /** Whether this run created the link or reused the manifest on disk. */
     outcome: ConsoleLinkOutcome;
-    /** The Console CLI Session, when this hook requested one and the login succeeded. */
+    /**
+     * The `vendure auth` login's access token, when this hook requested a
+     * session and a login exists. It has no `refreshToken`: the login's refresh
+     * token is single-use and stays in the login.
+     *
+     * `getAccessToken()` from `@vendure/cli`, with `VENDURE_CONSOLE_API_URL`
+     * set to `endpoints.apiUrl`, returns the same token and renews it.
+     */
     session?: ConsoleSession;
     /** Aborts on SIGINT or SIGTERM. */
     signal: AbortSignal;
@@ -42,7 +49,7 @@ export interface ConsoleLinkContext {
     options: Readonly<Record<string, unknown>>;
     /**
      * Adds safe setup data under this plugin's ID in Core's result. Incomplete
-     * or failed setup returns non-zero and keeps the approved manifest.
+     * or failed setup returns non-zero and keeps the manifest.
      * Never include credentials, tokens or raw errors.
      * @since 3.8.0
      */
@@ -63,7 +70,13 @@ export interface ConsoleLinkContext {
  */
 export type ConsoleLinkHook = (context: ConsoleLinkContext) => Promise<void>;
 
-/** A hook that explicitly requests a Console session. @since 3.8.0 */
+/**
+ * A hook that explicitly requests a Console session. `vendure console link`
+ * then makes sure a `vendure auth` login exists before the hook runs, and
+ * passes its access token as `session`.
+ *
+ * @since 3.8.0
+ */
 export interface ConsoleLinkHookWithSession {
     hook: ConsoleLinkHook;
     requiresSession: true;
