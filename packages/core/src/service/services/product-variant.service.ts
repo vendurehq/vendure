@@ -855,15 +855,8 @@ export class ProductVariantService {
             // eslint-disable-next-line @typescript-eslint/no-misused-promises
             populatePricesPromise = new Promise(async (resolve, reject) => {
                 try {
-                    if (!variant.productVariantPrices?.length) {
-                        const variantWithPrices = await this.connection.getEntityOrThrow(
-                            ctx,
-                            ProductVariant,
-                            variant.id,
-                            { relations: ['productVariantPrices'], includeSoftDeleted: true },
-                        );
-                        variant.productVariantPrices = variantWithPrices.productVariantPrices;
-                    }
+                    // The price rows are loaded by the ProductVariantPriceLoadingStrategy inside
+                    // applyChannelPriceAndTax().
                     if (!variant.taxCategory) {
                         const variantWithTaxCategory = await this.connection.getEntityOrThrow(
                             ctx,

@@ -260,7 +260,7 @@ export class OrderService implements OnApplicationBootstrap {
             'lines',
             'lines.productVariant',
             'lines.productVariant.taxCategory',
-            'lines.productVariant.productVariantPrices',
+            ...this.lineVariantPriceRelations(),
             'lines.productVariant.translations',
             'lines.featuredAsset',
             'lines.taxCategory',
@@ -2380,7 +2380,7 @@ export class OrderService implements OnApplicationBootstrap {
             relations ?? [
                 'lines',
                 'lines.productVariant',
-                'lines.productVariant.productVariantPrices',
+                ...this.lineVariantPriceRelations(),
                 'shippingLines',
                 'surcharges',
                 'customer',
@@ -2390,6 +2390,16 @@ export class OrderService implements OnApplicationBootstrap {
             throw new EntityNotFoundError('Order', orderId);
         }
         return order;
+    }
+
+    /**
+     * The relation an Order query has to request so that the lines' variants can be priced: the
+     * price rows, unless the ProductVariantPriceLoadingStrategy loads them itself.
+     */
+    private lineVariantPriceRelations(): RelationPaths<Order> {
+        return this.configService.catalogOptions.productVariantPriceLoadingStrategy.eagerLoading
+            ? ['lines.productVariant.productVariantPrices']
+            : [];
     }
 
     private getOrderLineOrThrow(order: Order, orderLineId: ID): OrderLine {
@@ -2706,7 +2716,12 @@ export class OrderService implements OnApplicationBootstrap {
             const orders = await this.connection.getRepository(orderCtx, Order).find({
                 where: { id: In(affectedOrders.map(o => o.id)) },
                 relations: {
-                    lines: { productVariant: { productVariantPrices: true } },
+                    lines: {
+                        productVariant: this.configService.catalogOptions.productVariantPriceLoadingStrategy
+                            .eagerLoading
+                            ? { productVariantPrices: true }
+                            : true,
+                    },
                     shippingLines: true,
                     surcharges: true,
                 },
