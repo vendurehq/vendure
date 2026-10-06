@@ -2747,7 +2747,9 @@ export class OrderService implements OnApplicationBootstrap {
     ) {
         const linesWithRelations = await this.connection.getRepository(txCtx, OrderLine).find({
             where: { id: In(order.lines.map(l => l.id)) },
-            relations: relationFields.map(config => `customFields.${config.name}`),
+            relations: findOptionsArrayToObject<OrderLine>(
+                relationFields.map(config => `customFields.${config.name}`),
+            ),
         });
         const relationCustomFields = new Map<ID, Record<string, ID | ID[]>>();
         for (const line of linesWithRelations) {

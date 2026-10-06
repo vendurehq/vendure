@@ -199,7 +199,7 @@ function getAllColumnNames(entity: Type<any>): string[] {
 export function validateCustomFieldsConfig(
     customFieldConfig: CustomFields,
     entities: Array<Type<any>>,
-    dbEngine: DataSourceOptions['type'] = 'sqlite',
+    dbEngine: DataSourceOptions['type'] = 'better-sqlite3',
 ): { valid: boolean; errors: string[] } {
     let errors: string[] = [];
     getMetadataArgsStorage();

@@ -634,7 +634,7 @@ export class CollectionService implements OnModuleInit {
     ): Promise<{ parentIdById: Map<ID, ID>; isRootById: Map<ID, boolean> }> {
         const idsToLoad = unique([...frontier.values()]);
         const rows = await this.connection.getRepository(ctx, Collection).find({
-            select: ['id', 'parentId'],
+            select: { id: true, parentId: true },
             where: { id: In(idsToLoad) },
         });
         const parentIdById = new Map(rows.map(r => [r.id, r.parentId] as const));
@@ -642,7 +642,7 @@ export class CollectionService implements OnModuleInit {
         const candidateParentIds = unique([...parentIdById.values()].filter((id): id is ID => id != null));
         const parentRows = candidateParentIds.length
             ? await this.connection.getRepository(ctx, Collection).find({
-                  select: ['id', 'isRoot'],
+                  select: { id: true, isRoot: true },
                   where: { id: In(candidateParentIds) },
               })
             : [];

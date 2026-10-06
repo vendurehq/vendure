@@ -112,7 +112,7 @@ describe('TaxRate resolver', () => {
         const group = await server.app
             .get(TransactionalConnection)
             .rawConnection.getRepository(CustomerGroup)
-            .findOne({ where: { name: 'Tax Rate Group' }, relations: ['taxRates'] });
+            .findOne({ where: { name: 'Tax Rate Group' }, relations: { taxRates: true } });
 
         expect(group!.taxRates.map(t => t.name)).toEqual(['Group Tax Rate']);
     });

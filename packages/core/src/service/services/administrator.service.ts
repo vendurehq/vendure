@@ -621,7 +621,7 @@ export class AdministratorService {
             const createdAdministrator = await assertFound(
                 this.connection.getRepository(ctx, Administrator).findOne({
                     where: { id },
-                    relations: ['user', 'user.roles'],
+                    relations: { user: { roles: true } },
                 }),
             );
             createdAdministrator.user.roles.push(superAdminRole);
