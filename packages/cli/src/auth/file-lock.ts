@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { mkdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -53,7 +53,7 @@ export async function withFileLock<T>(
 }
 
 async function acquireLock(lockFile: string, options: FileLockOptions): Promise<string | undefined> {
-    const owner = `${process.pid}-${randomBytes(8).toString('hex')}`;
+    const owner = newOwner();
     const startedAt = Date.now();
     const deadline = startedAt + options.waitMs;
     const noticeAt = startedAt + (options.waitNoticeMs ?? DEFAULT_WAIT_NOTICE_MS);
@@ -100,38 +100,20 @@ async function acquireLock(lockFile: string, options: FileLockOptions): Promise<
 function releaseLock(lockFile: string, owner: string): void {
     // Another process may have broken ours as stale and taken its own, so only
     // a lock that still names this owner is removed.
-    withBreaker(lockFile, () => {
-        if (readOwner(lockFile) === owner) {
-            unlinkQuietly(lockFile);
-        }
-    });
+    removeIfUnchanged(lockFile, owner, () => true);
 }
 
-/**
- * Removes the lock if it is stale. Returns whether it did.
- *
- * Every removal of the lock file runs under the breaker lock and re-reads the
- * lock there. Without it, two waiters can judge the same lock stale, the first
- * removes it and takes a fresh one, and the second then removes the fresh lock:
- * two processes hold the lock and both spend the same refresh token.
- */
+/** Removes the lock if it is stale. Returns whether it did. */
 function breakStaleLock(lockFile: string, staleMs: number): boolean {
-    let broken = false;
-    withBreaker(lockFile, () => {
-        if (isStale(lockFile, staleMs)) {
-            unlinkQuietly(lockFile);
-            broken = true;
-        }
-    });
-    return broken;
+    const owner = readOwner(lockFile);
+    if (owner === undefined || !isStale(lockFile, owner, staleMs)) {
+        return false;
+    }
+    return removeIfUnchanged(lockFile, owner, () => isStale(lockFile, owner, staleMs));
 }
 
 /** A lock is stale when it has not been touched for `staleMs`, or when its owner has exited. */
-function isStale(lockFile: string, staleMs: number): boolean {
-    const owner = readOwner(lockFile);
-    if (owner === undefined) {
-        return false;
-    }
+function isStale(lockFile: string, owner: string, staleMs: number): boolean {
     try {
         return statSync(lockFile).mtimeMs < Date.now() - staleMs || ownerHasExited(owner);
     } catch {
@@ -159,47 +141,62 @@ function ownerHasExited(owner: string): boolean {
 }
 
 /**
- * The breaker is held only for a read and an unlink, so a waiter spins on it
- * briefly. A breaker older than this belongs to a process that died inside that
- * window.
+ * Compare-and-remove: removes `file` only while it still contains `content`
+ * and `shouldRemove()` is true. Returns whether it removed it.
+ *
+ * A file cannot be unlinked on a condition, so a check followed by an unlink
+ * can remove a file that replaced the one checked. Two waiters that both find
+ * the same stale lock would then both hold the lock. To prevent this, every
+ * removal first creates `<file>.<digest of content>.claim` exclusively. Owner
+ * strings are unique, so a claim names one version of the file, and only its
+ * claimant removes that version. While the claim exists, nobody else can
+ * remove that version, and nobody can create a new one because the file
+ * still exists.
+ *
+ * A claim is never broken because of its age. A claimant that is paused but
+ * alive can still unlink after a pause. A claim whose claimant has exited is
+ * removed with this function, one level up.
  */
-const BREAKER_STALE_MS = 2_000;
-const BREAKER_WAIT_MS = 1_000;
-
-/**
- * Runs `fn` while holding `<lockFile>.break`. When the breaker cannot be taken
- * in time, `fn` does not run: the lock is left in place, which is always safe.
- */
-function withBreaker(lockFile: string, fn: () => void): void {
-    const breaker = `${lockFile}.break`;
-    const owner = `${process.pid}-${randomBytes(8).toString('hex')}`;
-    const deadline = Date.now() + BREAKER_WAIT_MS;
+function removeIfUnchanged(file: string, content: string, shouldRemove: () => boolean): boolean {
+    const claim = claimPath(file, content);
+    const claimant = newOwner();
     while (true) {
         try {
-            writeFileSync(breaker, owner, { flag: 'wx', mode: 0o600 });
+            writeFileSync(claim, claimant, { flag: 'wx', mode: 0o600 });
             break;
         } catch (error) {
-            if (errorCode(error) !== 'EEXIST' || Date.now() >= deadline) {
-                return;
+            if (errorCode(error) !== 'EEXIST' || !removeDeadClaim(claim)) {
+                return false;
             }
         }
-        const breakerOwner = readOwner(breaker);
-        if (
-            breakerOwner !== undefined &&
-            (isOlderThan(breaker, BREAKER_STALE_MS) || ownerHasExited(breakerOwner))
-        ) {
-            unlinkQuietly(breaker);
-            continue;
-        }
-        sleepSync(1);
     }
     try {
-        fn();
-    } finally {
-        if (readOwner(breaker) === owner) {
-            unlinkQuietly(breaker);
+        if (readOwner(file) !== content || !shouldRemove()) {
+            return false;
         }
+        unlinkQuietly(file);
+        return true;
+    } finally {
+        // Nobody else removes the claim of a live claimant.
+        unlinkQuietly(claim);
     }
+}
+
+function removeDeadClaim(claim: string): boolean {
+    const claimant = readOwner(claim);
+    return (
+        claimant !== undefined &&
+        ownerHasExited(claimant) &&
+        removeIfUnchanged(claim, claimant, () => ownerHasExited(claimant))
+    );
+}
+
+export function claimPath(file: string, content: string): string {
+    return `${file}.${createHash('sha256').update(content).digest('hex').slice(0, 16)}.claim`;
+}
+
+function newOwner(): string {
+    return `${process.pid}-${randomBytes(8).toString('hex')}`;
 }
 
 function readOwner(file: string): string | undefined {
@@ -210,24 +207,12 @@ function readOwner(file: string): string | undefined {
     }
 }
 
-function isOlderThan(file: string, ms: number): boolean {
-    try {
-        return statSync(file).mtimeMs < Date.now() - ms;
-    } catch {
-        return false;
-    }
-}
-
 function unlinkQuietly(file: string): void {
     try {
         unlinkSync(file);
     } catch {
         // Already removed.
     }
-}
-
-function sleepSync(ms: number): void {
-    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
 export function errorCode(error: unknown): string | undefined {
