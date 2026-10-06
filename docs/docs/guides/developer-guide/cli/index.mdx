@@ -361,8 +361,8 @@ npx vendure doctor --strict --format json
 
 ## The Auth Command
 
-The `auth` command signs you in to your Vendure account. Vendure Console, Vendure Cloud and other CLI features share
-this one login. It does not need a Vendure project, so you can run it from any directory:
+The `auth` command signs you in to your Vendure account. `vendure console link`, Vendure Cloud and other CLI features
+share this one login. It does not need a Vendure project, so you can run it from any directory:
 
 ```bash
 npx vendure auth login
@@ -397,8 +397,8 @@ code 1 when nobody is signed in.
 
 The login is stored in `auth.json` in the CLI configuration directory (`~/.config/vendure` by default, or
 `VENDURE_CLI_CONFIG_DIR`) and is readable only by your user. The CLI renews the access token automatically.
-`vendure auth logout` asks Vendure Console to end the session, then removes the login from this machine. Once Console
-has ended the session, a copy of the login stops working as well. When Console cannot be reached, the command still
+`vendure auth logout` asks Vendure Console to end the session, then removes the login from this machine. This ends
+the login for `vendure console` too. Once Console has ended the session, a copy of the login stops working as well. When Console cannot be reached, the command still
 removes the login and warns that a copy keeps working until it expires.
 
 The CLI signs in to production Vendure Console by default. It reads the WorkOS client to sign in with from that
@@ -419,12 +419,26 @@ Vendure project directory:
 npx vendure console link
 ```
 
-The CLI creates a short-lived request and opens Vendure Console in your browser. Sign in, select an active Project,
-and approve the request. The CLI then writes `.vendure/project.json` in the resolved Vendure project.
+The command uses the login from [`vendure auth login`](#the-auth-command). When this machine has no login for the
+selected Console, the command signs you in first, the same way: it shows a one-time code and opens your browser. If
+the browser cannot open, the CLI prints the URL so that you can open it on any device.
 
-The browser owns authentication and authorization. The CLI does not store your Console access token. The one-time
-polling secret stays in memory and is not included in the browser URL, output, or manifest. If the browser cannot open,
-the CLI prints the verification URL so that you can open it manually.
+The CLI then lists the active Projects of the organization you are signed in to. With one Project, it links that
+Project. With more than one, you choose the Project in the terminal. Console records the Project Link, and the CLI
+writes `.vendure/project.json` in the resolved Vendure project. Your role in the organization must allow you to
+develop the Project.
+
+To link a Project of a different organization, pass its Account identifier (in Vendure Console under **Settings**) or
+its name:
+
+```bash
+npx vendure console link --organization "Bromley Art Supplies"
+```
+
+When the stored login belongs to another organization, the CLI signs in again for the organization you named. This
+replaces the stored login, the same as `vendure auth login --organization`.
+
+The CLI sends the access token only to the selected Console API, and never prints it.
 
 ### Structured, non-interactive linking
 
@@ -434,13 +448,15 @@ For automation, run:
 npx vendure console link --json --non-interactive --project ./apps/server
 ```
 
-`--non-interactive` prohibits prompts, automatic browser launch, and waiting for browser approval. An approved
-manifest is reused. If approval is missing, the command returns `incomplete` with exit code 1 and an interactive
-repair command. It creates no pending request. `--force` still means a different Project Link, so it requires
-interactive approval even with `--yes`. Neither flag authorizes a plugin to replace credentials or registry tokens.
+`--non-interactive` prohibits prompts, sign-in, and automatic browser launch. An existing manifest is reused. If the
+project has no manifest, the command returns `incomplete` with exit code 1 and an interactive repair command. It
+sends no request to Console. `--force` still means a different Project Link, so it requires an interactive run even
+with `--yes`. Neither flag authorizes a plugin to replace credentials or registry tokens.
 
-`--json` writes one result to stdout and disables terminal prompts. Reporter progress goes to stderr. Browser
-approval remains available unless `--non-interactive` is set. Human output remains the default.
+`--json` writes one result to stdout and disables terminal prompts. Reporter progress, including the sign-in code,
+goes to stderr. Sign-in remains available unless `--non-interactive` is set. Without a terminal, the command links
+only an organization's single Project. When there are more, it fails and lists them. Human output remains the
+default.
 The result has this shape:
 
 ```json
@@ -460,8 +476,8 @@ The result has this shape:
 Link outcomes are `linked`, `repaired`, `incomplete`, or `failed`. Missing inputs name the required input and may
 include `flag`, `command`, `argument`, or `environment` names. They never contain secret values. Plugin setup data
 is stored under the plugin ID in `data.plugins`. Incomplete or failed setup returns exit code 1 and keeps the
-approved manifest. Interrupts retain exit code 130 or 143. JSON results contain no session, parsed option values,
-polling secrets, or raw errors. Plugins must supply only safe setup metadata.
+linked manifest. Interrupts retain exit code 130 or 143. JSON results contain no tokens, parsed option values, or raw
+errors. Plugins must supply only safe setup metadata.
 
 ### Link status
 
@@ -471,8 +487,8 @@ Use `status` to validate and display the local link:
 npx vendure console status
 ```
 
-The output includes the Account, Project, Console origins, schema version, protocol version, and local authentication
-state. This command reads local state only. It does not contact Vendure Console.
+The output includes the Account, Project, Console origins, schema version, protocol version, and the CLI login for
+that Console. This command reads local state only. It does not contact Vendure Console and does not sign you in.
 
 ### Unlink a project
 
@@ -482,8 +498,8 @@ Use `unlink` to remove the local manifest:
 npx vendure console unlink
 ```
 
-This command removes only `.vendure/project.json`. It does not delete the Console Project, revoke server-side
-credentials, or change the completed link request.
+This command removes only `.vendure/project.json`. It does not delete the Console Project or its Project Link, and it
+does not revoke server-side credentials. Your CLI login stays. Run `vendure auth logout` to sign out.
 
 ### Project selection and confirmation
 
@@ -984,21 +1000,28 @@ export default defineCliPlugin({
 The context contains `projectRoot`, `manifest`, `manifestPath`, `endpoints`,
 `outcome`, the optional `session`, `signal`, `reporter`, `confirm`,
 `isNonInteractive`, `force`, `outputMode`, immutable parsed `options`, and `contributeResult`. Each hook gets its own manifest and endpoint
-objects. A session is also copied when the hook requested one and the login
-succeeded.
+objects. A session is also copied when the hook requested one and a CLI login
+exists.
 
-A hook does not receive a Console session unless it requests one. Wrap a hook
-with `requiresSession: true` when it needs the session from the same browser
-approval:
+Wrap a hook with `requiresSession: true` when it calls Vendure Console as the
+user. `vendure console link` then makes sure a [CLI login](#using-the-cli-login)
+exists before the hook runs. Read the access token with `getAccessToken()`,
+pointed at the Console of the link:
 
 ```ts
+import { defineCliPlugin, getAccessToken } from '@vendure/cli';
+
 export default defineCliPlugin({
     id: '@example/credential-cli-plugin',
     commands: [],
     afterConsoleLink: {
         requiresSession: true,
         hook: async context => {
-            if (!context.session) {
+            const token = await getAccessToken({
+                env: { ...process.env, VENDURE_CONSOLE_API_URL: context.endpoints.apiUrl },
+                signal: context.signal,
+            });
+            if (!token) {
                 context.contributeResult({
                     outcome: 'incomplete',
                     data: { session: 'missing' },
@@ -1007,16 +1030,16 @@ export default defineCliPlugin({
                 });
                 return;
             }
-            await storeCredential(context.session);
+            await setUpCredential(token);
         },
     },
 });
 ```
 
-The session is user-scoped and can authorize access across the user's Console
-projects. The CLI does not store it. If a plugin stores the session, use an OS
-credential store or a user-specific configuration directory outside the
-Vendure project. Never write it to the project directory or commit it.
+`context.session` holds the same access token, without a refresh token. The
+access token is user-scoped and can authorize access across the
+user's Console projects. Do not store it. Call `getAccessToken()` each time a
+token is needed, so the CLI renews it.
 
 Do not replace the `console` command for post-link setup. Register the hook.
 
@@ -1034,9 +1057,10 @@ raw errors, or parsed option values in a contribution. Use `context.reporter` fo
 
 `context.outputMode` is `'human'` or `'json'`. `context.options` is a frozen copy of parsed command options,
 including flags declared by `extendCommands`. Define explicit plugin replacement flags and read them here.
-Core's `--yes` and `--force` apply only to Core decisions. A session-requesting hook may reuse its own stored
-session on repair. If that session is missing, report incomplete setup through `contributeResult`. Core does
-not read plugin credential stores or start a login in explicit non-interactive mode.
+Core's `--yes` and `--force` apply only to Core decisions. On a repair, a session-requesting hook gets the CLI login
+for the manifest's account, or for the organization that `--organization` names. An interactive repair signs in
+first when no such login is stored. A non-interactive repair does not sign in. If the login is missing, report
+incomplete setup through `contributeResult`. Core does not read plugin credential stores.
 
 Check `context.isNonInteractive` before calling `context.confirm`. The confirm
 function rejects in a non-interactive run. Put multi-choice setup in a plugin
@@ -1045,15 +1069,16 @@ command.
 #### Repeating a link repairs it
 
 In an already-linked project, `vendure console link` reuses the manifest and
-runs hooks with `context.outcome` set to `'repaired'`. The repair makes no
-Console request and does not open a browser.
+runs hooks with `context.outcome` set to `'repaired'`. The repair creates no
+Project Link. It signs in only when a hook requested a session and no login is
+stored, as described above.
 
 An interactive repair names the project and account before it runs hooks. Pass
 `--yes` to answer this CLI confirmation in advance. The CLI asks nothing when
 no hooks are registered or when the run is non-interactive.
 
 `--force` links a checkout to a **different** Console Project. It
-skips the reuse, creates a new Project Link, and the hooks run with an `outcome`
+skips the reuse, links the Project you choose, and the hooks run with an `outcome`
 of `'linked'`.
 
 If a hook must run only against production, require
@@ -1066,9 +1091,7 @@ manifest unless the matching environment variables are set.
 ### Using the CLI login
 
 A plugin that calls a Vendure service on the user's behalf reads the login made with `vendure auth login`. It never
-reads `auth.json` directly. Use this login for new plugins. The Console session that a `afterConsoleLink` hook can
-request, and the `loginWithBrowser` and `refreshSession` exports, belong to the Project Link flow and will move to this
-login in a later release. `getAccessToken()` returns a valid access token, renewing it first when it is about to
+reads `auth.json` directly. `vendure console link` uses the same login. `getAccessToken()` returns a valid access token, renewing it first when it is about to
 expire, or `undefined` when nobody is signed in:
 
 ```ts
