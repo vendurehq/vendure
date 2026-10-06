@@ -244,6 +244,79 @@ describe('ChannelAware Products and ProductVariants', () => {
             expect(product.name).toBe('Product Without Variants');
         });
 
+        it('assigns Product when an option group contains a soft-deleted option', async () => {
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            await adminClient.asSuperAdmin();
+
+            const { createProductOptionGroup } = await adminClient.query(createProductOptionGroupDocument, {
+                input: {
+                    code: 'soft-deleted-option-group',
+                    translations: [{ languageCode: LanguageCode.en, name: 'Soft deleted option group' }],
+                    options: [
+                        {
+                            code: 'kept',
+                            translations: [{ languageCode: LanguageCode.en, name: 'Kept' }],
+                        },
+                        {
+                            code: 'retired',
+                            translations: [{ languageCode: LanguageCode.en, name: 'Retired' }],
+                        },
+                    ],
+                },
+            });
+
+            const { createProduct } = await adminClient.query(createProductDocument, {
+                input: {
+                    translations: [
+                        {
+                            languageCode: LanguageCode.en,
+                            name: 'Product with retired option',
+                            slug: 'product-with-retired-option',
+                            description: '',
+                        },
+                    ],
+                },
+            });
+
+            await adminClient.query(addOptionGroupToProductDocument, {
+                productId: createProduct.id,
+                optionGroupId: createProductOptionGroup.id,
+            });
+
+            const { createProductVariants } = await adminClient.query(createProductVariantsDocument, {
+                input: createProductOptionGroup.options.map(option => ({
+                    productId: createProduct.id,
+                    sku: `retired-opt-${option.code}`,
+                    optionIds: [option.id],
+                    translations: [{ languageCode: LanguageCode.en, name: `Variant ${option.code}` }],
+                })),
+            });
+
+            const retiredIndex = createProductOptionGroup.options.findIndex(option => option.code === 'retired');
+            const retiredVariant = createProductVariants[retiredIndex];
+            productVariantGuard.assertSuccess(retiredVariant);
+            const retiredOption = createProductOptionGroup.options[retiredIndex];
+
+            const { deleteProductVariant } = await adminClient.query(deleteProductVariantDocument, {
+                id: retiredVariant.id,
+            });
+            expect(deleteProductVariant.result).toBe(DeletionResult.DELETED);
+
+            const { deleteProductOption } = await adminClient.query(deleteProductOptionDocument, {
+                id: retiredOption.id,
+            });
+            expect(deleteProductOption.result).toBe(DeletionResult.DELETED);
+
+            const { assignProductsToChannel } = await adminClient.query(assignProductToChannelDocument, {
+                input: {
+                    channelId: 'T_2',
+                    productIds: [createProduct.id],
+                },
+            });
+
+            expect(assignProductsToChannel[0].channels.map(c => c.id).sort()).toEqual(['T_1', 'T_2']);
+        });
+
         it(
             'throws if attempting to remove Product from default Channel',
             assertThrowsWithMessage(async () => {
@@ -1353,6 +1426,15 @@ const assignStockLocationToChannelDocument = graphql(`
         assignStockLocationsToChannel(input: $input) {
             id
             name
+        }
+    }
+`);
+
+const deleteProductOptionDocument = graphql(`
+    mutation DeleteProductOption($id: ID!) {
+        deleteProductOption(id: $id) {
+            result
+            message
         }
     }
 `);
