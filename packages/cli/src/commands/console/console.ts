@@ -298,7 +298,7 @@ async function runConsoleCommand(
 
     const projectRoot = resolveProjectRoot(dependencies.cwd, options.project);
     if (normalizedAction === 'status') {
-        return status(projectRoot, dependencies);
+        return status(projectRoot, dependencies.env, dependencies.reporter);
     }
     if (normalizedAction === 'unlink') {
         return unlink(projectRoot, options, dependencies);
@@ -976,13 +976,11 @@ function linkUnfinished(outcome: ConsoleLinkOutcome, manifestPath: string): stri
     return `${survived} The setup that runs after linking did not finish.`;
 }
 
-function status(projectRoot: string, dependencies: ConsoleCommandDependencies): number {
-    const { env, reporter } = dependencies;
+/** Reports the Project Link only. `vendure auth status` reports the login. */
+function status(projectRoot: string, env: NodeJS.ProcessEnv, reporter: ConsoleReporter): number {
     const result = readProjectLinkManifest(projectRoot);
     if (result.kind === 'missing') {
-        reporter.info(
-            `Project: Not linked\nManifest: ${result.path}\n${describeLogin(resolveConsoleEndpoints(env), dependencies)}`,
-        );
+        reporter.info(`Project: Not linked\nManifest: ${result.path}\n${LOGIN_STATUS_HINT}`);
         return 0;
     }
     if (result.kind === 'invalid') {
@@ -1002,21 +1000,13 @@ function status(projectRoot: string, dependencies: ConsoleCommandDependencies): 
             `Console: ${endpoints.consoleUrl}`,
             `Console API: ${endpoints.apiUrl}`,
             `Manifest: ${result.path}`,
-            describeLogin(endpoints, dependencies),
+            LOGIN_STATUS_HINT,
         ].join('\n'),
     );
     return 0;
 }
 
-/** The CLI login for this Console, as `vendure auth status` reports it. Makes no request. */
-function describeLogin(endpoints: ConsoleEndpoints, dependencies: ConsoleCommandDependencies): string {
-    const login = readAuthStatus({ env: { ...dependencies.env, VENDURE_CONSOLE_API_URL: endpoints.apiUrl } });
-    if (!login.loggedIn) {
-        return 'Login: Not logged in. vendure console link signs you in.';
-    }
-    const organization = login.organization ? ` in ${describeOrganization(login.organization)}` : '';
-    return `Login: ${login.user?.email ?? 'an unknown user'}${organization} (vendure auth status)`;
-}
+const LOGIN_STATUS_HINT = 'Login: run vendure auth status';
 
 function reportProjectLinkGitignore(projectRoot: string, reporter: ConsoleReporter): void {
     const gitignore = ensureProjectLinkGitignore(projectRoot);

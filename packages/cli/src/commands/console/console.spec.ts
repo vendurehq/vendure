@@ -976,11 +976,9 @@ describe('console command', () => {
         expect(linked.messages.join('\n')).toContain(`Account: Acme (${ACCOUNT_ID})`);
         expect(linked.messages.join('\n')).toContain(`Manifest: ${getProjectLinkManifestPath(root)}`);
         expect(linked.messages.join('\n')).toContain(`Console: ${LOCAL_CONSOLE.appOrigin}`);
-        expect(linked.messages.join('\n')).toContain('Login: dev@example.com in Acme');
-
-        const signedOut = testDependencies(root, fetchMock, {}, { login: false });
-        expect(await consoleCommand('status', {}, signedOut.dependencies)).toBe(0);
-        expect(signedOut.messages.join('\n')).toContain('Login: Not logged in');
+        // The login is `vendure auth status`'s to report.
+        expect(linked.messages.join('\n')).toContain('Login: run vendure auth status');
+        expect(linked.messages.join('\n')).not.toContain('dev@example.com');
 
         fs.writeFileSync(getProjectLinkManifestPath(root), '{invalid');
         const malformed = testDependencies(root, fetchMock);
@@ -1049,14 +1047,13 @@ describe('console command', () => {
 
 /**
  * Dependencies for one run. The CLI login lives in a temporary config
- * directory and, unless `login` is `false`, holds a login for the run's
- * Console API, scoped to the Acme organization.
+ * directory and holds a login for the run's Console API, scoped to the Acme
+ * organization.
  */
 function testDependencies(
     root: string,
     fetchImplementation: typeof fetch,
     overrides: Partial<ConsoleCommandDependencies> = {},
-    options: { login?: boolean } = {},
 ): {
     dependencies: Partial<ConsoleCommandDependencies>;
     messages: string[];
@@ -1072,9 +1069,7 @@ function testDependencies(
         }),
         VENDURE_CLI_CONFIG_DIR: createCliConfigDir(temporaryDirectories),
     };
-    if (options.login !== false) {
-        storeLogin(env, env.VENDURE_CONSOLE_API_URL?.trim() || 'https://api.vendure.io');
-    }
+    storeLogin(env, env.VENDURE_CONSOLE_API_URL?.trim() || 'https://api.vendure.io');
     const reporter: ConsoleReporter = {
         error: message => messages.push(message),
         info: message => messages.push(message),
