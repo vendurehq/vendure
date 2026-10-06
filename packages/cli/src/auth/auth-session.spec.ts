@@ -10,7 +10,6 @@ import {
     SessionLockUnavailableError,
     SessionRefreshUnavailableError,
     SessionRejectedError,
-    SessionUnstorableError,
 } from './auth-errors';
 import { AuthOptions } from './auth-options';
 import {
@@ -603,16 +602,17 @@ describe('refreshAccessToken', () => {
         });
     });
 
-    it('keeps the login when WorkOS refuses the refresh token while the lock was not held', async () => {
+    it('does not spend the refresh token while another process holds the lock', async () => {
         const failed = accessToken(3600);
         writeStoredAuth(storedAuth({ accessToken: failed }), options);
-        const workos = fakeWorkos([{ status: 400, body: { error: 'invalid_grant' } }]);
+        const workos = fakeWorkos([]);
 
         await withLockHeldElsewhere(async () => {
             await expect(
                 refreshAccessToken(failed, { ...options, fetch: workos.fetch }),
-            ).rejects.toBeInstanceOf(SessionRejectedError);
+            ).rejects.toBeInstanceOf(SessionLockUnavailableError);
         });
+        expect(workos.requests).toHaveLength(0);
         expect(readStoredAuth(options)?.refreshToken).toBe('refresh_1');
     });
 
@@ -660,7 +660,7 @@ describe('refreshAccessToken', () => {
     });
 
     it.skipIf(process.getuid?.() === 0 || process.platform === 'win32')(
-        'does not spend the refresh token when the result cannot be stored',
+        'does not spend the refresh token when the config directory is not writable',
         async () => {
             const failed = accessToken(3600);
             writeStoredAuth(storedAuth({ accessToken: failed }), options);
@@ -669,7 +669,7 @@ describe('refreshAccessToken', () => {
 
             await expect(
                 refreshAccessToken(failed, { ...options, fetch: workos.fetch }),
-            ).rejects.toBeInstanceOf(SessionUnstorableError);
+            ).rejects.toBeInstanceOf(SessionLockUnavailableError);
             expect(workos.requests).toHaveLength(0);
         },
     );

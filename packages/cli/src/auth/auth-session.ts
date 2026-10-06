@@ -85,9 +85,10 @@ const ACCESS_TOKEN_SKEW_MS = 60_000;
  * rotated-token retry spends a second one), so a waiter never breaks a lock
  * that is still doing useful work.
  *
- * `waitMs` must not be shorter. A waiter that gives up early runs unlocked
- * before the holder has written its rotated pair, sees the old token and spends
- * it a second time: the double spend this lock exists to prevent (CLO-164).
+ * `waitMs` must not be shorter. Waiting at least as long as `staleMs` means a
+ * waiter breaks a dead holder's lock rather than giving up first, so
+ * {@link SessionLockUnavailableError} is left for a lock that cannot be taken
+ * at all, such as an unwritable config directory.
  */
 export const SESSION_LOCK_OPTIONS: FileLockOptions = {
     staleMs: 2 * WORKOS_REQUEST_TIMEOUT_MS + 15_000,
@@ -101,10 +102,18 @@ export const SESSION_LOCK_OPTIONS: FileLockOptions = {
 /**
  * Serializes everything that spends the single-use refresh token or rewrites
  * `auth.json`, across processes. Every such call goes through here: guarding
- * only some of them leaves the double spend reachable through the others.
+ * only some of them leaves the double spend reachable through the others
+ * (CLO-164). Without the lock nothing runs, because spending or rewriting
+ * unlocked can strand or overwrite another process's login.
  */
-function withSessionLock<T>(options: AuthOptions, fn: (held: boolean) => Promise<T>): Promise<T> {
-    return withFileLock(getAuthLockPath(options), SESSION_LOCK_OPTIONS, fn);
+function withSessionLock<T>(options: AuthOptions, fn: () => Promise<T>): Promise<T> {
+    const lockFile = getAuthLockPath(options);
+    return withFileLock(lockFile, SESSION_LOCK_OPTIONS, held => {
+        if (!held) {
+            throw new SessionLockUnavailableError(lockFile);
+        }
+        return fn();
+    });
 }
 
 /**
@@ -141,6 +150,8 @@ const activeRefreshes = new Map<string, Promise<string>>();
  * @throws NotLoggedInError when this machine has no login.
  * @throws SessionRejectedError when WorkOS refused the refresh token. The stored login is removed.
  * @throws SessionRefreshUnavailableError on a transient failure. The stored login is kept.
+ * @throws ReauthenticationRequiredError when WorkOS needs a new sign-in. The stored login is kept.
+ * @throws SessionLockUnavailableError when the login's lock cannot be taken. Nothing is spent.
  * @since 3.8.0
  */
 export function refreshAccessToken(failedAccessToken: string, options: AuthOptions = {}): Promise<string> {
@@ -149,18 +160,14 @@ export function refreshAccessToken(failedAccessToken: string, options: AuthOptio
     if (active) {
         return active;
     }
-    const refresh = withSessionLock(options, held =>
-        refreshUnderLock(failedAccessToken, held, options),
-    ).finally(() => activeRefreshes.delete(key));
+    const refresh = withSessionLock(options, () => refreshUnderLock(failedAccessToken, options)).finally(() =>
+        activeRefreshes.delete(key),
+    );
     activeRefreshes.set(key, refresh);
     return refresh;
 }
 
-async function refreshUnderLock(
-    failedAccessToken: string,
-    held: boolean,
-    options: AuthOptions,
-): Promise<string> {
+async function refreshUnderLock(failedAccessToken: string, options: AuthOptions): Promise<string> {
     // Re-read: under the lock this is whatever the process ahead of us wrote.
     const stored = readStoredAuth(options);
     if (!stored) {
@@ -169,7 +176,7 @@ async function refreshUnderLock(
     if (stored.accessToken !== failedAccessToken && hasUsableLifetime(stored.accessToken, options)) {
         return stored.accessToken;
     }
-    const renewed = await spendRefreshToken(stored, held, options);
+    const renewed = await spendRefreshToken(stored, options);
     return renewed.accessToken;
 }
 
@@ -177,11 +184,7 @@ async function refreshUnderLock(
  * Spends the stored refresh token and writes the new pair. The read, exchange
  * and write must run as one unit under the session lock.
  */
-async function spendRefreshToken(
-    stored: StoredAuth,
-    held: boolean,
-    options: AuthOptions,
-): Promise<StoredAuth> {
+async function spendRefreshToken(stored: StoredAuth, options: AuthOptions): Promise<StoredAuth> {
     assertStorable(stored, options);
     // The login the new pair replaces. On the recovery path below it is the one
     // another process wrote, which may be scoped to a different organization.
@@ -193,11 +196,12 @@ async function spendRefreshToken(
         if (!(error instanceof SessionRejectedError)) {
             throw error;
         }
-        // Spent, not necessarily revoked: a process that raced past the lock
-        // may have used our refresh token and stored a working pair.
+        // Spent, not necessarily revoked: a process whose lock was broken as
+        // stale while it still worked may have used our refresh token and
+        // stored a working pair.
         const rotated = readStoredAuth(options);
         if (!rotated || rotated.refreshToken === stored.refreshToken) {
-            discardIfStillSpent(stored.refreshToken, held, options);
+            discardIfStillSpent(stored.refreshToken, options);
             throw error;
         }
         if (hasUsableLifetime(rotated.accessToken, options)) {
@@ -231,16 +235,10 @@ function exchangeWithScope(auth: StoredAuth, options: AuthOptions): Promise<Work
 }
 
 /**
- * The only path that discards a login on a refusal, so both guards matter.
- *
- * Without the lock we may have raced past a process that legitimately spent
- * the token, and `invalid_grant` then means "dead" and "someone beat me to it"
- * equally. The re-read keeps a pair the winner wrote since the rejection.
+ * The only path that discards a login on a refusal. It runs under the session
+ * lock, and the re-read keeps a pair another process wrote since the rejection.
  */
-function discardIfStillSpent(spentRefreshToken: string, held: boolean, options: AuthOptions): void {
-    if (!held) {
-        return;
-    }
+function discardIfStillSpent(spentRefreshToken: string, options: AuthOptions): void {
     const latest = readStoredAuth(options);
     if (latest?.refreshToken === spentRefreshToken) {
         clearStoredAuth(options);
@@ -252,7 +250,7 @@ function discardIfStillSpent(spentRefreshToken: string, held: boolean, options: 
  * login already on this machine. The WorkOS client is the one the selected
  * Vendure Console publishes, so Console accepts the tokens.
  *
- * @throws SessionLockUnavailableError when another command held the login's lock for the whole wait.
+ * @throws SessionLockUnavailableError when the login's lock cannot be taken.
  * @since 3.8.0
  */
 export async function loginWithDevice(options: DeviceLoginOptions = {}): Promise<AuthStatus> {
@@ -291,11 +289,7 @@ export async function loginWithDevice(options: DeviceLoginOptions = {}): Promise
         organization = await describeTokenOrganization(consoleApiUrl, authentication, options);
     }
     const session = toSession(organization);
-    return withSessionLock(options, held => {
-        // Unlocked, a refresh in flight could write the old login over this one.
-        if (!held) {
-            throw new SessionLockUnavailableError(getAuthLockPath(options));
-        }
+    return withSessionLock(options, () => {
         writeStoredAuth(session, options);
         return Promise.resolve(readAuthStatus(options));
     });
@@ -392,7 +386,7 @@ function tokenOrganizationId(authentication: WorkosAuthentication): string | nul
  * cannot be reached, a copy of the refresh token keeps working until it
  * expires, and `sessionEnded` is `false`.
  *
- * @throws SessionLockUnavailableError when another command held the login's lock for the whole wait.
+ * @throws SessionLockUnavailableError when the login's lock cannot be taken.
  * @since 3.8.0
  */
 export async function logout(options: AuthOptions = {}): Promise<LogoutResult> {
@@ -401,11 +395,8 @@ export async function logout(options: AuthOptions = {}): Promise<LogoutResult> {
         return { removed: false, sessionEnded: false };
     }
     const sessionEnded = await endSession(stored, options);
-    await withSessionLock(options, held => {
-        // Unlocked, a refresh in flight could write the login back afterwards.
-        if (!held) {
-            throw new SessionLockUnavailableError(getAuthLockPath(options));
-        }
+    // Locked, so a refresh in flight cannot write the login back afterwards.
+    await withSessionLock(options, () => {
         clearStoredAuth(options);
         return Promise.resolve();
     });

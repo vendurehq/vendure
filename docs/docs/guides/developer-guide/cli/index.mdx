@@ -1091,7 +1091,9 @@ Refresh tokens are single-use. The CLI serializes renewals across concurrent `ve
 renew through these functions only. A `SessionRejectedError` means the login has ended and the user must run
 `vendure auth login` again. So does a `ReauthenticationRequiredError`, which WorkOS raises when, for example, the
 organization starts to enforce SSO or MFA. Its `code` names the reason. A `SessionRefreshUnavailableError` leaves the
-login in place and is usually transient, such as a network failure. Its message says when a retry will not help.
+login in place and is usually transient, such as a network failure. Its message says when a retry will not help. A
+`SessionLockUnavailableError` means another `vendure` command held the login for too long, or the config directory is
+not writable. Nothing was spent, so the command can be retried.
 
 `readAuthStatus()` describes the login, including the organization it is scoped to, without its tokens.
 `listOrganizations()` returns the Vendure Console organizations the user is an active member of. To change the

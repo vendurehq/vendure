@@ -73,16 +73,18 @@ export class ReauthenticationRequiredError extends Error {
 }
 
 /**
- * Another `vendure` command held the CLI login's lock for the whole wait, so a
- * command that rewrites the login did not run.
+ * The CLI login's lock could not be taken: another `vendure` command held it
+ * for the whole wait, or the config directory is not writable. A command that
+ * spends the refresh token or rewrites the login does not run without it.
  *
  * @since 3.8.0
  */
 export class SessionLockUnavailableError extends Error {
     constructor(lockFile: string) {
         super(
-            `Another vendure command is still using the CLI login. Try again. If no other vendure command ` +
-                `is running, delete ${lockFile}.`,
+            `Could not lock the CLI login at ${lockFile}. Another vendure command may still be using it, ` +
+                'or the directory is not writable. Try again. If no other vendure command is running, ' +
+                'check that the directory is writable and delete the lock file.',
         );
         this.name = 'SessionLockUnavailableError';
     }
