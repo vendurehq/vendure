@@ -9,9 +9,9 @@ import path from 'node:path';
  * `VENDURE_CLI_CONFIG_DIR` overrides everything, which is how tests point the
  * CLI at a temporary directory without touching the real one.
  *
- * A plugin's own state is the plugin's business and does not belong here.
- * `@vendure/cloud`, for one, keeps its credentials elsewhere under its own
- * rules.
+ * A plugin's own state is the plugin's business and does not belong here. A
+ * plugin that needs the user's login reads it through `getAccessToken()`
+ * rather than from these files.
  */
 export function getVendureCliConfigDir(env: NodeJS.ProcessEnv = process.env): string {
     if (env.VENDURE_CLI_CONFIG_DIR) {

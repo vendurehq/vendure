@@ -104,6 +104,31 @@ export function trustedConsoleOrigins(
     return { appOrigin, apiOrigin };
 }
 
+/**
+ * Which Console a Console API origin belongs to: an official environment, or
+ * `'loopback'` for local development. `undefined` for anything else, including a
+ * URL with a path, query, fragment or credentials.
+ */
+export function classifyConsoleApiOrigin(
+    value: string,
+): { environment: ConsoleOriginEnvironment | 'loopback'; apiOrigin: string } | undefined {
+    let apiOrigin: string;
+    try {
+        apiOrigin = trustedOrigin(
+            value,
+            'Vendure Console API origin',
+            OFFICIAL_CONSOLE_ORIGINS.map(official => new URL(official.apiUrl).hostname),
+        );
+    } catch {
+        return undefined;
+    }
+    if (isLoopbackHostname(new URL(apiOrigin).hostname)) {
+        return { environment: 'loopback', apiOrigin };
+    }
+    const pair = OFFICIAL_CONSOLE_ORIGINS.find(official => official.apiUrl === apiOrigin);
+    return pair ? { environment: pair.environment, apiOrigin } : undefined;
+}
+
 function trustedOrigin(value: string, label: string, trustedHosts: string[]): string {
     let url: URL;
     try {

@@ -359,6 +359,57 @@ npx vendure doctor --strict --format json
 | `--format <type>`   | Output format: `text` (default) or `json`                                              | `vendure doctor --format json`                |
 | `--strict`          | Treat warnings as failures (useful for CI)                                             | `vendure doctor --strict`                     |
 
+## The Auth Command
+
+The `auth` command signs you in to your Vendure account. Vendure Console, Vendure Cloud and other CLI features share
+this one login. It does not need a Vendure project, so you can run it from any directory:
+
+```bash
+npx vendure auth login
+```
+
+The CLI shows a one-time code and opens your browser. Confirm the code and sign in. If your account belongs to more
+than one organization, you choose one in the browser. Nothing on this machine needs a browser: you can open the URL on
+another device.
+
+To choose the organization on the command line instead, for example in a script or on a remote machine, pass its
+Account identifier (in Vendure Console under **Settings**) or its name. Names match ignoring case:
+
+```bash
+npx vendure auth login --organization 79e629da-...
+npx vendure auth login --organization "Bromley Art Supplies"
+```
+
+The CLI looks the organization up in Vendure Console after you sign in. It refuses a name that more than one of your
+organizations share, and lists their Account identifiers so you can pick one. To change organization later, run
+`vendure auth login --organization` again.
+
+Check who is signed in, or sign out:
+
+```bash
+npx vendure auth status
+npx vendure auth status --json
+npx vendure auth logout
+```
+
+`status --json` prints the user, organization, client and access token expiry. It never includes a token. It exits with
+code 1 when nobody is signed in.
+
+The login is stored in `auth.json` in the CLI configuration directory (`~/.config/vendure` by default, or
+`VENDURE_CLI_CONFIG_DIR`) and is readable only by your user. The CLI renews the access token automatically.
+`vendure auth logout` asks Vendure Console to end the session, then removes the login from this machine. Once Console
+has ended the session, a copy of the login stops working as well. When Console cannot be reached, the command still
+removes the login and warns that a copy keeps working until it expires.
+
+The CLI signs in to production Vendure Console by default. It reads the WorkOS client to sign in with from that
+Console, so a login is always one the Console accepts. To work against staging, set
+`VENDURE_CONSOLE_API_URL=https://staging.api.vendure.io`. `vendure console link` reads the same variable but also needs
+`VENDURE_CONSOLE_APP_URL=https://staging.console.vendure.io`, so set both when you use both commands. A login stored
+for one Console is not used with another.
+
+The CLI sends your access token only to the official Vendure Console API of the selected environment. During local
+development, `VENDURE_CONSOLE_API_URL` can point at a loopback Console API. Any other value is refused.
+
 ## The Console Command
 
 The `console` command links a local Vendure application to a Project in Vendure Console. Run the command from a
@@ -1011,6 +1062,42 @@ official staging pair and `undefined` for loopback origins.
 
 The value describes the origins for the current run. A repair gets them from the
 manifest unless the matching environment variables are set.
+
+### Using the CLI login
+
+A plugin that calls a Vendure service on the user's behalf reads the login made with `vendure auth login`. It never
+reads `auth.json` directly. Use this login for new plugins. The Console session that a `afterConsoleLink` hook can
+request, and the `loginWithBrowser` and `refreshSession` exports, belong to the Project Link flow and will move to this
+login in a later release. `getAccessToken()` returns a valid access token, renewing it first when it is about to
+expire, or `undefined` when nobody is signed in:
+
+```ts
+import { getAccessToken, refreshAccessToken, NotLoggedInError } from '@vendure/cli';
+
+const token = await getAccessToken();
+if (!token) {
+    throw new NotLoggedInError();
+}
+let response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+if (response.status === 401) {
+    // Pass the token that failed. If another command already renewed it, the
+    // newer token is returned without spending the refresh token again.
+    const renewed = await refreshAccessToken(token);
+    response = await fetch(url, { headers: { Authorization: `Bearer ${renewed}` } });
+}
+```
+
+Refresh tokens are single-use. The CLI serializes renewals across concurrent `vendure` processes with a lock file, so
+renew through these functions only. A `SessionRejectedError` means the login has ended and the user must run
+`vendure auth login` again. So does a `ReauthenticationRequiredError`, which WorkOS raises when, for example, the
+organization starts to enforce SSO or MFA. Its `code` names the reason. A `SessionRefreshUnavailableError` leaves the
+login in place and is usually transient, such as a network failure. Its message says when a retry will not help. A
+`SessionLockUnavailableError` means another `vendure` command held the login for too long, or the config directory is
+not writable. Nothing was spent, so the command can be retried.
+
+`readAuthStatus()` describes the login, including the organization it is scoped to, without its tokens.
+`listOrganizations()` returns the Vendure Console organizations the user is an active member of. To change the
+organization, ask the user to run `vendure auth login --organization`.
 
 ### Checking what the installed CLI supports
 
