@@ -1,6 +1,6 @@
 {
     "name": "@vendure/mcp-sdk",
-    "version": "3.7.3",
+    "version": "3.7.4",
     "license": "GPL-3.0-or-later",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
@@ -31,7 +31,7 @@
         "@nestjs/core": "^11.0.0 || ^12.0.0"
     },
     "devDependencies": {
-        "@vendure/common": "3.7.3",
-        "@vendure/core": "3.7.3"
+        "@vendure/common": "3.7.4",
+        "@vendure/core": "3.7.4"
     }
 }
