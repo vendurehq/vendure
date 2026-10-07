@@ -13,6 +13,15 @@ export interface TableSettings {
     columnVisibility?: Record<string, boolean>;
     columnOrder?: string[];
     columnFilters?: ColumnFiltersState;
+    /**
+     * @description
+     * Set once the user has changed the filters of this table. Until then, `ListPage` applies
+     * its `defaultColumnFilters` over an empty `columnFilters`, which dashboard versions before
+     * 3.8.0 saved for a page on every visit.
+     *
+     * @since 3.8.0
+     */
+    columnFiltersConfigured?: boolean;
     pageSize?: number;
 }
 
