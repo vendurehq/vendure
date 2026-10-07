@@ -440,6 +440,28 @@ replaces the stored login, the same as `vendure auth login --organization`.
 
 The CLI sends the access token only to the selected Console API, and never prints it.
 
+If the organization has no active Project, the command stops and links nothing. Create a Project in Vendure Console
+at [console.vendure.io](https://console.vendure.io). You can create it without a plan or trial. Then run
+`vendure console link` again.
+
+### Use Vendure development workflows in your coding assistant
+
+A linked Project gives you Vendure development workflows and patterns through your coding assistant. After a
+successful link, the CLI prints these steps:
+
+1. Add `https://docs.vendure.io/mcp` as an MCP server in your coding assistant.
+2. The first time you use a development tool, the assistant asks you to sign in with Vendure Console. Sign in and
+   select the Account that owns the linked Project.
+
+Linking does not configure or sign in to any coding assistant. You add the server to each assistant yourself. The
+same URL also gives public documentation without sign-in. Vendure Console decides access when the assistant asks for
+a development tool. Members of the Account who can develop the Project get access after one successful link. They do
+not have to link the Project themselves, and they do not need a plan or trial. If you are signed in but have no
+access, the assistant tells you to run `vendure console link` and names
+[console.vendure.io](https://console.vendure.io).
+
+The CLI prints these steps only in human output. With `--json` or `--non-interactive`, the output does not change.
+
 ### Structured, non-interactive linking
 
 For automation, run:

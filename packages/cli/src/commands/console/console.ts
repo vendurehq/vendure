@@ -41,6 +41,9 @@ const PROJECTS_PATH = '/v1/projects';
 const REQUEST_TIMEOUT_MS = 10_000;
 /** The project list grows with the account, so the cap is wider than one manifest needs. */
 const MAX_RESPONSE_BYTES = 1024 * 1024;
+const DOCS_MCP_URL = 'https://docs.vendure.io/mcp';
+const CODING_ASSISTANT_GUIDE_URL =
+    'https://docs.vendure.io/guides/developer-guide/cli#use-vendure-development-workflows-in-your-coding-assistant';
 
 export interface ConsoleCommandOptions {
     json?: boolean;
@@ -433,7 +436,7 @@ async function link(
     dependencies.reporter.info(`Wrote ${manifestPath}`);
     reportProjectLinkGitignore(projectRoot, dependencies.reporter);
 
-    return runConsoleLinkHooks(
+    const code = await runConsoleLinkHooks(
         {
             projectRoot,
             manifest,
@@ -447,6 +450,8 @@ async function link(
         signal,
         state,
     );
+    reportCodingAssistantSetup(code, manifest, options, dependencies.reporter);
+    return code;
 }
 
 /**
@@ -612,8 +617,8 @@ async function chooseProject(
 ): Promise<ConsoleProject> {
     if (projects.length === 0) {
         throw new Error(
-            `${accountName} has no active project. Create one in Vendure Console at ${endpoints.consoleUrl}, ` +
-                'then run vendure console link again.',
+            `${accountName} has no active project. Create one in Vendure Console at ${endpoints.consoleUrl}. ` +
+                'You can create it without a plan or trial. Then run vendure console link again.',
         );
     }
     if (projects.length === 1) {
@@ -744,12 +749,40 @@ async function repair(
         ? await repairSession(currentManifest, endpoints, options, dependencies, signal)
         : undefined;
 
-    return runConsoleLinkHooks(
+    const code = await runConsoleLinkHooks(
         { projectRoot, manifest: currentManifest, manifestPath, endpoints, outcome: 'repaired', session },
         options,
         dependencies,
         signal,
         state,
+    );
+    reportCodingAssistantSetup(code, currentManifest, options, dependencies.reporter);
+    return code;
+}
+
+/**
+ * The next step after a link: the docs MCP. Console decides at access time who
+ * gets the development workflows, so the CLI only points to the setup. Human
+ * output only: the JSON result and `--non-interactive` output keep their shape.
+ */
+function reportCodingAssistantSetup(
+    code: number,
+    manifest: ProjectLinkManifest,
+    options: ConsoleCommandOptions,
+    reporter: ConsoleReporter,
+): void {
+    if (code !== 0 || options.json || options.nonInteractive) {
+        return;
+    }
+    reporter.info(
+        [
+            'Next: use Vendure development workflows and patterns through your coding assistant.',
+            `  1. Add ${DOCS_MCP_URL} as an MCP server in your coding assistant.`,
+            '  2. The first time you use a development tool, the assistant asks you to sign in with Vendure ' +
+                `Console. Sign in and select the ${manifest.account.name} Account.`,
+            'Linking did not configure or sign in to any coding assistant.',
+            `Setup guide: ${CODING_ASSISTANT_GUIDE_URL}`,
+        ].join('\n'),
     );
 }
 

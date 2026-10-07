@@ -268,6 +268,29 @@ describe('console command', () => {
         expect(test.messages.join('\n')).toContain('.gitignore');
     });
 
+    // PDEV-478: a link is the step before the docs MCP grants development workflows.
+    it('points to the docs MCP setup after a link without claiming it configured an assistant', async () => {
+        const root = vendureProject();
+        const test = testDependencies(
+            root,
+            sequenceFetch(jsonResponse(projectList()), jsonResponse(manifest)),
+        );
+
+        expect(await consoleCommand('link', {}, test.dependencies)).toBe(0);
+        const guidance = test.messages[test.messages.length - 1];
+        expect(guidance).toContain(
+            'Vendure development workflows and patterns through your coding assistant',
+        );
+        expect(guidance).toContain('https://docs.vendure.io/mcp');
+        expect(guidance).toContain('sign in with Vendure Console');
+        expect(guidance).toContain('first time you use a development tool');
+        expect(guidance).toContain('Acme');
+        expect(guidance).toContain('did not configure or sign in to any coding assistant');
+        expect(guidance).toContain(
+            'https://docs.vendure.io/guides/developer-guide/cli#use-vendure-development-workflows-in-your-coding-assistant',
+        );
+    });
+
     it('uses an explicit staging Console for a new link and records it', async () => {
         const root = vendureProject();
         const fetchMock = sequenceFetch(jsonResponse(projectList()), jsonResponse(manifest));
@@ -410,6 +433,10 @@ describe('console command', () => {
         expect(await consoleCommand('link', {}, test.dependencies)).toBe(1);
         expect(test.messages.join('\n')).toContain('Acme has no active project');
         expect(test.messages.join('\n')).toContain(LOCAL_CONSOLE.appOrigin);
+        // PDEV-478: creating a Project is free, and the link still needs a real one.
+        expect(test.messages.join('\n')).toContain('without a plan or trial');
+        expect(test.messages.join('\n')).toContain('run vendure console link again');
+        expect(test.messages.join('\n')).not.toContain('https://docs.vendure.io/mcp');
         expect(fs.existsSync(getProjectLinkManifestPath(root))).toBe(false);
     });
 
@@ -749,6 +776,37 @@ describe('console command', () => {
         const output = test.messages.join('\n');
         expect(output).toContain('Already linked to');
         expect(output).toContain('vendure console link --force');
+        expect(output).toContain('https://docs.vendure.io/mcp');
+    });
+
+    it('keeps the docs MCP guidance out of --non-interactive output', async () => {
+        const root = vendureProject();
+        fs.ensureDirSync(path.dirname(getProjectLinkManifestPath(root)));
+        fs.writeJsonSync(getProjectLinkManifestPath(root), localManifest);
+        const test = testDependencies(root, vi.fn());
+
+        expect(await consoleCommand('link', { nonInteractive: true }, test.dependencies)).toBe(0);
+        expect(test.messages.join('\n')).toContain('Already linked to');
+        expect(test.messages.join('\n')).not.toContain('https://docs.vendure.io/mcp');
+    });
+
+    it('does not show the docs MCP guidance when plugin setup after the link fails', async () => {
+        const root = vendureProject();
+        const test = testDependencies(
+            root,
+            sequenceFetch(jsonResponse(projectList()), jsonResponse(manifest)),
+            {
+                hooks: [
+                    {
+                        pluginId: '@example/p',
+                        hook: () => Promise.reject(new Error('setup failed')),
+                    },
+                ],
+            },
+        );
+
+        expect(await consoleCommand('link', {}, test.dependencies)).toBe(1);
+        expect(test.messages.join('\n')).not.toContain('https://docs.vendure.io/mcp');
     });
 
     // A manifest is meant to be committed, so an already-linked project may be

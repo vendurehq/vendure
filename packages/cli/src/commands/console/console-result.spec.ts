@@ -8,7 +8,13 @@ import { CommandRegistry } from '../../shared/command-registry-store';
 
 import { consoleCommandDef } from './command';
 import { consoleCommand } from './console';
-import { createCliConfigDir, createVendureProject, manifest as legacyManifest } from './console.fixtures';
+import {
+    createCliConfigDir,
+    createVendureProject,
+    fakeConsole,
+    manifest as legacyManifest,
+    storeLogin,
+} from './console.fixtures';
 import { getProjectLinkManifestPath } from './project-link-manifest';
 
 /** A value that must never reach stdout. */
@@ -303,6 +309,35 @@ describe('EE-388 structured Console linking', () => {
         expect(code).toBe(0);
         expect(prompt).not.toHaveBeenCalled();
         expect(stdout).toHaveBeenCalledTimes(1);
+    });
+
+    // PDEV-478: the docs MCP guidance is terminal output only. The JSON result keeps its shape.
+    it('keeps the docs MCP guidance out of a JSON link result and its stderr', async () => {
+        const root = createVendureProject(directories, 'console-result-');
+        const env = { VENDURE_CLI_CONFIG_DIR: createCliConfigDir(directories) };
+        storeLogin(env, 'https://api.vendure.io');
+        const stdout = vi.spyOn(process.stdout, 'write').mockReturnValue(true);
+        const stderr = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
+        const code = await consoleCommand(
+            'link',
+            { project: root, json: true },
+            { env, fetch: fakeConsole().fetch },
+        );
+        expect(code).toBe(0);
+        expect(stdout).toHaveBeenCalledTimes(1);
+        expect(JSON.parse(String(stdout.mock.calls[0][0]))).toEqual({
+            schemaVersion: 1,
+            operation: 'console.link',
+            outcome: 'linked',
+            data: {
+                link: { outcome: 'linked', manifestPath: getProjectLinkManifestPath(root) },
+                plugins: {},
+            },
+            missingInputs: [],
+            nextSteps: [],
+        });
+        expect(stderr.mock.calls.join('\n')).toContain('Linked Storefront to Acme');
+        expect(stderr.mock.calls.join('\n')).not.toContain('https://docs.vendure.io/mcp');
     });
 
     it('does not report success when a hook stops JSON setup with exit code zero', async () => {
