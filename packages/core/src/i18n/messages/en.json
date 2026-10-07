@@ -59,7 +59,7 @@
     "refund-target-amount-must-be-positive": "The amount of each refund target must be greater than zero",
     "regex-filter-pattern-too-long": "The regex filter pattern exceeds the maximum allowed length of { max } characters",
     "regex-filter-pattern-unsafe": "The regex filter pattern is not allowed as it may cause excessive resource consumption",
-    "regex-filter-pattern-unsupported-syntax": "The regex filter pattern uses syntax that is not supported by the safe regex engine (such as lookaround or backreferences)",
+    "regex-filter-pattern-unsupported-syntax": "The regex filter pattern is invalid, or uses syntax that the RE2 engine does not support or reads differently from JavaScript. Examples: lookaround, backreferences, [] and [^], POSIX classes, \\A, \\z, \\Q, \\E, \\a, \\x{...} and repeat counts above 1000",
     "secret-custom-field-value-required": "A value must be provided for the secret field \"{ name }\"",
     "secret-value-required": "A value must be provided for the secret argument \"{ name }\"",
     "stockonhand-cannot-be-negative": "stockOnHand cannot be a negative value",
