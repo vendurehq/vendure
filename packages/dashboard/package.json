@@ -64,6 +64,7 @@
         "index.html"
     ],
     "dependencies": {
+        "@base-ui/react": "~1.2.0",
         "@babel/core": "^7.29.0",
         "@babel/preset-react": "^7.28.5",
         "@babel/preset-typescript": "^7.28.5",
@@ -96,8 +97,8 @@
         "@types/react": "^19.2.14",
         "@types/react-dom": "^19.0.4",
         "@uidotdev/usehooks": "^2.4.1",
-        "@vendure-io/design-tokens": "^2.0.0-beta.9",
-        "@vendure-io/ui": "^2.0.0-beta.16",
+        "@vendure-io/design-tokens": "^2.0.0-rc.0",
+        "@vendure-io/ui": "^2.0.0-rc.0",
         "@vitejs/plugin-react": "^5.2.0",
         "acorn": "^8.16.0",
         "acorn-walk": "^8.3.5",
@@ -126,7 +127,6 @@
         "tailwindcss": "^4.2.2",
         "tsconfig-paths": "^4.2.0",
         "tw-animate-css": "^1.2.9",
-        "vaul": "^1.1.2",
         "vite": "^7.3.1",
         "zod": "^3.25.0 || ^4.0.0"
     },
@@ -138,7 +138,7 @@
         "@storybook/addon-vitest": "^10.3.1",
         "@storybook/react-vite": "^10.3.1",
         "@types/node": "^22.19.0",
-        "@vendure-io/design-lint": "^1.0.0-beta.2",
+        "@vendure-io/design-lint": "^1.0.0-rc.0",
         "@vendure/common": "3.7.4",
         "@vendure/core": "3.7.4",
         "@vitest/browser": "^3.2.4",
