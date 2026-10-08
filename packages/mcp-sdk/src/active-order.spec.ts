@@ -99,6 +99,10 @@ describe('findOrCreateActiveOrder', () => {
             undefined,
             true,
         );
+        // The lock only prevents a second cart if it is taken before core looks for the cart.
+        expect(connection.queryBuilder.getOne.mock.invocationCallOrder[0]).toBeLessThan(
+            activeOrderService.getActiveOrder.mock.invocationCallOrder[0],
+        );
     });
 
     it('clears a stale cached active order id when the row has none', async () => {

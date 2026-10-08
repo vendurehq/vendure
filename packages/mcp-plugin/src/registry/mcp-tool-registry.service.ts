@@ -448,7 +448,8 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         if (!cart || cart.currencyCode === ctx.currencyCode) {
             return callContext;
         }
-        // Set the same private field core sets when it changes a cart's currency.
+        // Set the same private field core sets when it changes a cart's currency. findOrCreateActiveOrder
+        // in @vendure/mcp-sdk does the same; keep the two in step.
         const cartCtx = ctx.copy();
         (cartCtx as any)._currencyCode = cart.currencyCode;
         return { ...callContext, ctx: cartCtx };

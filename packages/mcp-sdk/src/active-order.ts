@@ -7,7 +7,6 @@ import type {
     RequestContext,
 } from '@vendure/core';
 import { ActiveOrderService, IllegalOperationError, Session, TransactionalConnection } from '@vendure/core';
-import { LockNotSupportedOnGivenDriverError } from 'typeorm';
 
 /**
  * @description
@@ -122,7 +121,9 @@ async function lockSessionRow(
             .where('session.id = :id', { id: session.id })
             .getOne();
     } catch (e) {
-        if (e instanceof LockNotSupportedOnGivenDriverError) {
+        // Matched by name, not instanceof, so the SDK does not load its own copy of typeorm, which
+        // can differ from the one core uses.
+        if (e instanceof Error && e.name === 'LockNotSupportedOnGivenDriverError') {
             return;
         }
         throw e;
@@ -133,7 +134,10 @@ async function lockSessionRow(
     }
 }
 
-// Sets the same private field core sets when it changes a cart's currency.
+// Sets the same private field core sets when it changes a cart's currency. The MCP plugin's
+// McpToolRegistryService.inCartCurrency does the same for tools with `usesActiveOrder: true`, so
+// this changes the context only when the order's currency differs from that of the given context.
+// Keep the two in step.
 function inCurrency(ctx: RequestContext, currencyCode: CurrencyCode): RequestContext {
     if (ctx.currencyCode === currencyCode) {
         return ctx;
