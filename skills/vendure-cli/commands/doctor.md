@@ -47,6 +47,10 @@ If `project` or `config` fails, dependent checks are skipped.
   and missing asset storage/preview strategies.
 - `--format json --strict` is the best shape for CI because the command exits
   non-zero for failures and warnings.
+- The `vendure-troubleshooting` skill runs
+  `doctor --check project dependencies config schema --format json` to collect
+  project context without a database connection. See
+  `skills/vendure-troubleshooting/context.md`.
 
 ## Examples
 

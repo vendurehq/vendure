@@ -67,6 +67,8 @@ It does not use Bun for those generated dependency installs.
 | `codemod` | Run automated code transforms (e.g. UI migrations)       | `commands/codemod.md` |
 | `plugins` | List / enable / disable CLI plugins for the project       | `commands/plugins.md` |
 
+To diagnose a broken project, use the `vendure-troubleshooting` skill (`skills/vendure-troubleshooting/`).
+
 Installed **CLI plugins** (packages that declare `vendure.cliPlugin`) may add
 commands or replace built-ins such as `dev`. Prefer `vendure --help` in the
 project to see the effective command set. See the developer CLI guide section
