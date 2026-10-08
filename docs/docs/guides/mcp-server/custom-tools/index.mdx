@@ -222,6 +222,17 @@ Leave `usesActiveOrder` unset for tools that do not need the shopper's cart.
 Do not add or handle `sessionToken` yourself. The MCP plugin manages it automatically and provides `execute` with the resolved `RequestContext`.
 :::
 
+To add to the cart, get the cart with [`findOrCreateActiveOrder`](/reference/mcp-sdk/find-or-create-active-order/)
+instead of `ActiveOrderService.getActiveOrder(ctx, undefined, true)`. It locks the session row first, so two calls that
+run at the same time on one session add to one cart and do not create two. It returns the cart and a `RequestContext`
+in the cart's currency. Pass that context to the core calls that change the cart. You can call it from a service that
+your tool calls, with the `ctx` the tool received.
+
+```ts
+const cart = await findOrCreateActiveOrder(ctx, new Injector(this.moduleRef));
+await this.orderService.addItemToOrder(cart.ctx, cart.order.id, input.variantId, 1);
+```
+
 ## Optional: Require confirmation on a destructive tool
 
 Use `behavior: 'destructive'` for tools that delete, cancel, refund, or otherwise make an irreversible or
