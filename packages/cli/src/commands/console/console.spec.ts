@@ -269,27 +269,35 @@ describe('console command', () => {
     });
 
     // PDEV-478: a link is the step before the docs MCP grants development workflows.
-    it('points to the docs MCP setup after a link without claiming it configured an assistant', async () => {
-        const root = vendureProject();
-        const test = testDependencies(
-            root,
-            sequenceFetch(jsonResponse(projectList()), jsonResponse(manifest)),
-        );
+    // PDEV-553: the setup guide is the one the Console card links, for the same environment.
+    it.each([
+        ['https://console.vendure.io', 'https://api.vendure.io', 'https://docs.vendure.io/how-to-use'],
+        [STAGING_CONSOLE.appOrigin, STAGING_CONSOLE.apiOrigin, 'https://staging.docs.vendure.io/how-to-use'],
+    ])(
+        'points to the docs MCP setup after a link to %s without claiming it configured an assistant',
+        async (appOrigin, apiOrigin, guideUrl) => {
+            const root = vendureProject();
+            const test = testDependencies(
+                root,
+                sequenceFetch(jsonResponse(projectList()), jsonResponse(manifest)),
+                {
+                    env: { VENDURE_CONSOLE_APP_URL: appOrigin, VENDURE_CONSOLE_API_URL: apiOrigin },
+                },
+            );
 
-        expect(await consoleCommand('link', {}, test.dependencies)).toBe(0);
-        const guidance = test.messages[test.messages.length - 1];
-        expect(guidance).toContain(
-            'Vendure development workflows and patterns through your coding assistant',
-        );
-        expect(guidance).toContain('https://docs.vendure.io/mcp');
-        expect(guidance).toContain('sign in with Vendure Console');
-        expect(guidance).toContain('first time you use a development tool');
-        expect(guidance).toContain('Acme');
-        expect(guidance).toContain('did not configure or sign in to any coding assistant');
-        expect(guidance).toContain(
-            'https://docs.vendure.io/guides/developer-guide/cli#use-vendure-development-workflows-in-your-coding-assistant',
-        );
-    });
+            expect(await consoleCommand('link', {}, test.dependencies)).toBe(0);
+            const guidance = test.messages[test.messages.length - 1];
+            expect(guidance).toContain(
+                'Vendure development workflows and patterns through your coding assistant',
+            );
+            expect(guidance).toContain('https://docs.vendure.io/mcp');
+            expect(guidance).toContain('sign in with Vendure Console');
+            expect(guidance).toContain('first time you use a development tool');
+            expect(guidance).toContain('Acme');
+            expect(guidance).toContain('did not configure or sign in to any coding assistant');
+            expect(guidance).toContain(`Setup guide: ${guideUrl}`);
+        },
+    );
 
     it('uses an explicit staging Console for a new link and records it', async () => {
         const root = vendureProject();

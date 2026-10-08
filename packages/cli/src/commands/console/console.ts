@@ -50,8 +50,6 @@ const REQUEST_TIMEOUT_MS = 10_000;
 /** The project list grows with the account, so the cap is wider than one manifest needs. */
 const MAX_RESPONSE_BYTES = 1024 * 1024;
 const DOCS_MCP_URL = 'https://docs.vendure.io/mcp';
-const CODING_ASSISTANT_GUIDE_URL =
-    'https://docs.vendure.io/guides/developer-guide/cli#use-vendure-development-workflows-in-your-coding-assistant';
 
 export interface ConsoleCommandOptions {
     json?: boolean;
@@ -453,7 +451,7 @@ async function link(
         signal,
         state,
     );
-    reportCodingAssistantSetup(code, manifest, options, dependencies.reporter);
+    reportCodingAssistantSetup(code, manifest, endpoints, options, dependencies.reporter);
     return code;
 }
 
@@ -828,7 +826,7 @@ async function repair(
         signal,
         state,
     );
-    reportCodingAssistantSetup(code, currentManifest, options, dependencies.reporter);
+    reportCodingAssistantSetup(code, currentManifest, endpoints, options, dependencies.reporter);
     return code;
 }
 
@@ -840,6 +838,7 @@ async function repair(
 function reportCodingAssistantSetup(
     code: number,
     manifest: ProjectLinkManifest,
+    endpoints: ConsoleEndpoints,
     options: ConsoleCommandOptions,
     reporter: ConsoleReporter,
 ): void {
@@ -853,9 +852,19 @@ function reportCodingAssistantSetup(
             '  2. The first time you use a development tool, the assistant asks you to sign in with Vendure ' +
                 `Console. Sign in and select the ${manifest.account.name} Account.`,
             'Linking did not configure or sign in to any coding assistant.',
-            `Setup guide: ${CODING_ASSISTANT_GUIDE_URL}`,
+            `Setup guide: ${codingAssistantGuideUrl(endpoints)}`,
         ].join('\n'),
     );
+}
+
+/**
+ * The guide the Console's "Development workflows" card links. Like the card,
+ * the production Console links the production docs and every other Console
+ * links the staging docs.
+ */
+function codingAssistantGuideUrl(endpoints: ConsoleEndpoints): string {
+    const host = officialConsoleEnvironment(endpoints) === 'production' ? 'docs' : 'staging.docs';
+    return `https://${host}.vendure.io/how-to-use`;
 }
 
 /**
