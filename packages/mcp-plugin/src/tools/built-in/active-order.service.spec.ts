@@ -1,29 +1,25 @@
-import { IllegalOperationError, OrderModificationError, UserInputError } from '@vendure/core';
-import { LockNotSupportedOnGivenDriverError } from 'typeorm';
+import {
+    IllegalOperationError,
+    OrderModificationError,
+    TransactionalConnection,
+    UserInputError,
+} from '@vendure/core';
 import { describe, expect, it, vi } from 'vitest';
 
 import { McpActiveOrderService } from './active-order.service';
 
-/** A ctx of a test's own, for the tests that read the session back after the call. */
-function cartCtx(activeOrderId?: string) {
-    return { session: { id: 's1', token: 't1', activeOrderId } };
-}
-
 /** A ctx carrying a session, which find/findOrderWithLines require before touching core. */
-const ctxWithSession = cartCtx() as never;
+const ctxWithSession = { session: { id: 's1', token: 't1' } } as never;
 
 /**
- * Stands in for TransactionalConnection. `withTransaction` hands the same ctx through. The query
- * builder chain returns `row` from the locking select, or rejects with `lockError`.
+ * Stands in for TransactionalConnection. `withTransaction` hands the same ctx through, and the
+ * locking select finds no session row.
  */
-function connectionStub(options: { row?: { activeOrderId?: string } | null; lockError?: Error } = {}) {
-    const getOne = vi.fn(() =>
-        options.lockError ? Promise.reject(options.lockError) : Promise.resolve(options.row ?? null),
-    );
+function connectionStub() {
     const queryBuilder = {
         setLock: vi.fn(() => queryBuilder),
         where: vi.fn(() => queryBuilder),
-        getOne,
+        getOne: vi.fn(() => Promise.resolve(null)),
     };
     return {
         withTransaction: (ctx: unknown, work: (ctx: unknown) => Promise<unknown>) => work(ctx),
@@ -31,6 +27,16 @@ function connectionStub(options: { row?: { activeOrderId?: string } | null; lock
         queryBuilder,
     };
 }
+
+/** Stands in for ModuleRef, which findOrCreate resolves core services from. */
+function moduleRefStub(activeOrderService: unknown, connection = connectionStub()) {
+    return {
+        get: (token: unknown) => (token === TransactionalConnection ? connection : activeOrderService),
+    };
+}
+
+/** For the methods that never resolve anything through the ModuleRef. */
+const unusedModuleRef = {} as never;
 
 describe('McpActiveOrderService', () => {
     describe('find', () => {
@@ -45,7 +51,7 @@ describe('McpActiveOrderService', () => {
             const service = new McpActiveOrderService(
                 activeOrderService as never,
                 orderService as never,
-                connectionStub() as never,
+                unusedModuleRef,
             );
 
             const result = await service.find(ctxWithSession);
@@ -64,7 +70,7 @@ describe('McpActiveOrderService', () => {
             const service = new McpActiveOrderService(
                 activeOrderService as never,
                 orderService as never,
-                connectionStub() as never,
+                unusedModuleRef,
             );
 
             const result = await service[method]({} as never);
@@ -75,8 +81,9 @@ describe('McpActiveOrderService', () => {
         },
     );
 
+    // The lock and the currency binding are tested with findOrCreateActiveOrder in @vendure/mcp-sdk.
     describe('findOrCreate', () => {
-        it('asks Vendure to create a cart when there is none, and loads no lines', async () => {
+        it('asks Vendure to create a cart under the session lock, and loads no lines', async () => {
             const activeOrder = { id: '1', code: 'T_1', currencyCode: 'USD' };
             const activeOrderService = {
                 getActiveOrder: vi.fn().mockResolvedValue(activeOrder),
@@ -84,102 +91,38 @@ describe('McpActiveOrderService', () => {
             const orderService = {
                 findOne: vi.fn(),
             };
+            const connection = connectionStub();
             const service = new McpActiveOrderService(
                 activeOrderService as never,
                 orderService as never,
-                connectionStub() as never,
+                moduleRefStub(activeOrderService, connection) as never,
             );
 
-            const result = await service.findOrCreate(ctxWithSession);
+            // Already in the cart's currency, so the context comes back as it is.
+            const ctx = { session: { id: 's1', token: 't1' }, currencyCode: 'USD' };
 
-            expect(result).toMatchObject({ id: activeOrder.id, currencyCode: activeOrder.currencyCode });
-            expect(activeOrderService.getActiveOrder).toHaveBeenCalledWith(ctxWithSession, undefined, true);
+            const result = await service.findOrCreate(ctx as never);
+
+            expect(result.order).toMatchObject({
+                id: activeOrder.id,
+                currencyCode: activeOrder.currencyCode,
+            });
+            expect(result.ctx).toBe(ctx);
+            expect(connection.queryBuilder.setLock).toHaveBeenCalledWith('pessimistic_write');
+            expect(activeOrderService.getActiveOrder).toHaveBeenCalledWith(ctx, undefined, true);
             expect(orderService.findOne).not.toHaveBeenCalled();
         });
 
         it('throws an IllegalOperationError naming the Owner permission when the ctx has no session', async () => {
             const activeOrderService = { getActiveOrder: vi.fn() };
-            const orderService = { findOne: vi.fn() };
             const service = new McpActiveOrderService(
                 activeOrderService as never,
-                orderService as never,
-                connectionStub() as never,
+                { findOne: vi.fn() } as never,
+                moduleRefStub(activeOrderService) as never,
             );
 
             await expect(service.findOrCreate({} as never)).rejects.toBeInstanceOf(IllegalOperationError);
             await expect(service.findOrCreate({} as never)).rejects.toThrow(/Owner permission/);
-            expect(activeOrderService.getActiveOrder).not.toHaveBeenCalled();
-        });
-
-        it('locks the session row and copies its active order id onto the session before asking core', async () => {
-            const activeOrder = { id: '1', code: 'T_1', currencyCode: 'USD' };
-            const activeOrderService = { getActiveOrder: vi.fn().mockResolvedValue(activeOrder) };
-            const orderService = { findOne: vi.fn() };
-            const connection = connectionStub({ row: { activeOrderId: '9' } });
-            const service = new McpActiveOrderService(
-                activeOrderService as never,
-                orderService as never,
-                connection as never,
-            );
-            const ctx = cartCtx();
-
-            const result = await service.findOrCreate(ctx as never);
-
-            expect(result).toMatchObject({ id: activeOrder.id, currencyCode: activeOrder.currencyCode });
-            expect(ctx.session.activeOrderId).toBe('9');
-            expect(connection.queryBuilder.setLock).toHaveBeenCalledWith('pessimistic_write');
-            expect(connection.queryBuilder.where).toHaveBeenCalledWith('session.id = :id', { id: 's1' });
-            expect(activeOrderService.getActiveOrder).toHaveBeenCalledWith(ctx, undefined, true);
-        });
-
-        it('clears a stale cached active order id when the row has none', async () => {
-            const activeOrderService = {
-                getActiveOrder: vi.fn().mockResolvedValue({ id: '1', currencyCode: 'USD' }),
-            };
-            const orderService = { findOne: vi.fn() };
-            const service = new McpActiveOrderService(
-                activeOrderService as never,
-                orderService as never,
-                connectionStub({ row: {} }) as never,
-            );
-            const ctx = cartCtx('4');
-
-            await service.findOrCreate(ctx as never);
-
-            expect(ctx.session.activeOrderId).toBeUndefined();
-            expect(activeOrderService.getActiveOrder).toHaveBeenCalledWith(ctx, undefined, true);
-        });
-
-        it('goes on without the lock when the database driver does not support it', async () => {
-            const activeOrder = { id: '1', code: 'T_1', currencyCode: 'USD' };
-            const activeOrderService = { getActiveOrder: vi.fn().mockResolvedValue(activeOrder) };
-            const orderService = { findOne: vi.fn() };
-            const service = new McpActiveOrderService(
-                activeOrderService as never,
-                orderService as never,
-                connectionStub({ lockError: new LockNotSupportedOnGivenDriverError() }) as never,
-            );
-            const ctx = cartCtx('4');
-
-            const result = await service.findOrCreate(ctx as never);
-
-            expect(result).toMatchObject({ id: activeOrder.id, currencyCode: activeOrder.currencyCode });
-            expect(activeOrderService.getActiveOrder).toHaveBeenCalledWith(ctx, undefined, true);
-            expect(ctx.session.activeOrderId).toBe('4');
-        });
-
-        it('rethrows any other error from the locking select', async () => {
-            const activeOrderService = { getActiveOrder: vi.fn() };
-            const orderService = { findOne: vi.fn() };
-            const lockError = new Error('connection lost');
-            const service = new McpActiveOrderService(
-                activeOrderService as never,
-                orderService as never,
-                connectionStub({ lockError }) as never,
-            );
-            const ctx = cartCtx();
-
-            await expect(service.findOrCreate(ctx as never)).rejects.toBe(lockError);
             expect(activeOrderService.getActiveOrder).not.toHaveBeenCalled();
         });
     });
@@ -193,7 +136,7 @@ describe('McpActiveOrderService', () => {
             const service = new McpActiveOrderService(
                 activeOrderService as never,
                 orderService as never,
-                connectionStub() as never,
+                unusedModuleRef,
             );
 
             await expect(service.findOrThrow(ctxWithSession)).rejects.toBeInstanceOf(UserInputError);
@@ -213,7 +156,7 @@ describe('McpActiveOrderService', () => {
             const service = new McpActiveOrderService(
                 activeOrderService as never,
                 { findOne: vi.fn() } as never,
-                connectionStub() as never,
+                unusedModuleRef,
             );
 
             const result = await service.findEditable(ctxWithSession);
@@ -234,7 +177,7 @@ describe('McpActiveOrderService', () => {
             const service = new McpActiveOrderService(
                 activeOrderService as never,
                 { findOne: vi.fn() } as never,
-                connectionStub() as never,
+                unusedModuleRef,
             );
 
             const result = await service.findEditable(ctxWithSession);
@@ -254,7 +197,7 @@ describe('McpActiveOrderService', () => {
             const service = new McpActiveOrderService(
                 activeOrderService as never,
                 orderService as never,
-                connectionStub() as never,
+                unusedModuleRef,
             );
 
             const result = await service.findOrderWithLines(ctxWithSession);
@@ -276,7 +219,7 @@ describe('McpActiveOrderService', () => {
             const service = new McpActiveOrderService(
                 activeOrderService as never,
                 orderService as never,
-                connectionStub() as never,
+                unusedModuleRef,
             );
 
             const result = await service.findOrderWithLines(ctxWithSession);
@@ -303,7 +246,7 @@ describe('McpActiveOrderService', () => {
             const service = new McpActiveOrderService(
                 activeOrderService as never,
                 orderService as never,
-                connectionStub() as never,
+                unusedModuleRef,
             );
 
             const result = await service.findOrderWithLines(ctxWithSession);

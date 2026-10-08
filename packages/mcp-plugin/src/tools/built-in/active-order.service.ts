@@ -1,18 +1,16 @@
 import { Injectable } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import {
     ActiveOrderService,
-    CachedSession,
-    DeserializedCachedSession,
     IllegalOperationError,
+    Injector,
     Order,
     OrderModificationError,
     OrderService,
     RequestContext,
-    Session,
-    TransactionalConnection,
     UserInputError,
 } from '@vendure/core';
-import { LockNotSupportedOnGivenDriverError } from 'typeorm';
+import { findOrCreateActiveOrder, McpActiveOrder } from '@vendure/mcp-sdk';
 
 export const NO_CART_MESSAGE =
     'There is no cart for this session. Call add_to_cart first; it returns the sessionToken to ' +
@@ -25,7 +23,7 @@ export class McpActiveOrderService {
     constructor(
         private readonly activeOrderService: ActiveOrderService,
         private readonly orderService: OrderService,
-        private readonly connection: TransactionalConnection,
+        private readonly moduleRef: ModuleRef,
     ) {}
 
     /** The shopper's current cart, or undefined when they have none. Order lines are not loaded. */
@@ -38,43 +36,14 @@ export class McpActiveOrderService {
     }
 
     // Only add_to_cart may start a cart; every other mutation uses findOrThrow instead.
-    async findOrCreate(ctx: RequestContext): Promise<Order> {
-        const session = ctx.session;
-        if (!session) {
+    async findOrCreate(ctx: RequestContext): Promise<McpActiveOrder> {
+        if (!ctx.session) {
             throw new IllegalOperationError(
                 'add_to_cart requires a Vendure session and this call has none. In-process callers on the Shop API ' +
                     'must give the mutation that calls the tool the Owner permission, so that Vendure creates a session.',
             );
         }
-        return this.connection.withTransaction(ctx, async txCtx => {
-            await this.lockSessionRow(txCtx, session);
-            // Never undefined: core throws a UserInputError when it can neither find nor create one.
-            return this.activeOrderService.getActiveOrder(txCtx, undefined, true);
-        });
-    }
-
-    // SQLite skips the lock because it only ever allows one writer at a time anyway.
-    private async lockSessionRow(
-        txCtx: RequestContext,
-        session: CachedSession | DeserializedCachedSession,
-    ): Promise<void> {
-        let row: Session | null;
-        try {
-            row = await this.connection
-                .getRepository(txCtx, Session)
-                .createQueryBuilder('session')
-                .setLock('pessimistic_write')
-                .where('session.id = :id', { id: session.id })
-                .getOne();
-        } catch (e) {
-            if (e instanceof LockNotSupportedOnGivenDriverError) {
-                return;
-            }
-            throw e;
-        }
-        if (row) {
-            session.activeOrderId = row.activeOrderId ?? undefined;
-        }
+        return findOrCreateActiveOrder(ctx, new Injector(this.moduleRef));
     }
 
     // Without this check, acting on a cart that doesn't exist would silently create an empty one.
