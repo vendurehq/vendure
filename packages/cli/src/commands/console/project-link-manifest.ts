@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import * as fsPromises from 'node:fs/promises';
 import path from 'node:path';
 
-import { MONOREPO_PACKAGE_DIRS } from '../../utilities/monorepo-utils';
+import { findProjectDirectoryHints, MONOREPO_PACKAGE_DIRS } from '../../utilities/monorepo-utils';
 
 import {
     ConsoleOrigins,
@@ -61,7 +61,8 @@ export function resolveProjectRoot(cwd: string, selectedProject?: string): strin
             const candidates = findWorkspaceVendureProjects(resolvedCwd);
             if (candidates.length === 0) {
                 throw new Error(
-                    'Could not find a Vendure project. Run this command from a project that depends on @vendure/core, or pass --project <path>.',
+                    'Could not find a Vendure project. Run this command from a project that depends on @vendure/core, or pass --project <path>.' +
+                        projectDirectoryHint(resolvedCwd),
                 );
             }
             if (candidates.length > 1) {
@@ -77,6 +78,19 @@ export function resolveProjectRoot(cwd: string, selectedProject?: string): strin
 
     assertNoCrossRootManifest(resolvedCwd, projectRoot);
     return projectRoot;
+}
+
+/** Names the likely project directories and the matching `--project` flag. Empty when there are none. */
+function projectDirectoryHint(cwd: string): string {
+    const hints = findProjectDirectoryHints(cwd);
+    if (hints.length === 0) {
+        return '';
+    }
+    if (hints.length === 1) {
+        return `\nFound a Vendure project in \`${hints[0]}\`. Run the command there, or pass \`--project ${hints[0]}\`.`;
+    }
+    const list = hints.map(hint => `   ${hint}`).join('\n');
+    return `\nFound Vendure projects in:\n${list}\nRun the command in one of them, or pass --project <path>, for example \`--project ${hints[0]}\`.`;
 }
 
 export function getProjectLinkManifestPath(projectRoot: string): string {

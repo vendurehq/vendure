@@ -154,6 +154,33 @@ export function findWorkspacePackageJsonsWithDependency(rootDir: string, depende
     return [...packages].sort((a, b) => a.localeCompare(b));
 }
 
+/**
+ * Lists the directories under `cwd` that likely hold the Vendure project: workspace members
+ * (the discovery `vendure dev` uses) and direct child directories with an `@vendure/core`
+ * dependency. Returns paths relative to `cwd`, sorted and without duplicates.
+ */
+export function findProjectDirectoryHints(cwd: string): string[] {
+    const directories = new Set(
+        findWorkspacePackageJsonsWithDependency(cwd, '@vendure/core').map(file => path.dirname(file)),
+    );
+    try {
+        for (const entry of fs.readdirSync(cwd, { withFileTypes: true })) {
+            const child = path.join(cwd, entry.name);
+            if (
+                entry.name !== 'node_modules' &&
+                !entry.name.startsWith('.') &&
+                entry.isDirectory() &&
+                hasNamedDependency(path.join(child, 'package.json'), '@vendure/core')
+            ) {
+                directories.add(child);
+            }
+        }
+    } catch {
+        // An unreadable directory has no hints.
+    }
+    return [...directories].map(dir => path.relative(cwd, dir)).sort((a, b) => a.localeCompare(b));
+}
+
 /** A workspace has multiple Core projects and needs an explicit selection. */
 export class AmbiguousVendureProjectError extends Error {}
 

@@ -164,6 +164,45 @@ describe('Project Link Manifest', () => {
         expect(() => resolveProjectRoot(workspace)).toThrow('Multiple Vendure projects were found');
     });
 
+    it('names the project directory when run from a workspace root', () => {
+        const workspace = temporaryDirectory();
+        fs.writeJsonSync(path.join(workspace, 'package.json'), { private: true });
+        vendureProject(path.join(workspace, 'server'));
+
+        expect(() => resolveProjectRoot(workspace)).toThrow(
+            'Found a Vendure project in `server`. Run the command there, or pass `--project server`.',
+        );
+    });
+
+    it('names the declared workspace member outside the conventional directories', () => {
+        const workspace = temporaryDirectory();
+        fs.writeJsonSync(path.join(workspace, 'package.json'), { private: true, workspaces: ['backend/*'] });
+        vendureProject(path.join(workspace, 'backend', 'server'));
+
+        expect(() => resolveProjectRoot(workspace)).toThrow('`--project backend/server`');
+    });
+
+    it('lists several project directories from a workspace root', () => {
+        const workspace = temporaryDirectory();
+        fs.writeJsonSync(path.join(workspace, 'package.json'), { private: true });
+        vendureProject(path.join(workspace, 'server'));
+        vendureProject(path.join(workspace, 'shop'));
+
+        expect(() => resolveProjectRoot(workspace)).toThrow(
+            'Found Vendure projects in:\n   server\n   shop\nRun the command in one of them',
+        );
+    });
+
+    it('adds no hint when the directory has no candidate', () => {
+        const workspace = temporaryDirectory();
+        fs.writeJsonSync(path.join(workspace, 'package.json'), { private: true });
+        fs.ensureDirSync(path.join(workspace, 'docs'));
+
+        expect(() => resolveProjectRoot(workspace)).toThrow(
+            /^Could not find a Vendure project\. Run this command from a project that depends on @vendure\/core, or pass --project <path>\.$/,
+        );
+    });
+
     it('uses an explicit project and rejects an ancestor manifest for another root', () => {
         const workspace = temporaryDirectory();
         fs.writeJsonSync(path.join(workspace, 'package.json'), { private: true });
