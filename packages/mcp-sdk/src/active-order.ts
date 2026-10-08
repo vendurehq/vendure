@@ -100,6 +100,9 @@ export async function findOrCreateActiveOrder(
         // Never undefined: core throws a UserInputError when it can neither find nor create one.
         return injector.get(ActiveOrderService).getActiveOrder(txCtx, undefined, true);
     });
+    // Core stores the ID of a new order on the session row and in the cache, but not on this session
+    // object. Without it, a later lookup in the same request creates a second order.
+    session.activeOrderId = order.id;
     // Bound to the request context, not the transaction context: the transaction's query runner is
     // released when the transaction ends.
     return { order, ctx: inCurrency(ctx, order.currencyCode) };

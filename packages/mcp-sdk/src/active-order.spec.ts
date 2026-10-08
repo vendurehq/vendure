@@ -57,7 +57,14 @@ function connectionStub(options: { row?: { activeOrderId?: string } | null; lock
 }
 
 function setup(order: unknown, connectionOptions: Parameters<typeof connectionStub>[0] = {}) {
-    const activeOrderService = { getActiveOrder: vi.fn().mockResolvedValue(order) };
+    /** The session's active order ID at the moment core is asked for the order. */
+    const seen: { activeOrderId?: string } = {};
+    const activeOrderService = {
+        getActiveOrder: vi.fn((ctx: FakeCtx) => {
+            seen.activeOrderId = ctx.session?.activeOrderId;
+            return Promise.resolve(order);
+        }),
+    };
     const connection = connectionStub(connectionOptions);
     const injector = {
         get: (token: unknown) => {
@@ -66,7 +73,7 @@ function setup(order: unknown, connectionOptions: Parameters<typeof connectionSt
             throw new Error(`Unexpected token ${String(token)}`);
         },
     } as unknown as Injector;
-    return { activeOrderService, connection, injector };
+    return { activeOrderService, connection, injector, seen };
 }
 
 describe('findOrCreateActiveOrder', () => {
@@ -82,7 +89,7 @@ describe('findOrCreateActiveOrder', () => {
     });
 
     it('locks the session row and copies its active order id onto the session before asking core', async () => {
-        const { activeOrderService, connection, injector } = setup(
+        const { activeOrderService, connection, injector, seen } = setup(
             { id: '1', currencyCode: 'USD' },
             { row: { activeOrderId: '9' } },
         );
@@ -91,7 +98,7 @@ describe('findOrCreateActiveOrder', () => {
         const result = await findOrCreateActiveOrder(ctx as never, injector);
 
         expect(result.order).toMatchObject({ id: '1', currencyCode: 'USD' });
-        expect(ctx.session?.activeOrderId).toBe('9');
+        expect(seen.activeOrderId).toBe('9');
         expect(connection.queryBuilder.setLock).toHaveBeenCalledWith('pessimistic_write');
         expect(connection.queryBuilder.where).toHaveBeenCalledWith('session.id = :id', { id: 's1' });
         expect(activeOrderService.getActiveOrder).toHaveBeenCalledWith(
@@ -106,16 +113,28 @@ describe('findOrCreateActiveOrder', () => {
     });
 
     it('clears a stale cached active order id when the row has none', async () => {
-        const { injector } = setup({ id: '1', currencyCode: 'USD' }, { row: {} });
+        const { injector, seen } = setup({ id: '1', currencyCode: 'USD' }, { row: {} });
         const ctx = cartCtx('USD', '4');
 
         await findOrCreateActiveOrder(ctx as never, injector);
 
-        expect(ctx.session?.activeOrderId).toBeUndefined();
+        expect(seen.activeOrderId).toBeUndefined();
+    });
+
+    // Core stores the ID of a new order on the session row and in the cache, but not on the session
+    // object of the request. A later lookup in the same request would otherwise create a second order.
+    it('records the ID of the order on the session of the request', async () => {
+        const { injector } = setup({ id: '7', currencyCode: 'USD' }, { row: {} });
+        const ctx = cartCtx();
+
+        const result = await findOrCreateActiveOrder(ctx as never, injector);
+
+        expect(ctx.session?.activeOrderId).toBe('7');
+        expect(result.ctx.session?.activeOrderId).toBe('7');
     });
 
     it('goes on without the lock when the database driver does not support it', async () => {
-        const { activeOrderService, injector } = setup(
+        const { activeOrderService, injector, seen } = setup(
             { id: '1', currencyCode: 'USD' },
             { lockError: new LockNotSupportedOnGivenDriverError() },
         );
@@ -125,7 +144,7 @@ describe('findOrCreateActiveOrder', () => {
 
         expect(result.order).toMatchObject({ id: '1' });
         expect(activeOrderService.getActiveOrder).toHaveBeenCalledOnce();
-        expect(ctx.session?.activeOrderId).toBe('4');
+        expect(seen.activeOrderId).toBe('4');
     });
 
     it('rethrows any other error from the locking select', async () => {
