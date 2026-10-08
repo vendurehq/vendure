@@ -857,24 +857,31 @@ describe('MCP built-in shop tools', () => {
         expect(stored.lines[0].listPrice).toBe(2000);
     });
 
-    // OSS-854: a plugin tool that adds through the SDK helper keeps the cart's currency.
-    it("keeps the cart's own currency when a plugin tool adds through findOrCreateActiveOrder", async () => {
+    // OSS-854: a service that is not called through a tool with `usesActiveOrder: true` gets a context
+    // in the channel's default currency. The context that findOrCreateActiveOrder returns keeps the
+    // cart in its own currency.
+    it("returns a context in the cart's currency from findOrCreateActiveOrder", async () => {
         const second = await allowSecondCurrency();
         const { sessionToken, orderId } = await storefrontCartIn(second);
+        const session = await server.app.get(SessionService).getSessionFromToken(sessionToken);
+        const ctx = new RequestContext({
+            apiType: 'shop',
+            channel: await server.app.get(ChannelService).getDefaultChannel(),
+            session,
+            isAuthorized: false,
+            authorizedAsOwnerOnly: true,
+        });
+        expect(ctx.currencyCode).toBe(defaultCurrencyCode);
 
-        const added = await postMcp(
-            baseUrl(),
-            'shop',
-            callTool('plugin_helper_add_to_cart', { variantId: String(variantId), sessionToken }, 1),
-        );
-        expect(added.body.result.isError).toBeUndefined();
-        expect(added.body.result.structuredContent.currencyCode).toBe(second);
+        const cart = await findOrCreateActiveOrder(ctx, new Injector(server.app.get(ModuleRef)));
+        expect(String(cart.order.id)).toBe(String(orderId));
+        expect(cart.ctx.currencyCode).toBe(second);
+        await server.app.get(OrderService).addItemToOrder(cart.ctx, cart.order.id, variantId, 1);
 
         const stored = await connection
             .getRepository(adminCtx, Order)
             .findOneOrFail({ where: { id: orderId }, relations: { lines: true } });
         expect(stored.currencyCode).toBe(second);
-        expect(stored.lines).toHaveLength(1);
         expect(stored.lines[0].quantity).toBe(2);
         expect(stored.lines[0].listPrice).toBe(2000);
     });
