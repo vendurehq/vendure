@@ -64,7 +64,6 @@
         "index.html"
     ],
     "dependencies": {
-        "@base-ui/react": "~1.2.0",
         "@babel/core": "^7.29.0",
         "@babel/preset-react": "^7.28.5",
         "@babel/preset-typescript": "^7.28.5",
@@ -98,7 +97,7 @@
         "@types/react-dom": "^19.0.4",
         "@uidotdev/usehooks": "^2.4.1",
         "@vendure-io/design-tokens": "^2.0.0-rc.0",
-        "@vendure-io/ui": "^2.0.0-rc.0",
+        "@vendure-io/ui": "^2.0.0-rc.1",
         "@vitejs/plugin-react": "^5.2.0",
         "acorn": "^8.16.0",
         "acorn-walk": "^8.3.5",
