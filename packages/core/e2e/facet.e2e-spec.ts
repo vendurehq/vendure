@@ -3,7 +3,7 @@ import { pick } from '@vendure/common/lib/pick';
 import { FacetService, FacetValueService, RequestContextService } from '@vendure/core';
 import { createTestEnvironment, E2E_DEFAULT_CHANNEL_TOKEN } from '@vendure/testing';
 import path from 'path';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
@@ -874,6 +874,50 @@ describe('Facet resolver', () => {
             const value = facet?.values.find(v => v.id === valueId);
             expect(value?.name).toBe('Original Value');
         });
+    });
+
+    it('createFacetValue and createFacetValues do not load the existing values of the facet', async () => {
+        const { createFacet } = await adminClient.query(createFacetDocument, {
+            input: {
+                isPrivate: false,
+                code: 'speaker-power',
+                translations: [{ languageCode: LanguageCode.en, name: 'Speaker Power' }],
+                values: [
+                    {
+                        code: 'battery',
+                        translations: [{ languageCode: LanguageCode.en, name: 'Battery' }],
+                    },
+                ],
+            },
+        });
+        const facetService = server.app.get(FacetService);
+        const findOne = vi.spyOn(facetService, 'findOne');
+        try {
+            await adminClient.query(createFacetValueDocument, {
+                input: {
+                    facetId: createFacet.id,
+                    code: 'mains',
+                    translations: [{ languageCode: LanguageCode.en, name: 'Mains Powered' }],
+                },
+            });
+            await adminClient.query(createFacetValuesDocument, {
+                input: [
+                    {
+                        facetId: createFacet.id,
+                        code: 'solar',
+                        translations: [{ languageCode: LanguageCode.en, name: 'Solar Powered' }],
+                    },
+                ],
+            });
+
+            expect(findOne.mock.calls.length).toBe(2);
+            for (const [, , relations] of findOne.mock.calls) {
+                // `findOne()` loads `values` when no relations are passed
+                expect(relations ?? ['values']).not.toContain('values');
+            }
+        } finally {
+            findOne.mockRestore();
+        }
     });
 });
 

@@ -141,7 +141,7 @@ export class FacetResolver {
     ): Promise<Array<Translated<FacetValue>>> {
         const { input } = args;
         const facetId = input[0].facetId;
-        const facet = await this.facetService.findOne(ctx, facetId);
+        const facet = await this.facetService.findOne(ctx, facetId, ['channels']);
         if (!facet) {
             throw new EntityNotFoundError('Facet', facetId);
         }
@@ -161,7 +161,7 @@ export class FacetResolver {
         @Args() args: MutationCreateFacetValueArgs,
     ): Promise<Translated<FacetValue>> {
         const { input } = args;
-        const facet = await this.facetService.findOne(ctx, input.facetId);
+        const facet = await this.facetService.findOne(ctx, input.facetId, ['channels']);
         if (!facet) {
             throw new EntityNotFoundError('Facet', input.facetId);
         }
