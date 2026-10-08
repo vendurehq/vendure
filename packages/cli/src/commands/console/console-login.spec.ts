@@ -18,6 +18,7 @@ import {
     PROJECT_ID,
     STORED_ACCESS_TOKEN,
     STORED_REFRESH_TOKEN,
+    USER,
     WORKOS_AUTHENTICATE_URL,
     WORKOS_DEVICE_AUTHORIZE_URL,
     accessToken,
@@ -46,6 +47,11 @@ const productionManifest: ProjectLinkManifest = {
     schemaVersion: 1,
     console: { appOrigin: 'https://console.vendure.io', apiOrigin: API_URL },
 };
+
+const twoAccounts = [
+    { organizationId: ORGANIZATION_ID, customerAccountId: ACCOUNT_ID, name: 'Acme' },
+    { organizationId: OTHER_ORGANIZATION_ID, customerAccountId: OTHER_ACCOUNT_ID, name: 'Other' },
+];
 
 const temporaryDirectories: string[] = [];
 
@@ -144,13 +150,167 @@ describe('console link command line login', () => {
         );
     });
 
-    it('refuses a login that is not scoped to an organization, and names --organization', async () => {
-        const run = await runLink({ storedOrganization: null });
+    // PDEV-552: a new customer's first device login has no organization.
+    it("scopes a first device login without an organization to the user's only Customer Account", async () => {
+        const select = vi.fn();
+        const run = await runLink({ login: false, select, console: { deviceOrganizationId: null } });
+
+        expect(run.exitCode).toBe(0);
+        expect(select).not.toHaveBeenCalled();
+        expect(run.refreshGrants()).toEqual([expect.objectContaining({ organization_id: ORGANIZATION_ID })]);
+        const stored = readStoredAuth({ env: run.env });
+        expect(stored?.organization).toEqual({
+            workosOrganizationId: ORGANIZATION_ID,
+            customerAccountId: ACCOUNT_ID,
+            name: 'Acme',
+        });
+        expect(run.authorizationFor(`${API_URL}/v1/projects/${PROJECT_ID}/link`)).toBe(
+            `Bearer ${stored?.accessToken}`,
+        );
+        expect(fs.readJsonSync(getProjectLinkManifestPath(run.root))).toEqual(productionManifest);
+    });
+
+    it('scopes a stored login without an organization without opening a browser', async () => {
+        const run = await runLink({
+            storedOrganization: null,
+            storedAccessToken: accessToken('stored', null),
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(run.openedUrls).toEqual([]);
+        expect(run.urls()).toEqual([
+            `${API_URL}/v1/me`,
+            WORKOS_AUTHENTICATE_URL,
+            `${API_URL}/v1/projects`,
+            `${API_URL}/v1/projects/${PROJECT_ID}/link`,
+        ]);
+        expect(run.refreshGrants()).toEqual([
+            expect.objectContaining({
+                refresh_token: STORED_REFRESH_TOKEN,
+                organization_id: ORGANIZATION_ID,
+            }),
+        ]);
+        // The refresh token is single-use, so the rotated one replaces it.
+        const stored = readStoredAuth({ env: run.env });
+        expect(stored?.refreshToken).not.toBe(STORED_REFRESH_TOKEN);
+        expect(stored?.organization?.customerAccountId).toBe(ACCOUNT_ID);
+    });
+
+    // PDEV-559: a user with several Customer Accounts gets no choice in the browser.
+    it('asks which Customer Account to use when the user has several', async () => {
+        const select = vi.fn(async () => OTHER_ACCOUNT_ID);
+        const run = await runLink({
+            interactive: true,
+            login: false,
+            select,
+            console: { deviceOrganizationId: null, memberships: twoAccounts },
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(select).toHaveBeenCalledWith('Which Vendure Console account do you want to use?', [
+            { value: ACCOUNT_ID, label: `Acme (${ACCOUNT_ID})` },
+            { value: OTHER_ACCOUNT_ID, label: `Other (${OTHER_ACCOUNT_ID})` },
+        ]);
+        expect(run.refreshGrants()).toEqual([
+            expect.objectContaining({ organization_id: OTHER_ORGANIZATION_ID }),
+        ]);
+        const stored = readStoredAuth({ env: run.env });
+        expect(stored?.organization?.customerAccountId).toBe(OTHER_ACCOUNT_ID);
+        expect(run.authorizationFor(`${API_URL}/v1/projects`)).toBe(`Bearer ${stored?.accessToken}`);
+    });
+
+    it('lists the Customer Accounts and --organization when no one can choose between them', async () => {
+        const run = await runLink({ storedOrganization: null, console: { memberships: twoAccounts } });
 
         expect(run.exitCode).toBe(1);
-        expect(run.messages.join('\n')).toContain('--organization');
-        expect(run.urls()).toEqual([]);
+        const output = run.messages.join('\n');
+        expect(output).toContain(`Acme (${ACCOUNT_ID})`);
+        expect(output).toContain(`Other (${OTHER_ACCOUNT_ID})`);
+        expect(output).toContain('vendure console link --organization <Account identifier>');
+        expectUnchangedUnscopedLogin(run);
+    });
+
+    it('changes nothing when the Customer Account choice is cancelled', async () => {
+        const run = await runLink({
+            interactive: true,
+            storedOrganization: null,
+            select: () => Promise.resolve(undefined),
+            console: { memberships: twoAccounts },
+        });
+
+        expect(run.exitCode).toBe(130);
+        expectUnchangedUnscopedLogin(run);
+    });
+
+    it('sends a user without a Customer Account to create one in the selected Console', async () => {
+        const run = await runLink({ storedOrganization: null, console: { memberships: [] } });
+
+        expect(run.exitCode).toBe(1);
+        expect(run.messages.join('\n')).toContain(
+            'Your Vendure Console login has no Customer Account yet. Create one at ' +
+                'https://console.vendure.io/onboarding, then run vendure console link again.',
+        );
+        expectUnchangedUnscopedLogin(run);
+    });
+
+    it('keeps the stored login when WorkOS refuses to scope it', async () => {
+        const run = await runLink({
+            storedOrganization: null,
+            console: { refresh: () => jsonResponse({ error: 'invalid_grant' }, 400) },
+        });
+
+        expect(run.exitCode).toBe(1);
+        expect(run.refreshGrants()).toHaveLength(1);
         expect(fs.existsSync(getProjectLinkManifestPath(run.root))).toBe(false);
+        expect(readStoredAuth({ env: run.env })).toMatchObject({
+            refreshToken: STORED_REFRESH_TOKEN,
+            organization: null,
+        });
+    });
+
+    it('stores the rotated login, without the chosen account, when WorkOS scopes it to another organization', async () => {
+        const run = await runLink({
+            storedOrganization: null,
+            console: {
+                refresh: () =>
+                    jsonResponse({
+                        access_token: accessToken('wrong', OTHER_ORGANIZATION_ID),
+                        refresh_token: 'rotated-refresh-token',
+                        organization_id: OTHER_ORGANIZATION_ID,
+                        user: USER,
+                    }),
+            },
+        });
+
+        expect(run.exitCode).toBe(1);
+        expect(run.messages.join('\n')).toContain('WorkOS did not scope the login to Acme.');
+        expect(fs.existsSync(getProjectLinkManifestPath(run.root))).toBe(false);
+        // The old refresh token is spent. Keeping the new pair keeps the login usable.
+        expect(readStoredAuth({ env: run.env })).toMatchObject({
+            accessToken: accessToken('wrong', OTHER_ORGANIZATION_ID),
+            refreshToken: 'rotated-refresh-token',
+            organization: {
+                workosOrganizationId: OTHER_ORGANIZATION_ID,
+                customerAccountId: null,
+                name: null,
+            },
+        });
+    });
+
+    it('signs in to the organization --organization names without asking, when the stored login has none', async () => {
+        const select = vi.fn();
+        const run = await runLink({
+            interactive: true,
+            storedOrganization: null,
+            select,
+            options: { organization: 'Other' },
+            console: { memberships: twoAccounts },
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(select).not.toHaveBeenCalled();
+        expect(run.urls()).toContain(WORKOS_DEVICE_AUTHORIZE_URL);
+        expect(readStoredAuth({ env: run.env })?.organization?.customerAccountId).toBe(OTHER_ACCOUNT_ID);
     });
 
     it('reports the sign-in URL and keeps waiting when no browser can be opened', async () => {
@@ -344,6 +504,7 @@ interface RunOptions {
     fetch?: typeof globalThis.fetch;
     hooks?: RegisteredConsoleLinkHook[];
     openUrl?: (url: string) => Promise<void>;
+    select?: ConsoleCommandDependencies['select'];
     signal?: AbortSignal;
 }
 
@@ -383,7 +544,7 @@ async function runLink(options: RunOptions = {}) {
             await options.openUrl?.(url);
         },
         prompt: () => Promise.resolve(true),
-        select: () => Promise.resolve(undefined),
+        select: options.select ?? (() => Promise.resolve(undefined)),
         reporter,
         signal: options.signal,
     };
@@ -396,7 +557,23 @@ async function runLink(options: RunOptions = {}) {
         openedUrls,
         urls: () => api.requests.map(request => request.url),
         authorizationFor: (url: string) => api.requests.find(request => request.url === url)?.authorization,
+        refreshGrants: () =>
+            api.requests
+                .filter(request => request.url === WORKOS_AUTHENTICATE_URL)
+                .map(request => request.body)
+                .filter(body => body.grant_type === 'refresh_token'),
     };
+}
+
+/** The run linked nothing and left the stored login without an organization as it was. */
+function expectUnchangedUnscopedLogin(run: Awaited<ReturnType<typeof runLink>>): void {
+    expect(run.refreshGrants()).toEqual([]);
+    expect(fs.existsSync(getProjectLinkManifestPath(run.root))).toBe(false);
+    expect(readStoredAuth({ env: run.env })).toMatchObject({
+        accessToken: STORED_ACCESS_TOKEN,
+        refreshToken: STORED_REFRESH_TOKEN,
+        organization: null,
+    });
 }
 
 function recordingHook(

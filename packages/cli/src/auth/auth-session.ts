@@ -280,7 +280,9 @@ export async function loginWithDevice(options: DeviceLoginOptions = {}): Promise
         organization = toStoredOrganization(target);
         if (tokenOrganizationId(authentication) !== target.workosOrganizationId) {
             assertStorable(toSession(organization), options);
-            authentication = await scopeToOrganization(client, authentication, target, options);
+            // The browser chose another organization, or none. This refresh token
+            // exists only in this process, so spending it needs no lock.
+            authentication = await scopeToOrganization(client, authentication.refreshToken, target, options);
         }
         if (tokenOrganizationId(authentication) !== target.workosOrganizationId) {
             throw new Error(`WorkOS did not scope the login to ${target.name}.`);
@@ -296,23 +298,71 @@ export async function loginWithDevice(options: DeviceLoginOptions = {}): Promise
 }
 
 /**
- * The browser chose another organization, or none. This refresh token exists
- * only in this process, so spending it needs no lock. WorkOS refuses an
+ * Scopes the stored login to one of the user's organizations without a new
+ * sign-in in the browser. A first device login often has no organization, and
+ * Console refuses such a login on account routes. Spends the refresh token
+ * with the organization's id, as `loginWithDevice` does for `organization`.
+ * WorkOS refuses an organization the user is not a member of.
+ *
+ * When WorkOS scopes the new pair to another organization, the pair is stored
+ * anyway, because the old refresh token is spent. Only the token's own
+ * organization is recorded with it.
+ *
+ * @throws NotLoggedInError when this machine has no login.
+ * @throws SessionLockUnavailableError when the login's lock cannot be taken. Nothing is spent.
+ */
+export function scopeStoredLogin(
+    organization: AuthOrganization,
+    options: AuthOptions = {},
+): Promise<AuthStatus> {
+    return withSessionLock(options, async () => {
+        const stored = readStoredAuth(options);
+        if (!stored) {
+            throw new NotLoggedInError();
+        }
+        const scoped: StoredAuth = { ...stored, organization: toStoredOrganization(organization) };
+        assertStorable(scoped, options);
+        const authentication = await scopeToOrganization(
+            storedClient(stored),
+            stored.refreshToken,
+            organization,
+            options,
+        );
+        const tokenOrganization = tokenOrganizationId(authentication);
+        const matched = tokenOrganization === organization.workosOrganizationId;
+        writeStoredAuth(
+            {
+                ...scoped,
+                accessToken: authentication.accessToken,
+                refreshToken: authentication.refreshToken,
+                user: authentication.user,
+                organization: matched
+                    ? scoped.organization
+                    : tokenOrganization
+                      ? { workosOrganizationId: tokenOrganization, customerAccountId: null, name: null }
+                      : null,
+            },
+            options,
+        );
+        if (!matched) {
+            throw new Error(`WorkOS did not scope the login to ${organization.name}.`);
+        }
+        return readAuthStatus(options);
+    });
+}
+
+/**
+ * Spends `refreshToken` for a session scoped to `target`. WorkOS refuses an
  * organization the user is not a member of.
  */
 async function scopeToOrganization(
     client: WorkosClient,
-    authentication: WorkosAuthentication,
+    refreshToken: string,
     target: AuthOrganization,
     options: AuthOptions,
 ): Promise<WorkosAuthentication> {
     try {
-        return await exchangeRefreshToken(
-            client,
-            authentication.refreshToken,
-            target.workosOrganizationId,
-            options,
-        );
+        return await exchangeRefreshToken(client, refreshToken, target.workosOrganizationId, options);
     } catch (error) {
         if (error instanceof ReauthenticationRequiredError) {
             throw new Error(

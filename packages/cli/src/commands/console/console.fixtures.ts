@@ -28,10 +28,22 @@ export const manifest: ProjectLinkManifest = {
     link: { id: LINK_ID, protocolVersion: 1 },
 };
 
-/** A WorkOS access token that expires `seconds` after NOW. The CLI reads its claims without verifying them. */
-export function accessToken(name: string, organizationId = ORGANIZATION_ID, seconds = 3600): string {
+/**
+ * A WorkOS access token that expires `seconds` after NOW. The CLI reads its claims without verifying them.
+ * A `null` organization gives a token that is not scoped to an organization.
+ */
+export function accessToken(
+    name: string,
+    organizationId: string | null = ORGANIZATION_ID,
+    seconds = 3600,
+): string {
     const encode = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url');
-    const claims = { sub: USER.id, org_id: organizationId, exp: Math.floor(NOW / 1000) + seconds, name };
+    const claims = {
+        sub: USER.id,
+        ...(organizationId ? { org_id: organizationId } : {}),
+        exp: Math.floor(NOW / 1000) + seconds,
+        name,
+    };
     return `${encode({ alg: 'RS256' })}.${encode(claims)}.signature`;
 }
 
@@ -105,8 +117,11 @@ export interface FakeConsoleOptions {
     projects?: unknown[];
     /** The Customer Accounts in Console's `GET /v1/me`. */
     memberships?: Array<{ organizationId: string; customerAccountId: string; name: string }>;
-    /** The organization the device login's token is scoped to, before any `--organization` re-scope. */
-    deviceOrganizationId?: string;
+    /**
+     * The organization the device login's token is scoped to, before any `--organization` re-scope.
+     * `null` gives an unscoped token, as WorkOS issues for a new customer's first login.
+     */
+    deviceOrganizationId?: string | null;
     /** Answers a refresh grant. Defaults to a new token pair for the requested organization. */
     refresh?: (body: Record<string, string>) => Response;
     /** Answers `POST /v1/projects/:id/link`. Defaults to the manifest for that project. */
@@ -121,7 +136,7 @@ export interface FakeConsoleOptions {
 export function fakeConsole(options: FakeConsoleOptions = {}) {
     const requests: RecordedRequest[] = [];
     let issued = 0;
-    const tokens = (organizationId: string | undefined) => {
+    const tokens = (organizationId: string | null) => {
         issued++;
         return jsonResponse({
             access_token: accessToken(`issued-${issued}`, organizationId),
@@ -159,9 +174,11 @@ export function fakeConsole(options: FakeConsoleOptions = {}) {
         }
         if (url.href === WORKOS_AUTHENTICATE_URL) {
             if (body.grant_type === 'refresh_token') {
-                return options.refresh?.(body) ?? tokens(body.organization_id);
+                return options.refresh?.(body) ?? tokens(body.organization_id ?? null);
             }
-            return tokens(options.deviceOrganizationId ?? ORGANIZATION_ID);
+            return tokens(
+                options.deviceOrganizationId === undefined ? ORGANIZATION_ID : options.deviceOrganizationId,
+            );
         }
         if (method === 'GET' && url.pathname === '/v1') {
             return jsonResponse({

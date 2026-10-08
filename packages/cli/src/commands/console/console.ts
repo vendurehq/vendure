@@ -6,8 +6,16 @@ import {
     SessionRejectedError,
 } from '../../auth/auth-errors';
 import { AuthOptions } from '../../auth/auth-options';
-import { getAccessToken, loginWithDevice, readAuthStatus, refreshAccessToken } from '../../auth/auth-session';
+import {
+    getAccessToken,
+    listOrganizations,
+    loginWithDevice,
+    readAuthStatus,
+    refreshAccessToken,
+    scopeStoredLogin,
+} from '../../auth/auth-session';
 import { StoredOrganization } from '../../auth/auth-store';
+import { AuthOrganization } from '../../auth/console-api';
 import { CliCommandExit } from '../../shared/cli-command-exit';
 import { isNonInteractiveEnvironment, withInteractiveTimeout } from '../../utilities/utils';
 
@@ -408,13 +416,8 @@ async function link(
     }
 
     const login = await signIn(endpoints, options.organization, dependencies, signal);
-    const organization = readAuthStatus(login.auth).organization;
-    if (!organization) {
-        throw new Error(
-            'Your CLI login is not scoped to an organization. Run vendure console link --organization ' +
-                '<account> with the Account identifier from Vendure Console → Settings.',
-        );
-    }
+    const organization =
+        readAuthStatus(login.auth).organization ?? (await scopeLogin(login, endpoints, dependencies, signal));
     const accountName = describeOrganization(organization);
     const project = await chooseProject(
         await listProjects(endpoints, login, accountName, dependencies, signal),
@@ -555,6 +558,75 @@ function matchesOrganization(organization: StoredOrganization | null | undefined
         organization?.customerAccountId?.toLowerCase() === value ||
         organization?.name?.trim().toLowerCase() === value
     );
+}
+
+/**
+ * Scopes a login that has no organization, which a new customer's first device
+ * login is. Console lists only the user's own active Customer Accounts, and
+ * WorkOS refuses an organization the user is not a member of. With one account
+ * the login uses it. With more, the user chooses, which needs a terminal.
+ */
+async function scopeLogin(
+    login: ConsoleLogin,
+    endpoints: ConsoleEndpoints,
+    dependencies: ConsoleCommandDependencies,
+    signal: AbortSignal,
+): Promise<StoredOrganization> {
+    try {
+        const organization = await chooseOrganization(
+            await listOrganizations(login.auth),
+            endpoints,
+            dependencies,
+        );
+        await scopeStoredLogin(organization, login.auth);
+        const accessToken = await getAccessToken(login.auth);
+        if (!accessToken) {
+            throw new NotLoggedInError();
+        }
+        login.accessToken = accessToken;
+        return organization;
+    } catch (error) {
+        if (signal.aborted) {
+            throw new CommandInterruptedError();
+        }
+        throw error;
+    }
+}
+
+async function chooseOrganization(
+    organizations: AuthOrganization[],
+    endpoints: ConsoleEndpoints,
+    dependencies: ConsoleCommandDependencies,
+): Promise<AuthOrganization> {
+    if (organizations.length === 0) {
+        throw new Error(
+            `Your Vendure Console login has no Customer Account yet. Create one at ${endpoints.consoleUrl}/onboarding, ` +
+                'then run vendure console link again.',
+        );
+    }
+    if (organizations.length === 1) {
+        return organizations[0];
+    }
+    const choices = organizations.map(organization => ({
+        value: organization.customerAccountId,
+        label: `${organization.name} (${organization.customerAccountId})`,
+    }));
+    if (dependencies.isNonInteractive()) {
+        throw new Error(
+            'Your Vendure Console login belongs to several Customer Accounts:\n' +
+                choices.map(choice => `  ${choice.label}`).join('\n') +
+                '\nRun vendure console link --organization <Account identifier> to choose one.',
+        );
+    }
+    const customerAccountId = await dependencies.select(
+        'Which Vendure Console account do you want to use?',
+        choices,
+    );
+    const chosen = organizations.find(organization => organization.customerAccountId === customerAccountId);
+    if (!chosen) {
+        throw new CommandInterruptedError();
+    }
+    return chosen;
 }
 
 function describeOrganization(organization: StoredOrganization): string {

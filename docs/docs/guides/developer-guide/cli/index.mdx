@@ -423,6 +423,12 @@ The command uses the login from [`vendure auth login`](#the-auth-command). When 
 selected Console, the command signs you in first, the same way: it shows a one-time code and opens your browser. If
 the browser cannot open, the CLI prints the URL so that you can open it on any device.
 
+A first login is often not scoped to an organization. Then the CLI reads your Customer Accounts from Vendure Console.
+With one Customer Account, it uses that account. With more than one, you choose the account in the terminal. Without a
+terminal, the command stops and lists your accounts, so that you can pass one with `--organization`. With no Customer
+Account, the command stops and prints the Console page where you create one. The CLI stores the login for the chosen
+account, so the next command does not ask again.
+
 The CLI then lists the active Projects of the organization you are signed in to. With one Project, it links that
 Project. With more than one, you choose the Project in the terminal. Console records the Project Link, and the CLI
 writes `.vendure/project.json` in the resolved Vendure project. Your role in the organization must allow you to
