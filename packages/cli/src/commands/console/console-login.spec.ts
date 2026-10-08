@@ -253,7 +253,7 @@ describe('console link command line login', () => {
         expectUnchangedUnscopedLogin(run);
     });
 
-    it('keeps the stored login when WorkOS refuses to scope it', async () => {
+    it('removes the stored login when WorkOS refuses its refresh token while scoping it', async () => {
         const run = await runLink({
             storedOrganization: null,
             console: { refresh: () => jsonResponse({ error: 'invalid_grant' }, 400) },
@@ -261,17 +261,17 @@ describe('console link command line login', () => {
 
         expect(run.exitCode).toBe(1);
         expect(run.refreshGrants()).toHaveLength(1);
+        expect(run.messages.join('\n')).toContain('vendure auth login');
         expect(fs.existsSync(getProjectLinkManifestPath(run.root))).toBe(false);
-        expect(readStoredAuth({ env: run.env })).toMatchObject({
-            refreshToken: STORED_REFRESH_TOKEN,
-            organization: null,
-        });
+        // The same as any refused refresh: the next command signs in again.
+        expect(readStoredAuth({ env: run.env })).toBeUndefined();
     });
 
-    it('stores the rotated login, without the chosen account, when WorkOS scopes it to another organization', async () => {
+    it('stores the rotated login with its own organization when WorkOS scopes it to another organization', async () => {
         const run = await runLink({
             storedOrganization: null,
             console: {
+                memberships: twoAccounts,
                 refresh: () =>
                     jsonResponse({
                         access_token: accessToken('wrong', OTHER_ORGANIZATION_ID),
@@ -280,10 +280,14 @@ describe('console link command line login', () => {
                         user: USER,
                     }),
             },
+            interactive: true,
+            select: () => Promise.resolve(ACCOUNT_ID),
         });
 
         expect(run.exitCode).toBe(1);
-        expect(run.messages.join('\n')).toContain('WorkOS did not scope the login to Acme.');
+        expect(run.messages.join('\n')).toContain(
+            'WorkOS did not scope the login to Acme. The stored login is now scoped to Other.',
+        );
         expect(fs.existsSync(getProjectLinkManifestPath(run.root))).toBe(false);
         // The old refresh token is spent. Keeping the new pair keeps the login usable.
         expect(readStoredAuth({ env: run.env })).toMatchObject({
@@ -291,8 +295,8 @@ describe('console link command line login', () => {
             refreshToken: 'rotated-refresh-token',
             organization: {
                 workosOrganizationId: OTHER_ORGANIZATION_ID,
-                customerAccountId: null,
-                name: null,
+                customerAccountId: OTHER_ACCOUNT_ID,
+                name: 'Other',
             },
         });
     });

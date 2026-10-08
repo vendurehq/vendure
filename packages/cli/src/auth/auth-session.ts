@@ -309,6 +309,7 @@ export async function loginWithDevice(options: DeviceLoginOptions = {}): Promise
  * organization is recorded with it.
  *
  * @throws NotLoggedInError when this machine has no login.
+ * @throws SessionRejectedError when WorkOS refused the refresh token. The stored login is removed.
  * @throws SessionLockUnavailableError when the login's lock cannot be taken. Nothing is spent.
  */
 export function scopeStoredLogin(
@@ -322,30 +323,42 @@ export function scopeStoredLogin(
         }
         const scoped: StoredAuth = { ...stored, organization: toStoredOrganization(organization) };
         assertStorable(scoped, options);
-        const authentication = await scopeToOrganization(
-            storedClient(stored),
-            stored.refreshToken,
-            organization,
-            options,
-        );
-        const tokenOrganization = tokenOrganizationId(authentication);
-        const matched = tokenOrganization === organization.workosOrganizationId;
+        let authentication: WorkosAuthentication;
+        try {
+            authentication = await scopeToOrganization(
+                storedClient(stored),
+                stored.refreshToken,
+                organization,
+                options,
+            );
+        } catch (error) {
+            if (error instanceof SessionRejectedError) {
+                discardIfStillSpent(stored.refreshToken, options);
+            }
+            throw error;
+        }
+        const matched = tokenOrganizationId(authentication) === organization.workosOrganizationId;
+        const tokenOrganization = matched
+            ? scoped.organization
+            : await describeTokenOrganization(resolveConsoleApiUrl(options), authentication, options);
         writeStoredAuth(
             {
                 ...scoped,
                 accessToken: authentication.accessToken,
                 refreshToken: authentication.refreshToken,
                 user: authentication.user,
-                organization: matched
-                    ? scoped.organization
-                    : tokenOrganization
-                      ? { workosOrganizationId: tokenOrganization, customerAccountId: null, name: null }
-                      : null,
+                organization: tokenOrganization,
             },
             options,
         );
         if (!matched) {
-            throw new Error(`WorkOS did not scope the login to ${organization.name}.`);
+            const current = tokenOrganization
+                ? `is now scoped to ${tokenOrganization.name ?? tokenOrganization.workosOrganizationId}`
+                : 'has no organization';
+            throw new Error(
+                `WorkOS did not scope the login to ${organization.name}. The stored login ${current}. ` +
+                    'Run vendure auth login --organization <Account identifier> to choose the account.',
+            );
         }
         return readAuthStatus(options);
     });

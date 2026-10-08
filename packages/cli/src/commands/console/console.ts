@@ -559,8 +559,8 @@ function matchesOrganization(organization: StoredOrganization | null | undefined
 }
 
 /**
- * Scopes a login that has no organization, which a new customer's first device
- * login is. Console lists only the user's own active Customer Accounts, and
+ * A new customer's first device login has no organization. This scopes it.
+ * Console lists only the user's own active Customer Accounts, and
  * WorkOS refuses an organization the user is not a member of. With one account
  * the login uses it. With more, the user chooses, which needs a terminal.
  */
