@@ -5,6 +5,7 @@ export { EmptyMediaIllustration } from '@vendure-io/ui/components/molecules/illu
 export { ErrorIllustration } from '@vendure-io/ui/components/molecules/illustrations/error';
 export { FirstRunIllustration } from '@vendure-io/ui/components/molecules/illustrations/first-run';
 export { NoActivityIllustration } from '@vendure-io/ui/components/molecules/illustrations/no-activity';
+export { NoCustomersIllustration } from '@vendure-io/ui/components/molecules/illustrations/no-customers';
 export { NoDeploymentsIllustration } from '@vendure-io/ui/components/molecules/illustrations/no-deployments';
 export { NoDocumentsIllustration } from '@vendure-io/ui/components/molecules/illustrations/no-documents';
 export { NoKeysIllustration } from '@vendure-io/ui/components/molecules/illustrations/no-keys';
@@ -13,6 +14,8 @@ export { NoMembersIllustration } from '@vendure-io/ui/components/molecules/illus
 export { NoNotificationsIllustration } from '@vendure-io/ui/components/molecules/illustrations/no-notifications';
 export { NoOrdersIllustration } from '@vendure-io/ui/components/molecules/illustrations/no-orders';
 export { NoPluginsIllustration } from '@vendure-io/ui/components/molecules/illustrations/no-plugins';
+export { NoProductsIllustration } from '@vendure-io/ui/components/molecules/illustrations/no-products';
+export { NoPromotionsIllustration } from '@vendure-io/ui/components/molecules/illustrations/no-promotions';
 export { NoResultsIllustration } from '@vendure-io/ui/components/molecules/illustrations/no-results';
 export { NotFoundIllustration } from '@vendure-io/ui/components/molecules/illustrations/not-found';
 export { OfflineIllustration } from '@vendure-io/ui/components/molecules/illustrations/offline';

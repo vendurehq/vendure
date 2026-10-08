@@ -1,6 +1,7 @@
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
+import { NoKeysIllustration } from '@/vdb/components/ui/illustrations.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { Trans, useLingui } from '@lingui/react/macro';
@@ -21,6 +22,7 @@ function ApiKeyListPage() {
     return (
         <ListPage
             pageId="api-key-list"
+            emptyStateIllustration={<NoKeysIllustration />}
             listQuery={apiKeyListQuery}
             route={Route}
             title={<Trans>API Keys</Trans>}

@@ -435,6 +435,13 @@ export interface ListPageProps<
      * Gate it with a {@link PermissionGuard} to mirror the create button's permissions.
      */
     emptyStateAction?: React.ReactNode;
+    /**
+     * @description
+     * An optional illustration rendered in the first-run empty state (no data and no
+     * active filters). Defaults to the generic empty-collection illustration. Pass a
+     * scenario illustration such as `NoProductsIllustration` when one matches.
+     */
+    emptyStateIllustration?: React.ReactNode;
 }
 
 /**
@@ -561,6 +568,7 @@ export function ListPage<
     onReorder,
     disableDragAndDrop = false,
     emptyStateAction,
+    emptyStateIllustration,
 }: Readonly<ListPageProps<T, U, V, AC>>) {
     const route = typeof routeOrFn === 'function' ? routeOrFn() : routeOrFn;
     const routeSearch = route.useSearch();
@@ -661,6 +669,7 @@ export function ListPage<
         includeSelectionColumn,
         registerRefresher,
         emptyStateAction,
+        emptyStateIllustration,
     };
 
     return (

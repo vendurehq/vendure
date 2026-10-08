@@ -289,6 +289,13 @@ export interface PaginatedListDataTableProps<
     emptyStateAction?: React.ReactNode;
     /**
      * @description
+     * An optional illustration rendered in the first-run empty state (no data and no
+     * active filters). Defaults to the generic empty-collection illustration. Pass a
+     * scenario illustration such as `NoProductsIllustration` when one matches.
+     */
+    emptyStateIllustration?: React.ReactNode;
+    /**
+     * @description
      * Render prop invoked when the underlying list query fails. Receives the
      * error and a `retry` callback (re-runs the query) and should return the
      * content to display in place of the table — typically an `ErrorState`.
@@ -473,6 +480,7 @@ export function PaginatedListDataTable<
     disableDragAndDrop = false,
     includeSelectionColumn,
     emptyStateAction,
+    emptyStateIllustration,
     errorState,
     title,
     actions,
@@ -622,6 +630,7 @@ export function PaginatedListDataTable<
                     onReorder={onReorder}
                     disableDragAndDrop={disableDragAndDrop}
                     emptyStateAction={emptyStateAction}
+                    emptyStateIllustration={emptyStateIllustration}
                     title={title}
                     actions={actions}
                     frame={frame}

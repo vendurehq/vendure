@@ -3,6 +3,7 @@ import { RoleCodeLabel } from '@/vdb/components/shared/role-code-label.js';
 import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
+import { NoMembersIllustration } from '@/vdb/components/ui/illustrations.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, Link } from '@tanstack/react-router';
@@ -20,6 +21,7 @@ function AdministratorListPage() {
     return (
         <ListPage
             pageId="administrator-list"
+            emptyStateIllustration={<NoMembersIllustration />}
             title={<Trans>Administrators</Trans>}
             listQuery={administratorListDocument}
             route={Route}

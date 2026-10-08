@@ -217,6 +217,7 @@ export * from './components/ui/grid-layout.js';
 export * from './components/ui/hover-card.js';
 export * from './components/ui/id-chip.js';
 export * from './components/ui/illustrations.js';
+export * from './components/ui/inline-code.js';
 export * from './components/ui/input-group.js';
 export * from './components/ui/input-otp.js';
 export * from './components/ui/input.js';

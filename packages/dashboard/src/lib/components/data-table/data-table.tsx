@@ -204,6 +204,13 @@ interface DataTableProps<TData> {
     emptyStateAction?: React.ReactNode;
     /**
      * @description
+     * An optional illustration rendered in the first-run empty state (no data and no
+     * active filters). Defaults to the generic empty-collection illustration. Pass a
+     * scenario illustration such as `NoProductsIllustration` when one matches.
+     */
+    emptyStateIllustration?: React.ReactNode;
+    /**
+     * @description
      * An optional title rendered in the table's header band. Intended for tables
      * embedded in detail pages (e.g. "Product variants"), where the surrounding
      * page block no longer provides a card title of its own.
@@ -283,6 +290,7 @@ export function DataTable<TData>({
     onReorder,
     disableDragAndDrop = false,
     emptyStateAction,
+    emptyStateIllustration,
     title,
     actions,
     frame = 'card',
@@ -655,7 +663,7 @@ export function DataTable<TData>({
     ) : (
         <EmptyState
             className="border-0 rounded-none bg-transparent"
-            illustration={<EmptyCollectionIllustration />}
+            illustration={emptyStateIllustration ?? <EmptyCollectionIllustration />}
             title={<Trans>No results</Trans>}
             description={<Trans>There are no items to display yet.</Trans>}
         >
