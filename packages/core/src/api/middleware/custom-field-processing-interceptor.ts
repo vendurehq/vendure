@@ -1,19 +1,19 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
-import { isForeignSecretPlaceholder, REDACTED_SECRET_PLACEHOLDER } from '@vendure/common/lib/shared-constants';
+import {
+    isForeignSecretPlaceholder,
+    REDACTED_SECRET_PLACEHOLDER,
+} from '@vendure/common/lib/shared-constants';
 import { getGraphQlInputName } from '@vendure/common/lib/shared-utils';
 import {
     getNamedType,
     getNullableType,
+    GraphQLField,
     GraphQLInputType,
     GraphQLSchema,
     isInputObjectType,
     isListType,
-    OperationDefinitionNode,
-    TypeInfo,
-    visit,
-    visitWithTypeInfo,
 } from 'graphql';
 
 import { UserInputError } from '../../common/error/errors';
@@ -75,7 +75,7 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
 
         const { operation, schema, fieldName } = parsedContext.info;
         if (operation.operation === 'mutation') {
-            await this.processMutationCustomFields(context, operation, schema, fieldName);
+            await this.processMutationCustomFields(context, schema, fieldName);
         }
 
         return next.handle();
@@ -83,18 +83,13 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
 
     private async processMutationCustomFields(
         context: ExecutionContext,
-        operation: OperationDefinitionNode,
         schema: GraphQLSchema,
         fieldName: string,
     ) {
         const gqlExecutionContext = GqlExecutionContext.create(context);
-        const variables = gqlExecutionContext.getArgs();
+        const args = gqlExecutionContext.getArgs();
         const ctx = internal_getRequestContext(parseContext(context).req);
         const injector = new Injector(this.moduleRef);
-
-        // Strip secret redaction placeholders anywhere custom fields appear in the mutation input,
-        // discovered from the schema so it does not depend on the enclosing input type's name.
-        this.stripSecretPlaceholders(operation, schema, variables);
 
         const mutationType = schema.getMutationType();
         const fieldDef = mutationType?.getFields()[fieldName];
@@ -102,10 +97,12 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
             return;
         }
 
+        this.stripSecretPlaceholders(fieldDef, schema, args);
+
         for (const arg of fieldDef.args) {
             const typeName = getNamedType(arg.type).name;
-            if (this.hasCustomFields(typeName) && variables[arg.name]) {
-                await this.processInputVariables(typeName, variables[arg.name], ctx, injector, operation);
+            if (this.hasCustomFields(typeName) && args[arg.name]) {
+                await this.processInputVariables(typeName, args[arg.name], ctx, injector, fieldName);
             }
         }
     }
@@ -123,40 +120,22 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
      * inputs, and any future or plugin-defined mutation) without a hand-maintained list of input names.
      */
     private stripSecretPlaceholders(
-        operation: OperationDefinitionNode,
+        fieldDef: GraphQLField<unknown, unknown>,
         schema: GraphQLSchema,
-        variables: Record<string, any>,
+        args: Record<string, any>,
     ) {
         const secretFieldsByInputType = this.getSecretFieldsByInputType(schema);
         if (secretFieldsByInputType.size === 0) {
             return;
         }
-        const mutationType = schema.getMutationType();
-        if (!mutationType) {
-            return;
-        }
-        const mutationFields = mutationType.getFields();
-        for (const selection of operation.selectionSet.selections) {
-            if (selection.kind !== 'Field') {
-                continue;
-            }
-            const fieldDef = mutationFields[selection.name.value];
-            if (!fieldDef) {
-                continue;
-            }
-            for (const arg of fieldDef.args) {
-                if (arg.name in variables) {
-                    // On a create there is no stored value to preserve, so a placeholder is rejected
-                    // rather than stripped. This is best-effort (set membership against the generated
-                    // create inputs); when unknown it defaults to stripping, which is always safe.
-                    const isCreate = this.createInputsWithCustomFields.has(getNamedType(arg.type).name);
-                    this.walkAndStripSecrets(
-                        variables[arg.name],
-                        arg.type,
-                        secretFieldsByInputType,
-                        isCreate,
-                    );
-                }
+        for (const arg of fieldDef.args) {
+            if (arg.name in args) {
+                // On a create there is no stored value to preserve, so the placeholder is rejected
+                // rather than stripped. Only the generated `Create<Entity>Input` types and
+                // `RegisterCustomerInput` count as creates. A create through any other input type has
+                // the placeholder stripped (#5514).
+                const isCreate = this.createInputsWithCustomFields.has(getNamedType(arg.type).name);
+                this.walkAndStripSecrets(args[arg.name], arg.type, secretFieldsByInputType, isCreate);
             }
         }
     }
@@ -268,10 +247,10 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
         variableInput: any,
         ctx: RequestContext,
         injector: Injector,
-        operation: OperationDefinitionNode,
+        fieldName: string,
     ) {
         const inputVariables = Array.isArray(variableInput) ? variableInput : [variableInput];
-        const shouldApplyDefaults = this.shouldApplyDefaults(typeName, operation);
+        const shouldApplyDefaults = this.shouldApplyDefaults(typeName, fieldName);
 
         for (const inputVariable of inputVariables) {
             if (shouldApplyDefaults) {
@@ -281,37 +260,20 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
         }
     }
 
-    private shouldApplyDefaults(typeName: string, operation: OperationDefinitionNode): boolean {
+    private shouldApplyDefaults(typeName: string, fieldName: string): boolean {
         // For regular create inputs, always apply defaults
         if (this.createInputsWithCustomFields.has(typeName)) {
             return true;
         }
 
-        // For OrderLineCustomFieldsInput, check the actual mutation name
+        // Defaults apply only to addItemToOrder, because in adjustOrderLine null unsets the field.
+        // Mutations which nest OrderLineCustomFieldsInput in another input type get neither defaults
+        // nor validation from this interceptor (#5513).
         if (typeName === 'OrderLineCustomFieldsInput') {
-            return this.isOrderLineCreateOperation(operation);
+            return fieldName === 'addItemToOrder';
         }
 
         // For update inputs, never apply defaults
-        return false;
-    }
-
-    private isOrderLineCreateOperation(operation: OperationDefinitionNode): boolean {
-        // Check if any field in the operation is a "create/add" operation for order lines
-        for (const selection of operation.selectionSet.selections) {
-            if (selection.kind === 'Field') {
-                const name = selection.name.value;
-                // These mutations create new order lines, so should apply defaults
-                if (name === 'addItemToOrder' || name === 'addItemToDraftOrder') {
-                    return true;
-                }
-                // These mutations modify existing order lines, so should NOT apply defaults
-                if (name === 'adjustOrderLine' || name === 'adjustDraftOrderLine') {
-                    return false;
-                }
-            }
-        }
-        // Default to false for safety (don't apply defaults unless we're sure it's a create)
         return false;
     }
 

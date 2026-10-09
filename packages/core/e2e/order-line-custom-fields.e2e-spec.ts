@@ -20,6 +20,7 @@ const orderWithCustomFieldsFragment = graphql(`
                 intField
                 booleanField
                 nullableField
+                defaultedField
                 relationField {
                     id
                     name
@@ -89,6 +90,95 @@ const removeAllOrderLinesDocument = graphql(`
     }
 `);
 
+const addItemToOrderInlineFragmentDocument = graphql(
+    `
+        mutation AddItemToOrderInlineFragment(
+            $productVariantId: ID!
+            $customFields: OrderLineCustomFieldsInput
+        ) {
+            ... on Mutation {
+                addItemToOrder(
+                    productVariantId: $productVariantId
+                    quantity: 1
+                    customFields: $customFields
+                ) {
+                    ...OrderWithCustomFields
+                    ... on ErrorResult {
+                        errorCode
+                        message
+                    }
+                }
+            }
+        }
+    `,
+    [orderWithCustomFieldsFragment],
+);
+
+const adjustOrderLineThenAddItemToOrderDocument = graphql(
+    `
+        mutation AdjustOrderLineThenAddItemToOrder(
+            $orderLineId: ID!
+            $adjustCustomFields: OrderLineCustomFieldsInput
+            $productVariantId: ID!
+            $addCustomFields: OrderLineCustomFieldsInput
+        ) {
+            adjustOrderLine(orderLineId: $orderLineId, quantity: 2, customFields: $adjustCustomFields) {
+                ...OrderWithCustomFields
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+            }
+            addItemToOrder(productVariantId: $productVariantId, quantity: 1, customFields: $addCustomFields) {
+                ...OrderWithCustomFields
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+            }
+        }
+    `,
+    [orderWithCustomFieldsFragment],
+);
+
+const addItemToOrderThenAdjustOrderLineDocument = graphql(
+    `
+        mutation AddItemToOrderThenAdjustOrderLine(
+            $orderLineId: ID!
+            $adjustCustomFields: OrderLineCustomFieldsInput
+            $productVariantId: ID!
+            $addCustomFields: OrderLineCustomFieldsInput
+        ) {
+            addItemToOrder(productVariantId: $productVariantId, quantity: 1, customFields: $addCustomFields) {
+                ...OrderWithCustomFields
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+            }
+            adjustOrderLine(orderLineId: $orderLineId, quantity: 2, customFields: $adjustCustomFields) {
+                ...OrderWithCustomFields
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+            }
+        }
+    `,
+    [orderWithCustomFieldsFragment],
+);
+
+const getActiveOrderWithCustomFieldsDocument = graphql(
+    `
+        query GetActiveOrderWithCustomFields {
+            activeOrder {
+                ...OrderWithCustomFields
+            }
+        }
+    `,
+    [orderWithCustomFieldsFragment],
+);
+
 type OrderWithCustomFields = FragmentOf<typeof orderWithCustomFieldsFragment>;
 const orderGuard: ErrorResultGuard<OrderWithCustomFields> = createErrorResultGuard(input => !!input.lines);
 
@@ -102,6 +192,8 @@ const customConfig = mergeConfig(testConfig(), {
             { name: 'booleanField', type: 'boolean' },
             { name: 'nullableField', type: 'string', nullable: true },
             { name: 'relationField', type: 'relation', entity: Product },
+            // The database column default fills this field for any OrderLine inserted without a value.
+            { name: 'defaultedField', type: 'string', nullable: true, defaultValue: 'default value' },
         ],
     },
 });
@@ -141,6 +233,7 @@ describe('OrderLine Custom Fields', () => {
                 intField: 42,
                 booleanField: true,
                 nullableField: null,
+                defaultedField: 'default value',
                 relationField: null,
             });
         });
@@ -188,6 +281,7 @@ describe('OrderLine Custom Fields', () => {
                 intField: 100, // preserved
                 booleanField: false, // preserved
                 nullableField: 'not null', // preserved
+                defaultedField: 'default value',
                 relationField: null, // preserved
             });
         });
@@ -223,6 +317,7 @@ describe('OrderLine Custom Fields', () => {
                 intField: 200, // updated
                 booleanField: true, // updated
                 nullableField: 'not null', // preserved
+                defaultedField: 'default value',
                 relationField: null, // preserved
             });
         });
@@ -257,6 +352,7 @@ describe('OrderLine Custom Fields', () => {
                 intField: 100, // preserved
                 booleanField: false, // preserved
                 nullableField: null, // unset using null
+                defaultedField: 'default value',
                 relationField: null, // preserved
             });
         });
@@ -291,6 +387,7 @@ describe('OrderLine Custom Fields', () => {
                 intField: 100, // preserved
                 booleanField: false, // preserved
                 nullableField: 'not null', // preserved
+                defaultedField: 'default value',
                 relationField: {
                     id: 'T_1',
                     name: 'Laptop',
@@ -329,8 +426,78 @@ describe('OrderLine Custom Fields', () => {
                 intField: 100, // preserved
                 booleanField: false, // preserved
                 nullableField: 'not null', // preserved
+                defaultedField: 'default value',
                 relationField: null, // unset using null
             });
+        });
+    });
+
+    // CustomFieldProcessingInterceptor decides whether OrderLine defaults apply from the mutation field
+    // being resolved. An addItemToOrder selected through a fragment gets the defaults, and a sibling
+    // adjustOrderLine in the same document does not change whether they apply.
+    describe('default values in fragment-wrapped and multi-field mutations', () => {
+        async function getStoredLines() {
+            const { activeOrder } = await shopClient.query(getActiveOrderWithCustomFieldsDocument);
+            return activeOrder?.lines ?? [];
+        }
+
+        async function addLineWithExplicitValue(productVariantId: string): Promise<string> {
+            const { addItemToOrder } = await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
+                productVariantId,
+                quantity: 1,
+                customFields: { defaultedField: 'explicit value' },
+            });
+            orderGuard.assertSuccess(addItemToOrder);
+            return addItemToOrder.lines[0].id;
+        }
+
+        // A named fragment is not covered here: IdInterceptor does not decode the productVariantId
+        // argument inside a named fragment definition (#5511).
+        it('applies the default to an addItemToOrder selected through an inline fragment', async () => {
+            const { addItemToOrder } = await shopClient.query(addItemToOrderInlineFragmentDocument, {
+                productVariantId: 'T_1',
+                customFields: { defaultedField: null },
+            });
+            orderGuard.assertSuccess(addItemToOrder);
+
+            const [line] = await getStoredLines();
+            expect(line.customFields.defaultedField).toBe('default value');
+        });
+
+        it('applies the default to an addItemToOrder placed after a sibling adjustOrderLine', async () => {
+            const adjustedLineId = await addLineWithExplicitValue('T_1');
+            const { adjustOrderLine, addItemToOrder } = await shopClient.query(
+                adjustOrderLineThenAddItemToOrderDocument,
+                {
+                    orderLineId: adjustedLineId,
+                    adjustCustomFields: {},
+                    productVariantId: 'T_2',
+                    addCustomFields: { defaultedField: null },
+                },
+            );
+            orderGuard.assertSuccess(adjustOrderLine);
+            orderGuard.assertSuccess(addItemToOrder);
+
+            const addedLine = (await getStoredLines()).find(line => line.id !== adjustedLineId);
+            expect(addedLine?.customFields.defaultedField).toBe('default value');
+        });
+
+        it('does not apply the default to an adjustOrderLine placed after a sibling addItemToOrder', async () => {
+            const adjustedLineId = await addLineWithExplicitValue('T_1');
+            const { addItemToOrder, adjustOrderLine } = await shopClient.query(
+                addItemToOrderThenAdjustOrderLineDocument,
+                {
+                    orderLineId: adjustedLineId,
+                    adjustCustomFields: { defaultedField: null },
+                    productVariantId: 'T_2',
+                    addCustomFields: {},
+                },
+            );
+            orderGuard.assertSuccess(addItemToOrder);
+            orderGuard.assertSuccess(adjustOrderLine);
+
+            const adjustedLine = (await getStoredLines()).find(line => line.id === adjustedLineId);
+            expect(adjustedLine?.customFields.defaultedField).toBeNull();
         });
     });
 
@@ -349,6 +516,7 @@ describe('OrderLine Custom Fields', () => {
                 intField: null,
                 booleanField: null,
                 nullableField: null,
+                defaultedField: 'default value',
                 relationField: null,
             });
         });
@@ -376,6 +544,7 @@ describe('OrderLine Custom Fields', () => {
                 intField: 999, // preserved when empty object passed
                 booleanField: null, // default value for unset fields
                 nullableField: null, // default value for unset fields
+                defaultedField: 'default value',
                 relationField: null, // default value for unset fields
             });
         });
