@@ -1,4 +1,4 @@
-import { type Page, expect, test } from '@playwright/test';
+import { type Page, type Response, expect, test } from '@playwright/test';
 
 import { BaseListPage } from '../../page-objects/list-page.base.js';
 import { closePopup, expectPopupClosed } from '../../utils/base-ui-popups.js';
@@ -939,6 +939,179 @@ test.describe('Orders', () => {
             await dialog.getByRole('button', { name: 'Cancel' }).click();
         });
 
+        // OSS-857 — a refundDestinations response which arrives after the administrator has allocated
+        // the refund must not reset the payment selection or the amounts.
+        test('should preserve refund allocations when destinations finish loading', async ({ page }) => {
+            test.setTimeout(60_000);
+
+            const client = new VendureAdminClient(page);
+            await client.login();
+            // The default selection is the first payment, so the test needs a second payment to allocate to.
+            const orderId = await createOrderWithIncreasedLineQuantity(client);
+            const { order } = await client.gql(
+                `query ($id: ID!) { order(id: $id) { payments { id state } } }`,
+                { id: orderId },
+            );
+            const [firstPaymentId, secondPaymentId] = order.payments
+                .filter((p: { state: string }) => p.state === 'Settled')
+                .map((p: { id: string }) => p.id);
+
+            // Hold back the first refundDestinations response until the test has allocated the refund.
+            let releaseDestinations!: () => void;
+            const destinationsGate = new Promise<void>(resolve => (releaseDestinations = resolve));
+            let destinationsHeld = false;
+            await page.route('**/admin-api**', async route => {
+                if (!destinationsHeld && route.request().postData()?.includes('RefundDestinations')) {
+                    destinationsHeld = true;
+                    await destinationsGate;
+                }
+                await route.fallback();
+            });
+
+            await page.goto(`/orders/${orderId}`);
+            await expect(page.getByRole('button', { name: /Fulfill order/i })).toBeVisible({
+                timeout: 10_000,
+            });
+            await expect.poll(() => destinationsHeld).toBe(true);
+
+            await openRefundDialog(page);
+            const dialog = page.locator('[role="dialog"]');
+            await expect(dialog).toBeVisible({ timeout: 5_000 });
+
+            await dialog.getByTestId('refund-quantity').first().fill('1');
+            await dialog.getByRole('combobox').click();
+            await page.getByRole('option').first().click();
+
+            const firstPaymentRow = dialog.getByTestId(`refund-target-payment-${String(firstPaymentId)}`);
+            const secondPaymentRow = dialog.getByTestId(`refund-target-payment-${String(secondPaymentId)}`);
+            await firstPaymentRow.getByRole('checkbox').uncheck();
+            await secondPaymentRow.getByRole('checkbox').check();
+            // One unit of the seeded "Laptop 13 inch 8GB" variant costs 1558.80 with tax.
+            const allocatedAmount = '1558.8';
+            await expect(secondPaymentRow.getByTestId('refund-target-amount')).toHaveValue(allocatedAmount);
+
+            // The refundDestinations response is held, so the store credit row is not rendered yet.
+            const storeCreditRow = dialog.getByTestId('refund-target-store-credit');
+            await expect(storeCreditRow).toHaveCount(0);
+
+            releaseDestinations();
+            await expect(storeCreditRow).toBeVisible({ timeout: 10_000 });
+
+            await expect(firstPaymentRow.getByRole('checkbox')).not.toBeChecked();
+            await expect(firstPaymentRow.getByTestId('refund-target-amount')).toHaveValue('');
+            await expect(secondPaymentRow.getByRole('checkbox')).toBeChecked();
+            await expect(secondPaymentRow.getByTestId('refund-target-amount')).toHaveValue(allocatedAmount);
+            await expect(storeCreditRow.getByRole('checkbox')).not.toBeChecked();
+            await expect(dialog.getByText(/Allocated refund amounts must equal refund total/i)).toHaveCount(
+                0,
+            );
+
+            // A successful refund refetches the order. The test waits for that response, so the page does
+            // not close while the request is in flight.
+            const orderRefetched = page.waitForResponse(isOrderDetailResponse);
+            await dialog
+                .getByRole('button', { name: /Refund/i })
+                .last()
+                .click();
+            await expect(
+                page.locator('[data-sonner-toast]').filter({ hasText: 'Refund processed successfully' }),
+            ).toBeVisible({ timeout: 10_000 });
+            await expect(dialog).toBeHidden();
+            await orderRefetched;
+
+            const { order: refunded } = await client.gql(
+                `query ($id: ID!) { order(id: $id) { payments { id refunds { total } } } }`,
+                { id: orderId },
+            );
+            const refundedPayments = refunded.payments.filter(
+                (p: { refunds: unknown[] }) => p.refunds.length > 0,
+            );
+            expect(refundedPayments).toEqual([{ id: secondPaymentId, refunds: [{ total: 155880 }] }]);
+        });
+
+        // OSS-857 — an order refetch which changes the order's payments must not overwrite the refund
+        // amounts the administrator has typed.
+        test('should keep typed refund amounts when the order is refetched', async ({ page }) => {
+            test.setTimeout(60_000);
+
+            const client = new VendureAdminClient(page);
+            await client.login();
+            const orderId = await createPaidOrder(client);
+            const { order } = await client.gql(
+                `query ($id: ID!) { order(id: $id) { lines { proratedUnitPriceWithTax } payments { id amount } } }`,
+                { id: orderId },
+            );
+            const paymentId = String(order.payments[0].id);
+            // The refund total is the price of the one unit refunded. The split is half to the payment and
+            // the rest to store credit.
+            const refundTotal: number = order.lines[0].proratedUnitPriceWithTax;
+            const paymentAmount = String(Math.floor(refundTotal / 2) / 100);
+            const storeCreditAmount = String((refundTotal - Math.floor(refundTotal / 2)) / 100);
+
+            await page.goto(`/orders/${orderId}`);
+            await expect(page.getByRole('button', { name: /Fulfill order/i })).toBeVisible({
+                timeout: 10_000,
+            });
+            await openRefundDialog(page);
+            const dialog = page.locator('[role="dialog"]');
+            await expect(dialog).toBeVisible({ timeout: 5_000 });
+
+            await dialog.getByTestId('refund-quantity').first().fill('1');
+            await dialog.getByRole('combobox').click();
+            await page.getByRole('option').first().click();
+
+            const paymentRow = dialog.getByTestId(`refund-target-payment-${paymentId}`);
+            const storeCreditRow = dialog.getByTestId('refund-target-store-credit');
+            await paymentRow.getByTestId('refund-target-amount').fill(paymentAmount);
+            await storeCreditRow.getByTestId('refund-target-amount').fill(storeCreditAmount);
+
+            // A refund made outside the dialog lowers the payment's refundable amount. React Query refetches
+            // the order when the window fires an `online` event after an `offline` event, which gives the
+            // dialog new payment data. The order detail page loads the order with `useSuspenseQuery`. React
+            // Query treats suspense data less than a second old as fresh and does not refetch it, so the
+            // test fires the events until the order is refetched.
+            const { refundOrder } = await client.gql(
+                `
+                mutation ($input: RefundOrderInput!) {
+                    refundOrder(input: $input) {
+                        ... on Refund { id }
+                        ... on ErrorResult { errorCode message }
+                    }
+                }
+            `,
+                { input: { paymentId, amount: 100, reason: 'e2e', lines: [] } },
+            );
+            expect(refundOrder.errorCode).toBeUndefined();
+            let orderRefetched = false;
+            page.on('response', response => {
+                if (isOrderDetailResponse(response)) {
+                    orderRefetched = true;
+                }
+            });
+            await expect
+                .poll(async () => {
+                    await page.evaluate(() => {
+                        window.dispatchEvent(new Event('offline'));
+                        window.dispatchEvent(new Event('online'));
+                    });
+                    return orderRefetched;
+                })
+                .toBe(true);
+            // The payment row shows the payment amount less the 1.00 refunded through the API.
+            const remainingBalance = new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+            }).format((order.payments[0].amount - 100) / 100);
+            await expect(paymentRow).toContainText(remainingBalance);
+
+            await expect(paymentRow.getByTestId('refund-target-amount')).toHaveValue(paymentAmount);
+            await expect(storeCreditRow.getByTestId('refund-target-amount')).toHaveValue(storeCreditAmount);
+            await expect(dialog.getByText(/Allocated refund amounts must equal refund total/i)).toHaveCount(
+                0,
+            );
+            await dialog.getByRole('button', { name: 'Cancel' }).click();
+        });
+
         test('should process a refund', async ({ page }) => {
             test.setTimeout(60_000);
 
@@ -1620,6 +1793,13 @@ async function createModifyingOrder(page: Page): Promise<string> {
     );
 
     return orderId;
+}
+
+/**
+ * Matches the response to the order detail page's `GetOrder` query.
+ */
+function isOrderDetailResponse(response: Response) {
+    return response.request().postData()?.includes('query GetOrder(') ?? false;
 }
 
 /**

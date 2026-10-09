@@ -26,13 +26,14 @@ import { AlertCircle } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useState } from 'react';
 import { uiConfig } from 'virtual:vendure-ui-config';
 
-import { RefundTarget, useRefundOrder } from '../hooks/use-refund-order.js';
+import { useRefundOrder } from '../hooks/use-refund-order.js';
 import { Order } from '../utils/order-types.js';
 import {
     getMaxRefundableQuantity,
     getRefundableQuantity,
     lineCanBeRefunded,
 } from '../utils/order-utils.js';
+import { RefundTarget } from '../utils/refund-utils.js';
 
 function RefundTargetRow({
     target,

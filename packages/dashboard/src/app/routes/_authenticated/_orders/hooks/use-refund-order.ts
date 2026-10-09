@@ -3,7 +3,7 @@ import { api } from '@/vdb/graphql/api.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 // Must match DEFAULT_REFUND_DESTINATION_CODE from @vendure/common/lib/shared-constants.
@@ -14,35 +14,14 @@ const DEFAULT_REFUND_DESTINATION_CODE = 'default';
 import { cancelOrderDocument, refundDestinationsDocument, refundOrderDocument } from '../orders.graphql.js';
 import { Order } from '../utils/order-types.js';
 import {
+    allocateRefundTotal,
     calculateRefundTotal,
     getOrderLineInputFromSelections,
     getRefundablePayments,
     LineSelection,
+    reconcileRefundTargets,
+    RefundTarget,
 } from '../utils/refund-utils.js';
-
-/**
- * A single row in the refund dialog: either one of the Order's Payments, or a refund destination
- * contributed by a plugin. Both draw their funds from a Payment, which is what limits how much
- * may be refunded.
- */
-export interface RefundTarget {
-    id: string;
-    label: string;
-    /** 'payment' = refund to the original payment method, 'destination' = a custom destination */
-    type: 'payment' | 'destination';
-    /** The Payment this target draws its refundable balance from. */
-    paymentId: string;
-    /** The Payments this target may draw from. A payment target may only ever use its own. */
-    eligiblePaymentIds: string[];
-    /** Set for destination targets only. */
-    destinationCode?: string;
-    amountToRefund: number;
-    selected: boolean;
-    /** Configuration collected by the destination's dashboard component, if it has one. */
-    args?: Record<string, any>;
-    icon?: React.ComponentType<{ className?: string }>;
-    component?: React.ComponentType<any>;
-}
 
 export interface UseRefundOrderReturn {
     // State
@@ -188,10 +167,15 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
         setRefundTargets(buildRefundTargets());
     }, [order, buildRefundTargets]);
 
-    // Rebuild targets when destinations load or payments change
+    // `buildRefundTargets` returns a rebuilt list when the refundDestinations query resolves and when an
+    // order refetch changes the order's payments. Either can happen while the dialog is open, after the
+    // administrator has allocated the refund. Replacing the targets with the rebuilt list would reset
+    // every amount to zero and select the first payment again.
     useEffect(() => {
-        setRefundTargets(buildRefundTargets());
-    }, [buildRefundTargets]);
+        setRefundTargets(prev =>
+            reconcileRefundTargets(prev, buildRefundTargets(), refundTotal, paymentCapacity),
+        );
+    }, [buildRefundTargets, refundTotal, paymentCapacity]);
 
     const totalRefundableAmount = useMemo(
         () => refundablePayments.reduce((sum, p) => sum + p.refundableAmount, 0),
@@ -209,39 +193,25 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
 
     const allocateToTargets = useCallback(
         (total: number) => {
-            setRefundTargets(prev => {
-                let remaining = total;
-                // Track how much of each Payment's balance has been handed out, so that a payment
-                // row and a destination drawing on the same Payment cannot together exceed it.
-                const paymentRemaining = { ...paymentCapacity };
-                // Payments are allocated before destinations so that, by default, a refund goes
-                // back the way it came unless the administrator says otherwise.
-                const selectedPayments = prev.filter(rt => rt.selected && rt.type === 'payment');
-                const selectedDestinations = prev.filter(rt => rt.selected && rt.type === 'destination');
-                const allocations = new Map<string, number>();
-                for (const target of [...selectedPayments, ...selectedDestinations]) {
-                    const available = paymentRemaining[target.paymentId] ?? 0;
-                    const amount = Math.max(0, Math.min(available, remaining));
-                    paymentRemaining[target.paymentId] = available - amount;
-                    remaining -= amount;
-                    allocations.set(target.id, amount);
-                }
-                return prev.map(target => ({
-                    ...target,
-                    amountToRefund: allocations.get(target.id) ?? 0,
-                }));
-            });
+            setRefundTargets(prev => allocateRefundTotal(prev, total, paymentCapacity));
         },
         [paymentCapacity],
     );
 
     const updateRefundTotal = useCallback(() => {
-        if (!manuallySetRefundTotal) {
-            const calculatedTotal = recalculateRefundTotal();
-            setRefundTotal(calculatedTotal);
-            allocateToTargets(calculatedTotal);
+        if (manuallySetRefundTotal) {
+            return;
         }
-    }, [manuallySetRefundTotal, recalculateRefundTotal, allocateToTargets]);
+        const calculatedTotal = recalculateRefundTotal();
+        // An order refetch gives this callback new dependencies without changing the total. Allocating
+        // again at that point would overwrite the amounts the administrator has typed. When a refetch
+        // makes the allocation invalid, `reconcileRefundTargets` allocates the total again instead.
+        if (calculatedTotal === refundTotal) {
+            return;
+        }
+        setRefundTotal(calculatedTotal);
+        allocateToTargets(calculatedTotal);
+    }, [manuallySetRefundTotal, recalculateRefundTotal, allocateToTargets, refundTotal]);
 
     useEffect(() => {
         updateRefundTotal();
