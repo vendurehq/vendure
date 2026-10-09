@@ -3,6 +3,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { tanstackRouter } from '@tanstack/router-plugin/vite';
 import react from '@vitejs/plugin-react';
 import { randomUUID } from 'node:crypto';
+import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'path';
 import { PluginOption } from 'vite';
@@ -400,6 +401,37 @@ export function vendureDashboardPlugin(options: VitePluginVendureDashboardOption
 
 /**
  * @description
+ * Walks up from `fromFile` until it finds a `package.json` whose `name` field
+ * matches `packageName`, and returns that directory. Falls back to `fallback`
+ * (a fixed-depth guess) if no matching `package.json` is found within a
+ * reasonable number of levels.
+ */
+export function findPackageRoot(fromFile: string, packageName: string, fallback: string): string {
+    let dir = path.dirname(fromFile);
+    for (let i = 0; i < 10; i++) {
+        const packageJsonPath = path.join(dir, 'package.json');
+        if (fs.existsSync(packageJsonPath)) {
+            try {
+                const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+                if (packageJson.name === packageName) {
+                    return dir;
+                }
+            } catch {
+                // Not a valid/readable package.json for this package, keep walking up.
+            }
+        }
+        const parentDir = path.dirname(dir);
+        if (parentDir === dir) {
+            break;
+        }
+        dir = parentDir;
+    }
+
+    return fallback;
+}
+
+/**
+ * @description
  * Returns the path to the root of the `@vendure/dashboard` package.
  */
 function getDashboardPackageRoot(): string {
@@ -407,7 +439,14 @@ function getDashboardPackageRoot(): string {
     // containing e.g. spaces resolve correctly, and handles Windows drive letters.
     const fileUrl = import.meta.resolve('@vendure/dashboard');
     const packagePath = fileUrl.startsWith('file:') ? fileURLToPath(fileUrl) : fileUrl;
-    return path.join(packagePath, '../../../');
+
+    // A fixed number of `..` segments assumes the resolved entry file is always
+    // the same number of directories below the package root, which only holds
+    // for this monorepo's own workspace-linked source. In other setups (e.g. an
+    // NX workspace, or any consumer resolving the published package) the entry
+    // file can sit at a different depth, so we look for the package's own
+    // package.json instead, falling back to the fixed-depth guess.
+    return findPackageRoot(packagePath, '@vendure/dashboard', path.join(packagePath, '../../../'));
 }
 
 /**
