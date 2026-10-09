@@ -6,7 +6,9 @@ import { ConsoleLinkHookRegistration } from './console-link-hook';
 export const consoleCommandDef: CliCommandDefinition = {
     name: 'console',
     description: 'Link this Vendure project to Vendure Console',
-    requiresProject: true,
+    // The action resolves workspace members and --project itself. The host gate
+    // only walks up from the working directory, so it would refuse at a workspace root.
+    requiresProject: false,
     arguments: [
         {
             name: 'action',

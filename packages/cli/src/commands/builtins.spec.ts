@@ -37,7 +37,7 @@ describe('builtinCommandDefs project gate', () => {
             .map(command => command.name)
             .sort();
 
-        expect(gated).toEqual(['add', 'build', 'console', 'migrate', 'schema', 'start']);
+        expect(gated).toEqual(['add', 'build', 'migrate', 'schema', 'start']);
     });
 
     /**
@@ -50,7 +50,7 @@ describe('builtinCommandDefs project gate', () => {
             .map(command => command.name)
             .sort();
 
-        expect(ungated).toEqual(['auth', 'codemod', 'dev', 'doctor', 'plugins']);
+        expect(ungated).toEqual(['auth', 'codemod', 'console', 'dev', 'doctor', 'plugins']);
     });
 
     /**
