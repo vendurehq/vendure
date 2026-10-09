@@ -2,7 +2,7 @@
 title: "DeduplicateTranslations"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/migration-utils/translation-deduplication.ts" sourceLine="86" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/migration-utils/translation-deduplication.ts" sourceLine="102" packageName="@vendure/core" />
 
 Removes duplicate rows from one or more translation tables, keeping only the most recently
 updated row per `(baseId, languageCode)` pair.
@@ -21,11 +21,13 @@ not just the 13 core tables shown below.
 the generated migration adds the unique constraint to one or more translation tables, it inserts
 a `deduplicateTranslations` call for exactly those tables at the top of `up()`, ahead of the DDL.
 Call it manually only if you write migrations by hand, or if you split the generated migration and
-need the de-duplication to run ahead of a constraint in a separate file. It accepts either a
-single table name or an array of table names, and is a no-op for tables without duplicates.
+need the de-duplication to run ahead of a constraint in a separate file. It accepts a single
+[TranslationTableToDeduplicate](/reference/typescript-api/migration/translation-table-to-deduplicate#translationtabletodeduplicate) or an array of them, and is a no-op for tables without
+duplicates.
 
-The generated migration looks like this on Postgres (constraint names are deterministic, so
-`vendure migrate generate` will produce these exact names):
+The example below shows the structure of a generated migration on Postgres. It is reformatted for
+readability, and its comments are hand-written. The constraint names are deterministic, so
+`vendure migrate generate` produces these exact names:
 
 ```ts
 import { MigrationInterface, QueryRunner } from 'typeorm';
@@ -82,8 +84,22 @@ constraint requires TypeORM to recreate the whole table, so the generated migrat
 contain a much longer sequence of statements for each table; the generated
 `deduplicateTranslations` call still precedes them.
 
+A custom TypeORM naming strategy in `dbConnectionOptions` changes the physical column names. For
+example, a snake_case strategy maps `languageCode` to `language_code`. In that case the generated
+migration passes the physical column names for each affected table. The generated call is a single
+line, shown here wrapped:
+
+```ts
+await deduplicateTranslations(queryRunner, [{ tableName: "product_translation",
+    columns: { baseId: "base_id", languageCode: "language_code", updatedAt: "updated_at" } }]);
+```
+
+A table given by name only uses the default column names `id`, `baseId`, `languageCode` and
+`updatedAt`. In the object form, each column missing from `columns` also uses its default name.
+`columns` must hold the physical column names as they are when the migration runs.
+
 ```ts title="Signature"
-function deduplicateTranslations(queryRunner: QueryRunner, translationTableNames: string | string[]): Promise<void>
+function deduplicateTranslations(queryRunner: QueryRunner, translationTables: TranslationTableToDeduplicate | TranslationTableToDeduplicate[]): Promise<void>
 ```
 Parameters
 
@@ -91,7 +107,7 @@ Parameters
 
 <MemberInfo kind="parameter" type={`QueryRunner`} />
 
-### translationTableNames
+### translationTables
 
-<MemberInfo kind="parameter" type={`string | string[]`} />
+<MemberInfo kind="parameter" type={`<a href='/reference/typescript-api/migration/translation-table-to-deduplicate#translationtabletodeduplicate'>TranslationTableToDeduplicate</a> | <a href='/reference/typescript-api/migration/translation-table-to-deduplicate#translationtabletodeduplicate'>TranslationTableToDeduplicate</a>[]`} />
 

@@ -1,0 +1,14 @@
+---
+title: "TranslationTableToDeduplicate"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/migration-utils/translation-deduplication.ts" sourceLine="144" packageName="@vendure/core" since="3.8.0" />
+
+A translation table for [deduplicateTranslations](/reference/typescript-api/migration/deduplicate-translations#deduplicatetranslations) to de-duplicate. Give the table name alone,
+or an object with the table name and the physical column names which differ from the entity
+property names.
+
+```ts title="Signature"
+type TranslationTableToDeduplicate = | string
+    | { tableName: string; columns?: Partial<TranslationTableColumnNames> }
+```

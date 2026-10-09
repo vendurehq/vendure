@@ -20,11 +20,13 @@ import { QueryRunner } from 'typeorm';
  * the generated migration adds the unique constraint to one or more translation tables, it inserts
  * a `deduplicateTranslations` call for exactly those tables at the top of `up()`, ahead of the DDL.
  * Call it manually only if you write migrations by hand, or if you split the generated migration and
- * need the de-duplication to run ahead of a constraint in a separate file. It accepts either a
- * single table name or an array of table names, and is a no-op for tables without duplicates.
+ * need the de-duplication to run ahead of a constraint in a separate file. It accepts a single
+ * {@link TranslationTableToDeduplicate} or an array of them, and is a no-op for tables without
+ * duplicates.
  *
- * The generated migration looks like this on Postgres (constraint names are deterministic, so
- * `vendure migrate generate` will produce these exact names):
+ * The example below shows the structure of a generated migration on Postgres. It is reformatted for
+ * readability, and its comments are hand-written. The constraint names are deterministic, so
+ * `vendure migrate generate` produces these exact names:
  *
  * ```ts
  * import { MigrationInterface, QueryRunner } from 'typeorm';
@@ -81,36 +83,111 @@ import { QueryRunner } from 'typeorm';
  * contain a much longer sequence of statements for each table; the generated
  * `deduplicateTranslations` call still precedes them.
  *
+ * A custom TypeORM naming strategy in `dbConnectionOptions` changes the physical column names. For
+ * example, a snake_case strategy maps `languageCode` to `language_code`. In that case the generated
+ * migration passes the physical column names for each affected table. The generated call is a single
+ * line, shown here wrapped:
+ *
+ * ```ts
+ * await deduplicateTranslations(queryRunner, [{ tableName: "product_translation",
+ *     columns: { baseId: "base_id", languageCode: "language_code", updatedAt: "updated_at" } }]);
+ * ```
+ *
+ * A table given by name only uses the default column names `id`, `baseId`, `languageCode` and
+ * `updatedAt`. In the object form, each column missing from `columns` also uses its default name.
+ * `columns` must hold the physical column names as they are when the migration runs.
+ *
  * @docsCategory migration
  */
 export async function deduplicateTranslations(
     queryRunner: QueryRunner,
-    translationTableNames: string | string[],
+    translationTables: TranslationTableToDeduplicate | TranslationTableToDeduplicate[],
 ): Promise<void> {
-    const tableNames = Array.isArray(translationTableNames) ? translationTableNames : [translationTableNames];
-    for (const tableName of tableNames) {
-        await deduplicateTranslationTable(queryRunner, tableName);
+    const tables = Array.isArray(translationTables) ? translationTables : [translationTables];
+    for (const table of tables) {
+        if (typeof table === 'string') {
+            await deduplicateTranslationTable(queryRunner, table, DEFAULT_TRANSLATION_TABLE_COLUMN_NAMES);
+        } else {
+            await deduplicateTranslationTable(queryRunner, table.tableName, {
+                ...DEFAULT_TRANSLATION_TABLE_COLUMN_NAMES,
+                ...table.columns,
+            });
+        }
     }
 }
+
+/**
+ * @description
+ * The physical column names which {@link deduplicateTranslations} uses to de-duplicate a translation
+ * table. The column names equal the entity property names unless a custom TypeORM naming strategy
+ * is configured.
+ *
+ * @docsCategory migration
+ * @since 3.8.0
+ */
+export interface TranslationTableColumnNames {
+    id: string;
+    baseId: string;
+    languageCode: string;
+    updatedAt: string;
+}
+
+/**
+ * @description
+ * A translation table for {@link deduplicateTranslations} to de-duplicate. Give the table name alone,
+ * or an object with the table name and the physical column names which differ from the entity
+ * property names.
+ *
+ * @docsCategory migration
+ * @since 3.8.0
+ */
+export type TranslationTableToDeduplicate =
+    | string
+    | { tableName: string; columns?: Partial<TranslationTableColumnNames> };
+
+export const DEFAULT_TRANSLATION_TABLE_COLUMN_NAMES: Readonly<TranslationTableColumnNames> = {
+    id: 'id',
+    baseId: 'baseId',
+    languageCode: 'languageCode',
+    updatedAt: 'updatedAt',
+};
 
 async function deduplicateTranslationTable(
     queryRunner: QueryRunner,
     translationTableName: string,
+    columns: TranslationTableColumnNames,
 ): Promise<void> {
-    const hasTable = await queryRunner.hasTable(translationTableName);
-    if (!hasTable) {
+    const tableSchema = await queryRunner.getTable(translationTableName);
+    if (!tableSchema) {
         console.log(`The ${translationTableName} table does not exist. Skipping de-duplication.`);
         return;
     }
+    // Checking the columns first gives one error which names the `columns` option. Without the
+    // check, each database raises its own SQL error.
+    const assertColumnsExist = (...columnNames: string[]) => {
+        const missing = columnNames.filter(name => !tableSchema.findColumnByName(name));
+        if (missing.length) {
+            throw new Error(
+                `Cannot de-duplicate the ${translationTableName} table: it has no column named ` +
+                    `${missing.map(name => `"${name}"`).join(' or ')}. Pass the physical column ` +
+                    'names in the "columns" option of deduplicateTranslations.',
+            );
+        }
+    };
+    assertColumnsExist(columns.baseId, columns.languageCode);
 
     const esc = (name: string) => queryRunner.connection.driver.escape(name);
     const table = esc(translationTableName);
+    const id = esc(columns.id);
+    const baseId = esc(columns.baseId);
+    const languageCode = esc(columns.languageCode);
+    const updatedAt = esc(columns.updatedAt);
 
     const duplicateCounts: Array<{ count: string | number }> = await queryRunner.query(
         `SELECT COUNT(*) AS ${esc('count')} FROM (
-            SELECT ${esc('baseId')}
+            SELECT ${baseId}
             FROM ${table}
-            GROUP BY ${esc('baseId')}, ${esc('languageCode')}
+            GROUP BY ${baseId}, ${languageCode}
             HAVING COUNT(*) > 1
          ) AS ${esc('duplicates')}`,
     );
@@ -119,19 +196,20 @@ async function deduplicateTranslationTable(
         console.log(`No duplicate rows found in ${translationTableName}. Skipping de-duplication.`);
         return;
     }
+    assertColumnsExist(columns.id, columns.updatedAt);
 
     // Keep the most recently updated row per (baseId, languageCode) and delete the rest.
     // The subquery is wrapped in a derived table so that MySQL, which does not allow a table
     // to be referenced directly in the subquery of a DELETE against that same table, can run it.
     await queryRunner.query(
         `DELETE FROM ${table}
-         WHERE ${esc('id')} IN (
-             SELECT ${esc('id')} FROM (
+         WHERE ${id} IN (
+             SELECT ${id} FROM (
                  SELECT
-                     ${esc('id')},
+                     ${id},
                      ROW_NUMBER() OVER (
-                         PARTITION BY ${esc('baseId')}, ${esc('languageCode')}
-                         ORDER BY ${esc('updatedAt')} DESC, ${esc('id')} DESC
+                         PARTITION BY ${baseId}, ${languageCode}
+                         ORDER BY ${updatedAt} DESC, ${id} DESC
                      ) AS ${esc('rowNumber')}
                  FROM ${table}
              ) AS ${esc('ranked')}

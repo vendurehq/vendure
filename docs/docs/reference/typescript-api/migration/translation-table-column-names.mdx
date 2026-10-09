@@ -1,0 +1,44 @@
+---
+title: "TranslationTableColumnNames"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/migration-utils/translation-deduplication.ts" sourceLine="128" packageName="@vendure/core" since="3.8.0" />
+
+The physical column names which [deduplicateTranslations](/reference/typescript-api/migration/deduplicate-translations#deduplicatetranslations) uses to de-duplicate a translation
+table. The column names equal the entity property names unless a custom TypeORM naming strategy
+is configured.
+
+```ts title="Signature"
+interface TranslationTableColumnNames {
+    id: string;
+    baseId: string;
+    languageCode: string;
+    updatedAt: string;
+}
+```
+
+<div className="members-wrapper">
+
+### id
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### baseId
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### languageCode
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### updatedAt
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+
+
+</div>

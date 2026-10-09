@@ -12,6 +12,11 @@ import { resetConfig } from './config/config-helpers';
 import { VendureConfig } from './config/vendure-config';
 import { getDatabaseType } from './connection/database-type';
 import { Product } from './entity/product/product.entity';
+import {
+    DEFAULT_TRANSLATION_TABLE_COLUMN_NAMES,
+    TranslationTableColumnNames,
+    TranslationTableToDeduplicate,
+} from './migration-utils/translation-deduplication';
 
 /**
  * @description
@@ -554,28 +559,50 @@ function formatMigrationQuery(query: string, parameters: any[] | undefined, isMy
     return `        await queryRunner.query(${quote}${escaped}${quote}, ${JSON.stringify(parameters)});`;
 }
 
-const TRANSLATION_UNIQUE_COLUMNS = ['languageCode', 'baseId'];
-
 /**
- * Returns the names of the translation tables (core or plugin-defined) to which the given
- * schema-builder `up` queries add the `(languageCode, baseId)` unique constraint — i.e. the tables
- * that need de-duplicating before this migration runs.
+ * Returns the translation tables (core or plugin-defined) to which the given schema-builder `up`
+ * queries add the `(languageCode, baseId)` unique constraint. These are the tables to de-duplicate
+ * before the migration runs.
+ *
+ * A translation entity is one whose metadata has a `languageCode` column and a `base` relation. The
+ * constraint is matched against the physical names of the `languageCode` column and the `base` join
+ * column. With a custom naming strategy such as snake_case, the physical names differ from the
+ * property names. For such a table, the result holds the table name and the non-default column
+ * names, so the generated `deduplicateTranslations` call uses those names.
+ *
+ * On SQLite, TypeORM adds or changes a column by recreating the table. The recreated table repeats
+ * every existing constraint. So when TypeORM recreates a translation table which already has the
+ * constraint, this function returns that table too. The table cannot hold duplicates, so the extra
+ * `deduplicateTranslations` call does nothing.
  *
  * Exported for testing.
  */
 export function getTranslationTablesGainingUniqueConstraint(
     entityMetadatas: EntityMetadata[],
     upQueries: string[],
-): string[] {
-    return entityMetadatas
-        .filter(isTranslationEntity)
-        .map(metadata => metadata.tableName)
-        .filter(tableName => upQueries.some(query => addsTranslationUniqueConstraint(query, tableName)));
-}
-
-function isTranslationEntity(metadata: EntityMetadata): boolean {
-    const columnNames = metadata.columns.map(column => column.databaseName);
-    return TRANSLATION_UNIQUE_COLUMNS.every(name => columnNames.includes(name));
+): TranslationTableToDeduplicate[] {
+    const tables: TranslationTableToDeduplicate[] = [];
+    for (const metadata of entityMetadatas) {
+        const languageCode = metadata.findColumnWithPropertyName('languageCode')?.databaseName;
+        const baseId = metadata.findRelationWithPropertyPath('base')?.joinColumns[0]?.databaseName;
+        if (
+            languageCode &&
+            baseId &&
+            upQueries.some(query =>
+                addsTranslationUniqueConstraint(query, metadata.tableName, languageCode, baseId),
+            )
+        ) {
+            tables.push(
+                toDeduplicationTarget(metadata.tableName, {
+                    id: metadata.findColumnWithPropertyName('id')?.databaseName,
+                    baseId,
+                    languageCode,
+                    updatedAt: metadata.findColumnWithPropertyName('updatedAt')?.databaseName,
+                }),
+            );
+        }
+    }
+    return tables;
 }
 
 /**
@@ -585,15 +612,49 @@ function isTranslationEntity(metadata: EntityMetadata): boolean {
  * `` ALTER TABLE `t` ADD UNIQUE INDEX `IDX_x` (`languageCode`, `baseId`) ``, and SQLite recreates the
  * whole table as `CREATE TABLE "temporary_t" (... CONSTRAINT "UQ_x" UNIQUE ("languageCode", "baseId"))`.
  */
-function addsTranslationUniqueConstraint(query: string, tableName: string): boolean {
+function addsTranslationUniqueConstraint(
+    query: string,
+    tableName: string,
+    languageCodeColumn: string,
+    baseIdColumn: string,
+): boolean {
     if (!/\bUNIQUE\b/i.test(query)) {
         return false;
     }
     const identifiers = new Set(Array.from(query.matchAll(/["`]([^"`]+)["`]/g), match => match[1]));
     return (
         (identifiers.has(tableName) || identifiers.has(`temporary_${tableName}`)) &&
-        TRANSLATION_UNIQUE_COLUMNS.every(name => identifiers.has(name))
+        identifiers.has(languageCodeColumn) &&
+        identifiers.has(baseIdColumn)
     );
+}
+
+/**
+ * Returns the table name alone when every column uses its default name, so the generated call reads
+ * `['product_translation']`. Otherwise returns the table name and the column names which differ
+ * from the defaults.
+ */
+function toDeduplicationTarget(
+    tableName: string,
+    columns: Partial<TranslationTableColumnNames>,
+): TranslationTableToDeduplicate {
+    const customColumns: Partial<TranslationTableColumnNames> = {};
+    for (const key of Object.keys(columns) as Array<keyof TranslationTableColumnNames>) {
+        if (columns[key] !== undefined && columns[key] !== DEFAULT_TRANSLATION_TABLE_COLUMN_NAMES[key]) {
+            customColumns[key] = columns[key];
+        }
+    }
+    return Object.keys(customColumns).length ? { tableName, columns: customColumns } : tableName;
+}
+
+function formatDeduplicationTarget(table: TranslationTableToDeduplicate): string {
+    if (typeof table === 'string') {
+        return JSON.stringify(table);
+    }
+    const columns = Object.entries(table.columns ?? {})
+        .map(([key, name]) => `${key}: ${JSON.stringify(name)}`)
+        .join(', ');
+    return `{ tableName: ${JSON.stringify(table.tableName)}, columns: { ${columns} } }`;
 }
 
 /**
@@ -606,7 +667,7 @@ export function getTemplate(
     timestamp: number,
     upSqls: string[],
     downSqls: string[],
-    translationTablesToDeduplicate: string[] = [],
+    translationTablesToDeduplicate: TranslationTableToDeduplicate[] = [],
 ): string {
     const deduplicateImport = translationTablesToDeduplicate.length
         ? `import { deduplicateTranslations } from "@vendure/core";
@@ -617,7 +678,7 @@ export function getTemplate(
         // unique constraint existed, keeping the most recently updated row of each pair. This must
         // run before the constraint is created below. See https://github.com/vendurehq/vendure/issues/4884
         await deduplicateTranslations(queryRunner, [${translationTablesToDeduplicate
-            .map(table => `'${table}'`)
+            .map(formatDeduplicationTarget)
             .join(', ')}]);
 `
         : '';
