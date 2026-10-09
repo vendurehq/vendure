@@ -1,10 +1,19 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { OnModuleInit } from '@nestjs/common';
 import { ErrorCode, HistoryEntryType } from '@vendure/common/lib/generated-types';
 import { pick } from '@vendure/common/lib/pick';
-import { mergeConfig, NativeAuthenticationStrategy } from '@vendure/core';
+import {
+    AccountVerifiedEvent,
+    CustomerEvent,
+    EventBus,
+    EventBusModule,
+    mergeConfig,
+    NativeAuthenticationStrategy,
+    VendurePlugin,
+} from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
 import path from 'path';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { Mock, afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
@@ -32,6 +41,23 @@ import {
 import { registerAccountDocument } from './graphql/shop-definitions';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 
+let customerEventFn: Mock;
+let accountVerifiedEventFn: Mock;
+
+@VendurePlugin({ imports: [EventBusModule] })
+class TestCustomerEventsPlugin implements OnModuleInit {
+    constructor(private eventBus: EventBus) {}
+
+    onModuleInit() {
+        this.eventBus.ofType(CustomerEvent).subscribe(event => {
+            customerEventFn?.(event);
+        });
+        this.eventBus.ofType(AccountVerifiedEvent).subscribe(event => {
+            accountVerifiedEventFn?.(event);
+        });
+    }
+}
+
 type CurrentUserFragmentType = FragmentOf<typeof currentUserFragment>;
 const currentUserGuard: ErrorResultGuard<CurrentUserFragmentType> = createErrorResultGuard(
     input => input.identifier != null,
@@ -45,6 +71,7 @@ const customerGuard: ErrorResultGuard<CustomerFragmentType> = createErrorResultG
 describe('AuthenticationStrategy', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
+            plugins: [TestCustomerEventsPlugin as any],
             authOptions: {
                 shopAuthenticationStrategy: [
                     new NativeAuthenticationStrategy(),
@@ -78,6 +105,11 @@ describe('AuthenticationStrategy', () => {
             lastName: 'Liu',
         };
         let newCustomerId: string;
+
+        beforeEach(() => {
+            customerEventFn = vi.fn();
+            accountVerifiedEventFn = vi.fn();
+        });
 
         it('fails with a bad token', async () => {
             const { authenticate } = await shopClient.query(authenticateDocument, {
@@ -130,6 +162,23 @@ describe('AuthenticationStrategy', () => {
                 userData.email,
             ]);
             newCustomerId = after.items[1].id;
+
+            expect(customerEventFn).toHaveBeenCalledTimes(1);
+            expect(customerEventFn).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    type: 'created',
+                    entity: expect.objectContaining({ emailAddress: userData.email }),
+                    input: expect.objectContaining({
+                        strategy: 'test_strategy',
+                        externalIdentifier: VALID_AUTH_TOKEN,
+                        verified: true,
+                    }),
+                }),
+            );
+            expect(accountVerifiedEventFn).toHaveBeenCalledTimes(1);
+            expect(accountVerifiedEventFn).toHaveBeenCalledWith(
+                expect.objectContaining({ customer: customerEventFn.mock.calls[0][0].entity }),
+            );
         });
 
         it('creates customer history entry', async () => {
@@ -223,6 +272,7 @@ describe('AuthenticationStrategy', () => {
 
             const { customers: customers2 } = await adminClient.query(getCustomersDocument);
             expect(customers2.items).toEqual(EXPECTED_CUSTOMERS);
+            expect(customerEventFn).not.toHaveBeenCalled();
 
             await shopClient.asAnonymousUser();
 
