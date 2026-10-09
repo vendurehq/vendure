@@ -1,5 +1,5 @@
 import { ApolloServerPlugin, GraphQLRequestListener } from '@apollo/server';
-import { GraphQLError } from 'graphql/error/index';
+import { GraphQLFormattedError } from 'graphql';
 
 /**
  * @description
@@ -10,11 +10,14 @@ export class HideValidationErrorsPlugin implements ApolloServerPlugin {
     async requestDidStart(): Promise<GraphQLRequestListener<any>> {
         return {
             willSendResponse: async requestContext => {
-                const { errors } = requestContext;
-                if (errors) {
-                    (requestContext.response as any).errors = errors.map(err => {
+                const { body } = requestContext.response;
+                if (body.kind === 'single' && body.singleResult.errors) {
+                    body.singleResult.errors = body.singleResult.errors.map((err): GraphQLFormattedError => {
                         if (err.message.includes('Did you mean')) {
-                            return new GraphQLError('Invalid request');
+                            const code = err.extensions?.code;
+                            return code
+                                ? { message: 'Invalid request', extensions: { code } }
+                                : { message: 'Invalid request' };
                         } else {
                             return err;
                         }
