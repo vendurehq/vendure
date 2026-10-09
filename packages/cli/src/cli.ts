@@ -4,6 +4,7 @@ import { Command } from 'commander';
 import pc from 'picocolors';
 
 import { builtinCommandDefs } from './commands/builtins';
+import { consoleCommandDef } from './commands/console/command';
 import { devCommandDef } from './commands/dev/command';
 import { buildOptionFlags } from './shared/cli-command-options';
 import { registerCommands, styleHelpTitle } from './shared/command-registry';
@@ -58,9 +59,12 @@ Y88  88P 88888888 888  888 888  888 888  888 888    88888888
     // Select the dev project before loading plugins that extend its options and action.
     // Parse the full command only after those plugins have been registered.
     const pluginOptions: ResolveCliPluginsOptions = {};
-    if (process.argv[2] === 'dev') {
+    const projectSelectingCommand = [devCommandDef, consoleCommandDef].find(
+        def => def.name === process.argv[2],
+    );
+    if (projectSelectingCommand) {
         const selection = new Command().allowUnknownOption().exitOverride();
-        for (const option of devCommandDef.options ?? []) {
+        for (const option of projectSelectingCommand.options ?? []) {
             selection.option(buildOptionFlags(option), option.description);
         }
         selection.parseOptions(process.argv.slice(3));

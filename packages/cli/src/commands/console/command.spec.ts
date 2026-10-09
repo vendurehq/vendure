@@ -72,12 +72,13 @@ describe('console command at a workspace root', () => {
     }
 
     it.each([
-        ['without options', (_server: string) => []],
-        ['with --project', (_server: string) => ['--project', 'apps/server']],
+        ['without options', []],
+        ['with --project', ['--project', 'apps/server']],
     ])('finds apps/server %s', async (_label, args) => {
+        // apps/storefront has no Vendure dependency, so discovery finds one project.
         const { root, server } = scaffold();
 
-        const run = await runStatus(root, args(server));
+        const run = await runStatus(root, args);
 
         expect(run.stderr).not.toContain('must be run from a Vendure project directory');
         expect(run.exitCode).toBe(0);
