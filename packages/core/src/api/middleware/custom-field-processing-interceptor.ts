@@ -307,7 +307,9 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
      * the database. When the API redacts a secret on read, the placeholder is what an edit form
      * submits back; if it were persisted, the encryption transformer would encrypt the literal
      * placeholder and destroy the stored secret. Placeholders are therefore stripped (leaving the
-     * stored value untouched), and a placeholder from a different Vendure version is rejected.
+     * stored value untouched), and a placeholder from a different Vendure version is rejected. A
+     * placeholder at a create position is also rejected, because a new entity has no stored secret to
+     * keep. {@link isCreatePosition} decides which positions are creates.
      *
      * The locations of custom fields are discovered from the schema — any value sitting at a position
      * typed as a `*CustomFieldsInput` type is a custom-fields object — so this works for every input
@@ -325,20 +327,34 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
         }
         for (const arg of fieldDef.args) {
             if (arg.name in args) {
-                // On a create there is no stored value to preserve, so the placeholder is rejected
-                // rather than stripped. Only the generated `Create<Entity>Input` types and
-                // `RegisterCustomerInput` count as creates. A create through any other input type has
-                // the placeholder stripped (#5514).
-                const isCreate = this.createInputsWithCustomFields.has(getNamedType(arg.type).name);
                 const parent = { name: fieldDef.name, value: args };
-                this.walkInputObjects(args[arg.name], arg.type, parent, (value, type) => {
+                this.walkInputObjects(args[arg.name], arg.type, parent, (value, type, valueParent) => {
                     const secretFields = secretFieldsByInputType.get(type.name);
                     if (secretFields) {
+                        const isCreate = this.isCreatePosition(type.name, fieldDef.name, valueParent);
                         this.stripSecretPlaceholdersFromObject(value, secretFields, isCreate);
                     }
                 });
             }
         }
+    }
+
+    /**
+     * Decides whether a custom-fields object of the given `*CustomFieldsInput` type belongs to a new
+     * entity. `OrderLineCustomFieldsInput` counts as a create only where {@link getOrderLinePosition}
+     * returns `'add'`. Any other type counts as an update only if it is an
+     * `Update<Entity>CustomFieldsInput`. A plugin create which takes an `Update<Entity>CustomFieldsInput`
+     * is therefore treated as an update, and its placeholders are stripped.
+     */
+    private isCreatePosition(
+        customFieldsInputTypeName: string,
+        mutationName: string,
+        parent: InputParent,
+    ): boolean {
+        if (customFieldsInputTypeName === ORDER_LINE_CUSTOM_FIELDS_INPUT) {
+            return getOrderLinePosition(mutationName, parent) === 'add';
+        }
+        return !customFieldsInputTypeName.startsWith('Update');
     }
 
     /**
