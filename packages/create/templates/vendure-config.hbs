@@ -95,9 +95,23 @@ export const config: VendureConfig = {
         DefaultJobQueuePlugin.init({ useDatabaseForBuffer: true }),
         DefaultSearchPlugin.init({ bufferUpdates: false, indexStockStatus: true }),
         EmailPlugin.init({
-            devMode: true,
-            outputPath: path.join(__dirname, '../static/email/test-emails'),
-            route: 'mailbox',
+            // In dev mode, emails are written to disk instead of being sent, and the dev mailbox
+            // at /mailbox lists and serves all of them without authentication. It is only
+            // enabled when APP_ENV is "dev".
+            ...(IS_DEV ? {
+                devMode: true,
+                outputPath: path.join(__dirname, '../static/email/test-emails'),
+                route: 'mailbox',
+            } : {
+                // No email transport is configured yet, so emails are written to this directory
+                // and not sent. Replace this with an SMTP, SES or other transport before you go
+                // live: https://docs.vendure.io/reference/core-plugins/email-plugin/
+                // This is the same directory that dev mode uses. Nothing serves it over HTTP.
+                transport: {
+                    type: 'file',
+                    outputPath: path.join(__dirname, '../static/email/test-emails'),
+                },
+            }),
             handlers: defaultEmailHandlers,
             templateLoader: new FileBasedTemplateLoader(path.join(__dirname, '../static/email/templates')),
             globalTemplateVars: {

@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { MiddlewareConsumer } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DEFAULT_CHANNEL_CODE } from '@vendure/common/lib/shared-constants';
@@ -12,6 +14,7 @@ import {
     Order,
     OrderStateTransitionEvent,
     PluginCommonModule,
+    ProcessContext,
     RequestContext,
     VendureEvent,
 } from '@vendure/core';
@@ -22,6 +25,7 @@ import path from 'path';
 import { Readable } from 'stream';
 import { afterEach, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 
+import { getDevModeProductionWarning } from './common';
 import { EmailProcessor } from './email-processor';
 import { EmailEventListener } from './event-listener';
 import { orderConfirmationHandler } from './handler/default-email-handlers';
@@ -35,6 +39,7 @@ import {
     Partial as EmailPartial,
     EmailPluginOptions,
     EmailTransportOptions,
+    InitializedEmailPluginOptions,
     LoadTemplateInput,
 } from './types';
 
@@ -1075,6 +1080,68 @@ describe('EmailPlugin', () => {
             });
 
             expect(result).toContain('German body');
+        });
+    });
+
+    describe('devMode production warning', () => {
+        const devModeOptions = {
+            devMode: true,
+            route: 'mailbox',
+            outputPath: path.join(__dirname, '../test-emails'),
+            handlers: [],
+            templateLoader: new FileBasedTemplateLoader(path.join(__dirname, '../test-templates')),
+        } as unknown as InitializedEmailPluginOptions;
+
+        function configureServerPlugin(options: InitializedEmailPluginOptions) {
+            Logger.useLogger(testingLogger);
+            testingLogger.warnSpy.mockClear();
+            const plugin = new EmailPlugin(
+                {} as EventBus,
+                {} as ModuleRef,
+                {} as EmailProcessor,
+                {} as JobQueueService,
+                { isServer: true } as ProcessContext,
+                options,
+            );
+            const consumer = { apply: () => ({ forRoutes: () => consumer }) };
+            plugin.configure(consumer as unknown as MiddlewareConsumer);
+        }
+
+        afterEach(() => {
+            vi.unstubAllEnvs();
+        });
+
+        it('warns at startup when devMode is enabled and NODE_ENV is production', () => {
+            vi.stubEnv('NODE_ENV', 'production');
+
+            configureServerPlugin(devModeOptions);
+
+            expect(testingLogger.warnSpy).toHaveBeenCalledTimes(1);
+            const [message, context] = testingLogger.warnSpy.mock.calls[0];
+            expect(context).toBe('EmailPlugin');
+            expect(message).toContain('dev mailbox at route "mailbox" has no authentication');
+            expect(message).toContain('/generate/:type/:languageCode');
+            expect(message).toContain('are not sent');
+        });
+
+        it('does not warn when devMode is enabled outside production', () => {
+            vi.stubEnv('NODE_ENV', 'development');
+
+            configureServerPlugin(devModeOptions);
+
+            expect(testingLogger.warnSpy).not.toHaveBeenCalled();
+        });
+
+        it('does not warn in production when a transport is configured instead of devMode', () => {
+            expect(
+                getDevModeProductionWarning(
+                    {
+                        handlers: [],
+                        transport: { type: 'smtp', host: 'smtp.example.com' },
+                    },
+                    { nodeEnv: 'production' },
+                ),
+            ).toBeUndefined();
         });
     });
 });

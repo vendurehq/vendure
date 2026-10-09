@@ -4,3 +4,6 @@ admin-ui
 static/assets
 static/email/test-emails
 .vendure/
+.env
+.env.*
+!.env.example

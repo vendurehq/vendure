@@ -434,6 +434,9 @@ export async function createVendureApp(
             .then(() => fs.ensureDir(path.join(serverRoot, 'src/plugins')))
             .then(() => fs.copyFile(assetPath('gitignore.template'), path.join(serverRoot, '.gitignore')))
             .then(() =>
+                fs.copyFile(assetPath('dockerignore.template'), path.join(serverRoot, '.dockerignore')),
+            )
+            .then(() =>
                 fs.copyFile(assetPath('tsconfig.template.json'), path.join(serverRoot, 'tsconfig.json')),
             )
             .then(() =>
