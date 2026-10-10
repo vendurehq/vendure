@@ -748,6 +748,11 @@ msgstr "Nuovo valore attributo"
 msgid "Successfully updated channel"
 msgstr "Canale aggiornato con successo"
 
+#. placeholder {0}: lines.length
+#: src/app/routes/_authenticated/_shipping-methods/components/test-order-builder.tsx
+msgid "{0, plural, one {# item} other {# items}}"
+msgstr "{0, plural, one {# articolo} other {# articoli}}"
+
 #: src/lib/components/shared/history-timeline/history-timeline-with-grouping.tsx
 msgid "Show less"
 msgstr "Mostra meno"
@@ -848,11 +853,9 @@ msgstr "Sei sicuro di voler eliminare questa bozza di ordine?"
 msgid "Fulfillment created"
 msgstr "Evasione creata"
 
-#. placeholder {0}: testResult.length
-#. placeholder {1}: testResult.length !== 1 ? 's' : ''
 #: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-result.tsx
-msgid "Found {0} eligible shipping method{1}"
-msgstr "Trovato/i {0} metodo/i di spedizione idoneo/i"
+#~ msgid "Found {0} eligible shipping method{1}"
+#~ msgstr "Trovato/i {0} metodo/i di spedizione idoneo/i"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 #: src/lib/components/shared/asset/asset-properties.tsx
@@ -1170,6 +1173,11 @@ msgstr "API Keys"
 #: src/app/routes/_authenticated/_products/components/product-option-select.tsx
 msgid "Search {name}..."
 msgstr "Cerca {name}..."
+
+#. placeholder {0}: selection.length
+#: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
+msgid "{0, plural, one {Are you sure you want to remove # country from this zone?} other {Are you sure you want to remove # countries from this zone?}}"
+msgstr "{0, plural, one {Sei sicuro di voler rimuovere # paese da questa zona?} other {Sei sicuro di voler rimuovere # paesi da questa zona?}}"
 
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx
 msgid "Edit asset"
@@ -1525,6 +1533,11 @@ msgstr "Ultimi ordini"
 msgid "+ {leftOver} more"
 msgstr "+ {leftOver} altri"
 
+#. placeholder {0}: selection.length
+#: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
+msgid "{0, plural, one {Removed # country from zone} other {Removed # countries from zone}}"
+msgstr "{0, plural, one {# paese rimosso dalla zona} other {# paesi rimossi dalla zona}}"
+
 #: src/lib/components/shared/customer-address-form.tsx
 msgid "Use as the default billing address"
 msgstr "Usa come indirizzo di fatturazione predefinito"
@@ -1584,6 +1597,10 @@ msgstr "Normale"
 msgid "Filters"
 msgstr "Filtri"
 
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+msgid "selected collection"
+msgstr "collezione selezionata"
+
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts
 msgid "Customer Groups"
@@ -1631,10 +1648,9 @@ msgstr "Creato"
 msgid "Loading addresses..."
 msgstr "Caricamento indirizzi..."
 
-#. placeholder {0}: collectionsToMove.length === 1 ? 'this collection' : `${collectionsToMove.length} collections`
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
-msgid "Select a target collection to move {0} to."
-msgstr "Seleziona una collezione di destinazione in cui spostare {0}."
+#~ msgid "Select a target collection to move {0} to."
+#~ msgstr "Seleziona una collezione di destinazione in cui spostare {0}."
 
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
@@ -1859,6 +1875,11 @@ msgstr "Impossibile aggiornare categoria fiscale"
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Refund settled successfully"
 msgstr "Rimborso completato con successo"
+
+#. placeholder {0}: collectionsToMove.length
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+msgid "{0, plural, =1 {Select a target collection to move this collection to.} other {Select a target collection to move # collections to.}}"
+msgstr "{0, plural, =1 {Seleziona una collezione di destinazione in cui spostare questa collezione.} other {Seleziona una collezione di destinazione in cui spostare # collezioni.}}"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
@@ -2805,6 +2826,10 @@ msgstr "Ricalcola spedizione"
 #~ msgid "Select which options should apply to the existing variant \"{0}\""
 #~ msgstr "Seleziona quali opzioni devono applicarsi alla variante esistente \"{0}\""
 
+#: src/lib/components/shared/asset/asset-gallery.tsx
+msgid "{totalItems, plural, one {# asset found} other {# assets found}}"
+msgstr "{totalItems, plural, one {# risorsa trovata} other {# risorse trovate}}"
+
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx
 #: src/app/routes/_authenticated/_assets/assets.tsx
 #: src/app/routes/_authenticated/_assets/assets.tsx
@@ -2957,6 +2982,11 @@ msgstr "Valori attributo aggiornati con successo per {entityIdsLength} {entityTy
 msgid "Failed to remove customer from group"
 msgstr "Impossibile rimuovere cliente dal gruppo"
 
+#. placeholder {0}: testResult.length
+#: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-result.tsx
+msgid "{0, plural, one {Found # eligible shipping method} other {Found # eligible shipping methods}}"
+msgstr "{0, plural, one {Trovato # metodo di spedizione idoneo} other {Trovati # metodi di spedizione idonei}}"
+
 #: src/lib/components/layout/nav-user.tsx
 msgctxt "theme"
 msgid "System"
@@ -3072,11 +3102,9 @@ msgstr "Ieri"
 #~ msgid "Option name"
 #~ msgstr "Nome opzione"
 
-#. placeholder {0}: selection.length
-#. placeholder {1}: selection.length === 1 ? 'country' : 'countries'
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
-msgid "Are you sure you want to remove {0} {1} from this zone?"
-msgstr "Sei sicuro di voler rimuovere {0} {1} da questa zona?"
+#~ msgid "Are you sure you want to remove {0} {1} from this zone?"
+#~ msgstr "Sei sicuro di voler rimuovere {0} {1} da questa zona?"
 
 #. placeholder {0}: addedSurcharges.length
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx
@@ -3400,10 +3428,9 @@ msgstr "Gestisci viste globali"
 msgid "Processing..."
 msgstr "Elaborazione in corso..."
 
-#. placeholder {0}: totalItems === 1 ? 'asset' : 'assets'
 #: src/lib/components/shared/asset/asset-gallery.tsx
-msgid "{totalItems} {0} found"
-msgstr "{totalItems} {0} trovati"
+#~ msgid "{totalItems} {0} found"
+#~ msgstr "{totalItems} {0} trovati"
 
 #: src/lib/components/date-range-picker.tsx
 msgid "Select date range"
@@ -4019,12 +4046,9 @@ msgstr "Seleziona stato successivo"
 msgid "No alerts"
 msgstr "Nessun avviso"
 
-#. placeholder {0}: collectionsToMove.length
-#. placeholder {1}: collectionsToMove.length === 1 ? '' : 's'
-#. placeholder {2}: selectedCollectionId === topLevelCollectionId ? 'top level' : collectionNameCache.current.get(selectedCollectionId) || 'selected collection'
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
-msgid "Moving {0} collection{1} into {2}"
-msgstr "Spostamento di {0} collezione/i in {2}"
+#~ msgid "Moving {0} collection{1} into {2}"
+#~ msgstr "Spostamento di {0} collezione/i in {2}"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-sheet.tsx
 #: src/app/routes/_authenticated/_shipping-methods/components/test-single-shipping-method-sheet.tsx
@@ -4408,11 +4432,9 @@ msgstr "Testa metodi di spedizione"
 msgid "Payment settled successfully"
 msgstr "Pagamento completato con successo"
 
-#. placeholder {0}: selection.length
-#. placeholder {1}: selection.length === 1 ? 'country' : 'countries'
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
-msgid "Removed {0} {1} from zone"
-msgstr "{0} {1} rimossi dalla zona"
+#~ msgid "Removed {0} {1} from zone"
+#~ msgstr "{0} {1} rimossi dalla zona"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 msgid "Enable"
@@ -5483,6 +5505,10 @@ msgstr "IVA escl.:"
 msgid "Successfully added option value"
 msgstr "Valore opzione aggiunto con successo"
 
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+msgid "top level"
+msgstr "livello superiore"
+
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "Collection moved to new parent"
 msgstr "Collezione spostata al nuovo genitore"
@@ -6283,6 +6309,11 @@ msgstr "Impossibile aggiungere cliente al gruppo"
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Manage variants"
 msgstr "Gestisci varianti"
+
+#. placeholder {0}: collectionsToMove.length
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+msgid "{0, plural, one {Moving # collection into {destination}} other {Moving # collections into {destination}}}"
+msgstr "{0, plural, one {Spostamento di # collezione in: {destination}} other {Spostamento di # collezioni in: {destination}}}"
 
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "Applied global view \"{viewName}\""

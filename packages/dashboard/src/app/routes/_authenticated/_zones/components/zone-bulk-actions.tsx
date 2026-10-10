@@ -6,7 +6,8 @@ import { TrashIcon } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/vdb/graphql/api.js';
 import { toast } from 'sonner';
-import { Trans, useLingui } from '@lingui/react/macro';
+import { plural } from '@lingui/core/macro';
+import { Plural, Trans, useLingui } from '@lingui/react/macro';
 
 export const DeleteZonesBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
     return (
@@ -28,7 +29,12 @@ export function removeCountryFromZoneBulkAction(zoneId: string): BulkActionCompo
         const { mutate } = useMutation({
             mutationFn: api.mutate(removeCountryFromZoneMutation),
             onSuccess: () => {
-                toast.success(t`Removed ${selection.length} ${selection.length === 1 ? 'country' : 'countries'} from zone`);
+                toast.success(
+                    plural(selection.length, {
+                        one: 'Removed # country from zone',
+                        other: 'Removed # countries from zone',
+                    }),
+                );
                 queryClient.invalidateQueries({ queryKey: ['zone', zoneId] });
                 table.resetRowSelection();
             },
@@ -48,9 +54,11 @@ export function removeCountryFromZoneBulkAction(zoneId: string): BulkActionCompo
                 }}
                 label={<Trans>Remove from zone</Trans>}
                 confirmationText={
-                    <Trans>
-                        Are you sure you want to remove {selection.length} {selection.length === 1 ? 'country' : 'countries'} from this zone?
-                    </Trans>
+                    <Plural
+                        value={selection.length}
+                        one="Are you sure you want to remove # country from this zone?"
+                        other="Are you sure you want to remove # countries from this zone?"
+                    />
                 }
                 icon={TrashIcon}
             />

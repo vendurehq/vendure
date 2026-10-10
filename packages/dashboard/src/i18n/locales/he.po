@@ -748,6 +748,11 @@ msgstr "ערך מאפיין חדש"
 msgid "Successfully updated channel"
 msgstr "הערוץ עודכן בהצלחה"
 
+#. placeholder {0}: lines.length
+#: src/app/routes/_authenticated/_shipping-methods/components/test-order-builder.tsx
+msgid "{0, plural, one {# item} other {# items}}"
+msgstr "{0, plural, one {פריט אחד} two {# פריטים} other {# פריטים}}"
+
 #: src/lib/components/shared/history-timeline/history-timeline-with-grouping.tsx
 msgid "Show less"
 msgstr "הצג פחות"
@@ -848,11 +853,9 @@ msgstr "האם אתה בטוח שברצונך למחוק הזמנת טיוטה �
 msgid "Fulfillment created"
 msgstr "המשלוח נוצר"
 
-#. placeholder {0}: testResult.length
-#. placeholder {1}: testResult.length !== 1 ? 's' : ''
 #: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-result.tsx
-msgid "Found {0} eligible shipping method{1}"
-msgstr "נמצאו {0} שיטות משלוח זכאיות"
+#~ msgid "Found {0} eligible shipping method{1}"
+#~ msgstr "נמצאו {0} שיטות משלוח זכאיות"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 #: src/lib/components/shared/asset/asset-properties.tsx
@@ -1170,6 +1173,11 @@ msgstr "מפתחות API"
 #: src/app/routes/_authenticated/_products/components/product-option-select.tsx
 msgid "Search {name}..."
 msgstr "חפש {name}..."
+
+#. placeholder {0}: selection.length
+#: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
+msgid "{0, plural, one {Are you sure you want to remove # country from this zone?} other {Are you sure you want to remove # countries from this zone?}}"
+msgstr "{0, plural, one {האם אתה בטוח שברצונך להסיר מדינה אחת מאזור זה?} other {האם אתה בטוח שברצונך להסיר # מדינות מאזור זה?}}"
 
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx
 msgid "Edit asset"
@@ -1525,6 +1533,11 @@ msgstr "הזמנות אחרונות"
 msgid "+ {leftOver} more"
 msgstr "+ {leftOver} נוספים"
 
+#. placeholder {0}: selection.length
+#: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
+msgid "{0, plural, one {Removed # country from zone} other {Removed # countries from zone}}"
+msgstr "{0, plural, one {מדינה אחת הוסרה מהאזור} other {# מדינות הוסרו מהאזור}}"
+
 #: src/lib/components/shared/customer-address-form.tsx
 msgid "Use as the default billing address"
 msgstr "השתמש ככתובת חיוב ברירת מחדל"
@@ -1584,6 +1597,10 @@ msgstr "רגיל"
 msgid "Filters"
 msgstr "מסננים"
 
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+msgid "selected collection"
+msgstr "האוסף שנבחר"
+
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts
 msgid "Customer Groups"
@@ -1631,10 +1648,9 @@ msgstr "נוצר"
 msgid "Loading addresses..."
 msgstr "טוען כתובות..."
 
-#. placeholder {0}: collectionsToMove.length === 1 ? 'this collection' : `${collectionsToMove.length} collections`
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
-msgid "Select a target collection to move {0} to."
-msgstr "בחר אוסף יעד להעברת {0} אליו."
+#~ msgid "Select a target collection to move {0} to."
+#~ msgstr "בחר אוסף יעד להעברת {0} אליו."
 
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
@@ -1859,6 +1875,11 @@ msgstr "עדכון קטגוריית המס נכשל"
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Refund settled successfully"
 msgstr "ההחזר סולק בהצלחה"
+
+#. placeholder {0}: collectionsToMove.length
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+msgid "{0, plural, =1 {Select a target collection to move this collection to.} other {Select a target collection to move # collections to.}}"
+msgstr "{0, plural, =1 {בחר אוסף יעד להעברת אוסף זה אליו.} other {בחר אוסף יעד להעברת # אוספים אליו.}}"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
@@ -2805,6 +2826,10 @@ msgstr "חישוב מחדש של המשלוח"
 #~ msgid "Select which options should apply to the existing variant \"{0}\""
 #~ msgstr "בחר אילו אפשרויות יחולו על הגרסה הקיימת \"{0}\""
 
+#: src/lib/components/shared/asset/asset-gallery.tsx
+msgid "{totalItems, plural, one {# asset found} other {# assets found}}"
+msgstr "{totalItems, plural, one {נמצא קובץ אחד} other {נמצאו # קבצים}}"
+
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx
 #: src/app/routes/_authenticated/_assets/assets.tsx
 #: src/app/routes/_authenticated/_assets/assets.tsx
@@ -2957,6 +2982,11 @@ msgstr "ערכי המאפיינים עבור {entityIdsLength} {entityType} עו
 msgid "Failed to remove customer from group"
 msgstr "הסרת הלקוח מהקבוצה נכשלה"
 
+#. placeholder {0}: testResult.length
+#: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-result.tsx
+msgid "{0, plural, one {Found # eligible shipping method} other {Found # eligible shipping methods}}"
+msgstr "{0, plural, one {נמצאה שיטת משלוח זכאית אחת} other {נמצאו # שיטות משלוח זכאיות}}"
+
 #: src/lib/components/layout/nav-user.tsx
 msgctxt "theme"
 msgid "System"
@@ -3072,11 +3102,9 @@ msgstr "אתמול"
 #~ msgid "Option name"
 #~ msgstr "שם אפשרות"
 
-#. placeholder {0}: selection.length
-#. placeholder {1}: selection.length === 1 ? 'country' : 'countries'
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
-msgid "Are you sure you want to remove {0} {1} from this zone?"
-msgstr "האם אתה בטוח שברצונך להסיר {0} {1} מאזור זה?"
+#~ msgid "Are you sure you want to remove {0} {1} from this zone?"
+#~ msgstr "האם אתה בטוח שברצונך להסיר {0} {1} מאזור זה?"
 
 #. placeholder {0}: addedSurcharges.length
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx
@@ -3400,10 +3428,9 @@ msgstr "נהל תצוגות גלובליות"
 msgid "Processing..."
 msgstr "מעבד..."
 
-#. placeholder {0}: totalItems === 1 ? 'asset' : 'assets'
 #: src/lib/components/shared/asset/asset-gallery.tsx
-msgid "{totalItems} {0} found"
-msgstr "נמצאו {totalItems} {0}"
+#~ msgid "{totalItems} {0} found"
+#~ msgstr "נמצאו {totalItems} {0}"
 
 #: src/lib/components/date-range-picker.tsx
 msgid "Select date range"
@@ -4019,12 +4046,9 @@ msgstr "בחר מצב הבא"
 msgid "No alerts"
 msgstr "אין התראות"
 
-#. placeholder {0}: collectionsToMove.length
-#. placeholder {1}: collectionsToMove.length === 1 ? '' : 's'
-#. placeholder {2}: selectedCollectionId === topLevelCollectionId ? 'top level' : collectionNameCache.current.get(selectedCollectionId) || 'selected collection'
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
-msgid "Moving {0} collection{1} into {2}"
-msgstr "מעביר {0} אוספים ל-{2}"
+#~ msgid "Moving {0} collection{1} into {2}"
+#~ msgstr "מעביר {0} אוספים ל-{2}"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-sheet.tsx
 #: src/app/routes/_authenticated/_shipping-methods/components/test-single-shipping-method-sheet.tsx
@@ -4408,11 +4432,9 @@ msgstr "בדוק שיטות משלוח"
 msgid "Payment settled successfully"
 msgstr "התשלום סולק בהצלחה"
 
-#. placeholder {0}: selection.length
-#. placeholder {1}: selection.length === 1 ? 'country' : 'countries'
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
-msgid "Removed {0} {1} from zone"
-msgstr "{0} {1} הוסרו מהאזור"
+#~ msgid "Removed {0} {1} from zone"
+#~ msgstr "{0} {1} הוסרו מהאזור"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 msgid "Enable"
@@ -5483,6 +5505,10 @@ msgstr "ללא מע\"מ:"
 msgid "Successfully added option value"
 msgstr "ערך האפשרות נוסף בהצלחה"
 
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+msgid "top level"
+msgstr "הרמה העליונה"
+
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "Collection moved to new parent"
 msgstr "האוסף הועבר להורה חדש"
@@ -6283,6 +6309,11 @@ msgstr "הוספת הלקוח לקבוצה נכשלה"
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Manage variants"
 msgstr "נהל גרסאות"
+
+#. placeholder {0}: collectionsToMove.length
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+msgid "{0, plural, one {Moving # collection into {destination}} other {Moving # collections into {destination}}}"
+msgstr "{0, plural, one {מעביר אוסף אחד אל: {destination}} other {מעביר # אוספים אל: {destination}}}"
 
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "Applied global view \"{viewName}\""

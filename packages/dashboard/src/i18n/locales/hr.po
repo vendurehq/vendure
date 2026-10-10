@@ -748,6 +748,11 @@ msgstr "Nova vrijednost svojstva"
 msgid "Successfully updated channel"
 msgstr "Kanal uspješno ažuriran"
 
+#. placeholder {0}: lines.length
+#: src/app/routes/_authenticated/_shipping-methods/components/test-order-builder.tsx
+msgid "{0, plural, one {# item} other {# items}}"
+msgstr "{0, plural, one {# stavka} few {# stavke} other {# stavki}}"
+
 #: src/lib/components/shared/history-timeline/history-timeline-with-grouping.tsx
 msgid "Show less"
 msgstr "Prikaži manje"
@@ -848,11 +853,9 @@ msgstr "Jeste li sigurni da želite obrisati ovu skicu narudžbe?"
 msgid "Fulfillment created"
 msgstr "Izvršenje stvoreno"
 
-#. placeholder {0}: testResult.length
-#. placeholder {1}: testResult.length !== 1 ? 's' : ''
 #: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-result.tsx
-msgid "Found {0} eligible shipping method{1}"
-msgstr "Pronađeno {0} prikladnih načina dostave"
+#~ msgid "Found {0} eligible shipping method{1}"
+#~ msgstr "Pronađeno {0} prikladnih načina dostave"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 #: src/lib/components/shared/asset/asset-properties.tsx
@@ -1170,6 +1173,11 @@ msgstr "API ključevi"
 #: src/app/routes/_authenticated/_products/components/product-option-select.tsx
 msgid "Search {name}..."
 msgstr "Pretraži {name}..."
+
+#. placeholder {0}: selection.length
+#: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
+msgid "{0, plural, one {Are you sure you want to remove # country from this zone?} other {Are you sure you want to remove # countries from this zone?}}"
+msgstr "{0, plural, one {Jeste li sigurni da želite ukloniti # zemlju iz ove zone?} few {Jeste li sigurni da želite ukloniti # zemlje iz ove zone?} other {Jeste li sigurni da želite ukloniti # zemalja iz ove zone?}}"
 
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx
 msgid "Edit asset"
@@ -1525,6 +1533,11 @@ msgstr "Najnovije narudžbe"
 msgid "+ {leftOver} more"
 msgstr "+ {leftOver} više"
 
+#. placeholder {0}: selection.length
+#: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
+msgid "{0, plural, one {Removed # country from zone} other {Removed # countries from zone}}"
+msgstr "{0, plural, one {Uklonjena # zemlja iz zone} few {Uklonjene # zemlje iz zone} other {Uklonjeno # zemalja iz zone}}"
+
 #: src/lib/components/shared/customer-address-form.tsx
 msgid "Use as the default billing address"
 msgstr "Koristi kao zadanu adresu za naplatu"
@@ -1584,6 +1597,10 @@ msgstr "Normalno"
 msgid "Filters"
 msgstr "Filteri"
 
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+msgid "selected collection"
+msgstr "odabrana kolekcija"
+
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts
 msgid "Customer Groups"
@@ -1631,10 +1648,9 @@ msgstr "Stvoreno"
 msgid "Loading addresses..."
 msgstr "Učitavanje adresa..."
 
-#. placeholder {0}: collectionsToMove.length === 1 ? 'this collection' : `${collectionsToMove.length} collections`
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
-msgid "Select a target collection to move {0} to."
-msgstr "Odaberite ciljnu kolekciju za premještanje {0}."
+#~ msgid "Select a target collection to move {0} to."
+#~ msgstr "Odaberite ciljnu kolekciju za premještanje {0}."
 
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
@@ -1859,6 +1875,11 @@ msgstr "Ažuriranje porezne kategorije nije uspjelo"
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Refund settled successfully"
 msgstr "Povrat uspješno izvršen"
+
+#. placeholder {0}: collectionsToMove.length
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+msgid "{0, plural, =1 {Select a target collection to move this collection to.} other {Select a target collection to move # collections to.}}"
+msgstr "{0, plural, =1 {Odaberite ciljnu kolekciju za premještanje ove kolekcije.} one {Odaberite ciljnu kolekciju za premještanje # kolekcije.} few {Odaberite ciljnu kolekciju za premještanje # kolekcije.} other {Odaberite ciljnu kolekciju za premještanje # kolekcija.}}"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
@@ -2805,6 +2826,10 @@ msgstr "Preračunaj dostavu"
 #~ msgid "Select which options should apply to the existing variant \"{0}\""
 #~ msgstr "Odaberite koje opcije trebaju primjenjivati na postojeću varijantu \"{0}\""
 
+#: src/lib/components/shared/asset/asset-gallery.tsx
+msgid "{totalItems, plural, one {# asset found} other {# assets found}}"
+msgstr "{totalItems, plural, one {Pronađena # datoteka} few {Pronađene # datoteke} other {Pronađeno # datoteka}}"
+
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx
 #: src/app/routes/_authenticated/_assets/assets.tsx
 #: src/app/routes/_authenticated/_assets/assets.tsx
@@ -2957,6 +2982,11 @@ msgstr "Vrijednosti svojstava uspješno ažurirane za {entityIdsLength} {entityT
 msgid "Failed to remove customer from group"
 msgstr "Uklanjanje kupca iz grupe nije uspjelo"
 
+#. placeholder {0}: testResult.length
+#: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-result.tsx
+msgid "{0, plural, one {Found # eligible shipping method} other {Found # eligible shipping methods}}"
+msgstr "{0, plural, one {Pronađen # prikladan način dostave} few {Pronađena # prikladna načina dostave} other {Pronađeno # prikladnih načina dostave}}"
+
 #: src/lib/components/layout/nav-user.tsx
 msgctxt "theme"
 msgid "System"
@@ -3072,11 +3102,9 @@ msgstr "Jučer"
 #~ msgid "Option name"
 #~ msgstr "Naziv opcije"
 
-#. placeholder {0}: selection.length
-#. placeholder {1}: selection.length === 1 ? 'country' : 'countries'
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
-msgid "Are you sure you want to remove {0} {1} from this zone?"
-msgstr "Jeste li sigurni da želite ukloniti {0} {1} iz ove zone?"
+#~ msgid "Are you sure you want to remove {0} {1} from this zone?"
+#~ msgstr "Jeste li sigurni da želite ukloniti {0} {1} iz ove zone?"
 
 #. placeholder {0}: addedSurcharges.length
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx
@@ -3400,10 +3428,9 @@ msgstr "Upravljaj globalnim prikazima"
 msgid "Processing..."
 msgstr "Obrada..."
 
-#. placeholder {0}: totalItems === 1 ? 'asset' : 'assets'
 #: src/lib/components/shared/asset/asset-gallery.tsx
-msgid "{totalItems} {0} found"
-msgstr "Pronađeno {totalItems} {0}"
+#~ msgid "{totalItems} {0} found"
+#~ msgstr "Pronađeno {totalItems} {0}"
 
 #: src/lib/components/date-range-picker.tsx
 msgid "Select date range"
@@ -4019,12 +4046,9 @@ msgstr "Odaberi sljedeće stanje"
 msgid "No alerts"
 msgstr "Nema upozorenja"
 
-#. placeholder {0}: collectionsToMove.length
-#. placeholder {1}: collectionsToMove.length === 1 ? '' : 's'
-#. placeholder {2}: selectedCollectionId === topLevelCollectionId ? 'top level' : collectionNameCache.current.get(selectedCollectionId) || 'selected collection'
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
-msgid "Moving {0} collection{1} into {2}"
-msgstr "Premještanje {0} kolekcija u {2}"
+#~ msgid "Moving {0} collection{1} into {2}"
+#~ msgstr "Premještanje {0} kolekcija u {2}"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-sheet.tsx
 #: src/app/routes/_authenticated/_shipping-methods/components/test-single-shipping-method-sheet.tsx
@@ -4408,11 +4432,9 @@ msgstr "Testiraj načine dostave"
 msgid "Payment settled successfully"
 msgstr "Plaćanje uspješno izvršeno"
 
-#. placeholder {0}: selection.length
-#. placeholder {1}: selection.length === 1 ? 'country' : 'countries'
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
-msgid "Removed {0} {1} from zone"
-msgstr "Uklonjeno {0} {1} iz zone"
+#~ msgid "Removed {0} {1} from zone"
+#~ msgstr "Uklonjeno {0} {1} iz zone"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 msgid "Enable"
@@ -5483,6 +5505,10 @@ msgstr "bez PDV-a:"
 msgid "Successfully added option value"
 msgstr "Vrijednost opcije uspješno dodana"
 
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+msgid "top level"
+msgstr "najviša razina"
+
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "Collection moved to new parent"
 msgstr "Kolekcija premještena u novi nadređeni element"
@@ -6283,6 +6309,11 @@ msgstr "Dodavanje kupca u grupu nije uspjelo"
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Manage variants"
 msgstr "Upravljaj varijantama"
+
+#. placeholder {0}: collectionsToMove.length
+#: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
+msgid "{0, plural, one {Moving # collection into {destination}} other {Moving # collections into {destination}}}"
+msgstr "{0, plural, one {Premještanje # kolekcije u: {destination}} few {Premještanje # kolekcije u: {destination}} other {Premještanje # kolekcija u: {destination}}}"
 
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "Applied global view \"{viewName}\""
