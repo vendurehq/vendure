@@ -103,6 +103,14 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
             const typeName = getNamedType(arg.type).name;
             if (this.hasCustomFields(typeName) && args[arg.name]) {
                 await this.processInputVariables(typeName, args[arg.name], ctx, injector, fieldName);
+            } else if (args[arg.name] != null) {
+                await this.walkNestedOrderLineCustomFields(
+                    args[arg.name],
+                    arg.type,
+                    ctx,
+                    injector,
+                    fieldName,
+                );
             }
         }
     }
@@ -260,17 +268,73 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
         }
     }
 
+    private isOrderLineCreateMutation(fieldName: string): boolean {
+        return (
+            fieldName === 'addItemToOrder' ||
+            fieldName === 'addItemToDraftOrder' ||
+            fieldName === 'addItemsToOrder'
+        );
+    }
+
+    private async walkNestedOrderLineCustomFields(
+        value: any,
+        type: GraphQLInputType,
+        ctx: RequestContext,
+        injector: Injector,
+        fieldName: string,
+    ) {
+        if (value == null) {
+            return;
+        }
+        const nullableType = getNullableType(type);
+        if (isListType(nullableType)) {
+            if (Array.isArray(value)) {
+                for (const item of value) {
+                    await this.walkNestedOrderLineCustomFields(
+                        item,
+                        nullableType.ofType,
+                        ctx,
+                        injector,
+                        fieldName,
+                    );
+                }
+            }
+            return;
+        }
+        if (!isInputObjectType(nullableType) || typeof value !== 'object') {
+            return;
+        }
+        if (nullableType.name === 'OrderLineCustomFieldsInput') {
+            const orderLineConfig = this.configService.customFields.OrderLine || [];
+            if (this.isOrderLineCreateMutation(fieldName)) {
+                this.applyDefaultsToCustomFieldsObject(orderLineConfig, value);
+            }
+            await this.validateCustomFieldsObject(orderLineConfig, ctx, value, injector);
+            return;
+        }
+        const fields = nullableType.getFields();
+        for (const [nestedName, field] of Object.entries(fields)) {
+            if (nestedName in value) {
+                await this.walkNestedOrderLineCustomFields(
+                    value[nestedName],
+                    field.type,
+                    ctx,
+                    injector,
+                    fieldName,
+                );
+            }
+        }
+    }
+
     private shouldApplyDefaults(typeName: string, fieldName: string): boolean {
         // For regular create inputs, always apply defaults
         if (this.createInputsWithCustomFields.has(typeName)) {
             return true;
         }
 
-        // Defaults apply only to addItemToOrder, because in adjustOrderLine null unsets the field.
-        // Mutations which nest OrderLineCustomFieldsInput in another input type get neither defaults
-        // nor validation from this interceptor (#5513).
+        // Defaults apply only when a new line is created. adjustOrderLine null unsets the field.
         if (typeName === 'OrderLineCustomFieldsInput') {
-            return fieldName === 'addItemToOrder';
+            return this.isOrderLineCreateMutation(fieldName);
         }
 
         // For update inputs, never apply defaults

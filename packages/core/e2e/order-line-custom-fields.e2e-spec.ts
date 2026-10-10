@@ -1,5 +1,6 @@
 import { mergeConfig, Product } from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
+import gql from 'graphql-tag';
 import path from 'path';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
@@ -7,6 +8,7 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import { FragmentOf, graphql } from './graphql/graphql-shop';
+import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 import { fixPostgresTimezone } from './utils/fix-pg-timezone';
 
 const orderWithCustomFieldsFragment = graphql(`
@@ -187,7 +189,11 @@ fixPostgresTimezone();
 const customConfig = mergeConfig(testConfig(), {
     customFields: {
         OrderLine: [
-            { name: 'stringField', type: 'string' },
+            {
+                name: 'stringField',
+                type: 'string',
+                validate: value => (value === 'invalid' ? 'gated field rejected' : undefined),
+            },
             { name: 'intField', type: 'int' },
             { name: 'booleanField', type: 'boolean' },
             { name: 'nullableField', type: 'string', nullable: true },
@@ -548,5 +554,116 @@ describe('OrderLine Custom Fields', () => {
                 relationField: null, // default value for unset fields
             });
         });
+    });
+
+    describe('nested OrderLine custom fields', () => {
+        const createDraftOrderDocument = gql`
+            mutation {
+                createDraftOrder {
+                    id
+                }
+            }
+        `;
+        const addItemToDraftOrderDocument = gql`
+            mutation AddItemToDraftOrder($orderId: ID!, $input: AddItemToDraftOrderInput!) {
+                addItemToDraftOrder(orderId: $orderId, input: $input) {
+                    ... on Order {
+                        lines {
+                            id
+                            customFields {
+                                defaultedField
+                                stringField
+                            }
+                        }
+                    }
+                    ... on ErrorResult {
+                        message
+                    }
+                }
+            }
+        `;
+        const adjustDraftOrderLineDocument = gql`
+            mutation AdjustDraftOrderLine($orderId: ID!, $input: AdjustDraftOrderLineInput!) {
+                adjustDraftOrderLine(orderId: $orderId, input: $input) {
+                    ... on Order {
+                        lines {
+                            id
+                            customFields {
+                                defaultedField
+                            }
+                        }
+                    }
+                }
+            }
+        `;
+        const addItemsToOrderDocument = gql`
+            mutation AddItems($inputs: [AddItemInput!]!) {
+                addItemsToOrder(inputs: $inputs) {
+                    order {
+                        lines {
+                            customFields {
+                                defaultedField
+                            }
+                        }
+                    }
+                }
+            }
+        `;
+
+        it('applies defaults for addItemToDraftOrder', async () => {
+            const { createDraftOrder } = await adminClient.query(createDraftOrderDocument);
+            const { addItemToDraftOrder } = await adminClient.query(addItemToDraftOrderDocument, {
+                orderId: createDraftOrder.id,
+                input: {
+                    productVariantId: 'T_1',
+                    quantity: 1,
+                    customFields: { defaultedField: null },
+                },
+            });
+            expect(addItemToDraftOrder.lines[0].customFields.defaultedField).toBe('default value');
+        });
+
+        it('does not apply defaults for adjustDraftOrderLine', async () => {
+            const { createDraftOrder } = await adminClient.query(createDraftOrderDocument);
+            const { addItemToDraftOrder } = await adminClient.query(addItemToDraftOrderDocument, {
+                orderId: createDraftOrder.id,
+                input: {
+                    productVariantId: 'T_2',
+                    quantity: 1,
+                    customFields: { defaultedField: 'explicit value' },
+                },
+            });
+            const { adjustDraftOrderLine } = await adminClient.query(adjustDraftOrderLineDocument, {
+                orderId: createDraftOrder.id,
+                input: {
+                    orderLineId: addItemToDraftOrder.lines[0].id,
+                    quantity: 2,
+                    customFields: { defaultedField: null },
+                },
+            });
+            expect(adjustDraftOrderLine.lines[0].customFields.defaultedField).toBeNull();
+        });
+
+        it('applies defaults for addItemsToOrder', async () => {
+            const { addItemsToOrder } = await shopClient.query(addItemsToOrderDocument, {
+                inputs: [{ productVariantId: 'T_3', quantity: 1, customFields: { defaultedField: null } }],
+            });
+            expect(addItemsToOrder.order.lines[0].customFields.defaultedField).toBe('default value');
+        });
+
+        it(
+            'validates nested OrderLine custom fields on addItemToDraftOrder',
+            assertThrowsWithMessage(async () => {
+                const { createDraftOrder } = await adminClient.query(createDraftOrderDocument);
+                await adminClient.query(addItemToDraftOrderDocument, {
+                    orderId: createDraftOrder.id,
+                    input: {
+                        productVariantId: 'T_4',
+                        quantity: 1,
+                        customFields: { stringField: 'invalid' },
+                    },
+                });
+            }, 'gated field rejected'),
+        );
     });
 });
