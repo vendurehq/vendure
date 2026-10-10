@@ -11,7 +11,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from '@uidotdev/usehooks';
 import { Edit, Lock, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useFormContext, useWatch } from 'react-hook-form';
+import { get, useFormContext, useWatch } from 'react-hook-form';
 
 const slugForEntityDocument = graphql(`
     query SlugForEntity($input: SlugForEntityInput!) {
@@ -170,7 +170,10 @@ export function SlugInput({
 
     const watchFieldState = form.getFieldState(actualWatchFieldName);
     const debouncedWatchedValue = useDebounce(watchedValue, 500);
-    const shouldAutoGenerate = isReadonly && !entityId && watchFieldState.isDirty;
+    // Generate while the translation has no saved slug: on create, or for a language added to an
+    // existing entity. A translation that already has one keeps it when its name changes.
+    const hasSavedSlug = !!get(form.formState.defaultValues, name);
+    const shouldAutoGenerate = isReadonly && !hasSavedSlug && watchFieldState.isDirty;
     const queryKey = ['slugForEntity', entityName, fieldName, debouncedWatchedValue, entityId];
     const enabled = !!debouncedWatchedValue && shouldAutoGenerate;
     const {
