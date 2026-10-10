@@ -14,14 +14,16 @@ const redisPort = process.env.CI ? +(process.env.E2E_REDIS_PORT || 6379) : 6379;
 const PREFIX_A = 'cancel-e2e-a';
 const PREFIX_B = 'cancel-e2e-b';
 const PREFIX_C = 'cancel-e2e-c';
+const PREFIX_D = 'cancel-e2e-d';
 const QUEUE = 'cancel-test';
+const DEFAULT_CONNECTION = { host: redisHost, port: redisPort, maxRetriesPerRequest: null };
 
-async function createStrategy(prefix: string) {
+async function createStrategy(prefix: string, connection: object = DEFAULT_CONNECTION) {
     const providers = new Map<unknown, unknown>([
         [
             BULLMQ_PLUGIN_OPTIONS,
             {
-                connection: { host: redisHost, port: redisPort, maxRetriesPerRequest: null },
+                connection,
                 workerOptions: { prefix },
                 queueOptions: { prefix },
             },
@@ -41,7 +43,7 @@ describe('BullMQJobQueueStrategy cancellation', () => {
     let redis: Redis;
 
     async function deleteTestKeys() {
-        for (const prefix of [PREFIX_A, PREFIX_B, PREFIX_C]) {
+        for (const prefix of [PREFIX_A, PREFIX_B, PREFIX_C, PREFIX_D]) {
             const keys = await redis.keys(`${prefix}:*`);
             if (keys.length) {
                 await redis.del(...keys);
@@ -104,5 +106,20 @@ describe('BullMQJobQueueStrategy cancellation', () => {
 
         await vi.waitFor(() => expect(running.c.state).toBe(JobState.CANCELLED));
         expect((await worker.findOne(job.id as string))?.state).toBe(JobState.CANCELLED);
+    });
+
+    it('closes the Redis connections it opened when destroyed', async () => {
+        const connectionName = 'cancel-e2e-destroy';
+        const openConnections = async () =>
+            ((await redis.client('LIST')) as string)
+                .split('\n')
+                .filter(line => line.includes(`name=${connectionName}`)).length;
+        const strategy = await createStrategy(PREFIX_D, { ...DEFAULT_CONNECTION, connectionName });
+        await strategy.start(QUEUE, () => Promise.resolve());
+        expect(await openConnections()).toBeGreaterThan(0);
+
+        await strategy.destroy();
+
+        await vi.waitFor(async () => expect(await openConnections()).toBe(0));
     });
 });
