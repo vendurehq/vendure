@@ -2,13 +2,13 @@ import {
     ASTVisitor,
     DocumentNode,
     getNamedType,
+    GraphQLField,
     GraphQLInputObjectType,
     GraphQLNamedType,
     GraphQLSchema,
     isInputObjectType,
     isListType,
     isNonNullType,
-    OperationDefinitionNode,
     TypeInfo,
     visit,
     visitWithTypeInfo,
@@ -37,7 +37,7 @@ export type TypeTreeNode = {
  */
 export class GraphqlValueTransformer {
     private outputCache = new WeakMap<DocumentNode, TypeTree>();
-    private inputCache = new WeakMap<OperationDefinitionNode, TypeTree>();
+    private argumentCache = new WeakMap<GraphQLField<unknown, unknown>, TypeTree>();
     constructor(private schema: GraphQLSchema) {}
 
     /**
@@ -126,14 +126,13 @@ export class GraphqlValueTransformer {
     }
 
     /**
-     * Constructs a tree of TypeTreeNodes for the input variables of a GraphQL operation.
+     * Constructs a tree of TypeTreeNodes for the arguments of a field, keyed by argument name.
      */
-    getInputTypeTree(definition: OperationDefinitionNode): TypeTree {
-        const cached = this.inputCache.get(definition);
+    getArgumentTypeTree(field: GraphQLField<unknown, unknown>): TypeTree {
+        const cached = this.argumentCache.get(field);
         if (cached) {
             return cached;
         }
-        const typeInfo = new TypeInfo(this.schema);
         const typeTree: TypeTree = {
             operation: {} as any,
             fragments: {},
@@ -146,47 +145,28 @@ export class GraphqlValueTransformer {
             children: {},
         };
         typeTree.operation = rootNode;
-        let currentNode = rootNode;
-        const visitor: ASTVisitor = {
-            enter: node => {
-                if (node.kind === 'Argument') {
-                    const type = typeInfo.getType();
-                    const args = typeInfo.getArgument();
-                    if (args) {
-                        const inputType = getNamedType(args.type);
-                        const newNode: TypeTreeNode = {
-                            type: inputType || undefined,
-                            isList: this.isList(type),
-                            parent: currentNode,
-                            fragmentRefs: [],
-                            children: {},
-                        };
-                        currentNode.children[args.name] = newNode;
-                        if (isInputObjectType(inputType)) {
-                            if (isInputObjectType(inputType)) {
-                                newNode.children = this.getChildrenTreeNodes(inputType, newNode);
-                            }
-                        }
-                        currentNode = newNode;
-                    }
-                }
-            },
-            leave: node => {
-                if (node.kind === 'Argument') {
-                    if (!this.isTypeTree(currentNode.parent)) {
-                        currentNode = currentNode.parent;
-                    }
-                }
-            },
-        };
-        visit(definition, visitWithTypeInfo(typeInfo, visitor));
-        this.inputCache.set(definition, typeTree);
+        for (const arg of field.args) {
+            const inputType = getNamedType(arg.type);
+            const argNode: TypeTreeNode = {
+                type: inputType,
+                isList: this.isList(arg.type),
+                parent: rootNode,
+                fragmentRefs: [],
+                children: {},
+            };
+            if (isInputObjectType(inputType)) {
+                argNode.children = this.getChildrenTreeNodes(inputType, argNode);
+            }
+            rootNode.children[arg.name] = argNode;
+        }
+        this.argumentCache.set(field, typeTree);
         return typeTree;
     }
 
     private getChildrenTreeNodes(
         inputType: GraphQLInputObjectType,
         parent: TypeTreeNode,
+        ancestors: ReadonlySet<GraphQLInputObjectType> = new Set([inputType]),
         depth = 0,
     ): { [name: string]: TypeTreeNode } {
         if (depth > 3) return {};
@@ -194,28 +174,6 @@ export class GraphqlValueTransformer {
         return Object.entries(inputType.getFields()).reduce(
             (result, [key, field]) => {
                 const namedType = getNamedType(field.type);
-                if (namedType === parent.type) {
-                    // Allow _and/_or self-references in filter types, but limit depth to prevent infinite loops
-                    if (key === '_and' || key === '_or') {
-                        const selfRefChild: TypeTreeNode = {
-                            type: namedType,
-                            isList: this.isList(field.type),
-                            parent,
-                            fragmentRefs: [],
-                            children: {},
-                        };
-                        if (isInputObjectType(namedType)) {
-                            selfRefChild.children = this.getChildrenTreeNodes(
-                                namedType,
-                                selfRefChild,
-                                depth + 1,
-                            );
-                        }
-                        result[key] = selfRefChild;
-                        return result;
-                    }
-                    return result;
-                }
                 const child: TypeTreeNode = {
                     type: namedType,
                     isList: this.isList(field.type),
@@ -224,9 +182,24 @@ export class GraphqlValueTransformer {
                     children: {},
                 };
                 if (isInputObjectType(namedType)) {
-                    child.children = this.getChildrenTreeNodes(namedType, child);
+                    // `ancestors` holds the input types on the path from the argument to this field.
+                    // `depth` counts the fields on that path whose type was already in `ancestors`, and
+                    // this method returns no children once `depth` exceeds 3. Input types can reference
+                    // themselves or each other, as filter types do through `_and` and `_or`. Without the
+                    // limit, expanding them recurses until the stack overflows. `getArgumentTypeTree()`
+                    // builds the tree for every argument of the field, including arguments the client
+                    // does not send, so the overflow would happen on every call. An ID nested deeper
+                    // than the limit reaches the resolver encoded.
+                    const isRepeat = ancestors.has(namedType);
+                    child.children = this.getChildrenTreeNodes(
+                        namedType,
+                        child,
+                        isRepeat ? ancestors : new Set([...ancestors, namedType]),
+                        isRepeat ? depth + 1 : depth,
+                    );
                 }
-                return { ...result, [key]: child };
+                result[key] = child;
+                return result;
             },
             {} as { [name: string]: TypeTreeNode },
         );
