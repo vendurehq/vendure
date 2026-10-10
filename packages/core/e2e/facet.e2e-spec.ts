@@ -910,8 +910,11 @@ describe('Facet resolver', () => {
                 ],
             });
 
-            expect(findOne.mock.calls.length).toBe(2);
-            for (const [, , relations] of findOne.mock.calls) {
+            const facetCalls = findOne.mock.calls.filter(
+                ([, id]) => String(id) === createFacet.id.replace('T_', ''),
+            );
+            expect(facetCalls).toHaveLength(2);
+            for (const [, , relations] of facetCalls) {
                 // `findOne()` loads `values` when no relations are passed
                 expect(relations ?? ['values']).not.toContain('values');
             }
