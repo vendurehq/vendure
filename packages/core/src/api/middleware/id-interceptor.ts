@@ -1,6 +1,6 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { IdOperators } from '@vendure/common/lib/generated-types';
-import { GraphQLNamedType, GraphQLSchema, OperationDefinitionNode } from 'graphql';
+import { GraphQLNamedType, GraphQLObjectType, GraphQLSchema } from 'graphql';
 import { Observable } from 'rxjs';
 import { GqlExecutionContext } from '../../common/nestjs-graphql-internals';
 
@@ -33,7 +33,7 @@ export class IdInterceptor implements NestInterceptor {
         if (isGraphQL && info) {
             const args = GqlExecutionContext.create(context).getArgs();
             const transformer = this.getTransformerForSchema(info.schema);
-            this.decodeIdArguments(transformer, info.operation, args);
+            this.decodeIdArguments(transformer, info.parentType, info.fieldName, args);
         }
         return next.handle();
     }
@@ -50,10 +50,11 @@ export class IdInterceptor implements NestInterceptor {
 
     private decodeIdArguments(
         graphqlValueTransformer: GraphqlValueTransformer,
-        definition: OperationDefinitionNode,
+        parentType: GraphQLObjectType,
+        fieldName: string,
         variables: Record<string, any> = {},
     ) {
-        const typeTree = graphqlValueTransformer.getInputTypeTree(definition);
+        const typeTree = graphqlValueTransformer.getInputTypeTreeForField(parentType, fieldName);
         graphqlValueTransformer.transformValues(typeTree, variables, (value, type) => {
             if (type?.name === 'ID') {
                 return this.idCodecService.decode(value);
