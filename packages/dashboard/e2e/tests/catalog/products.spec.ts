@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 
+import { BaseDetailPage } from '../../page-objects/detail-page.base.js';
 import { createCrudTestSuite } from '../../utils/crud-test-factory.js';
 import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
 
@@ -55,6 +56,64 @@ test.describe('Product detail features', () => {
         await expect(
             page.locator('[data-slot="card-title"]').getByText('Assets', { exact: true }),
         ).toBeVisible();
+    });
+
+    // #5408: a stale tab must not revert a translation saved elsewhere. The page loads the
+    // product, then its name changes behind the page's back (as if saved from another tab).
+    // Saving an unrelated field from the stale page must leave that name alone.
+    test('saving a non-translation field does not revert a translation saved elsewhere', async ({ page }) => {
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const suffix = Date.now();
+        const created = await client.gql(
+            `mutation ($input: CreateProductInput!) { createProduct(input: $input) { id } }`,
+            {
+                input: {
+                    enabled: true,
+                    translations: [
+                        {
+                            languageCode: 'en',
+                            name: `Stale ${suffix}`,
+                            slug: `stale-${suffix}`,
+                            description: '',
+                        },
+                    ],
+                },
+            },
+        );
+        const productId = created.createProduct.id;
+
+        try {
+            const dp = new BaseDetailPage(page, {
+                newPath: '/products/new',
+                pathPrefix: '/products/',
+                newTitle: 'New product',
+            });
+            await dp.gotoExisting(productId);
+            await expect(dp.formItem('Product name').getByRole('textbox')).toHaveValue(`Stale ${suffix}`, {
+                timeout: 10_000,
+            });
+            await page.waitForLoadState('networkidle');
+
+            // Another tab saves a new name.
+            await client.gql(
+                `mutation ($input: UpdateProductInput!) { updateProduct(input: $input) { id } }`,
+                { input: { id: productId, translations: [{ languageCode: 'en', name: `Fresh ${suffix}` }] } },
+            );
+
+            // The stale page changes only the Enabled switch and saves.
+            await dp.toggleSwitch('Enabled', false);
+            await dp.clickUpdate();
+            await dp.expectSuccessToast();
+
+            const result = await client.gql(`query ($id: ID!) { product(id: $id) { enabled name } }`, {
+                id: productId,
+            });
+            expect(result.product.enabled).toBe(false);
+            expect(result.product.name).toBe(`Fresh ${suffix}`);
+        } finally {
+            await client.gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, { id: productId });
+        }
     });
 
     test('should display product variants table', async ({ page }) => {
