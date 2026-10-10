@@ -465,6 +465,21 @@ export function addModifyOrderCustomFields(
 }
 
 /**
+ * The input types in which an `OrderLineCustomFieldsInput` value adds a new order line.
+ * {@link addOrderLineCustomFieldsInput} adds a `customFields` field to each of them.
+ */
+export const ORDER_LINE_ADD_INPUT_TYPES = ['AddItemInput', 'AddItemToDraftOrderInput'];
+
+/**
+ * The input types in which an `OrderLineCustomFieldsInput` value adjusts an existing order line.
+ * {@link addOrderLineCustomFieldsInput} adds a `customFields` field to each of them.
+ * `FulfillOrderInput`, `CancelOrderInput` and `RefundOrderInput` also use `OrderLineInput` for their
+ * lines. `addFulfillmentToOrder`, `cancelOrder` and `refundOrder` ignore the `customFields` of those
+ * lines. An `OrderLineInput` value adjusts a line only in `ModifyOrderInput.adjustOrderLines`.
+ */
+export const ORDER_LINE_ADJUST_INPUT_TYPES = ['OrderLineInput', 'AdjustDraftOrderLineInput'];
+
+/**
  * If CustomFields are defined on the OrderLine entity, then an extra `customFields` argument
  * must be added to the `addItemToOrder` and `adjustOrderLine` mutations, as well as the related
  * fields in the `ModifyOrderInput` type.
@@ -557,41 +572,16 @@ export function addOrderLineCustomFieldsInput(
     }
 
     let extendedSchema = new GraphQLSchema(schemaConfig);
-    if (schema.getType('AddItemInput')) {
-        const customFieldTypeDefs = `
-            extend input AddItemInput {
-                customFields: OrderLineCustomFieldsInput
-            }
-        `;
+    for (const inputTypeName of [...ORDER_LINE_ADD_INPUT_TYPES, ...ORDER_LINE_ADJUST_INPUT_TYPES]) {
+        if (schema.getType(inputTypeName)) {
+            const customFieldTypeDefs = `
+                extend input ${inputTypeName} {
+                    customFields: OrderLineCustomFieldsInput
+                }
+            `;
 
-        extendedSchema = extendSchema(extendedSchema, parse(customFieldTypeDefs));
-    }
-    if (schema.getType('OrderLineInput')) {
-        const customFieldTypeDefs = `
-            extend input OrderLineInput {
-                customFields: OrderLineCustomFieldsInput
-            }
-        `;
-
-        extendedSchema = extendSchema(extendedSchema, parse(customFieldTypeDefs));
-    }
-    if (schema.getType('AddItemToDraftOrderInput')) {
-        const customFieldTypeDefs = `
-            extend input AddItemToDraftOrderInput {
-                customFields: OrderLineCustomFieldsInput
-            }
-        `;
-
-        extendedSchema = extendSchema(extendedSchema, parse(customFieldTypeDefs));
-    }
-    if (schema.getType('AdjustDraftOrderLineInput')) {
-        const customFieldTypeDefs = `
-            extend input AdjustDraftOrderLineInput {
-                customFields: OrderLineCustomFieldsInput
-            }
-        `;
-
-        extendedSchema = extendSchema(extendedSchema, parse(customFieldTypeDefs));
+            extendedSchema = extendSchema(extendedSchema, parse(customFieldTypeDefs));
+        }
     }
 
     return extendedSchema;

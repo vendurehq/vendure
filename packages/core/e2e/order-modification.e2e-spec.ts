@@ -45,7 +45,7 @@ import {
     orderWithLinesFragment,
     orderWithModificationsFragment,
 } from './graphql/fragments-admin';
-import { graphql as adminGraphql, FragmentOf } from './graphql/graphql-admin';
+import { graphql as adminGraphql, FragmentOf, ResultOf } from './graphql/graphql-admin';
 import { graphql, VariablesOf } from './graphql/graphql-shop';
 import {
     addManualPaymentToOrderDocument,
@@ -87,6 +87,30 @@ const addItemToOrderWithCustomFieldsDocument = graphql(`
         ) {
             ... on Order {
                 id
+            }
+            ... on ErrorResult {
+                errorCode
+                message
+            }
+        }
+    }
+`);
+
+const modifyOrderWithLineCustomFieldsDocument = adminGraphql(`
+    mutation ModifyOrderWithLineCustomFields($input: ModifyOrderInput!) {
+        modifyOrder(input: $input) {
+            ... on Order {
+                id
+                lines {
+                    id
+                    productVariant {
+                        id
+                    }
+                    customFields {
+                        defaultedField
+                        readonlyField
+                    }
+                }
             }
             ... on ErrorResult {
                 errorCode
@@ -312,7 +336,12 @@ describe('Order modification', () => {
             },
             customFields: {
                 Order: [{ name: 'points', type: 'int', defaultValue: 0 }],
-                OrderLine: [{ name: 'color', type: 'string', nullable: true }],
+                OrderLine: [
+                    { name: 'color', type: 'string', nullable: true },
+                    { name: 'defaultedField', type: 'string', nullable: true, defaultValue: 'default value' },
+                    { name: 'validatedField', type: 'string', nullable: true, pattern: '^[a-z]+$' },
+                    { name: 'readonlyField', type: 'string', readonly: true, defaultValue: 'readonly value' },
+                ],
             },
         }),
     );
@@ -2926,6 +2955,190 @@ describe('Order modification', () => {
             expect(orderLevelShareOf(remainingLines.get('T_4')!)).toBe(
                 orderLevelShareOf(placedLines.get('T_4')!),
             );
+        });
+    });
+
+    // #5513 — modifyOrder nests OrderLineCustomFieldsInput in AddItemInput and OrderLineInput
+    describe('OrderLine custom field defaults and validation', () => {
+        type ModifiedOrder = ResultOf<typeof modifyOrderWithLineCustomFieldsDocument>['modifyOrder'];
+
+        async function modifyOrder(input: Record<string, any>) {
+            const result = await adminClient.query(modifyOrderWithLineCustomFieldsDocument, {
+                input: { dryRun: false, ...input } as any,
+            });
+            const order = result.modifyOrder as Extract<ModifiedOrder, { lines: unknown }>;
+            if (!order.lines) {
+                throw new Error(`modifyOrder failed: ${JSON.stringify(result.modifyOrder)}`);
+            }
+            return order;
+        }
+
+        it('applies the default to a null field in addItems', async () => {
+            const order = await createOrderAndTransitionToModifyingState([
+                { productVariantId: 'T_1', quantity: 1 },
+            ]);
+
+            const modified = await modifyOrder({
+                orderId: order.id,
+                addItems: [{ productVariantId: 'T_2', quantity: 1, customFields: { defaultedField: null } }],
+            });
+
+            const addedLine = modified.lines.find(line => line.productVariant.id === 'T_2');
+            expect(addedLine?.customFields.defaultedField).toBe('default value');
+        });
+
+        it('keeps a null field null in adjustOrderLines', async () => {
+            const order = await createOrderAndTransitionToModifyingState([
+                {
+                    productVariantId: 'T_1',
+                    quantity: 1,
+                    customFields: { defaultedField: 'explicit value' },
+                } as any,
+            ]);
+
+            const modified = await modifyOrder({
+                orderId: order.id,
+                adjustOrderLines: [
+                    { orderLineId: order.lines[0].id, quantity: 2, customFields: { defaultedField: null } },
+                ],
+            });
+
+            const adjustedLine = modified.lines.find(line => line.id === order.lines[0].id);
+            expect(adjustedLine?.customFields.defaultedField).toBeNull();
+        });
+
+        it('rejects an invalid value in addItems', async () => {
+            const order = await createOrderAndTransitionToModifyingState([
+                { productVariantId: 'T_1', quantity: 1 },
+            ]);
+
+            await expect(
+                modifyOrder({
+                    orderId: order.id,
+                    addItems: [
+                        {
+                            productVariantId: 'T_2',
+                            quantity: 1,
+                            customFields: { validatedField: 'Not Valid' },
+                        },
+                    ],
+                }),
+            ).rejects.toThrow('does not match the pattern');
+        });
+
+        it('rejects an invalid value in adjustOrderLines', async () => {
+            const order = await createOrderAndTransitionToModifyingState([
+                { productVariantId: 'T_1', quantity: 1 },
+            ]);
+
+            await expect(
+                modifyOrder({
+                    orderId: order.id,
+                    adjustOrderLines: [
+                        {
+                            orderLineId: order.lines[0].id,
+                            quantity: 2,
+                            customFields: { validatedField: 'Not Valid' },
+                        },
+                    ],
+                }),
+            ).rejects.toThrow('does not match the pattern');
+        });
+
+        // The Dashboard sends every OrderLine custom field for an added line, each set to null.
+        it('accepts the whole customFields object of an added line, readonly field included', async () => {
+            const order = await createOrderAndTransitionToModifyingState([
+                { productVariantId: 'T_1', quantity: 1 },
+            ]);
+
+            const modified = await modifyOrder({
+                orderId: order.id,
+                addItems: [
+                    {
+                        productVariantId: 'T_2',
+                        quantity: 2,
+                        customFields: {
+                            color: null,
+                            defaultedField: null,
+                            validatedField: null,
+                            readonlyField: null,
+                        },
+                    },
+                ],
+            });
+
+            const addedLine = modified.lines.find(line => line.productVariant.id === 'T_2');
+            expect(addedLine?.customFields).toEqual({
+                defaultedField: 'default value',
+                readonlyField: 'readonly value',
+            });
+        });
+
+        // The Dashboard sends a line's whole customFields object back when it changes the quantity.
+        it('accepts an unchanged readonly field in adjustOrderLines', async () => {
+            const order = await createOrderAndTransitionToModifyingState([
+                { productVariantId: 'T_1', quantity: 1 },
+            ]);
+
+            const modified = await modifyOrder({
+                orderId: order.id,
+                adjustOrderLines: [
+                    {
+                        orderLineId: order.lines[0].id,
+                        quantity: 2,
+                        customFields: {
+                            color: null,
+                            defaultedField: 'default value',
+                            validatedField: null,
+                            readonlyField: 'readonly value',
+                        },
+                    },
+                ],
+            });
+
+            const adjustedLine = modified.lines.find(line => line.id === order.lines[0].id);
+            expect(adjustedLine?.customFields.readonlyField).toBe('readonly value');
+        });
+
+        // cancelOrder ignores the custom fields of its OrderLineInput lines, so the interceptor does not
+        // validate them.
+        it('accepts a stale readonly field in cancelOrder lines', async () => {
+            const order = await createOrderAndCheckout([{ productVariantId: 'T_1', quantity: 2 }]);
+
+            const { cancelOrder } = await adminClient.query(cancelOrderDocument, {
+                input: {
+                    orderId: order.id,
+                    lines: [
+                        {
+                            orderLineId: order.lines[0].id,
+                            quantity: 1,
+                            customFields: { readonlyField: 'stale value' },
+                        } as any,
+                    ],
+                },
+            });
+
+            canceledOrderGuard.assertSuccess(cancelOrder);
+            expect(cancelOrder.lines[0].quantity).toBe(1);
+        });
+
+        it('rejects a changed readonly field in adjustOrderLines', async () => {
+            const order = await createOrderAndTransitionToModifyingState([
+                { productVariantId: 'T_1', quantity: 1 },
+            ]);
+
+            await expect(
+                modifyOrder({
+                    orderId: order.id,
+                    adjustOrderLines: [
+                        {
+                            orderLineId: order.lines[0].id,
+                            quantity: 2,
+                            customFields: { readonlyField: 'changed value' },
+                        },
+                    ],
+                }),
+            ).rejects.toThrow('The custom field "readonlyField" is readonly');
         });
     });
 
