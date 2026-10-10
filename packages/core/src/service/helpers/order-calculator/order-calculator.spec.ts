@@ -11,6 +11,7 @@ import { ConfigService } from '../../../config/config.service';
 import { MockConfigService } from '../../../config/config.service.mock';
 import { DefaultOrderLineDiscountDistributionStrategy } from '../../../config/order/default-order-line-discount-distribution-strategy';
 import { OrderLineDiscountDistributionStrategy } from '../../../config/order/order-line-discount-distribution-strategy';
+import { freeShipping } from '../../../config/promotion/actions/free-shipping-action';
 import { PromotionAction } from '../../../config/promotion/promotion-action';
 import { PromotionCondition } from '../../../config/promotion/promotion-condition';
 import { DefaultOrderTaxCalculationStrategy } from '../../../config/tax/default-order-tax-calculation-strategy';
@@ -987,6 +988,97 @@ describe('OrderCalculator', () => {
 
                     expect(order.shippingLines[0].adjustments.length).toBe(0);
                     expect(order.shipping).toBe(500);
+                });
+            });
+
+            // https://github.com/vendurehq/vendure/issues/3140
+            describe('multiple shipping promotions using the built-in free_shipping action', () => {
+                const fixedShippingDiscountAction = new PromotionShippingAction({
+                    code: 'fixed_shipping_discount',
+                    description: [{ languageCode: LanguageCode.en, value: '200 off shipping' }],
+                    args: {},
+                    execute() {
+                        return -200;
+                    },
+                });
+
+                function createShippingPromotion(id: number, action: PromotionShippingAction) {
+                    return new Promotion({
+                        id,
+                        name: `Shipping promotion ${id}`,
+                        conditions: [],
+                        promotionConditions: [],
+                        actions: [{ code: action.code, args: [] }],
+                        promotionActions: [action],
+                    });
+                }
+
+                function createOrderWithShipping(pricesIncludeTax: boolean) {
+                    const ctx = createRequestContext({ pricesIncludeTax });
+                    const order = createOrder({
+                        ctx,
+                        lines: [{ listPrice: 100, taxCategory: taxCategoryStandard, quantity: 1 }],
+                    });
+                    order.shippingLines = [
+                        new ShippingLine({ shippingMethodId: mockShippingMethodId, adjustments: [] }),
+                    ];
+                    return { ctx, order };
+                }
+
+                it('a single free_shipping promotion discounts the full shipping price', async () => {
+                    const { ctx, order } = createOrderWithShipping(false);
+                    await orderCalculator.applyPriceAdjustments(ctx, order, [
+                        createShippingPromotion(1, freeShipping),
+                    ]);
+
+                    expect(order.shippingLines[0].adjustments.map(a => a.amount)).toEqual([-500]);
+                    expect(order.shipping).toBe(0);
+                    expect(order.shippingWithTax).toBe(0);
+                    expect(order.total).toBe(order.subTotal);
+                });
+
+                it('two free_shipping promotions do not make shipping negative (prices exclude tax)', async () => {
+                    const { ctx, order } = createOrderWithShipping(false);
+                    await orderCalculator.applyPriceAdjustments(ctx, order, [
+                        createShippingPromotion(1, freeShipping),
+                        createShippingPromotion(2, freeShipping),
+                    ]);
+
+                    expect(order.shipping).toBe(0);
+                    expect(order.shippingWithTax).toBe(0);
+                    expect(order.shippingLines[0].adjustments.map(a => a.amount)).toEqual([-500]);
+                    expect(order.total).toBe(order.subTotal);
+                    expect(order.totalWithTax).toBe(order.subTotalWithTax);
+                    assertOrderTotalsAddUp(order);
+                });
+
+                it('two free_shipping promotions do not make shipping negative (prices include tax)', async () => {
+                    const { ctx, order } = createOrderWithShipping(true);
+                    await orderCalculator.applyPriceAdjustments(ctx, order, [
+                        createShippingPromotion(1, freeShipping),
+                        createShippingPromotion(2, freeShipping),
+                    ]);
+
+                    expect(order.shipping).toBe(0);
+                    expect(order.shippingWithTax).toBe(0);
+                    expect(order.shippingLines[0].adjustments.map(a => a.amount)).toEqual([-500]);
+                    expect(order.total).toBe(order.subTotal);
+                    expect(order.totalWithTax).toBe(order.subTotalWithTax);
+                    assertOrderTotalsAddUp(order);
+                });
+
+                it('free_shipping after a partial shipping discount only removes the remaining price', async () => {
+                    const { ctx, order } = createOrderWithShipping(false);
+                    await orderCalculator.applyPriceAdjustments(ctx, order, [
+                        createShippingPromotion(1, fixedShippingDiscountAction),
+                        createShippingPromotion(2, freeShipping),
+                    ]);
+
+                    expect(order.shipping).toBe(0);
+                    expect(order.shippingWithTax).toBe(0);
+                    expect(order.shippingLines[0].adjustments.map(a => a.amount)).toEqual([-200, -300]);
+                    expect(order.total).toBe(order.subTotal);
+                    assertOrderTotalsAddUp(order);
                 });
             });
         });
