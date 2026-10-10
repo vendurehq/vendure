@@ -14,6 +14,7 @@ import {
     createCliConfigDir,
     manifest,
     projectList,
+    singleAccountBody,
     storeLogin,
 } from './console.fixtures';
 import { getProjectLinkManifestPath } from './project-link-manifest';
@@ -96,6 +97,7 @@ describe('Console project-link integration', () => {
             '!.vendure/project.json',
         );
         expect(requests).toEqual([
+            { method: 'GET', url: '/v1/me', authorization: `Bearer ${STORED_ACCESS_TOKEN}` },
             { method: 'GET', url: '/v1/projects', authorization: `Bearer ${STORED_ACCESS_TOKEN}` },
             {
                 method: 'POST',
@@ -113,6 +115,10 @@ function respondToProjectLinkRequest(request: IncomingMessage, response: ServerR
     if (request.headers.authorization !== `Bearer ${STORED_ACCESS_TOKEN}`) {
         response.statusCode = 401;
         response.end(JSON.stringify({ code: 'auth.token_invalid' }));
+        return;
+    }
+    if (request.method === 'GET' && request.url === '/v1/me') {
+        response.end(JSON.stringify(singleAccountBody));
         return;
     }
     if (request.method === 'GET' && request.url === '/v1/projects') {

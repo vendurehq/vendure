@@ -13,7 +13,15 @@ import { builtinCommandDefs } from '../builtins';
 import { ConsoleCommandDependencies, consoleCommand } from './console';
 import { ConsoleLinkContext, ConsoleLinkHook, ConsoleLinkHookRegistration } from './console-link-hook';
 import { ConsoleReporter } from './console-reporter';
-import { NOW, PROJECT_ID, createCliConfigDir, manifest, projectList, storeLogin } from './console.fixtures';
+import {
+    NOW,
+    PROJECT_ID,
+    createCliConfigDir,
+    manifest,
+    projectList,
+    singleAccountBody,
+    storeLogin,
+} from './console.fixtures';
 import { getProjectLinkManifestPath } from './project-link-manifest';
 
 // Two plugins, so the tests that care about order can name which is which.
@@ -49,7 +57,7 @@ describe('console link hooks', () => {
 
         expect(test.exitCode).toBe(0);
         // The OSS protocol ran exactly once: one project list, one link.
-        expect(test.requestPaths).toEqual(['/v1/projects', `/v1/projects/${PROJECT_ID}/link`]);
+        expect(test.requestPaths).toEqual(['/v1/me', '/v1/projects', `/v1/projects/${PROJECT_ID}/link`]);
         const currentManifest = manifestForConsole('http://localhost:3000', test.apiUrl);
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(currentManifest);
 
@@ -72,7 +80,7 @@ describe('console link hooks', () => {
         const test = await runLink(root, registryWith());
 
         expect(test.exitCode).toBe(0);
-        expect(test.requestPaths).toEqual(['/v1/projects', `/v1/projects/${PROJECT_ID}/link`]);
+        expect(test.requestPaths).toEqual(['/v1/me', '/v1/projects', `/v1/projects/${PROJECT_ID}/link`]);
         expect(fs.readJsonSync(getProjectLinkManifestPath(root))).toEqual(
             manifestForConsole('http://localhost:3000', test.apiUrl),
         );
@@ -534,6 +542,10 @@ function offlineDependencies(root: string, messages: string[] = []): Partial<Con
 function respondAsConsole(request: IncomingMessage, response: ServerResponse): void {
     request.resume();
     response.setHeader('Content-Type', 'application/json');
+    if (request.url === '/v1/me') {
+        response.end(JSON.stringify(singleAccountBody));
+        return;
+    }
     if (request.url === '/v1/projects') {
         response.end(JSON.stringify(projectList()));
         return;

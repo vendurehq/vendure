@@ -82,6 +82,7 @@ describe('console link command line login', () => {
             WORKOS_DEVICE_AUTHORIZE_URL,
             WORKOS_AUTHENTICATE_URL,
             `${API_URL}/v1/me`,
+            `${API_URL}/v1/me`,
             `${API_URL}/v1/projects`,
             `${API_URL}/v1/projects/${PROJECT_ID}/link`,
         ]);
@@ -103,7 +104,11 @@ describe('console link command line login', () => {
 
         expect(run.exitCode).toBe(0);
         expect(run.openedUrls).toEqual([]);
-        expect(run.urls()).toEqual([`${API_URL}/v1/projects`, `${API_URL}/v1/projects/${PROJECT_ID}/link`]);
+        expect(run.urls()).toEqual([
+            `${API_URL}/v1/me`,
+            `${API_URL}/v1/projects`,
+            `${API_URL}/v1/projects/${PROJECT_ID}/link`,
+        ]);
     });
 
     it('signs in again when WorkOS has ended the stored login', async () => {
@@ -217,6 +222,76 @@ describe('console link command line login', () => {
         const stored = readStoredAuth({ env: run.env });
         expect(stored?.organization?.customerAccountId).toBe(OTHER_ACCOUNT_ID);
         expect(run.authorizationFor(`${API_URL}/v1/projects`)).toBe(`Bearer ${stored?.accessToken}`);
+    });
+
+    // PDEV-559: AuthKit can return a login that is already scoped to one of several accounts.
+    it('asks which Customer Account to use when the stored login is scoped and the user has several', async () => {
+        const select = vi.fn(async () => OTHER_ACCOUNT_ID);
+        const run = await runLink({ interactive: true, select, console: { memberships: twoAccounts } });
+
+        expect(run.exitCode).toBe(0);
+        expect(select).toHaveBeenCalledWith('Which Vendure Console account do you want to use?', [
+            { value: ACCOUNT_ID, label: `Acme (${ACCOUNT_ID})` },
+            { value: OTHER_ACCOUNT_ID, label: `Other (${OTHER_ACCOUNT_ID})` },
+        ]);
+        expect(run.refreshGrants()).toEqual([
+            expect.objectContaining({ organization_id: OTHER_ORGANIZATION_ID }),
+        ]);
+        const stored = readStoredAuth({ env: run.env });
+        expect(stored?.organization?.customerAccountId).toBe(OTHER_ACCOUNT_ID);
+        expect(run.authorizationFor(`${API_URL}/v1/projects`)).toBe(`Bearer ${stored?.accessToken}`);
+    });
+
+    it('lists the scoped Customer Account first and keeps the login when it is chosen', async () => {
+        const select = vi.fn(async (_message: string, choices: Array<{ value: string }>) => choices[0].value);
+        const run = await runLink({
+            interactive: true,
+            select,
+            storedOrganization: {
+                workosOrganizationId: OTHER_ORGANIZATION_ID,
+                customerAccountId: OTHER_ACCOUNT_ID,
+                name: 'Other',
+            },
+            console: { memberships: twoAccounts },
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(select.mock.calls[0][1].map(choice => choice.value)).toEqual([OTHER_ACCOUNT_ID, ACCOUNT_ID]);
+        expect(run.refreshGrants()).toEqual([]);
+    });
+
+    it('does not ask when a scoped login has only one Customer Account', async () => {
+        const select = vi.fn(async () => undefined);
+        const run = await runLink({ interactive: true, select });
+
+        expect(run.exitCode).toBe(0);
+        expect(select).not.toHaveBeenCalled();
+        expect(run.refreshGrants()).toEqual([]);
+    });
+
+    it('does not ask when --organization names the account of a scoped login', async () => {
+        const select = vi.fn(async () => undefined);
+        const run = await runLink({
+            interactive: true,
+            select,
+            options: { organization: ACCOUNT_ID },
+            console: { memberships: twoAccounts },
+        });
+
+        expect(run.exitCode).toBe(0);
+        expect(select).not.toHaveBeenCalled();
+        expect(run.refreshGrants()).toEqual([]);
+    });
+
+    it('keeps the scoped Customer Account without a terminal and names it with the --organization hint', async () => {
+        const run = await runLink({ console: { memberships: twoAccounts } });
+
+        expect(run.exitCode).toBe(0);
+        expect(run.refreshGrants()).toEqual([]);
+        const output = run.messages.join('\n');
+        expect(output).toContain('Using Acme.');
+        expect(output).toContain('vendure console link --organization <Account identifier>');
+        expect(output).toContain('Linked Storefront to Acme.');
     });
 
     it('lists the Customer Accounts and --organization when no one can choose between them', async () => {

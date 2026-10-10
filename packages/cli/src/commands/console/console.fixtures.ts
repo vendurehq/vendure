@@ -98,6 +98,22 @@ export function createVendureProject(temporaryDirectories: string[], prefix: str
     return root;
 }
 
+/** Console's `GET /v1/me` for the stored login's own account, which is all a one-account user has. */
+export const singleAccountBody = {
+    user: { id: USER.id },
+    memberships: [
+        { organizationId: ORGANIZATION_ID, customerAccountId: ACCOUNT_ID, name: 'Acme', status: 'active' },
+    ],
+};
+
+/** Answers `GET /v1/me` as a one-account user, and sends every other request to `fetchImplementation`. */
+export function withSingleAccount(fetchImplementation: typeof fetch): typeof fetch {
+    return (input, init) =>
+        String(input).endsWith('/v1/me') && (init?.method ?? 'GET') === 'GET'
+            ? Promise.resolve(jsonResponse(singleAccountBody))
+            : fetchImplementation(input, init);
+}
+
 export function jsonResponse(value: unknown, status = 200): Response {
     return new Response(JSON.stringify(value), {
         status,
