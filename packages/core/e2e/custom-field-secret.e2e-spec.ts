@@ -1,12 +1,15 @@
+import { Args, Mutation, Resolver } from '@nestjs/graphql';
 import { LanguageCode, Permission } from '@vendure/common/lib/generated-types';
 import { REDACTED_SECRET_PLACEHOLDER } from '@vendure/common/lib/shared-constants';
 import {
     DefaultEncryptionStrategy,
     mergeConfig,
+    PluginCommonModule,
     RequestContext,
     SecretAccessInput,
     SecretAccessStrategy,
     TransactionalConnection,
+    VendurePlugin,
 } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import gql from 'graphql-tag';
@@ -55,6 +58,43 @@ const CREATE_PRODUCT = gql`
 
 const PLAINTEXT_KEY = 'sk_live_customfield';
 
+let capturedTrackedItemInput: { customFields?: Record<string, unknown> } | undefined;
+
+@Resolver()
+class TrackedItemResolver {
+    @Mutation()
+    createTrackedItem(@Args('input') input: { customFields?: Record<string, unknown> }): boolean {
+        capturedTrackedItemInput = input;
+        return true;
+    }
+
+    @Mutation()
+    updateTrackedItem(@Args('input') input: { customFields?: Record<string, unknown> }): boolean {
+        capturedTrackedItemInput = input;
+        return true;
+    }
+}
+
+@VendurePlugin({
+    imports: [PluginCommonModule],
+    adminApiExtensions: {
+        resolvers: [TrackedItemResolver],
+        schema: gql`
+            extend type Mutation {
+                createTrackedItem(input: TrackedItemInput!): Boolean!
+                updateTrackedItem(input: TrackedItemInput!): Boolean!
+            }
+            input TrackedOrderLineCustomFieldsInput {
+                lineSecret: String
+            }
+            input TrackedItemInput {
+                customFields: TrackedOrderLineCustomFieldsInput
+            }
+        `,
+    },
+})
+class TrackedItemPlugin {}
+
 // Captures the input passed to the strategy so a test can assert the owning entity is provided,
 // while preserving the default permission-based reveal decision.
 let capturedSecretAccessInput: SecretAccessInput | undefined;
@@ -66,7 +106,7 @@ class CapturingSecretAccessStrategy implements SecretAccessStrategy {
 }
 
 describe('secret custom fields', () => {
-    const { server, adminClient } = createTestEnvironment(
+    const { server, adminClient, shopClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
             customFields: {
                 Product: [
@@ -77,7 +117,9 @@ describe('secret custom fields', () => {
                 // sibling-field tests would pass even if the interceptor checked one mutation field's
                 // arguments against a sibling field's input type.
                 Administrator: [{ name: 'secretKey', type: 'string', secret: true }],
+                OrderLine: [{ name: 'lineSecret', type: 'string', secret: true }],
             },
+            plugins: [TrackedItemPlugin],
             systemOptions: {
                 encryptionStrategy: new DefaultEncryptionStrategy({ secret: 'test-encryption-key' }),
                 secretAccessStrategy: new CapturingSecretAccessStrategy(),
@@ -576,6 +618,67 @@ describe('secret custom fields', () => {
                 }, SECRET_REQUIRED_MESSAGE)();
                 expect((await getStoredProduct('T_1')).secretKey).toBe(PRODUCT_SECRET);
             });
+        });
+    });
+
+    describe('creates that do not use a generated Create input', () => {
+        const LINE_SECRET_REQUIRED = 'A value must be provided for the secret field "lineSecret"';
+
+        it(
+            'addItemToOrder rejects a secret placeholder',
+            assertThrowsWithMessage(async () => {
+                await shopClient.query(gql`
+                    mutation {
+                        addItemToOrder(
+                            productVariantId: "T_1"
+                            quantity: 1
+                            customFields: { lineSecret: "${REDACTED_SECRET_PLACEHOLDER}" }
+                        ) {
+                            ... on Order {
+                                id
+                            }
+                        }
+                    }
+                `);
+            }, LINE_SECRET_REQUIRED),
+        );
+
+        it(
+            'createTrackedItem rejects a secret placeholder nested in a plugin input',
+            assertThrowsWithMessage(async () => {
+                await adminClient.asSuperAdmin();
+                await adminClient.query(gql`
+                    mutation {
+                        createTrackedItem(input: { customFields: { lineSecret: "${REDACTED_SECRET_PLACEHOLDER}" } })
+                    }
+                `);
+            }, LINE_SECRET_REQUIRED),
+        );
+
+        it('createTrackedItem keeps an explicit secret', async () => {
+            await adminClient.asSuperAdmin();
+            capturedTrackedItemInput = undefined;
+            const { createTrackedItem } = await adminClient.query(gql`
+                mutation {
+                    createTrackedItem(input: { customFields: { lineSecret: "plugin-secret" } })
+                }
+            `);
+            expect(createTrackedItem).toBe(true);
+            expect(capturedTrackedItemInput?.customFields?.lineSecret).toBe('plugin-secret');
+        });
+
+        it('updateTrackedItem strips a secret placeholder instead of rejecting it', async () => {
+            await adminClient.asSuperAdmin();
+            capturedTrackedItemInput = undefined;
+            const { updateTrackedItem } = await adminClient.query(gql`
+                mutation {
+                    updateTrackedItem(
+                        input: { customFields: { lineSecret: "${REDACTED_SECRET_PLACEHOLDER}" } }
+                    )
+                }
+            `);
+            expect(updateTrackedItem).toBe(true);
+            expect(capturedTrackedItemInput?.customFields?.lineSecret).toBeUndefined();
         });
     });
 });

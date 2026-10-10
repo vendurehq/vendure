@@ -97,7 +97,7 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
             return;
         }
 
-        this.stripSecretPlaceholders(fieldDef, schema, args);
+        this.stripSecretPlaceholders(fieldDef, schema, args, fieldName);
 
         for (const arg of fieldDef.args) {
             const typeName = getNamedType(arg.type).name;
@@ -123,6 +123,7 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
         fieldDef: GraphQLField<unknown, unknown>,
         schema: GraphQLSchema,
         args: Record<string, any>,
+        fieldName: string,
     ) {
         const secretFieldsByInputType = this.getSecretFieldsByInputType(schema);
         if (secretFieldsByInputType.size === 0) {
@@ -130,12 +131,14 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
         }
         for (const arg of fieldDef.args) {
             if (arg.name in args) {
-                // On a create there is no stored value to preserve, so the placeholder is rejected
-                // rather than stripped. Only the generated `Create<Entity>Input` types and
-                // `RegisterCustomerInput` count as creates. A create through any other input type has
-                // the placeholder stripped (#5514).
-                const isCreate = this.createInputsWithCustomFields.has(getNamedType(arg.type).name);
-                this.walkAndStripSecrets(args[arg.name], arg.type, secretFieldsByInputType, isCreate);
+                const rootTypeName = getNamedType(arg.type).name;
+                this.walkAndStripSecrets(
+                    args[arg.name],
+                    arg.type,
+                    secretFieldsByInputType,
+                    fieldName,
+                    this.createInputsWithCustomFields.has(rootTypeName),
+                );
             }
         }
     }
@@ -149,7 +152,8 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
         value: any,
         type: GraphQLInputType,
         secretFieldsByInputType: Map<string, Set<string>>,
-        isCreate: boolean,
+        mutationField: string,
+        inheritedCreate: boolean,
     ) {
         if (value == null) {
             return;
@@ -158,23 +162,77 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
         if (isListType(nullableType)) {
             if (Array.isArray(value)) {
                 for (const item of value) {
-                    this.walkAndStripSecrets(item, nullableType.ofType, secretFieldsByInputType, isCreate);
+                    this.walkAndStripSecrets(
+                        item,
+                        nullableType.ofType,
+                        secretFieldsByInputType,
+                        mutationField,
+                        inheritedCreate,
+                    );
                 }
             }
             return;
         }
         if (isInputObjectType(nullableType) && typeof value === 'object') {
-            const secretFields = secretFieldsByInputType.get(nullableType.name);
+            const typeName = nullableType.name;
+            const isCreate = this.secretPlaceholderIsCreate(typeName, mutationField, inheritedCreate);
+            const secretFields = secretFieldsByInputType.get(typeName);
             if (secretFields) {
                 this.stripSecretPlaceholdersFromObject(value, secretFields, isCreate);
             }
+            let childCreate = inheritedCreate;
+            if (this.createInputsWithCustomFields.has(typeName) || typeName.startsWith('Create')) {
+                childCreate = true;
+            } else if (this.updateInputsWithCustomFields.has(typeName) || typeName.startsWith('Update')) {
+                childCreate = false;
+            }
             const fields = nullableType.getFields();
-            for (const [fieldName, field] of Object.entries(fields)) {
-                if (fieldName in value) {
-                    this.walkAndStripSecrets(value[fieldName], field.type, secretFieldsByInputType, isCreate);
+            for (const [nestedName, field] of Object.entries(fields)) {
+                if (nestedName in value) {
+                    this.walkAndStripSecrets(
+                        value[nestedName],
+                        field.type,
+                        secretFieldsByInputType,
+                        mutationField,
+                        childCreate,
+                    );
                 }
             }
         }
+    }
+
+    /**
+     * A create has no stored secret to keep, so the redaction placeholder is rejected.
+     * Generated `Create<Entity>Input` / `RegisterCustomerInput` values, `Create*` custom-field
+     * objects, order-line adds, and `create*` plugin mutations are creates. Updates strip the
+     * placeholder instead.
+     */
+    private secretPlaceholderIsCreate(
+        typeName: string,
+        mutationField: string,
+        inheritedCreate: boolean,
+    ): boolean {
+        if (typeName.startsWith('Update') || this.updateInputsWithCustomFields.has(typeName)) {
+            return false;
+        }
+        if (inheritedCreate || this.createInputsWithCustomFields.has(typeName)) {
+            return true;
+        }
+        if (typeName === 'OrderLineCustomFieldsInput') {
+            return this.isOrderLineCreateMutation(mutationField) || /^create[A-Z]/.test(mutationField);
+        }
+        if (typeName.startsWith('Create')) {
+            return true;
+        }
+        return /^create[A-Z]/.test(mutationField);
+    }
+
+    private isOrderLineCreateMutation(fieldName: string): boolean {
+        return (
+            fieldName === 'addItemToOrder' ||
+            fieldName === 'addItemToDraftOrder' ||
+            fieldName === 'addItemsToOrder'
+        );
     }
 
     private stripSecretPlaceholdersFromObject(
