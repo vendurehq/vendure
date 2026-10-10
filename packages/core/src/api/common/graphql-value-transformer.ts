@@ -4,6 +4,7 @@ import {
     getNamedType,
     GraphQLInputObjectType,
     GraphQLNamedType,
+    GraphQLObjectType,
     GraphQLSchema,
     isInputObjectType,
     isListType,
@@ -181,6 +182,45 @@ export class GraphqlValueTransformer {
         };
         visit(definition, visitWithTypeInfo(typeInfo, visitor));
         this.inputCache.set(definition, typeTree);
+        return typeTree;
+    }
+
+    /**
+     * Input types for one resolver field, taken from the schema rather than the operation AST.
+     * Argument types are therefore correct for named fragments and for sibling fields that reuse
+     * an argument name.
+     */
+    getInputTypeTreeForField(parentType: GraphQLObjectType, fieldName: string): TypeTree {
+        const typeTree: TypeTree = {
+            operation: {} as any,
+            fragments: {},
+        };
+        const rootNode: TypeTreeNode = {
+            type: undefined,
+            isList: false,
+            parent: typeTree,
+            fragmentRefs: [],
+            children: {},
+        };
+        typeTree.operation = rootNode;
+        const fieldDef = parentType.getFields()[fieldName];
+        if (!fieldDef) {
+            return typeTree;
+        }
+        for (const arg of fieldDef.args) {
+            const inputType = getNamedType(arg.type);
+            const node: TypeTreeNode = {
+                type: inputType || undefined,
+                isList: this.isList(arg.type),
+                parent: rootNode,
+                fragmentRefs: [],
+                children: {},
+            };
+            if (isInputObjectType(inputType)) {
+                node.children = this.getChildrenTreeNodes(inputType, node);
+            }
+            rootNode.children[arg.name] = node;
+        }
         return typeTree;
     }
 
