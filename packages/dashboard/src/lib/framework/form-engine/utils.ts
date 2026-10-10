@@ -290,6 +290,48 @@ function isPersisted(entry: any): boolean {
 
 /**
  * @description
+ * Merges `setValuesForCreate` values into the form's default values. Objects such as `customFields`
+ * are merged key by key. Each translation row is merged onto the default row of the same language,
+ * and a row for a language with no default row is merged onto the first default row and added last.
+ * Everything else, including other arrays, replaces the default. A key set to `undefined` keeps
+ * the default.
+ */
+export function mergeStartingValues<T extends Record<string, any>>(
+    defaults: T,
+    startingValues: Record<string, any>,
+): T {
+    const result: Record<string, any> = { ...defaults };
+    for (const [key, value] of Object.entries(startingValues)) {
+        if (value === undefined) {
+            continue;
+        }
+        if (key === 'translations' && Array.isArray(value)) {
+            // react-hook-form compares rows by position, so each row must keep its default position.
+            const defaultRows: Array<Record<string, any>> = defaults.translations ?? [];
+            const otherRows = value.filter(
+                row => !defaultRows.some(d => d.languageCode === row.languageCode),
+            );
+            result[key] = [
+                ...defaultRows.map(row => {
+                    const startingRow = value.find(r => r.languageCode === row.languageCode);
+                    return startingRow ? mergeStartingValues(row, startingRow) : row;
+                }),
+                ...otherRows.map(row => mergeStartingValues(defaultRows[0] ?? {}, row)),
+            ];
+        } else {
+            result[key] =
+                isObject(value) && isObject(result[key]) ? mergeStartingValues(result[key], value) : value;
+        }
+    }
+    return result as T;
+}
+
+function isObject(value: unknown): value is Record<string, any> {
+    return value != null && typeof value === 'object' && !Array.isArray(value);
+}
+
+/**
+ * @description
  * Structural deep-equality check used to detect which form fields the user
  * actually changed. Handles primitives (NaN-safe), Date, arrays and plain
  * objects.
