@@ -332,8 +332,9 @@ export class ProductOptionGroupService {
             ctx.channelId,
             { relations: { options: true } },
         );
+        // Soft-deleted options remain on the group. assignToChannels throws if given one.
         const optionsToAssign = groupsToAssign.reduce(
-            (options, group) => [...options, ...group.options],
+            (options, group) => [...options, ...group.options.filter(option => !option.deletedAt)],
             [] as ProductOption[],
         );
 
