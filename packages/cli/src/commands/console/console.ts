@@ -414,8 +414,11 @@ async function link(
     }
 
     const login = await signIn(endpoints, options.organization, dependencies, signal);
+    const stored = readAuthStatus(login.auth).organization;
     const organization =
-        readAuthStatus(login.auth).organization ?? (await scopeLogin(login, endpoints, dependencies, signal));
+        stored && options.organization?.trim()
+            ? stored
+            : await scopeLogin(login, stored, endpoints, dependencies, signal);
     const accountName = describeOrganization(organization);
     const project = await chooseProject(
         await listProjects(endpoints, login, accountName, dependencies, signal),
@@ -559,23 +562,34 @@ function matchesOrganization(organization: StoredOrganization | null | undefined
 }
 
 /**
- * A new customer's first device login has no organization. This scopes it.
- * Console lists only the user's own active Customer Accounts, and
- * WorkOS refuses an organization the user is not a member of. With one account
- * the login uses it. With more, the user chooses, which needs a terminal.
+ * Settles which Customer Account the link uses when `--organization` is not
+ * given. AuthKit can return a login that is already scoped to one account, so
+ * a user with several accounts is asked even then, and the scoped account is
+ * the first choice. Console lists only the user's own active Customer
+ * Accounts, and WorkOS refuses an organization the user is not a member of.
+ * With one account the login uses it. A non-interactive run keeps the scoped
+ * account and says which one it used.
  */
 async function scopeLogin(
     login: ConsoleLogin,
+    current: StoredOrganization | null | undefined,
     endpoints: ConsoleEndpoints,
     dependencies: ConsoleCommandDependencies,
     signal: AbortSignal,
 ): Promise<StoredOrganization> {
     try {
-        const organization = await chooseOrganization(
-            await listOrganizations(login.auth),
-            endpoints,
-            dependencies,
-        );
+        const organizations = await listOrganizations(login.auth);
+        if (current && organizations.length > 1 && dependencies.isNonInteractive()) {
+            dependencies.reporter.info(
+                `Your Vendure Console login belongs to several Customer Accounts. Using ${describeOrganization(current)}. ` +
+                    'Run vendure console link --organization <Account identifier> to use another one.',
+            );
+            return current;
+        }
+        const organization = await chooseOrganization(organizations, current, endpoints, dependencies);
+        if (current && organization.workosOrganizationId === current.workosOrganizationId) {
+            return current;
+        }
         await scopeStoredLogin(organization, login.auth);
         const accessToken = await getAccessToken(login.auth);
         if (!accessToken) {
@@ -593,6 +607,7 @@ async function scopeLogin(
 
 async function chooseOrganization(
     organizations: AuthOrganization[],
+    current: StoredOrganization | null | undefined,
     endpoints: ConsoleEndpoints,
     dependencies: ConsoleCommandDependencies,
 ): Promise<AuthOrganization> {
@@ -605,7 +620,13 @@ async function chooseOrganization(
     if (organizations.length === 1) {
         return organizations[0];
     }
-    const choices = organizations.map(organization => ({
+    // The scoped account comes first, so Enter keeps it.
+    const ordered = [...organizations].sort(
+        (a, b) =>
+            Number(b.workosOrganizationId === current?.workosOrganizationId) -
+            Number(a.workosOrganizationId === current?.workosOrganizationId),
+    );
+    const choices = ordered.map(organization => ({
         value: organization.customerAccountId,
         label: `${organization.name} (${organization.customerAccountId})`,
     }));
@@ -620,7 +641,7 @@ async function chooseOrganization(
         'Which Vendure Console account do you want to use?',
         choices,
     );
-    const chosen = organizations.find(organization => organization.customerAccountId === customerAccountId);
+    const chosen = ordered.find(organization => organization.customerAccountId === customerAccountId);
     if (!chosen) {
         throw new CommandInterruptedError();
     }

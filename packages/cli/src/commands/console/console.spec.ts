@@ -21,6 +21,7 @@ import {
     manifest,
     projectList,
     storeLogin,
+    withSingleAccount,
 } from './console.fixtures';
 import { PROJECT_LINK_KEEP_MANIFEST } from './project-link-gitignore';
 import { ProjectLinkManifest, getProjectLinkManifestPath } from './project-link-manifest';
@@ -1146,7 +1147,7 @@ function testDependencies(
     return {
         dependencies: {
             cwd: root,
-            fetch: fetchImplementation,
+            fetch: withSingleAccount(fetchImplementation),
             isNonInteractive: () => true,
             now: () => NOW,
             openUrl: () => Promise.resolve(),
