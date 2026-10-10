@@ -1,12 +1,19 @@
+import { Args, Mutation, Resolver } from '@nestjs/graphql';
 import { LanguageCode, Permission } from '@vendure/common/lib/generated-types';
 import { REDACTED_SECRET_PLACEHOLDER } from '@vendure/common/lib/shared-constants';
 import {
+    Allow,
+    Ctx,
     DefaultEncryptionStrategy,
     mergeConfig,
+    PluginCommonModule,
+    ProductService,
     RequestContext,
     SecretAccessInput,
     SecretAccessStrategy,
+    Transaction,
     TransactionalConnection,
+    VendurePlugin,
 } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import gql from 'graphql-tag';
@@ -65,8 +72,49 @@ class CapturingSecretAccessStrategy implements SecretAccessStrategy {
     }
 }
 
+// The mutations of this plugin take input types of their own, which wrap the generated product
+// inputs. The interceptor cannot recognise a create or an update from these argument type names (#5514).
+@Resolver()
+class WrappedProductInputResolver {
+    constructor(private productService: ProductService) {}
+
+    @Mutation()
+    @Transaction()
+    @Allow(Permission.CreateCatalog)
+    createWrappedProduct(@Ctx() ctx: RequestContext, @Args() args: { input: { product: any } }) {
+        return this.productService.create(ctx, args.input.product);
+    }
+
+    @Mutation()
+    @Transaction()
+    @Allow(Permission.UpdateCatalog)
+    updateWrappedProduct(@Ctx() ctx: RequestContext, @Args() args: { input: { product: any } }) {
+        return this.productService.update(ctx, args.input.product);
+    }
+}
+
+@VendurePlugin({
+    imports: [PluginCommonModule],
+    adminApiExtensions: {
+        resolvers: [WrappedProductInputResolver],
+        schema: gql`
+            input WrappedCreateProductInput {
+                product: CreateProductInput!
+            }
+            input WrappedUpdateProductInput {
+                product: UpdateProductInput!
+            }
+            extend type Mutation {
+                createWrappedProduct(input: WrappedCreateProductInput!): Product!
+                updateWrappedProduct(input: WrappedUpdateProductInput!): Product!
+            }
+        `,
+    },
+})
+class WrappedProductInputPlugin {}
+
 describe('secret custom fields', () => {
-    const { server, adminClient } = createTestEnvironment(
+    const { server, adminClient, shopClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
             customFields: {
                 Product: [
@@ -77,7 +125,9 @@ describe('secret custom fields', () => {
                 // sibling-field tests would pass even if the interceptor checked one mutation field's
                 // arguments against a sibling field's input type.
                 Administrator: [{ name: 'secretKey', type: 'string', secret: true }],
+                OrderLine: [{ name: 'secretKey', type: 'string', secret: true }],
             },
+            plugins: [WrappedProductInputPlugin],
             systemOptions: {
                 encryptionStrategy: new DefaultEncryptionStrategy({ secret: 'test-encryption-key' }),
                 secretAccessStrategy: new CapturingSecretAccessStrategy(),
@@ -575,6 +625,426 @@ describe('secret custom fields', () => {
                     });
                 }, SECRET_REQUIRED_MESSAGE)();
                 expect((await getStoredProduct('T_1')).secretKey).toBe(PRODUCT_SECRET);
+            });
+        });
+    });
+    /**
+     * A create must reject the secret redaction placeholder whichever input type carries it, because a
+     * new entity has no stored secret to preserve (#5514). The order-line mutations use one
+     * custom-fields input type both to add and to update an order line.
+     */
+    describe('creates and updates through other input types', () => {
+        const ADD_ITEM_TO_ORDER = gql`
+            mutation AddItemToOrderSecret($customFields: OrderLineCustomFieldsInput) {
+                addItemToOrder(productVariantId: "T_1", quantity: 1, customFields: $customFields) {
+                    ... on Order {
+                        id
+                        lines {
+                            id
+                        }
+                    }
+                    ... on ErrorResult {
+                        errorCode
+                        message
+                    }
+                }
+            }
+        `;
+        const ADD_ITEMS_TO_ORDER = gql`
+            mutation AddItemsToOrderSecret($inputs: [AddItemInput!]!) {
+                addItemsToOrder(inputs: $inputs) {
+                    order {
+                        id
+                    }
+                    errorResults {
+                        ... on ErrorResult {
+                            errorCode
+                            message
+                        }
+                    }
+                }
+            }
+        `;
+        const ADJUST_ORDER_LINE = gql`
+            mutation AdjustOrderLineSecret($orderLineId: ID!, $customFields: OrderLineCustomFieldsInput) {
+                adjustOrderLine(orderLineId: $orderLineId, quantity: 2, customFields: $customFields) {
+                    ... on Order {
+                        id
+                    }
+                    ... on ErrorResult {
+                        errorCode
+                        message
+                    }
+                }
+            }
+        `;
+        const CREATE_DRAFT_ORDER = gql`
+            mutation CreateDraftOrderSecret {
+                createDraftOrder {
+                    id
+                }
+            }
+        `;
+        const ADD_ITEM_TO_DRAFT_ORDER = gql`
+            mutation AddItemToDraftOrderSecret($orderId: ID!, $input: AddItemToDraftOrderInput!) {
+                addItemToDraftOrder(orderId: $orderId, input: $input) {
+                    ... on Order {
+                        id
+                        lines {
+                            id
+                        }
+                    }
+                    ... on ErrorResult {
+                        errorCode
+                        message
+                    }
+                }
+            }
+        `;
+        const ADJUST_DRAFT_ORDER_LINE = gql`
+            mutation AdjustDraftOrderLineSecret($orderId: ID!, $input: AdjustDraftOrderLineInput!) {
+                adjustDraftOrderLine(orderId: $orderId, input: $input) {
+                    ... on Order {
+                        id
+                    }
+                    ... on ErrorResult {
+                        errorCode
+                        message
+                    }
+                }
+            }
+        `;
+        const GET_ORDER_LINES = gql`
+            query GetOrderLinesSecret($id: ID!) {
+                order(id: $id) {
+                    id
+                    lines {
+                        id
+                        quantity
+                        customFields {
+                            secretKey
+                        }
+                    }
+                }
+            }
+        `;
+        const CREATE_WRAPPED_PRODUCT = gql`
+            mutation CreateWrappedProductSecret($input: WrappedCreateProductInput!) {
+                createWrappedProduct(input: $input) {
+                    id
+                }
+            }
+        `;
+        const UPDATE_WRAPPED_PRODUCT = gql`
+            mutation UpdateWrappedProductSecret($input: WrappedUpdateProductInput!) {
+                updateWrappedProduct(input: $input) {
+                    id
+                }
+            }
+        `;
+
+        const SECRET_REQUIRED_MESSAGE = 'A value must be provided for the secret field "secretKey"';
+        let slugCounter = 0;
+
+        function createProductInput(secretKey: string) {
+            const slug = `wrapped-secret-product-${++slugCounter}`;
+            return {
+                translations: [{ languageCode: LanguageCode.en, name: slug, slug, description: '' }],
+                customFields: { secretKey },
+            };
+        }
+
+        async function getStoredOrderLines(orderId: string) {
+            await adminClient.asSuperAdmin();
+            const { order } = await adminClient.query(GET_ORDER_LINES, { id: orderId });
+            return order.lines as Array<{
+                id: string;
+                quantity: number;
+                customFields: { secretKey: string };
+            }>;
+        }
+
+        describe('shop order lines', () => {
+            it(
+                'addItemToOrder rejects the placeholder',
+                assertThrowsWithMessage(async () => {
+                    await shopClient.asAnonymousUser();
+                    await shopClient.query(ADD_ITEM_TO_ORDER, {
+                        customFields: { secretKey: REDACTED_SECRET_PLACEHOLDER },
+                    });
+                }, SECRET_REQUIRED_MESSAGE),
+            );
+
+            it(
+                'addItemsToOrder rejects the placeholder',
+                assertThrowsWithMessage(async () => {
+                    await shopClient.asAnonymousUser();
+                    await shopClient.query(ADD_ITEMS_TO_ORDER, {
+                        inputs: [
+                            {
+                                productVariantId: 'T_1',
+                                quantity: 1,
+                                customFields: { secretKey: REDACTED_SECRET_PLACEHOLDER },
+                            },
+                        ],
+                    });
+                }, SECRET_REQUIRED_MESSAGE),
+            );
+
+            it('adjustOrderLine with the placeholder preserves the stored secret', async () => {
+                await shopClient.asAnonymousUser();
+                const { addItemToOrder } = await shopClient.query(ADD_ITEM_TO_ORDER, {
+                    customFields: { secretKey: 'sk_live_line' },
+                });
+                const orderLineId = addItemToOrder.lines[0].id;
+                const { adjustOrderLine } = await shopClient.query(ADJUST_ORDER_LINE, {
+                    orderLineId,
+                    customFields: { secretKey: REDACTED_SECRET_PLACEHOLDER },
+                });
+                expect(adjustOrderLine.id).toBe(addItemToOrder.id);
+
+                const lines = await getStoredOrderLines(addItemToOrder.id);
+                expect(
+                    lines.map(l => ({ quantity: l.quantity, secretKey: l.customFields.secretKey })),
+                ).toEqual([{ quantity: 2, secretKey: 'sk_live_line' }]);
+            });
+        });
+
+        describe('draft order lines', () => {
+            async function createDraftOrder(): Promise<string> {
+                await adminClient.asSuperAdmin();
+                const { createDraftOrder: draftOrder } = await adminClient.query(CREATE_DRAFT_ORDER);
+                return draftOrder.id;
+            }
+
+            it(
+                'addItemToDraftOrder rejects the placeholder',
+                assertThrowsWithMessage(async () => {
+                    const draftOrderId = await createDraftOrder();
+                    await adminClient.query(ADD_ITEM_TO_DRAFT_ORDER, {
+                        orderId: draftOrderId,
+                        input: {
+                            productVariantId: 'T_1',
+                            quantity: 1,
+                            customFields: { secretKey: REDACTED_SECRET_PLACEHOLDER },
+                        },
+                    });
+                }, SECRET_REQUIRED_MESSAGE),
+            );
+
+            it('adjustDraftOrderLine with the placeholder preserves the stored secret', async () => {
+                const draftOrderId = await createDraftOrder();
+                const { addItemToDraftOrder } = await adminClient.query(ADD_ITEM_TO_DRAFT_ORDER, {
+                    orderId: draftOrderId,
+                    input: {
+                        productVariantId: 'T_1',
+                        quantity: 1,
+                        customFields: { secretKey: 'sk_live_draft' },
+                    },
+                });
+                const orderLineId = addItemToDraftOrder.lines[0].id;
+                await adminClient.query(ADJUST_DRAFT_ORDER_LINE, {
+                    orderId: draftOrderId,
+                    input: {
+                        orderLineId,
+                        quantity: 2,
+                        customFields: { secretKey: REDACTED_SECRET_PLACEHOLDER },
+                    },
+                });
+
+                const lines = await getStoredOrderLines(draftOrderId);
+                expect(
+                    lines.map(l => ({ quantity: l.quantity, secretKey: l.customFields.secretKey })),
+                ).toEqual([{ quantity: 2, secretKey: 'sk_live_draft' }]);
+            });
+        });
+
+        describe('modifyOrder order lines', () => {
+            const SET_CUSTOMER_FOR_DRAFT_ORDER = gql`
+                mutation SetCustomerForDraftOrderSecret($orderId: ID!, $customerId: ID!) {
+                    setCustomerForDraftOrder(orderId: $orderId, customerId: $customerId) {
+                        ... on Order {
+                            id
+                        }
+                    }
+                }
+            `;
+            const SET_DRAFT_ORDER_SHIPPING_ADDRESS = gql`
+                mutation SetDraftOrderShippingAddressSecret($orderId: ID!, $input: CreateAddressInput!) {
+                    setDraftOrderShippingAddress(orderId: $orderId, input: $input) {
+                        id
+                    }
+                }
+            `;
+            const SET_DRAFT_ORDER_SHIPPING_METHOD = gql`
+                mutation SetDraftOrderShippingMethodSecret($orderId: ID!, $shippingMethodId: ID!) {
+                    setDraftOrderShippingMethod(orderId: $orderId, shippingMethodId: $shippingMethodId) {
+                        ... on Order {
+                            id
+                        }
+                    }
+                }
+            `;
+            const TRANSITION_ORDER_TO_STATE = gql`
+                mutation TransitionOrderToStateSecret($id: ID!, $state: String!) {
+                    transitionOrderToState(id: $id, state: $state) {
+                        ... on Order {
+                            id
+                            state
+                        }
+                        ... on OrderStateTransitionError {
+                            transitionError
+                        }
+                    }
+                }
+            `;
+            const ADD_MANUAL_PAYMENT = gql`
+                mutation AddManualPaymentSecret($input: ManualPaymentInput!) {
+                    addManualPaymentToOrder(input: $input) {
+                        ... on Order {
+                            id
+                            state
+                        }
+                    }
+                }
+            `;
+            const MODIFY_ORDER = gql`
+                mutation ModifyOrderSecret($input: ModifyOrderInput!) {
+                    modifyOrder(input: $input) {
+                        ... on Order {
+                            id
+                        }
+                        ... on ErrorResult {
+                            errorCode
+                            message
+                        }
+                    }
+                }
+            `;
+
+            let orderId: string;
+            let orderLineId: string;
+
+            beforeAll(async () => {
+                await adminClient.asSuperAdmin();
+                const { createDraftOrder } = await adminClient.query(CREATE_DRAFT_ORDER);
+                orderId = createDraftOrder.id;
+                const { addItemToDraftOrder } = await adminClient.query(ADD_ITEM_TO_DRAFT_ORDER, {
+                    orderId,
+                    input: {
+                        productVariantId: 'T_1',
+                        quantity: 1,
+                        customFields: { secretKey: 'sk_live_modify' },
+                    },
+                });
+                orderLineId = addItemToDraftOrder.lines[0].id;
+                await adminClient.query(SET_CUSTOMER_FOR_DRAFT_ORDER, { orderId, customerId: 'T_1' });
+                await adminClient.query(SET_DRAFT_ORDER_SHIPPING_ADDRESS, {
+                    orderId,
+                    input: { streetLine1: '1 Secret Street', countryCode: 'GB' },
+                });
+                await adminClient.query(SET_DRAFT_ORDER_SHIPPING_METHOD, {
+                    orderId,
+                    shippingMethodId: 'T_1',
+                });
+                await adminClient.query(TRANSITION_ORDER_TO_STATE, {
+                    id: orderId,
+                    state: 'ArrangingPayment',
+                });
+                const { addManualPaymentToOrder } = await adminClient.query(ADD_MANUAL_PAYMENT, {
+                    input: { orderId, method: 'manual', transactionId: 'secret-modify', metadata: {} },
+                });
+                expect(addManualPaymentToOrder.state).toBe('PaymentSettled');
+                const { transitionOrderToState } = await adminClient.query(TRANSITION_ORDER_TO_STATE, {
+                    id: orderId,
+                    state: 'Modifying',
+                });
+                expect(transitionOrderToState.state).toBe('Modifying');
+            });
+
+            it(
+                'addItems rejects the placeholder',
+                assertThrowsWithMessage(async () => {
+                    await adminClient.asSuperAdmin();
+                    await adminClient.query(MODIFY_ORDER, {
+                        input: {
+                            dryRun: false,
+                            orderId,
+                            addItems: [
+                                {
+                                    productVariantId: 'T_2',
+                                    quantity: 1,
+                                    customFields: { secretKey: REDACTED_SECRET_PLACEHOLDER },
+                                },
+                            ],
+                        },
+                    });
+                }, SECRET_REQUIRED_MESSAGE),
+            );
+
+            it('adjustOrderLines with the placeholder preserves the stored secret', async () => {
+                await adminClient.asSuperAdmin();
+                const { modifyOrder } = await adminClient.query(MODIFY_ORDER, {
+                    input: {
+                        dryRun: false,
+                        orderId,
+                        adjustOrderLines: [
+                            {
+                                orderLineId,
+                                quantity: 2,
+                                customFields: { secretKey: REDACTED_SECRET_PLACEHOLDER },
+                            },
+                        ],
+                    },
+                });
+                expect(modifyOrder.id).toBe(orderId);
+
+                const line = (await getStoredOrderLines(orderId)).find(l => l.id === orderLineId);
+                expect({ quantity: line?.quantity, secretKey: line?.customFields.secretKey }).toEqual({
+                    quantity: 2,
+                    secretKey: 'sk_live_modify',
+                });
+            });
+        });
+
+        describe('plugin mutations with their own input types', () => {
+            it(
+                'a plugin create rejects the placeholder',
+                assertThrowsWithMessage(async () => {
+                    await adminClient.asSuperAdmin();
+                    await adminClient.query(CREATE_WRAPPED_PRODUCT, {
+                        input: { product: createProductInput(REDACTED_SECRET_PLACEHOLDER) },
+                    });
+                }, SECRET_REQUIRED_MESSAGE),
+            );
+
+            it('a plugin create with an explicit value stores the secret', async () => {
+                await adminClient.asSuperAdmin();
+                const { createWrappedProduct } = await adminClient.query(CREATE_WRAPPED_PRODUCT, {
+                    input: { product: createProductInput('sk_live_wrapped') },
+                });
+                const { product } = await adminClient.query(GET_PRODUCT, { id: createWrappedProduct.id });
+                expect(product.customFields.secretKey).toBe('sk_live_wrapped');
+            });
+
+            it('a plugin update with the placeholder preserves the stored secret', async () => {
+                await adminClient.asSuperAdmin();
+                await adminClient.query(UPDATE_PRODUCT, {
+                    input: { id: 'T_1', customFields: { secretKey: 'sk_live_before_wrapped_update' } },
+                });
+                await adminClient.query(UPDATE_WRAPPED_PRODUCT, {
+                    input: {
+                        product: {
+                            id: 'T_1',
+                            customFields: { secretKey: REDACTED_SECRET_PLACEHOLDER, note: 'wrapped' },
+                        },
+                    },
+                });
+                const { product } = await adminClient.query(GET_PRODUCT, { id: 'T_1' });
+                expect(product.customFields).toEqual({
+                    secretKey: 'sk_live_before_wrapped_update',
+                    note: 'wrapped',
+                });
             });
         });
     });
