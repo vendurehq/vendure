@@ -1292,6 +1292,51 @@ describe('Default search plugin', () => {
                     id: createProduct.id,
                 });
             });
+
+            // https://github.com/vendurehq/vendure/issues/5367
+            it('very long multibyte Product descriptions do not cause indexing to fail', async () => {
+                // Random Hebrew letters: 2 bytes per char in UTF-8, and random so that
+                // Postgres compression does not shrink the index tuple below the limit.
+                const description = Array.from({ length: 3000 })
+                    .map(() => String.fromCharCode(0x05d0 + Math.floor(Math.random() * 27)))
+                    .join('');
+
+                const { createProduct } = await adminClient.query(createProductDocument, {
+                    input: {
+                        translations: [
+                            {
+                                languageCode: LanguageCode.en,
+                                name: 'Very long multibyte description eeffgghh',
+                                slug: 'very-long-multibyte-description',
+                                description,
+                            },
+                        ],
+                    },
+                });
+                await adminClient.query(createProductVariantsDocument, {
+                    input: [
+                        {
+                            productId: createProduct.id,
+                            sku: 'VLMD01',
+                            price: 100,
+                            translations: [
+                                {
+                                    languageCode: LanguageCode.en,
+                                    name: 'Very long multibyte description variant',
+                                },
+                            ],
+                        },
+                    ],
+                });
+                await awaitRunningJobs(adminClient);
+                const result = await testProductsAdmin({ term: 'eeffgghh' });
+                expect(result.search.items.map(i => i.productName)).toEqual([
+                    'Very long multibyte description eeffgghh',
+                ]);
+                await adminClient.query(deleteProductDocument, {
+                    id: createProduct.id,
+                });
+            });
         });
 
         // https://github.com/vendurehq/vendure/issues/609
