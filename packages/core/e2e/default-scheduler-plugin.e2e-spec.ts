@@ -23,6 +23,16 @@ describe('Default scheduler plugin', () => {
     // One task per hold-window test so DB state can't leak between them.
     const holdSpyBlocking = vi.fn();
     const holdSpyManual = vi.fn();
+    const timeoutSpy = vi.fn();
+    const longRunSpy = vi.fn();
+    const gate = () => {
+        let release: () => void = () => undefined;
+        const promise = new Promise<void>(resolve => (release = resolve));
+        return { promise, release };
+    };
+    const timeoutGate = gate();
+    const timeoutRejectGate = gate();
+    const longRunGate = gate();
 
     const { server, adminClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
@@ -65,6 +75,37 @@ describe('Default scheduler plugin', () => {
                             return { success: true };
                         },
                     }),
+                    new ScheduledTask({
+                        id: 'timeout-test-job',
+                        description: 'A test job which runs longer than its timeout',
+                        schedule: cron => cron.everySaturdayAt(0, 0),
+                        timeout: 100,
+                        async execute(injector) {
+                            timeoutSpy();
+                            await timeoutGate.promise;
+                            return { success: true };
+                        },
+                    }),
+                    new ScheduledTask({
+                        id: 'timeout-reject-test-job',
+                        description: 'A test job which rejects after its timeout',
+                        schedule: cron => cron.everySaturdayAt(0, 0),
+                        timeout: 100,
+                        async execute(injector) {
+                            await timeoutRejectGate.promise;
+                            throw new Error('late failure');
+                        },
+                    }),
+                    new ScheduledTask({
+                        id: 'long-run-test-job',
+                        description: 'A test job which runs longer than its schedule interval',
+                        schedule: cron => cron.everySaturdayAt(0, 0),
+                        async execute(injector) {
+                            longRunSpy();
+                            await longRunGate.promise;
+                            return { success: true };
+                        },
+                    }),
                 ],
                 runTasksInWorkerOnly: false,
             },
@@ -92,7 +133,7 @@ describe('Default scheduler plugin', () => {
 
     it('get tasks', async () => {
         const { scheduledTasks } = await adminClient.query(getTasksDocument);
-        expect(scheduledTasks.length).toBe(4);
+        expect(scheduledTasks.length).toBe(7);
         const testJob = scheduledTasks.find(t => t.id === 'test-job');
         if (!testJob) throw new Error('test-job not found');
         expect(testJob.description).toBe("A test job that doesn't do anything");
@@ -135,7 +176,7 @@ describe('Default scheduler plugin', () => {
     // OSS-511 — calling `executeTask(...)` directly drives the cron-fed
     // path; manual triggers go through `runManually` (next test).
     it('hold window blocks repeat scheduled execution; clears after the window', async () => {
-        const { strategy, task } = getHoldTask(server, 'hold-test-job-blocking');
+        const { strategy, task } = getTask(server, 'hold-test-job-blocking');
 
         holdSpyBlocking.mockClear();
 
@@ -155,7 +196,7 @@ describe('Default scheduler plugin', () => {
     // OSS-511 — manual trigger must run *inside* the window; the control
     // assertion proves the window is genuinely active at that moment.
     it('manual trigger bypasses the hold window (cron path stays blocked)', async () => {
-        const { strategy, task } = getHoldTask(server, 'hold-test-job-manual');
+        const { strategy, task } = getTask(server, 'hold-test-job-manual');
 
         holdSpyManual.mockClear();
 
@@ -177,7 +218,7 @@ describe('Default scheduler plugin', () => {
     it('logs the error class and cause when a task throws an empty-message error', async () => {
         testingLogger.errorSpy.mockClear();
 
-        const { strategy, task } = getHoldTask(server, 'error-test-job');
+        const { strategy, task } = getTask(server, 'error-test-job');
         await strategy.executeTask(task)();
 
         const call = testingLogger.errorSpy.mock.calls.find((args: any[]) =>
@@ -195,9 +236,93 @@ describe('Default scheduler plugin', () => {
         const errorTask = scheduledTasks.find(t => t.id === 'error-test-job');
         expect(errorTask?.lastResult).toEqual({ error: 'EmptyMessageError' });
     });
+
+    // #5165: a timed-out task keeps running, so its lock must be held until execute() settles
+    it('keeps the lock after a timeout until the task settles', async () => {
+        const { strategy, task } = getTask(server, 'timeout-test-job');
+
+        try {
+            await strategy.executeTask(task)();
+            expect(timeoutSpy).toHaveBeenCalledTimes(1);
+            expect(await isRunning('timeout-test-job')).toBe(true);
+
+            // Manual runs skip the hold window, so only the lock can block this one.
+            await (strategy as any).runManually(task);
+            expect(timeoutSpy).toHaveBeenCalledTimes(1);
+        } finally {
+            timeoutGate.release();
+        }
+        await pollUntil(async () => (await isRunning('timeout-test-job')) === false);
+
+        const { scheduledTasks } = await adminClient.query(getTasksDocument);
+        expect(scheduledTasks.find(t => t.id === 'timeout-test-job')?.lastResult).toEqual({
+            error: 'Task timed out',
+        });
+    });
+
+    // #5165
+    it('releases the lock when a timed-out execution later rejects', async () => {
+        const { strategy, task } = getTask(server, 'timeout-reject-test-job');
+        testingLogger.errorSpy.mockClear();
+
+        try {
+            await strategy.executeTask(task)();
+            expect(await isRunning('timeout-reject-test-job')).toBe(true);
+        } finally {
+            timeoutRejectGate.release();
+        }
+        await pollUntil(async () => (await isRunning('timeout-reject-test-job')) === false);
+
+        const lateError = testingLogger.errorSpy.mock.calls.find((args: any[]) =>
+            String(args[0]).includes('Timed-out scheduled task "timeout-reject-test-job" failed'),
+        );
+        expect(String(lateError?.[0])).toContain('late failure');
+
+        const { scheduledTasks } = await adminClient.query(getTasksDocument);
+        expect(scheduledTasks.find(t => t.id === 'timeout-reject-test-job')?.lastResult).toEqual({
+            error: 'Task timed out',
+        });
+    });
+
+    // #5165, and the stale lock part of #5166 only: a run longer than the schedule interval keeps its lock
+    it('blocks a second run while a run outlasts the schedule interval', async () => {
+        const { strategy, task } = getTask(server, 'long-run-test-job');
+        const staleTaskService = (strategy as any).staleTaskService;
+        const getScheduleIntervalMs = staleTaskService.getScheduleIntervalMs.bind(staleTaskService);
+        const intervalSpy = vi
+            .spyOn(staleTaskService, 'getScheduleIntervalMs')
+            .mockImplementation((t: any) => (t.id === task.id ? 300 : getScheduleIntervalMs(t)));
+        const acquireSpy = vi.spyOn(strategy as any, 'tryAcquireLock');
+        let firstRun: Promise<void> | undefined;
+
+        try {
+            firstRun = strategy.executeTask(task)();
+            await pollUntil(() => longRunSpy.mock.calls.length === 1);
+            // Let several stale thresholds pass while the first run is in flight.
+            await wait(1000);
+            acquireSpy.mockClear();
+
+            // Manual runs skip the hold window, so only the lock can block this one.
+            void (strategy as any).runManually(task);
+            await pollUntil(() => acquireSpy.mock.calls.some(([t]: any[]) => t.id === task.id));
+            const index = acquireSpy.mock.calls.findIndex(([t]: any[]) => t.id === task.id);
+            expect(await acquireSpy.mock.results[index].value).toBeFalsy();
+        } finally {
+            longRunGate.release();
+            await firstRun;
+            intervalSpy.mockRestore();
+            acquireSpy.mockRestore();
+        }
+        await pollUntil(async () => (await isRunning('long-run-test-job')) === false);
+    });
+
+    async function isRunning(id: string) {
+        const { scheduledTasks } = await adminClient.query(getTasksDocument);
+        return scheduledTasks.find(t => t.id === id)?.isRunning;
+    }
 });
 
-function getHoldTask(server: any, id: string) {
+function getTask(server: any, id: string) {
     const config = server.app.get(ConfigService);
     const strategy = config.schedulerOptions.schedulerStrategy;
     const task = config.schedulerOptions.tasks?.find((t: ScheduledTask) => t.id === id);
